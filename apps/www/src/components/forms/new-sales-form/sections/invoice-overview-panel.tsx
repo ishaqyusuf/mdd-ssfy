@@ -12,7 +12,6 @@ import {
     SelectValue,
 } from "@gnd/ui/select";
 import {
-    Building2,
     Check,
     ChevronDown,
     ChevronUp,
@@ -75,13 +74,6 @@ export function InvoiceOverviewPanel() {
 
     return (
         <section className="space-y-6">
-            <div className="flex items-center gap-2">
-                <Building2 size={20} className="text-primary" />
-                <h2 className="text-xl font-bold leading-tight tracking-tight text-foreground">
-                    Invoice Summary
-                </h2>
-            </div>
-
             <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                     <h3 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">

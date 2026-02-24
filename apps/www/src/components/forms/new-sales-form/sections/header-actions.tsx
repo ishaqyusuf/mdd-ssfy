@@ -1,6 +1,8 @@
 "use client";
 
 import { Button } from "@gnd/ui/button";
+import { Menu } from "@gnd/ui/custom/menu";
+import { MoreHorizontal } from "lucide-react";
 
 interface Props {
     type: "order" | "quote";
@@ -16,6 +18,7 @@ interface Props {
     onToggleOverview?: () => void;
     onOpenMobileSummary?: () => void;
     onToggleAutosave?: () => void;
+    onOpenSettings?: () => void;
 }
 
 export function HeaderActions(props: Props) {
@@ -45,6 +48,14 @@ export function HeaderActions(props: Props) {
                 </div>
 
                 <div className="hidden items-center gap-2 rounded-lg border bg-muted/20 px-2 py-1 md:flex">
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        className="xl:hidden"
+                        onClick={props.onOpenMobileSummary}
+                    >
+                        Invoice Summary
+                    </Button>
                     <Button size="sm" variant="outline" onClick={props.onToggleAutosave}>
                         Autosave: {props.autosaveEnabled ? "On" : "Off"}
                     </Button>
@@ -79,6 +90,25 @@ export function HeaderActions(props: Props) {
                     >
                         Save Final
                     </Button>
+                    <Menu
+                        Icon={MoreHorizontal}
+                        iconClassName="size-4"
+                        Trigger={
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="px-2"
+                                disabled={props.isSaving}
+                            >
+                                <MoreHorizontal className="size-4" />
+                            </Button>
+                        }
+                    >
+                        <Menu.Item disabled>Overview</Menu.Item>
+                        <Menu.Item disabled>Send</Menu.Item>
+                        <Menu.Item disabled>Print</Menu.Item>
+                        <Menu.Item onClick={props.onOpenSettings}>Settings</Menu.Item>
+                    </Menu>
                 </div>
 
                 <div className="flex items-center gap-2 md:hidden">

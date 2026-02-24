@@ -137,6 +137,14 @@ export async function getStepComponents(
     include: {
       door: query.stepTitle != null,
       product: true,
+      step: {
+        select: {
+          id: true,
+          uid: true,
+          title: true,
+          meta: true,
+        },
+      },
       sorts: true,
       _count: {
         select: {
@@ -147,7 +155,37 @@ export async function getStepComponents(
       },
     },
   });
-  const result = stepProducts.map(dtoStepComponent);
+  const pricingRows = await db.dykePricingSystem.findMany({
+    where: {
+      deletedAt: null,
+      stepProductUid: {
+        in: stepProducts.map((sp) => sp.uid).filter(Boolean),
+      },
+    },
+    select: {
+      id: true,
+      stepProductUid: true,
+      dependenciesUid: true,
+      price: true,
+    },
+  });
+  const pricingByComponentUid: Record<
+    string,
+    Record<string, { id: number; price: number | null }>
+  > = {};
+  pricingRows.forEach((row) => {
+    if (!row.stepProductUid) return;
+    const root = row.stepProductUid;
+    const depKey = row.dependenciesUid || root;
+    if (!pricingByComponentUid[root]) pricingByComponentUid[root] = {};
+    pricingByComponentUid[root][depKey] = {
+      id: row.id,
+      price: row.price,
+    };
+  });
+  const result = stepProducts.map((stepProduct) =>
+    dtoStepComponent(stepProduct, pricingByComponentUid),
+  );
   const filtered = result.filter(
     (r, i) => result.findIndex((s) => s.title == r.title) == i
   );
@@ -211,6 +249,7 @@ export function dtoStepComponent(
     include: {
       door: true;
       product: true;
+      step: true;
       sorts: true;
       _count: {
         select: {
@@ -220,17 +259,30 @@ export function dtoStepComponent(
         };
       };
     };
-  }>
+  }>,
+  pricingByComponentUid: Record<
+    string,
+    Record<string, { id: number; price: number | null }>
+  > = {},
 ) {
   let {
     door,
     product,
+    step,
     sortIndex,
     sorts,
     _count: { housePackageTools, salesDoors, stepForms },
     ...component
   } = data;
   let meta: StepComponentMeta = component.meta as any;
+  const stepMeta = (step?.meta || {}) as Record<string, any>;
+  const priceStepDeps = Array.isArray(stepMeta?.priceStepDeps)
+    ? stepMeta.priceStepDeps
+        .map((uid: unknown) => String(uid || ""))
+        .filter(Boolean)
+    : [];
+  const pricing = pricingByComponentUid[component.uid] || {};
+  const defaultPrice = Number(pricing?.[component.uid]?.price);
   return {
     uid: component.uid,
     sortIndex,
@@ -240,9 +292,12 @@ export function dtoStepComponent(
     productId: product?.id || door?.id,
     variations: meta?.variations || [],
     sectionOverride: meta?.sectionOverride,
-    salesPrice: null,
-    basePrice: null,
+    salesPrice: Number.isFinite(defaultPrice) ? defaultPrice : null,
+    basePrice: Number.isFinite(defaultPrice) ? defaultPrice : null,
     stepId: component.dykeStepId,
+    stepUid: step?.uid || null,
+    priceStepDeps,
+    pricing,
     productCode: component.productCode,
     redirectUid: component.redirectUid,
     _metaData: {

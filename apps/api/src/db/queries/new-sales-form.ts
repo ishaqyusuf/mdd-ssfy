@@ -727,6 +727,7 @@ export async function getNewSalesFormStepRouting(
             id: true,
             uid: true,
             name: true,
+            img: true,
             redirectUid: true,
             product: {
               select: {
@@ -747,8 +748,12 @@ export async function getNewSalesFormStepRouting(
   ]);
 
   const settingsMeta = safeRecord(setting?.meta);
-  const routeData = safeRecord(settingsMeta.data);
-  const rawRoute = safeRecord(routeData.route);
+  const nestedRouteData = safeRecord(settingsMeta.data);
+  const rawRoute = safeRecord(
+    Object.keys(safeRecord(settingsMeta.route)).length
+      ? settingsMeta.route
+      : nestedRouteData.route,
+  );
   const composedRouter: Record<
     string,
     {
@@ -811,7 +816,7 @@ export async function getNewSalesFormStepRouting(
           title:
             component.name || component.product?.title || component.door?.title || null,
           redirectUid: component.redirectUid || null,
-          img: component.product?.img || component.door?.img || null,
+          img: component.img || component.product?.img || component.door?.img || null,
         })),
     };
   }

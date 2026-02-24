@@ -9,7 +9,7 @@ import {
     useNewSalesFormStepRoutingQuery,
     useSalesStepComponentsQuery,
 } from "../api";
-import { DoorDetailsDialog, MouldingCalculatorDialog } from "./workflow-modals";
+import { MouldingCalculatorDialog } from "./workflow-modals";
 
 const AUTO_ADVANCE_TITLES = new Set([
     "height",
@@ -18,9 +18,92 @@ const AUTO_ADVANCE_TITLES = new Set([
     "door",
     "house package tool",
 ]);
+const MULTI_SELECT_STEP_TITLES = new Set([
+    "door",
+    "moulding",
+    "weatherstrip color",
+]);
 
 function normalizeTitle(value?: string | null) {
     return String(value || "").trim().toLowerCase();
+}
+
+function buildSelectedByStepUid(steps: any[]) {
+    const selected: Record<string, string> = {};
+    (steps || []).forEach((step) => {
+        const stepUid = step?.step?.uid;
+        const prodUid = step?.prodUid;
+        if (stepUid && prodUid) selected[stepUid] = prodUid;
+    });
+    return selected;
+}
+
+function isComponentVisibleByRules(component: any, selectedByStepUid: Record<string, string>) {
+    const variations = Array.isArray(component?.variations) ? component.variations : [];
+    if (!variations.length) return true;
+    for (const variation of variations) {
+        const rules = Array.isArray(variation?.rules) ? variation.rules : [];
+        if (!rules.length) continue;
+        const matches = rules.every((rule: any) => {
+            const stepUid = String(rule?.stepUid || "");
+            const operator = String(rule?.operator || "is");
+            const candidates = Array.isArray(rule?.componentsUid)
+                ? rule.componentsUid.map((uid: any) => String(uid))
+                : [];
+            const selected = stepUid ? selectedByStepUid[stepUid] : null;
+            if (!candidates.length) return true;
+            if (!selected) return operator !== "is";
+            if (operator === "isNot") return candidates.every((uid: string) => uid !== selected);
+            return candidates.some((uid: string) => uid === selected);
+        });
+        if (matches) return true;
+    }
+    return false;
+}
+
+function resolveComponentPriceByDeps(component: any, selectedByStepUid: Record<string, string>) {
+    const directSales = Number(component?.salesPrice);
+    const directBase = Number(component?.basePrice);
+    if (Number.isFinite(directSales) || Number.isFinite(directBase)) {
+        return {
+            salesPrice: Number.isFinite(directSales) ? directSales : null,
+            basePrice: Number.isFinite(directBase) ? directBase : null,
+        };
+    }
+    const pricing =
+        component?.pricing || component?.pricings || component?.priceData || null;
+    if (!pricing || typeof pricing !== "object") {
+        return {
+            salesPrice: null,
+            basePrice: null,
+        };
+    }
+    const deps = Array.isArray(component?.priceStepDeps)
+        ? component.priceStepDeps
+        : Array.isArray(component?.meta?.priceStepDeps)
+          ? component.meta.priceStepDeps
+          : [];
+    const depKey = deps
+        .map((stepUid: string) => selectedByStepUid[stepUid] || "")
+        .filter(Boolean)
+        .join("-");
+    const fallbackKey = String(component?.uid || "");
+    const raw =
+        (depKey && (pricing as any)[depKey]) ||
+        (fallbackKey && (pricing as any)[fallbackKey]) ||
+        null;
+    const bucket = typeof raw === "number" ? { price: raw } : raw;
+    const price = Number(bucket?.price);
+    if (!Number.isFinite(price)) {
+        return {
+            salesPrice: null,
+            basePrice: null,
+        };
+    }
+    return {
+        salesPrice: price,
+        basePrice: price,
+    };
 }
 
 function customNextStepTitle(
@@ -76,6 +159,25 @@ function customNextStepTitle(
 function stepKey(lineUid: string, stepIndex: number) {
     return `${lineUid}:${stepIndex}`;
 }
+function isMultiSelectStepTitle(title?: string | null) {
+    return MULTI_SELECT_STEP_TITLES.has(normalizeTitle(title));
+}
+function getSelectedProdUids(step: any) {
+    const metaUids = Array.isArray(step?.meta?.selectedProdUids)
+        ? step.meta.selectedProdUids
+              .map((uid: unknown) => String(uid || "").trim())
+              .filter(Boolean)
+        : [];
+    if (metaUids.length) return Array.from(new Set(metaUids));
+    const prodUid = String(step?.prodUid || "").trim();
+    return prodUid ? [prodUid] : [];
+}
+function compactStepValue(selectedComponents: any[]) {
+    if (!selectedComponents.length) return "";
+    if (selectedComponents.length === 1) return selectedComponents[0]?.title || "";
+    const first = selectedComponents[0]?.title || "";
+    return first ? `${first} +${selectedComponents.length - 1}` : `${selectedComponents.length} selected`;
+}
 
 function findStepByTitle(routeData: any, title: string | null) {
     if (!title) return null;
@@ -101,6 +203,14 @@ function money(value?: number | null) {
         currency: "USD",
     }).format(amount);
 }
+function moneyAny(value?: number | null) {
+    const amount = Number(value ?? 0);
+    if (!Number.isFinite(amount)) return null;
+    return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+    }).format(amount);
+}
 function resolveComponentImageSrc(src?: string | null) {
     const value = String(src || "").trim();
     if (!value) return null;
@@ -113,8 +223,10 @@ function resolveComponentImageSrc(src?: string | null) {
         return value;
     }
     const base = String(env.NEXT_PUBLIC_CLOUDINARY_BASE_URL || "").replace(/\/$/, "");
-    if (!base) return value;
-    return `${base}/dyke/${value.replace(/^\//, "")}`;
+    const normalized = value.replace(/^\//, "");
+    if (!base) return normalized;
+    if (normalized.startsWith("dyke/")) return `${base}/${normalized}`;
+    return `${base}/dyke/${normalized}`;
 }
 
 function getItemType(line: any) {
@@ -134,19 +246,6 @@ function isServiceItem(line: any) {
 function isShelfItem(line: any) {
     return getItemType(line) === "shelf items";
 }
-
-function isDoorItem(line: any) {
-    const type = getItemType(line);
-    if (!type) return false;
-    if (["moulding", "services", "shelf items", "service"].includes(type)) return false;
-    return (
-        type.includes("door") ||
-        type.includes("bifold") ||
-        type.includes("slab") ||
-        type.includes("interior") ||
-        type.includes("exterior")
-    );
-}
 function firstPendingStepIndex(steps: any[]) {
     const pending = steps.findIndex((step) => !String(step?.prodUid || "").trim());
     return pending >= 0 ? pending : Math.max(0, steps.length - 1);
@@ -163,7 +262,6 @@ export function ItemWorkflowPanel() {
     const [activeStepByLine, setActiveStepByLine] = useState<Record<string, number>>(
         {},
     );
-    const [isDoorDialogOpen, setIsDoorDialogOpen] = useState(false);
     const [isMouldingDialogOpen, setIsMouldingDialogOpen] = useState(false);
 
     const stepRoutingQuery = useNewSalesFormStepRoutingQuery({});
@@ -187,10 +285,69 @@ export function ItemWorkflowPanel() {
         },
         !!activeStep,
     );
+    const rootStepId = routeData?.rootStepUid
+        ? routeData?.stepsByUid?.[routeData.rootStepUid]?.id
+        : null;
+    const rootComponentsQuery = useSalesStepComponentsQuery(
+        {
+            stepId: rootStepId || undefined,
+            stepTitle: null,
+        },
+        !!rootStepId,
+    );
 
     const visibleComponents = useMemo(() => {
-        return (stepComponentsQuery.data || []).filter((component) => !component.isDeleted);
-    }, [stepComponentsQuery.data]);
+        const selectedByStepUid = buildSelectedByStepUid(activeLineSteps);
+        return (stepComponentsQuery.data || [])
+            .filter((component) => !component.isDeleted)
+            .filter(
+                (component) =>
+                    !(component as any)?._metaData?.custom &&
+                    !(component as any)?.custom,
+            )
+            .filter((component) => isComponentVisibleByRules(component, selectedByStepUid))
+            .map((component) => {
+                const price = resolveComponentPriceByDeps(component, selectedByStepUid);
+                return {
+                    ...component,
+                    salesPrice:
+                        component?.salesPrice == null
+                            ? price.salesPrice
+                            : component.salesPrice,
+                    basePrice:
+                        component?.basePrice == null ? price.basePrice : component.basePrice,
+                };
+            });
+    }, [stepComponentsQuery.data, activeLineSteps]);
+    const activeRootComponents = useMemo(() => {
+        const roots = rootComponentsQuery.data || [];
+        const configured = new Set(Object.keys(routeData?.composedRouter || {}));
+        if (!configured.size) return [];
+        const selectedByStepUid = buildSelectedByStepUid(activeLineSteps);
+        return roots
+            .filter((component: any) => configured.has(component.uid))
+            .filter(
+                (component: any) =>
+                    !component?._metaData?.custom && !component?.custom,
+            )
+            .filter((component: any) =>
+                isComponentVisibleByRules(component, selectedByStepUid),
+            )
+            .map((component: any) => {
+                const price = resolveComponentPriceByDeps(component, selectedByStepUid);
+                return {
+                    ...component,
+                    salesPrice:
+                        component?.salesPrice == null
+                            ? price.salesPrice
+                            : component.salesPrice,
+                    basePrice:
+                        component?.basePrice == null
+                            ? price.basePrice
+                            : component.basePrice,
+                };
+            });
+    }, [routeData, rootComponentsQuery.data, activeLineSteps]);
 
     if (!record) return null;
 
@@ -394,6 +551,94 @@ export function ItemWorkflowPanel() {
         const nextSteps = [...steps];
         const current = nextSteps[currentStepIndex];
         if (!current) return;
+        const isMultiSelectStep = isMultiSelectStepTitle(current?.step?.title);
+
+        if (isMultiSelectStep) {
+            const selectedSet = new Set(getSelectedProdUids(current));
+            if (selectedSet.has(component.uid)) selectedSet.delete(component.uid);
+            else selectedSet.add(component.uid);
+
+            const selectedUids = Array.from(selectedSet);
+            const selectedComponents = selectedUids
+                .map((uid) =>
+                    visibleComponents.find((candidate: any) => candidate.uid === uid),
+                )
+                .filter(Boolean);
+            const primary = selectedComponents[0] || null;
+            const totalSales = selectedComponents.reduce(
+                (sum, c: any) => sum + Number(c?.salesPrice || 0),
+                0,
+            );
+            const totalBase = selectedComponents.reduce(
+                (sum, c: any) => sum + Number(c?.basePrice || 0),
+                0,
+            );
+
+            nextSteps[currentStepIndex] = {
+                ...current,
+                componentId: primary?.id || null,
+                prodUid: primary?.uid || "",
+                value: compactStepValue(selectedComponents),
+                price: selectedComponents.length ? totalSales : 0,
+                basePrice: selectedComponents.length ? totalBase : 0,
+                meta: {
+                    ...(current.meta || {}),
+                    img: primary?.img || null,
+                    selectedProdUids: selectedUids,
+                    selectedComponents: selectedComponents.map((c: any) => ({
+                        uid: c.uid,
+                        title: c.title,
+                        img: c.img || null,
+                        salesPrice:
+                            c.salesPrice == null ? null : Number(c.salesPrice || 0),
+                        basePrice:
+                            c.basePrice == null ? null : Number(c.basePrice || 0),
+                    })),
+                },
+                step: {
+                    ...(current.step || {
+                        id: current.stepId || null,
+                        title: "",
+                    }),
+                    title: current.step?.title || activeStep?.step?.title || "",
+                },
+            };
+
+            if (!selectedComponents.length) {
+                updateLineItem(line.uid, {
+                    formSteps: nextSteps.slice(0, currentStepIndex + 1),
+                });
+                setActiveStepByLine((prev) => ({
+                    ...prev,
+                    [line.uid]: currentStepIndex,
+                }));
+                return;
+            }
+
+            const routed = applyRouteRecursion({
+                line,
+                steps: nextSteps,
+                startIndex: currentStepIndex,
+                selectedComponent: {
+                    uid: primary.uid,
+                    title: primary.title,
+                    redirectUid: primary.redirectUid,
+                },
+            });
+
+            updateLineItem(line.uid, {
+                formSteps: routed.steps,
+            });
+            const nextIndex =
+                routed.steps[currentStepIndex + 1] != null
+                    ? currentStepIndex + 1
+                    : currentStepIndex;
+            setActiveStepByLine((prev) => ({
+                ...prev,
+                [line.uid]: nextIndex,
+            }));
+            return;
+        }
 
         nextSteps[currentStepIndex] = {
             ...current,
@@ -631,15 +876,15 @@ export function ItemWorkflowPanel() {
                         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                             Root Step Components
                         </p>
-                        {stepRoutingQuery.isPending ? (
+                        {stepRoutingQuery.isPending || rootComponentsQuery.isPending ? (
                             <p className="text-sm text-muted-foreground">Loading step routing...</p>
-                        ) : !(routeData?.rootComponents || []).length ? (
+                        ) : !activeRootComponents.length ? (
                             <p className="text-sm text-muted-foreground">
                                 No root components found in sales settings route.
                             </p>
                         ) : (
                             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                                {(routeData?.rootComponents || []).map((component: any) => (
+                                {activeRootComponents.map((component: any) => (
                                     <button
                                         key={component.uid}
                                         type="button"
@@ -663,8 +908,14 @@ export function ItemWorkflowPanel() {
                                             <p className="font-semibold">
                                                 {component.title || component.uid}
                                             </p>
-                                            <p className="text-xs text-muted-foreground">
-                                                uid: {component.uid}
+                                            <p className="text-xs font-medium text-primary">
+                                                {moneyAny(
+                                                    component.salesPrice ??
+                                                        component.basePrice ??
+                                                        component?.pricing?.[component.uid]
+                                                            ?.price ??
+                                                        null,
+                                                ) || "No price"}
                                             </p>
                                         </div>
                                     </button>
@@ -681,15 +932,6 @@ export function ItemWorkflowPanel() {
                                 Select Component: {activeStep.step?.title || "Current Step"}
                             </p>
                             <div className="ml-auto flex items-center gap-2">
-                                {isDoorItem(activeLine) ? (
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => setIsDoorDialogOpen(true)}
-                                    >
-                                        Door Details
-                                    </Button>
-                                ) : null}
                                 {isMouldingItem(activeLine) ? (
                                     <Button
                                         size="sm"
@@ -914,7 +1156,8 @@ export function ItemWorkflowPanel() {
                         ) : (
                             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                                 {visibleComponents.map((component) => {
-                                    const isSelected = activeStep.prodUid === component.uid;
+                                    const selectedUids = new Set(getSelectedProdUids(activeStep));
+                                    const isSelected = selectedUids.has(component.uid);
                                     return (
                                         <button
                                             key={component.uid}
@@ -952,17 +1195,15 @@ export function ItemWorkflowPanel() {
                                                 <p className="font-semibold leading-tight">
                                                     {component.title}
                                                 </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    uid: {component.uid}
+                                                <p className="text-xs font-medium text-primary">
+                                                    {moneyAny(
+                                                        component.salesPrice ??
+                                                            component.basePrice ??
+                                                            component?.pricing?.[component.uid]
+                                                                ?.price ??
+                                                            null,
+                                                    ) || "No price"}
                                                 </p>
-                                                {money(component.salesPrice ?? component.basePrice) ? (
-                                                    <p className="text-xs font-medium text-primary">
-                                                        {money(
-                                                            component.salesPrice ??
-                                                                component.basePrice,
-                                                        )}
-                                                    </p>
-                                                ) : null}
                                             </div>
                                         </button>
                                     );
@@ -972,15 +1213,6 @@ export function ItemWorkflowPanel() {
                     </div>
                 )}
             </section>
-
-            {activeLine ? (
-                <DoorDetailsDialog
-                    open={isDoorDialogOpen}
-                    onOpenChange={setIsDoorDialogOpen}
-                    line={activeLine}
-                    onApply={(linePatch) => updateLineItem(activeLine.uid, linePatch)}
-                />
-            ) : null}
 
             {activeLine ? (
                 <MouldingCalculatorDialog

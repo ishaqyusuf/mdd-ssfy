@@ -16,6 +16,8 @@ import { StatusStrip } from "./sections/status-strip";
 import { ItemWorkflowPanel } from "./sections/item-workflow-panel";
 import { InvoiceSummarySidebar } from "./sections/invoice-summary-sidebar";
 import { useRouter } from "next/navigation";
+import { _modal } from "@/components/common/modal/provider";
+import NewSalesFormSettingsModal from "@/components/modals/new-sales-form-settings-modal";
 
 interface Props {
     mode: "create" | "edit";
@@ -234,8 +236,8 @@ export function NewSalesForm(props: Props) {
     }
 
     return (
-        <div className="relative flex h-[calc(100vh-5rem)] min-h-[720px] overflow-hidden rounded-xl border bg-background">
-            <main className="flex min-w-0 flex-1 flex-col">
+        <div className="relative flex h-[calc(100dvh-var(--header-height,5rem))] max-h-[calc(100dvh-var(--header-height,5rem))] overflow-hidden rounded-xl border bg-background">
+            <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
                 <HeaderActions
                     type={props.type}
                     orderId={record.orderId}
@@ -262,6 +264,9 @@ export function NewSalesForm(props: Props) {
                             autosaveEnabled: !editor.autosaveEnabled,
                         })
                     }
+                    onOpenSettings={() => {
+                        _modal.openSheet(<NewSalesFormSettingsModal />);
+                    }}
                 />
 
                 <div className="flex-1 overflow-y-auto p-4 pb-28 sm:p-6 lg:p-8 lg:pb-8">

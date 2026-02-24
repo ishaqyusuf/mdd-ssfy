@@ -23,6 +23,12 @@ Concrete paths:
 
 Plan maintenance rule:
 - This `plan.md` must be updated in every substantive thread with important findings, scope decisions, status changes, and validation outcomes before handoff.
+- New-form isolation rule:
+  - Never depend on old form runtime stores/components/dependencies (`app-deps`/legacy form context) for new-sales-form behavior.
+  - Re-implement or consume dedicated `newSalesForm` API/contracts instead of wiring legacy form internals.
+- UI control import rule:
+  - Use `@gnd/ui/controls/*` imports for form controls (`input`, `select`, `checkbox`, `switch`, `combobox`) in new-sales-form scope.
+  - Keep button imports on `@gnd/ui/button`.
 
 ## Legacy Step Engine Findings (Must Preserve)
 
@@ -416,6 +422,59 @@ Validation:
   - injects full step series into step pills immediately
   - opens next step after `Item Type` by default.
 
+### 2026-02-24 Legacy Engine Deep-Dive (Analysis Only, No New Runtime Changes)
+- Scope reviewed:
+  - `app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/step-helper.tsx`
+  - `.../_utils/helpers/zus/step-component-class.ts`
+  - `.../_utils/helpers/zus/settings-class.ts`
+  - `.../_utils/helpers/zus/costing-class.ts`
+  - `.../_utils/helpers/zus/group-form-class.ts`
+  - `.../_utils/helpers/zus/service-class.ts`
+  - `.../_utils/helpers/zus/moulding-class.ts`
+  - `.../_utils/helpers/zus/hpt-class.ts`
+  - `app/(v2)/(loggedIn)/sales-v2/form/_hooks/use-step-items.tsx`
+  - `app/(v2)/(loggedIn)/sales-v2/form/_action/get-next-dyke-step.ts`
+  - `_common/use-case/step-component-use-case.ts`
+  - `_common/utils/sales-step-utils.ts`
+- Confirmed legacy filter model for step components:
+  - base component list is loaded per step via `getStepComponentsUseCase(stepTitle, stepId)` (TRPC/API `sales.getStepComponents` equivalent).
+  - visibility is computed in client (`StepHelperClass.isComponentVisible`) from per-component `variations.rules[]`:
+    - each rule points to prior `stepUid` + allowed/disallowed `componentsUid[]` + operator (`is` / not-is semantics).
+    - component marked visible only when a variation rule-set matches currently selected prior-step component UIDs.
+  - route/section overrides merge into effective config via `SettingsClass.getRouteConfig()`:
+    - base from `composedRouter[rootComponentUid].config`
+    - overridden by first active `sectionOverride` on selected steps (`overrideMode`).
+- Confirmed legacy pricing model:
+  - each visible component is re-priced in `filterStepComponents()`:
+    - `basePrice = getComponentPrice(componentUid)`
+    - `salesPrice = calculateSales(basePrice)` unless `_metaData.custom`.
+  - `getComponentPrice()` resolves by dependency pricing matrix:
+    - no deps: default component price bucket
+    - with deps: key is joined selected dependency component UIDs (`uid1-uid2-...`).
+  - multiplier/profile logic and totals live in `CostingClass` (`salesMultiplier`, tax, labor, extra costs, group totals).
+- Confirmed multi-select behavior boundaries:
+  - multi-select step titles: `Door`, `Moulding`, `Weatherstrip Color`.
+  - `ComponentHelperClass.selectComponent()` branches:
+    - Moulding-path writes to `groupItem.form[componentUid]`, toggles selected state, updates `itemIds`, qty totals, grouped pricing.
+    - non-moulding single-select writes selected component into current step form then advances route.
+  - Door/HPT group form is managed by `HptClass` with per-size selections (`doorUid-size`) and supplier/size price dependency keys.
+  - Service lines use `ServiceClass` group forms (`groupItem.form[lineUid]`) with add/remove/selected and pricing metadata.
+- Confirmed next-step resolution precedence in legacy:
+  - settings route (`composedRouter`) + redirect UID override first (`SettingsClass.getNextRouteFromSettings`).
+  - when missing, fallback scans prior steps for unresolved route candidates.
+  - v2 custom action adds door-type specific overrides (`Bifold`, `Moulding`, `Services`, `Door Slabs Only`, etc.) and hidden-step recursion auto-advance.
+- Implementation implications for new-sales-form (must port before claiming parity):
+  - apply variation-rule visibility filtering against selected prior-step components before rendering selectable components.
+  - compute component pricing through dependency matrices (not static salesPrice) using selected step-path keys.
+  - support multi-select group flows for moulding/door/weatherstrip and preserve groupItem qty/pricing math.
+  - keep service/shelf branch behavior distinct from door/moulding paths.
+  - keep route config + section override merge semantics identical to legacy for `noHandle`, swing behavior, production/shipping flags, and shelf line-item behavior.
+
+### 2026-02-24 Patch Note (Header Dropdown Menu)
+- [x] Added post-`Save Final` dropdown menu in header actions.
+- [x] Left non-settings actions as placeholders (non-functional) for now.
+- [x] Wired `Settings` menu option to open existing sales form settings sheet modal.
+
 ## 1) Mission and Constraints
 
 ### Mission
@@ -620,3 +679,64 @@ Do not cut over legacy entry points until:
 - 2026-02-24: Started step-engine UI rebuild with a new step-oriented workflow panel, active-step component loading (`sales.getStepComponents`), and editor-shell state wiring for overview/mobile-summary behavior.
 - 2026-02-24: Added `newSalesForm.getStepRouting` API and wired first route-based step progression controls in the new UI (root step bootstrap + add-next-step by composed route).
 - 2026-02-24: Added autosave on/off UI toggle and updated autosave hook semantics so manual flush/save still persists while debounce autosave is disabled.
+- 2026-02-24: Replaced dependency on legacy app-deps form-settings modal for new-sales-form Settings action with a new modal in `components/modals` (`new-sales-form-settings-modal.tsx`) that preserves section route-sequence editing, per-section config toggles (`noHandle`, `hasSwing`, `production`, `shipping`, `shelfLineItems`), drag-sort step ordering, create-step mutation, and save via `saveSalesSettingUseCase`.
+- 2026-02-24: Fixed settings modal data source for new-sales-form: removed legacy form-store dependency (`useFormDataStore`) and now hydrate from `newSalesForm.getStepRouting`; save now uses TRPC `settings.updateSetting` (`type: sales-settings`) to keep new form settings flow isolated from old form runtime dependencies.
+- 2026-02-24: Fixed missing step-list rendering in settings sequence rows by aligning route-shape handling and step-option normalization:
+  - API `getNewSalesFormStepRouting` now supports both settings meta shapes (`meta.route` and `meta.data.route`) when composing router.
+  - Modal step options now filter to valid titled steps (excluding root and `--` variants), so route step dropdowns consistently render readable options.
+- 2026-02-24: Updated invoice summary responsive behavior and header controls:
+  - summary sidebar now defaults collapsed for `lg` and below and remains pinned only at `xl+`.
+  - added header toggle button (`Invoice Summary`) for `lg` and below.
+  - removed duplicated inner `Invoice Summary` title block from overview panel and applied that visual title style to the sidebar header title.
+- 2026-02-24: Settings modal UI alignment polish:
+  - normalized step-sequence row layout so step select, drag handle, and delete action align consistently (`minmax(0,1fr)` + fixed `size-8` controls + removed extra select horizontal margin).
+- 2026-02-24: Settings visual parity update:
+  - each root section now renders its root-component image before the section title.
+  - enforced uppercase display for section titles and settings component lists (step options + section add-list labels).
+- 2026-02-24: Layout stability update:
+  - new-sales-form shell height now uses `calc(100dvh - var(--header-height, 5rem))` to respect main header height and reduce viewport flicker.
+- 2026-02-24: Root step component rendering correction in new-sales-form workflow panel:
+  - root selection cards now show only components active in settings route (`composedRouter` keys).
+  - image resolver now handles both raw file names and `dyke/...` paths to prevent incorrect/doubled image URL construction.
+- 2026-02-24: Root image-source parity correction:
+  - aligned `newSalesForm.getStepRouting` with old-form image precedence by selecting and prioritizing `dykeStepProducts.img` before fallback to `product.img` / `door.img`, preventing stale root component thumbnails from old product media.
+- 2026-02-24: Step-component filter engine migration started in new workflow panel:
+  - added variation-rule visibility filtering aligned to legacy `StepHelperClass.isComponentVisible` semantics (`rules.stepUid`, `rules.operator`, `rules.componentsUid`, OR across variations + AND within rule set).
+  - added dependency-price resolution hooks on component payload (`priceStepDeps`/pricing buckets) to support path-key pricing when present; current payload may still need dedicated pricing API to reach full legacy parity.
+- 2026-02-24: Pricing payload wired in API component loader (`sales.getStepComponents`):
+  - loader now fetches `dykePricingSystem` rows for returned `stepProductUid` values and composes pricing matrix per component (`pricing[dependenciesUid || componentUid] -> { id, price }`).
+  - component payload now includes `priceStepDeps` (from `step.meta.priceStepDeps`) and `pricing` map, plus default `basePrice`/`salesPrice` from component-default pricing bucket when available.
+  - this unblocks dependency-path price resolution in new-sales-form component selection UI.
+- 2026-02-24: Removed `Door Details` button/surface from new item workflow action bar per current UI direction.
+- 2026-02-24: Component-card display update in workflow:
+  - removed UID text from root and step component cards.
+  - added explicit pricing line on each component card with fallback text when no price is available.
+- 2026-02-24: Visibility/price parity refinement:
+  - root item-type cards now load from `sales.getStepComponents` (not static routing list) so pricing/variation metadata is available on root selection.
+  - root cards remain restricted to settings-active route keys and now use the same variation visibility + dependency-price resolver path as regular step component cards.
+- 2026-02-24: Default custom-component visibility rule:
+  - custom components are now hidden by default in new workflow component selection lists (root + step component grids).
+- 2026-02-24: Legacy multi-select deep-dive completed (doors + mouldings), implementation spec captured:
+  - Multi-select step titles in legacy are explicitly bounded (`Door`, `Moulding`, `Weatherstrip Color`) via `StepHelperClass.isMultiSelectTitle`.
+  - Moulding flow:
+    - selection state is stored under `groupItem.form[lineUid]` with `selected` flags and reflected in `groupItem.itemIds`.
+    - selecting/unselecting mouldings updates qty totals and grouped pricing (`updateGroupedCost` + `calculateTotalPrice`).
+    - UI is two-part:
+      - selectable moulding popover (`SelectMoulding` with filtered visible components),
+      - line-item table (`MouldingContent`) editing qty/addon/custom price with per-line estimate composition.
+  - Door/HPT flow:
+    - selected doors are multi-selected as door-size lines keyed by `doorUid-size` path.
+    - each selected size line persists in `groupItem.form[path]` with qty (lh/rh/total), swing, unit labor, addon/custom price, and per-line itemPrice.
+    - route config (`noHandle`, `hasSwing`) changes required inputs and qty math.
+    - supplier-aware pricing key behavior exists (`size & supplierUid`) when supplier is set.
+  - Shared grouped-state mechanics:
+    - grouped forms use `GroupFormClass` helpers for deep form updates.
+    - item removal is soft-select (`selected=false`) or line removal from `itemIds` + form map cleanup.
+  - Pricing composition rules used by both:
+    - line estimate = component stack + selected item price + flat/addons/custom overrides.
+    - grouped totals roll into item totals, then global pricing/tax/labor pipeline in `CostingClass`.
+- 2026-02-24: New-form multi-select workflow started in `item-workflow-panel` for legacy multi-select step titles (`Door`, `Moulding`, `Weatherstrip Color`):
+  - clicking a component now toggles membership in `formSteps[n].meta.selectedProdUids` instead of forcing single-selection overwrite.
+  - step card highlight now reflects selected membership from `selectedProdUids`.
+  - step value/price for multi-select steps is now composed from selected components (primary display + aggregate step price).
+  - when first selection exists, route recursion continues from the first selected component to keep next configured step active; when all selections are cleared, downstream generated steps are trimmed.

@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@gnd/ui/button";
-import { X, Receipt } from "lucide-react";
+import { X, Building2 } from "lucide-react";
 import { InvoiceOverviewPanel } from "./invoice-overview-panel";
 
 interface Props {
@@ -14,21 +14,21 @@ export function InvoiceSummarySidebar(props: Props) {
         <>
             {props.mobileOpen ? (
                 <div
-                    className="fixed inset-0 z-30 bg-background/70 backdrop-blur-[1px] lg:hidden"
+                    className="fixed inset-0 z-30 bg-background/70 backdrop-blur-[1px] xl:hidden"
                     onClick={props.onClose}
                 />
             ) : null}
 
             <aside
-                className={`fixed inset-y-0 right-0 z-40 w-full max-w-[420px] border-l bg-card shadow-2xl transition-transform duration-300 lg:static lg:z-auto lg:flex lg:h-full lg:w-[420px] lg:max-w-none lg:translate-x-0 lg:border-l lg:shadow-none ${
-                    props.mobileOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"
+                className={`fixed inset-y-0 right-0 z-40 w-full max-w-[420px] border-l bg-card shadow-2xl transition-transform duration-300 xl:static xl:z-auto xl:flex xl:h-full xl:w-[420px] xl:max-w-none xl:translate-x-0 xl:border-l xl:shadow-none ${
+                    props.mobileOpen ? "translate-x-0" : "translate-x-full xl:translate-x-0"
                 }`}
             >
                 <div className="flex h-full flex-col">
                     <div className="flex items-center border-b px-4 py-3">
                         <div className="flex items-center gap-2">
-                            <Receipt className="size-4 text-primary" />
-                            <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground">
+                            <Building2 className="size-5 text-primary" />
+                            <h3 className="text-xl font-bold leading-tight tracking-tight text-foreground">
                                 Invoice Summary
                             </h3>
                         </div>
@@ -36,7 +36,7 @@ export function InvoiceSummarySidebar(props: Props) {
                             <Button
                                 size="icon"
                                 variant="ghost"
-                                className="lg:hidden"
+                                className="xl:hidden"
                                 onClick={props.onClose}
                             >
                                 <X className="size-4" />
