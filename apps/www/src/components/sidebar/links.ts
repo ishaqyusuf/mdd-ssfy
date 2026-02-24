@@ -462,6 +462,9 @@ export const linkModules = [
                     "sales-book/create-order",
                     "sales-book/edit-order",
                     "sales-book/edit-order/slug",
+                    "sales-form/create-order",
+                    "sales-form/edit-order",
+                    "sales-form/edit-order/slug",
                     // "sales-book/orders/sales-statistics",
                 ).data,
             _link("Quotes", "estimates", "/sales-book/quotes")
@@ -470,6 +473,9 @@ export const linkModules = [
                     "sales-book/create-quote",
                     "sales-book/edit-quote",
                     "sales-book/edit-quote/slug",
+                    "sales-form/create-quote",
+                    "sales-form/edit-quote",
+                    "sales-form/edit-quote/slug",
                 ).data,
             // .childPaths("sales-book/create-quote", "sales-book/edit-quote")
             // _link("Inventory", "inbound", "/inventory", [
