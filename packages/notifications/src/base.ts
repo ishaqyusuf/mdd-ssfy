@@ -21,7 +21,7 @@ export interface NotificationHandler<T = any> {
   createEmail?: (
     data: T,
     user: UserData,
-    // team: TeamContext,
+    args?: any,
   ) => Partial<CreateEmailOptions> & {
     data: Record<string, any>;
     template?: string;

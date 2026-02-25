@@ -25,7 +25,14 @@ export function JobSubmitButton({
     const { defaultValues, markAsComplete } = useJobFormContext();
     const { mutate: saveJob, isPending: isSaving } = useMutation(
         useTRPC().community.saveJobForm.mutationOptions({
-            onSuccess() {},
+            onSuccess(data, args) {
+                if (args && args.requestTaskConfig) {
+                    // Optionally show a success message or perform additional actions
+                    console.log(
+                        "Job saved and task request triggered successfully!",
+                    );
+                }
+            },
             onError(error, variables, onMutateResult, context) {
                 console.log("Failed to save job details", {
                     error,

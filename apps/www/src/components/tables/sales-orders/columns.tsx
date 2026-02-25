@@ -4,7 +4,6 @@ import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Progress } from "@gnd/ui/custom/progress";
-import { useBatchSales } from "@/hooks/use-batch-sales";
 import { cn } from "@/lib/utils";
 import { ColumnDef } from "@/types/type";
 import { RouterOutputs } from "@api/trpc/routers/_app";
@@ -22,14 +21,10 @@ import { MenuItemPrintAction } from "@/components/menu-item-sales-print-action";
 import { useBin } from "@/hooks/use-bin";
 import { useAuth } from "@/hooks/use-auth";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
-import {
-    invalidateInfiniteQueries,
-    invalidateQuery,
-} from "@/hooks/use-invalidate-query";
+import { invalidateInfiniteQueries } from "@/hooks/use-invalidate-query";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { useMutation } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
-import { _qc, _trpc } from "@/components/static-trpc";
 import { UpdateSalesControl } from "@sales/schema";
 import { toast } from "@gnd/ui/use-toast";
 export type Item = RouterOutputs["sales"]["index"]["data"][number];
@@ -325,9 +320,9 @@ export const columns: ColumnDef<Item>[] = [
 
 function Actions({ item }: { item: Item }) {
     const produceable = !!item.stats?.prodCompleted?.total;
-    const batchSales = useBatchSales();
     const isBin = useBin();
     const auth = useAuth();
+    const trpc = useTRPC();
     const { trigger } = useTaskTrigger({
         // silent: true,
         onSuccess() {
@@ -341,8 +336,66 @@ function Actions({ item }: { item: Item }) {
     const activeDispatch = ((item as any)?.deliveries || []).find(
         (delivery) => !["cancelled", "completed"].includes(delivery?.status),
     );
+    const { mutate: createDispatch } = useMutation(
+        trpc.dispatch.createDispatch.mutationOptions({
+            onSuccess() {
+                invalidateInfiniteQueries("sales.getOrders");
+            },
+        }),
+    );
+    const triggerDispatchAction = (
+        action: "production" | "fulfillment",
+        dispatchId: number,
+        dispatchStatus?: string,
+    ) => {
+        const payload: UpdateSalesControl = {
+            meta: {
+                salesId: item.id,
+                authorId: auth?.id!,
+                authorName: auth?.name!,
+            },
+            ...(action === "production"
+                ? {
+                      packItems: {
+                          dispatchId,
+                          dispatchStatus: (dispatchStatus || "queue") as any,
+                          packMode: "all",
+                      },
+                  }
+                : {
+                      markAsCompleted: {
+                          dispatchId,
+                          receivedBy: auth?.name || "System",
+                          receivedDate: new Date(),
+                      },
+                  }),
+        };
+        trigger({
+            taskName: "update-sales-control",
+            payload,
+        });
+    };
+    const ensureDispatchAndTrigger = (action: "production" | "fulfillment") => {
+        if (activeDispatch?.id) {
+            triggerDispatchAction(action, activeDispatch.id, activeDispatch.status);
+            return;
+        }
+        createDispatch(
+            {
+                salesId: item.id,
+                deliveryMode: item.deliveryOption || "delivery",
+                dueDate: new Date(),
+                status: "queue",
+            },
+            {
+                onSuccess(dispatch) {
+                    triggerDispatchAction(action, dispatch.id, dispatch.status);
+                },
+            },
+        );
+    };
     const { mutate: restore, isPending: isRestoring } = useMutation(
-        useTRPC().sales.restore.mutationOptions({
+        trpc.sales.restore.mutationOptions({
             onSuccess: () => {
                 invalidateInfiniteQueries("sales.getOrders");
             },
@@ -397,29 +450,7 @@ function Actions({ item }: { item: Item }) {
                                 disabled={!produceable}
                                 onClick={(e) => {
                                     e.preventDefault();
-                                    if (!activeDispatch?.id) {
-                                        batchSales.markAsProductionCompleted(
-                                            item.id,
-                                        );
-                                        return;
-                                    }
-                                    trigger({
-                                        taskName: "update-sales-control",
-                                        payload: {
-                                            meta: {
-                                                salesId: item.id,
-                                                authorId: auth?.id!,
-                                                authorName: auth?.name!,
-                                            },
-                                            packItems: {
-                                                dispatchId: activeDispatch.id,
-                                                dispatchStatus:
-                                                    activeDispatch.status ||
-                                                    "queue",
-                                                packMode: "all",
-                                            },
-                                        } as UpdateSalesControl,
-                                    });
+                                    ensureDispatchAndTrigger("production");
                                 }}
                             >
                                 Production Complete
@@ -427,26 +458,7 @@ function Actions({ item }: { item: Item }) {
                             <Menu.Item
                                 onClick={(e) => {
                                     e.preventDefault();
-                                    // if (!activeDispatch?.id) {
-                                    //     batchSales.markAsFulfilled(item.id);
-                                    //     return;
-                                    // }
-                                    trigger({
-                                        taskName: "update-sales-control",
-                                        payload: {
-                                            meta: {
-                                                salesId: item.id,
-                                                authorId: auth?.id!,
-                                                authorName: auth?.name!,
-                                            },
-                                            markAsCompleted: {
-                                                // dispatchId: activeDispatch.id,
-                                                // receivedBy:
-                                                //     auth?.name || "System",
-                                                // receivedDate: new Date(),
-                                            },
-                                        } as UpdateSalesControl,
-                                    });
+                                    ensureDispatchAndTrigger("fulfillment");
                                 }}
                             >
                                 Fulfillment Complete
@@ -460,4 +472,3 @@ function Actions({ item }: { item: Item }) {
         </div>
     );
 }
-

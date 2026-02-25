@@ -115,12 +115,28 @@ export const jobAssignedSchema = z.object({
   // author: z.string().optional().nullable(),
 });
 export type JobAssignedInput = z.infer<typeof jobAssignedSchema>;
+
+export const jobSubmittedSchema = z.object({
+  jobId: z.number(),
+  submittedById: z.number().optional(),
+  submittedByName: z.string().optional(),
+});
+export type JobSubmittedInput = z.infer<typeof jobSubmittedSchema>;
+
+export const jobReviewRequestedSchema = z.object({
+  jobId: z.number(),
+  requestedById: z.number().optional(),
+  requestedByName: z.string().optional(),
+});
+export type JobReviewRequestedInput = z.infer<typeof jobReviewRequestedSchema>;
 // Notification types map - all available notification types with their data structures
 
 export type NotificationTypes = {
   // sales_checkout_success: SalesCheckoutSuccessInput;
   // job_activity: JobActivityInput;
   job_assigned: JobAssignedInput;
+  job_submitted: JobSubmittedInput;
+  job_review_requested: JobReviewRequestedInput;
   sales_dispatch_assigned: SalesDispatchAssignedInput;
 };
 
@@ -167,6 +183,18 @@ export const baseNotificationJobSchema = z.object({
 const _channel = (channel: ChannelName) => channel as string;
 //z.literal(channel);
 export const notificationJobSchema = z.discriminatedUnion("channel", [
+  baseNotificationJobSchema.extend({
+    channel: z.literal("job_assigned"),
+    payload: jobAssignedSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("job_submitted"),
+    payload: jobSubmittedSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("job_review_requested"),
+    payload: jobReviewRequestedSchema,
+  }),
   baseNotificationJobSchema.extend({
     channel: z.literal("sales_dispatch_assigned"),
     payload: salesDispatchAssignedSchema,

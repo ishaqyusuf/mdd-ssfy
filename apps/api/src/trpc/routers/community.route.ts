@@ -85,6 +85,7 @@ import {
   percentageValue,
   sum,
 } from "@gnd/utils";
+import { tasks } from "@trigger.dev/sdk/v3";
 import type { CommunityBuilderMeta } from "@gnd/utils/community";
 import {
   builderFormSchema,
@@ -94,6 +95,7 @@ import {
 import { getSettingAction } from "@gnd/settings";
 import { INSTALL_COST_DEFAULT_UNITS } from "@community/constants";
 import type { JobMeta, JobStatus, ProjectMeta } from "@community/types";
+import type { NotificationJobInput } from "@notifications/schemas";
 export const communityRouters = createTRPCRouter({
   buildersList: publicProcedure.query(async (q) => {
     return buildersList(q.ctx);
@@ -389,6 +391,7 @@ export const communityRouters = createTRPCRouter({
     return ctx.db.$transaction(async (db) => {
       const { unit, user, job } = input;
       let jobId = job.id;
+      const isCreatingJob = !jobId;
       if (!job.meta) job.meta = {};
       if (job.isCustom) {
         job.meta = {
@@ -489,6 +492,80 @@ export const communityRouters = createTRPCRouter({
             })),
         }),
       ]);
+
+      if (isCreatingJob && ctx.userId) {
+        const actor = await db.users.findFirst({
+          where: {
+            id: ctx.userId,
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+            name: true,
+            roles: {
+              where: {
+                deletedAt: null,
+              },
+              select: {
+                role: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+              take: 1,
+            },
+          },
+        });
+
+        if (actor) {
+          const roleName = actor.roles?.[0]?.role?.name?.toLowerCase() || "";
+          const isContractorCreator = roleName.includes("contractor");
+          const assignedRecipient =
+            user?.id != null
+              ? [{ ids: [user.id], role: "employee" as const }]
+              : undefined;
+
+          const channel = input.requestTaskConfig
+            ? "job_review_requested"
+            : isContractorCreator
+              ? "job_submitted"
+              : "job_assigned";
+
+          const payload =
+            channel === "job_assigned"
+              ? {
+                  jobId: jobId!,
+                  assignedToId: user?.id ?? actor.id,
+                  assignedToName: user?.id ? undefined : actor.name || undefined,
+                }
+              : channel === "job_submitted"
+                ? {
+                    jobId: jobId!,
+                    submittedById: actor.id,
+                    submittedByName: actor.name || undefined,
+                  }
+                : {
+                    jobId: jobId!,
+                    requestedById: actor.id,
+                    requestedByName: actor.name || undefined,
+                  };
+
+          await tasks.trigger("notification", {
+            channel,
+            author: {
+              id: actor.id,
+              role: "employee",
+            },
+            recipients:
+              channel === "job_assigned" || channel === "job_review_requested"
+                ? assignedRecipient
+                : undefined,
+            payload,
+          } as NotificationJobInput);
+        }
+      }
+
       return {
         id: jobId,
       };

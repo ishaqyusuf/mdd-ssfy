@@ -9,12 +9,16 @@ import {
   UserData,
 } from "./base";
 import { jobAssigned } from "./types/job-assigned-schema";
+import { jobReviewRequested } from "./types/job-review-requested";
+import { jobSubmitted } from "./types/job-submitted";
 import { salesDispatchAssigned } from "./types/sales-dispatch-assigned";
 import { consoleLog } from "@gnd/utils";
 import { getSubscribersAccount } from "./channel-subscribers";
 import { logger } from "@gnd/logger";
 const handlers = {
   job_assigned: jobAssigned,
+  job_submitted: jobSubmitted,
+  job_review_requested: jobReviewRequested,
   sales_dispatch_assigned: salesDispatchAssigned,
 } as const;
 import { generateEmailMeta } from "./utils";
@@ -166,8 +170,6 @@ export class Notifications {
     ).flat();
     this.emailMeta = generateEmailMeta(author!, type);
     logger.info("Fetched author and contacts", author);
-    console.log("Data", author);
-    return null as any;
     // consoleLog("Fetched author and contacts:", author);
     // consoleLog("Fetched  contacts:", contacts);
     // console.log("Fetched team members:", contacts);
@@ -257,86 +259,76 @@ export class Notifications {
           validatedData,
           firstUser,
           this.emailMeta,
-          // teamContext,
         );
 
-        if (sampleEmail.emailType === "customer") {
-          // Customer-facing email: send regardless of team preferences
-          const emailInputs = [
-            this.#createEmailInput(
-              handler,
-              validatedData,
-              firstUser,
-              // teamContext,
-              // options,
-            ),
-          ];
+        // if (sampleEmail.emailType === "customer") {
+        //   // Customer-facing email: send regardless of team preferences
+        //   const emailInputs = [
+        //     this.#createEmailInput(handler, validatedData, firstUser),
+        //   ];
 
-          emails = await this.#emailService.sendBulk(
-            emailInputs,
-            type as string,
-          );
+        //   emails = await this.#emailService.sendBulk(
+        //     emailInputs,
+        //     type as string,
+        //   );
 
-          console.log("📨 Email result for customer:", {
-            sent: emails.sent,
-            skipped: emails.skipped,
-            failed: emails.failed || 0,
-          });
-        } else if (sampleEmail.emailType === "owners") {
-          // Owners-only email: send to team owners only
-          const ownerUsers = contacts.filter(
-            Boolean,
-            // (user: UserData) => user.role === "owner",
-          );
+        //   console.log("📨 Email result for customer:", {
+        //     sent: emails.sent,
+        //     skipped: emails.skipped,
+        //     failed: emails.failed || 0,
+        //   });
+        // } else if (sampleEmail.emailType === "owners") {
+        // Owners-only email: send to team owners only
+        //   const ownerUsers = contacts.filter(
+        //     Boolean,
+        //     // (user: UserData) => user.role === "owner",
+        //   );
 
-          const emailInputs = ownerUsers.map((user: UserData) =>
-            this.#createEmailInput(
-              handler,
-              validatedData,
-              user,
-              // teamContext,
-              // options,
-            ),
-          );
+        //   const emailInputs = ownerUsers.map((user: UserData) =>
+        //     this.#createEmailInput(
+        //       handler,
+        //       validatedData,
+        //       user,
+        //       // teamContext,
+        //       // options,
+        //     ),
+        //   );
 
-          console.log("📨 Email inputs for owners:", emailInputs.length);
+        //   console.log("📨 Email inputs for owners:", emailInputs.length);
 
-          emails = await this.#emailService.sendBulk(
-            emailInputs,
-            type as string,
-          );
+        //   emails = await this.#emailService.sendBulk(
+        //     emailInputs,
+        //     type as string,
+        //   );
 
-          console.log("📨 Email result for owners:", {
-            sent: emails.sent,
-            skipped: emails.skipped,
-            failed: emails.failed || 0,
-          });
-        } else {
-          // Team-facing email: send to all team members
-          const emailInputs = contacts!?.map((user: UserData) =>
-            this.#createEmailInput(
-              handler,
-              validatedData,
-              user,
-              // teamContext,
-              // options,
-            ),
-          );
+        //   console.log("📨 Email result for owners:", {
+        //     sent: emails.sent,
+        //     skipped: emails.skipped,
+        //     failed: emails.failed || 0,
+        //   });
+        // } else {
+        // Team-facing email: send to all team members
+        const emailInputs = contacts!?.map((user: UserData) =>
+          this.#createEmailInput(
+            handler,
+            validatedData,
+            user,
+            // teamContext,
+            // options,
+          ),
+        );
 
-          console.log("📨 Email inputs for team:", emailInputs.length);
+        console.log("📨 Email inputs for team:", emailInputs.length);
 
-          emails = await this.#emailService.sendBulk(
-            emailInputs,
-            type as string,
-          );
+        emails = await this.#emailService.sendBulk(emailInputs, type as string);
 
-          console.log("📨 Email result for team:", {
-            sent: emails.sent,
-            skipped: emails.skipped,
-            failed: emails.failed || 0,
-          });
-        }
+        console.log("📨 Email result for team:", {
+          sent: emails.sent,
+          skipped: emails.skipped,
+          failed: emails.failed || 0,
+        });
       }
+      // }
 
       return {
         type: type as string,
