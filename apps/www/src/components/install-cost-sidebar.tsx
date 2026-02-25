@@ -1,66 +1,196 @@
 "use client";
+import {
+    BuilderModelInstallsProvider,
+    ModelInstallConfigProvider,
+    useCreateBuilderModelInstallsContext,
+    useCreateModelInstallConfigContext,
+} from "@/hooks/use-model-install-config";
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
-import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
+import { cn } from "@gnd/ui/cn";
 import { Sidebar } from "@gnd/ui/namespace";
 import { Icons } from "@gnd/ui/icons";
-import { useQuery } from "@tanstack/react-query";
 import { CommunityInstallCostForm } from "./forms/community-install-cost-form";
 import { Skeleton } from "@gnd/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
+import { useEffect, useRef } from "react";
+import { BuilderTaskItem } from "./modals/model-install-cost-modal/builder-task-item";
+import { AddNewInstallCost } from "./modals/model-install-cost-modal/add-new-install-cost";
+import { InstallConfiguration } from "./modals/model-install-cost-modal/install-configuration";
 
 export function InstallCostSidebar() {
     const { editCommunityModelInstallCostId, openToSide, setParams } =
         useCommunityInstallCostParams();
-    const { data, isPending, error } = useQuery(
-        useTRPC().community.communityInstallCostForm.queryOptions(
-            {
-                projectId: editCommunityModelInstallCostId,
-            },
-            {
-                enabled: !!editCommunityModelInstallCostId && openToSide,
-            },
-        ),
-    );
+    const modelInstallCtx = useCreateModelInstallConfigContext();
+    const builderModelInstallsCtx =
+        useCreateBuilderModelInstallsContext(modelInstallCtx);
+    const initializedModelIdRef = useRef<number | null>(null);
+    const tabValue = modelInstallCtx.params.mode === "v1" ? "v1" : "v2";
+
+    useEffect(() => {
+        if (!openToSide || !editCommunityModelInstallCostId) {
+            initializedModelIdRef.current = null;
+            return;
+        }
+        if (initializedModelIdRef.current === editCommunityModelInstallCostId) {
+            return;
+        }
+        initializedModelIdRef.current = editCommunityModelInstallCostId;
+        if (tabValue !== "v2") {
+            setParams({ mode: "v2" });
+        }
+    }, [openToSide, editCommunityModelInstallCostId, tabValue, setParams]);
+
+    const estimatedBaseCost = Object.values(
+        builderModelInstallsCtx.builderTaskIntallCosts || {},
+    ).reduce((total, item) => total + (item?.total || 0), 0);
+
     return (
         <Sidebar
             collapsible="none"
             hidden={!openToSide || !editCommunityModelInstallCostId}
-            className="sticky top-0 hidden h-svh border-l lg:flex"
+            className="top-[var(--header-height)] hidden h-[calc(100svh-var(--header-height))] border-l bg-background lg:flex"
         >
-            <Sidebar.Content className="w-sm">
-                <div className="p-4">
-                    <div className="flex">
-                        <p className="font-medium text-2xl">Install Costs</p>
-                        <div className="flex-1"></div>
-                        <Button
-                            size="icon-xs"
-                            variant="destructive"
-                            onClick={(e) => {
-                                setParams(null);
-                            }}
-                        >
-                            <Icons.X className="size-4" />
-                        </Button>
+            <Sidebar.Content className="flex w-sm flex-col overflow-hidden">
+                <div className="flex items-center gap-3 border-b px-5 py-4">
+                    <div className="min-w-0">
+                        <p className="text-muted-foreground text-xs uppercase tracking-wide">
+                            Community Template
+                        </p>
+                        <p className="truncate text-xl font-semibold">
+                            Install Costs
+                        </p>
                     </div>
+                    <div className="flex-1" />
+                    <Button
+                        size="icon-xs"
+                        variant="destructive"
+                        aria-label="Close install costs sidebar"
+                        onClick={() => {
+                            setParams(null);
+                        }}
+                    >
+                        <Icons.X className="size-4" />
+                    </Button>
                 </div>
-                {isPending ? (
-                    <div className="grid gap-2">
-                        <>
-                            <Skeleton className="h-10" />
-                            {[...Array(10)].map((_, i) => (
-                                <Skeleton key={i} className="h-16" />
-                            ))}
-                        </>
-                    </div>
-                ) : (
-                    <CommunityInstallCostForm model={data} />
-                )}
+                <ModelInstallConfigProvider value={modelInstallCtx}>
+                    <BuilderModelInstallsProvider value={builderModelInstallsCtx}>
+                        <Tabs
+                            value={tabValue}
+                            onValueChange={(value) => {
+                                setParams({
+                                    mode: value as "v1" | "v2",
+                                });
+                            }}
+                            className="flex min-h-0 flex-1 flex-col"
+                        >
+                            <div className="border-b px-5 py-3">
+                                <TabsList className="grid w-full grid-cols-2">
+                                    <TabsTrigger value="v2">V2</TabsTrigger>
+                                    <TabsTrigger value="v1">V1</TabsTrigger>
+                                </TabsList>
+                            </div>
+                            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                                <TabsContent
+                                    value="v2"
+                                    className="mt-0 space-y-4"
+                                >
+                                    {modelInstallCtx.isPending ? (
+                                        <div className="grid gap-3">
+                                            <Skeleton className="h-10 w-full" />
+                                            {[...Array(6)].map((_, i) => (
+                                                <Skeleton
+                                                    key={i}
+                                                    className="h-12 w-full rounded-md"
+                                                />
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="rounded-md border bg-muted/20 p-3">
+                                                <p className="text-muted-foreground text-[11px] uppercase tracking-wide">
+                                                    Est. Base Cost
+                                                </p>
+                                                <p className="text-lg font-semibold">
+                                                    $
+                                                    {estimatedBaseCost.toFixed(
+                                                        2,
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <div className="rounded-md border">
+                                                <div className="border-b px-3 py-2">
+                                                    <p className="text-muted-foreground text-[11px] uppercase tracking-wide">
+                                                        Builder Tasks
+                                                    </p>
+                                                </div>
+                                                <div className="p-3">
+                                                    <BuilderTaskItem
+                                                        sideBarMode
+                                                    />
+                                                </div>
+                                            </div>
+                                            {modelInstallCtx.dataV2 ? (
+                                                <>
+                                                    <AddNewInstallCost />
+                                                    <div
+                                                        className={cn(
+                                                            "rounded-md border",
+                                                        )}
+                                                    >
+                                                        <InstallConfiguration />
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4">
+                                                    <p className="text-sm font-medium text-destructive">
+                                                        Unable to load V2 install costs
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                </TabsContent>
+                                <TabsContent
+                                    value="v1"
+                                    className="mt-0"
+                                >
+                                    {modelInstallCtx.isPending ? (
+                                        <div className="grid gap-3">
+                                            <Skeleton className="h-5 w-44" />
+                                            {[...Array(8)].map((_, i) => (
+                                                <Skeleton
+                                                    key={i}
+                                                    className="h-14 rounded-md"
+                                                />
+                                            ))}
+                                        </div>
+                                    ) : modelInstallCtx.data ? (
+                                        <CommunityInstallCostForm
+                                            model={modelInstallCtx.data}
+                                        />
+                                    ) : (
+                                        <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4">
+                                            <p className="text-sm font-medium text-destructive">
+                                                Unable to load V1 install costs
+                                            </p>
+                                        </div>
+                                    )}
+                                </TabsContent>
+                            </div>
+                        </Tabs>
+                    </BuilderModelInstallsProvider>
+                </ModelInstallConfigProvider>
             </Sidebar.Content>
             <Sidebar.Footer
                 id="install-cost-sidebar-footer"
-                className="pb-24 flex items-center justify-end gap-4 flex-row"
-            ></Sidebar.Footer>
+                className={cn(
+                    "border-t bg-background px-5 py-4",
+                    tabValue === "v1"
+                        ? "flex items-center justify-end gap-4"
+                        : "hidden",
+                )}
+            />
         </Sidebar>
     );
 }
-

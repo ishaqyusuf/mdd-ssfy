@@ -23,21 +23,18 @@ import { InstallConfiguration } from "./install-configuration";
 import { AddNewInstallCost } from "./add-new-install-cost";
 import { sum } from "@gnd/utils";
 import NumberFlow from "@number-flow/react";
-import { useJobFormParams } from "@/hooks/use-job-form-params";
 
 export function ModelInstallCostModal() {
-    const sideBarView = true;
+    const sideBarView = false;
     const ctx = useCreateModelInstallConfigContext();
     const { data, isPending, dataV2, isV2 } = ctx;
     const {
         editCommunityModelInstallCostId,
-        setParams,
         mode,
         selectedBuilderTaskId,
         openToSide,
-        jobPayload,
+        onClose,
     } = useCommunityInstallCostParams();
-    const { setParams: setJobFormParams } = useJobFormParams();
     const _modelInstallContext = useCreateBuilderModelInstallsContext(ctx);
 
     return (
@@ -47,11 +44,7 @@ export function ModelInstallCostModal() {
             open={!!editCommunityModelInstallCostId && !openToSide}
             onOpenChange={(open) => {
                 if (open) return;
-                const nextJobPayload = jobPayload;
-                setParams(null);
-                if (nextJobPayload?.step) {
-                    setJobFormParams(nextJobPayload);
-                }
+                onClose();
             }}
             size={isV2 ? "4xl" : "xl"}
             title={
@@ -124,19 +117,11 @@ export function ModelInstallCostModal() {
                                 </Sidebar.Header> */}
                                 <Sidebar.Content className="flex-1">
                                     <Sidebar.Group className="">
-                                        <Sidebar.Menu>
-                                            {dataV2?.builderTasks?.map(
-                                                (task) => (
-                                                    <BuilderTaskItem
-                                                        sideBarMode={
-                                                            sideBarView
-                                                        }
-                                                        key={task.id}
-                                                        task={task}
-                                                    />
-                                                ),
-                                            )}
-                                        </Sidebar.Menu>
+                                        <div className="p-3">
+                                            <BuilderTaskItem
+                                                sideBarMode={sideBarView}
+                                            />
+                                        </div>
                                     </Sidebar.Group>
                                 </Sidebar.Content>
                                 {/* <Sidebar.Footer>
@@ -232,3 +217,4 @@ export function ModelInstallCostModal() {
         </CustomModal>
     );
 }
+

@@ -5,22 +5,10 @@ import {
     parseAsStringEnum,
     useQueryStates,
 } from "nuqs";
-import { z } from "zod";
-
-const installCostJobPayloadSchema = z.object({
-    step: z.number().nullable().optional(),
-    redirectStep: z.number().nullable().optional(),
-    projectId: z.number().nullable().optional(),
-    jobId: z.number().nullable().optional(),
-    unitId: z.number().nullable().optional(),
-    taskId: z.number().nullable().optional(),
-    userId: z.number().nullable().optional(),
-    modelId: z.number().nullable().optional(),
-});
-
-export type InstallCostJobPayload = z.infer<typeof installCostJobPayloadSchema>;
+import { useJobFormParams } from "./use-job-form-params";
 
 export function useCommunityInstallCostParams() {
+    const { setParams: setJobFormParams } = useJobFormParams();
     const [params, setParams] = useQueryStates({
         // createModelCost: parseAsBoolean,
         // editModelCostTemplateId: parseAsInteger,
@@ -31,12 +19,23 @@ export function useCommunityInstallCostParams() {
         view: parseAsStringEnum(["template-edit", "template-list"]).withDefault(
             "template-list",
         ),
-        jobPayload: parseAsJson(installCostJobPayloadSchema.parse),
+        jobPayload: parseAsJson<any>(null as any),
     });
     const openToSide = params.view === "template-edit";
+
+    const onClose = () => {
+        const nextJobPayload = params.jobPayload;
+        setParams(null).then(() => {
+            if (nextJobPayload && typeof nextJobPayload === "object") {
+                setJobFormParams(nextJobPayload);
+            }
+        });
+    };
+
     return {
         ...params,
         openToSide,
         setParams,
+        onClose,
     };
 }
