@@ -10,16 +10,16 @@ export const JobOverviewContext = createContext<JobOverviewContextProps>(
 export const JobOverviewProvider = JobOverviewContext.Provider;
 export const useCreateJobOverviewContext = () => {
     const { openJobId } = useJobParams();
+    const safeJobId = Number.isSafeInteger(openJobId) && Number(openJobId) > 0
+        ? openJobId
+        : 0;
     const { data: overview, isPending: isLoading } = useSuspenseQuery(
         useTRPC().jobs.overview.queryOptions(
             {
-                jobId: openJobId!,
+                jobId: safeJobId,
             },
             {
-                enabled:
-                    !!openJobId &&
-                    Number.isSafeInteger(openJobId) &&
-                    Number(openJobId) > 0,
+                enabled: safeJobId > 0,
             },
         ),
     );
@@ -36,4 +36,3 @@ export const useJobOverviewContext = () => {
     }
     return context;
 };
-

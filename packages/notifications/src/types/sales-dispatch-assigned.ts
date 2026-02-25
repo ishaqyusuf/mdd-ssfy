@@ -1,4 +1,4 @@
-import { NotificationHandler, UserData } from "../base";
+import type { NotificationHandler, UserData } from "../base";
 import {
   SalesDispatchAssignedInput,
   salesDispatchAssignedSchema,
@@ -6,19 +6,24 @@ import {
 
 export const salesDispatchAssigned: NotificationHandler = {
   schema: salesDispatchAssignedSchema,
-  createActivity(data: SalesDispatchAssignedInput, contact: UserData) {
+  createActivity(
+    data: SalesDispatchAssignedInput,
+    author: UserData,
+    contact: UserData,
+  ) {
     const { orderNo, dispatchId, deliveryMode, dueDate, driverId } = data;
     return {
       type: "sales_dispatch_assigned",
       source: "user",
       subject: `Dispatch assigned`,
       headline: `Dispatch ${dispatchId} for order ${orderNo} has been assigned to you. Delivery mode: ${deliveryMode}.`,
+      authorId: author.id,
       tags: {
         dispatchId,
       },
     };
   },
-  createEmail(data, user, args) {
+  createEmail(data, author, user, args) {
     return {
       ...args,
       template: "sales-dispatch-assigned",

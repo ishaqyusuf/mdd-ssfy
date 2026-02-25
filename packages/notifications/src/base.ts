@@ -17,9 +17,14 @@ export interface NotificationHandler<T = any> {
     from?: string;
     replyTo?: string;
   };
-  createActivity: (data: T, user: UserData) => CreateActivityInput;
+  createActivity: (
+    data: T,
+    author: UserData,
+    user: UserData,
+  ) => CreateActivityInput;
   createEmail?: (
     data: T,
+    author: UserData,
     user: UserData,
     args?: any,
   ) => Partial<CreateEmailOptions> & {

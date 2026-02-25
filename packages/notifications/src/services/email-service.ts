@@ -7,6 +7,11 @@ import { type CreateEmailOptions, Resend } from "resend";
 import type { EmailInput } from "../base";
 import { Db } from "@gnd/db";
 import { SalesRepOnlinePaymentReceived } from "@emails/sales-rep-online-payment-received";
+import { JobAssignedEmail } from "@emails/job-assigned";
+import { JobApprovedEmail } from "@emails/job-approved";
+import { JobRejectedEmail } from "@emails/job-rejected";
+
+const DEV_TEST_EMAIL = "ishaqyusuf024@gmail.com";
 
 export class EmailService {
   private client: Resend;
@@ -132,8 +137,12 @@ export class EmailService {
       throw new Error(`No subject found for email: ${email.template}`);
     }
 
-    // Use explicit 'to' field if provided, otherwise default to user email
-    const recipients = email.to || [email.user.email!];
+    // Use explicit 'to' field if provided, otherwise default to user email.
+    // In development, always route emails to a single test inbox.
+    const recipients =
+      process.env.NODE_ENV === "development"
+        ? [DEV_TEST_EMAIL]
+        : email.to || [email.user.email!];
 
     const payload: CreateEmailOptions = {
       from: email.from || "gnd <gndbot@gnd.ai>",
@@ -160,6 +169,9 @@ export class EmailService {
   #getTemplate(templateName: string) {
     const templates = {
       "sales-rep-online-payment-received": SalesRepOnlinePaymentReceived,
+      "job-assigned": JobAssignedEmail,
+      "job-approved": JobApprovedEmail,
+      "job-rejected": JobRejectedEmail,
     };
 
     const template = templates[templateName as keyof typeof templates];

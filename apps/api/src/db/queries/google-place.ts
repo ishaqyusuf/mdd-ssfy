@@ -113,6 +113,8 @@ export async function searchGooglePlace(
 ) {
   const apiKey = process.env.PLACE_API as string;
   if (!apiKey) throw new Error("Missing API Key");
+  const query = args.q?.trim();
+  if (!query) return [];
   const url = "https://places.googleapis.com/v1/places:autocomplete";
   const primaryTypes = [
     "street_address",
@@ -126,16 +128,21 @@ export async function searchGooglePlace(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-goog-Api-Key": apiKey,
+      "X-Goog-Api-Key": apiKey,
     },
     body: JSON.stringify({
-      input: args.q,
+      input: query,
       includedPrimaryTypes: primaryTypes,
       includedRegionCodes: ["US"],
     }),
   });
   if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    const responseText = await response.text();
+    console.error("Google Places autocomplete request failed", {
+      status: response.status,
+      body: responseText,
+    });
+    return [];
   }
 
   const data = await response.json();

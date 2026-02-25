@@ -9,17 +9,15 @@ const baseActivityTags = z.object({
   type: channel,
   source,
   priority,
-  sendEmail: z.boolean().optional().default(false),
+  // sendEmail: z.boolean().optional().default(false),
+  authorContactId: z.number().optional(),
+  authorContactName: z.string().optional(),
 });
 const activitiesTags = z.object({
   id: z.number(),
   slug: z.string(),
 });
-export const jobAssignedTags = activitiesTags
-  .pick({
-    id: true,
-  })
-  .extend(baseActivityTags.shape);
+
 export const createActivitySchema = z.object({
   // teamId: z.string().uuid(),
   subject: z.string(),
@@ -115,12 +113,24 @@ export const jobAssignedSchema = z.object({
   // author: z.string().optional().nullable(),
 });
 export type JobAssignedInput = z.infer<typeof jobAssignedSchema>;
-
+export const jobAssignedTags = activitiesTags
+  .pick({
+    id: true,
+  })
+  .extend(baseActivityTags.shape)
+  .extend(
+    z.object({
+      assignedToId: z.number(),
+      assignedToName: z.string().optional(),
+    }).shape,
+  );
+export type JobAssignedTags = z.infer<typeof jobAssignedTags>;
 export const jobSubmittedSchema = z.object({
   jobId: z.number(),
-  submittedById: z.number().optional(),
-  submittedByName: z.string().optional(),
+  // submittedById: z.number().optional(),
+  // submittedByName: z.string().optional(),
 });
+export const jobSubmittedTags = activitiesTags;
 export type JobSubmittedInput = z.infer<typeof jobSubmittedSchema>;
 
 export const jobReviewRequestedSchema = z.object({
@@ -129,6 +139,22 @@ export const jobReviewRequestedSchema = z.object({
   requestedByName: z.string().optional(),
 });
 export type JobReviewRequestedInput = z.infer<typeof jobReviewRequestedSchema>;
+export const jobApprovedSchema = z.object({
+  jobId: z.number(),
+  assignedToId: z.number(),
+  // approvedById: z.number().optional(),
+  // approvedByName: z.string().optional(),
+  note: z.string().optional(),
+});
+export type JobApprovedInput = z.infer<typeof jobApprovedSchema>;
+export const jobRejectedSchema = z.object({
+  jobId: z.number(),
+  assignedToId: z.number(),
+  // rejectedById: z.number().optional(),
+  // rejectedByName: z.string().optional(),
+  note: z.string().optional(),
+});
+export type JobRejectedInput = z.infer<typeof jobRejectedSchema>;
 // Notification types map - all available notification types with their data structures
 
 export type NotificationTypes = {
@@ -137,6 +163,8 @@ export type NotificationTypes = {
   job_assigned: JobAssignedInput;
   job_submitted: JobSubmittedInput;
   job_review_requested: JobReviewRequestedInput;
+  job_approved: JobApprovedInput;
+  job_rejected: JobRejectedInput;
   sales_dispatch_assigned: SalesDispatchAssignedInput;
 };
 
@@ -194,6 +222,14 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
   baseNotificationJobSchema.extend({
     channel: z.literal("job_review_requested"),
     payload: jobReviewRequestedSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("job_approved"),
+    payload: jobApprovedSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("job_rejected"),
+    payload: jobRejectedSchema,
   }),
   baseNotificationJobSchema.extend({
     channel: z.literal("sales_dispatch_assigned"),

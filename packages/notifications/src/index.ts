@@ -8,7 +8,9 @@ import {
   NotificationResult,
   UserData,
 } from "./base";
-import { jobAssigned } from "./types/job-assigned-schema";
+import { jobAssigned } from "./types/job-assigned";
+import { jobApproved } from "./types/job-approved";
+import { jobRejected } from "./types/job-rejected";
 import { jobReviewRequested } from "./types/job-review-requested";
 import { jobSubmitted } from "./types/job-submitted";
 import { salesDispatchAssigned } from "./types/sales-dispatch-assigned";
@@ -18,6 +20,8 @@ import { logger } from "@gnd/logger";
 const handlers = {
   job_assigned: jobAssigned,
   job_submitted: jobSubmitted,
+  job_approved: jobApproved,
+  job_rejected: jobRejected,
   job_review_requested: jobReviewRequested,
   sales_dispatch_assigned: salesDispatchAssigned,
 } as const;
@@ -59,7 +63,11 @@ export class Notifications {
         ?.map(async (user: UserData) => {
           // if(!user?.inAppNotification)
           // return null;
-          const activityInput = handler.createActivity(validatedData, user);
+          const activityInput = handler.createActivity(
+            validatedData,
+            author,
+            user,
+          );
           // Check if user wants in-app notifications for this type
           // const inAppEnabled = await shouldSendNotification(
           //   this.#db,
@@ -99,6 +107,7 @@ export class Notifications {
   #createEmailInput<T extends keyof NotificationTypes>(
     handler: any,
     validatedData: NotificationTypes[T],
+    author: UserData,
     user: UserData,
     // teamContext: { id: string; name: string; inboxId: string },
     // options?: NotificationOptions,
@@ -106,14 +115,16 @@ export class Notifications {
     // Create email input using handler's createEmail function
     const customEmail = handler.createEmail(
       validatedData,
+      author,
       user,
       this.emailMeta,
       // , teamContext
     );
-
+    // user.email
     const baseEmailInput: EmailInput = {
       user,
       ...customEmail,
+      ...this.emailMeta,
     };
 
     // Apply runtime options (highest priority)
@@ -139,7 +150,7 @@ export class Notifications {
     // contacts?: UserData[],
   ): Promise<NotificationResult> {
     // console.log("Creating notification:", { type, payload, options });
-    const [author, ...contacts] = (
+    const [author, ...contactsRaw] = (
       await Promise.all([
         new Promise<UserData[]>(async (resolve) => {
           if (!options?.author?.id) {
@@ -174,6 +185,10 @@ export class Notifications {
         // getTeamById(this.#db, teamId),
       ])
     ).flat();
+    const contacts = contactsRaw.filter((contact, index, arr) => {
+      if (!contact?.id || contact.id === author?.id) return false;
+      return arr.findIndex((item) => item?.id === contact.id) === index;
+    });
     this.emailMeta = generateEmailMeta(author!, type);
     logger.info("Fetched author and contacts", author);
     // consoleLog("Fetched author and contacts:", author);
@@ -270,6 +285,7 @@ export class Notifications {
           this.#createEmailInput(
             handler,
             validatedData,
+            author,
             user,
             // teamContext,
             // options,

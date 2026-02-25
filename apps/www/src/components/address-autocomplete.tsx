@@ -128,8 +128,12 @@ function AddressAutoCompleteInput(props: CommonProps) {
         setSearchInput,
         placeholder,
     } = props;
-    // const [searchInput, setSearchInput] = useState("");
+    const [internalSearchInput, setInternalSearchInput] = useState(searchInput);
     const [isOpen, setIsOpen] = useState(false);
+
+    useEffect(() => {
+        setInternalSearchInput(searchInput);
+    }, [searchInput]);
 
     const open = useCallback(() => setIsOpen(true), []);
     const close = useCallback(() => setIsOpen(false), []);
@@ -140,7 +144,7 @@ function AddressAutoCompleteInput(props: CommonProps) {
         }
     };
 
-    const debouncedSearchInput = useDebounce(searchInput, 500);
+    const debouncedSearchInput = useDebounce(internalSearchInput, 500);
 
     // const { data, isLoading } = useSWR(
     //     // For real use case: /api/address/autocomplete?input=${debouncedSearchInput}
@@ -148,17 +152,17 @@ function AddressAutoCompleteInput(props: CommonProps) {
     //     fetcher,
     // );
     const trpc = useTRPC();
-    const { data } = useQuery(
+    const { data, error } = useQuery(
         trpc.google.places.queryOptions(
             {
                 q: debouncedSearchInput,
             },
             {
-                enabled: !!debouncedSearchInput,
+                enabled: debouncedSearchInput.trim().length > 2,
             },
         ),
     );
-
+    console.log({ error });
     const predictions: Prediction[] =
         data?.filter((prediction) => prediction?.placePrediction?.placeId) ||
         [];
@@ -170,13 +174,15 @@ function AddressAutoCompleteInput(props: CommonProps) {
                 onSelect={(item) => {
                     setSelectedPlaceId(item?.placePrediction?.placeId);
                 }}
+                headless
                 items={predictions?.map((prediction) => ({
                     ...prediction,
                     label: prediction.placePrediction.text.text,
                     id: prediction.placePrediction.placeId,
                 }))}
-                onSearch={(e) => {
-                    setSearchInput(e);
+                onSearch={(value) => {
+                    setInternalSearchInput(value);
+                    setSearchInput(value);
                 }}
             ></ComboboxDropdown>
         </div>

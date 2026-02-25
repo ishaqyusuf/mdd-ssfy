@@ -7,11 +7,10 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { Delete } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 // import AddressDialog from "./address-dialog";
-
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+// const fetcher = (url: string) => fetch(url).then((r) => r.json());
 export interface AddressType {
   address1: string;
   address2: string;
@@ -64,8 +63,8 @@ export default function AddressAutoComplete(props: AddressAutoCompleteProps) {
       {
         enabled: !!selectedPlaceId,
         staleTime: Number.POSITIVE_INFINITY,
-      }
-    )
+      },
+    ),
   );
   // console.log({ fData, trpcError, selectedPlaceId });
   // const { data: fData, isLoading } = useSWR(
@@ -171,8 +170,8 @@ function AddressAutoCompleteInput(props: CommonProps) {
       },
       {
         // enabled: !!debouncedSearchInput,
-      }
-    )
+      },
+    ),
   );
 
   const predictions: Prediction[] = data || [];

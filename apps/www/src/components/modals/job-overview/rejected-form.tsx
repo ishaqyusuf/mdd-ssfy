@@ -2,18 +2,20 @@ import { useJobOverviewContext } from "@/contexts/job-overview-context";
 import { useTRPC } from "@/trpc/client";
 import { Card } from "@gnd/ui/namespace";
 import { SubmitButton } from "@gnd/ui/submit-button";
+import { Textarea } from "@gnd/ui/textarea";
 import { toast } from "@gnd/ui/use-toast";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import React from "react";
-import { CheckCircle2, RotateCcw, Ban } from "lucide-react";
+import { XCircle, CheckCircle2, Ban } from "lucide-react";
 
-export function ApprovedForm() {
+export function RejectedForm() {
     const ctx = useJobOverviewContext();
     const { overview: job } = ctx;
     const trpc = useTRPC();
     const queryClient = useQueryClient();
+    const [actionNote, setActionNote] = React.useState("");
     const [pendingAction, setPendingAction] = React.useState<
-        "cancel" | "reject" | null
+        "approve" | "reject" | null
     >(null);
 
     const reviewMutation = useMutation(
@@ -31,11 +33,14 @@ export function ApprovedForm() {
                 ]);
                 toast({
                     title:
-                        variables.note === "Approval cancelled by reviewer."
-                            ? "Approval cancelled"
-                            : "Job rejected",
+                        variables.action === "approve"
+                            ? "Job approved"
+                            : "Rejection updated",
                     variant: "success",
                 });
+                if (variables.action === "reject") {
+                    setActionNote("");
+                }
             },
             onError: () => {
                 toast({
@@ -49,66 +54,72 @@ export function ApprovedForm() {
         }),
     );
 
-    const handleCancelApproval = () => {
-        setPendingAction("cancel");
+    const handleApprove = () => {
+        setPendingAction("approve");
         reviewMutation.mutate({
-            action: "reject",
+            action: "approve",
             jobId: job.id,
-            note: "Approval cancelled by reviewer.",
+            note: actionNote || undefined,
         });
     };
 
     const handleReject = () => {
+        if (!actionNote.trim()) return;
         setPendingAction("reject");
         reviewMutation.mutate({
             action: "reject",
             jobId: job.id,
-            note: "Job rejected after approval review.",
+            note: actionNote.trim(),
         });
     };
 
-    if (job.status !== "Approved") return null;
+    if (job.status !== "Rejected") return null;
 
     return (
         <Card className="animate-in slide-in-from-top-2">
             <Card.Header className="flex flex-row items-start gap-4">
-                <div className="shrink-0 rounded-lg bg-muted p-2 text-primary">
-                    <CheckCircle2 className="h-6 w-6" />
+                <div className="rounded-lg bg-muted p-2 text-primary">
+                    <XCircle className="h-6 w-6" />
                 </div>
 
                 <div className="space-y-1">
-                    <Card.Title className="text-lg">Job Approved</Card.Title>
+                    <Card.Title className="text-lg">Job Rejected</Card.Title>
                     <Card.Description>
-                        This job has been approved for payment. You can revert
-                        this approval or reject the job entirely if new
-                        discrepancies are found.
+                        This job was rejected and returned to the contractor.
+                        You can approve it now or keep it rejected with an
+                        updated note.
                     </Card.Description>
                 </div>
             </Card.Header>
 
-            <Card.Content>
+            <Card.Content className="space-y-4">
+                <Textarea
+                    placeholder="Add/update rejection note..."
+                    value={actionNote}
+                    onChange={(e) => setActionNote(e.target.value)}
+                    className="min-h-[80px]"
+                />
+
                 <div className="flex gap-3">
                     <SubmitButton
-                        variant="outline"
-                        onClick={handleCancelApproval}
-                        className="flex-1"
-                        isSubmitting={pendingAction === "cancel"}
+                        onClick={handleApprove}
+                        isSubmitting={pendingAction === "approve"}
                     >
                         <div className="flex gap-1 items-center">
-                            <RotateCcw className="mr-2 h-4 w-4" />
-                            Cancel Approval
+                            <CheckCircle2 className="mr-2 h-4 w-4" />
+                            Approve Job
                         </div>
                     </SubmitButton>
 
                     <SubmitButton
                         variant="destructive"
                         onClick={handleReject}
-                        className="flex-1"
+                        disabled={!actionNote.trim()}
                         isSubmitting={pendingAction === "reject"}
                     >
                         <div className="flex gap-1 items-center">
                             <Ban className="mr-2 h-4 w-4" />
-                            Reject Job
+                            Keep Rejected
                         </div>
                     </SubmitButton>
                 </div>

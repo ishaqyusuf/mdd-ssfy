@@ -3,23 +3,75 @@ import { Card } from "@gnd/ui/namespace";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { ShieldAlert, CheckCircle2, XCircle } from "lucide-react";
 import { useTRPC } from "@/trpc/client";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { Textarea } from "@gnd/ui/textarea";
+import { toast } from "@gnd/ui/use-toast";
 import React from "react";
+
 export function ApprovalForm() {
     const ctx = useJobOverviewContext();
     const { overview: job } = ctx;
-    const handleApprove = () => {};
-    const handleReject = () => {};
-    const {} = useMutation(
-        useTRPC().jobs.jobReview.mutationOptions({
-            onSuccess() {},
-            onError() {
-                // toast.error("Failed to submit review. Please try again.");
+    const trpc = useTRPC();
+    const queryClient = useQueryClient();
+    const [actionNote, setActionNote] = React.useState("");
+    const [pendingAction, setPendingAction] = React.useState<
+        "approve" | "reject" | null
+    >(null);
+    const reviewMutation = useMutation(
+        trpc.jobs.jobReview.mutationOptions({
+            onSuccess: async (_, variables) => {
+                if (!variables) return;
+                queryClient.invalidateQueries({
+                    queryKey: trpc.jobs.overview.queryKey({
+                        jobId: job.id,
+                    }),
+                });
+                queryClient.invalidateQueries({
+                    queryKey: trpc.jobs.getJobs.pathKey(),
+                });
+                toast({
+                    title:
+                        variables.action === "approve"
+                            ? "Job approved"
+                            : "Job rejected",
+                    variant: "success",
+                });
+                if (variables.action === "reject") {
+                    setActionNote("");
+                }
+            },
+            onError: () => {
+                toast({
+                    title: "Failed to submit review. Please try again.",
+                    variant: "destructive",
+                });
+            },
+            onSettled: () => {
+                setPendingAction(null);
             },
         }),
     );
-    const [actionNote, setActionNote] = React.useState("");
+
+    const handleApprove = () => {
+        setPendingAction("approve");
+        reviewMutation.mutate({
+            action: "approve",
+            jobId: job.id,
+            note: actionNote || undefined,
+        });
+    };
+    const handleReject = () => {
+        if (!actionNote.trim()) return;
+        setPendingAction("reject");
+        reviewMutation.mutate({
+            action: "reject",
+            jobId: job.id,
+            note: actionNote.trim(),
+        });
+    };
+
+    if (job.status !== "Submitted") return null;
+
     return (
         <Card className="animate-in slide-in-from-top-2">
             <Card.Header className="flex flex-row items-start gap-4">
@@ -47,7 +99,11 @@ export function ApprovalForm() {
                 />
 
                 <div className="flex gap-3">
-                    <SubmitButton onClick={handleApprove} className="">
+                    <SubmitButton
+                        onClick={handleApprove}
+                        className=""
+                        isSubmitting={pendingAction === "approve"}
+                    >
                         <div className="flex gap-1 items-center">
                             <CheckCircle2 className="mr-2 h-4 w-4" />
                             Approve Payment
@@ -57,7 +113,8 @@ export function ApprovalForm() {
                     <SubmitButton
                         variant="destructive"
                         onClick={handleReject}
-                        disabled={!actionNote}
+                        disabled={!actionNote.trim()}
+                        isSubmitting={pendingAction === "reject"}
                     >
                         <div className="flex gap-1 items-center">
                             <XCircle className="mr-2 h-4 w-4" />

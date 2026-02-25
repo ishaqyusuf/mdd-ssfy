@@ -10,6 +10,8 @@ import { Progress } from "@gnd/ui/custom/progress";
 import { formatDate } from "@gnd/utils/dayjs";
 import { ApprovalForm } from "./approval-form";
 import { ApprovedForm } from "./approved-form";
+import { RejectedForm } from "./rejected-form";
+import { PaidForm } from "./paid-form";
 import { Building2, MapPin, MessageSquare } from "lucide-react";
 import { Card } from "@gnd/ui/namespace";
 import { JobScope } from "./job-scope";
@@ -49,6 +51,12 @@ export function JobOverviewModal() {
 function Content() {
     const ctx = useCreateJobOverviewContext();
     const job = ctx.overview!;
+    const normalizedStatus = String(job?.status || "")
+        .toLowerCase()
+        .replace(/[_\s]+/g, "-");
+    const isPaymentCancelled =
+        normalizedStatus === "payment-cancelled" ||
+        normalizedStatus === "payment-canceled";
     return (
         <JobOverviewProvider value={ctx}>
             <CustomModal.Title>
@@ -56,9 +64,20 @@ function Content() {
                     <span>
                         {job?.title} - {job?.subtitle}
                     </span>
-                    <Progress.Status noDot badge>
-                        {job?.status}
-                    </Progress.Status>
+                    {isPaymentCancelled ? (
+                        <>
+                            <Progress.Status noDot badge>
+                                Approved
+                            </Progress.Status>
+                            <Progress.Status noDot badge>
+                                Payment Cancelled
+                            </Progress.Status>
+                        </>
+                    ) : (
+                        <Progress.Status noDot badge>
+                            {job?.status}
+                        </Progress.Status>
+                    )}
                 </div>
             </CustomModal.Title>
             <CustomModal.Description>
@@ -72,8 +91,10 @@ function Content() {
                 <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* LEFT COLUMN: Details & Tasks */}
                     <div className="lg:col-span-2 space-y-6">
-                        <ApprovalForm />
-                        <ApprovedForm />
+                        {job?.status === "Submitted" && <ApprovalForm />}
+                        {job?.status === "Approved" && <ApprovedForm />}
+                        {job?.status === "Rejected" && <RejectedForm />}
+                        {job?.status === "Paid" && <PaidForm />}
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <Card>
                                 <Card.Header>
@@ -187,4 +208,3 @@ function LoadingSkeleton() {
         </>
     );
 }
-

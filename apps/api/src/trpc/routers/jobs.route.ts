@@ -20,6 +20,8 @@ import { saveNote } from "@gnd/utils/note";
 import { generateJobId } from "@community/utils/job";
 import { sum } from "@gnd/utils";
 import type { JobStatus } from "@community/types";
+import { tasks } from "@trigger.dev/sdk/v3";
+import { NotificationService } from "@notifications/services/triggers";
 // import { Notifications } from "@notifications/index";
 
 export const jobRoutes = createTRPCRouter({
@@ -131,8 +133,9 @@ export const jobRoutes = createTRPCRouter({
     )
     .mutation(async (props) => {
       const { ctx, input } = props;
-
+      const {} = ctx;
       const db = ctx.db;
+
       const job = await db.jobs.update({
         where: {
           id: input.jobId,
@@ -161,7 +164,85 @@ export const jobRoutes = createTRPCRouter({
         },
         ctx.userId!,
       );
-      // return jobReview(props.ctx, props.input);
+      if (job.userId) {
+        const s = new NotificationService(tasks, ctx).setEmployeeRecipients(
+          job.userId,
+        );
+
+        if (input.action === "approve") {
+          await s.jobApproved({
+            jobId: input.jobId,
+            assignedToId: job.userId,
+            note: input.note,
+          });
+        } else {
+          await s.jobRejected({
+            jobId: input.jobId,
+            assignedToId: job.userId,
+            note: input.note,
+          });
+        }
+      }
+    }),
+  cancelPayment: publicProcedure
+    .input(
+      z.object({
+        jobId: z.number(),
+        note: z.string().optional(),
+      }),
+    )
+    .mutation(async (props) => {
+      const { ctx, input } = props;
+      const db = ctx.db;
+      const job = await db.jobs.findFirst({
+        where: {
+          id: input.jobId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          paymentId: true,
+          controlId: true,
+        },
+      });
+      if (!job) throw new Error("Job not found");
+      if (!job.paymentId) throw new Error("Job has no payment to cancel");
+
+      const paymentId = job.paymentId;
+      await db.jobs.update({
+        where: {
+          id: input.jobId,
+        },
+        data: {
+          status: "Payment Cancelled",
+          statusDate: new Date(),
+          paymentId: null,
+        },
+      });
+      await db.jobPayments.delete({
+        where: {
+          id: paymentId,
+        },
+      });
+      await saveNote(
+        ctx.db,
+        {
+          headline: "Job Payment Cancelled",
+          note: input.note || generateJobId(input.jobId),
+          subject: "",
+          tags: [
+            {
+              tagName: "jobControlId",
+              tagValue: job.controlId!,
+            },
+            {
+              tagName: "jobId",
+              tagValue: String(input.jobId),
+            },
+          ],
+        },
+        ctx.userId!,
+      );
     }),
   testActivity: publicProcedure.mutation(async (props) => {
     // const notifications = new Notifications(props.ctx.db);
