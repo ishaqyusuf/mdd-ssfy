@@ -6,13 +6,11 @@ import { Input } from "@gnd/ui/input";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Delete } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import useSWR from "swr";
 // import AddressDialog from "./address-dialog";
 
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
 export interface AddressType {
     address1: string;
     address2: string;
@@ -56,31 +54,18 @@ export default function AddressAutoComplete(props: AddressAutoCompleteProps) {
     const [selectedPlaceId, setSelectedPlaceId] = useState("");
     const [isOpen, setIsOpen] = useState(false);
     const trpc = useTRPC();
-    // const { data } = useQuery(
-    //     trpc.google.place.queryOptions(
-    //         {
-    //             placeId: selectedPlaceId,
-    //         },
-    //         {
-    //             enabled: !!selectedPlaceId,
-    //             throwOnError(error, query) {
-    //                 console.log({ error, query });
-    //             },
-    //         },
-    //     ),
-    // );
-    const { data: fData, isLoading } = useSWR(
-        // For real use case: /api/address/place?placeId=${selectedPlaceId}
-        selectedPlaceId === ""
-            ? null
-            : `/api/address/place?placeId=${selectedPlaceId}`,
-        fetcher,
-        {
-            revalidateOnFocus: false,
-        }
+    const { data: fData } = useQuery(
+        trpc.google.place.queryOptions(
+            {
+                placeId: selectedPlaceId,
+            },
+            {
+                enabled: !!selectedPlaceId,
+                staleTime: Number.POSITIVE_INFINITY,
+            },
+        ),
     );
     const data = fData?.data;
-    const adrAddress = data?.adrAddress;
 
     useEffect(() => {
         if (data?.address) {
@@ -170,16 +155,18 @@ function AddressAutoCompleteInput(props: CommonProps) {
             },
             {
                 enabled: !!debouncedSearchInput,
-            }
-        )
+            },
+        ),
     );
 
-    const predictions: Prediction[] = data || [];
+    const predictions: Prediction[] =
+        data?.filter((prediction) => prediction?.placePrediction?.placeId) ||
+        [];
     return (
         <div>
             <ComboboxDropdown
-                placeholder="Search Address"
-                searchPlaceholder="Search Address"
+                placeholder={placeholder || "Search Address"}
+                searchPlaceholder={placeholder || "Search Address"}
                 onSelect={(item) => {
                     setSelectedPlaceId(item?.placePrediction?.placeId);
                 }}
@@ -188,7 +175,9 @@ function AddressAutoCompleteInput(props: CommonProps) {
                     label: prediction.placePrediction.text.text,
                     id: prediction.placePrediction.placeId,
                 }))}
-                onSearch={setSearchInput}
+                onSearch={(e) => {
+                    setSearchInput(e);
+                }}
             ></ComboboxDropdown>
         </div>
     );
