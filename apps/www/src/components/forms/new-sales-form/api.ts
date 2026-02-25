@@ -71,6 +71,14 @@ export function useCustomerProfilesQuery(enabled = true) {
     });
 }
 
+export function useCustomerTaxProfilesQuery(enabled = true) {
+    const trpc = useTRPC();
+    return useQuery({
+        ...trpc.customers.getTaxProfiles.queryOptions(),
+        enabled,
+    });
+}
+
 export function useSalesStepComponentsQuery(
     input: { stepId?: number | null; stepTitle?: string | null },
     enabled = true,

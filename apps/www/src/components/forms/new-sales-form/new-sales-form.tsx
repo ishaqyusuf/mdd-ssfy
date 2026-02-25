@@ -235,26 +235,25 @@ export function NewSalesForm(props: Props) {
     }
 
     return (
-        <div className="relative flex h-[calc(100dvh-var(--header-height,5rem))] max-h-[calc(100dvh-var(--header-height,5rem))] overflow-hidden rounded-xl border bg-background">
+        <div className="relative flex min-h-0 h-[calc(100dvh-var(--header-height,5rem)-1.5rem)] max-h-[calc(100dvh-var(--header-height,5rem)-1.5rem)] overflow-hidden rounded-xl border bg-background">
             <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
                 <HeaderActions
                     type={props.type}
                     orderId={record.orderId}
-                    isSaving={autosave.isSaving || finalSave.isPending}
                     saveStatus={saveStatus}
                     dirty={dirty}
                     lastSavedAt={lastSavedAt}
                     statusMessage={lastSaveError}
-                    isOverviewOpen={editor.isOverviewOpen}
+                    isSaving={autosave.isSaving || finalSave.isPending}
                     autosaveEnabled={editor.autosaveEnabled}
-                    onSaveDraft={saveDraftNow}
-                    onSaveFinal={saveFinal}
-                    onSaveClose={saveClose}
-                    onSaveNew={saveNew}
-                    onAddLineItem={() => addLineItem()}
-                    onToggleOverview={() =>
+                    stepDisplayMode={editor.stepDisplayMode}
+                    onAddItem={() => addLineItem()}
+                    onToggleStepDisplay={() =>
                         setEditor({
-                            showMobileSummary: !editor.showMobileSummary,
+                            stepDisplayMode:
+                                editor.stepDisplayMode === "extended"
+                                    ? "compact"
+                                    : "extended",
                         })
                     }
                     onOpenMobileSummary={() =>
@@ -267,6 +266,10 @@ export function NewSalesForm(props: Props) {
                             autosaveEnabled: !editor.autosaveEnabled,
                         })
                     }
+                    onSaveDraft={saveDraftNow}
+                    onSaveClose={saveClose}
+                    onSaveNew={saveNew}
+                    onSaveFinal={saveFinal}
                     onOpenSettings={() => {
                         _modal.openSheet(<NewSalesFormSettingsModal />);
                     }}

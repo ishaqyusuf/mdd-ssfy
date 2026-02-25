@@ -2,8 +2,18 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "@gnd/ui/button";
+import { Menu } from "@gnd/ui/custom/menu";
 import { Input } from "@gnd/ui/input";
 import { env } from "@/env.mjs";
+import {
+    DoorOpen,
+    Hammer,
+    Layers3,
+    Package2,
+    Ruler,
+    Trash2,
+    WalletCards,
+} from "lucide-react";
 import { useNewSalesFormStore } from "../store";
 import {
     useSalesDeleteSupplierMutation,
@@ -182,6 +192,10 @@ function isMultiSelectStepTitle(title?: string | null) {
 function isDoorStepTitle(title?: string | null) {
     return normalizeTitle(title) === "door";
 }
+function isHousePackageToolStepTitle(title?: string | null) {
+    const normalized = normalizeTitle(title);
+    return normalized === "house package tool" || normalized === "hpt";
+}
 function getDoorSupplierMeta(step: any) {
     const meta = step?.meta || {};
     const formStepMeta = meta?.formStepMeta || {};
@@ -237,9 +251,9 @@ function money(value?: number | null) {
         currency: "USD",
     }).format(amount);
 }
-function moneyAny(value?: number | null) {
+function moneyIfPositive(value?: number | null) {
     const amount = Number(value ?? 0);
-    if (!Number.isFinite(amount)) return null;
+    if (!Number.isFinite(amount) || amount <= 0) return null;
     return new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD",
@@ -290,9 +304,153 @@ function firstPendingStepIndex(steps: any[]) {
     return pending >= 0 ? pending : Math.max(0, steps.length - 1);
 }
 
+function findLineStepByTitle(line: any, title: string) {
+    const normalized = normalizeTitle(title);
+    return (line?.formSteps || []).find(
+        (step: any) => normalizeTitle(step?.step?.title) === normalized,
+    );
+}
+
+function getSelectedDoorComponentsForLine(line: any) {
+    const doorStep = findLineStepByTitle(line, "Door");
+    const selected = Array.isArray(doorStep?.meta?.selectedComponents)
+        ? doorStep.meta.selectedComponents
+              .map((component: any) => ({
+                  id: component?.id ?? null,
+                  uid: component?.uid || "",
+                  title: component?.title || "",
+                  img: component?.img || null,
+                  salesPrice:
+                      component?.salesPrice == null
+                          ? null
+                          : Number(component.salesPrice || 0),
+                  basePrice:
+                      component?.basePrice == null
+                          ? null
+                          : Number(component.basePrice || 0),
+                  pricing: component?.pricing || null,
+              }))
+              .filter((component: any) => !!component.uid)
+        : [];
+    if (selected.length) return selected;
+    const prodUid = String(doorStep?.prodUid || "").trim();
+    if (!prodUid) return [];
+    return [
+        {
+            id: doorStep?.componentId ?? null,
+            uid: prodUid,
+            title: doorStep?.value || "Door",
+            img: doorStep?.meta?.img || null,
+            salesPrice:
+                doorStep?.price == null ? null : Number(doorStep.price || 0),
+            basePrice:
+                doorStep?.basePrice == null
+                    ? null
+                    : Number(doorStep.basePrice || 0),
+            pricing: null,
+        },
+    ];
+}
+
+function getSelectedMouldingComponentsForLine(line: any) {
+    const mouldingStep = findLineStepByTitle(line, "Moulding");
+    const selected = Array.isArray(mouldingStep?.meta?.selectedComponents)
+        ? mouldingStep.meta.selectedComponents
+              .map((component: any) => ({
+                  id: component?.id ?? null,
+                  uid: component?.uid || "",
+                  title: component?.title || "",
+                  img: component?.img || null,
+                  salesPrice:
+                      component?.salesPrice == null
+                          ? null
+                          : Number(component.salesPrice || 0),
+                  basePrice:
+                      component?.basePrice == null
+                          ? null
+                          : Number(component.basePrice || 0),
+              }))
+              .filter((component: any) => !!component.uid)
+        : [];
+    if (selected.length) return selected;
+    const prodUid = String(mouldingStep?.prodUid || "").trim();
+    if (!prodUid) return [];
+    return [
+        {
+            id: mouldingStep?.componentId ?? null,
+            uid: prodUid,
+            title: mouldingStep?.value || "Moulding",
+            img: mouldingStep?.meta?.img || null,
+            salesPrice:
+                mouldingStep?.price == null
+                    ? null
+                    : Number(mouldingStep.price || 0),
+            basePrice:
+                mouldingStep?.basePrice == null
+                    ? null
+                    : Number(mouldingStep.basePrice || 0),
+        },
+    ];
+}
+
+function resolveSizeFromPricingKey(
+    key: string,
+    supplierUid?: string | null,
+) {
+    const raw = String(key || "").trim();
+    if (!raw) return null;
+    if (supplierUid) {
+        const suffix = `& ${supplierUid}`;
+        if (raw.endsWith(suffix)) {
+            const size = raw.slice(0, -suffix.length).trim();
+            return size.includes("x") ? size : null;
+        }
+    }
+    if (raw.includes(" & ")) {
+        const size = raw.split(" & ")[0]?.trim() || "";
+        return size.includes("x") ? size : null;
+    }
+    return raw.includes("x") ? raw : null;
+}
+
+
+function summarizeDoors(rows: any[]) {
+    const normalized = (rows || []).map((row) => {
+        const lhQty = Number(row?.lhQty || 0);
+        const rhQty = Number(row?.rhQty || 0);
+        const totalQty =
+            lhQty + rhQty > 0 ? lhQty + rhQty : Number(row?.totalQty || 0);
+        const unitPrice = Number(row?.unitPrice || 0);
+        return {
+            ...row,
+            lhQty,
+            rhQty,
+            totalQty,
+            unitPrice,
+            lineTotal: Number((totalQty * unitPrice).toFixed(2)),
+        };
+    });
+    const totalDoors = normalized.reduce(
+        (sum, row) => sum + Number(row?.totalQty || 0),
+        0,
+    );
+    const totalPrice = normalized.reduce(
+        (sum, row) => sum + Number(row?.lineTotal || 0),
+        0,
+    );
+    return {
+        rows: normalized,
+        totalDoors,
+        totalPrice: Number(totalPrice.toFixed(2)),
+    };
+}
+
+function componentLabel(value?: string | null) {
+    return String(value || "").trim().toUpperCase();
+}
+
 export function ItemWorkflowPanel() {
     const record = useNewSalesFormStore((s) => s.record);
-    const addLineItem = useNewSalesFormStore((s) => s.addLineItem);
     const updateLineItem = useNewSalesFormStore((s) => s.updateLineItem);
     const removeLineItem = useNewSalesFormStore((s) => s.removeLineItem);
     const editor = useNewSalesFormStore((s) => s.editor);
@@ -312,6 +470,9 @@ export function ItemWorkflowPanel() {
     const [doorSectionTab, setDoorSectionTab] = useState<"doors" | "suppliers">(
         "doors",
     );
+    const [activeHptDoorUidByLine, setActiveHptDoorUidByLine] = useState<
+        Record<string, string>
+    >({});
     const [supplierNameInput, setSupplierNameInput] = useState("");
     const [editingSupplier, setEditingSupplier] = useState<{
         id: number;
@@ -335,6 +496,9 @@ export function ItemWorkflowPanel() {
             : (activeStepByLine[activeLine.uid] ??
               Math.max(0, activeLineSteps.length - 1));
     const activeStep = activeLineSteps[activeStepIndex] || null;
+    const activeDoorStep = activeLine
+        ? findLineStepByTitle(activeLine, "Door")
+        : null;
 
     const stepComponentsQuery = useSalesStepComponentsQuery(
         {
@@ -418,7 +582,7 @@ export function ItemWorkflowPanel() {
                 };
             });
     }, [routeData, rootComponentsQuery.data, activeLineSteps]);
-    const activeDoorSupplier = getDoorSupplierMeta(activeStep);
+    const activeDoorSupplier = getDoorSupplierMeta(activeDoorStep || activeStep);
     if (!record) return null;
 
     function resolveNextStep({
@@ -673,6 +837,7 @@ export function ItemWorkflowPanel() {
                     img: primary?.img || null,
                     selectedProdUids: selectedUids,
                     selectedComponents: selectedComponents.map((c: any) => ({
+                        id: c.id ?? null,
                         uid: c.uid,
                         title: c.title,
                         img: c.img || null,
@@ -923,12 +1088,1058 @@ export function ItemWorkflowPanel() {
         }
         return config;
     }
+    function renderHousePackageToolPanel(
+        line: (typeof record.lineItems)[number],
+        activeItemStep: any,
+    ) {
+        const rows = line.housePackageTool?.doors || [];
+        const summary = summarizeDoors(rows);
+        const routeConfig = getRouteConfigForLine(line, activeItemStep);
+        const noHandle = !!routeConfig?.noHandle;
+        const hasSwing = !!routeConfig?.hasSwing;
+        const doorStep = findLineStepByTitle(line, "Door");
+        const supplier = getDoorSupplierMeta(doorStep);
+        const selectedDoorComponents = getSelectedDoorComponentsForLine(line);
+        const activeDoorUid =
+            activeHptDoorUidByLine[line.uid] || selectedDoorComponents[0]?.uid || "";
+        const activeDoorComponent =
+            selectedDoorComponents.find((component) => component.uid === activeDoorUid) ||
+            selectedDoorComponents[0] ||
+            null;
+        const focusedRows = activeDoorComponent
+            ? summary.rows.filter(
+                  (row) =>
+                      Number(row?.stepProductId || 0) ===
+                      Number(activeDoorComponent.id || 0),
+              )
+            : summary.rows;
+        const availableSizes = (() => {
+            if (!activeDoorComponent) return [] as string[];
+            const pricing = activeDoorComponent?.pricing || {};
+            const keys = Object.keys(pricing || {});
+            const sizes = Array.from(
+                new Set(
+                    keys
+                        .map((key) =>
+                            resolveSizeFromPricingKey(key, supplier.supplierUid),
+                        )
+                        .filter(Boolean) as string[],
+                ),
+            );
+            return sizes.filter((size) => {
+                return !focusedRows.some(
+                    (row) => String(row?.dimension || "").trim() === size,
+                );
+            });
+        })();
+
+        const componentLookupById = new Map<
+            number,
+            { title: string; img?: string | null }
+        >();
+        (line.formSteps || []).forEach((step: any) => {
+            const componentId = Number(step?.componentId || 0);
+            if (componentId > 0) {
+                componentLookupById.set(componentId, {
+                    title: step?.value || step?.step?.title || `Component ${componentId}`,
+                    img: step?.meta?.img || null,
+                });
+            }
+            const selected = Array.isArray(step?.meta?.selectedComponents)
+                ? step.meta.selectedComponents
+                : [];
+            selected.forEach((component: any) => {
+                const selectedId = Number(component?.id || 0);
+                if (selectedId > 0) {
+                    componentLookupById.set(selectedId, {
+                        title:
+                            component?.title || step?.step?.title || `Component ${selectedId}`,
+                        img: component?.img || null,
+                    });
+                }
+            });
+        });
+
+        function applyRows(nextRows: any[]) {
+            const next = summarizeDoors(nextRows);
+            updateLineItem(line.uid, {
+                housePackageTool: {
+                    ...(line.housePackageTool || { id: null }),
+                    doors: next.rows,
+                    totalDoors: next.totalDoors,
+                    totalPrice: next.totalPrice,
+                } as any,
+                qty: next.totalDoors || line.qty,
+                lineTotal: next.totalPrice || line.lineTotal,
+            } as any);
+        }
+
+        function patchRow(sourceRow: any, patch: Record<string, unknown>) {
+            const nextRows = summary.rows.map((row) =>
+                row === sourceRow ? { ...row, ...patch } : row,
+            );
+            applyRows(nextRows);
+        }
+        function addSizeRow(size: string) {
+            if (!activeDoorComponent) return;
+            const pricing = activeDoorComponent?.pricing || {};
+            const supplierKey = supplier.supplierUid
+                ? `${size} & ${supplier.supplierUid}`
+                : null;
+            const priceBucket =
+                (supplierKey ? pricing?.[supplierKey] : null) ||
+                pricing?.[size] ||
+                null;
+            const computedPrice = Number(priceBucket?.price);
+            const unitPrice = Number.isFinite(computedPrice)
+                ? computedPrice
+                : Number(
+                      activeDoorComponent?.salesPrice ??
+                          activeDoorComponent?.basePrice ??
+                          0,
+                  );
+            const nextRows = [
+                ...summary.rows,
+                {
+                    id: null,
+                    dimension: size,
+                    swing: "",
+                    doorType: "",
+                    doorPrice: 0,
+                    jambSizePrice: 0,
+                    casingPrice: 0,
+                    unitPrice,
+                    lhQty: 0,
+                    rhQty: 0,
+                    totalQty: 0,
+                    lineTotal: 0,
+                    stepProductId: activeDoorComponent.id || null,
+                    meta: {},
+                },
+            ];
+            applyRows(nextRows);
+        }
+        function removeSizeRow(sourceRow: any) {
+            const nextRows = summary.rows.filter((row) => row !== sourceRow);
+            applyRows(nextRows);
+        }
+
+        return (
+            <section className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-b from-slate-50 to-white">
+                <div className="border-b border-slate-200 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.18),transparent_55%)] p-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-700">
+                            <Package2 size={13} />
+                            House Package Tool
+                        </span>
+                        <span className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-700">
+                            <Hammer size={13} />
+                            {supplier.supplierName || "GND MILLWORK"}
+                        </span>
+                        {activeDoorComponent ? (
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="ml-auto"
+                                onClick={() =>
+                                    setDoorStepModal({
+                                        open: true,
+                                        component: activeDoorComponent,
+                                    })
+                                }
+                            >
+                                Configure Sizes
+                            </Button>
+                        ) : null}
+                    </div>
+                    {selectedDoorComponents.length ? (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                            {selectedDoorComponents.map((component) => {
+                                const selected = component.uid === activeDoorUid;
+                                return (
+                                    <button
+                                        key={`hpt-door-tab-${component.uid}`}
+                                        type="button"
+                                        className={`rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-wide ${
+                                            selected
+                                                ? "border-primary bg-primary/10 text-primary"
+                                                : "border-slate-300 bg-white text-slate-600 hover:border-primary"
+                                        }`}
+                                        onClick={() =>
+                                            setActiveHptDoorUidByLine((prev) => ({
+                                                ...prev,
+                                                [line.uid]: component.uid,
+                                            }))
+                                        }
+                                    >
+                                        {componentLabel(component.title || component.uid)}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    ) : null}
+                    <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                                Rows
+                            </p>
+                            <p className="mt-1 flex items-center gap-2 text-sm font-semibold text-slate-900">
+                                <Layers3 size={14} />
+                                {summary.rows.length}
+                            </p>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                                Total Doors
+                            </p>
+                            <p className="mt-1 flex items-center gap-2 text-sm font-semibold text-slate-900">
+                                <DoorOpen size={14} />
+                                {summary.totalDoors}
+                            </p>
+                        </div>
+                        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                                Package Total
+                            </p>
+                            <p className="mt-1 flex items-center gap-2 text-sm font-semibold text-slate-900">
+                                <WalletCards size={14} />
+                                {money(summary.totalPrice) || "$0.00"}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div className="space-y-3 p-4">
+                    {!selectedDoorComponents.length ? (
+                        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
+                            Select at least one DOOR component first, then continue to HOUSE PACKAGE TOOL.
+                        </div>
+                    ) : !summary.rows.length ? (
+                        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
+                            Select a door component and apply size quantities to build the package.
+                        </div>
+                    ) : (
+                        (() => {
+                            const componentId = Number(activeDoorComponent?.id || 0);
+                            const component =
+                                componentLookupById.get(componentId) || activeDoorComponent;
+                            const rowsForComponent = focusedRows;
+                            if (!rowsForComponent.length) {
+                                return (
+                                    <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
+                                        No size rows for {componentLabel(component?.title || "selected door")} yet.
+                                        Click <span className="font-semibold">Configure Sizes</span> to add them.
+                                    </div>
+                                );
+                            }
+                            return (
+                                <article
+                                    key={`hpt-group-${componentId}`}
+                                    className="overflow-hidden rounded-xl border border-slate-200 bg-white"
+                                >
+                                    <header className="flex items-center gap-3 border-b border-slate-100 bg-slate-50/70 px-4 py-3">
+                                        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white">
+                                            {resolveComponentImageSrc(component?.img) ? (
+                                                <img
+                                                    src={resolveComponentImageSrc(component?.img) || ""}
+                                                    alt={component?.title || `Component ${componentId}`}
+                                                    className="h-full w-full object-contain p-1"
+                                                />
+                                            ) : (
+                                                <Ruler size={15} className="text-slate-500" />
+                                            )}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="truncate text-sm font-semibold text-slate-900">
+                                                {componentLabel(
+                                                    component?.title ||
+                                                        `Component ${componentId}`,
+                                                )}
+                                            </p>
+                                            <p className="text-[11px] uppercase tracking-wide text-slate-500">
+                                                {rowsForComponent.length} size row
+                                                {rowsForComponent.length > 1 ? "s" : ""}
+                                            </p>
+                                        </div>
+                                        <div className="ml-auto">
+                                            <Menu
+                                                Trigger={
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="h-8 px-2 text-[11px]"
+                                                    >
+                                                        Add Size
+                                                    </Button>
+                                                }
+                                            >
+                                                {!availableSizes.length ? (
+                                                    <Menu.Item disabled>
+                                                        No more sizes
+                                                    </Menu.Item>
+                                                ) : (
+                                                    availableSizes.map((size) => (
+                                                        <Menu.Item
+                                                            key={`add-size-${componentId}-${size}`}
+                                                            onClick={() =>
+                                                                addSizeRow(size)
+                                                            }
+                                                        >
+                                                            {size}
+                                                        </Menu.Item>
+                                                    ))
+                                                )}
+                                            </Menu>
+                                        </div>
+                                    </header>
+                                    <div className="overflow-x-auto">
+                                        <table className="min-w-full text-sm">
+                                            <thead>
+                                                <tr className="border-b border-slate-100 bg-slate-50/50 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                                    <th className="px-3 py-2">Size</th>
+                                                    {hasSwing ? (
+                                                        <th className="px-3 py-2">Swing</th>
+                                                    ) : null}
+                                                    {noHandle ? (
+                                                        <th className="px-3 py-2 text-right">Qty</th>
+                                                    ) : (
+                                                        <>
+                                                            <th className="px-3 py-2 text-right">LH</th>
+                                                            <th className="px-3 py-2 text-right">RH</th>
+                                                            <th className="px-3 py-2 text-right">Total</th>
+                                                        </>
+                                                    )}
+                                                    <th className="px-3 py-2 text-right">Unit</th>
+                                                    <th className="px-3 py-2 text-right">Line</th>
+                                                    <th className="px-3 py-2 text-right">Remove</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {rowsForComponent.map((row, index) => (
+                                                    <tr
+                                                        key={`hpt-row-${componentId}-${index}`}
+                                                        className="border-b border-slate-100 last:border-0"
+                                                    >
+                                                        <td className="px-3 py-2 font-medium text-slate-800">
+                                                            {row.dimension || "--"}
+                                                        </td>
+                                                        {hasSwing ? (
+                                                            <td className="px-3 py-2">
+                                                                <Input
+                                                                    value={row.swing || ""}
+                                                                    onChange={(e) =>
+                                                                        patchRow(row, {
+                                                                            swing: e.target.value,
+                                                                        })
+                                                                    }
+                                                                    className="h-8 rounded-md border-slate-200 text-xs"
+                                                                    placeholder="LH/RH"
+                                                                />
+                                                            </td>
+                                                        ) : null}
+                                                        {noHandle ? (
+                                                            <td className="px-3 py-2">
+                                                                <Input
+                                                                    type="number"
+                                                                    value={Number(row.totalQty || 0)}
+                                                                    onChange={(e) =>
+                                                                        patchRow(row, {
+                                                                            totalQty: Number(
+                                                                                e.target.value || 0,
+                                                                            ),
+                                                                            lhQty: 0,
+                                                                            rhQty: 0,
+                                                                        })
+                                                                    }
+                                                                    className="h-8 rounded-md border-slate-200 text-right text-xs"
+                                                                />
+                                                            </td>
+                                                        ) : (
+                                                            <>
+                                                                <td className="px-3 py-2">
+                                                                    <Input
+                                                                        type="number"
+                                                                        value={Number(row.lhQty || 0)}
+                                                                        onChange={(e) =>
+                                                                            patchRow(row, {
+                                                                                lhQty: Number(
+                                                                                    e.target.value || 0,
+                                                                                ),
+                                                                            })
+                                                                        }
+                                                                        className="h-8 rounded-md border-slate-200 text-right text-xs"
+                                                                    />
+                                                                </td>
+                                                                <td className="px-3 py-2">
+                                                                    <Input
+                                                                        type="number"
+                                                                        value={Number(row.rhQty || 0)}
+                                                                        onChange={(e) =>
+                                                                            patchRow(row, {
+                                                                                rhQty: Number(
+                                                                                    e.target.value || 0,
+                                                                                ),
+                                                                            })
+                                                                        }
+                                                                        className="h-8 rounded-md border-slate-200 text-right text-xs"
+                                                                    />
+                                                                </td>
+                                                                <td className="px-3 py-2 text-right text-xs font-semibold text-slate-700">
+                                                                    {Number(row.totalQty || 0)}
+                                                                </td>
+                                                            </>
+                                                        )}
+                                                        <td className="px-3 py-2">
+                                                            <Input
+                                                                type="number"
+                                                                step="0.01"
+                                                                value={Number(row.unitPrice || 0)}
+                                                                onChange={(e) =>
+                                                                    patchRow(row, {
+                                                                        unitPrice: Number(
+                                                                            e.target.value || 0,
+                                                                        ),
+                                                                    })
+                                                                }
+                                                                className="h-8 rounded-md border-slate-200 text-right text-xs"
+                                                            />
+                                                        </td>
+                                                        <td className="px-3 py-2 text-right text-xs font-semibold text-slate-900">
+                                                            {money(row.lineTotal) || "$0.00"}
+                                                        </td>
+                                                        <td className="px-3 py-2 text-right">
+                                                            <Button
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                className="size-7 text-slate-500 hover:text-red-600"
+                                                                onClick={() =>
+                                                                    removeSizeRow(
+                                                                        row,
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Trash2 className="size-4" />
+                                                            </Button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </article>
+                            );
+                        })()
+                    )}
+                </div>
+            </section>
+        );
+    }
+    function renderMouldingLineItemPanel(
+        line: (typeof record.lineItems)[number],
+    ) {
+        const selectedMouldings = getSelectedMouldingComponentsForLine(line);
+        const byUid = new Map(
+            selectedMouldings.map((component: any) => [component.uid, component]),
+        );
+        const existingRows = Array.isArray((line.meta as any)?.mouldingRows)
+            ? ((line.meta as any)?.mouldingRows as any[])
+            : [];
+        const existingByUid = new Map(
+            existingRows.map((row: any) => [String(row.uid), row]),
+        );
+        const initialRows = selectedMouldings.map((component: any) => {
+            const existing = existingByUid.get(String(component.uid));
+            return {
+                uid: component.uid,
+                title: component.title,
+                description:
+                    String(existing?.description || "").trim() ||
+                    component.title ||
+                    "Moulding",
+                qty: Number(existing?.qty ?? 1),
+                addon: Number(existing?.addon ?? 0),
+                customPrice:
+                    existing?.customPrice == null || existing?.customPrice === ""
+                        ? null
+                        : Number(existing.customPrice || 0),
+                salesPrice: Number(
+                    existing?.salesPrice ?? component?.salesPrice ?? 0,
+                ),
+                basePrice: Number(
+                    existing?.basePrice ?? component?.basePrice ?? 0,
+                ),
+            };
+        });
+        const sharedComponentPrice = (line.formSteps || [])
+            .filter((step: any) => {
+                const title = normalizeTitle(step?.step?.title);
+                return title !== "line item" && title !== "moulding";
+            })
+            .reduce((sum, step: any) => sum + Number(step?.price || 0), 0);
+        const rows = initialRows.map((row: any) => {
+            const component = byUid.get(row.uid);
+            const componentPrice = Number(
+                row.salesPrice ?? component?.salesPrice ?? 0,
+            );
+            const qty = Number(row.qty || 0);
+            const addon = Number(row.addon || 0);
+            const customPrice =
+                row.customPrice == null || row.customPrice === ""
+                    ? null
+                    : Number(row.customPrice || 0);
+            const estimateUnit = Number(sharedComponentPrice + componentPrice);
+            const unit =
+                customPrice == null
+                    ? estimateUnit + addon
+                    : Number(customPrice) + addon;
+            const lineTotal = Number((qty * unit).toFixed(2));
+            return {
+                ...row,
+                title: row.title || component?.title || "Moulding",
+                description:
+                    row.description ||
+                    component?.title ||
+                    row.title ||
+                    "Moulding",
+                qty,
+                addon,
+                customPrice,
+                salesPrice: componentPrice,
+                basePrice: Number(row.basePrice ?? component?.basePrice ?? 0),
+                estimateUnit,
+                unit,
+                lineTotal,
+            };
+        });
+        const aggregatedQty = rows.reduce(
+            (sum, row: any) => sum + Number(row.qty || 0),
+            0,
+        );
+        const aggregatedTotal = Number(
+            rows
+                .reduce((sum, row: any) => sum + Number(row.lineTotal || 0), 0)
+                .toFixed(2),
+        );
+        function persistRows(nextRowsRaw: any[]) {
+            const nextRows = nextRowsRaw.map((row: any) => ({
+                uid: row.uid,
+                title: row.title,
+                description: row.description,
+                qty: Number(row.qty || 0),
+                addon: Number(row.addon || 0),
+                customPrice:
+                    row.customPrice == null || row.customPrice === ""
+                        ? null
+                        : Number(row.customPrice || 0),
+                salesPrice: Number(row.salesPrice || 0),
+                basePrice: Number(row.basePrice || 0),
+            }));
+            const recalc = nextRows.map((row: any) => {
+                const estimateUnit = Number(
+                    sharedComponentPrice + Number(row.salesPrice || 0),
+                );
+                const unit =
+                    row.customPrice == null
+                        ? estimateUnit + Number(row.addon || 0)
+                        : Number(row.customPrice || 0) + Number(row.addon || 0);
+                return {
+                    ...row,
+                    lineTotal: Number((Number(row.qty || 0) * unit).toFixed(2)),
+                };
+            });
+            const nextQty = recalc.reduce(
+                (sum, row: any) => sum + Number(row.qty || 0),
+                0,
+            );
+            const nextTotal = Number(
+                recalc
+                    .reduce((sum, row: any) => sum + Number(row.lineTotal || 0), 0)
+                    .toFixed(2),
+            );
+            updateLineItem(line.uid, {
+                meta: {
+                    ...(line.meta || {}),
+                    mouldingRows: nextRows,
+                } as any,
+                qty: nextQty || line.qty,
+                lineTotal: nextTotal || line.lineTotal,
+                unitPrice:
+                    nextQty > 0
+                        ? Number((nextTotal / nextQty).toFixed(2))
+                        : line.unitPrice,
+                } as any);
+        }
+        function removeSelectedMoulding(mouldingUid: string) {
+            const mouldingStepIndex = (line.formSteps || []).findIndex(
+                (step: any) => normalizeTitle(step?.step?.title) === "moulding",
+            );
+            if (mouldingStepIndex < 0) {
+                persistRows(
+                    rows.filter((row: any) => String(row.uid) !== mouldingUid),
+                );
+                return;
+            }
+            const steps = [...(line.formSteps || [])];
+            const mouldingStep = steps[mouldingStepIndex];
+            const selectedUids = getSelectedProdUids(mouldingStep).filter(
+                (uid) => uid !== mouldingUid,
+            );
+            const selectedComponentsSource = Array.isArray(
+                mouldingStep?.meta?.selectedComponents,
+            )
+                ? mouldingStep.meta.selectedComponents
+                : selectedMouldings;
+            const remainingComponents = selectedUids
+                .map(
+                    (uid) =>
+                        selectedMouldings.find(
+                            (component: any) => String(component.uid) === uid,
+                        ) ||
+                        selectedComponentsSource.find(
+                            (component: any) => String(component?.uid) === uid,
+                        ),
+                )
+                .filter(Boolean);
+            const primary = remainingComponents[0] || null;
+            const totalSales = remainingComponents.reduce(
+                (sum: number, component: any) =>
+                    sum + Number(component?.salesPrice || 0),
+                0,
+            );
+            const totalBase = remainingComponents.reduce(
+                (sum: number, component: any) =>
+                    sum + Number(component?.basePrice || 0),
+                0,
+            );
+            steps[mouldingStepIndex] = {
+                ...mouldingStep,
+                componentId: primary?.id || null,
+                prodUid: primary?.uid || "",
+                value: compactStepValue(remainingComponents),
+                price: remainingComponents.length ? totalSales : 0,
+                basePrice: remainingComponents.length ? totalBase : 0,
+                meta: {
+                    ...(mouldingStep?.meta || {}),
+                    selectedProdUids: selectedUids,
+                    selectedComponents: remainingComponents.map((component: any) => ({
+                        id: component?.id ?? null,
+                        uid: component?.uid || "",
+                        title: component?.title || "",
+                        img: component?.img || null,
+                        salesPrice:
+                            component?.salesPrice == null
+                                ? null
+                                : Number(component.salesPrice || 0),
+                        basePrice:
+                            component?.basePrice == null
+                                ? null
+                                : Number(component.basePrice || 0),
+                    })),
+                },
+            };
+            persistRows(
+                rows.filter((row: any) => String(row.uid) !== mouldingUid),
+            );
+            updateLineItem(line.uid, {
+                formSteps: steps,
+            });
+        }
+
+        return (
+            <div className="space-y-3 rounded-lg border p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Moulding Line Items
+                    </p>
+                    <div className="ml-auto flex items-center gap-2">
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setIsMouldingDialogOpen(true)}
+                        >
+                            Moulding Calculator
+                        </Button>
+                    </div>
+                </div>
+                {!rows.length ? (
+                    <p className="text-sm text-muted-foreground">
+                        No selected mouldings yet. Select mouldings in the
+                        Moulding step.
+                    </p>
+                ) : (
+                    <div className="overflow-x-auto rounded-lg border">
+                        <table className="min-w-full text-sm">
+                            <thead>
+                                <tr className="bg-muted/30 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                    <th className="px-3 py-2">Moulding</th>
+                                    <th className="px-3 py-2 text-right">Qty</th>
+                                    <th className="px-3 py-2 text-right">Estimate</th>
+                                    <th className="px-3 py-2 text-right">Addon/Qty</th>
+                                    <th className="px-3 py-2 text-right">Custom</th>
+                                    <th className="px-3 py-2 text-right">Line Total</th>
+                                    <th className="px-3 py-2 text-right">Remove</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {rows.map((row: any, index: number) => (
+                                    <tr
+                                        key={`moulding-row-${row.uid}-${index}`}
+                                        className="border-t"
+                                    >
+                                        <td className="px-3 py-2">
+                                            <p className="text-xs font-semibold uppercase">
+                                                {componentLabel(row.title)}
+                                            </p>
+                                        </td>
+                                        <td className="px-3 py-2">
+                                            <Input
+                                                type="number"
+                                                value={row.qty}
+                                                onChange={(e) =>
+                                                    persistRows(
+                                                        rows.map((item: any, i: number) =>
+                                                            i === index
+                                                                ? {
+                                                                      ...item,
+                                                                      qty: Number(
+                                                                          e.target.value || 0,
+                                                                      ),
+                                                                  }
+                                                                : item,
+                                                        ),
+                                                    )
+                                                }
+                                                className="h-8 text-right"
+                                            />
+                                        </td>
+                                        <td className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">
+                                            {money(row.estimateUnit) || "$0.00"}
+                                        </td>
+                                        <td className="px-3 py-2">
+                                            <Input
+                                                type="number"
+                                                step="0.01"
+                                                value={row.addon}
+                                                onChange={(e) =>
+                                                    persistRows(
+                                                        rows.map((item: any, i: number) =>
+                                                            i === index
+                                                                ? {
+                                                                      ...item,
+                                                                      addon: Number(
+                                                                          e.target.value || 0,
+                                                                      ),
+                                                                  }
+                                                                : item,
+                                                        ),
+                                                    )
+                                                }
+                                                className="h-8 text-right"
+                                            />
+                                        </td>
+                                        <td className="px-3 py-2">
+                                            <Input
+                                                type="number"
+                                                step="0.01"
+                                                value={row.customPrice ?? ""}
+                                                onChange={(e) =>
+                                                    persistRows(
+                                                        rows.map((item: any, i: number) =>
+                                                            i === index
+                                                                ? {
+                                                                      ...item,
+                                                                      customPrice:
+                                                                          e.target.value === ""
+                                                                              ? null
+                                                                              : Number(
+                                                                                    e.target.value ||
+                                                                                        0,
+                                                                                ),
+                                                                  }
+                                                                : item,
+                                                        ),
+                                                    )
+                                                }
+                                                className="h-8 text-right"
+                                                placeholder="auto"
+                                            />
+                                        </td>
+                                        <td className="px-3 py-2 text-right text-xs font-bold">
+                                            {money(row.lineTotal) || "$0.00"}
+                                        </td>
+                                        <td className="px-3 py-2 text-right">
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="size-7"
+                                                disabled={rows.length <= 1}
+                                                onClick={() =>
+                                                    removeSelectedMoulding(
+                                                        String(row.uid),
+                                                    )
+                                                }
+                                            >
+                                                <Trash2 className="size-4" />
+                                            </Button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                            <tfoot>
+                                <tr className="border-t bg-muted/20 text-xs font-bold">
+                                    <td className="px-3 py-2 uppercase">Total</td>
+                                    <td className="px-3 py-2 text-right">{aggregatedQty}</td>
+                                    <td />
+                                    <td />
+                                    <td />
+                                    <td className="px-3 py-2 text-right">
+                                        {money(aggregatedTotal) || "$0.00"}
+                                    </td>
+                                    <td />
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                )}
+            </div>
+        );
+    }
+    function renderServiceLineItemPanel(
+        line: (typeof record.lineItems)[number],
+    ) {
+        const existingRows = Array.isArray((line.meta as any)?.serviceRows)
+            ? ((line.meta as any)?.serviceRows as any[])
+            : [];
+        const rows =
+            existingRows.length > 0
+                ? existingRows.map((row: any, index: number) => {
+                      const qty = Number(row?.qty ?? 0);
+                      const unitPrice = Number(row?.unitPrice ?? 0);
+                      return {
+                          uid:
+                              String(row?.uid || "").trim() ||
+                              `service-${line.uid}-${index + 1}`,
+                          service: String(
+                              row?.service ?? row?.description ?? "",
+                          ),
+                          qty,
+                          unitPrice,
+                          lineTotal: Number((qty * unitPrice).toFixed(2)),
+                      };
+                  })
+                : [
+                      {
+                          uid: `service-${line.uid}-1`,
+                          service: String(line.description || "").trim(),
+                          qty: Number(line.qty ?? 1),
+                          unitPrice: Number(line.unitPrice ?? 0),
+                          lineTotal: Number(
+                              (
+                                  Number(line.qty ?? 1) *
+                                  Number(line.unitPrice ?? 0)
+                              ).toFixed(2),
+                          ),
+                      },
+                  ];
+
+        function persistRows(nextRowsRaw: any[]) {
+            const nextRows = nextRowsRaw.map((row: any, index: number) => {
+                const qty = Number(row?.qty ?? 0);
+                const unitPrice = Number(row?.unitPrice ?? 0);
+                return {
+                    uid:
+                        String(row?.uid || "").trim() ||
+                        `service-${line.uid}-${index + 1}`,
+                    service: String(row?.service ?? "").trim(),
+                    qty,
+                    unitPrice,
+                    lineTotal: Number((qty * unitPrice).toFixed(2)),
+                };
+            });
+            const qtyTotal = nextRows.reduce(
+                (sum: number, row: any) => sum + Number(row.qty || 0),
+                0,
+            );
+            const lineTotal = Number(
+                nextRows
+                    .reduce(
+                        (sum: number, row: any) => sum + Number(row.lineTotal || 0),
+                        0,
+                    )
+                    .toFixed(2),
+            );
+            const unitPrice =
+                qtyTotal > 0 ? Number((lineTotal / qtyTotal).toFixed(2)) : 0;
+            updateLineItem(line.uid, {
+                meta: {
+                    ...(line.meta || {}),
+                    serviceRows: nextRows,
+                } as any,
+                qty: qtyTotal,
+                unitPrice,
+                lineTotal,
+                description: nextRows
+                    .map((row: any) => String(row?.service || "").trim())
+                    .filter(Boolean)
+                    .join(" | "),
+            } as any);
+        }
+
+        return (
+            <div className="space-y-3 rounded-lg border p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Service Line Items
+                </p>
+                <div className="overflow-x-auto rounded-lg border">
+                    <table className="min-w-full text-sm">
+                        <thead>
+                            <tr className="bg-muted/30 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                <th className="w-12 px-3 py-2">Sn.</th>
+                                <th className="px-3 py-2">Service</th>
+                                <th className="w-24 px-3 py-2 text-right">Qty</th>
+                                <th className="w-28 px-3 py-2 text-right">Price</th>
+                                <th className="w-28 px-3 py-2 text-right">Total</th>
+                                <th className="w-24 px-3 py-2 text-right">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {rows.map((row: any, index: number) => (
+                                <tr
+                                    key={`service-row-${row.uid}-${index}`}
+                                    className="border-t"
+                                >
+                                    <td className="px-3 py-2 text-xs font-semibold">
+                                        {index + 1}.
+                                    </td>
+                                    <td className="px-3 py-2">
+                                        <Input
+                                            value={row.service}
+                                            onChange={(e) =>
+                                                persistRows(
+                                                    rows.map((item: any, i: number) =>
+                                                        i === index
+                                                            ? {
+                                                                  ...item,
+                                                                  service:
+                                                                      e.target.value,
+                                                              }
+                                                            : item,
+                                                    ),
+                                                )
+                                            }
+                                            placeholder="Service"
+                                            className="h-8"
+                                        />
+                                    </td>
+                                    <td className="px-3 py-2">
+                                        <Input
+                                            type="number"
+                                            value={row.qty}
+                                            onChange={(e) =>
+                                                persistRows(
+                                                    rows.map((item: any, i: number) =>
+                                                        i === index
+                                                            ? {
+                                                                  ...item,
+                                                                  qty: Number(
+                                                                      e.target.value ||
+                                                                          0,
+                                                                  ),
+                                                              }
+                                                            : item,
+                                                    ),
+                                                )
+                                            }
+                                            className="h-8 text-right"
+                                        />
+                                    </td>
+                                    <td className="px-3 py-2">
+                                        <Input
+                                            type="number"
+                                            step="0.01"
+                                            value={row.unitPrice}
+                                            onChange={(e) =>
+                                                persistRows(
+                                                    rows.map((item: any, i: number) =>
+                                                        i === index
+                                                            ? {
+                                                                  ...item,
+                                                                  unitPrice: Number(
+                                                                      e.target.value ||
+                                                                          0,
+                                                                  ),
+                                                              }
+                                                            : item,
+                                                    ),
+                                                )
+                                            }
+                                            className="h-8 text-right"
+                                        />
+                                    </td>
+                                    <td className="px-3 py-2 text-right text-xs font-bold">
+                                        {money(row.lineTotal) || "$0.00"}
+                                    </td>
+                                    <td className="px-3 py-2 text-right">
+                                        <Menu
+                                            Trigger={
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="h-8 px-2 text-xs"
+                                                >
+                                                    Actions
+                                                </Button>
+                                            }
+                                        >
+                                            <Menu.Item
+                                                disabled={rows.length <= 1}
+                                                className="text-red-600"
+                                                onClick={() =>
+                                                    persistRows(
+                                                        rows.filter(
+                                                            (_: any, i: number) =>
+                                                                i !== index,
+                                                        ),
+                                                    )
+                                                }
+                                            >
+                                                Remove
+                                            </Menu.Item>
+                                        </Menu>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+                <Button
+                    variant="secondary"
+                    className="w-full uppercase"
+                    onClick={() =>
+                        persistRows([
+                            ...rows,
+                            {
+                                uid: `service-${rows.length + 1}-${Date.now().toString(36)}`,
+                                service: "",
+                                qty: 1,
+                                unitPrice: 0,
+                            },
+                        ])
+                    }
+                >
+                    Add New Line
+                </Button>
+            </div>
+        );
+    }
     function renderItemComponentPanel(
         line: (typeof record.lineItems)[number],
         steps: any[],
         activeIndex: number,
         activeItemStep: any,
     ) {
+        const isHptStep = isHousePackageToolStepTitle(activeItemStep?.step?.title);
         const selectedUids = new Set(getSelectedProdUids(activeItemStep));
         if (!steps.length) {
             return (
@@ -980,18 +2191,29 @@ export function ItemWorkflowPanel() {
                                     </div>
                                     <div className="p-3">
                                         <p className="font-semibold">
-                                            {component.title || component.uid}
+                                            {componentLabel(
+                                                component.title || component.uid,
+                                            )}
                                         </p>
-                                        <p className="text-xs font-medium text-primary">
-                                            {moneyAny(
-                                                component.salesPrice ??
-                                                    component.basePrice ??
-                                                    component?.pricing?.[
-                                                        component.uid
-                                                    ]?.price ??
-                                                    null,
-                                            ) || "No price"}
-                                        </p>
+                                        {moneyIfPositive(
+                                            component.salesPrice ??
+                                                component.basePrice ??
+                                                component?.pricing?.[
+                                                    component.uid
+                                                ]?.price ??
+                                                null,
+                                        ) ? (
+                                            <p className="text-xs font-medium text-primary">
+                                                {moneyIfPositive(
+                                                    component.salesPrice ??
+                                                        component.basePrice ??
+                                                        component?.pricing?.[
+                                                            component.uid
+                                                        ]?.price ??
+                                                        null,
+                                                )}
+                                            </p>
+                                        ) : null}
                                     </div>
                                 </button>
                             ))}
@@ -999,6 +2221,10 @@ export function ItemWorkflowPanel() {
                     )}
                 </div>
             );
+        }
+
+        if (isHptStep) {
+            return renderHousePackageToolPanel(line, activeItemStep);
         }
 
         return (
@@ -1060,70 +2286,16 @@ export function ItemWorkflowPanel() {
                     </div>
                 </div>
 
-                {isServiceItem(line) &&
-                normalizeTitle(activeItemStep?.step?.title).includes(
-                    "line item",
-                ) ? (
-                    <div className="space-y-3 rounded-lg border p-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                            Service Line Item
-                        </p>
-                        <div className="grid gap-3 md:grid-cols-12">
-                            <div className="md:col-span-6">
-                                <Input
-                                    value={line.title || ""}
-                                    onChange={(e) =>
-                                        updateLineItem(line.uid, {
-                                            title: e.target.value,
-                                        })
-                                    }
-                                    placeholder="Service title"
-                                />
-                            </div>
-                            <div className="md:col-span-2">
-                                <Input
-                                    type="number"
-                                    value={line.qty || 0}
-                                    onChange={(e) =>
-                                        updateLineItem(line.uid, {
-                                            qty: Number(e.target.value || 0),
-                                        })
-                                    }
-                                    placeholder="Qty"
-                                />
-                            </div>
-                            <div className="md:col-span-2">
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    value={line.unitPrice || 0}
-                                    onChange={(e) =>
-                                        updateLineItem(line.uid, {
-                                            unitPrice: Number(
-                                                e.target.value || 0,
-                                            ),
-                                        })
-                                    }
-                                    placeholder="Unit"
-                                />
-                            </div>
-                            <div className="md:col-span-2">
-                                <Input
-                                    value={money(line.lineTotal) || "$0.00"}
-                                    readOnly
-                                />
-                            </div>
-                        </div>
-                        <Input
-                            value={line.description || ""}
-                            onChange={(e) =>
-                                updateLineItem(line.uid, {
-                                    description: e.target.value,
-                                })
-                            }
-                            placeholder="Service description"
-                        />
-                    </div>
+                {isMouldingItem(line) &&
+                  normalizeTitle(activeItemStep?.step?.title).includes(
+                      "line item",
+                  ) ? (
+                    renderMouldingLineItemPanel(line)
+                ) : isServiceItem(line) &&
+                  normalizeTitle(activeItemStep?.step?.title).includes(
+                      "line item",
+                  ) ? (
+                    renderServiceLineItemPanel(line)
                 ) : isShelfItem(line) &&
                   normalizeTitle(activeItemStep?.step?.title).includes(
                       "shelf",
@@ -1487,18 +2659,27 @@ export function ItemWorkflowPanel() {
                                         </div>
                                         <div className="space-y-1 p-3">
                                             <p className="font-semibold leading-tight">
-                                                {component.title}
+                                                {componentLabel(component.title)}
                                             </p>
-                                            <p className="text-xs font-medium text-primary">
-                                                {moneyAny(
-                                                    component.salesPrice ??
-                                                        component.basePrice ??
-                                                        component?.pricing?.[
-                                                            component.uid
-                                                        ]?.price ??
-                                                        null,
-                                                ) || "No price"}
-                                            </p>
+                                            {moneyIfPositive(
+                                                component.salesPrice ??
+                                                    component.basePrice ??
+                                                    component?.pricing?.[
+                                                        component.uid
+                                                    ]?.price ??
+                                                    null,
+                                            ) ? (
+                                                <p className="text-xs font-medium text-primary">
+                                                    {moneyIfPositive(
+                                                        component.salesPrice ??
+                                                            component.basePrice ??
+                                                            component?.pricing?.[
+                                                                component.uid
+                                                            ]?.price ??
+                                                            null,
+                                                    )}
+                                                </p>
+                                            ) : null}
                                         </div>
                                     </button>
                                 );
@@ -1527,32 +2708,11 @@ export function ItemWorkflowPanel() {
 
     return (
         <>
-            <section className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
+            <section className="space-y-4">
                 <div className="flex items-center">
                     <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                         Item Workflow
                     </h3>
-                    <div className="ml-auto flex items-center gap-2">
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() =>
-                                setEditor({
-                                    stepDisplayMode:
-                                        editor.stepDisplayMode === "extended"
-                                            ? "compact"
-                                            : "extended",
-                                })
-                            }
-                        >
-                            {editor.stepDisplayMode === "extended"
-                                ? "Compact Steps"
-                                : "Extended Steps"}
-                        </Button>
-                        <Button size="sm" onClick={() => addLineItem()}>
-                            Add Item
-                        </Button>
-                    </div>
                 </div>
 
                 <div className="space-y-3">
@@ -1576,7 +2736,7 @@ export function ItemWorkflowPanel() {
                                 <div className="grid gap-3 md:grid-cols-12">
                                     <button
                                         type="button"
-                                        className="text-left md:col-span-6"
+                                        className="text-left md:col-span-2"
                                         onClick={() =>
                                             setEditor({
                                                 activeItem: line.uid,
@@ -1586,11 +2746,8 @@ export function ItemWorkflowPanel() {
                                         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                                             Item {index + 1}
                                         </p>
-                                        <p className="mt-1 text-base font-semibold">
-                                            {line.title || `Item ${index + 1}`}
-                                        </p>
                                     </button>
-                                    <div className="md:col-span-4">
+                                    <div className="md:col-span-8">
                                         <Input
                                             value={line.title || ""}
                                             onChange={(e) =>
@@ -1635,11 +2792,10 @@ export function ItemWorkflowPanel() {
                                                     )
                                                 }
                                             >
-                                                {step.step?.title ||
-                                                    `Step ${si + 1}`}
                                                 {step.value
-                                                    ? `: ${step.value}`
-                                                    : ""}
+                                                    ? componentLabel(step.value)
+                                                    : step.step?.title ||
+                                                      `Step ${si + 1}`}
                                             </button>
                                         ))}
                                     </div>
@@ -1723,13 +2879,15 @@ export function ItemWorkflowPanel() {
                             lineTotal: totalPrice || activeLine.lineTotal,
                         } as any);
 
-                        saveSelectedComponent({
-                            line: activeLine,
-                            steps: activeLineSteps,
-                            currentStepIndex: activeStepIndex,
-                            component: doorStepModal.component,
-                            selectedOverride: selected,
-                        });
+                        if (isDoorStepTitle(activeStep?.step?.title)) {
+                            saveSelectedComponent({
+                                line: activeLine,
+                                steps: activeLineSteps,
+                                currentStepIndex: activeStepIndex,
+                                component: doorStepModal.component,
+                                selectedOverride: selected,
+                            });
+                        }
                     }}
                 />
             ) : null}
@@ -1747,4 +2905,3 @@ export function ItemWorkflowPanel() {
         </>
     );
 }
-

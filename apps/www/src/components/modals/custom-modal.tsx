@@ -109,11 +109,7 @@ function Description({ children }) {
     );
 }
 export function CustomModalPortal({ children }) {
-    return (
-        <Portal nodeId={"customModalContent"} noDelay>
-            {children}
-        </Portal>
-    );
+    return <Portal nodeId={"customModalContent"}>{children}</Portal>;
 }
 interface CustomModalContentProps extends ComponentPropsWithoutRef<
     typeof ScrollArea

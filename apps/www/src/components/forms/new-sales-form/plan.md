@@ -681,7 +681,31 @@ Do not cut over legacy entry points until:
 2. UI fidelity rows are `done`.
 3. Save/autosave/parity validation passes for all 4 flows.
 
+### 2026-02-25 Batch P1-8 (Completed - Service Single-Line Row Parity)
+- [x] Replaced temporary service editor with single-line row table in new workflow `Line Item` step.
+- [x] Added `Actions` control per service row with `Remove`.
+- [x] Added `Add New Line` button below the service table.
+- [x] Persisted service rows in `line.meta.serviceRows` and synchronized aggregated pricing:
+  - `qty`
+  - `unitPrice`
+  - `lineTotal`.
+
+### 2026-02-25 Batch P1-9 (Completed - Moulding Selected-Only Line Items Parity)
+- [x] Aligned moulding line-item listing behavior with legacy moulding step:
+  - line-item rows now derive strictly from currently selected mouldings.
+- [x] Removed manual `Add Moulding` injection path from line-item panel.
+- [x] Updated moulding row remove action to de-select moulding from step state (`selectedProdUids` / `selectedComponents`) and sync row data.
+
 ## 11) Changelog (Plan-Level)
+- 2026-02-25: Moulding line-item parity correction from old form (`_components/moulding-step/index.tsx`):
+  - new form moulding line items now show selected mouldings only.
+  - stale/unselected moulding rows are no longer listed in line-item panel.
+  - row removal now updates moulding selection state, matching old-form selected-list behavior.
+- 2026-02-25: Service line-item parity update in new workflow (`sections/item-workflow-panel.tsx`):
+  - replaced old temporary service card with a single-line row table UI aligned to legacy service editing flow.
+  - added row-level `Actions` control with `Remove`.
+  - added `Add New Line` button below the table.
+  - persisted service rows in `line.meta.serviceRows` and synchronized aggregate `qty` / `unitPrice` / `lineTotal` to line pricing.
 - 2026-02-24: Master handoff plan consolidated with full matrix and execution protocol.
 - 2026-02-24: Priority focus updated to clean-code sales-book edit-order dependency chain (`getSalesBookFormUseCase -> getTransformedSalesBookFormDataDta -> getSalesBookFormDataDta -> SalesBookFormIncludes`); added mandatory plan-maintenance rule for important updates every substantive thread.
 - 2026-02-24: Implemented core relational parity pass for line-item `formSteps`, `shelfItems`, `housePackageTool`/`doors`/`molding` in new-sales-form API get/save paths and preserved these fields in frontend normalizers.
@@ -777,3 +801,127 @@ Do not cut over legacy entry points until:
     - falls back to plain `\"{size}\"` pricing.
   - Door size modal now respects route config flags (`noHandle`, `hasSwing`) for qty input mode and swing input visibility.
   - Validation: workspace-wide typecheck still has unrelated baseline failures; targeted grep on typecheck output returned no errors for modified files (`new-sales-form/api.ts`, `item-workflow-panel.tsx`, `workflow-modals.tsx`).
+- 2026-02-25: Customer-profile change pricing parity pass:
+  - Studied legacy trigger path in old form (`sales-meta-form.tsx` -> `setting.salesProfileChanged()` -> `CostingClass.salesProfileChanged()`), which updates `salesMultiplier` and re-prices all items/components.
+  - New-form now applies profile-change repricing in invoice summary flow:
+    - added `repriceLineItemsByProfile(...)` in `new-sales-form/mappers.ts`.
+    - wired profile-coefficient change detection in `sections/invoice-overview-panel.tsx` and re-priced line items when `customerProfileId` changes.
+  - Repricing currently updates:
+    - form-step prices (including multi-select meta selected components),
+    - shelf row unit/total prices,
+    - house-package door row unit/line totals,
+    - line `unitPrice`/`lineTotal` rollups.
+  - Validation: targeted typecheck filter for touched files returned no matching new-sales-form errors.
+- 2026-02-25: House Package Tool UI redesign pass (new-form native):
+  - Studied legacy HPT and door supplier surfaces:
+    - `components/forms/sales-form/hpt/hpt-section.tsx`
+    - `components/forms/sales-form/door-suppliers.tsx`
+    - `app-deps/(clean-code)/(sales)/sales-book/(form)/_components/components-section/index.tsx`
+  - Implemented a new, unique HPT panel style in the new workflow (`sections/item-workflow-panel.tsx`) guided by provided invoice sample structure:
+    - gradient header band + package stat cards (rows, total doors, package total)
+    - grouped door-size matrices by selected door component
+    - inline editable HPT fields (swing/qty/unit) with live totals
+    - in-card component image/title context for each grouped door package block.
+  - Wired inline edits to existing `housePackageTool.doors` persistence path and synced:
+    - `housePackageTool.totalDoors`
+    - `housePackageTool.totalPrice`
+    - line `qty`/`lineTotal`.
+  - Validation: targeted typecheck filter returned no matching errors for `new-sales-form/sections/item-workflow-panel.tsx`.
+- 2026-02-25: Header action consolidation UX pass:
+  - Removed action-button cluster from invoice header to reduce top-bar density.
+  - Moved save/form actions into one dropdown menu in item workflow header, positioned where `Add Item` previously lived.
+  - Removed standalone `Add Item` button and integrated item creation into the dropdown.
+  - Dropdown now hosts:
+    - add item
+    - step display toggle
+    - invoice summary toggle
+    - autosave toggle
+    - save draft / save & close / save & new / save final
+    - settings
+  - Validation: targeted typecheck filter returned no matching errors for:
+    - `sections/header-actions.tsx`
+    - `sections/item-workflow-panel.tsx`
+    - `new-sales-form.tsx`.
+- 2026-02-25: Header/action placement + compact pill pass:
+  - Moved consolidated `Actions` dropdown from workflow section back to invoice header (top-right) for cleaner hierarchy.
+  - Kept standalone action buttons removed from header (dropdown-only command surface).
+  - Removed workflow-level action button area (including previous `Add Item` placement).
+  - Step pill rendering updated:
+    - if step has selected component value, pill now shows only component title/value.
+    - step title is hidden when value exists to reduce horizontal space.
+  - Component display names now render in uppercase on component selection cards and HPT grouped component labels.
+  - Validation: targeted typecheck filter returned no matching errors for:
+    - `sections/header-actions.tsx`
+    - `sections/item-workflow-panel.tsx`
+    - `new-sales-form.tsx`.
+- 2026-02-25: Workflow shell density reduction:
+  - Removed outer `Item Workflow` card container (border/background/padding shell) to reclaim layout space.
+  - Workflow content now renders directly without the extra card chrome.
+  - Validation: targeted typecheck filter returned no matching errors for `sections/item-workflow-panel.tsx`.
+- 2026-02-25: Item header/title input compact pass:
+  - Updated item row header layout so title input appears directly after `Item N` label.
+  - Removed in-row fallback title text block that previously echoed item name beside label.
+  - Removed `"New line item"` default seed in empty line builder for cleaner first impression.
+  - Preserved save compatibility by applying non-empty fallback title at save payload mapping (`Line N`) when input remains blank.
+  - Validation: targeted typecheck filter returned no matching errors for:
+    - `mappers.ts`
+    - `sections/item-workflow-panel.tsx`.
+- 2026-02-25: Customer profile selector placement parity update:
+  - Moved customer profile selector into the `Customer Profile` card so it remains visible in collapsed state.
+  - Removed duplicated customer profile selector from `Global Invoice Details`.
+  - Selector remains interactive/clickable for updating `customerProfileId` and payment-term side effects.
+  - Added event stop-propagation on selector container so opening/changing profile does not unintentionally toggle card expand/collapse.
+  - Validation: targeted typecheck filter returned no matching errors for `sections/invoice-overview-panel.tsx`.
+- 2026-02-25: Sales invoice shell viewport-fit correction:
+  - Adjusted new-form shell height to account for page wrapper top offset (`FPage` `pt-6`), preventing page-level external scroll.
+  - New shell sizing:
+    - `calc(100dvh - var(--header-height, 5rem) - 1.5rem)`
+  - Retained internal scroll ownership inside form content area (`main`/content pane), with outer shell `overflow-hidden`.
+  - Validation: targeted typecheck filter returned no matching errors for `new-sales-form.tsx`.
+- 2026-02-25: House Package Tool parity rework (step-bound behavior):
+  - Moved HPT surface to render only on the `House Package Tool` step (instead of piggybacking under `Door` step component grid).
+  - Added door-selection bridge for HPT:
+    - reads selected door components from the `Door` step (`meta.selectedComponents` / fallback selected door).
+    - shows selected-door tabs in HPT and focuses package rows by active door tab.
+  - Added explicit per-door package editing entry point in HPT (`Configure Sizes`) that opens size/qty modal for active selected door.
+  - Kept supplier dependency path for door-size pricing by sourcing supplier context from the Door step while editing within HPT.
+  - Guarded modal apply side effects:
+    - when modal is opened from `Door` step, selection sync (`saveSelectedComponent`) still runs.
+    - when opened from `House Package Tool` step, modal updates package rows/totals only and does not mutate step selection state.
+  - Validation: targeted typecheck filter returned no matching errors for `sections/item-workflow-panel.tsx`.
+- 2026-02-25: HPT size-list controls enhancement:
+  - Added per-door package header `Add Size` dropdown in HPT size list surface (right side of door title/row-count header).
+  - Dropdown options are derived from active door pricing keys (supplier-aware size parsing), excluding sizes already present in the list.
+  - Added per-size-row remove control (trash icon) to remove individual size entries directly from the HPT list.
+  - Add/remove actions are wired to existing `housePackageTool.doors` persistence pipeline and keep totals (`totalDoors`, `totalPrice`, line qty/total) synchronized.
+  - Validation: targeted typecheck filter returned no matching errors for `sections/item-workflow-panel.tsx`.
+- 2026-02-25: Moulding custom-step implementation + calculator UI parity pass:
+  - Studied old moulding flow sources:
+    - `.../zus/moulding-class.ts`
+    - `components/forms/sales-form/moulding-and-service/moulding-content.tsx`
+    - `components/forms/sales-form/context.tsx` (`addMoulding`/group pricing patterns)
+    - `.../zus/step-component-class.ts` moulding selection behavior.
+  - Implemented dedicated custom moulding `Line Item` surface in new form workflow:
+    - row-based moulding editor (moulding, qty, estimate, addon/qty, custom price, line total, remove)
+    - add moulding dropdown sourced from visible moulding-step components
+    - per-row and aggregate recalculation synced into line-level `qty`/`unitPrice`/`lineTotal`
+    - row persistence in `line.meta.mouldingRows`.
+  - Replaced moulding calculator modal UI with sample-structure parity (from `ai/designs/sales-form/moulding-calculator-modal.tsx`) and updated logic:
+    - budget + waste + piece-length driven calculation
+    - derived price-per-LF from current line/moulding context
+    - applies calculated pieces/footage back into new-form line + moulding meta payload.
+  - Validation: targeted typecheck filter returned no matching errors for:
+    - `sections/item-workflow-panel.tsx`
+    - `sections/workflow-modals.tsx`.
+- 2026-02-25: Tax-change recalculation parity fix:
+  - Studied old-form tax flow (`CostingClass.taxCodeChanged()`), where tax selection updates tax percentage and immediately recalculates totals.
+  - New-form now fetches tax profiles via TRPC (`customers.getTaxProfiles`) and maps selected `taxCode` -> `taxRate`.
+  - Tax selector now:
+    - updates `form.taxCode`
+    - immediately updates store `summary.taxRate` through `setTaxRate(...)` to trigger totals recompute.
+  - Added tax-rate sync effect so resolved/customer-loaded tax codes also recalculate totals when tax profiles load.
+  - Hardened store behavior: `setTaxRate` is now no-op when unchanged, preventing unnecessary dirty-state churn.
+  - Validation: targeted typecheck filter returned no matching errors for:
+    - `store.ts`
+    - `api.ts`
+    - `sections/invoice-overview-panel.tsx`.

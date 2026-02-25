@@ -6,6 +6,7 @@ import {
     useQueryStates,
 } from "nuqs";
 import { useJobFormParams } from "./use-job-form-params";
+import { invalidateInfiniteQueries } from "./use-invalidate-query";
 
 export function useCommunityInstallCostParams() {
     const { setParams: setJobFormParams } = useJobFormParams();
@@ -28,6 +29,7 @@ export function useCommunityInstallCostParams() {
         setParams(null).then(() => {
             if (nextJobPayload && typeof nextJobPayload === "object") {
                 setJobFormParams(nextJobPayload);
+                invalidateInfiniteQueries("community.getJobForm");
             }
         });
     };
@@ -39,3 +41,4 @@ export function useCommunityInstallCostParams() {
         onClose,
     };
 }
+

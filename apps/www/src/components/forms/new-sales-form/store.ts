@@ -278,13 +278,17 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
     setTaxRate: (taxRate) =>
         set((state) => {
             if (!state.record) return state;
+            const nextTaxRate = Number(taxRate || 0);
+            if (Number(state.record.summary?.taxRate || 0) === nextTaxRate) {
+                return state;
+            }
             return {
                 ...state,
                 record: withDirty({
                     ...state.record,
                     summary: {
                         ...state.record.summary,
-                        taxRate,
+                        taxRate: nextTaxRate,
                     },
                 }),
                 dirty: true,

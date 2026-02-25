@@ -1,15 +1,25 @@
 import { _trpc } from "@/components/static-trpc";
-import { useJobFormParams } from "@/hooks/use-job-form-params";
-
-import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, Layers, PenTool } from "lucide-react";
-import { useSearch } from "@gnd/ui/hooks/use-search";
 import { SearchInput } from "@/components/search-input";
+import { useBuilderParams } from "@/hooks/use-builder-params";
+import { useJobFormParams } from "@/hooks/use-job-form-params";
+import { useJobRole } from "@/hooks/use-job-role";
+import { Button } from "@gnd/ui/button";
 import { Skeleton } from "@gnd/ui/skeleton";
+import { useSearch } from "@gnd/ui/hooks/use-search";
+import { useQuery } from "@tanstack/react-query";
+import {
+    AlertTriangle,
+    ChevronRight,
+    Layers,
+    PenTool,
+    Wrench,
+} from "lucide-react";
 import { StepTitle } from "./step-title";
 import { SubHeader } from "./sub-header";
 export function TaskSelectStep({}) {
     const { setParams, ...params } = useJobFormParams();
+    const { setParams: setBuilderParams } = useBuilderParams();
+    const { isAdmin } = useJobRole();
     const canLoadTasks = !!params.projectId;
     const { data, isPending } = useQuery(
         _trpc.community.getBuilderTasksForProject.queryOptions(
@@ -22,11 +32,35 @@ export function TaskSelectStep({}) {
             },
         ),
     );
+    const { data: projects } = useQuery(
+        _trpc.community.projectsList.queryOptions(),
+    );
 
     const tasks = data || [];
-    const { query, results, setQuery, clear } = useSearch({
+    const { query, results, setQuery } = useSearch({
         items: tasks,
     });
+    const selectedProject = projects?.find((p) => p.id === params.projectId);
+    const builderId = selectedProject?.builderId;
+    const noTasksConfigured = canLoadTasks && !isPending && tasks.length === 0;
+
+    const openBuilderTaskConfig = () => {
+        if (!builderId) return;
+        setBuilderParams({
+            openBuilderId: builderId,
+            jobPayload: {
+                step: params.step ?? null,
+                redirectStep: params.redirectStep ?? null,
+                projectId: params.projectId ?? null,
+                jobId: params.jobId ?? null,
+                unitId: params.unitId ?? null,
+                taskId: params.taskId ?? null,
+                userId: params.userId ?? null,
+                modelId: params.modelId ?? null,
+            },
+        });
+        setParams(null);
+    };
 
     return (
         <div className="space-y-4">
@@ -69,6 +103,43 @@ export function TaskSelectStep({}) {
                         <ChevronRight size={16} className="text-primary" />
                     </button>
 
+                    {noTasksConfigured && (
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                            <div className="flex items-start gap-3">
+                                <div className="rounded-full bg-amber-100 p-2 text-amber-700">
+                                    <AlertTriangle className="size-4" />
+                                </div>
+                                <div className="flex-1 space-y-3">
+                                    <div>
+                                        <p className="text-sm font-semibold text-amber-900">
+                                            No Builder Tasks Configured
+                                        </p>
+                                        <p className="text-xs text-amber-800">
+                                            This project&apos;s builder has no
+                                            task templates yet.
+                                        </p>
+                                    </div>
+                                    {isAdmin ? (
+                                        <Button
+                                            size="sm"
+                                            onClick={openBuilderTaskConfig}
+                                            disabled={!builderId}
+                                            className="bg-amber-700 text-white hover:bg-amber-800"
+                                        >
+                                            <Wrench className="mr-2 size-4" />
+                                            Configure Builder Tasks
+                                        </Button>
+                                    ) : (
+                                        <p className="text-xs text-amber-800">
+                                            Ask an admin to configure builder
+                                            tasks before selecting one here.
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {results.map((item) => (
                         <button
                             key={item.id}
@@ -105,9 +176,11 @@ export function TaskSelectStep({}) {
                             />
                         </button>
                     ))}
-                    {canLoadTasks && !results.length && (
+                    {canLoadTasks &&
+                        !noTasksConfigured &&
+                        !results.length && (
                         <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-                            No tasks found for this project.
+                            No matching tasks found.
                         </div>
                     )}
                 </div>

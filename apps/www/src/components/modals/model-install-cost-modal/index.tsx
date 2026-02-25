@@ -25,11 +25,12 @@ import { sum } from "@gnd/utils";
 import NumberFlow from "@number-flow/react";
 
 export function ModelInstallCostModal() {
-    const sideBarView = false;
+    const sideBarView = true;
     const ctx = useCreateModelInstallConfigContext();
     const { data, isPending, dataV2, isV2 } = ctx;
     const {
         editCommunityModelInstallCostId,
+        setParams,
         mode,
         selectedBuilderTaskId,
         openToSide,
@@ -42,9 +43,10 @@ export function ModelInstallCostModal() {
             // className="overflow-hidden sp-0 md:max-h-full md:h-auto md:min-h-0  md:max-w-[700px] lg:max-w-[800px]"
             className=""
             open={!!editCommunityModelInstallCostId && !openToSide}
-            onOpenChange={(open) => {
-                if (open) return;
-                onClose();
+            onOpenChange={(e) => {
+                if (!e) {
+                    onClose();
+                }
             }}
             size={isV2 ? "4xl" : "xl"}
             title={
@@ -68,129 +70,104 @@ export function ModelInstallCostModal() {
         >
             <ModelInstallConfigProvider value={ctx}>
                 {isV2 ? (
-                    !sideBarView ? (
-                        <div className="flex-1 flex flex-col md:flex-row overflow-hidden border-t">
-                            <div className="w-full md:w-72 bg-muted border-b md:border-b-0 md:border-r border-border flex flex-col shrink-0">
-                                <div className="p-4 border-b border-border bg-muted/10">
-                                    <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                                        <Layers size={14} /> Builder Tasks
-                                    </h3>
-                                </div>
-                                <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                                    {dataV2?.builderTasks?.map((task) => (
-                                        <BuilderTaskItem
-                                            key={task.id}
-                                            task={task}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                            <CustomModal.Content className="h-[60vh]">
-                                <span></span>
-                                <CustomModal.Footer>
-                                    <SubmitButton type="button">
-                                        Save
-                                    </SubmitButton>
-                                </CustomModal.Footer>
-                            </CustomModal.Content>
-                        </div>
-                    ) : (
-                        <Sidebar.Provider
-                            style={
-                                {
-                                    // "--sidebar-width": "10rem",
-                                    // "--sidebar-width-mobile": "10rem",
-                                }
+                    <Sidebar.Provider
+                        style={
+                            {
+                                // "--sidebar-width": "10rem",
+                                // "--sidebar-width-mobile": "10rem",
                             }
-                            className="item-start min-h-0"
+                        }
+                        className="item-start min-h-0"
+                    >
+                        <Sidebar
+                            collapsible="none"
+                            className="hidden md:border-t md:flex w-[300px]  overflow-x-hidden"
                         >
-                            <Sidebar
-                                collapsible="none"
-                                className="hidden md:border-t md:flex w-[300px]  overflow-x-hidden"
-                            >
-                                {/* <Sidebar.Header>
+                            {/* <Sidebar.Header>
                                     <div className="p-4 border-b border-border bg-muted/10">
                                         <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                                             <Layers size={14} /> Builder Tasks
                                         </h3>
                                     </div>
                                 </Sidebar.Header> */}
-                                <Sidebar.Content className="flex-1">
-                                    <Sidebar.Group className="">
-                                        <div className="p-3">
+                            <Sidebar.Content className="flex-1">
+                                <Sidebar.Group className="">
+                                    <Sidebar.Menu>
+                                        {dataV2?.builderTasks?.map((task) => (
                                             <BuilderTaskItem
-                                                sideBarMode={sideBarView}
+                                                // sideBarMode={sideBarView}
+                                                key={task.id}
+                                                task={task}
                                             />
-                                        </div>
-                                    </Sidebar.Group>
-                                </Sidebar.Content>
-                                {/* <Sidebar.Footer>
+                                        ))}
+                                    </Sidebar.Menu>
+                                </Sidebar.Group>
+                            </Sidebar.Content>
+                            {/* <Sidebar.Footer>
                                     <span>FOOTER.</span>
                                 </Sidebar.Footer> */}
-                            </Sidebar>
-                            <div className="flex-1 border-l border-t">
-                                <BuilderModelInstallsProvider
-                                    value={_modelInstallContext}
-                                >
-                                    <div className="bg-amber-50 hidden dark:bg-amber-900/10 border-b border-amber-100 dark:border-amber-800 px-6 py-3 flex items-start gap-3">
-                                        <AlertTriangle className="text-amber-600 mt-0.5 size-10" />
-                                        <div>
-                                            <p className="font-bold text-amber-800 dark:text-amber-200">
-                                                Global Builder Configuration
-                                            </p>
-                                            <p className="text-sm text-amber-700 dark:text-amber-300">
-                                                Changes to the install cost list
-                                                below will update{" "}
-                                                <strong>
-                                                    {dataV2?.builderName}
-                                                </strong>{" "}
-                                                globally. This affects ALL
-                                                models using the{" "}
-                                                <em>
-                                                    {dataV2?.builderTasks?.find(
-                                                        (a) =>
-                                                            a.id ===
-                                                            selectedBuilderTaskId,
-                                                    )?.taskName || "selected"}
-                                                </em>{" "}
-                                                task.
-                                            </p>
-                                        </div>
+                        </Sidebar>
+                        <div className="flex-1 border-l border-t">
+                            <BuilderModelInstallsProvider
+                                value={_modelInstallContext}
+                            >
+                                <div className="bg-amber-50 hidden dark:bg-amber-900/10 border-b border-amber-100 dark:border-amber-800 px-6 py-3 flex items-start gap-3">
+                                    <AlertTriangle className="text-amber-600 mt-0.5 size-10" />
+                                    <div>
+                                        <p className="font-bold text-amber-800 dark:text-amber-200">
+                                            Global Builder Configuration
+                                        </p>
+                                        <p className="text-sm text-amber-700 dark:text-amber-300">
+                                            Changes to the install cost list
+                                            below will update{" "}
+                                            <strong>
+                                                {dataV2?.builderName}
+                                            </strong>{" "}
+                                            globally. This affects ALL models
+                                            using the{" "}
+                                            <em>
+                                                {dataV2?.builderTasks?.find(
+                                                    (a) =>
+                                                        a.id ===
+                                                        selectedBuilderTaskId,
+                                                )?.taskName || "selected"}
+                                            </em>{" "}
+                                            task.
+                                        </p>
                                     </div>
-                                    <AddNewInstallCost />
-                                    <CustomModal.Content className="h-[45vh] relative -mx-0">
-                                        <InstallConfiguration />
-                                        <CustomModal.Footer className="justify-end border-t pt-4">
-                                            <div className="flex flex-col pl-2">
-                                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                                                    Est. Base Cost
-                                                </span>
-                                                <span className="text-xl font-black text-foreground flex items-center gap-0.5">
-                                                    <DollarSign
-                                                        size={14}
-                                                        className="text-muted-foreground"
-                                                    />
+                                </div>
+                                <AddNewInstallCost />
+                                <CustomModal.Content className="h-[45vh] relative -mx-0">
+                                    <InstallConfiguration />
+                                    <CustomModal.Footer className="justify-end border-t pt-4">
+                                        <div className="flex flex-col pl-2">
+                                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                                                Est. Base Cost
+                                            </span>
+                                            <span className="text-xl font-black text-foreground flex items-center gap-0.5">
+                                                <DollarSign
+                                                    size={14}
+                                                    className="text-muted-foreground"
+                                                />
 
-                                                    <NumberFlow
-                                                        value={
-                                                            +sum(
-                                                                Object.values(
-                                                                    _modelInstallContext?.builderTaskIntallCosts,
-                                                                ).map(
-                                                                    (a) =>
-                                                                        a.total,
-                                                                ),
-                                                            )?.toFixed(2)
-                                                        }
-                                                    />
-                                                </span>
-                                            </div>
-                                        </CustomModal.Footer>
-                                    </CustomModal.Content>
-                                </BuilderModelInstallsProvider>
-                            </div>
-                        </Sidebar.Provider>
-                    )
+                                                <NumberFlow
+                                                    value={
+                                                        +sum(
+                                                            Object.values(
+                                                                _modelInstallContext?.builderTaskIntallCosts,
+                                                            ).map(
+                                                                (a) => a.total,
+                                                            ),
+                                                        )?.toFixed(2)
+                                                    }
+                                                />
+                                            </span>
+                                        </div>
+                                    </CustomModal.Footer>
+                                </CustomModal.Content>
+                            </BuilderModelInstallsProvider>
+                        </div>
+                    </Sidebar.Provider>
                 ) : (
                     <div className="flex flex-col gap-4">
                         <div className="" id="installCostModalAction"></div>

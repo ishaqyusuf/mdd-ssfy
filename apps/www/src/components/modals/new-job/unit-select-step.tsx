@@ -2,7 +2,7 @@ import { _trpc } from "@/components/static-trpc";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 
 import { useQuery } from "@tanstack/react-query";
-import { Briefcase, DollarSign, Home } from "lucide-react";
+import { Briefcase, DollarSign, Home, Info } from "lucide-react";
 import { useSearch } from "@gnd/ui/hooks/use-search";
 import { SearchInput } from "@/components/search-input";
 import { Skeleton } from "@gnd/ui/skeleton";
@@ -10,7 +10,7 @@ import { StepTitle } from "./step-title";
 import { SubHeader } from "./sub-header";
 export function UnitSelectStep({}) {
     const { setParams, ...params } = useJobFormParams();
-    const { data, isPending, refetch, isEnabled } = useQuery(
+    const { data, isPending } = useQuery(
         _trpc.community.getProjectUnitsWithJobStats.queryOptions(
             {
                 projectId: params.projectId!,
@@ -22,9 +22,12 @@ export function UnitSelectStep({}) {
     );
 
     const units = data || [];
-    const { query, results, setQuery, clear } = useSearch({
+    const { query, results, setQuery } = useSearch({
         items: units,
     });
+    const hasProject = !!params.projectId;
+    const hasNoUnits = hasProject && !isPending && units.length === 0;
+    const hasNoMatches = hasProject && !isPending && units.length > 0 && !results.length;
 
     return (
         <div className="space-y-4">
@@ -36,8 +39,26 @@ export function UnitSelectStep({}) {
                     placeholder="Search units..."
                 />
             </SubHeader>
+            {!hasProject && (
+                <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+                    Select a project first to load available units.
+                </div>
+            )}
             <LoadingSkeleton isPending={isPending}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {hasNoUnits && (
+                        <div className="col-span-full rounded-xl border border-dashed border-border bg-muted/20 p-6 text-center">
+                            <div className="mx-auto mb-2 flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                                <Info className="size-4" />
+                            </div>
+                            <p className="text-sm font-medium text-foreground">
+                                No units found for this project
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Add units to this project to continue job assignment.
+                            </p>
+                        </div>
+                    )}
                     {results.map((item) => (
                         <button
                             key={item.id}
@@ -92,6 +113,11 @@ export function UnitSelectStep({}) {
                             </div>
                         </button>
                     ))}
+                    {hasNoMatches && (
+                        <div className="col-span-full rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+                            No matching units found.
+                        </div>
+                    )}
                 </div>
             </LoadingSkeleton>
         </div>
@@ -134,4 +160,3 @@ function LoadingSkeleton({ isPending, children }) {
         </div>
     );
 }
-

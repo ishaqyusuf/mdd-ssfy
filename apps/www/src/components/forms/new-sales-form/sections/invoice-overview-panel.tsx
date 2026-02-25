@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Input } from "@gnd/ui/input";
 import { Button } from "@gnd/ui/button";
@@ -24,10 +24,12 @@ import {
 } from "lucide-react";
 import {
     useCustomerProfilesQuery,
+    useCustomerTaxProfilesQuery,
     useNewSalesFormResolveCustomerQuery,
     useNewSalesFormSearchCustomersQuery,
 } from "../api";
 import { useNewSalesFormStore } from "../store";
+import { repriceLineItemsByProfile } from "../mappers";
 
 function currency(value?: number | null) {
     return new Intl.NumberFormat("en-US", {
@@ -42,8 +44,11 @@ const DELIVERY_OPTIONS = ["pickup", "delivery", "ship"];
 export function InvoiceOverviewPanel() {
     const record = useNewSalesFormStore((s) => s.record);
     const setMeta = useNewSalesFormStore((s) => s.setMeta);
+    const setTaxRate = useNewSalesFormStore((s) => s.setTaxRate);
+    const setLineItems = useNewSalesFormStore((s) => s.setLineItems);
     const patchRecord = useNewSalesFormStore((s) => s.patchRecord);
     const upsertExtraCost = useNewSalesFormStore((s) => s.upsertExtraCost);
+    const lastProfileCoefficientRef = useRef<number | null | undefined>(undefined);
 
     const [isCustomerSearchActive, setIsCustomerSearchActive] = useState(false);
     const [customerSearchQuery, setCustomerSearchQuery] = useState("");
@@ -51,6 +56,7 @@ export function InvoiceOverviewPanel() {
     const debounced = useDebounce(customerSearchQuery, 250);
     const customerSearch = useNewSalesFormSearchCustomersQuery(debounced);
     const customerProfiles = useCustomerProfilesQuery(true);
+    const customerTaxProfiles = useCustomerTaxProfilesQuery(true);
     const resolvedCustomer = useNewSalesFormResolveCustomerQuery(
         {
             customerId: Number(record?.form.customerId || 0),
@@ -116,6 +122,71 @@ export function InvoiceOverviewPanel() {
             .toUpperCase();
     }, [record.customer?.name, record.customer?.businessName]);
     const profileOptions = customerProfiles.data || [];
+    const taxOptions = (customerTaxProfiles.data || []).map((tax: any) => ({
+        taxCode: String(tax?.taxCode || ""),
+        title: String(tax?.title || tax?.taxCode || "Tax"),
+        percentage: Number(
+            tax?.percentage ?? tax?.tax ?? tax?.rate ?? 0,
+        ),
+    }));
+
+    function resolveTaxRateByCode(taxCode?: string | null) {
+        if (!taxCode) return 0;
+        const match = taxOptions.find((tax) => tax.taxCode === taxCode);
+        return Number(match?.percentage || 0);
+    }
+
+    useEffect(() => {
+        if (!record) return;
+        const currentProfile = profileOptions.find(
+            (profile: any) => Number(profile?.id) === Number(record.form.customerProfileId || 0),
+        ) as any;
+        const currentCoefficient = Number(currentProfile?.coefficient);
+        const normalizedCurrent = Number.isFinite(currentCoefficient)
+            ? currentCoefficient
+            : null;
+        if (lastProfileCoefficientRef.current === undefined) {
+            lastProfileCoefficientRef.current = normalizedCurrent;
+            return;
+        }
+        if (lastProfileCoefficientRef.current === normalizedCurrent) return;
+        setLineItems(
+            repriceLineItemsByProfile(
+                record.lineItems || [],
+                lastProfileCoefficientRef.current ?? null,
+                normalizedCurrent,
+            ),
+        );
+        lastProfileCoefficientRef.current = normalizedCurrent;
+    }, [profileOptions, record, setLineItems]);
+
+    useEffect(() => {
+        if (!record) return;
+        const nextRate = resolveTaxRateByCode(record.form.taxCode);
+        if (Number(record.summary?.taxRate || 0) !== Number(nextRate || 0)) {
+            setTaxRate(nextRate);
+        }
+    }, [record, setTaxRate, customerTaxProfiles.data]);
+
+    function applyCustomerProfile(value: string) {
+        if (value === "none") {
+            setMeta({ customerProfileId: null });
+            return;
+        }
+        const selectedId = Number(value);
+        const profile = profileOptions.find(
+            (p: any) => Number(p.id) === selectedId,
+        ) as any;
+        const profileMeta = profile?.meta || {};
+        setMeta({
+            customerProfileId: selectedId,
+            paymentTerm:
+                profileMeta?.netTerm ||
+                profileMeta?.net ||
+                record.form.paymentTerm ||
+                "None",
+        });
+    }
 
     return (
         <section className="space-y-6">
@@ -255,6 +326,38 @@ export function InvoiceOverviewPanel() {
                                         CUSTOMER
                                     </span>
                                 </div>
+                                <div
+                                    className="mt-3 max-w-[260px]"
+                                    onClick={(e) => e.stopPropagation()}
+                                    onPointerDown={(e) => e.stopPropagation()}
+                                >
+                                    <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                        Customer Profile
+                                    </label>
+                                    <Select
+                                        value={
+                                            record.form.customerProfileId
+                                                ? String(record.form.customerProfileId)
+                                                : "none"
+                                        }
+                                        onValueChange={applyCustomerProfile}
+                                    >
+                                        <SelectTrigger className="h-8 rounded-lg bg-card text-xs font-bold">
+                                            <SelectValue placeholder="Select Profile" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">None</SelectItem>
+                                            {profileOptions.map((profile) => (
+                                                <SelectItem
+                                                    key={profile.id}
+                                                    value={String(profile.id)}
+                                                >
+                                                    {profile.title}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                         </div>
                         {isCustomerExpanded ? (
@@ -290,53 +393,7 @@ export function InvoiceOverviewPanel() {
                     <h3 className="text-sm font-bold">Global Invoice Details</h3>
                 </div>
                 <div className="grid gap-4 rounded-xl border border-border bg-muted/30 p-4 shadow-sm">
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                        <div className="flex flex-col gap-1.5">
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                Customer Profile
-                            </label>
-                            <Select
-                                value={
-                                    record.form.customerProfileId
-                                        ? String(record.form.customerProfileId)
-                                        : "none"
-                                }
-                                onValueChange={(value) => {
-                                    if (value === "none") {
-                                        setMeta({ customerProfileId: null });
-                                        return;
-                                    }
-                                    const selectedId = Number(value);
-                                    const profile = profileOptions.find(
-                                        (p) => Number(p.id) === selectedId,
-                                    ) as any;
-                                    const profileMeta = profile?.meta || {};
-                                    setMeta({
-                                        customerProfileId: selectedId,
-                                        paymentTerm:
-                                            profileMeta?.netTerm ||
-                                            profileMeta?.net ||
-                                            record.form.paymentTerm ||
-                                            "None",
-                                    });
-                                }}
-                            >
-                                <SelectTrigger className="h-9 rounded-lg bg-card text-xs font-bold">
-                                    <SelectValue placeholder="Select Profile" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">None</SelectItem>
-                                    {profileOptions.map((profile) => (
-                                        <SelectItem
-                                            key={profile.id}
-                                            value={String(profile.id)}
-                                        >
-                                            {profile.title}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div className="flex flex-col gap-1.5">
                             <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                                 P.O. Number
@@ -426,15 +483,25 @@ export function InvoiceOverviewPanel() {
                         <div className="max-w-[190px] flex-1">
                             <Select
                                 value={record.form.taxCode || "none"}
-                                onValueChange={(value) => setMeta({ taxCode: value === "none" ? null : value })}
+                                onValueChange={(value) => {
+                                    const nextTaxCode = value === "none" ? null : value;
+                                    setMeta({ taxCode: nextTaxCode });
+                                    setTaxRate(resolveTaxRateByCode(nextTaxCode));
+                                }}
                             >
                                 <SelectTrigger className="h-9 rounded-lg bg-muted text-xs font-bold">
                                     <SelectValue placeholder="Select Tax Group" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="none">Tax Exempt</SelectItem>
-                                    <SelectItem value="county-state-8.5">County & State (8.5%)</SelectItem>
-                                    <SelectItem value="fl-state">FL State Tax</SelectItem>
+                                    {taxOptions.map((tax) => (
+                                        <SelectItem key={tax.taxCode} value={tax.taxCode}>
+                                            {tax.title}
+                                            {Number(tax.percentage || 0) > 0
+                                                ? ` (${tax.percentage}%)`
+                                                : ""}
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>

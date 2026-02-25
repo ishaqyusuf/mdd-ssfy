@@ -52,7 +52,7 @@ export function InstallCostSidebar() {
             className="top-[var(--header-height)] hidden h-[calc(100svh-var(--header-height))] border-l bg-background lg:flex"
         >
             <Sidebar.Content className="flex w-sm flex-col overflow-hidden">
-                <div className="flex items-center gap-3 border-b px-5 py-4">
+                <div className="flex items-center gap-3 border-b px-4 py-3">
                     <div className="min-w-0">
                         <p className="text-muted-foreground text-xs uppercase tracking-wide">
                             Community Template
@@ -74,7 +74,9 @@ export function InstallCostSidebar() {
                     </Button>
                 </div>
                 <ModelInstallConfigProvider value={modelInstallCtx}>
-                    <BuilderModelInstallsProvider value={builderModelInstallsCtx}>
+                    <BuilderModelInstallsProvider
+                        value={builderModelInstallsCtx}
+                    >
                         <Tabs
                             value={tabValue}
                             onValueChange={(value) => {
@@ -84,77 +86,59 @@ export function InstallCostSidebar() {
                             }}
                             className="flex min-h-0 flex-1 flex-col"
                         >
-                            <div className="border-b px-5 py-3">
+                            <div className="border-b">
                                 <TabsList className="grid w-full grid-cols-2">
                                     <TabsTrigger value="v2">V2</TabsTrigger>
                                     <TabsTrigger value="v1">V1</TabsTrigger>
                                 </TabsList>
                             </div>
-                            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
                                 <TabsContent
                                     value="v2"
-                                    className="mt-0 space-y-4"
+                                    className="mt-0 space-y-3"
                                 >
                                     {modelInstallCtx.isPending ? (
                                         <div className="grid gap-3">
-                                            <Skeleton className="h-10 w-full" />
-                                            {[...Array(6)].map((_, i) => (
+                                            <Skeleton className="h-9 w-full" />
+                                            {[...Array(5)].map((_, i) => (
                                                 <Skeleton
                                                     key={i}
-                                                    className="h-12 w-full rounded-md"
+                                                    className="h-11 w-full rounded-md"
                                                 />
                                             ))}
                                         </div>
-                                    ) : (
+                                    ) : modelInstallCtx.dataV2 ? (
                                         <>
-                                            <div className="rounded-md border bg-muted/20 p-3">
-                                                <p className="text-muted-foreground text-[11px] uppercase tracking-wide">
-                                                    Est. Base Cost
-                                                </p>
-                                                <p className="text-lg font-semibold">
-                                                    $
-                                                    {estimatedBaseCost.toFixed(
-                                                        2,
-                                                    )}
-                                                </p>
-                                            </div>
-                                            <div className="rounded-md border">
-                                                <div className="border-b px-3 py-2">
-                                                    <p className="text-muted-foreground text-[11px] uppercase tracking-wide">
-                                                        Builder Tasks
-                                                    </p>
-                                                </div>
-                                                <div className="p-3">
+                                            <div className="flex items-center gap-3 rounded-md border px-3 py-2">
+                                                <div className="min-w-0 flex-1">
                                                     <BuilderTaskItem
                                                         sideBarMode
                                                     />
                                                 </div>
-                                            </div>
-                                            {modelInstallCtx.dataV2 ? (
-                                                <>
-                                                    <AddNewInstallCost />
-                                                    <div
-                                                        className={cn(
-                                                            "rounded-md border",
+                                                <div className="shrink-0 border-l pl-3 text-right leading-tight">
+                                                    <p className="text-muted-foreground text-[11px] uppercase tracking-wide">
+                                                        Est. Base
+                                                    </p>
+                                                    <p className="text-sm font-semibold">
+                                                        $
+                                                        {estimatedBaseCost.toFixed(
+                                                            2,
                                                         )}
-                                                    >
-                                                        <InstallConfiguration />
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4">
-                                                    <p className="text-sm font-medium text-destructive">
-                                                        Unable to load V2 install costs
                                                     </p>
                                                 </div>
-                                            )}
+                                            </div>
+                                            <AddNewInstallCost />
+                                            <InstallConfiguration />
                                         </>
+                                    ) : (
+                                        <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
+                                            <p className="text-sm font-medium text-destructive">
+                                                Unable to load V2 install costs
+                                            </p>
+                                        </div>
                                     )}
                                 </TabsContent>
-                                <TabsContent
-                                    value="v1"
-                                    className="mt-0"
-                                >
+                                <TabsContent value="v1" className="mt-0">
                                     {modelInstallCtx.isPending ? (
                                         <div className="grid gap-3">
                                             <Skeleton className="h-5 w-44" />
@@ -185,7 +169,7 @@ export function InstallCostSidebar() {
             <Sidebar.Footer
                 id="install-cost-sidebar-footer"
                 className={cn(
-                    "border-t bg-background px-5 py-4",
+                    "border-t bg-background px-4 py-3",
                     tabValue === "v1"
                         ? "flex items-center justify-end gap-4"
                         : "hidden",
@@ -194,3 +178,4 @@ export function InstallCostSidebar() {
         </Sidebar>
     );
 }
+

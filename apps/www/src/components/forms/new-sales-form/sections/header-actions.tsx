@@ -1,9 +1,9 @@
 "use client";
 
+import type { SaveStatus } from "../schema";
 import { Button } from "@gnd/ui/button";
 import { Menu } from "@gnd/ui/custom/menu";
 import { MoreHorizontal } from "lucide-react";
-import type { SaveStatus } from "../schema";
 
 interface Props {
     type: "order" | "quote";
@@ -13,16 +13,17 @@ interface Props {
     dirty?: boolean;
     lastSavedAt?: string | null;
     statusMessage?: string | null;
-    isOverviewOpen?: boolean;
+    isSaving?: boolean;
     autosaveEnabled?: boolean;
-    onSaveDraft: () => Promise<void> | void;
-    onSaveFinal: () => Promise<void> | void;
-    onSaveClose: () => Promise<void> | void;
-    onSaveNew: () => Promise<void> | void;
-    onAddLineItem: () => void;
-    onToggleOverview?: () => void;
+    stepDisplayMode?: "compact" | "extended";
+    onAddItem?: () => void;
+    onToggleStepDisplay?: () => void;
     onOpenMobileSummary?: () => void;
     onToggleAutosave?: () => void;
+    onSaveDraft?: () => Promise<void> | void;
+    onSaveClose?: () => Promise<void> | void;
+    onSaveNew?: () => Promise<void> | void;
+    onSaveFinal?: () => Promise<void> | void;
     onOpenSettings?: () => void;
 }
 
@@ -76,90 +77,64 @@ export function HeaderActions(props: Props) {
                         ) : null}
                     </div>
                 </div>
-
-                <div className="hidden items-center gap-2 rounded-lg border bg-muted/20 px-2 py-1 md:flex">
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={props.onAddLineItem}
+                <Menu
+                    Icon={MoreHorizontal}
+                    iconClassName="size-4"
+                    Trigger={
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="px-3"
+                            disabled={props.isSaving}
+                        >
+                            <MoreHorizontal className="size-4" />
+                            Actions
+                        </Button>
+                    }
+                >
+                    <Menu.Item
                         disabled={props.isSaving}
+                        onClick={props.onAddItem}
                     >
                         Add Item
-                    </Button>
-                </div>
-
-                <div className="hidden items-center gap-2 rounded-lg border bg-muted/20 px-2 py-1 md:flex">
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        className="xl:hidden"
-                        onClick={props.onOpenMobileSummary}
-                    >
+                    </Menu.Item>
+                    <Menu.Item onClick={props.onToggleStepDisplay}>
+                        {props.stepDisplayMode === "extended"
+                            ? "Compact Steps"
+                            : "Extended Steps"}
+                    </Menu.Item>
+                    <Menu.Item onClick={props.onOpenMobileSummary}>
                         Invoice Summary
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={props.onToggleAutosave}>
+                    </Menu.Item>
+                    <Menu.Item onClick={props.onToggleAutosave}>
                         Autosave: {props.autosaveEnabled ? "On" : "Off"}
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => void props.onSaveDraft()}
+                    </Menu.Item>
+                    <Menu.Item
                         disabled={props.isSaving}
+                        onClick={() => void props.onSaveDraft?.()}
                     >
                         Save Draft
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => void props.onSaveClose()}
+                    </Menu.Item>
+                    <Menu.Item
                         disabled={props.isSaving}
+                        onClick={() => void props.onSaveClose?.()}
                     >
                         Save & Close
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => void props.onSaveNew()}
+                    </Menu.Item>
+                    <Menu.Item
                         disabled={props.isSaving}
+                        onClick={() => void props.onSaveNew?.()}
                     >
                         Save & New
-                    </Button>
-                    <Button
-                        size="sm"
-                        onClick={() => void props.onSaveFinal()}
+                    </Menu.Item>
+                    <Menu.Item
                         disabled={props.isSaving}
+                        onClick={() => void props.onSaveFinal?.()}
                     >
                         Save Final
-                    </Button>
-                    <Menu
-                        Icon={MoreHorizontal}
-                        iconClassName="size-4"
-                        Trigger={
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                className="px-2"
-                                disabled={props.isSaving}
-                            >
-                                <MoreHorizontal className="size-4" />
-                            </Button>
-                        }
-                    >
-                        <Menu.Item disabled>Overview</Menu.Item>
-                        <Menu.Item disabled>Send</Menu.Item>
-                        <Menu.Item disabled>Print</Menu.Item>
-                        <Menu.Item onClick={props.onOpenSettings}>Settings</Menu.Item>
-                    </Menu>
-                </div>
-
-                <div className="flex items-center gap-2 md:hidden">
-                    <Button size="sm" variant="outline" onClick={props.onOpenMobileSummary}>
-                        Summary
-                    </Button>
-                    <Button size="sm" onClick={() => void props.onSaveFinal()} disabled={props.isSaving}>
-                        Finalize
-                    </Button>
-                </div>
+                    </Menu.Item>
+                    <Menu.Item onClick={props.onOpenSettings}>Settings</Menu.Item>
+                </Menu>
             </div>
         </header>
     );

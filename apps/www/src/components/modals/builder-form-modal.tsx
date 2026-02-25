@@ -6,9 +6,9 @@ import { BuilderForm } from "../builder-form";
 import { BuilderFormAction } from "../builder-form-action";
 
 export function BuilderFormModal({}) {
-    const { setParams, opened, openBuilderId } = useBuilderParams();
+    const { opened, openBuilderId, onClose } = useBuilderParams();
     // const opened = createModelCost;
-    const { data: formData, isPending } = useQuery(
+    const { data: formData } = useQuery(
         useTRPC().community.getBuilderForm.queryOptions(
             {
                 builderId: openBuilderId!,
@@ -24,8 +24,9 @@ export function BuilderFormModal({}) {
             title={openBuilderId > 0 ? "Edit Builder" : "New Builder"}
             description={"Define builder details and standard task templates"}
             open={opened}
-            onOpenChange={(e) => {
-                setParams(null);
+            onOpenChange={(open) => {
+                if (open) return;
+                onClose();
             }}
         >
             <CustomModal.Content className="bg-muted/10 py-2 pb-16">
@@ -38,4 +39,3 @@ export function BuilderFormModal({}) {
         </CustomModal>
     );
 }
-
