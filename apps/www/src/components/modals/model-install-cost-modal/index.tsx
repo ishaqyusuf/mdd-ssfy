@@ -23,6 +23,7 @@ import { InstallConfiguration } from "./install-configuration";
 import { AddNewInstallCost } from "./add-new-install-cost";
 import { sum } from "@gnd/utils";
 import NumberFlow from "@number-flow/react";
+import { useJobFormParams } from "@/hooks/use-job-form-params";
 
 export function ModelInstallCostModal() {
     const sideBarView = true;
@@ -34,7 +35,9 @@ export function ModelInstallCostModal() {
         mode,
         selectedBuilderTaskId,
         openToSide,
+        jobPayload,
     } = useCommunityInstallCostParams();
+    const { setParams: setJobFormParams } = useJobFormParams();
     const _modelInstallContext = useCreateBuilderModelInstallsContext(ctx);
 
     return (
@@ -42,8 +45,13 @@ export function ModelInstallCostModal() {
             // className="overflow-hidden sp-0 md:max-h-full md:h-auto md:min-h-0  md:max-w-[700px] lg:max-w-[800px]"
             className=""
             open={!!editCommunityModelInstallCostId && !openToSide}
-            onOpenChange={(e) => {
+            onOpenChange={(open) => {
+                if (open) return;
+                const nextJobPayload = jobPayload;
                 setParams(null);
+                if (nextJobPayload?.step) {
+                    setJobFormParams(nextJobPayload);
+                }
             }}
             size={isV2 ? "4xl" : "xl"}
             title={
@@ -224,4 +232,3 @@ export function ModelInstallCostModal() {
         </CustomModal>
     );
 }
-
