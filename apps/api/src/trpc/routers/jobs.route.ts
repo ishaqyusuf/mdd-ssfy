@@ -413,4 +413,67 @@ export const jobRoutes = createTRPCRouter({
         tasks,
       };
     }),
+  paymentOverview: publicProcedure
+    .input(
+      z.object({
+        paymentId: z.number(),
+      }),
+    )
+    .query(async (props) => {
+      const { ctx, input } = props;
+      const payment = await ctx.db.jobPayments.findFirst({
+        where: {
+          id: input.paymentId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          amount: true,
+          charges: true,
+          subTotal: true,
+          checkNo: true,
+          paymentMethod: true,
+          createdAt: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          payer: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          jobs: {
+            where: {
+              deletedAt: null,
+            },
+            orderBy: {
+              id: "asc",
+            },
+            select: {
+              id: true,
+              title: true,
+              subtitle: true,
+              amount: true,
+              status: true,
+              statusDate: true,
+              createdAt: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+      if (!payment) {
+        throw new Error("Payment not found");
+      }
+      return payment;
+    }),
 });

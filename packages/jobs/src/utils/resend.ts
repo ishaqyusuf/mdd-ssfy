@@ -36,7 +36,7 @@ export async function sendEmail({
     headers: {
       "X-Entity-Ref-ID": nanoid(),
     },
-    html: render(content),
+    html: await render(content),
   });
   if (response.error) {
     // logger.error(errorLog || "email failed to send", {

@@ -11,13 +11,15 @@ import { formatDate } from "@gnd/utils/dayjs";
 import { ApprovalForm } from "./approval-form";
 import { ApprovedForm } from "./approved-form";
 import { RejectedForm } from "./rejected-form";
-import { PaidForm } from "./paid-form";
-import { Building2, MapPin, MessageSquare } from "lucide-react";
+import { Building2, CreditCard, MapPin, MessageSquare } from "lucide-react";
 import { Card } from "@gnd/ui/namespace";
 import { JobScope } from "./job-scope";
 import { FinancialSummary } from "./financial-summary";
 import { Avatar } from "@/components/avatar";
 import { ActivityHistory } from "./activity-history";
+import { Button } from "@gnd/ui/button";
+import { PaymentOverviewModal } from "./payment-overview-modal";
+import React from "react";
 
 export function JobOverviewModal() {
     const { setParams, openJobId, opened } = useJobParams();
@@ -51,6 +53,9 @@ export function JobOverviewModal() {
 function Content() {
     const ctx = useCreateJobOverviewContext();
     const job = ctx.overview!;
+    const [isPaymentOverviewOpen, setIsPaymentOverviewOpen] = React.useState(
+        false,
+    );
     const normalizedStatus = String(job?.status || "")
         .toLowerCase()
         .replace(/[_\s]+/g, "-");
@@ -94,7 +99,6 @@ function Content() {
                         {job?.status === "Submitted" && <ApprovalForm />}
                         {job?.status === "Approved" && <ApprovedForm />}
                         {job?.status === "Rejected" && <RejectedForm />}
-                        {job?.status === "Paid" && <PaidForm />}
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <Card>
                                 <Card.Header>
@@ -143,6 +147,46 @@ function Content() {
                     {/* RIGHT COLUMN: Financials & History */}
                     <div className="space-y-6">
                         <FinancialSummary />
+                        <div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <CreditCard className="h-4 w-4" />
+                                <h4 className="text-xs font-bold uppercase tracking-wider">
+                                    Payment Information
+                                </h4>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-sm text-muted-foreground">
+                                    Batch Payment ID
+                                </p>
+                                <p className="font-bold text-foreground">
+                                    {job.payment?.id
+                                        ? `#${job.payment.id}`
+                                        : "Not in a payment batch"}
+                                </p>
+                            </div>
+                            {job.payment?.id && (
+                                <div className="space-y-1">
+                                    <p className="text-sm text-muted-foreground">
+                                        Batch Amount
+                                    </p>
+                                    <p className="font-bold text-foreground">
+                                        ${Number(job.payment.amount || 0).toFixed(2)}
+                                    </p>
+                                </div>
+                            )}
+                            <p className="text-xs text-muted-foreground">
+                                Job payments are processed in batches. Click to
+                                view all jobs in this payment.
+                            </p>
+                            <Button
+                                variant="outline"
+                                onClick={() => setIsPaymentOverviewOpen(true)}
+                                disabled={!job.payment?.id}
+                                className="w-full"
+                            >
+                                View Payment
+                            </Button>
+                        </div>
                         {/* Assigned To */}
                         <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
                             <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4">
@@ -167,6 +211,11 @@ function Content() {
                     </div>
                 </div>
             </div>
+            <PaymentOverviewModal
+                open={isPaymentOverviewOpen}
+                onOpenChange={setIsPaymentOverviewOpen}
+                paymentId={job.payment?.id ?? null}
+            />
         </JobOverviewProvider>
     );
 }
