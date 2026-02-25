@@ -16,7 +16,10 @@ export const useCreateJobOverviewContext = () => {
                 jobId: openJobId!,
             },
             {
-                enabled: !!openJobId,
+                enabled:
+                    !!openJobId &&
+                    Number.isSafeInteger(openJobId) &&
+                    Number(openJobId) > 0,
             },
         ),
     );
