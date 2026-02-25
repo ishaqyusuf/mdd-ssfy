@@ -25,7 +25,6 @@ export interface NotificationHandler<T = any> {
   ) => Partial<CreateEmailOptions> & {
     data: Record<string, any>;
     template?: string;
-    emailType: "customer" | "team" | "owners"; // Explicit: customer emails go to external recipients, team emails go to all team members, owners emails go to team owners only
   };
 }
 

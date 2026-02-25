@@ -42,6 +42,8 @@ export function UnitSelectStep({}) {
                         <button
                             key={item.id}
                             onClick={() => {
+                                // console.log(item);
+                                // return;
                                 setParams({
                                     unitId: item.id,
                                     modelId: item.modelId,
@@ -132,3 +134,4 @@ function LoadingSkeleton({ isPending, children }) {
         </div>
     );
 }
+

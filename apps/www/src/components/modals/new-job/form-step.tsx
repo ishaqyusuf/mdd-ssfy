@@ -23,7 +23,10 @@ export function FormStep({}) {
     const { ...params } = useJobFormParams();
     const { defaultValues, isPending } = useJobFormContext();
     const isReadyToLoadForm =
-        !!params.unitId && !!params.taskId && !!params.userId && !!params.modelId;
+        !!params.unitId &&
+        !!params.taskId &&
+        !!params.userId &&
+        !!params.modelId;
 
     if (!isReadyToLoadForm) {
         return (
@@ -326,3 +329,4 @@ function FormContent() {
         </>
     );
 }
+

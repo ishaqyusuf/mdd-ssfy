@@ -22,6 +22,12 @@ const handlers = {
   sales_dispatch_assigned: salesDispatchAssigned,
 } as const;
 import { generateEmailMeta } from "./utils";
+
+function isValidEmail(email?: string | null): email is string {
+  if (!email) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
 export class Notifications {
   #emailService: EmailService;
   #db: Db;
@@ -255,60 +261,12 @@ export class Notifications {
         consoleLog("Creating email with context:", {
           firstUser,
         });
-        const sampleEmail = handler.createEmail(
-          validatedData,
-          firstUser,
-          this.emailMeta,
+        const emailContacts = (contacts || []).filter((user: UserData) =>
+          isValidEmail(user.email),
         );
+        const filteredOutCount = (contacts?.length || 0) - emailContacts.length;
 
-        // if (sampleEmail.emailType === "customer") {
-        //   // Customer-facing email: send regardless of team preferences
-        //   const emailInputs = [
-        //     this.#createEmailInput(handler, validatedData, firstUser),
-        //   ];
-
-        //   emails = await this.#emailService.sendBulk(
-        //     emailInputs,
-        //     type as string,
-        //   );
-
-        //   console.log("📨 Email result for customer:", {
-        //     sent: emails.sent,
-        //     skipped: emails.skipped,
-        //     failed: emails.failed || 0,
-        //   });
-        // } else if (sampleEmail.emailType === "owners") {
-        // Owners-only email: send to team owners only
-        //   const ownerUsers = contacts.filter(
-        //     Boolean,
-        //     // (user: UserData) => user.role === "owner",
-        //   );
-
-        //   const emailInputs = ownerUsers.map((user: UserData) =>
-        //     this.#createEmailInput(
-        //       handler,
-        //       validatedData,
-        //       user,
-        //       // teamContext,
-        //       // options,
-        //     ),
-        //   );
-
-        //   console.log("📨 Email inputs for owners:", emailInputs.length);
-
-        //   emails = await this.#emailService.sendBulk(
-        //     emailInputs,
-        //     type as string,
-        //   );
-
-        //   console.log("📨 Email result for owners:", {
-        //     sent: emails.sent,
-        //     skipped: emails.skipped,
-        //     failed: emails.failed || 0,
-        //   });
-        // } else {
-        // Team-facing email: send to all team members
-        const emailInputs = contacts!?.map((user: UserData) =>
+        const emailInputs = emailContacts.map((user: UserData) =>
           this.#createEmailInput(
             handler,
             validatedData,
@@ -318,17 +276,32 @@ export class Notifications {
           ),
         );
 
-        console.log("📨 Email inputs for team:", emailInputs.length);
+        if (!emailInputs.length) {
+          emails = {
+            sent: 0,
+            skipped: contacts?.length || 0,
+            failed: 0,
+          };
+        } else {
+          console.log("📨 Email inputs for team:", emailInputs.length);
 
-        emails = await this.#emailService.sendBulk(emailInputs, type as string);
+          const emailResult = await this.#emailService.sendBulk(
+            emailInputs,
+            type as string,
+          );
+          emails = {
+            sent: emailResult.sent,
+            skipped: emailResult.skipped + filteredOutCount,
+            failed: emailResult.failed || 0,
+          };
 
-        console.log("📨 Email result for team:", {
-          sent: emails.sent,
-          skipped: emails.skipped,
-          failed: emails.failed || 0,
-        });
+          console.log("📨 Email result for team:", {
+            sent: emails.sent,
+            skipped: emails.skipped,
+            failed: emails.failed || 0,
+          });
+        }
       }
-      // }
 
       return {
         type: type as string,

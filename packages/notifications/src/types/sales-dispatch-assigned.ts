@@ -22,7 +22,6 @@ export const salesDispatchAssigned: NotificationHandler = {
     return {
       ...args,
       template: "sales-dispatch-assigned",
-      emailType: "customer",
       to: [user.email],
       subject: `New Dispatch Assigned: Order ${data.orderNo}`,
       data: {},

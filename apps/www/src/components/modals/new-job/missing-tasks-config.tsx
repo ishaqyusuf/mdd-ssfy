@@ -2,11 +2,14 @@ import { useJobFormContext } from "@/contexts/job-form-context";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { AlertTriangle, Bell, Clock } from "lucide-react";
 import { JobSubmitButton } from "./job-submit-button";
+import { useJobRole } from "@/hooks/use-job-role";
+import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 
 export function MissingTasksConfig({ form }) {
     const { defaultValues } = useJobFormContext();
+    const { isAdmin } = useJobRole();
     const handleSaveAsDraft = () => {};
-
+    const { setParams: setInstallCostParams } = useCommunityInstallCostParams();
     return (
         <div className="flex flex-col items-center justify-center p-8 text-center bg-amber-50 dark:bg-amber-900/10 border-2 border-dashed border-amber-200 dark:border-amber-800 rounded-2xl animate-in zoom-in-95 duration-300">
             <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center text-amber-600 mb-6 shadow-sm">
