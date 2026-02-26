@@ -7,7 +7,7 @@ import {
     fetchDevicesByLocations,
     getSquareDevices,
     getTerminalPaymentStatus,
-} from "@/modules/square";
+} from "@gnd/square";
 
 import {
     SalesPaymentStatus,

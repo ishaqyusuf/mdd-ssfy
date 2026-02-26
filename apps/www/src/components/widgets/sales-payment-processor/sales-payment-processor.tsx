@@ -8,14 +8,13 @@ import { _qc, _trpc } from "@/components/static-trpc";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { openLink } from "@/lib/open-link";
-import { TerminalCheckoutStatus } from "@/modules/square";
+import { TerminalCheckoutStatus } from "@gnd/square";
 import { paymentMethods, salesPaymentMethods } from "@/utils/constants";
 import { formatDate } from "@/utils/format";
 import { Button, ButtonProps } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { cn } from "@gnd/ui/cn";
 import {
-    AlertDialog,
     Dialog,
     Field,
     InputGroup,
@@ -472,7 +471,13 @@ function Content(props: Props & { setOpened }) {
             </Dialog.Header>
             <form
                 onSubmit={form.handleSubmit(
-                    sendLink ? sendPaymentLink : initPayment,
+                    (formData: any) => {
+                        if (sendLink) {
+                            sendPaymentLink(formData);
+                        } else {
+                            initPayment(formData);
+                        }
+                    },
                     (e) => {
                         console.log("Form Errors: ", e);
                     },

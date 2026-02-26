@@ -1,6 +1,6 @@
 "use server";
 
-import { getTerminalPaymentStatus } from "@/modules/square";
+import { getTerminalPaymentStatus } from "@gnd/square";
 import { z } from "zod";
 
 import { actionClient } from "./safe-action";

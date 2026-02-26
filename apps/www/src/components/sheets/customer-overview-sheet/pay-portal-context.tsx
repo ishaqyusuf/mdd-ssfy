@@ -9,7 +9,7 @@ import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { formatMoney } from "@/lib/use-number";
 import { sum } from "@/lib/utils";
-import { TerminalCheckoutStatus } from "@/modules/square";
+import { TerminalCheckoutStatus } from "@gnd/square";
 import { printSalesData } from "@/utils/sales-print-utils";
 import { useAction } from "next-safe-action/hooks";
 

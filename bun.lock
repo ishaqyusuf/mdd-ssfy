@@ -647,6 +647,7 @@
       "devDependencies": {
         "@gnd/tsconfig": "workspace:*",
         "@types/heic-convert": "2.1.0",
+        "@types/qs": "^6.14.0",
         "trigger.dev": "4.0.1",
       },
     },

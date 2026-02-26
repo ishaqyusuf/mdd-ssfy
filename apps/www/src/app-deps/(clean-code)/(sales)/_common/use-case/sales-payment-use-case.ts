@@ -12,7 +12,7 @@ import {
 import {
     createTerminalCheckout,
     CreateTerminalCheckoutProps,
-} from "@/modules/square";
+} from "@gnd/square";
 import { SalesTransaction } from "../../types";
 import { createTransactionDta } from "../data-access/wallet/transaction-dta";
 import { revalidatePath } from "next/cache";

@@ -8,7 +8,7 @@ import {
 import { authId } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { errorHandler } from "@/modules/error/handler";
-import { createSquareTerminalCheckout } from "@/modules/square";
+import { createSquareTerminalCheckout } from "@gnd/square";
 import { z } from "zod";
 
 import { createPayrollAction } from "./create-payroll";
@@ -40,7 +40,10 @@ export const createSalesPaymentAction = actionClient
                     input
                 );
 
-                if (error) throw Error(error.message);
+                if (error) throw Error(error.message || "Unable to create Square terminal checkout.");
+                if (!data?.squareCheckout?.id || !data?.squarePaymentId) {
+                    throw Error("Unable to create Square terminal checkout.");
+                }
                 response.terminalPaymentSession = {
                     squarePaymentId: data.squarePaymentId,
                     squareCheckoutId: data.squareCheckout.id,
@@ -150,6 +153,7 @@ async function createTerminalPayment(
             amount: props.amount,
             orderIds: props?.orderNos,
         });
+        if (!checkout?.id) throw new Error("Square checkout did not return an id.");
         consoleLog("CHECKING OUT>>>", checkout);
 
         const squarePayment = await prisma.squarePayments.create({

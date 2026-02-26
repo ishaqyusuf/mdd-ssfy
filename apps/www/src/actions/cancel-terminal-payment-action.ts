@@ -4,7 +4,7 @@ import { prisma } from "@/db";
 import { errorHandler } from "@/modules/error/handler";
 import { z } from "zod";
 import { actionClient } from "./safe-action";
-import { getTerminalPaymentStatus } from "@/modules/square";
+import { getTerminalPaymentStatus } from "@gnd/square";
 import { __cancelTerminalPayment, SquarePaymentStatus } from "@/_v2/lib/square";
 
 const schema = z.object({
