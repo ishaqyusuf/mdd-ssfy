@@ -86,7 +86,7 @@ import {
   sum,
 } from "@gnd/utils";
 import { tasks } from "@trigger.dev/sdk/v3";
-import type { CommunityBuilderMeta } from "@gnd/utils/community";
+import { getPivotModel, type CommunityBuilderMeta } from "@gnd/utils/community";
 import {
   builderFormSchema,
   communityInstallCostRateSchema,
@@ -96,6 +96,7 @@ import { getSettingAction } from "@gnd/settings";
 import { INSTALL_COST_DEFAULT_UNITS } from "@community/constants";
 import type { JobMeta, JobStatus, ProjectMeta } from "@community/types";
 import type { NotificationJobInput } from "@notifications/schemas";
+import slugify from "slugify";
 export const communityRouters = createTRPCRouter({
   buildersList: publicProcedure.query(async (q) => {
     return buildersList(q.ctx);
@@ -1154,6 +1155,131 @@ export const communityRouters = createTRPCRouter({
         include: {},
       });
       return tasks;
+    }),
+  generateModelForUnit: publicProcedure
+    .input(z.object({ unitId: z.number() }))
+    .mutation(async (props) => {
+      const { db } = props.ctx;
+      const { unitId } = props.input;
+
+      const unit = await db.homes.findFirst({
+        where: {
+          id: unitId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          projectId: true,
+          modelName: true,
+          communityTemplateId: true,
+          project: {
+            select: {
+              title: true,
+            },
+          },
+        },
+      });
+
+      if (!unit) throw new Error("Unit not found");
+      if (!unit.modelName) throw new Error("Unit model is missing");
+
+      if (unit.communityTemplateId) {
+        return {
+          modelId: unit.communityTemplateId,
+          created: false,
+        };
+      }
+
+      const existingModel = await db.communityModels.findFirst({
+        where: {
+          projectId: unit.projectId,
+          modelName: unit.modelName,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      const ensureModelId = async () => {
+        if (existingModel?.id) return existingModel.id;
+
+        const pivotModel = getPivotModel(unit.modelName);
+        let pivot = await db.communityModelPivot.findFirst({
+          where: {
+            model: pivotModel,
+            projectId: unit.projectId,
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+          },
+        });
+        if (!pivot) {
+          pivot = await db.communityModelPivot.create({
+            data: {
+              model: pivotModel,
+              projectId: unit.projectId,
+              meta: {},
+            },
+            select: {
+              id: true,
+            },
+          });
+        }
+
+        const baseSlug =
+          slugify(`${unit.project?.title || "project"} ${unit.modelName}`, {
+            lower: true,
+            strict: true,
+            trim: true,
+          }) || `model-${unit.projectId}-${unit.id}`;
+
+        let slug = baseSlug;
+        let attempts = 0;
+        while (attempts < 5) {
+          const exists = await db.communityModels.findFirst({
+            where: {
+              slug,
+            },
+            select: { id: true },
+          });
+          if (!exists) break;
+          attempts += 1;
+          slug = `${baseSlug}-${generateRandomString(4).toLowerCase()}`;
+        }
+
+        const created = await db.communityModels.create({
+          data: {
+            slug,
+            modelName: unit.modelName!,
+            projectId: unit.projectId,
+            pivotId: pivot.id,
+          },
+          select: {
+            id: true,
+          },
+        });
+        return created.id;
+      };
+
+      const modelId = await ensureModelId();
+
+      await db.homes.updateMany({
+        where: {
+          projectId: unit.projectId,
+          modelName: unit.modelName,
+          deletedAt: null,
+        },
+        data: {
+          communityTemplateId: modelId,
+        },
+      });
+
+      return {
+        modelId,
+        created: !existingModel?.id,
+      };
     }),
   getModelBuilderTasks: publicProcedure
     .input(z.object({ modelId: z.number() }))

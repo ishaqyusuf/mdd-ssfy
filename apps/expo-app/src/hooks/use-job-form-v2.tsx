@@ -90,6 +90,10 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 
   const initialStep = clamp(params.step || 1, 1, tabs.length);
   const [completed, setCompleted] = useState(false);
+  const [isInstallCostStepActive, setIsInstallCostStepActive] = useState(false);
+  const [installCostBuilderTaskId, setInstallCostBuilderTaskId] = useState<
+    number | null
+  >(null);
 
   useEffect(() => {
     if (!params.step) {
@@ -122,11 +126,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
     !!params.modelId;
   // consoleLog("PARAMS", params,shouldLoadDefaults);
 
-  const {
-    data: defaultValues,
-    isPending: isDefaultValuesPending,
-    error,
-  } = useQuery(
+  const { data: defaultValues, isPending: isDefaultValuesPending } = useQuery(
     trpc.community.getJobForm.queryOptions(
       shouldLoadDefaults
         ? {
@@ -142,24 +142,44 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
       },
     ),
   );
-  consoleLog("...", {
-    defaultValues,
-    error,
-  });
 
   useEffect(() => {
     if (defaultValues) {
+      const normalizedTaskRecord = Object.fromEntries(
+        (((defaultValues as any)?.job?.tasks || []) as any[]).map(
+          (task, index) => {
+            const key = String(task?.modelTaskId || task?.id || index);
+            return [
+              key,
+              {
+                qty: task?.qty ?? null,
+                maxQty: task?.maxQty ?? null,
+                cost: task?.rate ?? 0,
+                title: task?.installCostModel?.title || key,
+                modelTaskId: task?.modelTaskId ?? null,
+                taskId: task?.id ?? null,
+              },
+            ];
+          },
+        ),
+      );
+
       form.reset({
         ...(defaultValues as any),
         unit: {
           id: params.unitId,
         },
         user: {
-          id: params.userId,
+          id: resolvedUserId,
         },
+        isCustom: !!(defaultValues as any)?.job?.isCustom,
+        tasks:
+          Object.keys(normalizedTaskRecord).length > 0
+            ? (normalizedTaskRecord as any)
+            : ((defaultValues as any)?.tasks as any),
       });
     }
-  }, [defaultValues, form, params.unitId, resolvedUserId]);
+  }, [defaultValues, form, params.unitId, resolvedUserId, params.userId]);
 
   const workerRoles = admin ? getWorkerRoles(jobType) : [safeProfileRole];
   const { data: users, isPending: isUsersPending } = useQuery(
@@ -234,6 +254,50 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
       },
     }),
   );
+  const {
+    mutate: saveJobForm,
+    isPending: isRequestingTaskConfiguration,
+    data: requestTaskConfigurationData,
+    error: requestTaskConfigurationError,
+  } = useMutation(
+    _trpc.community.saveJobForm.mutationOptions({
+      onSuccess() {
+        _qc.invalidateQueries({
+          queryKey: _trpc.jobs.getJobs.queryKey(),
+        });
+        _qc.invalidateQueries({
+          queryKey: _trpc.community.getJobForm.queryKey(),
+        });
+        Toast.show(
+          "Job saved and configuration request submitted. You will be notified via email and app. You can finish job form and submit once notified.",
+          {
+            type: "success",
+          },
+        );
+      },
+      meta: {
+        toastTitle: {
+          error: "Failed to request configuration",
+          loading: "Saving draft...",
+          success: "Configuration request submitted",
+          show: false,
+        },
+      },
+    }),
+  );
+  consoleLog("ERROR", {
+    requestTaskConfigurationError,
+    isRequestingTaskConfiguration,
+    requestTaskConfigurationData,
+  });
+  const hasMissingTaskConfiguration = useMemo(() => {
+    const builderTaskId = (defaultValues as any)?.builderTaskId;
+    const isCustom = !!(defaultValues as any)?.job?.isCustom;
+    const tasks = ((defaultValues as any)?.job?.tasks || []) as any[];
+    if (!builderTaskId || isCustom) return false;
+    if (!tasks.length) return true;
+    return tasks.every((task) => !task?.maxQty || Number(task.maxQty) <= 0);
+  }, [defaultValues]);
 
   const setStep = useCallback(
     (nextStep: number) => {
@@ -257,6 +321,11 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
   }, [completed, initialStep, setStep]);
 
   const prevStep = useCallback(() => {
+    if (isInstallCostStepActive) {
+      setIsInstallCostStepActive(false);
+      return;
+    }
+
     if (completed) {
       setCompleted(false);
       return;
@@ -279,7 +348,14 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
     }
 
     setStep(initialStep - 1);
-  }, [completed, initialStep, params, router, setStep]);
+  }, [
+    completed,
+    initialStep,
+    isInstallCostStepActive,
+    params,
+    router,
+    setStep,
+  ]);
 
   const selectUser = useCallback(
     (userId: number) => {
@@ -393,6 +469,103 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
     )();
   }, [admin, auth?.profile?.user?.id, form, profile?.role?.name, saveJob]);
 
+  const requestTaskConfiguration = useCallback(() => {
+    if (!params.unitId || !resolvedUserId) {
+      Toast.show("Unable to request configuration right now.", {
+        type: "error",
+      });
+      return;
+    }
+
+    const defaultJob = (defaultValues as any)?.job || {};
+    const defaultMeta = defaultJob.meta || {};
+    const values = form.getValues() as any;
+    const tasks = ((defaultJob.tasks || []) as any[]).map((task) => ({
+      id: task?.id ?? undefined,
+      modelTaskId: task?.modelTaskId,
+      rate: task?.rate ?? null,
+      qty: task?.qty ?? null,
+      maxQty: task?.maxQty ?? null,
+    }));
+    const selectedProject = (projectList || []).find(
+      (project: any) => project?.id === params.projectId,
+    );
+    const selectedUnit = (unitOptions || []).find(
+      (unit: any) => unit?.id === params.unitId,
+    );
+    const selectedTask = (taskOptions || []).find(
+      (task: any) => task?.id === params.taskId,
+    );
+    const fallbackTitle =
+      values?.title ||
+      defaultJob.title ||
+      selectedProject?.title ||
+      "Job Request";
+    const fallbackSubtitle =
+      values?.subtitle ||
+      defaultJob.subtitle ||
+      [selectedUnit?.modelName, selectedTask?.taskName]
+        .filter(Boolean)
+        .join(" - ") ||
+      null;
+    const hasModelConfigured =
+      params.modelId !== null && params.modelId !== undefined;
+
+    saveJobForm({
+      unit: {
+        id: params.unitId,
+      },
+      user: {
+        id: resolvedUserId,
+      },
+      builderTaskId:
+        (defaultValues as any)?.builderTaskId ||
+        (params.taskId && params.taskId > 0 ? params.taskId : undefined),
+      requestTaskConfig: true,
+      job: {
+        id: defaultJob.id || undefined,
+        amount: defaultJob.amount ?? 0,
+        description: values?.description || defaultJob.description || "",
+        isCustom: hasModelConfigured ? false : true,
+        adminNote: defaultJob.adminNote ?? null,
+        title: fallbackTitle,
+        subtitle: fallbackSubtitle,
+        status: "In Progress",
+        tasks: hasModelConfigured ? tasks : [],
+        meta: {
+          addon:
+            values?.addon ?? defaultMeta.addon ?? selectedProject?.addon ?? 0,
+          addonPercent: defaultMeta.addonPercent ?? 0,
+          additionalCostReason:
+            values?.additionalReason ?? defaultMeta.additionalCostReason ?? "",
+          additional_cost:
+            values?.additionalCost ?? defaultMeta.additional_cost ?? null,
+        },
+      },
+    } as any);
+  }, [
+    defaultValues,
+    form,
+    params.modelId,
+    params.projectId,
+    params.taskId,
+    params.unitId,
+    projectList,
+    resolvedUserId,
+    saveJobForm,
+    taskOptions,
+    unitOptions,
+  ]);
+
+  const openInstallCostStep = useCallback((builderTaskId?: number | null) => {
+    setInstallCostBuilderTaskId(builderTaskId || null);
+    setIsInstallCostStepActive(true);
+  }, []);
+
+  const closeInstallCostStep = useCallback(() => {
+    setIsInstallCostStepActive(false);
+  }, []);
+
   const reset = useCallback(() => {
     setCompleted(false);
     form.reset({});
@@ -425,6 +598,8 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
     nextStep,
     prevStep,
     total,
+    isInstallCostStepActive,
+    installCostBuilderTaskId,
     defaultValues,
     isDefaultValuesPending,
     projectList: projectList || [],
@@ -443,8 +618,14 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
     handleSubmit,
     saveJob,
     isSaving,
+    isRequestingTaskConfiguration,
     savedData,
+    requestTaskConfigurationData,
     errors,
+    hasMissingTaskConfiguration,
+    requestTaskConfiguration,
+    openInstallCostStep,
+    closeInstallCostStep,
     reset,
   };
 }

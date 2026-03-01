@@ -14,13 +14,14 @@ function canContinue(tab: string, params: any) {
 export function JobV2Footer() {
   const {
     currentTab,
-    step,
-    tabs,
     prevStep,
     nextStep,
     params,
     handleSubmit,
     isSaving,
+    hasMissingTaskConfiguration,
+    isInstallCostStepActive,
+    closeInstallCostStep,
     reset,
   } = useJobFormV2Context();
 
@@ -43,7 +44,13 @@ export function JobV2Footer() {
           </Button>
         ) : null}
 
-        {currentTab === "form" ? (
+        {currentTab === "form" && isInstallCostStepActive ? (
+          <Button onPress={closeInstallCostStep} className="rounded-2xl bg-primary px-5">
+            <Text className="text-primary-foreground">Finish</Text>
+          </Button>
+        ) : null}
+
+        {currentTab === "form" && !hasMissingTaskConfiguration && !isInstallCostStepActive ? (
           <Button onPress={handleSubmit} className="rounded-2xl bg-primary px-5" disabled={isSaving}>
             <Text className="text-primary-foreground">{isSaving ? "Submitting..." : "Submit Job"}</Text>
           </Button>

@@ -1,6 +1,9 @@
 import { SearchInput } from "@/components/search-input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Toast } from "@/components/ui/toast";
 import { useJobFormV2Context } from "@/hooks/use-job-form-v2";
+import { _trpc } from "@/components/static-trpc";
+import { useMutation } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { NeoCard } from "../ui/neo-card";
@@ -34,9 +37,22 @@ function UnitStepSkeleton() {
 export function SelectUnitStep() {
   const { unitOptions, params, selectUnit, isUnitsPending } = useJobFormV2Context();
   const [query, setQuery] = useState("");
+  const [generatingUnitId, setGeneratingUnitId] = useState<number | null>(null);
   const listRef = useRef<ScrollView>(null);
   const positionsRef = useRef<Record<number, number>>({});
   const hasScrolledRef = useRef(false);
+  const { mutateAsync: generateModelForUnit } = useMutation(
+    _trpc.community.generateModelForUnit.mutationOptions({
+      meta: {
+        toastTitle: {
+          error: "Unable to configure unit model",
+          loading: "Configuring model...",
+          success: "Model configured",
+          show: true,
+        },
+      },
+    }),
+  );
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -96,16 +112,34 @@ export function SelectUnitStep() {
             <TouchableOpacity
               key={unit.id}
               className="active:opacity-85"
-              onPress={() =>
-                selectUnit({
-                  id: unit.id,
-                  modelId: unit.modelId,
-                  modelName: unit.modelName || undefined,
-                  lot: unit.lot || undefined,
-                  block: unit.block || undefined,
-                  costing: (unit as any).costing,
-                })
-              }
+              onPress={async () => {
+                try {
+                  let nextModelId = unit.modelId;
+                  if (!nextModelId) {
+                    setGeneratingUnitId(unit.id);
+                    const generated = await generateModelForUnit({
+                      unitId: unit.id,
+                    });
+                    nextModelId = generated?.modelId || null;
+                  }
+
+                  selectUnit({
+                    id: unit.id,
+                    modelId: nextModelId,
+                    modelName: unit.modelName || undefined,
+                    lot: unit.lot || undefined,
+                    block: unit.block || undefined,
+                    costing: (unit as any).costing,
+                  });
+                } catch {
+                  Toast.show("Failed to configure community model for unit.", {
+                    type: "error",
+                  });
+                } finally {
+                  setGeneratingUnitId(null);
+                }
+              }}
+              disabled={generatingUnitId === unit.id}
               onLayout={(event) => {
                 positionsRef.current[unit.id] = event.nativeEvent.layout.y;
               }}
@@ -117,6 +151,13 @@ export function SelectUnitStep() {
                     <Text className="text-xs uppercase tracking-[1px] text-muted-foreground">
                       Lot {unit.lot} / Block {unit.block}
                     </Text>
+                    {!unit.modelId ? (
+                      <Text className="mt-1 text-[11px] text-muted-foreground">
+                        {generatingUnitId === unit.id
+                          ? "Configuring community model..."
+                          : "Community model missing - auto-configure on select"}
+                      </Text>
+                    ) : null}
                   </View>
                   <View className="rounded-full bg-primary px-3 py-1">
                     <Text className="text-[10px] uppercase text-primary-foreground">{unit.jobCount} jobs</Text>

@@ -98,6 +98,15 @@ Status key: `[ ]` pending, `[-]` in progress, `[x]` done
 - [x] Action parity: status-dependent review actions
 - [ ] Add explicit “missing-on-mobile” checklist and close each item before rollout
 
+### 11) Missing Task Configuration Parity (Web -> Mobile)
+- [x] Detect missing task configuration (`no task qty`) in Job Form V2 details step
+- [x] Contractor flow: show “Request Configuration & Save Draft” action
+- [x] Admin flow: show both “Configure Task” and “Request Configuration & Save Draft”
+- [x] Wire request configuration to `community.saveJobForm` with `requestTaskConfig: true`
+- [x] Ensure request flow saves draft and triggers backend notification/email channel
+- [x] Add mobile install-cost editor modal for selected model + builder task list
+- [ ] Validate end-to-end behavior with manual QA on both admin and contractor accounts
+
 ## Risks / Watchouts
 - Existing flow callers may still push old route patterns; navigation must converge on `/job-form`.
 - Query shape differences between web and Expo TRPC clients may require minor adapter logic.
@@ -119,3 +128,5 @@ Status key: `[ ]` pending, `[-]` in progress, `[x]` done
 - [x] Job Overview V2 migrated to `jobs.overview` with web-style action forms and payment details.
 - [x] Legacy create/submit/assign/re-assign route files now redirect to `/job-form` V2 entrypoint.
 - [x] Added reusable loading skeleton and empty-state UI across all Job Form V2 steps.
+- [x] Added missing-task configuration actions with save/request flow using `community.saveJobForm`.
+- [x] Added model task install-cost editing modal for mobile in Job Form V2.

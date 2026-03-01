@@ -14,8 +14,14 @@ const TAB_TITLE: Record<string, string> = {
 };
 
 export function JobV2Header() {
-  const { action, step, tabs, currentTab, admin, prevStep } = useJobFormV2Context();
+  const { action, step, tabs, currentTab, admin, prevStep, isInstallCostStepActive } = useJobFormV2Context();
   const subtitle = admin ? "Admin Assignment Flow" : "Contractor Job Flow";
+  const displayTitle =
+    currentTab === "form" && isInstallCostStepActive
+      ? "Configure Task Costs"
+      : TAB_TITLE[currentTab] || "Job Form";
+  const displayCount = tabs.length + (isInstallCostStepActive ? 1 : 0);
+  const displayStep = isInstallCostStepActive ? tabs.length + 1 : step;
 
   return (
     <View className="px-4 pb-2 pt-2">
@@ -27,14 +33,14 @@ export function JobV2Header() {
               {subtitle}
             </Text>
             <Text className="text-xl font-black text-foreground">
-              {TAB_TITLE[currentTab] || "Job Form"}
+              {displayTitle}
             </Text>
             <Text className="text-xs text-muted-foreground">
               {action?.replace("-", " ") || "create"}
             </Text>
           </View>
         </View>
-        <StepTrack count={tabs.length} current={step} />
+        <StepTrack count={displayCount} current={displayStep} />
       </NeoCard>
     </View>
   );
