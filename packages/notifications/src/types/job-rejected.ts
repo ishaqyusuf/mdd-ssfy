@@ -30,4 +30,11 @@ export const jobRejected: NotificationHandler = {
       },
     };
   },
+  createWhatsApp(data, author, user) {
+    const reviewer = data.rejectedByName || author.name || "Reviewer";
+    const note = data.note ? ` Note: ${data.note}` : "";
+    return {
+      message: `Job #${data.jobId} was rejected by ${reviewer}.${note}`,
+    };
+  },
 };

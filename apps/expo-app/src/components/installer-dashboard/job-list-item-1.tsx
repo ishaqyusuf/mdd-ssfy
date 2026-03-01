@@ -2,12 +2,10 @@ import { getColorFromName } from "@gnd/utils/colors";
 import { JobItem } from "./recent-jobs";
 import { formatDate } from "@gnd/utils/dayjs";
 import { Text, TouchableOpacity, View } from "react-native";
-import { useRouter } from "expo-router";
 import { Icon } from "../ui/icon";
-import { _push } from "../static-router";
+import { openJob } from "@/lib/job";
 
 export function JobListItem1({ item }: { item: JobItem }) {
-  const router = useRouter();
   const statusColor = getColorFromName(item.status) || "#6B7280";
   const date = formatDate(item.createdAt);
   const amount = item.amount ? `$${item.amount.toFixed(2)}` : "N/A";
@@ -15,9 +13,7 @@ export function JobListItem1({ item }: { item: JobItem }) {
     <TouchableOpacity
       className="bg-white dark:bg-gray-800/50 rounded-xl overflow-hidden shadow-md shadow-gray-200/50 dark:shadow-none border border-gray-200/80 dark:border-gray-700/60 mb-3"
       onPress={() => {
-        // openModal(item);
-        // _push(`/job-ov`)
-        router.push(`/job-overview/${item.id}`);
+        openJob(item as any);
       }}
     >
       <View className="flex-row">

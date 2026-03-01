@@ -31,6 +31,13 @@ export interface NotificationHandler<T = any> {
     data: Record<string, any>;
     template?: string;
   };
+  createWhatsApp?: (
+    data: T,
+    author: UserData,
+    user: UserData,
+  ) => {
+    message: string;
+  };
 }
 
 export interface UserData {
@@ -77,6 +84,11 @@ export interface NotificationResult {
   type: string;
   activities: number;
   emails: {
+    sent: number;
+    skipped: number;
+    failed?: number;
+  };
+  whatsapp?: {
     sent: number;
     skipped: number;
     failed?: number;

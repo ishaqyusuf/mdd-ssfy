@@ -5,7 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { _qc, _trpc } from "./static-trpc";
 import { Toast } from "./ui/toast";
 import { Controller, useForm } from "react-hook-form";
-import { _push } from "./static-router";
+import { editJob } from "@/lib/job";
 
 export function JobOverviewActions() {
   const ctx = useJobContext();
@@ -28,7 +28,7 @@ function ReAssginJobAction() {
   return (
     <Pressable
       onPress={(e) => {
-        _push(`/re-assign/${ctx?.job?.controlId}`);
+        editJob(ctx?.job as any);
       }}
       className="w-full py-4 px-4 bg-secondary-foreground rounded-xl flex-row items-center justify-center gap-2 border border-border"
     >

@@ -6,15 +6,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { cn } from "@/lib/utils";
 import { BlurView } from "@/components/blur-view";
 import { useJobContext } from "@/hooks/use-job";
-import { _push } from "./static-router";
 import { Debug } from "./debug";
+import { editJob } from "@/lib/job";
 
 export function JobFooterContractor() {
   const { bottom } = useSafeAreaInsets();
   const ctx = useJobContext();
   if (ctx.adminMode) return null;
   const isAssigned = ctx.job?.status === "Assigned";
-  if (!["Submitted", "Assigned"].includes(ctx.job?.status)) return null;
+  const status = ctx.job?.status || "";
+  if (!["Submitted", "Assigned"].includes(status)) return null;
   return (
     <View className="absolute bottom-0 left-0 right-0">
       <BlurView intensity={90} className="w-full">
@@ -27,7 +28,7 @@ export function JobFooterContractor() {
               <>
                 <Pressable
                   onPress={(e) => {
-                    _push(`submit/${ctx?.job?.controlId!}`);
+                    editJob(ctx?.job as any);
                   }}
                   className={cn(
                     "flex w-full flex-row items-center justify-center gap-2 rounded-xl bg-success h-14",

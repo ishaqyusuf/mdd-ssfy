@@ -21,6 +21,7 @@
     "@gnd/logger": "workspace:*",
     "@gnd/utils": "workspace:*",
     "@gnd/email": "workspace:*",
+    "@gnd/app-store": "workspace:*",
     "resend": "^6.5.2",
     "zod": "catalog:"
   },

@@ -667,6 +667,7 @@
       "name": "@gnd/notifications",
       "version": "1.0.0",
       "dependencies": {
+        "@gnd/app-store": "workspace:*",
         "@gnd/db": "workspace:*",
         "@gnd/email": "workspace:*",
         "@gnd/logger": "workspace:*",

@@ -36,6 +36,7 @@ export async function getSubscribersForNotificationType(
                       email: true,
                       deletedAt: true,
                       name: true,
+                      phoneNo: true,
                     },
                   },
                 },
@@ -52,7 +53,7 @@ export async function getSubscribersForNotificationType(
   // ── 2. Collect unique active users from all roles on this channel ─────────
   const userMap = new Map<
     number,
-    { id: number; email: string; name: string | null }
+    { id: number; email: string; name: string | null; phoneNo: string | null }
   >();
 
   for (const channelRole of channel.noteChannelRoles) {
@@ -60,7 +61,12 @@ export async function getSubscribersForNotificationType(
     for (const modelRole of channelRole.role.ModelHasRoles) {
       const user = modelRole.user;
       if (!user || user.deletedAt || userMap.has(user.id)) continue;
-      userMap.set(user.id, { id: user.id, email: user.email, name: user.name });
+      userMap.set(user.id, {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        phoneNo: user.phoneNo,
+      });
     }
   }
 
@@ -160,6 +166,7 @@ export async function getSubscribersForNotificationType(
 
     subscribers.push({
       email: user.email,
+      phoneNo: user.phoneNo || undefined,
       id: contact.id,
       profileId: user.id,
       name: user.name!,
@@ -595,7 +602,9 @@ export async function getSubscribersAccount(
       profileId,
       // Account fields (Users/Customers) are authoritative; contact may be stale
       role: (contact.role as "employee" | "customer" | undefined) ?? role,
-      name: contact.name!,
+      name: account.name || contact.name || `User ${profileId}`,
+      email: account.email || undefined,
+      phoneNo: account.phoneNo || undefined,
     };
 
     // ── 5a. Attach channel notification config when channel was resolved ──────
@@ -617,7 +626,8 @@ export async function getSubscribersAccount(
         ...result,
         emailNotification: assigned?.emailEnabled ?? global.emailNotification,
         inAppNotification: assigned?.inAppEnabled ?? global.inAppNotification,
-        // whatsAppNotification: assigned?.textEnabled ?? global.textNotification,
+        whatsAppNotification:
+          assigned?.whatsappEnabled ?? global.whatsAppNotification,
       };
     }
 

@@ -32,17 +32,25 @@ export const notesRouter = createTRPCRouter({
         // roleIds: z.array(z.number()),
         inAppSupport: z.boolean().optional().nullable(),
         textSupport: z.boolean().optional().nullable(),
+        whatsappSupport: z.boolean().optional().nullable(),
         emailSupport: z.boolean().optional().nullable(),
       }),
     )
     .mutation(async (props) => {
-      const { id, ...updates } = props.input;
+      const { id, whatsappSupport, textSupport, ...updates } = props.input;
+      const normalizedWhatsApp = whatsappSupport ?? textSupport;
       await props.ctx.db.noteChannels.update({
         where: {
           id,
         },
         data: {
           ...updates,
+          ...(normalizedWhatsApp === undefined
+            ? {}
+            : {
+                whatsappSupport: normalizedWhatsApp,
+                textSupport: normalizedWhatsApp,
+              }),
         },
       });
     }),

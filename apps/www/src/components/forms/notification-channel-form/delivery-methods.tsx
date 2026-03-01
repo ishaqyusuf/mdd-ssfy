@@ -11,7 +11,6 @@ import { useMutation } from "@tanstack/react-query";
 import {
     CheckCircle2,
     Mail,
-    MessageSquare,
     Settings,
     Smartphone,
 } from "lucide-react";
@@ -22,7 +21,7 @@ export function DeliveryMethods() {
     type Event = keyof typeof selectedEvent;
     type MethodKeys = Extract<
         Event,
-        "emailSupport" | "textSupport" | "inAppSupport"
+        "emailSupport" | "whatsappSupport" | "inAppSupport"
     >;
     const [updatingMethodKey, setUpdatingMethodKey] = useState(null);
     const { mutate: updateChannel, isPending: isUpdating } = useMutation(
@@ -72,12 +71,11 @@ export function DeliveryMethods() {
             // active: selectedEvent?.inAppSupport,
         },
         {
-            id: "textSupport",
+            id: "whatsappSupport",
             icon: Icons.WhatsApp,
             label: "WhatsApp",
             desc: "Send notifications to WhatsApp",
-            // active: selectedEvent?.textSupport,
-            disabled: true,
+            // active: selectedEvent?.whatsappSupport,
         },
     ];
     return (
@@ -144,4 +142,3 @@ export function DeliveryMethods() {
         </section>
     );
 }
-

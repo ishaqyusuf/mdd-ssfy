@@ -1,6 +1,7 @@
 import { Db } from "@gnd/db";
-import { createNote, createActivity, getChannelSubcribers } from "./activities";
+import { createNote, createActivity } from "./activities";
 import { EmailService } from "./services/email-service";
+import { WhatsAppService } from "./services/whatsapp-service";
 import { createActivitySchema, NotificationTypes } from "./schemas";
 import {
   EmailInput,
@@ -15,7 +16,10 @@ import { jobReviewRequested } from "./types/job-review-requested";
 import { jobSubmitted } from "./types/job-submitted";
 import { salesDispatchAssigned } from "./types/sales-dispatch-assigned";
 import { consoleLog } from "@gnd/utils";
-import { getSubscribersAccount } from "./channel-subscribers";
+import {
+  getSubscribersAccount,
+  getSubscribersForNotificationType,
+} from "./channel-subscribers";
 import { logger } from "@gnd/logger";
 const handlers = {
   job_assigned: jobAssigned,
@@ -34,6 +38,7 @@ function isValidEmail(email?: string | null): email is string {
 
 export class Notifications {
   #emailService: EmailService;
+  #whatsAppService: WhatsAppService;
   #db: Db;
   public emailMeta: {
     from: string;
@@ -45,6 +50,7 @@ export class Notifications {
     // private logger?: Logger,
   ) {
     this.#emailService = new EmailService(db);
+    this.#whatsAppService = new WhatsAppService();
     this.#db = db;
   }
 
@@ -138,6 +144,14 @@ export class Notifications {
 
     return baseEmailInput;
   }
+  #createWhatsAppInput<T extends keyof NotificationTypes>(
+    handler: any,
+    validatedData: NotificationTypes[T],
+    author: UserData,
+    user: UserData,
+  ) {
+    return handler.createWhatsApp(validatedData, author, user);
+  }
   async saveNote(data, authId) {
     return createNote(this.#db, data, authId);
   }
@@ -181,7 +195,7 @@ export class Notifications {
             channelName: type as string,
           }),
         ) || []),
-        getChannelSubcribers(this.#db, type as string),
+        getSubscribersForNotificationType(this.#db, type as string),
         // getTeamById(this.#db, teamId),
       ])
     ).flat();
@@ -268,16 +282,9 @@ export class Notifications {
 
       // Send emails if requested and handler supports email
       if (handler?.createEmail) {
-        const firstUser = contacts?.[0]!;
-        if (!firstUser) {
-          throw new Error("No team members available for email context");
-        }
-
-        consoleLog("Creating email with context:", {
-          firstUser,
-        });
+        consoleLog("Creating email with context:", { recipients: contacts?.length || 0 });
         const emailContacts = (contacts || []).filter((user: UserData) =>
-          isValidEmail(user.email),
+          user.emailNotification && isValidEmail(user.email),
         );
         const filteredOutCount = (contacts?.length || 0) - emailContacts.length;
 
@@ -319,10 +326,53 @@ export class Notifications {
         }
       }
 
+      let whatsapp = {
+        sent: 0,
+        skipped: contacts?.length || 0,
+        failed: 0,
+      };
+
+      if (handler?.createWhatsApp) {
+        const whatsAppContacts = (contacts || []).filter(
+          (user) => !!user.whatsAppNotification,
+        );
+        const filteredOutCount = (contacts?.length || 0) - whatsAppContacts.length;
+        const whatsAppInputs = whatsAppContacts.reduce<
+          Array<{ user: UserData; message: string }>
+        >((acc, user) => {
+          const payload = this.#createWhatsAppInput(
+            handler,
+            validatedData,
+            author,
+            user,
+          );
+          if (payload?.message) {
+            acc.push({ user, message: payload.message });
+          }
+          return acc;
+        }, []);
+
+        if (!whatsAppInputs.length) {
+          whatsapp = {
+            sent: 0,
+            skipped: contacts?.length || 0,
+            failed: 0,
+          };
+        } else {
+          const result = await this.#whatsAppService.sendBulk(whatsAppInputs);
+          whatsapp = {
+            sent: result.sent,
+            skipped: result.skipped + filteredOutCount,
+            failed: result.failed,
+          };
+        }
+      }
+
       return {
         type: type as string,
         activities: activities.length,
         emails,
+        whatsapp,
       };
     } catch (error) {
       console.error(`Failed to send notification ${type}:`, error);

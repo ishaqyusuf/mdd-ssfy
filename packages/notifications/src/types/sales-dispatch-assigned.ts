@@ -32,4 +32,9 @@ export const salesDispatchAssigned: NotificationHandler = {
       data: {},
     };
   },
+  createWhatsApp(data) {
+    return {
+      message: `Dispatch #${data.dispatchId} assigned for order ${data.orderNo || "-"}. Mode: ${data.deliveryMode || "delivery"}.`,
+    };
+  },
 };

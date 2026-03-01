@@ -28,4 +28,9 @@ export const jobApproved: NotificationHandler = {
       },
     };
   },
+  createWhatsApp(data, author, user) {
+    return {
+      message: `Job #${data.jobId} was approved by ${data.approvedByName || author.name || "Reviewer"}.`,
+    };
+  },
 };

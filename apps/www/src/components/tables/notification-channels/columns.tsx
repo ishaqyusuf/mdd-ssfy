@@ -8,7 +8,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { cn } from "@gnd/ui/cn";
 import { useNotificationChannelFilterParams } from "@/hooks/use-notification-channel-filter-params";
 import { useNotificationChannelParams } from "@/hooks/use-notification-channel-params";
-import { Mail, MessageSquare, Smartphone } from "lucide-react";
+import { Mail, Smartphone } from "lucide-react";
 import { getColorFromName, hexToRgba } from "@gnd/utils/colors";
 
 export type Item =
@@ -80,12 +80,12 @@ export function ListItem({ item: event }: ItemProps) {
                     <div
                         className={cn(
                             "p-1 rounded",
-                            event.textSupport
+                            event.whatsappSupport
                                 ? "text-primary bg-primary/10"
                                 : "text-muted-foreground/30",
                         )}
                     >
-                        <MessageSquare className="size-4" />
+                        <Icons.WhatsApp className="size-4" />
                     </div>
                     <div
                         className={cn(
@@ -155,4 +155,3 @@ function ItemCard({ item }: ItemProps) {
     const { setParams } = useNotificationChannelParams();
     return <></>;
 }
-

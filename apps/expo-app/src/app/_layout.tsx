@@ -102,6 +102,13 @@ const InitialLayout = () => {
               options={{ headerShown: false }}
             />
           </Stack.Protected>
+          <Stack.Protected guard={!!token}>
+            <Stack.Screen name="job-form" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="job-overview-v2"
+              options={{ headerShown: false }}
+            />
+          </Stack.Protected>
           <Stack.Protected guard={!isAdmin && !isInstaller}>
             <Stack.Screen name="unavailable" options={{ headerShown: false }} />
           </Stack.Protected>

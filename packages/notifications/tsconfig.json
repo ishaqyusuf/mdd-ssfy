@@ -10,7 +10,10 @@
     "noImplicitAny": false,
     "baseUrl": ".",
     "paths": {
-      "@emails/*": ["../email/emails/*"]
+      "@emails/*": ["../email/emails/*"],
+      "@gnd/app-store/whatsapp-client": [
+        "../app-store/src/whatsapp/server/client.ts"
+      ]
       // "@sales/*": ["../sales/src/*"]
       // "@/*": ["./src/*"],
       // "@api/*": ["../../apps/api/src/*"]

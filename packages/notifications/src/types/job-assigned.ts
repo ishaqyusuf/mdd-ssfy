@@ -49,4 +49,9 @@ export const jobAssigned: NotificationHandler = {
       data: payload,
     };
   },
+  createWhatsApp(data, author, user) {
+    return {
+      message: `New job assigned (#${data.jobId}) by ${author.name}.`,
+    };
+  },
 };
