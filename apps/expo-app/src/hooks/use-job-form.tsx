@@ -2,7 +2,7 @@ import { _trpc } from "@/components/static-trpc";
 import { useZodForm } from "@/components/use-zod-form";
 import { getSessionProfile } from "@/lib/session-store";
 import { useJobFormStore } from "@/stores/use-job-form-store";
-import { createJobSchema } from "@api/db/queries/jobs";
+import { createJobSchema } from "@community/create-job-schema";
 import { consoleLog } from "@gnd/utils";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { createContext, useContext, useEffect, useState } from "react";

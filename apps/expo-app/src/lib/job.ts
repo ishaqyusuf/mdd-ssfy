@@ -10,7 +10,7 @@ type JobLike = {
   controlId?: string | number | null;
 };
 
-function isAdminUser() {
+export function isAdminUser() {
   const role = getSessionProfile()?.role?.name;
   return role === "Admin" || role === "Super Admin";
 }
@@ -48,7 +48,9 @@ export function openJob(job: JobLike) {
 
   const isAdmin = isAdminUser();
   if (job.controlId) {
-    _push?.(`${isAdmin ? "/(job-admin)/job" : "/(installers)/job"}/${job.id}` as any);
+    _push?.(
+      `${isAdmin ? "/(job-admin)/job" : "/(installers)/job"}/${job.id}` as any,
+    );
     return;
   }
 

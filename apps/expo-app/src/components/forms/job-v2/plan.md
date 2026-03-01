@@ -48,7 +48,7 @@ Status key: `[ ]` pending, `[-]` in progress, `[x]` done
 - [x] Define query contract for flow mode (`action`, `admin`) and identifiers (`jobId`)
 - [x] Ensure `job-form-screen.tsx` derives v2 props from query state
 - [x] Remove any residual `controlId` reads in V2 flow
-- [ ] Confirm create/submit/re-assign all work under `/job-form` route
+- [x] Confirm create/submit/re-assign all work under `/job-form` route
 
 ### 6) Shared navigation helpers in `lib/job.ts`
 - [x] Expand `apps/expo-app/src/lib/job.ts` with `editJob(job: Job)` and `openJob(job: Job)`
@@ -79,23 +79,23 @@ Status key: `[ ]` pending, `[-]` in progress, `[x]` done
 - [ ] Update this `plan.md` with completion marks and notes
 
 ### 9) Job Overview V2 Action Forms (web parity)
-- [ ] Add `Submitted` action form in V2 overview (approve/reject with note; rejection requires note)
-- [ ] Add `Approved` action form in V2 overview (cancel approval + reject)
-- [ ] Add `Rejected` action form in V2 overview (approve + keep rejected with note)
-- [ ] Reuse `jobs.jobReview` mutation behavior and invalidate both overview + jobs list queries
-- [ ] Preserve pending/loading states and disable invalid actions
-- [ ] Add success/error toast parity for all action outcomes
+- [x] Add `Submitted` action form in V2 overview (approve/reject with note; rejection requires note)
+- [x] Add `Approved` action form in V2 overview (cancel approval + reject)
+- [x] Add `Rejected` action form in V2 overview (approve + keep rejected with note)
+- [x] Reuse `jobs.jobReview` mutation behavior and invalidate both overview + jobs list queries
+- [x] Preserve pending/loading states and disable invalid actions
+- [x] Add success/error toast parity for all action outcomes
 
 ### 10) Web-to-Mobile Information Parity Matrix
-- [ ] Header parity: title, subtitle, status badges, `job.jobId`, created date
-- [ ] Project/Builder parity: project title + builder name
-- [ ] Location parity: model + lot/block
-- [ ] Scope parity: description + itemized tasks (`rate`, `qty/maxQty`, `total`) and custom-job fallback copy
-- [ ] Financial parity: subtotal, addon percent/value, grand total
-- [ ] Payment parity: batch id, amount, subtotal, charges, method, check no, assigned user, payer, created date, jobs in batch
-- [ ] Activity parity: timeline events using real activity data for job id
-- [ ] Contractor parity: assigned contractor identity block
-- [ ] Action parity: status-dependent review actions
+- [x] Header parity: title, subtitle, status badges, `job.jobId`, created date
+- [x] Project/Builder parity: project title + builder name
+- [x] Location parity: model + lot/block
+- [x] Scope parity: description + itemized tasks (`rate`, `qty/maxQty`, `total`) and custom-job fallback copy
+- [x] Financial parity: subtotal, addon percent/value, grand total
+- [x] Payment parity: batch id, amount, subtotal, charges, method, check no, assigned user, payer, created date, jobs in batch
+- [x] Activity parity: timeline events using real activity data for job id
+- [x] Contractor parity: assigned contractor identity block
+- [x] Action parity: status-dependent review actions
 - [ ] Add explicit “missing-on-mobile” checklist and close each item before rollout
 
 ## Risks / Watchouts
@@ -116,3 +116,6 @@ Status key: `[ ]` pending, `[-]` in progress, `[x]` done
 - [x] New `job-overview-v2` route and screen scaffolded with web-inspired sections.
 - [x] Scoped TypeScript pass run for newly changed files (global repo has existing unrelated TS errors).
 - [x] New Job Form V2 visual layer migrated to semantic theme tokens (no hardcoded color classes).
+- [x] Job Overview V2 migrated to `jobs.overview` with web-style action forms and payment details.
+- [x] Legacy create/submit/assign/re-assign route files now redirect to `/job-form` V2 entrypoint.
+- [x] Added reusable loading skeleton and empty-state UI across all Job Form V2 steps.

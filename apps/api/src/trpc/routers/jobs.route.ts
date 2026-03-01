@@ -2,7 +2,6 @@ import {
   adminAnalytics,
   adminAnalyticsSchema,
   createJob,
-  createJobSchema,
   earningAnalytics,
   earningAnalyticsSchema,
   getInstallCosts,
@@ -16,6 +15,7 @@ import {
 } from "@api/db/queries/jobs";
 import { createTRPCRouter, publicProcedure } from "../init";
 import z from "zod";
+import { createJobSchema } from "@community/create-job-schema";
 import { saveNote } from "@gnd/utils/note";
 import { generateJobId } from "@community/utils/job";
 import { sum } from "@gnd/utils";

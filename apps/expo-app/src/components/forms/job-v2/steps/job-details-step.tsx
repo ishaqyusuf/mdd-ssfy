@@ -1,7 +1,9 @@
 import { useJobFormV2Context } from "@/hooks/use-job-form-v2";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Controller } from "react-hook-form";
 import { Text, TextInput, View } from "react-native";
 import { NeoCard } from "../ui/neo-card";
+import { StepEmptyState } from "../ui/step-states";
 
 function NumberInput({ value, onChangeText }: { value: any; onChangeText: (text: string) => void }) {
   return (
@@ -22,19 +24,22 @@ export function JobDetailsStep() {
 
   if (isDefaultValuesPending) {
     return (
-      <NeoCard className="bg-muted/40">
-        <Text className="text-sm text-muted-foreground">Loading form defaults...</Text>
+      <NeoCard className="bg-card">
+        <View className="gap-2">
+          <Skeleton className="h-4 w-1/3 rounded-md" />
+          <Skeleton className="h-20 w-full rounded-2xl" />
+          <Skeleton className="h-12 w-full rounded-2xl" />
+        </View>
       </NeoCard>
     );
   }
 
   if (!defaultValues) {
     return (
-      <NeoCard className="border-dashed bg-muted/40">
-        <Text className="text-sm text-muted-foreground">
-          Complete previous selections to load the detail form.
-        </Text>
-      </NeoCard>
+      <StepEmptyState
+        title="Details not ready"
+        description="Complete previous selections to load the detail form."
+      />
     );
   }
 

@@ -13,9 +13,13 @@ export const getBaseUrl = () => {
    * **NOTE**: This is only for development. In production, you'll want to set the
    * baseUrl to your production API URL.
    */
-  // return process.env.EXPO_PUBLIC_BASE_URL;
-  if (process.env.EXPO_PUBLIC_APP_VARIANT === "preview")
-    return process.env.EXPO_PUBLIC_BASE_URL;
+  const envBaseUrl = process.env.EXPO_PUBLIC_BASE_URL;
+  const useEnvBaseUrl =
+    process.env.EXPO_PUBLIC_APP_VARIANT === "preview" ||
+    process.env.EXPO_PUBLIC_FORCE_BASE_URL === "true";
+  if (useEnvBaseUrl && envBaseUrl) {
+    return envBaseUrl;
+  }
 
   const debuggerHost = Constants.expoConfig?.hostUri;
   const localhost = debuggerHost?.split(":")[0];
@@ -27,9 +31,18 @@ export const getBaseUrl = () => {
     );
   }
 
-  return `http://${localhost}:3004`;
+  const apiPort = process.env.EXPO_PUBLIC_API_PORT ?? "3000";
+  return `http://${localhost}:${apiPort}`;
 };
 export const getWebUrl = () => {
+  const envBaseUrl = process.env.EXPO_PUBLIC_BASE_URL;
+  const useEnvBaseUrl =
+    process.env.EXPO_PUBLIC_APP_VARIANT === "preview" ||
+    process.env.EXPO_PUBLIC_FORCE_BASE_URL === "true";
+  if (useEnvBaseUrl && envBaseUrl) {
+    return envBaseUrl;
+  }
+
   const debuggerHost = Constants.expoConfig?.hostUri;
   const localhost = debuggerHost?.split(":")[0];
 
@@ -40,5 +53,6 @@ export const getWebUrl = () => {
     );
   }
 
-  return `http://${localhost}:3000`;
+  const apiPort = process.env.EXPO_PUBLIC_API_PORT ?? "3006";
+  return `http://${localhost}:${apiPort}`;
 };

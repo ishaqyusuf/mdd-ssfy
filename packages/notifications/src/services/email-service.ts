@@ -6,10 +6,10 @@ import { nanoid } from "nanoid";
 import { type CreateEmailOptions, Resend } from "resend";
 import type { EmailInput } from "../base";
 import { Db } from "@gnd/db";
-import { SalesRepOnlinePaymentReceived } from "@emails/sales-rep-online-payment-received";
-import { JobAssignedEmail } from "@emails/job-assigned";
-import { JobApprovedEmail } from "@emails/job-approved";
-import { JobRejectedEmail } from "@emails/job-rejected";
+import { SalesRepOnlinePaymentReceived } from "@gnd/email/emails/sales-rep-online-payment-received";
+import { JobAssignedEmail } from "@gnd/email/emails/job-assigned";
+import { JobApprovedEmail } from "@gnd/email/emails/job-approved";
+import { JobRejectedEmail } from "@gnd/email/emails/job-rejected";
 
 const DEV_TEST_EMAIL = "ishaqyusuf024@gmail.com";
 

@@ -6,11 +6,11 @@ import {
   JobFormV2Action,
   useJobFormV2Params,
 } from "@/hooks/use-job-form-v2-params";
-import { getJobType } from "@/lib/job";
+import { getJobType, isAdminUser } from "@/lib/job";
 import { getSessionProfile } from "@/lib/session-store";
 import { useTRPC } from "@/trpc/client";
-import { createJobSchema } from "@api/db/queries/jobs";
-import { sum } from "@gnd/utils";
+import { createJobSchema } from "@community/create-job-schema";
+import { consoleLog, sum } from "@gnd/utils";
 import { skipToken, useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import {
@@ -39,7 +39,9 @@ type EmployeeRole =
 
 type JobFormV2ContextType = ReturnType<typeof useCreateJobFormV2Context>;
 
-const JobFormV2Context = createContext<JobFormV2ContextType>(undefined as never);
+const JobFormV2Context = createContext<JobFormV2ContextType>(
+  undefined as never,
+);
 export const JobFormV2Provider = JobFormV2Context.Provider;
 
 const getWorkerRoles = (jobType?: string): EmployeeRole[] => {
@@ -63,7 +65,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
   const trpc = useTRPC();
   const params = useJobFormV2Params();
 
-  const admin = props.admin ?? params.admin ?? false;
+  const admin = isAdminUser();
   const action = props.action ?? params.action ?? "create";
   const jobType = params.jobType;
   const profile = getSessionProfile();
@@ -114,8 +116,13 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
     !!params.taskId &&
     (!!params.userId || !admin) &&
     !!params.modelId;
+  // consoleLog("PARAMS", params,shouldLoadDefaults);
 
-  const { data: defaultValues, isPending: isDefaultValuesPending } = useQuery(
+  const {
+    data: defaultValues,
+    isPending: isDefaultValuesPending,
+    error,
+  } = useQuery(
     trpc.community.getJobForm.queryOptions(
       shouldLoadDefaults
         ? {
@@ -132,6 +139,10 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
       },
     ),
   );
+  consoleLog("...", {
+    defaultValues,
+    error,
+  });
 
   useEffect(() => {
     if (defaultValues) {
@@ -148,15 +159,19 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
   }, [defaultValues, form, params.unitId, params.userId]);
 
   const workerRoles = admin ? getWorkerRoles(jobType) : [safeProfileRole];
-  const { data: users } = useQuery(
+  const { data: users, isPending: isUsersPending } = useQuery(
     _trpc.hrm.getEmployees.queryOptions({
       roles: workerRoles,
       size: 100,
     }),
   );
 
-  const { data: projectList } = useQuery(_trpc.community.projectsList.queryOptions());
-  const { data: costData } = useQuery(_trpc.jobs.getInstallCosts.queryOptions({}));
+  const { data: projectList, isPending: isProjectsPending } = useQuery(
+    _trpc.community.projectsList.queryOptions(),
+  );
+  const { data: costData } = useQuery(
+    _trpc.jobs.getInstallCosts.queryOptions({}),
+  );
   const { data: unitOptions, isPending: isUnitsPending } = useQuery(
     _trpc.community.getProjectUnitsWithJobStats.queryOptions(
       {
@@ -181,19 +196,25 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 
   const formData = useWatch({ control: form.control }) as any;
   const total = useMemo(() => {
-    const tasks = Object.values(formData?.tasks || {}) as Array<{
+    const tasks = Object.values(formData?.tasks || {}) as {
       qty?: number;
       cost?: number;
-    }>;
+    }[];
 
-    const taskTotal = sum(tasks.map((task) => (+task?.qty! || 0) * (+task?.cost! || 0)));
+    const taskTotal = sum(
+      tasks.map((task) => (+task?.qty! || 0) * (+task?.cost! || 0)),
+    );
     const addon = +formData?.addon || 0;
     const extra = +formData?.additionalCost || 0;
     return sum([taskTotal, addon, extra]);
   }, [formData]);
 
   const [errors, setErrors] = useState<any>(null);
-  const { mutate: saveJob, isPending: isSaving, data: savedData } = useMutation(
+  const {
+    mutate: saveJob,
+    isPending: isSaving,
+    data: savedData,
+  } = useMutation(
     _trpc.jobs.createJob.mutationOptions({
       onSuccess() {
         _qc.invalidateQueries({
@@ -223,7 +244,9 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
     [action, admin, params, tabs.length],
   );
 
-  const currentTab: JobFormV2Tab = completed ? "completed" : tabs[initialStep - 1]!;
+  const currentTab: JobFormV2Tab = completed
+    ? "completed"
+    : tabs[initialStep - 1]!;
 
   const nextStep = useCallback(() => {
     if (completed) return;
@@ -237,12 +260,23 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
     }
 
     if (initialStep <= 1) {
-      router.back();
+      params.setParams(null);
+      const canGoBack =
+        typeof (router as any).canGoBack === "function"
+          ? (router as any).canGoBack()
+          : true;
+      if (canGoBack) {
+        router.back();
+      } else {
+        router.replace(
+          (isAdminUser() ? "/(job-admin)" : "/(installers)") as any,
+        );
+      }
       return;
     }
 
     setStep(initialStep - 1);
-  }, [completed, initialStep, router, setStep]);
+  }, [completed, initialStep, params, router, setStep]);
 
   const selectUser = useCallback(
     (userId: number) => {
@@ -310,7 +344,8 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
             {
               maxQty: +value,
               qty: null,
-              cost: costData?.data?.list?.find((item) => item.uid === uid)?.cost,
+              cost: costData?.data?.list?.find((item) => item.uid === uid)
+                ?.cost,
             },
           ]),
       );
@@ -341,7 +376,8 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
         }
 
         if (payload.isCustom) payload.status = "Submitted";
-        if (payload.id && payload.status === "Assigned") payload.status = "Submitted";
+        if (payload.id && payload.status === "Assigned")
+          payload.status = "Submitted";
 
         saveJob(payload);
       },
@@ -390,8 +426,10 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
     isDefaultValuesPending,
     projectList: projectList || [],
     users: users?.data || [],
+    isUsersPending,
     taskOptions: taskOptions || [],
     unitOptions: unitOptions || [],
+    isProjectsPending,
     isUnitsPending,
     isTasksPending,
     costData: costData?.data,
@@ -411,7 +449,9 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 export function useJobFormV2Context() {
   const context = useContext(JobFormV2Context);
   if (!context) {
-    throw new Error("useJobFormV2Context must be used within JobFormV2Provider");
+    throw new Error(
+      "useJobFormV2Context must be used within JobFormV2Provider",
+    );
   }
 
   return context;

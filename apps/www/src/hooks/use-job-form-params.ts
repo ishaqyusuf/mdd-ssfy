@@ -1,9 +1,4 @@
-import {
-    parseAsBoolean,
-    parseAsInteger,
-    parseAsStringEnum,
-    useQueryStates,
-} from "nuqs";
+import { parseAsInteger, useQueryStates } from "nuqs";
 
 export function useJobFormParams() {
     const [params, setParams] = useQueryStates({
@@ -62,3 +57,4 @@ export function useJobFormParams() {
         // open()
     };
 }
+

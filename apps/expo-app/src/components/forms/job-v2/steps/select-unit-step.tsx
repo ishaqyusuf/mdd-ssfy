@@ -1,12 +1,36 @@
 import { SearchInput } from "@/components/search-input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useJobFormV2Context } from "@/hooks/use-job-form-v2";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { NeoCard } from "../ui/neo-card";
+import { useStepScroll } from "../ui/step-scroll-context";
+import { StepEmptyState } from "../ui/step-states";
+
+function UnitStepSkeleton() {
+  return (
+    <View className="gap-2">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <NeoCard key={index} className="bg-card">
+          <View className="flex-row items-start justify-between gap-3">
+            <View className="flex-1 gap-2">
+              <Skeleton className="h-5 w-2/3 rounded-md" />
+              <Skeleton className="h-3 w-1/2 rounded-md" />
+            </View>
+            <Skeleton className="h-6 w-14 rounded-full" />
+          </View>
+        </NeoCard>
+      ))}
+    </View>
+  );
+}
 
 export function SelectUnitStep() {
   const { unitOptions, params, selectUnit, isUnitsPending } = useJobFormV2Context();
+  const { scrollToY } = useStepScroll();
   const [query, setQuery] = useState("");
+  const positionsRef = useRef<Record<number, number>>({});
+  const hasScrolledRef = useRef(false);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -19,20 +43,37 @@ export function SelectUnitStep() {
     });
   }, [query, unitOptions]);
 
+  useEffect(() => {
+    hasScrolledRef.current = false;
+  }, [params.unitId]);
+
+  useEffect(() => {
+    if (hasScrolledRef.current) return;
+    const selectedId = params.unitId;
+    if (!selectedId || isUnitsPending) return;
+    const y = positionsRef.current[selectedId];
+    if (y === undefined) return;
+    hasScrolledRef.current = true;
+    requestAnimationFrame(() => scrollToY(y - 12));
+  }, [isUnitsPending, params.unitId, results.length, scrollToY]);
+
   return (
     <View className="gap-3">
       <SearchInput placeholder="Search unit..." value={query} onChangeText={setQuery} className="px-0" />
 
       {!params.projectId ? (
-        <NeoCard className="border-dashed bg-muted/40">
-          <Text className="text-sm text-muted-foreground">Select a project first.</Text>
-        </NeoCard>
+        <StepEmptyState
+          title="Project required"
+          description="Select a project first to load units."
+        />
       ) : null}
 
-      {isUnitsPending ? (
-        <NeoCard className="bg-muted/40">
-          <Text className="text-sm text-muted-foreground">Loading units...</Text>
-        </NeoCard>
+      {isUnitsPending ? <UnitStepSkeleton /> : null}
+      {!!params.projectId && !isUnitsPending && !results.length ? (
+        <StepEmptyState
+          title="No units found"
+          description="No units match this search for the selected project."
+        />
       ) : null}
 
       {results.map((unit) => {
@@ -45,12 +86,15 @@ export function SelectUnitStep() {
               selectUnit({
                 id: unit.id,
                 modelId: unit.modelId,
-                modelName: unit.modelName,
-                lot: unit.lot,
-                block: unit.block,
-                costing: unit.costing as any,
+                modelName: unit.modelName || undefined,
+                lot: unit.lot || undefined,
+                block: unit.block || undefined,
+                costing: (unit as any).costing,
               })
             }
+            onLayout={(event) => {
+              positionsRef.current[unit.id] = event.nativeEvent.layout.y;
+            }}
           >
             <NeoCard className={selected ? "border-primary bg-primary/10" : "bg-card"}>
               <View className="flex-row items-start justify-between gap-3">

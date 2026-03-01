@@ -4,7 +4,7 @@ import { useZodForm } from "@/components/use-zod-form";
 import { getJobType } from "@/lib/job";
 import { getSessionProfile } from "@/lib/session-store";
 import { useTRPC } from "@/trpc/client";
-import { createJobSchema } from "@api/db/queries/jobs";
+import { createJobSchema } from "@community/create-job-schema";
 import { consoleLog, sum } from "@gnd/utils";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useFocusEffect, useRouter } from "expo-router";

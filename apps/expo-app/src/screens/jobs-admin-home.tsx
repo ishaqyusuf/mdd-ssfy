@@ -168,7 +168,8 @@ function StatsGrid() {
 function AssignButton() {
   return (
     <PressableLink
-      href={"/job-type"}
+      // href={"/job-type"}
+      href={"/job-form"}
       className="w-full relative overflow-hidden rounded-2xl bg-secondary active:bg-secondary/90 border border-border p-5 shadow-sm flex-row items-center justify-between"
     >
       <View className="absolute right-0 top-0 h-32 w-32 bg-primary/5 rounded-full -mr-10 -mt-10 blur-2xl" />

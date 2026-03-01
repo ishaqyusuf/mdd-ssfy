@@ -1,5 +1,5 @@
-import { JobFormScreen } from "@/screens/job-form-screen";
+import { Redirect } from "expo-router";
 
 export default function CreateJob() {
-  return <JobFormScreen action="create" />;
+  return <Redirect href={{ pathname: "/job-form", params: { action: "create" } }} />;
 }

@@ -1,9 +1,17 @@
-import { JobFormScreen } from "@/screens/job-form-screen";
-import { useLocalSearchParams } from "expo-router";
+import { Redirect, useLocalSearchParams } from "expo-router";
 
-export default function SubmitJob() {
+export default function ReassignJob() {
   const { controlId } = useLocalSearchParams();
   return (
-    <JobFormScreen action="re-assign" admin controlId={controlId as string} />
+    <Redirect
+      href={{
+        pathname: "/job-form",
+        params: {
+          admin: "true",
+          action: "re-assign",
+          _jobId: String(controlId || ""),
+        },
+      }}
+    />
   );
 }

@@ -2,7 +2,11 @@ import { Pressable } from "react-native";
 import { _goBack } from "./static-router";
 import { Icon } from "./ui/icon";
 
-export function BackBtn({ onPress = null }) {
+type BackBtnProps = {
+  onPress?: (event?: any) => void;
+};
+
+export function BackBtn({ onPress }: BackBtnProps) {
   return (
     <Pressable
       onPress={
