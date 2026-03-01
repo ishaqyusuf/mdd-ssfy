@@ -21,6 +21,7 @@
       "@utils/*": ["./src/utils/*"],
       "@components/*": ["./src/components/*"],
       "@community/*": ["../../packages/community/src/*"],
+      "@notifications/*": ["../../packages/notifications/src/*"],
       "@assets/*": ["./assets/*"],
       "@hooks/*": ["./src/hooks/*"],
       "@types/*": ["./src/types/*"],

@@ -35,7 +35,8 @@ function UnitStepSkeleton() {
 }
 
 export function SelectUnitStep() {
-  const { unitOptions, params, selectUnit, isUnitsPending } = useJobFormV2Context();
+  const { unitOptions, params, selectUnit, isUnitsPending } =
+    useJobFormV2Context();
   const [query, setQuery] = useState("");
   const [generatingUnitId, setGeneratingUnitId] = useState<number | null>(null);
   const listRef = useRef<ScrollView>(null);
@@ -85,7 +86,12 @@ export function SelectUnitStep() {
 
   return (
     <View className="flex-1 gap-3">
-      <SearchInput placeholder="Search unit..." value={query} onChangeText={setQuery} className="px-0" />
+      <SearchInput
+        placeholder="Search unit..."
+        value={query}
+        onChangeText={setQuery}
+        className="px-0"
+      />
       <ScrollView
         ref={listRef}
         style={{ flex: 1 }}
@@ -120,7 +126,7 @@ export function SelectUnitStep() {
                     const generated = await generateModelForUnit({
                       unitId: unit.id,
                     });
-                    nextModelId = generated?.modelId || null;
+                    nextModelId = generated?.modelId || null!;
                   }
 
                   selectUnit({
@@ -144,10 +150,16 @@ export function SelectUnitStep() {
                 positionsRef.current[unit.id] = event.nativeEvent.layout.y;
               }}
             >
-              <NeoCard className={selected ? "border-primary bg-primary/10" : "bg-card"}>
+              <NeoCard
+                className={
+                  selected ? "border-primary bg-primary/10" : "bg-card"
+                }
+              >
                 <View className="flex-row items-start justify-between gap-3">
                   <View>
-                    <Text className="text-base font-black text-foreground">{unit.modelName}</Text>
+                    <Text className="text-base font-black text-foreground">
+                      {unit.modelName}
+                    </Text>
                     <Text className="text-xs uppercase tracking-[1px] text-muted-foreground">
                       Lot {unit.lot} / Block {unit.block}
                     </Text>
@@ -160,7 +172,9 @@ export function SelectUnitStep() {
                     ) : null}
                   </View>
                   <View className="rounded-full bg-primary px-3 py-1">
-                    <Text className="text-[10px] uppercase text-primary-foreground">{unit.jobCount} jobs</Text>
+                    <Text className="text-[10px] uppercase text-primary-foreground">
+                      {unit.jobCount} jobs
+                    </Text>
                   </View>
                 </View>
               </NeoCard>

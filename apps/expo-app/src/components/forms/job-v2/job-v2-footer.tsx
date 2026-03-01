@@ -22,8 +22,13 @@ export function JobV2Footer() {
     hasMissingTaskConfiguration,
     isInstallCostStepActive,
     closeInstallCostStep,
+    requestTaskConfigurationData,
     reset,
   } = useJobFormV2Context();
+
+  if (currentTab === "form" && requestTaskConfigurationData?.id) {
+    return null;
+  }
 
   return (
     <View className="px-4 pb-4 pt-2">

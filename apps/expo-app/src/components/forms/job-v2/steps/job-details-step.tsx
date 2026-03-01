@@ -15,6 +15,7 @@ import { StepEmptyState } from "../ui/step-states";
 import { MissingTaskConfig } from "./missing-task-config";
 import { Icon } from "@/components/ui/icon";
 import { ModelInstallCostV2Step } from "../model-install-cost-v2-modal";
+import { ConfigRequestSuccessStep } from "./config-request-success-step";
 
 function NumberInput({
   value,
@@ -74,6 +75,10 @@ export function JobDetailsStep() {
     (unit: any) => unit?.id === params.unitId,
   );
   const modelMissing = !params.modelId;
+
+  if (requestTaskConfigurationData?.id) {
+    return <ConfigRequestSuccessStep />;
+  }
 
   if (modelMissing) {
     const unitModelName = selectedUnit?.modelName || "Unknown Model";

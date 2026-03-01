@@ -2,11 +2,12 @@ import { _qc, _trpc } from "@/components/static-trpc";
 import { Toast } from "@/components/ui/toast";
 import { useZodForm } from "@/components/use-zod-form";
 import { useAuthContext } from "@/hooks/use-auth";
+import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import {
   JobFormV2Action,
   useJobFormV2Params,
 } from "@/hooks/use-job-form-v2-params";
-import { getJobType, isAdminUser } from "@/lib/job";
+import { isAdminUser } from "@/lib/job";
 import { getSessionProfile } from "@/lib/session-store";
 import { useTRPC } from "@/trpc/client";
 import { createJobSchema } from "@community/create-job-schema";
@@ -64,6 +65,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
   const auth = useAuthContext();
   const trpc = useTRPC();
   const params = useJobFormV2Params();
+  const notification = useNotificationTrigger();
 
   const admin = isAdminUser();
   const action = props.action ?? params.action ?? "create";
@@ -233,62 +235,52 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
   }, [formData]);
 
   const [errors, setErrors] = useState<any>(null);
-  const {
-    mutate: saveJob,
-    isPending: isSaving,
-    data: savedData,
-  } = useMutation(
-    _trpc.jobs.createJob.mutationOptions({
-      onSuccess() {
-        _qc.invalidateQueries({
-          queryKey: _trpc.jobs.getJobs.queryKey(),
-        });
-        setCompleted(true);
-      },
-      meta: {
-        toastTitle: {
-          error: "Unable to complete",
-          loading: "Processing...",
-          success: "Done!",
-        },
-      },
-    }),
-  );
+  const [savedData, setSavedData] = useState<{ id?: number } | null>(null);
   const {
     mutate: saveJobForm,
-    isPending: isRequestingTaskConfiguration,
-    data: requestTaskConfigurationData,
-    error: requestTaskConfigurationError,
+    isPending: isSaving,
+    error: saveJobError,
   } = useMutation(
     _trpc.community.saveJobForm.mutationOptions({
-      onSuccess() {
+      onSuccess(data, args) {
         _qc.invalidateQueries({
           queryKey: _trpc.jobs.getJobs.queryKey(),
         });
         _qc.invalidateQueries({
           queryKey: _trpc.community.getJobForm.queryKey(),
         });
-        Toast.show(
-          "Job saved and configuration request submitted. You will be notified via email and app. You can finish job form and submit once notified.",
-          {
-            type: "success",
-          },
-        );
+        setSavedData(data as any);
+        if (args?.requestTaskConfig) {
+          notification
+            .jobReviewRequested({
+              jobId: (data as any)?.id,
+              requestedById: auth?.profile?.user?.id,
+              requestedByName: auth?.profile?.user?.name || undefined,
+            })
+            .catch(() => undefined);
+          Toast.show(
+            "Job saved and configuration request submitted. You will be notified via email and app. You can finish job form and submit once notified.",
+            {
+              type: "success",
+            },
+          );
+          return;
+        }
+        setCompleted(true);
       },
       meta: {
         toastTitle: {
-          error: "Failed to request configuration",
-          loading: "Saving draft...",
-          success: "Configuration request submitted",
-          show: false,
+          error: "Failed to save job",
+          loading: "Saving job...",
+          success: "Job saved",
+          show: true,
         },
       },
     }),
   );
   consoleLog("ERROR", {
-    requestTaskConfigurationError,
-    isRequestingTaskConfiguration,
-    requestTaskConfigurationData,
+    saveJobError,
+    isSaving,
   });
   const hasMissingTaskConfiguration = useMemo(() => {
     const builderTaskId = (defaultValues as any)?.builderTaskId;
@@ -440,25 +432,125 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
     [costData?.data?.list, form, initialStep, params, tabs.length],
   );
 
+  const buildSaveJobFormPayload = useCallback(
+    (options?: { requestTaskConfig?: boolean }) => {
+      if (!params.unitId || !resolvedUserId) return null;
+
+      const requestTaskConfig = !!options?.requestTaskConfig;
+      const defaultJob = (defaultValues as any)?.job || {};
+      const defaultMeta = defaultJob.meta || {};
+      const values = form.getValues() as any;
+      const formTasks = values?.tasks || {};
+      const selectedProject = (projectList || []).find(
+        (project: any) => project?.id === params.projectId,
+      );
+      const selectedUnit = (unitOptions || []).find(
+        (unit: any) => unit?.id === params.unitId,
+      );
+      const selectedTask = (taskOptions || []).find(
+        (task: any) => task?.id === params.taskId,
+      );
+      const fallbackTitle =
+        values?.title ||
+        defaultJob.title ||
+        selectedProject?.title ||
+        "Job Request";
+      const fallbackSubtitle =
+        values?.subtitle ||
+        defaultJob.subtitle ||
+        [selectedUnit?.modelName, selectedTask?.taskName]
+          .filter(Boolean)
+          .join(" - ") ||
+        null;
+      const hasModelConfigured =
+        params.modelId !== null && params.modelId !== undefined;
+      const isCustom = hasModelConfigured ? !!values?.isCustom : true;
+
+      const tasks = hasModelConfigured
+        ? Object.entries(formTasks as Record<string, any>)
+            .map(([key, task]) => {
+              const numericKey = Number(key);
+              const modelTaskId =
+                task?.modelTaskId ??
+                (Number.isFinite(numericKey) ? numericKey : null);
+              if (!modelTaskId) return null;
+              return {
+                id: task?.taskId ?? undefined,
+                modelTaskId,
+                rate: Number(task?.cost || 0),
+                qty: task?.qty ?? null,
+                maxQty: task?.maxQty ?? null,
+              };
+            })
+            .filter(Boolean)
+        : [];
+
+      let status = values?.status || defaultJob.status || (admin ? "Assigned" : "Started");
+      if (isCustom) status = "Submitted";
+      if (defaultJob.id && status === "Assigned") status = "Submitted";
+      if (!admin && status === "Started") status = "Submitted";
+      if (requestTaskConfig) status = "In Progress";
+
+      return {
+        unit: {
+          id: params.unitId,
+        },
+        user: {
+          id: resolvedUserId,
+        },
+        builderTaskId:
+          (defaultValues as any)?.builderTaskId ||
+          (params.taskId && params.taskId > 0 ? params.taskId : undefined),
+        requestTaskConfig,
+        job: {
+          id: defaultJob.id || undefined,
+          amount: total || 0,
+          description: values?.description || defaultJob.description || "",
+          isCustom,
+          adminNote: defaultJob.adminNote ?? null,
+          title: fallbackTitle,
+          subtitle: fallbackSubtitle,
+          status,
+          tasks: tasks as any[],
+          meta: {
+            addon:
+              values?.addon ?? defaultMeta.addon ?? selectedProject?.addon ?? 0,
+            addonPercent: defaultMeta.addonPercent ?? 0,
+            additionalCostReason:
+              values?.additionalReason ?? defaultMeta.additionalCostReason ?? "",
+            additional_cost:
+              values?.additionalCost ?? defaultMeta.additional_cost ?? null,
+          },
+        },
+      } as any;
+    },
+    [
+      admin,
+      defaultValues,
+      form,
+      params.modelId,
+      params.projectId,
+      params.taskId,
+      params.unitId,
+      projectList,
+      resolvedUserId,
+      taskOptions,
+      total,
+      unitOptions,
+    ],
+  );
+
   const handleSubmit = useCallback(() => {
     form.handleSubmit(
-      (values) => {
-        const payload: any = {
-          ...values,
-        };
-
-        if (!admin) {
-          payload.worker = {
-            id: auth?.profile?.user?.id,
-          };
-          payload.type = getJobType(profile?.role?.name);
+      () => {
+        const payload = buildSaveJobFormPayload();
+        if (!payload) {
+          Toast.show("Unable to save job right now.", {
+            type: "error",
+          });
+          return;
         }
-
-        if (payload.isCustom) payload.status = "Submitted";
-        if (payload.id && payload.status === "Assigned")
-          payload.status = "Submitted";
-
-        saveJob(payload);
+        saveJobForm(payload);
       },
       (formErrors) => {
         setErrors(formErrors);
@@ -467,94 +559,23 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
         });
       },
     )();
-  }, [admin, auth?.profile?.user?.id, form, profile?.role?.name, saveJob]);
+  }, [buildSaveJobFormPayload, form, saveJobForm]);
 
   const requestTaskConfiguration = useCallback(() => {
-    if (!params.unitId || !resolvedUserId) {
+    setSavedData(null);
+    const payload = buildSaveJobFormPayload({
+      requestTaskConfig: true,
+    });
+    if (!payload) {
       Toast.show("Unable to request configuration right now.", {
         type: "error",
       });
       return;
     }
-
-    const defaultJob = (defaultValues as any)?.job || {};
-    const defaultMeta = defaultJob.meta || {};
-    const values = form.getValues() as any;
-    const tasks = ((defaultJob.tasks || []) as any[]).map((task) => ({
-      id: task?.id ?? undefined,
-      modelTaskId: task?.modelTaskId,
-      rate: task?.rate ?? null,
-      qty: task?.qty ?? null,
-      maxQty: task?.maxQty ?? null,
-    }));
-    const selectedProject = (projectList || []).find(
-      (project: any) => project?.id === params.projectId,
-    );
-    const selectedUnit = (unitOptions || []).find(
-      (unit: any) => unit?.id === params.unitId,
-    );
-    const selectedTask = (taskOptions || []).find(
-      (task: any) => task?.id === params.taskId,
-    );
-    const fallbackTitle =
-      values?.title ||
-      defaultJob.title ||
-      selectedProject?.title ||
-      "Job Request";
-    const fallbackSubtitle =
-      values?.subtitle ||
-      defaultJob.subtitle ||
-      [selectedUnit?.modelName, selectedTask?.taskName]
-        .filter(Boolean)
-        .join(" - ") ||
-      null;
-    const hasModelConfigured =
-      params.modelId !== null && params.modelId !== undefined;
-
-    saveJobForm({
-      unit: {
-        id: params.unitId,
-      },
-      user: {
-        id: resolvedUserId,
-      },
-      builderTaskId:
-        (defaultValues as any)?.builderTaskId ||
-        (params.taskId && params.taskId > 0 ? params.taskId : undefined),
-      requestTaskConfig: true,
-      job: {
-        id: defaultJob.id || undefined,
-        amount: defaultJob.amount ?? 0,
-        description: values?.description || defaultJob.description || "",
-        isCustom: hasModelConfigured ? false : true,
-        adminNote: defaultJob.adminNote ?? null,
-        title: fallbackTitle,
-        subtitle: fallbackSubtitle,
-        status: "In Progress",
-        tasks: hasModelConfigured ? tasks : [],
-        meta: {
-          addon:
-            values?.addon ?? defaultMeta.addon ?? selectedProject?.addon ?? 0,
-          addonPercent: defaultMeta.addonPercent ?? 0,
-          additionalCostReason:
-            values?.additionalReason ?? defaultMeta.additionalCostReason ?? "",
-          additional_cost:
-            values?.additionalCost ?? defaultMeta.additional_cost ?? null,
-        },
-      },
-    } as any);
+    saveJobForm(payload);
   }, [
-    defaultValues,
-    form,
-    params.modelId,
-    params.projectId,
-    params.taskId,
-    params.unitId,
-    projectList,
-    resolvedUserId,
+    buildSaveJobFormPayload,
     saveJobForm,
-    taskOptions,
-    unitOptions,
   ]);
 
   const openInstallCostStep = useCallback((builderTaskId?: number | null) => {
@@ -566,8 +587,14 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
     setIsInstallCostStepActive(false);
   }, []);
 
+  const clearRequestTaskConfigurationState = useCallback(() => {
+    setSavedData(null);
+  }, []);
+
   const reset = useCallback(() => {
     setCompleted(false);
+    setSavedData(null);
+    setIsInstallCostStepActive(false);
     form.reset({});
     params.setParams({
       step: 1,
@@ -616,14 +643,14 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
     selectTask,
     selectUnit,
     handleSubmit,
-    saveJob,
     isSaving,
-    isRequestingTaskConfiguration,
     savedData,
-    requestTaskConfigurationData,
+    isRequestingTaskConfiguration: isSaving,
+    requestTaskConfigurationData: savedData,
     errors,
     hasMissingTaskConfiguration,
     requestTaskConfiguration,
+    clearRequestTaskConfigurationState,
     openInstallCostStep,
     closeInstallCostStep,
     reset,
