@@ -47,8 +47,8 @@ export function CommunityModelCostForm({ model }: Props) {
             },
             {
                 enabled: editModelCostId > 0,
-            }
-        )
+            },
+        ),
     );
 
     const qc = useQueryClient();
@@ -70,12 +70,9 @@ export function CommunityModelCostForm({ model }: Props) {
                     variant: "destructive",
                 });
             },
-        })
+        }),
     );
-    useDebugConsole({
-        d: save.data,
-        e: save.error,
-    });
+
     const { mutate: deleteCommunityModel } = useMutation(
         trpc.community.deleteCommunityModelCost.mutationOptions({
             onSuccess(data, variables, context) {
@@ -91,7 +88,7 @@ export function CommunityModelCostForm({ model }: Props) {
                     editModelCostId: -1,
                 });
             },
-        })
+        }),
     );
     const form = useZodForm(saveCommunityModelCostSchema, {
         defaultValues: {
@@ -130,13 +127,13 @@ export function CommunityModelCostForm({ model }: Props) {
                 model?.builderTasks?.map((t) => [
                     t.uid,
                     data?.meta?.costs?.[t.uid] || "",
-                ])
+                ]),
             ),
             tax: Object.fromEntries(
                 model?.builderTasks?.map((t) => [
                     t.uid,
                     data?.meta?.tax?.[t.uid] || "",
-                ])
+                ]),
             ),
             model: model?.model?.modelName,
             meta: data?.meta || {},
@@ -150,12 +147,12 @@ export function CommunityModelCostForm({ model }: Props) {
             costs: Object.fromEntries(
                 Object.entries(formData.costs)
                     .filter(([k, v]) => String(v)?.length > 0)
-                    .map(([k, v]) => [k, +v])
+                    .map(([k, v]) => [k, +v]),
             ),
             tax: Object.fromEntries(
                 Object.entries(formData.tax)
                     .filter(([k, v]) => String(v)?.length > 0)
-                    .map(([k, v]) => [k, +v])
+                    .map(([k, v]) => [k, +v]),
             ),
         });
     };
@@ -163,7 +160,7 @@ export function CommunityModelCostForm({ model }: Props) {
     const total = sum(
         model?.builderTasks
             ?.map((t) => sum([costs?.[t.uid], tax?.[t.uid]]))
-            .flat()
+            .flat(),
     );
     return (
         <Form {...form}>

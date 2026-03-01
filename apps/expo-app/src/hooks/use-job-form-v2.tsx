@@ -84,6 +84,9 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
     () => (admin ? [...TABS] : TABS.filter((tab) => tab !== "user")),
     [admin],
   );
+  const resolvedUserId = admin
+    ? params.userId
+    : (params.userId ?? auth?.profile?.user?.id);
 
   const initialStep = clamp(params.step || 1, 1, tabs.length);
   const [completed, setCompleted] = useState(false);
@@ -113,8 +116,9 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 
   const shouldLoadDefaults =
     !!params.unitId &&
-    !!params.taskId &&
-    (!!params.userId || !admin) &&
+    params.taskId !== null &&
+    params.taskId !== undefined &&
+    !!resolvedUserId &&
     !!params.modelId;
   // consoleLog("PARAMS", params,shouldLoadDefaults);
 
@@ -127,10 +131,9 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
       shouldLoadDefaults
         ? {
             unitId: params.unitId!,
-            taskId:
-              params.taskId && params.taskId > 0 ? params.taskId : undefined,
+            taskId: params.taskId && params.taskId > 0 ? params.taskId : null,
             jobId: params.jobId,
-            userId: params.userId!,
+            userId: resolvedUserId!,
             modelId: params.modelId!,
           }
         : skipToken,
@@ -156,7 +159,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
         },
       });
     }
-  }, [defaultValues, form, params.unitId, params.userId]);
+  }, [defaultValues, form, params.unitId, resolvedUserId]);
 
   const workerRoles = admin ? getWorkerRoles(jobType) : [safeProfileRole];
   const { data: users, isPending: isUsersPending } = useQuery(

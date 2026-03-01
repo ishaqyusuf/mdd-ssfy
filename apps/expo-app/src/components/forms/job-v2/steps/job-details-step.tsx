@@ -24,13 +24,32 @@ export function JobDetailsStep() {
 
   if (isDefaultValuesPending) {
     return (
-      <NeoCard className="bg-card">
-        <View className="gap-2">
-          <Skeleton className="h-4 w-1/3 rounded-md" />
-          <Skeleton className="h-20 w-full rounded-2xl" />
-          <Skeleton className="h-12 w-full rounded-2xl" />
-        </View>
-      </NeoCard>
+      <View className="flex-1 gap-3">
+        <NeoCard className="bg-card">
+          <Skeleton className="h-3 w-16 rounded-md" />
+          <Skeleton className="mt-2 h-5 w-2/3 rounded-md" />
+          <Skeleton className="mt-2 h-3 w-1/3 rounded-md" />
+        </NeoCard>
+
+        <NeoCard className="bg-card">
+          <Skeleton className="h-3 w-20 rounded-md" />
+          <Skeleton className="mt-2 h-28 w-full rounded-2xl" />
+        </NeoCard>
+
+        <NeoCard className="bg-card">
+          <Skeleton className="h-3 w-24 rounded-md" />
+          <View className="mt-2 gap-2">
+            <Skeleton className="h-14 w-full rounded-2xl" />
+            <Skeleton className="h-14 w-full rounded-2xl" />
+            <Skeleton className="h-14 w-full rounded-2xl" />
+          </View>
+        </NeoCard>
+
+        <NeoCard className="bg-primary">
+          <Skeleton className="h-3 w-14 rounded-md bg-primary-foreground/40" />
+          <Skeleton className="mt-2 h-8 w-32 rounded-md bg-primary-foreground/50" />
+        </NeoCard>
+      </View>
     );
   }
 
