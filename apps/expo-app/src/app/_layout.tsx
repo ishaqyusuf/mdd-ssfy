@@ -1,7 +1,5 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { useThemeConfig } from "@/hooks/use-theme-color";
 import {
-  DarkTheme,
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
@@ -11,7 +9,6 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import "react-native-reanimated";
 import "@/styles/global.css";
-import { useColorScheme } from "@/example/components/useColorScheme";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   AuthProvider,
@@ -74,7 +71,7 @@ export default function RootLayout() {
   return <RootLayoutNav />;
 }
 const InitialLayout = () => {
-  const { token, isInstaller, isAdmin, isDriver, profile } = useAuthContext();
+  const { token, isAdmin, isDriver } = useAuthContext();
 
   return (
     <>
@@ -88,9 +85,9 @@ const InitialLayout = () => {
           <Stack.Protected guard={!token}>
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           </Stack.Protected>
-          <Stack.Protected guard={isInstaller}>
+          <Stack.Protected guard={!!isDriver}>
             <Stack.Screen
-              name="(installers)"
+              name="(drivers)"
               options={{ headerShown: false }}
             />
           </Stack.Protected>
@@ -108,7 +105,7 @@ const InitialLayout = () => {
               options={{ headerShown: false }}
             />
           </Stack.Protected>
-          <Stack.Protected guard={!isAdmin && !isInstaller}>
+          <Stack.Protected guard={!isAdmin && !isDriver}>
             <Stack.Screen name="unavailable" options={{ headerShown: false }} />
           </Stack.Protected>
 
@@ -120,9 +117,6 @@ const InitialLayout = () => {
   );
 };
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
-  const theme = useThemeConfig();
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       {/* 

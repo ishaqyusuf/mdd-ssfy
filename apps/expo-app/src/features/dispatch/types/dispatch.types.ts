@@ -1,0 +1,26 @@
+import { RouterOutputs } from "@api/trpc/routers/_app";
+
+export type DispatchStatus =
+  | "queue"
+  | "in progress"
+  | "completed"
+  | "cancelled";
+
+export type DispatchListResponse = RouterOutputs["dispatch"]["assignedDispatch"];
+export type DispatchListItem = DispatchListResponse["data"][number];
+
+export type DispatchOverview = RouterOutputs["dispatch"]["dispatchOverview"];
+export type DispatchOverviewItem = DispatchOverview["dispatchItems"][number];
+export type DispatchPackingHistoryItem =
+  DispatchOverviewItem["packingHistory"][number];
+
+export type QtyMatrix = {
+  qty?: number | null;
+  lh?: number | null;
+  rh?: number | null;
+};
+
+export type DispatchDeliverable = {
+  submissionId: number;
+  qty: QtyMatrix;
+};

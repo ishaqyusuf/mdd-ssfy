@@ -50,7 +50,7 @@ export default function SignIn() {
           success: "Done!.",
         },
       },
-    })
+    }),
   );
   const signIn = async (data) => {
     loginMutation(data);
@@ -152,14 +152,16 @@ export default function SignIn() {
           </View>
 
           {!testEmails?.length || (
-            <View className="flex flex-wrap flex-row">
+            <View className="flex flex-wrap gap-1 flex-row">
               {testEmails.map((email, i) => (
                 <Button
                   key={i}
-                  className="w-1/2"
+                  className="px-2 py-1 rounded-full border border-border"
                   onPress={() => form.setValue("email", email)}
                 >
-                  <Text className="text-primary-foreground">{email}</Text>
+                  <Text className="text-primary-foreground ">
+                    {email?.split("@")?.[0]}
+                  </Text>
                 </Button>
               ))}
             </View>

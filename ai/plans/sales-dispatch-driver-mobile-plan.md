@@ -12,6 +12,9 @@ This plan defines how to build a driver-focused sales dispatch system in the mob
 - `apps/www/src/components/sheets/sales-overview-sheet/context.tsx` (`useDispatch`)
 
 All decisions in this plan follow [code-culture-1.1.md](/Users/M1PRO/Documents/code/_turbo/gnd/ai/code-culture-1.1.md).
+Design refresh decisions in this plan are derived from:
+- [designs.html](/Users/M1PRO/Documents/code/_turbo/gnd/ai/designs/dispatch-mobile/designs.html)
+- [stitch-rules-1.2.311225.md](/Users/M1PRO/Documents/code/_turbo/gnd/ai/stitch-rules-1.2.311225.md)
 
 ## Assumptions
 
@@ -37,6 +40,7 @@ In scope:
   - clear all packing for a dispatch when needed.
 - Query invalidation and optimistic/fast refresh behavior in mobile.
 - Role gating for driver experience.
+- Stitch-quality visual refresh for dispatch list/detail/complete screens.
 
 Out of scope (first release):
 - Full dispatch creation/editing UI from mobile.
@@ -127,6 +131,20 @@ Out of scope (first release):
 - Run smoke tests on both iOS and Android builds.
 - Roll out behind a feature flag/role gate if needed, then expand.
 
+9. Design update (Stitch-aligned)
+- Rework screen composition to mirror the dispatch mobile template patterns:
+  - sticky top bar with strong title/status hierarchy.
+  - card-based sections with grouped information blocks.
+  - fixed/anchored bottom action area for primary CTA (complete/confirm actions).
+  - richer packing/history visual hierarchy (table/list rows, timeline style where applicable).
+- Apply semantic theme tokens only (no hardcoded palette), including:
+  - `background`, `foreground`, `card`, `muted`, `primary`, `border`, `input`, `ring`.
+- Ensure dark-mode parity for every dispatch surface, not just text color.
+- Enforce stitch styling constraints during refactor:
+  - no mixed `style` + `className` on one component.
+  - token-first styling and consistent spacing/typography rhythm.
+- Keep behavioral logic unchanged while upgrading visuals.
+
 ## Risks and Mitigations
 
 - Risk: status transition mismatch between mobile and existing task logic.
@@ -141,6 +159,9 @@ Out of scope (first release):
 - Risk: parity drift between web and mobile logic.
 - Mitigation: maintain a shared transition matrix and endpoint contract checklist in this plan’s implementation ticket set.
 
+- Risk: visual drift from Stitch target in later iterations.
+- Mitigation: run a design self-audit against stitch rules before merge.
+
 ## Validation
 
 - Mobile functional:
@@ -150,6 +171,11 @@ Out of scope (first release):
   - Driver can delete packing history rows and clear all packing with confirmation.
   - Start/cancel/complete actions update UI state and refetch accurately.
   - Failure paths show actionable feedback and allow retry.
+- Design validation:
+  - Layout hierarchy and spacing match dispatch template intent.
+  - Semantic-token usage only on layout/surface/text/border colors.
+  - Dark mode parity verified for list/detail/complete screens.
+  - No `style` + `className` mixing in touched components.
 - Regression:
   - Existing web dispatch behavior remains unchanged.
   - API consumers outside mobile remain compatible.
