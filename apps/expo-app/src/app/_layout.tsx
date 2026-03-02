@@ -74,8 +74,7 @@ export default function RootLayout() {
   return <RootLayoutNav />;
 }
 const InitialLayout = () => {
-  const { token, isInstaller, isAdmin, profile } = useAuthContext();
-  // console.log({ isInstaller, isAdmin, can: profile?.can });
+  const { token, isInstaller, isAdmin, isDriver, profile } = useAuthContext();
 
   return (
     <>

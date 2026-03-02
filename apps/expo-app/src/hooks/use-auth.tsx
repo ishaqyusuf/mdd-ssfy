@@ -19,12 +19,15 @@ export const useCreateAuthContext = () => {
   const isInstaller =
     profile?.role?.name === "1099 Contractor" ||
     profile?.role?.name === "Punchout";
+  const isDriver =
+    (profile?.can?.viewDelivery || profile?.can?.viewPickup) && !isInstaller;
   const isAdmin = !isInstaller && profile?.can?.editJobs;
 
   return {
     profile,
     token,
     isInstaller,
+    isDriver,
     isAdmin,
     onLogin(data) {
       _setToken(data.token);
