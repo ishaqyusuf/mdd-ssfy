@@ -30,7 +30,7 @@ export type CommunityInstallCostRateSchema = z.infer<
   typeof communityInstallCostRateSchema
 >;
 
-export const jobFormShema = z
+export const jobFormSchema = z
   .object({
     unit: z
       .object({

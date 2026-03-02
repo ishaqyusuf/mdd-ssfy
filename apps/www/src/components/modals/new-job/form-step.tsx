@@ -6,7 +6,7 @@ import { useTRPC } from "@/trpc/client";
 import { Building2, CheckCircle2, Home, User } from "lucide-react";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { useZodForm } from "@/hooks/use-zod-form";
-import { JobFormSchema, jobFormShema } from "@community/schema";
+import { JobFormSchema } from "@community/schema";
 import { Controller, useFieldArray } from "react-hook-form";
 import { handleNumberInput, percentageValue, sum } from "@gnd/utils";
 import { Card, Field, InputGroup, Item } from "@gnd/ui/namespace";

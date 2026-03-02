@@ -90,7 +90,7 @@ import { getPivotModel, type CommunityBuilderMeta } from "@gnd/utils/community";
 import {
   builderFormSchema,
   communityInstallCostRateSchema,
-  jobFormShema,
+  jobFormSchema,
 } from "@community/schema";
 import { getSettingAction } from "@gnd/settings";
 import { INSTALL_COST_DEFAULT_UNITS } from "@community/constants";
@@ -388,7 +388,7 @@ export const communityRouters = createTRPCRouter({
         },
       };
     }),
-  saveJobForm: publicProcedure.input(jobFormShema).mutation(async (props) => {
+  saveJobForm: publicProcedure.input(jobFormSchema).mutation(async (props) => {
     const { ctx, input } = props;
     return ctx.db.$transaction(async (db) => {
       const { unit, user, job: jobInput } = input;

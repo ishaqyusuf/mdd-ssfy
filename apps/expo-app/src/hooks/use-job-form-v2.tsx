@@ -22,7 +22,7 @@ import {
   useState,
 } from "react";
 import { useWatch } from "react-hook-form";
-import { jobFormShema } from "@community/schema";
+import { jobFormSchema } from "@community/schema";
 
 export interface JobFormV2Props {
   admin?: boolean;
@@ -103,7 +103,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
     }
   }, [action, admin, params]);
 
-  const form = useZodForm(jobFormShema, {
+  const form = useZodForm(jobFormSchema, {
     defaultValues: {
       // coWorker: {
       //   id: undefined,
@@ -369,12 +369,12 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 
   const selectProject = useCallback(
     (project: { id: number; title?: string; addon?: number }) => {
-      form.setValue("projectId", project.id);
-      form.setValue("title", project.title || "");
-      form.setValue("homeId", null);
-      form.setValue("subtitle", null as any);
-      form.setValue("addon", project?.addon || 0);
-      form.setValue("tasks", {} as any);
+      // form.setValue("projectId", project.id);
+      // form.setValue("title", project.title || "");
+      // form.setValue("homeId", null);
+      // form.setValue("subtitle", null as any);
+      // form.setValue("addon", project?.addon || 0);
+      // form.setValue("tasks", {} as any);
 
       params.setParams({
         projectId: project.id,
@@ -384,7 +384,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
         step: clamp(initialStep + 1, 1, tabs.length),
       });
     },
-    [form, initialStep, params, tabs.length],
+    [initialStep, params, tabs.length],
   );
 
   const selectTask = useCallback(
@@ -412,8 +412,8 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
         .join(" ")
         .trim();
 
-      form.setValue("homeId", homeId as any);
-      form.setValue("subtitle", subtitle || null);
+      // form.setValue("homeId", homeId as any);
+      // form.setValue("subtitle", subtitle || null);
 
       const nextTasks = Object.fromEntries(
         Object.entries(unit.costing || {})
@@ -429,7 +429,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
           ]),
       );
 
-      form.setValue("tasks", nextTasks as any);
+      // form.setValue("tasks", nextTasks as any);
 
       params.setParams({
         unitId: homeId,
@@ -437,7 +437,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
         step: clamp(initialStep + 1, 1, tabs.length),
       });
     },
-    [costData?.data?.list, form, initialStep, params, tabs.length],
+    [costData?.data?.list, initialStep, params, tabs.length],
   );
 
   const buildSaveJobFormPayload = useCallback(

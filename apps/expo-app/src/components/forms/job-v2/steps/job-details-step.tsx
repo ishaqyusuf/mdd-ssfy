@@ -66,7 +66,7 @@ export function JobDetailsStep() {
   } = useJobFormV2Context();
   const isCustom = form.watch("isCustom") || params.taskId === -1;
   const taskRows = Object.entries(
-    (form.watch("tasks") || {}) as Record<string, any>,
+    (form.watch("job.tasks") || {}) as Record<string, any>,
   );
   const selectedProject = (projectList || []).find(
     (project: any) => project?.id === params.projectId,
@@ -230,7 +230,7 @@ export function JobDetailsStep() {
           </Text>
           <Controller
             control={form.control}
-            name="description"
+            name="job.description"
             render={({ field }) => (
               <TextInput
                 value={(field.value as string) || ""}
@@ -252,7 +252,7 @@ export function JobDetailsStep() {
             </Text>
             <Controller
               control={form.control}
-              name="additionalCost"
+              name="job.additionalCost"
               render={({ field }) => (
                 <NumberInput
                   value={field.value}
