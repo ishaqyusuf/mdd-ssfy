@@ -1,22 +1,19 @@
-import { NotificationEvent } from "./payload-utils";
-import { NotificationAuthor } from "./payload-utils/index";
+import {
+  createNotificationChannelTriggers,
+  type NotificationChannel,
+  type NotificationTriggerInput,
+} from "./payload-utils";
 
 export * from "./payload-utils/index";
 
-export const notify = (send) => {
-  return {
-    jobReviewRequested(
-      input: NotificationEvent<"job_review_requested">["payload"] & {
-        recipients?: NotificationEvent<"job_review_requested">["recipients"];
-        author?: NotificationAuthor;
-      },
-    ) {
-      const { recipients, author, ...payload } = input;
-      return send("job_review_requested", {
-        payload,
-        author,
-        recipients: recipients && recipients.length ? recipients : null,
-      });
-    },
-  };
+export const notify = (
+  send: <TChannel extends NotificationChannel>(
+    channel: TChannel,
+    input: NotificationTriggerInput<TChannel>,
+  ) => unknown | Promise<unknown>,
+) => {
+  return createNotificationChannelTriggers({
+    send,
+    getStoredRecipients: () => null,
+  });
 };

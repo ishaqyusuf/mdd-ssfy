@@ -27,11 +27,17 @@ type WithoutChannelAndAuthor<T extends { channel: string; author: unknown }> =
 
 export class NotificationService {
   private recipients: NotificationJobInput["recipients"] = null;
+  public readonly channel;
 
   constructor(
     private readonly tasks: TriggerTasksClient,
     private readonly ctx: NotificationServiceContext,
-  ) {}
+  ) {
+    this.channel = createNotificationChannelTriggers({
+      send: (channel, input) => this.emit(channel, input as any),
+      getStoredRecipients: () => this.recipients,
+    });
+  }
 
   private async buildAuthor(author?: Author): Promise<Author> {
     if (author) return author;
@@ -81,13 +87,6 @@ export class NotificationService {
     return this.emit(channel, input);
   }
 
-  private get channelTriggers() {
-    return createNotificationChannelTriggers({
-      send: (channel, input) => this.emit(channel, input as any),
-      getStoredRecipients: () => this.recipients,
-    });
-  }
-
   setEmployeeRecipients(...ids: number[]) {
     this.recipients = normalizeRecipients(makeRecipients("employee", ...ids));
     return this;
@@ -96,59 +95,5 @@ export class NotificationService {
   setCustomerRecipients(...ids: number[]) {
     this.recipients = normalizeRecipients(makeRecipients("customer", ...ids));
     return this;
-  }
-
-  async jobAssigned(
-    input: NotificationEvent<"job_assigned">["payload"] & {
-      recipients?: NotificationEvent<"job_assigned">["recipients"];
-      author?: Author;
-    },
-  ) {
-    return this.channelTriggers.jobAssigned(input as any);
-  }
-
-  async jobSubmitted(
-    input: NotificationEvent<"job_submitted">["payload"] & {
-      recipients?: NotificationEvent<"job_submitted">["recipients"];
-      author?: Author;
-    },
-  ) {
-    return this.channelTriggers.jobSubmitted(input as any);
-  }
-
-  async jobApproved(
-    input: NotificationEvent<"job_approved">["payload"] & {
-      recipients?: NotificationEvent<"job_approved">["recipients"];
-      author?: Author;
-    },
-  ) {
-    return this.channelTriggers.jobApproved(input as any);
-  }
-
-  async jobRejected(
-    input: NotificationEvent<"job_rejected">["payload"] & {
-      recipients?: NotificationEvent<"job_rejected">["recipients"];
-      author?: Author;
-    },
-  ) {
-    return this.channelTriggers.jobRejected(input as any);
-  }
-
-  async jobReviewRequested(
-    input: NotificationEvent<"job_review_requested">["payload"] & {
-      recipients?: NotificationEvent<"job_review_requested">["recipients"];
-      author?: Author;
-    },
-  ) {
-    return this.channelTriggers.jobReviewRequested(input as any);
-  }
-
-  async jobTaskConfigureRequest(
-    input: NotificationEvent<"job_task_configure_request">["payload"] & {
-      recipients?: NotificationEvent<"job_task_configure_request">["recipients"];
-      author?: Author;
-    },
-  ) {
-    return this.channelTriggers.jobTaskConfigureRequest(input as any);
   }
 }

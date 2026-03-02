@@ -97,6 +97,7 @@ import { INSTALL_COST_DEFAULT_UNITS } from "@community/constants";
 import type { JobMeta, JobStatus, ProjectMeta } from "@community/types";
 import { NotificationService } from "@notifications/services/triggers";
 import slugify from "slugify";
+import type { Prisma } from "@gnd/db";
 export const communityRouters = createTRPCRouter({
   buildersList: publicProcedure.query(async (q) => {
     return buildersList(q.ctx);
@@ -390,32 +391,43 @@ export const communityRouters = createTRPCRouter({
   saveJobForm: publicProcedure.input(jobFormShema).mutation(async (props) => {
     const { ctx, input } = props;
     return ctx.db.$transaction(async (db) => {
-      const { unit, user, job } = input;
-      let jobId = job.id;
+      const { unit, user, job: jobInput } = input;
+        const isContractorCreator = !!props?.input?.user?.id;
+      let jobId = jobInput.id;
       const isCreatingJob = !jobId;
-      if (!job.meta) job.meta = {};
-      if (job.isCustom) {
-        job.meta = {
-          ...job.meta,
+      if (!jobInput.meta) jobInput.meta = {};
+      if (jobInput.isCustom) {
+        jobInput.meta = {
+          ...jobInput.meta,
           addon: 0,
           addonPercent: 0,
         };
-        job.tasks = [];
+        jobInput.tasks = [];
       } else {
-        job.meta.additional_cost = null;
+        jobInput.meta.additional_cost = null;
       }
       // job.meta.addon = percentageValue(job.meta.)
       const totalTaskCost = +(
-        job.tasks?.reduce((acc, t) => acc + (t.rate || 0) * (t.qty || 0), 0) ||
+        jobInput.tasks?.reduce((acc, t) => acc + (t.rate || 0) * (t.qty || 0), 0) ||
         0
       ).toFixed(2);
-      job.amount = sum([
+      jobInput.amount = sum([
         totalTaskCost,
-        job.meta.addon,
-        job.meta.additional_cost,
+        jobInput.meta.addon,
+        jobInput.meta.additional_cost,
       ]);
+      let job : Prisma.JobsGetPayload<{
+select: {
+  user: {
+    select: {
+      id:true,
+      name:true
+    }
+  }
+}
+      }> = null as any
       if (jobId) {
-        await db.jobs.update({
+        job = await db.jobs.update({
           where: {
             id: jobId,
           },
@@ -428,7 +440,11 @@ export const communityRouters = createTRPCRouter({
             description: job.description,
             // type: job.type,
             meta: job.meta as any,
+            user: user?.id ? { connect: { id: user.id } } : undefined,
           },
+          select: {
+            id: true,
+          }
         });
       } else {
         const newJob = await db.jobs.create({
@@ -440,7 +456,7 @@ export const communityRouters = createTRPCRouter({
             title: job.title,
             subtitle: job.subtitle,
             // type: job.type,
-            user: user?.id ? { connect: { id: user.id } } : undefined,
+            user: { connect: { id: user!.id || props.ctx.userId } } ,
             home: unit?.id ? { connect: { id: unit.id } } : undefined,
             meta: job.meta as any,
             status: job.status!,
@@ -494,34 +510,15 @@ export const communityRouters = createTRPCRouter({
         }),
       ]);
 
-      if (isCreatingJob && ctx.userId) {
-        const actor = await db.users.findFirst({
-          where: {
-            id: ctx.userId,
-            deletedAt: null,
-          },
-          select: {
-            id: true,
-            name: true,
-            roles: {
-              where: {
-                deletedAt: null,
-              },
-              select: {
-                role: {
-                  select: {
-                    name: true,
-                  },
-                },
-              },
-              take: 1,
-            },
-          },
-        });
 
-        if (actor) {
-          const roleName = actor.roles?.[0]?.role?.name?.toLowerCase() || "";
-          const isContractorCreator = roleName.includes("contractor");
+      if (isCreatingJob) {
+        
+
+        // if (actor) {
+          // const roleName = actor.roles?.[0]?.role?.name?.toLowerCase() || "";
+          // const isContractorCreator = roleName.includes("contractor");
+        
+
           const notification = new NotificationService(tasks, ctx);
           if (user?.id != null) {
             notification.setEmployeeRecipients(user.id);
@@ -533,7 +530,7 @@ export const communityRouters = createTRPCRouter({
               ? "job_submitted"
               : "job_assigned";
           if (channel === "job_assigned") {
-            await notification.jobAssigned({
+            await notification.channel.jobAssigned({
               jobId: jobId!,
               assignedToId: user?.id ?? actor.id,
               assignedToName: user?.id ? undefined : actor.name || undefined,
@@ -543,27 +540,19 @@ export const communityRouters = createTRPCRouter({
               },
             });
           } else if (channel === "job_submitted") {
-            await notification.jobSubmitted({
+            await notification.channel.jobSubmitted({
               jobId: jobId!,
-              author: {
-                id: actor.id,
-                role: "employee",
-              },
             });
           } else {
-            await notification.jobTaskConfigureRequest({
-              contractorId: user?.id ?? actor.id,
+            await notification.channel.jobTaskConfigureRequest({
+              contractorId:  job?.ass
               modelName: unit?.modelName || "",
               projectName: unit?.project?.title || "",
               builderName: unit?.project?.builder?.name || "",
-              author: {
-                id: actor.id,
-                role: "employee",
-              },
             });
           }
         }
-      }
+      // }
 
       return {
         id: jobId,

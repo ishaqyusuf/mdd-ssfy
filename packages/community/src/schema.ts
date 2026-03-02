@@ -44,7 +44,7 @@ export const jobFormShema = z
       .optional(),
     user: z
       .object({
-        id: z.number(),
+        id: z.number().optional().nullable(),
         // name: z.string(),
       })
       .optional(),

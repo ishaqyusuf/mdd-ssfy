@@ -170,13 +170,13 @@ export const jobRoutes = createTRPCRouter({
         );
 
         if (input.action === "approve") {
-          await s.jobApproved({
+          await s.channel.jobApproved({
             jobId: input.jobId,
             assignedToId: job.userId,
             note: input.note,
           });
         } else {
-          await s.jobRejected({
+          await s.channel.jobRejected({
             jobId: input.jobId,
             assignedToId: job.userId,
             note: input.note,
