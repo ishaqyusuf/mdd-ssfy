@@ -71,6 +71,19 @@ export function createNotificationChannelTriggers(
         recipients: resolvedRecipients,
       });
     },
+    jobTaskConfigureRequest(input: Input<"job_task_configure_request">) {
+      const { recipients, author, ...payload } = input;
+      const resolvedRecipients = resolveRecipients(
+        recipients,
+        getStoredRecipients(),
+        // makeRecipients("employee", payload.contractorId),
+      );
+      return options.send("job_task_configure_request", {
+        payload,
+        author,
+        recipients: resolvedRecipients,
+      });
+    },
     jobReviewRequested(
       input: NotificationEvent<"job_review_requested">["payload"] & {
         recipients?: NotificationEvent<"job_review_requested">["recipients"];

@@ -9,6 +9,7 @@ import {
     createNotificationChannelTriggers,
     makeRecipients,
     normalizeRecipients,
+    NotificationEvent,
     resolveNotificationAuthor,
     type NotificationChannel,
     type NotificationTriggerInput,
@@ -20,9 +21,8 @@ export function useNotificationTrigger(
 ) {
     const auth = useAuth();
     const task = useTaskTrigger(props);
-    const [storedRecipients, setRecipients] = React.useState<
-        NotificationJobInput["recipients"]
-    >(null);
+    const [storedRecipients, setRecipients] =
+        React.useState<NotificationJobInput["recipients"]>(null);
 
     const send = useCallback(
         <TChannel extends NotificationChannel>(
@@ -43,23 +43,17 @@ export function useNotificationTrigger(
         [task.trigger, auth.id],
     );
 
-    const setEmployeeRecipients = useCallback(
-        (...ids: number[]) => {
-            const next = normalizeRecipients(makeRecipients("employee", ...ids));
-            setRecipients(next);
-            return next;
-        },
-        [],
-    );
+    const setEmployeeRecipients = useCallback((...ids: number[]) => {
+        const next = normalizeRecipients(makeRecipients("employee", ...ids));
+        setRecipients(next);
+        return next;
+    }, []);
 
-    const setCustomerRecipients = useCallback(
-        (...ids: number[]) => {
-            const next = normalizeRecipients(makeRecipients("customer", ...ids));
-            setRecipients(next);
-            return next;
-        },
-        [],
-    );
+    const setCustomerRecipients = useCallback((...ids: number[]) => {
+        const next = normalizeRecipients(makeRecipients("customer", ...ids));
+        setRecipients(next);
+        return next;
+    }, []);
     const channelTriggers = createNotificationChannelTriggers({
         send,
         getStoredRecipients: () => storedRecipients,
@@ -75,3 +69,4 @@ export function useNotificationTrigger(
         ...channelTriggers,
     };
 }
+

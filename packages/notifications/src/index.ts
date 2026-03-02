@@ -15,6 +15,7 @@ import { jobRejected } from "./types/job-rejected";
 import { jobReviewRequested } from "./types/job-review-requested";
 import { jobSubmitted } from "./types/job-submitted";
 import { salesDispatchAssigned } from "./types/sales-dispatch-assigned";
+import { jobTaskConfigureRequest } from "./types/job-tasks-configure-request";
 import { consoleLog } from "@gnd/utils";
 import {
   getSubscribersAccount,
@@ -27,6 +28,7 @@ const handlers = {
   job_approved: jobApproved,
   job_rejected: jobRejected,
   job_review_requested: jobReviewRequested,
+  job_task_configure_request: jobTaskConfigureRequest,
   sales_dispatch_assigned: salesDispatchAssigned,
 } as const;
 import { generateEmailMeta } from "./utils";

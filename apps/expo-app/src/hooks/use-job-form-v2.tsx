@@ -252,10 +252,11 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
         setSavedData(data as any);
         if (args?.requestTaskConfig) {
           notification
-            .jobReviewRequested({
-              jobId: (data as any)?.id,
-              requestedById: auth?.profile?.user?.id,
-              requestedByName: auth?.profile?.user?.name || undefined,
+            .jobTaskConfigureRequest({
+              builderName: defaultValues?.unit?.builderName!,
+              modelName: defaultValues?.unit?.modelName!,
+              projectName: defaultValues?.project?.title,
+              contractorId: auth?.profile?.user?.id,
             })
             .catch(() => undefined);
           Toast.show(
@@ -485,7 +486,8 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
             .filter(Boolean)
         : [];
 
-      let status = values?.status || defaultJob.status || (admin ? "Assigned" : "Started");
+      let status =
+        values?.status || defaultJob.status || (admin ? "Assigned" : "Started");
       if (isCustom) status = "Submitted";
       if (defaultJob.id && status === "Assigned") status = "Submitted";
       if (!admin && status === "Started") status = "Submitted";
@@ -517,7 +519,9 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
               values?.addon ?? defaultMeta.addon ?? selectedProject?.addon ?? 0,
             addonPercent: defaultMeta.addonPercent ?? 0,
             additionalCostReason:
-              values?.additionalReason ?? defaultMeta.additionalCostReason ?? "",
+              values?.additionalReason ??
+              defaultMeta.additionalCostReason ??
+              "",
             additional_cost:
               values?.additionalCost ?? defaultMeta.additional_cost ?? null,
           },
@@ -573,10 +577,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
       return;
     }
     saveJobForm(payload);
-  }, [
-    buildSaveJobFormPayload,
-    saveJobForm,
-  ]);
+  }, [buildSaveJobFormPayload, saveJobForm]);
 
   const openInstallCostStep = useCallback((builderTaskId?: number | null) => {
     setInstallCostBuilderTaskId(builderTaskId || null);

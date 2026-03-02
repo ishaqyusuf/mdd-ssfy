@@ -155,6 +155,15 @@ export const jobRejectedSchema = z.object({
   note: z.string().optional(),
 });
 export type JobRejectedInput = z.infer<typeof jobRejectedSchema>;
+export const jobTaskConfigureRequestSchema = z.object({
+  contractorId: z.number(),
+  modelName: z.string(),
+  projectName: z.string(),
+  builderName: z.string(),
+});
+export type JobTaskConfigureRequestInput = z.infer<
+  typeof jobTaskConfigureRequestSchema
+>;
 // Notification types map - all available notification types with their data structures
 
 export type NotificationTypes = {
@@ -165,6 +174,7 @@ export type NotificationTypes = {
   job_review_requested: JobReviewRequestedInput;
   job_approved: JobApprovedInput;
   job_rejected: JobRejectedInput;
+  job_task_configure_request: JobTaskConfigureRequestInput;
   sales_dispatch_assigned: SalesDispatchAssignedInput;
 };
 
@@ -230,6 +240,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
   baseNotificationJobSchema.extend({
     channel: z.literal("job_rejected"),
     payload: jobRejectedSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("job_task_configure_request"),
+    payload: jobTaskConfigureRequestSchema,
   }),
   baseNotificationJobSchema.extend({
     channel: z.literal("sales_dispatch_assigned"),

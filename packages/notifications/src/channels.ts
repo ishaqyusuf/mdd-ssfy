@@ -6,6 +6,7 @@ export const channelNames = [
   "job_review_requested",
   "job_deleted",
   "job_install_tasks_qty_request",
+  "job_task_configure_request",
   "sales_checkout_success",
   "sales_dispatch_assigned",
   "sales_dispatch_cancelled",
@@ -51,6 +52,12 @@ export const channelsConfig: Partial<{
   job_install_tasks_qty_request: {
     title:
       "Triggered when a contractor requests to update the quantity of install tasks for a job",
+    priority: 5,
+    category: "Community",
+  },
+  job_task_configure_request: {
+    title:
+      "Triggered when a contractor tries to submit a job but install task list is missing",
     priority: 5,
     category: "Community",
   },
