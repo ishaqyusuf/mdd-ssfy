@@ -95,9 +95,8 @@ import {
 import { getSettingAction } from "@gnd/settings";
 import { INSTALL_COST_DEFAULT_UNITS } from "@community/constants";
 import type { JobMeta, JobStatus, ProjectMeta } from "@community/types";
-import type { NotificationJobInput } from "@notifications/schemas";
+import { NotificationService } from "@notifications/services/triggers";
 import slugify from "slugify";
-import type { ChannelName } from "@notifications/channels";
 export const communityRouters = createTRPCRouter({
   buildersList: publicProcedure.query(async (q) => {
     return buildersList(q.ctx);
@@ -523,50 +522,46 @@ export const communityRouters = createTRPCRouter({
         if (actor) {
           const roleName = actor.roles?.[0]?.role?.name?.toLowerCase() || "";
           const isContractorCreator = roleName.includes("contractor");
-          const assignedRecipient =
-            user?.id != null
-              ? [{ ids: [user.id], role: "employee" as const }]
-              : undefined;
+          const notification = new NotificationService(tasks, ctx);
+          if (user?.id != null) {
+            notification.setEmployeeRecipients(user.id);
+          }
 
-          const channel: ChannelName = input.requestTaskConfig
+          const channel = input.requestTaskConfig
             ? "job_task_configure_request"
             : isContractorCreator
               ? "job_submitted"
               : "job_assigned";
-
-          const payload =
-            channel === "job_assigned"
-              ? {
-                  jobId: jobId!,
-                  assignedToId: user?.id ?? actor.id,
-                  assignedToName: user?.id
-                    ? undefined
-                    : actor.name || undefined,
-                }
-              : channel === "job_submitted"
-                ? {
-                    jobId: jobId!,
-                    submittedById: actor.id,
-                    submittedByName: actor.name || undefined,
-                  }
-                : {
-                    jobId: jobId!,
-                    requestedById: actor.id,
-                    requestedByName: actor.name || undefined,
-                  };
-
-          await tasks.trigger("notification", {
-            channel,
-            author: {
-              id: actor.id,
-              role: "employee",
-            },
-            recipients:
-              channel === "job_assigned" || channel === "job_review_requested"
-                ? assignedRecipient
-                : undefined,
-            payload,
-          } as NotificationJobInput);
+          if (channel === "job_assigned") {
+            await notification.jobAssigned({
+              jobId: jobId!,
+              assignedToId: user?.id ?? actor.id,
+              assignedToName: user?.id ? undefined : actor.name || undefined,
+              author: {
+                id: actor.id,
+                role: "employee",
+              },
+            });
+          } else if (channel === "job_submitted") {
+            await notification.jobSubmitted({
+              jobId: jobId!,
+              author: {
+                id: actor.id,
+                role: "employee",
+              },
+            });
+          } else {
+            await notification.jobTaskConfigureRequest({
+              contractorId: user?.id ?? actor.id,
+              modelName: unit?.modelName || "",
+              projectName: unit?.project?.title || "",
+              builderName: unit?.project?.builder?.name || "",
+              author: {
+                id: actor.id,
+                role: "employee",
+              },
+            });
+          }
         }
       }
 

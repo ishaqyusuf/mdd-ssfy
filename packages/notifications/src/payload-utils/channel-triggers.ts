@@ -44,6 +44,31 @@ export function createNotificationChannelTriggers(
   const getStoredRecipients = options.getStoredRecipients || (() => null);
 
   return {
+    jobAssigned(input: Input<"job_assigned">) {
+      const { recipients, author, ...payload } = input;
+      const resolvedRecipients = resolveRecipients(
+        recipients,
+        getStoredRecipients(),
+        makeRecipients("employee", payload.assignedToId),
+      );
+      return options.send("job_assigned", {
+        payload,
+        author,
+        recipients: resolvedRecipients,
+      });
+    },
+    jobSubmitted(input: Input<"job_submitted">) {
+      const { recipients, author, ...payload } = input;
+      const resolvedRecipients = resolveRecipients(
+        recipients,
+        getStoredRecipients(),
+      );
+      return options.send("job_submitted", {
+        payload,
+        author,
+        recipients: resolvedRecipients,
+      });
+    },
     jobApproved(input: Input<"job_approved">) {
       const { recipients, author, ...payload } = input;
       const resolvedRecipients = resolveRecipients(

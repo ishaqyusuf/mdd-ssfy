@@ -251,14 +251,14 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
         });
         // setSavedData(data as any);
         if (args?.requestTaskConfig) {
-          notification
-            .jobTaskConfigureRequest({
-              builderName: defaultValues?.unit?.builderName!,
-              modelName: defaultValues?.unit?.modelName!,
-              projectName: defaultValues?.project?.title,
-              contractorId: auth?.profile?.user?.id,
-            })
-            .catch(() => undefined);
+          // notification
+          //   .jobTaskConfigureRequest({
+          //     builderName: defaultValues?.unit?.builderName!,
+          //     modelName: defaultValues?.unit?.modelName!,
+          //     projectName: defaultValues?.project?.title,
+          //     contractorId: auth?.profile?.user?.id,
+          //   })
+          //   .catch(() => undefined);
           // Toast.show(
           //   "Job saved and configuration request submitted. You will be notified via email and app. You can finish job form and submit once notified.",
           //   {

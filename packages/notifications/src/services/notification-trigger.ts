@@ -1,5 +1,10 @@
 import type { NotificationJobInput } from "../schemas";
 import type { Db } from "@gnd/db";
+import {
+  createNotificationChannelTriggers,
+  makeRecipients,
+  normalizeRecipients,
+} from "../payload-utils";
 
 type NotificationEvent<TChannel extends NotificationJobInput["channel"]> =
   Extract<NotificationJobInput, { channel: TChannel }>;
@@ -14,7 +19,6 @@ type NotificationServiceContext = {
   db: Db;
   userId?: number | null;
 };
-type Recipient = NonNullable<NotificationJobInput["recipients"]>[number];
 
 type WithoutChannelAndAuthor<T extends { channel: string; author: unknown }> =
   Omit<T, "channel" | "author"> & {
@@ -77,26 +81,39 @@ export class NotificationService {
     return this.emit(channel, input);
   }
 
-  private makeRecipients(
-    role: Recipient["role"],
-    ...ids: number[]
-  ): Recipient[] {
-    const uniqueIds = Array.from(
-      new Set(ids.filter((id) => Number.isSafeInteger(id) && id > 0)),
-    );
-    return uniqueIds.length
-      ? [{ ids: uniqueIds, role }]
-      : [];
+  private get channelTriggers() {
+    return createNotificationChannelTriggers({
+      send: (channel, input) => this.emit(channel, input as any),
+      getStoredRecipients: () => this.recipients,
+    });
   }
 
   setEmployeeRecipients(...ids: number[]) {
-    this.recipients = this.makeRecipients("employee", ...ids);
+    this.recipients = normalizeRecipients(makeRecipients("employee", ...ids));
     return this;
   }
 
   setCustomerRecipients(...ids: number[]) {
-    this.recipients = this.makeRecipients("customer", ...ids);
+    this.recipients = normalizeRecipients(makeRecipients("customer", ...ids));
     return this;
+  }
+
+  async jobAssigned(
+    input: NotificationEvent<"job_assigned">["payload"] & {
+      recipients?: NotificationEvent<"job_assigned">["recipients"];
+      author?: Author;
+    },
+  ) {
+    return this.channelTriggers.jobAssigned(input as any);
+  }
+
+  async jobSubmitted(
+    input: NotificationEvent<"job_submitted">["payload"] & {
+      recipients?: NotificationEvent<"job_submitted">["recipients"];
+      author?: Author;
+    },
+  ) {
+    return this.channelTriggers.jobSubmitted(input as any);
   }
 
   async jobApproved(
@@ -105,17 +122,7 @@ export class NotificationService {
       author?: Author;
     },
   ) {
-    const { recipients, author, ...payload } = input;
-    return this.emit("job_approved", {
-      payload,
-      author,
-      recipients:
-        recipients && recipients.length
-          ? recipients
-          : this.recipients && this.recipients.length
-            ? this.recipients
-            : this.makeRecipients("employee", payload.assignedToId),
-    });
+    return this.channelTriggers.jobApproved(input as any);
   }
 
   async jobRejected(
@@ -124,16 +131,24 @@ export class NotificationService {
       author?: Author;
     },
   ) {
-    const { recipients, author, ...payload } = input;
-    return this.emit("job_rejected", {
-      payload,
-      author,
-      recipients:
-        recipients && recipients.length
-          ? recipients
-          : this.recipients && this.recipients.length
-            ? this.recipients
-            : this.makeRecipients("employee", payload.assignedToId),
-    });
+    return this.channelTriggers.jobRejected(input as any);
+  }
+
+  async jobReviewRequested(
+    input: NotificationEvent<"job_review_requested">["payload"] & {
+      recipients?: NotificationEvent<"job_review_requested">["recipients"];
+      author?: Author;
+    },
+  ) {
+    return this.channelTriggers.jobReviewRequested(input as any);
+  }
+
+  async jobTaskConfigureRequest(
+    input: NotificationEvent<"job_task_configure_request">["payload"] & {
+      recipients?: NotificationEvent<"job_task_configure_request">["recipients"];
+      author?: Author;
+    },
+  ) {
+    return this.channelTriggers.jobTaskConfigureRequest(input as any);
   }
 }
