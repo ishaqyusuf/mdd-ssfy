@@ -201,10 +201,26 @@ export class Notifications {
         // getTeamById(this.#db, teamId),
       ])
     ).flat();
-    const contacts = contactsRaw.filter((contact, index, arr) => {
-      if (!contact?.id || contact.id === author?.id) return false;
-      return arr.findIndex((item) => item?.id === contact.id) === index;
-    });
+    const fallbackContacts =
+      contactsRaw.length === 0
+        ? (
+            await getSubscribersAccount(this.#db, [1], {
+              role: "employee",
+              channelName: type as string,
+            })
+          )?.map((a) => ({
+            ...a,
+            emailNotification: true,
+            inAppNotification: true,
+            whatsAppNotification: true,
+          }))
+        : [];
+    const contacts = [...contactsRaw, ...fallbackContacts].filter(
+      (contact, index, arr) => {
+        if (!contact?.id || contact.id === author?.id) return false;
+        return arr.findIndex((item) => item?.id === contact.id) === index;
+      },
+    );
     this.emailMeta = generateEmailMeta(author!, type);
     logger.info("Fetched author and contacts", author);
     // consoleLog("Fetched author and contacts:", author);
@@ -284,9 +300,12 @@ export class Notifications {
 
       // Send emails if requested and handler supports email
       if (handler?.createEmail) {
-        consoleLog("Creating email with context:", { recipients: contacts?.length || 0 });
-        const emailContacts = (contacts || []).filter((user: UserData) =>
-          user.emailNotification && isValidEmail(user.email),
+        consoleLog("Creating email with context:", {
+          recipients: contacts?.length || 0,
+        });
+        const emailContacts = (contacts || []).filter(
+          (user: UserData) =>
+            user.emailNotification && isValidEmail(user.email),
         );
         const filteredOutCount = (contacts?.length || 0) - emailContacts.length;
 
@@ -338,7 +357,8 @@ export class Notifications {
         const whatsAppContacts = (contacts || []).filter(
           (user) => !!user.whatsAppNotification,
         );
-        const filteredOutCount = (contacts?.length || 0) - whatsAppContacts.length;
+        const filteredOutCount =
+          (contacts?.length || 0) - whatsAppContacts.length;
         const whatsAppInputs = whatsAppContacts.reduce<
           Array<{ user: UserData; message: string }>
         >((acc, user) => {

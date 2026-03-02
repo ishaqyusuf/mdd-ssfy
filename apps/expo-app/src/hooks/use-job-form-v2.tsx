@@ -249,7 +249,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
         _qc.invalidateQueries({
           queryKey: _trpc.community.getJobForm.queryKey(),
         });
-        setSavedData(data as any);
+        // setSavedData(data as any);
         if (args?.requestTaskConfig) {
           notification
             .jobTaskConfigureRequest({
@@ -259,15 +259,15 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
               contractorId: auth?.profile?.user?.id,
             })
             .catch(() => undefined);
-          Toast.show(
-            "Job saved and configuration request submitted. You will be notified via email and app. You can finish job form and submit once notified.",
-            {
-              type: "success",
-            },
-          );
+          // Toast.show(
+          //   "Job saved and configuration request submitted. You will be notified via email and app. You can finish job form and submit once notified.",
+          //   {
+          //     type: "success",
+          //   },
+          // );
           return;
         }
-        setCompleted(true);
+        // setCompleted(true);
       },
       meta: {
         toastTitle: {

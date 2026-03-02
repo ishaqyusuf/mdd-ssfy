@@ -97,6 +97,7 @@ import { INSTALL_COST_DEFAULT_UNITS } from "@community/constants";
 import type { JobMeta, JobStatus, ProjectMeta } from "@community/types";
 import type { NotificationJobInput } from "@notifications/schemas";
 import slugify from "slugify";
+import type { ChannelName } from "@notifications/channels";
 export const communityRouters = createTRPCRouter({
   buildersList: publicProcedure.query(async (q) => {
     return buildersList(q.ctx);
@@ -527,8 +528,8 @@ export const communityRouters = createTRPCRouter({
               ? [{ ids: [user.id], role: "employee" as const }]
               : undefined;
 
-          const channel = input.requestTaskConfig
-            ? "job_review_requested"
+          const channel: ChannelName = input.requestTaskConfig
+            ? "job_task_configure_request"
             : isContractorCreator
               ? "job_submitted"
               : "job_assigned";
@@ -538,7 +539,9 @@ export const communityRouters = createTRPCRouter({
               ? {
                   jobId: jobId!,
                   assignedToId: user?.id ?? actor.id,
-                  assignedToName: user?.id ? undefined : actor.name || undefined,
+                  assignedToName: user?.id
+                    ? undefined
+                    : actor.name || undefined,
                 }
               : channel === "job_submitted"
                 ? {
