@@ -10,7 +10,6 @@ import {
 import { isAdminUser } from "@/lib/job";
 import { getSessionProfile } from "@/lib/session-store";
 import { useTRPC } from "@/trpc/client";
-import { createJobSchema } from "@community/create-job-schema";
 import { consoleLog, sum } from "@gnd/utils";
 import { skipToken, useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -23,6 +22,7 @@ import {
   useState,
 } from "react";
 import { useWatch } from "react-hook-form";
+import { jobFormShema } from "@community/schema";
 
 export interface JobFormV2Props {
   admin?: boolean;
@@ -103,20 +103,27 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
     }
   }, [action, admin, params]);
 
-  const form = useZodForm(createJobSchema, {
+  const form = useZodForm(jobFormShema, {
     defaultValues: {
-      coWorker: {
-        id: undefined,
-        name: undefined,
+      // coWorker: {
+      //   id: undefined,
+      //   name: undefined,
+      // },
+      unit: {
+        id: params.unitId!,
       },
-      projectId: null,
-      title: "",
-      description: "",
-      homeId: null,
-      subtitle: null,
-      additionalCost: undefined as any,
-      additionalReason: "",
-      status: admin ? "Assigned" : "Started",
+      user: {
+        id: params.userId,
+      },
+      // projectId: null,
+      // title: "",
+      // description: "",
+      // homeId: null,
+      // subtitle: null,
+      // additionalCost: undefined as any,
+      // additionalReason: "",
+      // status: admin ? "Assigned" : "Started",
+      // adminMode: admin,
     },
   });
 

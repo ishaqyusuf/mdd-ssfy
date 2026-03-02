@@ -392,7 +392,7 @@ export const communityRouters = createTRPCRouter({
     const { ctx, input } = props;
     return ctx.db.$transaction(async (db) => {
       const { unit, user, job: jobInput } = input;
-        const isContractorCreator = !!props?.input?.user?.id;
+      const isContractorCreator = !!props?.input?.user?.id;
       let jobId = jobInput.id;
       const isCreatingJob = !jobId;
       if (!jobInput.meta) jobInput.meta = {};
@@ -408,71 +408,102 @@ export const communityRouters = createTRPCRouter({
       }
       // job.meta.addon = percentageValue(job.meta.)
       const totalTaskCost = +(
-        jobInput.tasks?.reduce((acc, t) => acc + (t.rate || 0) * (t.qty || 0), 0) ||
-        0
+        jobInput.tasks?.reduce(
+          (acc, t) => acc + (t.rate || 0) * (t.qty || 0),
+          0,
+        ) || 0
       ).toFixed(2);
       jobInput.amount = sum([
         totalTaskCost,
         jobInput.meta.addon,
         jobInput.meta.additional_cost,
       ]);
-      let job : Prisma.JobsGetPayload<{
-select: {
-  user: {
-    select: {
-      id:true,
-      name:true
-    }
-  }
-}
-      }> = null as any
+      const select = {
+        project: {
+          select: {
+            title: true,
+            builder: {
+              select: { name: true },
+            },
+          },
+        },
+        home: { select: { modelName: true } },
+        user: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      } satisfies Prisma.JobsSelect;
+      let job: Prisma.JobsGetPayload<{
+        select: {
+          id: true;
+          project: {
+            select: {
+              title: true;
+              builder: {
+                select: { name: true };
+              };
+            };
+          };
+          home: { select: { modelName: true } };
+          user: {
+            select: {
+              id: true;
+              name: true;
+            };
+          };
+        };
+      }> = null as any;
       if (jobId) {
-        job = await db.jobs.update({
+        job = (await db.jobs.update({
           where: {
             id: jobId,
           },
           data: {
-            amount: job.amount,
-            adminNote: job.adminNote,
-            isCustom: job.isCustom,
-            title: job.title,
-            subtitle: job.subtitle,
-            description: job.description,
+            amount: jobInput.amount,
+            adminNote: jobInput.adminNote,
+            isCustom: jobInput.isCustom,
+            title: jobInput.title,
+            subtitle: jobInput.subtitle,
+            description: jobInput.description,
             // type: job.type,
-            meta: job.meta as any,
+            meta: jobInput.meta as any,
             user: user?.id ? { connect: { id: user.id } } : undefined,
           },
-          select: {
-            id: true,
-          }
-        });
+          select,
+        })) as any;
       } else {
-        const newJob = await db.jobs.create({
+        job = (await db.jobs.create({
           data: {
-            amount: job.amount,
-            description: job.description,
-            adminNote: job.adminNote,
-            isCustom: job.isCustom,
-            title: job.title,
-            subtitle: job.subtitle,
+            amount: jobInput.amount,
+            description: jobInput.description,
+            adminNote: jobInput.adminNote,
+            isCustom: jobInput.isCustom,
+            title: jobInput.title,
+            subtitle: jobInput.subtitle,
             // type: job.type,
-            user: { connect: { id: user!.id || props.ctx.userId } } ,
+            user: { connect: { id: user!.id || props.ctx.userId } },
             home: unit?.id ? { connect: { id: unit.id } } : undefined,
-            meta: job.meta as any,
-            status: job.status!,
+            meta: jobInput.meta as any,
+            status: jobInput.status!,
             builderTask: input?.builderTaskId
               ? { connect: { id: input.builderTaskId } }
               : undefined,
           },
-        });
-        jobId = newJob.id;
+          select: {
+            ...select,
+          },
+        })) as any;
+        jobId = job?.id;
       }
-      if (job.id) {
+
+      if (jobInput.id) {
         await db.jobInstallTasks.updateMany({
           where: {
-            jobId: job.id,
+            jobId: jobInput.id,
             id: {
-              notIn: job.tasks?.map((t) => t.id!).filter(Boolean) || [],
+              notIn: jobInput.tasks?.map((t) => t.id!).filter(Boolean) || [],
             },
           },
           data: {
@@ -481,7 +512,7 @@ select: {
         });
       }
       await Promise.all([
-        ...(job.tasks || [])
+        ...(jobInput.tasks || [])
           .filter((t) => !!t.id)
           .map(async (task) => {
             return db.jobInstallTasks.update({
@@ -495,7 +526,7 @@ select: {
             });
           }),
         db.jobInstallTasks.createMany({
-          data: (job.tasks || [])
+          data: (jobInput.tasks || [])
             .filter((t) => !t.id)
             .map((task) => ({
               jobId: jobId!,
@@ -509,54 +540,31 @@ select: {
             })),
         }),
       ]);
-
-
       if (isCreatingJob) {
-        
-
-        // if (actor) {
-          // const roleName = actor.roles?.[0]?.role?.name?.toLowerCase() || "";
-          // const isContractorCreator = roleName.includes("contractor");
-        
-
-          const notification = new NotificationService(tasks, ctx);
-          if (user?.id != null) {
-            notification.setEmployeeRecipients(user.id);
-          }
-
-          const channel = input.requestTaskConfig
-            ? "job_task_configure_request"
-            : isContractorCreator
-              ? "job_submitted"
-              : "job_assigned";
-          if (channel === "job_assigned") {
-            await notification.channel.jobAssigned({
-              jobId: jobId!,
-              assignedToId: user?.id ?? actor.id,
-              assignedToName: user?.id ? undefined : actor.name || undefined,
-              author: {
-                id: actor.id,
-                role: "employee",
-              },
-            });
-          } else if (channel === "job_submitted") {
-            await notification.channel.jobSubmitted({
-              jobId: jobId!,
-            });
-          } else {
-            await notification.channel.jobTaskConfigureRequest({
-              contractorId:  job?.ass
-              modelName: unit?.modelName || "",
-              projectName: unit?.project?.title || "",
-              builderName: unit?.project?.builder?.name || "",
-            });
-          }
+        const notification = new NotificationService(tasks, ctx);
+        if (user?.id != null) {
+          notification.setEmployeeRecipients(user.id);
         }
-      // }
 
-      return {
-        id: jobId,
-      };
+        if (input.requestTaskConfig)
+          await notification.channel.jobTaskConfigureRequest({
+            contractorId: job?.user?.id,
+            modelName: job?.home?.modelName || "",
+            projectName: job?.project?.title || "",
+            builderName: job?.project?.builder?.name || "",
+          });
+        else if (isContractorCreator)
+          await notification.channel.jobSubmitted({
+            jobId: jobId!,
+          });
+        else
+          await notification.channel.jobAssigned({
+            jobId: jobId!,
+            assignedToId: job?.user?.id,
+            assignedToName: job?.user?.name,
+          });
+      }
+      return job;
     });
   }),
   getInstallCostRatesSuggestions: publicProcedure

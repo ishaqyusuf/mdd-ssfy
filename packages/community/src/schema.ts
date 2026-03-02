@@ -85,6 +85,7 @@ export const jobFormShema = z
         .optional()
         .nullable(),
     }),
+    adminMode: z.boolean().optional().default(false),
   })
   .superRefine((data, ctx) => {
     if (data.job.isCustom) {
