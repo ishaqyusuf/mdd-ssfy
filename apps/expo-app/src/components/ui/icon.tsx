@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import type { LucideIcon, LucideProps } from "lucide-react-native";
+import type { LucideProps } from "lucide-react-native";
 import {
   Activity,
   AlertCircle,
@@ -97,6 +97,15 @@ export type IconProps = LucideProps & {
   // absoluteStrokeWidth?: boolean;
 };
 // type T = IconProps['strokeWidth']
+const iconSizes = {
+  sm: 16,
+  base: 20,
+  md: 24,
+  lg: 28,
+  xl: 32,
+  "2xl": 40,
+};
+// type T = IconProps['strokeWidth']
 function IconImpl({ name, ...props }: IconProps) {
   let IconComponent;
   const { colorScheme } = useColorScheme();
@@ -116,11 +125,16 @@ function IconImpl({ name, ...props }: IconProps) {
     color: _themColor || color,
   };
 
-  props.size =
-    +props?.className
-      ?.split(" ")
-      ?.find((a) => a.startsWith("size-"))
-      ?.split("-")?.[1]! || props.size;
+  let sizestr = props?.className
+    ?.split(" ")
+    ?.find((a) => a.startsWith("size-"))
+    ?.split("-")?.[1]!;
+  if (sizestr?.startsWith("[")) {
+    sizestr = sizestr.replace(/[\[\]px]/g, "");
+  }
+  sizestr = iconSizes[sizestr] || sizestr || iconSizes?.base;
+
+  props.size = +sizestr || props.size;
   if (!IconComponent) IconComponent = appIcons![name!] || appIcons.X;
   const otherClasses = props.className
     ?.split(" ")
@@ -137,7 +151,8 @@ function IconImpl({ name, ...props }: IconProps) {
 function Icon({
   // as: IconComponent,
   className,
-  size = 14,
+  size = "size-base",
+
   ...props
 }: IconProps) {
   return (

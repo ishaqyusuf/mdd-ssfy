@@ -3,6 +3,7 @@ import { Pressable, Text, View } from "react-native";
 import { formatDate } from "@gnd/utils/dayjs";
 import { DispatchStatusBadge } from "./dispatch-status-badge";
 import { Icon } from "@/components/ui/icon";
+import { ProgressBar } from "@/components/ui/progress-bar";
 
 type Props = {
   item: DispatchListItem;
@@ -94,12 +95,13 @@ export function DispatchListItemCard({ item, onPress }: Props) {
               Packing Progress
             </Text>
           </View>
-          <View className="flex-row items-center justify-between">
-            <Text className="text-sm text-muted-foreground">Packed</Text>
-            <Text className="text-base font-bold text-foreground">
-              {getPackPercentage(item)}%
-            </Text>
-          </View>
+          <ProgressBar
+            label="Packed"
+            info="Packed"
+            value={Math.max(0, Math.min(100, getPackPercentage(item)))}
+            max={100}
+            size="sm"
+          />
         </View>
       </View>
 

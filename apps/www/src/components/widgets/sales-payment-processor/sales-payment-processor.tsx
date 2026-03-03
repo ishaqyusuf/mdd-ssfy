@@ -45,6 +45,7 @@ import z from "zod";
 import { sendSalesEmail } from "@gnd/sales/utils/email";
 import { useAuth } from "@/hooks/use-auth";
 import { useFieldArray } from "react-hook-form";
+import { newSalesHelper } from "@/lib/sales";
 interface Props {
     selectedIds: number[];
     phoneNo: string;
@@ -174,6 +175,7 @@ function Content(props: Props & { setOpened }) {
         name: "sales",
         keyName: "fieldId",
     });
+    const sh = newSalesHelper();
     const {
         sales: wSales,
         paymentMethod: pm,
@@ -229,24 +231,16 @@ function Content(props: Props & { setOpened }) {
                     // await sendSalesEmail();
                 }
                 if (print)
-                    (async () => {
-                        const tok = await generateToken({
-                            salesIds: form.getValues("sales").map((s) => s.id),
-                            expiry: addDays(new Date(), 7).toISOString(),
-                            mode: "order" as SalesPrintModes,
-
-                            // mode: props.type
-                        } satisfies SalesPdfToken);
-                        openLink(
-                            `api/download/sales`,
-                            {
-                                token: tok,
-                                preview: true,
-                            },
-                            true,
-                        );
+                    sh.generateTokenSalesIds(
+                        form
+                            .getValues("sales")
+                            ?.filter((a) => a.selected)
+                            .map((s) => s.id),
+                        "order-packing",
+                    ).then((r) => {
+                        sh.openPrintLink();
                         props.setOpened(false);
-                    })();
+                    });
                 else props.setOpened(false);
 
                 break;

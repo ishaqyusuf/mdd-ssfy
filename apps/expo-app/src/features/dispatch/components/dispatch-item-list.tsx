@@ -1,5 +1,6 @@
 import { DispatchOverviewItem, QtyMatrix } from "../types/dispatch.types";
 import { Icon } from "@/components/ui/icon";
+import { ProgressBar } from "@/components/ui/progress-bar";
 import { Pressable, Text, View } from "react-native";
 
 type Props = {
@@ -33,21 +34,12 @@ function getPackedProgress(item: DispatchOverviewItem) {
       ? asNumber(packed?.qty)
       : asNumber(packed?.lh) + asNumber(packed?.rh);
 
-  const rawPercent =
-    targetTotal <= 0
-      ? 0
-      : Math.min(100, Math.max(0, (packedTotal / targetTotal) * 100));
-  const visualPercent = rawPercent === 0 ? 15 : rawPercent;
-
-  let colorClass = "bg-red-500";
-  if (rawPercent >= 80) colorClass = "bg-green-500";
-  else if (rawPercent >= 50) colorClass = "bg-blue-500";
-  else if (rawPercent >= 25) colorClass = "bg-yellow-500";
+  const rawPercent = targetTotal <= 0 ? 0 : Math.min(100, Math.max(0, (packedTotal / targetTotal) * 100));
 
   return {
     rawPercent,
-    visualPercent,
-    colorClass,
+    packedTotal,
+    targetTotal,
   };
 }
 
@@ -86,23 +78,17 @@ export function DispatchItemList({ items, onSelectItem }: Props) {
             </View>
 
             <View className="mt-3 rounded-xl border border-border bg-background px-3 py-2">
-              <View className="flex-row items-center justify-between">
-                <Text className="text-xs text-muted-foreground">
-                  Packed / Target
-                </Text>
-                <Text className="text-sm font-semibold text-foreground">
-                  {qtyPattern(item)}
-                </Text>
-              </View>
-              <View className="mt-2 h-2 overflow-hidden rounded-full bg-secondary">
-                <View style={{ width: `${progress.visualPercent}%` }}>
-                  <View className={`h-2 rounded-full ${progress.colorClass}`} />
-                </View>
-              </View>
-              <View className="mt-1 flex-row justify-end">
-                <Text className="text-xs text-muted-foreground">
-                  {`${Math.round(progress.rawPercent)}%`}
-                </Text>
+              <ProgressBar
+                label="Packing Progress"
+                info="Packed"
+                value={progress.packedTotal}
+                max={progress.targetTotal}
+                size="sm"
+                valueClassName="text-xs font-semibold text-foreground"
+              />
+              <View className="mt-1 flex-row items-center justify-between">
+                <Text className="text-xs text-muted-foreground">{qtyPattern(item)}</Text>
+                <Text className="text-xs text-muted-foreground">{`${Math.round(progress.rawPercent)}%`}</Text>
               </View>
             </View>
 
