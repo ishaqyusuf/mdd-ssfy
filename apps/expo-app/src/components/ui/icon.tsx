@@ -15,6 +15,7 @@ import {
   Calendar,
   CalendarCheck,
   Camera,
+  ChartNoAxesColumn,
   Check,
   CheckCircle2,
   CheckSquare,
@@ -73,6 +74,7 @@ import {
   TrendingDown,
   TrendingUp,
   TriangleAlert,
+  Truck,
   User,
   UserCog,
   UserPlus,
@@ -247,6 +249,8 @@ const appIcons = {
   X,
   XCircle,
   Zap,
+  ChartNoAxesColumn,
+  Truck,
 };
 export type IconKeys = keyof typeof appIcons;
 export { Icon };

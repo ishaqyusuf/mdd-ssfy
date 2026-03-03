@@ -117,7 +117,7 @@ export function useDispatchActions() {
       });
     },
     canStart(status?: DispatchStatus | null) {
-      return status === "queue";
+      return status === "queue" || status === "cancelled";
     },
     canCancel(status?: DispatchStatus | null) {
       return status === "in progress";

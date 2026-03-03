@@ -1219,3 +1219,51 @@ Replace "Example" with your page or model domain, e.g.:
 6. Maintain clean and domain-specific naming using Example* as the base pattern.
 7. Keep the summary card API consistent across all pages.
 
+---
+
+## 🔟 Expo Modal Standard (Bottom Sheet Required)
+
+For Expo mobile modal/sheet UX, use the shared component:
+- `@/components/ui/modal`
+
+Do not use React Native `Modal` directly for feature sheets unless explicitly requested.
+
+### Required Pattern
+
+```tsx
+import { Modal, useModal } from "@/components/ui/modal";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+
+const { ref, present, dismiss } = useModal();
+
+useEffect(() => {
+  if (open) present();
+  else dismiss();
+}, [open, present, dismiss]);
+
+<Modal
+  ref={ref}
+  title="Sheet Title"
+  snapPoints={["70%"]}
+  onDismiss={() => setOpen(false)}
+>
+  <BottomSheetScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+    {/* content */}
+  </BottomSheetScrollView>
+</Modal>
+```
+
+### Rules
+
+1. Use `useModal()` for state-driven open/close (`present`, `dismiss`, `ref`).
+2. Use `snapPoints` explicitly; do not rely on implicit sizing for feature sheets.
+3. Bind `onDismiss` to feature state cleanup (e.g., clear selected item).
+4. Prefer `BottomSheetScrollView` for long modal content.
+5. Keep modal content behavior-only; do not duplicate navigation state logic inside modal internals.
+6. Expo Pressable interaction rule: **never use `active:scale-*` classes** (runtime transform errors on native). Use `active:opacity-*`, color/border state changes, or controlled Reanimated transforms instead.
+
+### Prohibited
+
+- Using RN `Modal` for core feature sheets that already have bottom-sheet UX.
+- Manual backdrop implementations when `@/components/ui/modal` is available.
+- Using `active:scale-*` Tailwind classes in Expo Pressable components.

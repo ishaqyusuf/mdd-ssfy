@@ -6,8 +6,16 @@ import { useMemo } from "react";
 type AssignedDispatchFilter = RouterInputs["dispatch"]["assignedDispatch"];
 
 export function useAssignedDispatchList(filter?: AssignedDispatchFilter) {
+  const normalizedFilter = useMemo(
+    () => ({
+      size: 20,
+      ...(filter || {}),
+    }),
+    [filter],
+  );
+
   const query = useInfiniteQuery(
-    _trpc.dispatch.assignedDispatch.infiniteQueryOptions(filter ?? {}, {
+    _trpc.dispatch.assignedDispatch.infiniteQueryOptions(normalizedFilter, {
       getNextPageParam: (lastPage) => lastPage?.meta?.cursor,
     }),
   );

@@ -108,18 +108,19 @@ Before coding, this checklist explains the implementation order and exact touchp
   - `ai/designs/dispatch-mobile/designs.html`
   - `ai/stitch-rules-1.2.311225.md`
 - [ ] Update dispatch list screen visuals to Stitch direction:
+- [x] Update dispatch list screen visuals to Stitch direction:
   - sticky-style top header hierarchy
   - stronger card rhythm and spacing
   - elevated status badge treatments and action affordances
-- [ ] Update dispatch detail visuals to Stitch direction:
+- [x] Update dispatch detail visuals to Stitch direction:
   - sectioned cards (customer/location, packing list, history, summary)
   - clearer activity history style
   - stronger delivery summary block hierarchy
-- [ ] Update complete-dispatch form visuals to Stitch direction:
+- [x] Update complete-dispatch form visuals to Stitch direction:
   - polished inputs with icon-led affordances
   - signature/acknowledgement area treatment
   - fixed bottom CTA action area
-- [ ] Enforce stitch styling constraints in touched files:
+- [x] Enforce stitch styling constraints in touched files:
   - no hardcoded layout/surface colors
   - semantic token usage only for theme colors
   - no `style` + `className` on same component

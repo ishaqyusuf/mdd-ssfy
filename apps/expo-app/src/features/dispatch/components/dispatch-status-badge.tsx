@@ -7,14 +7,14 @@ type Props = {
 function getStatusClass(status?: string | null) {
   switch (status) {
     case "completed":
-      return "bg-green-100 border-green-300 text-green-800";
+      return "bg-primary border-primary text-primary-foreground";
     case "in progress":
-      return "bg-blue-100 border-blue-300 text-blue-800";
+      return "bg-secondary border-border text-secondary-foreground";
     case "cancelled":
-      return "bg-red-100 border-red-300 text-red-800";
+      return "bg-destructive border-destructive text-destructive-foreground";
     case "queue":
     default:
-      return "bg-amber-100 border-amber-300 text-amber-800";
+      return "bg-muted border-border text-muted-foreground";
   }
 }
 

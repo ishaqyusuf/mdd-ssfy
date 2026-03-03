@@ -2,6 +2,7 @@ import { DispatchListItem } from "../types/dispatch.types";
 import { Pressable, Text, View } from "react-native";
 import { formatDate } from "@gnd/utils/dayjs";
 import { DispatchStatusBadge } from "./dispatch-status-badge";
+import { Icon } from "@/components/ui/icon";
 
 type Props = {
   item: DispatchListItem;
@@ -29,37 +30,88 @@ export function DispatchListItemCard({ item, onPress }: Props) {
   return (
     <Pressable
       onPress={() => onPress?.(item)}
-      className="mx-4 mb-3 rounded-2xl border border-border bg-card p-4 active:opacity-80"
+      className="mx-4 mb-4 rounded-2xl border border-border bg-card active:opacity-80"
     >
-      <View className="mb-3 flex-row items-center justify-between">
-        <Text className="text-base font-semibold text-foreground">
-          Dispatch #{item.id}
-        </Text>
-        <DispatchStatusBadge status={item.status} />
+      <View className="rounded-t-2xl border-b border-border bg-background px-4 py-3">
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center gap-2">
+            <View className="rounded-full bg-secondary p-2">
+              <Icon name="ClipboardList" className="size-16 text-foreground" />
+            </View>
+            <View>
+              <Text className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Dispatch
+              </Text>
+              <Text className="text-base font-bold text-foreground">
+                #{item.id}
+              </Text>
+            </View>
+          </View>
+          <View className="items-end">
+            <DispatchStatusBadge status={item.status} />
+            <Text className="mt-1 text-[10px] text-muted-foreground">
+              Order {item?.order?.orderId || "-"}
+            </Text>
+          </View>
+        </View>
       </View>
 
-      <View className="gap-1.5">
-        <Text className="text-sm text-muted-foreground">
-          Order: <Text className="font-medium text-foreground">{item?.order?.orderId || "-"}</Text>
-        </Text>
-        <Text className="text-sm text-muted-foreground">
-          Due:{" "}
-          <Text className="font-medium text-foreground">
+      <View className="gap-3 p-4">
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center gap-2 rounded-full bg-secondary px-2 py-1">
+            <Icon name="Calendar" className="size-14 text-muted-foreground" />
+            <Text className="text-xs font-medium text-muted-foreground">
+              Due Date
+            </Text>
+          </View>
+          <Text className="text-sm font-semibold text-foreground">
             {item?.dueDate ? formatDate(item.dueDate) : "No due date"}
           </Text>
-        </Text>
-        <Text className="text-sm text-muted-foreground">
-          Ship To: <Text className="font-medium text-foreground">{getShipTo(item)}</Text>
-        </Text>
-        {!!getPhone(item) && (
-          <Text className="text-sm text-muted-foreground">
-            Phone: <Text className="font-medium text-foreground">{getPhone(item)}</Text>
+        </View>
+
+        <View className="rounded-xl border border-border bg-background p-3">
+          <View className="mb-2 flex-row items-center gap-2">
+            <Icon name="MapPin" className="size-14 text-foreground" />
+            <Text className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Customer & Location
+            </Text>
+          </View>
+          <Text className="text-sm font-semibold text-foreground">
+            {getShipTo(item)}
           </Text>
-        )}
-        <Text className="text-sm text-muted-foreground">
-          Packed:{" "}
-          <Text className="font-medium text-foreground">{getPackPercentage(item)}%</Text>
-        </Text>
+          {!!getPhone(item) && (
+            <View className="mt-2 flex-row items-center gap-2">
+              <Icon name="Phone" className="size-14 text-muted-foreground" />
+              <Text className="text-xs text-muted-foreground">{getPhone(item)}</Text>
+            </View>
+          )}
+        </View>
+
+        <View className="rounded-xl border border-border bg-background p-3">
+          <View className="mb-2 flex-row items-center gap-2">
+            <Icon name="CircleCheck" className="size-14 text-foreground" />
+            <Text className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Packing Progress
+            </Text>
+          </View>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-sm text-muted-foreground">Packed</Text>
+            <Text className="text-base font-bold text-foreground">
+              {getPackPercentage(item)}%
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      <View className="flex-row items-center justify-between rounded-b-2xl border-t border-border bg-background px-4 py-3">
+        <View className="flex-row items-center gap-2">
+          <Icon name="Truck" className="size-14 text-muted-foreground" />
+          <Text className="text-xs text-muted-foreground">View dispatch detail</Text>
+        </View>
+        <View className="flex-row items-center gap-1">
+          <Text className="text-xs font-semibold text-foreground">Open</Text>
+          <Icon name="ChevronRight" className="size-14 text-foreground" />
+        </View>
       </View>
     </Pressable>
   );

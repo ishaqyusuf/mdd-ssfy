@@ -1,6 +1,8 @@
 import { useAssignedDispatchList } from "../api/use-assigned-dispatch-list";
 import { DispatchListItemCard } from "./dispatch-list-item";
 import { useRouter } from "expo-router";
+import { Icon } from "@/components/ui/icon";
+import { useRef } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -21,22 +23,37 @@ export function DispatchListScreen() {
     isFetchingNextPage,
     error,
   } = useAssignedDispatchList({});
+  const canTriggerEndReached = useRef(true);
 
   return (
     <View className="flex-1 bg-background pt-8">
-      <View className="flex-row items-start justify-between px-4 pb-4">
-        <View>
-          <Text className="text-2xl font-bold text-foreground">Dispatches</Text>
-          <Text className="mt-1 text-sm text-muted-foreground">
-            Assigned deliveries for driver workflow.
-          </Text>
+      <View className="mx-4 mb-4 rounded-2xl border border-border bg-card p-4">
+        <View className="flex-row items-start justify-between">
+          <View className="flex-row items-center gap-3">
+            <View className="rounded-full bg-secondary p-2">
+              <Icon name="ClipboardList" className="size-18 text-foreground" />
+            </View>
+            <View>
+              <Text className="text-2xl font-bold text-foreground">Dispatches</Text>
+              <Text className="mt-1 text-sm text-muted-foreground">
+                Assigned deliveries for driver workflow.
+              </Text>
+            </View>
+          </View>
+          <Pressable
+            onPress={() => router.push("/(drivers)/settings" as any)}
+            className="rounded-full border border-border bg-secondary px-3 py-1.5 active:opacity-80"
+          >
+            <View className="flex-row items-center gap-1">
+              <Icon name="Settings" className="size-14 text-foreground" />
+              <Text className="text-xs font-semibold text-foreground">Settings</Text>
+            </View>
+          </Pressable>
         </View>
-        <Pressable
-          onPress={() => router.push("/(drivers)/settings" as any)}
-          className="rounded-full border border-border px-3 py-1.5 active:opacity-80"
-        >
-          <Text className="text-xs font-semibold text-foreground">Settings</Text>
-        </Pressable>
+        <View className="mt-3 flex-row items-center justify-between rounded-xl border border-border bg-background px-3 py-2">
+          <Text className="text-xs text-muted-foreground">Total Assigned</Text>
+          <Text className="text-sm font-semibold text-foreground">{items.length}</Text>
+        </View>
       </View>
 
       {isPending ? (
@@ -59,6 +76,8 @@ export function DispatchListScreen() {
         <FlatList
           data={items}
           keyExtractor={(item) => String(item.id)}
+          initialNumToRender={8}
+          windowSize={8}
           refreshing={isRefetching}
           onRefresh={() => refetch()}
           renderItem={({ item }) => (
@@ -87,9 +106,14 @@ export function DispatchListScreen() {
               </Text>
             </View>
           }
+          onMomentumScrollBegin={() => {
+            canTriggerEndReached.current = true;
+          }}
           onEndReachedThreshold={0.3}
           onEndReached={() => {
+            if (!canTriggerEndReached.current) return;
             if (!hasNextPage || isFetchingNextPage) return;
+            canTriggerEndReached.current = false;
             fetchNextPage();
           }}
           ListFooterComponent={
@@ -97,8 +121,14 @@ export function DispatchListScreen() {
               <View className="py-4">
                 <ActivityIndicator />
               </View>
-            ) : (
+            ) : hasNextPage ? (
               <View className="h-8" />
+            ) : (
+              <View className="items-center py-4">
+                <Text className="text-xs text-muted-foreground">
+                  End of dispatch list
+                </Text>
+              </View>
             )
           }
         />
