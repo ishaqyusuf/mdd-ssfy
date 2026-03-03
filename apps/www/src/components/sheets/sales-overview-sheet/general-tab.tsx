@@ -92,7 +92,7 @@ export function GeneralTab({}) {
     };
 
     const getStatusVariant = (
-        status: string
+        status: string,
     ): "default" | "secondary" | "destructive" | "outline" => {
         switch (status) {
             case "completed":
@@ -136,7 +136,7 @@ export function GeneralTab({}) {
                                                 // href={saleData?.links?.customer}
                                                 onClick={(e) => {
                                                     customerQuery.open(
-                                                        saleData.accountNo
+                                                        saleData.accountNo,
                                                     );
                                                 }}
                                                 className="flex items-center gap-1 text-lg font-medium"
@@ -209,10 +209,10 @@ export function GeneralTab({}) {
                                                         salesFormUrl(
                                                             saleData.type,
                                                             saleData.orderId,
-                                                            saleData.isDyke
+                                                            saleData.isDyke,
                                                         ),
                                                         {},
-                                                        true
+                                                        true,
                                                     );
                                                 }}
                                                 className="flex items-center gap-1 font-medium"
@@ -335,7 +335,7 @@ export function GeneralTab({}) {
                                                 <p className="text-sm font-medium">
                                                     $
                                                     {saleData?.invoice?.paid?.toFixed(
-                                                        2
+                                                        2,
                                                     )}
                                                 </p>
                                             </DataSkeleton>
@@ -354,7 +354,7 @@ export function GeneralTab({}) {
                                                 <p className="text-sm font-medium">
                                                     $
                                                     {saleData.invoice.pending?.toFixed(
-                                                        2
+                                                        2,
                                                     )}
                                                 </p>
                                             </DataSkeleton>
@@ -516,7 +516,7 @@ export function GeneralTab({}) {
                                             <div
                                                 className={`h-2 w-2 rounded-full ${getStatusColor(
                                                     saleData?.status?.assignment
-                                                        ?.color
+                                                        ?.color,
                                                 )}`}
                                             ></div>
                                             <DataSkeleton
@@ -565,7 +565,7 @@ export function GeneralTab({}) {
                                             <div
                                                 className={`h-2 w-2 rounded-full ${getStatusColor(
                                                     saleData?.status?.production
-                                                        ?.color
+                                                        ?.color,
                                                 )}`}
                                             ></div>
                                             <DataSkeleton
@@ -625,7 +625,7 @@ export function GeneralTab({}) {
                                 <div className="flex items-center gap-2">
                                     <div
                                         className={`h-2 w-2 rounded-full ${getStatusColor(
-                                            saleData.status.delivery.color
+                                            saleData.status.delivery.color,
                                         )}`}
                                     ></div>
                                     <DataSkeleton
@@ -634,7 +634,7 @@ export function GeneralTab({}) {
                                     >
                                         <Badge
                                             variant={getStatusVariant(
-                                                saleData.status.delivery.status
+                                                saleData.status.delivery.status,
                                             )}
                                         >
                                             <span className="capitalize">

@@ -27,6 +27,8 @@ export const saveNoteSchema = z.object({
   headline: z.string().describe("The main content of the note"),
   subject: z.string(),
   noteColor: z.string().optional().nullable(),
+  type: z.string().optional(), // e.g. "sales-email", "payment-reminder", etc. Used for categorization/filtering but not required for all notes
+  status: z.string().optional(), // e.g. "sent", "pending", "failed". Useful for tracking state changes in notes related to async processes like email sending
   tags: z.array(
     z.object({
       tagName: z.enum(noteTagNames),
@@ -51,7 +53,17 @@ export async function saveNote(db, data: SaveNoteSchema, authId) {
       },
       tags: {
         createMany: {
-          data: data.tags,
+          data: [
+            ...(data.tags || []),
+            {
+              tagName: "type",
+              tagValue: data.type || "general",
+            },
+            {
+              tagName: "status",
+              tagValue: data.status || "public",
+            },
+          ],
         },
       },
     },
