@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   GestureResponderEvent,
   PanResponder,
@@ -11,6 +11,7 @@ import Svg, { Path } from "react-native-svg";
 import { Icon } from "@/components/ui/icon";
 
 type Props = {
+  defaultReceivedBy?: string;
   isSubmitting?: boolean;
   onCancel: () => void;
   onSubmit: (input: {
@@ -21,11 +22,22 @@ type Props = {
   }) => Promise<void> | void;
 };
 
-export function DispatchCompleteForm({ isSubmitting, onCancel, onSubmit }: Props) {
-  const [receivedBy, setReceivedBy] = useState("");
+export function DispatchCompleteForm({
+  defaultReceivedBy,
+  isSubmitting,
+  onCancel,
+  onSubmit,
+}: Props) {
+  const [receivedBy, setReceivedBy] = useState(defaultReceivedBy || "");
   const [note, setNote] = useState("");
   const [signaturePath, setSignaturePath] = useState("");
   const pathRef = useRef("");
+
+  useEffect(() => {
+    if (!receivedBy && defaultReceivedBy) {
+      setReceivedBy(defaultReceivedBy);
+    }
+  }, [defaultReceivedBy, receivedBy]);
 
   const appendSignaturePoint = (evt: GestureResponderEvent) => {
     const { locationX, locationY } = evt.nativeEvent;
@@ -56,49 +68,52 @@ export function DispatchCompleteForm({ isSubmitting, onCancel, onSubmit }: Props
   const hasSignature = signaturePath.trim().length > 0;
 
   return (
-    <View className="mb-4 rounded-2xl border border-border bg-card p-4">
-      <View className="mb-3 flex-row items-center gap-2">
-        <View className="rounded-full bg-secondary p-2">
-          <Icon name="CheckSquare" className="size-16 text-foreground" />
-        </View>
-        <View>
-          <Text className="text-base font-semibold text-foreground">
-            Complete Dispatch
-          </Text>
-          <Text className="mt-1 text-xs text-muted-foreground">
-            Capture recipient and acknowledgement.
-          </Text>
-        </View>
+    <View className="pb-4">
+      <View className="mb-5">
+        <Text className="text-xl font-bold text-foreground">Complete Dispatch</Text>
+        <Text className="mt-1 text-sm text-muted-foreground">
+          Confirm recipient details and acknowledgement.
+        </Text>
       </View>
 
-      <View className="mt-3 gap-2">
-        <View className="rounded-xl border border-input bg-background px-3 py-2">
-          <View className="flex-row items-center gap-2">
-            <Icon name="User" className="size-14 text-muted-foreground" />
-            <TextInput
-              value={receivedBy}
-              onChangeText={setReceivedBy}
-              editable={!isSubmitting}
-              placeholder="Received By"
-              className="flex-1 text-foreground"
-            />
+      <View className="gap-4">
+        <View>
+          <Text className="mb-2 text-xs font-semibold uppercase tracking-[1px] text-muted-foreground">
+            Recipient
+          </Text>
+          <View className="rounded-xl border border-input bg-background px-3 py-2.5">
+            <View className="flex-row items-center gap-2">
+              <Icon name="User" className="size-14 text-muted-foreground" />
+              <TextInput
+                value={receivedBy}
+                onChangeText={setReceivedBy}
+                editable={!isSubmitting}
+                placeholder="Received By"
+                className="flex-1 text-foreground"
+              />
+            </View>
           </View>
         </View>
 
-        <View className="rounded-xl border border-input bg-background px-3 py-2">
-          <View className="flex-row items-center gap-2">
-            <Icon name="FilePenLine" className="size-14 text-muted-foreground" />
-            <TextInput
-              value={note}
-              onChangeText={setNote}
-              editable={!isSubmitting}
-              placeholder="Note (optional)"
-              className="flex-1 text-foreground"
-            />
+        <View>
+          <Text className="mb-2 text-xs font-semibold uppercase tracking-[1px] text-muted-foreground">
+            Note
+          </Text>
+          <View className="rounded-xl border border-input bg-background px-3 py-2.5">
+            <View className="flex-row items-center gap-2">
+              <Icon name="FilePenLine" className="size-14 text-muted-foreground" />
+              <TextInput
+                value={note}
+                onChangeText={setNote}
+                editable={!isSubmitting}
+                placeholder="Note (optional)"
+                className="flex-1 text-foreground"
+              />
+            </View>
           </View>
         </View>
 
-        <View className="rounded-xl border border-input bg-background p-3">
+        <View className="rounded-xl border border-input bg-background p-3.5">
           <View className="mb-2 flex-row items-center justify-between">
             <View className="flex-row items-center gap-2">
               <Icon name="Pencil" className="size-14 text-muted-foreground" />
@@ -142,11 +157,11 @@ export function DispatchCompleteForm({ isSubmitting, onCancel, onSubmit }: Props
         </View>
       </View>
 
-      <View className="mt-3 flex-row gap-2">
+      <View className="mt-5 flex-row gap-3">
         <Pressable
           disabled={isSubmitting}
           onPress={onCancel}
-          className="flex-1 items-center rounded-full border border-border px-4 py-2 active:opacity-80 disabled:opacity-50"
+          className="h-11 flex-1 items-center justify-center rounded-xl border border-border px-4 active:opacity-80 disabled:opacity-50"
         >
           <Text className="text-sm font-semibold text-foreground">Cancel</Text>
         </Pressable>
@@ -160,10 +175,10 @@ export function DispatchCompleteForm({ isSubmitting, onCancel, onSubmit }: Props
               signature: signaturePath,
             })
           }
-          className="flex-1 items-center rounded-full bg-primary px-4 py-2 active:opacity-80 disabled:opacity-40"
+          className="h-11 flex-1 items-center justify-center rounded-xl bg-primary px-4 active:opacity-80 disabled:opacity-40"
         >
           <Text className="text-sm font-semibold text-primary-foreground">
-            {isSubmitting ? "Submitting..." : "Submit"}
+            {isSubmitting ? "Submitting..." : "Complete Dispatch"}
           </Text>
         </Pressable>
       </View>

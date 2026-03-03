@@ -11,13 +11,14 @@ import { BlurView } from "@/components/blur-view";
 import { Modal as SheetModal, useModal } from "@/components/ui/modal";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
   RefreshControl,
   ScrollView,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -27,10 +28,10 @@ import { DispatchPackingHistory } from "./dispatch-packing-history";
 type Props = {
   dispatchId: number;
   salesNo?: string;
+  openCompleteOnMount?: boolean;
 };
 
 type PackingDraft = {
-  checked: boolean;
   qty: number;
   lh: number;
   rh: number;
@@ -44,7 +45,11 @@ function itemHasSingleQty(item: any) {
   return asNumber(item?.deliverableQty?.qty) > 0;
 }
 
-export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
+export function DispatchDetailScreen({
+  dispatchId,
+  salesNo,
+  openCompleteOnMount,
+}: Props) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const ui = useDispatchUiState();
@@ -70,6 +75,13 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
   );
   const canEditPacking = packing.canEditPacking(dispatch?.status as any);
   const [isPackingSlipOpen, setPackingSlipOpen] = useState(false);
+  const [isDispatchConfirmOpen, setDispatchConfirmOpen] = useState(false);
+  const [isStartTripConfirmOpen, setStartTripConfirmOpen] = useState(false);
+  const [isIssueReportOpen, setIssueReportOpen] = useState(false);
+  const [selectedIssueReason, setSelectedIssueReason] = useState<string | null>(
+    null,
+  );
+  const [issueDetails, setIssueDetails] = useState("");
   const [packingDrafts, setPackingDrafts] = useState<
     Record<string, PackingDraft>
   >({});
@@ -83,21 +95,16 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
     dismiss: dismissPackingModal,
   } = useModal();
   const {
-    ref: completeModalRef,
-    present: presentCompleteModal,
-    dismiss: dismissCompleteModal,
-  } = useModal();
-  const {
     ref: packAllModalRef,
     present: presentPackAllModal,
     dismiss: dismissPackAllModal,
   } = useModal();
   const packingSnapPoints = useMemo(() => ["70%"], []);
-  const completeSnapPoints = useMemo(() => ["85%"], []);
   const packAllSnapPoints = useMemo(() => ["88%"], []);
   const [confirmPackAllChecked, setConfirmPackAllChecked] = useState(false);
   const [packOnlyAvailableChecked, setPackOnlyAvailableChecked] =
     useState(true);
+  const hasAutoOpenedCompleteRef = useRef(false);
 
   useEffect(() => {
     if (selectedItem) {
@@ -120,7 +127,6 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
           return [
             item.uid,
             {
-              checked: hasSingle ? qty > 0 : lh + rh > 0,
               qty,
               lh,
               rh,
@@ -132,12 +138,17 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
   }, [isPackingSlipOpen, items]);
 
   useEffect(() => {
-    if (ui.isCompleteSheetOpen) {
-      presentCompleteModal();
-    } else {
-      dismissCompleteModal();
+    if (!isPackingSlipOpen) {
+      setDispatchConfirmOpen(false);
     }
-  }, [ui.isCompleteSheetOpen, presentCompleteModal, dismissCompleteModal]);
+  }, [isPackingSlipOpen]);
+
+  useEffect(() => {
+    if (!openCompleteOnMount || hasAutoOpenedCompleteRef.current) return;
+    if (!dispatch?.id || !order?.id) return;
+    hasAutoOpenedCompleteRef.current = true;
+    ui.setCompleteSheetOpen(true);
+  }, [openCompleteOnMount, dispatch?.id, order?.id, ui]);
 
   const pageTitle = useMemo(() => {
     return `#DISP-${dispatch?.id || dispatchId}`;
@@ -200,6 +211,42 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
     ];
   }, [activityHistory, order?.date]);
 
+  const issueReasons = useMemo(
+    () => [
+      {
+        key: "wrong_address",
+        title: "Wrong Address",
+        subtitle: "The GPS location is incorrect",
+        icon: "MapPin",
+      },
+      {
+        key: "customer_not_home",
+        title: "Customer Not Home",
+        subtitle: "No answer at door or phone",
+        icon: "User",
+      },
+      {
+        key: "damaged_items",
+        title: "Damaged Items",
+        subtitle: "Package is broken or leaking",
+        icon: "HardHat",
+      },
+      {
+        key: "access_issue",
+        title: "Access Issue",
+        subtitle: "Gate code required or road closed",
+        icon: "Lock",
+      },
+      {
+        key: "other",
+        title: "Other",
+        subtitle: "Something else went wrong",
+        icon: "more",
+      },
+    ],
+    [],
+  );
+
   const onPrimaryStatusAction = async () => {
     if (!order?.id || !dispatch?.id) return;
     if (canStart) {
@@ -236,11 +283,28 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
       });
       return;
     }
+    setIssueReportOpen(true);
+  };
+
+  const onSubmitIssueReport = async () => {
+    if (!order?.id || !dispatch?.id || !canCancel) {
+      Toast.show("Issue reporting is unavailable at this dispatch stage.", {
+        type: "warning",
+      });
+      return;
+    }
+    if (!selectedIssueReason) {
+      Toast.show("Select an issue reason to continue.", { type: "warning" });
+      return;
+    }
     try {
       await actions.onCancelDispatch({
         salesId: order.id,
         dispatchId: dispatch.id,
       });
+      setIssueReportOpen(false);
+      setSelectedIssueReason(null);
+      setIssueDetails("");
       Toast.show("Dispatch marked with issue and cancelled", {
         type: "success",
       });
@@ -254,7 +318,7 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
     updater: (prev: PackingDraft) => PackingDraft,
   ) => {
     setPackingDrafts((prev) => {
-      const base = prev[uid] || { checked: false, qty: 0, lh: 0, rh: 0 };
+      const base = prev[uid] || { qty: 0, lh: 0, rh: 0 };
       return {
         ...prev,
         [uid]: updater(base),
@@ -265,7 +329,7 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
   const adjustSingle = (uid: string, max: number, diff: number) => {
     updateDraft(uid, (prev) => {
       const nextQty = Math.max(0, Math.min(max, prev.qty + diff));
-      return { ...prev, qty: nextQty, checked: nextQty > 0 };
+      return { ...prev, qty: nextQty };
     });
   };
 
@@ -277,11 +341,7 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
   ) => {
     updateDraft(uid, (prev) => {
       const next = Math.max(0, Math.min(max, (prev[side] || 0) + diff));
-      const nextState = { ...prev, [side]: next };
-      return {
-        ...nextState,
-        checked: (nextState.lh || 0) + (nextState.rh || 0) > 0,
-      };
+      return { ...prev, [side]: next };
     });
   };
 
@@ -289,15 +349,50 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
     return packableItems.filter((item) => {
       const d = packingDrafts[item.uid];
       if (!d) return false;
-      return d.checked && (d.qty > 0 || d.lh > 0 || d.rh > 0);
+      return d.qty > 0 || d.lh > 0 || d.rh > 0;
     }).length;
   }, [packableItems, packingDrafts]);
+
+  const packingConfirmItems = useMemo(() => {
+    return packableItems.map((item) => {
+      const draft = packingDrafts[item.uid] || { qty: 0, lh: 0, rh: 0 };
+      const hasSingle = itemHasSingleQty(item);
+      const packedTotal = hasSingle ? draft.qty : draft.lh + draft.rh;
+      const isVerified = packedTotal > 0;
+      return {
+        uid: item.uid,
+        title: item.title,
+        isVerified,
+        icon: isVerified
+          ? hasSingle
+            ? "HardHat"
+            : "ClipboardList"
+          : "AlertCircle",
+        subtitle: hasSingle
+          ? isVerified
+            ? `${draft.qty} units`
+            : "Skipped from this shipment"
+          : isVerified
+            ? `${draft.lh} LH, ${draft.rh} RH`
+            : "Skipped from this shipment",
+      };
+    });
+  }, [packableItems, packingDrafts]);
+
+  const verifiedPackingCount = useMemo(
+    () => packingConfirmItems.filter((item) => item.isVerified).length,
+    [packingConfirmItems],
+  );
+
+  const verificationPercent = useMemo(() => {
+    if (!packingConfirmItems.length) return 0;
+    return Math.round((verifiedPackingCount / packingConfirmItems.length) * 100);
+  }, [packingConfirmItems.length, verifiedPackingCount]);
 
   const productionPackAllItems = useMemo(() => {
     return packableItems
       .map((item) => {
         const d = packingDrafts[item.uid] || {
-          checked: false,
           qty: 0,
           lh: 0,
           rh: 0,
@@ -360,31 +455,18 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
 
   const onPackAllDraft = () => {
     const packOnlyAvailable = packOnlyAvailableChecked;
-    setPackingDrafts((prev) =>
+    setPackingDrafts(() =>
       Object.fromEntries(
         packableItems.map((item) => {
           const deliverable = (item.deliverableQty || {}) as any;
-          const pendingSource = (item.nonDeliverableQty || {}) as any;
           const hasSingle = itemHasSingleQty(item);
-          const hasAvailable = hasSingle
-            ? asNumber(deliverable.qty) > 0
-            : asNumber(deliverable.lh) + asNumber(deliverable.rh) > 0;
-          const hasPendingProduction = hasSingle
-            ? asNumber(pendingSource.qty) > 0
-            : asNumber(pendingSource.lh) + asNumber(pendingSource.rh) > 0;
           const next: PackingDraft = hasSingle
             ? {
-                checked: packOnlyAvailable
-                  ? hasAvailable
-                  : hasAvailable || hasPendingProduction,
                 qty: asNumber(deliverable.qty),
                 lh: 0,
                 rh: 0,
               }
             : {
-                checked: packOnlyAvailable
-                  ? hasAvailable
-                  : hasAvailable || hasPendingProduction,
                 qty: 0,
                 lh: asNumber(deliverable.lh),
                 rh: asNumber(deliverable.rh),
@@ -406,12 +488,12 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
     );
   };
 
-  const onConfirmPackingSlip = async () => {
+  const savePackingSlip = async (opts?: { closeSlip?: boolean }) => {
+    const closeSlip = opts?.closeSlip ?? true;
     if (!order?.id || !dispatch?.id) return;
     try {
       const changes = packableItems.map((item) => {
         const draft = packingDrafts[item.uid] || {
-          checked: false,
           qty: 0,
           lh: 0,
           rh: 0,
@@ -448,7 +530,6 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
 
       for (const entry of changes) {
         const { item, draft, delta } = entry;
-        if (!draft.checked) continue;
         const hasSingle = itemHasSingleQty(item);
         const entered = hasDecrease
           ? hasSingle
@@ -478,12 +559,49 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
       }
 
       await overview.refetch();
-      setPackingSlipOpen(false);
+      if (closeSlip) {
+        setPackingSlipOpen(false);
+      }
       Toast.show("Packing slip updated", { type: "success" });
+      return true;
     } catch {
       Toast.show("Unable to update packing slip", { type: "error" });
+      return false;
     }
   };
+
+  const onSavePackingDraft = async () => {
+    const saved = await savePackingSlip({ closeSlip: false });
+    if (saved) setDispatchConfirmOpen(false);
+  };
+
+  const onConfirmDispatchAfterPacking = async () => {
+    const saved = await savePackingSlip({ closeSlip: true });
+    if (!saved) return;
+    setDispatchConfirmOpen(false);
+    setStartTripConfirmOpen(true);
+    Toast.show("Dispatch confirmed.", { type: "success" });
+  };
+
+  const onStartTripFromConfirm = async () => {
+    if (!order?.id || !dispatch?.id) return;
+    if (!canStart) {
+      setStartTripConfirmOpen(false);
+      Toast.show("Trip already started.", { type: "success" });
+      return;
+    }
+    try {
+      await actions.onStartDispatch({
+        salesId: order.id,
+        dispatchId: dispatch.id,
+      });
+      setStartTripConfirmOpen(false);
+      Toast.show("Trip started", { type: "success" });
+    } catch {
+      Toast.show("Unable to start trip", { type: "error" });
+    }
+  };
+  const canStartTripFromConfirm = progressPacked > 0;
 
   if (overview.isPending) {
     return (
@@ -855,7 +973,6 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
 
             {packableItems.map((item) => {
               const draft = packingDrafts[item.uid] || {
-                checked: false,
                 qty: 0,
                 lh: 0,
                 rh: 0,
@@ -872,29 +989,6 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
                   className="mb-4 rounded-2xl border border-border bg-card p-4"
                 >
                   <View className="mb-3 flex-row items-start gap-3">
-                    <Pressable
-                      onPress={() =>
-                        updateDraft(item.uid, (prev) => {
-                          const checked = !prev.checked;
-                          return checked
-                            ? { ...prev, checked: true }
-                            : { ...prev, checked: false, qty: 0, lh: 0, rh: 0 };
-                        })
-                      }
-                      className={`mt-0.5 h-5 w-5 items-center justify-center rounded-md border ${
-                        draft.checked
-                          ? "border-primary bg-primary"
-                          : "border-border bg-background"
-                      }`}
-                    >
-                      {draft.checked ? (
-                        <Icon
-                          name="Check"
-                          className="text-primary-foreground"
-                          size={13}
-                        />
-                      ) : null}
-                    </Pressable>
                     <View className="flex-1">
                       <Text className="text-base font-semibold leading-tight text-foreground">
                         {item.title}
@@ -911,11 +1005,8 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
                         <Text className="text-sm font-medium text-muted-foreground">
                           Packed Qty
                         </Text>
-                        <View
-                          className={`flex-row items-center gap-3 ${!draft.checked ? "opacity-40" : ""}`}
-                        >
+                        <View className="flex-row items-center gap-3">
                           <Pressable
-                            disabled={!draft.checked}
                             onPress={() => adjustSingle(item.uid, maxQty, -1)}
                             className="h-9 w-9 items-center justify-center rounded-full border border-border bg-card"
                           >
@@ -929,7 +1020,6 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
                             {draft.qty}
                           </Text>
                           <Pressable
-                            disabled={!draft.checked}
                             onPress={() => adjustSingle(item.uid, maxQty, 1)}
                             className="h-9 w-9 items-center justify-center rounded-full bg-primary"
                           >
@@ -944,15 +1034,12 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
                     </View>
                   ) : (
                     <View className="mt-1 flex-row gap-3">
-                      <View
-                        className={`flex-1 rounded-xl bg-muted/70 p-3 ${!draft.checked ? "opacity-40" : ""}`}
-                      >
+                      <View className="flex-1 rounded-xl bg-muted/70 p-3">
                         <Text className="text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
                           LH Qty
                         </Text>
                         <View className="mt-2 flex-row items-center justify-between">
                           <Pressable
-                            disabled={!draft.checked}
                             onPress={() =>
                               adjustSide(item.uid, "lh", maxLh, -1)
                             }
@@ -968,7 +1055,6 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
                             {draft.lh}
                           </Text>
                           <Pressable
-                            disabled={!draft.checked}
                             onPress={() => adjustSide(item.uid, "lh", maxLh, 1)}
                             className="h-8 w-8 items-center justify-center rounded-full border border-border bg-card"
                           >
@@ -980,15 +1066,12 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
                           </Pressable>
                         </View>
                       </View>
-                      <View
-                        className={`flex-1 rounded-xl bg-muted/70 p-3 ${!draft.checked ? "opacity-40" : ""}`}
-                      >
+                      <View className="flex-1 rounded-xl bg-muted/70 p-3">
                         <Text className="text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
                           RH Qty
                         </Text>
                         <View className="mt-2 flex-row items-center justify-between">
                           <Pressable
-                            disabled={!draft.checked}
                             onPress={() =>
                               adjustSide(item.uid, "rh", maxRh, -1)
                             }
@@ -1004,7 +1087,6 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
                             {draft.rh}
                           </Text>
                           <Pressable
-                            disabled={!draft.checked}
                             onPress={() => adjustSide(item.uid, "rh", maxRh, 1)}
                             className="h-8 w-8 items-center justify-center rounded-full border border-border bg-card"
                           >
@@ -1041,7 +1123,7 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
               />
               <Pressable
                 disabled={packing.taskTrigger.isPending}
-                onPress={onConfirmPackingSlip}
+                onPress={() => setDispatchConfirmOpen(true)}
                 className="w-full flex-row items-center justify-center gap-2 rounded-xl bg-primary py-4 shadow-lg shadow-primary/25 disabled:opacity-50"
               >
                 <Icon
@@ -1060,35 +1142,435 @@ export function DispatchDetailScreen({ dispatchId, salesNo }: Props) {
         </View>
       ) : null}
 
-      <SheetModal
-        ref={completeModalRef}
-        title="Complete Dispatch"
-        snapPoints={completeSnapPoints}
-        onDismiss={() => ui.setCompleteSheetOpen(false)}
-      >
-        <BottomSheetScrollView
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
-        >
-          <DispatchCompleteForm
-            isSubmitting={actions.submitDispatch.isPending}
-            onCancel={() => ui.setCompleteSheetOpen(false)}
-            onSubmit={async (input) => {
-              if (!order?.id || !dispatch?.id) return;
-              try {
-                await actions.onSubmitDispatch({
-                  salesId: order.id,
-                  dispatchId: dispatch.id,
-                  ...input,
-                });
-                ui.setCompleteSheetOpen(false);
-                Toast.show("Dispatch completed", { type: "success" });
-              } catch {
-                Toast.show("Unable to complete dispatch", { type: "error" });
-              }
-            }}
-          />
-        </BottomSheetScrollView>
-      </SheetModal>
+      {isDispatchConfirmOpen ? (
+        <View className="absolute inset-0 z-50 bg-background">
+          <View
+            className="border-b border-border bg-card/90 px-4 py-3"
+            style={{ paddingTop: insets.top + 8 }}
+          >
+            <View className="flex-row items-center">
+              <Pressable
+                onPress={() => setDispatchConfirmOpen(false)}
+                className="h-10 w-10 items-center justify-center rounded-full active:bg-muted/40"
+              >
+                <Icon name="ArrowLeft" className="text-foreground" size={20} />
+              </Pressable>
+              <View className="flex-1 px-4">
+                <Text className="text-lg font-bold text-foreground">
+                  {order?.orderId ? `Order #${order.orderId}` : pageTitle}
+                </Text>
+                <Text className="text-xs font-medium uppercase tracking-[1.2px] text-muted-foreground">
+                  Dispatch Flow
+                </Text>
+              </View>
+              <Pressable className="h-10 w-10 items-center justify-center rounded-full active:bg-muted/40">
+                <Icon name="more" className="text-foreground" size={20} />
+              </Pressable>
+            </View>
+          </View>
+
+          <ScrollView className="flex-1" contentContainerClassName="pb-28">
+            <View className="px-4 pb-2 pt-6">
+              <Text className="text-2xl font-bold text-foreground">Packing List Details</Text>
+              <Text className="mt-1 text-sm text-muted-foreground">
+                Review and verify items before dispatch
+              </Text>
+            </View>
+
+            <View className="px-4 py-4">
+              <View className="flex-row items-center justify-between rounded-xl border border-primary/15 bg-primary/5 p-4">
+                <View>
+                  <Text className="text-xs font-semibold uppercase tracking-[1.4px] text-primary">
+                    Verification Progress
+                  </Text>
+                  <Text className="mt-1 text-xl font-bold text-foreground">
+                    {verifiedPackingCount} / {packingConfirmItems.length} Items
+                  </Text>
+                </View>
+                <View className="h-12 w-12 items-center justify-center rounded-full border-4 border-primary/20 border-t-primary">
+                  <Text className="text-xs font-bold text-primary">{verificationPercent}%</Text>
+                </View>
+              </View>
+            </View>
+
+            <View className="gap-1 px-2">
+              <View>
+                {packingConfirmItems.map((item) => (
+                  <View
+                    key={item.uid}
+                    className={`min-h-[80px] flex-row items-center gap-4 rounded-xl bg-card px-3 py-3 ${
+                      item.isVerified ? "" : "opacity-75"
+                    }`}
+                  >
+                    <View
+                      className={`h-12 w-12 items-center justify-center rounded-lg ${
+                        item.isVerified ? "bg-primary/10" : "bg-muted"
+                      }`}
+                    >
+                      <Icon
+                        name={item.icon as any}
+                        className={item.isVerified ? "text-primary" : "text-muted-foreground"}
+                        size={20}
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-base font-semibold leading-tight text-foreground">
+                        {item.title}
+                      </Text>
+                      <Text className={`mt-1 text-sm ${item.isVerified ? "text-muted-foreground" : "italic text-muted-foreground"}`}>
+                        {item.subtitle}
+                      </Text>
+                    </View>
+                    <View className="shrink-0">
+                      {item.isVerified ? (
+                        <View className="flex-row items-center gap-1 rounded-full border border-emerald-200 bg-emerald-100 px-3 py-1">
+                          <Icon name="CircleCheck" className="text-emerald-700" size={12} />
+                          <Text className="text-xs font-bold text-emerald-700">Verified</Text>
+                        </View>
+                      ) : (
+                        <View className="rounded-full bg-muted px-3 py-1">
+                          <Text className="text-xs font-bold text-muted-foreground">Pending</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+            <View className="h-24" />
+          </ScrollView>
+
+          <View className="absolute bottom-0 left-0 right-0 border-t border-border bg-card">
+            <View
+              className="px-4 pt-4"
+              style={{ paddingBottom: Math.max(16, insets.bottom + 10) }}
+            >
+              <View className="flex-row gap-3">
+                <Pressable
+                  onPress={onSavePackingDraft}
+                  disabled={packing.taskTrigger.isPending}
+                  className="h-12 flex-1 items-center justify-center rounded-xl bg-muted disabled:opacity-50"
+                >
+                  <Text className="text-sm font-bold text-foreground">
+                    {packing.taskTrigger.isPending ? "Saving..." : "Save Draft"}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={onConfirmDispatchAfterPacking}
+                  disabled={packing.taskTrigger.isPending}
+                  className="h-12 flex-[2] items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/25 disabled:opacity-50"
+                >
+                  <Text className="text-sm font-bold text-primary-foreground">
+                    {packing.taskTrigger.isPending ? "Saving..." : "Confirm Dispatch"}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </View>
+      ) : null}
+
+      {isStartTripConfirmOpen ? (
+        <View className="absolute inset-0 z-[60] bg-background">
+          <View
+            className="sticky top-0 z-10 flex-row items-center justify-between border-b border-border bg-card/95 px-4 py-3"
+            style={{ paddingTop: insets.top + 8 }}
+          >
+            <Pressable
+              onPress={() => setStartTripConfirmOpen(false)}
+              className="h-10 w-10 items-center justify-center rounded-full active:bg-muted"
+            >
+              <Icon name="ArrowLeft" className="text-foreground" size={20} />
+            </Pressable>
+            <Text className="flex-1 pr-10 text-center text-lg font-bold tracking-tight text-foreground">
+              Confirm & Start Trip
+            </Text>
+          </View>
+
+          <ScrollView className="flex-1" contentContainerClassName="pb-28">
+            <View className="p-4">
+              <View className="overflow-hidden rounded-xl border border-border bg-card shadow-sm shadow-black/5">
+                <View className="aspect-video w-full items-center justify-center bg-muted">
+                  <Icon name="Warehouse" className="text-muted-foreground" size={30} />
+                </View>
+                <View className="p-4">
+                  <View className="mb-2 flex-row items-center gap-2.5">
+                    <View className="rounded-md bg-emerald-100 px-2 py-1 dark:bg-emerald-900/30">
+                      <Text className="text-xs font-bold uppercase tracking-[1.1px] text-emerald-700 dark:text-emerald-400">
+                        Packed
+                      </Text>
+                    </View>
+                    <Text className="text-sm font-medium text-muted-foreground">
+                      {order?.orderId ? `Order #${order.orderId}` : pageTitle}
+                    </Text>
+                  </View>
+                  <Text className="mb-2 text-xl font-bold leading-tight text-foreground">
+                    Industrial Equipment Delivery
+                  </Text>
+                  <View className="mb-3 flex-row items-start gap-2.5">
+                    <Icon name="MapPin" className="mt-0.5 text-muted-foreground" size={14} />
+                    <Text className="flex-1 text-sm leading-5 text-muted-foreground">
+                      {addressLine1 || "Address unavailable"}
+                      {addressLine2 ? `, ${addressLine2}` : ""}
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={() => {
+                      setStartTripConfirmOpen(false);
+                      setPackingSlipOpen(false);
+                    }}
+                    className="h-10 items-center justify-center rounded-lg bg-primary/10 active:bg-primary/20"
+                  >
+                    <Text className="text-sm font-semibold text-primary">View Order Details</Text>
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+
+            <View className="px-4 pb-4">
+              <View className="relative h-32 overflow-hidden rounded-xl border border-border bg-muted shadow-sm shadow-black/5">
+                <View className="absolute inset-0 items-center justify-center">
+                  <Icon name="Route" className="text-muted-foreground/60" size={22} />
+                </View>
+                <View className="absolute inset-x-0 bottom-0 h-16 bg-black/25" />
+                <View className="absolute bottom-3 left-4 flex-row items-center gap-2">
+                  <Icon name="Route" className="text-white" size={16} />
+                  <Text className="text-sm font-medium text-white">
+                    Est. Route: 14.5 miles (22 min)
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View className="mt-2 border-t border-border bg-card">
+              <View className="flex-row items-center justify-between px-4 pb-2 pt-4">
+                <Text className="text-lg font-bold tracking-tight text-foreground">
+                  Packing Summary
+                </Text>
+                <Text className="text-xs font-bold uppercase tracking-[1px] text-primary">
+                  Verified
+                </Text>
+              </View>
+              {packingConfirmItems.map((item, index) => (
+                <View
+                  key={item.uid}
+                  className={`flex-row items-center justify-between px-4 py-4 ${
+                    index > 0 ? "border-t border-border/70" : ""
+                  } ${item.isVerified ? "" : "opacity-60"}`}
+                >
+                  <View className="flex-row items-center gap-4">
+                    <View className="h-12 w-12 items-center justify-center rounded-xl bg-muted transition-colors">
+                      <Icon
+                        name={item.icon as any}
+                        className={item.isVerified ? "text-foreground" : "text-muted-foreground"}
+                        size={20}
+                      />
+                    </View>
+                    <View>
+                      <Text
+                        className={`text-base font-semibold leading-tight ${
+                          item.isVerified ? "text-foreground" : "text-muted-foreground line-through"
+                        }`}
+                      >
+                        {item.title}
+                      </Text>
+                      <Text className="text-sm text-muted-foreground">{item.subtitle}</Text>
+                    </View>
+                  </View>
+                  <View className="flex-row items-center gap-1">
+                    <Icon
+                      name={item.isVerified ? "CircleCheck" : "Ban"}
+                      className={item.isVerified ? "text-emerald-600" : "text-muted-foreground"}
+                      size={17}
+                    />
+                    <Text
+                      className={`text-sm font-medium ${
+                        item.isVerified ? "text-emerald-600" : "text-muted-foreground"
+                      }`}
+                    >
+                      {item.isVerified ? "Confirmed" : "Skipped"}
+                    </Text>
+                  </View>
+                </View>
+            ))}
+          </View>
+        </ScrollView>
+
+          <View className="absolute bottom-0 left-0 right-0 border-t border-border bg-card/90 px-4 pt-4">
+            <Pressable
+              onPress={() => {
+                if (canStartTripFromConfirm) {
+                  onStartTripFromConfirm();
+                  return;
+                }
+                setStartTripConfirmOpen(false);
+                setPackingSlipOpen(true);
+              }}
+              disabled={actions.startDispatch.isPending}
+              className="h-14 flex-row items-center justify-center gap-2 rounded-xl bg-primary shadow-lg shadow-primary/25 disabled:opacity-50"
+              style={{ marginBottom: Math.max(12, insets.bottom + 8) }}
+            >
+              <Icon
+                name={canStartTripFromConfirm ? "Truck" : "HardHat"}
+                className="text-primary-foreground"
+                size={20}
+              />
+              <Text className="text-lg font-bold text-primary-foreground">
+                {actions.startDispatch.isPending
+                  ? "Starting..."
+                  : canStartTripFromConfirm
+                    ? "Start Trip"
+                    : "Pack Items"}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+
+      {isIssueReportOpen ? (
+        <View className="absolute inset-0 z-[70] bg-background">
+          <View
+            className="sticky top-0 z-10 border-b border-border bg-background/95"
+            style={{ paddingTop: insets.top + 6 }}
+          >
+            <View className="flex-row items-center gap-3 px-4 py-4">
+              <Pressable
+                onPress={() => setIssueReportOpen(false)}
+                className="h-10 w-10 items-center justify-center rounded-full active:bg-muted"
+              >
+                <Icon name="ArrowLeft" className="text-foreground" size={21} />
+              </Pressable>
+              <Text className="text-xl font-bold text-foreground">Report a Problem</Text>
+            </View>
+          </View>
+
+          <ScrollView className="flex-1 px-4 py-6" contentContainerClassName="pb-28">
+            <View className="mb-6">
+              <Text className="text-sm text-muted-foreground">
+                Order ID:{" "}
+                <Text className="font-semibold text-foreground">
+                  {order?.orderId ? `#${order.orderId}` : pageTitle}
+                </Text>
+              </Text>
+              <Text className="mt-1 text-lg font-semibold text-foreground">
+                What is the issue?
+              </Text>
+              <Text className="text-sm text-muted-foreground">
+                Please select the most accurate reason for being unable to complete the delivery.
+              </Text>
+            </View>
+
+            <View className="gap-3">
+              {issueReasons.map((reason) => {
+                const selected = selectedIssueReason === reason.key;
+                return (
+                  <Pressable
+                    key={reason.key}
+                    onPress={() => setSelectedIssueReason(reason.key)}
+                    className={`w-full flex-row items-center justify-between rounded-xl border p-4 ${
+                      selected ? "border-primary bg-primary/5" : "border-border bg-card"
+                    }`}
+                  >
+                    <View className="flex-row items-center gap-4">
+                      <View
+                        className={`h-12 w-12 items-center justify-center rounded-xl ${
+                          selected ? "bg-primary text-primary-foreground" : "bg-primary/10"
+                        }`}
+                      >
+                        <Icon
+                          name={reason.icon as any}
+                          className={selected ? "text-primary-foreground" : "text-primary"}
+                          size={19}
+                        />
+                      </View>
+                      <View>
+                        <Text className="font-semibold text-foreground">{reason.title}</Text>
+                        <Text className="text-xs text-muted-foreground">{reason.subtitle}</Text>
+                      </View>
+                    </View>
+                    <Icon name="ChevronRight" className="text-muted-foreground" size={18} />
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <View className="mt-8">
+              <Text className="mb-2 text-sm font-medium text-foreground">
+                Additional Details (Optional)
+              </Text>
+              <TextInput
+                value={issueDetails}
+                onChangeText={setIssueDetails}
+                multiline
+                numberOfLines={4}
+                placeholder="Describe the situation here..."
+                className="rounded-xl border border-border bg-card p-4 text-foreground"
+                textAlignVertical="top"
+              />
+            </View>
+          </ScrollView>
+
+          <View className="absolute bottom-0 left-0 right-0 border-t border-border bg-background px-4 pt-4">
+            <Pressable
+              disabled={actions.cancelDispatch.isPending}
+              onPress={onSubmitIssueReport}
+              className="h-14 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/25 disabled:opacity-50"
+              style={{ marginBottom: Math.max(12, insets.bottom + 6) }}
+            >
+              <Text className="text-base font-bold text-primary-foreground">
+                {actions.cancelDispatch.isPending ? "Submitting..." : "Submit Report"}
+              </Text>
+            </Pressable>
+            <Text className="pb-2 text-center text-xs text-muted-foreground">
+              Reporting a problem will notify support and may affect your delivery route.
+            </Text>
+          </View>
+        </View>
+      ) : null}
+
+      {ui.isCompleteSheetOpen ? (
+        <View className="absolute inset-0 z-[80] bg-background">
+          <View
+            className="border-b border-border bg-card px-4 pb-3"
+            style={{ paddingTop: insets.top + 8 }}
+          >
+            <View className="flex-row items-center">
+              <Pressable
+                onPress={() => ui.setCompleteSheetOpen(false)}
+                className="h-10 w-10 items-center justify-center rounded-full active:bg-muted"
+              >
+                <Icon name="ArrowLeft" className="text-foreground" size={20} />
+              </Pressable>
+              <Text className="flex-1 text-center text-lg font-bold tracking-tight text-foreground">
+                Complete Dispatch
+              </Text>
+              <View className="h-10 w-10" />
+            </View>
+          </View>
+
+          <ScrollView className="flex-1" contentContainerClassName="px-4 pb-8 pt-5">
+            <DispatchCompleteForm
+              defaultReceivedBy={(data?.address as any)?.name || ""}
+              isSubmitting={actions.submitDispatch.isPending}
+              onCancel={() => ui.setCompleteSheetOpen(false)}
+              onSubmit={async (input) => {
+                if (!order?.id || !dispatch?.id) return;
+                try {
+                  await actions.onSubmitDispatch({
+                    salesId: order.id,
+                    dispatchId: dispatch.id,
+                    ...input,
+                  });
+                  ui.setCompleteSheetOpen(false);
+                  Toast.show("Dispatch completed", { type: "success" });
+                } catch {
+                  Toast.show("Unable to complete dispatch", { type: "error" });
+                }
+              }}
+            />
+          </ScrollView>
+        </View>
+      ) : null}
 
       <SheetModal
         ref={packAllModalRef}

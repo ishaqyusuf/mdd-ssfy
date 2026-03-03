@@ -1,7 +1,8 @@
 import { _trpc } from "@/components/static-trpc";
 import { useAuthContext } from "@/hooks/use-auth";
+import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { RouterOutputs } from "@api/trpc/routers/_app";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 type DispatchOverview = RouterOutputs["dispatch"]["dispatchOverview"];
 type DispatchStatus = NonNullable<DispatchOverview["dispatch"]>["status"];
@@ -43,29 +44,43 @@ export function useDispatchActions() {
     ]);
   };
 
-  const startDispatch = useMutation(
-    _trpc.dispatch.startDispatch.mutationOptions({
-      async onSuccess() {
-        await invalidateDispatchQueries();
-      },
-    }),
-  );
+  const startDispatchTask = useTaskTrigger({
+    taskName: "update-sales-control",
+    onCompleted: invalidateDispatchQueries,
+  });
+  const cancelDispatchTask = useTaskTrigger({
+    taskName: "update-sales-control",
+    onCompleted: invalidateDispatchQueries,
+  });
+  const submitDispatchTask = useTaskTrigger({
+    taskName: "update-sales-control",
+    onCompleted: invalidateDispatchQueries,
+  });
 
-  const cancelDispatch = useMutation(
-    _trpc.dispatch.cancelDispatch.mutationOptions({
-      async onSuccess() {
-        await invalidateDispatchQueries();
-      },
-    }),
-  );
-
-  const submitDispatch = useMutation(
-    _trpc.dispatch.submitDispatch.mutationOptions({
-      async onSuccess() {
-        await invalidateDispatchQueries();
-      },
-    }),
-  );
+  const startDispatch = {
+    ...startDispatchTask,
+    isPending:
+      startDispatchTask.isStarting ||
+      startDispatchTask.isQueued ||
+      startDispatchTask.isExecuting ||
+      startDispatchTask.isCheckingStatus,
+  };
+  const cancelDispatch = {
+    ...cancelDispatchTask,
+    isPending:
+      cancelDispatchTask.isStarting ||
+      cancelDispatchTask.isQueued ||
+      cancelDispatchTask.isExecuting ||
+      cancelDispatchTask.isCheckingStatus,
+  };
+  const submitDispatch = {
+    ...submitDispatchTask,
+    isPending:
+      submitDispatchTask.isStarting ||
+      submitDispatchTask.isQueued ||
+      submitDispatchTask.isExecuting ||
+      submitDispatchTask.isCheckingStatus,
+  };
 
   return {
     startDispatch,
@@ -74,45 +89,51 @@ export function useDispatchActions() {
     invalidateDispatchQueries,
     onStartDispatch(input: DispatchMeta) {
       const author = getAuthor(auth.profile);
-      return startDispatch.mutateAsync({
-        meta: {
-          salesId: input.salesId,
-          authorId: author.id,
-          authorName: author.name,
-        },
-        startDispatch: {
-          dispatchId: input.dispatchId,
+      return startDispatchTask.startAndWait({
+        payload: {
+          meta: {
+            salesId: input.salesId,
+            authorId: author.id,
+            authorName: author.name,
+          },
+          startDispatch: {
+            dispatchId: input.dispatchId,
+          },
         },
       });
     },
     onCancelDispatch(input: DispatchMeta) {
       const author = getAuthor(auth.profile);
-      return cancelDispatch.mutateAsync({
-        meta: {
-          salesId: input.salesId,
-          authorId: author.id,
-          authorName: author.name,
-        },
-        cancelDispatch: {
-          dispatchId: input.dispatchId,
+      return cancelDispatchTask.startAndWait({
+        payload: {
+          meta: {
+            salesId: input.salesId,
+            authorId: author.id,
+            authorName: author.name,
+          },
+          cancelDispatch: {
+            dispatchId: input.dispatchId,
+          },
         },
       });
     },
     onSubmitDispatch(input: SubmitDispatchInput) {
       const author = getAuthor(auth.profile);
-      return submitDispatch.mutateAsync({
-        meta: {
-          salesId: input.salesId,
-          authorId: author.id,
-          authorName: author.name,
-        },
-        submitDispatch: {
-          dispatchId: input.dispatchId,
-          receivedBy: input.receivedBy,
-          receivedDate: input.receivedDate,
-          note: input.note,
-          signature: input.signature,
-          attachments: input.attachments,
+      return submitDispatchTask.startAndWait({
+        payload: {
+          meta: {
+            salesId: input.salesId,
+            authorId: author.id,
+            authorName: author.name,
+          },
+          submitDispatch: {
+            dispatchId: input.dispatchId,
+            receivedBy: input.receivedBy,
+            receivedDate: input.receivedDate,
+            note: input.note,
+            signature: input.signature,
+            attachments: input.attachments,
+          },
         },
       });
     },

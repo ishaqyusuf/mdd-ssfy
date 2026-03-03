@@ -5,6 +5,7 @@ export default function DriverDispatchDetailRoute() {
   const params = useLocalSearchParams<{
     dispatchId?: string;
     salesNo?: string;
+    openComplete?: string;
   }>();
 
   const dispatchId = Number(params.dispatchId || 0);
@@ -12,6 +13,14 @@ export default function DriverDispatchDetailRoute() {
     typeof params.salesNo === "string" && params.salesNo.length > 0
       ? params.salesNo
       : undefined;
+  const openComplete =
+    params.openComplete === "1" || params.openComplete === "true";
 
-  return <DispatchDetailScreen dispatchId={dispatchId} salesNo={salesNo} />;
+  return (
+    <DispatchDetailScreen
+      dispatchId={dispatchId}
+      salesNo={salesNo}
+      openCompleteOnMount={openComplete}
+    />
+  );
 }

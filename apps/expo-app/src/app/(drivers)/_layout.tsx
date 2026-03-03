@@ -5,6 +5,7 @@ export default function DriversLayout() {
     <Stack initialRouteName="index">
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="dispatch/index" options={{ headerShown: false }} />
+      <Stack.Screen name="dispatch/all" options={{ headerShown: false }} />
       <Stack.Screen
         name="dispatch/[dispatchId]"
         options={{ headerShown: false }}

@@ -1,13 +1,16 @@
 import { TaskName } from "@jobs/schema";
 import { schemaTask } from "@trigger.dev/sdk/v3";
 import {
+  cancelDispatchTask,
   clearPackingTask,
   createAssignmentsTask,
   deleteAssignmentsTasks,
   deleteSubmissionsTask,
   markAsCompletedTask,
   packDispatchItemTask,
+  startDispatchTask,
   submitAllTask,
+  submitDispatchTask,
   updateSalesControlSchema,
 } from "@gnd/sales";
 import { db } from "@gnd/db";
@@ -24,6 +27,9 @@ export const updateSalesControl = schemaTask({
       submitAll: submitAllTask,
       packItems: packDispatchItemTask,
       clearPackings: clearPackingTask,
+      cancelDispatch: cancelDispatchTask,
+      startDispatch: startDispatchTask,
+      submitDispatch: submitDispatchTask,
       createAssignments: createAssignmentsTask,
       deleteSubmissions: deleteSubmissionsTask,
       deleteAssignments: deleteAssignmentsTasks,

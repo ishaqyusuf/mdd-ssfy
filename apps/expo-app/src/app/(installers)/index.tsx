@@ -1,5 +1,5 @@
 import { Debug } from "@/components/debug";
-import { InstallerDashboardHeader2 } from "@/components/installer-dashboard/installer-dashboard-header-2";
+import { GeneralHomeHeader } from "@/components/home/general-home-header";
 import { JobAnalytics2 } from "@/components/installer-dashboard/job-analytics-2";
 import { JobsItem } from "@/components/jobs-item";
 import { _push } from "@/components/static-router";
@@ -20,7 +20,7 @@ export default function Home2() {
   });
   return (
     <HomeProvider value={ctx}>
-      <InstallerDashboardHeader2 />
+      <GeneralHomeHeader rightAction="settings" className="px-5 pb-4" />
       <LegendList
         onRefresh={ctx.refresh}
         ListHeaderComponent={
