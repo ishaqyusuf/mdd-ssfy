@@ -1,10 +1,4 @@
-import { timeout } from "@gnd/utils";
-import {
-  SalesPaymentTokenSchema,
-  SalesPdfToken,
-  TokenSchemaNames,
-  tokenSchemas,
-} from "@gnd/utils/tokenizer";
+import { SalesPaymentTokenSchema, SalesPdfToken } from "@gnd/utils/tokenizer";
 import { addDays } from "date-fns";
 import { SalesType } from "../types";
 import { SalesPrintModes } from "src/constants";
@@ -41,7 +35,6 @@ export async function sendSalesEmail(props: Props) {
   const expiry = addDays(new Date(), 7).toISOString();
   for (const sale of data) {
     if (!sale.mode) sale.mode = "order";
-    console.log({ sale });
     const downloadToken = await generateToken({
       salesIds: sale.ids,
       expiry,
@@ -73,7 +66,6 @@ export async function sendSalesEmail(props: Props) {
       paymentToken,
     });
   }
-  console.log(payload);
   trigger.trigger({
     taskName: "send-sales-reminder",
     payload,
