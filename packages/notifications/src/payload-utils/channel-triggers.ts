@@ -109,6 +109,18 @@ export function createNotificationChannelTriggers(
         recipients: resolvedRecipients,
       });
     },
+    salesEmailReminder(input: Input<"sales_email_reminder">) {
+      const { recipients, author, ...payload } = input;
+      const resolvedRecipients = resolveRecipients(
+        recipients,
+        getStoredRecipients(),
+      );
+      return options.send("sales_email_reminder", {
+        payload,
+        author,
+        recipients: resolvedRecipients,
+      });
+    },
     jobReviewRequested(
       input: NotificationEvent<"job_review_requested">["payload"] & {
         recipients?: NotificationEvent<"job_review_requested">["recipients"];

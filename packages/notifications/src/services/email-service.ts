@@ -11,6 +11,7 @@ import { JobAssignedEmail } from "@gnd/email/emails/job-assigned";
 import { JobApprovedEmail } from "@gnd/email/emails/job-approved";
 import { JobRejectedEmail } from "@gnd/email/emails/job-rejected";
 import { JobTaskConfigureRequestEmail } from "@gnd/email/emails/job-task-configure-request";
+import SalesEmail from "@gnd/email/emails/sales-email";
 
 const DEV_TEST_EMAIL = "ishaqyusuf024@gmail.com";
 
@@ -174,6 +175,7 @@ export class EmailService {
       "job-approved": JobApprovedEmail,
       "job-rejected": JobRejectedEmail,
       "job-task-configure-request": JobTaskConfigureRequestEmail,
+      "sales-email-reminder": SalesEmail,
     };
 
     const template = templates[templateName as keyof typeof templates];

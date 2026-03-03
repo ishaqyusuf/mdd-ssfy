@@ -176,6 +176,7 @@ export type NotificationTypes = {
   job_rejected: JobRejectedInput;
   job_task_configure_request: JobTaskConfigureRequestInput;
   sales_dispatch_assigned: SalesDispatchAssignedInput;
+  sales_email_reminder: SalesEmailReminderInput;
 };
 
 export const getNotificationChannelsSchema = z
@@ -199,6 +200,25 @@ export const salesDispatchAssignedSchema = z.object({
 export type SalesDispatchAssignedInput = z.infer<
   typeof salesDispatchAssignedSchema
 >;
+export const salesEmailReminderSchema = z.object({
+  type: z.enum(["order", "quote"]),
+  customerEmail: z.string().email(),
+  customerName: z.string(),
+  salesRep: z.string(),
+  salesRepEmail: z.string().email(),
+  paymentLink: z.string().optional().nullable(),
+  pdfLink: z.string().optional().nullable(),
+  sales: z.array(
+    z.object({
+      orderId: z.string(),
+      po: z.string().optional().nullable(),
+      date: z.union([z.date(), z.string()]),
+      total: z.number(),
+      due: z.number(),
+    }),
+  ),
+});
+export type SalesEmailReminderInput = z.infer<typeof salesEmailReminderSchema>;
 export const baseNotificationJobSchema = z.object({
   author: z.object({
     id: z.number(),
@@ -248,6 +268,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
   baseNotificationJobSchema.extend({
     channel: z.literal("sales_dispatch_assigned"),
     payload: salesDispatchAssignedSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("sales_email_reminder"),
+    payload: salesEmailReminderSchema,
   }),
   baseNotificationJobSchema.extend({
     channel: z.literal("sales_dispatch_created"),

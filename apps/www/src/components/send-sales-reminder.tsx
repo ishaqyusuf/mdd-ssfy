@@ -5,9 +5,7 @@ import { useState, useTransition } from "react";
 import { useEffect } from "react";
 import { useQuery } from "@gnd/ui/tanstack";
 import { useFieldArray } from "react-hook-form";
-
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
-import { SendSalesReminderPayload } from "@jobs/schema";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { _trpc } from "@/components/static-trpc";
 import z from "zod";
@@ -16,10 +14,8 @@ import { Form } from "@gnd/ui/form";
 import { Label } from "@gnd/ui/label";
 import { ButtonGroup } from "@gnd/ui/button-group";
 import { useAuth } from "@/hooks/use-auth";
-import { SalesPaymentTokenSchema, SalesPdfToken } from "@gnd/utils/tokenizer";
 import { generateToken } from "@/actions/token-action";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
-import { addDays } from "date-fns";
 import { SalesPrintModes } from "@sales/constants";
 import { getCustomerWalletId } from "@/actions/get-customer-wallet-id";
 import { sendSalesEmail } from "@sales/utils/email";
@@ -63,8 +59,6 @@ export function SendSalesReminder({ children, salesIds }: Props) {
     });
     const [isTokenPending, startTransition] = useTransition();
     const submit = async (data) => {
-        // console.log(data);
-        // return;
         startTransition(async () => {
             await sendSalesEmail({
                 auth,
@@ -154,7 +148,7 @@ export function SendSalesReminder({ children, salesIds }: Props) {
     // isSubmitting
     useEffect(() => {
         if (!data || isPending) return;
-        console.log(data.data);
+
         form.reset({
             sales: uniqueList(
                 data?.data?.map((sale) => {

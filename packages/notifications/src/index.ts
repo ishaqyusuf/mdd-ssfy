@@ -16,6 +16,7 @@ import { jobReviewRequested } from "./types/job-review-requested";
 import { jobSubmitted } from "./types/job-submitted";
 import { salesDispatchAssigned } from "./types/sales-dispatch-assigned";
 import { jobTaskConfigureRequest } from "./types/job-tasks-configure-request";
+import { salesEmailReminder } from "./types/sales-email-reminder";
 import { consoleLog } from "@gnd/utils";
 import {
   getSubscribersAccount,
@@ -30,6 +31,7 @@ const handlers = {
   job_review_requested: jobReviewRequested,
   job_task_configure_request: jobTaskConfigureRequest,
   sales_dispatch_assigned: salesDispatchAssigned,
+  sales_email_reminder: salesEmailReminder,
 } as const;
 import { generateEmailMeta } from "./utils";
 
@@ -65,10 +67,26 @@ export class Notifications {
     // options?: NotificationOptions,
     contacts?: UserData[],
   ) {
+    if (handler?.createActivityWithoutContact) {
+      const activityInput = handler.createActivity(
+        validatedData,
+        author,
+        contacts?.[0] || author,
+      );
+      activityInput.groupId = groupId;
+      const validatedActivity = createActivitySchema.parse(activityInput);
+      const activity = await createActivity(
+        this.#db,
+        validatedActivity,
+        author?.id,
+      );
+      return activity ? [activity] : [];
+    }
+
     const activityPromises = await Promise.all(
-      contacts!
-        ?.filter((a) => a.inAppNotification)
-        ?.map(async (user: UserData) => {
+      (contacts || [])
+        .filter((a) => a.inAppNotification)
+        .map(async (user: UserData) => {
           // if(!user?.inAppNotification)
           // return null;
           const activityInput = handler.createActivity(

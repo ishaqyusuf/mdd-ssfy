@@ -8,14 +8,14 @@ import {
   Section,
   Text,
 } from "@react-email/components";
-import { Logo } from "components/logo";
-import { Footer } from "components/footer";
+import { Logo } from "../components/logo";
+import { Footer } from "../components/footer";
 import {
   Button,
   EmailThemeProvider,
   getEmailInlineStyles,
   getEmailThemeClasses,
-} from "components/theme";
+} from "../components/theme";
 import { format } from "date-fns";
 
 interface Props {

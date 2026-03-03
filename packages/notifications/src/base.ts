@@ -11,6 +11,7 @@ export interface TeamContext {
 
 export interface NotificationHandler<T = any> {
   schema: z.ZodSchema<T>;
+  createActivityWithoutContact?: boolean;
   email?: {
     template: string;
     subject: string;
