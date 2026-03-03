@@ -103,4 +103,7 @@ export const jobFormSchema = z
       //   });
     }
   });
-export type JobFormSchema = z.infer<typeof jobFormShema>;
+export type JobFormSchema = z.infer<typeof jobFormSchema>;
+
+// Backward-compat alias; prefer jobFormSchema.
+export const jobFormShema = jobFormSchema;

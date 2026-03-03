@@ -59,6 +59,11 @@ export async function getDispatches(
             select: {
               name: true,
               phoneNo: true,
+              address1: true,
+              address2: true,
+              city: true,
+              state: true,
+              country: true,
             },
           },
         },
