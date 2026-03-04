@@ -402,7 +402,7 @@ export const createDispatchSchema = z.object({
   salesId: z.number(),
   deliveryMode: z.string(),
   dueDate: z.date(),
-  driverId: z.number().nullable().optional(),
+  driverId: z.any().nullable().optional(),
   status: z.string().optional(),
 });
 export type CreateDispatchSchema = z.infer<typeof createDispatchSchema>;

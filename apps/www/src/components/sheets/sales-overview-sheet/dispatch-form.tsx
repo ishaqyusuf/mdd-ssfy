@@ -27,7 +27,7 @@ export function DispatchForm() {
         },
     });
     // const { form } = useDispatch();
-
+    // const [driverId]
     const { createDispatch, isCreating } = useSalesCreateDispatch({
         onSuccess(data) {
             setParams({
@@ -59,6 +59,7 @@ export function DispatchForm() {
                         options={ctx?.drivers || []}
                         label={"Assign To"}
                         name="driverId"
+                        onSelect={(e) => {}}
                         // @ts-ignore
                         control={form.control}
                         placeholder="Select Driver"

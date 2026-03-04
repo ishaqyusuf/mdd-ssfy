@@ -88,7 +88,8 @@ export const dispatchRouters = createTRPCRouter({
   createDispatch: publicProcedure
     .input(createDispatchSchema)
     .mutation(async (props) => {
-      const { salesId, deliveryMode, dueDate, driverId, status } = props.input;
+      let { salesId, deliveryMode, dueDate, driverId, status } = props.input;
+      if (driverId) driverId = Number(driverId);
       const dispatch = await props.ctx.db.orderDelivery.create({
         data: {
           deliveryMode: deliveryMode || ("delivery" as DeliveryOption),

@@ -19,11 +19,13 @@ type Routes = DotPaths<typeof _trpc>;
 export function invalidateQueries(type: "qk" | "infinite", routes: Routes[]) {
   routes.map((route) => {
     const proc = getProcedure(route);
+    if (!proc) return;
     _qc.invalidateQueries({
       queryKey: proc[type === "qk" ? "queryKey" : "infiniteQueryKey"](),
     });
   });
 }
 function getProcedure(path: Routes) {
+  if (typeof path !== "string") return null;
   return path.split(".").reduce<any>((acc, key) => acc[key], _trpc);
 }
