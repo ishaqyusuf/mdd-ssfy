@@ -10,7 +10,7 @@ import {
   useJobFormV2Context,
 } from "@/hooks/use-job-form-v2";
 import { useFocusEffect, useNavigation } from "expo-router";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { BackHandler } from "react-native";
 
 export function JobFormV2Screen(props: JobFormV2Props) {
@@ -26,12 +26,22 @@ export function JobFormV2Screen(props: JobFormV2Props) {
 function Content() {
   const { step, completed, prevStep } = useJobFormV2Context();
   const navigation = useNavigation();
+  const isHandlingExitRef = useRef(false);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("beforeRemove", (event) => {
+      if (isHandlingExitRef.current) return;
+
       const shouldGoPrevStep = completed || step > 1;
-      if (!shouldGoPrevStep) return;
+      const canGoBack =
+        typeof (navigation as any).canGoBack === "function"
+          ? (navigation as any).canGoBack()
+          : false;
+      const shouldPreventAppClose = !shouldGoPrevStep && !canGoBack;
+
+      if (!shouldGoPrevStep && !shouldPreventAppClose) return;
       event.preventDefault();
+      isHandlingExitRef.current = true;
       prevStep();
     });
 
@@ -41,15 +51,22 @@ function Content() {
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => {
+        if (isHandlingExitRef.current) return true;
+
         const shouldGoPrevStep = completed || step > 1;
-        if (!shouldGoPrevStep) return false;
+        const canGoBack =
+          typeof (navigation as any).canGoBack === "function"
+            ? (navigation as any).canGoBack()
+            : false;
+        if (!shouldGoPrevStep && canGoBack) return false;
+        isHandlingExitRef.current = true;
         prevStep();
         return true;
       };
 
       const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
       return () => sub.remove();
-    }, [completed, prevStep, step]),
+    }, [completed, navigation, prevStep, step]),
   );
 
   return (

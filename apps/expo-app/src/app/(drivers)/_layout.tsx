@@ -11,6 +11,7 @@ export default function DriversLayout() {
         options={{ headerShown: false }}
       />
       <Stack.Screen name="settings" options={{ headerShown: false }} />
+      <Stack.Screen name="notifications" options={{ headerShown: false }} />
     </Stack>
   );
 }

@@ -9,12 +9,20 @@ import { BackBtn } from "../back-btn";
 import config from "@root/app.config";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useColorScheme } from "@/hooks/use-color";
+import {
+  getThemeOverride,
+  setThemeOverride,
+  type ThemeOverride,
+} from "@/lib/theme-preference";
 export default function SettingsExampleScreen() {
   const [pushEnabled, setPushEnabled] = useState(true);
   const [emailEnabled, setEmailEnabled] = useState(false);
   const [locationEnabled, setLocationEnabled] = useState(true);
+  const [themeOverride, setThemeOverrideState] = useState<ThemeOverride>("system");
   const router = useRouter();
   const auth = useAuthContext();
+  const { setColorScheme } = useColorScheme();
   const { data: setting, refetch } = useQuery(
     useTRPC().settings.getJobSettings.queryOptions(),
   );
@@ -36,6 +44,18 @@ export default function SettingsExampleScreen() {
       },
     });
   }
+  React.useEffect(() => {
+    (async () => {
+      const override = await getThemeOverride();
+      setThemeOverrideState(override);
+    })();
+  }, []);
+
+  const onChangeThemeOverride = async (nextOverride: ThemeOverride) => {
+    setThemeOverrideState(nextOverride);
+    await setThemeOverride(nextOverride);
+    setColorScheme(nextOverride);
+  };
   // get expo build version
   const expoVersion = config.version;
   return (
@@ -115,6 +135,20 @@ export default function SettingsExampleScreen() {
               />
             </Section>
           )}
+          <Section title="Appearance">
+            <SettingsItem
+              icon="Settings"
+              label="Theme Preference"
+              subLabel="Override system with Light or Dark, or follow System."
+              isLast
+              rightElement={
+                <ThemePreferenceSelector
+                  value={themeOverride}
+                  onChange={onChangeThemeOverride}
+                />
+              }
+            />
+          </Section>
           <Debug>
             {/* Preferences Section */}
             <Section title="PREFERENCES">
@@ -260,6 +294,43 @@ export default function SettingsExampleScreen() {
         <TabItem icon="Wallet" label="Payments" />
         <TabItem icon="Settings" label="Settings" active />
       </View> */}
+    </View>
+  );
+}
+
+function ThemePreferenceSelector({
+  value,
+  onChange,
+}: {
+  value: ThemeOverride;
+  onChange: (next: ThemeOverride) => void;
+}) {
+  const options: Array<{ label: string; value: ThemeOverride }> = [
+    { label: "System", value: "system" },
+    { label: "Light", value: "light" },
+    { label: "Dark", value: "dark" },
+  ];
+
+  return (
+    <View className="flex-row items-center rounded-lg border border-border bg-muted/40 p-1">
+      {options.map((option) => {
+        const active = value === option.value;
+        return (
+          <Pressable
+            key={option.value}
+            onPress={() => onChange(option.value)}
+            className={`rounded-md px-2.5 py-1.5 ${active ? "bg-card" : ""}`}
+          >
+            <Text
+              className={`text-xs font-semibold ${
+                active ? "text-foreground" : "text-muted-foreground"
+              }`}
+            >
+              {option.label}
+            </Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }

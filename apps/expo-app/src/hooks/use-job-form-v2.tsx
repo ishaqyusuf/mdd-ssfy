@@ -332,7 +332,6 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
     }
 
     if (initialStep <= 1) {
-      params.setParams(null);
       const canGoBack =
         typeof (router as any).canGoBack === "function"
           ? (router as any).canGoBack()

@@ -237,7 +237,8 @@ export function JobDetailsStep() {
                 onChangeText={field.onChange}
                 multiline
                 numberOfLines={4}
-                className="min-h-28 rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground"
+                className="min-h-28   rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground"
+                style={{ textAlignVertical: "top", textAlign: "left" }}
                 placeholder="Write job notes and instructions..."
                 placeholderTextColor="hsl(var(--muted-foreground))"
               />

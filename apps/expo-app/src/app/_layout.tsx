@@ -26,6 +26,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import * as Updates from "expo-updates";
 import { useColorScheme } from "@/hooks/use-color";
 import { NAV_THEME } from "@/lib/theme";
+import { getThemeOverride } from "@/lib/theme-preference";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -70,7 +71,7 @@ export default function RootLayout() {
   return <RootLayoutNav />;
 }
 const InitialLayout = () => {
-  const { token, isAdmin, isDriver } = useAuthContext();
+  const { token, isAdmin, isDriver, isInstaller } = useAuthContext();
   const { colorScheme } = useColorScheme();
 
   return (
@@ -94,7 +95,11 @@ const InitialLayout = () => {
               options={{ headerShown: false }}
             />
           </Stack.Protected>
-          <Stack.Protected guard={!!token}>
+          <Stack.Protected guard={!isAdmin && isInstaller}>
+            <Stack.Screen
+              name="(installers)"
+              options={{ headerShown: false }}
+            />
             <Stack.Screen name="job-form" options={{ headerShown: false }} />
             <Stack.Screen
               name="job-overview-v2"
@@ -113,11 +118,25 @@ const InitialLayout = () => {
   );
 };
 function RootLayoutNav() {
-  const { colorScheme } = useColorScheme();
+  const { colorScheme, setColorScheme } = useColorScheme();
   const navigationTheme =
     colorScheme === "dark" ? NAV_THEME.dark : NAV_THEME.light;
   const rootClassName =
-    colorScheme === "dark" ? "dark flex-1 bg-background" : "flex-1 bg-background";
+    colorScheme === "dark"
+      ? "dark flex-1 bg-background"
+      : "flex-1 bg-background";
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const override = await getThemeOverride();
+      if (!mounted) return;
+      setColorScheme(override);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [setColorScheme]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

@@ -1,7 +1,7 @@
 import { THEME } from "@/lib/theme";
 import { useColorScheme as useNativeWindColorScheme } from "nativewind";
 
-type AppColorScheme = "light" | "dark";
+type AppColorScheme = "light" | "dark" | "system";
 
 export function useColors() {
   const { colorScheme } = useColorScheme();
@@ -12,7 +12,8 @@ export function useColors() {
 export function useColorScheme() {
   const { colorScheme, setColorScheme, toggleColorScheme } = useNativeWindColorScheme();
 
-  const resolvedColorScheme: AppColorScheme = colorScheme === "dark" ? "dark" : "light";
+  const resolvedColorScheme: "light" | "dark" =
+    colorScheme === "dark" ? "dark" : "light";
 
   return {
     colorScheme: resolvedColorScheme,

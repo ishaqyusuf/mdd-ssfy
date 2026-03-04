@@ -117,8 +117,9 @@ function IconImpl({ name, ...props }: IconProps) {
       ?.split("-") || [];
   const color = colorChunk?.length ? camel(colorChunk?.join(" ")) : undefined;
 
-  const _themColor = THEME.light[color!];
-  // colorScheme === "dark" ? THEME.dark[color!] : THEME.light[color!];
+  const _themColor =
+    colorScheme === "dark" ? THEME.dark[color!] : THEME.light[color!];
+  //  = THEME.light[color!];
 
   props.style = {
     ...(props.style || ({} as any)),
