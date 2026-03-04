@@ -2,6 +2,7 @@ import { Debug } from "@/components/debug";
 import { GeneralHomeHeader } from "@/components/home/general-home-header";
 import { JobAnalytics2 } from "@/components/installer-dashboard/job-analytics-2";
 import { JobsItem } from "@/components/jobs-item";
+import { useNotifications } from "@/hooks/use-notifications";
 import { SafeArea } from "@/components/safe-area";
 import { _push } from "@/components/static-router";
 import { Icon } from "@/components/ui/icon";
@@ -14,6 +15,7 @@ import { Pressable, Text, TouchableOpacity, View } from "react-native";
 // The component is named Home2 to match the filename.
 
 export default function Home2() {
+  const { hasUnseenNotifications } = useNotifications();
   const ctx = useCreateHomeContext({
     jobsProps: {
       recent: true,
@@ -24,6 +26,7 @@ export default function Home2() {
       <HomeProvider value={ctx}>
         <GeneralHomeHeader
           notificationHref="/(installers)/notifications"
+          showNotificationDot={hasUnseenNotifications}
           className="px-5 pb-4"
         />
         <LegendList

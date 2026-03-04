@@ -1,5 +1,6 @@
 import { Icon } from "@/components/ui/icon";
 import { GeneralHomeHeader } from "@/components/home/general-home-header";
+import { useNotifications } from "@/hooks/use-notifications";
 import { useAssignedDispatchList } from "@/features/dispatch/api/use-assigned-dispatch-list";
 import { DriverDashboardDispatchItem } from "@/features/dispatch/components/driver-dashboard-dispatch-item";
 import type { DispatchListItem } from "@/features/dispatch/types/dispatch.types";
@@ -39,6 +40,7 @@ function openDispatchWithOptions(
 export default function DriverDispatchListRoute() {
   const router = useRouter();
   const canTriggerEndReached = useRef(true);
+  const { hasUnseenNotifications } = useNotifications();
 
   const {
     items,
@@ -76,6 +78,7 @@ export default function DriverDispatchListRoute() {
       <View className="flex-1 bg-background">
         <GeneralHomeHeader
           notificationHref="/(drivers)/notifications"
+          showNotificationDot={hasUnseenNotifications}
           nameMode="first_uppercase"
           // className="px-4 pb-6"
         />

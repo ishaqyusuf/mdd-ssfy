@@ -1,49 +1,13 @@
 import { BackBtn } from "@/components/back-btn";
+import { useNotifications } from "@/hooks/use-notifications";
 import { SafeArea } from "@/components/safe-area";
 import { Icon } from "@/components/ui/icon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useMemo, useState } from "react";
+import { RouterOutputs } from "@api/trpc/routers/_app";
+import { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
-type NotificationItem = {
-  id: number;
-  subject: string;
-  headline: string;
-  time: string;
-  unread?: boolean;
-};
-
-const inboxSeed: NotificationItem[] = [
-  {
-    id: 1,
-    subject: "Job assigned",
-    headline: "You have a new installation job assigned for today.",
-    time: "5m ago",
-    unread: true,
-  },
-  {
-    id: 2,
-    subject: "Schedule update",
-    headline: "Site visit time moved from 2:00 PM to 3:30 PM.",
-    time: "1h ago",
-    unread: true,
-  },
-  {
-    id: 3,
-    subject: "Reminder",
-    headline: "Complete and submit pending job reports.",
-    time: "Yesterday",
-  },
-];
-
-const archivedSeed: NotificationItem[] = [
-  {
-    id: 11,
-    subject: "Payment confirmed",
-    headline: "Your recent job payout has been processed successfully.",
-    time: "2d ago",
-  },
-];
+type NotificationItem = RouterOutputs["notes"]["list"]["data"][number];
 
 function EmptyState({ description }: { description: string }) {
   return (
@@ -58,7 +22,13 @@ function EmptyState({ description }: { description: string }) {
   );
 }
 
-function NotificationList({ items }: { items: NotificationItem[] }) {
+function NotificationList({
+  items,
+  markMessageAsRead,
+}: {
+  items: NotificationItem[];
+  markMessageAsRead: (id: number) => void;
+}) {
   if (!items.length) {
     return <EmptyState description="Nothing here yet." />;
   }
@@ -75,15 +45,17 @@ function NotificationList({ items }: { items: NotificationItem[] }) {
             key={item.id}
             className="px-4 py-3 active:bg-muted"
             accessibilityRole="button"
+            onPress={() => markMessageAsRead(item.id)}
           >
             <View className="mb-1 flex-row items-center justify-between gap-3">
               <Text className="flex-1 text-sm font-semibold text-foreground">
-                {item.subject}
+                {item.subject || "Notification Subject"}
               </Text>
-              <Text className="text-xs text-muted-foreground">{item.time}</Text>
             </View>
-            <Text className="text-xs text-muted-foreground">{item.headline}</Text>
-            {item.unread ? (
+            <Text className="text-xs text-muted-foreground">
+              {item.headline || "Notification headline or preview text"}
+            </Text>
+            {item.receipt?.status === "unread" ? (
               <View className="mt-2 h-1.5 w-1.5 rounded-full bg-destructive" />
             ) : null}
           </Pressable>
@@ -94,11 +66,14 @@ function NotificationList({ items }: { items: NotificationItem[] }) {
 }
 
 export function NotificationCenterScreen() {
-  const [inbox, setInbox] = useState(inboxSeed);
-  const [archive] = useState(archivedSeed);
   const [tab, setTab] = useState("inbox");
-
-  const hasInboxItems = useMemo(() => inbox.length > 0, [inbox.length]);
+  const {
+    isLoading,
+    error,
+    notifications,
+    archived,
+    markMessageAsRead,
+  } = useNotifications();
 
   return (
     <SafeArea>
@@ -129,14 +104,18 @@ export function NotificationCenterScreen() {
           </View>
 
           <TabsContent value="inbox">
-            {hasInboxItems ? (
+            {isLoading ? (
+              <EmptyState description="Loading notifications..." />
+            ) : error ? (
+              <EmptyState description="Unable to load notifications right now." />
+            ) : notifications.length ? (
               <>
-                <NotificationList items={inbox} />
+                <NotificationList
+                  items={notifications}
+                  markMessageAsRead={markMessageAsRead}
+                />
                 <View className="absolute bottom-0 left-0 right-0 border-t border-border bg-card px-4 py-2">
-                  <Pressable
-                    onPress={() => setInbox([])}
-                    className="h-10 items-center justify-center rounded-full active:bg-muted"
-                  >
+                  <Pressable className="h-10 items-center justify-center rounded-full opacity-50" disabled>
                     <Text className="text-sm font-medium text-foreground">
                       Archive all
                     </Text>
@@ -149,8 +128,15 @@ export function NotificationCenterScreen() {
           </TabsContent>
 
           <TabsContent value="archive">
-            {archive.length ? (
-              <NotificationList items={archive} />
+            {isLoading ? (
+              <EmptyState description="Loading notifications..." />
+            ) : error ? (
+              <EmptyState description="Unable to load notifications right now." />
+            ) : archived.length ? (
+              <NotificationList
+                items={archived}
+                markMessageAsRead={markMessageAsRead}
+              />
             ) : (
               <EmptyState description="Nothing in the archive" />
             )}

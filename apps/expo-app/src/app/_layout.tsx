@@ -85,7 +85,7 @@ const InitialLayout = () => {
           <Stack.Protected guard={!token}>
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           </Stack.Protected>
-          <Stack.Protected guard={!!isDriver}>
+          <Stack.Protected guard={!!isDriver && !isAdmin}>
             <Stack.Screen name="(drivers)" options={{ headerShown: false }} />
           </Stack.Protected>
           <Stack.Protected guard={!!isAdmin}>
