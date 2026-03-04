@@ -1,5 +1,6 @@
 import { useAssignedDispatchList } from "../api/use-assigned-dispatch-list";
-import { DispatchListItemCard } from "./dispatch-list-item";
+import type { DispatchListItem } from "../types/dispatch.types";
+import { DriverDashboardDispatchItem } from "./driver-dashboard-dispatch-item";
 import { useRouter } from "expo-router";
 import { Icon } from "@/components/ui/icon";
 import { useMemo, useRef, useState } from "react";
@@ -13,6 +14,23 @@ import {
 } from "react-native";
 
 type FilterKey = "all" | "queue" | "in progress" | "completed" | "cancelled";
+
+function openDispatch(
+  router: ReturnType<typeof useRouter>,
+  item: DispatchListItem,
+  options?: { openComplete?: boolean },
+) {
+  router.push(
+    {
+      pathname: "/(drivers)/dispatch/[dispatchId]",
+      params: {
+        dispatchId: String(item.id),
+        salesNo: item?.order?.orderId || "",
+        openComplete: options?.openComplete ? "1" : "0",
+      },
+    } as any,
+  );
+}
 
 export function DispatchListScreen() {
   const router = useRouter();
@@ -167,20 +185,12 @@ export function DispatchListScreen() {
           windowSize={8}
           refreshing={isRefetching}
           onRefresh={() => refetch()}
-          renderItem={({ item }) => (
-            <DispatchListItemCard
+          renderItem={({ item, index }) => (
+            <DriverDashboardDispatchItem
               item={item}
-              onPress={(dispatch) => {
-                router.push(
-                  {
-                    pathname: "/(drivers)/dispatch/[dispatchId]",
-                    params: {
-                      dispatchId: String(dispatch.id),
-                      salesNo: dispatch?.order?.orderId || "",
-                    },
-                  } as any,
-                );
-              }}
+              index={index}
+              onOpen={() => openDispatch(router, item)}
+              onComplete={() => openDispatch(router, item, { openComplete: true })}
             />
           )}
           ListEmptyComponent={
