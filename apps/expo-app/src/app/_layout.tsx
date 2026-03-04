@@ -1,5 +1,5 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
+import { ThemeProvider } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -24,6 +24,8 @@ import { View } from "react-native";
 import { StaticRouter } from "@/components/static-router";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import * as Updates from "expo-updates";
+import { useColorScheme } from "@/hooks/use-color";
+import { NAV_THEME } from "@/lib/theme";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -69,14 +71,14 @@ export default function RootLayout() {
 }
 const InitialLayout = () => {
   const { token, isAdmin, isDriver } = useAuthContext();
+  const { colorScheme } = useColorScheme();
 
   return (
     <>
       <TRPCReactProvider>
         <StaticTrpc />
         <StaticRouter />
-        {/* <StatusBar style="dark" /> */}
-        <StatusBar style="auto" />
+        <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
 
         <Stack>
           <Stack.Protected guard={!token}>
@@ -111,17 +113,17 @@ const InitialLayout = () => {
   );
 };
 function RootLayoutNav() {
+  const { colorScheme } = useColorScheme();
+  const navigationTheme =
+    colorScheme === "dark" ? NAV_THEME.dark : NAV_THEME.light;
+  const rootClassName =
+    colorScheme === "dark" ? "dark flex-1 bg-background" : "flex-1 bg-background";
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      {/* 
-        using  <View className={cn(theme.dark ? "dark" : "", "flex-1")}></View> somehow freezes scroll. the issue is mainly the dark className.
-      */}
       <KeyboardProvider>
-        <View className="flex-1">
-          <ThemeProvider
-            value={DefaultTheme}
-            // value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-          >
+        <View className={rootClassName}>
+          <ThemeProvider value={navigationTheme}>
             <AuthProvider value={useCreateAuthContext()}>
               <ToastProviderWithViewport>
                 <BottomSheetModalProvider>
@@ -131,7 +133,6 @@ function RootLayoutNav() {
               </ToastProviderWithViewport>
             </AuthProvider>
           </ThemeProvider>
-          {/* </View> */}
         </View>
       </KeyboardProvider>
     </GestureHandlerRootView>
