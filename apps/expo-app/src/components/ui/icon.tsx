@@ -109,22 +109,32 @@ const iconSizes = {
 function IconImpl({ name, ...props }: IconProps) {
   let IconComponent;
   const { colorScheme } = useColorScheme();
-  const [, ...colorChunk] =
-    props.className
-      ?.split(" ")
-      ?.reverse()
-      ?.find((a) => a?.startsWith("text-"))
-      ?.split("-") || [];
-  const color = colorChunk?.length ? camel(colorChunk?.join(" ")) : undefined;
+  const textClass = props.className
+    ?.split(" ")
+    ?.reverse()
+    ?.find((a) => a?.startsWith("text-"));
+  const textToken = textClass?.slice(5);
+  const [colorToken, opacityToken] = (textToken || "").split("/");
+  const color = colorToken
+    ? camel(colorToken.split("-").join(" "))
+    : undefined;
+  const parsedOpacity = opacityToken ? Number(opacityToken) : undefined;
+  const opacity =
+    parsedOpacity === undefined || Number.isNaN(parsedOpacity)
+      ? undefined
+      : parsedOpacity > 1
+        ? parsedOpacity / 100
+        : parsedOpacity;
 
   const _themColor =
     colorScheme === "dark" ? THEME.dark[color!] : THEME.light[color!];
-  //  = THEME.light[color!];
-
-  props.style = {
-    ...(props.style || ({} as any)),
+  const styleFromClass = {
     color: _themColor || color,
+    ...(opacity !== undefined ? { opacity } : {}),
   };
+  props.style = props.style
+    ? ([props.style, styleFromClass] as any)
+    : (styleFromClass as any);
 
   let sizestr = props?.className
     ?.split(" ")
