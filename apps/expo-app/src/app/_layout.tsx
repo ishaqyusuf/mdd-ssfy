@@ -1,8 +1,5 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import {
-  DefaultTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
+import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -78,18 +75,15 @@ const InitialLayout = () => {
       <TRPCReactProvider>
         <StaticTrpc />
         <StaticRouter />
-        <StatusBar style="dark" />
-        {/* <StatusBar style="auto" /> */}
+        {/* <StatusBar style="dark" /> */}
+        <StatusBar style="auto" />
 
         <Stack>
           <Stack.Protected guard={!token}>
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           </Stack.Protected>
           <Stack.Protected guard={!!isDriver}>
-            <Stack.Screen
-              name="(drivers)"
-              options={{ headerShown: false }}
-            />
+            <Stack.Screen name="(drivers)" options={{ headerShown: false }} />
           </Stack.Protected>
           <Stack.Protected guard={!!isAdmin}>
             <Stack.Screen name="(job-admin)" options={{ headerShown: false }} />

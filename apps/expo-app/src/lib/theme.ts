@@ -2,83 +2,83 @@ import { DarkTheme, DefaultTheme, type Theme } from "@react-navigation/native";
 
 export const THEME = {
   light: {
-    background: "rgb(255, 255, 255)",
-    foreground: "rgb(10, 7, 5)",
+    background: "rgb(248, 250, 252)",
+    foreground: "rgb(15, 23, 42)",
 
     card: "rgb(255, 255, 255)",
-    cardForeground: "rgb(10, 7, 5)",
+    cardForeground: "rgb(15, 23, 42)",
 
     popover: "rgb(255, 255, 255)",
-    popoverForeground: "rgb(10, 7, 5)",
+    popoverForeground: "rgb(15, 23, 42)",
 
-    primary: "rgb(21, 21, 250)",
-    primaryForeground: "rgb(6, 8, 59)",
+    primary: "rgb(30, 64, 175)",
+    primaryForeground: "rgb(239, 246, 255)",
 
-    success: "rgb(34, 197, 94)",
+    success: "rgb(22, 163, 74)",
     successForeground: "rgb(240, 253, 244)",
 
-    warn: "rgb(245, 158, 11)",
-    warnForeground: "rgb(69, 26, 3)",
+    warn: "rgb(217, 119, 6)",
+    warnForeground: "rgb(255, 247, 237)",
 
-    secondary: "rgb(245, 245, 244)",
-    secondaryForeground: "rgb(26, 22, 20)",
+    secondary: "rgb(241, 245, 249)",
+    secondaryForeground: "rgb(30, 41, 59)",
 
-    muted: "rgb(245, 245, 244)",
-    mutedForeground: "rgb(120, 113, 108)",
+    muted: "rgb(226, 232, 240)",
+    mutedForeground: "rgb(100, 116, 139)",
 
-    accent: "rgb(245, 245, 244)",
-    accentForeground: "rgb(26, 22, 20)",
+    accent: "rgb(219, 234, 254)",
+    accentForeground: "rgb(30, 64, 175)",
 
-    destructive: "rgb(239, 68, 68)",
-    destructiveForeground: "rgb(250, 250, 249)",
+    destructive: "rgb(185, 28, 28)",
+    destructiveForeground: "rgb(254, 242, 242)",
 
-    border: "rgb(229, 231, 235)",
-    input: "rgb(229, 231, 235)",
-    ring: "rgb(10, 7, 5)",
+    border: "rgb(203, 213, 225)",
+    input: "rgb(226, 232, 240)",
+    ring: "rgb(37, 99, 235)",
 
     radius: "0.65rem",
 
-    chart1: "rgb(234, 88, 12)",
-    chart2: "rgb(22, 163, 151)",
-    chart3: "rgb(30, 64, 92)",
-    chart4: "rgb(250, 204, 21)",
-    chart5: "rgb(249, 115, 22)",
+    chart1: "rgb(37, 99, 235)",
+    chart2: "rgb(13, 148, 136)",
+    chart3: "rgb(217, 119, 6)",
+    chart4: "rgb(99, 102, 241)",
+    chart5: "rgb(225, 29, 72)",
   },
 
   dark: {
-    background: "rgb(2, 6, 23)",
-    foreground: "rgb(248, 250, 252)",
+    background: "rgb(15, 23, 42)",
+    foreground: "rgb(226, 232, 240)",
 
-    card: "rgb(22, 28, 36)",
-    cardForeground: "rgb(241, 245, 249)",
+    card: "rgb(30, 41, 59)",
+    cardForeground: "rgb(226, 232, 240)",
 
-    popover: "rgb(24, 30, 38)",
-    popoverForeground: "rgb(241, 245, 249)",
+    popover: "rgb(30, 41, 59)",
+    popoverForeground: "rgb(226, 232, 240)",
 
-    primary: "rgb(249, 206, 31)",
-    primaryForeground: "rgb(57, 27, 5)",
+    primary: "rgb(96, 165, 250)",
+    primaryForeground: "rgb(15, 23, 42)",
 
-    success: "rgb(34, 197, 94)",
+    success: "rgb(22, 163, 74)",
     successForeground: "rgb(236, 253, 245)",
 
     warn: "rgb(245, 158, 11)",
     warnForeground: "rgb(255, 251, 235)",
 
-    secondary: "rgb(34, 40, 48)",
+    secondary: "rgb(51, 65, 85)",
     secondaryForeground: "rgb(226, 232, 240)",
 
-    muted: "rgb(40, 46, 54)",
+    muted: "rgb(30, 41, 59)",
     mutedForeground: "rgb(148, 163, 184)",
 
-    accent: "rgb(45, 52, 61)",
-    accentForeground: "rgb(241, 245, 249)",
+    accent: "rgb(30, 58, 138)",
+    accentForeground: "rgb(219, 234, 254)",
 
-    destructive: "rgb(178, 38, 38)",
-    destructiveForeground: "rgb(250, 250, 250)",
+    destructive: "rgb(220, 38, 38)",
+    destructiveForeground: "rgb(254, 242, 242)",
 
-    border: "rgb(45, 51, 59)",
-    input: "rgb(51, 57, 65)",
-    ring: "rgb(96, 165, 250)",
+    border: "rgb(51, 65, 85)",
+    input: "rgb(71, 85, 105)",
+    ring: "rgb(125, 211, 252)",
 
     radius: "0.65rem",
 
