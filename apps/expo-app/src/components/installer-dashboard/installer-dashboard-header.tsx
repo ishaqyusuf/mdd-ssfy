@@ -18,7 +18,7 @@ export function Header() {
   const auth = useAuthContext();
   const avatarUrl = null;
   return (
-    <View style={{ paddingTop: insets.top }} className="">
+    <View style={{ paddingTop: insets.top }}>
       <View className="flex-row items-center justify-between px-4 py-4">
         <Image
           source={{ uri: avatarUrl! }}

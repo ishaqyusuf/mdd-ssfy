@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import type { LucideProps } from "lucide-react-native";
 import {
+  icons,
   Activity,
   AlertCircle,
   AppWindow,
@@ -80,12 +81,15 @@ import {
   UserPlus,
   Users,
   UserX,
+  Warehouse,
   Wallet,
   Wind,
   Wrench,
   X,
   XCircle,
   Zap,
+  Route,
+  Ban,
 } from "lucide-react-native";
 import { useColorScheme } from "@/hooks/use-color";
 import { camel } from "@gnd/utils";
@@ -98,6 +102,7 @@ export type IconProps = LucideProps & {
 };
 // type T = IconProps['strokeWidth']
 const iconSizes = {
+  xs: 12,
   sm: 16,
   base: 20,
   md: 24,
@@ -115,9 +120,7 @@ function IconImpl({ name, ...props }: IconProps) {
     ?.find((a) => a?.startsWith("text-"));
   const textToken = textClass?.slice(5);
   const [colorToken, opacityToken] = (textToken || "").split("/");
-  const color = colorToken
-    ? camel(colorToken.split("-").join(" "))
-    : undefined;
+  const color = colorToken ? camel(colorToken.split("-").join(" ")) : undefined;
   const parsedOpacity = opacityToken ? Number(opacityToken) : undefined;
   const opacity =
     parsedOpacity === undefined || Number.isNaN(parsedOpacity)
@@ -146,7 +149,8 @@ function IconImpl({ name, ...props }: IconProps) {
   sizestr = iconSizes[sizestr] || sizestr || iconSizes?.base;
 
   props.size = +sizestr || props.size;
-  if (!IconComponent) IconComponent = appIcons![name!] || appIcons.X;
+  if (!IconComponent)
+    IconComponent = appIcons![name!] || icons![name!] || appIcons.X;
   const otherClasses = props.className
     ?.split(" ")
     .filter((a) => ["size-", "text-"].every((b) => !a?.startsWith(b)));
@@ -193,12 +197,12 @@ const appIcons = {
   AlertCircle,
   ArrowLeft,
   ArrowRight,
+  Ban,
   BarChart3,
   Bell,
   Briefcase,
   Building,
   Building2,
-
   Calendar,
   CalendarCheck,
   Camera,
@@ -253,6 +257,7 @@ const appIcons = {
   PlusCircle,
   Receipt,
   ReceiptText,
+  Route,
   Search,
   settings: Settings,
   Settings,
@@ -269,6 +274,7 @@ const appIcons = {
   Users,
   User,
   UserX,
+  Warehouse,
   Wallet,
   Wind,
   Wrench,
@@ -278,5 +284,5 @@ const appIcons = {
   ChartNoAxesColumn,
   Truck,
 };
-export type IconKeys = keyof typeof appIcons;
+export type IconKeys = keyof typeof appIcons | keyof typeof icons;
 export { Icon };

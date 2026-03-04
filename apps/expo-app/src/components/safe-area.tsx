@@ -1,5 +1,5 @@
 import { Platform, StyleProp, View, ViewProps } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { _insets } from "./static-trpc";
 
 export function SafeArea({
   children,
@@ -8,14 +8,14 @@ export function SafeArea({
   children: React.ReactNode;
   style?: StyleProp<ViewProps>;
 }) {
-  const insets = useSafeAreaInsets();
+  // const insets = useSafeAreaInsets();
   return (
     // <View className="flex-1">
     <View
       style={{
         ...(style || ({} as any)),
         paddingTop: Platform.select({
-          android: insets.top,
+          android: _insets?.top,
         }),
         flex: 1,
       }}
