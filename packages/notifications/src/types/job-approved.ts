@@ -1,5 +1,5 @@
 import type { NotificationHandler } from "../base";
-import { jobApprovedSchema } from "../schemas";
+import { jobApprovedSchema, JobApprovedTags } from "../schemas";
 
 export const jobApproved: NotificationHandler = {
   schema: jobApprovedSchema,
@@ -12,7 +12,7 @@ export const jobApproved: NotificationHandler = {
       authorId: author.id,
       tags: {
         jobId: data.jobId,
-      },
+      } as JobApprovedTags,
     };
   },
   createEmail(data, author, user, args) {

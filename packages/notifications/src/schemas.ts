@@ -36,7 +36,11 @@ export const createActivitySchema = z.object({
   // groupId: z.string().uuid().optional(), // Links related activities together
   tags: z.record(z.string(), z.any()), // Flexible - any JSON object
 });
-
+export const actityTagsSchema = z.object({
+  type: channel,
+  source,
+  priority,
+});
 export type CreateActivityInput = z.infer<typeof createActivitySchema>;
 
 export const userSchema = z.object({
@@ -147,6 +151,10 @@ export const jobApprovedSchema = z.object({
   // approvedByName: z.string().optional(),
   note: z.string().optional(),
 });
+export const jobApprovedTags = actityTagsSchema.extend({
+  jobId: z.number(),
+});
+export type JobApprovedTags = z.infer<typeof jobApprovedTags>;
 export type JobApprovedInput = z.infer<typeof jobApprovedSchema>;
 export const jobRejectedSchema = z.object({
   jobId: z.number(),
@@ -226,7 +234,9 @@ export const salesRequestPackingSchema = z.object({
   dispatchId: z.number(),
   packItems: updateSalesControlSchema.shape.packItems,
 });
-export type SalesRequestPackingInput = z.infer<typeof salesRequestPackingSchema>;
+export type SalesRequestPackingInput = z.infer<
+  typeof salesRequestPackingSchema
+>;
 export const baseNotificationJobSchema = z.object({
   author: z.object({
     id: z.number(),
