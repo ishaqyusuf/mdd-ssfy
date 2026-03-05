@@ -93,9 +93,7 @@ const InitialLayout = () => {
           <Stack.Protected guard={!!token && !!canAccessDispatchOrDriver}>
             <Stack.Screen name="(drivers)" options={{ headerShown: false }} />
           </Stack.Protected>
-          <Stack.Protected
-            guard={!!token && !!canAccessDispatchOrDriver && !!isAdmin}
-          >
+          <Stack.Protected guard={!!token && !!isAdmin}>
             <Stack.Screen name="(sales)" options={{ headerShown: false }} />
           </Stack.Protected>
           <Stack.Protected guard={!!token && !!canAccessJobs}>
@@ -111,7 +109,9 @@ const InitialLayout = () => {
               options={{ headerShown: false }}
             />
           </Stack.Protected>
-          <Stack.Protected guard={!!token && (canAccessJobs || canAccessInstaller)}>
+          <Stack.Protected
+            guard={!!token && (canAccessJobs || canAccessInstaller)}
+          >
             <Stack.Screen name="job-form" options={{ headerShown: false }} />
             <Stack.Screen
               name="job-overview-v2"

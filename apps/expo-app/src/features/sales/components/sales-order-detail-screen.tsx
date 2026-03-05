@@ -1,8 +1,8 @@
+import { _trpc } from "@/components/static-trpc";
 import { SafeArea } from "@/components/safe-area";
 import { Icon } from "@/components/ui/icon";
 import { useCreateOrderDelivery } from "@/features/sales/api/use-create-order-delivery";
 import { useSalesOrderOverview } from "@/features/sales/api/use-sales-order-overview";
-import { _trpc } from "@/components/static-trpc";
 import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -23,7 +23,9 @@ type Props = {
 export function SalesOrderDetailScreen({ orderNo }: Props) {
   const router = useRouter();
   const [deliveryOpen, setDeliveryOpen] = useState(false);
-  const [deliveryMode, setDeliveryMode] = useState<"delivery" | "pickup">("delivery");
+  const [deliveryMode, setDeliveryMode] = useState<"delivery" | "pickup">(
+    "delivery",
+  );
   const [deliveryStatus, setDeliveryStatus] = useState<
     "queue" | "in progress" | "completed"
   >("queue");
@@ -66,6 +68,11 @@ export function SalesOrderDetailScreen({ orderNo }: Props) {
   const deliveryItems = dispatchData?.deliveries || [];
   const orderItems = dispatchData?.dispatchables || [];
 
+  const paid = Number(saleData?.invoice?.paid || 0);
+  const total = Number(saleData?.invoice?.total || 0);
+  const due = Number(saleData?.invoice?.pending || 0);
+  const paidPct = total > 0 ? Math.min(100, Math.max(0, (paid / total) * 100)) : 0;
+
   if (sale.isPending || dispatch.isPending) {
     return (
       <SafeArea>
@@ -76,62 +83,108 @@ export function SalesOrderDetailScreen({ orderNo }: Props) {
     );
   }
 
+  const tone = statusTone(saleData?.deliveryStatus);
+
   return (
     <SafeArea>
-      <View className="flex-1 bg-background px-4 pt-4">
-        <View className="mb-4 flex-row items-center gap-3">
-          <Pressable
-            onPress={() => router.back()}
-            className="h-10 w-10 items-center justify-center rounded-full active:bg-muted"
-          >
-            <Icon name="ArrowLeft" className="text-foreground" size={20} />
-          </Pressable>
-          <View className="flex-1">
-            <Text className="text-xl font-bold text-foreground">Order #{saleData?.orderId}</Text>
-            <Text className="text-sm text-muted-foreground">Sales order details</Text>
+      <View className="flex-1 bg-background">
+        <View className="border-b border-border/70 bg-background px-4 pb-4 pt-4">
+          <View className="mb-3 flex-row items-center gap-3">
+            <Pressable
+              onPress={() => router.back()}
+              className="h-10 w-10 items-center justify-center rounded-full active:bg-muted"
+            >
+              <Icon name="ArrowLeft" className="text-foreground" size={20} />
+            </Pressable>
+            <View className="flex-1">
+              <Text className="text-xl font-bold text-foreground">Order #{saleData?.orderId}</Text>
+              <Text className="text-xs text-muted-foreground">Sales order overview</Text>
+            </View>
+            <View
+              className={`flex-row items-center gap-1 rounded-full border px-2.5 py-1 ${tone.chip}`}
+            >
+              <View className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />
+              <Text className={`text-[10px] font-bold uppercase ${tone.text}`}>
+                {saleData?.deliveryStatus || "pending"}
+              </Text>
+            </View>
           </View>
-          <View className="rounded-full border border-border px-2 py-1">
-            <Text className="text-xs font-semibold text-muted-foreground">
-              {saleData?.deliveryStatus || "N/A"}
+
+          <View className="overflow-hidden rounded-3xl border border-border bg-card px-4 pb-4 pt-3">
+            <View className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-primary/10" />
+            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {saleData?.displayName || "Customer"}
             </Text>
+            <View className="mt-3 flex-row gap-2">
+              <MetricPill label="Total" value={money(total)} icon="ReceiptText" />
+              <MetricPill label="Paid" value={money(paid)} icon="CircleDollarSign" />
+              <MetricPill label="Due" value={money(due)} icon="Wallet" />
+            </View>
+            <View className="mt-3">
+              <View className="mb-1.5 flex-row items-center justify-between">
+                <Text className="text-[11px] text-muted-foreground">Payment Progress</Text>
+                <Text className="text-[11px] font-semibold text-foreground">{paidPct.toFixed(0)}%</Text>
+              </View>
+              <View className="h-1.5 overflow-hidden rounded-full bg-muted">
+                <View className="h-full rounded-full bg-primary" style={{ width: `${paidPct}%` }} />
+              </View>
+            </View>
           </View>
         </View>
 
-        <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
-          <Section title="Financial">
-            <Row label="Cost" value={`$${Number(saleData?.invoice?.total || 0).toFixed(2)}`} />
-            <Row label="Paid" value={`$${Number(saleData?.invoice?.paid || 0).toFixed(2)}`} />
-            <Row label="Tax" value={`$${taxAmount.toFixed(2)}`} />
-            <Row label="Discount" value={`$${discountAmount.toFixed(2)}`} />
-            <Row label="Balance" value={`$${Number(saleData?.invoice?.pending || 0).toFixed(2)}`} />
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingTop: 12,
+            paddingBottom: 28,
+          }}
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled
+          scrollEnabled
+          bounces
+          alwaysBounceVertical
+          scrollEventThrottle={16}
+        >
+          <Section title="Financial" icon="Wallet">
+            <GridStat label="Cost" value={money(total)} />
+            <GridStat label="Paid" value={money(paid)} />
+            <GridStat label="Tax" value={money(taxAmount)} />
+            <GridStat label="Discount" value={money(discountAmount)} />
+            <GridStat label="Balance" value={money(due)} />
           </Section>
 
-          <Section title="Contact">
-            <Row label="Name" value={saleData?.displayName || "-"} />
-            <Row label="Phone" value={saleData?.customerPhone || "-"} />
-            <Row label="Email" value={saleData?.email || "-"} />
+          <Section title="Contact" icon="User">
+            <InfoRow label="Name" value={saleData?.displayName || "-"} icon="User" />
+            <InfoRow label="Phone" value={saleData?.customerPhone || "-"} icon="Phone" />
+            <InfoRow label="Email" value={saleData?.email || "-"} icon="Mail" />
           </Section>
 
-          <Section title="Shipping">
+          <Section title="Shipping" icon="Truck">
             <AddressBlock address={saleData?.addressData?.shipping} />
           </Section>
 
-          <Section title="Billing">
+          <Section title="Billing" icon="ReceiptText">
             <AddressBlock address={saleData?.addressData?.billing} />
           </Section>
 
-          <Section title="Activities">
+          <Section title="Activities" icon="Clock">
             {deliveryItems.length ? (
               deliveryItems.slice(0, 8).map((delivery) => (
                 <View
                   key={delivery.id}
-                  className="mb-2 rounded-xl border border-border bg-background px-3 py-2"
+                  className="mb-2 rounded-2xl border border-border bg-background px-3 py-3"
                 >
-                  <Text className="text-sm font-semibold text-foreground">
-                    Delivery #{delivery.id}
-                  </Text>
-                  <Text className="text-xs text-muted-foreground">
-                    {delivery.status || "queue"} {delivery.dueDate ? `• ${new Date(delivery.dueDate).toDateString()}` : ""}
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-sm font-semibold text-foreground">Delivery #{delivery.id}</Text>
+                    <Text className="text-xs uppercase text-muted-foreground">
+                      {delivery.status || "queue"}
+                    </Text>
+                  </View>
+                  <Text className="mt-1 text-xs text-muted-foreground">
+                    {delivery.dueDate
+                      ? new Date(delivery.dueDate).toDateString()
+                      : "No due date"}
                   </Text>
                 </View>
               ))
@@ -140,22 +193,22 @@ export function SalesOrderDetailScreen({ orderNo }: Props) {
             )}
           </Section>
 
-          <Section title="Items">
+          <Section title="Items" icon="LayoutGrid">
             {orderItems.length ? (
               orderItems.map((item) => (
                 <View
                   key={item.uid}
-                  className="mb-2 flex-row items-center gap-3 rounded-xl border border-border bg-background p-2"
+                  className="mb-2 flex-row items-center gap-3 rounded-2xl border border-border bg-background p-2.5"
                 >
                   {item?.img ? (
                     <Image
                       source={{ uri: item.img }}
-                      style={{ width: 52, height: 52, borderRadius: 10 }}
+                      style={{ width: 56, height: 56, borderRadius: 12 }}
                       contentFit="cover"
                     />
                   ) : (
-                    <View className="h-[52px] w-[52px] items-center justify-center rounded-xl border border-border bg-card">
-                      <Icon name="Package" className="text-muted-foreground" size={16} />
+                    <View className="h-14 w-14 items-center justify-center rounded-xl border border-border bg-card">
+                      <Icon name="LayoutGrid" className="text-muted-foreground" size={18} />
                     </View>
                   )}
                   <View className="flex-1">
@@ -164,8 +217,8 @@ export function SalesOrderDetailScreen({ orderNo }: Props) {
                       {item.subtitle || "No subtitle"}
                     </Text>
                   </View>
-                  <View className="rounded-full border border-border px-2 py-1">
-                    <Text className="text-xs text-muted-foreground">
+                  <View className="rounded-full border border-border px-2.5 py-1">
+                    <Text className="text-xs font-medium text-muted-foreground">
                       Qty {Number(item?.totalQty?.qty || 0)}
                     </Text>
                   </View>
@@ -176,7 +229,7 @@ export function SalesOrderDetailScreen({ orderNo }: Props) {
             )}
           </Section>
 
-          <Section title="Deliveries">
+          <Section title="Deliveries" icon="Truck">
             {deliveryItems.length ? (
               deliveryItems.map((delivery) => (
                 <Pressable
@@ -190,7 +243,7 @@ export function SalesOrderDetailScreen({ orderNo }: Props) {
                       },
                     } as any)
                   }
-                  className="mb-2 rounded-xl border border-border bg-background px-3 py-3 active:opacity-80"
+                  className="mb-2 rounded-2xl border border-border bg-background px-3 py-3 active:opacity-80"
                 >
                   <View className="flex-row items-center justify-between">
                     <Text className="text-sm font-semibold text-foreground">Delivery #{delivery.id}</Text>
@@ -206,17 +259,15 @@ export function SalesOrderDetailScreen({ orderNo }: Props) {
               <Text className="text-sm text-muted-foreground">No deliveries yet.</Text>
             )}
           </Section>
-        </ScrollView>
 
-        <View className="absolute bottom-8 left-4 right-4">
           <Pressable
             disabled={!saleData?.id}
             onPress={() => setDeliveryOpen(true)}
-            className="h-12 items-center justify-center rounded-xl bg-primary disabled:opacity-50"
+            className="mb-2 mt-1 h-12 items-center justify-center rounded-xl bg-primary disabled:opacity-50"
           >
             <Text className="text-sm font-semibold text-primary-foreground">Create Delivery</Text>
           </Pressable>
-        </View>
+        </ScrollView>
       </View>
 
       <Modal
@@ -338,20 +389,104 @@ export function SalesOrderDetailScreen({ orderNo }: Props) {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function money(value?: number | null) {
+  return `$${Number(value || 0).toFixed(2)}`;
+}
+
+function statusTone(status?: string | null) {
+  const value = String(status || "").toLowerCase();
+  if (value.includes("completed")) {
+    return {
+      chip: "border-emerald-300 bg-emerald-500/10",
+      text: "text-emerald-700 dark:text-emerald-300",
+      dot: "bg-emerald-500",
+    };
+  }
+  if (value.includes("progress")) {
+    return {
+      chip: "border-amber-300 bg-amber-500/10",
+      text: "text-amber-700 dark:text-amber-300",
+      dot: "bg-amber-500",
+    };
+  }
+  return {
+    chip: "border-border bg-muted",
+    text: "text-muted-foreground",
+    dot: "bg-muted-foreground",
+  };
+}
+
+function Section({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon: any;
+  children: React.ReactNode;
+}) {
   return (
-    <View className="mb-4 rounded-2xl border border-border bg-card p-4">
-      <Text className="mb-2 text-sm font-semibold text-foreground">{title}</Text>
+    <View className="mb-4 overflow-hidden rounded-3xl border border-border bg-card p-4">
+      <View className="mb-3 flex-row items-center gap-2">
+        <View className="rounded-full bg-secondary p-1.5">
+          <Icon name={icon} className="text-foreground" size={14} />
+        </View>
+        <Text className="text-sm font-bold text-foreground">{title}</Text>
+      </View>
       {children}
     </View>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function MetricPill({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string;
+  icon: any;
+}) {
   return (
-    <View className="mb-2 flex-row items-center justify-between">
-      <Text className="text-xs text-muted-foreground">{label}</Text>
+    <View className="flex-1 rounded-xl border border-border bg-background px-2.5 py-2">
+      <View className="mb-1 flex-row items-center gap-1.5">
+        <Icon name={icon} className="text-muted-foreground" size={12} />
+        <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          {label}
+        </Text>
+      </View>
+      <Text className="text-xs font-bold text-foreground">{value}</Text>
+    </View>
+  );
+}
+
+function GridStat({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="mb-2 flex-row items-center justify-between rounded-xl border border-border bg-background px-3 py-2.5">
+      <Text className="text-xs font-medium text-muted-foreground">{label}</Text>
       <Text className="text-sm font-semibold text-foreground">{value}</Text>
+    </View>
+  );
+}
+
+function InfoRow({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string;
+  icon: any;
+}) {
+  return (
+    <View className="mb-2 flex-row items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5">
+      <Icon name={icon} className="text-muted-foreground" size={14} />
+      <View className="flex-1">
+        <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          {label}
+        </Text>
+        <Text className="text-sm font-semibold text-foreground">{value}</Text>
+      </View>
     </View>
   );
 }
@@ -362,11 +497,15 @@ function AddressBlock({ address }: { address?: any }) {
     return <Text className="text-sm text-muted-foreground">No address.</Text>;
   }
   return (
-    <View className="gap-1">
+    <View className="gap-2">
       {lines.map((line: string, index: number) => (
-        <Text key={String(index)} className="text-sm text-foreground">
-          {line}
-        </Text>
+        <View
+          key={String(index)}
+          className="flex-row items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5"
+        >
+          <Icon name="MapPin" className="text-muted-foreground" size={14} />
+          <Text className="flex-1 text-sm text-foreground">{line}</Text>
+        </View>
       ))}
     </View>
   );

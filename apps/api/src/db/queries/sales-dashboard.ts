@@ -263,28 +263,54 @@ export async function getSalesRepLeaderboard(ctx: TRPCContext, filter: Filter) {
 }
 
 export async function getMobileSalesDashboardOverview(ctx: TRPCContext) {
-  const orders = await ctx.db.salesOrders.findMany({
-    where: {
-      deletedAt: null,
-      type: "order",
-    },
-    select: {
-      id: true,
-      stat: {
-        where: {
-          deletedAt: null,
+  const [orders, recentOrders] = await Promise.all([
+    ctx.db.salesOrders.findMany({
+      where: {
+        deletedAt: null,
+        type: "order",
+      },
+      select: {
+        id: true,
+        stat: {
+          where: {
+            deletedAt: null,
+          },
+        },
+        deliveries: {
+          where: {
+            deletedAt: null,
+          },
+          select: {
+            status: true,
+          },
         },
       },
-      deliveries: {
-        where: {
-          deletedAt: null,
-        },
-        select: {
-          status: true,
+    }),
+    ctx.db.salesOrders.findMany({
+      where: {
+        deletedAt: null,
+        type: "order",
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 10,
+      select: {
+        id: true,
+        orderId: true,
+        createdAt: true,
+        grandTotal: true,
+        amountDue: true,
+        deliveryOption: true,
+        customer: {
+          select: {
+            name: true,
+            businessName: true,
+          },
         },
       },
-    },
-  });
+    }),
+  ]);
 
   const production = {
     pending: 0,
@@ -322,6 +348,16 @@ export async function getMobileSalesDashboardOverview(ctx: TRPCContext) {
     },
     production,
     delivery,
+    recentSales: recentOrders.map((order) => ({
+      id: order.id,
+      orderId: order.orderId,
+      customerName: order.customer?.businessName || order.customer?.name || "-",
+      total: Number(order.grandTotal || 0),
+      due: Number(order.amountDue || 0),
+      paid: Number(order.grandTotal || 0) - Number(order.amountDue || 0),
+      createdAt: order.createdAt?.toISOString() || null,
+      deliveryOption: order.deliveryOption || null,
+    })),
     updatedAt: new Date().toISOString(),
   };
 }

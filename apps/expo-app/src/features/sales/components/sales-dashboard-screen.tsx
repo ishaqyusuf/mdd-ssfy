@@ -2,7 +2,14 @@ import { SafeArea } from "@/components/safe-area";
 import { Icon } from "@/components/ui/icon";
 import { useSalesDashboardOverview } from "@/features/sales/api/use-sales-dashboard-overview";
 import { useRouter } from "expo-router";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 
 export function SalesDashboardScreen() {
   const router = useRouter();
@@ -31,7 +38,15 @@ export function SalesDashboardScreen() {
             <ActivityIndicator />
           </View>
         ) : (
-          <>
+          <ScrollView
+            contentContainerStyle={{ paddingBottom: 36 }}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefetching}
+                onRefresh={() => refetch()}
+              />
+            }
+          >
             <View className="mb-4 flex-row flex-wrap gap-3">
               <StatCard label="Orders" value={data?.orders?.total || 0} />
               <StatCard
@@ -84,6 +99,40 @@ export function SalesDashboardScreen() {
               </View>
             </View>
 
+            <View className="mt-5">
+              <View className="mb-3 flex-row items-center justify-between">
+                <Text className="text-base font-bold text-foreground">
+                  Recent Sales
+                </Text>
+                <Text className="text-xs font-medium text-muted-foreground">
+                  Last 10 records
+                </Text>
+              </View>
+
+              {(data?.recentSales || []).length ? (
+                <View className="gap-2">
+                  {(data?.recentSales || []).map((sale) => (
+                    <RecentSaleItem
+                      key={String(sale.id)}
+                      sale={sale}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/(sales)/orders/[orderNo]",
+                          params: { orderNo: sale.orderId },
+                        } as any)
+                      }
+                    />
+                  ))}
+                </View>
+              ) : (
+                <View className="rounded-2xl border border-dashed border-border p-4">
+                  <Text className="text-sm text-muted-foreground">
+                    No recent sales found.
+                  </Text>
+                </View>
+              )}
+            </View>
+
             <Pressable
               onPress={() => refetch()}
               className="mt-6 self-center rounded-full border border-border px-4 py-2 active:opacity-80"
@@ -93,7 +142,7 @@ export function SalesDashboardScreen() {
                 {isRefetching ? "Refreshing..." : "Refresh"}
               </Text>
             </Pressable>
-          </>
+          </ScrollView>
         )}
       </View>
     </SafeArea>
@@ -106,5 +155,40 @@ function StatCard({ label, value }: { label: string; value: number }) {
       <Text className="text-xs font-medium text-muted-foreground">{label}</Text>
       <Text className="mt-2 text-3xl font-bold text-foreground">{value}</Text>
     </View>
+  );
+}
+
+function RecentSaleItem({
+  sale,
+  onPress,
+}: {
+  sale: any;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="rounded-2xl border border-border bg-card px-3.5 py-3 active:opacity-80"
+    >
+      <View className="flex-row items-center justify-between">
+        <View className="flex-1 pr-3">
+          <Text className="text-sm font-bold text-foreground">
+            #{sale.orderId}
+          </Text>
+          <Text className="mt-0.5 text-xs text-muted-foreground">
+            {sale.customerName || "-"}
+          </Text>
+        </View>
+
+        <View className="items-end">
+          <Text className="text-sm font-semibold text-foreground">
+            ${Number(sale.total || 0).toFixed(2)}
+          </Text>
+          <Text className="text-[11px] text-muted-foreground">
+            Due ${Number(sale.due || 0).toFixed(2)}
+          </Text>
+        </View>
+      </View>
+    </Pressable>
   );
 }

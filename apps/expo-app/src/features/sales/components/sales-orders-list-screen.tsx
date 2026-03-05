@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { OrdersFilterModal } from "./orders-filter-modal";
+import { SalesOrderCard } from "./sales-order-card";
 
 export function SalesOrdersListScreen() {
   const router = useRouter();
@@ -90,32 +91,15 @@ export function SalesOrdersListScreen() {
               </View>
             }
             renderItem={({ item }) => (
-              <Pressable
+              <SalesOrderCard
+                item={item}
                 onPress={() =>
                   router.push({
                     pathname: "/(sales)/orders/[orderNo]",
                     params: { orderNo: item.orderId },
                   } as any)
                 }
-                className="mb-3 rounded-2xl border border-border bg-card p-4 active:opacity-80"
-              >
-                <View className="mb-2 flex-row items-center justify-between">
-                  <Text className="text-sm font-bold text-foreground">#{item.orderId}</Text>
-                  <View className="rounded-full border border-border px-2 py-1">
-                    <Text className="text-xs font-semibold text-muted-foreground">
-                      {item.deliveryStatus || "N/A"}
-                    </Text>
-                  </View>
-                </View>
-                <Text className="text-sm font-semibold text-foreground">{item.displayName || "-"}</Text>
-                <Text className="mt-1 text-xs text-muted-foreground">{item.customerPhone || "-"}</Text>
-                <View className="mt-3 flex-row items-center justify-between">
-                  <Text className="text-xs text-muted-foreground">{item.salesDate}</Text>
-                  <Text className="text-sm font-semibold text-foreground">
-                    ${(item?.invoice?.total || 0).toFixed(2)}
-                  </Text>
-                </View>
-              </Pressable>
+              />
             )}
           />
         )}

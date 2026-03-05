@@ -5,12 +5,12 @@ import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Delete } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-// import AddressDialog from "./address-dialog";
+import { useEffect, useState } from "react";
 
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
+
 export interface AddressType {
     address1: string;
     address2: string;
@@ -35,16 +35,35 @@ interface AddressAutoCompleteProps {
 }
 
 type Prediction = {
-    placePrediction: {
-        placeId: string;
-        place: string;
-        text: { text: string };
+    placePrediction?: {
+        placeId?: string;
+        place?: string;
+        text?: { text?: string };
     };
 };
+
+type PredictionItem = Prediction & {
+    id: string;
+    label: string;
+};
+
+function resolvePlaceId(prediction?: Prediction) {
+    const placePrediction = prediction?.placePrediction;
+    if (!placePrediction) return "";
+
+    if (placePrediction.placeId) return placePrediction.placeId;
+
+    // Fallback for payloads that only return place resource name: places/<id>
+    const placeResource = placePrediction.place;
+    if (!placeResource) return "";
+
+    const match = /^places\/(.+)$/.exec(placeResource);
+    return match?.[1] ?? "";
+}
+
 export default function AddressAutoComplete(props: AddressAutoCompleteProps) {
     const {
         setAddress,
-        dialogTitle,
         showInlineError = true,
         searchInput,
         setSearchInput,
@@ -52,7 +71,6 @@ export default function AddressAutoComplete(props: AddressAutoCompleteProps) {
     } = props;
 
     const [selectedPlaceId, setSelectedPlaceId] = useState("");
-    const [isOpen, setIsOpen] = useState(false);
     const trpc = useTRPC();
     const { data: fData } = useQuery(
         trpc.google.place.queryOptions(
@@ -74,6 +92,7 @@ export default function AddressAutoComplete(props: AddressAutoCompleteProps) {
         }
     }, [data, setAddress]);
     const [address, __setAddress] = useState<any>({});
+
     return (
         <>
             {selectedPlaceId !== "" || address.formattedAddress ? (
@@ -97,9 +116,7 @@ export default function AddressAutoComplete(props: AddressAutoCompleteProps) {
                 <AddressAutoCompleteInput
                     searchInput={searchInput}
                     setSearchInput={setSearchInput}
-                    selectedPlaceId={selectedPlaceId}
                     setSelectedPlaceId={setSelectedPlaceId}
-                    setIsOpenDialog={setIsOpen}
                     showInlineError={showInlineError}
                     placeholder={placeholder}
                 />
@@ -109,9 +126,7 @@ export default function AddressAutoComplete(props: AddressAutoCompleteProps) {
 }
 
 interface CommonProps {
-    selectedPlaceId: string;
     setSelectedPlaceId: (placeId: string) => void;
-    setIsOpenDialog: (isOpen: boolean) => void;
     showInlineError?: boolean;
     searchInput: string;
     setSearchInput: (searchInput: string) => void;
@@ -121,38 +136,20 @@ interface CommonProps {
 function AddressAutoCompleteInput(props: CommonProps) {
     const {
         setSelectedPlaceId,
-        selectedPlaceId,
-        setIsOpenDialog,
-        showInlineError,
         searchInput,
         setSearchInput,
         placeholder,
     } = props;
     const [internalSearchInput, setInternalSearchInput] = useState(searchInput);
-    const [isOpen, setIsOpen] = useState(false);
 
     useEffect(() => {
         setInternalSearchInput(searchInput);
     }, [searchInput]);
 
-    const open = useCallback(() => setIsOpen(true), []);
-    const close = useCallback(() => setIsOpen(false), []);
-
-    const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === "Escape") {
-            close();
-        }
-    };
-
     const debouncedSearchInput = useDebounce(internalSearchInput, 500);
 
-    // const { data, isLoading } = useSWR(
-    //     // For real use case: /api/address/autocomplete?input=${debouncedSearchInput}
-    //     `/api/address/autocomplete?input=${debouncedSearchInput}`,
-    //     fetcher,
-    // );
     const trpc = useTRPC();
-    const { data, error } = useQuery(
+    const { data } = useQuery(
         trpc.google.places.queryOptions(
             {
                 q: debouncedSearchInput,
@@ -162,24 +159,31 @@ function AddressAutoCompleteInput(props: CommonProps) {
             },
         ),
     );
-    console.log({ error });
-    const predictions: Prediction[] =
-        data?.filter((prediction) => prediction?.placePrediction?.placeId) ||
-        [];
+
+    const predictions = (Array.isArray(data) ? data : [])
+        .map((prediction) => {
+            const placeId = resolvePlaceId(prediction as Prediction);
+            const label = (prediction as Prediction)?.placePrediction?.text?.text?.trim();
+
+            if (!placeId || !label) return null;
+
+            return {
+                ...(prediction as Prediction),
+                id: placeId,
+                label,
+            } as PredictionItem;
+        })
+        .filter(Boolean) as PredictionItem[];
+
     return (
         <div>
             <ComboboxDropdown
                 placeholder={placeholder || "Search Address"}
                 searchPlaceholder={placeholder || "Search Address"}
                 onSelect={(item) => {
-                    setSelectedPlaceId(item?.placePrediction?.placeId);
+                    setSelectedPlaceId(item.id);
                 }}
-                headless
-                items={predictions?.map((prediction) => ({
-                    ...prediction,
-                    label: prediction.placePrediction.text.text,
-                    id: prediction.placePrediction.placeId,
-                }))}
+                items={predictions}
                 onSearch={(value) => {
                     setInternalSearchInput(value);
                     setSearchInput(value);
