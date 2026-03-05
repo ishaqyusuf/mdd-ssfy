@@ -26,7 +26,7 @@ import { SalesQueryParamsSchema } from "../schema";
 
 export function salesAddressLines(
   address?: Prisma.AddressBooksGetPayload<{}>,
-  customer?: Prisma.CustomersGetPayload<{}>
+  customer?: Prisma.CustomersGetPayload<{}>,
 ) {
   let meta = address?.meta as any as AddressBookMeta;
   let cMeta = customer?.meta as any as CustomerMeta;
@@ -143,8 +143,8 @@ export function getItemStatConfig({ setting, ...props }: ItemStatConfigProps) {
         production: isService
           ? props.dykeProduction
           : props?.prodOverride
-          ? props?.prodOverride?.production
-          : config?.production,
+            ? props?.prodOverride?.production
+            : config?.production,
         shipping: config?.shipping,
       }
     : {
@@ -435,6 +435,7 @@ export const FullSalesSelect = {
         },
         select: {
           id: true,
+
           stepProduct: {
             where: {
               deletedAt: null,
@@ -467,6 +468,7 @@ export const FullSalesSelect = {
               stepProduct: {
                 select: {
                   name: true,
+
                   door: {
                     select: {
                       title: true,
@@ -521,7 +523,7 @@ export type SalesDispatchStatus =
   | "cancelled";
 
 export function getDispatchControlType(
-  status: SalesDispatchStatus
+  status: SalesDispatchStatus,
 ): QtyControlType {
   switch (status) {
     case "cancelled":
@@ -707,14 +709,14 @@ export function dueDateAlert(dates): { text; color; date } {
   const _date = result.today
     ? result.today
     : result?.pastDues?.length
-    ? result?.pastDues[0]
-    : result?.futureDues?.length
-    ? result?.futureDues[0]
-    : {
-        text: "No due dates",
-        color: "gray",
-        date: null,
-      };
+      ? result?.pastDues[0]
+      : result?.futureDues?.length
+        ? result?.futureDues[0]
+        : {
+            text: "No due dates",
+            color: "gray",
+            date: null,
+          };
   return {
     ..._date,
     dateString: _date?.date ? formatDate(_date.date) : null,
@@ -731,7 +733,7 @@ export function overallStatus(dataStats: SalesStat[]) {
   const sk = statToKeyValue(dataStats);
   const dispatch = sumArrayKeys(
     [sk.dispatchAssigned, sk.dispatchInProgress, sk.dispatchCompleted],
-    ["score", "total", "percentage"]
+    ["score", "total", "percentage"],
   );
 
   return {
@@ -809,7 +811,7 @@ export function transformPayrollUid(uid) {
     uid?.split(",").map((a) => {
       const [k, v] = a?.split(":");
       return [k, Number(v)];
-    })
+    }),
   ) as any as {
     oid: number;
     pid: number;

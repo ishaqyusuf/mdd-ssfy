@@ -71,8 +71,13 @@ export default function RootLayout() {
   return <RootLayoutNav />;
 }
 const InitialLayout = () => {
-  const { token, isAdmin, isDriver, isInstaller } = useAuthContext();
+  const { token, currentSection, sections } = useAuthContext();
   const { colorScheme } = useColorScheme();
+  const canAccessJobs = currentSection?.isJobs;
+  const canAccessInstaller = currentSection?.isInstaller;
+  const canAccessDispatchOrDriver =
+    currentSection?.isDispatch || currentSection?.isDriver;
+  const hasAnySection = sections.length > 0;
 
   return (
     <>
@@ -85,30 +90,30 @@ const InitialLayout = () => {
           <Stack.Protected guard={!token}>
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           </Stack.Protected>
-          <Stack.Protected guard={!!isDriver && !isAdmin}>
+          <Stack.Protected guard={!!token && !!canAccessDispatchOrDriver}>
             <Stack.Screen name="(drivers)" options={{ headerShown: false }} />
           </Stack.Protected>
-          <Stack.Protected guard={!!isAdmin}>
+          <Stack.Protected guard={!!token && !!canAccessJobs}>
             <Stack.Screen name="(job-admin)" options={{ headerShown: false }} />
             <Stack.Screen
               name="(job-admin)/job-overview/[jobId]"
               options={{ headerShown: false }}
             />
           </Stack.Protected>
-          <Stack.Protected guard={!isAdmin && isInstaller}>
+          <Stack.Protected guard={!!token && !!canAccessInstaller}>
             <Stack.Screen
               name="(installers)"
               options={{ headerShown: false }}
             />
           </Stack.Protected>
-          <Stack.Protected guard={!isAdmin || !isInstaller}>
+          <Stack.Protected guard={!!token && (canAccessJobs || canAccessInstaller)}>
             <Stack.Screen name="job-form" options={{ headerShown: false }} />
             <Stack.Screen
               name="job-overview-v2"
               options={{ headerShown: false }}
             />
           </Stack.Protected>
-          <Stack.Protected guard={!isAdmin && !isDriver}>
+          <Stack.Protected guard={!!token && !hasAnySection}>
             <Stack.Screen name="unavailable" options={{ headerShown: false }} />
           </Stack.Protected>
 

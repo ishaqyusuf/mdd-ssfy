@@ -2,6 +2,13 @@ import { ICan, Roles } from "@gnd/utils/constants";
 import * as SecureStore from "expo-secure-store";
 
 export const SESSION_KEY = "gnd_prodesk";
+export type SectionKey = "jobs" | "dispatch" | "installer" | "driver";
+export type CurrentSection = {
+  isJobs: boolean;
+  isInstaller: boolean;
+  isDispatch: boolean;
+  isDriver: boolean;
+};
 
 export const getToken = () => {
   return SecureStore.getItem(SESSION_KEY);
@@ -16,16 +23,18 @@ export const setToken = (v: string) => SecureStore.setItem(SESSION_KEY, v);
 
 const profileKey = "session_profile";
 
-interface Profile {
+export interface Profile {
   can?: ICan;
-  role?: { id; name: Roles };
-  sessionId;
-  token;
+  role?: { id: number; name: Roles };
+  sessionId: string;
+  token: string;
+  sections?: SectionKey[];
+  currentSection?: CurrentSection;
   user: {
-    id;
-    name;
-    email;
-    phoneNo;
+    id: number;
+    name: string;
+    email: string;
+    phoneNo: string;
   };
 }
 export const getSessionProfile = () =>

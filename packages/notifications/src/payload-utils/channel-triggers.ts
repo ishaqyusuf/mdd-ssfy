@@ -121,6 +121,18 @@ export function createNotificationChannelTriggers(
         recipients: resolvedRecipients,
       });
     },
+    salesRequestPacking(input: Input<"sales_request_packing">) {
+      const { recipients, author, ...payload } = input;
+      const resolvedRecipients = resolveRecipients(
+        recipients,
+        getStoredRecipients(),
+      );
+      return options.send("sales_request_packing", {
+        payload,
+        author,
+        recipients: resolvedRecipients,
+      });
+    },
     jobReviewRequested(
       input: NotificationEvent<"job_review_requested">["payload"] & {
         recipients?: NotificationEvent<"job_review_requested">["recipients"];

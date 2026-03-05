@@ -24,6 +24,7 @@ export const channelNames = [
   "sales_production_item_completed",
   "sales_production_submission_cancelled",
   "sales_production_all_completed",
+  "sales_request_packing",
 ] as const;
 export type ChannelName = (typeof channelNames)[number];
 export const priorityStrings = [
@@ -94,6 +95,11 @@ export const channelsConfig: Partial<{
   },
   sales_email_reminder: {
     title: "Triggered when a sales reminder email is sent",
+    priority: 5,
+    category: "Sales",
+  },
+  sales_request_packing: {
+    title: "Triggered when driver submits a request for unavailable packing items",
     priority: 5,
     category: "Sales",
   },

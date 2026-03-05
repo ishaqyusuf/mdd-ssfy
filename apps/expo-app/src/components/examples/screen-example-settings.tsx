@@ -15,6 +15,14 @@ import {
   setThemeOverride,
   type ThemeOverride,
 } from "@/lib/theme-preference";
+
+const sectionRouteMap = {
+  jobs: "/(job-admin)",
+  dispatch: "/(drivers)/dispatch",
+  installer: "/(installers)",
+  driver: "/(drivers)",
+} as const;
+
 export default function SettingsExampleScreen() {
   const [pushEnabled, setPushEnabled] = useState(true);
   const [emailEnabled, setEmailEnabled] = useState(false);
@@ -58,6 +66,18 @@ export default function SettingsExampleScreen() {
   };
   // get expo build version
   const expoVersion = config.version;
+  const shouldShowSections = auth.sections.length > 1;
+
+  const onSelectSection = (section: (typeof auth.sections)[number]) => {
+    auth.setCurrentSection({
+      isJobs: !!section.isJobs,
+      isInstaller: !!section.isInstaller,
+      isDispatch: !!section.isDispatch,
+      isDriver: !!section.isDriver,
+    });
+    router.replace(sectionRouteMap[section.key] as any);
+  };
+
   return (
     <View className="flex-1 bg-background">
       {/* Header */}
@@ -133,6 +153,57 @@ export default function SettingsExampleScreen() {
                   />
                 }
               />
+            </Section>
+          )}
+          {!shouldShowSections || (
+            <Section title="Sections">
+              {auth.sections.map((section, index) => {
+                const isActive = [
+                  section.isJobs && auth.currentSection?.isJobs,
+                  section.isInstaller && auth.currentSection?.isInstaller,
+                  section.isDispatch && auth.currentSection?.isDispatch,
+                  section.isDriver && auth.currentSection?.isDriver,
+                ].some(Boolean);
+                const key = section.isJobs
+                  ? "jobs"
+                  : section.isDispatch
+                    ? "dispatch"
+                    : section.isInstaller
+                      ? "installer"
+                      : "driver";
+                const iconMap = {
+                  jobs: "Briefcase",
+                  dispatch: "Route",
+                  installer: "Wrench",
+                  driver: "Truck",
+                } as const;
+
+                return (
+                  <SettingsItem
+                    key={section.key}
+                    icon={iconMap[key]}
+                    label={section.label}
+                    subLabel={
+                      isActive
+                        ? "Current active section"
+                        : "Switch to this section"
+                    }
+                    isLast={index === auth.sections.length - 1}
+                    onPress={() => onSelectSection(section)}
+                    rightElement={
+                      isActive ? (
+                        <Icon name="CircleCheck" className="text-primary" size={20} />
+                      ) : (
+                        <Icon
+                          name="ChevronRight"
+                          className="text-muted-foreground"
+                          size={20}
+                        />
+                      )
+                    }
+                  />
+                );
+              })}
             </Section>
           )}
           <Section title="Appearance">
@@ -364,15 +435,18 @@ function SettingsItem({
   subLabel,
   rightElement,
   isLast,
+  onPress,
 }: {
   icon: IconKeys;
   label: string;
   subLabel?: string;
   rightElement?: React.ReactNode;
   isLast: boolean;
+  onPress?: () => void;
 }) {
   return (
     <Pressable
+      onPress={onPress}
       className={`flex-row items-center justify-between p-4 active:bg-muted/10 ${
         !isLast ? "border-b border-border" : ""
       }`}

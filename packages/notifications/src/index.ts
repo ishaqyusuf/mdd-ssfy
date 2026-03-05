@@ -17,6 +17,7 @@ import { jobSubmitted } from "./types/job-submitted";
 import { salesDispatchAssigned } from "./types/sales-dispatch-assigned";
 import { jobTaskConfigureRequest } from "./types/job-tasks-configure-request";
 import { salesEmailReminder } from "./types/sales-email-reminder";
+import { salesRequestPacking } from "./types/sales-request-packing";
 import { consoleLog } from "@gnd/utils";
 import {
   getSubscribersAccount,
@@ -32,6 +33,7 @@ const handlers = {
   job_task_configure_request: jobTaskConfigureRequest,
   sales_dispatch_assigned: salesDispatchAssigned,
   sales_email_reminder: salesEmailReminder,
+  sales_request_packing: salesRequestPacking,
 } as const;
 import { generateEmailMeta } from "./utils";
 

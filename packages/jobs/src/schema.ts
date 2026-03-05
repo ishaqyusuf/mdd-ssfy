@@ -18,6 +18,7 @@ export const taskNames = [
   "send-password-reset-to-default-email",
   "send-sales-email",
   "send-sales-reminder",
+  "run-sales-pending-bill-reminder-now",
   "send-storefront-welcome-email",
   "send-storefront-order-confirmation-email",
   "send-storefront-magic-login-code-email",

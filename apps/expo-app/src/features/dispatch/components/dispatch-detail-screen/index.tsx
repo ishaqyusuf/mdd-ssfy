@@ -3,10 +3,12 @@ import { useDispatchActions } from "../../api/use-dispatch-actions";
 import { useDispatchPacking } from "../../api/use-dispatch-packing";
 import { useDispatchUiState } from "../../state/use-dispatch-ui-state";
 import { formatDispatchDate, totalQty } from "../../lib/format-dispatch";
+import { buildPackingPayload } from "../../lib/packing-payload";
 import { Toast } from "@/components/ui/toast";
 import { Icon } from "@/components/ui/icon";
 import { BlurView } from "@/components/blur-view";
 import { useModal } from "@/components/ui/modal";
+import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useRef } from "react";
 import {
@@ -32,6 +34,8 @@ import { IssueReportScreen } from "./subscreens/issue-report-screen";
 import { CompleteDispatchScreen } from "./subscreens/complete-dispatch-screen";
 import { PackAllModal } from "./modals/pack-all-modal";
 import { PackingItemModal } from "./modals/packing-item-modal";
+import { useSalesRequestPacking } from "./hooks/use-sales-request-packing";
+import { SalesRequestPackingModal } from "./modals/sales-request-packing-modal";
 
 type Props = {
   dispatchId: number;
@@ -67,6 +71,7 @@ function DispatchDetailScreenInner({
   const detailUi = useDispatchDetailContext();
   const actions = useDispatchActions();
   const packing = useDispatchPacking();
+  const notification = useNotificationTrigger();
 
   const overview = useDispatchOverview(
     {
@@ -118,8 +123,14 @@ function DispatchDetailScreenInner({
     present: presentPackAllModal,
     dismiss: dismissPackAllModal,
   } = useModal();
+  const {
+    ref: salesRequestModalRef,
+    present: presentSalesRequestModal,
+    dismiss: dismissSalesRequestModal,
+  } = useModal();
   const packingSnapPoints = useMemo(() => ["70%"], []);
   const packAllSnapPoints = useMemo(() => ["88%"], []);
+  const salesRequestSnapPoints = useMemo(() => ["85%"], []);
   const hasAutoOpenedCompleteRef = useRef(false);
 
   useEffect(() => {
@@ -185,6 +196,29 @@ function DispatchDetailScreenInner({
       }),
     [items],
   );
+  const unpackableItems = useMemo(
+    () =>
+      items.filter((item) => {
+        const unavailable = (item as any).nonDeliverableQty || {};
+        return (
+          Number(unavailable.qty || 0) > 0 ||
+          Number(unavailable.lh || 0) > 0 ||
+          Number(unavailable.rh || 0) > 0
+        );
+      }),
+    [items],
+  );
+  const {
+    getSelection: getSalesRequestSelection,
+    setSelected: setSalesRequestSelected,
+    setQty: setSalesRequestQty,
+    markAll: markAllSalesRequestItems,
+    selectedItems: selectedSalesRequestItems,
+    reset: resetSalesRequestState,
+    parseQtyInput: parseSalesRequestQtyInput,
+    asNumber: asSalesRequestNumber,
+    hasSingleQty: hasSingleSalesRequestQty,
+  } = useSalesRequestPacking(unpackableItems);
   const {
     packingDrafts,
     setPackingDrafts,
@@ -294,6 +328,48 @@ function DispatchDetailScreenInner({
       return;
     }
     setIssueReportOpen(true);
+  };
+
+  const onSubmitSalesRequestPacking = async () => {
+    if (!dispatch?.id) return;
+    if (!selectedSalesRequestItems.length) {
+      Toast.show("Select at least one item and quantity.", { type: "warning" });
+      return;
+    }
+
+    const packingList = selectedSalesRequestItems.flatMap(({ item, qty }) => {
+      const built = buildPackingPayload({
+        salesItemId: item.salesItemId,
+        enteredQty: qty,
+        deliverables: (item.deliverables || []) as any,
+        note: "Requested via sales_request_packing",
+      });
+      return built.packingList;
+    });
+
+    try {
+      await notification.send("sales_request_packing", {
+        payload: {
+          orderNo: String(order?.orderId || pageTitle),
+          dispatchId: dispatch.id,
+          packItems: {
+            dispatchId: dispatch.id,
+            dispatchStatus: ((dispatch.status as any) || "queue") as any,
+            packMode: "selection",
+            packingList,
+          },
+        },
+      } as any);
+
+      dismissSalesRequestModal();
+      resetSalesRequestState();
+      Toast.show(
+        "Admin has been notified and all items will be automatically packed.",
+        { type: "success" },
+      );
+    } catch {
+      Toast.show("Unable to send packing request right now.", { type: "error" });
+    }
   };
 
   const onSubmitIssueReport = async () => {
@@ -794,6 +870,17 @@ function DispatchDetailScreenInner({
                 </Text>
               </Pressable>
             </View>
+
+            {unpackableItems.length > 0 ? (
+              <Pressable
+                onPress={() => presentSalesRequestModal()}
+                className="mt-3 h-11 flex-row items-center justify-center rounded-xl border border-amber-400/40 bg-amber-50 dark:bg-amber-950/30"
+              >
+                <Text className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+                  Packing not available for {unpackableItems.length} items
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
 
           <View className="mb-4 pb-8">
@@ -1017,6 +1104,24 @@ function DispatchDetailScreenInner({
           onDismiss={() => ui.setSelectedItemUid(null)}
           onPackItem={packing.onPackItem}
           onRefetch={overview.refetch}
+        />
+
+        <SalesRequestPackingModal
+          modalRef={salesRequestModalRef}
+          snapPoints={salesRequestSnapPoints}
+          unpackableItems={unpackableItems}
+          getSelection={getSalesRequestSelection}
+          setSelected={setSalesRequestSelected}
+          setQty={setSalesRequestQty}
+          markAll={markAllSalesRequestItems}
+          parseQtyInput={parseSalesRequestQtyInput}
+          asNumber={asSalesRequestNumber}
+          hasSingleQty={hasSingleSalesRequestQty}
+          isSubmitting={notification.isPending}
+          onSubmit={onSubmitSalesRequestPacking}
+          onDismiss={() => {
+            resetSalesRequestState();
+          }}
         />
       </View>
     </SafeArea>

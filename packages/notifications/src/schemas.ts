@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ChannelName, channelNames } from "./channels";
 import { paginationSchema } from "@gnd/utils/schema";
+import { updateSalesControlSchema } from "../../sales/src/schema";
 
 const channel = z.enum(channelNames);
 const source = z.enum(["system", "user"]).default("system");
@@ -177,6 +178,7 @@ export type NotificationTypes = {
   job_task_configure_request: JobTaskConfigureRequestInput;
   sales_dispatch_assigned: SalesDispatchAssignedInput;
   sales_email_reminder: SalesEmailReminderInput;
+  sales_request_packing: SalesRequestPackingInput;
 };
 
 export const getNotificationChannelsSchema = z
@@ -219,6 +221,12 @@ export const salesEmailReminderSchema = z.object({
   ),
 });
 export type SalesEmailReminderInput = z.infer<typeof salesEmailReminderSchema>;
+export const salesRequestPackingSchema = z.object({
+  orderNo: z.string(),
+  dispatchId: z.number(),
+  packItems: updateSalesControlSchema.shape.packItems,
+});
+export type SalesRequestPackingInput = z.infer<typeof salesRequestPackingSchema>;
 export const baseNotificationJobSchema = z.object({
   author: z.object({
     id: z.number(),
@@ -276,6 +284,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
   baseNotificationJobSchema.extend({
     channel: z.literal("sales_dispatch_created"),
     payload: salesDispatchAssignedSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("sales_request_packing"),
+    payload: salesRequestPackingSchema,
   }),
 ]);
 export type NotificationJobInput = z.infer<typeof notificationJobSchema>;
