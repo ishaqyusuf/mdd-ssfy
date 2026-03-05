@@ -3,6 +3,7 @@ import { Prisma } from "@gnd/db";
 import type { SalesType } from "@sales/types";
 import { eachDayOfInterval, format, parseISO, subDays } from "date-fns";
 import { getSales } from "./sales";
+import { overallStatus } from "@api/utils/sales";
 
 type Filter = {
   from?: string;
@@ -259,4 +260,68 @@ export async function getSalesRepLeaderboard(ctx: TRPCContext, filter: Filter) {
     name: userMap[rep.salesRepId!],
     totalSales: rep._sum.grandTotal ?? 0,
   }));
+}
+
+export async function getMobileSalesDashboardOverview(ctx: TRPCContext) {
+  const orders = await ctx.db.salesOrders.findMany({
+    where: {
+      deletedAt: null,
+      type: "order",
+    },
+    select: {
+      id: true,
+      stat: {
+        where: {
+          deletedAt: null,
+        },
+      },
+      deliveries: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          status: true,
+        },
+      },
+    },
+  });
+
+  const production = {
+    pending: 0,
+    inProgress: 0,
+    completed: 0,
+    unknown: 0,
+  };
+  const delivery = {
+    queue: 0,
+    inProgress: 0,
+    completed: 0,
+    cancelled: 0,
+  };
+
+  for (const order of orders) {
+    const status = overallStatus(order.stat);
+    const prodStatus = (status?.production?.status || "").toLowerCase();
+    if (prodStatus === "pending") production.pending += 1;
+    else if (prodStatus === "in progress") production.inProgress += 1;
+    else if (prodStatus === "completed") production.completed += 1;
+    else production.unknown += 1;
+
+    for (const d of order.deliveries) {
+      const value = (d.status || "").toLowerCase();
+      if (value === "queue") delivery.queue += 1;
+      else if (value === "in progress") delivery.inProgress += 1;
+      else if (value === "completed") delivery.completed += 1;
+      else if (value === "cancelled") delivery.cancelled += 1;
+    }
+  }
+
+  return {
+    orders: {
+      total: orders.length,
+    },
+    production,
+    delivery,
+    updatedAt: new Date().toISOString(),
+  };
 }

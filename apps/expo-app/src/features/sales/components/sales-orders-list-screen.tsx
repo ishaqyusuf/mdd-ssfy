@@ -1,0 +1,133 @@
+import { SafeArea } from "@/components/safe-area";
+import { Icon } from "@/components/ui/icon";
+import { useSalesOrderFilters } from "@/features/sales/api/use-sales-order-filters";
+import { useSalesOrdersList } from "@/features/sales/api/use-sales-orders-list";
+import type { FilterItem } from "@/features/sales/types/sales.types";
+import { useRouter } from "expo-router";
+import { useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { OrdersFilterModal } from "./orders-filter-modal";
+
+export function SalesOrdersListScreen() {
+  const router = useRouter();
+  const [search, setSearch] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [selectedFilters, setSelectedFilters] = useState<
+    Record<string, string | null | undefined>
+  >({});
+
+  const { data: rawFilters } = useSalesOrderFilters();
+  const filters = useMemo(() => (rawFilters || []) as FilterItem[], [rawFilters]);
+
+  const { data, isPending, isRefetching, refetch } = useSalesOrdersList({
+    q: search,
+    filters: selectedFilters,
+  });
+
+  const items = (data as any)?.data || [];
+
+  return (
+    <SafeArea>
+      <View className="flex-1 bg-background px-4 pt-4">
+        <View className="mb-4 flex-row items-center gap-3">
+          <Pressable
+            onPress={() => router.back()}
+            className="h-10 w-10 items-center justify-center rounded-full active:bg-muted"
+          >
+            <Icon name="ArrowLeft" className="text-foreground" size={20} />
+          </Pressable>
+          <View className="flex-1">
+            <Text className="text-2xl font-bold text-foreground">Orders</Text>
+            <Text className="text-sm text-muted-foreground">
+              Search and filter sales orders
+            </Text>
+          </View>
+        </View>
+
+        <View className="mb-4 flex-row items-center gap-2">
+          <View className="h-12 flex-1 flex-row items-center rounded-xl border border-border bg-card px-3">
+            <Icon name="Search" className="text-muted-foreground" size={18} />
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search order, customer, phone, PO"
+              placeholderTextColor="#8A8A8A"
+              className="ml-2 flex-1 text-foreground"
+            />
+          </View>
+          <Pressable
+            onPress={() => setFilterOpen(true)}
+            className="h-12 w-12 items-center justify-center rounded-xl border border-border bg-card active:opacity-80"
+          >
+            <Icon name="SlidersHorizontal" className="text-foreground" size={18} />
+          </Pressable>
+        </View>
+
+        {isPending ? (
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator />
+          </View>
+        ) : (
+          <FlatList
+            data={items}
+            keyExtractor={(item) => String(item.id)}
+            refreshing={isRefetching}
+            onRefresh={() => refetch()}
+            contentContainerClassName="pb-10"
+            ListEmptyComponent={
+              <View className="mt-8 items-center rounded-xl border border-dashed border-border p-8">
+                <Text className="text-base font-semibold text-foreground">No orders found</Text>
+                <Text className="mt-2 text-center text-sm text-muted-foreground">
+                  Adjust search or filters and try again.
+                </Text>
+              </View>
+            }
+            renderItem={({ item }) => (
+              <Pressable
+                onPress={() =>
+                  router.push({
+                    pathname: "/(sales)/orders/[orderNo]",
+                    params: { orderNo: item.orderId },
+                  } as any)
+                }
+                className="mb-3 rounded-2xl border border-border bg-card p-4 active:opacity-80"
+              >
+                <View className="mb-2 flex-row items-center justify-between">
+                  <Text className="text-sm font-bold text-foreground">#{item.orderId}</Text>
+                  <View className="rounded-full border border-border px-2 py-1">
+                    <Text className="text-xs font-semibold text-muted-foreground">
+                      {item.deliveryStatus || "N/A"}
+                    </Text>
+                  </View>
+                </View>
+                <Text className="text-sm font-semibold text-foreground">{item.displayName || "-"}</Text>
+                <Text className="mt-1 text-xs text-muted-foreground">{item.customerPhone || "-"}</Text>
+                <View className="mt-3 flex-row items-center justify-between">
+                  <Text className="text-xs text-muted-foreground">{item.salesDate}</Text>
+                  <Text className="text-sm font-semibold text-foreground">
+                    ${(item?.invoice?.total || 0).toFixed(2)}
+                  </Text>
+                </View>
+              </Pressable>
+            )}
+          />
+        )}
+      </View>
+
+      <OrdersFilterModal
+        open={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        filters={filters.filter((f) => f.value !== "q")}
+        selected={selectedFilters}
+        onApply={(next) => setSelectedFilters(next)}
+      />
+    </SafeArea>
+  );
+}

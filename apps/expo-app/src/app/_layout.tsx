@@ -71,7 +71,7 @@ export default function RootLayout() {
   return <RootLayoutNav />;
 }
 const InitialLayout = () => {
-  const { token, currentSection, sections } = useAuthContext();
+  const { token, currentSection, sections, isAdmin } = useAuthContext();
   const { colorScheme } = useColorScheme();
   const canAccessJobs = currentSection?.isJobs;
   const canAccessInstaller = currentSection?.isInstaller;
@@ -92,6 +92,11 @@ const InitialLayout = () => {
           </Stack.Protected>
           <Stack.Protected guard={!!token && !!canAccessDispatchOrDriver}>
             <Stack.Screen name="(drivers)" options={{ headerShown: false }} />
+          </Stack.Protected>
+          <Stack.Protected
+            guard={!!token && !!canAccessDispatchOrDriver && !!isAdmin}
+          >
+            <Stack.Screen name="(sales)" options={{ headerShown: false }} />
           </Stack.Protected>
           <Stack.Protected guard={!!token && !!canAccessJobs}>
             <Stack.Screen name="(job-admin)" options={{ headerShown: false }} />

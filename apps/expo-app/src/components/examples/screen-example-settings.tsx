@@ -27,7 +27,8 @@ export default function SettingsExampleScreen() {
   const [pushEnabled, setPushEnabled] = useState(true);
   const [emailEnabled, setEmailEnabled] = useState(false);
   const [locationEnabled, setLocationEnabled] = useState(true);
-  const [themeOverride, setThemeOverrideState] = useState<ThemeOverride>("system");
+  const [themeOverride, setThemeOverrideState] =
+    useState<ThemeOverride>("system");
   const router = useRouter();
   const auth = useAuthContext();
   const { setColorScheme } = useColorScheme();
@@ -192,7 +193,11 @@ export default function SettingsExampleScreen() {
                     onPress={() => onSelectSection(section)}
                     rightElement={
                       isActive ? (
-                        <Icon name="CircleCheck" className="text-primary" size={20} />
+                        <Icon
+                          name="CircleCheck"
+                          className="text-primary"
+                          size={20}
+                        />
                       ) : (
                         <Icon
                           name="ChevronRight"
@@ -206,6 +211,24 @@ export default function SettingsExampleScreen() {
               })}
             </Section>
           )}
+          {auth.isAdmin ? (
+            <Section title="Business Tools">
+              <SettingsItem
+                icon="LayoutDashboard"
+                label="Sales Dashboard"
+                subLabel="Manage orders and deliveries"
+                isLast
+                onPress={() => router.push("/(sales)" as any)}
+                rightElement={
+                  <Icon
+                    name="ChevronRight"
+                    className="text-muted-foreground"
+                    size={20}
+                  />
+                }
+              />
+            </Section>
+          ) : null}
           <Section title="Appearance">
             <SettingsItem
               icon="Settings"
@@ -376,7 +399,7 @@ function ThemePreferenceSelector({
   value: ThemeOverride;
   onChange: (next: ThemeOverride) => void;
 }) {
-  const options: Array<{ label: string; value: ThemeOverride }> = [
+  const options: { label: string; value: ThemeOverride }[] = [
     { label: "System", value: "system" },
     { label: "Light", value: "light" },
     { label: "Dark", value: "dark" },

@@ -40,6 +40,7 @@ import {
   accountingIndex,
   accountingIndexSchema,
 } from "@api/db/queries/accounting";
+import { getMobileSalesDashboardOverview } from "@api/db/queries/sales-dashboard";
 import {
   deleteSupplier,
   deleteSupplierSchema,
@@ -212,6 +213,9 @@ export const salesRouter = createTRPCRouter({
     .query(async (props) => {
       return getSalesAccountings(props.ctx, props.input);
     }),
+  mobileDashboardOverview: publicProcedure.query(async (props) => {
+    return getMobileSalesDashboardOverview(props.ctx);
+  }),
   getSuppliers: publicProcedure
     .input(getSuppliersSchema)
     .query(async (props) => {
