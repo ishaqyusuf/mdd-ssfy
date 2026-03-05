@@ -126,7 +126,6 @@ export function SalesCustomerInput() {
             <div className="space-y-3 p-3">
                 <ProfileSection
                     title="Customer"
-                    lines={customer.customerData}
                     tone="default"
                     actions={
                         <>
@@ -156,9 +155,13 @@ export function SalesCustomerInput() {
                             </Button>
                         </>
                     }
-                />
+                >
+                    <p className="truncate text-sm font-medium text-slate-900">
+                        {customer.customer?.name}
+                    </p>
+                </ProfileSection>
 
-                <ProfileSection
+                {/* <ProfileSection
                     title="Bill To"
                     lines={customer.billing?.lines}
                     tone="subtle"
@@ -180,7 +183,7 @@ export function SalesCustomerInput() {
                             <Icons.Edit className="size-4" />
                         </Button>
                     }
-                />
+                /> */}
 
                 <ProfileSection
                     title="Ship To"
@@ -193,7 +196,9 @@ export function SalesCustomerInput() {
                                 setParams({
                                     customerId: md.customer.id,
                                     customerForm: true,
-                                    addressId: !!addressId ? addressId : undefined,
+                                    addressId: !!addressId
+                                        ? addressId
+                                        : undefined,
                                     address: "sad",
                                 });
                             }}
@@ -215,11 +220,13 @@ function ProfileSection({
     lines,
     actions,
     tone = "default",
+    children,
 }: {
     title: string;
     lines?: string[];
     actions?: ReactNode;
     tone?: "default" | "subtle";
+    children?;
 }) {
     const hasLines = !!lines?.length;
     const toneClasses = useMemo(
@@ -238,18 +245,27 @@ function ProfileSection({
                         {title}
                     </p>
                     <div className="mt-1 space-y-0.5 text-sm leading-relaxed text-slate-800">
-                        {hasLines ? (
+                        {children ? (
+                            children
+                        ) : hasLines ? (
                             lines?.map((line, index) => (
-                                <p className="truncate" key={`${title}-${index}`}>
+                                <p
+                                    className="truncate"
+                                    key={`${title}-${index}`}
+                                >
                                     {line}
                                 </p>
                             ))
                         ) : (
-                            <p className="text-slate-500">No details available</p>
+                            <p className="text-slate-500">
+                                No details available
+                            </p>
                         )}
                     </div>
                 </div>
-                {actions ? <div className="flex items-center gap-1">{actions}</div> : null}
+                {actions ? (
+                    <div className="flex items-center gap-1">{actions}</div>
+                ) : null}
             </div>
         </div>
     );
@@ -375,7 +391,8 @@ function SearchCustomer() {
                                             onClick={() => {
                                                 const metaData = { ...md };
 
-                                                metaData.customer.id = sr.customerId;
+                                                metaData.customer.id =
+                                                    sr.customerId;
                                                 if (!md.shipping.id)
                                                     metaData.shipping.id =
                                                         sr.addressId;
@@ -394,7 +411,10 @@ function SearchCustomer() {
                                                     } as any;
                                                 }
 
-                                                zus.dotUpdate("metaData", metaData);
+                                                zus.dotUpdate(
+                                                    "metaData",
+                                                    metaData,
+                                                );
                                                 new SettingsClass().taxCodeChanged();
                                             }}
                                             size="sm"
@@ -409,7 +429,8 @@ function SearchCustomer() {
 
                         {!searchResult?.length && !isPending ? (
                             <p className="rounded-md border border-dashed border-slate-300 px-3 py-4 text-sm text-slate-500">
-                                No customers found. Use Create to add this customer.
+                                No customers found. Use Create to add this
+                                customer.
                             </p>
                         ) : null}
                     </>
@@ -418,3 +439,4 @@ function SearchCustomer() {
         </div>
     );
 }
+

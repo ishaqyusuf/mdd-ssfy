@@ -18,7 +18,7 @@ export async function getCustomers(ctx: TRPCContext, query: GetCustomers) {
   const { response, searchMeta, where } = await composeQueryData(
     query,
     whereCustomer(query),
-    db.customers
+    db.customers,
   );
   const data = await db.customers.findMany({
     where,
@@ -29,7 +29,7 @@ export async function getCustomers(ctx: TRPCContext, query: GetCustomers) {
 }
 export async function searchCustomers(
   ctx: TRPCContext,
-  query: SearchCustomersSchema
+  query: SearchCustomersSchema,
 ) {
   const { db } = ctx;
   const searchTerm = query.query;
@@ -88,7 +88,7 @@ export const customerInfoSearchSchema = z.object({
 export type CustomerInfoSearch = z.infer<typeof customerInfoSearchSchema>;
 export async function customerInfoSearch(
   ctx: TRPCContext,
-  { q, type, customerId }: CustomerInfoSearch
+  { q, type, customerId }: CustomerInfoSearch,
 ) {
   const { db } = ctx;
 
@@ -254,7 +254,7 @@ export type GetSalesCustomerSchema = z.infer<typeof getSalesCustomerSchema>;
 
 export async function getSalesCustomer(
   ctx: TRPCContext,
-  query: GetSalesCustomerSchema
+  query: GetSalesCustomerSchema,
 ) {
   const { db } = ctx;
   const { customerId, shippingId, billingId } = query;
@@ -288,7 +288,7 @@ export async function getSalesCustomer(
     },
   });
   const billing = customer?.addressBooks?.find(
-    (a) => a.id == billingId || a.isPrimary
+    (a) => a.id == billingId || a.isPrimary,
   );
   const shipping = customer?.addressBooks?.find((a) => a.id == shippingId);
   const customerMeta = customer?.meta as any as CustomerMeta;
@@ -302,6 +302,12 @@ export async function getSalesCustomer(
         .join(", "),
       customer?.email,
     ].filter(Boolean),
+    customer: {
+      name: customer?.name || customer?.businessName,
+      phone: customer?.phoneNo,
+      email: customer?.email,
+      address: billing,
+    },
     shippingId,
     billingId,
     netTerm: customerMeta?.netTerm,
@@ -337,7 +343,7 @@ export type GetCustomerPayPortalSchema = z.infer<
 
 export async function getCustomerPayPortal(
   ctx: TRPCContext,
-  query: GetCustomerPayPortalSchema
+  query: GetCustomerPayPortalSchema,
 ) {
   const { db } = ctx;
   const pendingSales = await getCustomerPendingSales(ctx, query.accountNo);
