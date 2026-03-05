@@ -26,6 +26,7 @@ type Props = {
   onTogglePackOnlyAvailable: () => void;
   onPackAll: () => void;
   onCancel: () => void;
+  onImagePress: (uri: string) => void;
 };
 
 export function PackAllModal({
@@ -40,6 +41,7 @@ export function PackAllModal({
   onTogglePackOnlyAvailable,
   onPackAll,
   onCancel,
+  onImagePress,
 }: Props) {
   return (
     <SheetModal
@@ -69,16 +71,18 @@ export function PackAllModal({
                 >
                   <View className="flex-row items-center gap-4">
                     {itemImage ? (
-                      <Image
-                        source={{ uri: itemImage }}
-                        style={{
-                          width: 48,
-                          height: 48,
-                          borderRadius: 10,
-                          backgroundColor: "#F4F4F5",
-                        }}
-                        contentFit="cover"
-                      />
+                      <Pressable onPress={() => onImagePress(itemImage)}>
+                        <Image
+                          source={{ uri: itemImage }}
+                          style={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: 10,
+                            backgroundColor: "#F4F4F5",
+                          }}
+                          contentFit="cover"
+                        />
+                      </Pressable>
                     ) : (
                       <View className="h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
                         <Icon name="ClipboardList" className="text-primary" size={20} />

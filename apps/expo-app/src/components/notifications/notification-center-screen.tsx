@@ -2,13 +2,17 @@ import { BackBtn } from "@/components/back-btn";
 import { SafeArea } from "@/components/safe-area";
 import { Icon } from "@/components/ui/icon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Toast } from "@/components/ui/toast";
 import { useNotifications } from "@/hooks/use-notifications";
-import type { RouterOutputs } from "@api/trpc/routers/_app";
+import {
+	type TransformedNotification,
+	createNotificationHandlers,
+	runNotificationAction,
+} from "@notifications/notification-center";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { NotificationItem } from "./notification-item";
-
-type NotificationActivity = RouterOutputs["notes"]["list"]["data"][number];
 
 function EmptyState({ description }: { description: string }) {
 	return (
@@ -25,10 +29,10 @@ function EmptyState({ description }: { description: string }) {
 
 function NotificationList({
 	items,
-	markMessageAsRead,
+	onAction,
 }: {
-	items: NotificationActivity[];
-	markMessageAsRead: (id: number) => void;
+	items: TransformedNotification[];
+	onAction?: (notification: TransformedNotification) => void;
 }) {
 	if (!items.length) {
 		return <EmptyState description="Nothing here yet." />;
@@ -42,11 +46,7 @@ function NotificationList({
 		>
 			<View className="divide-y divide-border">
 				{items.map((item) => (
-					<NotificationItem
-						key={item.id}
-						activity={item}
-						onPress={markMessageAsRead}
-					/>
+					<NotificationItem key={item.id} activity={item} onAction={onAction} />
 				))}
 			</View>
 		</ScrollView>
@@ -54,9 +54,27 @@ function NotificationList({
 }
 
 export function NotificationCenterScreen() {
+	const router = useRouter();
 	const [tab, setTab] = useState("inbox");
-	const { isLoading, error, notifications, archived, markMessageAsRead } =
-		useNotifications();
+	const { isLoading, error, notifications, archived } = useNotifications();
+	const handlers = createNotificationHandlers({
+		job_task_configure_request: (data) => {
+			router.push("/job-form");
+			Toast.show(
+				`Open configuration for ${data.modelName} (${data.projectName})`,
+				{ type: "info" },
+			);
+		},
+		dispatch_packing_delay: (data) => {
+			Toast.show(`Approved pending packing for ${data.itemName}.`, {
+				type: "success",
+			});
+		},
+	});
+
+	const onAction = async (notification: TransformedNotification) => {
+		await runNotificationAction(notification, handlers, undefined);
+	};
 
 	return (
 		<SafeArea>
@@ -93,10 +111,7 @@ export function NotificationCenterScreen() {
 							<EmptyState description="Unable to load notifications right now." />
 						) : notifications.length ? (
 							<>
-								<NotificationList
-									items={notifications}
-									markMessageAsRead={markMessageAsRead}
-								/>
+								<NotificationList items={notifications} onAction={onAction} />
 								<View className="absolute bottom-0 left-0 right-0 border-t border-border bg-card px-4 py-2">
 									<Pressable
 										className="h-10 items-center justify-center rounded-full opacity-50"
@@ -119,10 +134,7 @@ export function NotificationCenterScreen() {
 						) : error ? (
 							<EmptyState description="Unable to load notifications right now." />
 						) : archived.length ? (
-							<NotificationList
-								items={archived}
-								markMessageAsRead={markMessageAsRead}
-							/>
+							<NotificationList items={archived} onAction={onAction} />
 						) : (
 							<EmptyState description="Nothing in the archive" />
 						)}

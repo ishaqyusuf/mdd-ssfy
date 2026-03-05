@@ -25,6 +25,7 @@ type Props = {
   onClose: () => void;
   onViewOrderDetails: () => void;
   onPrimaryAction: () => void;
+  onImagePress: (uri: string) => void;
 };
 
 export function StartTripConfirmScreen({
@@ -40,6 +41,7 @@ export function StartTripConfirmScreen({
   onClose,
   onViewOrderDetails,
   onPrimaryAction,
+  onImagePress,
 }: Props) {
   return (
     <View className="absolute inset-0 z-[60] bg-background">
@@ -129,16 +131,18 @@ export function StartTripConfirmScreen({
               >
                 <View className="flex-row items-center gap-4">
                   {itemImage ? (
-                    <Image
-                      source={{ uri: itemImage }}
-                      style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 10,
-                        backgroundColor: "#F4F4F5",
-                      }}
-                      contentFit="cover"
-                    />
+                    <Pressable onPress={() => onImagePress(itemImage)}>
+                      <Image
+                        source={{ uri: itemImage }}
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 10,
+                          backgroundColor: "#F4F4F5",
+                        }}
+                        contentFit="cover"
+                      />
+                    </Pressable>
                   ) : (
                     <View className="h-12 w-12 items-center justify-center rounded-xl bg-muted transition-colors">
                       <Icon

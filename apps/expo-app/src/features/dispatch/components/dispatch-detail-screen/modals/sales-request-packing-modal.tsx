@@ -39,6 +39,7 @@ type Props = {
   isSubmitting: boolean;
   onSubmit: () => void;
   onDismiss: () => void;
+  onImagePress: (uri: string) => void;
 };
 
 export function SalesRequestPackingModal({
@@ -55,6 +56,7 @@ export function SalesRequestPackingModal({
   isSubmitting,
   onSubmit,
   onDismiss,
+  onImagePress,
 }: Props) {
   const selectedCount = unpackableItems.filter(
     (item) => getSelection(item.uid).selected,
@@ -107,16 +109,18 @@ export function SalesRequestPackingModal({
                   <View className="flex-row items-start justify-between gap-3">
                     <View className="flex-row flex-1 items-start gap-3">
                       {itemImage ? (
-                        <Image
-                          source={{ uri: itemImage }}
-                          style={{
-                            width: 48,
-                            height: 48,
-                            borderRadius: 10,
-                            backgroundColor: "#F4F4F5",
-                          }}
-                          contentFit="cover"
-                        />
+                        <Pressable onPress={() => onImagePress(itemImage)}>
+                          <Image
+                            source={{ uri: itemImage }}
+                            style={{
+                              width: 48,
+                              height: 48,
+                              borderRadius: 10,
+                              backgroundColor: "#F4F4F5",
+                            }}
+                            contentFit="cover"
+                          />
+                        </Pressable>
                       ) : (
                         <View
                           className="items-center justify-center rounded-xl bg-muted"

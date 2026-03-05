@@ -24,6 +24,7 @@ type Props = {
   onClose: () => void;
   onSaveDraft: () => void;
   onConfirmDispatch: () => void;
+  onImagePress: (uri: string) => void;
 };
 
 export function DispatchConfirmScreen({
@@ -38,6 +39,7 @@ export function DispatchConfirmScreen({
   onClose,
   onSaveDraft,
   onConfirmDispatch,
+  onImagePress,
 }: Props) {
   return (
     <View className="absolute inset-0 z-50 bg-background">
@@ -104,16 +106,18 @@ export function DispatchConfirmScreen({
                 }`}
               >
                 {itemImage ? (
-                  <Image
-                    source={{ uri: itemImage }}
-                    style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: 10,
-                      backgroundColor: "#F4F4F5",
-                    }}
-                    contentFit="cover"
-                  />
+                  <Pressable onPress={() => onImagePress(itemImage)}>
+                    <Image
+                      source={{ uri: itemImage }}
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: 10,
+                        backgroundColor: "#F4F4F5",
+                      }}
+                      contentFit="cover"
+                    />
+                  </Pressable>
                 ) : (
                   <View
                     className={`h-12 w-12 items-center justify-center rounded-lg ${

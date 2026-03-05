@@ -1,21 +1,15 @@
-import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
+import type { TransformedNotification } from "@notifications/notification-center";
 import { NotificationLink } from "./notification-link";
 
 interface Props {
-	id: number;
 	setOpen: (open: boolean) => void;
-	activity: RouterOutputs["notes"]["list"]["data"][number];
-	markMessageAsRead?: (id: number) => void;
+	activity: TransformedNotification;
+	onAction?: (notification: TransformedNotification) => void;
 }
-export function NotificationItem({
-	id,
-	setOpen,
-	activity,
-	markMessageAsRead,
-}: Props) {
+export function NotificationItem({ setOpen, activity, onAction }: Props) {
 	const notificationContent = (
 		<>
 			<div>
@@ -27,35 +21,40 @@ export function NotificationItem({
 				<p
 					className={cn(
 						"text-sm",
-						activity.receipt?.status === "unread" && "font-medium",
+						activity.status === "unread" && "font-medium",
 					)}
 				>
-					{activity.subject || "Notification Subject"}
+					{activity.title}
 				</p>
-				<span className="text-xs text-[#606060]">
-					{activity.headline || "Notification headline or preview text"}
-				</span>
+				<span className="text-xs text-[#606060]">{activity.description}</span>
 			</div>
 		</>
 	);
 
-	const actionButton = markMessageAsRead && (
+	const actionButton = activity.action && (
 		<div>
 			<Button
-				size="icon"
+				size="sm"
 				variant="secondary"
-				className="rounded-full bg-transparent hover:bg-[#F6F6F3]"
-				onClick={() => markMessageAsRead(id)}
-				title="Archive notification"
+				className="rounded-full"
+				onClick={(event) => {
+					event.stopPropagation();
+					onAction?.(activity);
+				}}
+				title={activity.action.label}
 			>
-				<Icons.Notifications className="size-4" />
+				{activity.action.label}
 			</Button>
 		</div>
 	);
 
 	return (
 		<NotificationLink
-			onNavigate={() => setOpen(false)}
+			onNavigate={() => {
+				setOpen(false);
+				onAction?.(activity);
+			}}
+			isClickable={activity.isClickable}
 			className="flex items-between space-x-4 flex-1 text-left"
 			actionButton={actionButton}
 		>

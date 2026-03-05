@@ -35,6 +35,7 @@ type Props = {
   onClose: () => void;
   onOpenPackAll: () => void;
   onConfirmAndStartTrip: () => void;
+  onImagePress: (uri: string) => void;
 };
 
 export function PackingSlipScreen({
@@ -57,6 +58,7 @@ export function PackingSlipScreen({
   onClose,
   onOpenPackAll,
   onConfirmAndStartTrip,
+  onImagePress,
 }: Props) {
   return (
     <View className="absolute inset-0 z-40 bg-background">
@@ -149,16 +151,18 @@ export function PackingSlipScreen({
             >
               <View className="mb-3 flex-row items-start gap-3">
                 {itemImage ? (
-                  <Image
-                    source={{ uri: itemImage }}
-                    style={{
-                      width: 52,
-                      height: 52,
-                      borderRadius: 10,
-                      backgroundColor: "#F4F4F5",
-                    }}
-                    contentFit="cover"
-                  />
+                  <Pressable onPress={() => onImagePress(itemImage)}>
+                    <Image
+                      source={{ uri: itemImage }}
+                      style={{
+                        width: 52,
+                        height: 52,
+                        borderRadius: 10,
+                        backgroundColor: "#F4F4F5",
+                      }}
+                      contentFit="cover"
+                    />
+                  </Pressable>
                 ) : (
                   <View
                     className="items-center justify-center rounded-xl bg-muted"
