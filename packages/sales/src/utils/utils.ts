@@ -30,6 +30,7 @@ export function salesAddressLines(
 ) {
   let meta = address?.meta as any as AddressBookMeta;
   let cMeta = customer?.meta as any as CustomerMeta;
+
   return [
     address?.name || customer?.name || customer?.businessName,
     address?.phoneNo || customer?.phoneNo || customer?.phoneNo2,

@@ -3,7 +3,7 @@ import { _trpc } from "@/components/static-trpc";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { useQuery } from "@gnd/ui/tanstack";
 import { InputGroup } from "@gnd/ui/namespace";
-import { Search } from "lucide-react";
+import { Mail, MapPin, Phone, Search, User } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Spinner } from "@gnd/ui/spinner";
@@ -13,6 +13,33 @@ import { Icons } from "@gnd/ui/icons";
 import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
 import { SettingsClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class";
 import { dotCompare } from "@/utils/compare";
+
+type CustomerAddress = {
+    meta?: { zip_code: string };
+    id?: number;
+    name?: string | null;
+    email?: string | null;
+    createdAt?: string;
+    deletedAt?: string;
+    updatedAt?: string;
+    customerId?: number | null;
+    phoneNo?: string | null;
+    phoneNo2?: string | null;
+    address1?: string | null;
+    address2?: string | null;
+    country?: string | null;
+    state?: string | null;
+    city?: string | null;
+    isPrimary?: boolean | null;
+    regionId?: number | null;
+};
+
+type CustomerProfile = {
+    address?: CustomerAddress;
+    name?: string;
+    email?: string;
+    phone?: string;
+};
 
 export function SalesCustomerInput() {
     const zus = useFormDataStore();
@@ -113,17 +140,17 @@ export function SalesCustomerInput() {
     if (!customer) return <SearchCustomer />;
 
     return (
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 px-4 py-3">
+        <div className="rounded-lg bg-white shadow-sm">
+            <div className="px-3 py-2">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
                     Customer Profile
                 </p>
-                <p className="mt-1 text-sm text-slate-700">
+                <p className="mt-0.5 text-xs text-slate-700">
                     Manage customer details, billing, and shipping addresses.
                 </p>
             </div>
 
-            <div className="space-y-3 p-3">
+            <div className="space-y-2 p-2">
                 <ProfileSection
                     title="Customer"
                     tone="default"
@@ -156,9 +183,7 @@ export function SalesCustomerInput() {
                         </>
                     }
                 >
-                    <p className="truncate text-sm font-medium text-slate-900">
-                        {customer.customer?.name}
-                    </p>
+                    <CustomerProfileDetails customer={customer.customer} />
                 </ProfileSection>
 
                 {/* <ProfileSection
@@ -215,6 +240,63 @@ export function SalesCustomerInput() {
     );
 }
 
+function CustomerProfileDetails({ customer }: { customer?: CustomerProfile }) {
+    const address = formatAddress(customer?.address);
+    const details = [
+        {
+            key: "name",
+            value: customer?.name,
+            icon: User,
+        },
+        {
+            key: "email",
+            value: customer?.email,
+            icon: Mail,
+        },
+        {
+            key: "phone",
+            value: customer?.phone || customer?.address?.phoneNo,
+            icon: Phone,
+        },
+        {
+            key: "address",
+            value: address,
+            icon: MapPin,
+        },
+    ];
+
+    return (
+        <div className="space-y-1.5">
+            {details.map((item) => (
+                <div
+                    key={item.key}
+                    className="flex items-start gap-1.5 rounded-md bg-slate-50/70 px-2 py-1.5"
+                >
+                    <item.icon className="mt-0.5 size-3.5 shrink-0 text-slate-500" />
+                    <p
+                        className={`min-w-0 text-xs leading-tight text-slate-900 ${
+                            item.key === "address"
+                                ? "whitespace-normal break-words"
+                                : "truncate"
+                        }`}
+                    >
+                        {item.value || "Not provided"}
+                    </p>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function formatAddress(address?: CustomerAddress) {
+    if (!address) return "";
+    const cityState = [address.city, address.state].filter(Boolean).join(", ");
+    const line3 = [cityState, address.meta?.zip_code].filter(Boolean).join(" ");
+    return [address.address1, address.address2, line3, address.country]
+        .filter(Boolean)
+        .join(", ");
+}
+
 function ProfileSection({
     title,
     lines,
@@ -226,25 +308,23 @@ function ProfileSection({
     lines?: string[];
     actions?: ReactNode;
     tone?: "default" | "subtle";
-    children?;
+    children?: ReactNode;
 }) {
     const hasLines = !!lines?.length;
     const toneClasses = useMemo(
         () =>
-            tone === "default"
-                ? "border-slate-200 bg-slate-50/70"
-                : "border-slate-200 bg-white",
+            tone === "default" ? "bg-slate-50/70" : "bg-white",
         [tone],
     );
 
     return (
-        <div className={`rounded-lg border ${toneClasses} px-3 py-3`}>
-            <div className="flex items-start gap-3">
+        <div className={`rounded-md ${toneClasses} px-2.5 py-2`}>
+            <div className="flex items-start gap-2">
                 <div className="min-w-0 flex-1">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                         {title}
                     </p>
-                    <div className="mt-1 space-y-0.5 text-sm leading-relaxed text-slate-800">
+                    <div className="mt-0.5 space-y-0.5 text-xs leading-snug text-slate-800">
                         {children ? (
                             children
                         ) : hasLines ? (
@@ -439,4 +519,3 @@ function SearchCustomer() {
         </div>
     );
 }
-
