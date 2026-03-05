@@ -1,6 +1,8 @@
 import { BlurView } from "@/components/blur-view";
 import { Icon } from "@/components/ui/icon";
 import { ProgressBar } from "@/components/ui/progress-bar";
+import { resolveItemImage } from "../lib/resolve-item-image";
+import { Image } from "expo-image";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
 type Props = {
@@ -138,6 +140,7 @@ export function PackingSlipScreen({
           const maxQty = asNumber(deliverable.qty);
           const maxLh = asNumber(deliverable.lh);
           const maxRh = asNumber(deliverable.rh);
+          const itemImage = resolveItemImage(item.img as string | null);
 
           return (
             <View
@@ -145,12 +148,28 @@ export function PackingSlipScreen({
               className="mb-4 rounded-2xl border border-border bg-card p-4"
             >
               <View className="mb-3 flex-row items-start gap-3">
+                {itemImage ? (
+                  <Image
+                    source={{ uri: itemImage }}
+                    style={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: 10,
+                      backgroundColor: "#F4F4F5",
+                    }}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <View
+                    className="items-center justify-center rounded-xl bg-muted"
+                    style={{ width: 52, height: 52 }}
+                  >
+                    <Icon name="HardHat" className="text-muted-foreground" size={18} />
+                  </View>
+                )}
                 <View className="flex-1">
                   <Text className="text-base font-semibold leading-tight text-foreground">
                     {item.title}
-                  </Text>
-                  <Text className="mt-1 text-xs text-muted-foreground">
-                    Ref: {item.uid}
                   </Text>
                 </View>
               </View>

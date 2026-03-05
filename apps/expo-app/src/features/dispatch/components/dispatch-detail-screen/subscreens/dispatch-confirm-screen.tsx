@@ -1,9 +1,12 @@
 import { Icon } from "@/components/ui/icon";
+import { resolveItemImage } from "../lib/resolve-item-image";
+import { Image } from "expo-image";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 type ConfirmItem = {
   uid: string;
   title: string;
+  img?: string | null;
   subtitle: string;
   isVerified: boolean;
   icon: string;
@@ -91,50 +94,66 @@ export function DispatchConfirmScreen({
         </View>
 
         <View className="gap-1 px-2">
-          {packingConfirmItems.map((item) => (
-            <View
-              key={item.uid}
-              className={`min-h-[80px] flex-row items-center gap-4 rounded-xl bg-card px-3 py-3 ${
-                item.isVerified ? "" : "opacity-75"
-              }`}
-            >
+          {packingConfirmItems.map((item) => {
+            const itemImage = resolveItemImage(item.img);
+            return (
               <View
-                className={`h-12 w-12 items-center justify-center rounded-lg ${
-                  item.isVerified ? "bg-primary/10" : "bg-muted"
+                key={item.uid}
+                className={`min-h-[80px] flex-row items-center gap-4 rounded-xl bg-card px-3 py-3 ${
+                  item.isVerified ? "" : "opacity-75"
                 }`}
               >
-                <Icon
-                  name={item.icon as any}
-                  className={item.isVerified ? "text-primary" : "text-muted-foreground"}
-                  size={20}
-                />
-              </View>
-              <View className="flex-1">
-                <Text className="text-base font-semibold leading-tight text-foreground">
-                  {item.title}
-                </Text>
-                <Text
-                  className={`mt-1 text-sm ${
-                    item.isVerified ? "text-muted-foreground" : "italic text-muted-foreground"
-                  }`}
-                >
-                  {item.subtitle}
-                </Text>
-              </View>
-              <View className="shrink-0">
-                {item.isVerified ? (
-                  <View className="flex-row items-center gap-1 rounded-full border border-emerald-200 bg-emerald-100 px-3 py-1">
-                    <Icon name="CircleCheck" className="text-emerald-700" size={12} />
-                    <Text className="text-xs font-bold text-emerald-700">Verified</Text>
-                  </View>
+                {itemImage ? (
+                  <Image
+                    source={{ uri: itemImage }}
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 10,
+                      backgroundColor: "#F4F4F5",
+                    }}
+                    contentFit="cover"
+                  />
                 ) : (
-                  <View className="rounded-full bg-muted px-3 py-1">
-                    <Text className="text-xs font-bold text-muted-foreground">Pending</Text>
+                  <View
+                    className={`h-12 w-12 items-center justify-center rounded-lg ${
+                      item.isVerified ? "bg-primary/10" : "bg-muted"
+                    }`}
+                  >
+                    <Icon
+                      name={item.icon as any}
+                      className={item.isVerified ? "text-primary" : "text-muted-foreground"}
+                      size={20}
+                    />
                   </View>
                 )}
+                <View className="flex-1">
+                  <Text className="text-base font-semibold leading-tight text-foreground">
+                    {item.title}
+                  </Text>
+                  <Text
+                    className={`mt-1 text-sm ${
+                      item.isVerified ? "text-muted-foreground" : "italic text-muted-foreground"
+                    }`}
+                  >
+                    {item.subtitle}
+                  </Text>
+                </View>
+                <View className="shrink-0">
+                  {item.isVerified ? (
+                    <View className="flex-row items-center gap-1 rounded-full border border-emerald-200 bg-emerald-100 px-3 py-1">
+                      <Icon name="CircleCheck" className="text-emerald-700" size={12} />
+                      <Text className="text-xs font-bold text-emerald-700">Verified</Text>
+                    </View>
+                  ) : (
+                    <View className="rounded-full bg-muted px-3 py-1">
+                      <Text className="text-xs font-bold text-muted-foreground">Pending</Text>
+                    </View>
+                  )}
+                </View>
               </View>
-            </View>
-          ))}
+            );
+          })}
           <View className="h-24" />
         </View>
       </ScrollView>

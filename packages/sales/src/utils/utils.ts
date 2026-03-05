@@ -443,6 +443,7 @@ export const FullSalesSelect = {
             select: {
               id: true,
               name: true,
+              img: true,
             },
           },
           door: {
@@ -468,20 +469,33 @@ export const FullSalesSelect = {
               stepProduct: {
                 select: {
                   name: true,
+                  img: true,
 
                   door: {
                     select: {
                       title: true,
+                      img: true,
                     },
                   },
                   product: {
                     select: {
                       id: true,
                       title: true,
+                      img: true,
                     },
                   },
                 },
               },
+            },
+          },
+          molding: {
+            where: {
+              deletedAt: null,
+            },
+            select: {
+              id: true,
+              title: true,
+              img: true,
             },
           },
         },

@@ -49,6 +49,7 @@ export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
     return {
       uid: item.controlUid,
       title: item.title,
+      img: item.img,
 
       itemId: item.itemId,
       unitLabor: laborRate(

@@ -1,9 +1,12 @@
 import { Icon } from "@/components/ui/icon";
+import { resolveItemImage } from "../lib/resolve-item-image";
+import { Image } from "expo-image";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 type ConfirmItem = {
   uid: string;
   title: string;
+  img?: string | null;
   subtitle: string;
   isVerified: boolean;
   icon: string;
@@ -115,50 +118,66 @@ export function StartTripConfirmScreen({
               Verified
             </Text>
           </View>
-          {packingConfirmItems.map((item, index) => (
-            <View
-              key={item.uid}
-              className={`flex-row items-center justify-between px-4 py-4 ${
-                index > 0 ? "border-t border-border/70" : ""
-              } ${item.isVerified ? "" : "opacity-60"}`}
-            >
-              <View className="flex-row items-center gap-4">
-                <View className="h-12 w-12 items-center justify-center rounded-xl bg-muted transition-colors">
-                  <Icon
-                    name={item.icon as any}
-                    className={item.isVerified ? "text-foreground" : "text-muted-foreground"}
-                    size={20}
-                  />
+          {packingConfirmItems.map((item, index) => {
+            const itemImage = resolveItemImage(item.img);
+            return (
+              <View
+                key={item.uid}
+                className={`flex-row items-center justify-between px-4 py-4 ${
+                  index > 0 ? "border-t border-border/70" : ""
+                } ${item.isVerified ? "" : "opacity-60"}`}
+              >
+                <View className="flex-row items-center gap-4">
+                  {itemImage ? (
+                    <Image
+                      source={{ uri: itemImage }}
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: 10,
+                        backgroundColor: "#F4F4F5",
+                      }}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <View className="h-12 w-12 items-center justify-center rounded-xl bg-muted transition-colors">
+                      <Icon
+                        name={item.icon as any}
+                        className={item.isVerified ? "text-foreground" : "text-muted-foreground"}
+                        size={20}
+                      />
+                    </View>
+                  )}
+                  <View>
+                    <Text
+                      className={`text-base font-semibold leading-tight ${
+                        item.isVerified
+                          ? "text-foreground"
+                          : "text-muted-foreground line-through"
+                      }`}
+                    >
+                      {item.title}
+                    </Text>
+                    <Text className="text-sm text-muted-foreground">{item.subtitle}</Text>
+                  </View>
                 </View>
-                <View>
+                <View className="flex-row items-center gap-1">
+                  <Icon
+                    name={item.isVerified ? "CircleCheck" : "Ban"}
+                    className={item.isVerified ? "text-emerald-600" : "text-muted-foreground"}
+                    size={17}
+                  />
                   <Text
-                    className={`text-base font-semibold leading-tight ${
-                      item.isVerified
-                        ? "text-foreground"
-                        : "text-muted-foreground line-through"
+                    className={`text-sm font-medium ${
+                      item.isVerified ? "text-emerald-600" : "text-muted-foreground"
                     }`}
                   >
-                    {item.title}
+                    {item.isVerified ? "Confirmed" : "Skipped"}
                   </Text>
-                  <Text className="text-sm text-muted-foreground">{item.subtitle}</Text>
                 </View>
               </View>
-              <View className="flex-row items-center gap-1">
-                <Icon
-                  name={item.isVerified ? "CircleCheck" : "Ban"}
-                  className={item.isVerified ? "text-emerald-600" : "text-muted-foreground"}
-                  size={17}
-                />
-                <Text
-                  className={`text-sm font-medium ${
-                    item.isVerified ? "text-emerald-600" : "text-muted-foreground"
-                  }`}
-                >
-                  {item.isVerified ? "Confirmed" : "Skipped"}
-                </Text>
-              </View>
-            </View>
-          ))}
+            );
+          })}
         </View>
       </ScrollView>
 

@@ -24,14 +24,16 @@ const sectionLabels: Record<SectionKey, string> = {
 };
 
 const inferIsInstaller = (profile?: Profile | null) =>
-  profile?.role?.name === "1099 Contractor" || profile?.role?.name === "Punchout";
+  profile?.role?.name === "1099 Contractor" ||
+  profile?.role?.name === "Punchout";
 
 const inferIsAdmin = (profile?: Profile | null) =>
   !inferIsInstaller(profile) && !!profile?.can?.editJobs;
 
 const inferIsDriver = (profile?: Profile | null) =>
   !!(profile?.can?.viewDelivery || profile?.can?.viewPickup) &&
-  !inferIsInstaller(profile);
+  !inferIsInstaller(profile) &&
+  !inferIsAdmin(profile);
 
 const createEmptyCurrentSection = (): CurrentSection => ({
   isJobs: false,
@@ -68,7 +70,8 @@ const deriveSections = (profile?: Profile | null): SectionKey[] => {
   const isDriver = inferIsDriver(profile);
 
   if (isAdmin && profile?.can?.viewHrm) sectionSet.add("jobs");
-  if (isAdmin && profile?.can?.viewDispatch) sectionSet.add("dispatch");
+  if (isAdmin && profile?.can?.viewDelivery && profile?.can?.viewPickup)
+    sectionSet.add("dispatch");
   if (isInstaller) sectionSet.add("installer");
   if (isDriver) sectionSet.add("driver");
 
@@ -83,7 +86,10 @@ const normalizeCurrentSection = (
   const derivedSections = deriveSections(profile);
   const sections = derivedSections.length ? derivedSections : [];
   const existingCurrentSection = profile?.currentSection;
-  const currentSection = isCurrentSectionAllowed(existingCurrentSection, sections)
+  const currentSection = isCurrentSectionAllowed(
+    existingCurrentSection,
+    sections,
+  )
     ? existingCurrentSection!
     : sections.length
       ? sectionToCurrentSection(sections[0]!)
@@ -94,7 +100,9 @@ const normalizeCurrentSection = (
 export const useCreateAuthContext = () => {
   const [profile, setProfile] = useState(getSessionProfile());
   const initialSectionState = normalizeCurrentSection(profile);
-  const [sections, setSections] = useState<SectionKey[]>(initialSectionState.sections);
+  const [sections, setSections] = useState<SectionKey[]>(
+    initialSectionState.sections,
+  );
   const [currentSection, setCurrentSectionState] = useState<CurrentSection>(
     initialSectionState.currentSection,
   );

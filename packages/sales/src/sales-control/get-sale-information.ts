@@ -67,6 +67,14 @@ export function composeSalesItemControl(
     item.dykeDescription
   );
   const doorMeta = door?.meta as DykeSalesDoorMeta;
+  const doorImageKey =
+    door?.stepProduct?.img ||
+    door?.stepProduct?.product?.img ||
+    door?.stepProduct?.door?.img ||
+    null;
+  const mouldingImageKey =
+    hpt?.stepProduct?.img || hpt?.molding?.img || null;
+  const img = door ? doorImageKey : mouldingImageKey;
   // const meta = item.meta as any as SalesItemMeta;
   if (door) {
     unitLabor = doorMeta?.unitLabor || order?.meta?.laborConfig?.rate;
@@ -143,6 +151,7 @@ export function composeSalesItemControl(
 
   const composed = {
     salesId: order.id,
+    img,
     title,
     sectionTitle,
     controlUid: itemControlUid,

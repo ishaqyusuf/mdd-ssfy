@@ -4,11 +4,13 @@ import { useDispatchPacking } from "../../api/use-dispatch-packing";
 import { useDispatchUiState } from "../../state/use-dispatch-ui-state";
 import { formatDispatchDate, totalQty } from "../../lib/format-dispatch";
 import { buildPackingPayload } from "../../lib/packing-payload";
+import { resolveItemImage } from "./lib/resolve-item-image";
 import { Toast } from "@/components/ui/toast";
 import { Icon } from "@/components/ui/icon";
 import { BlurView } from "@/components/blur-view";
 import { useModal } from "@/components/ui/modal";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useRef } from "react";
 import {
@@ -408,6 +410,7 @@ function DispatchDetailScreenInner({
       return {
         uid: item.uid,
         title: item.title,
+        img: item.img,
         isVerified,
         icon: isVerified
           ? hasSingle
@@ -462,6 +465,7 @@ function DispatchDetailScreenInner({
           return {
             uid: item.uid,
             title: item.title,
+            img: item.img,
             remaining,
             subtitle: `${remaining} units remaining`,
             availableCompleted,
@@ -481,6 +485,7 @@ function DispatchDetailScreenInner({
         return {
           uid: item.uid,
           title: item.title,
+          img: item.img,
           remaining,
           subtitle: `${remaining} units remaining`,
           availableCompleted,
@@ -797,33 +802,49 @@ function DispatchDetailScreenInner({
               </View>
             </View>
             <View className="overflow-hidden rounded-xl border border-border">
-              {topPackingItems.map((item, index) => (
-                <Pressable
-                  key={item.uid}
-                  onPress={() => ui.setSelectedItemUid(item.uid)}
-                  className={`flex-row items-center justify-between bg-card p-4 ${
-                    index < topPackingItems.length - 1
-                      ? "border-b border-border"
-                      : ""
-                  }`}
-                >
-                  <View className="flex-row items-center gap-3">
-                    <View className="h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                      <Icon
-                        name="HardHat"
-                        className="text-muted-foreground"
-                        size={18}
-                      />
+              {topPackingItems.map((item, index) => {
+                const itemImage = resolveItemImage(item.img as string | null);
+                return (
+                  <Pressable
+                    key={item.uid}
+                    onPress={() => ui.setSelectedItemUid(item.uid)}
+                    className={`flex-row items-center justify-between bg-card p-4 ${
+                      index < topPackingItems.length - 1
+                        ? "border-b border-border"
+                        : ""
+                    }`}
+                  >
+                    <View className="flex-row items-center gap-3">
+                      {itemImage ? (
+                        <Image
+                          source={{ uri: itemImage }}
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 8,
+                            backgroundColor: "#F4F4F5",
+                          }}
+                          contentFit="cover"
+                        />
+                      ) : (
+                        <View className="h-10 w-10 items-center justify-center rounded-lg bg-muted">
+                          <Icon
+                            name="HardHat"
+                            className="text-muted-foreground"
+                            size={18}
+                          />
+                        </View>
+                      )}
+                      <Text className="max-w-[220px] text-sm font-medium text-foreground">
+                        {item.title}
+                      </Text>
                     </View>
-                    <Text className="max-w-[220px] text-sm font-medium text-foreground">
-                      {item.title}
+                    <Text className="text-base font-bold text-foreground">
+                      x {totalQty(item.deliverableQty)}
                     </Text>
-                  </View>
-                  <Text className="text-base font-bold text-foreground">
-                    x {totalQty(item.deliverableQty)}
-                  </Text>
-                </Pressable>
-              ))}
+                  </Pressable>
+                );
+              })}
             </View>
 
             <View className="mt-4 flex-row gap-3">

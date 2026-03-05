@@ -1,13 +1,16 @@
 import { Icon } from "@/components/ui/icon";
 import { Modal as SheetModal } from "@/components/ui/modal";
+import { resolveItemImage } from "../lib/resolve-item-image";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { Image } from "expo-image";
 import type { RefObject } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 
 type UnpackableItem = {
   uid: string;
   title: string;
+  img?: string | null;
   nonDeliverableQty?: {
     qty?: number | null;
     lh?: number | null;
@@ -94,6 +97,7 @@ export function SalesRequestPackingModal({
               const selection = getSelection(item.uid);
               const unavailable = item.nonDeliverableQty || {};
               const single = hasSingleQty(unavailable);
+              const itemImage = resolveItemImage(item.img);
 
               return (
                 <View
@@ -101,13 +105,35 @@ export function SalesRequestPackingModal({
                   className="rounded-2xl border border-border bg-card p-4"
                 >
                   <View className="flex-row items-start justify-between gap-3">
-                    <View className="flex-1">
-                      <Text className="text-base font-semibold text-foreground">
-                        {item.title}
-                      </Text>
-                      <Text className="mt-1 text-sm text-muted-foreground">
-                        Ref: {item.uid}
-                      </Text>
+                    <View className="flex-row flex-1 items-start gap-3">
+                      {itemImage ? (
+                        <Image
+                          source={{ uri: itemImage }}
+                          style={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: 10,
+                            backgroundColor: "#F4F4F5",
+                          }}
+                          contentFit="cover"
+                        />
+                      ) : (
+                        <View
+                          className="items-center justify-center rounded-xl bg-muted"
+                          style={{ width: 48, height: 48 }}
+                        >
+                          <Icon
+                            name="HardHat"
+                            className="text-muted-foreground"
+                            size={18}
+                          />
+                        </View>
+                      )}
+                      <View className="flex-1">
+                        <Text className="text-base font-semibold text-foreground">
+                          {item.title}
+                        </Text>
+                      </View>
                     </View>
                     <Pressable
                       onPress={() => setSelected(item.uid, !selection.selected)}

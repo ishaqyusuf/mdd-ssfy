@@ -1,11 +1,14 @@
 import { Icon } from "@/components/ui/icon";
 import { Modal as SheetModal } from "@/components/ui/modal";
+import { resolveItemImage } from "../lib/resolve-item-image";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { Image } from "expo-image";
 import { Pressable, Text, View } from "react-native";
 
 type ProductionItem = {
   uid: string;
   title: string;
+  img?: string | null;
   subtitle: string;
   availableCompleted: number;
   pendingProduction: number;
@@ -57,36 +60,52 @@ export function PackAllModal({
             Pending Production ({pendingItemsCount})
           </Text>
           <View className="gap-2">
-            {productionItems.map((item) => (
-              <View
-                key={item.uid}
-                className="rounded-xl border border-border bg-muted/40 p-4"
-              >
-                <View className="flex-row items-center gap-4">
-                  <View className="h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                    <Icon name="ClipboardList" className="text-primary" size={20} />
+            {productionItems.map((item) => {
+              const itemImage = resolveItemImage(item.img);
+              return (
+                <View
+                  key={item.uid}
+                  className="rounded-xl border border-border bg-muted/40 p-4"
+                >
+                  <View className="flex-row items-center gap-4">
+                    {itemImage ? (
+                      <Image
+                        source={{ uri: itemImage }}
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 10,
+                          backgroundColor: "#F4F4F5",
+                        }}
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <View className="h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                        <Icon name="ClipboardList" className="text-primary" size={20} />
+                      </View>
+                    )}
+                    <View className="flex-1">
+                      <Text className="text-base font-semibold text-foreground">
+                        {item.title}
+                      </Text>
+                      <Text className="text-sm text-muted-foreground">
+                        {item.subtitle}
+                      </Text>
+                    </View>
                   </View>
-                  <View className="flex-1">
-                    <Text className="text-base font-semibold text-foreground">
-                      {item.title}
-                    </Text>
-                    <Text className="text-sm text-muted-foreground">
-                      {item.subtitle}
+                  <View className="mt-3 flex-row flex-wrap gap-2">
+                    <View className="rounded-full bg-primary/10 px-2.5 py-1">
+                      <Text className="text-[11px] font-semibold text-primary">
+                        Available completed: {item.availableCompleted}
+                      </Text>
+                    </View>
+                    <Text className="rounded-full bg-background px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
+                      Pending production: {item.pendingProduction}
                     </Text>
                   </View>
                 </View>
-                <View className="mt-3 flex-row flex-wrap gap-2">
-                  <View className="rounded-full bg-primary/10 px-2.5 py-1">
-                    <Text className="text-[11px] font-semibold text-primary">
-                      Available completed: {item.availableCompleted}
-                    </Text>
-                  </View>
-                  <Text className="rounded-full bg-background px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
-                    Pending production: {item.pendingProduction}
-                  </Text>
-                </View>
-              </View>
-            ))}
+              );
+            })}
             {!productionItems.length ? (
               <View className="rounded-xl border border-border bg-muted/30 p-4">
                 <Text className="text-sm text-muted-foreground">

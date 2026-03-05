@@ -250,6 +250,7 @@ export async function getDispatchOverview(
         }));
       return {
         title: item.title,
+        img: dispatchable?.img || null,
         sectionTitle: item.sectionTitle,
         subtitle: dispatchable?.subtitle,
         uid: item.uid,
