@@ -59,7 +59,16 @@ export function NotificationCenterScreen() {
   const { isLoading, error, notifications, archived } = useNotifications();
   const handlers = createNotificationHandlers({
     job_task_configure_request: (data) => {
-      router.push("/job-form");
+      router.push({
+        pathname: "/job-form",
+        params: {
+          admin: "true",
+          action: "update",
+          step: "5",
+          _modelId: String(data.communityModelInstallCostId),
+          _taskId: String(data.builderTaskId),
+        },
+      } as any);
       Toast.show(
         `Open configuration for ${data.modelName} (${data.projectName})`,
         { type: "info" },

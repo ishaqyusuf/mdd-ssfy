@@ -549,6 +549,8 @@ export const communityRouters = createTRPCRouter({
             modelName: job?.home?.modelName || "",
             projectName: job?.project?.title || "",
             builderName: job?.project?.builder?.name || "",
+            communityModelInstallCostId: input.modelId,
+            builderTaskId: input.builderTaskId!,
           });
         else if (isContractorCreator)
           await notification.channel.jobSubmitted({

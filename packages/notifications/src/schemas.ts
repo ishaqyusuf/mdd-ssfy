@@ -184,15 +184,19 @@ export const jobTaskConfigureRequestSchema = z.object({
 	modelName: z.string(),
 	projectName: z.string(),
 	builderName: z.string(),
+	communityModelInstallCostId: z.number(),
+	builderTaskId: z.number(),
 });
 export type JobTaskConfigureRequestInput = z.infer<
 	typeof jobTaskConfigureRequestSchema
 >;
 export const jobTaskConfigureRequestTags = actityTagsSchema.extend({
-	contractorId: z.number(),
+	contractorId: z.coerce.number(),
 	modelName: z.string(),
 	projectName: z.string(),
 	builderName: z.string(),
+	communityModelInstallCostId: z.coerce.number(),
+	builderTaskId: z.coerce.number(),
 });
 export type JobTaskConfigureRequestTags = z.infer<
 	typeof jobTaskConfigureRequestTags

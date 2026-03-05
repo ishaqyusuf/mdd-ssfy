@@ -16,6 +16,8 @@ export const jobTaskConfigureRequest: NotificationHandler = {
       modelName: data.modelName,
       projectName: data.projectName,
       builderName: data.builderName,
+      communityModelInstallCostId: data.communityModelInstallCostId,
+      builderTaskId: data.builderTaskId,
     };
 
     return {
@@ -40,6 +42,8 @@ export const jobTaskConfigureRequest: NotificationHandler = {
         modelName: data.modelName,
         projectName: data.projectName,
         builderName: data.builderName,
+        communityModelInstallCostId: data.communityModelInstallCostId,
+        builderTaskId: data.builderTaskId,
       },
     };
   },
@@ -47,7 +51,8 @@ export const jobTaskConfigureRequest: NotificationHandler = {
     return {
       message:
         `${author.name} (contractor #${data.contractorId}) is trying to submit a job, but install task list is missing. ` +
-        `Model: ${data.modelName}, Project: ${data.projectName}, Builder: ${data.builderName}.`,
+        `Model: ${data.modelName}, Project: ${data.projectName}, Builder: ${data.builderName}, ` +
+        `ModelCostId: ${data.communityModelInstallCostId}, BuilderTaskId: ${data.builderTaskId}.`,
     };
   },
 };

@@ -35,7 +35,14 @@ export function NotificationCenter() {
 	const handlers = createNotificationHandlers<{ close: () => void }>({
 		job_task_configure_request: (data, _notification, context) => {
 			context.close();
-			router.push("/community/template-schema");
+			const params = new URLSearchParams({
+				view: "template-edit",
+				editCommunityModelInstallCostId: String(
+					data.communityModelInstallCostId,
+				),
+				selectedBuilderTaskId: String(data.builderTaskId),
+			});
+			router.push(`/community/template-schema?${params.toString()}`);
 			toast.info(
 				`Open task configuration for ${data.modelName} (${data.projectName})`,
 			);

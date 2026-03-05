@@ -5,8 +5,8 @@ export const runtime = "nodejs"; // 👈 REQUIRED
 
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
-
-    const appId = "dDs6hBgLPn9uCRNr5A1tnZ";
+    // https://expo.dev/artifacts/eas/5JvtaSZHhYgbLXgTCsF8c.apk
+    const appId = "5JvtaSZHhYgbLXgTCsF8c";
     const versionNumber = "1.0.127";
     const fileUrl =
         searchParams.get("url") ??
