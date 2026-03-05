@@ -27,7 +27,7 @@ type WithoutChannelAndAuthor<T extends { channel: string; author: unknown }> =
 
 export class NotificationService {
   private recipients: NotificationJobInput["recipients"] = null;
-  public readonly channel;
+  public readonly channel: ReturnType<typeof createNotificationChannelTriggers>;
 
   constructor(
     private readonly tasks: TriggerTasksClient,
@@ -76,7 +76,7 @@ export class NotificationService {
       channel,
       author: await this.buildAuthor(input.author),
     } as NotificationEvent<TChannel>;
-
+    console.log("Emitting notification with payload:", payload);
     return this.tasks.trigger("notification", payload);
   }
 

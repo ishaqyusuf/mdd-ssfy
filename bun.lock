@@ -252,7 +252,6 @@
         "@gnd/events": "workspace:*",
         "@gnd/printer": "workspace:*",
         "@gnd/sales": "workspace:*",
-        "@gnd/trigger": "workspace:*",
         "@gnd/ui": "workspace:*",
         "@gnd/utils": "workspace:*",
         "@headlessui/react": "^1.7.17",
@@ -785,17 +784,6 @@
       "devDependencies": {
         "@gnd/tsconfig": "workspace:*",
         "@types/qrcode": "^1.5.5",
-      },
-    },
-    "packages/trigger": {
-      "name": "@gnd/trigger",
-      "version": "1.0.0",
-      "dependencies": {
-        "@gnd/ui": "workspace:*",
-        "@gnd/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "typescript": "^5.9.3",
       },
     },
     "packages/tsconfig": {
@@ -1530,8 +1518,6 @@
     "@gnd/site-nav": ["@gnd/site-nav@workspace:packages/site-nav"],
 
     "@gnd/square": ["@gnd/square@workspace:packages/square"],
-
-    "@gnd/trigger": ["@gnd/trigger@workspace:packages/trigger"],
 
     "@gnd/tsconfig": ["@gnd/tsconfig@workspace:packages/tsconfig"],
 

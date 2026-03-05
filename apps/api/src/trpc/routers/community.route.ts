@@ -542,13 +542,10 @@ export const communityRouters = createTRPCRouter({
       ]);
       if (isCreatingJob) {
         const notification = new NotificationService(tasks, ctx);
-        if (user?.id != null) {
-          notification.setEmployeeRecipients(user.id);
-        }
 
         if (input.requestTaskConfig)
           await notification.channel.jobTaskConfigureRequest({
-            contractorId: job?.user?.id,
+            contractorId: job?.user?.id!,
             modelName: job?.home?.modelName || "",
             projectName: job?.project?.title || "",
             builderName: job?.project?.builder?.name || "",
@@ -557,12 +554,16 @@ export const communityRouters = createTRPCRouter({
           await notification.channel.jobSubmitted({
             jobId: jobId!,
           });
-        else
+        else {
+          if (user?.id != null) {
+            notification.setEmployeeRecipients(user.id);
+          }
           await notification.channel.jobAssigned({
             jobId: jobId!,
             assignedToId: job?.user?.id,
             assignedToName: job?.user?.name,
           });
+        }
       }
       return job;
     });
