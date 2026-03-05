@@ -222,7 +222,7 @@ export class CostingClass {
         };
         this.groupComponentCost(groupItem, itemUid);
         let noHandle = this.setting.getRouteConfig(itemUid)?.noHandle;
-        Object.entries(groupItem?.form).map(([uid, formData]) => {
+        Object.entries(groupItem?.form ?? {}).map(([uid, formData]) => {
             const handleSum = sum([formData.qty.lh, formData.qty.rh]);
             const qty = noHandle ? formData.qty?.total || handleSum : handleSum;
             if (noHandle) formData.qty.lh = formData.qty.rh = 0;

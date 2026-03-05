@@ -140,7 +140,7 @@ export function SalesCustomerInput() {
     if (!customer) return <SearchCustomer />;
 
     return (
-        <div className="rounded-lg bg-white shadow-sm">
+        <div className="rounded-lg bg-slate-50/60 p-1 shadow-sm">
             <div className="px-3 py-2">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
                     Customer Profile
@@ -313,12 +313,14 @@ function ProfileSection({
     const hasLines = !!lines?.length;
     const toneClasses = useMemo(
         () =>
-            tone === "default" ? "bg-slate-50/70" : "bg-white",
+            tone === "default"
+                ? "bg-white/95 ring-1 ring-slate-200/70"
+                : "bg-slate-100/70 ring-1 ring-slate-200/60",
         [tone],
     );
 
     return (
-        <div className={`rounded-md ${toneClasses} px-2.5 py-2`}>
+        <div className={`rounded-lg ${toneClasses} px-2.5 py-2 shadow-sm`}>
             <div className="flex items-start gap-2">
                 <div className="min-w-0 flex-1">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
