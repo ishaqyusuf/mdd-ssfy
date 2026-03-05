@@ -20,6 +20,7 @@ export const salesEmailReminder: NotificationHandler = {
         customerName: data.customerName,
         salesCount: data.sales.length,
         reminderType: data.type,
+        salesNo: data.sales.map((a) => a.orderId),
       },
     };
   },

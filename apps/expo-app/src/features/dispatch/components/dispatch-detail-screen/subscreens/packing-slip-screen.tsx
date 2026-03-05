@@ -75,7 +75,17 @@ export function PackingSlipScreen({
         </View>
       </View>
 
-      <ScrollView className="flex-1" contentContainerClassName="px-4 pb-44 pt-4">
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingTop: 16,
+          paddingBottom: 176,
+        }}
+        nestedScrollEnabled
+        showsVerticalScrollIndicator
+        keyboardShouldPersistTaps="handled"
+      >
         <View className="mb-5 rounded-2xl border border-primary/15 bg-primary/5 p-4">
           <View className="mb-3 flex-row items-start justify-between">
             <View>
@@ -167,7 +177,19 @@ export function PackingSlipScreen({
                           setSingleValue(item.uid, maxQty, parseQtyInput(text))
                         }
                         keyboardType="number-pad"
-                        className="min-w-[52px] rounded-md border border-border bg-card px-2 py-1 text-center text-lg font-bold text-foreground"
+                        style={{
+                          width: 56,
+                          borderWidth: 1,
+                          borderColor: "#D4D4D8",
+                          backgroundColor: "#FFFFFF",
+                          borderRadius: 8,
+                          paddingHorizontal: 8,
+                          paddingVertical: 4,
+                          textAlign: "center",
+                          fontSize: 16,
+                          fontWeight: "700",
+                          color: "#09090B",
+                        }}
                       />
                       <Pressable
                         onPress={() => adjustSingle(item.uid, maxQty, 1)}
@@ -201,7 +223,19 @@ export function PackingSlipScreen({
                           setSideValue(item.uid, "lh", maxLh, parseQtyInput(text))
                         }
                         keyboardType="number-pad"
-                        className="min-w-[52px] rounded-md border border-border bg-card px-2 py-1 text-center text-base font-bold text-foreground"
+                        style={{
+                          width: 56,
+                          borderWidth: 1,
+                          borderColor: "#D4D4D8",
+                          backgroundColor: "#FFFFFF",
+                          borderRadius: 8,
+                          paddingHorizontal: 8,
+                          paddingVertical: 4,
+                          textAlign: "center",
+                          fontSize: 16,
+                          fontWeight: "700",
+                          color: "#09090B",
+                        }}
                       />
                       <Pressable
                         onPress={() => adjustSide(item.uid, "lh", maxLh, 1)}
@@ -228,7 +262,19 @@ export function PackingSlipScreen({
                           setSideValue(item.uid, "rh", maxRh, parseQtyInput(text))
                         }
                         keyboardType="number-pad"
-                        className="min-w-[52px] rounded-md border border-border bg-card px-2 py-1 text-center text-base font-bold text-foreground"
+                        style={{
+                          width: 56,
+                          borderWidth: 1,
+                          borderColor: "#D4D4D8",
+                          backgroundColor: "#FFFFFF",
+                          borderRadius: 8,
+                          paddingHorizontal: 8,
+                          paddingVertical: 4,
+                          textAlign: "center",
+                          fontSize: 16,
+                          fontWeight: "700",
+                          color: "#09090B",
+                        }}
                       />
                       <Pressable
                         onPress={() => adjustSide(item.uid, "rh", maxRh, 1)}

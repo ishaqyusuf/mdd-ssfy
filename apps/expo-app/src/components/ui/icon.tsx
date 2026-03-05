@@ -114,13 +114,20 @@ const iconSizes = {
 function IconImpl({ name, ...props }: IconProps) {
   let IconComponent;
   const { colorScheme } = useColorScheme();
-  const textClass = props.className
-    ?.split(" ")
+  const className =
+    typeof props.className === "string" ? props.className : "";
+  const textClass = className
+    .split(" ")
     ?.reverse()
     ?.find((a) => a?.startsWith("text-"));
   const textToken = textClass?.slice(5);
   const [colorToken, opacityToken] = (textToken || "").split("/");
-  const color = colorToken ? camel(colorToken.split("-").join(" ")) : undefined;
+  let color: string | undefined;
+  try {
+    color = colorToken ? camel(colorToken.split("-").join(" ")) : undefined;
+  } catch {
+    color = undefined;
+  }
   const parsedOpacity = opacityToken ? Number(opacityToken) : undefined;
   const opacity =
     parsedOpacity === undefined || Number.isNaN(parsedOpacity)
@@ -139,8 +146,8 @@ function IconImpl({ name, ...props }: IconProps) {
     ? ([props.style, styleFromClass] as any)
     : (styleFromClass as any);
 
-  let sizestr = props?.className
-    ?.split(" ")
+  let sizestr = className
+    .split(" ")
     ?.find((a) => a.startsWith("size-"))
     ?.split("-")?.[1]!;
   if (sizestr?.startsWith("[")) {
@@ -151,8 +158,8 @@ function IconImpl({ name, ...props }: IconProps) {
   props.size = +sizestr || props.size;
   if (!IconComponent)
     IconComponent = appIcons![name!] || icons![name!] || appIcons.X;
-  const otherClasses = props.className
-    ?.split(" ")
+  const otherClasses = className
+    .split(" ")
     .filter((a) => ["size-", "text-"].every((b) => !a?.startsWith(b)));
   if (otherClasses?.length)
     return (
