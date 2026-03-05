@@ -121,7 +121,24 @@ const InitialLayout = () => {
           <Stack.Protected guard={!!token && !hasAnySection}>
             <Stack.Screen name="unavailable" options={{ headerShown: false }} />
           </Stack.Protected>
+          <Stack.Protected guard={!!token}>
+            <Stack.Screen
+              name="settings"
+              options={{
+                presentation: "modal",
+                headerShown: false,
+                // header: () => <Header title="Create Installer Profile" />,
+              }}
+            />
 
+            <Stack.Screen
+              name="notifications"
+              options={{
+                presentation: "modal",
+                headerShown: false,
+              }}
+            />
+          </Stack.Protected>
           <Stack.Screen name="+not-found" />
         </Stack>
         <Toast />
