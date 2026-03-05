@@ -4,15 +4,20 @@ import { jobApprovedSchema, JobApprovedTags } from "../schemas";
 export const jobApproved: NotificationHandler = {
   schema: jobApprovedSchema,
   createActivity(data, author) {
+    const payload: JobApprovedTags = {
+      type: "job_approved",
+      source: "user",
+      priority: 5,
+      jobId: data.jobId,
+    };
+
     return {
       type: "job_approved",
       source: "user",
       subject: "Job approved",
       headline: `Job #${data.jobId} has been approved.`,
       authorId: author.id,
-      tags: {
-        jobId: data.jobId,
-      } as JobApprovedTags,
+      tags: payload,
     };
   },
   createEmail(data, author, user, args) {

@@ -1,24 +1,30 @@
 import type { NotificationHandler } from "../base";
 import {
   type JobTaskConfigureRequestInput,
+  type JobTaskConfigureRequestTags,
   jobTaskConfigureRequestSchema,
 } from "../schemas";
 
 export const jobTaskConfigureRequest: NotificationHandler = {
   schema: jobTaskConfigureRequestSchema,
   createActivity(data: JobTaskConfigureRequestInput, author) {
+    const payload: JobTaskConfigureRequestTags = {
+      type: "job_task_configure_request",
+      source: "user",
+      priority: 5,
+      contractorId: data.contractorId,
+      modelName: data.modelName,
+      projectName: data.projectName,
+      builderName: data.builderName,
+    };
+
     return {
       type: "job_task_configure_request",
       source: "user",
       subject: "Install task list missing",
       headline: `${data.modelName} (${data.projectName}/${data.builderName}) cannot be submitted because install task list is missing.`,
       authorId: author.id,
-      tags: {
-        contractorId: data.contractorId,
-        modelName: data.modelName,
-        projectName: data.projectName,
-        builderName: data.builderName,
-      },
+      tags: payload,
     };
   },
   createEmail(data, author, user, args) {

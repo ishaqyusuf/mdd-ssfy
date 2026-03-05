@@ -1,6 +1,7 @@
 import type { NotificationHandler, UserData } from "../base";
 import {
   SalesDispatchAssignedInput,
+  type SalesDispatchAssignedTags,
   salesDispatchAssignedSchema,
 } from "../schemas";
 
@@ -12,15 +13,24 @@ export const salesDispatchAssigned: NotificationHandler = {
     contact: UserData,
   ) {
     const { orderNo, dispatchId, deliveryMode, dueDate, driverId } = data;
+    const payload: SalesDispatchAssignedTags = {
+      type: "sales_dispatch_assigned",
+      source: "user",
+      priority: 5,
+      dispatchId,
+      orderNo,
+      deliveryMode,
+      dueDate,
+      driverId,
+    };
+
     return {
       type: "sales_dispatch_assigned",
       source: "user",
       subject: `Dispatch assigned`,
       headline: `Dispatch ${dispatchId} for order ${orderNo} has been assigned to you. Delivery mode: ${deliveryMode}.`,
       authorId: author.id,
-      tags: {
-        dispatchId,
-      },
+      tags: payload,
     };
   },
   createEmail(data, author, user, args) {

@@ -11,8 +11,8 @@ const baseActivityTags = z.object({
   source,
   priority,
   // sendEmail: z.boolean().optional().default(false),
-  authorContactId: z.number().optional(),
-  authorContactName: z.string().optional(),
+  // authorContactId: z.number().optional(),
+  // authorContactName: z.string().optional(),
 });
 const activitiesTags = z.object({
   id: z.number(),
@@ -135,8 +135,11 @@ export const jobSubmittedSchema = z.object({
   // submittedById: z.number().optional(),
   // submittedByName: z.string().optional(),
 });
-export const jobSubmittedTags = activitiesTags;
+export const jobSubmittedTags = actityTagsSchema.extend({
+  jobId: z.number(),
+});
 export type JobSubmittedInput = z.infer<typeof jobSubmittedSchema>;
+export type JobSubmittedTags = z.infer<typeof jobSubmittedTags>;
 
 export const jobReviewRequestedSchema = z.object({
   jobId: z.number(),
@@ -144,6 +147,12 @@ export const jobReviewRequestedSchema = z.object({
   requestedByName: z.string().optional(),
 });
 export type JobReviewRequestedInput = z.infer<typeof jobReviewRequestedSchema>;
+export const jobReviewRequestedTags = actityTagsSchema.extend({
+  jobId: z.number(),
+  requestedById: z.number().optional(),
+  requestedByName: z.string().optional(),
+});
+export type JobReviewRequestedTags = z.infer<typeof jobReviewRequestedTags>;
 export const jobApprovedSchema = z.object({
   jobId: z.number(),
   assignedToId: z.number(),
@@ -164,6 +173,12 @@ export const jobRejectedSchema = z.object({
   note: z.string().optional(),
 });
 export type JobRejectedInput = z.infer<typeof jobRejectedSchema>;
+export const jobRejectedTags = actityTagsSchema.extend({
+  jobId: z.number(),
+  assignedToId: z.number(),
+  note: z.string().optional(),
+});
+export type JobRejectedTags = z.infer<typeof jobRejectedTags>;
 export const jobTaskConfigureRequestSchema = z.object({
   contractorId: z.number(),
   modelName: z.string(),
@@ -172,6 +187,15 @@ export const jobTaskConfigureRequestSchema = z.object({
 });
 export type JobTaskConfigureRequestInput = z.infer<
   typeof jobTaskConfigureRequestSchema
+>;
+export const jobTaskConfigureRequestTags = actityTagsSchema.extend({
+  contractorId: z.number(),
+  modelName: z.string(),
+  projectName: z.string(),
+  builderName: z.string(),
+});
+export type JobTaskConfigureRequestTags = z.infer<
+  typeof jobTaskConfigureRequestTags
 >;
 // Notification types map - all available notification types with their data structures
 
@@ -210,6 +234,16 @@ export const salesDispatchAssignedSchema = z.object({
 export type SalesDispatchAssignedInput = z.infer<
   typeof salesDispatchAssignedSchema
 >;
+export const salesDispatchAssignedTags = actityTagsSchema.extend({
+  dispatchId: z.number(),
+  orderNo: z.string().optional(),
+  deliveryMode: z.enum(["pickup", "delivery"]).optional(),
+  dueDate: z.date().optional(),
+  driverId: z.number().optional(),
+});
+export type SalesDispatchAssignedTags = z.infer<
+  typeof salesDispatchAssignedTags
+>;
 export const salesEmailReminderSchema = z.object({
   type: z.enum(["order", "quote"]),
   customerEmail: z.string().email(),
@@ -229,6 +263,14 @@ export const salesEmailReminderSchema = z.object({
   ),
 });
 export type SalesEmailReminderInput = z.infer<typeof salesEmailReminderSchema>;
+export const salesEmailReminderTags = actityTagsSchema.extend({
+  customerEmail: z.string().email(),
+  customerName: z.string(),
+  salesCount: z.number(),
+  reminderType: z.enum(["order", "quote"]),
+  salesNo: z.array(z.string()).optional(),
+});
+export type SalesEmailReminderTags = z.infer<typeof salesEmailReminderTags>;
 export const salesRequestPackingSchema = z.object({
   orderNo: z.string(),
   dispatchId: z.number(),
@@ -237,6 +279,12 @@ export const salesRequestPackingSchema = z.object({
 export type SalesRequestPackingInput = z.infer<
   typeof salesRequestPackingSchema
 >;
+export const salesRequestPackingTags = actityTagsSchema.extend({
+  orderNo: z.string(),
+  dispatchId: z.number(),
+  packItems: updateSalesControlSchema.shape.packItems,
+});
+export type SalesRequestPackingTags = z.infer<typeof salesRequestPackingTags>;
 export const baseNotificationJobSchema = z.object({
   author: z.object({
     id: z.number(),

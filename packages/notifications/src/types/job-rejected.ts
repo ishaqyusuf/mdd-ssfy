@@ -1,9 +1,18 @@
 import type { NotificationHandler } from "../base";
-import { jobRejectedSchema } from "../schemas";
+import { type JobRejectedTags, jobRejectedSchema } from "../schemas";
 
 export const jobRejected: NotificationHandler = {
   schema: jobRejectedSchema,
   createActivity(data, author) {
+    const payload: JobRejectedTags = {
+      type: "job_rejected",
+      source: "user",
+      priority: 5,
+      jobId: data.jobId,
+      assignedToId: data.assignedToId,
+      note: data.note,
+    };
+
     return {
       type: "job_rejected",
       source: "user",
@@ -11,9 +20,7 @@ export const jobRejected: NotificationHandler = {
       headline: `Job #${data.jobId} has been rejected.`,
       note: data.note,
       authorId: author.id,
-      tags: {
-        jobId: data.jobId,
-      },
+      tags: payload,
     };
   },
   createEmail(data, author, user, args) {
