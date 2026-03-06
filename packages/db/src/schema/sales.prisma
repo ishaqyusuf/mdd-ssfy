@@ -145,6 +145,7 @@ enum SalesExtraCostType {
     Discount
     DiscountPercentage
     Labor
+    FlatLabor
     CustomTaxxable
     CustomNonTaxxable
     Delivery

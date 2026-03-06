@@ -1,4 +1,4 @@
-import SettingsExampleScreen from "@/components/examples/screen-example-settings";
+import SettingsExampleScreen from "@/screens/screen-settings";
 
 export default function DriverSettingsScreen() {
   return <SettingsExampleScreen />;

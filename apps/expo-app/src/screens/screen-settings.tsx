@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { View, Text, Pressable, ScrollView, Platform } from "react-native";
-import { Icon, IconKeys } from "../ui/icon";
+import { View, Text, ScrollView, Platform } from "react-native";
+import { Icon, IconKeys } from "../components/ui/icon";
 import { useRouter } from "expo-router";
 import { useAuthContext } from "@/hooks/use-auth";
 import { padStart } from "@gnd/utils";
-import { Debug } from "../debug";
-import { BackBtn } from "../back-btn";
+import { Debug } from "../components/debug";
+import { BackBtn } from "../components/back-btn";
 import config from "@root/app.config";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -15,6 +15,7 @@ import {
   setThemeOverride,
   type ThemeOverride,
 } from "@/lib/theme-preference";
+import { Pressable } from "@/components/ui/pressable";
 
 const sectionRouteMap = {
   jobs: "/(job-admin)",
@@ -470,6 +471,7 @@ function SettingsItem({
   return (
     <Pressable
       onPress={onPress}
+      noRipple={!onPress}
       className={`flex-row items-center justify-between p-4 active:bg-muted/10 ${
         !isLast ? "border-b border-border" : ""
       }`}
