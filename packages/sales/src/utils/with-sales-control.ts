@@ -138,7 +138,7 @@ function toStatistic(
   };
 
   const packable: PackableStat = {
-    total: Math.max(submissionCompleted - packed.completed, 0),
+    total: Math.max(assignmentTotal - packed.completed, 0),
   };
 
   return {

@@ -28,7 +28,7 @@ export function SalesLaborLine({}) {
         <LineContainer
             label={
                 <div className="text-sm">
-                    <span>Labor Cost ({md?.laborConfig?.rate}$)</span>
+                    <span>Unit Labor Cost ({md?.laborConfig?.rate}$)</span>
                 </div>
             }
         >

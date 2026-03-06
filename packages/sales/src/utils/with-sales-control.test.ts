@@ -65,7 +65,7 @@ describe("with-sales-control status and statistic helpers", () => {
     ).toBe("unknown");
   });
 
-  it("computes minimal statistic with clamped pending and packable qty", () => {
+  it("computes minimal statistic with clamped pending and total packable qty", () => {
     const stat = __withSalesControlTestUtils.toStatistic(
       {
         qty: 10,
@@ -95,7 +95,7 @@ describe("with-sales-control status and statistic helpers", () => {
       pending: 2,
     });
     expect(stat.packed).toEqual({ total: 5, completed: 4, pending: 1 });
-    expect(stat.packable).toEqual({ total: 2 });
+    expect(stat.packable).toEqual({ total: 6 });
     expect(stat.productionStatus).toBe("in progress");
     expect(stat.dispatchStatus).toBe("in progress");
   });
