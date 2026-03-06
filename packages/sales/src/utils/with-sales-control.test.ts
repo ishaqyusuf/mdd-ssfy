@@ -21,81 +21,104 @@ describe("with-sales-control status and statistic helpers", () => {
   it("derives dispatch status from control totals with precedence", () => {
     expect(
       __withSalesControlTestUtils.deriveDispatchStatusFromControls({
-        dispatchAssigned: 0,
-        dispatchInProgress: 0,
-        dispatchCompleted: 5,
-        dispatchCancelled: 0,
+        dispatchAssigned: { total: 0, lhQty: 0, rhQty: 0 },
+        dispatchInProgress: { total: 0, lhQty: 0, rhQty: 0 },
+        dispatchCompleted: { total: 5, lhQty: 0, rhQty: 0 },
+        dispatchCancelled: { total: 0, lhQty: 0, rhQty: 0 },
       })
     ).toBe("completed");
 
     expect(
       __withSalesControlTestUtils.deriveDispatchStatusFromControls({
-        dispatchAssigned: 2,
-        dispatchInProgress: 3,
-        dispatchCompleted: 1,
-        dispatchCancelled: 0,
+        dispatchAssigned: { total: 2, lhQty: 0, rhQty: 0 },
+        dispatchInProgress: { total: 3, lhQty: 0, rhQty: 0 },
+        dispatchCompleted: { total: 1, lhQty: 0, rhQty: 0 },
+        dispatchCancelled: { total: 0, lhQty: 0, rhQty: 0 },
       })
     ).toBe("in progress");
 
     expect(
       __withSalesControlTestUtils.deriveDispatchStatusFromControls({
-        dispatchAssigned: 2,
-        dispatchInProgress: 0,
-        dispatchCompleted: 0,
-        dispatchCancelled: 0,
+        dispatchAssigned: { total: 2, lhQty: 0, rhQty: 0 },
+        dispatchInProgress: { total: 0, lhQty: 0, rhQty: 0 },
+        dispatchCompleted: { total: 0, lhQty: 0, rhQty: 0 },
+        dispatchCancelled: { total: 0, lhQty: 0, rhQty: 0 },
       })
     ).toBe("queue");
 
     expect(
       __withSalesControlTestUtils.deriveDispatchStatusFromControls({
-        dispatchAssigned: 0,
-        dispatchInProgress: 0,
-        dispatchCompleted: 0,
-        dispatchCancelled: 2,
+        dispatchAssigned: { total: 0, lhQty: 0, rhQty: 0 },
+        dispatchInProgress: { total: 0, lhQty: 0, rhQty: 0 },
+        dispatchCompleted: { total: 0, lhQty: 0, rhQty: 0 },
+        dispatchCancelled: { total: 2, lhQty: 0, rhQty: 0 },
       })
     ).toBe("cancelled");
 
     expect(
       __withSalesControlTestUtils.deriveDispatchStatusFromControls({
-        dispatchAssigned: 0,
-        dispatchInProgress: 0,
-        dispatchCompleted: 0,
-        dispatchCancelled: 0,
+        dispatchAssigned: { total: 0, lhQty: 0, rhQty: 0 },
+        dispatchInProgress: { total: 0, lhQty: 0, rhQty: 0 },
+        dispatchCompleted: { total: 0, lhQty: 0, rhQty: 0 },
+        dispatchCancelled: { total: 0, lhQty: 0, rhQty: 0 },
       })
     ).toBe("unknown");
   });
 
-  it("computes minimal statistic with clamped pending and total packable qty", () => {
+  it("computes flattened statistics with qty matrices", () => {
     const stat = __withSalesControlTestUtils.toStatistic(
       {
-        qty: 10,
-        prodAssigned: 8,
-        prodCompleted: 6,
-        dispatchAssigned: 1,
-        dispatchInProgress: 2,
-        dispatchCompleted: 3,
-        dispatchCancelled: 0,
+        qty: { total: 10, lhQty: 4, rhQty: 6 },
+        prodAssigned: { total: 8, lhQty: 3, rhQty: 5 },
+        prodCompleted: { total: 6, lhQty: 2, rhQty: 4 },
+        dispatchAssigned: { total: 1, lhQty: 0, rhQty: 1 },
+        dispatchInProgress: { total: 2, lhQty: 1, rhQty: 1 },
+        dispatchCompleted: { total: 3, lhQty: 1, rhQty: 2 },
+        dispatchCancelled: { total: 0, lhQty: 0, rhQty: 0 },
       },
       {
-        total: 5,
-        completed: 4,
-        pending: 1,
+        total: 4,
+        lhQty: 1,
+        rhQty: 3,
       },
       "in progress"
     );
 
-    expect(stat.assignment).toEqual({
+    expect(stat.qty).toEqual({
       total: 10,
-      completed: 8,
-      pending: 2,
+      lhQty: 4,
+      rhQty: 6,
     });
-    expect(stat.submission).toEqual({
-      total: 8,
-      completed: 6,
-      pending: 2,
+    expect(stat.pendingAssignment).toEqual({
+      total: 2,
+      lhQty: 1,
+      rhQty: 1,
     });
-    expect(stat.packed).toEqual({ total: 5, completed: 4, pending: 1 });
-    expect(stat.packable).toEqual({ total: 6 });
+    expect(stat.pendingSubmission).toEqual({
+      total: 2,
+      lhQty: 1,
+      rhQty: 1,
+    });
+    expect(stat.packables).toEqual({
+      total: 2,
+      lhQty: 1,
+      rhQty: 1,
+    });
+    expect(stat.pendingPacking).toEqual({
+      total: 6,
+      lhQty: 3,
+      rhQty: 3,
+    });
+    expect(stat.packed).toEqual({
+      total: 4,
+      lhQty: 1,
+      rhQty: 3,
+    });
+    expect(stat.pendingDispatch).toEqual({
+      total: 4,
+      lhQty: 2,
+      rhQty: 2,
+    });
     expect(stat.productionStatus).toBe("in progress");
     expect(stat.dispatchStatus).toBe("in progress");
   });

@@ -1,14 +1,22 @@
 import type { Db } from "@gnd/db";
 import type { SalesDispatchStatus, SalesStatStatus } from "../types";
 
-export type ProgressStat = { pending: number; completed: number; total: number };
-export type PackableStat = { total: number };
+export type QtyStat = { total: number; lhQty: number; rhQty: number };
 
 export type SalesControlStatistic = {
-  assignment: ProgressStat;
-  submission: ProgressStat;
-  packed: ProgressStat;
-  packable: PackableStat;
+  qty: QtyStat;
+  prodAssigned: QtyStat;
+  prodCompleted: QtyStat;
+  dispatchAssigned: QtyStat;
+  dispatchInProgress: QtyStat;
+  dispatchCompleted: QtyStat;
+  dispatchCancelled: QtyStat;
+  pendingAssignment: QtyStat;
+  pendingSubmission: QtyStat;
+  packables: QtyStat;
+  pendingPacking: QtyStat;
+  pendingDispatch: QtyStat;
+  packed: QtyStat;
   productionStatus: SalesStatStatus;
   dispatchStatus: SalesDispatchStatus | "unknown";
 };
@@ -24,15 +32,7 @@ type QtyControlType =
   | "dispatchCompleted"
   | "dispatchCancelled";
 
-type OrderControlAggregate = {
-  qty: number;
-  prodAssigned: number;
-  prodCompleted: number;
-  dispatchAssigned: number;
-  dispatchInProgress: number;
-  dispatchCompleted: number;
-  dispatchCancelled: number;
-};
+type OrderControlAggregate = Record<QtyControlType, QtyStat>;
 
 const QTY_CONTROL_TYPES: QtyControlType[] = [
   "qty",
@@ -52,7 +52,7 @@ const DISPATCH_STATUSES: SalesDispatchStatus[] = [
 ];
 
 function isDispatchStatus(
-  value: string | null | undefined
+  value: string | null | undefined,
 ): value is SalesDispatchStatus {
   return !!value && DISPATCH_STATUSES.includes(value as SalesDispatchStatus);
 }
@@ -61,25 +61,48 @@ function toNumber(value: number | null | undefined) {
   return Number(value ?? 0);
 }
 
-function clampPending(total: number, completed: number) {
-  return Math.max(total - completed, 0);
+function emptyQtyStat(): QtyStat {
+  return {
+    total: 0,
+    lhQty: 0,
+    rhQty: 0,
+  };
+}
+
+function sumQtyStat(...stats: (QtyStat | null | undefined)[]): QtyStat {
+  return stats.filter(Boolean).reduce(
+    (acc, stat) => ({
+      total: acc.total + toNumber(stat?.total),
+      lhQty: acc.lhQty + toNumber(stat?.lhQty),
+      rhQty: acc.rhQty + toNumber(stat?.rhQty),
+    }),
+    emptyQtyStat(),
+  );
+}
+
+function diffQtyStat(base: QtyStat, subtract: QtyStat): QtyStat {
+  return {
+    total: Math.max(toNumber(base.total) - toNumber(subtract.total), 0),
+    lhQty: Math.max(toNumber(base.lhQty) - toNumber(subtract.lhQty), 0),
+    rhQty: Math.max(toNumber(base.rhQty) - toNumber(subtract.rhQty), 0),
+  };
 }
 
 function emptyOrderAggregate(): OrderControlAggregate {
   return {
-    qty: 0,
-    prodAssigned: 0,
-    prodCompleted: 0,
-    dispatchAssigned: 0,
-    dispatchInProgress: 0,
-    dispatchCompleted: 0,
-    dispatchCancelled: 0,
+    qty: emptyQtyStat(),
+    prodAssigned: emptyQtyStat(),
+    prodCompleted: emptyQtyStat(),
+    dispatchAssigned: emptyQtyStat(),
+    dispatchInProgress: emptyQtyStat(),
+    dispatchCompleted: emptyQtyStat(),
+    dispatchCancelled: emptyQtyStat(),
   };
 }
 
 function deriveProductionStatus(
   totalAssignment: number,
-  completedSubmission: number
+  completedSubmission: number,
 ): SalesStatStatus {
   if (totalAssignment <= 0) return "unknown";
   if (completedSubmission <= 0) return "pending";
@@ -94,12 +117,12 @@ function deriveDispatchStatusFromControls(
     | "dispatchInProgress"
     | "dispatchCompleted"
     | "dispatchCancelled"
-  >
+  >,
 ): SalesDispatchStatus | "unknown" {
-  const queued = toNumber(controls.dispatchAssigned);
-  const inProgress = toNumber(controls.dispatchInProgress);
-  const completed = toNumber(controls.dispatchCompleted);
-  const cancelled = toNumber(controls.dispatchCancelled);
+  const queued = toNumber(controls.dispatchAssigned.total);
+  const inProgress = toNumber(controls.dispatchInProgress.total);
+  const completed = toNumber(controls.dispatchCompleted.total);
+  const cancelled = toNumber(controls.dispatchCancelled.total);
   const nonCancelledTarget = queued + inProgress + completed;
 
   if (nonCancelledTarget > 0 && completed >= nonCancelledTarget)
@@ -110,53 +133,58 @@ function deriveDispatchStatusFromControls(
   return "unknown";
 }
 
-function deriveDispatchStatusFromPacked(packed: ProgressStat): SalesDispatchStatus {
-  if (packed.total > 0 && packed.completed >= packed.total) return "completed";
-  if (packed.completed > 0) return "in progress";
-  return "queue";
-}
-
 function toStatistic(
   aggregate: OrderControlAggregate,
-  packed: ProgressStat,
-  dispatchStatus: SalesDispatchStatus | "unknown"
+  packed: QtyStat,
+  dispatchStatus: SalesDispatchStatus | "unknown",
 ): SalesControlStatistic {
-  const assignmentTotal = toNumber(aggregate.qty);
-  const assignmentCompleted = toNumber(aggregate.prodAssigned);
-  const assignment: ProgressStat = {
-    total: assignmentTotal,
-    completed: assignmentCompleted,
-    pending: clampPending(assignmentTotal, assignmentCompleted),
-  };
+  const qty = aggregate.qty;
+  const prodAssigned = aggregate.prodAssigned;
+  const prodCompleted = aggregate.prodCompleted;
+  const dispatchAssigned = aggregate.dispatchAssigned;
+  const dispatchInProgress = aggregate.dispatchInProgress;
+  const dispatchCompleted = aggregate.dispatchCompleted;
+  const dispatchCancelled = aggregate.dispatchCancelled;
 
-  const submissionTotal = assignmentCompleted;
-  const submissionCompleted = toNumber(aggregate.prodCompleted);
-  const submission: ProgressStat = {
-    total: submissionTotal,
-    completed: submissionCompleted,
-    pending: clampPending(submissionTotal, submissionCompleted),
-  };
-
-  const packable: PackableStat = {
-    total: Math.max(assignmentTotal - packed.completed, 0),
-  };
+  const pendingAssignment = diffQtyStat(qty, prodAssigned);
+  const pendingSubmission = diffQtyStat(prodAssigned, prodCompleted);
+  const dispatchListed = sumQtyStat(
+    dispatchAssigned,
+    dispatchInProgress,
+    dispatchCompleted,
+  );
+  const pendingDispatch = diffQtyStat(qty, dispatchListed);
+  const packables = diffQtyStat(prodCompleted, packed);
+  const pendingPacking = diffQtyStat(qty, packed);
 
   return {
-    assignment,
-    submission,
+    qty,
+    prodAssigned,
+    prodCompleted,
+    dispatchAssigned,
+    dispatchInProgress,
+    dispatchCompleted,
+    dispatchCancelled,
+    pendingAssignment,
+    pendingSubmission,
+    packables,
+    pendingPacking,
+    pendingDispatch,
     packed,
-    packable,
-    productionStatus: deriveProductionStatus(
-      assignment.total,
-      submission.completed
-    ),
+    productionStatus: deriveProductionStatus(qty.total, prodCompleted.total),
     dispatchStatus,
   };
 }
 
 function buildOrderControlMap(
   itemControls: { uid: string; salesId: number }[],
-  qtyControls: { itemControlUid: string; type: string; total: number | null }[]
+  qtyControls: {
+    itemControlUid: string;
+    type: string;
+    total: number | null;
+    lh: number | null;
+    rh: number | null;
+  }[],
 ): Map<number, OrderControlAggregate> {
   const uidToOrderId = new Map<string, number>();
   for (const control of itemControls) {
@@ -172,7 +200,11 @@ function buildOrderControlMap(
     if (!QTY_CONTROL_TYPES.includes(type)) continue;
 
     const current = orderMap.get(orderId) ?? emptyOrderAggregate();
-    current[type] += toNumber(control.total);
+    current[type] = sumQtyStat(current[type], {
+      total: toNumber(control.total),
+      lhQty: toNumber(control.lh),
+      rhQty: toNumber(control.rh),
+    });
     orderMap.set(orderId, current);
   }
 
@@ -185,15 +217,17 @@ function buildOrderPackedMap(
     orderId: number;
     orderDeliveryId: number | null;
     qty: number;
+    lhQty: number | null;
+    rhQty: number | null;
     packingStatus: string | null;
-  }[]
-): Map<number, ProgressStat> {
+  }[],
+): Map<number, QtyStat> {
   const deliveryStatusById = new Map<number, string | null>();
   for (const d of deliveries) {
     deliveryStatusById.set(d.id, d.status);
   }
 
-  const packedMap = new Map<number, ProgressStat>();
+  const packedMap = new Map<number, QtyStat>();
   for (const item of deliveryItems) {
     const orderId = item.orderId;
     const deliveryStatus = item.orderDeliveryId
@@ -201,22 +235,17 @@ function buildOrderPackedMap(
       : null;
     if (deliveryStatus === "cancelled") continue;
 
-    const current = packedMap.get(orderId) ?? {
-      total: 0,
-      completed: 0,
-      pending: 0,
-    };
+    if (item.packingStatus !== "packed") continue;
 
-    const qty = toNumber(item.qty);
-    current.total += qty;
-    if (item.packingStatus === "packed") {
-      current.completed += qty;
-    }
-    packedMap.set(orderId, current);
-  }
-
-  for (const [, stat] of packedMap) {
-    stat.pending = clampPending(stat.total, stat.completed);
+    const current = packedMap.get(orderId) ?? emptyQtyStat();
+    packedMap.set(
+      orderId,
+      sumQtyStat(current, {
+        total: toNumber(item.qty),
+        lhQty: toNumber(item.lhQty),
+        rhQty: toNumber(item.rhQty),
+      }),
+    );
   }
 
   return packedMap;
@@ -248,6 +277,8 @@ async function loadOrderLevelData(orderIds: number[], db: Db) {
             itemControlUid: true,
             type: true,
             total: true,
+            lh: true,
+            rh: true,
           },
         })
       : Promise.resolve([]),
@@ -271,6 +302,8 @@ async function loadOrderLevelData(orderIds: number[], db: Db) {
         orderId: true,
         orderDeliveryId: true,
         qty: true,
+        lhQty: true,
+        rhQty: true,
         packingStatus: true,
       },
     }),
@@ -281,7 +314,7 @@ async function loadOrderLevelData(orderIds: number[], db: Db) {
 
 export async function withSalesControl<T extends { id: number }>(
   orders: T[],
-  db: Db
+  db: Db,
 ): Promise<WithStatistic<T>[]> {
   if (!orders.length) return [];
 
@@ -294,11 +327,7 @@ export async function withSalesControl<T extends { id: number }>(
 
   return orders.map((order) => {
     const aggregate = orderControls.get(order.id) ?? emptyOrderAggregate();
-    const packed = packedByOrder.get(order.id) ?? {
-      total: 0,
-      completed: 0,
-      pending: 0,
-    };
+    const packed = packedByOrder.get(order.id) ?? emptyQtyStat();
 
     const dispatchStatus = deriveDispatchStatusFromControls(aggregate);
     return {
@@ -316,20 +345,10 @@ export async function withDispatchControl<
   const dispatchIds = [...new Set(dispatches.map((d) => d.id))];
   const orderIds = [...new Set(dispatches.map((d) => d.salesOrderId))];
 
-  const { itemControls, qtyControls } = await loadOrderLevelData(orderIds, db);
+  const { itemControls, qtyControls, deliveries, deliveryItems } =
+    await loadOrderLevelData(orderIds, db);
 
-  const [deliveryItems, persistedDispatches] = await Promise.all([
-    db.orderItemDelivery.findMany({
-      where: {
-        orderDeliveryId: { in: dispatchIds },
-        deletedAt: null,
-      },
-      select: {
-        orderDeliveryId: true,
-        qty: true,
-        packingStatus: true,
-      },
-    }),
+  const [persistedDispatches] = await Promise.all([
     db.orderDelivery.findMany({
       where: {
         id: { in: dispatchIds },
@@ -343,26 +362,7 @@ export async function withDispatchControl<
   ]);
 
   const orderControls = buildOrderControlMap(itemControls, qtyControls);
-
-  const packedByDispatch = new Map<number, ProgressStat>();
-  for (const item of deliveryItems) {
-    if (!item.orderDeliveryId) continue;
-    const current = packedByDispatch.get(item.orderDeliveryId) ?? {
-      total: 0,
-      completed: 0,
-      pending: 0,
-    };
-
-    const qty = toNumber(item.qty);
-    current.total += qty;
-    if (item.packingStatus === "packed") {
-      current.completed += qty;
-    }
-    packedByDispatch.set(item.orderDeliveryId, current);
-  }
-  for (const [, stat] of packedByDispatch) {
-    stat.pending = clampPending(stat.total, stat.completed);
-  }
+  const packedByOrder = buildOrderPackedMap(deliveries, deliveryItems);
 
   const dispatchStatusById = new Map<number, string | null>();
   for (const d of persistedDispatches) {
@@ -372,16 +372,12 @@ export async function withDispatchControl<
   return dispatches.map((dispatch) => {
     const aggregate =
       orderControls.get(dispatch.salesOrderId) ?? emptyOrderAggregate();
-    const packed = packedByDispatch.get(dispatch.id) ?? {
-      total: 0,
-      completed: 0,
-      pending: 0,
-    };
+    const packed = packedByOrder.get(dispatch.salesOrderId) ?? emptyQtyStat();
 
     const storedStatus = dispatchStatusById.get(dispatch.id);
     const dispatchStatus = isDispatchStatus(storedStatus)
       ? storedStatus
-      : deriveDispatchStatusFromPacked(packed);
+      : deriveDispatchStatusFromControls(aggregate);
 
     return {
       ...dispatch,
@@ -392,7 +388,6 @@ export async function withDispatchControl<
 
 export const __withSalesControlTestUtils = {
   deriveDispatchStatusFromControls,
-  deriveDispatchStatusFromPacked,
   deriveProductionStatus,
   toStatistic,
 };

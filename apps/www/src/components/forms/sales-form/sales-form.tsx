@@ -143,11 +143,8 @@ function Content({ data }) {
             </Sidebar.Inset>
 
             <SalesFormSidebar className="hidden xl:flex" />
-            <SalesFormSidebar className="xl:hidden" />
             <FormWatcher />
             <TakeoffSwitch {...{ takeOff, takeOffChanged }} />
         </>
     );
 }
-
-

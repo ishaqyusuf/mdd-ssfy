@@ -305,28 +305,28 @@ const assignedTo: ColumnDef<Item> = {
 
         const updateDriver = useMutation(
             trpc.dispatch.updateDispatchDriver.mutationOptions({
-            onSuccess() {
-                toast({
-                    duration: 2000,
-                    variant: "success",
-                    description: "Dispatch Assigned",
-                    title: "Updated!",
-                });
-                queryClient.invalidateQueries({
-                    queryKey: trpc.dispatch.index.pathKey(),
-                });
-                queryClient.invalidateQueries({
-                    queryKey: trpc.dispatch.assignedDispatch.pathKey(),
-                });
-            },
-            onError(error) {
-                toast({
-                    duration: 3000,
-                    variant: "error",
-                    description: error.message || "Unable to assign driver",
-                    title: "Update Failed",
-                });
-            },
+                onSuccess() {
+                    toast({
+                        duration: 2000,
+                        variant: "success",
+                        description: "Dispatch Assigned",
+                        title: "Updated!",
+                    });
+                    queryClient.invalidateQueries({
+                        queryKey: trpc.dispatch.index.pathKey(),
+                    });
+                    queryClient.invalidateQueries({
+                        queryKey: trpc.dispatch.assignedDispatch.pathKey(),
+                    });
+                },
+                onError(error) {
+                    toast({
+                        duration: 3000,
+                        variant: "error",
+                        description: error.message || "Unable to assign driver",
+                        title: "Update Failed",
+                    });
+                },
             }),
         );
         const submitDriverUpdate = (driverId: number | null) => {
@@ -368,8 +368,8 @@ const assignedTo: ColumnDef<Item> = {
                                 Reassign Dispatch Driver
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                                This dispatch already has an assigned driver.
-                                Do you want to proceed with re-assignment?
+                                This dispatch already has an assigned driver. Do
+                                you want to proceed with re-assignment?
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -393,11 +393,11 @@ const packingProgress: ColumnDef<Item> = {
     header: "Progress",
     accessorKey: "progress",
     cell: ({ row: { original: item } }) => {
-        const completed = item?.statistic?.packed?.completed || 0;
-        const assignmentTotal = item?.statistic?.assignment?.total || 0;
-        const total = assignmentTotal > 0 ? assignmentTotal : completed;
-        const pending = Math.max(total - completed, 0);
-        const ratio = total <= 0 ? 0 : completed / total;
+        const packed = item?.statistic?.packed?.total || 0;
+        const pending = item?.statistic?.pendingPacking?.total || 0;
+        const total = packed + pending;
+        console.log(item);
+        const ratio = total <= 0 ? 0 : packed / total;
         const colorClass =
             ratio >= 1
                 ? "text-green-600"
@@ -408,7 +408,7 @@ const packingProgress: ColumnDef<Item> = {
         return (
             <div className="w-36">
                 <div className={`text-sm font-semibold ${colorClass}`}>
-                    {completed}/{total} packed
+                    {packed}/{total} packed
                 </div>
                 <div className={`text-xs ${colorClass}`}>
                     {Math.round(ratio * 100)}% ({pending} pending)
@@ -644,3 +644,4 @@ const formatDateTime = (dateString: string) => {
         hour12: true,
     });
 };
+

@@ -1,5 +1,6 @@
 import { Icon } from "@/components/ui/icon";
-import { Pressable, Text, View } from "react-native";
+import { Pressable } from "@/components/ui/pressable";
+import { Text, View } from "react-native";
 
 type Props = {
   item: any;
@@ -45,11 +46,13 @@ export function SalesOrderCard({ item, onPress }: Props) {
   const total = Number(item?.invoice?.total || 0);
   const paid = Number(item?.invoice?.paid || 0);
   const due = Number(item?.invoice?.pending || 0);
-  const paidPct = total > 0 ? Math.min(100, Math.max(0, (paid / total) * 100)) : 0;
+  const paidPct =
+    total > 0 ? Math.min(100, Math.max(0, (paid / total) * 100)) : 0;
   const tone = statusTone(item?.deliveryStatus);
 
   return (
     <Pressable
+      haptic
       onPress={onPress}
       className="mb-3 overflow-hidden rounded-3xl border border-border bg-card active:opacity-90"
     >
@@ -64,14 +67,18 @@ export function SalesOrderCard({ item, onPress }: Props) {
               </Text>
             </View>
             <View>
-              <Text className="text-sm font-bold text-foreground">#{item?.orderId}</Text>
+              <Text className="text-sm font-bold text-foreground">
+                #{item?.orderId}
+              </Text>
               <Text className="mt-0.5 text-xs font-medium text-muted-foreground">
                 {item?.displayName || "Unknown Customer"}
               </Text>
             </View>
           </View>
 
-          <View className={`flex-row items-center gap-1 rounded-full border px-2.5 py-1 ${tone.chip}`}>
+          <View
+            className={`flex-row items-center gap-1 rounded-full border px-2.5 py-1 ${tone.chip}`}
+          >
             <View className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />
             <Text className={`text-[10px] font-bold uppercase ${tone.text}`}>
               {item?.deliveryStatus || "pending"}
@@ -83,14 +90,22 @@ export function SalesOrderCard({ item, onPress }: Props) {
       <View className="px-4 py-3">
         <View className="mb-3 flex-row gap-2">
           <MetricChip label="Total" value={toMoney(total)} icon="ReceiptText" />
-          <MetricChip label="Paid" value={toMoney(paid)} icon="CircleDollarSign" />
+          <MetricChip
+            label="Paid"
+            value={toMoney(paid)}
+            icon="CircleDollarSign"
+          />
           <MetricChip label="Due" value={toMoney(due)} icon="Wallet" />
         </View>
 
         <View className="mb-3">
           <View className="mb-1.5 flex-row items-center justify-between">
-            <Text className="text-[11px] font-medium text-muted-foreground">Payment Progress</Text>
-            <Text className="text-[11px] font-semibold text-foreground">{paidPct.toFixed(0)}%</Text>
+            <Text className="text-[11px] font-medium text-muted-foreground">
+              Payment Progress
+            </Text>
+            <Text className="text-[11px] font-semibold text-foreground">
+              {paidPct.toFixed(0)}%
+            </Text>
           </View>
           <View className="h-1.5 overflow-hidden rounded-full bg-muted">
             <View
@@ -103,7 +118,9 @@ export function SalesOrderCard({ item, onPress }: Props) {
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-2">
             <Icon name="Phone" className="text-muted-foreground" size={14} />
-            <Text className="text-xs text-muted-foreground">{item?.customerPhone || "No phone"}</Text>
+            <Text className="text-xs text-muted-foreground">
+              {item?.customerPhone || "No phone"}
+            </Text>
           </View>
 
           <View className="flex-row items-center gap-3">
@@ -115,9 +132,15 @@ export function SalesOrderCard({ item, onPress }: Props) {
             </View>
             <View className="flex-row items-center gap-1">
               <Icon name="Clock" className="text-muted-foreground" size={14} />
-              <Text className="text-xs text-muted-foreground">{item?.salesDate || "-"}</Text>
+              <Text className="text-xs text-muted-foreground">
+                {item?.salesDate || "-"}
+              </Text>
             </View>
-            <Icon name="ChevronRight" className="text-muted-foreground" size={16} />
+            <Icon
+              name="ChevronRight"
+              className="text-muted-foreground"
+              size={16}
+            />
           </View>
         </View>
       </View>

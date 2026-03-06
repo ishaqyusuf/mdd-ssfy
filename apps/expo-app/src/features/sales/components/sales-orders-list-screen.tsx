@@ -1,5 +1,6 @@
 import { SafeArea } from "@/components/safe-area";
 import { Icon } from "@/components/ui/icon";
+import { Pressable } from "@/components/ui/pressable";
 import { useSalesOrderFilters } from "@/features/sales/api/use-sales-order-filters";
 import { useSalesOrdersList } from "@/features/sales/api/use-sales-orders-list";
 import type { FilterItem } from "@/features/sales/types/sales.types";
@@ -8,7 +9,6 @@ import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Pressable,
   Text,
   TextInput,
   View,

@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo } from "react";
 import salesData from "@/app-deps/(clean-code)/(sales)/_common/utils/sales-data";
 import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { SettingsClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class";
@@ -9,11 +9,9 @@ import { AnimatedNumber } from "@/components/animated-number";
 import { FormSelectProps } from "@/components/common/controls/form-select";
 import { NumberInput } from "@/components/currency-input";
 import { LabelInput } from "@/components/label-input";
-import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { cn } from "@/lib/utils";
 import { NumericFormatProps } from "react-number-format";
 
-import { Button } from "@gnd/ui/button";
 import { Label } from "@gnd/ui/label";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import {
@@ -23,127 +21,19 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@gnd/ui/select";
-import { SalesFormSave } from "./sales-form-save";
 import ConfirmBtn from "@/components/confirm-button";
 import { deleteSalesExtraCost } from "@/actions/delete-sales-extra-cost";
-import FormSettingsModal from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/form-settings-modal";
-import { _modal } from "@/components/common/modal/provider";
-import { useSticky } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_hooks/use-sticky";
-import { MenuItemSalesActions } from "@/components/menu-item-sales-actions";
 import { SalesHistory } from "@/components/sales-hx";
-import { ChevronsLeft, ChevronsRight } from "lucide-react";
-import { useLocalStorage } from "@/hooks/use-local-storage";
-import { useSalesSummaryToggle } from "@/store/invoice-summary-toggle";
 import { SalesCustomerInput } from "./sales-customer-input";
-import { Sidebar } from "@gnd/ui/namespace";
 
-export function SalesMetaForm({}) {
+export type SalesMetaTab = "summary" | "history";
+
+export function SalesMetaForm({ tab = "summary" }: { tab?: SalesMetaTab }) {
     const zus = useFormDataStore();
     const md = zus.metaData;
-    const tabs = [
-        "summary",
-        "history",
-        // "transactions",
-        // "customer info",
-        // , "customer"
-    ];
-    const [tab, setTab] = useState(md?.id ? "summary" : "summary");
-    const ctx = useSalesOverviewQuery();
-    const { actionRef, isFixed, fixedOffset } = useSticky(
-        (bv, pv, { top, bottom }) => {
-            // return top < 0;
-            return true;
-        }, //!bv && pv,
-    );
-    const [menuOpen, setMenuOpen] = useState(false);
-    const { hidden, toggle } = useSalesSummaryToggle();
+
     return (
-        <div>
-            <div
-                ref={actionRef}
-                // style={isFixed ? { left: `${fixedOffset}px` } : {}}
-            >
-                <div className="flex relative  border-b">
-                    <div className="-ml-6">
-                        <Button
-                            onClick={(e) => {
-                                toggle();
-                            }}
-                            size="xs"
-                            variant="outline"
-                        >
-                            {!hidden ? (
-                                <ChevronsRight className="size-4" />
-                            ) : (
-                                <ChevronsLeft className="size-4" />
-                            )}
-                        </Button>
-                    </div>
-                    {tabs.map((_tab, ti) => (
-                        <Button
-                            key={_tab}
-                            variant="ghost"
-                            // disabled={ti != 0}
-                            onClick={(e) => {
-                                setTab(_tab);
-                            }}
-                            className={cn(
-                                "rounded-none border-b-2 border-transparent font-mono$ uppercase hover:bg-transparent",
-                                tab == _tab
-                                    ? "rounded-none border-b border-primary"
-                                    : "text-muted-foreground/90 hover:text-muted-foreground",
-                            )}
-                        >
-                            {_tab}
-                        </Button>
-                    ))}
-                    <div className="flex-1"></div>
-                    <Sidebar.Trigger> </Sidebar.Trigger>
-                    <div>
-                        <Menu open={menuOpen} onOpenChanged={setMenuOpen}>
-                            {/* <Menu.Item Icon={Icons.save}>Save</Menu.Item> */}
-                            <SalesFormSave type="menu" />
-                            <Menu.Item
-                                onClick={() => {
-                                    ctx.open2(
-                                        zus.metaData?.salesId,
-                                        zus.metaData.type == "order"
-                                            ? "sales"
-                                            : "quote",
-                                    );
-                                }}
-                                Icon={Icons.customerService}
-                            >
-                                Overview
-                            </Menu.Item>
-
-                            <MenuItemSalesActions
-                                slug={zus.metaData.salesId}
-                                setMenuOpen={setMenuOpen}
-                                type={zus.metaData.type}
-                                id={zus.metaData.id}
-                            />
-
-                            <Menu.Item
-                                onClick={(e) => {
-                                    _modal.openSheet(<FormSettingsModal />);
-                                }}
-                                Icon={Icons.settings}
-                            >
-                                Settings
-                            </Menu.Item>
-                        </Menu>
-                    </div>
-                </div>
-                {tab == "summary" ? (
-                    <SummaryTab />
-                ) : tab == "history" ? (
-                    <SalesHistory salesId={md?.salesId} />
-                ) : (
-                    <></>
-                )}
-            </div>
-        </div>
+        <div>{tab === "summary" ? <SummaryTab /> : <SalesHistory salesId={md?.salesId} />}</div>
     );
 }
 function SummaryTab({}) {
@@ -152,6 +42,10 @@ function SummaryTab({}) {
     const setting = useMemo(() => new SettingsClass(), []);
     const profiles = setting.salesProfiles();
     const taxList = setting.taxList();
+    const displaySubTotal =
+        (md.pricing?.grandTotal || 0) -
+        (md.pricing?.taxValue || 0) -
+        (md.pricing?.ccc || 0);
     function calculateTotal() {
         setting.calculateTotalPrice();
     }
@@ -330,6 +224,7 @@ function SummaryTab({}) {
                                             type: item.type,
                                         },
                                     ]);
+                                    calculateTotal();
                                 }}
                                 key={i}
                             >
@@ -339,7 +234,7 @@ function SummaryTab({}) {
                     </Menu>
                     <LineContainer label="Sub Total">
                         <div className="text-right">
-                            <AnimatedNumber value={md.pricing?.subTotal || 0} />
+                            <AnimatedNumber value={displaySubTotal || 0} />
                         </div>
                     </LineContainer>
                     <LineContainer

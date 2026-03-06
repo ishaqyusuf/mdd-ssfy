@@ -1,14 +1,13 @@
 import { _trpc } from "@/components/static-trpc";
 import { SafeArea } from "@/components/safe-area";
 import { Icon } from "@/components/ui/icon";
-import { useModal } from "@/components/ui/modal";
 import { useCreateOrderDelivery } from "@/features/sales/api/use-create-order-delivery";
 import { useSalesOrderOverview } from "@/features/sales/api/use-sales-order-overview";
-import { CreateDeliveryModal } from "@/features/sales/components/create-delivery-modal";
+import { CreateDeliveryStack } from "@/features/sales/components/create-delivery-stack";
 import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 
 type Props = {
@@ -17,7 +16,7 @@ type Props = {
 
 export function SalesOrderDetailScreen({ orderNo }: Props) {
   const router = useRouter();
-  const deliveryModal = useModal();
+  const [deliveryOpen, setDeliveryOpen] = useState(false);
 
   const { sale, dispatch } = useSalesOrderOverview(orderNo);
   const { data: drivers } = useQuery(_trpc.hrm.getDrivers.queryOptions({}));
@@ -27,7 +26,7 @@ export function SalesOrderDetailScreen({ orderNo }: Props) {
 
   const { mutate: createDelivery, isPending: isCreatingDelivery } =
     useCreateOrderDelivery((dispatchId) => {
-      deliveryModal.dismiss();
+      setDeliveryOpen(false);
       router.push({
         pathname: "/(sales)/orders/[orderNo]/delivery/[dispatchId]",
         params: {
@@ -134,27 +133,22 @@ export function SalesOrderDetailScreen({ orderNo }: Props) {
           alwaysBounceVertical
           scrollEventThrottle={16}
         >
-          <Section title="Financial" icon="Wallet">
-            <GridStat label="Cost" value={money(total)} />
-            <GridStat label="Paid" value={money(paid)} />
-            <GridStat label="Tax" value={money(taxAmount)} />
-            <GridStat label="Discount" value={money(discountAmount)} />
-            <GridStat label="Balance" value={money(due)} />
-          </Section>
+          <FinancialOverviewCard
+            total={total}
+            paid={paid}
+            due={due}
+            taxAmount={taxAmount}
+            discountAmount={discountAmount}
+            paidPct={paidPct}
+          />
 
-          <Section title="Contact" icon="User">
-            <InfoRow label="Name" value={saleData?.displayName || "-"} icon="User" />
-            <InfoRow label="Phone" value={saleData?.customerPhone || "-"} icon="Phone" />
-            <InfoRow label="Email" value={saleData?.email || "-"} icon="Mail" />
-          </Section>
+          <ContactOverviewCard
+            name={saleData?.displayName || "-"}
+            phone={saleData?.customerPhone || "-"}
+            email={saleData?.email || "-"}
+          />
 
-          <Section title="Shipping" icon="Truck">
-            <AddressBlock address={saleData?.addressData?.shipping} />
-          </Section>
-
-          <Section title="Billing" icon="ReceiptText">
-            <AddressBlock address={saleData?.addressData?.billing} />
-          </Section>
+          <ShippingOverviewCard address={saleData?.addressData?.shipping} />
 
           <Section title="Activities" icon="Clock">
             {deliveryItems.length ? (
@@ -250,7 +244,7 @@ export function SalesOrderDetailScreen({ orderNo }: Props) {
 
           <Pressable
             disabled={!saleData?.id}
-            onPress={deliveryModal.present}
+            onPress={() => setDeliveryOpen(true)}
             className="mb-2 mt-1 h-12 items-center justify-center rounded-xl bg-primary disabled:opacity-50"
           >
             <Text className="text-sm font-semibold text-primary-foreground">Create Delivery</Text>
@@ -258,12 +252,12 @@ export function SalesOrderDetailScreen({ orderNo }: Props) {
         </ScrollView>
       </View>
 
-      <CreateDeliveryModal
-        ref={deliveryModal.ref}
+      <CreateDeliveryStack
+        visible={deliveryOpen}
         drivers={drivers || []}
         disabled={!saleData?.id}
         isSubmitting={isCreatingDelivery}
-        onCancel={deliveryModal.dismiss}
+        onClose={() => setDeliveryOpen(false)}
         onSubmit={({ deliveryMode, status, dueDate, driverId }) => {
           createDelivery({
             salesId: Number(saleData.id),
@@ -349,53 +343,208 @@ function MetricPill({
   );
 }
 
-function GridStat({ label, value }: { label: string; value: string }) {
-  return (
-    <View className="mb-2 flex-row items-center justify-between rounded-xl border border-border bg-background px-3 py-2.5">
-      <Text className="text-xs font-medium text-muted-foreground">{label}</Text>
-      <Text className="text-sm font-semibold text-foreground">{value}</Text>
-    </View>
-  );
-}
-
-function InfoRow({
-  label,
-  value,
-  icon,
+function FinancialOverviewCard({
+  total,
+  paid,
+  due,
+  taxAmount,
+  discountAmount,
+  paidPct,
 }: {
-  label: string;
-  value: string;
-  icon: any;
+  total: number;
+  paid: number;
+  due: number;
+  taxAmount: number;
+  discountAmount: number;
+  paidPct: number;
 }) {
   return (
-    <View className="mb-2 flex-row items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5">
-      <Icon name={icon} className="text-muted-foreground" size={14} />
-      <View className="flex-1">
-        <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-          {label}
-        </Text>
-        <Text className="text-sm font-semibold text-foreground">{value}</Text>
+    <View className="mb-4 overflow-hidden rounded-3xl border border-border bg-card p-4">
+      <View className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-primary/10" />
+      <View className="absolute -bottom-8 -left-8 h-20 w-20 rounded-full bg-secondary/60" />
+
+      <View className="mb-3 flex-row items-center gap-2">
+        <View className="rounded-full bg-primary/10 p-1.5">
+          <Icon name="Wallet" className="text-primary" size={14} />
+        </View>
+        <Text className="text-sm font-bold text-foreground">Financial</Text>
+      </View>
+
+      <View className="mb-3 rounded-2xl border border-border bg-background/80 p-3">
+        <View className="mb-2 flex-row items-center justify-between">
+          <Text className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Outstanding Balance
+          </Text>
+          <Text className="text-[11px] font-semibold text-muted-foreground">
+            {paidPct.toFixed(0)}% paid
+          </Text>
+        </View>
+        <Text className="text-2xl font-black text-foreground">{money(due)}</Text>
+        <View className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+          <View className="h-full rounded-full bg-primary" style={{ width: `${paidPct}%` }} />
+        </View>
+      </View>
+
+      <View className="mb-2 flex-row gap-2">
+        <View className="flex-1 rounded-xl border border-border bg-background px-3 py-2.5">
+          <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Total
+          </Text>
+          <Text className="mt-1 text-sm font-bold text-foreground">{money(total)}</Text>
+        </View>
+        <View className="flex-1 rounded-xl border border-emerald-300/60 bg-emerald-500/10 px-3 py-2.5">
+          <Text className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+            Paid
+          </Text>
+          <Text className="mt-1 text-sm font-bold text-emerald-700 dark:text-emerald-300">
+            {money(paid)}
+          </Text>
+        </View>
+      </View>
+
+      <View className="flex-row gap-2">
+        <View className="flex-1 rounded-xl border border-border bg-background px-3 py-2.5">
+          <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Tax
+          </Text>
+          <Text className="mt-1 text-sm font-semibold text-foreground">{money(taxAmount)}</Text>
+        </View>
+        <View className="flex-1 rounded-xl border border-border bg-background px-3 py-2.5">
+          <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Discount
+          </Text>
+          <Text className="mt-1 text-sm font-semibold text-foreground">{money(discountAmount)}</Text>
+        </View>
       </View>
     </View>
   );
 }
 
-function AddressBlock({ address }: { address?: any }) {
-  const lines = (address?.lines || []).filter(Boolean);
-  if (!lines.length) {
-    return <Text className="text-sm text-muted-foreground">No address.</Text>;
-  }
+function ContactOverviewCard({
+  name,
+  phone,
+  email,
+}: {
+  name: string;
+  phone: string;
+  email: string;
+}) {
   return (
-    <View className="gap-2">
-      {lines.map((line: string, index: number) => (
-        <View
-          key={String(index)}
-          className="flex-row items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5"
-        >
-          <Icon name="MapPin" className="text-muted-foreground" size={14} />
-          <Text className="flex-1 text-sm text-foreground">{line}</Text>
+    <View className="mb-4 overflow-hidden rounded-3xl border border-border bg-card p-4">
+      <View className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-primary/15" />
+      <View className="absolute -left-8 -bottom-8 h-20 w-20 rounded-full bg-secondary/70" />
+
+      <View className="mb-3 flex-row items-center justify-between">
+        <View className="flex-row items-center gap-2">
+          <View className="rounded-full bg-primary/10 p-1.5">
+            <Icon name="User" className="text-primary" size={14} />
+          </View>
+          <Text className="text-sm font-bold text-foreground">Customer Contact</Text>
         </View>
-      ))}
+        <View className="rounded-full border border-border bg-background px-2.5 py-1">
+          <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Billing Source
+          </Text>
+        </View>
+      </View>
+
+      <View className="mb-3 rounded-2xl border border-primary/20 bg-primary/5 p-3">
+        <View className="flex-row items-center gap-2">
+          <View className="h-11 w-11 items-center justify-center rounded-full bg-primary/15">
+            <Icon name="User" className="text-primary" size={18} />
+          </View>
+          <View>
+            <Text className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Primary Contact
+            </Text>
+            <Text className="text-base font-black text-foreground">{name}</Text>
+          </View>
+        </View>
+      </View>
+
+      <View className="gap-2">
+        <View className="rounded-xl border border-border bg-background px-3 py-2.5">
+          <View className="flex-row items-center gap-2">
+            <View className="h-7 w-7 items-center justify-center rounded-full bg-secondary">
+              <Icon name="Phone" className="text-muted-foreground" size={13} />
+            </View>
+            <View className="flex-1">
+              <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Phone
+              </Text>
+              <Text className="text-sm font-semibold text-foreground">{phone}</Text>
+            </View>
+          </View>
+        </View>
+        <View className="rounded-xl border border-border bg-background px-3 py-2.5">
+          <View className="flex-row items-center gap-2">
+            <View className="h-7 w-7 items-center justify-center rounded-full bg-secondary">
+              <Icon name="Mail" className="text-muted-foreground" size={13} />
+            </View>
+            <View className="flex-1">
+              <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Email
+              </Text>
+              <Text className="text-sm font-semibold text-foreground">{email}</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function ShippingOverviewCard({ address }: { address?: any }) {
+  const lines = (address?.lines || []).filter(Boolean);
+
+  return (
+    <View className="mb-4 overflow-hidden rounded-3xl border border-border bg-card p-4">
+      <View className="absolute -left-10 -top-10 h-24 w-24 rounded-full bg-primary/15" />
+      <View className="absolute -right-8 -bottom-8 h-20 w-20 rounded-full bg-secondary/70" />
+
+      <View className="mb-3 flex-row items-center justify-between">
+        <View className="flex-row items-center gap-2">
+          <View className="rounded-full bg-primary/10 p-1.5">
+            <Icon name="Truck" className="text-primary" size={14} />
+          </View>
+          <Text className="text-sm font-bold text-foreground">Shipping Destination</Text>
+        </View>
+        <View className="rounded-full border border-border bg-background px-2.5 py-1">
+          <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Active
+          </Text>
+        </View>
+      </View>
+
+      {lines.length ? (
+        <View className="gap-2 rounded-2xl border border-border bg-background p-3">
+          {lines.map((line: string, index: number) => (
+            <View
+              key={String(index)}
+              className="flex-row items-start gap-2 rounded-xl border border-border/70 bg-card px-3 py-2.5"
+            >
+              <View className="mt-0.5 h-5 w-5 items-center justify-center rounded-full bg-primary/10">
+                <Icon name="MapPin" className="text-primary" size={12} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {index === 0 ? "Street" : "Address Line"}
+                </Text>
+                <Text className="text-sm font-semibold text-foreground">{line}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : (
+        <View className="rounded-xl border border-dashed border-border bg-background px-3 py-4">
+          <View className="flex-row items-center gap-2">
+            <View className="h-7 w-7 items-center justify-center rounded-full bg-muted">
+              <Icon name="MapPin" className="text-muted-foreground" size={12} />
+            </View>
+            <Text className="text-sm text-muted-foreground">No shipping address.</Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }

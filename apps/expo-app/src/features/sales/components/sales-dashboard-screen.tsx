@@ -1,12 +1,12 @@
 import { GeneralHomeHeader } from "@/components/home/general-home-header";
 import { SafeArea } from "@/components/safe-area";
 import { Icon } from "@/components/ui/icon";
+import { Pressable } from "@/components/ui/pressable";
 import { useSalesDashboardOverview } from "@/features/sales/api/use-sales-dashboard-overview";
 import { useRouter } from "expo-router";
 import {
   ActivityIndicator,
   RefreshControl,
-  Pressable,
   ScrollView,
   Text,
   View,
@@ -22,7 +22,7 @@ export function SalesDashboardScreen() {
         <GeneralHomeHeader className="px-4 pb-4" showNotificationDot={false} />
 
         <View className="flex-1">
-          <View className="mb-4 px-4 pb-2 pt-1">
+          <View className="mb-4 mt-2 px-4 pb-2 pt-1">
             <Text className="text-2xl font-bold text-foreground">
               Sales Dashboard
             </Text>

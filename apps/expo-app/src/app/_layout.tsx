@@ -98,10 +98,6 @@ const InitialLayout = () => {
           </Stack.Protected>
           <Stack.Protected guard={!!token && !!canAccessJobs}>
             <Stack.Screen name="(job-admin)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="(job-admin)/job-overview/[jobId]"
-              options={{ headerShown: false }}
-            />
           </Stack.Protected>
           <Stack.Protected guard={!!token && !!canAccessInstaller}>
             <Stack.Screen
