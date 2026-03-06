@@ -394,18 +394,25 @@ const packingProgress: ColumnDef<Item> = {
     accessorKey: "progress",
     cell: ({ row: { original: item } }) => {
         const completed = item?.statistic?.packed?.completed || 0;
-        const total = item?.statistic?.packed?.total || 0;
+        const assignmentTotal = item?.statistic?.assignment?.total || 0;
+        const total = assignmentTotal > 0 ? assignmentTotal : completed;
+        const pending = Math.max(total - completed, 0);
+        const ratio = total <= 0 ? 0 : completed / total;
+        const colorClass =
+            ratio >= 1
+                ? "text-green-600"
+                : ratio > 0
+                  ? "text-amber-600"
+                  : "text-muted-foreground";
 
         return (
             <div className="w-36">
-                <div className="text-xs text-muted-foreground mb-1">
+                <div className={`text-sm font-semibold ${colorClass}`}>
                     {completed}/{total} packed
                 </div>
-                <Progress.ProgressBar
-                    score={completed}
-                    total={Math.max(total, 1)}
-                    showPercent
-                />
+                <div className={`text-xs ${colorClass}`}>
+                    {Math.round(ratio * 100)}% ({pending} pending)
+                </div>
             </div>
         );
     },

@@ -19,16 +19,25 @@ export function SalesFormSidebar({
             side="right"
             hidden={!sb.open && !opened}
             className={cn(
-                "top-[var(--header-height)] h-[calc(100svh-var(--header-height))] border-l",
+                "top-[var(--header-height)] h-[calc(100vh_-_var(--header-height))] border-l border-slate-200/80 bg-white/95 backdrop-blur",
                 className,
             )}
             {...props}
         >
-            <Sidebar.Content className="w-sm">
-                {/* <span>abc</span> */}
-                <SalesMetaForm />
+            <Sidebar.Content className="flex w-[22rem] min-h-0 flex-col overflow-hidden">
+                <div className="border-b border-slate-200/80 px-4 py-3">
+                    <p className="text-[11px] uppercase tracking-wide text-slate-500">
+                        Sales Panel
+                    </p>
+                    <p className="text-sm font-semibold text-slate-900">
+                        Summary And Actions
+                    </p>
+                </div>
+                <div className="min-h-0 flex-1 overflow-y-auto px-3 py-2">
+                    <SalesMetaForm />
+                </div>
             </Sidebar.Content>
-            <Sidebar.Footer>
+            <Sidebar.Footer className="border-t border-slate-200/80 bg-white/95 px-4 py-3">
                 <Footer />
             </Sidebar.Footer>
         </Sidebar>
