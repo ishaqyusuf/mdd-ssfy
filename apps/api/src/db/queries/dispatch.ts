@@ -20,7 +20,7 @@ import type { NotificationJobInput } from "@notifications/schemas";
 import { TRPCError } from "@trpc/server";
 
 import { qtyMatrixSum, transformQtyHandle } from "@sales/utils/sales-control";
-import { getSalesDispatchOverview, packDispatchItemTask } from "@sales/exports";
+import { getSalesDispatchOverview } from "@sales/exports";
 import { qtyMatrixDifference, recomposeQty } from "@sales/utils/sales-control";
 
 export async function getDispatches(
@@ -261,26 +261,6 @@ async function sendDispatchNotification(
   } as NotificationJobInput);
 }
 
-async function getAuthorMeta(ctx: TRPCContext, salesId: number) {
-  const userId = Number(ctx.userId || 0);
-  const user = userId
-    ? await ctx.db.users.findFirst({
-        where: {
-          id: userId,
-        },
-        select: {
-          name: true,
-        },
-      })
-    : null;
-
-  return {
-    salesId,
-    authorId: userId || 0,
-    authorName: user?.name || "System",
-  };
-}
-
 type DispatchSelect = {
   id: number;
   status: string | null;
@@ -513,7 +493,7 @@ export async function updateDispatchStatus(
   if (
     newStatus === "completed" &&
     isCompletionConfirmationRequired(dispatch) &&
-    !input.completionMode
+    input.completionMode !== "packed_only"
   ) {
     return {
       ok: false,
@@ -528,18 +508,6 @@ export async function updateDispatchStatus(
       message:
         "Some items were not packed. Completing this dispatch may open back-order on the order.",
     };
-  }
-
-  if (newStatus === "completed" && input.completionMode === "complete_all") {
-    const meta = await getAuthorMeta(ctx, dispatch.orderId);
-    await packDispatchItemTask(ctx.db, {
-      meta,
-      packItems: {
-        dispatchId: dispatch.id,
-        packMode: "all",
-        dispatchStatus: "completed",
-      },
-    });
   }
 
   await ctx.db.orderDelivery.update({

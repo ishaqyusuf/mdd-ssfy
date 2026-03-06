@@ -32,6 +32,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@gnd/ui/avatar";
 import { getInitials } from "@/utils/format";
 import { useTable } from "@gnd/ui/data-table";
+import { useTaskTrigger } from "@/hooks/use-task-trigger";
+import { useAuth } from "@/hooks/use-auth";
+import { UpdateSalesControl } from "@sales/schema";
 
 export type Item = RouterOutputs["dispatch"]["index"]["data"][number];
 export type Addon = {
@@ -53,6 +56,16 @@ function Status({ item, admin }: { item: Item; admin?: boolean }) {
     const [pendingCount, setPendingCount] = useState<number>(0);
     const trpc = useTRPC();
     const queryClient = useQueryClient();
+    const auth = useAuth();
+    const trigger = useTaskTrigger({
+        onStarted() {
+            queryClient.invalidateQueries({
+                queryKey: trpc.dispatch.dispatchOverview.queryKey(),
+            });
+            setCompletionDialogOpen(false);
+            updateStatus("completed");
+        },
+    });
     const statusUpdate = useMutation(
         trpc.dispatch.updateDispatchStatus.mutationOptions({
             onSuccess(data) {
@@ -126,7 +139,10 @@ function Status({ item, admin }: { item: Item; admin?: boolean }) {
             </Menu>
             <AlertDialog
                 open={completionDialogOpen}
-                onOpenChange={setCompletionDialogOpen}
+                onOpenChange={(open) => {
+                    if (trigger.isActionPending) return;
+                    setCompletionDialogOpen(open);
+                }}
             >
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -141,6 +157,7 @@ function Status({ item, admin }: { item: Item; admin?: boolean }) {
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
+                            disabled={trigger.isActionPending}
                             onClick={() => {
                                 setCompletionDialogOpen(false);
                                 updateStatus("completed", "packed_only");
@@ -149,12 +166,30 @@ function Status({ item, admin }: { item: Item; admin?: boolean }) {
                             Complete with packed ({packedCount} items)
                         </AlertDialogAction>
                         <AlertDialogAction
+                            disabled={trigger.isActionPending}
                             onClick={() => {
-                                setCompletionDialogOpen(false);
-                                updateStatus("completed", "complete_all");
+                                const packItems: UpdateSalesControl["packItems"] =
+                                    {
+                                        dispatchId: item.id,
+                                        packMode: "all",
+                                        dispatchStatus: "completed",
+                                    };
+                                trigger.trigger({
+                                    taskName: "update-sales-control",
+                                    payload: {
+                                        meta: {
+                                            authorId: Number(auth.id || 0),
+                                            authorName: auth.name || "System",
+                                            salesId: Number(item?.order?.id || 0),
+                                        },
+                                        packItems,
+                                    } as UpdateSalesControl,
+                                });
                             }}
                         >
-                            Complete all
+                            {trigger.isActionPending
+                                ? "Completing..."
+                                : "Complete all"}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -643,4 +678,3 @@ const formatDateTime = (dateString: string) => {
         hour12: true,
     });
 };
-

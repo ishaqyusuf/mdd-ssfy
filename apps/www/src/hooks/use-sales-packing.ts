@@ -29,6 +29,7 @@ export const { Provider: PackingProvider, useContext: usePacking } =
         const isQueue = data?.dispatch?.status === "queue";
         const isInProgress = data?.dispatch?.status === "in progress";
         const isCancelled = data?.dispatch?.status === "cancelled";
+        const auth = useAuth();
         const [mainTab, setMainTab] = useState("main");
         const onStartDispatch = () => {
             startDispatch.mutate({
@@ -135,7 +136,23 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                 } as UpdateSalesControl,
             });
         };
-        const auth = useAuth();
+        const onPackDispatch = (packMode: "available" | "all") => {
+            trigger.trigger({
+                taskName: "update-sales-control",
+                payload: {
+                    meta: {
+                        authorId: Number(auth.id || 0),
+                        salesId: Number(data?.order?.id || 0),
+                        authorName: auth.name || "System",
+                    },
+                    packItems: {
+                        dispatchId: Number(data?.dispatch?.id || 0),
+                        dispatchStatus: data?.dispatch?.status || "queue",
+                        packMode,
+                    },
+                } as UpdateSalesControl,
+            });
+        };
         const onResetSalesStat = () => {
             trigger.trigger({
                 taskName: "reset-sales-control",
@@ -184,6 +201,7 @@ export const { Provider: PackingProvider, useContext: usePacking } =
             onUnstartDispatch,
             onCancelDispatch,
             onClearPacking,
+            onPackDispatch,
             onPrintPacking,
             invalidate,
             trigger,
@@ -202,4 +220,3 @@ export const { Provider: PackingItemProvider, useContext: usePackingItem } =
             };
         },
     );
-

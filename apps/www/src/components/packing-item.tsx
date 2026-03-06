@@ -2,7 +2,7 @@ import { usePacking, usePackingItem } from "@/hooks/use-sales-packing";
 import { Button } from "@gnd/ui/button";
 import { Card } from "@gnd/ui/card";
 import { cn } from "@gnd/ui/cn";
-import { qtyHasHandle } from "@gnd/utils/sales";
+import { hasQty } from "@gnd/utils/sales";
 import { Package } from "lucide-react";
 import { QtyLabel } from "./qty-label";
 
@@ -10,7 +10,6 @@ export function PackingItem({}) {
     const packing = usePacking();
     const { item } = usePackingItem();
 
-    const pendingQty = item?.nonDeliverableQty?.qty || 0;
     const availableQty = item?.deliverableQty;
     return (
         <div className="p-4 cursor-pointer hover:bg-muted bg-muted/10">
@@ -78,7 +77,7 @@ export function PackingItem({}) {
                 </div>
 
                 <div className="flex items-center gap-2 ml-4">
-                    {pendingQty > 0 && (
+                    {hasQty(availableQty) && (
                         // !packingData &&
                         <Button
                             onClick={(e) => {
@@ -122,4 +121,3 @@ export function PackingItem({}) {
         </div>
     );
 }
-

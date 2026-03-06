@@ -117,6 +117,32 @@ export function DispatchActions({}) {
                             <AlertTriangle className="h-4 w-4 mr-2" />
                             Clear All Packing
                         </DropdownMenuItem>
+                        <Menu.Item
+                            icon="packingList"
+                            disabled={isCancelled}
+                            SubMenu={
+                                <>
+                                    <Menu.Item
+                                        icon="packingList"
+                                        onClick={() =>
+                                            ctx.onPackDispatch("available")
+                                        }
+                                    >
+                                        Available
+                                    </Menu.Item>
+                                    <Menu.Item
+                                        icon="packingList"
+                                        onClick={() =>
+                                            ctx.onPackDispatch("all")
+                                        }
+                                    >
+                                        All
+                                    </Menu.Item>
+                                </>
+                            }
+                        >
+                            Pack
+                        </Menu.Item>
                         <DropdownMenuSeparator />
                         <Menu.Item Icon={Group}>Batch Packing</Menu.Item>
                         <Menu.Item Icon={Printer}>Print Packing Slip</Menu.Item>
@@ -145,4 +171,3 @@ export function DispatchActions({}) {
         </>
     );
 }
-

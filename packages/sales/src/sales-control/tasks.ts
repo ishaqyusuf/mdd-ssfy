@@ -213,7 +213,6 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
     salesId: data.meta.salesId,
   });
   if (data.packItems?.packMode !== "selection") {
-    // data.packItems.packingList =
     const packingList: NonNullable<
       NonNullable<typeof data.packItems>["packingList"]
     > = [];
@@ -221,16 +220,14 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
     for (const item of info.items) {
       if (!item.itemId) continue;
 
-      const pendingSubmissions = (
-        item.analytics?.pendingSubmissions ?? []
-      ).filter((s) => hasQty(s.qty));
+      const deliverables = (item.deliverables ?? []).filter((d) => hasQty(d.qty));
 
-      if (!pendingSubmissions.length) continue;
+      if (!deliverables.length) continue;
       packingList.push({
         salesItemId: item.itemId,
-        submissions: pendingSubmissions.map((s) => ({
-          submissionId: s.assignmentId, // assignmentId is the submission's id
-          qty: s.qty,
+        submissions: deliverables.map((d) => ({
+          submissionId: d.submissionId,
+          qty: d.qty,
         })),
       });
     }

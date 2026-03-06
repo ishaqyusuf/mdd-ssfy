@@ -76,7 +76,7 @@ export function PackingItemForm({}) {
                 }
             }
         });
-        console.log({ packItems, qty });
+
         if (hasQty(qty)) {
             toast({
                 variant: "destructive",

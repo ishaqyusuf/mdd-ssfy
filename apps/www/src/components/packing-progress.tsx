@@ -5,7 +5,6 @@ import { qtyMatrixSum } from "@sales/utils/sales-control";
 
 export function PackingProgress() {
     const { data } = usePacking();
-    const { dispatch, order, address } = data;
 
     return (
         <Progress>
@@ -20,7 +19,7 @@ export function PackingProgress() {
                 }
                 total={
                     qtyMatrixSum(
-                        ...(data.dispatchItems?.map((a) => a.totalQty) as any),
+                        ...(data.dispatchItems?.map((a) => a.listedQty) as any),
                     )?.qty || 0
                 }
             />
