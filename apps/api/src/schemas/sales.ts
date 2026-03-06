@@ -37,6 +37,45 @@ export type UpdateSalesDeliveryOptionSchema = z.infer<
   typeof updateSalesDeliveryOptionSchema
 >;
 
+export const dispatchStatusSchema = z.enum([
+  "queue",
+  "in progress",
+  "completed",
+  "cancelled",
+]);
+export type DispatchStatusSchema = z.infer<typeof dispatchStatusSchema>;
+
+export const updateDispatchDriverSchema = z.object({
+  dispatchId: z.number(),
+  oldDriverId: z.number().nullable().optional(),
+  newDriverId: z.number().nullable().optional(),
+});
+export type UpdateDispatchDriverSchema = z.infer<
+  typeof updateDispatchDriverSchema
+>;
+
+export const updateDispatchDueDateSchema = z.object({
+  dispatchId: z.number(),
+  oldDueDate: z.date().nullable().optional(),
+  newDueDate: z.date(),
+});
+export type UpdateDispatchDueDateSchema = z.infer<
+  typeof updateDispatchDueDateSchema
+>;
+
+export const completionModeSchema = z.enum(["packed_only", "complete_all"]);
+export type CompletionModeSchema = z.infer<typeof completionModeSchema>;
+
+export const updateDispatchStatusSchema = z.object({
+  dispatchId: z.number(),
+  oldStatus: dispatchStatusSchema,
+  newStatus: dispatchStatusSchema,
+  completionMode: completionModeSchema.optional(),
+});
+export type UpdateDispatchStatusSchema = z.infer<
+  typeof updateDispatchStatusSchema
+>;
+
 export const salesQueryParamsSchema = z
   .object({
     salesNo: z.string().optional().nullable(),

@@ -2,12 +2,18 @@ import { createTRPCRouter, publicProcedure } from "../init";
 import {
   dispatchQueryParamsSchema,
   salesDispatchOverviewSchema,
+  updateDispatchDriverSchema,
+  updateDispatchDueDateSchema,
+  updateDispatchStatusSchema,
   updateSalesDeliveryOptionSchema,
 } from "@api/schemas/sales";
 import {
   getDispatches,
   getDispatchOverview,
   getSalesDeliveryInfo,
+  updateDispatchDriver,
+  updateDispatchDueDate,
+  updateDispatchStatus,
   updateSalesDeliveryOption,
 } from "@api/db/queries/dispatch";
 import { z } from "zod";
@@ -62,6 +68,21 @@ export const dispatchRouters = createTRPCRouter({
     .input(updateSalesDeliveryOptionSchema)
     .mutation(async (props) => {
       return updateSalesDeliveryOption(props.ctx, props.input);
+    }),
+  updateDispatchDriver: publicProcedure
+    .input(updateDispatchDriverSchema)
+    .mutation(async (props) => {
+      return updateDispatchDriver(props.ctx, props.input);
+    }),
+  updateDispatchDueDate: publicProcedure
+    .input(updateDispatchDueDateSchema)
+    .mutation(async (props) => {
+      return updateDispatchDueDate(props.ctx, props.input);
+    }),
+  updateDispatchStatus: publicProcedure
+    .input(updateDispatchStatusSchema)
+    .mutation(async (props) => {
+      return updateDispatchStatus(props.ctx, props.input);
     }),
   salesDeliveryInfo: publicProcedure
     .input(

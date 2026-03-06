@@ -1,14 +1,23 @@
 import { whereDispatch } from "@api/prisma-where";
 import { composeQueryData } from "@gnd/utils/query-response";
 import type {
+  CompletionModeSchema,
+  DispatchStatusSchema,
   DispatchQueryParamsSchema,
   SalesDispatchOverviewSchema,
+  UpdateDispatchDriverSchema,
+  UpdateDispatchDueDateSchema,
+  UpdateDispatchStatusSchema,
   UpdateSalesDeliveryOptionSchema,
 } from "@api/schemas/sales";
 import type { TRPCContext } from "@api/trpc/init";
 import type { QtyControlType } from "@api/type";
 import type { Prisma } from "@gnd/db";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
+import { withDispatchControl } from "@sales/utils/with-sales-control";
+import { tasks } from "@trigger.dev/sdk/v3";
+import type { NotificationJobInput } from "@notifications/schemas";
+import { TRPCError } from "@trpc/server";
 
 import { qtyMatrixSum, transformQtyHandle } from "@sales/utils/sales-control";
 import { getSalesDispatchOverview } from "@sales/exports";
@@ -34,6 +43,7 @@ export async function getDispatches(
       createdAt: true,
       dueDate: true,
       deliveryMode: true,
+      driverId: true,
       order: {
         select: {
           stat: {
@@ -70,16 +80,28 @@ export async function getDispatches(
       },
       driver: {
         select: {
+          id: true,
           name: true,
         },
       },
     },
   });
 
+  const rowsWithStats = await withDispatchControl(
+    data.map((a) => ({
+      ...a,
+      salesOrderId: a.order.id,
+    })),
+    db,
+  );
+
   return await response(
-    data.map((a) => {
+    rowsWithStats.map((a) => {
+      const { salesOrderId, ...rest } = a as typeof a & {
+        salesOrderId: number;
+      };
       return {
-        ...a,
+        ...rest,
         uid: String(a.id),
       };
     }),
@@ -176,6 +198,354 @@ export async function updateSalesDeliveryOption(
       data: updateData,
     });
   }
+}
+
+type DispatchStatusNotificationChannel =
+  | "sales_dispatch_queued"
+  | "sales_dispatch_in_progress"
+  | "sales_dispatch_completed"
+  | "sales_dispatch_cancelled";
+
+function mapStatusToNotificationChannel(
+  status: DispatchStatusSchema,
+): DispatchStatusNotificationChannel {
+  switch (status) {
+    case "queue":
+      return "sales_dispatch_queued";
+    case "in progress":
+      return "sales_dispatch_in_progress";
+    case "completed":
+      return "sales_dispatch_completed";
+    case "cancelled":
+      return "sales_dispatch_cancelled";
+  }
+}
+
+async function sendDispatchNotification(
+  authorId: number,
+  recipientId: number | null | undefined,
+  channel:
+    | DispatchStatusNotificationChannel
+    | "sales_dispatch_assigned"
+    | "sales_dispatch_unassigned"
+    | "sales_dispatch_date_updated",
+  payload: {
+    orderNo?: string | null;
+    dispatchId: number;
+    deliveryMode?: "pickup" | "delivery" | null;
+    dueDate?: Date | null;
+    driverId?: number | null;
+  },
+) {
+  if (!recipientId) return;
+
+  await tasks.trigger("notification", {
+    channel,
+    author: {
+      id: authorId,
+      role: "employee",
+    },
+    recipients: [
+      {
+        ids: [recipientId],
+        role: "employee",
+      },
+    ],
+    payload: {
+      orderNo: payload.orderNo || undefined,
+      dispatchId: payload.dispatchId,
+      deliveryMode: payload.deliveryMode || undefined,
+      dueDate: payload.dueDate || undefined,
+      driverId: payload.driverId || undefined,
+    },
+  } as NotificationJobInput);
+}
+
+type DispatchSelect = {
+  id: number;
+  status: string | null;
+  driverId: number | null;
+  dueDate: Date | null;
+  deliveryMode: "pickup" | "delivery" | null;
+  orderId: number;
+  orderNo: string | null;
+  packedCount: number;
+  pendingCount: number;
+};
+
+async function getDispatchForUpdate(
+  ctx: TRPCContext,
+  dispatchId: number,
+): Promise<DispatchSelect> {
+  const dispatch = await ctx.db.orderDelivery.findFirst({
+    where: {
+      id: dispatchId,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      status: true,
+      driverId: true,
+      dueDate: true,
+      deliveryMode: true,
+      order: {
+        select: {
+          id: true,
+          orderId: true,
+        },
+      },
+      items: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          packingStatus: true,
+        },
+      },
+    },
+  });
+  if (!dispatch) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "DISPATCH_NOT_FOUND",
+    });
+  }
+  const packedCount = dispatch.items.filter(
+    (item) => item.packingStatus === "packed",
+  ).length;
+  const pendingCount = dispatch.items.filter(
+    (item) => item.packingStatus !== "packed",
+  ).length;
+
+  return {
+    id: dispatch.id,
+    status: dispatch.status,
+    driverId: dispatch.driverId,
+    dueDate: dispatch.dueDate,
+    deliveryMode: dispatch.deliveryMode as "pickup" | "delivery" | null,
+    orderId: dispatch.order.id,
+    orderNo: dispatch.order.orderId,
+    packedCount,
+    pendingCount,
+  };
+}
+
+function isSameDate(
+  left: Date | null | undefined,
+  right: Date | null | undefined,
+) {
+  const leftVal = left ? new Date(left).getTime() : null;
+  const rightVal = right ? new Date(right).getTime() : null;
+  return leftVal === rightVal;
+}
+
+function isCompletionConfirmationRequired(dispatch: DispatchSelect) {
+  return dispatch.packedCount === 0 || dispatch.pendingCount > 0;
+}
+
+export async function updateDispatchDriver(
+  ctx: TRPCContext,
+  input: UpdateDispatchDriverSchema,
+) {
+  const dispatch = await getDispatchForUpdate(ctx, input.dispatchId);
+  const oldDriverId = input.oldDriverId ?? null;
+  const newDriverId = input.newDriverId ?? null;
+
+  if ((dispatch.driverId ?? null) !== oldDriverId) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "CONFLICT_STALE_DRIVER",
+    });
+  }
+  if (oldDriverId === newDriverId) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "NO_OP_DRIVER_UPDATE",
+    });
+  }
+
+  await ctx.db.orderDelivery.update({
+    where: {
+      id: dispatch.id,
+    },
+    data: {
+      driver: newDriverId ? { connect: { id: newDriverId } } : { disconnect: true },
+    },
+  });
+
+  await sendDispatchNotification(
+    ctx.userId!,
+    oldDriverId,
+    "sales_dispatch_unassigned",
+    {
+      orderNo: dispatch.orderNo,
+      dispatchId: dispatch.id,
+      deliveryMode: dispatch.deliveryMode,
+      dueDate: dispatch.dueDate,
+      driverId: oldDriverId,
+    },
+  );
+  await sendDispatchNotification(
+    ctx.userId!,
+    newDriverId,
+    "sales_dispatch_assigned",
+    {
+      orderNo: dispatch.orderNo,
+      dispatchId: dispatch.id,
+      deliveryMode: dispatch.deliveryMode,
+      dueDate: dispatch.dueDate,
+      driverId: newDriverId,
+    },
+  );
+
+  return {
+    ok: true,
+    dispatchId: dispatch.id,
+    orderId: dispatch.orderId,
+    orderNo: dispatch.orderNo,
+    oldDriverId,
+    newDriverId,
+    dueDate: dispatch.dueDate,
+    deliveryMode: dispatch.deliveryMode,
+    notifications: [
+      oldDriverId ? "sales_dispatch_unassigned" : null,
+      newDriverId ? "sales_dispatch_assigned" : null,
+    ].filter(Boolean),
+  };
+}
+
+export async function updateDispatchDueDate(
+  ctx: TRPCContext,
+  input: UpdateDispatchDueDateSchema,
+) {
+  const dispatch = await getDispatchForUpdate(ctx, input.dispatchId);
+  const oldDueDate = input.oldDueDate ?? null;
+
+  if (!isSameDate(dispatch.dueDate, oldDueDate)) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "CONFLICT_STALE_DUE_DATE",
+    });
+  }
+  if (isSameDate(dispatch.dueDate, input.newDueDate)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "NO_OP_DUE_DATE_UPDATE",
+    });
+  }
+
+  await ctx.db.orderDelivery.update({
+    where: {
+      id: dispatch.id,
+    },
+    data: {
+      dueDate: input.newDueDate,
+    },
+  });
+
+  await sendDispatchNotification(
+    ctx.userId!,
+    dispatch.driverId,
+    "sales_dispatch_date_updated",
+    {
+      orderNo: dispatch.orderNo,
+      dispatchId: dispatch.id,
+      deliveryMode: dispatch.deliveryMode,
+      dueDate: input.newDueDate,
+      driverId: dispatch.driverId,
+    },
+  );
+
+  return {
+    ok: true,
+    dispatchId: dispatch.id,
+    orderId: dispatch.orderId,
+    orderNo: dispatch.orderNo,
+    driverId: dispatch.driverId,
+    oldDueDate,
+    newDueDate: input.newDueDate,
+    deliveryMode: dispatch.deliveryMode,
+    notifications: ["sales_dispatch_date_updated"],
+  };
+}
+
+export async function updateDispatchStatus(
+  ctx: TRPCContext,
+  input: UpdateDispatchStatusSchema,
+) {
+  const dispatch = await getDispatchForUpdate(ctx, input.dispatchId);
+  const oldStatus = input.oldStatus;
+  const newStatus = input.newStatus;
+
+  if (dispatch.status !== oldStatus) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message: "CONFLICT_STALE_STATUS",
+    });
+  }
+  if (oldStatus === newStatus) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "NO_OP_STATUS_UPDATE",
+    });
+  }
+
+  if (
+    newStatus === "completed" &&
+    isCompletionConfirmationRequired(dispatch) &&
+    !input.completionMode
+  ) {
+    return {
+      ok: false,
+      confirmationRequired: true,
+      code: "DISPATCH_COMPLETION_CONFIRMATION_REQUIRED",
+      dispatchId: dispatch.id,
+      oldStatus,
+      requestedStatus: "completed",
+      packedCount: dispatch.packedCount,
+      pendingCount: dispatch.pendingCount,
+      actions: ["packed_only", "complete_all"],
+      message:
+        "Some items were not packed. Completing this dispatch may open back-order on the order.",
+    };
+  }
+
+  await ctx.db.orderDelivery.update({
+    where: {
+      id: dispatch.id,
+    },
+    data: {
+      status: newStatus as SalesDispatchStatus,
+    },
+  });
+
+  const channel = mapStatusToNotificationChannel(newStatus);
+  await sendDispatchNotification(
+    ctx.userId!,
+    dispatch.driverId,
+    channel,
+    {
+      orderNo: dispatch.orderNo,
+      dispatchId: dispatch.id,
+      deliveryMode: dispatch.deliveryMode,
+      dueDate: dispatch.dueDate,
+      driverId: dispatch.driverId,
+    },
+  );
+
+  return {
+    ok: true,
+    confirmationRequired: false,
+    dispatchId: dispatch.id,
+    orderId: dispatch.orderId,
+    orderNo: dispatch.orderNo,
+    oldStatus,
+    newStatus,
+    packedCount: dispatch.packedCount,
+    pendingCount: dispatch.pendingCount,
+    completionMode: (input.completionMode ?? null) as CompletionModeSchema | null,
+    notifications: [channel],
+  };
 }
 
 export async function getDispatchOverview(

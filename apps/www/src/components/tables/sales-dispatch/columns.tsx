@@ -8,7 +8,6 @@ import { useInboundStatusModal } from "@/hooks/use-inbound-status-modal";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { useState } from "react";
 import { DatePicker } from "@/components/_v1/date-range-picker";
-import { useSalesDeliveryUpdate } from "@/hooks/use-sales-delivery-update";
 import { toast } from "@gnd/ui/use-toast";
 import { Menu } from "@gnd/ui/custom/menu";
 import { salesDispatchStatus } from "@gnd/utils/constants";
@@ -18,6 +17,17 @@ import { useTRPC } from "@/trpc/client";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { Card, CardContent, CardHeader } from "@gnd/ui/card";
 import { Calendar, Clock, MapPin, Package, Phone, Truck } from "lucide-react";
+import { useMutation } from "@gnd/ui/tanstack";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@gnd/ui/alert-dialog";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@gnd/ui/avatar";
 import { getInitials } from "@/utils/format";
@@ -38,36 +48,118 @@ const status: ColumnDef<Item> = {
 };
 function Status({ item, admin }: { item: Item; admin?: boolean }) {
     const [status, setStatus] = useState(item.status);
+    const [completionDialogOpen, setCompletionDialogOpen] = useState(false);
+    const [packedCount, setPackedCount] = useState<number>(0);
+    const [pendingCount, setPendingCount] = useState<number>(0);
+    const trpc = useTRPC();
+    const queryClient = useQueryClient();
+    const statusUpdate = useMutation(
+        trpc.dispatch.updateDispatchStatus.mutationOptions({
+            onSuccess(data) {
+                if ((data as any)?.confirmationRequired) {
+                    setPackedCount((data as any)?.packedCount || 0);
+                    setPendingCount((data as any)?.pendingCount || 0);
+                    setCompletionDialogOpen(true);
+                    return;
+                }
+                setStatus((data as any).newStatus);
+                toast({
+                    duration: 2000,
+                    variant: "success",
+                    description: "Dispatch status updated",
+                    title: "Updated!",
+                });
+                queryClient.invalidateQueries({
+                    queryKey: trpc.dispatch.index.pathKey(),
+                });
+                queryClient.invalidateQueries({
+                    queryKey: trpc.dispatch.assignedDispatch.pathKey(),
+                });
+            },
+            onError(error) {
+                toast({
+                    duration: 3000,
+                    variant: "error",
+                    description: error.message || "Unable to update status",
+                    title: "Update Failed",
+                });
+            },
+        }),
+    );
+    const updateStatus = (newStatus: Item["status"], completionMode?) => {
+        if (newStatus === status && !completionMode) return;
+        statusUpdate.mutate({
+            dispatchId: item.id,
+            oldStatus: (status || "queue") as any,
+            newStatus: (newStatus || "queue") as any,
+            completionMode,
+        });
+    };
 
     return (
-        <Menu
-            Icon={null}
-            variant="link"
-            label={
-                <Progress>
-                    <Progress.Status>{status || "N/A"}</Progress.Status>
-                </Progress>
-            }
-        >
-            {salesDispatchStatus.map((__status) => (
-                <Menu.Item
-                    onClick={(e) => {
-                        // deliveryUpdate.update({
-                        //     status: __status,
-                        // });
-                    }}
-                    key={__status}
-                >
-                    <div
-                        className="size-2"
-                        style={{
-                            backgroundColor: getColorFromName(__status),
+        <>
+            <Menu
+                Icon={null}
+                variant="link"
+                label={
+                    <Progress>
+                        <Progress.Status>{status || "N/A"}</Progress.Status>
+                    </Progress>
+                }
+            >
+                {salesDispatchStatus.map((__status) => (
+                    <Menu.Item
+                        onClick={(e) => {
+                            updateStatus(__status as Item["status"]);
                         }}
-                    ></div>
-                    <span className="uppercase">{__status}</span>
-                </Menu.Item>
-            ))}
-        </Menu>
+                        key={__status}
+                    >
+                        <div
+                            className="size-2"
+                            style={{
+                                backgroundColor: getColorFromName(__status),
+                            }}
+                        ></div>
+                        <span className="uppercase">{__status}</span>
+                    </Menu.Item>
+                ))}
+            </Menu>
+            <AlertDialog
+                open={completionDialogOpen}
+                onOpenChange={setCompletionDialogOpen}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            Complete Dispatch With Pending Packings
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Some items were not packed. Completing this without
+                            packing will open back-order on the order.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                setCompletionDialogOpen(false);
+                                updateStatus("completed", "packed_only");
+                            }}
+                        >
+                            Complete with packed ({packedCount} items)
+                        </AlertDialogAction>
+                        <AlertDialogAction
+                            onClick={() => {
+                                setCompletionDialogOpen(false);
+                                updateStatus("completed", "complete_all");
+                            }}
+                        >
+                            Complete all
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
     );
 }
 const schedule: ColumnDef<Item> = {
@@ -85,6 +177,34 @@ function ScheduleDate({ item, editable }: { item: Item; editable?: boolean }) {
     const ctx = useTable();
     const addon: Addon = ctx?.addons;
     const driverMode = addon?.driverMode;
+    const trpc = useTRPC();
+    const queryClient = useQueryClient();
+    const dueDateUpdate = useMutation(
+        trpc.dispatch.updateDispatchDueDate.mutationOptions({
+            onSuccess() {
+                toast({
+                    duration: 2000,
+                    variant: "success",
+                    description: "Dispatch due date updated",
+                    title: "Updated!",
+                });
+                queryClient.invalidateQueries({
+                    queryKey: trpc.dispatch.index.pathKey(),
+                });
+                queryClient.invalidateQueries({
+                    queryKey: trpc.dispatch.assignedDispatch.pathKey(),
+                });
+            },
+            onError(error) {
+                toast({
+                    duration: 3000,
+                    variant: "error",
+                    description: error.message || "Unable to update due date",
+                    title: "Update Failed",
+                });
+            },
+        }),
+    );
 
     return (
         <TCell.Secondary className="font-mono$">
@@ -103,9 +223,14 @@ function ScheduleDate({ item, editable }: { item: Item; editable?: boolean }) {
                         hideIcon
                         value={date}
                         onSelect={(e) => {
-                            // deliveryUpdate.update({
-                            //     date: e,
-                            // });
+                            if (!e) return;
+                            const newDueDate = new Date(e as any);
+                            dueDateUpdate.mutate({
+                                dispatchId: item.id,
+                                oldDueDate: date ? new Date(date as any) : null,
+                                newDueDate,
+                            });
+                            setDate(newDueDate as any);
                         }}
                         variant="secondary"
                         className="w-auto"
@@ -175,11 +300,11 @@ const assignedTo: ColumnDef<Item> = {
         const ctx = useTable();
         const trpc = useTRPC();
         const queryClient = useQueryClient();
+        const [selectedDriver, setSelectedDriver] = useState<any>(null);
+        const [confirmOpen, setConfirmOpen] = useState(false);
 
-        const deliveryUpdate = useSalesDeliveryUpdate({
-            salesId: item?.order?.id,
-            defaultOption: item?.deliveryMode,
-            deliveryId: item?.id,
+        const updateDriver = useMutation(
+            trpc.dispatch.updateDispatchDriver.mutationOptions({
             onSuccess() {
                 toast({
                     duration: 2000,
@@ -194,28 +319,94 @@ const assignedTo: ColumnDef<Item> = {
                     queryKey: trpc.dispatch.assignedDispatch.pathKey(),
                 });
             },
-        });
+            onError(error) {
+                toast({
+                    duration: 3000,
+                    variant: "error",
+                    description: error.message || "Unable to assign driver",
+                    title: "Update Failed",
+                });
+            },
+            }),
+        );
+        const submitDriverUpdate = (driverId: number | null) => {
+            if ((item?.driver as any)?.id === driverId) return;
+            updateDriver.mutate({
+                dispatchId: item.id,
+                oldDriverId: (item?.driver as any)?.id || null,
+                newDriverId: driverId,
+            });
+        };
         const addon: Addon = ctx?.addons;
         return (
-            <Menu
-                Icon={null}
-                variant={!item?.driver?.name ? "secondary" : "link"}
-                label={item?.driver?.name || "Not Assigned"}
-            >
-                {addon?.drivers?.map((driver) => (
-                    <Menu.Item
-                        onClick={(e) => {
-                            deliveryUpdate.update({
-                                salesId: item.order.id,
-                                driverId: driver.id,
-                            });
-                        }}
-                        key={driver?.id}
-                    >
-                        <span className="uppercase">{driver?.name}</span>
-                    </Menu.Item>
-                ))}
-            </Menu>
+            <>
+                <Menu
+                    Icon={null}
+                    variant={!item?.driver?.name ? "secondary" : "link"}
+                    label={item?.driver?.name || "Not Assigned"}
+                >
+                    {addon?.drivers?.map((driver) => (
+                        <Menu.Item
+                            onClick={(e) => {
+                                if ((item?.driver as any)?.id) {
+                                    setSelectedDriver(driver);
+                                    setConfirmOpen(true);
+                                    return;
+                                }
+                                submitDriverUpdate(driver.id);
+                            }}
+                            key={driver?.id}
+                        >
+                            <span className="uppercase">{driver?.name}</span>
+                        </Menu.Item>
+                    ))}
+                </Menu>
+                <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>
+                                Reassign Dispatch Driver
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This dispatch already has an assigned driver.
+                                Do you want to proceed with re-assignment?
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={() => {
+                                    setConfirmOpen(false);
+                                    submitDriverUpdate(selectedDriver?.id);
+                                }}
+                            >
+                                Proceed
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </>
+        );
+    },
+};
+const packingProgress: ColumnDef<Item> = {
+    header: "Progress",
+    accessorKey: "progress",
+    cell: ({ row: { original: item } }) => {
+        const completed = item?.statistic?.packed?.completed || 0;
+        const total = item?.statistic?.packed?.total || 0;
+
+        return (
+            <div className="w-36">
+                <div className="text-xs text-muted-foreground mb-1">
+                    {completed}/{total} packed
+                </div>
+                <Progress.ProgressBar
+                    score={completed}
+                    total={Math.max(total, 1)}
+                    showPercent
+                />
+            </div>
         );
     },
 };
@@ -224,6 +415,7 @@ export const driverColumns: ColumnDef<Item>[] = [
     order,
     orderDate,
     customer,
+    packingProgress,
     status,
     {
         header: "",
@@ -244,6 +436,7 @@ export const columns: ColumnDef<Item>[] = [
     orderDate,
     customer,
     assignedTo,
+    packingProgress,
     status,
     {
         header: "",
