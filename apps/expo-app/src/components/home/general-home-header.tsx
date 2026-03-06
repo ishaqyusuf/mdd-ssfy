@@ -1,15 +1,14 @@
 import { useAuthContext } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
-import { LinkProps, useRouter } from "expo-router";
-import { Pressable, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { Text, View } from "react-native";
 
-import { PressableLink } from "../pressable-link";
+import { Pressable } from "../ui/pressable";
 import { Icon } from "../ui/icon";
 
 type Props = {
   showNotificationDot?: boolean;
   onRightPress?: () => void;
-  notificationHref?: LinkProps["href"];
   className?: string;
   contentClassName?: string;
   nameMode?: "full" | "first_uppercase";
@@ -18,7 +17,6 @@ type Props = {
 export function GeneralHomeHeader({
   showNotificationDot = true,
   onRightPress,
-  notificationHref,
   className,
   contentClassName,
   nameMode = "full",
@@ -42,15 +40,7 @@ export function GeneralHomeHeader({
   const avatarLetter = (rawName[0] || "D").toUpperCase();
 
   return (
-    <View
-      className={cn("border-b border-border bg-card p-4", className)}
-      // style={{
-      //   paddingTop: Platform.select({
-      //     android: insets.top + 8,
-      //     default: insets.top + 8,
-      //   }),
-      // }}
-    >
+    <View className={cn("border-b border-border bg-card p-4", className)}>
       <View className={cn("flex-row items-center gap-2", contentClassName)}>
         <View className="flex-row items-center gap-3">
           <View className="h-11 w-11 items-center justify-center rounded-full border-2 border-border bg-muted">
@@ -74,10 +64,7 @@ export function GeneralHomeHeader({
               onRightPress();
               return;
             }
-
-            if (notificationHref) {
-              router.push(notificationHref);
-            }
+            router.push("/notifications");
           }}
           className="relative rounded-full p-2 active:bg-muted"
         >
@@ -87,12 +74,12 @@ export function GeneralHomeHeader({
           ) : null}
         </Pressable>
 
-        <PressableLink
+        <Pressable
           href="/settings"
           className="rounded-full p-2 active:bg-muted"
         >
           <Icon name="Settings" className="" size={20} />
-        </PressableLink>
+        </Pressable>
 
         {/* <View className="h-10 w-10" /> */}
       </View>

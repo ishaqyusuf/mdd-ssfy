@@ -762,7 +762,12 @@ function DispatchDetailScreenInner({
 				</View>
 
 				<ScrollView
-					className="flex-1 px-4 pt-4"
+					className="flex-1"
+					contentContainerStyle={{
+						paddingHorizontal: 16,
+						paddingTop: 16,
+						paddingBottom: 24,
+					}}
 					refreshControl={
 						<RefreshControl
 							refreshing={overview.isRefetching}

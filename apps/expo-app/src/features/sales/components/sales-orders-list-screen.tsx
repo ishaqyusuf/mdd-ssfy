@@ -36,39 +36,41 @@ export function SalesOrdersListScreen() {
 
   return (
     <SafeArea>
-      <View className="flex-1 bg-background px-4 pt-4">
-        <View className="mb-4 flex-row items-center gap-3">
-          <Pressable
-            onPress={() => router.back()}
-            className="h-10 w-10 items-center justify-center rounded-full active:bg-muted"
-          >
-            <Icon name="ArrowLeft" className="text-foreground" size={20} />
-          </Pressable>
-          <View className="flex-1">
-            <Text className="text-2xl font-bold text-foreground">Orders</Text>
-            <Text className="text-sm text-muted-foreground">
-              Search and filter sales orders
-            </Text>
+      <View className="flex-1 bg-background pt-4">
+        <View className="px-4">
+          <View className="mb-4 flex-row items-center gap-3">
+            <Pressable
+              onPress={() => router.back()}
+              className="h-10 w-10 items-center justify-center rounded-full active:bg-muted"
+            >
+              <Icon name="ArrowLeft" className="text-foreground" size={20} />
+            </Pressable>
+            <View className="flex-1">
+              <Text className="text-2xl font-bold text-foreground">Orders</Text>
+              <Text className="text-sm text-muted-foreground">
+                Search and filter sales orders
+              </Text>
+            </View>
           </View>
-        </View>
 
-        <View className="mb-4 flex-row items-center gap-2">
-          <View className="h-12 flex-1 flex-row items-center rounded-xl border border-border bg-card px-3">
-            <Icon name="Search" className="text-muted-foreground" size={18} />
-            <TextInput
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Search order, customer, phone, PO"
-              placeholderTextColor="#8A8A8A"
-              className="ml-2 flex-1 text-foreground"
-            />
+          <View className="mb-4 flex-row items-center gap-2">
+            <View className="h-12 flex-1 flex-row items-center rounded-xl border border-border bg-card px-3">
+              <Icon name="Search" className="text-muted-foreground" size={18} />
+              <TextInput
+                value={search}
+                onChangeText={setSearch}
+                placeholder="Search order, customer, phone, PO"
+                placeholderTextColor="#8A8A8A"
+                className="ml-2 flex-1 text-foreground"
+              />
+            </View>
+            <Pressable
+              onPress={() => setFilterOpen(true)}
+              className="h-12 w-12 items-center justify-center rounded-xl border border-border bg-card active:opacity-80"
+            >
+              <Icon name="SlidersHorizontal" className="text-foreground" size={18} />
+            </Pressable>
           </View>
-          <Pressable
-            onPress={() => setFilterOpen(true)}
-            className="h-12 w-12 items-center justify-center rounded-xl border border-border bg-card active:opacity-80"
-          >
-            <Icon name="SlidersHorizontal" className="text-foreground" size={18} />
-          </Pressable>
         </View>
 
         {isPending ? (
@@ -81,7 +83,7 @@ export function SalesOrdersListScreen() {
             keyExtractor={(item) => String(item.id)}
             refreshing={isRefetching}
             onRefresh={() => refetch()}
-            contentContainerClassName="pb-10"
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
             ListEmptyComponent={
               <View className="mt-8 items-center rounded-xl border border-dashed border-border p-8">
                 <Text className="text-base font-semibold text-foreground">No orders found</Text>

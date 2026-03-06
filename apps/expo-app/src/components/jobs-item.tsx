@@ -1,14 +1,14 @@
-import { JobItem } from "./installer-dashboard/recent-jobs";
 import { formatDate, timeAgo } from "@gnd/utils/dayjs";
 import { Text, View } from "react-native";
-import { PressableLink } from "./pressable-link";
+import { Pressable } from "./ui/pressable";
 import { getNameInitials } from "@gnd/utils";
 import { Status } from "./status";
 import { useJobsContext } from "@/context/jobs-context";
 import { Icon } from "./ui/icon";
 import { cn } from "@/lib/utils";
 import { generateJobId } from "@community/utils/job";
-
+import { RouterOutputs } from "@api/trpc/routers/_app";
+export type JobItem = RouterOutputs["jobs"]["getJobs"]["data"][number];
 export function JobsItem({ item }: { item: JobItem }) {
   const amount = item.amount ? `$${item.amount.toFixed(2)}` : "N/A";
   const isUrgent = false;
@@ -16,11 +16,13 @@ export function JobsItem({ item }: { item: JobItem }) {
   const date = formatDate(item.createdAt);
   return (
     // <View className="px-5">
-    <PressableLink
+    <Pressable
       href={`/job/${item.id}`}
-      className={`group bg-card rounded-2xl p-5 border active:scale-[0.98] transition-all ${
+      className={`group bg-card rounded-2xl p-5 border  ${
         isUrgent ? "border-destructive" : "border-border"
       } shadow-sm mb-4 mx-4`}
+      haptic
+      transition
     >
       {/* Header Row */}
       <View className="flex-row justify-between items-start mb-4">
@@ -178,6 +180,6 @@ export function JobsItem({ item }: { item: JobItem }) {
           </>
         )}
       </View> */}
-    </PressableLink>
+    </Pressable>
   );
 }

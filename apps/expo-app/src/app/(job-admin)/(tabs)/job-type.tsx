@@ -1,9 +1,9 @@
 // import JobsExampleScreen from "@/components/examples/screen-example-jobs";
 
-import { PressableLink } from "@/components/pressable-link";
+import { Pressable } from "@/components/ui/pressable";
 import { _goBack, _push } from "@/components/static-router";
 import { Icon, IconKeys } from "@/components/ui/icon";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 export default function Screen({}) {
   return (

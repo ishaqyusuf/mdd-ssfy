@@ -21,8 +21,8 @@ export function SalesDashboardScreen() {
       <View className="flex-1 bg-background">
         <GeneralHomeHeader className="px-4 pb-4" showNotificationDot={false} />
 
-        <View className="flex-1 px-4">
-          <View className="mb-4">
+        <View className="flex-1">
+          <View className="mb-4 px-4 pb-2 pt-1">
             <Text className="text-2xl font-bold text-foreground">
               Sales Dashboard
             </Text>
@@ -36,7 +36,7 @@ export function SalesDashboardScreen() {
             </View>
           ) : (
             <ScrollView
-              contentContainerStyle={{ paddingBottom: 36 }}
+              contentContainerStyle={{ paddingBottom: 36, paddingHorizontal: 16 }}
               refreshControl={
                 <RefreshControl
                   refreshing={isRefetching}
@@ -147,15 +147,6 @@ export function SalesDashboardScreen() {
                 )}
               </View>
 
-              <Pressable
-                onPress={() => refetch()}
-                className="mt-6 self-center rounded-full border border-border px-4 py-2 active:opacity-80"
-                disabled={isRefetching}
-              >
-                <Text className="text-xs font-semibold text-foreground">
-                  {isRefetching ? "Refreshing..." : "Refresh"}
-                </Text>
-              </Pressable>
             </ScrollView>
           )}
         </View>

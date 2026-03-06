@@ -1,7 +1,7 @@
 import { HeaderContainer } from "@/components/header-container";
 import { JobsItem } from "@/components/jobs-item";
 import { LoggedInAvatar } from "@/components/logged-in-avatar";
-import { PressableLink } from "@/components/pressable-link";
+import { Pressable } from "@/components/ui/pressable";
 import { _trpc } from "@/components/static-trpc";
 import { Titles } from "@/components/titles";
 import { Icon } from "@/components/ui/icon";
@@ -52,14 +52,14 @@ function Content() {
               <Text className="text-lg font-bold text-foreground">
                 Recent Jobs
               </Text>
-              <PressableLink
+              <Pressable
                 href={"/jobs"}
                 className="px-3 py-1.5 rounded-full bg-primary/10 active:bg-primary/20"
               >
                 <Text className="text-xs font-semibold text-primary">
                   See All
                 </Text>
-              </PressableLink>
+              </Pressable>
             </View>
           </View>
         }
@@ -167,7 +167,7 @@ function StatsGrid() {
 }
 function AssignButton() {
   return (
-    <PressableLink
+    <Pressable
       // href={"/job-type"}
       href={"/job-form"}
       className="w-full relative overflow-hidden rounded-2xl bg-secondary active:bg-secondary/90 border border-border p-5 shadow-sm flex-row items-center justify-between"
@@ -184,7 +184,7 @@ function AssignButton() {
       <View className="z-10 h-10 w-10 rounded-full bg-background/50 items-center justify-center">
         <Icon name="Plus" className="text-foreground" size={24} />
       </View>
-    </PressableLink>
+    </Pressable>
   );
 }
 function Header() {
@@ -195,9 +195,9 @@ function Header() {
       <Titles.HeaderTitle headline="Dashboard" title="Admin Overview" />
 
       <View className="flex-1" />
-      <PressableLink href={"/settings"}>
+      <Pressable href={"/settings"}>
         <Icon name="Settings" className="size-20" />
-      </PressableLink>
+      </Pressable>
     </HeaderContainer>
   );
 }

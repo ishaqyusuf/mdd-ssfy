@@ -25,7 +25,6 @@ export default function Home2() {
     <SafeArea>
       <HomeProvider value={ctx}>
         <GeneralHomeHeader
-          notificationHref="/(installers)/notifications"
           showNotificationDot={hasUnseenNotifications}
           className="px-5 pb-4"
         />

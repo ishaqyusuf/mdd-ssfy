@@ -55,7 +55,14 @@ export function IssueReportScreen({
         </View>
       </View>
 
-      <ScrollView className="flex-1 px-4 py-6" contentContainerClassName="pb-28">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingTop: 24,
+          paddingBottom: 112,
+        }}
+      >
         <View className="mb-6">
           <Text className="text-sm text-muted-foreground">
             Order ID:{" "}

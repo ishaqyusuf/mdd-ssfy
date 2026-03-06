@@ -77,7 +77,6 @@ export default function DriverDispatchListRoute() {
     <SafeArea>
       <View className="flex-1 bg-background">
         <GeneralHomeHeader
-          notificationHref="/(drivers)/notifications"
           showNotificationDot={hasUnseenNotifications}
           nameMode="first_uppercase"
           // className="px-4 pb-6"
