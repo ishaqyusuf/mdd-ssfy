@@ -3,7 +3,7 @@ import { ThemeProvider } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { Fragment, useEffect } from "react";
 import "react-native-reanimated";
 import "@/styles/global.css";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -152,7 +152,7 @@ function RootLayoutNav() {
     colorScheme === "dark" ? NAV_THEME.dark : NAV_THEME.light;
   const rootClassName =
     colorScheme === "dark"
-      ? "dark flex-1 bg-background"
+      ? "darks flex-1 bg-background"
       : "flex-1 bg-background";
 
   useEffect(() => {
@@ -166,11 +166,20 @@ function RootLayoutNav() {
       mounted = false;
     };
   }, [setColorScheme]);
-
+  const Container = ({ children }) => {
+    // return <Fragment>{children}</Fragment>;
+    return <View className={rootClassName}>{children}</View>;
+    // return <View style={{ flex: 1 }}>{children}</View>;
+  };
+  // const Container = View
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <KeyboardProvider>
-        <View className={rootClassName}>
+        <Container
+        // className="flex-1"
+        // className={rootClassName}
+        // style={{ flex: 1 }}
+        >
           <ThemeProvider value={navigationTheme}>
             <AuthProvider value={useCreateAuthContext()}>
               <ToastProviderWithViewport>
@@ -181,7 +190,7 @@ function RootLayoutNav() {
               </ToastProviderWithViewport>
             </AuthProvider>
           </ThemeProvider>
-        </View>
+        </Container>
       </KeyboardProvider>
     </GestureHandlerRootView>
   );
