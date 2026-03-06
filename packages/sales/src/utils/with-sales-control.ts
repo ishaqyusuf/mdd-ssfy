@@ -1,7 +1,12 @@
 import type { Db } from "@gnd/db";
 import type { SalesDispatchStatus, SalesStatStatus } from "../types";
 
-export type QtyStat = { total: number; lhQty: number; rhQty: number };
+export type QtyStat = {
+  lhQty: number;
+  rhQty: number;
+  qty: number;
+  total: number;
+};
 
 export type SalesControlStatistic = {
   qty: QtyStat;
@@ -32,7 +37,18 @@ type QtyControlType =
   | "dispatchCompleted"
   | "dispatchCancelled";
 
-type OrderControlAggregate = Record<QtyControlType, QtyStat>;
+type ControlStats = Record<QtyControlType, QtyStat>;
+
+type ItemControlRef = {
+  uid: string;
+  salesId: number;
+  produceable: boolean;
+  shippable: boolean;
+};
+
+type ControlWithStats = ItemControlRef & {
+  stats: ControlStats;
+};
 
 const QTY_CONTROL_TYPES: QtyControlType[] = [
   "qty",
@@ -61,34 +77,29 @@ function toNumber(value: number | null | undefined) {
   return Number(value ?? 0);
 }
 
+function toQtyStat(input?: Partial<QtyStat> | null): QtyStat {
+  const lhQty = Math.max(toNumber(input?.lhQty), 0);
+  const rhQty = Math.max(toNumber(input?.rhQty), 0);
+  const qty = Math.max(toNumber(input?.qty), 0);
+  const hasHandleQty = lhQty > 0 || rhQty > 0;
+  const derivedTotal = hasHandleQty ? lhQty + rhQty : qty;
+  const total =
+    input?.total === undefined || input?.total === null
+      ? derivedTotal
+      : Math.max(toNumber(input.total), 0);
+  return {
+    lhQty,
+    rhQty,
+    qty,
+    total,
+  };
+}
+
 function emptyQtyStat(): QtyStat {
-  return {
-    total: 0,
-    lhQty: 0,
-    rhQty: 0,
-  };
+  return toQtyStat();
 }
 
-function sumQtyStat(...stats: (QtyStat | null | undefined)[]): QtyStat {
-  return stats.filter(Boolean).reduce(
-    (acc, stat) => ({
-      total: acc.total + toNumber(stat?.total),
-      lhQty: acc.lhQty + toNumber(stat?.lhQty),
-      rhQty: acc.rhQty + toNumber(stat?.rhQty),
-    }),
-    emptyQtyStat(),
-  );
-}
-
-function diffQtyStat(base: QtyStat, subtract: QtyStat): QtyStat {
-  return {
-    total: Math.max(toNumber(base.total) - toNumber(subtract.total), 0),
-    lhQty: Math.max(toNumber(base.lhQty) - toNumber(subtract.lhQty), 0),
-    rhQty: Math.max(toNumber(base.rhQty) - toNumber(subtract.rhQty), 0),
-  };
-}
-
-function emptyOrderAggregate(): OrderControlAggregate {
+function emptyControlStats(): ControlStats {
   return {
     qty: emptyQtyStat(),
     prodAssigned: emptyQtyStat(),
@@ -98,6 +109,41 @@ function emptyOrderAggregate(): OrderControlAggregate {
     dispatchCompleted: emptyQtyStat(),
     dispatchCancelled: emptyQtyStat(),
   };
+}
+
+function sumQtyStat(...stats: (QtyStat | null | undefined)[]): QtyStat {
+  return toQtyStat(
+    stats.filter(Boolean).reduce(
+      (acc, stat) => ({
+        lhQty: toNumber(acc.lhQty) + toNumber(stat?.lhQty),
+        rhQty: toNumber(acc.rhQty) + toNumber(stat?.rhQty),
+        qty: toNumber(acc.qty) + toNumber(stat?.qty),
+        total: toNumber(acc.total) + toNumber(stat?.total),
+      }),
+      { lhQty: 0, rhQty: 0, qty: 0, total: 0 },
+    ),
+  );
+}
+
+function diffQtyStat(base: QtyStat, subtract: QtyStat): QtyStat {
+  return toQtyStat({
+    lhQty: Math.max(toNumber(base.lhQty) - toNumber(subtract.lhQty), 0),
+    rhQty: Math.max(toNumber(base.rhQty) - toNumber(subtract.rhQty), 0),
+    qty: Math.max(toNumber(base.qty) - toNumber(subtract.qty), 0),
+    total: Math.max(toNumber(base.total) - toNumber(subtract.total), 0),
+  });
+}
+
+function sumControls(
+  controls: ControlWithStats[],
+  type: QtyControlType,
+  predicate?: (control: ControlWithStats) => boolean,
+): QtyStat {
+  return sumQtyStat(
+    ...controls
+      .filter((control) => (predicate ? predicate(control) : true))
+      .map((control) => control.stats[type]),
+  );
 }
 
 function deriveProductionStatus(
@@ -112,7 +158,7 @@ function deriveProductionStatus(
 
 function deriveDispatchStatusFromControls(
   controls: Pick<
-    OrderControlAggregate,
+    SalesControlStatistic,
     | "dispatchAssigned"
     | "dispatchInProgress"
     | "dispatchCompleted"
@@ -134,28 +180,84 @@ function deriveDispatchStatusFromControls(
 }
 
 function toStatistic(
-  aggregate: OrderControlAggregate,
+  controls: ControlWithStats[],
   packed: QtyStat,
   dispatchStatus: SalesDispatchStatus | "unknown",
 ): SalesControlStatistic {
-  const qty = aggregate.qty;
-  const prodAssigned = aggregate.prodAssigned;
-  const prodCompleted = aggregate.prodCompleted;
-  const dispatchAssigned = aggregate.dispatchAssigned;
-  const dispatchInProgress = aggregate.dispatchInProgress;
-  const dispatchCompleted = aggregate.dispatchCompleted;
-  const dispatchCancelled = aggregate.dispatchCancelled;
+  const qty = sumControls(controls, "qty");
+  const prodAssigned = sumControls(controls, "prodAssigned");
+  const prodCompleted = sumControls(controls, "prodCompleted");
+  const dispatchAssigned = sumControls(controls, "dispatchAssigned");
+  const dispatchInProgress = sumControls(controls, "dispatchInProgress");
+  const dispatchCompleted = sumControls(controls, "dispatchCompleted");
+  const dispatchCancelled = sumControls(controls, "dispatchCancelled");
 
-  const pendingAssignment = diffQtyStat(qty, prodAssigned);
-  const pendingSubmission = diffQtyStat(prodAssigned, prodCompleted);
-  const dispatchListed = sumQtyStat(
-    dispatchAssigned,
-    dispatchInProgress,
-    dispatchCompleted,
+  // Production pipeline metrics apply to produceable controls.
+  const produceableQty = sumControls(
+    controls,
+    "qty",
+    (control) => control.produceable,
   );
-  const pendingDispatch = diffQtyStat(qty, dispatchListed);
-  const packables = diffQtyStat(prodCompleted, packed);
-  const pendingPacking = diffQtyStat(qty, packed);
+  const produceableAssigned = sumControls(
+    controls,
+    "prodAssigned",
+    (control) => control.produceable,
+  );
+  const produceableCompleted = sumControls(
+    controls,
+    "prodCompleted",
+    (control) => control.produceable,
+  );
+  const pendingAssignment = diffQtyStat(produceableQty, produceableAssigned);
+  const pendingSubmission = diffQtyStat(
+    produceableAssigned,
+    produceableCompleted,
+  );
+
+  // Dispatch pipeline availability: produceable items depend on prodCompleted,
+  // non-produceable deliverables can ship directly from qty.
+  const dispatchableSource = sumQtyStat(
+    ...controls
+      .filter((control) => control.shippable)
+      .map((control) =>
+        control.produceable ? control.stats.prodCompleted : control.stats.qty,
+      ),
+  );
+  const dispatchListed = sumControls(
+    controls,
+    "dispatchAssigned",
+    (control) => control.shippable,
+  );
+  const dispatchListedInProgress = sumControls(
+    controls,
+    "dispatchInProgress",
+    (control) => control.shippable,
+  );
+  const dispatchListedCompleted = sumControls(
+    controls,
+    "dispatchCompleted",
+    (control) => control.shippable,
+  );
+  const listedDispatchQty = sumQtyStat(
+    dispatchListed,
+    dispatchListedInProgress,
+    dispatchListedCompleted,
+  );
+
+  const packables = diffQtyStat(dispatchableSource, listedDispatchQty);
+  const pendingDispatch = diffQtyStat(
+    sumControls(controls, "qty", (control) => control.shippable),
+    listedDispatchQty,
+  );
+  const pendingPacking = diffQtyStat(
+    sumControls(controls, "qty", (control) => control.shippable),
+    packed,
+  );
+
+  const productionStatus = deriveProductionStatus(
+    produceableQty.total,
+    produceableCompleted.total,
+  );
 
   return {
     qty,
@@ -171,44 +273,55 @@ function toStatistic(
     pendingPacking,
     pendingDispatch,
     packed,
-    productionStatus: deriveProductionStatus(qty.total, prodCompleted.total),
+    productionStatus,
     dispatchStatus,
   };
 }
 
-function buildOrderControlMap(
-  itemControls: { uid: string; salesId: number }[],
+function buildControlsByOrderMap(
+  itemControls: ItemControlRef[],
   qtyControls: {
     itemControlUid: string;
     type: string;
-    total: number | null;
+    qty: number | null;
     lh: number | null;
     rh: number | null;
   }[],
-): Map<number, OrderControlAggregate> {
-  const uidToOrderId = new Map<string, number>();
+): Map<number, ControlWithStats[]> {
+  const byUid = new Map<string, ControlWithStats>();
   for (const control of itemControls) {
-    uidToOrderId.set(control.uid, control.salesId);
+    byUid.set(control.uid, {
+      ...control,
+      produceable: !!control.produceable,
+      shippable: !!control.shippable,
+      stats: emptyControlStats(),
+    });
   }
 
-  const orderMap = new Map<number, OrderControlAggregate>();
   for (const control of qtyControls) {
-    const orderId = uidToOrderId.get(control.itemControlUid);
-    if (!orderId) continue;
+    const target = byUid.get(control.itemControlUid);
+    if (!target) continue;
 
     const type = control.type as QtyControlType;
     if (!QTY_CONTROL_TYPES.includes(type)) continue;
 
-    const current = orderMap.get(orderId) ?? emptyOrderAggregate();
-    current[type] = sumQtyStat(current[type], {
-      total: toNumber(control.total),
-      lhQty: toNumber(control.lh),
-      rhQty: toNumber(control.rh),
-    });
-    orderMap.set(orderId, current);
+    target.stats[type] = sumQtyStat(target.stats[type],
+      toQtyStat({
+        lhQty: toNumber(control.lh),
+        rhQty: toNumber(control.rh),
+        qty: toNumber(control.qty),
+      }),
+    );
   }
 
-  return orderMap;
+  const byOrder = new Map<number, ControlWithStats[]>();
+  for (const control of byUid.values()) {
+    const list = byOrder.get(control.salesId) || [];
+    list.push(control);
+    byOrder.set(control.salesId, list);
+  }
+
+  return byOrder;
 }
 
 function buildOrderPackedMap(
@@ -234,17 +347,58 @@ function buildOrderPackedMap(
       ? deliveryStatusById.get(item.orderDeliveryId)
       : null;
     if (deliveryStatus === "cancelled") continue;
-
     if (item.packingStatus !== "packed") continue;
 
     const current = packedMap.get(orderId) ?? emptyQtyStat();
     packedMap.set(
       orderId,
-      sumQtyStat(current, {
-        total: toNumber(item.qty),
-        lhQty: toNumber(item.lhQty),
-        rhQty: toNumber(item.rhQty),
-      }),
+      sumQtyStat(
+        current,
+        toQtyStat({
+          lhQty: toNumber(item.lhQty),
+          rhQty: toNumber(item.rhQty),
+          qty: toNumber(item.qty),
+        }),
+      ),
+    );
+  }
+
+  return packedMap;
+}
+
+function buildDispatchPackedMap(
+  deliveries: { id: number; status: string | null }[],
+  deliveryItems: {
+    orderDeliveryId: number | null;
+    qty: number;
+    lhQty: number | null;
+    rhQty: number | null;
+    packingStatus: string | null;
+  }[],
+): Map<number, QtyStat> {
+  const deliveryStatusById = new Map<number, string | null>();
+  for (const d of deliveries) {
+    deliveryStatusById.set(d.id, d.status);
+  }
+
+  const packedMap = new Map<number, QtyStat>();
+  for (const item of deliveryItems) {
+    if (!item.orderDeliveryId) continue;
+    const deliveryStatus = deliveryStatusById.get(item.orderDeliveryId);
+    if (deliveryStatus === "cancelled") continue;
+    if (item.packingStatus !== "packed") continue;
+
+    const current = packedMap.get(item.orderDeliveryId) ?? emptyQtyStat();
+    packedMap.set(
+      item.orderDeliveryId,
+      sumQtyStat(
+        current,
+        toQtyStat({
+          lhQty: toNumber(item.lhQty),
+          rhQty: toNumber(item.rhQty),
+          qty: toNumber(item.qty),
+        }),
+      ),
     );
   }
 
@@ -260,6 +414,8 @@ async function loadOrderLevelData(orderIds: number[], db: Db) {
     select: {
       uid: true,
       salesId: true,
+      produceable: true,
+      shippable: true,
     },
   });
 
@@ -276,7 +432,7 @@ async function loadOrderLevelData(orderIds: number[], db: Db) {
           select: {
             itemControlUid: true,
             type: true,
-            total: true,
+            qty: true,
             lh: true,
             rh: true,
           },
@@ -322,17 +478,24 @@ export async function withSalesControl<T extends { id: number }>(
   const { itemControls, qtyControls, deliveries, deliveryItems } =
     await loadOrderLevelData(orderIds, db);
 
-  const orderControls = buildOrderControlMap(itemControls, qtyControls);
+  const controlsByOrder = buildControlsByOrderMap(itemControls, qtyControls);
   const packedByOrder = buildOrderPackedMap(deliveries, deliveryItems);
 
   return orders.map((order) => {
-    const aggregate = orderControls.get(order.id) ?? emptyOrderAggregate();
+    const controls = controlsByOrder.get(order.id) || [];
     const packed = packedByOrder.get(order.id) ?? emptyQtyStat();
 
-    const dispatchStatus = deriveDispatchStatusFromControls(aggregate);
+    const baseDispatchControls = {
+      dispatchAssigned: sumControls(controls, "dispatchAssigned"),
+      dispatchInProgress: sumControls(controls, "dispatchInProgress"),
+      dispatchCompleted: sumControls(controls, "dispatchCompleted"),
+      dispatchCancelled: sumControls(controls, "dispatchCancelled"),
+    };
+    const dispatchStatus = deriveDispatchStatusFromControls(baseDispatchControls);
+
     return {
       ...order,
-      statistic: toStatistic(aggregate, packed, dispatchStatus),
+      statistic: toStatistic(controls, packed, dispatchStatus),
     };
   });
 }
@@ -345,10 +508,22 @@ export async function withDispatchControl<
   const dispatchIds = [...new Set(dispatches.map((d) => d.id))];
   const orderIds = [...new Set(dispatches.map((d) => d.salesOrderId))];
 
-  const { itemControls, qtyControls, deliveries, deliveryItems } =
-    await loadOrderLevelData(orderIds, db);
+  const { itemControls, qtyControls } = await loadOrderLevelData(orderIds, db);
 
-  const [persistedDispatches] = await Promise.all([
+  const [deliveryItems, persistedDispatches] = await Promise.all([
+    db.orderItemDelivery.findMany({
+      where: {
+        orderDeliveryId: { in: dispatchIds },
+        deletedAt: null,
+      },
+      select: {
+        orderDeliveryId: true,
+        qty: true,
+        lhQty: true,
+        rhQty: true,
+        packingStatus: true,
+      },
+    }),
     db.orderDelivery.findMany({
       where: {
         id: { in: dispatchIds },
@@ -361,8 +536,11 @@ export async function withDispatchControl<
     }),
   ]);
 
-  const orderControls = buildOrderControlMap(itemControls, qtyControls);
-  const packedByOrder = buildOrderPackedMap(deliveries, deliveryItems);
+  const controlsByOrder = buildControlsByOrderMap(itemControls, qtyControls);
+  const packedByDispatch = buildDispatchPackedMap(
+    persistedDispatches,
+    deliveryItems,
+  );
 
   const dispatchStatusById = new Map<number, string | null>();
   for (const d of persistedDispatches) {
@@ -370,18 +548,23 @@ export async function withDispatchControl<
   }
 
   return dispatches.map((dispatch) => {
-    const aggregate =
-      orderControls.get(dispatch.salesOrderId) ?? emptyOrderAggregate();
-    const packed = packedByOrder.get(dispatch.salesOrderId) ?? emptyQtyStat();
+    const controls = controlsByOrder.get(dispatch.salesOrderId) || [];
+    const packed = packedByDispatch.get(dispatch.id) ?? emptyQtyStat();
 
     const storedStatus = dispatchStatusById.get(dispatch.id);
-    const dispatchStatus = isDispatchStatus(storedStatus)
-      ? storedStatus
-      : deriveDispatchStatusFromControls(aggregate);
+    const dispatchStatus =
+      isDispatchStatus(storedStatus)
+        ? storedStatus
+        : deriveDispatchStatusFromControls({
+            dispatchAssigned: sumControls(controls, "dispatchAssigned"),
+            dispatchInProgress: sumControls(controls, "dispatchInProgress"),
+            dispatchCompleted: sumControls(controls, "dispatchCompleted"),
+            dispatchCancelled: sumControls(controls, "dispatchCancelled"),
+          });
 
     return {
       ...dispatch,
-      statistic: toStatistic(aggregate, packed, dispatchStatus),
+      statistic: toStatistic(controls, packed, dispatchStatus),
     };
   });
 }

@@ -599,6 +599,9 @@ export async function getDispatchOverview(
       const listedItems = dispatch?.items.filter(
         (a) => a.item?.controlUid == item.uid,
       );
+      const packedItems = listedItems?.filter(
+        (a) => a.packingStatus === "packed",
+      );
       const totalListedQty = recomposeQty(
         qtyMatrixSum(
           ...result.deliveries
@@ -613,6 +616,9 @@ export async function getDispatchOverview(
       );
       const trs = listedItems?.map(transformQtyHandle);
       const listedQty = qtyMatrixSum(...(trs || ([] as any)));
+      const packedQty = qtyMatrixSum(
+        ...((packedItems || []).map(transformQtyHandle) as any),
+      );
 
       const dispatchable = result.dispatchables.find((d) => d.uid === item.uid);
       const deliverableQty = recomposeQty(
@@ -660,6 +666,7 @@ export async function getDispatchOverview(
         deliverableQty,
         dispatchable,
         listedQty,
+        packedQty,
         nonDeliverableQty,
         // availableQty,
         // pendingQty,

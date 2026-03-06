@@ -396,7 +396,6 @@ const packingProgress: ColumnDef<Item> = {
         const packed = item?.statistic?.packed?.total || 0;
         const pending = item?.statistic?.pendingPacking?.total || 0;
         const total = packed + pending;
-        console.log(item);
         const ratio = total <= 0 ? 0 : packed / total;
         const colorClass =
             ratio >= 1
