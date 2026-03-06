@@ -23,6 +23,12 @@ import { jobReviewRequested } from "./types/job-review-requested";
 import { jobSubmitted } from "./types/job-submitted";
 import { jobTaskConfigureRequest } from "./types/job-tasks-configure-request";
 import { salesDispatchAssigned } from "./types/sales-dispatch-assigned";
+import { salesDispatchCancelled } from "./types/sales-dispatch-cancelled";
+import { salesDispatchCompleted } from "./types/sales-dispatch-completed";
+import { salesDispatchDateUpdated } from "./types/sales-dispatch-date-updated";
+import { salesDispatchInProgress } from "./types/sales-dispatch-in-progress";
+import { salesDispatchQueued } from "./types/sales-dispatch-queued";
+import { salesDispatchUnassigned } from "./types/sales-dispatch-unassigned";
 import { salesEmailReminder } from "./types/sales-email-reminder";
 import { salesRequestPacking } from "./types/sales-request-packing";
 const handlers = {
@@ -33,6 +39,12 @@ const handlers = {
   job_review_requested: jobReviewRequested,
   job_task_configure_request: jobTaskConfigureRequest,
   sales_dispatch_assigned: salesDispatchAssigned,
+  sales_dispatch_queued: salesDispatchQueued,
+  sales_dispatch_cancelled: salesDispatchCancelled,
+  sales_dispatch_completed: salesDispatchCompleted,
+  sales_dispatch_in_progress: salesDispatchInProgress,
+  sales_dispatch_date_updated: salesDispatchDateUpdated,
+  sales_dispatch_unassigned: salesDispatchUnassigned,
   sales_email_reminder: salesEmailReminder,
   sales_request_packing: salesRequestPacking,
   dispatch_packing_delay: dispatchPackingDelay,

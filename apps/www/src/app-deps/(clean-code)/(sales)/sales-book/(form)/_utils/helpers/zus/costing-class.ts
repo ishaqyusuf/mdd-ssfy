@@ -297,20 +297,11 @@ export class CostingClass {
                 .map((a) => a.amount),
         );
         const discount = extraDiscount || Number(estimate.discount) || 0;
-        const taxxableDiscount = Math.min(discount, estimate.taxxable);
         // const nonTaxxableDiscount =
         //     taxxableDiscount == estimate.taxxable &&
         //     discount != taxxableDiscount
         //         ? sum([discount, -1 * taxxableDiscount])
         //         : 0;
-        let subTotalAfterDiscount = sum([estimate.subTotal, discount * -1]);
-
-        let taxxable = sum([estimate.taxxable, -1 * taxxableDiscount]);
-        const taxProfile = this.currentTaxProfile();
-        estimate.taxValue = taxProfile
-            ? percentageValue(taxxable, taxProfile.percentage)
-            : 0;
-        const subGrandTot = sum([subTotalAfterDiscount, estimate.taxValue]);
 
         const Labor = sum(
             Object.entries(data.kvFormItem).map(([itemUid, itemData]) => {
@@ -329,16 +320,32 @@ export class CostingClass {
             }),
         );
 
+        let subTotalAfterDiscount = sum([estimate.subTotal, discount * -1]);
+
         const extraCosts = sum(
             data.metaData.extraCosts
                 ?.filter(
                     (a) =>
-                        a.type != "CustomTaxxable" &&
                         a.type != "Discount" &&
-                        a.type != "Labor",
+                        a.type != "Labor" &&
+                        a.type != "FlatLabor",
                 )
                 .map((a) => a.amount),
         );
+        const taxableBeforeDiscount = sum([
+            estimate.subTotal,
+            estimate.delivery,
+            extraCosts,
+        ]);
+        const taxxableDiscount = Math.min(discount, taxableBeforeDiscount);
+        let taxxable = sum([taxableBeforeDiscount, -1 * taxxableDiscount]);
+        estimate.taxxable = taxableBeforeDiscount;
+        const taxProfile = this.currentTaxProfile();
+        estimate.taxValue = taxProfile
+            ? percentageValue(taxxable, taxProfile.percentage)
+            : 0;
+        const subGrandTot = sum([subTotalAfterDiscount, estimate.taxValue]);
+
         if (data.metaData.paymentMethod == "Credit Card") {
             estimate.ccc = percentageValue(
                 sum([subGrandTot, extraCosts, Labor]),
@@ -350,6 +357,7 @@ export class CostingClass {
                 estimate.labour,
                 estimate.delivery,
                 Labor,
+                flatLaborCost,
                 extraCosts,
                 subGrandTot,
                 estimate.ccc || 0,

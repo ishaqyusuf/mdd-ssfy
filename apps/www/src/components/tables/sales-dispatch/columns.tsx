@@ -166,7 +166,7 @@ const customer: ColumnDef<Item> = {
 };
 const assignedTo: ColumnDef<Item> = {
     header: "Assigned To",
-    accessorKey: "salesRep",
+    accessorKey: "driver",
     meta: {
         preventDefault: true,
     },
@@ -190,6 +190,9 @@ const assignedTo: ColumnDef<Item> = {
                 queryClient.invalidateQueries({
                     queryKey: trpc.dispatch.index.pathKey(),
                 });
+                queryClient.invalidateQueries({
+                    queryKey: trpc.dispatch.assignedDispatch.pathKey(),
+                });
             },
         });
         const addon: Addon = ctx?.addons;
@@ -202,9 +205,10 @@ const assignedTo: ColumnDef<Item> = {
                 {addon?.drivers?.map((driver) => (
                     <Menu.Item
                         onClick={(e) => {
-                            // deliveryUpdate.update({
-                            //     driverId: driver.id,
-                            // });
+                            deliveryUpdate.update({
+                                salesId: item.order.id,
+                                driverId: driver.id,
+                            });
                         }}
                         key={driver?.id}
                     >

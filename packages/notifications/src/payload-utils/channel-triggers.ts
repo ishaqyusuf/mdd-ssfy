@@ -132,6 +132,78 @@ export function createNotificationChannelTriggers(
 				recipients: resolvedRecipients,
 			});
 		},
+		salesDispatchUnassigned(input: Input<"sales_dispatch_unassigned">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("sales_dispatch_unassigned", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
+		salesDispatchQueued(input: Input<"sales_dispatch_queued">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("sales_dispatch_queued", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
+		salesDispatchCancelled(input: Input<"sales_dispatch_cancelled">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("sales_dispatch_cancelled", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
+		salesDispatchCompleted(input: Input<"sales_dispatch_completed">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("sales_dispatch_completed", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
+		salesDispatchInProgress(input: Input<"sales_dispatch_in_progress">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("sales_dispatch_in_progress", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
+		salesDispatchDateUpdated(input: Input<"sales_dispatch_date_updated">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("sales_dispatch_date_updated", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
 		salesRequestPacking(input: Input<"sales_request_packing">) {
 			const { recipients, author, ...payload } = input;
 			const resolvedRecipients = resolveRecipients(
