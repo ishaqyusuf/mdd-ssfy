@@ -9,7 +9,13 @@ import { cn } from "@/lib/utils";
 import { generateJobId } from "@community/utils/job";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 export type JobItem = RouterOutputs["jobs"]["getJobs"]["data"][number];
-export function JobsItem({ item }: { item: JobItem }) {
+export function JobsItem({
+  item,
+  hideAssigneeName = false,
+}: {
+  item: JobItem;
+  hideAssigneeName?: boolean;
+}) {
   const amount = item.amount ? `$${item.amount.toFixed(2)}` : "N/A";
   const isUrgent = false;
   const { admin } = useJobsContext();
@@ -90,7 +96,7 @@ export function JobsItem({ item }: { item: JobItem }) {
       )}
       {/* Contractor Row */}
       <View className="flex flex-row items-center border-t border-b border-dashed border-border my-1 py-4">
-        {!admin ? (
+        {!admin || hideAssigneeName ? (
           <>
             <View className="flex-row items-center gap-2 text-muted-foreground text-sm">
               <Icon

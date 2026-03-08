@@ -114,8 +114,7 @@ const iconSizes = {
 function IconImpl({ name, ...props }: IconProps) {
   let IconComponent;
   const { colorScheme } = useColorScheme();
-  const className =
-    typeof props.className === "string" ? props.className : "";
+  const className = typeof props.className === "string" ? props.className : "";
   const textClass = className
     .split(" ")
     ?.reverse()
@@ -256,6 +255,7 @@ const appIcons = {
   MapPin,
   Minus,
   more: MoreHorizontal,
+
   Pencil,
   Phone,
   PieChart,

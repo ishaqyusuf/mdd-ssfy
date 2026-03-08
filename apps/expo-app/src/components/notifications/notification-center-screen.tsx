@@ -10,7 +10,7 @@ import {
   runNotificationAction,
 } from "@notifications/notification-center";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { NotificationItem } from "./notification-item";
 
@@ -41,14 +41,17 @@ function NotificationList({
   return (
     <ScrollView
       className="flex-1"
-      contentContainerClassName="pb-24"
+      contentContainerClassName="px-4 pb-24 pt-2"
       showsVerticalScrollIndicator={false}
     >
-      <View className="divide-y divide-border">
-        {items.map((item) => (
-          <NotificationItem key={item.id} activity={item} onAction={onAction} />
-        ))}
-      </View>
+      {items.map((item, index) => (
+        <Fragment key={item.id}>
+          <NotificationItem activity={item} onAction={onAction} />
+          {index < items.length - 1 ? (
+            <View className="ml-16 h-px bg-border/70" />
+          ) : null}
+        </Fragment>
+      ))}
     </ScrollView>
   );
 }
@@ -113,6 +116,18 @@ export function NotificationCenterScreen() {
                 <Text>Archive</Text>
               </TabsTrigger>
             </TabsList>
+            <View className="mt-3 flex-row gap-2">
+              <View className="px-1 py-1">
+                <Text className="text-xs font-medium text-foreground">
+                  {notifications.length} inbox
+                </Text>
+              </View>
+              <View className="px-1 py-1">
+                <Text className="text-xs font-medium text-foreground">
+                  {archived.length} archived
+                </Text>
+              </View>
+            </View>
           </View>
 
           <TabsContent value="inbox">
