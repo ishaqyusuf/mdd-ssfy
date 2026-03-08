@@ -204,7 +204,39 @@ export async function submitDispatchTask(db: Db, data: UpdateSalesControl) {
   return response;
 }
 export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
-  if (data.packItems?.packMode == "all")
+  const packMode = data.packItems?.packMode!;
+  if (packMode == "all") {
+    const assignmentInfo = await getSaleInformation(db, {
+      salesId: data.meta.salesId,
+    });
+    const createAssignments: CreateSalesAssignmentProps["items"] =
+      assignmentInfo.items
+        .filter(
+          (item) =>
+            !!item.itemId && hasQty(item.analytics?.assignment?.pending),
+        )
+        .map((item) => ({
+          itemInfo: item,
+          qty: item.analytics!.assignment.pending,
+        }));
+
+    if (createAssignments.length) {
+      await db.$transaction(
+        async (tx) => {
+          await createSalesAssignmentAction(tx as any, {
+            items: createAssignments,
+            salesId: data.meta.salesId,
+            authorId: data.meta.authorId,
+            updateStats: true,
+          });
+        },
+        {
+          maxWait: 30 * 1000,
+        },
+      );
+    }
+  }
+  if (packMode == "all" || packMode == "available")
     await submitAllTask(db, {
       meta: data.meta,
       submitAll: {},
@@ -220,7 +252,9 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
     for (const item of info.items) {
       if (!item.itemId) continue;
 
-      const deliverables = (item.deliverables ?? []).filter((d) => hasQty(d.qty));
+      const deliverables = (item.deliverables ?? []).filter((d) =>
+        hasQty(d.qty),
+      );
 
       if (!deliverables.length) continue;
       packingList.push({

@@ -75,8 +75,8 @@ export function SalesOrderDetailScreen({ orderNo }: Props) {
   return (
     <SafeArea>
       <View className="flex-1 bg-background">
-        <View className="border-b border-border/70 bg-background px-4 pb-4 pt-4">
-          <View className="mb-3 flex-row items-center gap-3">
+        <View className="bg-background px-4 pb-2 pt-4">
+          <View className="mb-2.5 flex-row items-center gap-3">
             <Pressable
               onPress={() => router.back()}
               className="h-10 w-10 items-center justify-center rounded-full active:bg-muted"
@@ -87,9 +87,7 @@ export function SalesOrderDetailScreen({ orderNo }: Props) {
               <Text className="text-xl font-bold text-foreground">Order #{saleData?.orderId}</Text>
               <Text className="text-xs text-muted-foreground">Sales order overview</Text>
             </View>
-            <View
-              className={`flex-row items-center gap-1 rounded-full border px-2.5 py-1 ${tone.chip}`}
-            >
+            <View className={`flex-row items-center gap-1 rounded-full px-2.5 py-1 ${tone.chip}`}>
               <View className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />
               <Text className={`text-[10px] font-bold uppercase ${tone.text}`}>
                 {saleData?.deliveryStatus || "pending"}
@@ -97,8 +95,7 @@ export function SalesOrderDetailScreen({ orderNo }: Props) {
             </View>
           </View>
 
-          <View className="overflow-hidden rounded-3xl border border-border bg-card px-4 pb-4 pt-3">
-            <View className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-primary/10" />
+          <OverviewCard className="border border-border/70 bg-card px-4 pb-4 pt-3">
             <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {saleData?.displayName || "Customer"}
             </Text>
@@ -116,7 +113,7 @@ export function SalesOrderDetailScreen({ orderNo }: Props) {
                 <View className="h-full rounded-full bg-primary" style={{ width: `${paidPct}%` }} />
               </View>
             </View>
-          </View>
+          </OverviewCard>
         </View>
 
         <ScrollView
@@ -133,122 +130,135 @@ export function SalesOrderDetailScreen({ orderNo }: Props) {
           alwaysBounceVertical
           scrollEventThrottle={16}
         >
-          <FinancialOverviewCard
-            total={total}
-            paid={paid}
-            due={due}
-            taxAmount={taxAmount}
-            discountAmount={discountAmount}
-            paidPct={paidPct}
-          />
+          <View className="gap-4">
+            <FinancialOverviewCard
+              total={total}
+              paid={paid}
+              due={due}
+              taxAmount={taxAmount}
+              discountAmount={discountAmount}
+              paidPct={paidPct}
+            />
 
-          <ContactOverviewCard
-            name={saleData?.displayName || "-"}
-            phone={saleData?.customerPhone || "-"}
-            email={saleData?.email || "-"}
-          />
+            <ContactOverviewCard
+              name={saleData?.displayName || "-"}
+              phone={saleData?.customerPhone || "-"}
+              email={saleData?.email || "-"}
+              billingAddress={saleData?.addressData?.billing}
+            />
 
-          <ShippingOverviewCard address={saleData?.addressData?.shipping} />
+            <ShippingOverviewCard address={saleData?.addressData?.shipping} />
 
-          <Section title="Activities" icon="Clock">
-            {deliveryItems.length ? (
-              deliveryItems.slice(0, 8).map((delivery) => (
-                <View
-                  key={delivery.id}
-                  className="mb-2 rounded-2xl border border-border bg-background px-3 py-3"
-                >
-                  <View className="flex-row items-center justify-between">
-                    <Text className="text-sm font-semibold text-foreground">Delivery #{delivery.id}</Text>
-                    <Text className="text-xs uppercase text-muted-foreground">
-                      {delivery.status || "queue"}
-                    </Text>
-                  </View>
-                  <Text className="mt-1 text-xs text-muted-foreground">
-                    {delivery.dueDate
-                      ? new Date(delivery.dueDate).toDateString()
-                      : "No due date"}
-                  </Text>
-                </View>
-              ))
-            ) : (
-              <Text className="text-sm text-muted-foreground">No activities yet.</Text>
-            )}
-          </Section>
-
-          <Section title="Items" icon="LayoutGrid">
-            {orderItems.length ? (
-              orderItems.map((item) => (
-                <View
-                  key={item.uid}
-                  className="mb-2 flex-row items-center gap-3 rounded-2xl border border-border bg-background p-2.5"
-                >
-                  {item?.img ? (
-                    <Image
-                      source={{ uri: item.img }}
-                      style={{ width: 56, height: 56, borderRadius: 12 }}
-                      contentFit="cover"
-                    />
-                  ) : (
-                    <View className="h-14 w-14 items-center justify-center rounded-xl border border-border bg-card">
-                      <Icon name="LayoutGrid" className="text-muted-foreground" size={18} />
+            <Section title="Activities" icon="Clock">
+              {deliveryItems.length ? (
+                <View className="gap-2">
+                  {deliveryItems.slice(0, 8).map((delivery) => (
+                    <View
+                      key={delivery.id}
+                      className="rounded-2xl border border-border/60 bg-background px-3 py-3"
+                    >
+                      <View className="flex-row items-center justify-between">
+                        <Text className="text-sm font-semibold text-foreground">
+                          Delivery #{delivery.id}
+                        </Text>
+                        <Text className="text-xs uppercase text-muted-foreground">
+                          {delivery.status || "queue"}
+                        </Text>
+                      </View>
+                      <Text className="mt-1 text-xs text-muted-foreground">
+                        {delivery.dueDate
+                          ? new Date(delivery.dueDate).toDateString()
+                          : "No due date"}
+                      </Text>
                     </View>
-                  )}
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-foreground">{item.title}</Text>
-                    <Text className="text-xs text-muted-foreground">
-                      {item.subtitle || "No subtitle"}
-                    </Text>
-                  </View>
-                  <View className="rounded-full border border-border px-2.5 py-1">
-                    <Text className="text-xs font-medium text-muted-foreground">
-                      Qty {Number(item?.totalQty?.qty || 0)}
-                    </Text>
-                  </View>
+                  ))}
                 </View>
-              ))
-            ) : (
-              <Text className="text-sm text-muted-foreground">No items found.</Text>
-            )}
-          </Section>
+              ) : (
+                <Text className="text-sm text-muted-foreground">No activities yet.</Text>
+              )}
+            </Section>
 
-          <Section title="Deliveries" icon="Truck">
-            {deliveryItems.length ? (
-              deliveryItems.map((delivery) => (
-                <Pressable
-                  key={delivery.id}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/(sales)/orders/[orderNo]/delivery/[dispatchId]",
-                      params: {
-                        orderNo,
-                        dispatchId: String(delivery.id),
-                      },
-                    } as any)
-                  }
-                  className="mb-2 rounded-2xl border border-border bg-background px-3 py-3 active:opacity-80"
-                >
-                  <View className="flex-row items-center justify-between">
-                    <Text className="text-sm font-semibold text-foreground">Delivery #{delivery.id}</Text>
-                    <Icon name="ChevronRight" className="text-muted-foreground" size={16} />
-                  </View>
-                  <Text className="mt-1 text-xs text-muted-foreground">
-                    {delivery.status || "queue"}
-                    {delivery?.driver?.name ? ` • ${delivery.driver.name}` : ""}
-                  </Text>
-                </Pressable>
-              ))
-            ) : (
-              <Text className="text-sm text-muted-foreground">No deliveries yet.</Text>
-            )}
-          </Section>
+            <Section title="Items" icon="LayoutGrid">
+              {orderItems.length ? (
+                <View className="gap-2">
+                  {orderItems.map((item) => (
+                    <View
+                      key={item.uid}
+                      className="flex-row items-center gap-3 rounded-2xl border border-border/60 bg-background p-2.5"
+                    >
+                      {item?.img ? (
+                        <Image
+                          source={{ uri: item.img }}
+                          style={{ width: 56, height: 56, borderRadius: 12 }}
+                          contentFit="cover"
+                        />
+                      ) : (
+                        <View className="h-14 w-14 items-center justify-center rounded-xl bg-muted">
+                          <Icon name="LayoutGrid" className="text-muted-foreground" size={18} />
+                        </View>
+                      )}
+                      <View className="flex-1">
+                        <Text className="text-sm font-semibold text-foreground">{item.title}</Text>
+                        <Text className="text-xs text-muted-foreground">
+                          {item.subtitle || "No subtitle"}
+                        </Text>
+                      </View>
+                      <View className="rounded-full border border-border/70 px-2.5 py-1">
+                        <Text className="text-xs font-medium text-muted-foreground">
+                          Qty {Number(item?.totalQty?.qty || 0)}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text className="text-sm text-muted-foreground">No items found.</Text>
+              )}
+            </Section>
 
-          <Pressable
-            disabled={!saleData?.id}
-            onPress={() => setDeliveryOpen(true)}
-            className="mb-2 mt-1 h-12 items-center justify-center rounded-xl bg-primary disabled:opacity-50"
-          >
-            <Text className="text-sm font-semibold text-primary-foreground">Create Delivery</Text>
-          </Pressable>
+            <Section title="Deliveries" icon="Truck">
+              {deliveryItems.length ? (
+                <View className="gap-2">
+                  {deliveryItems.map((delivery) => (
+                    <Pressable
+                      key={delivery.id}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/(sales)/orders/[orderNo]/delivery/[dispatchId]",
+                          params: {
+                            orderNo,
+                            dispatchId: String(delivery.id),
+                          },
+                        } as any)
+                      }
+                      className="rounded-2xl border border-border/60 bg-background px-3 py-3 active:opacity-80"
+                    >
+                      <View className="flex-row items-center justify-between">
+                        <Text className="text-sm font-semibold text-foreground">
+                          Delivery #{delivery.id}
+                        </Text>
+                        <Icon name="ChevronRight" className="text-muted-foreground" size={16} />
+                      </View>
+                      <Text className="mt-1 text-xs text-muted-foreground">
+                        {delivery.status || "queue"}
+                        {delivery?.driver?.name ? ` • ${delivery.driver.name}` : ""}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : (
+                <Text className="text-sm text-muted-foreground">No deliveries yet.</Text>
+              )}
+            </Section>
+
+            <Pressable
+              disabled={!saleData?.id}
+              onPress={() => setDeliveryOpen(true)}
+              className="mb-1 mt-1 h-12 items-center justify-center rounded-xl bg-primary disabled:opacity-50"
+            >
+              <Text className="text-sm font-semibold text-primary-foreground">Create Delivery</Text>
+            </Pressable>
+          </View>
         </ScrollView>
       </View>
 
@@ -280,23 +290,37 @@ function statusTone(status?: string | null) {
   const value = String(status || "").toLowerCase();
   if (value.includes("completed")) {
     return {
-      chip: "border-emerald-300 bg-emerald-500/10",
+      chip: "border border-emerald-200 bg-emerald-50",
       text: "text-emerald-700 dark:text-emerald-300",
       dot: "bg-emerald-500",
     };
   }
   if (value.includes("progress")) {
     return {
-      chip: "border-amber-300 bg-amber-500/10",
+      chip: "border border-amber-200 bg-amber-50",
       text: "text-amber-700 dark:text-amber-300",
       dot: "bg-amber-500",
     };
   }
   return {
-    chip: "border-border bg-muted",
+    chip: "border border-border bg-muted",
     text: "text-muted-foreground",
     dot: "bg-muted-foreground",
   };
+}
+
+function OverviewCard({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <View className={`overflow-hidden rounded-3xl bg-card ${className || "p-4"}`}>
+      {children}
+    </View>
+  );
 }
 
 function Section({
@@ -309,14 +333,14 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <View className="mb-4 overflow-hidden rounded-3xl border border-border bg-card p-4">
+    <View className="rounded-3xl border border-border/70 bg-card p-3">
       <View className="mb-3 flex-row items-center gap-2">
-        <View className="rounded-full bg-secondary p-1.5">
+        <View className="rounded-full bg-muted p-1.5">
           <Icon name={icon} className="text-foreground" size={14} />
         </View>
         <Text className="text-sm font-bold text-foreground">{title}</Text>
       </View>
-      {children}
+      <View className="rounded-2xl bg-background p-3">{children}</View>
     </View>
   );
 }
@@ -331,7 +355,7 @@ function MetricPill({
   icon: any;
 }) {
   return (
-    <View className="flex-1 rounded-xl border border-border bg-background px-2.5 py-2">
+    <View className="flex-1 rounded-xl border border-border/60 bg-background px-2.5 py-2">
       <View className="mb-1 flex-row items-center gap-1.5">
         <Icon name={icon} className="text-muted-foreground" size={12} />
         <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -359,7 +383,7 @@ function FinancialOverviewCard({
   paidPct: number;
 }) {
   return (
-    <View className="mb-4 overflow-hidden rounded-3xl border border-border bg-card p-4">
+    <OverviewCard className="border border-border/70 p-4">
       <View className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-primary/10" />
       <View className="absolute -bottom-8 -left-8 h-20 w-20 rounded-full bg-secondary/60" />
 
@@ -370,7 +394,7 @@ function FinancialOverviewCard({
         <Text className="text-sm font-bold text-foreground">Financial</Text>
       </View>
 
-      <View className="mb-3 rounded-2xl border border-border bg-background/80 p-3">
+      <View className="mb-3 rounded-2xl border border-border/60 bg-background p-3">
         <View className="mb-2 flex-row items-center justify-between">
           <Text className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             Outstanding Balance
@@ -386,13 +410,13 @@ function FinancialOverviewCard({
       </View>
 
       <View className="mb-2 flex-row gap-2">
-        <View className="flex-1 rounded-xl border border-border bg-background px-3 py-2.5">
+        <View className="flex-1 rounded-xl border border-border/60 bg-background px-3 py-2.5">
           <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
             Total
           </Text>
           <Text className="mt-1 text-sm font-bold text-foreground">{money(total)}</Text>
         </View>
-        <View className="flex-1 rounded-xl border border-emerald-300/60 bg-emerald-500/10 px-3 py-2.5">
+        <View className="flex-1 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
           <Text className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
             Paid
           </Text>
@@ -403,20 +427,20 @@ function FinancialOverviewCard({
       </View>
 
       <View className="flex-row gap-2">
-        <View className="flex-1 rounded-xl border border-border bg-background px-3 py-2.5">
+        <View className="flex-1 rounded-xl border border-border/60 bg-background px-3 py-2.5">
           <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
             Tax
           </Text>
           <Text className="mt-1 text-sm font-semibold text-foreground">{money(taxAmount)}</Text>
         </View>
-        <View className="flex-1 rounded-xl border border-border bg-background px-3 py-2.5">
+        <View className="flex-1 rounded-xl border border-border/60 bg-background px-3 py-2.5">
           <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
             Discount
           </Text>
           <Text className="mt-1 text-sm font-semibold text-foreground">{money(discountAmount)}</Text>
         </View>
       </View>
-    </View>
+    </OverviewCard>
   );
 }
 
@@ -424,13 +448,20 @@ function ContactOverviewCard({
   name,
   phone,
   email,
+  billingAddress,
 }: {
   name: string;
   phone: string;
   email: string;
+  billingAddress?: {
+    lines?: string[];
+    address?: string;
+  } | null;
 }) {
+  const billingLines = (billingAddress?.lines || []).filter(Boolean);
+
   return (
-    <View className="mb-4 overflow-hidden rounded-3xl border border-border bg-card p-4">
+    <OverviewCard className="border border-border/70 p-4">
       <View className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-primary/15" />
       <View className="absolute -left-8 -bottom-8 h-20 w-20 rounded-full bg-secondary/70" />
 
@@ -441,14 +472,14 @@ function ContactOverviewCard({
           </View>
           <Text className="text-sm font-bold text-foreground">Customer Contact</Text>
         </View>
-        <View className="rounded-full border border-border bg-background px-2.5 py-1">
+        <View className="rounded-full border border-border/70 bg-background px-2.5 py-1">
           <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
             Billing Source
           </Text>
         </View>
       </View>
 
-      <View className="mb-3 rounded-2xl border border-primary/20 bg-primary/5 p-3">
+      <View className="mb-3 rounded-2xl border border-border/60 bg-background p-3">
         <View className="flex-row items-center gap-2">
           <View className="h-11 w-11 items-center justify-center rounded-full bg-primary/15">
             <Icon name="User" className="text-primary" size={18} />
@@ -463,7 +494,7 @@ function ContactOverviewCard({
       </View>
 
       <View className="gap-2">
-        <View className="rounded-xl border border-border bg-background px-3 py-2.5">
+        <View className="rounded-xl border border-border/60 bg-background px-3 py-2.5">
           <View className="flex-row items-center gap-2">
             <View className="h-7 w-7 items-center justify-center rounded-full bg-secondary">
               <Icon name="Phone" className="text-muted-foreground" size={13} />
@@ -476,7 +507,7 @@ function ContactOverviewCard({
             </View>
           </View>
         </View>
-        <View className="rounded-xl border border-border bg-background px-3 py-2.5">
+        <View className="rounded-xl border border-border/60 bg-background px-3 py-2.5">
           <View className="flex-row items-center gap-2">
             <View className="h-7 w-7 items-center justify-center rounded-full bg-secondary">
               <Icon name="Mail" className="text-muted-foreground" size={13} />
@@ -489,8 +520,33 @@ function ContactOverviewCard({
             </View>
           </View>
         </View>
+        <View className="rounded-xl border border-border/60 bg-background px-3 py-2.5">
+          <View className="flex-row items-start gap-2">
+            <View className="mt-0.5 h-7 w-7 items-center justify-center rounded-full bg-secondary">
+              <Icon name="MapPin" className="text-muted-foreground" size={13} />
+            </View>
+            <View className="flex-1">
+              <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Billing Address
+              </Text>
+              {billingLines.length ? (
+                <View className="mt-0.5 gap-0.5">
+                  {billingLines.map((line, index) => (
+                    <Text key={`${line}-${index}`} className="text-sm font-semibold text-foreground">
+                      {line}
+                    </Text>
+                  ))}
+                </View>
+              ) : (
+                <Text className="text-sm font-semibold text-foreground">
+                  {billingAddress?.address || "No billing address"}
+                </Text>
+              )}
+            </View>
+          </View>
+        </View>
       </View>
-    </View>
+    </OverviewCard>
   );
 }
 
@@ -498,7 +554,7 @@ function ShippingOverviewCard({ address }: { address?: any }) {
   const lines = (address?.lines || []).filter(Boolean);
 
   return (
-    <View className="mb-4 overflow-hidden rounded-3xl border border-border bg-card p-4">
+    <OverviewCard className="border border-border/70 p-4">
       <View className="absolute -left-10 -top-10 h-24 w-24 rounded-full bg-primary/15" />
       <View className="absolute -right-8 -bottom-8 h-20 w-20 rounded-full bg-secondary/70" />
 
@@ -509,7 +565,7 @@ function ShippingOverviewCard({ address }: { address?: any }) {
           </View>
           <Text className="text-sm font-bold text-foreground">Shipping Destination</Text>
         </View>
-        <View className="rounded-full border border-border bg-background px-2.5 py-1">
+        <View className="rounded-full border border-border/70 bg-background px-2.5 py-1">
           <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
             Active
           </Text>
@@ -517,11 +573,11 @@ function ShippingOverviewCard({ address }: { address?: any }) {
       </View>
 
       {lines.length ? (
-        <View className="gap-2 rounded-2xl border border-border bg-background p-3">
+        <View className="gap-2 rounded-2xl border border-border/60 bg-background p-3">
           {lines.map((line: string, index: number) => (
             <View
               key={String(index)}
-              className="flex-row items-start gap-2 rounded-xl border border-border/70 bg-card px-3 py-2.5"
+              className="flex-row items-start gap-2 rounded-xl border border-border/60 bg-card px-3 py-2.5"
             >
               <View className="mt-0.5 h-5 w-5 items-center justify-center rounded-full bg-primary/10">
                 <Icon name="MapPin" className="text-primary" size={12} />
@@ -545,6 +601,6 @@ function ShippingOverviewCard({ address }: { address?: any }) {
           </View>
         </View>
       )}
-    </View>
+    </OverviewCard>
   );
 }

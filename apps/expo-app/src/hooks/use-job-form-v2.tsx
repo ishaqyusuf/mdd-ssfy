@@ -441,6 +441,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 
   const buildSaveJobFormPayload = useCallback(
     (options?: { requestTaskConfig?: boolean }) => {
+      if (!defaultValues) return null;
       if (!params.unitId || !resolvedUserId) return null;
 
       const requestTaskConfig = !!options?.requestTaskConfig;
@@ -506,9 +507,10 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
         user: {
           id: resolvedUserId,
         },
-        builderTaskId:
-          (defaultValues as any)?.builderTaskId ||
-          (params.taskId && params.taskId > 0 ? params.taskId : undefined),
+        builderTaskId: defaultValues.builderTaskId,
+        //  ||
+        // (params.taskId && params.taskId > 0 ? params.taskId : undefined),
+        modelInstallTaskId: params?.taskId,
         requestTaskConfig,
         job: {
           id: defaultJob.id || undefined,

@@ -57,13 +57,54 @@ function Status({ item, admin }: { item: Item; admin?: boolean }) {
     const trpc = useTRPC();
     const queryClient = useQueryClient();
     const auth = useAuth();
+    const submitDispatch = useMutation(
+        trpc.dispatch.submitDispatch.mutationOptions({
+            onSuccess() {
+                setStatus("completed");
+                toast({
+                    duration: 2000,
+                    variant: "success",
+                    description: "Dispatch completed",
+                    title: "Updated!",
+                });
+                queryClient.invalidateQueries({
+                    queryKey: trpc.dispatch.index.pathKey(),
+                });
+                queryClient.invalidateQueries({
+                    queryKey: trpc.dispatch.assignedDispatch.pathKey(),
+                });
+                queryClient.invalidateQueries({
+                    queryKey: trpc.dispatch.dispatchOverview.queryKey(),
+                });
+            },
+            onError(error) {
+                toast({
+                    duration: 3000,
+                    variant: "error",
+                    description: error.message || "Unable to complete dispatch",
+                    title: "Update Failed",
+                });
+            },
+        }),
+    );
     const trigger = useTaskTrigger({
         onStarted() {
             queryClient.invalidateQueries({
                 queryKey: trpc.dispatch.dispatchOverview.queryKey(),
             });
             setCompletionDialogOpen(false);
-            updateStatus("completed");
+            submitDispatch.mutate({
+                meta: {
+                    authorId: Number(auth.id || 0),
+                    authorName: auth.name || "System",
+                    salesId: Number(item?.order?.id || 0),
+                },
+                submitDispatch: {
+                    dispatchId: item.id,
+                    receivedBy: auth.name || "System",
+                    receivedDate: new Date(),
+                },
+            });
         },
     });
     const statusUpdate = useMutation(
@@ -140,7 +181,8 @@ function Status({ item, admin }: { item: Item; admin?: boolean }) {
             <AlertDialog
                 open={completionDialogOpen}
                 onOpenChange={(open) => {
-                    if (trigger.isActionPending) return;
+                    if (trigger.isActionPending || submitDispatch.isPending)
+                        return;
                     setCompletionDialogOpen(open);
                 }}
             >
@@ -157,7 +199,10 @@ function Status({ item, admin }: { item: Item; admin?: boolean }) {
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                            disabled={trigger.isActionPending}
+                            disabled={
+                                trigger.isActionPending ||
+                                submitDispatch.isPending
+                            }
                             onClick={() => {
                                 setCompletionDialogOpen(false);
                                 updateStatus("completed", "packed_only");
@@ -166,7 +211,10 @@ function Status({ item, admin }: { item: Item; admin?: boolean }) {
                             Complete with packed ({packedCount} items)
                         </AlertDialogAction>
                         <AlertDialogAction
-                            disabled={trigger.isActionPending}
+                            disabled={
+                                trigger.isActionPending ||
+                                submitDispatch.isPending
+                            }
                             onClick={() => {
                                 const packItems: UpdateSalesControl["packItems"] =
                                     {
@@ -187,7 +235,8 @@ function Status({ item, admin }: { item: Item; admin?: boolean }) {
                                 });
                             }}
                         >
-                            {trigger.isActionPending
+                            {trigger.isActionPending ||
+                            submitDispatch.isPending
                                 ? "Completing..."
                                 : "Complete all"}
                         </AlertDialogAction>

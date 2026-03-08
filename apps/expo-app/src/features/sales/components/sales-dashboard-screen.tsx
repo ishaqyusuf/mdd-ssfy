@@ -19,10 +19,10 @@ export function SalesDashboardScreen() {
   return (
     <SafeArea>
       <View className="flex-1 bg-background">
-        <GeneralHomeHeader className="px-4 pb-4" showNotificationDot={false} />
+        <GeneralHomeHeader className="px-4 pb-3" showNotificationDot={false} />
 
         <View className="flex-1">
-          <View className="mb-4 mt-2 px-4 pb-2 pt-1">
+          <View className="mb-3 mt-1 px-4 pb-1 pt-1">
             <Text className="text-2xl font-bold text-foreground">
               Sales Dashboard
             </Text>
@@ -36,7 +36,11 @@ export function SalesDashboardScreen() {
             </View>
           ) : (
             <ScrollView
-              contentContainerStyle={{ paddingBottom: 36, paddingHorizontal: 16 }}
+              contentContainerStyle={{
+                paddingTop: 4,
+                paddingBottom: 36,
+                paddingHorizontal: 16,
+              }}
               refreshControl={
                 <RefreshControl
                   refreshing={isRefetching}
@@ -44,7 +48,7 @@ export function SalesDashboardScreen() {
                 />
               }
             >
-              <View className="mb-4 flex-row flex-wrap gap-3">
+              <View className="mb-5 flex-row flex-wrap gap-3">
                 <StatCard label="Orders" value={data?.orders?.total || 0} />
                 <StatCard
                   label="Delivery In Progress"
@@ -113,7 +117,7 @@ export function SalesDashboardScreen() {
                   </View>
                 </View>
               </View>
-              <View className="mt-5">
+              <View className="mt-6">
                 <View className="mb-3 flex-row items-center justify-between">
                   <Text className="text-base font-bold text-foreground">
                     Recent Sales
@@ -157,9 +161,9 @@ export function SalesDashboardScreen() {
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <View className="min-h-[96px] min-w-[47%] flex-1 rounded-2xl border border-border bg-card p-3">
+    <View className="min-h-[96px] min-w-[47%] flex-1 rounded-2xl border border-border bg-card p-4">
       <Text className="text-xs font-medium text-muted-foreground">{label}</Text>
-      <Text className="mt-2 text-3xl font-bold text-foreground">{value}</Text>
+      <Text className="mt-1.5 text-3xl font-bold text-foreground">{value}</Text>
     </View>
   );
 }
@@ -174,7 +178,7 @@ function RecentSaleItem({
   return (
     <Pressable
       onPress={onPress}
-      className="rounded-2xl border border-border bg-card px-3.5 py-3 active:opacity-80"
+      className="rounded-2xl border border-border bg-card p-4 active:opacity-80"
     >
       <View className="flex-row items-center justify-between">
         <View className="flex-1 pr-3">

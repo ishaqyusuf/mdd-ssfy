@@ -549,7 +549,7 @@ export const communityRouters = createTRPCRouter({
             modelName: job?.home?.modelName || "",
             projectName: job?.project?.title || "",
             builderName: job?.project?.builder?.name || "",
-            communityModelInstallCostId: input.modelId,
+            communityModelInstallCostId: input.modelInstallTaskId!,
             builderTaskId: input.builderTaskId!,
           });
         else if (isContractorCreator)
@@ -562,8 +562,8 @@ export const communityRouters = createTRPCRouter({
           }
           await notification.channel.jobAssigned({
             jobId: jobId!,
-            assignedToId: job?.user?.id,
-            assignedToName: job?.user?.name,
+            assignedToId: job?.user?.id!,
+            assignedToName: job?.user?.name!,
           });
         }
       }
