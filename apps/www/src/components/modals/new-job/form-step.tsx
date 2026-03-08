@@ -24,7 +24,7 @@ export function FormStep({}) {
     const { defaultValues, isPending } = useJobFormContext();
     const isReadyToLoadForm =
         !!params.unitId &&
-        !!params.taskId &&
+        !!params.builderTaskId &&
         !!params.userId &&
         !!params.modelId;
 
@@ -133,7 +133,7 @@ function FormContent() {
                     </span>
                 </div>
                 <div className="flex-1 overflow-y-auto pr-2 space-y-6">
-                    {params.taskId === -1 ? null : (
+                    {params.builderTaskId === -1 ? null : (
                         <div className="space-y-2">
                             <Controller
                                 control={form.control}
@@ -141,7 +141,7 @@ function FormContent() {
                                 render={({ field }) => (
                                     <Field orientation="horizontal">
                                         <Checkbox
-                                            disabled={params.taskId === -1}
+                                            disabled={params.builderTaskId === -1}
                                             checked={field.value}
                                             onCheckedChange={field.onChange}
                                             id="isCustomTask"
@@ -161,7 +161,7 @@ function FormContent() {
                             />
                         </div>
                     )}
-                    {isCustomTask || params.taskId == -1 ? (
+                    {isCustomTask || params.builderTaskId == -1 ? (
                         /* Custom Task Form */
                         <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                             <div className="space-y-2">
@@ -329,4 +329,3 @@ function FormContent() {
         </>
     );
 }
-

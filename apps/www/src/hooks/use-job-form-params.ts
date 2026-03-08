@@ -10,7 +10,7 @@ export function useJobFormParams() {
         _projectId: parseAsInteger,
         _jobId: parseAsInteger,
         _unitId: parseAsInteger,
-        _taskId: parseAsInteger,
+        _builderTaskId: parseAsInteger,
         _userId: parseAsInteger,
         _modelId: parseAsInteger,
     });
@@ -20,7 +20,7 @@ export function useJobFormParams() {
         projectId: params._projectId,
         jobId: params._jobId,
         unitId: params._unitId,
-        taskId: params._taskId,
+        builderTaskId: params._builderTaskId,
         userId: params._userId,
         modelId: params._modelId,
         // setParams,
@@ -31,7 +31,7 @@ export function useJobFormParams() {
                 projectId?: number | null;
                 jobId?: number | null;
                 unitId?: number | null;
-                taskId?: number | null;
+                builderTaskId?: number | null;
                 userId?: number | null;
                 modelId?: number | null;
             } | null,
@@ -57,4 +57,3 @@ export function useJobFormParams() {
         // open()
     };
 }
-

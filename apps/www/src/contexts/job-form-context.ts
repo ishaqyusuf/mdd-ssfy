@@ -17,7 +17,10 @@ export const useCreateJobFormContext = () => {
         useTRPC().community.getJobForm.queryOptions(
             {
                 unitId: params.unitId,
-                taskId: params.taskId > 0 ? params.taskId : undefined,
+                builderTaskId:
+                    params.builderTaskId > 0
+                        ? params.builderTaskId
+                        : undefined,
                 jobId: params.jobId,
                 userId: params.userId,
                 modelId: params.modelId,
@@ -25,13 +28,13 @@ export const useCreateJobFormContext = () => {
             {
                 enabled:
                     !!params.unitId &&
-                    !!params.taskId &&
+                    !!params.builderTaskId &&
                     !!params.userId &&
                     !!params.modelId,
                 // enabled: false,
                 // refetchOnMount: true,
                 // !!params.unitId &&
-                // !!params.taskId &&
+                // !!params.builderTaskId &&
                 // !!params.userId &&
                 // !!params.modelId,
             },

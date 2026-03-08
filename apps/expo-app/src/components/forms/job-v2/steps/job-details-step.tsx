@@ -64,7 +64,7 @@ export function JobDetailsStep() {
     tabs,
     setStep,
   } = useJobFormV2Context();
-  const isCustom = form.watch("isCustom") || params.taskId === -1;
+  const isCustom = form.watch("isCustom") || params.builderTaskId === -1;
   const taskRows = Object.entries(
     (form.watch("job.tasks") || {}) as Record<string, any>,
   );

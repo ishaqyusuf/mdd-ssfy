@@ -9,7 +9,7 @@ const builderJobPayloadSchema = z.object({
     projectId: z.number().nullable().optional(),
     jobId: z.number().nullable().optional(),
     unitId: z.number().nullable().optional(),
-    taskId: z.number().nullable().optional(),
+    builderTaskId: z.number().nullable().optional(),
     userId: z.number().nullable().optional(),
     modelId: z.number().nullable().optional(),
 });
@@ -44,4 +44,3 @@ export function useBuilderParams(options?: { shallow: boolean }) {
         opened,
     };
 }
-

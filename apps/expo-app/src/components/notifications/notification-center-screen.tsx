@@ -66,7 +66,7 @@ export function NotificationCenterScreen() {
           action: "update",
           step: "5",
           _modelId: String(data.communityModelInstallCostId),
-          _taskId: String(data.builderTaskId),
+          _builderTaskId: String(data.builderTaskId),
         },
       } as any);
       Toast.show(

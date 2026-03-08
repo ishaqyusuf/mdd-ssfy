@@ -54,7 +54,7 @@ export function TaskSelectStep({}) {
                 projectId: params.projectId ?? null,
                 jobId: params.jobId ?? null,
                 unitId: params.unitId ?? null,
-                taskId: params.taskId ?? null,
+                builderTaskId: params.builderTaskId ?? null,
                 userId: params.userId ?? null,
                 modelId: params.modelId ?? null,
             },
@@ -82,12 +82,12 @@ export function TaskSelectStep({}) {
                     <button
                         onClick={() => {
                             setParams({
-                                taskId: -1,
+                                builderTaskId: -1,
                                 step: params.redirectStep || params.step + 1,
                                 redirectStep: null,
                             });
                         }}
-                        className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 border-dashed text-left transition-all group ${params.taskId == -1 ? "border-primary bg-primary/5" : "border-primary/30 hover:border-primary hover:bg-primary/5"}`}
+                        className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 border-dashed text-left transition-all group ${params.builderTaskId == -1 ? "border-primary bg-primary/5" : "border-primary/30 hover:border-primary hover:bg-primary/5"}`}
                     >
                         <div className="p-2 bg-primary/10 rounded-lg text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                             <PenTool size={20} />
@@ -145,14 +145,14 @@ export function TaskSelectStep({}) {
                             key={item.id}
                             onClick={() => {
                                 setParams({
-                                    taskId: item.id,
+                                    builderTaskId: item.id,
                                     step:
                                         params.redirectStep || params.step + 1,
                                     redirectStep: null,
                                 });
                                 // handleNext();
                             }}
-                            className={`w-full flex items-center gap-4 p-3 rounded-xl border text-left transition-all hover:shadow-md ${params.taskId === item.id ? "border-primary bg-primary/5" : "border-border bg-card hover:bg-muted/50"}`}
+                            className={`w-full flex items-center gap-4 p-3 rounded-xl border text-left transition-all hover:shadow-md ${params.builderTaskId === item.id ? "border-primary bg-primary/5" : "border-border bg-card hover:bg-muted/50"}`}
                         >
                             <div className="p-2 bg-muted rounded-lg text-muted-foreground">
                                 <Layers size={20} />

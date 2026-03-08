@@ -6,7 +6,7 @@ import { NeoCard } from "./ui/neo-card";
 function canContinue(tab: string, params: any) {
   if (tab === "user") return !!params.userId;
   if (tab === "project") return !!params.projectId;
-  if (tab === "task") return params.taskId !== null;
+  if (tab === "task") return params.builderTaskId !== null;
   if (tab === "unit") return !!params.unitId;
   return true;
 }

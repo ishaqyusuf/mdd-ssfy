@@ -43,7 +43,7 @@ export interface JobFormV2Params {
   projectId: number | null;
   jobId: number | null;
   unitId: number | null;
-  taskId: number | null;
+  builderTaskId: number | null;
   userId: number | null;
   modelId: number | null;
   admin?: boolean;
@@ -62,7 +62,7 @@ export function useJobFormV2Params() {
       projectId: parseInteger(params._projectId),
       jobId: parseInteger(params._jobId),
       unitId: parseInteger(params._unitId),
-      taskId: parseInteger(params._taskId),
+      builderTaskId: parseInteger(params._builderTaskId),
       userId: parseInteger(params._userId),
       modelId: parseInteger(params._modelId),
       admin: parseBoolean(params.admin),
@@ -79,7 +79,7 @@ export function useJobFormV2Params() {
       _projectId: undefined,
       _jobId: undefined,
       _unitId: undefined,
-      _taskId: undefined,
+      _builderTaskId: undefined,
       _userId: undefined,
       _modelId: undefined,
       admin: undefined,
@@ -111,8 +111,8 @@ export function useJobFormV2Params() {
       if (Object.prototype.hasOwnProperty.call(newParams, "unitId")) {
         next._unitId = stringifyInteger(newParams.unitId);
       }
-      if (Object.prototype.hasOwnProperty.call(newParams, "taskId")) {
-        next._taskId = stringifyInteger(newParams.taskId);
+      if (Object.prototype.hasOwnProperty.call(newParams, "builderTaskId")) {
+        next._builderTaskId = stringifyInteger(newParams.builderTaskId);
       }
       if (Object.prototype.hasOwnProperty.call(newParams, "userId")) {
         next._userId = stringifyInteger(newParams.userId);

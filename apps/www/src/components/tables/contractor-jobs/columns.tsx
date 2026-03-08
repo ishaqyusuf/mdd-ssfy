@@ -129,7 +129,7 @@ function Actions({ item }: ItemProps) {
                         projectId: item?.project?.id,
                         unitId: item?.home?.id,
                         modelId: item?.home?.communityTemplateId,
-                        taskId: item?.builderTaskId || -1,
+                        builderTaskId: item?.builderTaskId || -1,
                     });
                 }}
             />
@@ -166,4 +166,3 @@ function ItemCard({ item }: ItemProps) {
     const { setParams } = useJobParams();
     return <></>;
 }
-

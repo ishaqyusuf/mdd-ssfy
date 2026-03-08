@@ -129,8 +129,8 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 
   const shouldLoadDefaults =
     !!params.unitId &&
-    params.taskId !== null &&
-    params.taskId !== undefined &&
+    params.builderTaskId !== null &&
+    params.builderTaskId !== undefined &&
     !!resolvedUserId &&
     !!params.modelId;
   // consoleLog("PARAMS", params,shouldLoadDefaults);
@@ -140,7 +140,10 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
       shouldLoadDefaults
         ? {
             unitId: params.unitId!,
-            taskId: params.taskId && params.taskId > 0 ? params.taskId : null,
+            builderTaskId:
+              params.builderTaskId && params.builderTaskId > 0
+                ? params.builderTaskId
+                : null,
             jobId: params.jobId,
             userId: resolvedUserId!,
             modelId: params.modelId!,
@@ -379,7 +382,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
         projectId: project.id,
         unitId: null,
         modelId: null,
-        taskId: null,
+        builderTaskId: null,
         step: clamp(initialStep + 1, 1, tabs.length),
       });
     },
@@ -387,9 +390,9 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
   );
 
   const selectTask = useCallback(
-    (taskId: number) => {
+    (builderTaskId: number) => {
       params.setParams({
-        taskId,
+        builderTaskId,
         step: clamp(initialStep + 1, 1, tabs.length),
       });
     },
@@ -456,7 +459,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
         (unit: any) => unit?.id === params.unitId,
       );
       const selectedTask = (taskOptions || []).find(
-        (task: any) => task?.id === params.taskId,
+        (task: any) => task?.id === params.builderTaskId,
       );
       const fallbackTitle =
         values?.title ||
@@ -509,8 +512,6 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
           id: resolvedUserId,
         },
         builderTaskId: defaultValues.builderTaskId!,
-        //  ||
-        // (params.taskId && params.taskId > 0 ? params.taskId : undefined),
         modelInstallTaskIds: defaultValues.communityModelInstallTaskIds!,
         requestTaskConfig,
         job: {
@@ -543,7 +544,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
       form,
       params.modelId,
       params.projectId,
-      params.taskId,
+      params.builderTaskId,
       params.unitId,
       projectList,
       resolvedUserId,
@@ -612,7 +613,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
       projectId: null,
       jobId: null,
       unitId: null,
-      taskId: null,
+      builderTaskId: null,
       userId: null,
       modelId: null,
       admin,

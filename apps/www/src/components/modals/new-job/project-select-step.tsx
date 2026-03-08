@@ -42,7 +42,7 @@ export function ProjectSelectStep({}) {
                                     projectId: item.id,
                                     unitId: null,
                                     modelId: null,
-                                    taskId: null,
+                                    builderTaskId: null,
                                     step:
                                         params.redirectStep || params.step + 1,
                                     redirectStep: null,

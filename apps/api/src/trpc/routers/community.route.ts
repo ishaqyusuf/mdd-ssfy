@@ -214,14 +214,14 @@ export const communityRouters = createTRPCRouter({
     .input(
       z.object({
         jobId: z.number().optional().nullable(),
-        taskId: z.number().optional().nullable(),
+        builderTaskId: z.number().optional().nullable(),
         modelId: z.number(),
         unitId: z.number(),
         userId: z.number(),
       }),
     )
     .query(async (props) => {
-      const { jobId, taskId, modelId } = props.input;
+      const { jobId, builderTaskId, modelId } = props.input;
       // get unit information
       const { db } = props.ctx;
       const unit = await props.ctx.db.homes.findFirst({
@@ -249,7 +249,7 @@ export const communityRouters = createTRPCRouter({
       const projectAddon = (unit?.project?.meta as any as ProjectMeta)?.addon;
       const builderTask = await db.builderTask.findFirst({
         where: {
-          id: taskId!,
+          id: builderTaskId!,
           // installable: true,
         },
         select: {
@@ -363,7 +363,8 @@ export const communityRouters = createTRPCRouter({
           taskName: builderTask?.taskName,
           // addonPercentage: builderTask?.addonPercentage,
         },
-        builderTaskId: taskId,
+        builderTaskId,
+
         user: job?.user || user,
         job: {
           tasks: jobTasks,
@@ -383,7 +384,7 @@ export const communityRouters = createTRPCRouter({
               ?.filter(Boolean)
               ?.join(" - "),
           adminNote: job?.adminNote,
-          isCustom: !!job?.isCustom || !taskId,
+          isCustom: !!job?.isCustom || !builderTaskId,
           status: (job?.status || "Assigned") as JobStatus,
         },
         communityModelInstallTaskIds: Array.from(

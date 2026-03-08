@@ -18,7 +18,7 @@ export function MissingTasksConfig({ form }) {
         projectId: jobFormParams.projectId ?? null,
         jobId: jobFormParams.jobId ?? null,
         unitId: jobFormParams.unitId ?? null,
-        taskId: jobFormParams.taskId ?? null,
+        builderTaskId: jobFormParams.builderTaskId ?? null,
         userId: jobFormParams.userId ?? null,
         modelId: jobFormParams.modelId ?? null,
     };

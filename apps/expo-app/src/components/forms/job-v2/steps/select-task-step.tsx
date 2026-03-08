@@ -44,11 +44,11 @@ export function SelectTaskStep() {
 
   useEffect(() => {
     hasScrolledRef.current = false;
-  }, [params.taskId]);
+  }, [params.builderTaskId]);
 
   useEffect(() => {
     if (hasScrolledRef.current) return;
-    const selectedId = params.taskId;
+    const selectedId = params.builderTaskId;
     if (selectedId === null || selectedId === undefined || isTasksPending) return;
     const y = positionsRef.current[String(selectedId)];
     if (y === undefined) return;
@@ -56,7 +56,7 @@ export function SelectTaskStep() {
     requestAnimationFrame(() =>
       listRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true }),
     );
-  }, [isTasksPending, params.taskId, results.length]);
+  }, [isTasksPending, params.builderTaskId, results.length]);
 
   if (isTasksPending) return <TaskStepSkeleton />;
 
@@ -76,7 +76,7 @@ export function SelectTaskStep() {
             positionsRef.current[String(-1)] = event.nativeEvent.layout.y;
           }}
         >
-          <NeoCard className={params.taskId === -1 ? "border-primary bg-primary/10" : "bg-card"}>
+          <NeoCard className={params.builderTaskId === -1 ? "border-primary bg-primary/10" : "bg-card"}>
             <Text className="text-sm font-black text-foreground">Custom Task</Text>
             <Text className="text-xs text-muted-foreground">Create a one-off job with manual pricing.</Text>
           </NeoCard>
@@ -97,7 +97,7 @@ export function SelectTaskStep() {
         ) : null}
 
         {results.map((task) => {
-          const selected = params.taskId === task.id;
+          const selected = params.builderTaskId === task.id;
           return (
             <TouchableOpacity
               key={task.id}
