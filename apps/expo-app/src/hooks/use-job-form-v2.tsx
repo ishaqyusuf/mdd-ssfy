@@ -22,7 +22,7 @@ import {
   useState,
 } from "react";
 import { useWatch } from "react-hook-form";
-import { jobFormSchema } from "@community/schema";
+import { JobFormSchema, jobFormSchema } from "@community/schema";
 
 export interface JobFormV2Props {
   admin?: boolean;
@@ -501,16 +501,17 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
       if (requestTaskConfig) status = "In Progress";
 
       return {
+        adminMode: admin,
         unit: {
           id: params.unitId,
         },
         user: {
           id: resolvedUserId,
         },
-        builderTaskId: defaultValues.builderTaskId,
+        builderTaskId: defaultValues.builderTaskId!,
         //  ||
         // (params.taskId && params.taskId > 0 ? params.taskId : undefined),
-        modelInstallTaskId: params?.taskId,
+        modelInstallTaskIds: defaultValues.communityModelInstallTaskIds!,
         requestTaskConfig,
         job: {
           id: defaultJob.id || undefined,
@@ -534,7 +535,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
               values?.additionalCost ?? defaultMeta.additional_cost ?? null,
           },
         },
-      } as any;
+      } satisfies JobFormSchema;
     },
     [
       admin,

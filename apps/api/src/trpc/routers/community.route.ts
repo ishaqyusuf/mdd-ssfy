@@ -386,6 +386,9 @@ export const communityRouters = createTRPCRouter({
           isCustom: !!job?.isCustom || !taskId,
           status: (job?.status || "Assigned") as JobStatus,
         },
+        communityModelInstallTaskIds: Array.from(
+          new Set(jobTasks?.map((a) => a.modelTaskId!)?.filter(Boolean)),
+        ),
       };
     }),
   saveJobForm: publicProcedure.input(jobFormSchema).mutation(async (props) => {
@@ -543,16 +546,22 @@ export const communityRouters = createTRPCRouter({
       if (isCreatingJob) {
         const notification = new NotificationService(tasks, ctx);
 
-        if (input.requestTaskConfig)
-          await notification.channel.jobTaskConfigureRequest({
-            contractorId: job?.user?.id!,
-            modelName: job?.home?.modelName || "",
-            projectName: job?.project?.title || "",
-            builderName: job?.project?.builder?.name || "",
-            communityModelInstallCostId: input.modelInstallTaskId!,
-            builderTaskId: input.builderTaskId!,
-          });
-        else if (isContractorCreator)
+        if (input.requestTaskConfig) {
+          await Promise.all(
+            (input.modelInstallTaskIds || [])?.map(
+              async (communityModelInstallCostId) => {
+                return notification.channel.jobTaskConfigureRequest({
+                  contractorId: job?.user?.id!,
+                  modelName: job?.home?.modelName || "",
+                  projectName: job?.project?.title || "",
+                  builderName: job?.project?.builder?.name || "",
+                  communityModelInstallCostId,
+                  builderTaskId: input.builderTaskId!,
+                });
+              },
+            ),
+          );
+        } else if (isContractorCreator)
           await notification.channel.jobSubmitted({
             jobId: jobId!,
           });
