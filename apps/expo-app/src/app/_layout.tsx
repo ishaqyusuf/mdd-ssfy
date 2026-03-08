@@ -148,7 +148,7 @@ function RootLayoutNav() {
     colorScheme === "dark" ? NAV_THEME.dark : NAV_THEME.light;
   const rootClassName =
     colorScheme === "dark"
-      ? "darks flex-1 bg-background"
+      ? "dark flex-1 bg-background"
       : "flex-1 bg-background";
 
   useEffect(() => {

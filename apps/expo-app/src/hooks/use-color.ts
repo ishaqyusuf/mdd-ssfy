@@ -10,7 +10,8 @@ export function useColors() {
 }
 
 export function useColorScheme() {
-  const { colorScheme, setColorScheme, toggleColorScheme } = useNativeWindColorScheme();
+  const { colorScheme, setColorScheme, toggleColorScheme } =
+    useNativeWindColorScheme();
 
   const resolvedColorScheme: "light" | "dark" =
     colorScheme === "dark" ? "dark" : "light";
