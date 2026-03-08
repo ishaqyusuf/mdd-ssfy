@@ -512,8 +512,9 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
           id: resolvedUserId,
         },
         builderTaskId: defaultValues.builderTaskId!,
-        modelInstallTaskIds: defaultValues.communityModelInstallTaskIds!,
+        // modelInstallTaskIds: defaultValues.communityModelInstallTaskIds!,
         requestTaskConfig,
+        modelId: params.modelId!,
         job: {
           id: defaultJob.id || undefined,
           amount: total || 0,
@@ -586,6 +587,8 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
       });
       return;
     }
+    // console.log("Requesting task configuration with payload:", payload);
+    // return;
     saveJobForm(payload);
   }, [buildSaveJobFormPayload, saveJobForm]);
 

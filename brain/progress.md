@@ -1,0 +1,9 @@
+# Progress
+
+## 2026-03-08
+
+- Initialized `/brain` project management system.
+- Captured baseline architecture, roadmap, and task backlog.
+- Established disciplined NOW/NEXT/LATER structure with NOW capped to 3 tasks.
+- Added feature-focused Expo jobs-flow task plan (notifications, installer config deep-link, settings, submission notifications, gesture fix, role/status action matrix).
+- Added Expo sales and dispatch module task plan (delivery form + API + notification, infinite sales list, quotes feature, packing update submit flow).

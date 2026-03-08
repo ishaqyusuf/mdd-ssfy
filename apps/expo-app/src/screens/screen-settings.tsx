@@ -22,6 +22,15 @@ const sectionRouteMap = {
   dispatch: "/(drivers)/dispatch",
   installer: "/(installers)",
   driver: "/(drivers)",
+  sales: "/(sales)",
+} as const;
+
+const sectionIconMap = {
+  jobs: "Briefcase",
+  dispatch: "Route",
+  installer: "Wrench",
+  driver: "Truck",
+  sales: "LayoutDashboard",
 } as const;
 
 export default function SettingsExampleScreen() {
@@ -68,9 +77,29 @@ export default function SettingsExampleScreen() {
   };
   // get expo build version
   const expoVersion = config.version;
-  const shouldShowSections = auth.sections.length > 1;
+  const uiSections = [
+    ...auth.sections,
+    ...(auth.isAdmin
+      ? [
+          {
+            key: "sales" as const,
+            label: "Sales Dashboard",
+            isJobs: false,
+            isInstaller: false,
+            isDispatch: false,
+            isDriver: false,
+          },
+        ]
+      : []),
+  ];
+  const shouldShowSections = uiSections.length > 1;
 
-  const onSelectSection = (section: (typeof auth.sections)[number]) => {
+  const onSelectSection = (section: (typeof uiSections)[number]) => {
+    if (section.key === "sales") {
+      router.replace(sectionRouteMap.sales as any);
+      return;
+    }
+
     auth.setCurrentSection({
       isJobs: !!section.isJobs,
       isInstaller: !!section.isInstaller,
@@ -159,38 +188,37 @@ export default function SettingsExampleScreen() {
           )}
           {!shouldShowSections || (
             <Section title="Sections">
-              {auth.sections.map((section, index) => {
+              {uiSections.map((section, index) => {
                 const isActive = [
                   section.isJobs && auth.currentSection?.isJobs,
                   section.isInstaller && auth.currentSection?.isInstaller,
                   section.isDispatch && auth.currentSection?.isDispatch,
                   section.isDriver && auth.currentSection?.isDriver,
                 ].some(Boolean);
-                const key = section.isJobs
-                  ? "jobs"
-                  : section.isDispatch
-                    ? "dispatch"
-                    : section.isInstaller
-                      ? "installer"
-                      : "driver";
-                const iconMap = {
-                  jobs: "Briefcase",
-                  dispatch: "Route",
-                  installer: "Wrench",
-                  driver: "Truck",
-                } as const;
+                const isSales = section.key === "sales";
+                const key = isSales
+                  ? "sales"
+                  : section.isJobs
+                    ? "jobs"
+                    : section.isDispatch
+                      ? "dispatch"
+                      : section.isInstaller
+                        ? "installer"
+                        : "driver";
 
                 return (
                   <SettingsItem
                     key={section.key}
-                    icon={iconMap[key]}
+                    icon={sectionIconMap[key]}
                     label={section.label}
                     subLabel={
-                      isActive
+                      isSales
+                        ? "Open sales dashboard"
+                        : isActive
                         ? "Current active section"
                         : "Switch to this section"
                     }
-                    isLast={index === auth.sections.length - 1}
+                    isLast={index === uiSections.length - 1}
                     onPress={() => onSelectSection(section)}
                     rightElement={
                       isActive ? (
@@ -212,24 +240,6 @@ export default function SettingsExampleScreen() {
               })}
             </Section>
           )}
-          {auth.isAdmin ? (
-            <Section title="Business Tools">
-              <SettingsItem
-                icon="LayoutDashboard"
-                label="Sales Dashboard"
-                subLabel="Manage orders and deliveries"
-                isLast
-                onPress={() => router.push("/(sales)" as any)}
-                rightElement={
-                  <Icon
-                    name="ChevronRight"
-                    className="text-muted-foreground"
-                    size={20}
-                  />
-                }
-              />
-            </Section>
-          ) : null}
           <Section title="Appearance">
             <SettingsItem
               icon="Settings"

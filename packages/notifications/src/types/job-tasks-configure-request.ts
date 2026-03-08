@@ -16,7 +16,8 @@ export const jobTaskConfigureRequest: NotificationHandler = {
       modelName: data.modelName,
       projectName: data.projectName,
       builderName: data.builderName,
-      communityModelInstallCostId: data.communityModelInstallCostId,
+      // communityModelInstallCostId: data.communityModelInstallCostId,
+      modelId: data.modelId,
       builderTaskId: data.builderTaskId,
     };
 
@@ -42,8 +43,9 @@ export const jobTaskConfigureRequest: NotificationHandler = {
         modelName: data.modelName,
         projectName: data.projectName,
         builderName: data.builderName,
-        communityModelInstallCostId: data.communityModelInstallCostId,
+        // communityModelInstallCostId: data.communityModelInstallCostId,
         builderTaskId: data.builderTaskId,
+        modelId: data.modelId,
       },
     };
   },

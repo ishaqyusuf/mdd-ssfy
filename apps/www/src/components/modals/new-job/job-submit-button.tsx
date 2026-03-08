@@ -61,8 +61,7 @@ export function JobSubmitButton({
                     if (markAsComplete) values.job.status = "Submitted";
                     if (values.requestTaskConfig)
                         values.job.status = "In Progress";
-
-                    return;
+                    // return;
                     saveJob(values as any);
                     // Here you would typically call a mutation to save the job details
                     // For example: trpc.community.updateJob.mutate(values)

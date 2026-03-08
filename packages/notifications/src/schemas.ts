@@ -7,51 +7,51 @@ const channel = z.enum(channelNames);
 const source = z.enum(["system", "user"]).default("system");
 const priority = z.number().int().min(1).max(10).default(5);
 const baseActivityTags = z.object({
-	type: channel,
-	source,
-	priority,
-	// sendEmail: z.boolean().optional().default(false),
-	// authorContactId: z.number().optional(),
-	// authorContactName: z.string().optional(),
+  type: channel,
+  source,
+  priority,
+  // sendEmail: z.boolean().optional().default(false),
+  // authorContactId: z.number().optional(),
+  // authorContactName: z.string().optional(),
 });
 const activitiesTags = z.object({
-	id: z.number(),
-	slug: z.string(),
+  id: z.number(),
+  slug: z.string(),
 });
 
 export const createActivitySchema = z.object({
-	// teamId: z.string().uuid(),
-	subject: z.string(),
-	headline: z.string().optional(),
-	note: z.string().optional(),
-	authorId: z.number().optional(),
-	// sendEmail: z.boolean().optional().default(false),
-	// userIds: z.array(z.number()).optional().nullable(), ///number().optional(),
-	// recipientId: z.number().optional(),
-	// userIdType: z.enum(["user", "customer"]).optional().default("user"),
-	type: channel,
-	source,
-	// priority,
-	// status: z.enum([]),
-	// groupId: z.string().uuid().optional(), // Links related activities together
-	tags: z.record(z.string(), z.any()), // Flexible - any JSON object
+  // teamId: z.string().uuid(),
+  subject: z.string(),
+  headline: z.string().optional(),
+  note: z.string().optional(),
+  authorId: z.number().optional(),
+  // sendEmail: z.boolean().optional().default(false),
+  // userIds: z.array(z.number()).optional().nullable(), ///number().optional(),
+  // recipientId: z.number().optional(),
+  // userIdType: z.enum(["user", "customer"]).optional().default("user"),
+  type: channel,
+  source,
+  // priority,
+  // status: z.enum([]),
+  // groupId: z.string().uuid().optional(), // Links related activities together
+  tags: z.record(z.string(), z.any()), // Flexible - any JSON object
 });
 export const actityTagsSchema = z.object({
-	type: channel,
-	source,
-	priority,
+  type: channel,
+  source,
+  priority,
 });
 export type CreateActivityInput = z.infer<typeof createActivitySchema>;
 
 export const userSchema = z.object({
-	id: z.number(),
-	name: z.string(),
-	email: z.email().optional().nullable,
-	phoneNo: z.string().optional(),
-	// locale: z.string().optional(),
-	// avatar_url: z.string().optional(),
-	// team_id: z.string().uuid(),
-	// role: z.enum(["owner", "member"]).optional(),
+  id: z.number(),
+  name: z.string(),
+  email: z.email().optional().nullable,
+  phoneNo: z.string().optional(),
+  // locale: z.string().optional(),
+  // avatar_url: z.string().optional(),
+  // team_id: z.string().uuid(),
+  // role: z.enum(["owner", "member"]).optional(),
 });
 
 // export const transactionSchema = z.object({
@@ -74,463 +74,467 @@ export const userSchema = z.object({
 // });
 
 export const salesCheckoutSuccessSchema = z.object({
-	orderId: z.string(),
-	users: z.array(userSchema),
+  orderId: z.string(),
+  users: z.array(userSchema),
 
-	// totalCount: z.number(),
-	// inboxType: z.enum(["email", "sync", "slack", "upload"]),
-	// source: z.enum(["user", "system"]).default("system"),
-	// provider: z.string().optional(),
+  // totalCount: z.number(),
+  // inboxType: z.enum(["email", "sync", "slack", "upload"]),
+  // source: z.enum(["user", "system"]).default("system"),
+  // provider: z.string().optional(),
 });
 
 export type SalesCheckoutSuccessInput = z.infer<
-	typeof salesCheckoutSuccessSchema
+  typeof salesCheckoutSuccessSchema
 >;
 
 export const jobActivitySchema = z.object({
-	users: z.array(userSchema).optional().nullable(),
-	jobId: z.number(),
-	activityType: z.enum([
-		"job_created",
-		"job_assigned",
-		"job_submitted",
-		"job_approved",
-		"job_rejected",
-		"job_review_requested",
-		"job_deleted",
-		// "job_updated",
-		"job_reassigned",
-		"job_status_updated",
-		"note_added",
-	]),
-	author: z.string().optional().nullable(),
-	comment: z.string().optional(),
+  users: z.array(userSchema).optional().nullable(),
+  jobId: z.number(),
+  activityType: z.enum([
+    "job_created",
+    "job_assigned",
+    "job_submitted",
+    "job_approved",
+    "job_rejected",
+    "job_review_requested",
+    "job_deleted",
+    // "job_updated",
+    "job_reassigned",
+    "job_status_updated",
+    "note_added",
+  ]),
+  author: z.string().optional().nullable(),
+  comment: z.string().optional(),
 });
 export type JobActivityInput = z.infer<typeof jobActivitySchema>;
 
 export const jobAssignedSchema = z.object({
-	// contacts: z.array(userSchema).optional().nullable(),
-	jobId: z.number(),
-	// authorId: z.number(),
-	assignedToId: z.number(),
-	assignedToName: z.string().optional(),
-	// comment: z.string().optional(),
-	// author: z.string().optional().nullable(),
+  // contacts: z.array(userSchema).optional().nullable(),
+  jobId: z.number(),
+  // authorId: z.number(),
+  assignedToId: z.number(),
+  assignedToName: z.string().optional(),
+  // comment: z.string().optional(),
+  // author: z.string().optional().nullable(),
 });
 export type JobAssignedInput = z.infer<typeof jobAssignedSchema>;
 export const jobAssignedTags = activitiesTags
-	.pick({
-		id: true,
-	})
-	.extend(baseActivityTags.shape)
-	.extend(
-		z.object({
-			assignedToId: z.number(),
-			assignedToName: z.string().optional(),
-		}).shape,
-	);
+  .pick({
+    id: true,
+  })
+  .extend(baseActivityTags.shape)
+  .extend(
+    z.object({
+      assignedToId: z.number(),
+      assignedToName: z.string().optional(),
+    }).shape,
+  );
 export type JobAssignedTags = z.infer<typeof jobAssignedTags>;
 export const jobSubmittedSchema = z.object({
-	jobId: z.number(),
-	// submittedById: z.number().optional(),
-	// submittedByName: z.string().optional(),
+  jobId: z.number(),
+  // submittedById: z.number().optional(),
+  // submittedByName: z.string().optional(),
 });
 export const jobSubmittedTags = actityTagsSchema.extend({
-	jobId: z.number(),
+  jobId: z.number(),
 });
 export type JobSubmittedInput = z.infer<typeof jobSubmittedSchema>;
 export type JobSubmittedTags = z.infer<typeof jobSubmittedTags>;
 
 export const jobReviewRequestedSchema = z.object({
-	jobId: z.number(),
-	requestedById: z.number().optional(),
-	requestedByName: z.string().optional(),
+  jobId: z.number(),
+  requestedById: z.number().optional(),
+  requestedByName: z.string().optional(),
 });
 export type JobReviewRequestedInput = z.infer<typeof jobReviewRequestedSchema>;
 export const jobReviewRequestedTags = actityTagsSchema.extend({
-	jobId: z.number(),
-	requestedById: z.number().optional(),
-	requestedByName: z.string().optional(),
+  jobId: z.number(),
+  requestedById: z.number().optional(),
+  requestedByName: z.string().optional(),
 });
 export type JobReviewRequestedTags = z.infer<typeof jobReviewRequestedTags>;
 export const jobApprovedSchema = z.object({
-	jobId: z.number(),
-	assignedToId: z.number(),
-	// approvedById: z.number().optional(),
-	// approvedByName: z.string().optional(),
-	note: z.string().optional(),
+  jobId: z.number(),
+  assignedToId: z.number(),
+  // approvedById: z.number().optional(),
+  // approvedByName: z.string().optional(),
+  note: z.string().optional(),
 });
 export const jobApprovedTags = actityTagsSchema.extend({
-	jobId: z.number(),
+  jobId: z.number(),
 });
 export type JobApprovedTags = z.infer<typeof jobApprovedTags>;
 export type JobApprovedInput = z.infer<typeof jobApprovedSchema>;
 export const jobRejectedSchema = z.object({
-	jobId: z.number(),
-	assignedToId: z.number(),
-	// rejectedById: z.number().optional(),
-	// rejectedByName: z.string().optional(),
-	note: z.string().optional(),
+  jobId: z.number(),
+  assignedToId: z.number(),
+  // rejectedById: z.number().optional(),
+  // rejectedByName: z.string().optional(),
+  note: z.string().optional(),
 });
 export type JobRejectedInput = z.infer<typeof jobRejectedSchema>;
 export const jobRejectedTags = actityTagsSchema.extend({
-	jobId: z.number(),
-	assignedToId: z.number(),
-	note: z.string().optional(),
+  jobId: z.number(),
+  assignedToId: z.number(),
+  note: z.string().optional(),
 });
 export type JobRejectedTags = z.infer<typeof jobRejectedTags>;
 export const jobTaskConfigureRequestSchema = z.object({
-	contractorId: z.number(),
-	modelName: z.string(),
-	projectName: z.string(),
-	builderName: z.string(),
-	communityModelInstallCostId: z.number(),
-	builderTaskId: z.number(),
+  contractorId: z.number(),
+  modelName: z.string(),
+  projectName: z.string(),
+  builderName: z.string(),
+  // communityModelInstallCostId: z.number(),
+  builderTaskId: z.number(),
+  modelId: z.number(),
 });
 export type JobTaskConfigureRequestInput = z.infer<
-	typeof jobTaskConfigureRequestSchema
+  typeof jobTaskConfigureRequestSchema
 >;
 export const jobTaskConfigureRequestTags = actityTagsSchema.extend({
-	contractorId: z.coerce.number(),
-	modelName: z.string(),
-	projectName: z.string(),
-	builderName: z.string(),
-	communityModelInstallCostId: z.coerce.number(),
-	builderTaskId: z.coerce.number(),
+  contractorId: z.coerce.number(),
+  modelName: z.string(),
+  projectName: z.string(),
+  builderName: z.string(),
+  //   communityModelInstallCostId: z.coerce.number(),
+  builderTaskId: z.coerce.number(),
+  modelId: z.number(),
 });
 export type JobTaskConfigureRequestTags = z.infer<
-	typeof jobTaskConfigureRequestTags
+  typeof jobTaskConfigureRequestTags
 >;
 // Notification types map - all available notification types with their data structures
 
 export type NotificationTypes = {
-	// sales_checkout_success: SalesCheckoutSuccessInput;
-	// job_activity: JobActivityInput;
-	job_assigned: JobAssignedInput;
-	job_submitted: JobSubmittedInput;
-	job_review_requested: JobReviewRequestedInput;
-	job_approved: JobApprovedInput;
-	job_rejected: JobRejectedInput;
-	job_task_configure_request: JobTaskConfigureRequestInput;
-	sales_dispatch_assigned: SalesDispatchAssignedInput;
-	sales_dispatch_queued: SalesDispatchQueuedInput;
-	sales_dispatch_cancelled: SalesDispatchCancelledInput;
-	sales_dispatch_completed: SalesDispatchCompletedInput;
-	sales_dispatch_in_progress: SalesDispatchInProgressInput;
-	sales_dispatch_date_updated: SalesDispatchDateUpdatedInput;
-	sales_dispatch_unassigned: SalesDispatchUnassignedInput;
-	sales_email_reminder: SalesEmailReminderInput;
-	sales_request_packing: SalesRequestPackingInput;
-	dispatch_packing_delay: DispatchPackingDelayInput;
+  // sales_checkout_success: SalesCheckoutSuccessInput;
+  // job_activity: JobActivityInput;
+  job_assigned: JobAssignedInput;
+  job_submitted: JobSubmittedInput;
+  job_review_requested: JobReviewRequestedInput;
+  job_approved: JobApprovedInput;
+  job_rejected: JobRejectedInput;
+  job_task_configure_request: JobTaskConfigureRequestInput;
+  sales_dispatch_assigned: SalesDispatchAssignedInput;
+  sales_dispatch_queued: SalesDispatchQueuedInput;
+  sales_dispatch_cancelled: SalesDispatchCancelledInput;
+  sales_dispatch_completed: SalesDispatchCompletedInput;
+  sales_dispatch_in_progress: SalesDispatchInProgressInput;
+  sales_dispatch_date_updated: SalesDispatchDateUpdatedInput;
+  sales_dispatch_unassigned: SalesDispatchUnassignedInput;
+  sales_email_reminder: SalesEmailReminderInput;
+  sales_request_packing: SalesRequestPackingInput;
+  dispatch_packing_delay: DispatchPackingDelayInput;
 };
 
 export const getNotificationChannelsSchema = z
-	.object({
-		id: z.number().optional().nullable(),
-		name: z.string().optional().nullable(),
-	})
-	.extend(paginationSchema.shape);
+  .object({
+    id: z.number().optional().nullable(),
+    name: z.string().optional().nullable(),
+  })
+  .extend(paginationSchema.shape);
 export type GetNotificationChannelsSchema = z.infer<
-	typeof getNotificationChannelsSchema
+  typeof getNotificationChannelsSchema
 >;
 export const salesDispatchAssignedSchema = z.object({
-	// salesId: z.number(),
-	orderNo: z.string().optional(),
-	dispatchId: z.number(),
-	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
-	dueDate: z.date().optional(),
-	driverId: z.number().optional(),
-	// status: z.enum(["queue", "assigned", "en_route", "delivered"]).optional(),
+  // salesId: z.number(),
+  orderNo: z.string().optional(),
+  dispatchId: z.number(),
+  deliveryMode: z.enum(["pickup", "delivery"]).optional(),
+  dueDate: z.date().optional(),
+  driverId: z.number().optional(),
+  // status: z.enum(["queue", "assigned", "en_route", "delivered"]).optional(),
 });
 export type SalesDispatchAssignedInput = z.infer<
-	typeof salesDispatchAssignedSchema
+  typeof salesDispatchAssignedSchema
 >;
 export const salesDispatchAssignedTags = actityTagsSchema.extend({
-	dispatchId: z.number(),
-	orderNo: z.string().optional(),
-	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
-	dueDate: z.date().optional(),
-	driverId: z.number().optional(),
+  dispatchId: z.number(),
+  orderNo: z.string().optional(),
+  deliveryMode: z.enum(["pickup", "delivery"]).optional(),
+  dueDate: z.date().optional(),
+  driverId: z.number().optional(),
 });
 export type SalesDispatchAssignedTags = z.infer<
-	typeof salesDispatchAssignedTags
+  typeof salesDispatchAssignedTags
 >;
 export const salesDispatchQueuedSchema = z.object({
-	orderNo: z.string().optional(),
-	dispatchId: z.number(),
-	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
-	dueDate: z.date().optional(),
-	driverId: z.number().optional(),
+  orderNo: z.string().optional(),
+  dispatchId: z.number(),
+  deliveryMode: z.enum(["pickup", "delivery"]).optional(),
+  dueDate: z.date().optional(),
+  driverId: z.number().optional(),
 });
-export type SalesDispatchQueuedInput = z.infer<typeof salesDispatchQueuedSchema>;
+export type SalesDispatchQueuedInput = z.infer<
+  typeof salesDispatchQueuedSchema
+>;
 export const salesDispatchQueuedTags = actityTagsSchema.extend({
-	dispatchId: z.number(),
-	orderNo: z.string().optional(),
-	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
-	dueDate: z.date().optional(),
-	driverId: z.number().optional(),
+  dispatchId: z.number(),
+  orderNo: z.string().optional(),
+  deliveryMode: z.enum(["pickup", "delivery"]).optional(),
+  dueDate: z.date().optional(),
+  driverId: z.number().optional(),
 });
 export type SalesDispatchQueuedTags = z.infer<typeof salesDispatchQueuedTags>;
 export const salesDispatchCancelledSchema = z.object({
-	orderNo: z.string().optional(),
-	dispatchId: z.number(),
-	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
-	dueDate: z.date().optional(),
-	driverId: z.number().optional(),
+  orderNo: z.string().optional(),
+  dispatchId: z.number(),
+  deliveryMode: z.enum(["pickup", "delivery"]).optional(),
+  dueDate: z.date().optional(),
+  driverId: z.number().optional(),
 });
 export type SalesDispatchCancelledInput = z.infer<
-	typeof salesDispatchCancelledSchema
+  typeof salesDispatchCancelledSchema
 >;
 export const salesDispatchCancelledTags = actityTagsSchema.extend({
-	dispatchId: z.number(),
-	orderNo: z.string().optional(),
-	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
-	dueDate: z.date().optional(),
-	driverId: z.number().optional(),
+  dispatchId: z.number(),
+  orderNo: z.string().optional(),
+  deliveryMode: z.enum(["pickup", "delivery"]).optional(),
+  dueDate: z.date().optional(),
+  driverId: z.number().optional(),
 });
 export type SalesDispatchCancelledTags = z.infer<
-	typeof salesDispatchCancelledTags
+  typeof salesDispatchCancelledTags
 >;
 export const salesDispatchCompletedSchema = z.object({
-	orderNo: z.string().optional(),
-	dispatchId: z.number(),
-	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
-	dueDate: z.date().optional(),
-	driverId: z.number().optional(),
+  orderNo: z.string().optional(),
+  dispatchId: z.number(),
+  deliveryMode: z.enum(["pickup", "delivery"]).optional(),
+  dueDate: z.date().optional(),
+  driverId: z.number().optional(),
 });
 export type SalesDispatchCompletedInput = z.infer<
-	typeof salesDispatchCompletedSchema
+  typeof salesDispatchCompletedSchema
 >;
 export const salesDispatchCompletedTags = actityTagsSchema.extend({
-	dispatchId: z.number(),
-	orderNo: z.string().optional(),
-	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
-	dueDate: z.date().optional(),
-	driverId: z.number().optional(),
+  dispatchId: z.number(),
+  orderNo: z.string().optional(),
+  deliveryMode: z.enum(["pickup", "delivery"]).optional(),
+  dueDate: z.date().optional(),
+  driverId: z.number().optional(),
 });
 export type SalesDispatchCompletedTags = z.infer<
-	typeof salesDispatchCompletedTags
+  typeof salesDispatchCompletedTags
 >;
 export const salesDispatchInProgressSchema = z.object({
-	orderNo: z.string().optional(),
-	dispatchId: z.number(),
-	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
-	dueDate: z.date().optional(),
-	driverId: z.number().optional(),
+  orderNo: z.string().optional(),
+  dispatchId: z.number(),
+  deliveryMode: z.enum(["pickup", "delivery"]).optional(),
+  dueDate: z.date().optional(),
+  driverId: z.number().optional(),
 });
 export type SalesDispatchInProgressInput = z.infer<
-	typeof salesDispatchInProgressSchema
+  typeof salesDispatchInProgressSchema
 >;
 export const salesDispatchInProgressTags = actityTagsSchema.extend({
-	dispatchId: z.number(),
-	orderNo: z.string().optional(),
-	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
-	dueDate: z.date().optional(),
-	driverId: z.number().optional(),
+  dispatchId: z.number(),
+  orderNo: z.string().optional(),
+  deliveryMode: z.enum(["pickup", "delivery"]).optional(),
+  dueDate: z.date().optional(),
+  driverId: z.number().optional(),
 });
 export type SalesDispatchInProgressTags = z.infer<
-	typeof salesDispatchInProgressTags
+  typeof salesDispatchInProgressTags
 >;
 export const salesDispatchUnassignedSchema = z.object({
-	orderNo: z.string().optional(),
-	dispatchId: z.number(),
-	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
-	dueDate: z.date().optional(),
-	driverId: z.number().optional(),
+  orderNo: z.string().optional(),
+  dispatchId: z.number(),
+  deliveryMode: z.enum(["pickup", "delivery"]).optional(),
+  dueDate: z.date().optional(),
+  driverId: z.number().optional(),
 });
 export type SalesDispatchUnassignedInput = z.infer<
-	typeof salesDispatchUnassignedSchema
+  typeof salesDispatchUnassignedSchema
 >;
 export const salesDispatchUnassignedTags = actityTagsSchema.extend({
-	dispatchId: z.number(),
-	orderNo: z.string().optional(),
-	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
-	dueDate: z.date().optional(),
-	driverId: z.number().optional(),
+  dispatchId: z.number(),
+  orderNo: z.string().optional(),
+  deliveryMode: z.enum(["pickup", "delivery"]).optional(),
+  dueDate: z.date().optional(),
+  driverId: z.number().optional(),
 });
 export type SalesDispatchUnassignedTags = z.infer<
-	typeof salesDispatchUnassignedTags
+  typeof salesDispatchUnassignedTags
 >;
 export const salesDispatchDateUpdatedSchema = z.object({
-	orderNo: z.string().optional(),
-	dispatchId: z.number(),
-	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
-	dueDate: z.date().optional(),
-	driverId: z.number().optional(),
+  orderNo: z.string().optional(),
+  dispatchId: z.number(),
+  deliveryMode: z.enum(["pickup", "delivery"]).optional(),
+  dueDate: z.date().optional(),
+  driverId: z.number().optional(),
 });
 export type SalesDispatchDateUpdatedInput = z.infer<
-	typeof salesDispatchDateUpdatedSchema
+  typeof salesDispatchDateUpdatedSchema
 >;
 export const salesDispatchDateUpdatedTags = actityTagsSchema.extend({
-	dispatchId: z.number(),
-	orderNo: z.string().optional(),
-	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
-	dueDate: z.date().optional(),
-	driverId: z.number().optional(),
+  dispatchId: z.number(),
+  orderNo: z.string().optional(),
+  deliveryMode: z.enum(["pickup", "delivery"]).optional(),
+  dueDate: z.date().optional(),
+  driverId: z.number().optional(),
 });
 export type SalesDispatchDateUpdatedTags = z.infer<
-	typeof salesDispatchDateUpdatedTags
+  typeof salesDispatchDateUpdatedTags
 >;
 export const salesEmailReminderSchema = z.object({
-	type: z.enum(["order", "quote"]),
-	customerEmail: z.string().email(),
-	customerName: z.string(),
-	salesRep: z.string(),
-	salesRepEmail: z.string().email(),
-	paymentLink: z.string().optional().nullable(),
-	pdfLink: z.string().optional().nullable(),
-	sales: z.array(
-		z.object({
-			orderId: z.string(),
-			po: z.string().optional().nullable(),
-			date: z.union([z.date(), z.string()]),
-			total: z.number(),
-			due: z.number(),
-		}),
-	),
+  type: z.enum(["order", "quote"]),
+  customerEmail: z.string().email(),
+  customerName: z.string(),
+  salesRep: z.string(),
+  salesRepEmail: z.string().email(),
+  paymentLink: z.string().optional().nullable(),
+  pdfLink: z.string().optional().nullable(),
+  sales: z.array(
+    z.object({
+      orderId: z.string(),
+      po: z.string().optional().nullable(),
+      date: z.union([z.date(), z.string()]),
+      total: z.number(),
+      due: z.number(),
+    }),
+  ),
 });
 export type SalesEmailReminderInput = z.infer<typeof salesEmailReminderSchema>;
 export const salesEmailReminderTags = actityTagsSchema.extend({
-	customerEmail: z.string().email(),
-	customerName: z.string(),
-	salesCount: z.number(),
-	reminderType: z.enum(["order", "quote"]),
-	salesNo: z.array(z.string()).optional(),
+  customerEmail: z.string().email(),
+  customerName: z.string(),
+  salesCount: z.number(),
+  reminderType: z.enum(["order", "quote"]),
+  salesNo: z.array(z.string()).optional(),
 });
 export type SalesEmailReminderTags = z.infer<typeof salesEmailReminderTags>;
 export const salesRequestPackingSchema = z.object({
-	orderNo: z.string(),
-	dispatchId: z.number(),
-	packItems: updateSalesControlSchema.shape.packItems,
+  orderNo: z.string(),
+  dispatchId: z.number(),
+  packItems: updateSalesControlSchema.shape.packItems,
 });
 export type SalesRequestPackingInput = z.infer<
-	typeof salesRequestPackingSchema
+  typeof salesRequestPackingSchema
 >;
 export const salesRequestPackingTags = actityTagsSchema.extend({
-	orderNo: z.string(),
-	dispatchId: z.number(),
-	packItems: updateSalesControlSchema.shape.packItems,
+  orderNo: z.string(),
+  dispatchId: z.number(),
+  packItems: updateSalesControlSchema.shape.packItems,
 });
 export type SalesRequestPackingTags = z.infer<typeof salesRequestPackingTags>;
 export const dispatchPackingDelaySchema = z.object({
-	orderNo: z.string(),
-	dispatchId: z.number(),
-	salesItemId: z.number().optional().nullable(),
-	itemUid: z.string(),
-	itemName: z.string(),
-	pendingQty: z.object({
-		qty: z.number().optional(),
-		lh: z.number().optional(),
-		rh: z.number().optional(),
-	}),
-	note: z.string().optional(),
+  orderNo: z.string(),
+  dispatchId: z.number(),
+  salesItemId: z.number().optional().nullable(),
+  itemUid: z.string(),
+  itemName: z.string(),
+  pendingQty: z.object({
+    qty: z.number().optional(),
+    lh: z.number().optional(),
+    rh: z.number().optional(),
+  }),
+  note: z.string().optional(),
 });
 export type DispatchPackingDelayInput = z.infer<
-	typeof dispatchPackingDelaySchema
+  typeof dispatchPackingDelaySchema
 >;
 export const dispatchPackingDelayTags = actityTagsSchema.extend({
-	orderNo: z.string(),
-	dispatchId: z.number(),
-	salesItemId: z.number().optional().nullable(),
-	itemUid: z.string(),
-	itemName: z.string(),
-	pendingQty: z.object({
-		qty: z.number().optional(),
-		lh: z.number().optional(),
-		rh: z.number().optional(),
-	}),
-	note: z.string().optional(),
+  orderNo: z.string(),
+  dispatchId: z.number(),
+  salesItemId: z.number().optional().nullable(),
+  itemUid: z.string(),
+  itemName: z.string(),
+  pendingQty: z.object({
+    qty: z.number().optional(),
+    lh: z.number().optional(),
+    rh: z.number().optional(),
+  }),
+  note: z.string().optional(),
 });
 export type DispatchPackingDelayTags = z.infer<typeof dispatchPackingDelayTags>;
 export const baseNotificationJobSchema = z.object({
-	author: z.object({
-		id: z.number(),
-		role: z.enum(["customer", "employee"]).default("employee"),
-	}),
-	recipients: z
-		.array(
-			z.object({
-				ids: z.array(z.number()),
-				role: z.enum(["customer", "employee"]).optional().default("employee"),
-			}),
-		)
-		.optional()
-		.nullable(),
-	// channel: z.enum(channelNames).default('job_approved'),
-	// channel: z.enum(["a"] as const),
-	payload: z.record(z.string(), z.any()),
+  author: z.object({
+    id: z.number(),
+    role: z.enum(["customer", "employee"]).default("employee"),
+  }),
+  recipients: z
+    .array(
+      z.object({
+        ids: z.array(z.number()),
+        role: z.enum(["customer", "employee"]).optional().default("employee"),
+      }),
+    )
+    .optional()
+    .nullable(),
+  // channel: z.enum(channelNames).default('job_approved'),
+  // channel: z.enum(["a"] as const),
+  payload: z.record(z.string(), z.any()),
 });
 
 const _channel = (channel: ChannelName) => channel as string;
 //z.literal(channel);
 export const notificationJobSchema = z.discriminatedUnion("channel", [
-	baseNotificationJobSchema.extend({
-		channel: z.literal("job_assigned"),
-		payload: jobAssignedSchema,
-	}),
-	baseNotificationJobSchema.extend({
-		channel: z.literal("job_submitted"),
-		payload: jobSubmittedSchema,
-	}),
-	baseNotificationJobSchema.extend({
-		channel: z.literal("job_review_requested"),
-		payload: jobReviewRequestedSchema,
-	}),
-	baseNotificationJobSchema.extend({
-		channel: z.literal("job_approved"),
-		payload: jobApprovedSchema,
-	}),
-	baseNotificationJobSchema.extend({
-		channel: z.literal("job_rejected"),
-		payload: jobRejectedSchema,
-	}),
-	baseNotificationJobSchema.extend({
-		channel: z.literal("job_task_configure_request"),
-		payload: jobTaskConfigureRequestSchema,
-	}),
-	baseNotificationJobSchema.extend({
-		channel: z.literal("sales_dispatch_assigned"),
-		payload: salesDispatchAssignedSchema,
-	}),
-	baseNotificationJobSchema.extend({
-		channel: z.literal("sales_dispatch_queued"),
-		payload: salesDispatchQueuedSchema,
-	}),
-	baseNotificationJobSchema.extend({
-		channel: z.literal("sales_dispatch_cancelled"),
-		payload: salesDispatchCancelledSchema,
-	}),
-	baseNotificationJobSchema.extend({
-		channel: z.literal("sales_dispatch_completed"),
-		payload: salesDispatchCompletedSchema,
-	}),
-	baseNotificationJobSchema.extend({
-		channel: z.literal("sales_dispatch_in_progress"),
-		payload: salesDispatchInProgressSchema,
-	}),
-	baseNotificationJobSchema.extend({
-		channel: z.literal("sales_dispatch_unassigned"),
-		payload: salesDispatchUnassignedSchema,
-	}),
-	baseNotificationJobSchema.extend({
-		channel: z.literal("sales_dispatch_date_updated"),
-		payload: salesDispatchDateUpdatedSchema,
-	}),
-	baseNotificationJobSchema.extend({
-		channel: z.literal("sales_email_reminder"),
-		payload: salesEmailReminderSchema,
-	}),
-	baseNotificationJobSchema.extend({
-		channel: z.literal("sales_dispatch_created"),
-		payload: salesDispatchAssignedSchema,
-	}),
-	baseNotificationJobSchema.extend({
-		channel: z.literal("sales_request_packing"),
-		payload: salesRequestPackingSchema,
-	}),
-	baseNotificationJobSchema.extend({
-		channel: z.literal("dispatch_packing_delay"),
-		payload: dispatchPackingDelaySchema,
-	}),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("job_assigned"),
+    payload: jobAssignedSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("job_submitted"),
+    payload: jobSubmittedSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("job_review_requested"),
+    payload: jobReviewRequestedSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("job_approved"),
+    payload: jobApprovedSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("job_rejected"),
+    payload: jobRejectedSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("job_task_configure_request"),
+    payload: jobTaskConfigureRequestSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("sales_dispatch_assigned"),
+    payload: salesDispatchAssignedSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("sales_dispatch_queued"),
+    payload: salesDispatchQueuedSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("sales_dispatch_cancelled"),
+    payload: salesDispatchCancelledSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("sales_dispatch_completed"),
+    payload: salesDispatchCompletedSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("sales_dispatch_in_progress"),
+    payload: salesDispatchInProgressSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("sales_dispatch_unassigned"),
+    payload: salesDispatchUnassignedSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("sales_dispatch_date_updated"),
+    payload: salesDispatchDateUpdatedSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("sales_email_reminder"),
+    payload: salesEmailReminderSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("sales_dispatch_created"),
+    payload: salesDispatchAssignedSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("sales_request_packing"),
+    payload: salesRequestPackingSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("dispatch_packing_delay"),
+    payload: dispatchPackingDelaySchema,
+  }),
 ]);
 export type NotificationJobInput = z.infer<typeof notificationJobSchema>;
