@@ -1,15 +1,5 @@
-// import DashboardExampleScreen from "@/components/examples/admin-dashboard-example";
-// import DashboardScreen from "@/components/examples/screen-example-admin";
-// import ExampleAdmin0 from "@/components/examples/screen-example-admin0";
-import { JobsAdminHome } from "@/screens/jobs-admin-home";
+import { Redirect } from "expo-router";
 
-export default function JobAdmin({}) {
-  return (
-    <>
-      {/* <DashboardScreen /> */}
-      {/* <DashboardExampleScreen /> */}
-      <JobsAdminHome />
-      {/* <ExampleAdmin0 /> */}
-    </>
-  );
+export default function JobAdminIndexRedirect() {
+  return <Redirect href="/(job)/dashboard" />;
 }

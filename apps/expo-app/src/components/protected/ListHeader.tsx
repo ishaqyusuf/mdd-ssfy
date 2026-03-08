@@ -80,7 +80,7 @@ export const ListHeader = () => {
       </View>
       <Button
         onPress={(e) => {
-          router.replace("/(installers)/dashboard");
+          router.replace("/(job)/dashboard");
         }}
       >
         <Text>Dashboard</Text>

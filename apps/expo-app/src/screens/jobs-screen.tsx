@@ -22,56 +22,6 @@ import { LegendList } from "@legendapp/list";
 import { JobsItem } from "@/components/jobs-item";
 import { SearchInput } from "@/components/search-input";
 import { HorizontalFilterPills } from "@/components/horizontal-filter-pills";
-import { LoadingSpinner } from "@/components/loading-spinner";
-/**
- * MOCK DATA
- */
-const FILTERS = ["All", "Pending Review", "Assigned", "Urgent", "Rejected"];
-
-const JOBS = [
-  {
-    id: "J-4022",
-    time: "2h ago",
-    title: "Office Renovation - Lvl 3",
-    status: "Pending",
-    statusType: "primary",
-    contractor: "Acme Electricians",
-    initials: "AE",
-    actions: "review",
-  },
-  {
-    id: "J-4021",
-    time: "5h ago",
-    title: "HVAC Repair - Main Hall",
-    status: "Assigned",
-    statusType: "info",
-    contractor: "John Doe",
-    initials: "JD",
-    actions: "view",
-  },
-  {
-    id: "J-3998",
-    time: "Just now",
-    title: "Water Leak - B2 Storage",
-    status: "Urgent",
-    statusType: "destructive",
-    subStatus: "Unassigned",
-    contractor: "Not assigned",
-    initials: null,
-    actions: "assign",
-    isUrgent: true,
-  },
-  {
-    id: "J-3999",
-    time: "Yesterday",
-    title: "Server Room A/C Maintenance",
-    status: "Pending",
-    statusType: "primary",
-    contractor: "Sarah Jenkins",
-    initials: "SJ",
-    actions: "review",
-  },
-];
 
 export function JobsScreen() {
   const { items, state, actions } = useJobsContext();
@@ -138,14 +88,12 @@ export function JobsScreen() {
                 Submit your first job to see it here.
               </Text>
 
-                <Pressable className="mt-8 flex-row items-center gap-2 rounded-full bg-accent/10 px-6 py-3 active:scale-95">
-                  <Icon name="List" className="text-accent size-18" />
-                  <Text className="text-sm font-bold text-accent">
-                    Open Jobs
-                  </Text>
-                </Pressable>
-              </View>
+              <Pressable className="mt-8 flex-row items-center gap-2 rounded-full bg-accent/10 px-6 py-3 active:scale-95">
+                <Icon name="List" className="text-accent size-18" />
+                <Text className="text-sm font-bold text-accent">Open Jobs</Text>
+              </Pressable>
             </View>
+          </View>
         }
         // ListFooterComponent={
         //   <View className="mb-48">

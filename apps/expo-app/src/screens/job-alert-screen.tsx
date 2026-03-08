@@ -1,7 +1,6 @@
 import { SafeArea } from "@/components/safe-area";
 import { JobAlertView } from "@/components/job-alert/job-alert-view";
 import { normalizeJobAlert } from "@/components/job-alert/config";
-import { useAuthContext } from "@/hooks/use-auth";
 import { useRouter } from "expo-router";
 
 type JobAlertScreenProps = {
@@ -11,9 +10,8 @@ type JobAlertScreenProps = {
 
 export function JobAlertScreen({ jobId, alert }: JobAlertScreenProps) {
   const router = useRouter();
-  const auth = useAuthContext();
   const resolvedAlert = normalizeJobAlert(alert);
-  const jobsHref = auth.isAdmin ? "/(job-admin)/jobs" : "/(installers)/jobs";
+  const jobsHref = "/(job)/jobs";
 
   return (
     <SafeArea>

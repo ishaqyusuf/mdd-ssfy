@@ -22,13 +22,6 @@ export default function AuthLayout() {
         }}
       />
       <Stack.Screen
-        name="jobs"
-        options={{
-          headerShown: false,
-        }}
-      />
-
-      <Stack.Screen
         name="settings"
         options={{
           headerShown: false,

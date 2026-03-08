@@ -25,7 +25,7 @@ export function JobsAdminHome() {
   return (
     <HomeProvider
       value={useCreateHomeContext({
-        jobsProps: { admin: true, recent: true },
+        jobsProps: { recent: true },
       })}
     >
       <Header />

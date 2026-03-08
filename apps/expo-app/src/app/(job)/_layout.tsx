@@ -4,8 +4,21 @@ export default function JobLayout() {
   return (
     <Stack>
       <Stack.Screen
+        name="jobs"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
         name="job-form"
         options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="install-cost/[modelId]/form"
+        options={{
+          presentation: "modal",
           headerShown: false,
         }}
       />
@@ -28,6 +41,12 @@ export default function JobLayout() {
         name="job/[id]/review"
         options={{
           presentation: "modal",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="dashboard"
+        options={{
           headerShown: false,
         }}
       />

@@ -60,16 +60,15 @@ export function NotificationCenterScreen() {
   const handlers = createNotificationHandlers({
     job_task_configure_request: (data) => {
       router.push({
-        pathname: "/job-form",
+        pathname: "/(job)/install-cost/[modelId]/form",
         params: {
-          admin: "true",
-          action: "update",
-          step: "5",
-          _jobId: String(data.jobId),
-          _contractorId: String(data.contractorId),
-          _modelId: String(data.modelId),
-          _builderTaskId: String(data.builderTaskId),
-          _requestBuilderTaskId: String(data.builderTaskId),
+          modelId: String(data.modelId),
+          builderTaskId: String(data.builderTaskId),
+          requestBuilderTaskId: String(data.builderTaskId),
+          ...(data.jobId ? { jobId: String(data.jobId) } : {}),
+          ...(data.contractorId
+            ? { contractorId: String(data.contractorId) }
+            : {}),
         },
       } as any);
       Toast.show(

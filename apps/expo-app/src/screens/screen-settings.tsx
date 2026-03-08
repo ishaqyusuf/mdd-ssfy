@@ -20,9 +20,9 @@ import { SettingsSections } from "@/components/settings-sections";
 import type { CurrentSectionKey } from "@/lib/session-store";
 
 const sectionRouteMap = {
-  jobs: "/(job-admin)",
+  jobs: "/(job)/dashboard",
   dispatch: "/(drivers)/dispatch",
-  installer: "/(installers)",
+  installer: "/(job)/dashboard",
   driver: "/(drivers)",
   sales: "/(sales)",
 } as const;

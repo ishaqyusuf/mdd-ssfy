@@ -1,6 +1,6 @@
 import { useInfiniteLoader } from "@/components/infinite-loader";
 import { _trpc } from "@/components/static-trpc";
-import { getSessionProfile } from "@/lib/session-store";
+import { useAuthContext } from "@/hooks/use-auth";
 import { createContext, useContext } from "react";
 
 type HomeContextProps = ReturnType<typeof useCreateJobsContext>;
@@ -8,11 +8,10 @@ export const JobsContext = createContext<HomeContextProps>(undefined as any);
 export const JobsProvider = JobsContext.Provider;
 
 export interface JobsProps {
-  admin?: boolean;
   recent?: boolean;
 }
 export const useCreateJobsContext = (props: JobsProps) => {
-  const profile = getSessionProfile();
+  const { isAdmin, profile } = useAuthContext();
   const {
     data,
     ref: loadMoreRef,
@@ -23,17 +22,18 @@ export const useCreateJobsContext = (props: JobsProps) => {
     route: _trpc?.jobs.getJobs,
     filter: {
       size: props.recent ? 5 : 20,
-      userId: props.admin ? undefined : profile?.user?.id,
+      userId: isAdmin ? undefined : profile?.user?.id,
     },
   });
   // const { data, isPending, isRefetching, refetch } = useQuery(
   //   _trpc.jobs.getJobs.queryOptions({
   //     size: props.recent ? 5 : 20,
-  //     userId: props.admin ? undefined : profile.user.id,
+  //     userId: isAdmin ? undefined : profile.user.id,
   //   })
   // );
   return {
     items: data || [],
+    admin: isAdmin,
     ...props,
     loadMoreRef,
     state,

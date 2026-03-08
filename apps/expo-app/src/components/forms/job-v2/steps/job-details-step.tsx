@@ -15,7 +15,7 @@ import { NeoCard } from "../ui/neo-card";
 import { StepEmptyState } from "../ui/step-states";
 import { MissingTaskConfig } from "./missing-task-config";
 import { Icon } from "@/components/ui/icon";
-import { ModelInstallCostV2Step } from "../model-install-cost-v2-modal";
+import { InstallCostForm } from "../install-cost-form";
 import { ConfigRequestSuccessStep } from "./config-request-success-step";
 
 function NumberInput({
@@ -161,7 +161,7 @@ export function JobDetailsStep() {
 
   if (isInstallCostStepActive) {
     return (
-      <ModelInstallCostV2Step
+      <InstallCostForm
         modelId={params.modelId}
         initialBuilderTaskId={
           installCostBuilderTaskId ||
