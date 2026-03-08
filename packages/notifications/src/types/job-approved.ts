@@ -9,6 +9,7 @@ export const jobApproved: NotificationHandler = {
       source: "user",
       priority: 5,
       jobId: data.jobId,
+      contractorId: data.contractorId,
     };
 
     return {

@@ -71,13 +71,14 @@ export default function RootLayout() {
   return <RootLayoutNav />;
 }
 const InitialLayout = () => {
-  const { token, currentSection, sections, isAdmin } = useAuthContext();
+  const { token, currentSection, currentSectionKey, sections, isAdmin } =
+    useAuthContext();
   const { colorScheme } = useColorScheme();
   const canAccessJobs = currentSection?.isJobs;
   const canAccessInstaller = currentSection?.isInstaller;
   const canAccessDispatchOrDriver =
     currentSection?.isDispatch || currentSection?.isDriver;
-  const hasAnySection = sections.length > 0;
+  const hasAnySection = sections.length > 0 || isAdmin;
 
   return (
     <>
@@ -93,7 +94,9 @@ const InitialLayout = () => {
           <Stack.Protected guard={!!token && !!canAccessDispatchOrDriver}>
             <Stack.Screen name="(drivers)" options={{ headerShown: false }} />
           </Stack.Protected>
-          <Stack.Protected guard={!!token && !!isAdmin}>
+          <Stack.Protected
+            guard={!!token && !!isAdmin && currentSectionKey === "sales"}
+          >
             <Stack.Screen name="(sales)" options={{ headerShown: false }} />
           </Stack.Protected>
           <Stack.Protected guard={!!token && !!canAccessJobs}>
@@ -109,7 +112,6 @@ const InitialLayout = () => {
             guard={!!token && (canAccessJobs || canAccessInstaller)}
           >
             <Stack.Screen name="(job)" options={{ headerShown: false }} />
-            <Stack.Screen name="job-form" options={{ headerShown: false }} />
             <Stack.Screen
               name="job-overview-v2"
               options={{ headerShown: false }}
@@ -125,6 +127,13 @@ const InitialLayout = () => {
                 presentation: "modal",
                 headerShown: false,
                 // header: () => <Header title="Create Installer Profile" />,
+              }}
+            />
+            <Stack.Screen
+              name="updates"
+              options={{
+                presentation: "modal",
+                headerShown: false,
               }}
             />
 

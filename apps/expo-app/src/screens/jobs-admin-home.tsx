@@ -41,9 +41,11 @@ export function JobsAdminHome() {
 }
 function Content() {
   const { jobsCtx } = useHomeContext();
-  const { data: analytics, isRefetching, refetch } = useQuery(
-    _trpc.jobs.adminAnalytics.queryOptions({}),
-  );
+  const {
+    data: analytics,
+    isRefetching,
+    refetch,
+  } = useQuery(_trpc.jobs.adminAnalytics.queryOptions({}));
   const onRefresh = useCallback(async () => {
     await Promise.all([jobsCtx?.actions?.refetch?.(), refetch()]);
   }, [jobsCtx?.actions, refetch]);

@@ -78,7 +78,7 @@ function parseAction(
   tags: Record<string, unknown>,
 ): NotificationAction | undefined {
   const type = parseType(tags);
-
+  console.log(type);
   if (type === "job_task_configure_request") {
     const parsed = jobTaskConfigureRequestTags.safeParse(tags);
     if (!parsed.success) return undefined;
@@ -109,6 +109,7 @@ export function transformNotifications(
     const tags = item.tags ?? {};
     const type = parseType(tags);
     const action = parseAction(tags);
+    // console.log("Transforming notifications:", { action, tags });
 
     return {
       id: item.id,

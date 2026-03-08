@@ -9,7 +9,7 @@ export const jobRejected: NotificationHandler = {
       source: "user",
       priority: 5,
       jobId: data.jobId,
-      assignedToId: data.assignedToId,
+      contractorId: data.contractorId,
       note: data.note,
     };
 

@@ -68,7 +68,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
   const notification = useNotificationTrigger();
 
   const admin = isAdminUser();
-  const action = props.action ?? params.action ?? "create";
+  const action = props.action ?? params.action ?? "submit";
   const jobType = params.jobType;
   const profile = getSessionProfile();
   const allowedRoles: EmployeeRole[] = [
@@ -117,6 +117,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
       // },
       unit: {
         id: params.unitId!,
+        projectId: params.projectId!,
       },
       user: {
         id: params.userId,
@@ -596,6 +597,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
         adminMode: admin,
         unit: {
           id: params.unitId,
+          projectId: params.projectId!,
         },
         user: {
           id: resolvedUserId,
@@ -688,8 +690,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
       });
       return;
     }
-    // console.log("Requesting task configuration with payload:", payload);
-    // return;
+
     saveJobForm(payload);
   }, [
     buildSaveJobFormPayload,

@@ -196,6 +196,8 @@ export const jobTaskConfigureRequestSchema = z.object({
   builderName: z.string(),
   builderTaskId: z.number(),
   modelId: z.number(),
+  lotBlock: z.string(),
+  taskName: z.string(),
 });
 export type JobTaskConfigureRequestInput = z.infer<
   typeof jobTaskConfigureRequestSchema

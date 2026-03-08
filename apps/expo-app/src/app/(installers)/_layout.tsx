@@ -23,22 +23,6 @@ export default function AuthLayout() {
           headerShown: false,
         }}
       />
-      <Stack.Screen
-        name="create"
-        options={{
-          presentation: "modal",
-          headerShown: false,
-          // header: () => <Header title="Create Installer Profile" />,
-        }}
-      />
-
-      <Stack.Screen
-        name="submit/[controlId]"
-        options={{
-          presentation: "modal",
-          headerShown: false,
-        }}
-      />
     </Stack>
   );
 }

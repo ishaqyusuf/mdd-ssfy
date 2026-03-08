@@ -3,6 +3,7 @@ import * as SecureStore from "expo-secure-store";
 
 export const SESSION_KEY = "gnd_prodesk";
 export type SectionKey = "jobs" | "dispatch" | "installer" | "driver";
+export type CurrentSectionKey = SectionKey | "sales";
 export type CurrentSection = {
   isJobs: boolean;
   isInstaller: boolean;
@@ -30,6 +31,7 @@ export interface Profile {
   token: string;
   sections?: SectionKey[];
   currentSection?: CurrentSection;
+  currentSectionKey?: CurrentSectionKey;
   user: {
     id: number;
     name: string;

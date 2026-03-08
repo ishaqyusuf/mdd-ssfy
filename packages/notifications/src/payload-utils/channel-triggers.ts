@@ -74,7 +74,7 @@ export function createNotificationChannelTriggers(
 			const resolvedRecipients = resolveRecipients(
 				recipients,
 				getStoredRecipients(),
-				makeRecipients("employee", payload.assignedToId),
+				makeRecipients("employee", payload.contractorId),
 			);
 			return options.send("job_approved", {
 				payload,
@@ -88,9 +88,21 @@ export function createNotificationChannelTriggers(
 			const resolvedRecipients = resolveRecipients(
 				recipients,
 				getStoredRecipients(),
-				makeRecipients("employee", payload.assignedToId),
+				makeRecipients("employee", payload.contractorId),
 			);
 			return options.send("job_rejected", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
+		jobDeleted(input: Input<"job_deleted">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("job_deleted", {
 				payload,
 				author,
 				recipients: resolvedRecipients,

@@ -1,5 +1,6 @@
 import {
   type CurrentSection,
+  type CurrentSectionKey,
   type Profile,
   type SectionKey,
   deleteSessionProfile,
@@ -23,6 +24,14 @@ const sectionLabels: Record<SectionKey, string> = {
   driver: "Driver",
 };
 
+const sectionOrder: CurrentSectionKey[] = [
+  "jobs",
+  "dispatch",
+  "installer",
+  "driver",
+  "sales",
+];
+
 const inferIsInstaller = (profile?: Profile | null) =>
   profile?.role?.name === "1099 Contractor" ||
   profile?.role?.name === "Punchout";
@@ -42,24 +51,26 @@ const createEmptyCurrentSection = (): CurrentSection => ({
   isDriver: false,
 });
 
-const sectionToCurrentSection = (section: SectionKey): CurrentSection => ({
-  isJobs: section === "jobs",
-  isInstaller: section === "installer",
-  isDispatch: section === "dispatch",
-  isDriver: section === "driver",
+const sectionKeyToCurrentSection = (
+  sectionKey?: CurrentSectionKey | null,
+): CurrentSection => ({
+  isJobs: sectionKey === "jobs",
+  isInstaller: sectionKey === "installer",
+  isDispatch: sectionKey === "dispatch",
+  isDriver: sectionKey === "driver",
 });
 
-const isCurrentSectionAllowed = (
-  currentSection: CurrentSection | null | undefined,
-  sections: SectionKey[],
-) => {
-  if (!currentSection) return false;
-  return sections.some((section) => {
-    if (section === "jobs") return currentSection.isJobs;
-    if (section === "installer") return currentSection.isInstaller;
-    if (section === "dispatch") return currentSection.isDispatch;
-    return currentSection.isDriver;
-  });
+const inferCurrentSectionKey = (
+  currentSection?: CurrentSection | null,
+  currentSectionKey?: CurrentSectionKey | null,
+): CurrentSectionKey | null => {
+  if (currentSectionKey) return currentSectionKey;
+  if (!currentSection) return null;
+  if (currentSection.isJobs) return "jobs";
+  if (currentSection.isDispatch) return "dispatch";
+  if (currentSection.isInstaller) return "installer";
+  if (currentSection.isDriver) return "driver";
+  return null;
 };
 
 const deriveSections = (profile?: Profile | null): SectionKey[] => {
@@ -80,21 +91,42 @@ const deriveSections = (profile?: Profile | null): SectionKey[] => {
   ) as SectionKey[];
 };
 
+const derivePermittedSectionKeys = (
+  profile?: Profile | null,
+): CurrentSectionKey[] => {
+  const coreSections = deriveSections(profile);
+  const allSections: CurrentSectionKey[] = inferIsAdmin(profile)
+    ? [...coreSections, "sales"]
+    : [...coreSections];
+  const unique = new Set(allSections);
+  return sectionOrder.filter((key) => unique.has(key));
+};
+
 const normalizeCurrentSection = (
   profile?: Profile | null,
-): { sections: SectionKey[]; currentSection: CurrentSection } => {
-  const derivedSections = deriveSections(profile);
-  const sections = derivedSections.length ? derivedSections : [];
-  const existingCurrentSection = profile?.currentSection;
-  const currentSection = isCurrentSectionAllowed(
-    existingCurrentSection,
+  preferredSectionKey?: CurrentSectionKey | null,
+): {
+  sections: SectionKey[];
+  currentSection: CurrentSection;
+  currentSectionKey: CurrentSectionKey | null;
+} => {
+  const sections = deriveSections(profile);
+  const permittedSectionKeys = derivePermittedSectionKeys(profile);
+  const existingSectionKey =
+    preferredSectionKey ??
+    inferCurrentSectionKey(profile?.currentSection, profile?.currentSectionKey);
+  const currentSectionKey =
+    existingSectionKey && permittedSectionKeys.includes(existingSectionKey)
+      ? existingSectionKey
+      : permittedSectionKeys[0] ?? null;
+
+  return {
     sections,
-  )
-    ? existingCurrentSection!
-    : sections.length
-      ? sectionToCurrentSection(sections[0]!)
-      : createEmptyCurrentSection();
-  return { sections, currentSection };
+    currentSection: currentSectionKey
+      ? sectionKeyToCurrentSection(currentSectionKey)
+      : createEmptyCurrentSection(),
+    currentSectionKey,
+  };
 };
 
 export const useCreateAuthContext = () => {
@@ -106,6 +138,8 @@ export const useCreateAuthContext = () => {
   const [currentSection, setCurrentSectionState] = useState<CurrentSection>(
     initialSectionState.currentSection,
   );
+  const [currentSectionKey, setCurrentSectionKey] =
+    useState<CurrentSectionKey | null>(initialSectionState.currentSectionKey);
   const [token, _setToken] = useState(getToken());
   const router = useRouter();
   const isInstaller = inferIsInstaller(profile);
@@ -115,6 +149,23 @@ export const useCreateAuthContext = () => {
   const persistProfile = (nextProfile: Profile | null) => {
     if (!nextProfile) return;
     setSessionProfile(nextProfile);
+  };
+
+  const applySectionSelection = (nextSectionKey?: CurrentSectionKey | null) => {
+    if (!profile) return;
+    const normalized = normalizeCurrentSection(profile, nextSectionKey);
+    const nextProfile: Profile = {
+      ...(profile as Profile),
+      sections: normalized.sections,
+      currentSection: normalized.currentSection,
+      currentSectionKey: normalized.currentSectionKey ?? undefined,
+    };
+
+    setSections(normalized.sections);
+    setCurrentSectionState(normalized.currentSection);
+    setCurrentSectionKey(normalized.currentSectionKey);
+    setProfile(nextProfile);
+    persistProfile(nextProfile);
   };
 
   return {
@@ -132,36 +183,42 @@ export const useCreateAuthContext = () => {
       isDriver: key === "driver",
     })),
     currentSection,
+    currentSectionKey,
     setCurrentSection(next: CurrentSection) {
-      if (!profile) return;
-      const nextSection = isCurrentSectionAllowed(next, sections)
-        ? next
-        : sections.length
-          ? sectionToCurrentSection(sections[0]!)
-          : createEmptyCurrentSection();
-      setCurrentSectionState(nextSection);
-      const nextProfile = {
-        ...(profile as Profile),
-        sections,
-        currentSection: nextSection,
-      };
-      setProfile(nextProfile);
-      persistProfile(nextProfile);
+      const nextSectionKey = inferCurrentSectionKey(next);
+      applySectionSelection(nextSectionKey);
+    },
+    setCurrentSectionByKey(nextSectionKey: CurrentSectionKey) {
+      applySectionSelection(nextSectionKey);
     },
     onLogin(data) {
       _setToken(data.token);
       const { ...rest } = data as Profile;
-      const { sections: nextSections, currentSection: nextCurrentSection } =
-        normalizeCurrentSection(rest);
+      const storedProfile = getSessionProfile();
+      const storedSectionKey = inferCurrentSectionKey(
+        storedProfile?.currentSection,
+        storedProfile?.currentSectionKey,
+      );
+      const fallbackSectionKey = inferCurrentSectionKey(
+        rest.currentSection,
+        rest.currentSectionKey,
+      );
+      const normalized = normalizeCurrentSection(
+        rest,
+        storedSectionKey ?? fallbackSectionKey,
+      );
+
       const profileWithSections: Profile = {
         ...rest,
-        sections: nextSections,
-        currentSection: nextCurrentSection,
+        sections: normalized.sections,
+        currentSection: normalized.currentSection,
+        currentSectionKey: normalized.currentSectionKey ?? undefined,
       };
       setSessionProfile(profileWithSections);
       setProfile(profileWithSections);
-      setSections(nextSections);
-      setCurrentSectionState(nextCurrentSection);
+      setSections(normalized.sections);
+      setCurrentSectionState(normalized.currentSection);
+      setCurrentSectionKey(normalized.currentSectionKey);
       setToken(data.token);
       router.push("/");
     },
@@ -171,9 +228,9 @@ export const useCreateAuthContext = () => {
       setProfile(null as any);
       setSections([]);
       setCurrentSectionState(createEmptyCurrentSection());
+      setCurrentSectionKey(null);
 
       _setToken(null);
-      // router.replace("/");
       router.replace("/sign-in");
     },
   };

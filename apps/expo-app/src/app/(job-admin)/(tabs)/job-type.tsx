@@ -70,10 +70,9 @@ const JobTypeOption = ({
   iconColorClass: string;
 }) => (
   <Pressable
-    // href={`/assign?jobType=${encodeURIComponent(title)}`}
     onPress={(e) => {
       _goBack();
-      _push(`/assign?jobType=${title}`);
+      _push("/jobs");
     }}
     className="group flex-row items-center gap-4 p-4 rounded-2xl bg-card border border-border active:border-primary active:scale-[0.98]"
   >

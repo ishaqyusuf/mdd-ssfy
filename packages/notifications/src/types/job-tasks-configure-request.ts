@@ -25,7 +25,7 @@ export const jobTaskConfigureRequest: NotificationHandler = {
       type: "job_task_configure_request",
       source: "user",
       subject: "Install task list missing",
-      headline: `${data.modelName} (${data.projectName}/${data.builderName}) cannot be submitted because install task list is missing.`,
+      headline: `${data.taskName} ${data.modelName} ${data.lotBlock} (${data.projectName}) cannot be submitted because install task list is missing.`,
       authorId: author.id,
       tags: payload,
     };
@@ -46,6 +46,8 @@ export const jobTaskConfigureRequest: NotificationHandler = {
         builderName: data.builderName,
         builderTaskId: data.builderTaskId,
         modelId: data.modelId,
+        lotBlock: data.lotBlock,
+        taskName: data.taskName,
       },
     };
   },
@@ -53,7 +55,7 @@ export const jobTaskConfigureRequest: NotificationHandler = {
     return {
       message:
         `${author.name} (contractor #${data.contractorId}) is trying to submit job #${data.jobId}, but install task list is missing. ` +
-        `Model: ${data.modelName}, Project: ${data.projectName}, Builder: ${data.builderName}, ` +
+        `Task: ${data.taskName}, Model: ${data.modelName}, LotBlock: ${data.lotBlock}, Project: ${data.projectName}, Builder: ${data.builderName}, ` +
         `ModelId: ${data.modelId}, BuilderTaskId: ${data.builderTaskId}.`,
     };
   },

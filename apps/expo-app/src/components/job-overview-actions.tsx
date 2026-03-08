@@ -1,10 +1,9 @@
 import { useJobContext } from "@/hooks/use-job";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Icon } from "./ui/icon";
 import { useMutation } from "@tanstack/react-query";
-import { _qc, _trpc } from "./static-trpc";
+import { _trpc } from "./static-trpc";
 import { Toast } from "./ui/toast";
-import { Controller, useForm } from "react-hook-form";
 import { editJob } from "@/lib/job";
 import { useRouter } from "expo-router";
 
@@ -41,7 +40,7 @@ function ReAssginJobAction() {
 function DeleteJobAction() {
   const ctx = useJobContext();
   const job = useComposer();
-  const { mutate: restoreJob, isPending: isRestoring } = useMutation(
+  const { mutate: restoreJob } = useMutation(
     _trpc.jobs.restoreJob.mutationOptions({
       onSuccess(data, variables, onMutateResult, context) {},
       onError(error, variables, onMutateResult, context) {},
@@ -54,7 +53,7 @@ function DeleteJobAction() {
       },
     }),
   );
-  const { mutate: deleteJob, isPending: isDeletingJob } = useMutation(
+  const { mutate: deleteJob } = useMutation(
     _trpc.jobs.deleteJob.mutationOptions({
       onSuccess(data, variables, onMutateResult, context) {
         Toast.show(`Deleted`, {
@@ -95,97 +94,12 @@ function DeleteJobAction() {
 function ReviewJobAction() {
   const job = useComposer();
   const router = useRouter();
-  const form = useForm({
-    defaultValues: {
-      note: "",
-    },
-  });
-  const { mutate: _reviewAction, isPending: isReviewing } = useMutation(
-    _trpc.jobs.jobReview.mutationOptions({
-      onSuccess(data, variables, onMutateResult, context) {
-        _qc.invalidateQueries({
-          queryKey: _trpc.jobs.getJobs.queryKey(),
-        });
-        if (!job.id) return;
-        const alert = variables.action === "approve" ? "approved" : "rejected";
-        router.replace(`/job/${job.id}/alert/${alert}` as any);
-      },
-      onError(error, variables, onMutateResult, context) {},
-      meta: {
-        toastTitle: {
-          show: true,
-          error: "Unable to complete",
-          loading: "Processing...",
-          success: "Done!.",
-        },
-      },
-    }),
-  );
-  const reviewAction = (action: "approve" | "reject") => {
-    _reviewAction({
-      note: form.getValues("note"),
-      jobId: job.id!,
-      action,
-    });
-  };
   const showReview = [job.isAdmin, job.isSubmitted].every(Boolean);
   const showUpdateReview = [
     job.isAdmin,
     job.isApproved || job.isRejected,
   ].every(Boolean);
   if (!showReview && !showUpdateReview) return null;
-  if (job.isApproved)
-    return (
-      <View className="bg-card rounded-2xl p-6 border border-border mb-6 shadow-sm">
-        <View className="flex-row items-center gap-3 mb-6">
-          <View className="p-2 rounded-lg bg-accent/10">
-            <Icon
-              name="CheckCircle2"
-              className="text-accent-foreground size-20"
-            />
-          </View>
-          <Text className="text-lg font-bold text-foreground">
-            Admin Review
-          </Text>
-        </View>
-
-        <View className="mb-6">
-          <Text className="text-xs font-semibold text-muted-foreground uppercase mb-3">
-            Note
-          </Text>
-
-          <Text className="w-full bg-background border border-border rounded-xl text-sm p-4 text-foreground min-h-25">
-            {job?.recentNote || "No notes provided."}
-          </Text>
-        </View>
-
-        <View className="gap-3">
-          <View className="flex-row gap-3">
-            <Pressable
-              disabled={isReviewing}
-              onPress={(e) => reviewAction("reject")}
-              className="flex-1 py-4 px-4 bg-destructive rounded-xl flex-row items-center justify-center gap-2"
-            >
-              <Icon name="X" className="text-destructive-foreground size-16" />
-              <Text className="text-destructive-foreground font-semibold">
-                Reject
-              </Text>
-            </Pressable>
-
-            <Pressable
-              disabled={isReviewing}
-              onPress={(e) => reviewAction("approve")}
-              className="flex-1 py-4 px-4 bg-accent rounded-xl flex-row items-center justify-center gap-2"
-            >
-              <Icon name="Check" className="text-accent-foreground size-16" />
-              <Text className="text-accent-foreground font-semibold">
-                Approve
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-      </View>
-    );
   return (
     <View className="bg-card rounded-2xl p-6 border border-border mb-6 shadow-sm">
       <View className="flex-row items-center gap-3 mb-6">
@@ -194,54 +108,15 @@ function ReviewJobAction() {
         </View>
         <Text className="text-lg font-bold text-foreground">Admin Review</Text>
       </View>
-
-      <View className="mb-6">
-        <Text className="text-xs font-semibold text-muted-foreground uppercase mb-3">
-          Internal Notes
+      <Pressable
+        onPress={() => router.push(`/job/${job.id}/review` as any)}
+        className="w-full py-4 px-4 bg-accent rounded-xl flex-row items-center justify-center gap-2"
+      >
+        <Icon name="ShieldCheck" className="text-accent-foreground size-16" />
+        <Text className="text-accent-foreground font-semibold">
+          Open Review
         </Text>
-
-        <Controller
-          control={form.control}
-          name="note"
-          render={({ field }) => (
-            <TextInput
-              value={field.value}
-              onChangeText={field.onChange}
-              className="w-full bg-background border border-border rounded-xl text-sm p-4 text-foreground min-h-25"
-              placeholder="Enter notes regarding approval or rejection..."
-              placeholderTextColor="hsl(var(--muted-foreground))"
-              multiline
-              textAlignVertical="top"
-            />
-          )}
-        />
-      </View>
-
-      <View className="gap-3">
-        <View className="flex-row gap-3">
-          <Pressable
-            disabled={isReviewing}
-            onPress={(e) => reviewAction("reject")}
-            className="flex-1 py-4 px-4 bg-destructive rounded-xl flex-row items-center justify-center gap-2"
-          >
-            <Icon name="X" className="text-destructive-foreground size-16" />
-            <Text className="text-destructive-foreground font-semibold">
-              Reject
-            </Text>
-          </Pressable>
-
-          <Pressable
-            disabled={isReviewing}
-            onPress={(e) => reviewAction("approve")}
-            className="flex-1 py-4 px-4 bg-accent rounded-xl flex-row items-center justify-center gap-2"
-          >
-            <Icon name="Check" className="text-accent-foreground size-16" />
-            <Text className="text-accent-foreground font-semibold">
-              Approve
-            </Text>
-          </Pressable>
-        </View>
-      </View>
+      </Pressable>
     </View>
   );
 }

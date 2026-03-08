@@ -399,6 +399,18 @@ export const communityRouters = createTRPCRouter({
       const isContractorCreator = !!props?.input?.user?.id;
       let jobId = jobInput.id;
       const isCreatingJob = !jobId;
+      const previousJob = jobId
+        ? await db.jobs.findFirst({
+            where: {
+              id: jobId,
+            },
+            select: {
+              id: true,
+              status: true,
+              userId: true,
+            },
+          })
+        : null;
       if (!jobInput.meta) jobInput.meta = {};
       if (jobInput.isCustom) {
         jobInput.meta = {
@@ -423,6 +435,7 @@ export const communityRouters = createTRPCRouter({
         jobInput.meta.additional_cost,
       ]);
       const select = {
+        id: true,
         project: {
           select: {
             title: true,
@@ -431,33 +444,21 @@ export const communityRouters = createTRPCRouter({
             },
           },
         },
-        home: { select: { modelName: true } },
+        home: { select: { modelName: true, lot: true, block: true } },
         user: {
           select: {
             id: true,
             name: true,
           },
         },
+        builderTask: {
+          select: {
+            taskName: true,
+          },
+        },
       } satisfies Prisma.JobsSelect;
       let job: Prisma.JobsGetPayload<{
-        select: {
-          id: true;
-          project: {
-            select: {
-              title: true;
-              builder: {
-                select: { name: true };
-              };
-            };
-          };
-          home: { select: { modelName: true } };
-          user: {
-            select: {
-              id: true;
-              name: true;
-            };
-          };
-        };
+        select: typeof select;
       }> = null as any;
       if (jobId) {
         job = (await db.jobs.update({
@@ -471,6 +472,8 @@ export const communityRouters = createTRPCRouter({
             title: jobInput.title,
             subtitle: jobInput.subtitle,
             description: jobInput.description,
+            status: jobInput.status || undefined,
+            statusDate: jobInput.status ? new Date() : undefined,
             // type: job.type,
             meta: jobInput.meta as any,
             user: user?.id ? { connect: { id: user.id } } : undefined,
@@ -489,6 +492,9 @@ export const communityRouters = createTRPCRouter({
             // type: job.type,
             user: { connect: { id: user!.id || props.ctx.userId } },
             home: unit?.id ? { connect: { id: unit.id } } : undefined,
+            project: unit?.projectId
+              ? { connect: { id: unit.projectId } }
+              : undefined,
             meta: jobInput.meta as any,
             status: jobInput.status!,
             builderTask: input?.builderTaskId
@@ -549,9 +555,7 @@ export const communityRouters = createTRPCRouter({
 
         if (input.requestTaskConfig) {
           if (!input.builderTaskId) {
-            throw new Error(
-              "builderTaskId is required for requestTaskConfig",
-            );
+            throw new Error("builderTaskId is required for requestTaskConfig");
           }
           await notification.channel.jobTaskConfigureRequest({
             contractorId: job?.user?.id!,
@@ -561,19 +565,46 @@ export const communityRouters = createTRPCRouter({
             builderName: job?.project?.builder?.name || "",
             modelId: input.modelId,
             builderTaskId: input.builderTaskId!,
+            lotBlock: job?.home ? `${job.home.lot}/${job.home.block}` : "",
+            taskName: job?.builderTask?.taskName || "",
           });
         } else if (isContractorCreator)
           await notification.channel.jobSubmitted({
-            jobId: jobId!,
+            jobId: job?.id!,
           });
         else {
           if (user?.id != null) {
             notification.setEmployeeRecipients(user.id);
           }
           await notification.channel.jobAssigned({
-            jobId: jobId!,
+            jobId: job?.id!,
             assignedToId: job?.user?.id!,
             assignedToName: job?.user?.name!,
+          });
+        }
+      } else {
+        const notification = new NotificationService(tasks, ctx);
+        const nextUserId = job?.user?.id || null;
+        const previousUserId = previousJob?.userId || null;
+        const nextStatus = jobInput.status;
+        const previousStatus = previousJob?.status;
+
+        if (
+          nextStatus === "Submitted" &&
+          previousStatus !== "Submitted" &&
+          jobId
+        ) {
+          await notification.channel.jobSubmitted({
+            jobId: job?.id!,
+          });
+        }
+
+        if (nextUserId && previousUserId !== nextUserId && jobId) {
+          notification.setEmployeeRecipients(nextUserId);
+          await notification.channel.jobAssigned({
+            jobId: job?.id!,
+            assignedToId: nextUserId,
+            assignedToName: job?.user?.name || "",
           });
         }
       }

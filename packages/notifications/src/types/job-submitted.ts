@@ -15,7 +15,7 @@ export const jobSubmitted: NotificationHandler = {
       type: "job_submitted",
       source: "user",
       subject: "Job submitted",
-      headline: `Job #${data.jobId} has been submitted for review.`,
+      headline: `Job #${data.jobId} submitted by ${author.name}.`,
       authorId: author.id,
       tags: payload,
     };

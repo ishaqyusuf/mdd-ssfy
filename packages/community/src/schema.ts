@@ -35,6 +35,7 @@ export const jobFormSchema = z
     unit: z
       .object({
         id: z.number(),
+        projectId: z.number(),
         // lot: z.string(),
         // block: z.string(),
         // modelName: z.string(),

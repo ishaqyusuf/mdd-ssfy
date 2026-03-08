@@ -31,15 +31,6 @@ export function editJob(job: JobLike) {
   if (!job) return;
 
   const isAdmin = isAdminUser();
-  if (job.controlId) {
-    if (isAdmin) {
-      _push?.(`/(job-admin)/re-assign/${job.controlId}` as any);
-      return;
-    }
-    _push?.(`/(installers)/submit/${job.controlId}` as any);
-    return;
-  }
-
   pushJobFormV2(job, isAdmin ? "re-assign" : "submit");
 }
 

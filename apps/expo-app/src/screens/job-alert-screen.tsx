@@ -13,6 +13,7 @@ export function JobAlertScreen({ jobId, alert }: JobAlertScreenProps) {
   const router = useRouter();
   const auth = useAuthContext();
   const resolvedAlert = normalizeJobAlert(alert);
+  const jobsHref = auth.isAdmin ? "/(job-admin)/jobs" : "/(installers)/jobs";
 
   return (
     <SafeArea>
@@ -20,18 +21,9 @@ export function JobAlertScreen({ jobId, alert }: JobAlertScreenProps) {
         alert={resolvedAlert}
         jobId={jobId}
         onViewJob={() => router.replace(`/job/${jobId}` as any)}
-        onCreateJob={() =>
-          router.replace({
-            pathname: "/job-form",
-            params: {
-              action: "create",
-              admin: auth.isAdmin ? "true" : "false",
-            },
-          } as any)
-        }
+        onCreateJob={() => router.replace(jobsHref as any)}
         onGoHome={() => router.replace("/" as any)}
       />
     </SafeArea>
   );
 }
-

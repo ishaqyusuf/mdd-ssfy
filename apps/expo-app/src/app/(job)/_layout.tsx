@@ -4,6 +4,12 @@ export default function JobLayout() {
   return (
     <Stack>
       <Stack.Screen
+        name="job-form"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
         name="job/[id]/index"
         options={{
           presentation: "modal",
@@ -18,7 +24,13 @@ export default function JobLayout() {
           gestureEnabled: false,
         }}
       />
+      <Stack.Screen
+        name="job/[id]/review"
+        options={{
+          presentation: "modal",
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }
-

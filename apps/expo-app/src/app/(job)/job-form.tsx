@@ -1,7 +1,7 @@
 import { JobFormV2Screen } from "@/screens/job-form-v2-screen";
 import { useLocalSearchParams } from "expo-router";
 
-const ACTIONS = ["submit", "create", "update", "re-assign"] as const;
+const ACTIONS = ["submit", "update", "re-assign"] as const;
 
 export default function JobFormRoute() {
   const params = useLocalSearchParams();

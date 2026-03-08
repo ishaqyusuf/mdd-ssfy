@@ -16,6 +16,8 @@ import {
   type ThemeOverride,
 } from "@/lib/theme-preference";
 import { Pressable } from "@/components/ui/pressable";
+import { SettingsSections } from "@/components/settings-sections";
+import type { CurrentSectionKey } from "@/lib/session-store";
 
 const sectionRouteMap = {
   jobs: "/(job-admin)",
@@ -23,14 +25,6 @@ const sectionRouteMap = {
   installer: "/(installers)",
   driver: "/(drivers)",
   sales: "/(sales)",
-} as const;
-
-const sectionIconMap = {
-  jobs: "Briefcase",
-  dispatch: "Route",
-  installer: "Wrench",
-  driver: "Truck",
-  sales: "LayoutDashboard",
 } as const;
 
 export default function SettingsExampleScreen() {
@@ -77,36 +71,25 @@ export default function SettingsExampleScreen() {
   };
   // get expo build version
   const expoVersion = config.version;
-  const uiSections = [
-    ...auth.sections,
+  const uiSections: { key: CurrentSectionKey; label: string }[] = [
+    ...auth.sections.map((section) => ({
+      key: section.key,
+      label: section.label,
+    })),
     ...(auth.isAdmin
       ? [
           {
             key: "sales" as const,
             label: "Sales Dashboard",
-            isJobs: false,
-            isInstaller: false,
-            isDispatch: false,
-            isDriver: false,
           },
         ]
       : []),
   ];
   const shouldShowSections = uiSections.length > 1;
 
-  const onSelectSection = (section: (typeof uiSections)[number]) => {
-    if (section.key === "sales") {
-      router.replace(sectionRouteMap.sales as any);
-      return;
-    }
-
-    auth.setCurrentSection({
-      isJobs: !!section.isJobs,
-      isInstaller: !!section.isInstaller,
-      isDispatch: !!section.isDispatch,
-      isDriver: !!section.isDriver,
-    });
-    router.replace(sectionRouteMap[section.key] as any);
+  const onSelectSection = (sectionKey: CurrentSectionKey) => {
+    auth.setCurrentSectionByKey(sectionKey);
+    router.replace(sectionRouteMap[sectionKey] as any);
   };
 
   return (
@@ -186,60 +169,12 @@ export default function SettingsExampleScreen() {
               />
             </Section>
           )}
-          {!shouldShowSections || (
-            <Section title="Sections">
-              {uiSections.map((section, index) => {
-                const isActive = [
-                  section.isJobs && auth.currentSection?.isJobs,
-                  section.isInstaller && auth.currentSection?.isInstaller,
-                  section.isDispatch && auth.currentSection?.isDispatch,
-                  section.isDriver && auth.currentSection?.isDriver,
-                ].some(Boolean);
-                const isSales = section.key === "sales";
-                const key = isSales
-                  ? "sales"
-                  : section.isJobs
-                    ? "jobs"
-                    : section.isDispatch
-                      ? "dispatch"
-                      : section.isInstaller
-                        ? "installer"
-                        : "driver";
-
-                return (
-                  <SettingsItem
-                    key={section.key}
-                    icon={sectionIconMap[key]}
-                    label={section.label}
-                    subLabel={
-                      isSales
-                        ? "Open sales dashboard"
-                        : isActive
-                        ? "Current active section"
-                        : "Switch to this section"
-                    }
-                    isLast={index === uiSections.length - 1}
-                    onPress={() => onSelectSection(section)}
-                    rightElement={
-                      isActive ? (
-                        <Icon
-                          name="CircleCheck"
-                          className="text-primary"
-                          size={20}
-                        />
-                      ) : (
-                        <Icon
-                          name="ChevronRight"
-                          className="text-muted-foreground"
-                          size={20}
-                        />
-                      )
-                    }
-                  />
-                );
-              })}
-            </Section>
-          )}
+          <SettingsSections
+            sections={uiSections}
+            currentSectionKey={auth.currentSectionKey}
+            onSelectSection={onSelectSection}
+            visible={shouldShowSections}
+          />
           <Section title="Appearance">
             <SettingsItem
               icon="Settings"
@@ -250,6 +185,22 @@ export default function SettingsExampleScreen() {
                 <ThemePreferenceSelector
                   value={themeOverride}
                   onChange={onChangeThemeOverride}
+                />
+              }
+            />
+          </Section>
+          <Section title="App">
+            <SettingsItem
+              icon="AppWindow"
+              label="App Updates"
+              subLabel="Check and install the latest updates"
+              isLast
+              onPress={() => router.push("/updates")}
+              rightElement={
+                <Icon
+                  name="ChevronRight"
+                  className="text-muted-foreground"
+                  size={20}
                 />
               }
             />

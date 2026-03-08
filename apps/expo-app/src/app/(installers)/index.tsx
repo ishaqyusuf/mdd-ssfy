@@ -36,17 +36,17 @@ export default function Home2() {
               <View className="px-5 mt-6">
                 <TouchableOpacity
                   onPress={(e) => {
-                    _push("/(installers)/create");
+                    _push("/(installers)/jobs");
                   }}
                   className="w-full h-16 bg-primary rounded-full flex-row items-center justify-center gap-4"
                 >
                   <Icon
-                    name="Plus"
+                    name="List"
                     className="text-primary-foreground"
                     size={24}
                   />
                   <Text className="text-primary-foreground text-lg font-bold">
-                    Add New Job
+                    View Jobs
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -91,9 +91,9 @@ export default function Home2() {
                 </Text>
 
                 <Pressable className="mt-8 flex-row items-center gap-2 rounded-full bg-accent/10 px-6 py-3 active:scale-95">
-                  <Icon name="Plus" className="text-accent size-18" />
+                  <Icon name="List" className="text-accent size-18" />
                   <Text className="text-sm font-bold text-accent">
-                    Create Job
+                    Check Jobs
                   </Text>
                 </Pressable>
               </View>

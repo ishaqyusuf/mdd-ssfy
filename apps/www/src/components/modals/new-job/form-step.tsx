@@ -68,6 +68,7 @@ function FormContent() {
             ...((defaultValues as any) || {}),
             unit: {
                 id: params.unitId,
+                projectId: params.projectId,
             },
             user: {
                 id: params.userId,

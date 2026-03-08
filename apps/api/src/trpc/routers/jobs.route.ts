@@ -32,15 +32,30 @@ export const jobRoutes = createTRPCRouter({
       }),
     )
     .mutation(async (props) => {
-      // return deleteJob(props.ctx, props.input);
+      const job = await props.ctx.db.jobs.findFirst({
+        where: {
+          id: props.input.id,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          userId: true,
+        },
+      });
+      if (!job) throw new Error("Job not found");
       await props.ctx.db.jobs.update({
         where: { id: props.input.id },
         data: {
           deletedAt: new Date(),
         },
       });
-      // update job activity deleted.
-      // notify assigned worker of deletion
+      const notification = new NotificationService(tasks, props.ctx);
+      if (job.userId) {
+        notification.setEmployeeRecipients(job.userId);
+      }
+      await notification.channel.jobDeleted({
+        jobId: job.id,
+      });
     }),
   getJobActivityHistory: publicProcedure
     .input(
@@ -69,15 +84,33 @@ export const jobRoutes = createTRPCRouter({
       }),
     )
     .mutation(async (props) => {
-      const { ctx, input } = props;
-      const db = ctx.db;
-      await props.ctx.db.jobs.update({
+      const { ctx } = props;
+      const restored = await props.ctx.db.jobs.update({
         where: { id: props.input.jobId, deletedAt: {} },
         data: {
           deletedAt: null,
         },
+        select: {
+          id: true,
+          userId: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
       });
-      // return restoreJob(props.ctx, props.input);
+      if (restored.userId) {
+        const notification = new NotificationService(tasks, ctx).setEmployeeRecipients(
+          restored.userId,
+        );
+        await notification.channel.jobAssigned({
+          jobId: restored.id,
+          assignedToId: restored.userId,
+          assignedToName: restored.user?.name || "",
+        });
+      }
     }),
   reAssignJob: publicProcedure
     .input(
@@ -122,6 +155,14 @@ export const jobRoutes = createTRPCRouter({
         },
         ctx.userId!,
       );
+      const notification = new NotificationService(tasks, ctx).setEmployeeRecipients(
+        input.newUserId,
+      );
+      await notification.channel.jobAssigned({
+        jobId: input.jobId,
+        assignedToId: input.newUserId,
+        assignedToName: "",
+      });
     }),
   jobReview: publicProcedure
     .input(
@@ -172,13 +213,13 @@ export const jobRoutes = createTRPCRouter({
         if (input.action === "approve") {
           await s.channel.jobApproved({
             jobId: input.jobId,
-            assignedToId: job.userId,
+            contractorId: job.userId,
             note: input.note,
           });
         } else {
           await s.channel.jobRejected({
             jobId: input.jobId,
-            assignedToId: job.userId,
+            contractorId: job.userId,
             note: input.note,
           });
         }

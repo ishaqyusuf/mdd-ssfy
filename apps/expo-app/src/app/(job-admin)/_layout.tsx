@@ -40,21 +40,6 @@ export default function AuthLayout() {
           headerShown: false,
         }}
       />
-      <Stack.Screen
-        name="re-assign/[controlId]"
-        options={{
-          presentation: "modal",
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
-        name="assign"
-        options={{
-          presentation: "modal",
-          headerShown: false,
-          // header: () => <Header title="Create Installer Profile" />,
-        }}
-      />
     </Stack>
   );
 }

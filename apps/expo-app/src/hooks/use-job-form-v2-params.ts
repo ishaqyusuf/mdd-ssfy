@@ -1,11 +1,11 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo } from "react";
 
-export type JobFormV2Action = "submit" | "create" | "update" | "re-assign";
+export type JobFormV2Action = "submit" | "update" | "re-assign";
 
 type NullableNumber = number | null | undefined;
 
-const ACTIONS: JobFormV2Action[] = ["submit", "create", "update", "re-assign"];
+const ACTIONS: JobFormV2Action[] = ["submit", "update", "re-assign"];
 
 function firstValue(value: string | string[] | undefined) {
   if (Array.isArray(value)) return value[0];

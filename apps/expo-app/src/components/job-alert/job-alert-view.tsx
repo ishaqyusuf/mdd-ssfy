@@ -47,7 +47,6 @@ export function JobAlertView({
 }: JobAlertViewProps) {
   const config = JOB_ALERT_CONFIG[alert];
   const tone = toneClasses(alert);
-  const isRequestSubmitted = alert === "request-submitted";
 
   return (
     <View className="flex-1 justify-center gap-3 px-4 pb-6">
@@ -77,9 +76,9 @@ export function JobAlertView({
       </Button>
 
       <Button onPress={onCreateJob} variant="outline" className="h-12 rounded-2xl border-border bg-background">
-        <Icon name="PlusCircle" className="text-foreground" size={16} />
+        <Icon name="List" className="text-foreground" size={16} />
         <Text className="text-foreground">
-          {isRequestSubmitted ? "Create New Job" : "Create Another Job"}
+          Open Jobs
         </Text>
       </Button>
 
@@ -90,4 +89,3 @@ export function JobAlertView({
     </View>
   );
 }
-

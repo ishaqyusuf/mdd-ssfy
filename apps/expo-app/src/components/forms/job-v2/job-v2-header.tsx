@@ -36,7 +36,7 @@ export function JobV2Header() {
               {displayTitle}
             </Text>
             <Text className="text-xs text-muted-foreground">
-              {action?.replace("-", " ") || "create"}
+              {action?.replace("-", " ") || "submit"}
             </Text>
           </View>
         </View>

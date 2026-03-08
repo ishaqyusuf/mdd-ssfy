@@ -138,14 +138,14 @@ export function JobsScreen() {
                 Submit your first job to see it here.
               </Text>
 
-              <Pressable className="mt-8 flex-row items-center gap-2 rounded-full bg-accent/10 px-6 py-3 active:scale-95">
-                <Icon name="Plus" className="text-accent size-18" />
-                <Text className="text-sm font-bold text-accent">
-                  Create Job
-                </Text>
-              </Pressable>
+                <Pressable className="mt-8 flex-row items-center gap-2 rounded-full bg-accent/10 px-6 py-3 active:scale-95">
+                  <Icon name="List" className="text-accent size-18" />
+                  <Text className="text-sm font-bold text-accent">
+                    Open Jobs
+                  </Text>
+                </Pressable>
+              </View>
             </View>
-          </View>
         }
         // ListFooterComponent={
         //   <View className="mb-48">
