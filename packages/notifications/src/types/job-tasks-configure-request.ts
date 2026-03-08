@@ -13,6 +13,7 @@ export const jobTaskConfigureRequest: NotificationHandler = {
       source: "user",
       priority: 5,
       contractorId: data.contractorId,
+      jobId: data.jobId,
       modelName: data.modelName,
       projectName: data.projectName,
       builderName: data.builderName,
@@ -39,6 +40,7 @@ export const jobTaskConfigureRequest: NotificationHandler = {
         recipientName: user.name,
         contractorName: author.name,
         contractorId: data.contractorId,
+        jobId: data.jobId,
         modelName: data.modelName,
         projectName: data.projectName,
         builderName: data.builderName,
@@ -50,7 +52,7 @@ export const jobTaskConfigureRequest: NotificationHandler = {
   createWhatsApp(data, author) {
     return {
       message:
-        `${author.name} (contractor #${data.contractorId}) is trying to submit a job, but install task list is missing. ` +
+        `${author.name} (contractor #${data.contractorId}) is trying to submit job #${data.jobId}, but install task list is missing. ` +
         `Model: ${data.modelName}, Project: ${data.projectName}, Builder: ${data.builderName}, ` +
         `ModelId: ${data.modelId}, BuilderTaskId: ${data.builderTaskId}.`,
     };

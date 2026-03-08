@@ -96,12 +96,18 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
   const [installCostBuilderTaskId, setInstallCostBuilderTaskId] = useState<
     number | null
   >(null);
+  const [didAutoOpenRequestConfig, setDidAutoOpenRequestConfig] =
+    useState(false);
 
   useEffect(() => {
     if (!params.step) {
       params.setParams({ step: 1, admin, action });
     }
   }, [action, admin, params]);
+
+  useEffect(() => {
+    setDidAutoOpenRequestConfig(false);
+  }, [params.requestBuilderTaskId]);
 
   const form = useZodForm(jobFormSchema, {
     defaultValues: {
@@ -200,6 +206,9 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
       size: 100,
     }),
   );
+  const { data: jobSettings } = useQuery(
+    trpc.settings.getJobSettings.queryOptions(),
+  );
 
   const { data: projectList, isPending: isProjectsPending } = useQuery(
     _trpc.community.projectsList.queryOptions(),
@@ -227,6 +236,13 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
         enabled: !!params.projectId,
       },
     ),
+  );
+  const state = useMemo(
+    () => ({
+      showTaskQty: admin || !!jobSettings?.meta?.showTaskQty,
+      allowCustomJobs: admin || !!jobSettings?.meta?.allowCustomJobs,
+    }),
+    [admin, jobSettings?.meta?.allowCustomJobs, jobSettings?.meta?.showTaskQty],
   );
 
   const formData = useWatch({ control: form.control }) as any;
@@ -269,7 +285,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
           );
           return;
         }
-        setCompleted(true);
+        // setCompleted(true);
       },
       meta: {
         toastTitle: {
@@ -293,6 +309,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
     if (!tasks.length) return true;
     return tasks.every((task) => !task?.maxQty || Number(task.maxQty) <= 0);
   }, [defaultValues]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const setStep = useCallback(
     (nextStep: number) => {
@@ -309,6 +326,79 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
   const currentTab: JobFormV2Tab = completed
     ? "completed"
     : tabs[initialStep - 1]!;
+
+  useEffect(() => {
+    if (!state.allowCustomJobs && params.builderTaskId === -1) {
+      params.setParams({ builderTaskId: null });
+    }
+  }, [params, params.builderTaskId, state.allowCustomJobs]);
+
+  const refreshCurrentStep = useCallback(async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      switch (currentTab) {
+        case "user":
+          await _qc.invalidateQueries({
+            queryKey: _trpc.hrm.getEmployees.queryKey(),
+          });
+          break;
+        case "project":
+          await _qc.invalidateQueries({
+            queryKey: _trpc.community.projectsList.queryKey(),
+          });
+          break;
+        case "task":
+          if (params.projectId) {
+            await _qc.invalidateQueries({
+              queryKey: _trpc.community.getBuilderTasksForProject.queryKey({
+                projectId: params.projectId,
+                homeId: params.unitId || -1,
+              }),
+            });
+          }
+          break;
+        case "unit":
+          if (params.projectId) {
+            await _qc.invalidateQueries({
+              queryKey: _trpc.community.getProjectUnitsWithJobStats.queryKey({
+                projectId: params.projectId,
+              }),
+            });
+          }
+          break;
+        case "form":
+        case "completed":
+          await Promise.all([
+            params.projectId
+              ? _qc.invalidateQueries({
+                  queryKey: _trpc.community.getBuilderTasksForProject.queryKey({
+                    projectId: params.projectId,
+                    homeId: params.unitId || -1,
+                  }),
+                })
+              : Promise.resolve(),
+            params.projectId
+              ? _qc.invalidateQueries({
+                  queryKey:
+                    _trpc.community.getProjectUnitsWithJobStats.queryKey({
+                      projectId: params.projectId,
+                    }),
+                })
+              : Promise.resolve(),
+            _qc.invalidateQueries({
+              queryKey: _trpc.community.projectsList.queryKey(),
+            }),
+            _qc.invalidateQueries({
+              queryKey: _trpc.community.getJobForm.queryKey(),
+            }),
+          ]);
+          break;
+      }
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [currentTab, isRefreshing, params.projectId, params.unitId]);
 
   const nextStep = useCallback(() => {
     if (completed) return;
@@ -606,9 +696,51 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
     setIsInstallCostStepActive(true);
   }, []);
 
+  useEffect(() => {
+    if (
+      didAutoOpenRequestConfig ||
+      !params.modelId ||
+      !params.requestBuilderTaskId
+    ) {
+      return;
+    }
+
+    openInstallCostStep(params.requestBuilderTaskId);
+    setDidAutoOpenRequestConfig(true);
+  }, [
+    didAutoOpenRequestConfig,
+    openInstallCostStep,
+    params.modelId,
+    params.requestBuilderTaskId,
+  ]);
+
   const closeInstallCostStep = useCallback(() => {
     setIsInstallCostStepActive(false);
   }, []);
+
+  const notifyContractorJobReady = useCallback(async () => {
+    if (!params.contractorId || !params.jobId) {
+      return;
+    }
+
+    try {
+      await notification.jobTaskConfigured({
+        contractorId: params.contractorId,
+        jobId: params.jobId,
+      });
+      Toast.show("Contractor notified: job task is ready.", {
+        type: "success",
+      });
+      params.setParams({
+        requestBuilderTaskId: null,
+        jobId: null,
+      });
+    } catch (_error) {
+      Toast.show("Unable to notify contractor right now.", {
+        type: "error",
+      });
+    }
+  }, [notification, params]);
 
   const clearRequestTaskConfigurationState = useCallback(() => {
     setSavedData(null);
@@ -624,8 +756,10 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
       redirectStep: null,
       projectId: null,
       jobId: null,
+      contractorId: null,
       unitId: null,
       builderTaskId: null,
+      requestBuilderTaskId: null,
       userId: null,
       modelId: null,
       admin,
@@ -636,6 +770,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
   return {
     admin,
     action,
+    state,
     params,
     form,
     formData,
@@ -676,6 +811,10 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
     clearRequestTaskConfigurationState,
     openInstallCostStep,
     closeInstallCostStep,
+    notifyContractorJobReady,
+    isNotifyingContractor: notification.isPending,
+    isRefreshing,
+    refreshCurrentStep,
     reset,
   };
 }

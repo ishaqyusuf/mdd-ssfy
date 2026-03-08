@@ -181,6 +181,7 @@ export const jobRejectedTags = actityTagsSchema.extend({
 export type JobRejectedTags = z.infer<typeof jobRejectedTags>;
 export const jobTaskConfigureRequestSchema = z.object({
   contractorId: z.number(),
+  jobId: z.number(),
   modelName: z.string(),
   projectName: z.string(),
   builderName: z.string(),
@@ -192,6 +193,7 @@ export type JobTaskConfigureRequestInput = z.infer<
 >;
 export const jobTaskConfigureRequestTags = actityTagsSchema.extend({
   contractorId: z.coerce.number(),
+  jobId: z.coerce.number(),
   modelName: z.string(),
   projectName: z.string(),
   builderName: z.string(),
@@ -201,6 +203,16 @@ export const jobTaskConfigureRequestTags = actityTagsSchema.extend({
 export type JobTaskConfigureRequestTags = z.infer<
   typeof jobTaskConfigureRequestTags
 >;
+export const jobTaskConfiguredSchema = z.object({
+  contractorId: z.number(),
+  jobId: z.number(),
+});
+export type JobTaskConfiguredInput = z.infer<typeof jobTaskConfiguredSchema>;
+export const jobTaskConfiguredTags = actityTagsSchema.extend({
+  contractorId: z.coerce.number(),
+  jobId: z.coerce.number(),
+});
+export type JobTaskConfiguredTags = z.infer<typeof jobTaskConfiguredTags>;
 // Notification types map - all available notification types with their data structures
 
 export type NotificationTypes = {
@@ -212,6 +224,7 @@ export type NotificationTypes = {
   job_approved: JobApprovedInput;
   job_rejected: JobRejectedInput;
   job_task_configure_request: JobTaskConfigureRequestInput;
+  job_task_configured: JobTaskConfiguredInput;
   sales_dispatch_assigned: SalesDispatchAssignedInput;
   sales_dispatch_queued: SalesDispatchQueuedInput;
   sales_dispatch_cancelled: SalesDispatchCancelledInput;
@@ -489,6 +502,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
   baseNotificationJobSchema.extend({
     channel: z.literal("job_task_configure_request"),
     payload: jobTaskConfigureRequestSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("job_task_configured"),
+    payload: jobTaskConfiguredSchema,
   }),
   baseNotificationJobSchema.extend({
     channel: z.literal("sales_dispatch_assigned"),

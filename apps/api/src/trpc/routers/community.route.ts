@@ -555,6 +555,7 @@ export const communityRouters = createTRPCRouter({
           }
           await notification.channel.jobTaskConfigureRequest({
             contractorId: job?.user?.id!,
+            jobId: jobId!,
             modelName: job?.home?.modelName || "",
             projectName: job?.project?.title || "",
             builderName: job?.project?.builder?.name || "",

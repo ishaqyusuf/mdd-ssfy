@@ -33,6 +33,11 @@ type InstallTaskItem = {
 interface ModelInstallCostV2StepProps {
   modelId: number | null | undefined;
   initialBuilderTaskId?: number | null;
+  requestBuilderTaskId?: number | null;
+  jobId?: number | null;
+  contractorId?: number | null;
+  onNotifyContractor?: () => void | Promise<void>;
+  isNotifyingContractor?: boolean;
 }
 
 function StepSkeleton() {
@@ -81,6 +86,11 @@ function EmptyInstallList() {
 export function ModelInstallCostV2Step({
   modelId,
   initialBuilderTaskId,
+  requestBuilderTaskId,
+  jobId,
+  contractorId,
+  onNotifyContractor,
+  isNotifyingContractor,
 }: ModelInstallCostV2StepProps) {
   const [selectedBuilderTaskId, setSelectedBuilderTaskId] = useState<number | null>(
     initialBuilderTaskId || null,
@@ -266,6 +276,15 @@ export function ModelInstallCostV2Step({
     return list.filter((item) => String(item.title || "").toLowerCase().includes(q));
   }, [addSearchQuery, installTaskMap, suggestions]);
 
+  const canNotifyContractor = useMemo(
+    () =>
+      !!requestBuilderTaskId &&
+      !!jobId &&
+      !!contractorId &&
+      selectedBuilderTaskId === requestBuilderTaskId,
+    [contractorId, jobId, requestBuilderTaskId, selectedBuilderTaskId],
+  );
+
   useEffect(() => {
     const timers = autosaveTimersRef.current;
     return () => {
@@ -354,6 +373,36 @@ export function ModelInstallCostV2Step({
             </Pressable>
           </View>
         </View>
+
+        {canNotifyContractor ? (
+          <NeoCard className="border-primary/30 bg-primary/5">
+            <View className="flex-row items-center justify-between gap-3">
+              <View className="flex-1">
+                <Text className="text-sm font-bold text-foreground">
+                  Job task request ready
+                </Text>
+                <Text className="mt-1 text-xs text-muted-foreground">
+                  Notify contractor now that the requested task configuration is ready.
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => onNotifyContractor?.()}
+                disabled={isNotifyingContractor}
+                className={`rounded-xl px-4 py-2 ${isNotifyingContractor ? "bg-muted" : "bg-primary"}`}
+              >
+                <Text
+                  className={
+                    isNotifyingContractor
+                      ? "text-xs font-semibold text-muted-foreground"
+                      : "text-xs font-semibold text-primary-foreground"
+                  }
+                >
+                  {isNotifyingContractor ? "Notifying..." : "Notify Contractor"}
+                </Text>
+              </Pressable>
+            </View>
+          </NeoCard>
+        ) : null}
 
         <NeoCard className="border-dashed border-border bg-card">
         <Text className="mb-2 text-xs font-bold uppercase tracking-[1px] text-muted-foreground">

@@ -2,7 +2,13 @@ import { SearchInput } from "@/components/search-input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useJobFormV2Context } from "@/hooks/use-job-form-v2";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+  RefreshControl,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { NeoCard } from "../ui/neo-card";
 import { StepEmptyState } from "../ui/step-states";
 
@@ -33,7 +39,14 @@ function ContractorStepSkeleton() {
 }
 
 export function SelectContractorStep() {
-  const { users, params, selectUser, isUsersPending } = useJobFormV2Context();
+  const {
+    users,
+    params,
+    selectUser,
+    isUsersPending,
+    isRefreshing,
+    refreshCurrentStep,
+  } = useJobFormV2Context();
   const [query, setQuery] = useState("");
   const listRef = useRef<ScrollView>(null);
   const positionsRef = useRef<Record<number, number>>({});
@@ -71,6 +84,12 @@ export function SelectContractorStep() {
         style={{ flex: 1 }}
         contentContainerClassName="gap-3 pb-8"
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refreshCurrentStep}
+          />
+        }
       >
         {!isUsersPending && !results.length ? (
           <StepEmptyState

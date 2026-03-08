@@ -1,5 +1,7 @@
 import { _trpc } from "@/components/static-trpc";
 import { useBuilderModelInstallsContext } from "@/hooks/use-model-install-config";
+import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
+import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
@@ -12,14 +14,47 @@ import { useMutation } from "@tanstack/react-query";
 import { ArrowRight, DollarSign, RefreshCcw } from "lucide-react";
 import { useState } from "react";
 import { Controller } from "react-hook-form";
+import { toast } from "sonner";
 import { useDebouncedCallback } from "use-debounce";
 import z from "zod";
 export function InstallConfiguration() {
-    const { tasks, installCosts } = useBuilderModelInstallsContext();
+    const { tasks, installCosts, params } = useBuilderModelInstallsContext();
+    const { setParams } = useCommunityInstallCostParams();
+    const notification = useNotificationTrigger();
+    const matchesRequestTask =
+        !!params.requestBuilderTaskId &&
+        params.selectedBuilderTaskId === params.requestBuilderTaskId;
+    const canNotifyContractor =
+        matchesRequestTask && !!params.contractorId && !!params.jobId;
+
+    const handleNotifyContractor = async () => {
+        if (!params.contractorId || !params.jobId) return;
+        await notification.jobTaskConfigured({
+            contractorId: params.contractorId,
+            jobId: params.jobId,
+        });
+        await setParams({
+            requestBuilderTaskId: null,
+            jobId: null,
+        });
+        toast.success("Contractor notified: job task is ready.");
+    };
 
     if (tasks?.length === 0) return <EmptyState />;
     return (
         <>
+            {canNotifyContractor ? (
+                <div className="mb-3 flex justify-end">
+                    <Button
+                        onClick={handleNotifyContractor}
+                        disabled={notification.isActionPending}
+                    >
+                        {notification.isActionPending
+                            ? "Notifying..."
+                            : "Notify Contractor"}
+                    </Button>
+                </div>
+            ) : null}
             <div className="">
                 <Table>
                     <Table.Header className="bg-muted hover:bg-muted uppercase">
@@ -220,4 +255,3 @@ function EmptyState() {
         </div>
     );
 }
-

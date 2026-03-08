@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   Text,
   TextInput,
@@ -56,11 +57,16 @@ export function JobDetailsStep() {
     openInstallCostStep,
     admin,
     installCostBuilderTaskId,
+    notifyContractorJobReady,
+    isNotifyingContractor,
     requestTaskConfigurationData,
     projectList,
     unitOptions,
     tabs,
     setStep,
+    isRefreshing,
+    refreshCurrentStep,
+    state,
   } = useJobFormV2Context();
   const isCustom = form.watch("isCustom") || params.builderTaskId === -1;
   const taskRows = Object.entries(
@@ -153,15 +159,6 @@ export function JobDetailsStep() {
     );
   }
 
-  if (!defaultValues) {
-    return (
-      <StepEmptyState
-        title="Details not ready"
-        description="Complete previous selections to load the detail form."
-      />
-    );
-  }
-
   if (isInstallCostStepActive) {
     return (
       <ModelInstallCostV2Step
@@ -171,6 +168,20 @@ export function JobDetailsStep() {
           (defaultValues as any)?.builderTaskId ||
           null
         }
+        requestBuilderTaskId={params.requestBuilderTaskId}
+        jobId={params.jobId}
+        contractorId={params.contractorId}
+        onNotifyContractor={notifyContractorJobReady}
+        isNotifyingContractor={isNotifyingContractor}
+      />
+    );
+  }
+
+  if (!defaultValues) {
+    return (
+      <StepEmptyState
+        title="Details not ready"
+        description="Complete previous selections to load the detail form."
       />
     );
   }
@@ -188,6 +199,12 @@ export function JobDetailsStep() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         automaticallyAdjustKeyboardInsets
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refreshCurrentStep}
+          />
+        }
       >
         <NeoCard className="bg-card">
           <Text className="text-xs uppercase tracking-[1px] text-muted-foreground">
@@ -290,9 +307,11 @@ export function JobDetailsStep() {
                     <Text className="text-xs font-semibold uppercase text-foreground">
                       {task?.title || uid}
                     </Text>
-                    <Text className="text-[11px] text-muted-foreground">
-                      Max: {task?.maxQty || 0}
-                    </Text>
+                    {state.showTaskQty ? (
+                      <Text className="text-[11px] text-muted-foreground">
+                        Max: {task?.maxQty || 0}
+                      </Text>
+                    ) : null}
                   </View>
                   <Text className="w-16 text-right text-xs text-muted-foreground">
                     ${Number(task?.cost || 0).toFixed(2)}
@@ -322,7 +341,7 @@ export function JobDetailsStep() {
                           placeholder="0"
                           placeholderTextColor="hsl(var(--muted-foreground))"
                         />
-                        {admin ? (
+                        {state.showTaskQty && admin ? (
                           <Text className="mt-1 text-center text-[10px] text-muted-foreground">
                             / {task?.maxQty || 0}
                           </Text>

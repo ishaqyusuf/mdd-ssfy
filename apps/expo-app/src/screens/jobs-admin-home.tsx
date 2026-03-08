@@ -13,8 +13,14 @@ import {
 } from "@/context/home-context";
 import { LegendList } from "@legendapp/list";
 import { useQuery } from "@tanstack/react-query";
-import { useLocalSearchParams, useRouter } from "expo-router";
 import { View } from "react-native";
+import { useCallback } from "react";
+
+type AdminAnalytics = {
+  approvedThisMonth?: number | null;
+  jobsPendingApproval?: number | null;
+  jobsInProgress?: number | null;
+};
 export function JobsAdminHome() {
   return (
     <HomeProvider
@@ -35,7 +41,12 @@ export function JobsAdminHome() {
 }
 function Content() {
   const { jobsCtx } = useHomeContext();
-  const params = useLocalSearchParams();
+  const { data: analytics, isRefetching, refetch } = useQuery(
+    _trpc.jobs.adminAnalytics.queryOptions({}),
+  );
+  const onRefresh = useCallback(async () => {
+    await Promise.all([jobsCtx?.actions?.refetch?.(), refetch()]);
+  }, [jobsCtx?.actions, refetch]);
 
   return (
     <View className="gap-4 flex-1">
@@ -47,7 +58,7 @@ function Content() {
         // scrollEventThrottle={16}
         ListHeaderComponent={
           <View className="gap-4 px-4 my-4">
-            <StatsGrid />
+            <StatsGrid data={analytics} />
             <View className="flex-row justify-between items-center px-1">
               <Text className="text-lg font-bold text-foreground">
                 Recent Jobs
@@ -64,6 +75,8 @@ function Content() {
           </View>
         }
         data={jobsCtx?.items || []}
+        onRefresh={onRefresh}
+        refreshing={jobsCtx?.state?.isRefetching || isRefetching}
         renderItem={({ item }) => (
           <>
             <JobsItem item={item} />
@@ -76,10 +89,7 @@ function Content() {
     </View>
   );
 }
-function StatsGrid() {
-  const router = useRouter();
-
-  const { data } = useQuery(_trpc.jobs.adminAnalytics.queryOptions({}));
+function StatsGrid({ data }: { data?: AdminAnalytics }) {
   return (
     <View className="flex-row flex-wrap gap-4 mb-8">
       {/* Pending Card */}

@@ -113,6 +113,19 @@ export function createNotificationChannelTriggers(
 				recipients: resolvedRecipients,
 			});
 		},
+		jobTaskConfigured(input: Input<"job_task_configured">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+				makeRecipients("employee", payload.contractorId),
+			);
+			return options.send("job_task_configured", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
 		salesEmailReminder(input: Input<"sales_email_reminder">) {
 			const { recipients, author, ...payload } = input;
 			const resolvedRecipients = resolveRecipients(

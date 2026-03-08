@@ -21,6 +21,7 @@ import { jobAssigned } from "./types/job-assigned";
 import { jobRejected } from "./types/job-rejected";
 import { jobReviewRequested } from "./types/job-review-requested";
 import { jobSubmitted } from "./types/job-submitted";
+import { jobTaskConfigured } from "./types/job-task-configured";
 import { jobTaskConfigureRequest } from "./types/job-tasks-configure-request";
 import { salesDispatchAssigned } from "./types/sales-dispatch-assigned";
 import { salesDispatchCancelled } from "./types/sales-dispatch-cancelled";
@@ -38,6 +39,7 @@ const handlers = {
   job_rejected: jobRejected,
   job_review_requested: jobReviewRequested,
   job_task_configure_request: jobTaskConfigureRequest,
+  job_task_configured: jobTaskConfigured,
   sales_dispatch_assigned: salesDispatchAssigned,
   sales_dispatch_queued: salesDispatchQueued,
   sales_dispatch_cancelled: salesDispatchCancelled,

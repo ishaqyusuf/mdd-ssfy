@@ -65,8 +65,11 @@ export function NotificationCenterScreen() {
           admin: "true",
           action: "update",
           step: "5",
+          _jobId: String(data.jobId),
+          _contractorId: String(data.contractorId),
           _modelId: String(data.modelId),
           _builderTaskId: String(data.builderTaskId),
+          _requestBuilderTaskId: String(data.builderTaskId),
         },
       } as any);
       Toast.show(

@@ -36,11 +36,13 @@ export function NotificationCenter() {
 		job_task_configure_request: (data, _notification, context) => {
 			context.close();
 			const params = new URLSearchParams({
+				mode: "v2",
 				view: "template-edit",
-				editCommunityModelInstallCostId: String(
-					data.communityModelInstallCostId,
-				),
+				editCommunityModelInstallCostId: String(data.modelId),
 				selectedBuilderTaskId: String(data.builderTaskId),
+				requestBuilderTaskId: String(data.builderTaskId),
+				jobId: String(data.jobId),
+				contractorId: String(data.contractorId),
 			});
 			router.push(`/community/template-schema?${params.toString()}`);
 			toast.info(

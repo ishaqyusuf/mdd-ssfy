@@ -2,7 +2,13 @@ import { SearchInput } from "@/components/search-input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useJobFormV2Context } from "@/hooks/use-job-form-v2";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+  RefreshControl,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { NeoCard } from "../ui/neo-card";
 import { StepEmptyState } from "../ui/step-states";
 
@@ -30,7 +36,15 @@ function TaskStepSkeleton() {
 }
 
 export function SelectTaskStep() {
-  const { params, taskOptions, selectTask, isTasksPending } = useJobFormV2Context();
+  const {
+    params,
+    taskOptions,
+    selectTask,
+    isTasksPending,
+    isRefreshing,
+    refreshCurrentStep,
+    state,
+  } = useJobFormV2Context();
   const [query, setQuery] = useState("");
   const listRef = useRef<ScrollView>(null);
   const positionsRef = useRef<Record<string, number>>({});
@@ -68,19 +82,27 @@ export function SelectTaskStep() {
         style={{ flex: 1 }}
         contentContainerClassName="gap-3 pb-8"
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refreshCurrentStep}
+          />
+        }
       >
-        <TouchableOpacity
-          className="active:opacity-85"
-          onPress={() => selectTask(-1)}
-          onLayout={(event) => {
-            positionsRef.current[String(-1)] = event.nativeEvent.layout.y;
-          }}
-        >
-          <NeoCard className={params.builderTaskId === -1 ? "border-primary bg-primary/10" : "bg-card"}>
-            <Text className="text-sm font-black text-foreground">Custom Task</Text>
-            <Text className="text-xs text-muted-foreground">Create a one-off job with manual pricing.</Text>
-          </NeoCard>
-        </TouchableOpacity>
+        {state.allowCustomJobs ? (
+          <TouchableOpacity
+            className="active:opacity-85"
+            onPress={() => selectTask(-1)}
+            onLayout={(event) => {
+              positionsRef.current[String(-1)] = event.nativeEvent.layout.y;
+            }}
+          >
+            <NeoCard className={params.builderTaskId === -1 ? "border-primary bg-primary/10" : "bg-card"}>
+              <Text className="text-sm font-black text-foreground">Custom Task</Text>
+              <Text className="text-xs text-muted-foreground">Create a one-off job with manual pricing.</Text>
+            </NeoCard>
+          </TouchableOpacity>
+        ) : null}
 
         {!params.projectId ? (
           <StepEmptyState
@@ -92,7 +114,11 @@ export function SelectTaskStep() {
         {!!params.projectId && !isTasksPending && !results.length ? (
           <StepEmptyState
             title="No task templates found"
-            description="Use Custom Task or configure builder task templates."
+            description={
+              state.allowCustomJobs
+                ? "Use Custom Task or configure builder task templates."
+                : "Configure builder task templates for this project."
+            }
           />
         ) : null}
 

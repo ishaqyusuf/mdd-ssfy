@@ -42,8 +42,10 @@ export interface JobFormV2Params {
   redirectStep: number | null;
   projectId: number | null;
   jobId: number | null;
+  contractorId: number | null;
   unitId: number | null;
   builderTaskId: number | null;
+  requestBuilderTaskId: number | null;
   userId: number | null;
   modelId: number | null;
   admin?: boolean;
@@ -61,8 +63,10 @@ export function useJobFormV2Params() {
       redirectStep: parseInteger(params.redirectStep),
       projectId: parseInteger(params._projectId),
       jobId: parseInteger(params._jobId),
+      contractorId: parseInteger(params._contractorId),
       unitId: parseInteger(params._unitId),
       builderTaskId: parseInteger(params._builderTaskId),
+      requestBuilderTaskId: parseInteger(params._requestBuilderTaskId),
       userId: parseInteger(params._userId),
       modelId: parseInteger(params._modelId),
       admin: parseBoolean(params.admin),
@@ -78,8 +82,10 @@ export function useJobFormV2Params() {
       redirectStep: undefined,
       _projectId: undefined,
       _jobId: undefined,
+      _contractorId: undefined,
       _unitId: undefined,
       _builderTaskId: undefined,
+      _requestBuilderTaskId: undefined,
       _userId: undefined,
       _modelId: undefined,
       admin: undefined,
@@ -108,11 +114,17 @@ export function useJobFormV2Params() {
       if (Object.prototype.hasOwnProperty.call(newParams, "jobId")) {
         next._jobId = stringifyInteger(newParams.jobId);
       }
+      if (Object.prototype.hasOwnProperty.call(newParams, "contractorId")) {
+        next._contractorId = stringifyInteger(newParams.contractorId);
+      }
       if (Object.prototype.hasOwnProperty.call(newParams, "unitId")) {
         next._unitId = stringifyInteger(newParams.unitId);
       }
       if (Object.prototype.hasOwnProperty.call(newParams, "builderTaskId")) {
         next._builderTaskId = stringifyInteger(newParams.builderTaskId);
+      }
+      if (Object.prototype.hasOwnProperty.call(newParams, "requestBuilderTaskId")) {
+        next._requestBuilderTaskId = stringifyInteger(newParams.requestBuilderTaskId);
       }
       if (Object.prototype.hasOwnProperty.call(newParams, "userId")) {
         next._userId = stringifyInteger(newParams.userId);

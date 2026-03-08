@@ -25,11 +25,18 @@ export function MissingTasksConfig({ form }) {
 
     const handleConfigureTask = () => {
         if (!jobFormParams.modelId) return;
+        const jobBuilderTaskId =
+            defaultValues?.builderTaskId || jobFormParams.builderTaskId || null;
+        const contractorId =
+            jobFormParams.userId ?? defaultValues?.user?.id ?? null;
         setInstallCostParams({
             editCommunityModelInstallCostId: jobFormParams.modelId,
             mode: "v2",
             view: "template-list",
-            selectedBuilderTaskId: defaultValues?.builderTaskId || null,
+            selectedBuilderTaskId: jobBuilderTaskId,
+            requestBuilderTaskId: jobBuilderTaskId,
+            contractorId,
+            jobId: jobFormParams.jobId ?? null,
             jobPayload,
         });
         setJobFormParams(null);

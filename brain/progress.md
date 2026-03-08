@@ -7,3 +7,5 @@
 - Established disciplined NOW/NEXT/LATER structure with NOW capped to 3 tasks.
 - Added feature-focused Expo jobs-flow task plan (notifications, installer config deep-link, settings, submission notifications, gesture fix, role/status action matrix).
 - Added Expo sales and dispatch module task plan (delivery form + API + notification, infinite sales list, quotes feature, packing update submit flow).
+- Added web sales form backlog task for Google autocomplete address integration.
+- Reprioritized NOW tasks to include immediate testing of sales customer reminder email schedule.

@@ -5,7 +5,13 @@ import { useJobFormV2Context } from "@/hooks/use-job-form-v2";
 import { _trpc } from "@/components/static-trpc";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+  RefreshControl,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { NeoCard } from "../ui/neo-card";
 import { StepEmptyState } from "../ui/step-states";
 
@@ -35,8 +41,14 @@ function UnitStepSkeleton() {
 }
 
 export function SelectUnitStep() {
-  const { unitOptions, params, selectUnit, isUnitsPending } =
-    useJobFormV2Context();
+  const {
+    unitOptions,
+    params,
+    selectUnit,
+    isUnitsPending,
+    isRefreshing,
+    refreshCurrentStep,
+  } = useJobFormV2Context();
   const [query, setQuery] = useState("");
   const [generatingUnitId, setGeneratingUnitId] = useState<number | null>(null);
   const listRef = useRef<ScrollView>(null);
@@ -97,6 +109,12 @@ export function SelectUnitStep() {
         style={{ flex: 1 }}
         contentContainerClassName="gap-3 pb-8"
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={refreshCurrentStep}
+          />
+        }
       >
         {!params.projectId ? (
           <StepEmptyState
