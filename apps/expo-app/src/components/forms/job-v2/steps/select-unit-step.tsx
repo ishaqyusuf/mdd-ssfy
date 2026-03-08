@@ -127,8 +127,9 @@ export function SelectUnitStep() {
                       unitId: unit.id,
                     });
                     nextModelId = generated?.modelId || null!;
+                    console.log("Selected unit with model ID:", nextModelId);
                   }
-
+                  // return;
                   selectUnit({
                     id: unit.id,
                     modelId: nextModelId,

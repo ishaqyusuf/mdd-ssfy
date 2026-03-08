@@ -548,13 +548,17 @@ export const communityRouters = createTRPCRouter({
         const notification = new NotificationService(tasks, ctx);
 
         if (input.requestTaskConfig) {
-          notification.channel.jobTaskConfigureRequest({
+          if (!input.builderTaskId) {
+            throw new Error(
+              "builderTaskId is required for requestTaskConfig",
+            );
+          }
+          await notification.channel.jobTaskConfigureRequest({
             contractorId: job?.user?.id!,
             modelName: job?.home?.modelName || "",
             projectName: job?.project?.title || "",
             builderName: job?.project?.builder?.name || "",
-            modelId: input?.modelId,
-            // communityModelInstallCostId,
+            modelId: input.modelId,
             builderTaskId: input.builderTaskId!,
           });
         } else if (isContractorCreator)

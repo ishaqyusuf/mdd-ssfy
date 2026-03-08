@@ -97,16 +97,9 @@ export function createNotificationChannelTriggers(
 			});
 		},
 		jobTaskConfigureRequest(input: Input<"job_task_configure_request">) {
-			const {
-				recipients,
-				author,
-				communityModelInstallCostId,
-				builderTaskId,
-				...payloadRest
-			} = input;
+			const { recipients, author, builderTaskId, ...payloadRest } = input;
 			const payload = {
 				...payloadRest,
-				communityModelInstallCostId,
 				builderTaskId,
 			};
 			const resolvedRecipients = resolveRecipients(

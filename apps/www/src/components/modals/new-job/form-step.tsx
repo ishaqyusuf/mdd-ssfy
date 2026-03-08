@@ -6,7 +6,7 @@ import { useTRPC } from "@/trpc/client";
 import { Building2, CheckCircle2, Home, User } from "lucide-react";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { useZodForm } from "@/hooks/use-zod-form";
-import { JobFormSchema } from "@community/schema";
+import { jobFormSchema, JobFormSchema } from "@community/schema";
 import { Controller, useFieldArray } from "react-hook-form";
 import { handleNumberInput, percentageValue, sum } from "@gnd/utils";
 import { Card, Field, InputGroup, Item } from "@gnd/ui/namespace";
@@ -63,7 +63,7 @@ function FormContent() {
     const { defaultValues, markAsComplete, setMarkAsComplete } =
         useJobFormContext();
     const { ...params } = useJobFormParams();
-    const form = useZodForm(jobFormShema, {
+    const form = useZodForm(jobFormSchema, {
         defaultValues: {
             ...((defaultValues as any) || {}),
             unit: {
@@ -72,6 +72,7 @@ function FormContent() {
             user: {
                 id: params.userId,
             },
+            modelId: params.modelId,
         },
     });
     if (!defaultValues) return null;
@@ -141,7 +142,9 @@ function FormContent() {
                                 render={({ field }) => (
                                     <Field orientation="horizontal">
                                         <Checkbox
-                                            disabled={params.builderTaskId === -1}
+                                            disabled={
+                                                params.builderTaskId === -1
+                                            }
                                             checked={field.value}
                                             onCheckedChange={field.onChange}
                                             id="isCustomTask"
@@ -329,3 +332,4 @@ function FormContent() {
         </>
     );
 }
+

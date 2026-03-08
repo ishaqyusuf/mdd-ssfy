@@ -56,8 +56,6 @@ export function JobDetailsStep() {
     openInstallCostStep,
     admin,
     installCostBuilderTaskId,
-    requestTaskConfiguration,
-    isRequestingTaskConfiguration,
     requestTaskConfigurationData,
     projectList,
     unitOptions,
@@ -115,30 +113,9 @@ export function JobDetailsStep() {
                 Community model configuration missing
               </Text>
               <Text className="mt-2 text-sm text-muted-foreground">
-                Notify admin for configuration.
+                Model ID is required to send a configuration request. Contact
+                admin to configure this unit model first.
               </Text>
-              <Pressable
-                onPress={requestTaskConfiguration}
-                className="mt-4 flex-row items-center justify-center rounded-2xl bg-primary px-4 py-3 active:opacity-90"
-                disabled={isRequestingTaskConfiguration}
-              >
-                <Icon
-                  name="Mail"
-                  className="text-primary-foreground"
-                  size={16}
-                />
-                <Text className="ml-2 font-semibold text-primary-foreground">
-                  {isRequestingTaskConfiguration
-                    ? "Notifying..."
-                    : "Notify Admin"}
-                </Text>
-              </Pressable>
-              {requestTaskConfigurationData?.id ? (
-                <Text className="mt-3 text-xs text-muted-foreground">
-                  Admins notified successful. You will be notified when the
-                  configuration is available.
-                </Text>
-              ) : null}
             </>
           )}
         </NeoCard>

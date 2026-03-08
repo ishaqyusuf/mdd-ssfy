@@ -261,23 +261,15 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
         });
         // setSavedData(data as any);
         if (args?.requestTaskConfig) {
-          // notification
-          //   .jobTaskConfigureRequest({
-          //     builderName: defaultValues?.unit?.builderName!,
-          //     modelName: defaultValues?.unit?.modelName!,
-          //     projectName: defaultValues?.project?.title,
-          //     contractorId: auth?.profile?.user?.id,
-          //   })
-          //   .catch(() => undefined);
-          // Toast.show(
-          //   "Job saved and configuration request submitted. You will be notified via email and app. You can finish job form and submit once notified.",
-          //   {
-          //     type: "success",
-          //   },
-          // );
+          Toast.show(
+            "Job saved and configuration request submitted. You will be notified via email and app. You can finish job form and submit once notified.",
+            {
+              type: "success",
+            },
+          );
           return;
         }
-        // setCompleted(true);
+        setCompleted(true);
       },
       meta: {
         toastTitle: {
@@ -409,27 +401,27 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
       costing?: Record<string, number | string>;
     }) => {
       const homeId = unit.id === -1 ? null : unit.id;
-      const subtitle = [unit.modelName, `lot:${unit.lot}`, `blk:${unit.block}`]
-        .filter(Boolean)
-        .join(" ")
-        .trim();
+      // const subtitle = [unit.modelName, `lot:${unit.lot}`, `blk:${unit.block}`]
+      //   .filter(Boolean)
+      //   .join(" ")
+      //   .trim();
 
       // form.setValue("homeId", homeId as any);
       // form.setValue("subtitle", subtitle || null);
 
-      const nextTasks = Object.fromEntries(
-        Object.entries(unit.costing || {})
-          .filter(([uid, value]) => !!uid && !!value)
-          .map(([uid, value]) => [
-            uid,
-            {
-              maxQty: +value,
-              qty: null,
-              cost: costData?.data?.list?.find((item) => item.uid === uid)
-                ?.cost,
-            },
-          ]),
-      );
+      // const nextTasks = Object.fromEntries(
+      //   Object.entries(unit.costing || {})
+      //     .filter(([uid, value]) => !!uid && !!value)
+      //     .map(([uid, value]) => [
+      //       uid,
+      //       {
+      //         maxQty: +value,
+      //         qty: null,
+      //         cost: costData?.data?.list?.find((item) => item.uid === uid)
+      //           ?.cost,
+      //       },
+      //     ]),
+      // );
 
       // form.setValue("tasks", nextTasks as any);
 
@@ -578,6 +570,18 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 
   const requestTaskConfiguration = useCallback(() => {
     setSavedData(null);
+    if (!defaultValues?.builderTaskId) {
+      Toast.show("Builder task is required before requesting configuration.", {
+        type: "error",
+      });
+      return;
+    }
+    if (!params.modelId) {
+      Toast.show("Model is required before requesting configuration.", {
+        type: "error",
+      });
+      return;
+    }
     const payload = buildSaveJobFormPayload({
       requestTaskConfig: true,
     });
@@ -590,7 +594,12 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
     // console.log("Requesting task configuration with payload:", payload);
     // return;
     saveJobForm(payload);
-  }, [buildSaveJobFormPayload, saveJobForm]);
+  }, [
+    buildSaveJobFormPayload,
+    defaultValues?.builderTaskId,
+    params.modelId,
+    saveJobForm,
+  ]);
 
   const openInstallCostStep = useCallback((builderTaskId?: number | null) => {
     setInstallCostBuilderTaskId(builderTaskId || null);
