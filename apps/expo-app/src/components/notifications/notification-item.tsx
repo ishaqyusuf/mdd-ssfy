@@ -12,7 +12,7 @@ export function NotificationItem({
 }: NotificationItemProps) {
   return (
     <Pressable
-      className="px-4 py-3 active:bg-muted"
+      className="px-4 py-3  active:bg-muted"
       accessibilityRole="button"
       onPress={() => {
         if (!activity.isClickable) return;
@@ -39,6 +39,11 @@ export function NotificationItem({
       <Text className="text-xs text-muted-foreground">
         {activity.description}
       </Text>
+      {activity.notificationDate ? (
+        <Text className="mt-1 text-[11px] text-muted-foreground">
+          {activity.notificationDate}
+        </Text>
+      ) : null}
       {activity.status === "unread" ? (
         <View className="mt-2 h-1.5 w-1.5 rounded-full bg-destructive" />
       ) : null}

@@ -10,6 +10,7 @@ export type RawNotificationItem = {
   subject?: string | null;
   headline?: string | null;
   createdAt?: string | Date | null;
+  created_at?: string | Date | null;
   receipt?: {
     status?: "unread" | "read" | "archived" | null;
   } | null;
@@ -39,6 +40,7 @@ export type TransformedNotification<
   title: string;
   description: string;
   createdAt?: string | Date | null;
+  notificationDate: string | null;
   status: "unread" | "read" | "archived";
   isClickable: boolean;
   action?: NotificationAction<TType>;
@@ -102,6 +104,20 @@ function parseAction(
   return undefined;
 }
 
+function formatNotificationDate(value?: string | Date | null): string | null {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
 export function transformNotifications(
   items: RawNotificationItem[],
 ): TransformedNotification[] {
@@ -109,6 +125,7 @@ export function transformNotifications(
     const tags = item.tags ?? {};
     const type = parseType(tags);
     const action = parseAction(tags);
+    const createdAt = item.createdAt ?? item.created_at ?? null;
     // console.log("Transforming notifications:", { action, tags });
 
     return {
@@ -116,7 +133,8 @@ export function transformNotifications(
       type,
       title: item.subject || "Notification",
       description: item.headline || "No details available.",
-      createdAt: item.createdAt,
+      createdAt,
+      notificationDate: formatNotificationDate(createdAt),
       status: statusFromRaw(item),
       isClickable: Boolean(action),
       action,

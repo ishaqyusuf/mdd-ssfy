@@ -14,6 +14,33 @@ type Props = {
   nameMode?: "full" | "first_uppercase";
 };
 
+type NotificationButtonProps = {
+  showNotificationDot: boolean;
+  onPress: () => void;
+};
+
+function NotificationButton({
+  showNotificationDot,
+  onPress,
+}: NotificationButtonProps) {
+  return (
+    <Pressable onPress={onPress} className="relative rounded-full p-2 active:bg-muted">
+      <Icon name="Bell" className="text-foreground" size={22} />
+      {showNotificationDot ? (
+        <View className="absolute right-2 top-2 h-2 w-2 rounded-full border border-card bg-destructive" />
+      ) : null}
+    </Pressable>
+  );
+}
+
+function SettingsButton() {
+  return (
+    <Pressable href="/settings" className="rounded-full p-2 active:bg-muted">
+      <Icon name="Settings" className="" size={20} />
+    </Pressable>
+  );
+}
+
 export function GeneralHomeHeader({
   showNotificationDot = true,
   onRightPress,
@@ -58,7 +85,8 @@ export function GeneralHomeHeader({
           </View>
         </View>
         <View className="flex-1" />
-        <Pressable
+        <NotificationButton
+          showNotificationDot={showNotificationDot}
           onPress={() => {
             if (onRightPress) {
               onRightPress();
@@ -66,20 +94,9 @@ export function GeneralHomeHeader({
             }
             router.push("/notifications");
           }}
-          className="relative rounded-full p-2 active:bg-muted"
-        >
-          <Icon name="Bell" className="text-foreground" size={22} />
-          {showNotificationDot ? (
-            <View className="absolute right-2 top-2 h-2 w-2 rounded-full border border-card bg-destructive" />
-          ) : null}
-        </Pressable>
+        />
 
-        <Pressable
-          href="/settings"
-          className="rounded-full p-2 active:bg-muted"
-        >
-          <Icon name="Settings" className="" size={20} />
-        </Pressable>
+        <SettingsButton />
 
         {/* <View className="h-10 w-10" /> */}
       </View>

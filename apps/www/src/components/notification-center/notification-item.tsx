@@ -27,6 +27,11 @@ export function NotificationItem({ setOpen, activity, onAction }: Props) {
 					{activity.title}
 				</p>
 				<span className="text-xs text-[#606060]">{activity.description}</span>
+				{activity.notificationDate ? (
+					<p className="mt-1 text-[11px] text-[#8a8a8a]">
+						{activity.notificationDate}
+					</p>
+				) : null}
 			</div>
 		</>
 	);
