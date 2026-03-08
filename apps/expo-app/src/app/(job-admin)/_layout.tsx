@@ -29,13 +29,6 @@ export default function AuthLayout() {
       />
 
       <Stack.Screen
-        name="job/[id]"
-        options={{
-          presentation: "modal",
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
         name="settings"
         options={{
           headerShown: false,

@@ -155,19 +155,20 @@ export const jobReviewRequestedTags = actityTagsSchema.extend({
 export type JobReviewRequestedTags = z.infer<typeof jobReviewRequestedTags>;
 export const jobApprovedSchema = z.object({
   jobId: z.number(),
-  assignedToId: z.number(),
+  contractorId: z.number(),
   // approvedById: z.number().optional(),
   // approvedByName: z.string().optional(),
   note: z.string().optional(),
 });
 export const jobApprovedTags = actityTagsSchema.extend({
   jobId: z.number(),
+  contractorId: z.number(),
 });
 export type JobApprovedTags = z.infer<typeof jobApprovedTags>;
 export type JobApprovedInput = z.infer<typeof jobApprovedSchema>;
 export const jobRejectedSchema = z.object({
   jobId: z.number(),
-  assignedToId: z.number(),
+  contractorId: z.number(),
   // rejectedById: z.number().optional(),
   // rejectedByName: z.string().optional(),
   note: z.string().optional(),
@@ -175,10 +176,18 @@ export const jobRejectedSchema = z.object({
 export type JobRejectedInput = z.infer<typeof jobRejectedSchema>;
 export const jobRejectedTags = actityTagsSchema.extend({
   jobId: z.number(),
-  assignedToId: z.number(),
+  contractorId: z.number(),
   note: z.string().optional(),
 });
 export type JobRejectedTags = z.infer<typeof jobRejectedTags>;
+export const jobDeletedSchema = z.object({
+  jobId: z.number(),
+});
+export type JobDeletedInput = z.infer<typeof jobDeletedSchema>;
+export const jobDeletedTags = actityTagsSchema.extend({
+  jobId: z.number(),
+});
+export type JobDeletedTags = z.infer<typeof jobDeletedTags>;
 export const jobTaskConfigureRequestSchema = z.object({
   contractorId: z.number(),
   jobId: z.number(),
@@ -223,6 +232,7 @@ export type NotificationTypes = {
   job_review_requested: JobReviewRequestedInput;
   job_approved: JobApprovedInput;
   job_rejected: JobRejectedInput;
+  job_deleted: JobDeletedInput;
   job_task_configure_request: JobTaskConfigureRequestInput;
   job_task_configured: JobTaskConfiguredInput;
   sales_dispatch_assigned: SalesDispatchAssignedInput;
@@ -498,6 +508,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
   baseNotificationJobSchema.extend({
     channel: z.literal("job_rejected"),
     payload: jobRejectedSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("job_deleted"),
+    payload: jobDeletedSchema,
   }),
   baseNotificationJobSchema.extend({
     channel: z.literal("job_task_configure_request"),

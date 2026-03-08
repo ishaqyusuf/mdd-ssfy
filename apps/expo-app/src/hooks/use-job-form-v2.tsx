@@ -269,23 +269,32 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
   } = useMutation(
     _trpc.community.saveJobForm.mutationOptions({
       onSuccess(data, args) {
+        const savedJobId = Number((data as any)?.id);
         _qc.invalidateQueries({
           queryKey: _trpc.jobs.getJobs.queryKey(),
         });
         _qc.invalidateQueries({
           queryKey: _trpc.community.getJobForm.queryKey(),
         });
-        // setSavedData(data as any);
+        setSavedData(data as any);
         if (args?.requestTaskConfig) {
-          Toast.show(
-            "Job saved and configuration request submitted. You will be notified via email and app. You can finish job form and submit once notified.",
-            {
-              type: "success",
-            },
-          );
+          if (Number.isFinite(savedJobId) && savedJobId > 0) {
+            router.replace(`/job/${savedJobId}/alert/request-submitted` as any);
+          }
           return;
         }
-        // setCompleted(true);
+
+        if (!Number.isFinite(savedJobId) || savedJobId <= 0) {
+          return;
+        }
+
+        const alert =
+          action === "re-assign"
+            ? "re-assigned"
+            : admin
+              ? "assigned"
+              : "submitted";
+        router.replace(`/job/${savedJobId}/alert/${alert}` as any);
       },
       meta: {
         toastTitle: {
@@ -424,9 +433,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
       if (canGoBack) {
         router.back();
       } else {
-        router.replace(
-          (isAdminUser() ? "/(job-admin)" : "/(installers)") as any,
-        );
+        router.replace("/" as any);
       }
       return;
     }

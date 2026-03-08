@@ -6,6 +6,7 @@ import { _qc, _trpc } from "./static-trpc";
 import { Toast } from "./ui/toast";
 import { Controller, useForm } from "react-hook-form";
 import { editJob } from "@/lib/job";
+import { useRouter } from "expo-router";
 
 export function JobOverviewActions() {
   const ctx = useJobContext();
@@ -93,6 +94,7 @@ function DeleteJobAction() {
 }
 function ReviewJobAction() {
   const job = useComposer();
+  const router = useRouter();
   const form = useForm({
     defaultValues: {
       note: "",
@@ -104,9 +106,9 @@ function ReviewJobAction() {
         _qc.invalidateQueries({
           queryKey: _trpc.jobs.getJobs.queryKey(),
         });
-        // _qc.invalidateQueries({
-        //   queryKey: _trpc.jobs..queryKey(),
-        // });
+        if (!job.id) return;
+        const alert = variables.action === "approve" ? "approved" : "rejected";
+        router.replace(`/job/${job.id}/alert/${alert}` as any);
       },
       onError(error, variables, onMutateResult, context) {},
       meta: {

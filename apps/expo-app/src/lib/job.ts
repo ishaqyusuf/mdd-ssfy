@@ -46,19 +46,18 @@ export function editJob(job: JobLike) {
 export function openJob(job: JobLike) {
   if (!job?.id) return;
 
-  const isAdmin = isAdminUser();
-  if (job.controlId) {
-    _push?.(
-      `${isAdmin ? "/(job-admin)/job" : "/(installers)/job"}/${job.id}` as any,
-    );
-    return;
-  }
+  _push?.(`/job/${job.id}` as any);
+}
 
-  _push?.({
-    pathname: "/job-overview-v2",
-    params: {
-      jobId: String(job.id),
-      admin: isAdmin ? "true" : "false",
-    },
-  } as any);
+export function openJobAlert(
+  jobId: number | string,
+  alert:
+    | "request-submitted"
+    | "submitted"
+    | "assigned"
+    | "re-assigned"
+    | "approved"
+    | "rejected",
+) {
+  _push?.(`/job/${jobId}/alert/${alert}` as any);
 }
