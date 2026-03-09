@@ -309,7 +309,7 @@ export function JobDetailsStep() {
 
               {/* {taskRows.map(([uid, task]) => { */}
               {taskRows.map((task, uid) => {
-                // console.log(task);
+                console.log(task);
                 const qtyFieldName = `job.tasks.${uid}.qty` as const;
                 return (
                   <View

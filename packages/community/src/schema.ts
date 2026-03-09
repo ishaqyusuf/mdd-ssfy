@@ -74,6 +74,7 @@ export const jobFormSchema = z
             rate: z.number().optional().nullable(),
             qty: z.number().optional().nullable(),
             maxQty: z.number().optional().nullable(),
+            title: z.string().optional().nullable(),
           }),
         )
         .optional(),
@@ -88,7 +89,10 @@ export const jobFormSchema = z
         .nullable(),
     }),
     adminMode: z.boolean().optional().default(false),
-    action: z.enum([...JOB_FORM_ACTION_OPTIONS]).optional().default("submit"),
+    action: z
+      .enum([...JOB_FORM_ACTION_OPTIONS])
+      .optional()
+      .default("submit"),
   })
   .superRefine((data, ctx) => {
     if (data.job.isCustom) {
