@@ -330,6 +330,7 @@ function Actions({ item }: { item: Item }) {
             toast({
                 title: "Updated sales order.",
                 description: `Sales order ${item.orderId} has been updated.`,
+                variant: "success",
             });
         },
     });
@@ -349,6 +350,11 @@ function Actions({ item }: { item: Item }) {
         authorName: auth?.name!,
     });
     const triggerProductionComplete = () => {
+        toast({
+            title: "Updating production status...",
+            description: `Marking production as complete for order ${item.orderId}.`,
+            variant: "spinner",
+        });
         const payload: UpdateSalesControl = {
             meta: getMeta(),
             submitAll: {},
@@ -373,6 +379,11 @@ function Actions({ item }: { item: Item }) {
         });
     };
     const ensureDispatchAndTriggerFulfillment = () => {
+        toast({
+            title: "Updating fulfillment...",
+            description: `Marking fulfillment as complete for order ${item.orderId}.`,
+            variant: "spinner",
+        });
         if (activeDispatch?.id) {
             triggerFulfillmentComplete(activeDispatch.id);
             return;
@@ -446,7 +457,7 @@ function Actions({ item }: { item: Item }) {
                             <Menu.Item
                                 disabled={!produceable}
                                 onClick={(e) => {
-                                    e.preventDefault();
+                                    // e.preventDefault();
                                     triggerProductionComplete();
                                 }}
                             >
@@ -454,7 +465,7 @@ function Actions({ item }: { item: Item }) {
                             </Menu.Item>
                             <Menu.Item
                                 onClick={(e) => {
-                                    e.preventDefault();
+                                    // e.preventDefault();
                                     ensureDispatchAndTriggerFulfillment();
                                 }}
                             >
@@ -469,3 +480,4 @@ function Actions({ item }: { item: Item }) {
         </div>
     );
 }
+

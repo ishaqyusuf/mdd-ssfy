@@ -167,6 +167,9 @@ export async function startDispatchTask(db: Db, data: UpdateSalesControl) {
 }
 export async function submitDispatchTask(db: Db, data: UpdateSalesControl) {
   const task = data.submitDispatch!;
+  const attachmentTags = (task?.attachments ?? [])
+    .filter((a) => a.pathname)
+    .map((a) => noteTag("attachment", a.pathname));
   const response = await db.$transaction(
     async (tx) => {
       await tx.orderDelivery.update({
@@ -190,9 +193,7 @@ export async function submitDispatchTask(db: Db, data: UpdateSalesControl) {
           noteTag("salesId", data.meta.salesId),
           noteTag("deliveryId", task.dispatchId),
           noteTag("type", "dispatch" as NoteTagTypes),
-          ...task
-            ?.attachments!?.filter((a) => a.pathname)
-            ?.map((a) => noteTag("attachment", a.pathname)),
+          ...attachmentTags,
         ],
       };
       await saveNote(tx, note, data.meta.authorId);

@@ -98,8 +98,8 @@ export function useTaskTrigger(props?: Props) {
         onSuccess({ data }) {
             // if (props?.debug) console.log({ data });
             // if (data) {
-            //     setRunId(data.id);
-            //     setAccessToken(data.publicAccessToken);
+            setRunId(data.id);
+            setAccessToken(data.publicAccessToken);
             // }
             if (!props.silent) pushTask(data.id, data.publicAccessToken);
             props?.onStarted?.();
