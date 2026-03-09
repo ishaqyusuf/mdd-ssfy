@@ -7,7 +7,7 @@ const status: { [id in NonNullable<StatusVariantProps>]: string[] } = {
   secondary: ["assigned"],
   muted: [],
   success: ["approved"],
-  warn: ["submitted", "custom"],
+  warn: ["submitted", "custom", "config requested"],
 };
 export function getStatusVariant(value: string): StatusVariantProps {
   const normalized = value.toLowerCase();

@@ -12,6 +12,7 @@ type RecentJobsItemProps = {
 const statusColors: { [key: string]: string } = {
   Completed: "#10B981",
   "In Progress": "#F59E0B",
+  "Config Requested": "#F97316",
   Submitted: "#3B82F6",
   "Pending Submission": "#EF4444",
 };

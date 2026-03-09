@@ -32,6 +32,7 @@ export const JOB_STATUS_OPTIONS = [
   "Assigned",
   "Rejected",
   "Approved",
+  "Config Requested",
   "In Progress",
 ] as const;
 export type JobStatus = (typeof JOB_STATUS_OPTIONS)[number];

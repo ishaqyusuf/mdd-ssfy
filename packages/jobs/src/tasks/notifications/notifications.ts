@@ -14,6 +14,21 @@ export const notification = schemaTask({
   run: async (data) => {
     const notifications = new Notifications(db);
     const { channel, author, recipients, payload } = data;
+    if (channel === "job_task_configured") {
+      const jobId = Number((payload as { jobId?: number })?.jobId);
+      if (Number.isFinite(jobId) && jobId > 0) {
+        await db.jobs.updateMany({
+          where: {
+            id: jobId,
+            status: "Config Requested",
+          },
+          data: {
+            status: "In Progress",
+            statusDate: new Date(),
+          },
+        });
+      }
+    }
     logger.info("Triggering notification with data:", {
       channel,
       author,

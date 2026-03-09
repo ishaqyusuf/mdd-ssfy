@@ -414,7 +414,7 @@ export const communityRouters = createTRPCRouter({
       const action = input.action as JobFormAction;
       const resolvedStatus = (() => {
         if (input.requestTaskConfig || action === "request-task-config") {
-          return "In Progress" as JobStatus;
+          return "Config Requested" as JobStatus;
         }
         if (action === "submit") return "Submitted" as JobStatus;
         if (action === "re-assign") return "Assigned" as JobStatus;

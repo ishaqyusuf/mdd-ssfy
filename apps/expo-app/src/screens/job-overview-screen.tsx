@@ -11,7 +11,6 @@ import {
   useCreateJobContext,
   useJobContext,
 } from "@/hooks/use-job";
-import { useJobTaskList } from "@/hooks/use-job-task-list";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@gnd/utils";
 import { formatDate } from "@gnd/utils/dayjs";
@@ -107,8 +106,48 @@ function InfoCard() {
 
 function TasksAndChargesCard() {
   const { job } = useJobContext();
-  const { costData } = job?.meta || {};
-  const { tasks } = useJobTaskList(costData);
+  const tasks =
+    (job?.tasks as
+      | {
+          title?: string;
+          reason?: string;
+          qty?: number;
+          unitCost?: number;
+          rate?: number;
+          total?: number;
+          cost?: number;
+        }[]
+      | undefined) || [];
+
+  const rows = [
+    ...tasks.map((task, index) => {
+      const qty = Number(task?.qty || 0);
+      const unitCost = Number(task?.rate ?? task?.unitCost ?? 0);
+      const total = Number(task?.total ?? task?.cost ?? unitCost * qty);
+      return {
+        id: `task-${index}`,
+        title: task?.title || "Task",
+        reason: task?.reason || "",
+        qty,
+        unitCost,
+        cost: total,
+      };
+    }),
+    ...(Number(job?.meta?.additional_cost || 0) > 0
+      ? [
+          {
+            id: "extra",
+            title: "Additional Cost",
+            reason: job?.meta?.additionalCostReason || "-",
+            qty: 1,
+            unitCost: Number(job?.meta?.additional_cost || 0),
+            cost: Number(job?.meta?.additional_cost || 0),
+          },
+        ]
+      : []),
+  ]
+    .filter((a) => Number(a.qty || 0) > 0)
+    .filter((a) => Number(a.cost || 0) > 0);
   return (
     <View className="bg-card rounded-4xl overflow-hidden border border-border">
       <View className="p-6 pb-2 border-b border-border flex-row justify-between items-center bg-background/50">
@@ -118,21 +157,19 @@ function TasksAndChargesCard() {
         <Icon name="ReceiptText" className="text-muted-foreground" />
       </View>
       <View className="p-6 flex flex-col gap-6">
-        {[
-          // ...(tasks || []),
-          ...(job?.tasks || []),
-          !job?.meta?.additional_cost || {
-            title: "Additional Cost",
-            reason: job?.meta?.additionalCostReason || "-",
-            cost: job?.meta?.additional_cost,
-            uid: "extra",
-          },
-        ]
-          ?.filter(Boolean)
-          ?.filter((a) => a?.qty)
-          .map((task, tId) => (
+        {rows.length === 0 ? (
+          <View className="rounded-2xl border border-dashed border-border bg-background/50 p-4">
+            <Text className="text-sm font-semibold text-foreground">
+              No tasks available
+            </Text>
+            <Text className="mt-1 text-xs text-muted-foreground">
+              This job has no submitted task items yet.
+            </Text>
+          </View>
+        ) : (
+          rows.map((task) => (
             <View
-              key={tId}
+              key={task.id}
               className="flex-row justify-between items-start gap-4"
             >
               <View className="flex-1">
@@ -157,7 +194,8 @@ function TasksAndChargesCard() {
                 ${formatMoney(task?.cost)}
               </Text>
             </View>
-          ))}
+          ))
+        )}
 
         {/* This section uses 'destructive' tokens to represent the warning state */}
 

@@ -15,7 +15,14 @@ export function JobFooterContractor() {
   const { bottom } = useSafeAreaInsets();
   const ctx = useJobContext();
   const status = ctx.job?.status || "";
-  const isSubmittable = ["Assigned", "In Progress"].includes(status);
+  const isSubmittable = [
+    "Assigned",
+    "In Progress",
+    "Config Requested",
+    "Submitted",
+  ].includes(status);
+  const isSubmitDisabled = status === "Config Requested";
+  const submitLabel = status === "Submitted" ? "Update Submission" : "Submit";
   const { mutate: deleteJob, isPending: isDeleting } = useMutation(
     _trpc.jobs.deleteJob.mutationOptions({
       onSuccess() {
@@ -39,15 +46,25 @@ export function JobFooterContractor() {
           <View className="flex-col w-full px-5 py-1 gap-4 max-w-lg mx-auto">
             <View className="flex-row items-center gap-3">
               <Pressable
+                disabled={isSubmitDisabled}
                 onPress={() => {
+                  if (isSubmitDisabled) return;
                   editJob(ctx?.job as any);
                 }}
                 className={cn(
-                  "flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-success h-14",
+                  "flex-1 flex-row items-center justify-center gap-2 rounded-xl h-14",
+                  isSubmitDisabled ? "bg-muted" : "bg-success",
                 )}
               >
-                <Text className="text-success-foreground text-lg font-bold">
-                  Submit
+                <Text
+                  className={cn(
+                    "text-lg font-bold",
+                    isSubmitDisabled
+                      ? "text-muted-foreground"
+                      : "text-success-foreground",
+                  )}
+                >
+                  {submitLabel}
                 </Text>
               </Pressable>
               <Pressable

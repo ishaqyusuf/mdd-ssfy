@@ -20,6 +20,7 @@ export function JobV2Footer() {
     params,
     handleSubmit,
     isSaving,
+    isConfigRequestedStatus,
     hasMissingTaskConfiguration,
     isInstallCostStepActive,
     closeInstallCostStep,
@@ -69,10 +70,14 @@ export function JobV2Footer() {
           <Button
             onPress={handleSubmit}
             className="rounded-2xl bg-primary px-5"
-            disabled={isSaving}
+            disabled={isSaving || isConfigRequestedStatus}
           >
             <Text className="text-primary-foreground">
-              {isSaving ? "Submitting..." : "Submit Job"}
+              {isSaving
+                ? "Submitting..."
+                : isConfigRequestedStatus
+                  ? "Waiting Config"
+                  : "Submit Job"}
             </Text>
           </Button>
         ) : null}

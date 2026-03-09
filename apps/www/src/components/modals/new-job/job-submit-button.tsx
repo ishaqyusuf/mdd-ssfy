@@ -23,6 +23,9 @@ export function JobSubmitButton({
     ...buttonProps
 }: Props & Omit<React.ComponentProps<typeof Button>, "form">) {
     const { defaultValues, markAsComplete } = useJobFormContext();
+    const isConfigRequestedStatus =
+        String(defaultValues?.job?.status || "").toLowerCase() ===
+        "config requested";
     const { mutate: saveJob, isPending: isSaving } = useMutation(
         useTRPC().community.saveJobForm.mutationOptions({
             onSuccess(data, args) {
@@ -57,6 +60,7 @@ export function JobSubmitButton({
             onSubmit={form.handleSubmit(
                 // @ts-ignore
                 (values: JobFormSchema) => {
+                    if (isConfigRequestedStatus) return;
                     values.requestTaskConfig = submitAsTaskRequest;
                     if (values.requestTaskConfig) {
                         values.action = "request-task-config";
@@ -77,13 +81,23 @@ export function JobSubmitButton({
                 },
             )}
         >
-            <SubmitButton isSubmitting={isSaving} {...buttonProps}>
+            <SubmitButton
+                isSubmitting={isSaving}
+                disabled={isConfigRequestedStatus}
+                {...buttonProps}
+            >
                 {Trigger ? (
                     Trigger
                 ) : (
                     <div className="flex gap-2 items-center">
                         <CheckCircle2 className="size-4" />
-                        <span>{markAsComplete ? "Submit" : "Assign"}</span>
+                        <span>
+                            {isConfigRequestedStatus
+                                ? "Waiting Config"
+                                : markAsComplete
+                                  ? "Submit"
+                                  : "Assign"}
+                        </span>
                     </div>
                 )}
             </SubmitButton>

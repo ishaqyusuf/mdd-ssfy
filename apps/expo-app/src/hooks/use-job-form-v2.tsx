@@ -630,7 +630,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
       if (isCustom) status = "Submitted";
       if (defaultJob.id && status === "Assigned") status = "Submitted";
       if (!admin && status === "Started") status = "Submitted";
-      if (requestTaskConfig) status = "In Progress";
+      if (requestTaskConfig) status = "Config Requested";
 
       return {
         adminMode: admin,
@@ -804,6 +804,12 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
   const clearRequestTaskConfigurationState = useCallback(() => {
     // setSavedData(null);
   }, []);
+  const isConfigRequestedStatus = useMemo(() => {
+    return (
+      String((defaultValues as any)?.job?.status || "").toLowerCase() ===
+      "config requested"
+    );
+  }, [defaultValues]);
 
   const reset = useCallback(() => {
     setCompleted(false);
@@ -862,6 +868,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
     handleSubmit,
     isSaving,
     isReAssigning,
+    isConfigRequestedStatus,
     // savedData,
     isRequestingTaskConfiguration: isSaving,
     // requestTaskConfigurationData: savedData,

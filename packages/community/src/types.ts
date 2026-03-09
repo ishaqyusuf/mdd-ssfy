@@ -317,6 +317,7 @@ export type JobStatus =
   | "Assigned"
   | "Rejected"
   | "Approved"
+  | "Config Requested"
   | "In Progress";
 export interface InstallCostMeta {
   list: InstallCostLine[];
