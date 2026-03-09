@@ -343,45 +343,38 @@ function Actions({ item }: { item: Item }) {
             },
         }),
     );
-    const triggerDispatchAction = (
-        action: "production" | "fulfillment",
-        dispatchId: number,
-        dispatchStatus?: string,
-    ) => {
+    const getMeta = () => ({
+        salesId: item.id,
+        authorId: auth?.id!,
+        authorName: auth?.name!,
+    });
+    const triggerProductionComplete = () => {
         const payload: UpdateSalesControl = {
-            meta: {
-                salesId: item.id,
-                authorId: auth?.id!,
-                authorName: auth?.name!,
-            },
-            ...(action === "production"
-                ? {
-                      packItems: {
-                          dispatchId,
-                          dispatchStatus: (dispatchStatus || "queue") as any,
-                          packMode: "all",
-                      },
-                  }
-                : {
-                      markAsCompleted: {
-                          dispatchId,
-                          receivedBy: auth?.name || "System",
-                          receivedDate: new Date(),
-                      },
-                  }),
+            meta: getMeta(),
+            submitAll: {},
         };
         trigger({
             taskName: "update-sales-control",
             payload,
         });
     };
-    const ensureDispatchAndTrigger = (action: "production" | "fulfillment") => {
+    const triggerFulfillmentComplete = (dispatchId: number) => {
+        const payload: UpdateSalesControl = {
+            meta: getMeta(),
+            markAsCompleted: {
+                dispatchId,
+                receivedBy: auth?.name || "System",
+                receivedDate: new Date(),
+            },
+        };
+        trigger({
+            taskName: "update-sales-control",
+            payload,
+        });
+    };
+    const ensureDispatchAndTriggerFulfillment = () => {
         if (activeDispatch?.id) {
-            triggerDispatchAction(
-                action,
-                activeDispatch.id,
-                activeDispatch.status,
-            );
+            triggerFulfillmentComplete(activeDispatch.id);
             return;
         }
         createDispatch(
@@ -393,7 +386,7 @@ function Actions({ item }: { item: Item }) {
             },
             {
                 onSuccess(dispatch) {
-                    triggerDispatchAction(action, dispatch.id, dispatch.status);
+                    triggerFulfillmentComplete(dispatch.id);
                 },
             },
         );
@@ -454,7 +447,7 @@ function Actions({ item }: { item: Item }) {
                                 disabled={!produceable}
                                 onClick={(e) => {
                                     e.preventDefault();
-                                    ensureDispatchAndTrigger("production");
+                                    triggerProductionComplete();
                                 }}
                             >
                                 Production Complete
@@ -462,7 +455,7 @@ function Actions({ item }: { item: Item }) {
                             <Menu.Item
                                 onClick={(e) => {
                                     e.preventDefault();
-                                    ensureDispatchAndTrigger("fulfillment");
+                                    ensureDispatchAndTriggerFulfillment();
                                 }}
                             >
                                 Fulfillment Complete
@@ -476,4 +469,3 @@ function Actions({ item }: { item: Item }) {
         </div>
     );
 }
-
