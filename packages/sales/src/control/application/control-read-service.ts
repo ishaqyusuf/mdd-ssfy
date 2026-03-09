@@ -19,10 +19,13 @@ export class ControlReadService implements ControlReadServiceContract {
     fields: SalesControlField[] = SALES_LIST_MINIMAL_FIELDS,
   ): Promise<Array<T & { control: ReturnType<typeof projectSalesListControl> }>> {
     const enriched = await withSalesControl(rows, this.db);
-    return enriched.map((row) => ({
-      ...row,
-      control: projectSalesListControl(row.statistic, fields),
-    }));
+    return enriched.map((row) => {
+      const { statistic, ...rest } = row as typeof row & { statistic: any };
+      return {
+        ...(rest as T),
+        control: projectSalesListControl(statistic, fields),
+      };
+    });
   }
 
   async getDispatchListControl<T extends { id: number; salesOrderId: number }>(
@@ -30,10 +33,32 @@ export class ControlReadService implements ControlReadServiceContract {
     fields: DispatchControlField[] = DISPATCH_LIST_MINIMAL_FIELDS,
   ): Promise<Array<T & { control: ReturnType<typeof projectDispatchListControl> }>> {
     const enriched = await withDispatchControl(rows, this.db);
-    return enriched.map((row) => ({
-      ...row,
-      control: projectDispatchListControl(row.statistic, fields),
-    }));
+    return enriched.map((row) => {
+      const { statistic, ...rest } = row as typeof row & { statistic: any };
+      return {
+        ...(rest as T),
+        control: projectDispatchListControl(statistic, fields),
+      };
+    });
   }
 }
 
+export async function withSalesListControl<T extends { id: number }>(
+  rows: T[],
+  db: Db,
+  fields: SalesControlField[] = SALES_LIST_MINIMAL_FIELDS,
+) {
+  const service = new ControlReadService(db);
+  return service.getSalesListControl(rows, fields);
+}
+
+export async function withDispatchListControl<
+  T extends { id: number; salesOrderId: number },
+>(
+  rows: T[],
+  db: Db,
+  fields: DispatchControlField[] = DISPATCH_LIST_MINIMAL_FIELDS,
+) {
+  const service = new ControlReadService(db);
+  return service.getDispatchListControl(rows, fields);
+}

@@ -21,17 +21,18 @@ export async function submitAllTask(db: Db, data: UpdateSalesControl) {
   });
   const resp = await db.$transaction(
     async (tx) => {
-      return await submitAssignmentsAction(tx as any, {
+      const resp = await submitAssignmentsAction(tx as any, {
         authorId: data.meta.authorId,
         data: info,
         ...submitArgs,
       });
+      await resetSalesAction(tx as any, data.meta.salesId!);
+      return resp;
     },
     {
       maxWait: 30 * 1000,
     },
   );
-  await resetSalesAction(db, data.meta.salesId!);
   return resp;
 }
 export async function createAssignmentsTask(db: Db, data: UpdateSalesControl) {
@@ -83,6 +84,7 @@ export async function createAssignmentsTask(db: Db, data: UpdateSalesControl) {
         dueDate: payload?.dueDate,
         updateStats: false,
       });
+      await resetSalesAction(tx as any, data.meta.salesId);
     },
     {
       maxWait: 30 * 1000,
@@ -98,10 +100,12 @@ export async function submitNonProductionsTask(
   });
   const response = await db.$transaction(
     async (tx) => {
-      return await submitNonProductionsAction(tx as any, {
+      const resp = await submitNonProductionsAction(tx as any, {
         data: info,
         authorId: data.meta.authorId,
       });
+      await resetSalesAction(tx as any, data.meta.salesId);
+      return resp;
     },
     {
       maxWait: 30 * 1000,
@@ -114,58 +118,65 @@ export async function submitNonProductionsTask(
 }
 export async function clearPackingTask(db: Db, data: UpdateSalesControl) {
   const clearData = data.clearPackings;
-  await db.orderItemDelivery.updateMany({
-    where: {
-      // id: !data.packingUid ? data.packingId! : undefined,
-      // packingUid: data.packingUid ? data.packingUid : undefined,
-      orderId: !clearData?.dispatchId ? data.meta.salesId : undefined,
-      orderDeliveryId: !clearData?.dispatchId
-        ? undefined
-        : clearData?.dispatchId,
-      packingStatus: {
-        not: "unpacked",
+  await db.$transaction(async (tx) => {
+    await tx.orderItemDelivery.updateMany({
+      where: {
+        orderId: !clearData?.dispatchId ? data.meta.salesId : undefined,
+        orderDeliveryId: !clearData?.dispatchId
+          ? undefined
+          : clearData?.dispatchId,
+        packingStatus: {
+          not: "unpacked",
+        },
       },
-    },
-    data: {
-      packingStatus: "unpacked" as DispatchItemPackingStatus,
-      unpackedBy: data.meta.authorName,
-    },
+      data: {
+        packingStatus: "unpacked" as DispatchItemPackingStatus,
+        unpackedBy: data.meta.authorName,
+      },
+    });
+    await resetSalesAction(tx as any, data.meta.salesId);
   });
-  await resetSalesTask(db, data.meta.salesId);
 }
 export async function deletePackingItem(db: Db, data: DeletePackingSchema) {
-  await db.orderItemDelivery.updateMany({
-    where: {
-      id: !data.packingUid ? data.packingId! : undefined,
-      packingUid: data.packingUid ? data.packingUid : undefined,
-    },
-    data: {
-      packingStatus: "unpacked" as DispatchItemPackingStatus,
-      packedBy: data.deleteBy,
-    },
+  await db.$transaction(async (tx) => {
+    await tx.orderItemDelivery.updateMany({
+      where: {
+        id: !data.packingUid ? data.packingId! : undefined,
+        packingUid: data.packingUid ? data.packingUid : undefined,
+      },
+      data: {
+        packingStatus: "unpacked" as DispatchItemPackingStatus,
+        packedBy: data.deleteBy,
+      },
+    });
+    await resetSalesAction(tx as any, data.salesId);
   });
 }
 export async function cancelDispatchTask(db: Db, data: UpdateSalesControl) {
-  await db.orderDelivery.update({
-    where: {
-      id: data.cancelDispatch?.dispatchId!,
-    },
-    data: {
-      status: "cancelled" as SalesDispatchStatus,
-    },
+  await db.$transaction(async (tx) => {
+    await tx.orderDelivery.update({
+      where: {
+        id: data.cancelDispatch?.dispatchId!,
+      },
+      data: {
+        status: "cancelled" as SalesDispatchStatus,
+      },
+    });
+    await resetSalesAction(tx as any, data.meta.salesId);
   });
-  await resetSalesTask(db, data.meta.salesId);
 }
 export async function startDispatchTask(db: Db, data: UpdateSalesControl) {
-  await db.orderDelivery.update({
-    where: {
-      id: data.startDispatch?.dispatchId!,
-    },
-    data: {
-      status: "in progress" as SalesDispatchStatus,
-    },
+  await db.$transaction(async (tx) => {
+    await tx.orderDelivery.update({
+      where: {
+        id: data.startDispatch?.dispatchId!,
+      },
+      data: {
+        status: "in progress" as SalesDispatchStatus,
+      },
+    });
+    await resetSalesAction(tx as any, data.meta.salesId);
   });
-  await resetSalesTask(db, data.meta.salesId);
 }
 export async function submitDispatchTask(db: Db, data: UpdateSalesControl) {
   const task = data.submitDispatch!;
@@ -272,13 +283,15 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
   }
   const response = await db.$transaction(
     async (tx) => {
-      return await packDispatchItemsAction(tx as any, {
+      const resp = await packDispatchItemsAction(tx as any, {
         data: info,
         authorId: data.meta.authorId!,
         packItems: data.packItems,
         authorName: data.meta.authorName,
         update: true,
       });
+      await resetSalesAction(tx as any, data.meta.salesId);
+      return resp;
     },
     {
       maxWait: 30 * 1000,
@@ -342,8 +355,8 @@ export async function deleteSubmissionsTask(db: Db, data: UpdateSalesControl) {
           deletedAt: new Date(),
         },
       });
+    await resetSalesAction(tx as any, data.meta.salesId);
   });
-  await resetSalesTask(db, data.meta.salesId);
 }
 export async function deleteAssignmentsTasks(db: Db, data: UpdateSalesControl) {
   await db.$transaction(async (tx) => {
@@ -390,8 +403,8 @@ export async function deleteAssignmentsTasks(db: Db, data: UpdateSalesControl) {
           deletedAt: new Date(),
         },
       });
+    await resetSalesAction(tx as any, data.meta.salesId);
   });
-  await resetSalesTask(db, data.meta.salesId);
 }
 
 export async function markAsCompletedTask(db: Db, args: UpdateSalesControl) {

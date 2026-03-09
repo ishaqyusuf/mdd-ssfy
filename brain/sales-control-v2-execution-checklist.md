@@ -27,22 +27,22 @@
 
 ## 4) Transactional Write Hardening
 
-- [ ] Enforce same-transaction business row updates + `qtyControl` updates for all mutations.
-- [ ] Add idempotency protection for repeated task triggers.
-- [ ] Enforce invariants (no overpack, no negative counters, valid status transitions).
+- [x] Enforce same-transaction business row updates + `qtyControl` updates for all mutations.
+- [x] Add idempotency protection for repeated task triggers.
+- [x] Enforce invariants (no overpack, no negative counters, valid status transitions).
 
 ## 5) Read Path Refactor
 
-- [ ] Refactor `withSalesControl` into `ControlReadService.getSalesListControl(orderIds, fields)`.
-- [ ] Refactor `withDispatchControl` into `ControlReadService.getDispatchListControl(dispatchIds, fields)`.
-- [ ] Remove order-level metric leakage from dispatch rows.
-- [ ] Return projected/minimal fields only.
+- [x] Refactor `withSalesControl` into `ControlReadService.getSalesListControl(orderIds, fields)`.
+- [x] Refactor `withDispatchControl` into `ControlReadService.getDispatchListControl(dispatchIds, fields)`.
+- [x] Remove order-level metric leakage from dispatch rows.
+- [x] Return projected/minimal fields only.
 
 ## 6) API Query Integration
 
-- [ ] Integrate sales list path with `salesListProjection`.
-- [ ] Integrate dispatch list path with `dispatchListProjection`.
-- [ ] Keep compatibility mapper for legacy response keys during migration.
+- [x] Integrate sales list path with `salesListProjection`.
+- [x] Integrate dispatch list path with `dispatchListProjection`.
+- [x] Keep compatibility mapper for legacy response keys during migration.
 
 ## 7) Backfill and Repair
 

@@ -211,31 +211,96 @@ export async function packDispatchItemsAction(
   props: PackDispatchItemsAction,
 ) {
   const { data } = props;
-  await db.orderItemDelivery.createMany({
-    data: props
-      .packItems!.packingList!.map((pi) => {
-        const packingUid = generateRandomString(4);
-        return pi.submissions.map(
-          (ps) =>
-            ({
-              orderId: data.order.id,
-              orderItemId: pi.salesItemId,
-              lhQty: ps.qty.lh,
-              rhQty: ps.qty.rh,
-              note: pi.note,
-              packingUid,
-              status: props.packItems!.dispatchStatus,
-              qty: ps.qty.qty || sum([ps.qty.rh, ps.qty.lh]),
-              meta: {},
-              orderDeliveryId: props.packItems!.dispatchId,
-              orderProductionSubmissionId: ps.submissionId,
-              packedBy: props.authorName,
-              packingStatus: "packed" as DispatchItemPackingStatus,
-            }) satisfies Prisma.OrderItemDeliveryCreateManyInput,
-        );
+  const packingList = props.packItems?.packingList ?? [];
+  if (!packingList.length) return { created: 0, skipped: 0 };
+
+  const dispatchId = props.packItems!.dispatchId;
+  const submissionIds = packingList
+    .flatMap((p) => p.submissions.map((s) => s.submissionId))
+    .filter(Boolean);
+
+  const existingPacked = submissionIds.length
+    ? await db.orderItemDelivery.findMany({
+        where: {
+          orderDeliveryId: dispatchId,
+          deletedAt: null,
+          packingStatus: "packed" as DispatchItemPackingStatus,
+          orderProductionSubmissionId: { in: submissionIds },
+        },
+        select: {
+          orderProductionSubmissionId: true,
+          qty: true,
+          lhQty: true,
+          rhQty: true,
+        },
       })
-      .flat(),
-  });
+    : [];
+
+  const packedBySubmission = new Map<
+    number,
+    { lh: number; rh: number; qty: number }
+  >();
+  for (const row of existingPacked) {
+    const submissionId = row.orderProductionSubmissionId;
+    if (!submissionId) continue;
+    const current = packedBySubmission.get(submissionId) || {
+      lh: 0,
+      rh: 0,
+      qty: 0,
+    };
+    packedBySubmission.set(submissionId, {
+      lh: sum([current.lh, row.lhQty]),
+      rh: sum([current.rh, row.rhQty]),
+      qty: sum([current.qty, row.qty]),
+    });
+  }
+
+  const createRows: Prisma.OrderItemDeliveryCreateManyInput[] = [];
+  let skipped = 0;
+  for (const pi of packingList) {
+    const packingUid = generateRandomString(4);
+    for (const ps of pi.submissions) {
+      const existing = packedBySubmission.get(ps.submissionId) || {
+        lh: 0,
+        rh: 0,
+        qty: 0,
+      };
+      const requested = recomposeQty(ps.qty as any);
+      const remaining = recomposeQty(
+        qtyMatrixDifference(requested, {
+          lh: existing.lh,
+          rh: existing.rh,
+          qty: existing.qty,
+        } as any),
+      );
+      if (!hasQty(remaining)) {
+        skipped += 1;
+        continue;
+      }
+
+      createRows.push({
+        orderId: data.order.id,
+        orderItemId: pi.salesItemId,
+        lhQty: remaining.lh,
+        rhQty: remaining.rh,
+        note: pi.note,
+        packingUid,
+        status: props.packItems!.dispatchStatus,
+        qty: remaining.qty || sum([remaining.rh, remaining.lh]),
+        meta: {},
+        orderDeliveryId: dispatchId,
+        orderProductionSubmissionId: ps.submissionId,
+        packedBy: props.authorName,
+        packingStatus: "packed" as DispatchItemPackingStatus,
+      });
+    }
+  }
+
+  if (createRows.length) {
+    await db.orderItemDelivery.createMany({
+      data: createRows,
+    });
+  }
   if (props.update)
     await updateSalesStatAction(
       {
@@ -244,6 +309,10 @@ export async function packDispatchItemsAction(
       },
       db,
     );
+  return {
+    created: createRows.length,
+    skipped,
+  };
 }
 
 export async function resetSalesAction(db: Db, salesId) {

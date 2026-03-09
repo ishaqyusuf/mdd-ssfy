@@ -30,6 +30,7 @@ import {
 import { consoleLog, formatCurrency, formatMoney } from "@gnd/utils";
 import { calculateSalesDueAmount } from "@sales/sales-transaction";
 import { payrollUid } from "@sales/utils/utils";
+import { withSalesListControl } from "@gnd/sales";
 import z from "zod";
 import type { SalesPaymentStatus } from "@sales/constants";
 
@@ -62,15 +63,19 @@ export async function getSales(
     ctx.db,
   );
 
-  const result = await response(
-    data
-      .map((o) => salesOrderDto(o, !!query.bin))
-      .map((d) => ({
-        ...d,
-        noteCount: 0,
-        ...(notCounts[d.id.toString()] || {}),
-      })),
-  );
+  const rows = data
+    .map((o) => salesOrderDto(o, !!query.bin))
+    .map((d) => ({
+      ...d,
+      noteCount: 0,
+      ...(notCounts[d.id.toString()] || {}),
+    }));
+  const rowsWithControl =
+    query.salesType === "order"
+      ? await withSalesListControl(rows, db)
+      : rows;
+
+  const result = await response(rowsWithControl as any);
 
   return result;
 }
@@ -130,15 +135,15 @@ export async function getOrders(
     ctx.db,
   );
 
-  const result = await response(
-    data
-      .map((o) => salesOrderDto(o, !!query.bin))
-      .map((d) => ({
-        ...d,
-        noteCount: 0,
-        ...(notCounts[d.id.toString()] || {}),
-      })),
-  );
+  const rows = data
+    .map((o) => salesOrderDto(o, !!query.bin))
+    .map((d) => ({
+      ...d,
+      noteCount: 0,
+      ...(notCounts[d.id.toString()] || {}),
+    }));
+  const rowsWithControl = await withSalesListControl(rows, db);
+  const result = await response(rowsWithControl as any);
   return result;
 }
 export async function getQuotes(

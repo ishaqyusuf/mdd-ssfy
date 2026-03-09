@@ -405,6 +405,43 @@ function buildDispatchPackedMap(
   return packedMap;
 }
 
+function buildDispatchListedMap(
+  deliveries: { id: number; status: string | null }[],
+  deliveryItems: {
+    orderDeliveryId: number | null;
+    qty: number;
+    lhQty: number | null;
+    rhQty: number | null;
+  }[],
+): Map<number, QtyStat> {
+  const deliveryStatusById = new Map<number, string | null>();
+  for (const d of deliveries) {
+    deliveryStatusById.set(d.id, d.status);
+  }
+
+  const listedMap = new Map<number, QtyStat>();
+  for (const item of deliveryItems) {
+    if (!item.orderDeliveryId) continue;
+    const deliveryStatus = deliveryStatusById.get(item.orderDeliveryId);
+    if (deliveryStatus === "cancelled") continue;
+
+    const current = listedMap.get(item.orderDeliveryId) ?? emptyQtyStat();
+    listedMap.set(
+      item.orderDeliveryId,
+      sumQtyStat(
+        current,
+        toQtyStat({
+          lhQty: toNumber(item.lhQty),
+          rhQty: toNumber(item.rhQty),
+          qty: toNumber(item.qty),
+        }),
+      ),
+    );
+  }
+
+  return listedMap;
+}
+
 async function loadOrderLevelData(orderIds: number[], db: Db) {
   const itemControls = await db.salesItemControl.findMany({
     where: {
@@ -541,6 +578,10 @@ export async function withDispatchControl<
     persistedDispatches,
     deliveryItems,
   );
+  const listedByDispatch = buildDispatchListedMap(
+    persistedDispatches,
+    deliveryItems,
+  );
 
   const dispatchStatusById = new Map<number, string | null>();
   for (const d of persistedDispatches) {
@@ -550,6 +591,7 @@ export async function withDispatchControl<
   return dispatches.map((dispatch) => {
     const controls = controlsByOrder.get(dispatch.salesOrderId) || [];
     const packed = packedByDispatch.get(dispatch.id) ?? emptyQtyStat();
+    const listed = listedByDispatch.get(dispatch.id) ?? emptyQtyStat();
 
     const storedStatus = dispatchStatusById.get(dispatch.id);
     const dispatchStatus =
@@ -562,9 +604,12 @@ export async function withDispatchControl<
             dispatchCancelled: sumControls(controls, "dispatchCancelled"),
           });
 
+    const statistic = toStatistic(controls, packed, dispatchStatus);
+    statistic.pendingPacking = diffQtyStat(listed, packed);
+
     return {
       ...dispatch,
-      statistic: toStatistic(controls, packed, dispatchStatus),
+      statistic,
     };
   });
 }

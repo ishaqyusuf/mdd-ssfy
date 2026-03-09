@@ -63,6 +63,12 @@ const ORDERED_ACTION_KEYS: LegacyUpdateSalesControlAction[] = [
 export function resolveLegacyUpdateSalesControlAction(
   input: UpdateSalesControl,
 ): LegacyActionMapping | null {
+  const activeActions = ORDERED_ACTION_KEYS.filter((action) => !!input[action]);
+  if (activeActions.length > 1) {
+    throw new Error(
+      `Multiple actions are not allowed: ${activeActions.join(", ")}`,
+    );
+  }
   for (const action of ORDERED_ACTION_KEYS) {
     if (!input[action]) continue;
     return {

@@ -20,3 +20,11 @@
 - Decision: `reset-sales-control` is repair/admin only and must not be required for normal runtime correctness.
 - Rationale: This removes drift between production and non-production dispatch quantities, enables reliable sales/dispatch filtering, and gives one auditable path for state transitions.
 - Consequence: All new sales/dispatch query surfaces must consume projected stats from the control read service, and direct ad-hoc control derivations should be deprecated.
+
+## 2026-03-09 - New Sales Form Parity Quality Gate
+
+- Decision: Treat `new-sales-form` parity as incomplete until legacy costing and settings/step fallback semantics are matched, not just relational payload round-trip.
+- Decision: Use `brain/new-sales-form-parity-audit.md` as the authoritative parity tracker for closure.
+- Decision: Enforce implementation order for parity closure: Schema -> API -> UI -> Validation -> Polish.
+- Rationale: Current audit confirms structural persistence parity is strong, but critical business behavior parity gaps remain in pricing/costing and route override/fallback semantics.
+- Consequence: Rollout confidence must be gated by parity scenario coverage (including HPT/moulding/service/shelf and tax/labor/payment edge cases), not by save/get contract completeness alone.

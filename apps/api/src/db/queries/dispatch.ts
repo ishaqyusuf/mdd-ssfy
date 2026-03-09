@@ -14,7 +14,7 @@ import type { TRPCContext } from "@api/trpc/init";
 import type { QtyControlType } from "@api/type";
 import type { Prisma } from "@gnd/db";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
-import { withDispatchControl } from "@sales/utils/with-sales-control";
+import { withDispatchListControl } from "@gnd/sales";
 import { tasks } from "@trigger.dev/sdk/v3";
 import type { NotificationJobInput } from "@notifications/schemas";
 import { TRPCError } from "@trpc/server";
@@ -22,6 +22,37 @@ import { TRPCError } from "@trpc/server";
 import { qtyMatrixSum, transformQtyHandle } from "@sales/utils/sales-control";
 import { getSalesDispatchOverview } from "@sales/exports";
 import { qtyMatrixDifference, recomposeQty } from "@sales/utils/sales-control";
+
+function emptyQtyStat() {
+  return {
+    lhQty: 0,
+    rhQty: 0,
+    qty: 0,
+    total: 0,
+  };
+}
+
+function toLegacyDispatchStatistic(control: any) {
+  const packed = control?.packed || emptyQtyStat();
+  const pendingPacking = control?.pendingPacking || emptyQtyStat();
+  return {
+    qty: emptyQtyStat(),
+    prodAssigned: emptyQtyStat(),
+    prodCompleted: emptyQtyStat(),
+    dispatchAssigned: control?.dispatchAssigned || emptyQtyStat(),
+    dispatchInProgress: control?.dispatchInProgress || emptyQtyStat(),
+    dispatchCompleted: control?.dispatchCompleted || emptyQtyStat(),
+    dispatchCancelled: emptyQtyStat(),
+    pendingAssignment: emptyQtyStat(),
+    pendingSubmission: emptyQtyStat(),
+    packables: control?.packables || emptyQtyStat(),
+    pendingPacking,
+    pendingDispatch: emptyQtyStat(),
+    packed,
+    productionStatus: "unknown",
+    dispatchStatus: control?.dispatchStatus || "unknown",
+  };
+}
 
 export async function getDispatches(
   ctx: TRPCContext,
@@ -87,7 +118,7 @@ export async function getDispatches(
     },
   });
 
-  const rowsWithStats = await withDispatchControl(
+  const rowsWithControl = await withDispatchListControl(
     data.map((a) => ({
       ...a,
       salesOrderId: a.order.id,
@@ -96,12 +127,13 @@ export async function getDispatches(
   );
 
   return await response(
-    rowsWithStats.map((a) => {
+    rowsWithControl.map((a) => {
       const { salesOrderId, ...rest } = a as typeof a & {
         salesOrderId: number;
       };
       return {
         ...rest,
+        statistic: toLegacyDispatchStatistic((a as any).control),
         uid: String(a.id),
       };
     }),
