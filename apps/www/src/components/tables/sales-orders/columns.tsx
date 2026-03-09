@@ -324,7 +324,7 @@ function Actions({ item }: { item: Item }) {
     const auth = useAuth();
     const trpc = useTRPC();
     const { trigger } = useTaskTrigger({
-        // silent: true,
+        silent: true,
         onSuccess() {
             invalidateInfiniteQueries("sales.getOrders");
             toast({
@@ -377,7 +377,11 @@ function Actions({ item }: { item: Item }) {
     };
     const ensureDispatchAndTrigger = (action: "production" | "fulfillment") => {
         if (activeDispatch?.id) {
-            triggerDispatchAction(action, activeDispatch.id, activeDispatch.status);
+            triggerDispatchAction(
+                action,
+                activeDispatch.id,
+                activeDispatch.status,
+            );
             return;
         }
         createDispatch(
@@ -472,3 +476,4 @@ function Actions({ item }: { item: Item }) {
         </div>
     );
 }
+

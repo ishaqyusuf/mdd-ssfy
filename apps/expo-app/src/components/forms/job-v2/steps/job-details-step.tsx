@@ -1,6 +1,7 @@
 import { useJobFormV2Context } from "@/hooks/use-job-form-v2";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Controller } from "react-hook-form";
+import { cn } from "@/lib/utils";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -16,8 +17,7 @@ import { StepEmptyState } from "../ui/step-states";
 import { MissingTaskConfig } from "./missing-task-config";
 import { Icon } from "@/components/ui/icon";
 import { InstallCostForm } from "../install-cost-form";
-import { ConfigRequestSuccessStep } from "./config-request-success-step";
-import { JobFormSchema } from "@community/schema";
+import { percentageValue, sum } from "@gnd/utils";
 
 function NumberInput({
   value,
@@ -60,7 +60,6 @@ export function JobDetailsStep() {
     installCostBuilderTaskId,
     notifyContractorJobReady,
     isNotifyingContractor,
-    // requestTaskConfigurationData,
     projectList,
     unitOptions,
     tabs,
@@ -69,11 +68,34 @@ export function JobDetailsStep() {
     refreshCurrentStep,
     state,
   } = useJobFormV2Context();
+
   const isCustom = form.watch("job.isCustom") || params.builderTaskId === -1;
   const taskRows = form.watch("job.tasks") || [];
-  // Object.entries(
-  // as JobFormSchema["job"]["tasks"]
-  // ).filter(([uid]) => typeof uid === "string" && uid.length > 0);
+
+  const addonPercent =
+    Number(form.watch("job.meta.addonPercent")) ||
+    Number((defaultValues as any)?.job?.meta?.addonPercent) ||
+    0;
+  const projectAddon = Number((defaultValues as any)?.unit?.projectAddon) || 0;
+  const addonValue = percentageValue(projectAddon, addonPercent) || 0;
+  const additionalCost = Number(form.watch("job.meta.additional_cost")) || 0;
+
+  const tasksSubtotal = sum(
+    (taskRows || []).map(
+      (task: any) => Number(task?.rate || 0) * Number(task?.qty || 0),
+    ),
+  );
+  const maxPotentialValue = sum(
+    (taskRows || []).map(
+      (task: any) => Number(task?.rate || 0) * Number(task?.maxQty || 0),
+    ),
+  );
+  const grandTotal = sum([
+    tasksSubtotal,
+    addonValue,
+    isCustom ? additionalCost : 0,
+  ]);
+
   const selectedProject = (projectList || []).find(
     (project: any) => project?.id === params.projectId,
   );
@@ -81,10 +103,6 @@ export function JobDetailsStep() {
     (unit: any) => unit?.id === params.unitId,
   );
   const modelMissing = !params.modelId;
-
-  // if (requestTaskConfigurationData?.id) {
-  //   return <ConfigRequestSuccessStep />;
-  // }
 
   if (modelMissing) {
     const unitModelName = selectedUnit?.modelName || "Unknown Model";
@@ -130,6 +148,7 @@ export function JobDetailsStep() {
       </View>
     );
   }
+
   if (isDefaultValuesPending) {
     return (
       <View className="flex-1 gap-3">
@@ -187,10 +206,12 @@ export function JobDetailsStep() {
       />
     );
   }
+
   function ShowTaskQty({ children }) {
     if (!state.showTaskQty && !admin) return null;
     return <>{children}</>;
   }
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -223,161 +244,235 @@ export function JobDetailsStep() {
           </Text>
         </NeoCard>
 
-        <NeoCard className="bg-card">
-          <Text className="mb-2 text-xs uppercase tracking-[1px] text-muted-foreground">
-            Description
-          </Text>
-          <Controller
-            control={form.control}
-            name="job.description"
-            render={({ field }) => (
-              <TextInput
-                value={(field.value as string) || ""}
-                onChangeText={field.onChange}
-                multiline
-                numberOfLines={4}
-                className="min-h-28   rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground"
-                style={{ textAlignVertical: "top", textAlign: "left" }}
-                placeholder="Write job notes and instructions..."
-                placeholderTextColor="hsl(var(--muted-foreground))"
-              />
-            )}
-          />
-        </NeoCard>
-
         {isCustom ? (
-          <NeoCard className="bg-card">
-            <Text className="mb-2 text-xs uppercase tracking-[1px] text-muted-foreground">
-              Custom Cost
-            </Text>
-            <Controller
-              control={form.control}
-              name="job.meta.additional_cost"
-              render={({ field }) => (
-                <NumberInput
-                  value={field.value}
-                  onChangeText={(text) =>
-                    field.onChange(text ? Number(text) : null)
-                  }
-                />
-              )}
-            />
-          </NeoCard>
+          <>
+            <NeoCard className="bg-card">
+              <Text className="mb-2 text-xs uppercase tracking-[1px] text-muted-foreground">
+                Description
+              </Text>
+              <Controller
+                control={form.control}
+                name="job.description"
+                render={({ field, fieldState }) => (
+                  <View>
+                    <TextInput
+                      value={(field.value as string) || ""}
+                      onChangeText={field.onChange}
+                      multiline
+                      numberOfLines={4}
+                      className={cn(
+                        "min-h-28 rounded-2xl border bg-background px-4 py-3 text-sm text-foreground",
+                        fieldState.error ? "border-destructive" : "border-border",
+                      )}
+                      style={{ textAlignVertical: "top", textAlign: "left" }}
+                      placeholder="Write job notes and instructions..."
+                      placeholderTextColor="hsl(var(--muted-foreground))"
+                    />
+                    {fieldState.error?.message ? (
+                      <Text className="mt-1 text-xs text-destructive">
+                        {fieldState.error.message}
+                      </Text>
+                    ) : null}
+                  </View>
+                )}
+              />
+            </NeoCard>
+
+            <NeoCard className="bg-card">
+              <Text className="mb-2 text-xs uppercase tracking-[1px] text-muted-foreground">
+                Custom Cost
+              </Text>
+              <Controller
+                control={form.control}
+                name="job.meta.additional_cost"
+                render={({ field, fieldState }) => (
+                  <View>
+                    <View
+                      className={cn(
+                        "rounded-2xl",
+                        fieldState.error ? "border border-destructive" : "",
+                      )}
+                    >
+                      <NumberInput
+                        value={field.value}
+                        onChangeText={(text) =>
+                          field.onChange(text ? Number(text) : null)
+                        }
+                      />
+                    </View>
+                    {fieldState.error?.message ? (
+                      <Text className="mt-1 text-xs text-destructive">
+                        {fieldState.error.message}
+                      </Text>
+                    ) : null}
+                  </View>
+                )}
+              />
+            </NeoCard>
+          </>
         ) : hasMissingTaskConfiguration ? (
           <MissingTaskConfig />
         ) : (
-          <NeoCard className="bg-card">
-            <View className="mb-2 flex-row items-center justify-between gap-2">
-              <Text className="text-xs uppercase tracking-[1px] text-muted-foreground">
-                Task Quantities
-              </Text>
-              {admin ? (
-                <Pressable
-                  onPress={() =>
-                    openInstallCostStep(
-                      (defaultValues as any)?.builderTaskId || null,
-                    )
-                  }
-                  className="flex-row items-center gap-1 rounded-full border border-border bg-background px-3 py-1.5 active:opacity-80"
-                >
-                  <Icon name="Pencil" className="text-foreground" size={12} />
-                  <Text className="text-[11px] font-semibold text-foreground">
-                    Edit
+          <>
+            {admin ? (
+              <NeoCard className="bg-card">
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-col">
+                    <Text className="text-xs uppercase tracking-[1px] text-muted-foreground">
+                      Total Install Estimate
+                    </Text>
+                    <Text className="mt-1 text-[11px] text-muted-foreground">
+                      Calculated based on max quantities
+                    </Text>
+                  </View>
+                  <Text className="text-2xl font-black text-primary">
+                    ${Number(maxPotentialValue || 0).toFixed(2)}
                   </Text>
-                </Pressable>
-              ) : null}
-            </View>
-            <View className="overflow-hidden rounded-2xl border border-border/90">
-              <View className="flex-row border-b border-border bg-muted/50 px-3 py-2">
-                <Text className="flex-1 text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
-                  Item
-                </Text>
-                <ShowTaskQty>
-                  <Text className="w-16 text-right text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
-                    Rate
-                  </Text>
-                </ShowTaskQty>
-                <Text className="w-24 text-center text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
-                  Qty
-                </Text>
-                <ShowTaskQty>
-                  <Text className="w-16 text-right text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
-                    Total
-                  </Text>
-                </ShowTaskQty>
-              </View>
+                </View>
+              </NeoCard>
+            ) : null}
 
-              {/* {taskRows.map(([uid, task]) => { */}
-              {taskRows.map((task, uid) => {
-                console.log(task);
-                const qtyFieldName = `job.tasks.${uid}.qty` as const;
-                return (
-                  <View
-                    key={uid}
-                    className="flex-row items-center border-b border-border/80 bg-background px-3 py-2 last:border-b-0"
+            <NeoCard className="bg-card">
+              <View className="mb-2 flex-row items-center justify-between gap-2">
+                <Text className="text-xs uppercase tracking-[1px] text-muted-foreground">
+                  Task Quantities
+                </Text>
+                {admin ? (
+                  <Pressable
+                    onPress={() =>
+                      openInstallCostStep(
+                        (defaultValues as any)?.builderTaskId || null,
+                      )
+                    }
+                    className="flex-row items-center gap-1 rounded-full border border-border bg-background px-3 py-1.5 active:opacity-80"
                   >
-                    <View className="flex-1 pr-2">
-                      <Text className="text-xs font-semibold uppercase text-foreground">
-                        {task?.title || uid}
-                      </Text>
+                    <Icon name="Pencil" className="text-foreground" size={12} />
+                    <Text className="text-[11px] font-semibold text-foreground">
+                      Edit
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+              <View className="overflow-hidden rounded-2xl border border-border/90">
+                <View className="flex-row border-b border-border bg-muted/50 px-3 py-2">
+                  <Text className="flex-1 text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
+                    Item
+                  </Text>
+                  <ShowTaskQty>
+                    <Text className="w-16 text-right text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
+                      Rate
+                    </Text>
+                  </ShowTaskQty>
+                  <Text className="w-24 text-center text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
+                    Qty
+                  </Text>
+                  <ShowTaskQty>
+                    <Text className="w-16 text-right text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
+                      Total
+                    </Text>
+                  </ShowTaskQty>
+                </View>
+
+                {taskRows.map((task, uid) => {
+                  const qtyFieldName = `job.tasks.${uid}.qty` as const;
+                  return (
+                    <View
+                      key={uid}
+                      className="flex-row items-center border-b border-border/80 bg-background px-3 py-2 last:border-b-0"
+                    >
+                      <View className="flex-1 pr-2">
+                        <Text className="text-xs font-semibold uppercase text-foreground">
+                          {task?.title || uid}
+                        </Text>
+                        <ShowTaskQty>
+                          <Text className="text-[11px] text-muted-foreground">
+                            Max: {task?.maxQty || 0}
+                          </Text>
+                        </ShowTaskQty>
+                      </View>
                       <ShowTaskQty>
-                        <Text className="text-[11px] text-muted-foreground">
-                          Max: {task?.maxQty || 0}
+                        <Text className="w-16 text-right text-xs text-muted-foreground">
+                          ${Number(task?.rate || 0).toFixed(2)}
+                        </Text>
+                      </ShowTaskQty>
+                      <Controller
+                        control={form.control}
+                        name={qtyFieldName as any}
+                        render={({ field }) => (
+                          <View className="w-24 px-1">
+                            <TextInput
+                              value={
+                                field.value === null || field.value === undefined
+                                  ? ""
+                                  : String(field.value)
+                              }
+                              onChangeText={(text) =>
+                                field.onChange(
+                                  parseQty(
+                                    text.replace(/[^0-9.]/g, ""),
+                                    admin ? task?.maxQty : null,
+                                  ),
+                                )
+                              }
+                              keyboardType="decimal-pad"
+                              editable={!admin || Number(task?.maxQty || 0) > 0}
+                              className="h-10 rounded-xl border border-border bg-card px-2 text-xs text-foreground"
+                              style={{ textAlign: "center" }}
+                              placeholder="0"
+                              placeholderTextColor="hsl(var(--muted-foreground))"
+                            />
+                            {state.showTaskQty && admin ? (
+                              <Text className="mt-1 text-center text-[10px] text-muted-foreground">
+                                / {task?.maxQty || 0}
+                              </Text>
+                            ) : null}
+                          </View>
+                        )}
+                      />
+                      <ShowTaskQty>
+                        <Text className="w-16 text-right text-xs font-semibold text-foreground">
+                          ${
+                            (
+                              Number(task?.rate || 0) * Number(task?.qty || 0) ||
+                              0
+                            ).toFixed(2)
+                          }
                         </Text>
                       </ShowTaskQty>
                     </View>
-                    <ShowTaskQty>
-                      <Text className="w-16 text-right text-xs text-muted-foreground">
-                        ${Number(task?.rate || 0).toFixed(2)}
-                      </Text>
-                    </ShowTaskQty>
-                    <Controller
-                      control={form.control}
-                      name={qtyFieldName as any}
-                      render={({ field }) => (
-                        <View className="w-24 px-1">
-                          <TextInput
-                            value={
-                              field.value === null || field.value === undefined
-                                ? ""
-                                : String(field.value)
-                            }
-                            onChangeText={(text) =>
-                              field.onChange(
-                                parseQty(
-                                  text.replace(/[^0-9.]/g, ""),
-                                  admin ? task?.maxQty : null,
-                                ),
-                              )
-                            }
-                            keyboardType="decimal-pad"
-                            editable={!admin || Number(task?.maxQty || 0) > 0}
-                            className="h-10 rounded-xl border border-border bg-card px-2 text-xs text-foreground"
-                            style={{ textAlign: "center" }}
-                            placeholder="0"
-                            placeholderTextColor="hsl(var(--muted-foreground))"
-                          />
-                          {state.showTaskQty && admin ? (
-                            <Text className="mt-1 text-center text-[10px] text-muted-foreground">
-                              / {task?.maxQty || 0}
-                            </Text>
-                          ) : null}
-                        </View>
-                      )}
-                    />
-                    <ShowTaskQty>
-                      <Text className="w-16 text-right text-xs font-semibold text-foreground">
-                        $
-                        {(
-                          Number(task?.rate || 0) * Number(task?.qty || 0) || 0
-                        ).toFixed(2)}
-                      </Text>
-                    </ShowTaskQty>
-                  </View>
-                );
-              })}
-            </View>
-          </NeoCard>
+                  );
+                })}
+              </View>
+            </NeoCard>
+
+            <NeoCard className="bg-card">
+              <View className="gap-2">
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-sm text-muted-foreground">Subtotal</Text>
+                  <Text className="text-sm font-bold text-foreground">
+                    ${Number(tasksSubtotal || 0).toFixed(2)}
+                  </Text>
+                </View>
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-sm text-muted-foreground">
+                    Add-on ({addonPercent}%)
+                  </Text>
+                  <Text className="text-sm font-bold text-foreground">
+                    ${Number(addonValue || 0).toFixed(2)}
+                  </Text>
+                </View>
+                <View className="h-px bg-border" />
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-xs font-bold uppercase text-foreground">
+                    Grand Total
+                  </Text>
+                  <Text className="text-lg font-black text-primary">
+                    ${Number(grandTotal || 0).toFixed(2)}
+                  </Text>
+                </View>
+              </View>
+            </NeoCard>
+          </>
         )}
 
         <NeoCard className="bg-primary">
@@ -385,7 +480,7 @@ export function JobDetailsStep() {
             Total
           </Text>
           <Text className="text-3xl font-black text-primary-foreground">
-            ${Number(total || 0).toFixed(2)}
+            ${Number(grandTotal || total || 0).toFixed(2)}
           </Text>
         </NeoCard>
       </ScrollView>
