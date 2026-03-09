@@ -9,7 +9,7 @@ import { QtyLabel } from "./qty-label";
 export function PackingItem({}) {
     const packing = usePacking();
     const { item } = usePackingItem();
-
+    console.log({ item });
     const availableQty = item?.deliverableQty;
     return (
         <div className="p-4 cursor-pointer hover:bg-muted bg-muted/10">
@@ -121,3 +121,4 @@ export function PackingItem({}) {
         </div>
     );
 }
+

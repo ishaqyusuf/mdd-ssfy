@@ -301,6 +301,7 @@ export async function submitAssignmentsAction(
     salesId: data.order.id,
     items: createSubmissions,
   });
+
   return createAssignments.length || createSubmissions.length;
 }
 interface SubmitNonProductionsAction {

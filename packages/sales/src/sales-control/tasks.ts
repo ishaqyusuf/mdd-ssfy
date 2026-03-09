@@ -19,7 +19,7 @@ export async function submitAllTask(db: Db, data: UpdateSalesControl) {
   const info = await getSaleInformation(db, {
     salesId: data.meta.salesId,
   });
-  return await db.$transaction(
+  const resp = await db.$transaction(
     async (tx) => {
       return await submitAssignmentsAction(tx as any, {
         authorId: data.meta.authorId,
@@ -31,6 +31,8 @@ export async function submitAllTask(db: Db, data: UpdateSalesControl) {
       maxWait: 30 * 1000,
     },
   );
+  await resetSalesAction(db, data.meta.salesId!);
+  return resp;
 }
 export async function createAssignmentsTask(db: Db, data: UpdateSalesControl) {
   const payload = data.createAssignments;
@@ -79,7 +81,7 @@ export async function createAssignmentsTask(db: Db, data: UpdateSalesControl) {
         assignedToId: payload?.assignedToId!,
         authorId: data.meta.authorId,
         dueDate: payload?.dueDate,
-        updateStats: true,
+        updateStats: false,
       });
     },
     {
