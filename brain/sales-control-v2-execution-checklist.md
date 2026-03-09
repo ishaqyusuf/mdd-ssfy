@@ -46,15 +46,15 @@
 
 ## 7) Backfill and Repair
 
-- [ ] Build historical `qtyControl` backfill.
-- [ ] Build reconciliation job (`qtyControl` vs source rows).
-- [ ] Build targeted repair command for drifted records.
-- [ ] Restrict repair execution to admin paths.
+- [x] Build historical `qtyControl` backfill.
+- [x] Build reconciliation job (`qtyControl` vs source rows).
+- [x] Build targeted repair command for drifted records.
+- [x] Restrict repair execution to admin paths.
 
 ## 8) Filtering and Indexing
 
-- [ ] Move sales/dispatch filters to `qtyControl` predicates only.
-- [ ] Add/adjust indexes for filter performance.
+- [x] Move sales/dispatch filters to `qtyControl` predicates only.
+- [x] Add/adjust indexes for filter performance.
 - [ ] Validate query plans at production-like scale.
 
 ## 9) Frontend Alignment

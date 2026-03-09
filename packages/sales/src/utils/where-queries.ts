@@ -12,6 +12,23 @@ import { SalesQueryParamsSchema } from "../schema";
 
 export function whereSales(query: SalesQueryParamsSchema) {
   const where: Prisma.SalesOrdersWhereInput[] = [];
+  const qtyControlSome = (
+    type: QtyControlType,
+    qtyWhere: Prisma.QtyControlWhereInput = {},
+  ): Prisma.SalesOrdersWhereInput => ({
+    itemControls: {
+      some: {
+        deletedAt: null,
+        qtyControls: {
+          some: {
+            deletedAt: null,
+            type,
+            ...qtyWhere,
+          },
+        },
+      },
+    },
+  });
 
   Object.entries(query).map(([k, v]) => {
     if (v === null) return;
@@ -281,50 +298,41 @@ export function whereSales(query: SalesQueryParamsSchema) {
   const production = query["production"];
   switch (production) {
     case "pending":
-      where.push({
-        stat: {
-          some: {
-            total: {
-              gt: 0,
-            },
-            type: "prodCompleted" as QtyControlType,
-            percentage: {
-              lt: 100,
-            },
+      where.push(
+        qtyControlSome("prodCompleted" as QtyControlType, {
+          total: {
+            gt: 0,
           },
-        },
-      });
+          percentage: {
+            lt: 100,
+          },
+        }),
+      );
       break;
     case "in progress":
-      where.push({
-        stat: {
-          some: {
-            total: {
-              gt: 0,
-            },
-            type: "prodCompleted" as QtyControlType,
-            AND: [
-              {
-                percentage: { gt: 0 },
-              },
-              { percentage: { lt: 100 } },
-            ],
+      where.push(
+        qtyControlSome("prodCompleted" as QtyControlType, {
+          total: {
+            gt: 0,
           },
-        },
-      });
+          AND: [
+            {
+              percentage: { gt: 0 },
+            },
+            { percentage: { lt: 100 } },
+          ],
+        }),
+      );
       break;
     case "completed":
-      where.push({
-        stat: {
-          some: {
-            total: {
-              gt: 0,
-            },
-            type: "prodCompleted" as QtyControlType,
-            percentage: 100,
+      where.push(
+        qtyControlSome("prodCompleted" as QtyControlType, {
+          total: {
+            gt: 0,
           },
-        },
-      });
+          percentage: 100,
+        }),
+      );
       break;
   }
   const assignedToId = query["production.assignedToId"];
@@ -405,17 +413,14 @@ export function whereSales(query: SalesQueryParamsSchema) {
       break;
     case "past due":
       where.push({
-        stat: {
-          some: {
-            total: {
-              gt: 0,
-            },
-            type: "dispatchCompleted" as QtyControlType,
-            percentage: {
-              not: 100,
-            },
+        ...qtyControlSome("dispatchCompleted" as QtyControlType, {
+          total: {
+            gt: 0,
           },
-        },
+          percentage: {
+            not: 100,
+          },
+        }),
         assignments: {
           some: {
             itemControl: {
@@ -459,23 +464,24 @@ export function whereSales(query: SalesQueryParamsSchema) {
     AND: [
       {
         OR: [
-          {
-            stat: {
-              some: {
-                total: {
-                  gt: 0,
-                },
-                type: "dispatchCompleted" as QtyControlType,
-                percentage: {
-                  lt: 100,
-                },
-              },
+          qtyControlSome("dispatchCompleted" as QtyControlType, {
+            total: {
+              gt: 0,
             },
-          },
+            percentage: {
+              lt: 100,
+            },
+          }),
           {
-            stat: {
+            itemControls: {
               none: {
-                type: "dispatchCompleted" as QtyControlType,
+                deletedAt: null,
+                qtyControls: {
+                  some: {
+                    deletedAt: null,
+                    type: "dispatchCompleted" as QtyControlType,
+                  },
+                },
               },
             },
           },
@@ -538,35 +544,29 @@ export function whereSales(query: SalesQueryParamsSchema) {
       where.push(dispatchPendingQuery);
       break;
     case "completed":
-      where.push({
-        stat: {
-          some: {
-            total: {
-              gt: 0,
-            },
-            type: "dispatchCompleted" as QtyControlType,
-            percentage: 100,
+      where.push(
+        qtyControlSome("dispatchCompleted" as QtyControlType, {
+          total: {
+            gt: 0,
           },
-        },
-      });
+          percentage: 100,
+        }),
+      );
       break;
     case "backorder":
-      where.push({
-        stat: {
-          some: {
-            total: {
-              gt: 0,
-            },
-            type: "dispatchCompleted" as QtyControlType,
-            AND: [
-              {
-                percentage: { gt: 0 },
-              },
-              { percentage: { lt: 100 } },
-            ],
+      where.push(
+        qtyControlSome("dispatchCompleted" as QtyControlType, {
+          total: {
+            gt: 0,
           },
-        },
-      });
+          AND: [
+            {
+              percentage: { gt: 0 },
+            },
+            { percentage: { lt: 100 } },
+          ],
+        }),
+      );
       break;
     case "late":
       where.push({

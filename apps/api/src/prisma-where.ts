@@ -35,6 +35,28 @@ export function whereDispatch(query: DispatchQueryParamsSchema) {
 
   switch (query?.status as SalesDispatchStatus) {
     case "missing items":
+      whereStack.push({
+        order: {
+          itemControls: {
+            some: {
+              deletedAt: null,
+              qtyControls: {
+                some: {
+                  deletedAt: null,
+                  type: "dispatchCompleted",
+                  total: {
+                    gt: 0,
+                  },
+                  percentage: {
+                    lt: 100,
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+      break;
     case "in progress":
     case "queue":
     case "completed":

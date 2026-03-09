@@ -5,5 +5,6 @@ export * from "./sales-control/get-sale-information";
 export * from "./sales-control/settings";
 export * from "./sales-control/tasks";
 export * from "./control";
+export * from "./new-sales-form-costing";
 export * from "./sales-template/invoice-print-data";
 export * from "./schema";

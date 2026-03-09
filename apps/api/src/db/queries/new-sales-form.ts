@@ -26,6 +26,7 @@ import {
 import { getSalesCustomer } from "@api/db/queries/customer";
 import { TRPCError } from "@trpc/server";
 import { generateRandomString } from "@gnd/utils";
+import { calculateNewSalesFormSummary } from "@gnd/sales/new-sales-form-costing";
 
 const DEFAULT_DELIVERY_OPTION = "pickup";
 const DEFAULT_PAYMENT_TERM = "None";
@@ -68,61 +69,24 @@ function roundCurrency(value: number) {
 }
 
 function recalculateSummary(input: RecalculateNewSalesFormSchema) {
-  const subTotal = roundCurrency(
-    input.lineItems.reduce((sum, line) => {
-      const computed = roundCurrency(line.qty * line.unitPrice);
-      return sum + (Number.isFinite(line.lineTotal) ? line.lineTotal! : computed);
-    }, 0),
-  );
-  const discount = roundCurrency(
-    (input.extraCosts || [])
-      .filter((cost) => cost.type === "Discount")
-      .reduce((sum, cost) => sum + Number(cost.amount || 0), 0),
-  );
-  const discountPct = roundCurrency(
-    (input.extraCosts || [])
-      .filter((cost) => cost.type === "DiscountPercentage")
-      .reduce((sum, cost) => sum + Number(cost.amount || 0), 0),
-  );
-  const labor = roundCurrency(
-    (input.extraCosts || [])
-      .filter((cost) => cost.type === "Labor")
-      .reduce((sum, cost) => sum + Number(cost.amount || 0), 0),
-  );
-  const delivery = roundCurrency(
-    (input.extraCosts || [])
-      .filter((cost) => cost.type === "Delivery")
-      .reduce((sum, cost) => sum + Number(cost.amount || 0), 0),
-  );
-  const otherCosts = roundCurrency(
-    (input.extraCosts || [])
-      .filter(
-        (cost) =>
-          !["Labor", "Delivery", "Discount", "DiscountPercentage"].includes(
-            cost.type,
-          ),
-      )
-      .reduce((sum, cost) => sum + Number(cost.amount || 0), 0),
-  );
-  const percentDiscountValue = roundCurrency(subTotal * (discountPct / 100));
-  const adjustedSubTotal = roundCurrency(
-    subTotal - discount - percentDiscountValue + labor + delivery + otherCosts,
-  );
-  const taxableSubTotal = Math.max(0, adjustedSubTotal);
-  const taxTotal = roundCurrency(taxableSubTotal * (input.taxRate / 100));
-  const grandTotal = roundCurrency(taxableSubTotal + taxTotal);
-  return {
-    subTotal,
-    adjustedSubTotal,
+  const summary = calculateNewSalesFormSummary({
+    strategy: "current",
     taxRate: input.taxRate,
-    taxTotal,
-    grandTotal,
-    discount,
-    discountPct,
-    percentDiscountValue,
-    labor,
-    delivery,
-    otherCosts,
+    lineItems: input.lineItems,
+    extraCosts: input.extraCosts,
+  });
+  return {
+    subTotal: summary.subTotal,
+    adjustedSubTotal: summary.adjustedSubTotal,
+    taxRate: summary.taxRate,
+    taxTotal: summary.taxTotal,
+    grandTotal: summary.grandTotal,
+    discount: summary.discount,
+    discountPct: summary.discountPct,
+    percentDiscountValue: summary.percentDiscountValue,
+    labor: summary.labor,
+    delivery: summary.delivery,
+    otherCosts: summary.otherCosts,
   };
 }
 

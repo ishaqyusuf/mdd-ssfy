@@ -29,7 +29,8 @@
     "./storefront": "./src/storefront.ts",
     "./utils/where-queries": "./src/utils/where-queries.ts",
     "./wallet": "./src/wallet.ts",
-    "./control": "./src/control/index.ts"
+    "./control": "./src/control/index.ts",
+    "./new-sales-form-costing": "./src/new-sales-form-costing.ts"
   },
   "dependencies": {
     "@gnd/db": "workspace:*",
