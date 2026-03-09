@@ -8,6 +8,20 @@ export function getJobType(role) {
 type JobLike = {
   id?: number | string | null;
   controlId?: string | number | null;
+  userId?: number | string | null;
+  builderTaskId?: number | string | null;
+  modelId?: number | string | null;
+  unitId?: number | string | null;
+  user?: {
+    id?: number | string | null;
+  } | null;
+  project?: {
+    id?: number | string | null;
+  };
+  home?: {
+    id?: number | string | null;
+    communityTemplateId?: number | string | null;
+  } | null;
 };
 
 export function isAdminUser() {
@@ -16,13 +30,25 @@ export function isAdminUser() {
 }
 
 function pushJobFormV2(job: JobLike, action: "submit" | "re-assign") {
+  const userId = job?.user?.id ?? job?.userId ?? null;
+  const unitId = job?.home?.id ?? job?.unitId ?? null;
+  const modelId = job?.home?.communityTemplateId ?? job?.modelId ?? null;
+  const builderTaskId = job?.builderTaskId ?? null;
+  const formStep = action === "re-assign" ? "5" : "4";
+  const projectId = job?.project?.id ?? null;
+
   _push?.({
     pathname: "/job-form",
     params: {
       action,
       admin: action === "re-assign" ? "true" : "false",
-      _jobId: job?.id ? String(job.id) : undefined,
-      step: "1",
+      _jobId: job?.id ? job.id : undefined,
+      _userId: userId ? userId : undefined,
+      _unitId: unitId ? unitId : undefined,
+      _modelId: modelId ? modelId : undefined,
+      _builderTaskId: builderTaskId ? builderTaskId : undefined,
+      _projectId: projectId ? projectId : undefined,
+      step: formStep,
     },
   } as any);
 }

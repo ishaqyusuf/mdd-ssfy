@@ -9,3 +9,5 @@
 - Added Expo sales and dispatch module task plan (delivery form + API + notification, infinite sales list, quotes feature, packing update submit flow).
 - Added web sales form backlog task for Google autocomplete address integration.
 - Reprioritized NOW tasks to include immediate testing of sales customer reminder email schedule.
+- Reprioritized NOW to include urgent Square payment system fix and online sales payment gateway notification work.
+- Added sales inventory system backlog tasks covering Dyke sync, inventory CRUD, and pricing management.

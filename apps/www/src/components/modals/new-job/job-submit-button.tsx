@@ -58,9 +58,11 @@ export function JobSubmitButton({
                 // @ts-ignore
                 (values: JobFormSchema) => {
                     values.requestTaskConfig = submitAsTaskRequest;
-                    if (markAsComplete) values.job.status = "Submitted";
-                    if (values.requestTaskConfig)
-                        values.job.status = "In Progress";
+                    if (values.requestTaskConfig) {
+                        values.action = "request-task-config";
+                    } else {
+                        values.action = markAsComplete ? "submit" : "re-assign";
+                    }
                     // return;
                     saveJob(values as any);
                     // Here you would typically call a mutation to save the job details
@@ -88,4 +90,3 @@ export function JobSubmitButton({
         </form>
     );
 }
-

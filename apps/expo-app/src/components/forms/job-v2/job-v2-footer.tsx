@@ -13,6 +13,7 @@ function canContinue(tab: string, params: any) {
 
 export function JobV2Footer() {
   const {
+    action,
     currentTab,
     prevStep,
     nextStep,
@@ -22,24 +23,30 @@ export function JobV2Footer() {
     hasMissingTaskConfiguration,
     isInstallCostStepActive,
     closeInstallCostStep,
-    requestTaskConfigurationData,
     reset,
   } = useJobFormV2Context();
 
-  if (currentTab === "form" && requestTaskConfigurationData?.id) {
-    return null;
-  }
-
+  // if (currentTab === "form") {
+  //   return null;
+  // }
+  const isForm = currentTab === "form";
+  const hideBack = action === "submit" || action === "re-assign";
   return (
     <View className="px-4 pb-4 pt-2">
       <NeoCard className="flex-row items-center gap-3 rounded-[28px] bg-card p-3">
-        <Button variant="outline" onPress={prevStep} className="rounded-2xl px-4">
-          <Text className="text-foreground">Back</Text>
-        </Button>
+        {hideBack ? null : (
+          <Button
+            variant="outline"
+            onPress={prevStep}
+            className="rounded-2xl px-4"
+          >
+            <Text className="text-foreground">Back</Text>
+          </Button>
+        )}
 
         <View className="flex-1" />
 
-        {currentTab !== "form" && currentTab !== "completed" ? (
+        {!isForm && currentTab !== "completed" && action !== "re-assign" ? (
           <Button
             onPress={nextStep}
             className="rounded-2xl bg-primary px-5"
@@ -49,15 +56,24 @@ export function JobV2Footer() {
           </Button>
         ) : null}
 
-        {currentTab === "form" && isInstallCostStepActive ? (
-          <Button onPress={closeInstallCostStep} className="rounded-2xl bg-primary px-5">
+        {isForm && isInstallCostStepActive ? (
+          <Button
+            onPress={closeInstallCostStep}
+            className="rounded-2xl bg-primary px-5"
+          >
             <Text className="text-primary-foreground">Finish</Text>
           </Button>
         ) : null}
 
-        {currentTab === "form" && !hasMissingTaskConfiguration && !isInstallCostStepActive ? (
-          <Button onPress={handleSubmit} className="rounded-2xl bg-primary px-5" disabled={isSaving}>
-            <Text className="text-primary-foreground">{isSaving ? "Submitting..." : "Submit Job"}</Text>
+        {isForm && !hasMissingTaskConfiguration && !isInstallCostStepActive ? (
+          <Button
+            onPress={handleSubmit}
+            className="rounded-2xl bg-primary px-5"
+            disabled={isSaving}
+          >
+            <Text className="text-primary-foreground">
+              {isSaving ? "Submitting..." : "Submit Job"}
+            </Text>
           </Button>
         ) : null}
 

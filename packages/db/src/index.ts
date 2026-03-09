@@ -63,6 +63,7 @@ export type Projects = Prisma.ProjectsGetPayload<undefined>;
 export type Inbox = Prisma.InboxGetPayload<undefined>;
 export type CustomerWallet = Prisma.CustomerWalletGetPayload<undefined>;
 export type Settings = Prisma.SettingsGetPayload<undefined>;
+export type ScheduleHistory = Prisma.ScheduleHistoryGetPayload<undefined>;
 export type UserDocuments = Prisma.UserDocumentsGetPayload<undefined>;
 export type Jobs = Prisma.JobsGetPayload<undefined>;
 export type Homes = Prisma.HomesGetPayload<undefined>;

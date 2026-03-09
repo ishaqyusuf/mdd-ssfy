@@ -1,5 +1,5 @@
 import z from "zod";
-import { JOB_STATUS_OPTIONS } from "./constants";
+import { JOB_FORM_ACTION_OPTIONS, JOB_STATUS_OPTIONS } from "./constants";
 
 export const builderFormSchema = z.object({
   id: z.number().optional().nullable(),
@@ -88,6 +88,7 @@ export const jobFormSchema = z
         .nullable(),
     }),
     adminMode: z.boolean().optional().default(false),
+    action: z.enum([...JOB_FORM_ACTION_OPTIONS]).optional().default("submit"),
   })
   .superRefine((data, ctx) => {
     if (data.job.isCustom) {

@@ -7,6 +7,7 @@
     "paths": {
       "@jobs/*": ["src/*"],
       "@sales/*": ["../sales/src/*"],
+      "@gnd/settings": ["../settings/src/index.ts"],
       "@emails/*": ["../email/src/*"],
       "@utils/*": ["../utils/src/*"],
       "@notifications/*": ["../notifications/src/*"],

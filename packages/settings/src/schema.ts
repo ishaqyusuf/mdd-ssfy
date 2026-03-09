@@ -2,7 +2,12 @@ import { z } from "zod";
 
 export const settingsSchema = z.object({
   id: z.number().optional(),
-  type: z.enum(["sales-settings", "install-price-chart", "jobs-settings"]),
+  type: z.enum([
+    "sales-settings",
+    "install-price-chart",
+    "jobs-settings",
+    "task-events-settings",
+  ]),
   meta: z.record(z.any(), z.any()).default({}),
 });
 export type SettingsSchema = z.infer<typeof settingsSchema>;
@@ -31,10 +36,25 @@ export const installCostSettings = settingsSchema.omit({ meta: true }).extend({
 });
 export type InstallCostSettings = z.infer<typeof installCostSettings>;
 export type JobsSettings = z.infer<typeof jobsSettings>;
+export const taskEventsSettings = settingsSchema.extend({
+  meta: z.object({
+    events: z
+      .record(
+        z.string(),
+        z.object({
+          status: z.enum(["active", "inactive"]).default("active"),
+          filter: z.record(z.string(), z.any()).default({}),
+        }),
+      )
+      .default({}),
+  }),
+});
+export type TaskEventsSettings = z.infer<typeof taskEventsSettings>;
 
 export type SettingsTypes = {
   // "sales-settings": SettingsSchema;
   "install-price-chart": InstallCostSettings;
   "jobs-settings": JobsSettings;
+  "task-events-settings": TaskEventsSettings;
   "sales-settings": SettingsSchema;
 };

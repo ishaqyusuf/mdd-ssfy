@@ -14,8 +14,17 @@ const TAB_TITLE: Record<string, string> = {
 };
 
 export function JobV2Header() {
-  const { action, step, tabs, currentTab, admin, prevStep, isInstallCostStepActive } = useJobFormV2Context();
+  const {
+    action,
+    step,
+    tabs,
+    currentTab,
+    admin,
+    prevStep,
+    isInstallCostStepActive,
+  } = useJobFormV2Context();
   const subtitle = admin ? "Admin Assignment Flow" : "Contractor Job Flow";
+  const hideBack = action === "submit" || action === "re-assign";
   const displayTitle =
     currentTab === "form" && isInstallCostStepActive
       ? "Configure Task Costs"
@@ -27,7 +36,7 @@ export function JobV2Header() {
     <View className="px-4 pb-2 pt-2">
       <NeoCard className="rounded-[28px] bg-card p-4">
         <View className="mb-3 flex-row items-center gap-3">
-          <BackBtn onPress={prevStep} />
+          {hideBack ? null : <BackBtn onPress={prevStep} />}
           <View className="flex-1">
             <Text className="text-[11px] uppercase tracking-[1.4px] text-muted-foreground">
               {subtitle}

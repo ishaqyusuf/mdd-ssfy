@@ -4,6 +4,13 @@ import { type NotificationJobInput } from "@notifications/schemas";
 import { logger, schedules, task, tasks } from "@trigger.dev/sdk/v3";
 import { addDays } from "date-fns";
 import { tokenize, type SalesPdfToken } from "@gnd/utils/tokenizer";
+import { TaskName } from "@jobs/schema";
+import { whereSales } from "@gnd/sales/utils/where-queries";
+import { getSettingAction } from "@gnd/settings";
+import {
+  getTaskEventConfigFromMeta,
+  getTaskEventDefaultConfig,
+} from "@jobs/task-events/registry";
 
 const baseApiUrl = getAppApiUrl();
 const isValidEmail = (value?: string | null) =>
@@ -36,27 +43,105 @@ export const salesPendingBillReminderSchedule = schedules.task({
     concurrencyLimit: 1,
   },
   run: async () => {
-    return runPendingBillReminder();
+    return runPendingBillReminder("scheduled");
   },
 });
 
+const EVENT_NAME = "sales-pending-bill-reminder-schedule";
+const id: TaskName = "run-sales-pending-bill-reminder-now";
 export const runSalesPendingBillReminderNow = task({
-  id: "run-sales-pending-bill-reminder-now",
+  id,
   run: async () => {
-    return runPendingBillReminder();
+    return runPendingBillReminder("now");
   },
 });
 
-async function runPendingBillReminder() {
+const testId: TaskName = "run-sales-pending-bill-reminder-test";
+export const runSalesPendingBillReminderTest = task({
+  id: testId,
+  run: async () => {
+    return runPendingBillReminder("test");
+  },
+});
+
+type RunType = "scheduled" | "now" | "test";
+
+async function writeScheduleHistory(input: {
+  eventName: string;
+  value: number;
+  meta: Record<string, unknown>;
+}) {
+  try {
+    await db.scheduleHistory.create({
+      data: {
+        eventName: input.eventName,
+        value: input.value,
+        meta: input.meta,
+      },
+    });
+  } catch (error) {
+    logger.error("Failed writing schedule history", {
+      error,
+      eventName: input.eventName,
+    });
+  }
+}
+
+async function runPendingBillReminder(runType: RunType) {
+  const defaultConfig = getTaskEventDefaultConfig(EVENT_NAME);
+  const settings = await getSettingAction("task-events-settings", db);
+  const config = (() => {
+    try {
+      return getTaskEventConfigFromMeta(EVENT_NAME, settings?.meta || {});
+    } catch (error) {
+      logger.error("Invalid task event config, using defaults", {
+        error,
+        eventName: EVENT_NAME,
+      });
+      return defaultConfig;
+    }
+  })();
+
+  if (config.status === "inactive" && runType === "scheduled") {
+    await writeScheduleHistory({
+      eventName: EVENT_NAME,
+      value: 0,
+      meta: {
+        triggerType: runType,
+        statusUsed: config.status,
+        filterUsed: config.filter,
+        skipped: true,
+        reason: "inactive",
+      },
+    });
+
+    logger.info("Sales pending-bill reminder skipped (inactive schedule).");
+    return { found: 0, grouped: 0, sent: 0, skipped: 0, failed: 0 };
+  }
+
+  const filterWhere = whereSales(config.filter as any);
   const [pendingSales, fallbackAuthor] = await Promise.all([
       db.salesOrders.findMany({
-        where: {
-          deletedAt: null,
-          type: "order",
-          amountDue: {
-            gt: 0,
-          },
-        },
+        where: filterWhere
+          ? {
+              AND: [
+                {
+                  deletedAt: null,
+                  type: "order",
+                  amountDue: {
+                    gt: 0,
+                  },
+                },
+                filterWhere,
+              ],
+            }
+          : {
+              deletedAt: null,
+              type: "order",
+              amountDue: {
+                gt: 0,
+              },
+            },
         orderBy: {
           createdAt: "asc",
         },
@@ -100,6 +185,20 @@ async function runPendingBillReminder() {
     ]);
 
   if (!pendingSales.length) {
+    await writeScheduleHistory({
+      eventName: EVENT_NAME,
+      value: 0,
+      meta: {
+        triggerType: runType,
+        statusUsed: config.status,
+        filterUsed: config.filter,
+        found: 0,
+        grouped: 0,
+        sent: 0,
+        skipped: 0,
+        failed: 0,
+      },
+    });
     logger.info("No pending sales bills found for reminder schedule.");
     return { found: 0, grouped: 0, sent: 0, skipped: 0, failed: 0 };
   }
@@ -166,6 +265,20 @@ async function runPendingBillReminder() {
   }
 
   if (!grouped.size) {
+    await writeScheduleHistory({
+      eventName: EVENT_NAME,
+      value: 0,
+      meta: {
+        triggerType: runType,
+        statusUsed: config.status,
+        filterUsed: config.filter,
+        found: pendingSales.length,
+        grouped: 0,
+        sent: 0,
+        skipped,
+        failed: 0,
+      },
+    });
     logger.info("No valid pending-bill reminder groups after filtering.");
     return {
       found: pendingSales.length,
@@ -181,6 +294,10 @@ async function runPendingBillReminder() {
   let failed = 0;
 
   for (const group of grouped.values()) {
+    if (runType === "test") {
+      sent += 1;
+      continue;
+    }
     try {
       const downloadToken = tokenize({
         salesIds: group.salesIds,
@@ -223,6 +340,22 @@ async function runPendingBillReminder() {
     sent,
     skipped,
     failed,
+  });
+
+  await writeScheduleHistory({
+    eventName: EVENT_NAME,
+    value: sent,
+    meta: {
+      triggerType: runType,
+      statusUsed: config.status,
+      filterUsed: config.filter,
+      found: pendingSales.length,
+      grouped: grouped.size,
+      sent,
+      skipped,
+      failed,
+      testMode: runType === "test",
+    },
   });
 
   return {

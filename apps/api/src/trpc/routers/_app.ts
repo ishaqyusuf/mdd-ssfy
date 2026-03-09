@@ -27,6 +27,7 @@ import { printRouter } from "./print.route";
 import { workOrderRouter } from "./work-order.route";
 import { jobRoutes } from "./jobs.route";
 import { settingsRouter } from "./settings.route";
+import { taskEventsRouter } from "./task-events.route";
 import { newSalesFormRouter } from "./new-sales-form.route";
 // import { studentsRouter } from "./students";
 // import { subjectsRouter } from "./subjects";
@@ -57,6 +58,7 @@ export const appRouter = createTRPCRouter({
   siteActions: siteActionsRoutes,
   squareTest: squareTestRouter,
   taskTrigger: taskTriggerRouter,
+  taskEvents: taskEventsRouter,
   user: userRoutes,
   workOrder: workOrderRouter,
 });

@@ -15,9 +15,10 @@ import { useJobTaskList } from "@/hooks/use-job-task-list";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@gnd/utils";
 import { formatDate } from "@gnd/utils/dayjs";
-import { Text, View } from "react-native";
-import { ScrollView } from "react-native-gesture-handler";
+import { RefreshControl, ScrollView, Text, View } from "react-native";
 import { JobActivityHistory } from "@/components/job-activity-history";
+import { _qc, _trpc } from "@/components/static-trpc";
+import { useCallback } from "react";
 
 // All components are in this file as per the instructions.
 
@@ -118,7 +119,8 @@ function TasksAndChargesCard() {
       </View>
       <View className="p-6 flex flex-col gap-6">
         {[
-          ...(tasks || []),
+          // ...(tasks || []),
+          ...(job?.tasks || []),
           !job?.meta?.additional_cost || {
             title: "Additional Cost",
             reason: job?.meta?.additionalCostReason || "-",
@@ -237,14 +239,33 @@ export default function JobOverviewScreen(props: JobOverviewProps) {
   );
 }
 function Content() {
-  const { isPending, job } = useJobContext();
+  const { isPending, isRefetching, refetch, job } = useJobContext();
+  const onRefresh = useCallback(async () => {
+    await Promise.all([
+      refetch(),
+      _qc.invalidateQueries({
+        queryKey: _trpc.jobs.getJobActivityHistory.queryKey({
+          jobId: Number(job?.id || 0),
+        }),
+      }),
+    ]);
+  }, [job?.id, refetch]);
+
   if (isPending || !job) return <SkeletonView />;
 
   return (
     <SafeArea>
       {/* <View className="flex-1 bg-background"> */}
       <Header />
-      <ScrollView contentContainerClassName="p-5 pt-4 gap-6 pb-32">
+      <ScrollView
+        contentContainerClassName="p-5 pt-4 gap-6 pb-32"
+        bounces
+        alwaysBounceVertical
+        overScrollMode="always"
+        refreshControl={
+          <RefreshControl refreshing={isRefetching} onRefresh={onRefresh} />
+        }
+      >
         <View>
           <StatusBadge />
           <Text className="text-3xl font-bold leading-tight mb-1 text-foreground">
@@ -284,7 +305,7 @@ function Content() {
           </ScrollView>
         </View>
         <NotesCard />
-        <JobActivityHistory />
+        <JobActivityHistory jobId={job?.id} />
         <JobOverviewActions />
       </ScrollView>
       <JobFooterContractor />

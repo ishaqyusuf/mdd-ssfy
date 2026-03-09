@@ -93,7 +93,7 @@ import {
   jobFormSchema,
 } from "@community/schema";
 import { getSettingAction } from "@gnd/settings";
-import { INSTALL_COST_DEFAULT_UNITS } from "@community/constants";
+import { INSTALL_COST_DEFAULT_UNITS, type JobFormAction } from "@community/constants";
 import type { JobMeta, JobStatus, ProjectMeta } from "@community/types";
 import { NotificationService } from "@notifications/services/triggers";
 import slugify from "slugify";
@@ -335,6 +335,7 @@ export const communityRouters = createTRPCRouter({
             rate: jobTask?.rate || taskInstallCost.installCostModel.unitCost,
             installCostModel: taskInstallCost.installCostModel,
             modelTaskId,
+            title: builderTask.taskName,
           };
         })
         .filter((a) => a.maxQty && a.modelTaskId);
@@ -396,7 +397,6 @@ export const communityRouters = createTRPCRouter({
     const { ctx, input } = props;
     return ctx.db.$transaction(async (db) => {
       const { unit, user, job: jobInput } = input;
-      const isContractorCreator = !!props?.input?.user?.id;
       let jobId = jobInput.id;
       const isCreatingJob = !jobId;
       const previousJob = jobId
@@ -411,6 +411,26 @@ export const communityRouters = createTRPCRouter({
             },
           })
         : null;
+      const action = input.action as JobFormAction;
+      const resolvedStatus = (() => {
+        if (input.requestTaskConfig || action === "request-task-config") {
+          return "In Progress" as JobStatus;
+        }
+        if (action === "submit") return "Submitted" as JobStatus;
+        if (action === "re-assign") return "Assigned" as JobStatus;
+        if (action === "approve") return "Approved" as JobStatus;
+        if (action === "reject") return "Rejected" as JobStatus;
+
+        return (
+          (previousJob?.status as JobStatus | null) ||
+          (jobInput.status as JobStatus | null) ||
+          (isCreatingJob ? ("Submitted" as JobStatus) : undefined)
+        );
+      })();
+
+      if (resolvedStatus) {
+        jobInput.status = resolvedStatus;
+      }
       if (!jobInput.meta) jobInput.meta = {};
       if (jobInput.isCustom) {
         jobInput.meta = {
@@ -472,8 +492,11 @@ export const communityRouters = createTRPCRouter({
             title: jobInput.title,
             subtitle: jobInput.subtitle,
             description: jobInput.description,
-            status: jobInput.status || undefined,
-            statusDate: jobInput.status ? new Date() : undefined,
+            status: resolvedStatus || undefined,
+            statusDate:
+              resolvedStatus && resolvedStatus !== previousJob?.status
+                ? new Date()
+                : undefined,
             // type: job.type,
             meta: jobInput.meta as any,
             user: user?.id ? { connect: { id: user.id } } : undefined,
@@ -496,7 +519,7 @@ export const communityRouters = createTRPCRouter({
               ? { connect: { id: unit.projectId } }
               : undefined,
             meta: jobInput.meta as any,
-            status: jobInput.status!,
+            status: (resolvedStatus || "Submitted") as JobStatus,
             builderTask: input?.builderTaskId
               ? { connect: { id: input.builderTaskId } }
               : undefined,
@@ -568,7 +591,7 @@ export const communityRouters = createTRPCRouter({
             lotBlock: job?.home ? `${job.home.lot}/${job.home.block}` : "",
             taskName: job?.builderTask?.taskName || "",
           });
-        } else if (isContractorCreator)
+        } else if (resolvedStatus === "Submitted")
           await notification.channel.jobSubmitted({
             jobId: job?.id!,
           });
@@ -586,7 +609,7 @@ export const communityRouters = createTRPCRouter({
         const notification = new NotificationService(tasks, ctx);
         const nextUserId = job?.user?.id || null;
         const previousUserId = previousJob?.userId || null;
-        const nextStatus = jobInput.status;
+        const nextStatus = resolvedStatus || jobInput.status;
         const previousStatus = previousJob?.status;
 
         if (

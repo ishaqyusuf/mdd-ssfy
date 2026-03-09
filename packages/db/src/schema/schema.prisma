@@ -117,6 +117,18 @@ model Event {
     @@index([userId])
 }
 
+model ScheduleHistory {
+    id        Int       @id @default(autoincrement())
+    eventName String    @db.VarChar(255)
+    value     Float     @default(0)
+    meta      Json?     @db.Json
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
+    @@index([eventName, createdAt])
+}
+
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 

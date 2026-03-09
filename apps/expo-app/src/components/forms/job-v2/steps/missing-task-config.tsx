@@ -19,15 +19,15 @@ export function MissingTaskConfig() {
   const selectedBuilderTaskId = (defaultValues as any)?.builderTaskId || null;
 
   return (
-    <NeoCard className="border-border bg-card">
-      <View className="items-center">
+    <NeoCard className="border-border bg-card gap-2">
+      <View className="items-center gap-4">
         <View className="mb-3 h-12 w-12 items-center justify-center rounded-full bg-muted">
           <Icon name="TriangleAlert" className="text-destructive" size={20} />
         </View>
-        <Text className="text-center text-base font-black text-foreground">
+        <Text className="text-center text-xl font-black text-foreground">
           Task Configuration Missing
         </Text>
-        <Text className="mt-2 text-center text-xs leading-5 text-muted-foreground">
+        <Text className="mt-2 text-center text-sm leading-5 text-muted-foreground">
           {`"${taskName}" for ${projectName} has no configured task quantity yet.`}
         </Text>
       </View>
@@ -47,7 +47,7 @@ export function MissingTaskConfig() {
 
         <Button
           onPress={requestTaskConfiguration}
-          className="rounded-2xl bg-primary"
+          className="rounded-2xl h-12 gap-4 bg-primary"
           disabled={isRequestingTaskConfiguration}
         >
           <Icon name="Mail" className="text-primary-foreground" size={16} />

@@ -69,6 +69,7 @@ export const protectedProcedure = t.procedure
     return opts.next({
       ctx: {
         db: opts.ctx.db,
+        userId: opts.ctx.userId,
       },
     });
   });

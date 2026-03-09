@@ -17,6 +17,7 @@ import { MissingTaskConfig } from "./missing-task-config";
 import { Icon } from "@/components/ui/icon";
 import { InstallCostForm } from "../install-cost-form";
 import { ConfigRequestSuccessStep } from "./config-request-success-step";
+import { JobFormSchema } from "@community/schema";
 
 function NumberInput({
   value,
@@ -59,7 +60,7 @@ export function JobDetailsStep() {
     installCostBuilderTaskId,
     notifyContractorJobReady,
     isNotifyingContractor,
-    requestTaskConfigurationData,
+    // requestTaskConfigurationData,
     projectList,
     unitOptions,
     tabs,
@@ -68,10 +69,11 @@ export function JobDetailsStep() {
     refreshCurrentStep,
     state,
   } = useJobFormV2Context();
-  const isCustom = form.watch("isCustom") || params.builderTaskId === -1;
-  const taskRows = Object.entries(
-    (form.watch("job.tasks") || {}) as Record<string, any>,
-  );
+  const isCustom = form.watch("job.isCustom") || params.builderTaskId === -1;
+  const taskRows = form.watch("job.tasks") || [];
+  // Object.entries(
+  // as JobFormSchema["job"]["tasks"]
+  // ).filter(([uid]) => typeof uid === "string" && uid.length > 0);
   const selectedProject = (projectList || []).find(
     (project: any) => project?.id === params.projectId,
   );
@@ -80,9 +82,9 @@ export function JobDetailsStep() {
   );
   const modelMissing = !params.modelId;
 
-  if (requestTaskConfigurationData?.id) {
-    return <ConfigRequestSuccessStep />;
-  }
+  // if (requestTaskConfigurationData?.id) {
+  //   return <ConfigRequestSuccessStep />;
+  // }
 
   if (modelMissing) {
     const unitModelName = selectedUnit?.modelName || "Unknown Model";
@@ -185,7 +187,10 @@ export function JobDetailsStep() {
       />
     );
   }
-
+  function ShowTaskQty({ children }) {
+    if (!state.showTaskQty && !admin) return null;
+    return <>{children}</>;
+  }
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -247,7 +252,7 @@ export function JobDetailsStep() {
             </Text>
             <Controller
               control={form.control}
-              name="job.additionalCost"
+              name="job.meta.additional_cost"
               render={({ field }) => (
                 <NumberInput
                   value={field.value}
@@ -287,76 +292,90 @@ export function JobDetailsStep() {
                 <Text className="flex-1 text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
                   Item
                 </Text>
-                <Text className="w-16 text-right text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
-                  Rate
-                </Text>
+                <ShowTaskQty>
+                  <Text className="w-16 text-right text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
+                    Rate
+                  </Text>
+                </ShowTaskQty>
                 <Text className="w-24 text-center text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
                   Qty
                 </Text>
-                <Text className="w-16 text-right text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
-                  Total
-                </Text>
+                <ShowTaskQty>
+                  <Text className="w-16 text-right text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
+                    Total
+                  </Text>
+                </ShowTaskQty>
               </View>
 
-              {taskRows.map(([uid, task]) => (
-                <View
-                  key={uid}
-                  className="flex-row items-center border-b border-border/80 bg-background px-3 py-2 last:border-b-0"
-                >
-                  <View className="flex-1 pr-2">
-                    <Text className="text-xs font-semibold uppercase text-foreground">
-                      {task?.title || uid}
-                    </Text>
-                    {state.showTaskQty ? (
-                      <Text className="text-[11px] text-muted-foreground">
-                        Max: {task?.maxQty || 0}
+              {/* {taskRows.map(([uid, task]) => { */}
+              {taskRows.map((task, uid) => {
+                // console.log(task);
+                const qtyFieldName = `job.tasks.${uid}.qty` as const;
+                return (
+                  <View
+                    key={uid}
+                    className="flex-row items-center border-b border-border/80 bg-background px-3 py-2 last:border-b-0"
+                  >
+                    <View className="flex-1 pr-2">
+                      <Text className="text-xs font-semibold uppercase text-foreground">
+                        {task?.title || uid}
                       </Text>
-                    ) : null}
+                      <ShowTaskQty>
+                        <Text className="text-[11px] text-muted-foreground">
+                          Max: {task?.maxQty || 0}
+                        </Text>
+                      </ShowTaskQty>
+                    </View>
+                    <ShowTaskQty>
+                      <Text className="w-16 text-right text-xs text-muted-foreground">
+                        ${Number(task?.rate || 0).toFixed(2)}
+                      </Text>
+                    </ShowTaskQty>
+                    <Controller
+                      control={form.control}
+                      name={qtyFieldName as any}
+                      render={({ field }) => (
+                        <View className="w-24 px-1">
+                          <TextInput
+                            value={
+                              field.value === null || field.value === undefined
+                                ? ""
+                                : String(field.value)
+                            }
+                            onChangeText={(text) =>
+                              field.onChange(
+                                parseQty(
+                                  text.replace(/[^0-9.]/g, ""),
+                                  admin ? task?.maxQty : null,
+                                ),
+                              )
+                            }
+                            keyboardType="decimal-pad"
+                            editable={!admin || Number(task?.maxQty || 0) > 0}
+                            className="h-10 rounded-xl border border-border bg-card px-2 text-xs text-foreground"
+                            style={{ textAlign: "center" }}
+                            placeholder="0"
+                            placeholderTextColor="hsl(var(--muted-foreground))"
+                          />
+                          {state.showTaskQty && admin ? (
+                            <Text className="mt-1 text-center text-[10px] text-muted-foreground">
+                              / {task?.maxQty || 0}
+                            </Text>
+                          ) : null}
+                        </View>
+                      )}
+                    />
+                    <ShowTaskQty>
+                      <Text className="w-16 text-right text-xs font-semibold text-foreground">
+                        $
+                        {(
+                          Number(task?.rate || 0) * Number(task?.qty || 0) || 0
+                        ).toFixed(2)}
+                      </Text>
+                    </ShowTaskQty>
                   </View>
-                  <Text className="w-16 text-right text-xs text-muted-foreground">
-                    ${Number(task?.cost || 0).toFixed(2)}
-                  </Text>
-                  <Controller
-                    control={form.control}
-                    name={`tasks.${uid}.qty` as any}
-                    render={({ field }) => (
-                      <View className="w-24 px-1">
-                        <TextInput
-                          value={
-                            field.value === null || field.value === undefined
-                              ? ""
-                              : String(field.value)
-                          }
-                          onChangeText={(text) =>
-                            field.onChange(
-                              parseQty(
-                                text.replace(/[^0-9.]/g, ""),
-                                admin ? task?.maxQty : null,
-                              ),
-                            )
-                          }
-                          keyboardType="decimal-pad"
-                          editable={!admin || Number(task?.maxQty || 0) > 0}
-                          className="h-10 rounded-xl border border-border bg-card px-2 text-center text-xs text-foreground"
-                          placeholder="0"
-                          placeholderTextColor="hsl(var(--muted-foreground))"
-                        />
-                        {state.showTaskQty && admin ? (
-                          <Text className="mt-1 text-center text-[10px] text-muted-foreground">
-                            / {task?.maxQty || 0}
-                          </Text>
-                        ) : null}
-                      </View>
-                    )}
-                  />
-                  <Text className="w-16 text-right text-xs font-semibold text-foreground">
-                    $
-                    {(
-                      Number(task?.cost || 0) * Number(task?.qty || 0) || 0
-                    ).toFixed(2)}
-                  </Text>
-                </View>
-              ))}
+                );
+              })}
             </View>
           </NeoCard>
         )}

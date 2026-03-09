@@ -58,10 +58,10 @@ export function SelectUnitStep() {
     _trpc.community.generateModelForUnit.mutationOptions({
       meta: {
         toastTitle: {
-          error: "Unable to configure unit model",
-          loading: "Configuring model...",
-          success: "Model configured",
-          show: true,
+          // error: "Unable to configure unit model",
+          // loading: "Configuring model...",
+          // success: "Model configured",
+          // show: true,
         },
       },
     }),
@@ -145,7 +145,6 @@ export function SelectUnitStep() {
                       unitId: unit.id,
                     });
                     nextModelId = generated?.modelId || null!;
-                    console.log("Selected unit with model ID:", nextModelId);
                   }
                   // return;
                   selectUnit({

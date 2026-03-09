@@ -1,9 +1,10 @@
 import { type Db } from "@gnd/db";
-import { SettingsTypes } from "./schema";
+import type { SettingsTypes } from "./schema";
 export const SETTINGS_TYPE = [
   "sales-settings",
   "install-price-chart",
   "jobs-settings",
+  "task-events-settings",
   //   "allow-custom-jobs",
 ] as const;
 

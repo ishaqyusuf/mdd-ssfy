@@ -37,3 +37,13 @@ export const JOB_STATUS_OPTIONS = [
 export type JobStatus = (typeof JOB_STATUS_OPTIONS)[number];
 export type IsJobStatus = Record<JobStatus, boolean>;
 // export const IsJobStatus: Record<(typeof JOB_STATUS_OPTIONS)[number], string> =
+
+export const JOB_FORM_ACTION_OPTIONS = [
+  "submit",
+  "update",
+  "re-assign",
+  "request-task-config",
+  "approve",
+  "reject",
+] as const;
+export type JobFormAction = (typeof JOB_FORM_ACTION_OPTIONS)[number];

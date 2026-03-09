@@ -11,14 +11,16 @@ export interface JobOverviewProps {
 }
 export const useCreateJobContext = (props: JobOverviewProps) => {
   const { jobId } = props;
-  const { data, isPending } = useQuery(
+  const { data, isPending, isRefetching, refetch } = useQuery(
     _trpc.jobs.getJobs.queryOptions({
       jobId: Number(jobId),
-    })
+    }),
   );
   const job = data?.data?.[0];
   return {
     isPending,
+    isRefetching,
+    refetch,
     job,
     ...props,
   };

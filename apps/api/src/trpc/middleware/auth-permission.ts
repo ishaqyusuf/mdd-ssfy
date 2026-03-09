@@ -13,11 +13,13 @@ export const withAuthPermission = async <TReturn>(opts: {
   ctx: {
     // session?: Session | null;
     db: typeof db;
+    userId?: number;
   };
   next: (opts: {
     ctx: {
       //   session?: Session | null;
       db: typeof db;
+      userId?: number;
       //   teamId: string | null;
     };
   }) => Promise<TReturn>;
@@ -80,6 +82,7 @@ export const withAuthPermission = async <TReturn>(opts: {
       //   session: ctx.session,
       //   teamId,
       db: ctx.db,
+      userId: ctx.userId,
     },
   });
 };

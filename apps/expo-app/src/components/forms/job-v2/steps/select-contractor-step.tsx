@@ -40,9 +40,11 @@ function ContractorStepSkeleton() {
 
 export function SelectContractorStep() {
   const {
+    action,
     users,
     params,
     selectUser,
+    isReAssigning,
     isUsersPending,
     isRefreshing,
     refreshCurrentStep,
@@ -103,6 +105,7 @@ export function SelectContractorStep() {
             <TouchableOpacity
               key={user.id}
               className="active:opacity-85"
+              disabled={isReAssigning}
               onPress={() => selectUser(user.id)}
               onLayout={(event) => {
                 positionsRef.current[user.id] = event.nativeEvent.layout.y;
@@ -119,7 +122,9 @@ export function SelectContractorStep() {
                     <Text className="text-base font-bold text-foreground">{user.name}</Text>
                     <Text className="text-xs text-muted-foreground">{String(user.role || "Contractor")}</Text>
                   </View>
-                  <Text className="text-xs uppercase text-muted-foreground">Choose</Text>
+                  <Text className="text-xs uppercase text-muted-foreground">
+                    {action === "re-assign" ? "Re-Assign" : "Choose"}
+                  </Text>
                 </View>
               </NeoCard>
             </TouchableOpacity>
