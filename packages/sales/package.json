@@ -28,7 +28,8 @@
     "./schema": "./src/schema.ts",
     "./storefront": "./src/storefront.ts",
     "./utils/where-queries": "./src/utils/where-queries.ts",
-    "./wallet": "./src/wallet.ts"
+    "./wallet": "./src/wallet.ts",
+    "./control": "./src/control/index.ts"
   },
   "dependencies": {
     "@gnd/db": "workspace:*",

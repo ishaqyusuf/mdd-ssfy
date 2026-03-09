@@ -3,14 +3,17 @@ import { schemaTask } from "@trigger.dev/sdk/v3";
 import {
   cancelDispatchTask,
   clearPackingTask,
+  type LegacyUpdateSalesControlAction,
   createAssignmentsTask,
   deleteAssignmentsTasks,
   deleteSubmissionsTask,
   markAsCompletedTask,
   packDispatchItemTask,
+  resolveLegacyUpdateSalesControlAction,
   startDispatchTask,
   submitAllTask,
   submitDispatchTask,
+  type UpdateSalesControl,
   updateSalesControlSchema,
 } from "@gnd/sales";
 import { db } from "@gnd/db";
@@ -23,7 +26,7 @@ export const updateSalesControl = schemaTask({
     concurrencyLimit: 10,
   },
   run: async (input) => {
-    const actionMaps: Partial<{ [k in keyof typeof input]: any }> = {
+    const actionMaps: Record<LegacyUpdateSalesControlAction, any> = {
       submitAll: submitAllTask,
       packItems: packDispatchItemTask,
       clearPackings: clearPackingTask,
@@ -35,16 +38,11 @@ export const updateSalesControl = schemaTask({
       deleteAssignments: deleteAssignmentsTasks,
       markAsCompleted: markAsCompletedTask,
     };
-    const actionKey = Object.entries(input).find(
-      ([k, v]) => !!v && !!(actionMaps as any)[k as any],
-    )?.[0]!;
-    const action = (actionMaps as any)[actionKey];
+    const mapping = resolveLegacyUpdateSalesControlAction(
+      input as UpdateSalesControl,
+    );
+    const action = mapping ? actionMaps[mapping.action] : null;
     if (action) return await action(db, input);
-    // TODO: "THROW ERROR"
     throw new Error("Invalid action");
-    // if (input.submitAll) return submitAllTask(db, input);
-    // if (input.packItems) return packDispatchItemTask(db, input);
-    // if (input.clearPackings) return clearPackingTask(db, input);
-    // if (input.createAssignments) return createAssignmentsTask;
   },
 });

@@ -3,6 +3,7 @@ import { schemaTask } from "@trigger.dev/sdk/v3";
 import {
   resetSalesControlSchema,
   resetSalesTask,
+  resolveResetSalesControlCommand,
   submitNonProductionsTask,
 } from "@gnd/sales";
 import { db } from "@gnd/db";
@@ -15,11 +16,16 @@ export const resetSalesControl = schemaTask({
     concurrencyLimit: 10,
   },
   run: async (input) => {
+    const repairCommand = resolveResetSalesControlCommand();
     await submitNonProductionsTask(db, {
       meta: input.meta,
       packItems: null as any,
       submitAll: null,
     });
     await resetSalesTask(db, input.meta.salesId);
+    return {
+      ok: true,
+      repairCommand,
+    };
   },
 });
