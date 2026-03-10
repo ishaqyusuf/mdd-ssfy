@@ -1,17 +1,14 @@
 import {
   SendSalesReminderPayload,
   sendSalesReminderSchema,
-  TaskName,
 } from "@jobs/schema";
-import { logger, schemaTask } from "@trigger.dev/sdk/v3";
+import { logger, schemaTask, tasks } from "@trigger.dev/sdk/v3";
 import { db } from "@gnd/db";
 import { processBatch } from "@jobs/utils/process-batch";
-import { sendEmail } from "@jobs/utils/resend";
-import SalesEmail from "@gnd/email/emails/sales-email";
 import { getAppApiUrl, getAppUrl } from "@utils/envs";
+import { type NotificationJobInput } from "@notifications/schemas";
 const baseAppUrl = getAppUrl();
 const baseApiUrl = getAppApiUrl();
-const id = "send-sales-email" as TaskName;
 export const sendSalesReminder = schemaTask({
   id: "send-sales-reminder",
   schema: sendSalesReminderSchema,
@@ -20,7 +17,6 @@ export const sendSalesReminder = schemaTask({
     concurrencyLimit: 10,
   },
   run: async (props) => {
-    const isDev = process.env.NODE_ENV === "development";
     const data = await loadSales(props);
     logger.info(`Received data: ${JSON.stringify(data)}`);
     if (!data) {
@@ -33,34 +29,39 @@ export const sendSalesReminder = schemaTask({
       await Promise.all(
         batch.map(async (data) => {
           logger.log(`Processing sales: ${data}`);
-          const isQuote = data.type == "quote";
-          await sendEmail({
-            subject: `${props.salesRep} sent you ${
-              isQuote ? "a quote" : "an invoice"
-            }`,
-            from: `GND Millwork <${
-              props.salesRepEmail?.split("@")[0]
-            }@gndprodesk.com>` as any,
-            to: data.customerEmail!,
-            content: SalesEmail({
-              isQuote,
+          const authorId = props.salesRepId || data.data?.[0]?.salesRepId;
+          if (!authorId) {
+            throw new Error(
+              `Missing salesRepId for reminder payload: ${JSON.stringify(data)}`,
+            );
+          }
+          await tasks.trigger("notification", {
+            channel: "sales_email_reminder",
+            author: {
+              id: authorId,
+              role: "employee",
+            },
+            payload: {
+              type: data.type,
+              customerEmail: data.customerEmail,
+              customerName: data.customerName,
+              salesRep: props.salesRep,
+              salesRepEmail: props.salesRepEmail,
               pdfLink: data.downloadToken
                 ? `${baseApiUrl}/download/sales?token=${data.downloadToken}&download=true`
-                : undefined,
+                : null,
               paymentLink: data.paymentToken
                 ? `${baseAppUrl}/checkout/${data.paymentToken}`
-                : undefined,
-              //  paymentLink: paymentLink!,
-              sales: data.data,
-              customerName: data.customerName!,
-            }),
-            successLog: "Invoice email sent",
-            errorLog: "Invoice email failed to send",
-            task: {
-              id,
-              payload: props,
+                : null,
+              sales: data.data.map((sale) => ({
+                orderId: sale.orderId,
+                po: sale.po,
+                date: sale.date,
+                total: sale.total,
+                due: sale.due,
+              })),
             },
-          });
+          } satisfies NotificationJobInput);
         })
       );
     });
@@ -88,6 +89,7 @@ async function loadSales(props: SendSalesReminderPayload) {
         orderId: true,
         salesRep: {
           select: {
+            id: true,
             name: true,
             email: true,
           },
@@ -121,12 +123,13 @@ async function loadSales(props: SendSalesReminderPayload) {
       date: sale.createdAt!,
       orderId: sale.orderId,
       salesRep: sale?.salesRep?.name,
+      salesRepId: sale?.salesRep?.id,
       salesRepEmail: sale?.salesRep?.email,
       customerName: sale?.customer?.name || sale?.billingAddress?.name,
       businessName: sale?.customer?.businessName,
     };
   });
-  logger.log(`Sending ${sales.length} emails...`);
+  logger.log(`Preparing ${sales.length} sales reminder records...`);
 
   // group by customerEmail
   // let grouped: { [email in string]: typeof sales } = {};

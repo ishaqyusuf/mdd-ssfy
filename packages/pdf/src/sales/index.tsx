@@ -74,6 +74,16 @@ export function SalesPdfTemplate(props: Props) {
     <Document onRender={props.onRender} title={props.title}>
       {props.pages.map((printData, ui) => {
         const { orderedPrinting = [], order, isPacking } = printData || {};
+        const mode = printData?.mode;
+
+        const showCustomerSignatureSection =
+          mode === "packing list" ||
+          mode == "order-packing" ||
+          mode === "order" ||
+          mode === "quote" ||
+          isPacking ||
+          printData?.isOrder ||
+          printData?.isEstimate;
         return (
           <WatermarkPage
             key={ui}
@@ -108,7 +118,7 @@ export function SalesPdfTemplate(props: Props) {
                         index={i}
                         printData={printData}
                       />
-                    )
+                    ),
                   )}
                   {/* <Text>{JSON.stringify(printData)}</Text> */}
                   <SalesPrintLineItems printData={printData} />
@@ -116,20 +126,6 @@ export function SalesPdfTemplate(props: Props) {
               </>
             )}
 
-            {isPacking && (
-              <View style={cn("flex-row px-4 justify-between mt-4")}>
-                {["Employee Sig. & Date", "Customer Sig. & Date"].map(
-                  (label) => (
-                    <View key={label} style={cn("w-1/4")}>
-                      <View style={cn("border-b h-10 border-dashed ")} />
-                      <Text style={cn("mt-1 italic font-semibold")}>
-                        {label}
-                      </Text>
-                    </View>
-                  )
-                )}
-              </View>
-            )}
             <View
               wrap={false}
               style={cn("border-x border-b border-t flex-col", {
@@ -138,6 +134,18 @@ export function SalesPdfTemplate(props: Props) {
                 justifyContent: "flex-end",
               })}
             >
+              {showCustomerSignatureSection && (
+                <View wrap={false} style={cn("px-4 mt-4 mb-2")}>
+                  <View style={cn("flex-row justify-between")}>
+                    <View style={{ width: "70%" }}>
+                      <View style={cn("border-b h-10 border-dashed")} />
+                      <Text style={cn("mt-1 text-sm italic font-semibold")}>
+                        Customer Signature & date
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              )}
               <SalesPrintFooter printData={printData} />
             </View>
           </WatermarkPage>

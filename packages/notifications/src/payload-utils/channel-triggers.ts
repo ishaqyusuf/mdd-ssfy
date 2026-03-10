@@ -150,6 +150,42 @@ export function createNotificationChannelTriggers(
 				recipients: resolvedRecipients,
 			});
 		},
+		salesInfo(input: Input<"sales_info">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("sales_info", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
+		salesItemInfo(input: Input<"sales_item_info">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("sales_item_info", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
+		salesDispatchInfo(input: Input<"sales_dispatch_info">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("sales_dispatch_info", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
 		salesDispatchUnassigned(input: Input<"sales_dispatch_unassigned">) {
 			const { recipients, author, ...payload } = input;
 			const resolvedRecipients = resolveRecipients(

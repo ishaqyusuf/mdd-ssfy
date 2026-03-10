@@ -23,6 +23,7 @@ export const createActivitySchema = z.object({
   // teamId: z.string().uuid(),
   subject: z.string(),
   headline: z.string().optional(),
+  color: z.string().optional(),
   note: z.string().optional(),
   authorId: z.number().optional(),
   // sendEmail: z.boolean().optional().default(false),
@@ -246,6 +247,9 @@ export type NotificationTypes = {
   sales_dispatch_unassigned: SalesDispatchUnassignedInput;
   sales_marked_as_production_completed: SalesMarkedAsProductionCompletedInput;
   sales_email_reminder: SalesEmailReminderInput;
+  sales_info: SalesInfoInput;
+  sales_item_info: SalesItemInfoInput;
+  sales_dispatch_info: SalesDispatchInfoInput;
   sales_request_packing: SalesRequestPackingInput;
   dispatch_packing_delay: DispatchPackingDelayInput;
 };
@@ -440,6 +444,45 @@ export const salesEmailReminderTags = actityTagsSchema.extend({
   salesNo: z.array(z.string()).optional(),
 });
 export type SalesEmailReminderTags = z.infer<typeof salesEmailReminderTags>;
+export const salesInfoSchema = z.object({
+  headline: z.string().optional(),
+  note: z.string().optional(),
+  color: z.string().optional(),
+  salesId: z.number(),
+  salesNo: z.string(),
+});
+export type SalesInfoInput = z.infer<typeof salesInfoSchema>;
+export const salesInfoTags = actityTagsSchema.extend({
+  salesId: z.number(),
+  salesNo: z.string(),
+});
+export type SalesInfoTags = z.infer<typeof salesInfoTags>;
+export const salesItemInfoSchema = z.object({
+  headline: z.string(),
+  color: z.string().optional(),
+  salesId: z.number(),
+  salesNo: z.string(),
+  itemId: z.number(),
+  itemControlId: z.number(),
+});
+export type SalesItemInfoInput = z.infer<typeof salesItemInfoSchema>;
+export const salesItemInfoTags = actityTagsSchema.extend({
+  salesId: z.number(),
+  salesNo: z.string(),
+  itemId: z.number(),
+  itemControlId: z.number(),
+});
+export type SalesItemInfoTags = z.infer<typeof salesItemInfoTags>;
+export const salesDispatchInfoSchema = z.object({
+  headline: z.string(),
+  color: z.string().optional(),
+  dispatchId: z.number(),
+});
+export type SalesDispatchInfoInput = z.infer<typeof salesDispatchInfoSchema>;
+export const salesDispatchInfoTags = actityTagsSchema.extend({
+  dispatchId: z.number(),
+});
+export type SalesDispatchInfoTags = z.infer<typeof salesDispatchInfoTags>;
 export const salesRequestPackingSchema = z.object({
   orderNo: z.string(),
   dispatchId: z.number(),
@@ -573,6 +616,18 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
   baseNotificationJobSchema.extend({
     channel: z.literal("sales_email_reminder"),
     payload: salesEmailReminderSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("sales_info"),
+    payload: salesInfoSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("sales_item_info"),
+    payload: salesItemInfoSchema,
+  }),
+  baseNotificationJobSchema.extend({
+    channel: z.literal("sales_dispatch_info"),
+    payload: salesDispatchInfoSchema,
   }),
   baseNotificationJobSchema.extend({
     channel: z.literal("sales_dispatch_created"),

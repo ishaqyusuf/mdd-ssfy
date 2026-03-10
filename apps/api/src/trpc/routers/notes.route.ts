@@ -4,13 +4,13 @@ import { getNotificationChannels, saveInboundNote } from "@api/db/queries/note";
 import { saveNote, saveNoteSchema } from "@gnd/utils/note";
 import z from "zod";
 import { getNotificationChannelsSchema } from "@notifications/schemas";
-import { createActivity, getActivties } from "@notifications/activities";
+import { getActivties } from "@notifications/activities";
 import {
   getActivityTree,
   getActivityTagSuggestions,
 } from "@notifications/activity-tree";
-import { getSubscribersAccount } from "@notifications/channel-subscribers";
 import { channelNames } from "@notifications/channels";
+import { Notifications } from "@notifications/index";
 
 export const notesRouter = createTRPCRouter({
   getNotificationChannels: publicProcedure
@@ -137,8 +137,6 @@ export const notesRouter = createTRPCRouter({
       z.object({
         channel: z.enum(channelNames),
         payload: z.record(z.string(), z.any()).optional(),
-        subject: z.string().optional(),
-        headline: z.string().optional(),
         message: z.string().optional(),
         noteColor: z.string().optional(),
         contacts: z
@@ -152,72 +150,35 @@ export const notesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const author = (
-        await getSubscribersAccount(ctx.db, [ctx.userId], {
-          role: "employee",
-          channelName: input.channel,
-        })
-      )?.[0];
-
-      if (!author?.id) {
-        throw new Error("Unable to resolve notification author contact");
-      }
-
-      const recipientContactIds = Array.from(
-        new Set(
-          (
-            await Promise.all(
-              (input.contacts || []).map(async (group) => {
-                const recipients = await getSubscribersAccount(
-                  ctx.db,
-                  group.ids,
-                  {
-                    role: group.role,
-                    channelName: input.channel,
-                  },
-                );
-                return recipients.map((recipient) => recipient.id);
-              }),
-            )
-          ).flat(),
-        ),
-      );
-
+      const recipientCount = Array.from(
+        new Set((input.contacts || []).flatMap((group) => group.ids || [])),
+      ).length;
       const message = input.message?.trim();
-      const subject =
-        input.subject ||
-        `Inbox ${input.channel.replaceAll("_", " ").toUpperCase()}`;
-      const headline =
-        input.headline || message || `Sent to ${input.channel} channel`;
-
-      const tags = {
+      const payload = {
         ...(input.payload || {}),
-        noteColor: input.noteColor || undefined,
-        noContact: recipientContactIds.length === 0,
-      } as Record<string, unknown>;
+        ...(message ? { note: `note: ${message}` } : {}),
+        ...(input.noteColor ? { color: input.noteColor } : {}),
+      };
 
-      const activity = await createActivity(
-        ctx.db,
+      const notifications = new Notifications(ctx.db);
+      const result = await notifications.create(
+        input.channel as any,
+        payload as any,
         {
-          type: input.channel,
-          source: "user",
-          subject,
-          headline,
-          note: message
-            ? message
-            : Object.keys(input.payload || {}).length > 0
-              ? JSON.stringify(input.payload || {}, null, 2)
-              : undefined,
-          tags,
+          author: {
+            id: ctx.userId,
+            role: "employee",
+          },
+          recipients: input.contacts as any,
+          includeChannelSubscribers: false,
+          allowFallbackRecipient: false,
         },
-        author.id,
-        recipientContactIds.length ? recipientContactIds : undefined,
       );
 
       return {
-        id: activity.id,
-        recipientCount: recipientContactIds.length,
-        noContact: recipientContactIds.length === 0,
+        activities: result.activities,
+        recipientCount,
+        noContact: recipientCount === 0,
       };
     }),
   list: publicProcedure

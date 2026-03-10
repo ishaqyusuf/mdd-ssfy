@@ -81,6 +81,7 @@ export async function generateLegacyPrintData(
         shelfItemsTable,
         orderedPrinting,
         paymentDate,
+        mode: tokenData.mode,
         order: {
           id: data?.order?.id,
           orderId: s?.orderId,

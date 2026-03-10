@@ -78,6 +78,7 @@ export const sendSalesEmailSchema = z.object({
 export type SendSalesEmailPayload = z.infer<typeof sendSalesEmailSchema>;
 
 export const sendSalesReminderSchema = z.object({
+  salesRepId: z.number().optional().nullable(),
   sales: z.array(
     z.object({
       type: z.enum(["order", "quote"]),

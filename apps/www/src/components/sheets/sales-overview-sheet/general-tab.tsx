@@ -8,9 +8,8 @@ import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { openLink } from "@/lib/open-link";
-import Note from "@/modules/notes";
-import { noteTagFilter } from "@/modules/notes/utils";
 import { salesFormUrl } from "@/utils/sales-utils";
+import { Inbox } from "@/components/activity";
 import {
     Building,
     Calendar,
@@ -661,20 +660,21 @@ export function GeneralTab({}) {
                     </Card>
                 </div>
                 {!data?.id || (
-                    <Note
-                        admin
-                        tagFilters={[
-                            noteTagFilter("salesId", String(data?.id)),
-                        ]}
-                        typeFilters={[
-                            "general",
-                            "dispatch",
-                            "payment",
-                            "production",
-                        ]}
-                        statusFilters={["public", "private"]}
-                        subject={`Sales Note`}
-                        headline={`${data?.orderId}`}
+                    <Inbox
+                        channel="sales_info"
+                        query={{
+                            tags: [
+                                {
+                                    tagName: "salesId",
+                                    tagValue: data.id,
+                                },
+                            ],
+                        }}
+                        payload={{
+                            salesId: data.id,
+                            salesNo: data.orderId,
+                        }}
+                        placeholder="Write a sales activity note..."
                     />
                 )}
                 <GeneralFooter />

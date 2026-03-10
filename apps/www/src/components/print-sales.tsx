@@ -6,7 +6,6 @@ import { useEffect, useRef } from "react";
 import { useSalesPrintFilter } from "@/hooks/use-sales-print-filter";
 import { PDFViewer } from "@gnd/pdf";
 import { SalesPdfTemplate } from "@gnd/pdf/sales";
-import { Button } from "@gnd/ui/button";
 
 export function PrintSales() {
     const { filters, setFilters } = useSalesPrintFilter();
@@ -18,7 +17,7 @@ export function PrintSales() {
     } = useSuspenseQuery(
         _trpc.print.sales.queryOptions({
             ...filters,
-        })
+        }),
     );
     const viewerRef = useRef<any>(null);
 
@@ -32,6 +31,7 @@ export function PrintSales() {
     // const onRender = (e) => {
     //     console.log(e);
     // };
+    console.log({ printData });
     return (
         <>
             <PDFViewer

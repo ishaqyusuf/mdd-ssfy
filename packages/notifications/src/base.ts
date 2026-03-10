@@ -70,6 +70,8 @@ export type NotificationOptions = {
     ids: number[];
     role?: ContactRole;
   }[];
+  includeChannelSubscribers?: boolean;
+  allowFallbackRecipient?: boolean;
   // priority?: number;
   // sendEmail?: boolean;
   // userIds?: number[];

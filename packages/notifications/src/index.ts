@@ -32,6 +32,9 @@ import { salesDispatchInProgress } from "./types/sales-dispatch-in-progress";
 import { salesDispatchQueued } from "./types/sales-dispatch-queued";
 import { salesDispatchUnassigned } from "./types/sales-dispatch-unassigned";
 import { salesEmailReminder } from "./types/sales-email-reminder";
+import { salesDispatchInfo } from "./types/sales-dispatch-info";
+import { salesInfo } from "./types/sales-info";
+import { salesItemInfo } from "./types/sales-item-info";
 import { salesMarkedAsProductionCompleted } from "./types/sales-marked-as-production-completed";
 import { salesRequestPacking } from "./types/sales-request-packing";
 export {
@@ -61,6 +64,9 @@ const handlers = {
   sales_dispatch_unassigned: salesDispatchUnassigned,
   sales_marked_as_production_completed: salesMarkedAsProductionCompleted,
   sales_email_reminder: salesEmailReminder,
+  sales_info: salesInfo,
+  sales_item_info: salesItemInfo,
+  sales_dispatch_info: salesDispatchInfo,
   sales_request_packing: salesRequestPacking,
   dispatch_packing_delay: dispatchPackingDelay,
 } as const;
@@ -98,21 +104,21 @@ export class Notifications {
     // options?: NotificationOptions,
     contacts?: UserData[],
   ) {
-    // if (handler?.createActivityWithoutContact) {
-    //   const activityInput = handler.createActivity(
-    //     validatedData,
-    //     author,
-    //     contacts?.[0] || author,
-    //   );
-    //   activityInput.groupId = groupId;
-    //   const validatedActivity = createActivitySchema.parse(activityInput);
-    //   const activity = await createActivity(
-    //     this.#db,
-    //     validatedActivity,
-    //     author?.id,
-    //   );
-    //   return activity ? [activity] : [];
-    // }
+    if (handler?.createActivityWithoutContact && !(contacts?.length > 0)) {
+      const activityInput = handler.createActivity(
+        validatedData,
+        author,
+        contacts?.[0] || author,
+      );
+      activityInput.groupId = groupId;
+      const validatedActivity = createActivitySchema.parse(activityInput);
+      const activity = await createActivity(
+        this.#db,
+        validatedActivity,
+        author?.id,
+      );
+      return activity ? [activity] : [];
+    }
     console.log("++++++++++++++++++++");
     console.log("Creating activities for users:", contacts);
     const activityPromises = await Promise.all(
@@ -217,6 +223,10 @@ export class Notifications {
     options?: NotificationOptions,
     // contacts?: UserData[],
   ): Promise<NotificationResult> {
+    const includeChannelSubscribers =
+      options?.includeChannelSubscribers ?? true;
+    const allowFallbackRecipient = options?.allowFallbackRecipient ?? true;
+
     const [author, ...contactsRaw] = (
       await Promise.all([
         new Promise<UserData[]>(async (resolve) => {
@@ -249,6 +259,9 @@ export class Notifications {
           }),
         ) || []),
         new Promise<UserData[]>(async (resolve) => {
+          if (!includeChannelSubscribers) {
+            return resolve([]);
+          }
           const subscribers = await getSubscribersForNotificationType(
             this.#db,
             type as string,
@@ -262,7 +275,7 @@ export class Notifications {
     ).flat();
 
     const fallbackContacts =
-      contactsRaw.length === 0
+      allowFallbackRecipient && contactsRaw.length === 0
         ? (
             await getSubscribersAccount(this.#db, [1], {
               role: "employee",

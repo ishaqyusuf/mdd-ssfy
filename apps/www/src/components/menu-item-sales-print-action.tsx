@@ -93,6 +93,16 @@ export function MenuItemPrintAction(props: Props) {
                         Order
                     </Menu.Item>
                     <Menu.Item
+                        icon="packingList"
+                        onClick={(e) => {
+                            print(e, {
+                                mode: "packing list",
+                            });
+                        }}
+                    >
+                        Packing
+                    </Menu.Item>
+                    <Menu.Item
                         icon="production"
                         onClick={(e) => {
                             print(e, {

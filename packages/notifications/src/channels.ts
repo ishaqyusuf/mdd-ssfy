@@ -9,6 +9,9 @@ export const channelNames = [
   "job_task_configure_request",
   "job_task_configured",
   "sales_checkout_success",
+  "sales_info",
+  "sales_item_info",
+  "sales_dispatch_info",
   "sales_email_reminder",
   "sales_dispatch_assigned",
   "sales_dispatch_cancelled",
@@ -100,6 +103,21 @@ export const channelsConfig: Partial<{
   },
   sales_checkout_success: {
     title: "Triggered when a sales checkout is successful",
+    priority: 5,
+    category: "Sales",
+  },
+  sales_info: {
+    title: "Sales notes and info updates",
+    priority: 5,
+    category: "Sales",
+  },
+  sales_item_info: {
+    title: "Sales item notes and info updates",
+    priority: 5,
+    category: "Sales",
+  },
+  sales_dispatch_info: {
+    title: "Sales dispatch notes and info updates",
     priority: 5,
     category: "Sales",
   },

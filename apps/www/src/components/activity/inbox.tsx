@@ -35,9 +35,13 @@ export interface InboxProps {
     channel: ChannelName;
     payload?: Record<string, unknown>;
     contacts?: InboxContacts;
-    contactId?: number;
-    subject?: string;
-    headline?: string;
+    query?: {
+        channel?: ChannelName;
+        tags?: ActivityTagFilter[];
+        contactId?: number;
+        pageSize?: number;
+        maxDepth?: number;
+    };
     placeholder?: string;
     className?: string;
     onSent?: () => void;
@@ -81,9 +85,7 @@ export function Inbox({
     channel,
     payload = {},
     contacts,
-    contactId,
-    subject,
-    headline,
+    query,
     placeholder = "Write a note...",
     className,
     onSent,
@@ -103,6 +105,8 @@ export function Inbox({
     );
 
     const historyTags = useMemo(() => {
+        if (query?.tags?.length) return query.tags;
+
         const tagFilters: ActivityTagFilter[] = [];
         for (const [tagName, value] of Object.entries(payload || {})) {
             if (
@@ -117,7 +121,7 @@ export function Inbox({
             }
         }
         return tagFilters;
-    }, [payload]);
+    }, [payload, query?.tags]);
 
     const mutation = useMutation(
         trpc.notes.createInboxActivity.mutationOptions({
@@ -151,8 +155,6 @@ export function Inbox({
             channel,
             payload,
             contacts: normalizedContacts,
-            subject,
-            headline,
             message: trimmed || undefined,
             noteColor,
         });
@@ -162,9 +164,11 @@ export function Inbox({
         <div className={cn("flex flex-col", className)}>
             <div className="min-h-[220px] max-h-[420px] overflow-auto">
                 <ActivityHistory
-                    channel={channel}
+                    channel={query?.channel ?? channel}
                     tags={historyTags}
-                    contactId={contactId || notificationAccount?.id}
+                    contactId={query?.contactId || notificationAccount?.id}
+                    pageSize={query?.pageSize}
+                    maxDepth={query?.maxDepth}
                     emptyText="Start this conversation"
                 />
             </div>
@@ -184,7 +188,8 @@ export function Inbox({
                                 type="button"
                                 className={cn(
                                     "size-4 rounded-full transition-transform",
-                                    noteColor === color && "scale-110 ring-1 ring-border",
+                                    noteColor === color &&
+                                        "scale-110 ring-1 ring-border",
                                 )}
                                 style={{ backgroundColor: color }}
                                 onClick={() => setNoteColor(color)}
@@ -216,3 +221,4 @@ export function Inbox({
         </div>
     );
 }
+
