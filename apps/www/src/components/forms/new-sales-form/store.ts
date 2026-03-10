@@ -43,6 +43,7 @@ export type NewSalesFormState = {
 type NewSalesFormActions = {
     reset: () => void;
     hydrate: (record: NewSalesFormRecord) => void;
+    restoreLocalDraft: (record: NewSalesFormRecord) => void;
     setMeta: (patch: Partial<NewSalesFormMeta>) => void;
     setLineItems: (lineItems: NewSalesFormLineItem[]) => void;
     setExtraCosts: (costs: NewSalesFormExtraCost[]) => void;
@@ -71,7 +72,7 @@ const initialEditorState: NewSalesFormEditorState = {
     mouldingViewMode: "selection",
     isOverviewOpen: false,
     showMobileSummary: false,
-    autosaveEnabled: false,
+    autosaveEnabled: true,
 };
 
 const initialState: NewSalesFormState = {
@@ -115,6 +116,18 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
                 activeItem: record.lineItems?.[0]?.uid || null,
             },
         }),
+    restoreLocalDraft: (record) =>
+        set((state) => ({
+            ...state,
+            record: hydrateRecord(record),
+            dirty: true,
+            saveStatus: "idle",
+            lastSaveError: null,
+            editor: {
+                ...state.editor,
+                activeItem: record.lineItems?.[0]?.uid || null,
+            },
+        })),
     setMeta: (patch) =>
         set((state) => {
             if (!state.record) return state;

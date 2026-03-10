@@ -50,6 +50,7 @@ export function InvoiceOverviewPanel() {
     const patchRecord = useNewSalesFormStore((s) => s.patchRecord);
     const upsertExtraCost = useNewSalesFormStore((s) => s.upsertExtraCost);
     const lastProfileCoefficientRef = useRef<number | null | undefined>(undefined);
+    const lastProfileIdRef = useRef<number | null | undefined>(undefined);
 
     const [isCustomerSearchActive, setIsCustomerSearchActive] = useState(false);
     const [customerSearchQuery, setCustomerSearchQuery] = useState("");
@@ -146,11 +147,21 @@ export function InvoiceOverviewPanel() {
         const normalizedCurrent = Number.isFinite(currentCoefficient)
             ? currentCoefficient
             : null;
+        const currentProfileId = record.form.customerProfileId
+            ? Number(record.form.customerProfileId)
+            : null;
         if (lastProfileCoefficientRef.current === undefined) {
             lastProfileCoefficientRef.current = normalizedCurrent;
+            lastProfileIdRef.current = currentProfileId;
             return;
         }
-        if (lastProfileCoefficientRef.current === normalizedCurrent) return;
+        const profileChanged = lastProfileIdRef.current !== currentProfileId;
+        if (
+            lastProfileCoefficientRef.current === normalizedCurrent &&
+            !profileChanged
+        ) {
+            return;
+        }
         setLineItems(
             repriceLineItemsByProfile(
                 record.lineItems || [],
@@ -159,6 +170,7 @@ export function InvoiceOverviewPanel() {
             ),
         );
         lastProfileCoefficientRef.current = normalizedCurrent;
+        lastProfileIdRef.current = currentProfileId;
     }, [profileOptions, record, setLineItems]);
 
     useEffect(() => {

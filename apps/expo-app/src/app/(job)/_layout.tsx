@@ -35,6 +35,7 @@ export default function JobLayout() {
           presentation: "fullScreenModal",
           headerShown: false,
           gestureEnabled: false,
+          fullScreenGestureEnabled: false,
         }}
       />
       <Stack.Screen

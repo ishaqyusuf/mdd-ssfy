@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@gnd/ui/button";
 import { X, Building2 } from "lucide-react";
 import { InvoiceOverviewPanel } from "./invoice-overview-panel";
+import { useNewSalesFormStore } from "../store";
+import { SalesHistory } from "@/components/sales-hx";
 
 interface Props {
     mobileOpen: boolean;
@@ -10,6 +13,9 @@ interface Props {
 }
 
 export function InvoiceSummarySidebar(props: Props) {
+    const record = useNewSalesFormStore((s) => s.record);
+    const [tab, setTab] = useState<"summary" | "history">("summary");
+
     return (
         <>
             {props.mobileOpen ? (
@@ -33,6 +39,24 @@ export function InvoiceSummarySidebar(props: Props) {
                             </h3>
                         </div>
                         <div className="ml-auto flex items-center gap-2">
+                            <div className="hidden items-center gap-1 rounded-lg border bg-muted/40 p-1 md:flex">
+                                <Button
+                                    size="sm"
+                                    variant={tab === "summary" ? "default" : "ghost"}
+                                    className="h-7 px-2 text-xs"
+                                    onClick={() => setTab("summary")}
+                                >
+                                    Summary
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant={tab === "history" ? "default" : "ghost"}
+                                    className="h-7 px-2 text-xs"
+                                    onClick={() => setTab("history")}
+                                >
+                                    History
+                                </Button>
+                            </div>
                             <Button
                                 size="icon"
                                 variant="ghost"
@@ -45,7 +69,11 @@ export function InvoiceSummarySidebar(props: Props) {
                     </div>
 
                     <div className="flex-1 overflow-auto p-4">
-                        <InvoiceOverviewPanel />
+                        {tab === "summary" ? (
+                            <InvoiceOverviewPanel />
+                        ) : (
+                            <SalesHistory salesId={record?.salesId} />
+                        )}
                     </div>
                 </div>
             </aside>

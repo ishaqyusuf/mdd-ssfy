@@ -70,6 +70,12 @@ export const { Provider: PackingProvider, useContext: usePacking } =
             trpc.dispatch.submitDispatch.mutationOptions({
                 async onSuccess(resp, input) {
                     invalidate();
+                    qc.invalidateQueries({
+                        queryKey: trpc.dispatch.index.pathKey(),
+                    });
+                    qc.invalidateQueries({
+                        queryKey: trpc.dispatch.assignedDispatch.pathKey(),
+                    });
                     toast({
                         title: "Sales Dispatch Completed",
                         variant: "success",
@@ -119,7 +125,22 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                 });
             },
         });
-        const onCompleteDispatch = () => {};
+        const completeAllTrigger = useTaskTrigger({
+            onStarted() {
+                submitDispatch.mutate({
+                    meta: {
+                        salesId: Number(data?.order?.id || 0),
+                        authorId: Number(auth?.id || 0),
+                        authorName: auth?.name || "System",
+                    },
+                    submitDispatch: {
+                        dispatchId: Number(data?.dispatch?.id || 0),
+                        receivedBy: auth?.name || "System",
+                        receivedDate: new Date(),
+                    },
+                });
+            },
+        });
         const onDeleteDispatch = () => {};
         const onClearPacking = () => {
             trigger.trigger({
@@ -186,6 +207,38 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                 slugs: data?.order?.orderId,
             });
         };
+        const onCompleteDispatch = (mode: "packed_only" | "pack_all") => {
+            if (mode === "pack_all") {
+                completeAllTrigger.trigger({
+                    taskName: "update-sales-control",
+                    payload: {
+                        meta: {
+                            authorId: Number(auth.id || 0),
+                            salesId: Number(data?.order?.id || 0),
+                            authorName: auth.name || "System",
+                        },
+                        packItems: {
+                            dispatchId: Number(data?.dispatch?.id || 0),
+                            dispatchStatus: "completed",
+                            packMode: "all",
+                        },
+                    } as UpdateSalesControl,
+                });
+                return;
+            }
+            submitDispatch.mutate({
+                meta: {
+                    salesId: Number(data?.order?.id || 0),
+                    authorId: Number(auth?.id || 0),
+                    authorName: auth?.name || "System",
+                },
+                submitDispatch: {
+                    dispatchId: Number(data?.dispatch?.id || 0),
+                    receivedBy: auth?.name || "System",
+                    receivedDate: new Date(),
+                },
+            });
+        };
         return {
             data,
             isStarting,
@@ -195,6 +248,8 @@ export const { Provider: PackingProvider, useContext: usePacking } =
             isInProgress,
             isCancelled,
             isCancelling: cancelDispatch.isPending,
+            isCompleting:
+                submitDispatch.isPending || completeAllTrigger.isActionPending,
             onStartDispatch,
             onDeleteDispatch,
             onCompleteDispatch,
@@ -205,6 +260,7 @@ export const { Provider: PackingProvider, useContext: usePacking } =
             onPrintPacking,
             invalidate,
             trigger,
+            completeAllTrigger,
             onResetSalesStat,
             mainTab,
             setMainTab,

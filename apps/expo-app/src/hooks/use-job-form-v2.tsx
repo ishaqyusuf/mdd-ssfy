@@ -167,6 +167,9 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 
   useEffect(() => {
     if (defaultValues) {
+      consoleLog("FORM RESET TASKS", {
+        jobTasks: (defaultValues as any)?.job?.tasks?.[0],
+      });
       form.reset({
         ...(defaultValues as any),
         action: params.action ?? "submit",
@@ -255,6 +258,13 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
   }, [defaultValues, formData]);
 
   const [errors, setErrors] = useState<any>(null);
+  const navigateToJobAlert = useCallback(
+    (jobId: number, alert: string) => {
+      router.dismissAll();
+      router.replace(`/job/${jobId}/alert/${alert}` as any);
+    },
+    [router],
+  );
   // const [savedData, setSavedData] = useState<{ id?: number } | null>(null);
   const {
     mutate: saveJobForm,
@@ -276,7 +286,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
         });
         if (args?.requestTaskConfig) {
           if (Number.isFinite(savedJobId) && savedJobId > 0) {
-            router.push(`/job/${savedJobId}/alert/request-submitted` as any);
+            navigateToJobAlert(savedJobId, "request-submitted");
           }
           return;
         }
@@ -291,7 +301,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
             : admin
               ? "assigned"
               : "submitted";
-        router.push(`/job/${savedJobId}/alert/${alert}` as any);
+        navigateToJobAlert(savedJobId, alert);
       },
       // meta: {
       //   toastTitle: {
@@ -314,7 +324,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
             jobId: variables.jobId,
           }),
         });
-        router.push(`/job/${variables.jobId}/alert/re-assigned` as any);
+        navigateToJobAlert(variables.jobId, "re-assigned");
       },
       onError() {
         Toast.show("Unable to re-assign job right now.", {

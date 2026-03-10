@@ -183,3 +183,35 @@
 - Produced explicit execution documentation for missing-feature closure with phase gates and old-vs-new anchors:
 - `brain/new-sales-form-missing-features-execution-plan.md`.
 - Updated backlog priority to make new-sales-form parity closure the active NOW stream with strict phase progression (complete test gate before moving to next phase).
+- Started Phase 0 execution artifacts:
+- added deterministic reproduction matrix with 15 user-reported feature rows, old/new anchors, manual scripts, evidence paths, and automation targets in `brain/new-sales-form-phase0-repro-matrix.md`.
+- established evidence workspace at `ai/new-sales-form-parity-evidence/README.md` for feature-by-feature proof capture before fixes.
+- Captured initial code-level evidence and marked six rows as `Fail (Code Confirmed)`:
+- quick base-price update in size/qty modal, HPT estimate breakdown click, step floating bar parity, component action menu parity, component top-left indicators parity, and save-history sidebar parity.
+- Extended code-level evidence capture to state resilience, shelf parity depth, and service toggles:
+- marked `state loss` and `service production toggle` as `Fail (Code Confirmed)`, and `shelf parity` as `Partial (Code Confirmed)` in Phase 0 matrix.
+- Continued new-sales-form parity implementation batch in workflow UI/domain:
+- implemented service `produceable` toggle parity and line-level meta aggregation (`taxxable` + `produceable`).
+- added quick base-price capture in door size/qty modal (`meta.baseUnitPrice` fallback path).
+- added HPT estimate clickable breakdown surface and shared-door surcharge contribution wiring.
+- implemented floating step action bar parity (tabs/select-all/pricing/component/refresh/enable-custom).
+- implemented component card parity actions (edit/select/redirect/delete) and top-left metadata indicators.
+- implemented history sidebar tab in new form summary and wired save-trigger history events via `create-sales-history`.
+- hardened customer profile reprice effect to detect profile-id changes in addition to coefficient changes.
+- enabled autosave by default and added local recovery snapshot/restore flow (`localStorage`) for refresh/idle data-loss mitigation.
+- Re-ran scoped phase gates after this batch:
+- `bun test packages/sales/src/sales-form/domain/workflow-calculators.test.ts packages/sales/src/sales-form/domain/step-engine.test.ts packages/sales/src/new-sales-form-costing.test.ts` (34 pass, 0 fail).
+- `bun test apps/api/src/db/queries/new-sales-form.test.ts apps/api/src/db/queries/new-sales-form.multi-line.test.ts` (3 pass, 0 fail).
+- focused `tsc` filter on touched new-sales-form files (`new-sales-form.tsx`, `store.ts`, `local-recovery.ts`) reported no file-specific errors after patch.
+- Updated Phase 0 reproduction matrix triage from `Fail` to `Partial (Implemented, Runtime Repro Pending)` for rows now code-complete: quick base price, HPT breakdown, moulding default qty, state resilience, service toggles, floating bar, component menu, component indicators, save-history sidebar.
+- Closed supplier-pricing gap in door size/qty modal by switching row derivation to shared `resolvePricingBucketUnitPrice(...)` (supports supplier bucket variants beyond `price`), and promoted matrix row to `Partial (Implemented, Runtime Repro Pending)`.
+- Re-ran scoped gates after supplier patch:
+- `bun test` (sales-form domain + costing): 34 pass, 0 fail.
+- `bun test` (API new-sales-form parity): 3 pass, 0 fail.
+- focused `tsc` filter on touched files (`new-sales-form.tsx`, `store.ts`, `local-recovery.ts`, `workflow-modals.tsx`) had no file-specific hits.
+- Fixed door-estimate component-cost composition mismatch by extracting shared surcharge helpers and applying them in both HPT panel update path and door size modal apply path.
+- Updated parity evidence + matrix triage for profile repricing and component-cost-in-door-estimate to `Partial (Implemented, Runtime Repro Pending)`.
+- Re-ran scoped gates after surcharge-path patch:
+- `bun test` (sales-form domain + costing): 34 pass, 0 fail.
+- `bun test` (API new-sales-form parity): 3 pass, 0 fail.
+- focused `tsc` filter on touched new-sales-form files (including `item-workflow-panel.tsx`) returned no file-specific hits.

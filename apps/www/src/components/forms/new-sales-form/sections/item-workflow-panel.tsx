@@ -4,11 +4,15 @@ import { useMemo, useState } from "react";
 import { Button } from "@gnd/ui/button";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Input } from "@gnd/ui/input";
+import { Checkbox } from "@gnd/ui/checkbox";
 import { env } from "@/env.mjs";
 import {
     DoorOpen,
+    ExternalLink,
+    Filter,
     Hammer,
     Layers3,
+    LucideVariable,
     Package2,
     Ruler,
     Trash2,
@@ -82,6 +86,42 @@ function getDoorSupplierMeta(step: any) {
         supplierUid: supplierUid ? String(supplierUid) : null,
         supplierName: supplierName ? String(supplierName) : null,
     };
+}
+function computeSharedDoorSurcharge(line: any) {
+    return Number(
+        ((line?.formSteps || []) as any[])
+            .filter((step: any) => {
+                const title = normalizeTitle(step?.step?.title);
+                return (
+                    title &&
+                    title !== "item type" &&
+                    title !== "door" &&
+                    title !== "house package tool" &&
+                    title !== "hpt"
+                );
+            })
+            .reduce((sum: number, step: any) => sum + Number(step?.price || 0), 0)
+            .toFixed(2),
+    );
+}
+function applySharedDoorSurcharge(rows: any[], surcharge: number) {
+    return (rows || []).map((row: any) => {
+        const baseUnitPrice =
+            row?.meta?.baseUnitPrice == null
+                ? Number(row?.unitPrice || 0) - surcharge
+                : Number(row.meta.baseUnitPrice || 0);
+        const effectiveUnitPrice = Number(
+            (Math.max(0, baseUnitPrice) + surcharge).toFixed(2),
+        );
+        return {
+            ...row,
+            unitPrice: effectiveUnitPrice,
+            meta: {
+                ...(row?.meta || {}),
+                baseUnitPrice: Math.max(0, baseUnitPrice),
+            },
+        };
+    });
 }
 
 function money(value?: number | null) {
@@ -161,6 +201,7 @@ export function ItemWorkflowPanel() {
         id: number;
         name: string;
     } | null>(null);
+    const [includeCustomComponents, setIncludeCustomComponents] = useState(false);
 
     const stepRoutingQuery = useNewSalesFormStepRoutingQuery({});
     const routeData = stepRoutingQuery.data;
@@ -207,11 +248,13 @@ export function ItemWorkflowPanel() {
             buildSelectedProdUidsByStepUid(activeLineSteps);
         return (stepComponentsQuery.data || [])
             .filter((component) => !component.isDeleted)
-            .filter(
-                (component) =>
+            .filter((component) => {
+                if (includeCustomComponents) return true;
+                return (
                     !(component as any)?._metaData?.custom &&
-                    !(component as any)?.custom,
-            )
+                    !(component as any)?.custom
+                );
+            })
             .filter((component) =>
                 isComponentVisibleByRules(
                     component,
@@ -242,7 +285,7 @@ export function ItemWorkflowPanel() {
                             : component.basePrice,
                 };
             });
-    }, [stepComponentsQuery.data, activeLineSteps]);
+    }, [stepComponentsQuery.data, activeLineSteps, includeCustomComponents]);
     const activeRootComponents = useMemo(() => {
         const roots = rootComponentsQuery.data || [];
         const configured = new Set(
@@ -254,10 +297,10 @@ export function ItemWorkflowPanel() {
             buildSelectedProdUidsByStepUid(activeLineSteps);
         return roots
             .filter((component: any) => configured.has(component.uid))
-            .filter(
-                (component: any) =>
-                    !component?._metaData?.custom && !component?.custom,
-            )
+            .filter((component: any) => {
+                if (includeCustomComponents) return true;
+                return !component?._metaData?.custom && !component?.custom;
+            })
             .filter((component: any) =>
                 isComponentVisibleByRules(
                     component,
@@ -288,7 +331,7 @@ export function ItemWorkflowPanel() {
                             : component.basePrice,
                 };
             });
-    }, [routeData, rootComponentsQuery.data, activeLineSteps]);
+    }, [routeData, rootComponentsQuery.data, activeLineSteps, includeCustomComponents]);
     const activeDoorSupplier = getDoorSupplierMeta(activeDoorStep || activeStep);
     if (!record) return null;
 
@@ -389,7 +432,9 @@ export function ItemWorkflowPanel() {
             selectedComponent: {
                 uid: component.uid,
                 title: component.title,
-                redirectUid: component.redirectUid,
+                redirectUid:
+                    (singleMutationSteps[currentStepIndex]?.meta as any)
+                        ?.redirectUid || component.redirectUid,
             },
         });
 
@@ -435,7 +480,8 @@ export function ItemWorkflowPanel() {
             selectedComponent: {
                 uid: primary.uid,
                 title: primary.title,
-                redirectUid: primary.redirectUid,
+                redirectUid:
+                    (step?.meta as any)?.redirectUid || primary.redirectUid,
             },
         });
         updateLineItem(line.uid, {
@@ -508,6 +554,136 @@ export function ItemWorkflowPanel() {
             formSteps: steps,
         });
     }
+    function setStepRedirectUid(
+        line: (typeof record.lineItems)[number],
+        stepIndex: number,
+        redirectUid: string | null,
+    ) {
+        const steps = [...(line.formSteps || [])];
+        const step = steps[stepIndex];
+        if (!step) return;
+        steps[stepIndex] = {
+            ...step,
+            meta: {
+                ...(step.meta || {}),
+                redirectUid: redirectUid || null,
+            },
+        };
+        updateLineItem(line.uid, { formSteps: steps });
+    }
+    function removeSelectedComponentFromStep(
+        line: (typeof record.lineItems)[number],
+        stepIndex: number,
+        componentUid: string,
+    ) {
+        const steps = [...(line.formSteps || [])];
+        const step = steps[stepIndex];
+        if (!step) return;
+        if (isMultiSelectStepTitle(step?.step?.title)) {
+            const selectedUids = getSelectedProdUids(step).filter(
+                (uid) => uid !== componentUid,
+            );
+            const selectedComponents = (
+                Array.isArray(step?.meta?.selectedComponents)
+                    ? step.meta.selectedComponents
+                    : []
+            ).filter((component: any) => String(component?.uid) !== componentUid);
+            const totalSales = selectedComponents.reduce(
+                (sum: number, component: any) =>
+                    sum + Number(component?.salesPrice || 0),
+                0,
+            );
+            const totalBase = selectedComponents.reduce(
+                (sum: number, component: any) =>
+                    sum + Number(component?.basePrice || 0),
+                0,
+            );
+            steps[stepIndex] = {
+                ...step,
+                prodUid: selectedUids[0] || "",
+                componentId: selectedComponents[0]?.id || null,
+                value: compactStepValue(selectedComponents),
+                price: totalSales,
+                basePrice: totalBase,
+                meta: {
+                    ...(step.meta || {}),
+                    selectedProdUids: selectedUids,
+                    selectedComponents,
+                },
+            };
+            updateLineItem(line.uid, {
+                formSteps: steps.slice(0, stepIndex + 1),
+            });
+            setActiveStepByLine((prev) => ({
+                ...prev,
+                [line.uid]: stepIndex,
+            }));
+            return;
+        }
+        steps[stepIndex] = {
+            ...step,
+            componentId: null,
+            prodUid: "",
+            value: "",
+            price: 0,
+            basePrice: 0,
+        };
+        updateLineItem(line.uid, {
+            formSteps: steps.slice(0, stepIndex + 1),
+        });
+        setActiveStepByLine((prev) => ({
+            ...prev,
+            [line.uid]: stepIndex,
+        }));
+    }
+    function quickEditComponentPrice(
+        line: (typeof record.lineItems)[number],
+        stepIndex: number,
+        component: any,
+    ) {
+        if (typeof window === "undefined") return;
+        const currentPrice = Number(
+            component?.salesPrice ?? component?.basePrice ?? component?.pricing?.price ?? 0,
+        );
+        const raw = window.prompt(
+            "Set line-level component price override",
+            currentPrice ? String(currentPrice) : "",
+        );
+        if (raw == null) return;
+        const parsed = Number(raw);
+        if (!Number.isFinite(parsed) || parsed < 0) return;
+        const steps = [...(line.formSteps || [])];
+        const step = steps[stepIndex];
+        if (!step) return;
+        const selectedComponents = Array.isArray(step?.meta?.selectedComponents)
+            ? step.meta.selectedComponents
+            : [];
+        const nextSelectedComponents = selectedComponents.map((entry: any) =>
+            String(entry?.uid) === String(component?.uid)
+                ? {
+                      ...entry,
+                      salesPrice: parsed,
+                      basePrice:
+                          entry?.basePrice == null ? parsed : Number(entry.basePrice || parsed),
+                  }
+                : entry,
+        );
+        const isTargetStep = String(step?.prodUid || "") === String(component?.uid);
+        steps[stepIndex] = {
+            ...step,
+            price: isTargetStep ? parsed : step?.price,
+            basePrice: isTargetStep
+                ? Number(step?.basePrice || parsed)
+                : step?.basePrice,
+            meta: {
+                ...(step.meta || {}),
+                selectedComponents: nextSelectedComponents,
+            },
+        };
+        updateLineItem(line.uid, {
+            formSteps: steps,
+        });
+    }
     function renderHousePackageToolPanel(
         line: (typeof record.lineItems)[number],
         activeItemStep: any,
@@ -521,6 +697,7 @@ export function ItemWorkflowPanel() {
         const noHandle = !!routeConfig?.noHandle;
         const hasSwing = !!routeConfig?.hasSwing;
         const summary = summarizeDoors(rows, { noHandle, hasSwing });
+        const sharedDoorSurcharge = computeSharedDoorSurcharge(line);
         const doorStep = findLineStepByTitle(line, "Door");
         const supplier = getDoorSupplierMeta(doorStep);
         const selectedDoorComponents = getSelectedDoorComponentsForLine(line);
@@ -585,7 +762,11 @@ export function ItemWorkflowPanel() {
         });
 
         function applyRows(nextRows: any[]) {
-            const next = summarizeDoors(nextRows, { noHandle, hasSwing });
+            const normalizedRows = applySharedDoorSurcharge(
+                nextRows,
+                sharedDoorSurcharge,
+            );
+            const next = summarizeDoors(normalizedRows, { noHandle, hasSwing });
             updateLineItem(line.uid, {
                 housePackageTool: {
                     ...(line.housePackageTool || { id: null }),
@@ -624,13 +805,15 @@ export function ItemWorkflowPanel() {
                     doorPrice: 0,
                     jambSizePrice: 0,
                     casingPrice: 0,
-                    unitPrice,
+                    unitPrice: Number((unitPrice + sharedDoorSurcharge).toFixed(2)),
                     lhQty: 0,
                     rhQty: 0,
                     totalQty: 0,
                     lineTotal: 0,
                     stepProductId: activeDoorComponent.id || null,
-                    meta: {},
+                    meta: {
+                        baseUnitPrice: Number(unitPrice.toFixed(2)),
+                    },
                 },
             ];
             applyRows(nextRows);
@@ -908,19 +1091,111 @@ export function ItemWorkflowPanel() {
                                                             <Input
                                                                 type="number"
                                                                 step="0.01"
-                                                                value={Number(row.unitPrice || 0)}
+                                                                value={Number(
+                                                                    row?.meta?.baseUnitPrice ==
+                                                                        null
+                                                                        ? Number(row.unitPrice || 0) -
+                                                                              sharedDoorSurcharge
+                                                                        : row.meta.baseUnitPrice,
+                                                                )}
                                                                 onChange={(e) =>
                                                                     patchRow(row, {
                                                                         unitPrice: Number(
-                                                                            e.target.value || 0,
+                                                                            (
+                                                                                Number(
+                                                                                    e.target.value ||
+                                                                                        0,
+                                                                                ) +
+                                                                                sharedDoorSurcharge
+                                                                            ).toFixed(2),
                                                                         ),
+                                                                        meta: {
+                                                                            ...(row?.meta || {}),
+                                                                            baseUnitPrice: Number(
+                                                                                e.target.value ||
+                                                                                    0,
+                                                                            ),
+                                                                        },
                                                                     })
                                                                 }
                                                                 className="h-8 rounded-md border-slate-200 text-right text-xs"
                                                             />
                                                         </td>
                                                         <td className="px-3 py-2 text-right text-xs font-semibold text-slate-900">
-                                                            {money(row.lineTotal) || "$0.00"}
+                                                            <Menu
+                                                                noSize
+                                                                Icon={null}
+                                                                label={
+                                                                    <span className="cursor-pointer underline decoration-dotted underline-offset-2">
+                                                                        {money(row.lineTotal) || "$0.00"}
+                                                                    </span>
+                                                                }
+                                                            >
+                                                                <div className="min-w-[260px] space-y-2 p-2 text-left text-xs">
+                                                                    <p className="font-bold uppercase text-muted-foreground">
+                                                                        Estimate Breakdown
+                                                                    </p>
+                                                                    <div className="flex justify-between">
+                                                                        <span>Door</span>
+                                                                        <span className="font-semibold">
+                                                                            {componentLabel(
+                                                                                activeDoorComponent?.title ||
+                                                                                    "Selected Door",
+                                                                            )}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex justify-between">
+                                                                        <span>Size</span>
+                                                                        <span className="font-semibold">
+                                                                            {row.dimension || "--"}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex justify-between">
+                                                                        <span>Base Unit</span>
+                                                                        <span className="font-semibold">
+                                                                            {money(
+                                                                                Number(
+                                                                                    row?.meta
+                                                                                        ?.baseUnitPrice ==
+                                                                                        null
+                                                                                        ? Number(
+                                                                                              row.unitPrice ||
+                                                                                                  0,
+                                                                                          ) -
+                                                                                          sharedDoorSurcharge
+                                                                                        : row.meta
+                                                                                              .baseUnitPrice,
+                                                                                ),
+                                                                            ) || "$0.00"}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex justify-between">
+                                                                        <span>Component Surcharge</span>
+                                                                        <span className="font-semibold">
+                                                                            {money(sharedDoorSurcharge) || "$0.00"}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex justify-between">
+                                                                        <span>Final Unit</span>
+                                                                        <span className="font-semibold">
+                                                                            {money(row.unitPrice) || "$0.00"}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex justify-between">
+                                                                        <span>Qty</span>
+                                                                        <span className="font-semibold">
+                                                                            {Number(row.totalQty || 0)}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="border-t pt-2" />
+                                                                    <div className="flex justify-between text-sm">
+                                                                        <span className="font-semibold">Line Total</span>
+                                                                        <span className="font-bold">
+                                                                            {money(row.lineTotal) || "$0.00"}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </Menu>
                                                         </td>
                                                         <td className="px-3 py-2 text-right">
                                                             <Button
@@ -1236,6 +1511,7 @@ export function ItemWorkflowPanel() {
             lineQty: line.qty,
             lineUnitPrice: line.unitPrice,
             lineTaxxable: Boolean((line.meta as any)?.taxxable),
+            lineProduceable: Boolean((line.meta as any)?.produceable),
         });
 
         function persistRows(nextRowsRaw: any[]) {
@@ -1245,6 +1521,7 @@ export function ItemWorkflowPanel() {
                     ...(line.meta || {}),
                     serviceRows: next.rows,
                     taxxable: next.taxxable,
+                    produceable: next.produceable,
                 } as any,
                 qty: next.qtyTotal,
                 unitPrice: next.unitPrice,
@@ -1266,6 +1543,8 @@ export function ItemWorkflowPanel() {
                                 <th className="px-3 py-2">Service</th>
                                 <th className="w-24 px-3 py-2 text-right">Qty</th>
                                 <th className="w-28 px-3 py-2 text-right">Price</th>
+                                <th className="w-20 px-3 py-2 text-center">Tax</th>
+                                <th className="w-24 px-3 py-2 text-center">Prod</th>
                                 <th className="w-28 px-3 py-2 text-right">Total</th>
                                 <th className="w-24 px-3 py-2 text-right">
                                     Actions
@@ -1346,6 +1625,40 @@ export function ItemWorkflowPanel() {
                                             className="h-8 text-right"
                                         />
                                     </td>
+                                    <td className="px-3 py-2 text-center">
+                                        <Checkbox
+                                            checked={Boolean(row.taxxable)}
+                                            onCheckedChange={(checked) =>
+                                                persistRows(
+                                                    rows.map((item: any, i: number) =>
+                                                        i === index
+                                                            ? {
+                                                                  ...item,
+                                                                  taxxable: Boolean(checked),
+                                                              }
+                                                            : item,
+                                                    ),
+                                                )
+                                            }
+                                        />
+                                    </td>
+                                    <td className="px-3 py-2 text-center">
+                                        <Checkbox
+                                            checked={Boolean(row.produceable)}
+                                            onCheckedChange={(checked) =>
+                                                persistRows(
+                                                    rows.map((item: any, i: number) =>
+                                                        i === index
+                                                            ? {
+                                                                  ...item,
+                                                                  produceable: Boolean(checked),
+                                                              }
+                                                            : item,
+                                                    ),
+                                                )
+                                            }
+                                        />
+                                    </td>
                                     <td className="px-3 py-2 text-right text-xs font-bold">
                                         {money(row.lineTotal) || "$0.00"}
                                     </td>
@@ -1391,6 +1704,7 @@ export function ItemWorkflowPanel() {
                                 uid: `service-${rows.length + 1}-${Date.now().toString(36)}`,
                                 service: "",
                                 taxxable: false,
+                                produceable: false,
                                 qty: 1,
                                 unitPrice: 0,
                             },
@@ -1862,84 +2176,324 @@ export function ItemWorkflowPanel() {
                     </p>
                 ) : (
                     <>
+                        <div className="sticky bottom-3 z-10 mb-3 flex items-center gap-2 rounded-lg border bg-background/95 p-2 backdrop-blur">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                {visibleComponents.length} components
+                            </span>
+                            <div className="ml-auto">
+                                <Menu
+                                    Trigger={
+                                        <Button size="sm" variant="outline">
+                                            Controls
+                                        </Button>
+                                    }
+                                >
+                                    <Menu.Item
+                                        SubMenu={(steps || []).map((step, idx) => (
+                                            <Menu.Item
+                                                key={`jump-step-${idx}`}
+                                                onClick={() =>
+                                                    setActiveStepByLine((prev) => ({
+                                                        ...prev,
+                                                        [line.uid]: idx,
+                                                    }))
+                                                }
+                                            >
+                                                {step?.step?.title || `Step ${idx + 1}`}
+                                            </Menu.Item>
+                                        ))}
+                                    >
+                                        Tabs
+                                    </Menu.Item>
+                                    <Menu.Item
+                                        onClick={() => {
+                                            if (!isMultiSelectStepTitle(activeItemStep?.step?.title))
+                                                return;
+                                            const nextSteps = [...(line.formSteps || [])];
+                                            const step = nextSteps[activeIndex];
+                                            if (!step) return;
+                                            const selectedComponents = visibleComponents.map((component: any) => ({
+                                                id: component?.id ?? null,
+                                                uid: component?.uid || "",
+                                                title: component?.title || "",
+                                                img: component?.img || null,
+                                                salesPrice:
+                                                    component?.salesPrice == null
+                                                        ? null
+                                                        : Number(component.salesPrice || 0),
+                                                basePrice:
+                                                    component?.basePrice == null
+                                                        ? null
+                                                        : Number(component.basePrice || 0),
+                                            }));
+                                            const selectedProdUids = selectedComponents
+                                                .map((component) => component.uid)
+                                                .filter(Boolean);
+                                            const totalSales = selectedComponents.reduce(
+                                                (sum, component) =>
+                                                    sum + Number(component.salesPrice || 0),
+                                                0,
+                                            );
+                                            const totalBase = selectedComponents.reduce(
+                                                (sum, component) =>
+                                                    sum + Number(component.basePrice || 0),
+                                                0,
+                                            );
+                                            nextSteps[activeIndex] = {
+                                                ...step,
+                                                componentId: selectedComponents[0]?.id || null,
+                                                prodUid: selectedComponents[0]?.uid || "",
+                                                value: compactStepValue(selectedComponents),
+                                                price: totalSales,
+                                                basePrice: totalBase,
+                                                meta: {
+                                                    ...(step?.meta || {}),
+                                                    selectedProdUids,
+                                                    selectedComponents,
+                                                },
+                                            };
+                                            updateLineItem(line.uid, { formSteps: nextSteps });
+                                        }}
+                                    >
+                                        Select All
+                                    </Menu.Item>
+                                    <Menu.Item
+                                        onClick={() => {
+                                            const selectedComponent =
+                                                visibleComponents.find((component: any) =>
+                                                    selectedUids.has(component.uid),
+                                                ) || visibleComponents[0];
+                                            if (!selectedComponent) return;
+                                            if (isDoorStepTitle(activeItemStep?.step?.title)) {
+                                                setDoorStepModal({
+                                                    open: true,
+                                                    component: selectedComponent,
+                                                });
+                                                return;
+                                            }
+                                            quickEditComponentPrice(
+                                                line,
+                                                activeIndex,
+                                                selectedComponent,
+                                            );
+                                        }}
+                                    >
+                                        Pricing
+                                    </Menu.Item>
+                                    <Menu.Item
+                                        onClick={() => {
+                                            setIncludeCustomComponents(true);
+                                        }}
+                                    >
+                                        Component
+                                    </Menu.Item>
+                                    <Menu.Item
+                                        onClick={() => {
+                                            void stepComponentsQuery.refetch();
+                                            void rootComponentsQuery.refetch();
+                                        }}
+                                    >
+                                        Refresh
+                                    </Menu.Item>
+                                    <Menu.Item
+                                        onClick={() =>
+                                            setIncludeCustomComponents((prev) => !prev)
+                                        }
+                                    >
+                                        Enable Custom: {includeCustomComponents ? "On" : "Off"}
+                                    </Menu.Item>
+                                </Menu>
+                            </div>
+                        </div>
                         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                             {visibleComponents.map((component) => {
                                 const isSelected = selectedUids.has(
                                     component.uid,
                                 );
                                 return (
-                                    <button
+                                    <div
                                         key={component.uid}
-                                        type="button"
-                                        className={`overflow-hidden rounded-xl border text-left transition ${
+                                        className={`relative overflow-hidden rounded-xl border text-left transition ${
                                             isSelected
                                                 ? "border-primary bg-primary/5 ring-1 ring-primary/20"
                                                 : "bg-card hover:border-primary"
                                         }`}
-                                        onClick={() =>
-                                            isDoorStepTitle(
-                                                activeItemStep?.step?.title,
-                                            )
-                                                ? setDoorStepModal({
-                                                      open: true,
-                                                      component,
-                                                  })
-                                                : saveSelectedComponent({
-                                                      line,
-                                                      steps,
-                                                      currentStepIndex:
-                                                          activeIndex,
-                                                      component,
-                                                  })
-                                        }
                                     >
-                                        <div className="h-32 bg-muted">
-                                            {resolveComponentImageSrc(
-                                                component.img,
-                                            ) ? (
-                                                <img
-                                                    src={
-                                                        resolveComponentImageSrc(
-                                                            component.img,
-                                                        ) || ""
-                                                    }
-                                                    alt={
-                                                        component.title ||
-                                                        component.uid
-                                                    }
-                                                    className="h-full w-full object-contain p-2"
-                                                />
-                                            ) : (
-                                                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                                                    No image
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="space-y-1 p-3">
-                                            <p className="font-semibold leading-tight">
-                                                {componentLabel(component.title)}
-                                            </p>
-                                            {moneyIfPositive(
-                                                component.salesPrice ??
-                                                    component.basePrice ??
-                                                    component?.pricing?.[
-                                                        component.uid
-                                                    ]?.price ??
-                                                    null,
-                                            ) ? (
-                                                <p className="text-xs font-medium text-primary">
-                                                    {moneyIfPositive(
-                                                        component.salesPrice ??
-                                                            component.basePrice ??
-                                                            component?.pricing?.[
-                                                                component.uid
-                                                            ]?.price ??
-                                                            null,
-                                                    )}
-                                                </p>
+                                        <div className="absolute left-2 top-2 z-[2] flex flex-col gap-1">
+                                            {component?.variations?.length ? (
+                                                <span className="rounded bg-secondary p-1">
+                                                    <Filter className="size-3 text-muted-foreground" />
+                                                </span>
+                                            ) : null}
+                                            {component?.sectionOverride?.overrideMode ? (
+                                                <span className="rounded bg-secondary p-1">
+                                                    <LucideVariable className="size-3 text-muted-foreground" />
+                                                </span>
+                                            ) : null}
+                                            {component?.redirectUid ? (
+                                                <span className="rounded bg-secondary p-1">
+                                                    <ExternalLink className="size-3 text-muted-foreground" />
+                                                </span>
                                             ) : null}
                                         </div>
-                                    </button>
+                                        <div className="absolute right-2 top-2 z-[2]">
+                                            <Menu
+                                                Trigger={
+                                                    <Button
+                                                        size="icon"
+                                                        variant="secondary"
+                                                        className="size-7"
+                                                    >
+                                                        ...
+                                                    </Button>
+                                                }
+                                            >
+                                                <Menu.Item
+                                                    onClick={() => {
+                                                        if (isDoorStepTitle(activeItemStep?.step?.title)) {
+                                                            setDoorStepModal({
+                                                                open: true,
+                                                                component,
+                                                            });
+                                                            return;
+                                                        }
+                                                        quickEditComponentPrice(
+                                                            line,
+                                                            activeIndex,
+                                                            component,
+                                                        );
+                                                    }}
+                                                >
+                                                    Edit
+                                                </Menu.Item>
+                                                <Menu.Item
+                                                    onClick={() =>
+                                                        saveSelectedComponent({
+                                                            line,
+                                                            steps,
+                                                            currentStepIndex: activeIndex,
+                                                            component,
+                                                        })
+                                                    }
+                                                >
+                                                    Select
+                                                </Menu.Item>
+                                                <Menu.Item
+                                                    SubMenu={[
+                                                        <Menu.Item
+                                                            key={`redirect-none-${component.uid}`}
+                                                            onClick={() =>
+                                                                setStepRedirectUid(
+                                                                    line,
+                                                                    activeIndex,
+                                                                    null,
+                                                                )
+                                                            }
+                                                        >
+                                                            Cancel Redirect
+                                                        </Menu.Item>,
+                                                        ...Object.values(
+                                                            routeData?.stepsByUid || {},
+                                                        ).map((step: any) => (
+                                                            <Menu.Item
+                                                                key={`redirect-${component.uid}-${step.uid}`}
+                                                                onClick={() =>
+                                                                    setStepRedirectUid(
+                                                                        line,
+                                                                        activeIndex,
+                                                                        step.uid,
+                                                                    )
+                                                                }
+                                                            >
+                                                                {step.title}
+                                                            </Menu.Item>
+                                                        )),
+                                                    ]}
+                                                >
+                                                    Redirect
+                                                </Menu.Item>
+                                                <Menu.Item
+                                                    className="text-red-600"
+                                                    onClick={() =>
+                                                        removeSelectedComponentFromStep(
+                                                            line,
+                                                            activeIndex,
+                                                            component.uid,
+                                                        )
+                                                    }
+                                                >
+                                                    Delete
+                                                </Menu.Item>
+                                            </Menu>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className="w-full text-left"
+                                            onClick={() =>
+                                                isDoorStepTitle(
+                                                    activeItemStep?.step?.title,
+                                                )
+                                                    ? setDoorStepModal({
+                                                          open: true,
+                                                          component,
+                                                      })
+                                                    : saveSelectedComponent({
+                                                          line,
+                                                          steps,
+                                                          currentStepIndex:
+                                                              activeIndex,
+                                                          component,
+                                                      })
+                                            }
+                                        >
+                                            <div className="h-32 bg-muted">
+                                                {resolveComponentImageSrc(
+                                                    component.img,
+                                                ) ? (
+                                                    <img
+                                                        src={
+                                                            resolveComponentImageSrc(
+                                                                component.img,
+                                                            ) || ""
+                                                        }
+                                                        alt={
+                                                            component.title ||
+                                                            component.uid
+                                                        }
+                                                        className="h-full w-full object-contain p-2"
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                                                        No image
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="space-y-1 p-3">
+                                                <p className="font-semibold leading-tight">
+                                                    {componentLabel(component.title)}
+                                                </p>
+                                                {moneyIfPositive(
+                                                    component.salesPrice ??
+                                                        component.basePrice ??
+                                                        component?.pricing?.[
+                                                            component.uid
+                                                        ]?.price ??
+                                                        null,
+                                                ) ? (
+                                                    <p className="text-xs font-medium text-primary">
+                                                        {moneyIfPositive(
+                                                            component.salesPrice ??
+                                                                component.basePrice ??
+                                                                component?.pricing?.[
+                                                                    component.uid
+                                                                ]?.price ??
+                                                                null,
+                                                        )}
+                                                    </p>
+                                                ) : null}
+                                            </div>
+                                        </button>
+                                    </div>
                                 );
                             })}
                         </div>
@@ -2098,6 +2652,8 @@ export function ItemWorkflowPanel() {
                         if (!doorStepModal.component) return;
                         const existingDoors =
                             activeLine.housePackageTool?.doors || [];
+                        const sharedDoorSurcharge =
+                            computeSharedDoorSurcharge(activeLine);
                         const targetComponentId = Number(
                             doorStepModal.component.id || 0,
                         );
@@ -2106,9 +2662,13 @@ export function ItemWorkflowPanel() {
                                 Number(door.stepProductId || 0) !==
                                 targetComponentId,
                         );
+                        const nextRows = applySharedDoorSurcharge(
+                            rows,
+                            sharedDoorSurcharge,
+                        );
                         const nextDoors = [
                             ...retainedDoors,
-                            ...rows.map((row) => ({
+                            ...nextRows.map((row) => ({
                                 ...row,
                                 stepProductId:
                                     targetComponentId ||

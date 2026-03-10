@@ -124,8 +124,8 @@ function Content({ data }) {
                                     </div>
                                 </div>
 
-                                <div className="sticky bottom-0 z-10 flex justify-end pb-2 pt-2">
-                                    <div className="rounded-xl border border-slate-200 bg-white/95 p-2 shadow-lg backdrop-blur">
+                                <div className="sticky bottom-0 z-10 pointer-events-none flex justify-end pb-2 pt-2">
+                                    <div className="pointer-events-auto rounded-xl border border-slate-200 bg-white/95 p-2 shadow-lg backdrop-blur">
                                         <Button
                                             onClick={() => {
                                                 zhAddItem();

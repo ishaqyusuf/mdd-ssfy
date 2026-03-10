@@ -13,9 +13,12 @@ import {
 } from "lucide-react";
 import { Icons } from "@gnd/ui/icons";
 import {
+    AlertDialogAction,
+    AlertDialogCancel,
     AlertDialog,
     AlertDialogContent,
     AlertDialogDescription,
+    AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@gnd/ui/alert-dialog";
@@ -25,14 +28,36 @@ import { DispatchClearPackingConfirmDialog } from "./dispatch-clear-packing-conf
 import { Menu } from "./(clean-code)/menu";
 import {
     DropdownMenuItem,
-    DropdownMenuRadioItem,
     DropdownMenuSeparator,
 } from "@gnd/ui/dropdown-menu";
+import { useMemo, useState } from "react";
+import { qtyMatrixSum } from "@sales/utils/sales-control";
 
 export function DispatchActions({}) {
     const { data, ...ctx } = usePacking();
-    const { dispatch, order, address } = data;
+    const { dispatch } = data;
     const { isCancelled, isInProgress, isQueue, onClearPacking } = ctx;
+    const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+    const packedCount = useMemo(
+        () => qtyMatrixSum(...(data?.dispatchItems?.map((i) => i.packedQty) as any))
+            ?.qty || 0,
+        [data?.dispatchItems],
+    );
+    const listedCount = useMemo(
+        () => qtyMatrixSum(...(data?.dispatchItems?.map((i) => i.listedQty) as any))
+            ?.qty || 0,
+        [data?.dispatchItems],
+    );
+    const pendingCount = Math.max(0, listedCount - packedCount);
+    const hasPendingPackings = pendingCount > 0;
+
+    const onMarkCompleted = () => {
+        if (hasPendingPackings) {
+            setCompleteDialogOpen(true);
+            return;
+        }
+        ctx.onCompleteDispatch("packed_only");
+    };
     return (
         <>
             <div className="flex flex-col sm:flex-row gap-3 p-4 bg-muted/20 rounded-lg border">
@@ -68,13 +93,14 @@ export function DispatchActions({}) {
                         <div className="flex items-center gap-2">
                             {/* Always show Complete Dispatch button when in progress */}
                             <Button
-                                onClick={() => {
-                                    ctx.setMainTab("finalize");
-                                }}
+                                disabled={ctx.isCompleting}
+                                onClick={onMarkCompleted}
                                 className="bg-green-600 hover:bg-green-700"
                             >
                                 <CheckCircle className="h-4 w-4 mr-2" />
-                                Complete Dispatch
+                                {ctx.isCompleting
+                                    ? "Completing..."
+                                    : "Complete Dispatch"}
                             </Button>
 
                             <Button
@@ -166,6 +192,63 @@ export function DispatchActions({}) {
 
             {/* Clear Packing Confirmation Dialog */}
             <DispatchClearPackingConfirmDialog />
+
+            <AlertDialog
+                open={completeDialogOpen}
+                onOpenChange={(open) => {
+                    if (ctx.isCompleting) return;
+                    setCompleteDialogOpen(open);
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            Complete Dispatch With Pending Packings
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Some items are not packed yet. Completing now can
+                            open back-order for unpacked items.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+
+                    <div className="rounded-md border p-3 text-sm space-y-1">
+                        <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">Packed</span>
+                            <span className="font-medium">{packedCount}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">Pending</span>
+                            <span className="font-medium text-amber-600">
+                                {pendingCount}
+                            </span>
+                        </div>
+                    </div>
+
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={ctx.isCompleting}>
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            disabled={ctx.isCompleting}
+                            onClick={() => {
+                                ctx.onCompleteDispatch("packed_only");
+                                setCompleteDialogOpen(false);
+                            }}
+                        >
+                            Complete with packed ({packedCount})
+                        </AlertDialogAction>
+                        <AlertDialogAction
+                            disabled={ctx.isCompleting}
+                            onClick={() => {
+                                ctx.onCompleteDispatch("pack_all");
+                                setCompleteDialogOpen(false);
+                            }}
+                        >
+                            Pack all and complete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {/* Unstart Confirmation Dialog */}
         </>

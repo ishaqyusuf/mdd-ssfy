@@ -317,16 +317,14 @@ export const communityRouters = createTRPCRouter({
       });
       const jobTasks = builderTask?.builderTaskInstallCosts
         ?.map((taskInstallCost) => {
-          const jobTask = job?.jobInstallTasks.find(
-            (jt) =>
-              jt.communityModelInstallTaskId ===
-              taskInstallCost.installCostModel.id,
-          );
           const modelInstallTask = taskInstallCost.modelInstallTasks?.find(
             (mit) =>
               mit.installCostModelId === taskInstallCost.installCostModel.id,
           );
           const modelTaskId = modelInstallTask?.id;
+          const jobTask = job?.jobInstallTasks.find(
+            (jt) => jt.communityModelInstallTaskId === modelTaskId,
+          );
           return {
             id: jobTask?.id,
             // builderTaskId:
@@ -335,7 +333,7 @@ export const communityRouters = createTRPCRouter({
             rate: jobTask?.rate || taskInstallCost.installCostModel.unitCost,
             installCostModel: taskInstallCost.installCostModel,
             modelTaskId,
-            title: builderTask.taskName,
+            title: taskInstallCost.installCostModel.title,
           };
         })
         .filter((a) => a.maxQty && a.modelTaskId);

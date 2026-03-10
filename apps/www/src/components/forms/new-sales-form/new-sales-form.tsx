@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "@gnd/ui/use-toast";
 import { Button } from "@gnd/ui/button";
 import { useNewSalesFormStore } from "./store";
@@ -17,6 +17,15 @@ import { InvoiceSummarySidebar } from "./sections/invoice-summary-sidebar";
 import { useRouter } from "next/navigation";
 import { _modal } from "@/components/common/modal/provider";
 import NewSalesFormSettingsModal from "@/components/modals/new-sales-form-settings-modal";
+import { useTaskTrigger } from "@/hooks/use-task-trigger";
+import {
+    clearRecoverySnapshot,
+    createPayloadFingerprint,
+    getRecoveryStorageKey,
+    readRecoverySnapshot,
+    writeRecoverySnapshot,
+    type NewSalesFormRecoverySnapshot,
+} from "./local-recovery";
 
 interface Props {
     mode: "create" | "edit";
@@ -39,6 +48,7 @@ export function NewSalesForm(props: Props) {
     const lastSavedAt = useNewSalesFormStore((s) => s.lastSavedAt);
     const lastSaveError = useNewSalesFormStore((s) => s.lastSaveError);
     const hydrate = useNewSalesFormStore((s) => s.hydrate);
+    const restoreLocalDraft = useNewSalesFormStore((s) => s.restoreLocalDraft);
     const addLineItem = useNewSalesFormStore((s) => s.addLineItem);
     const markSaving = useNewSalesFormStore((s) => s.markSaving);
     const markSaved = useNewSalesFormStore((s) => s.markSaved);
@@ -47,6 +57,8 @@ export function NewSalesForm(props: Props) {
     const patchRecord = useNewSalesFormStore((s) => s.patchRecord);
     const editor = useNewSalesFormStore((s) => s.editor);
     const setEditor = useNewSalesFormStore((s) => s.setEditor);
+    const [recoverySnapshot, setRecoverySnapshot] =
+        useState<NewSalesFormRecoverySnapshot | null>(null);
 
     const bootstrapQuery = useNewSalesFormBootstrapQuery(
         {
@@ -81,6 +93,40 @@ export function NewSalesForm(props: Props) {
         if (!record) return null;
         return toSaveDraftInput(record, true);
     }, [record]);
+    const recoveryKey = useMemo(
+        () =>
+            getRecoveryStorageKey({
+                type: props.type,
+                slug: props.slug || record?.slug || null,
+                salesId: record?.salesId || null,
+            }),
+        [props.type, props.slug, record?.salesId, record?.slug],
+    );
+    const draftRecoveryKey = useMemo(
+        () =>
+            getRecoveryStorageKey({
+                type: props.type,
+            }),
+        [props.type],
+    );
+
+    const clearRecoveryKeys = useCallback(
+        (next?: { slug?: string | null; salesId?: string | number | null }) => {
+            const keys = new Set<string>([recoveryKey, draftRecoveryKey]);
+            if (next?.slug || next?.salesId) {
+                keys.add(
+                    getRecoveryStorageKey({
+                        type: props.type,
+                        slug: next.slug || null,
+                        salesId: next.salesId || null,
+                    }),
+                );
+            }
+            keys.forEach((key) => clearRecoverySnapshot(key));
+            setRecoverySnapshot(null);
+        },
+        [draftRecoveryKey, props.type, recoveryKey],
+    );
 
     const autosave = useNewSalesFormAutoSave({
         enabled: !!record && editor.autosaveEnabled,
@@ -100,6 +146,10 @@ export function NewSalesForm(props: Props) {
                 version: resp?.version,
                 updatedAt: resp?.updatedAt || new Date().toISOString(),
             });
+            clearRecoveryKeys({
+                slug: resp?.slug,
+                salesId: resp?.salesId,
+            });
         },
         onStale: (error) => {
             markStale((error as any)?.message || "Version conflict detected.");
@@ -115,6 +165,57 @@ export function NewSalesForm(props: Props) {
     });
 
     const finalSave = useSaveFinalNewSalesFormMutation();
+    const taskTrigger = useTaskTrigger({
+        silent: true,
+    });
+
+    useEffect(() => {
+        if (!loadData) return;
+        const serverPayload = toSaveDraftInput(loadData, true);
+        const serverFingerprint = createPayloadFingerprint(serverPayload);
+        const snapshot =
+            readRecoverySnapshot(recoveryKey) ||
+            (recoveryKey !== draftRecoveryKey
+                ? readRecoverySnapshot(draftRecoveryKey)
+                : null);
+        if (!snapshot) {
+            setRecoverySnapshot(null);
+            return;
+        }
+        if (createPayloadFingerprint(snapshot.payload) === serverFingerprint) {
+            setRecoverySnapshot(null);
+            return;
+        }
+        setRecoverySnapshot(snapshot);
+    }, [draftRecoveryKey, loadData, recoveryKey]);
+
+    useEffect(() => {
+        if (!dirty || !payload) return;
+        const timer = setTimeout(() => {
+            writeRecoverySnapshot(recoveryKey, payload);
+        }, 750);
+        return () => clearTimeout(timer);
+    }, [dirty, payload, recoveryKey]);
+
+    const applyRecoverySnapshot = useCallback(() => {
+        if (!loadData || !recoverySnapshot) return;
+        restoreLocalDraft({
+            ...loadData,
+            salesId: recoverySnapshot.payload.salesId ?? loadData.salesId,
+            slug: recoverySnapshot.payload.slug ?? loadData.slug,
+            version: loadData.version,
+            form: recoverySnapshot.payload.meta as any,
+            lineItems: recoverySnapshot.payload.lineItems as any,
+            extraCosts: recoverySnapshot.payload.extraCosts as any,
+            summary: recoverySnapshot.payload.summary as any,
+        });
+        setRecoverySnapshot(null);
+        toast({
+            title: "Local recovery restored",
+            description: "Recovered unsaved edits from this device.",
+            variant: "success",
+        });
+    }, [loadData, recoverySnapshot, restoreLocalDraft]);
 
     function validateBeforeSave() {
         if (!record?.form.customerId) {
@@ -148,6 +249,16 @@ export function NewSalesForm(props: Props) {
             title: "Draft saved",
             variant: "success",
         });
+        clearRecoveryKeys({
+            slug: resp?.slug,
+            salesId: resp?.salesId,
+        });
+        if (resp?.orderId && resp?.type) {
+            taskTrigger.triggerWithAuth("create-sales-history", {
+                salesNo: resp.orderId,
+                salesType: resp.type,
+            } as any);
+        }
     }
 
     async function saveFinal() {
@@ -170,11 +281,21 @@ export function NewSalesForm(props: Props) {
                 version: resp?.version,
                 updatedAt: resp?.updatedAt || new Date().toISOString(),
             });
+            clearRecoveryKeys({
+                slug: resp?.slug,
+                salesId: resp?.salesId,
+            });
             toast({
                 title: "Saved",
                 description: `${props.type} ${resp?.orderId} has been finalized.`,
                 variant: "success",
             });
+            if (resp?.orderId && resp?.type) {
+                taskTrigger.triggerWithAuth("create-sales-history", {
+                    salesNo: resp.orderId,
+                    salesType: resp.type,
+                } as any);
+            }
         } catch (error) {
             const err = error as any;
             if (String(err?.message || "").toLowerCase().includes("out of date")) {
@@ -277,6 +398,28 @@ export function NewSalesForm(props: Props) {
 
                 <div className="flex-1 overflow-y-auto p-4 pb-28 sm:p-6 lg:p-8 lg:pb-8">
                     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
+                        {recoverySnapshot ? (
+                            <div className="flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 md:flex-row md:items-center md:justify-between">
+                                <p>
+                                    Unsaved local edits were found from{" "}
+                                    {new Date(recoverySnapshot.savedAt).toLocaleString()}.
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                            clearRecoveryKeys();
+                                        }}
+                                    >
+                                        Dismiss
+                                    </Button>
+                                    <Button size="sm" onClick={applyRecoverySnapshot}>
+                                        Restore
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : null}
                         <ItemWorkflowPanel />
                     </div>
                 </div>

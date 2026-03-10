@@ -127,6 +127,7 @@ export function deriveServiceRows({
   lineQty,
   lineUnitPrice,
   lineTaxxable,
+  lineProduceable,
 }: {
   lineUid: string;
   existingRows: any[];
@@ -134,6 +135,7 @@ export function deriveServiceRows({
   lineQty?: number | null;
   lineUnitPrice?: number | null;
   lineTaxxable?: boolean | null;
+  lineProduceable?: boolean | null;
 }) {
   if (existingRows.length > 0) {
     return existingRows.map((row: any, index: number) => {
@@ -143,6 +145,7 @@ export function deriveServiceRows({
         uid: String(row?.uid || "").trim() || `service-${lineUid}-${index + 1}`,
         service: String(row?.service ?? row?.description ?? ""),
         taxxable: Boolean(row?.taxxable),
+        produceable: Boolean(row?.produceable),
         qty,
         unitPrice,
         lineTotal: Number((qty * unitPrice).toFixed(2)),
@@ -156,6 +159,7 @@ export function deriveServiceRows({
       uid: `service-${lineUid}-1`,
       service: String(lineDescription || "").trim(),
       taxxable: Boolean(lineTaxxable),
+      produceable: Boolean(lineProduceable),
       qty,
       unitPrice,
       lineTotal: Number((qty * unitPrice).toFixed(2)),
@@ -171,6 +175,7 @@ export function summarizeServiceRows(lineUid: string, nextRowsRaw: any[]) {
       uid: String(row?.uid || "").trim() || `service-${lineUid}-${index + 1}`,
       service: String(row?.service ?? "").trim(),
       taxxable: Boolean(row?.taxxable),
+      produceable: Boolean(row?.produceable),
       qty,
       unitPrice,
       lineTotal: Number((qty * unitPrice).toFixed(2)),
@@ -184,12 +189,14 @@ export function summarizeServiceRows(lineUid: string, nextRowsRaw: any[]) {
   );
   const unitPrice = qtyTotal > 0 ? Number((lineTotal / qtyTotal).toFixed(2)) : 0;
   const taxxable = rows.some((row: any) => Boolean(row?.taxxable));
+  const produceable = rows.some((row: any) => Boolean(row?.produceable));
   return {
     rows,
     qtyTotal,
     lineTotal,
     unitPrice,
     taxxable,
+    produceable,
     description: rows
       .map((row: any) => String(row?.service || "").trim())
       .filter(Boolean)
@@ -236,11 +243,15 @@ export function deriveMouldingRows({
   const existingByUid = new Map(existingRows.map((row: any) => [String(row.uid), row]));
   const initialRows = selectedMouldings.map((component: any) => {
     const existing = existingByUid.get(String(component.uid));
+    const existingQty = existing?.qty == null ? null : Number(existing.qty);
     return {
       uid: component.uid,
       title: component.title,
       description: String(existing?.description || "").trim() || component.title || "Moulding",
-      qty: Number(existing?.qty ?? 1),
+      qty:
+        existingQty == null || !Number.isFinite(existingQty) || existingQty <= 0
+          ? 1
+          : existingQty,
       addon: Number(existing?.addon ?? 0),
       customPrice:
         existing?.customPrice == null || existing?.customPrice === ""

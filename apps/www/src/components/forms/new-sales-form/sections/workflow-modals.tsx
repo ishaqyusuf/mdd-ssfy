@@ -13,6 +13,10 @@ import {
 } from "@gnd/ui/dialog";
 import { Calculator, CheckCircle2, Trash2, X } from "lucide-react";
 import type { NewSalesFormLineItem } from "../schema";
+import {
+    resolvePricingBucketUnitPrice,
+    resolveSizeFromPricingKey,
+} from "@gnd/sales/sales-form";
 
 type DoorLine = NonNullable<
     NonNullable<NewSalesFormLineItem["housePackageTool"]>["doors"]
@@ -282,25 +286,6 @@ function rowsForComponent(line: NewSalesFormLineItem, componentId: number | null
         .map(calcDoorRow);
     return rows;
 }
-function resolveSizeFromPricingKey(
-    key: string,
-    supplierUid?: string | null,
-) {
-    const raw = String(key || "").trim();
-    if (!raw) return null;
-    if (supplierUid) {
-        const suffix = `& ${supplierUid}`;
-        if (raw.endsWith(suffix)) {
-            const size = raw.slice(0, -suffix.length).trim();
-            return size.includes("x") ? size : null;
-        }
-    }
-    if (raw.includes(" & ")) {
-        const size = raw.split(" & ")[0]?.trim() || "";
-        return size.includes("x") ? size : null;
-    }
-    return raw.includes("x") ? raw : null;
-}
 function deriveDoorSizeRows(
     existingRows: DoorLine[],
     component: DoorSizeQtyDialogProps["component"],
@@ -333,17 +318,22 @@ function deriveDoorSizeRows(
     return candidateSizes.map((size) => {
         const normalizedSize = String(size).trim();
         const existing = bySize.get(normalizedSize);
-        const supplierKey = supplierUid
-            ? `${normalizedSize} & ${supplierUid}`
-            : null;
-        const priceBucket =
-            (supplierKey ? pricing?.[supplierKey] : null) ||
-            pricing?.[normalizedSize] ||
-            null;
-        const computedPrice = Number(priceBucket?.price);
-        const unitPrice = Number.isFinite(computedPrice)
-            ? computedPrice
-            : Number(component?.salesPrice ?? component?.basePrice ?? existing?.unitPrice ?? 0);
+        const computedPrice = resolvePricingBucketUnitPrice({
+            pricing,
+            size: normalizedSize,
+            supplierUid,
+            fallbackSalesPrice: component?.salesPrice,
+            fallbackBasePrice: component?.basePrice,
+        });
+        const rowBaseUnit = Number((existing as any)?.meta?.baseUnitPrice);
+        const unitPrice = Number(
+            computedPrice ||
+                rowBaseUnit ||
+                component?.salesPrice ||
+                component?.basePrice ||
+                existing?.unitPrice ||
+                0,
+        );
         return calcDoorRow({
             ...(existing || blankDoorRow()),
             dimension: normalizedSize,
@@ -413,7 +403,8 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                                 <p className="col-span-2">RH</p>
                             </>
                         )}
-                        <p className="col-span-2">Unit Price</p>
+                        <p className="col-span-1">Unit</p>
+                        <p className="col-span-1">Base</p>
                         <p className="col-span-1">Del</p>
                     </div>
                     {rows.map((row, index) => (
@@ -513,7 +504,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                                 </>
                             )}
                             <Input
-                                className="col-span-2"
+                                className="col-span-1"
                                 type="number"
                                 step="0.01"
                                 value={row.unitPrice || props.component?.salesPrice || 0}
@@ -530,6 +521,30 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                                     )
                                 }
                             />
+                            <Button
+                                className="col-span-1"
+                                variant="outline"
+                                onClick={() =>
+                                    setRows((prev) =>
+                                        prev.map((item, ri) =>
+                                            ri === index
+                                                ? {
+                                                      ...item,
+                                                      meta: {
+                                                          ...(item.meta || {}),
+                                                          baseUnitPrice: toNumber(
+                                                              row.unitPrice,
+                                                              0,
+                                                          ),
+                                                      },
+                                                  }
+                                                : item,
+                                        ),
+                                    )
+                                }
+                            >
+                                B
+                            </Button>
                             <Button
                                 className="col-span-1"
                                 variant="destructive"

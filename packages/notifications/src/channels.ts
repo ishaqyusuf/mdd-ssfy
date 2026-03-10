@@ -18,6 +18,7 @@ export const channelNames = [
   "sales_dispatch_date_updated",
   "sales_dispatch_queued",
   "sales_dispatch_unassigned",
+  "sales_marked_as_production_completed",
   "sales_back_order",
   "sales_dispatch_late",
   "sales_production_assigned",
@@ -134,6 +135,11 @@ export const channelsConfig: Partial<{
   },
   sales_dispatch_in_progress: {
     title: "Triggered when a dispatch moves to in progress",
+    priority: 5,
+    category: "Sales",
+  },
+  sales_marked_as_production_completed: {
+    title: "Triggered when a sales order is marked as production completed",
     priority: 5,
     category: "Sales",
   },

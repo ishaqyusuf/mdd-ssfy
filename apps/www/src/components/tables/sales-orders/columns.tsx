@@ -27,6 +27,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { UpdateSalesControl } from "@sales/schema";
 import { toast } from "@gnd/ui/use-toast";
+import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 export type Item = RouterOutputs["sales"]["index"]["data"][number];
 
 function getProductionStatusLabel(item: Item) {
@@ -330,6 +331,7 @@ function Actions({ item }: { item: Item }) {
     const isBin = useBin();
     const auth = useAuth();
     const trpc = useTRPC();
+    const notification = useNotificationTrigger({ silent: true });
     const { trigger } = useTaskTrigger({
         silent: true,
         onSuccess() {
@@ -351,11 +353,28 @@ function Actions({ item }: { item: Item }) {
             },
         }),
     );
+    const { mutate: submitDispatch } = useMutation(
+        trpc.dispatch.submitDispatch.mutationOptions({
+            onSuccess() {
+                invalidateInfiniteQueries("sales.getOrders");
+            },
+        }),
+    );
     const getMeta = () => ({
         salesId: item.id,
-        authorId: auth?.id!,
-        authorName: auth?.name!,
+        authorId: Number(auth?.id || 0),
+        authorName: auth?.name || "System",
     });
+    const submitDispatchFromList = (dispatchId: number) => {
+        submitDispatch({
+            meta: getMeta(),
+            submitDispatch: {
+                dispatchId,
+                receivedBy: auth?.name || "System",
+                receivedDate: new Date(),
+            },
+        });
+    };
     const triggerProductionComplete = () => {
         toast({
             title: "Updating production status...",
@@ -370,20 +389,31 @@ function Actions({ item }: { item: Item }) {
             taskName: "update-sales-control",
             payload,
         });
+        notification.send("sales_marked_as_production_completed", {
+            payload: {
+                salesId: item.id,
+                orderNo: item.orderId || undefined,
+            },
+            author: {
+                id: Number(auth?.id || 0),
+                role: "employee",
+            },
+        });
     };
     const triggerFulfillmentComplete = (dispatchId: number) => {
         const payload: UpdateSalesControl = {
             meta: getMeta(),
-            markAsCompleted: {
+            packItems: {
                 dispatchId,
-                receivedBy: auth?.name || "System",
-                receivedDate: new Date(),
+                dispatchStatus: "completed",
+                packMode: "all",
             },
         };
         trigger({
             taskName: "update-sales-control",
             payload,
         });
+        submitDispatchFromList(dispatchId);
     };
     const ensureDispatchAndTriggerFulfillment = () => {
         toast({

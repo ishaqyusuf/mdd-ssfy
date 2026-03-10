@@ -32,6 +32,7 @@ import { salesDispatchInProgress } from "./types/sales-dispatch-in-progress";
 import { salesDispatchQueued } from "./types/sales-dispatch-queued";
 import { salesDispatchUnassigned } from "./types/sales-dispatch-unassigned";
 import { salesEmailReminder } from "./types/sales-email-reminder";
+import { salesMarkedAsProductionCompleted } from "./types/sales-marked-as-production-completed";
 import { salesRequestPacking } from "./types/sales-request-packing";
 const handlers = {
   job_assigned: jobAssigned,
@@ -49,6 +50,7 @@ const handlers = {
   sales_dispatch_in_progress: salesDispatchInProgress,
   sales_dispatch_date_updated: salesDispatchDateUpdated,
   sales_dispatch_unassigned: salesDispatchUnassigned,
+  sales_marked_as_production_completed: salesMarkedAsProductionCompleted,
   sales_email_reminder: salesEmailReminder,
   sales_request_packing: salesRequestPacking,
   dispatch_packing_delay: dispatchPackingDelay,
