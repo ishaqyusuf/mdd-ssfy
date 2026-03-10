@@ -124,8 +124,12 @@ export async function getActivties(db: Db, params: GetActivitiesParams) {
 				},
 			},
 		},
+		orderBy: {
+			createdAt: "desc",
+		},
 		select: {
 			id: true,
+			createdAt: true,
 			subject: true,
 			headline: true,
 			note: true,

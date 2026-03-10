@@ -61,6 +61,9 @@ export function NotificationCenterScreen() {
   const [tab, setTab] = useState("inbox");
   const { isLoading, error, notifications, archived } = useNotifications();
   const handlers = createNotificationHandlers({
+    job_submitted: (data) => {
+      router.push(`/job/${data.jobId}` as any);
+    },
     job_task_configure_request: (data) => {
       router.push({
         pathname: "/(job)/install-cost/[modelId]/form",

@@ -3,6 +3,8 @@ import {
   bootstrapNewSalesForm,
   deleteNewSalesFormLineItem,
   getNewSalesForm,
+  getNewSalesFormShelfCategories,
+  getNewSalesFormShelfProducts,
   getNewSalesFormStepRouting,
   recalculateNewSalesForm,
   resolveNewSalesCustomer,
@@ -15,6 +17,8 @@ import {
   deleteNewSalesFormLineItemSchema,
   getNewSalesFormSchema,
   getNewSalesFormStepRoutingSchema,
+  getNewSalesFormShelfCategoriesSchema,
+  getNewSalesFormShelfProductsSchema,
   recalculateNewSalesFormSchema,
   resolveNewSalesCustomerSchema,
   saveDraftNewSalesFormSchema,
@@ -35,6 +39,16 @@ export const newSalesFormRouter = createTRPCRouter({
     .input(getNewSalesFormStepRoutingSchema)
     .query(async (props) => {
       return getNewSalesFormStepRouting(props.ctx, props.input);
+    }),
+  getShelfCategories: protectedProcedure
+    .input(getNewSalesFormShelfCategoriesSchema)
+    .query(async (props) => {
+      return getNewSalesFormShelfCategories(props.ctx, props.input);
+    }),
+  getShelfProducts: protectedProcedure
+    .input(getNewSalesFormShelfProductsSchema)
+    .query(async (props) => {
+      return getNewSalesFormShelfProducts(props.ctx, props.input);
     }),
   searchCustomers: protectedProcedure
     .input(searchNewSalesCustomersSchema)

@@ -215,3 +215,43 @@
 - `bun test` (sales-form domain + costing): 34 pass, 0 fail.
 - `bun test` (API new-sales-form parity): 3 pass, 0 fail.
 - focused `tsc` filter on touched new-sales-form files (including `item-workflow-panel.tsx`) returned no file-specific hits.
+- Identified and fixed tax-rate resolution blocker causing tax to remain zero in new form:
+- `customers.getTaxProfiles` now includes `percentage` in TRPC response payload so `invoice-overview-panel` can map `taxCode -> taxRate` correctly.
+- Updated tax-calculation evidence and promoted matrix row to `Partial (Implemented, Runtime Repro Pending)`.
+- Re-ran scoped gates after tax payload patch:
+- `bun test` (sales-form domain + costing): 34 pass, 0 fail.
+- `bun test` (API new-sales-form parity): 3 pass, 0 fail.
+- focused `apps/api` typecheck filter for `customer.route.ts` had no file-specific hits.
+- Improved shelf workflow parity in active new-form panel by adding per-row `categoryId` and `productId` inputs alongside description/qty/unit/total fields, reducing shelf persistence loss for rows that require category linkage.
+- Updated shelf parity evidence to reflect current `Partial` state (data capture improved; hierarchical category/product picker parity still pending).
+- Re-ran scoped gates after shelf UI patch:
+- `bun test` (sales-form domain + costing): 34 pass, 0 fail.
+- `bun test` (API new-sales-form parity): 3 pass, 0 fail.
+- focused `tsc` filter on touched new-sales-form files returned no file-specific hits.
+- Extended new-sales-form shelf parity with dedicated shelf data APIs and picker wiring:
+- added `newSalesForm.getShelfCategories` and `newSalesForm.getShelfProducts` backend procedures and schema contracts.
+- wired new frontend hooks and integrated shelf category/product dropdowns in workflow panel with product auto-fill (description + unit price).
+- updated shelf parity row triage to `Partial (Implemented, Runtime Repro Pending)` with remaining gap scoped to nested-category workflow depth.
+- Re-ran scoped gates after shelf API/picker patch:
+- `bun test` (sales-form domain + costing): 34 pass, 0 fail.
+- `bun test` (API new-sales-form parity): 3 pass, 0 fail.
+- focused `tsc` filters on touched `apps/www` and `apps/api` files returned no file-specific hits.
+- Extended shelf parity depth further by adding parent/child/product row flow in new shelf editor (`Parent -> Category -> Product`) with persisted parent selection in row meta and product-driven autofill behavior.
+- Added regression coverage for new shelf lookup queries:
+- `new-sales-form.test.ts` now verifies `getNewSalesFormShelfCategories` and `getNewSalesFormShelfProducts` behavior (including deleted filtering and empty category input).
+- Added runtime execution gate checklist:
+- `brain/new-sales-form-runtime-parity-gate.md` (batch order, evidence rule, and scoped gate commands for PASS promotion).
+- Resolved a task-scoped type gate failure in the updated API test file (strict undefined narrowing), then re-ran gates.
+- Latest scoped gates:
+- `bun test apps/api/src/db/queries/new-sales-form.test.ts apps/api/src/db/queries/new-sales-form.multi-line.test.ts` => 4 pass, 0 fail.
+- `bun test packages/sales/src/sales-form/domain/workflow-calculators.test.ts packages/sales/src/sales-form/domain/step-engine.test.ts packages/sales/src/new-sales-form-costing.test.ts` => 34 pass, 0 fail.
+- focused `tsc` filters on touched `apps/www` and `apps/api` files show no matching file-specific errors.
+- Fixed reported step-reset regression in new form selection flow:
+- hydration in `new-sales-form.tsx` now keys by incoming load payload identity and no longer re-hydrates on local version churn, preventing first-step selection from snapping back after auto-open next-step transitions.
+- Fixed moulding-line parity regression:
+- expanded moulding item-type alias handling (`moulding/mouldings/molding/moldings`) in shared selectors.
+- updated new moulding line-item table to include per-row calculator icon action (old-form style) using `MouldingCalculator`.
+- Re-ran scoped gates post-fix:
+- `bun test` sales-form domain + costing suites: 39 pass, 0 fail.
+- `bun test` API new-sales-form parity suites: 4 pass, 0 fail.
+- focused `tsc` grep on touched new-sales-form files returned no file-specific hits.

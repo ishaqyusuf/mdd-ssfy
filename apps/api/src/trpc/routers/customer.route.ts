@@ -38,6 +38,7 @@ export const customerRouter = createTRPCRouter({
       select: {
         taxCode: true,
         title: true,
+        percentage: true,
       },
     });
     return taxProfiles;

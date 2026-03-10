@@ -48,12 +48,11 @@ export function NotificationItem({
             {activity.action ? (
               <Pressable
                 onPress={() => onAction?.(activity)}
-                className="rounded-full bg-primary px-3 py-1.5"
+                className="h-11 w-11 items-center justify-center rounded-full"
                 accessibilityRole="button"
+                accessibilityLabel={activity.action.label}
               >
-                <Text className="text-xs font-semibold text-primary-foreground">
-                  {activity.action.label}
-                </Text>
+                <Icon name="ArrowUpRight" className="text-foreground" size={16} />
               </Pressable>
             ) : null}
           </View>

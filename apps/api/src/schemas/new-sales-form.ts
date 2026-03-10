@@ -182,6 +182,18 @@ export type GetNewSalesFormStepRoutingSchema = z.infer<
   typeof getNewSalesFormStepRoutingSchema
 >;
 
+export const getNewSalesFormShelfCategoriesSchema = z.object({});
+export type GetNewSalesFormShelfCategoriesSchema = z.infer<
+  typeof getNewSalesFormShelfCategoriesSchema
+>;
+
+export const getNewSalesFormShelfProductsSchema = z.object({
+  categoryIds: z.array(z.number().int().positive()).max(100).default([]),
+});
+export type GetNewSalesFormShelfProductsSchema = z.infer<
+  typeof getNewSalesFormShelfProductsSchema
+>;
+
 export const saveDraftNewSalesFormSchema = z.object({
   type: newSalesFormTypeSchema,
   slug: z.string().optional().nullable(),

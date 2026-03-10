@@ -4,6 +4,8 @@ import {
   deleteNewSalesFormLineItemSchema,
   getNewSalesFormSchema,
   getNewSalesFormStepRoutingSchema,
+  getNewSalesFormShelfCategoriesSchema,
+  getNewSalesFormShelfProductsSchema,
   recalculateNewSalesFormSchema,
   saveDraftNewSalesFormSchema,
   saveFinalNewSalesFormSchema,
@@ -13,6 +15,8 @@ import {
   type DeleteNewSalesFormLineItemSchema,
   type GetNewSalesFormSchema,
   type GetNewSalesFormStepRoutingSchema,
+  type GetNewSalesFormShelfCategoriesSchema,
+  type GetNewSalesFormShelfProductsSchema,
   type NewSalesFormLineItem,
   type NewSalesFormExtraCost,
   type NewSalesFormMeta,
@@ -841,6 +845,59 @@ export async function searchNewSalesCustomers(
       email: true,
     },
     take: data.limit,
+  });
+}
+
+export async function getNewSalesFormShelfCategories(
+  ctx: TRPCContext,
+  input: GetNewSalesFormShelfCategoriesSchema,
+) {
+  getNewSalesFormShelfCategoriesSchema.parse(input);
+  return ctx.db.dykeShelfCategories.findMany({
+    where: {
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      name: true,
+      type: true,
+      categoryId: true,
+      parentCategoryId: true,
+    },
+    orderBy: [{ type: "asc" }, { name: "asc" }],
+  });
+}
+
+export async function getNewSalesFormShelfProducts(
+  ctx: TRPCContext,
+  input: GetNewSalesFormShelfProductsSchema,
+) {
+  const payload = getNewSalesFormShelfProductsSchema.parse(input);
+  if (!payload.categoryIds.length) return [];
+  return ctx.db.dykeShelfProducts.findMany({
+    where: {
+      deletedAt: null,
+      OR: [
+        {
+          categoryId: {
+            in: payload.categoryIds,
+          },
+        },
+        {
+          parentCategoryId: {
+            in: payload.categoryIds,
+          },
+        },
+      ],
+    },
+    select: {
+      id: true,
+      title: true,
+      unitPrice: true,
+      categoryId: true,
+      parentCategoryId: true,
+    },
+    orderBy: [{ title: "asc" }],
   });
 }
 

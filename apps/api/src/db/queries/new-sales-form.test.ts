@@ -1,5 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
+  getNewSalesFormShelfCategories,
+  getNewSalesFormShelfProducts,
   getNewSalesForm,
   saveDraftNewSalesForm,
 } from "./new-sales-form";
@@ -30,6 +32,58 @@ function createMockContext() {
         value: "moulding-classic",
         price: 12.5,
         deletedAt: null,
+      },
+    ],
+    shelfCategories: [
+      {
+        id: 10,
+        name: "Door Hardware",
+        type: "parent",
+        categoryId: null,
+        parentCategoryId: null,
+        deletedAt: null,
+      },
+      {
+        id: 11,
+        name: "Hinges",
+        type: "child",
+        categoryId: 10,
+        parentCategoryId: 10,
+        deletedAt: null,
+      },
+      {
+        id: 12,
+        name: "Locks",
+        type: "child",
+        categoryId: 10,
+        parentCategoryId: 10,
+        deletedAt: null,
+      },
+    ],
+    shelfProducts: [
+      {
+        id: 1001,
+        title: "Ball Bearing Hinge",
+        unitPrice: 24.5,
+        categoryId: 11,
+        parentCategoryId: 10,
+        deletedAt: null,
+      },
+      {
+        id: 1002,
+        title: "Mortise Lock",
+        unitPrice: 42,
+        categoryId: 12,
+        parentCategoryId: 10,
+        deletedAt: null,
+      },
+      {
+        id: 1003,
+        title: "Archived Product",
+        unitPrice: 5,
+        categoryId: 11,
+        parentCategoryId: 10,
+        deletedAt: new Date("2026-01-01T00:00:00.000Z"),
       },
     ],
     ids: {
@@ -291,6 +345,66 @@ function createMockContext() {
     customers: {
       findMany: async () => state.customers,
     },
+    dykeShelfCategories: {
+      findMany: async ({ where, select, orderBy }: any) => {
+        const rows = state.shelfCategories.filter((row) => {
+          if (where?.deletedAt === null && row.deletedAt != null) return false;
+          return true;
+        });
+        const sorted = [...rows].sort((a, b) => {
+          for (const order of orderBy || []) {
+            const [key, dir] = Object.entries(order)[0] as [string, any];
+            const av = String((a as any)[key] ?? "");
+            const bv = String((b as any)[key] ?? "");
+            if (av === bv) continue;
+            return dir === "desc" ? (av < bv ? 1 : -1) : av > bv ? 1 : -1;
+          }
+          return 0;
+        });
+        return sorted.map((row) => {
+          if (!select) return row;
+          const picked: Record<string, unknown> = {};
+          Object.keys(select).forEach((key) => {
+            if ((select as any)[key]) picked[key] = (row as any)[key];
+          });
+          return picked;
+        });
+      },
+    },
+    dykeShelfProducts: {
+      findMany: async ({ where, select, orderBy }: any) => {
+        const inCategoryIds = where?.OR?.[0]?.categoryId?.in || [];
+        const inParentCategoryIds = where?.OR?.[1]?.parentCategoryId?.in || [];
+        const rows = state.shelfProducts.filter((row) => {
+          if (where?.deletedAt === null && row.deletedAt != null) return false;
+          if (
+            !inCategoryIds.includes(row.categoryId) &&
+            !inParentCategoryIds.includes(row.parentCategoryId)
+          ) {
+            return false;
+          }
+          return true;
+        });
+        const sorted = [...rows].sort((a, b) => {
+          for (const order of orderBy || []) {
+            const [key, dir] = Object.entries(order)[0] as [string, any];
+            const av = String((a as any)[key] ?? "");
+            const bv = String((b as any)[key] ?? "");
+            if (av === bv) continue;
+            return dir === "desc" ? (av < bv ? 1 : -1) : av > bv ? 1 : -1;
+          }
+          return 0;
+        });
+        return sorted.map((row) => {
+          if (!select) return row;
+          const picked: Record<string, unknown> = {};
+          Object.keys(select).forEach((key) => {
+            if ((select as any)[key]) picked[key] = (row as any)[key];
+          });
+          return picked;
+        });
+      },
+    },
   };
 
   return {
@@ -300,6 +414,25 @@ function createMockContext() {
 }
 
 describe("new-sales-form relational parity", () => {
+  it("loads shelf categories and products for selected categories", async () => {
+    const { ctx } = createMockContext();
+
+    const categories = await getNewSalesFormShelfCategories(ctx, {});
+    expect(categories.length).toBe(3);
+    expect(categories[0]?.type).toBe("child");
+
+    const products = await getNewSalesFormShelfProducts(ctx, {
+      categoryIds: [10, 11],
+    });
+    expect(products.length).toBe(2);
+    expect(products.map((p) => p.id).sort((a, b) => a - b)).toEqual([
+      1001, 1002,
+    ]);
+
+    const none = await getNewSalesFormShelfProducts(ctx, { categoryIds: [] });
+    expect(none).toEqual([]);
+  });
+
   it("saves and hydrates formSteps/shelfItems/housePackageTool/doors/molding", async () => {
     const { ctx } = createMockContext();
 
@@ -397,14 +530,16 @@ describe("new-sales-form relational parity", () => {
       type: "order",
       slug: draft.slug!,
     });
+    const line = loaded.lineItems[0];
 
     expect(loaded.lineItems).toHaveLength(1);
-    expect(loaded.lineItems[0].formSteps).toHaveLength(1);
-    expect(loaded.lineItems[0].shelfItems).toHaveLength(1);
-    expect(loaded.lineItems[0].housePackageTool).toBeTruthy();
-    expect(loaded.lineItems[0].housePackageTool?.doors).toHaveLength(1);
-    expect(loaded.lineItems[0].housePackageTool?.moldingId).toBe(501);
-    expect(loaded.lineItems[0].housePackageTool?.molding?.title).toBe(
+    expect(line).toBeTruthy();
+    expect(line!.formSteps).toHaveLength(1);
+    expect(line!.shelfItems).toHaveLength(1);
+    expect(line!.housePackageTool).toBeTruthy();
+    expect(line!.housePackageTool?.doors).toHaveLength(1);
+    expect(line!.housePackageTool?.moldingId).toBe(501);
+    expect(line!.housePackageTool?.molding?.title).toBe(
       "Classic Moulding",
     );
     expect(loaded.form.paymentMethod).toBe("Credit Card");
@@ -503,8 +638,10 @@ describe("new-sales-form relational parity", () => {
       type: "order",
       slug: second.slug!,
     });
+    const line = loaded.lineItems[0];
     expect(loaded.lineItems).toHaveLength(1);
-    expect(loaded.lineItems[0].title).toBe("Line B");
-    expect(loaded.lineItems[0].formSteps[0]?.stepId).toBe(2);
+    expect(line).toBeTruthy();
+    expect(line!.title).toBe("Line B");
+    expect(line!.formSteps[0]?.stepId).toBe(2);
   });
 });

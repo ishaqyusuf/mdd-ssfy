@@ -17,7 +17,7 @@ export function NotificationLink({
 }: NotificationLinkProps) {
 	if (isClickable) {
 		return (
-			<div className="flex items-between justify-between space-x-4 px-3 py-3 hover:bg-secondary">
+			<div className="flex items-start justify-between gap-3 px-3 py-3 hover:bg-secondary">
 				<button className={className} onClick={onNavigate} type="button">
 					{children}
 				</button>
@@ -27,8 +27,8 @@ export function NotificationLink({
 	}
 
 	return (
-		<div className="flex items-between space-x-4 px-3 py-3">
-			<div className="flex items-between justify-between space-x-4 flex-1">
+		<div className="flex items-start justify-between gap-3 px-3 py-3">
+			<div className="flex flex-1 items-start justify-between gap-3">
 				{children}
 			</div>
 			{actionButton}

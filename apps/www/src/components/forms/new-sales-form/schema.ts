@@ -13,6 +13,14 @@ export type NewSalesFormStepRoutingInput = Exclude<
     RouterInputs["newSalesForm"]["getStepRouting"],
     void
 >;
+export type NewSalesFormShelfCategoriesInput = Exclude<
+    RouterInputs["newSalesForm"]["getShelfCategories"],
+    void
+>;
+export type NewSalesFormShelfProductsInput = Exclude<
+    RouterInputs["newSalesForm"]["getShelfProducts"],
+    void
+>;
 export type NewSalesFormSaveDraftInput = Exclude<
     RouterInputs["newSalesForm"]["saveDraft"],
     void

@@ -142,7 +142,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 - Evidence path: `ai/new-sales-form-parity-evidence/moulding-default-qty/`
 - Automation target:
   - add reselection/default regression test.
-- Triage: TBD
+- Triage: Partial (Implemented, Runtime Repro Pending)
 
 8. State loss / refresh data loss
 - Old anchors:
@@ -170,11 +170,11 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   1. Build shelf line using category/product paths in old/new.
   2. Compare editability, rollups, and persistence.
 - Expected: parity in workflow depth and totals.
-- Current observed (new): simplified path only (code-confirmed).
+- Current observed (new): partial. Shelf rows now support parent->category->product selection with product-driven autofill, but full legacy nested category management workflow is still missing.
 - Evidence path: `ai/new-sales-form-parity-evidence/shelf-parity/`
 - Automation target:
   - shelf row + category/product integration tests.
-- Triage: Partial (Code Confirmed)
+- Triage: Partial (Implemented, Runtime Repro Pending)
 
 10. Services line items tax switch + production switch
 - Old anchors:
@@ -203,11 +203,11 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   2. Modify tax code/profile and extra costs.
   3. Validate tax totals against old fixture.
 - Expected: deterministic recompute on all tax-affecting changes.
-- Current observed (new): user-reported missing tax calc.
+- Current observed (new): root API payload gap patched (`getTaxProfiles` now returns `percentage` for tax-rate resolution). Runtime transition coverage still pending.
 - Evidence path: `ai/new-sales-form-parity-evidence/tax-calculation/`
 - Automation target:
   - expand costing parity matrix with these transitions.
-- Triage: Expected Fail/Partial
+- Triage: Partial (Implemented, Runtime Repro Pending)
 
 12. Step floating bar options parity
 - Old anchors:

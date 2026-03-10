@@ -36,6 +36,18 @@ describe("selectors domain", () => {
     expect(isShelfItem(line)).toBe(false);
   });
 
+  it("treats molding/mouldings variants as moulding item type", () => {
+    const variantLine = {
+      formSteps: [
+        {
+          step: { title: "Item Type" },
+          value: "Moldings",
+        },
+      ],
+    };
+    expect(isMouldingItem(variantLine)).toBe(true);
+  });
+
   it("finds line step by title", () => {
     const step = findLineStepByTitle(line, "Door");
     expect(step?.value).toBe("Door A");

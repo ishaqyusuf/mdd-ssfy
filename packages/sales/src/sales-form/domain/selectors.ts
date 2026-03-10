@@ -15,7 +15,13 @@ export function getItemType(line: any) {
 }
 
 export function isMouldingItem(line: any) {
-  return getItemType(line) === "moulding";
+  const type = getItemType(line);
+  return (
+    type === "moulding" ||
+    type === "mouldings" ||
+    type === "molding" ||
+    type === "moldings"
+  );
 }
 
 export function isServiceItem(line: any) {

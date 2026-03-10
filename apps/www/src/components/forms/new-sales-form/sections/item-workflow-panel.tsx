@@ -6,6 +6,7 @@ import { Menu } from "@gnd/ui/custom/menu";
 import { Input } from "@gnd/ui/input";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { env } from "@/env.mjs";
+import { MouldingCalculator } from "@/components/moulding-calculator";
 import {
     DoorOpen,
     ExternalLink,
@@ -20,6 +21,8 @@ import {
 } from "lucide-react";
 import { useNewSalesFormStore } from "../store";
 import {
+    useNewSalesFormShelfCategoriesQuery,
+    useNewSalesFormShelfProductsQuery,
     useSalesDeleteSupplierMutation,
     useSalesSaveSupplierMutation,
     useSalesSuppliersQuery,
@@ -100,7 +103,10 @@ function computeSharedDoorSurcharge(line: any) {
                     title !== "hpt"
                 );
             })
-            .reduce((sum: number, step: any) => sum + Number(step?.price || 0), 0)
+            .reduce(
+                (sum: number, step: any) => sum + Number(step?.price || 0),
+                0,
+            )
             .toFixed(2),
     );
 }
@@ -167,9 +173,10 @@ function firstPendingStepIndex(steps: any[]) {
     return pending >= 0 ? pending : Math.max(0, steps.length - 1);
 }
 
-
 function componentLabel(value?: string | null) {
-    return String(value || "").trim().toUpperCase();
+    return String(value || "")
+        .trim()
+        .toUpperCase();
 }
 
 export function ItemWorkflowPanel() {
@@ -201,7 +208,8 @@ export function ItemWorkflowPanel() {
         id: number;
         name: string;
     } | null>(null);
-    const [includeCustomComponents, setIncludeCustomComponents] = useState(false);
+    const [includeCustomComponents, setIncludeCustomComponents] =
+        useState(false);
 
     const stepRoutingQuery = useNewSalesFormStepRoutingQuery({});
     const routeData = stepRoutingQuery.data;
@@ -223,6 +231,54 @@ export function ItemWorkflowPanel() {
     const activeDoorStep = activeLine
         ? findLineStepByTitle(activeLine, "Door")
         : null;
+    const shelfCategoryIds = useMemo(
+        () =>
+            Array.from(
+                new Set(
+                    (activeLine?.shelfItems || [])
+                        .flatMap((row: any) => [
+                            Number(row?.categoryId || 0),
+                            Number(
+                                (row?.meta as any)?.shelfParentCategoryId || 0,
+                            ),
+                        ])
+                        .filter((id) => id > 0),
+                ),
+            ),
+        [activeLine?.shelfItems],
+    );
+    const shelfCategoriesQuery = useNewSalesFormShelfCategoriesQuery({}, true);
+    const shelfProductsQuery = useNewSalesFormShelfProductsQuery(
+        { categoryIds: shelfCategoryIds },
+        shelfCategoryIds.length > 0,
+    );
+    const shelfProductsByCategory = useMemo(() => {
+        const bucket = new Map<number, any[]>();
+        (shelfProductsQuery.data || []).forEach((product: any) => {
+            const keys = [
+                Number(product?.categoryId || 0),
+                Number(product?.parentCategoryId || 0),
+            ].filter((id) => id > 0);
+            keys.forEach((key) => {
+                const list = bucket.get(key) || [];
+                list.push(product);
+                bucket.set(key, list);
+            });
+        });
+        return bucket;
+    }, [shelfProductsQuery.data]);
+    const shelfCategories = useMemo(
+        () => shelfCategoriesQuery.data || [],
+        [shelfCategoriesQuery.data],
+    );
+    const shelfParentCategories = useMemo(
+        () =>
+            shelfCategories.filter(
+                (category: any) =>
+                    String(category?.type || "").toLowerCase() === "parent",
+            ),
+        [shelfCategories],
+    );
 
     const stepComponentsQuery = useSalesStepComponentsQuery(
         {
@@ -267,8 +323,11 @@ export function ItemWorkflowPanel() {
                     component,
                     selectedByStepUid,
                     {
-                        priceStepDeps: Array.isArray((activeStep as any)?.meta?.priceStepDeps)
-                            ? ((activeStep as any).meta.priceStepDeps as string[])
+                        priceStepDeps: Array.isArray(
+                            (activeStep as any)?.meta?.priceStepDeps,
+                        )
+                            ? ((activeStep as any).meta
+                                  .priceStepDeps as string[])
                             : null,
                         selectedProdUidsByStepUid,
                     },
@@ -313,8 +372,11 @@ export function ItemWorkflowPanel() {
                     component,
                     selectedByStepUid,
                     {
-                        priceStepDeps: Array.isArray((activeStep as any)?.meta?.priceStepDeps)
-                            ? ((activeStep as any).meta.priceStepDeps as string[])
+                        priceStepDeps: Array.isArray(
+                            (activeStep as any)?.meta?.priceStepDeps,
+                        )
+                            ? ((activeStep as any).meta
+                                  .priceStepDeps as string[])
                             : null,
                         selectedProdUidsByStepUid,
                     },
@@ -331,8 +393,15 @@ export function ItemWorkflowPanel() {
                             : component.basePrice,
                 };
             });
-    }, [routeData, rootComponentsQuery.data, activeLineSteps, includeCustomComponents]);
-    const activeDoorSupplier = getDoorSupplierMeta(activeDoorStep || activeStep);
+    }, [
+        routeData,
+        rootComponentsQuery.data,
+        activeLineSteps,
+        includeCustomComponents,
+    ]);
+    const activeDoorSupplier = getDoorSupplierMeta(
+        activeDoorStep || activeStep,
+    );
     if (!record) return null;
 
     function saveSelectedComponent({
@@ -365,7 +434,10 @@ export function ItemWorkflowPanel() {
 
             if (!multiMutation.hasSelection) {
                 updateLineItem(line.uid, {
-                    formSteps: multiMutation.steps.slice(0, currentStepIndex + 1),
+                    formSteps: multiMutation.steps.slice(
+                        0,
+                        currentStepIndex + 1,
+                    ),
                 });
                 setActiveStepByLine((prev) => ({
                     ...prev,
@@ -399,7 +471,7 @@ export function ItemWorkflowPanel() {
             const rootUid =
                 singleMutationSteps[currentStepIndex]?.step?.uid ||
                 routeData?.stepsById?.[
-                singleMutationSteps[currentStepIndex]?.stepId || -1
+                    singleMutationSteps[currentStepIndex]?.stepId || -1
                 ] ||
                 routeData?.rootStepUid;
             const rootStep = rootUid ? routeData?.stepsByUid?.[rootUid] : null;
@@ -587,7 +659,9 @@ export function ItemWorkflowPanel() {
                 Array.isArray(step?.meta?.selectedComponents)
                     ? step.meta.selectedComponents
                     : []
-            ).filter((component: any) => String(component?.uid) !== componentUid);
+            ).filter(
+                (component: any) => String(component?.uid) !== componentUid,
+            );
             const totalSales = selectedComponents.reduce(
                 (sum: number, component: any) =>
                     sum + Number(component?.salesPrice || 0),
@@ -643,7 +717,10 @@ export function ItemWorkflowPanel() {
     ) {
         if (typeof window === "undefined") return;
         const currentPrice = Number(
-            component?.salesPrice ?? component?.basePrice ?? component?.pricing?.price ?? 0,
+            component?.salesPrice ??
+                component?.basePrice ??
+                component?.pricing?.price ??
+                0,
         );
         const raw = window.prompt(
             "Set line-level component price override",
@@ -664,11 +741,14 @@ export function ItemWorkflowPanel() {
                       ...entry,
                       salesPrice: parsed,
                       basePrice:
-                          entry?.basePrice == null ? parsed : Number(entry.basePrice || parsed),
+                          entry?.basePrice == null
+                              ? parsed
+                              : Number(entry.basePrice || parsed),
                   }
                 : entry,
         );
-        const isTargetStep = String(step?.prodUid || "") === String(component?.uid);
+        const isTargetStep =
+            String(step?.prodUid || "") === String(component?.uid);
         steps[stepIndex] = {
             ...step,
             price: isTargetStep ? parsed : step?.price,
@@ -702,9 +782,13 @@ export function ItemWorkflowPanel() {
         const supplier = getDoorSupplierMeta(doorStep);
         const selectedDoorComponents = getSelectedDoorComponentsForLine(line);
         const activeDoorUid =
-            activeHptDoorUidByLine[line.uid] || selectedDoorComponents[0]?.uid || "";
+            activeHptDoorUidByLine[line.uid] ||
+            selectedDoorComponents[0]?.uid ||
+            "";
         const activeDoorComponent =
-            selectedDoorComponents.find((component) => component.uid === activeDoorUid) ||
+            selectedDoorComponents.find(
+                (component) => component.uid === activeDoorUid,
+            ) ||
             selectedDoorComponents[0] ||
             null;
         const focusedRows = activeDoorComponent
@@ -722,7 +806,10 @@ export function ItemWorkflowPanel() {
                 new Set(
                     keys
                         .map((key) =>
-                            resolveSizeFromPricingKey(key, supplier.supplierUid),
+                            resolveSizeFromPricingKey(
+                                key,
+                                supplier.supplierUid,
+                            ),
                         )
                         .filter(Boolean) as string[],
                 ),
@@ -742,7 +829,10 @@ export function ItemWorkflowPanel() {
             const componentId = Number(step?.componentId || 0);
             if (componentId > 0) {
                 componentLookupById.set(componentId, {
-                    title: step?.value || step?.step?.title || `Component ${componentId}`,
+                    title:
+                        step?.value ||
+                        step?.step?.title ||
+                        `Component ${componentId}`,
                     img: step?.meta?.img || null,
                 });
             }
@@ -754,7 +844,9 @@ export function ItemWorkflowPanel() {
                 if (selectedId > 0) {
                     componentLookupById.set(selectedId, {
                         title:
-                            component?.title || step?.step?.title || `Component ${selectedId}`,
+                            component?.title ||
+                            step?.step?.title ||
+                            `Component ${selectedId}`,
                         img: component?.img || null,
                     });
                 }
@@ -805,7 +897,9 @@ export function ItemWorkflowPanel() {
                     doorPrice: 0,
                     jambSizePrice: 0,
                     casingPrice: 0,
-                    unitPrice: Number((unitPrice + sharedDoorSurcharge).toFixed(2)),
+                    unitPrice: Number(
+                        (unitPrice + sharedDoorSurcharge).toFixed(2),
+                    ),
                     lhQty: 0,
                     rhQty: 0,
                     totalQty: 0,
@@ -854,7 +948,8 @@ export function ItemWorkflowPanel() {
                     {selectedDoorComponents.length ? (
                         <div className="mt-3 flex flex-wrap gap-2">
                             {selectedDoorComponents.map((component) => {
-                                const selected = component.uid === activeDoorUid;
+                                const selected =
+                                    component.uid === activeDoorUid;
                                 return (
                                     <button
                                         key={`hpt-door-tab-${component.uid}`}
@@ -865,13 +960,17 @@ export function ItemWorkflowPanel() {
                                                 : "border-slate-300 bg-white text-slate-600 hover:border-primary"
                                         }`}
                                         onClick={() =>
-                                            setActiveHptDoorUidByLine((prev) => ({
-                                                ...prev,
-                                                [line.uid]: component.uid,
-                                            }))
+                                            setActiveHptDoorUidByLine(
+                                                (prev) => ({
+                                                    ...prev,
+                                                    [line.uid]: component.uid,
+                                                }),
+                                            )
                                         }
                                     >
-                                        {componentLabel(component.title || component.uid)}
+                                        {componentLabel(
+                                            component.title || component.uid,
+                                        )}
                                     </button>
                                 );
                             })}
@@ -910,23 +1009,35 @@ export function ItemWorkflowPanel() {
                 <div className="space-y-3 p-4">
                     {!selectedDoorComponents.length ? (
                         <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-                            Select at least one DOOR component first, then continue to HOUSE PACKAGE TOOL.
+                            Select at least one DOOR component first, then
+                            continue to HOUSE PACKAGE TOOL.
                         </div>
                     ) : !summary.rows.length ? (
                         <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-                            Select a door component and apply size quantities to build the package.
+                            Select a door component and apply size quantities to
+                            build the package.
                         </div>
                     ) : (
                         (() => {
-                            const componentId = Number(activeDoorComponent?.id || 0);
+                            const componentId = Number(
+                                activeDoorComponent?.id || 0,
+                            );
                             const component =
-                                componentLookupById.get(componentId) || activeDoorComponent;
+                                componentLookupById.get(componentId) ||
+                                activeDoorComponent;
                             const rowsForComponent = focusedRows;
                             if (!rowsForComponent.length) {
                                 return (
                                     <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-                                        No size rows for {componentLabel(component?.title || "selected door")} yet.
-                                        Click <span className="font-semibold">Configure Sizes</span> to add them.
+                                        No size rows for{" "}
+                                        {componentLabel(
+                                            component?.title || "selected door",
+                                        )}{" "}
+                                        yet. Click{" "}
+                                        <span className="font-semibold">
+                                            Configure Sizes
+                                        </span>{" "}
+                                        to add them.
                                     </div>
                                 );
                             }
@@ -937,14 +1048,26 @@ export function ItemWorkflowPanel() {
                                 >
                                     <header className="flex items-center gap-3 border-b border-slate-100 bg-slate-50/70 px-4 py-3">
                                         <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white">
-                                            {resolveComponentImageSrc(component?.img) ? (
+                                            {resolveComponentImageSrc(
+                                                component?.img,
+                                            ) ? (
                                                 <img
-                                                    src={resolveComponentImageSrc(component?.img) || ""}
-                                                    alt={component?.title || `Component ${componentId}`}
+                                                    src={
+                                                        resolveComponentImageSrc(
+                                                            component?.img,
+                                                        ) || ""
+                                                    }
+                                                    alt={
+                                                        component?.title ||
+                                                        `Component ${componentId}`
+                                                    }
                                                     className="h-full w-full object-contain p-1"
                                                 />
                                             ) : (
-                                                <Ruler size={15} className="text-slate-500" />
+                                                <Ruler
+                                                    size={15}
+                                                    className="text-slate-500"
+                                                />
                                             )}
                                         </div>
                                         <div className="min-w-0">
@@ -955,8 +1078,11 @@ export function ItemWorkflowPanel() {
                                                 )}
                                             </p>
                                             <p className="text-[11px] uppercase tracking-wide text-slate-500">
-                                                {rowsForComponent.length} size row
-                                                {rowsForComponent.length > 1 ? "s" : ""}
+                                                {rowsForComponent.length} size
+                                                row
+                                                {rowsForComponent.length > 1
+                                                    ? "s"
+                                                    : ""}
                                             </p>
                                         </div>
                                         <div className="ml-auto">
@@ -976,16 +1102,20 @@ export function ItemWorkflowPanel() {
                                                         No more sizes
                                                     </Menu.Item>
                                                 ) : (
-                                                    availableSizes.map((size) => (
-                                                        <Menu.Item
-                                                            key={`add-size-${componentId}-${size}`}
-                                                            onClick={() =>
-                                                                addSizeRow(size)
-                                                            }
-                                                        >
-                                                            {size}
-                                                        </Menu.Item>
-                                                    ))
+                                                    availableSizes.map(
+                                                        (size) => (
+                                                            <Menu.Item
+                                                                key={`add-size-${componentId}-${size}`}
+                                                                onClick={() =>
+                                                                    addSizeRow(
+                                                                        size,
+                                                                    )
+                                                                }
+                                                            >
+                                                                {size}
+                                                            </Menu.Item>
+                                                        ),
+                                                    )
                                                 )}
                                             </Menu>
                                         </div>
@@ -994,225 +1124,352 @@ export function ItemWorkflowPanel() {
                                         <table className="min-w-full text-sm">
                                             <thead>
                                                 <tr className="border-b border-slate-100 bg-slate-50/50 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                                                    <th className="px-3 py-2">Size</th>
+                                                    <th className="px-3 py-2">
+                                                        Size
+                                                    </th>
                                                     {hasSwing ? (
-                                                        <th className="px-3 py-2">Swing</th>
+                                                        <th className="px-3 py-2">
+                                                            Swing
+                                                        </th>
                                                     ) : null}
                                                     {noHandle ? (
-                                                        <th className="px-3 py-2 text-right">Qty</th>
+                                                        <th className="px-3 py-2 text-right">
+                                                            Qty
+                                                        </th>
                                                     ) : (
                                                         <>
-                                                            <th className="px-3 py-2 text-right">LH</th>
-                                                            <th className="px-3 py-2 text-right">RH</th>
-                                                            <th className="px-3 py-2 text-right">Total</th>
+                                                            <th className="px-3 py-2 text-right">
+                                                                LH
+                                                            </th>
+                                                            <th className="px-3 py-2 text-right">
+                                                                RH
+                                                            </th>
+                                                            <th className="px-3 py-2 text-right">
+                                                                Total
+                                                            </th>
                                                         </>
                                                     )}
-                                                    <th className="px-3 py-2 text-right">Unit</th>
-                                                    <th className="px-3 py-2 text-right">Line</th>
-                                                    <th className="px-3 py-2 text-right">Remove</th>
+                                                    <th className="px-3 py-2 text-right">
+                                                        Unit
+                                                    </th>
+                                                    <th className="px-3 py-2 text-right">
+                                                        Line
+                                                    </th>
+                                                    <th className="px-3 py-2 text-right">
+                                                        Remove
+                                                    </th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {rowsForComponent.map((row, index) => (
-                                                    <tr
-                                                        key={`hpt-row-${componentId}-${index}`}
-                                                        className="border-b border-slate-100 last:border-0"
-                                                    >
-                                                        <td className="px-3 py-2 font-medium text-slate-800">
-                                                            {row.dimension || "--"}
-                                                        </td>
-                                                        {hasSwing ? (
-                                                            <td className="px-3 py-2">
-                                                                <Input
-                                                                    value={row.swing || ""}
-                                                                    onChange={(e) =>
-                                                                        patchRow(row, {
-                                                                            swing: e.target.value,
-                                                                        })
-                                                                    }
-                                                                    className="h-8 rounded-md border-slate-200 text-xs"
-                                                                    placeholder="LH/RH"
-                                                                />
+                                                {rowsForComponent.map(
+                                                    (row, index) => (
+                                                        <tr
+                                                            key={`hpt-row-${componentId}-${index}`}
+                                                            className="border-b border-slate-100 last:border-0"
+                                                        >
+                                                            <td className="px-3 py-2 font-medium text-slate-800">
+                                                                {row.dimension ||
+                                                                    "--"}
                                                             </td>
-                                                        ) : null}
-                                                        {noHandle ? (
+                                                            {hasSwing ? (
+                                                                <td className="px-3 py-2">
+                                                                    <Input
+                                                                        value={
+                                                                            row.swing ||
+                                                                            ""
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            patchRow(
+                                                                                row,
+                                                                                {
+                                                                                    swing: e
+                                                                                        .target
+                                                                                        .value,
+                                                                                },
+                                                                            )
+                                                                        }
+                                                                        className="h-8 rounded-md border-slate-200 text-xs"
+                                                                        placeholder="LH/RH"
+                                                                    />
+                                                                </td>
+                                                            ) : null}
+                                                            {noHandle ? (
+                                                                <td className="px-3 py-2">
+                                                                    <Input
+                                                                        type="number"
+                                                                        value={Number(
+                                                                            row.totalQty ||
+                                                                                0,
+                                                                        )}
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            patchRow(
+                                                                                row,
+                                                                                {
+                                                                                    totalQty:
+                                                                                        Number(
+                                                                                            e
+                                                                                                .target
+                                                                                                .value ||
+                                                                                                0,
+                                                                                        ),
+                                                                                    lhQty: 0,
+                                                                                    rhQty: 0,
+                                                                                },
+                                                                            )
+                                                                        }
+                                                                        className="h-8 rounded-md border-slate-200 text-right text-xs"
+                                                                    />
+                                                                </td>
+                                                            ) : (
+                                                                <>
+                                                                    <td className="px-3 py-2">
+                                                                        <Input
+                                                                            type="number"
+                                                                            value={Number(
+                                                                                row.lhQty ||
+                                                                                    0,
+                                                                            )}
+                                                                            onChange={(
+                                                                                e,
+                                                                            ) =>
+                                                                                patchRow(
+                                                                                    row,
+                                                                                    {
+                                                                                        lhQty: Number(
+                                                                                            e
+                                                                                                .target
+                                                                                                .value ||
+                                                                                                0,
+                                                                                        ),
+                                                                                    },
+                                                                                )
+                                                                            }
+                                                                            className="h-8 rounded-md border-slate-200 text-right text-xs"
+                                                                        />
+                                                                    </td>
+                                                                    <td className="px-3 py-2">
+                                                                        <Input
+                                                                            type="number"
+                                                                            value={Number(
+                                                                                row.rhQty ||
+                                                                                    0,
+                                                                            )}
+                                                                            onChange={(
+                                                                                e,
+                                                                            ) =>
+                                                                                patchRow(
+                                                                                    row,
+                                                                                    {
+                                                                                        rhQty: Number(
+                                                                                            e
+                                                                                                .target
+                                                                                                .value ||
+                                                                                                0,
+                                                                                        ),
+                                                                                    },
+                                                                                )
+                                                                            }
+                                                                            className="h-8 rounded-md border-slate-200 text-right text-xs"
+                                                                        />
+                                                                    </td>
+                                                                    <td className="px-3 py-2 text-right text-xs font-semibold text-slate-700">
+                                                                        {Number(
+                                                                            row.totalQty ||
+                                                                                0,
+                                                                        )}
+                                                                    </td>
+                                                                </>
+                                                            )}
                                                             <td className="px-3 py-2">
                                                                 <Input
                                                                     type="number"
-                                                                    value={Number(row.totalQty || 0)}
-                                                                    onChange={(e) =>
-                                                                        patchRow(row, {
-                                                                            totalQty: Number(
-                                                                                e.target.value || 0,
-                                                                            ),
-                                                                            lhQty: 0,
-                                                                            rhQty: 0,
-                                                                        })
+                                                                    step="0.01"
+                                                                    value={Number(
+                                                                        row
+                                                                            ?.meta
+                                                                            ?.baseUnitPrice ==
+                                                                            null
+                                                                            ? Number(
+                                                                                  row.unitPrice ||
+                                                                                      0,
+                                                                              ) -
+                                                                                  sharedDoorSurcharge
+                                                                            : row
+                                                                                  .meta
+                                                                                  .baseUnitPrice,
+                                                                    )}
+                                                                    onChange={(
+                                                                        e,
+                                                                    ) =>
+                                                                        patchRow(
+                                                                            row,
+                                                                            {
+                                                                                unitPrice:
+                                                                                    Number(
+                                                                                        (
+                                                                                            Number(
+                                                                                                e
+                                                                                                    .target
+                                                                                                    .value ||
+                                                                                                    0,
+                                                                                            ) +
+                                                                                            sharedDoorSurcharge
+                                                                                        ).toFixed(
+                                                                                            2,
+                                                                                        ),
+                                                                                    ),
+                                                                                meta: {
+                                                                                    ...(row?.meta ||
+                                                                                        {}),
+                                                                                    baseUnitPrice:
+                                                                                        Number(
+                                                                                            e
+                                                                                                .target
+                                                                                                .value ||
+                                                                                                0,
+                                                                                        ),
+                                                                                },
+                                                                            },
+                                                                        )
                                                                     }
                                                                     className="h-8 rounded-md border-slate-200 text-right text-xs"
                                                                 />
                                                             </td>
-                                                        ) : (
-                                                            <>
-                                                                <td className="px-3 py-2">
-                                                                    <Input
-                                                                        type="number"
-                                                                        value={Number(row.lhQty || 0)}
-                                                                        onChange={(e) =>
-                                                                            patchRow(row, {
-                                                                                lhQty: Number(
-                                                                                    e.target.value || 0,
-                                                                                ),
-                                                                            })
-                                                                        }
-                                                                        className="h-8 rounded-md border-slate-200 text-right text-xs"
-                                                                    />
-                                                                </td>
-                                                                <td className="px-3 py-2">
-                                                                    <Input
-                                                                        type="number"
-                                                                        value={Number(row.rhQty || 0)}
-                                                                        onChange={(e) =>
-                                                                            patchRow(row, {
-                                                                                rhQty: Number(
-                                                                                    e.target.value || 0,
-                                                                                ),
-                                                                            })
-                                                                        }
-                                                                        className="h-8 rounded-md border-slate-200 text-right text-xs"
-                                                                    />
-                                                                </td>
-                                                                <td className="px-3 py-2 text-right text-xs font-semibold text-slate-700">
-                                                                    {Number(row.totalQty || 0)}
-                                                                </td>
-                                                            </>
-                                                        )}
-                                                        <td className="px-3 py-2">
-                                                            <Input
-                                                                type="number"
-                                                                step="0.01"
-                                                                value={Number(
-                                                                    row?.meta?.baseUnitPrice ==
-                                                                        null
-                                                                        ? Number(row.unitPrice || 0) -
-                                                                              sharedDoorSurcharge
-                                                                        : row.meta.baseUnitPrice,
-                                                                )}
-                                                                onChange={(e) =>
-                                                                    patchRow(row, {
-                                                                        unitPrice: Number(
-                                                                            (
-                                                                                Number(
-                                                                                    e.target.value ||
-                                                                                        0,
-                                                                                ) +
-                                                                                sharedDoorSurcharge
-                                                                            ).toFixed(2),
-                                                                        ),
-                                                                        meta: {
-                                                                            ...(row?.meta || {}),
-                                                                            baseUnitPrice: Number(
-                                                                                e.target.value ||
-                                                                                    0,
-                                                                            ),
-                                                                        },
-                                                                    })
-                                                                }
-                                                                className="h-8 rounded-md border-slate-200 text-right text-xs"
-                                                            />
-                                                        </td>
-                                                        <td className="px-3 py-2 text-right text-xs font-semibold text-slate-900">
-                                                            <Menu
-                                                                noSize
-                                                                Icon={null}
-                                                                label={
-                                                                    <span className="cursor-pointer underline decoration-dotted underline-offset-2">
-                                                                        {money(row.lineTotal) || "$0.00"}
-                                                                    </span>
-                                                                }
-                                                            >
-                                                                <div className="min-w-[260px] space-y-2 p-2 text-left text-xs">
-                                                                    <p className="font-bold uppercase text-muted-foreground">
-                                                                        Estimate Breakdown
-                                                                    </p>
-                                                                    <div className="flex justify-between">
-                                                                        <span>Door</span>
-                                                                        <span className="font-semibold">
-                                                                            {componentLabel(
-                                                                                activeDoorComponent?.title ||
-                                                                                    "Selected Door",
-                                                                            )}
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="flex justify-between">
-                                                                        <span>Size</span>
-                                                                        <span className="font-semibold">
-                                                                            {row.dimension || "--"}
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="flex justify-between">
-                                                                        <span>Base Unit</span>
-                                                                        <span className="font-semibold">
+                                                            <td className="px-3 py-2 text-right text-xs font-semibold text-slate-900">
+                                                                <Menu
+                                                                    noSize
+                                                                    Icon={null}
+                                                                    label={
+                                                                        <span className="cursor-pointer underline decoration-dotted underline-offset-2">
                                                                             {money(
-                                                                                Number(
-                                                                                    row?.meta
-                                                                                        ?.baseUnitPrice ==
-                                                                                        null
-                                                                                        ? Number(
-                                                                                              row.unitPrice ||
-                                                                                                  0,
-                                                                                          ) -
-                                                                                          sharedDoorSurcharge
-                                                                                        : row.meta
-                                                                                              .baseUnitPrice,
-                                                                                ),
-                                                                            ) || "$0.00"}
+                                                                                row.lineTotal,
+                                                                            ) ||
+                                                                                "$0.00"}
                                                                         </span>
+                                                                    }
+                                                                >
+                                                                    <div className="min-w-[260px] space-y-2 p-2 text-left text-xs">
+                                                                        <p className="font-bold uppercase text-muted-foreground">
+                                                                            Estimate
+                                                                            Breakdown
+                                                                        </p>
+                                                                        <div className="flex justify-between">
+                                                                            <span>
+                                                                                Door
+                                                                            </span>
+                                                                            <span className="font-semibold">
+                                                                                {componentLabel(
+                                                                                    activeDoorComponent?.title ||
+                                                                                        "Selected Door",
+                                                                                )}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="flex justify-between">
+                                                                            <span>
+                                                                                Size
+                                                                            </span>
+                                                                            <span className="font-semibold">
+                                                                                {row.dimension ||
+                                                                                    "--"}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="flex justify-between">
+                                                                            <span>
+                                                                                Base
+                                                                                Unit
+                                                                            </span>
+                                                                            <span className="font-semibold">
+                                                                                {money(
+                                                                                    Number(
+                                                                                        row
+                                                                                            ?.meta
+                                                                                            ?.baseUnitPrice ==
+                                                                                            null
+                                                                                            ? Number(
+                                                                                                  row.unitPrice ||
+                                                                                                      0,
+                                                                                              ) -
+                                                                                                  sharedDoorSurcharge
+                                                                                            : row
+                                                                                                  .meta
+                                                                                                  .baseUnitPrice,
+                                                                                    ),
+                                                                                ) ||
+                                                                                    "$0.00"}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="flex justify-between">
+                                                                            <span>
+                                                                                Component
+                                                                                Surcharge
+                                                                            </span>
+                                                                            <span className="font-semibold">
+                                                                                {money(
+                                                                                    sharedDoorSurcharge,
+                                                                                ) ||
+                                                                                    "$0.00"}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="flex justify-between">
+                                                                            <span>
+                                                                                Final
+                                                                                Unit
+                                                                            </span>
+                                                                            <span className="font-semibold">
+                                                                                {money(
+                                                                                    row.unitPrice,
+                                                                                ) ||
+                                                                                    "$0.00"}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="flex justify-between">
+                                                                            <span>
+                                                                                Qty
+                                                                            </span>
+                                                                            <span className="font-semibold">
+                                                                                {Number(
+                                                                                    row.totalQty ||
+                                                                                        0,
+                                                                                )}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="border-t pt-2" />
+                                                                        <div className="flex justify-between text-sm">
+                                                                            <span className="font-semibold">
+                                                                                Line
+                                                                                Total
+                                                                            </span>
+                                                                            <span className="font-bold">
+                                                                                {money(
+                                                                                    row.lineTotal,
+                                                                                ) ||
+                                                                                    "$0.00"}
+                                                                            </span>
+                                                                        </div>
                                                                     </div>
-                                                                    <div className="flex justify-between">
-                                                                        <span>Component Surcharge</span>
-                                                                        <span className="font-semibold">
-                                                                            {money(sharedDoorSurcharge) || "$0.00"}
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="flex justify-between">
-                                                                        <span>Final Unit</span>
-                                                                        <span className="font-semibold">
-                                                                            {money(row.unitPrice) || "$0.00"}
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="flex justify-between">
-                                                                        <span>Qty</span>
-                                                                        <span className="font-semibold">
-                                                                            {Number(row.totalQty || 0)}
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="border-t pt-2" />
-                                                                    <div className="flex justify-between text-sm">
-                                                                        <span className="font-semibold">Line Total</span>
-                                                                        <span className="font-bold">
-                                                                            {money(row.lineTotal) || "$0.00"}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            </Menu>
-                                                        </td>
-                                                        <td className="px-3 py-2 text-right">
-                                                            <Button
-                                                                size="icon"
-                                                                variant="ghost"
-                                                                className="size-7 text-slate-500 hover:text-red-600"
-                                                                onClick={() =>
-                                                                    removeSizeRow(
-                                                                        row,
-                                                                    )
-                                                                }
-                                                            >
-                                                                <Trash2 className="size-4" />
-                                                            </Button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
+                                                                </Menu>
+                                                            </td>
+                                                            <td className="px-3 py-2 text-right">
+                                                                <Button
+                                                                    size="icon"
+                                                                    variant="ghost"
+                                                                    className="size-7 text-slate-500 hover:text-red-600"
+                                                                    onClick={() =>
+                                                                        removeSizeRow(
+                                                                            row,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    <Trash2 className="size-4" />
+                                                                </Button>
+                                                            </td>
+                                                        </tr>
+                                                    ),
+                                                )}
                                             </tbody>
                                         </table>
                                     </div>
@@ -1261,7 +1518,7 @@ export function ItemWorkflowPanel() {
                 qty: next.qtyTotal,
                 lineTotal: next.total,
                 unitPrice: next.unitPrice,
-                } as any);
+            } as any);
         }
         function removeSelectedMoulding(mouldingUid: string) {
             const mouldingStepIndex = (line.formSteps || []).findIndex(
@@ -1315,20 +1572,22 @@ export function ItemWorkflowPanel() {
                 meta: {
                     ...(mouldingStep?.meta || {}),
                     selectedProdUids: selectedUids,
-                    selectedComponents: remainingComponents.map((component: any) => ({
-                        id: component?.id ?? null,
-                        uid: component?.uid || "",
-                        title: component?.title || "",
-                        img: component?.img || null,
-                        salesPrice:
-                            component?.salesPrice == null
-                                ? null
-                                : Number(component.salesPrice || 0),
-                        basePrice:
-                            component?.basePrice == null
-                                ? null
-                                : Number(component.basePrice || 0),
-                    })),
+                    selectedComponents: remainingComponents.map(
+                        (component: any) => ({
+                            id: component?.id ?? null,
+                            uid: component?.uid || "",
+                            title: component?.title || "",
+                            img: component?.img || null,
+                            salesPrice:
+                                component?.salesPrice == null
+                                    ? null
+                                    : Number(component.salesPrice || 0),
+                            basePrice:
+                                component?.basePrice == null
+                                    ? null
+                                    : Number(component.basePrice || 0),
+                        }),
+                    ),
                 },
             };
             persistRows(
@@ -1341,20 +1600,6 @@ export function ItemWorkflowPanel() {
 
         return (
             <div className="space-y-3 rounded-lg border p-3">
-                <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Moulding Line Items
-                    </p>
-                    <div className="ml-auto flex items-center gap-2">
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setIsMouldingDialogOpen(true)}
-                        >
-                            Moulding Calculator
-                        </Button>
-                    </div>
-                </div>
                 {!rows.length ? (
                     <p className="text-sm text-muted-foreground">
                         No selected mouldings yet. Select mouldings in the
@@ -1366,12 +1611,24 @@ export function ItemWorkflowPanel() {
                             <thead>
                                 <tr className="bg-muted/30 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                                     <th className="px-3 py-2">Moulding</th>
-                                    <th className="px-3 py-2 text-right">Qty</th>
-                                    <th className="px-3 py-2 text-right">Estimate</th>
-                                    <th className="px-3 py-2 text-right">Addon/Qty</th>
-                                    <th className="px-3 py-2 text-right">Custom</th>
-                                    <th className="px-3 py-2 text-right">Line Total</th>
-                                    <th className="px-3 py-2 text-right">Remove</th>
+                                    <th className="px-3 py-2 text-right">
+                                        Qty
+                                    </th>
+                                    <th className="px-3 py-2 text-right">
+                                        Estimate
+                                    </th>
+                                    <th className="px-3 py-2 text-right">
+                                        Addon/Qty
+                                    </th>
+                                    <th className="px-3 py-2 text-right">
+                                        Custom
+                                    </th>
+                                    <th className="px-3 py-2 text-right">
+                                        Line Total
+                                    </th>
+                                    <th className="px-3 py-2 text-right">
+                                        Remove
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1386,25 +1643,62 @@ export function ItemWorkflowPanel() {
                                             </p>
                                         </td>
                                         <td className="px-3 py-2">
-                                            <Input
-                                                type="number"
-                                                value={row.qty}
-                                                onChange={(e) =>
-                                                    persistRows(
-                                                        rows.map((item: any, i: number) =>
-                                                            i === index
-                                                                ? {
-                                                                      ...item,
-                                                                      qty: Number(
-                                                                          e.target.value || 0,
-                                                                      ),
-                                                                  }
-                                                                : item,
-                                                        ),
-                                                    )
-                                                }
-                                                className="h-8 text-right"
-                                            />
+                                            <div className="flex items-center justify-end gap-2">
+                                                <MouldingCalculator
+                                                    title={String(
+                                                        row.title || "",
+                                                    )}
+                                                    unitPrice={Number(
+                                                        row.estimateUnit || 0,
+                                                    )}
+                                                    qty={Number(row.qty || 0)}
+                                                    onCalculate={(qty) =>
+                                                        persistRows(
+                                                            rows.map(
+                                                                (
+                                                                    item: any,
+                                                                    i: number,
+                                                                ) =>
+                                                                    i === index
+                                                                        ? {
+                                                                              ...item,
+                                                                              qty: Number(
+                                                                                  qty ||
+                                                                                      0,
+                                                                              ),
+                                                                          }
+                                                                        : item,
+                                                            ),
+                                                        )
+                                                    }
+                                                />
+                                                <Input
+                                                    type="number"
+                                                    value={row.qty}
+                                                    onChange={(e) =>
+                                                        persistRows(
+                                                            rows.map(
+                                                                (
+                                                                    item: any,
+                                                                    i: number,
+                                                                ) =>
+                                                                    i === index
+                                                                        ? {
+                                                                              ...item,
+                                                                              qty: Number(
+                                                                                  e
+                                                                                      .target
+                                                                                      .value ||
+                                                                                      0,
+                                                                              ),
+                                                                          }
+                                                                        : item,
+                                                            ),
+                                                        )
+                                                    }
+                                                    className="h-8 w-20 text-right"
+                                                />
+                                            </div>
                                         </td>
                                         <td className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">
                                             {money(row.estimateUnit) || "$0.00"}
@@ -1416,15 +1710,22 @@ export function ItemWorkflowPanel() {
                                                 value={row.addon}
                                                 onChange={(e) =>
                                                     persistRows(
-                                                        rows.map((item: any, i: number) =>
-                                                            i === index
-                                                                ? {
-                                                                      ...item,
-                                                                      addon: Number(
-                                                                          e.target.value || 0,
-                                                                      ),
-                                                                  }
-                                                                : item,
+                                                        rows.map(
+                                                            (
+                                                                item: any,
+                                                                i: number,
+                                                            ) =>
+                                                                i === index
+                                                                    ? {
+                                                                          ...item,
+                                                                          addon: Number(
+                                                                              e
+                                                                                  .target
+                                                                                  .value ||
+                                                                                  0,
+                                                                          ),
+                                                                      }
+                                                                    : item,
                                                         ),
                                                     )
                                                 }
@@ -1438,19 +1739,28 @@ export function ItemWorkflowPanel() {
                                                 value={row.customPrice ?? ""}
                                                 onChange={(e) =>
                                                     persistRows(
-                                                        rows.map((item: any, i: number) =>
-                                                            i === index
-                                                                ? {
-                                                                      ...item,
-                                                                      customPrice:
-                                                                          e.target.value === ""
-                                                                              ? null
-                                                                              : Number(
-                                                                                    e.target.value ||
-                                                                                        0,
-                                                                                ),
-                                                                  }
-                                                                : item,
+                                                        rows.map(
+                                                            (
+                                                                item: any,
+                                                                i: number,
+                                                            ) =>
+                                                                i === index
+                                                                    ? {
+                                                                          ...item,
+                                                                          customPrice:
+                                                                              e
+                                                                                  .target
+                                                                                  .value ===
+                                                                              ""
+                                                                                  ? null
+                                                                                  : Number(
+                                                                                        e
+                                                                                            .target
+                                                                                            .value ||
+                                                                                            0,
+                                                                                    ),
+                                                                      }
+                                                                    : item,
                                                         ),
                                                     )
                                                 }
@@ -1481,8 +1791,12 @@ export function ItemWorkflowPanel() {
                             </tbody>
                             <tfoot>
                                 <tr className="border-t bg-muted/20 text-xs font-bold">
-                                    <td className="px-3 py-2 uppercase">Total</td>
-                                    <td className="px-3 py-2 text-right">{aggregatedQty}</td>
+                                    <td className="px-3 py-2 uppercase">
+                                        Total
+                                    </td>
+                                    <td className="px-3 py-2 text-right">
+                                        {aggregatedQty}
+                                    </td>
                                     <td />
                                     <td />
                                     <td />
@@ -1541,11 +1855,21 @@ export function ItemWorkflowPanel() {
                             <tr className="bg-muted/30 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                                 <th className="w-12 px-3 py-2">Sn.</th>
                                 <th className="px-3 py-2">Service</th>
-                                <th className="w-24 px-3 py-2 text-right">Qty</th>
-                                <th className="w-28 px-3 py-2 text-right">Price</th>
-                                <th className="w-20 px-3 py-2 text-center">Tax</th>
-                                <th className="w-24 px-3 py-2 text-center">Prod</th>
-                                <th className="w-28 px-3 py-2 text-right">Total</th>
+                                <th className="w-24 px-3 py-2 text-right">
+                                    Qty
+                                </th>
+                                <th className="w-28 px-3 py-2 text-right">
+                                    Price
+                                </th>
+                                <th className="w-20 px-3 py-2 text-center">
+                                    Tax
+                                </th>
+                                <th className="w-24 px-3 py-2 text-center">
+                                    Prod
+                                </th>
+                                <th className="w-28 px-3 py-2 text-right">
+                                    Total
+                                </th>
                                 <th className="w-24 px-3 py-2 text-right">
                                     Actions
                                 </th>
@@ -1565,14 +1889,20 @@ export function ItemWorkflowPanel() {
                                             value={row.service}
                                             onChange={(e) =>
                                                 persistRows(
-                                                    rows.map((item: any, i: number) =>
-                                                        i === index
-                                                            ? {
-                                                                  ...item,
-                                                                  service:
-                                                                      e.target.value,
-                                                              }
-                                                            : item,
+                                                    rows.map(
+                                                        (
+                                                            item: any,
+                                                            i: number,
+                                                        ) =>
+                                                            i === index
+                                                                ? {
+                                                                      ...item,
+                                                                      service:
+                                                                          e
+                                                                              .target
+                                                                              .value,
+                                                                  }
+                                                                : item,
                                                     ),
                                                 )
                                             }
@@ -1586,16 +1916,22 @@ export function ItemWorkflowPanel() {
                                             value={row.qty}
                                             onChange={(e) =>
                                                 persistRows(
-                                                    rows.map((item: any, i: number) =>
-                                                        i === index
-                                                            ? {
-                                                                  ...item,
-                                                                  qty: Number(
-                                                                      e.target.value ||
-                                                                          0,
-                                                                  ),
-                                                              }
-                                                            : item,
+                                                    rows.map(
+                                                        (
+                                                            item: any,
+                                                            i: number,
+                                                        ) =>
+                                                            i === index
+                                                                ? {
+                                                                      ...item,
+                                                                      qty: Number(
+                                                                          e
+                                                                              .target
+                                                                              .value ||
+                                                                              0,
+                                                                      ),
+                                                                  }
+                                                                : item,
                                                     ),
                                                 )
                                             }
@@ -1609,16 +1945,23 @@ export function ItemWorkflowPanel() {
                                             value={row.unitPrice}
                                             onChange={(e) =>
                                                 persistRows(
-                                                    rows.map((item: any, i: number) =>
-                                                        i === index
-                                                            ? {
-                                                                  ...item,
-                                                                  unitPrice: Number(
-                                                                      e.target.value ||
-                                                                          0,
-                                                                  ),
-                                                              }
-                                                            : item,
+                                                    rows.map(
+                                                        (
+                                                            item: any,
+                                                            i: number,
+                                                        ) =>
+                                                            i === index
+                                                                ? {
+                                                                      ...item,
+                                                                      unitPrice:
+                                                                          Number(
+                                                                              e
+                                                                                  .target
+                                                                                  .value ||
+                                                                                  0,
+                                                                          ),
+                                                                  }
+                                                                : item,
                                                     ),
                                                 )
                                             }
@@ -1630,13 +1973,20 @@ export function ItemWorkflowPanel() {
                                             checked={Boolean(row.taxxable)}
                                             onCheckedChange={(checked) =>
                                                 persistRows(
-                                                    rows.map((item: any, i: number) =>
-                                                        i === index
-                                                            ? {
-                                                                  ...item,
-                                                                  taxxable: Boolean(checked),
-                                                              }
-                                                            : item,
+                                                    rows.map(
+                                                        (
+                                                            item: any,
+                                                            i: number,
+                                                        ) =>
+                                                            i === index
+                                                                ? {
+                                                                      ...item,
+                                                                      taxxable:
+                                                                          Boolean(
+                                                                              checked,
+                                                                          ),
+                                                                  }
+                                                                : item,
                                                     ),
                                                 )
                                             }
@@ -1647,13 +1997,20 @@ export function ItemWorkflowPanel() {
                                             checked={Boolean(row.produceable)}
                                             onCheckedChange={(checked) =>
                                                 persistRows(
-                                                    rows.map((item: any, i: number) =>
-                                                        i === index
-                                                            ? {
-                                                                  ...item,
-                                                                  produceable: Boolean(checked),
-                                                              }
-                                                            : item,
+                                                    rows.map(
+                                                        (
+                                                            item: any,
+                                                            i: number,
+                                                        ) =>
+                                                            i === index
+                                                                ? {
+                                                                      ...item,
+                                                                      produceable:
+                                                                          Boolean(
+                                                                              checked,
+                                                                          ),
+                                                                  }
+                                                                : item,
                                                     ),
                                                 )
                                             }
@@ -1679,8 +2036,10 @@ export function ItemWorkflowPanel() {
                                                 onClick={() =>
                                                     persistRows(
                                                         rows.filter(
-                                                            (_: any, i: number) =>
-                                                                i !== index,
+                                                            (
+                                                                _: any,
+                                                                i: number,
+                                                            ) => i !== index,
                                                         ),
                                                     )
                                                 }
@@ -1722,7 +2081,9 @@ export function ItemWorkflowPanel() {
         activeIndex: number,
         activeItemStep: any,
     ) {
-        const isHptStep = isHousePackageToolStepTitle(activeItemStep?.step?.title);
+        const isHptStep = isHousePackageToolStepTitle(
+            activeItemStep?.step?.title,
+        );
         const selectedUids = new Set(getSelectedProdUids(activeItemStep));
         if (!steps.length) {
             return (
@@ -1775,7 +2136,8 @@ export function ItemWorkflowPanel() {
                                     <div className="p-3">
                                         <p className="font-semibold">
                                             {componentLabel(
-                                                component.title || component.uid,
+                                                component.title ||
+                                                    component.uid,
                                             )}
                                         </p>
                                         {moneyIfPositive(
@@ -1813,10 +2175,14 @@ export function ItemWorkflowPanel() {
         return (
             <div className="space-y-3">
                 <div className="mb-3 flex items-center gap-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Select Component:{" "}
-                        {activeItemStep?.step?.title || "Current Step"}
-                    </p>
+                    {!isMouldingItem(line) &&
+                    !isServiceItem(line) &&
+                    !isShelfItem(line) ? (
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            Select Component:{" "}
+                            {activeItemStep?.step?.title || "Current Step"}
+                        </p>
+                    ) : null}
                     <div className="ml-auto flex items-center gap-2">
                         {isDoorStepTitle(activeItemStep?.step?.title) ? (
                             <div className="flex items-center gap-1 rounded-md border bg-muted/30 p-1">
@@ -1857,22 +2223,13 @@ export function ItemWorkflowPanel() {
                                 </span>
                             </p>
                         ) : null}
-                        {isMouldingItem(line) ? (
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setIsMouldingDialogOpen(true)}
-                            >
-                                Moulding Calculator
-                            </Button>
-                        ) : null}
                     </div>
                 </div>
 
                 {isMouldingItem(line) &&
-                  normalizeTitle(activeItemStep?.step?.title).includes(
-                      "line item",
-                  ) ? (
+                normalizeTitle(activeItemStep?.step?.title).includes(
+                    "line item",
+                ) ? (
                     renderMouldingLineItemPanel(line)
                 ) : isServiceItem(line) &&
                   normalizeTitle(activeItemStep?.step?.title).includes(
@@ -1897,126 +2254,429 @@ export function ItemWorkflowPanel() {
                             };
                             return (
                                 <>
-                        <div className="flex items-center">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                Shelf Items
-                            </p>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                className="ml-auto"
-                                onClick={() =>
-                                    persistRows([
-                                        ...currentRows,
-                                        {
-                                            id: null,
-                                            categoryId: null,
-                                            productId: null,
-                                            description: "",
-                                            qty: 1,
-                                            unitPrice: 0,
-                                            totalPrice: 0,
-                                            meta: {},
-                                        },
-                                    ])
-                                }
-                            >
-                                Add Shelf Row
-                            </Button>
-                        </div>
-                        {currentRows.length ? (
-                            <div className="space-y-2">
-                                {currentRows.map((row, idx) => (
-                                    <div
-                                        key={`shelf-row-${idx}`}
-                                        className="grid gap-2 md:grid-cols-12"
-                                    >
-                                        <Input
-                                            className="md:col-span-5"
-                                            value={row.description || ""}
-                                            onChange={(e) =>
-                                                persistRows(
-                                                    currentRows.map((item, i) =>
-                                                        i === idx
-                                                            ? {
-                                                                  ...item,
-                                                                  description: e.target.value,
-                                                              }
-                                                            : item,
-                                                    ),
-                                                )
-                                            }
-                                            placeholder="Description"
-                                        />
-                                        <Input
-                                            className="md:col-span-2"
-                                            type="number"
-                                            value={row.qty || 0}
-                                            onChange={(e) =>
-                                                persistRows(
-                                                    currentRows.map((item, i) =>
-                                                        i === idx
-                                                            ? {
-                                                                  ...item,
-                                                                  qty: Number(
-                                                                      e.target.value || 0,
-                                                                  ),
-                                                              }
-                                                            : item,
-                                                    ),
-                                                )
-                                            }
-                                            placeholder="Qty"
-                                        />
-                                        <Input
-                                            className="md:col-span-2"
-                                            type="number"
-                                            step="0.01"
-                                            value={row.unitPrice || 0}
-                                            onChange={(e) =>
-                                                persistRows(
-                                                    currentRows.map((item, i) =>
-                                                        i === idx
-                                                            ? {
-                                                                  ...item,
-                                                                  unitPrice: Number(
-                                                                      e.target.value || 0,
-                                                                  ),
-                                                              }
-                                                            : item,
-                                                    ),
-                                                )
-                                            }
-                                            placeholder="Unit"
-                                        />
-                                        <Input
-                                            className="md:col-span-2"
-                                            value={
-                                                money(row.totalPrice) || "$0.00"
-                                            }
-                                            readOnly
-                                        />
+                                    <div className="flex items-center">
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                            Shelf Items
+                                        </p>
                                         <Button
-                                            className="md:col-span-1"
-                                            variant="destructive"
+                                            size="sm"
+                                            variant="outline"
+                                            className="ml-auto"
                                             onClick={() =>
-                                                persistRows(
-                                                    currentRows.filter(
-                                                        (_, i) => i !== idx,
-                                                    ),
-                                                )
+                                                persistRows([
+                                                    ...currentRows,
+                                                    {
+                                                        id: null,
+                                                        categoryId: null,
+                                                        productId: null,
+                                                        description: "",
+                                                        qty: 1,
+                                                        unitPrice: 0,
+                                                        totalPrice: 0,
+                                                        meta: {},
+                                                    },
+                                                ])
                                             }
                                         >
-                                            X
+                                            Add Shelf Row
                                         </Button>
                                     </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <p className="text-sm text-muted-foreground">
-                                No shelf rows yet.
-                            </p>
-                        )}
+                                    {currentRows.length ? (
+                                        <div className="space-y-2">
+                                            {currentRows.map((row, idx) => (
+                                                <div
+                                                    key={`shelf-row-${idx}`}
+                                                    className="grid gap-2 md:grid-cols-12"
+                                                >
+                                                    {(() => {
+                                                        const rowMeta =
+                                                            (row?.meta ||
+                                                                {}) as any;
+                                                        const selectedParentId =
+                                                            Number(
+                                                                rowMeta?.shelfParentCategoryId ||
+                                                                    0,
+                                                            ) || null;
+                                                        const childCategories =
+                                                            shelfCategories.filter(
+                                                                (
+                                                                    category: any,
+                                                                ) => {
+                                                                    if (
+                                                                        String(
+                                                                            category?.type ||
+                                                                                "",
+                                                                        ).toLowerCase() !==
+                                                                        "child"
+                                                                    )
+                                                                        return false;
+                                                                    return (
+                                                                        Number(
+                                                                            category?.parentCategoryId ||
+                                                                                0,
+                                                                        ) ===
+                                                                            Number(
+                                                                                selectedParentId ||
+                                                                                    0,
+                                                                            ) ||
+                                                                        Number(
+                                                                            category?.categoryId ||
+                                                                                0,
+                                                                        ) ===
+                                                                            Number(
+                                                                                selectedParentId ||
+                                                                                    0,
+                                                                            )
+                                                                    );
+                                                                },
+                                                            );
+                                                        const selectedCategoryId =
+                                                            Number(
+                                                                row.categoryId ||
+                                                                    0,
+                                                            ) || null;
+                                                        const productOptions =
+                                                            shelfProductsByCategory.get(
+                                                                Number(
+                                                                    selectedCategoryId ||
+                                                                        selectedParentId ||
+                                                                        0,
+                                                                ),
+                                                            ) || [];
+                                                        return (
+                                                            <>
+                                                                <select
+                                                                    className="h-10 rounded-md border border-input bg-background px-3 text-sm md:col-span-2"
+                                                                    value={
+                                                                        selectedParentId ??
+                                                                        ""
+                                                                    }
+                                                                    onChange={(
+                                                                        e,
+                                                                    ) => {
+                                                                        const parentCategoryId =
+                                                                            e
+                                                                                .target
+                                                                                .value
+                                                                                ? Number(
+                                                                                      e
+                                                                                          .target
+                                                                                          .value,
+                                                                                  )
+                                                                                : null;
+                                                                        persistRows(
+                                                                            currentRows.map(
+                                                                                (
+                                                                                    item,
+                                                                                    i,
+                                                                                ) =>
+                                                                                    i ===
+                                                                                    idx
+                                                                                        ? {
+                                                                                              ...item,
+                                                                                              categoryId:
+                                                                                                  null,
+                                                                                              productId:
+                                                                                                  null,
+                                                                                              meta: {
+                                                                                                  ...((item?.meta ||
+                                                                                                      {}) as any),
+                                                                                                  shelfParentCategoryId:
+                                                                                                      parentCategoryId,
+                                                                                              },
+                                                                                          }
+                                                                                        : item,
+                                                                            ),
+                                                                        );
+                                                                    }}
+                                                                >
+                                                                    <option value="">
+                                                                        Parent
+                                                                    </option>
+                                                                    {shelfParentCategories.map(
+                                                                        (
+                                                                            category: any,
+                                                                        ) => (
+                                                                            <option
+                                                                                key={`shelf-parent-cat-${category.id}`}
+                                                                                value={
+                                                                                    category.id
+                                                                                }
+                                                                            >
+                                                                                {
+                                                                                    category.name
+                                                                                }
+                                                                            </option>
+                                                                        ),
+                                                                    )}
+                                                                </select>
+                                                                <select
+                                                                    className="h-10 rounded-md border border-input bg-background px-3 text-sm md:col-span-2"
+                                                                    value={
+                                                                        selectedCategoryId ??
+                                                                        ""
+                                                                    }
+                                                                    onChange={(
+                                                                        e,
+                                                                    ) => {
+                                                                        const categoryId =
+                                                                            e
+                                                                                .target
+                                                                                .value
+                                                                                ? Number(
+                                                                                      e
+                                                                                          .target
+                                                                                          .value,
+                                                                                  )
+                                                                                : null;
+                                                                        persistRows(
+                                                                            currentRows.map(
+                                                                                (
+                                                                                    item,
+                                                                                    i,
+                                                                                ) =>
+                                                                                    i ===
+                                                                                    idx
+                                                                                        ? {
+                                                                                              ...item,
+                                                                                              categoryId,
+                                                                                              productId:
+                                                                                                  null,
+                                                                                          }
+                                                                                        : item,
+                                                                            ),
+                                                                        );
+                                                                    }}
+                                                                    disabled={
+                                                                        !selectedParentId
+                                                                    }
+                                                                >
+                                                                    <option value="">
+                                                                        Category
+                                                                    </option>
+                                                                    {childCategories.map(
+                                                                        (
+                                                                            category: any,
+                                                                        ) => (
+                                                                            <option
+                                                                                key={`shelf-child-cat-${category.id}`}
+                                                                                value={
+                                                                                    category.id
+                                                                                }
+                                                                            >
+                                                                                {
+                                                                                    category.name
+                                                                                }
+                                                                            </option>
+                                                                        ),
+                                                                    )}
+                                                                </select>
+                                                                <select
+                                                                    className="h-10 rounded-md border border-input bg-background px-3 text-sm md:col-span-2"
+                                                                    value={
+                                                                        row.productId ??
+                                                                        ""
+                                                                    }
+                                                                    onChange={(
+                                                                        e,
+                                                                    ) => {
+                                                                        const productId =
+                                                                            e
+                                                                                .target
+                                                                                .value
+                                                                                ? Number(
+                                                                                      e
+                                                                                          .target
+                                                                                          .value,
+                                                                                  )
+                                                                                : null;
+                                                                        const selectedProduct =
+                                                                            productOptions.find(
+                                                                                (
+                                                                                    product: any,
+                                                                                ) =>
+                                                                                    Number(
+                                                                                        product?.id ||
+                                                                                            0,
+                                                                                    ) ===
+                                                                                    Number(
+                                                                                        productId ||
+                                                                                            0,
+                                                                                    ),
+                                                                            );
+                                                                        persistRows(
+                                                                            currentRows.map(
+                                                                                (
+                                                                                    item,
+                                                                                    i,
+                                                                                ) =>
+                                                                                    i ===
+                                                                                    idx
+                                                                                        ? {
+                                                                                              ...item,
+                                                                                              productId,
+                                                                                              description:
+                                                                                                  selectedProduct?.title ??
+                                                                                                  item.description,
+                                                                                              unitPrice:
+                                                                                                  selectedProduct?.unitPrice ==
+                                                                                                  null
+                                                                                                      ? item.unitPrice
+                                                                                                      : Number(
+                                                                                                            selectedProduct.unitPrice,
+                                                                                                        ),
+                                                                                          }
+                                                                                        : item,
+                                                                            ),
+                                                                        );
+                                                                    }}
+                                                                    disabled={
+                                                                        !selectedParentId
+                                                                    }
+                                                                >
+                                                                    <option value="">
+                                                                        Product
+                                                                    </option>
+                                                                    {productOptions.map(
+                                                                        (
+                                                                            product: any,
+                                                                        ) => (
+                                                                            <option
+                                                                                key={`shelf-prod-${product.id}`}
+                                                                                value={
+                                                                                    product.id
+                                                                                }
+                                                                            >
+                                                                                {
+                                                                                    product.title
+                                                                                }
+                                                                            </option>
+                                                                        ),
+                                                                    )}
+                                                                </select>
+                                                            </>
+                                                        );
+                                                    })()}
+                                                    <Input
+                                                        className="md:col-span-3"
+                                                        value={
+                                                            row.description ||
+                                                            ""
+                                                        }
+                                                        onChange={(e) =>
+                                                            persistRows(
+                                                                currentRows.map(
+                                                                    (
+                                                                        item,
+                                                                        i,
+                                                                    ) =>
+                                                                        i ===
+                                                                        idx
+                                                                            ? {
+                                                                                  ...item,
+                                                                                  description:
+                                                                                      e
+                                                                                          .target
+                                                                                          .value,
+                                                                              }
+                                                                            : item,
+                                                                ),
+                                                            )
+                                                        }
+                                                        placeholder="Description"
+                                                    />
+                                                    <Input
+                                                        className="md:col-span-1"
+                                                        type="number"
+                                                        value={row.qty || 0}
+                                                        onChange={(e) =>
+                                                            persistRows(
+                                                                currentRows.map(
+                                                                    (
+                                                                        item,
+                                                                        i,
+                                                                    ) =>
+                                                                        i ===
+                                                                        idx
+                                                                            ? {
+                                                                                  ...item,
+                                                                                  qty: Number(
+                                                                                      e
+                                                                                          .target
+                                                                                          .value ||
+                                                                                          0,
+                                                                                  ),
+                                                                              }
+                                                                            : item,
+                                                                ),
+                                                            )
+                                                        }
+                                                        placeholder="Qty"
+                                                    />
+                                                    <Input
+                                                        className="md:col-span-2"
+                                                        type="number"
+                                                        step="0.01"
+                                                        value={
+                                                            row.unitPrice || 0
+                                                        }
+                                                        onChange={(e) =>
+                                                            persistRows(
+                                                                currentRows.map(
+                                                                    (
+                                                                        item,
+                                                                        i,
+                                                                    ) =>
+                                                                        i ===
+                                                                        idx
+                                                                            ? {
+                                                                                  ...item,
+                                                                                  unitPrice:
+                                                                                      Number(
+                                                                                          e
+                                                                                              .target
+                                                                                              .value ||
+                                                                                              0,
+                                                                                      ),
+                                                                              }
+                                                                            : item,
+                                                                ),
+                                                            )
+                                                        }
+                                                        placeholder="Unit"
+                                                    />
+                                                    <Input
+                                                        className="md:col-span-1"
+                                                        value={
+                                                            money(
+                                                                row.totalPrice,
+                                                            ) || "$0.00"
+                                                        }
+                                                        readOnly
+                                                    />
+                                                    <Button
+                                                        className="md:col-span-1"
+                                                        variant="destructive"
+                                                        onClick={() =>
+                                                            persistRows(
+                                                                currentRows.filter(
+                                                                    (_, i) =>
+                                                                        i !==
+                                                                        idx,
+                                                                ),
+                                                            )
+                                                        }
+                                                    >
+                                                        X
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground">
+                                            No shelf rows yet.
+                                        </p>
+                                    )}
                                 </>
                             );
                         })()}
@@ -2189,61 +2849,111 @@ export function ItemWorkflowPanel() {
                                     }
                                 >
                                     <Menu.Item
-                                        SubMenu={(steps || []).map((step, idx) => (
-                                            <Menu.Item
-                                                key={`jump-step-${idx}`}
-                                                onClick={() =>
-                                                    setActiveStepByLine((prev) => ({
-                                                        ...prev,
-                                                        [line.uid]: idx,
-                                                    }))
-                                                }
-                                            >
-                                                {step?.step?.title || `Step ${idx + 1}`}
-                                            </Menu.Item>
-                                        ))}
+                                        SubMenu={(steps || []).map(
+                                            (step, idx) => (
+                                                <Menu.Item
+                                                    key={`jump-step-${idx}`}
+                                                    onClick={() =>
+                                                        setActiveStepByLine(
+                                                            (prev) => ({
+                                                                ...prev,
+                                                                [line.uid]: idx,
+                                                            }),
+                                                        )
+                                                    }
+                                                >
+                                                    {step?.step?.title ||
+                                                        `Step ${idx + 1}`}
+                                                </Menu.Item>
+                                            ),
+                                        )}
                                     >
                                         Tabs
                                     </Menu.Item>
                                     <Menu.Item
                                         onClick={() => {
-                                            if (!isMultiSelectStepTitle(activeItemStep?.step?.title))
+                                            if (
+                                                !isMultiSelectStepTitle(
+                                                    activeItemStep?.step?.title,
+                                                )
+                                            )
                                                 return;
-                                            const nextSteps = [...(line.formSteps || [])];
+                                            const nextSteps = [
+                                                ...(line.formSteps || []),
+                                            ];
                                             const step = nextSteps[activeIndex];
                                             if (!step) return;
-                                            const selectedComponents = visibleComponents.map((component: any) => ({
-                                                id: component?.id ?? null,
-                                                uid: component?.uid || "",
-                                                title: component?.title || "",
-                                                img: component?.img || null,
-                                                salesPrice:
-                                                    component?.salesPrice == null
-                                                        ? null
-                                                        : Number(component.salesPrice || 0),
-                                                basePrice:
-                                                    component?.basePrice == null
-                                                        ? null
-                                                        : Number(component.basePrice || 0),
-                                            }));
-                                            const selectedProdUids = selectedComponents
-                                                .map((component) => component.uid)
-                                                .filter(Boolean);
-                                            const totalSales = selectedComponents.reduce(
-                                                (sum, component) =>
-                                                    sum + Number(component.salesPrice || 0),
-                                                0,
-                                            );
-                                            const totalBase = selectedComponents.reduce(
-                                                (sum, component) =>
-                                                    sum + Number(component.basePrice || 0),
-                                                0,
-                                            );
+                                            const selectedComponents =
+                                                visibleComponents.map(
+                                                    (component: any) => ({
+                                                        id:
+                                                            component?.id ??
+                                                            null,
+                                                        uid:
+                                                            component?.uid ||
+                                                            "",
+                                                        title:
+                                                            component?.title ||
+                                                            "",
+                                                        img:
+                                                            component?.img ||
+                                                            null,
+                                                        salesPrice:
+                                                            component?.salesPrice ==
+                                                            null
+                                                                ? null
+                                                                : Number(
+                                                                      component.salesPrice ||
+                                                                          0,
+                                                                  ),
+                                                        basePrice:
+                                                            component?.basePrice ==
+                                                            null
+                                                                ? null
+                                                                : Number(
+                                                                      component.basePrice ||
+                                                                          0,
+                                                                  ),
+                                                    }),
+                                                );
+                                            const selectedProdUids =
+                                                selectedComponents
+                                                    .map(
+                                                        (component) =>
+                                                            component.uid,
+                                                    )
+                                                    .filter(Boolean);
+                                            const totalSales =
+                                                selectedComponents.reduce(
+                                                    (sum, component) =>
+                                                        sum +
+                                                        Number(
+                                                            component.salesPrice ||
+                                                                0,
+                                                        ),
+                                                    0,
+                                                );
+                                            const totalBase =
+                                                selectedComponents.reduce(
+                                                    (sum, component) =>
+                                                        sum +
+                                                        Number(
+                                                            component.basePrice ||
+                                                                0,
+                                                        ),
+                                                    0,
+                                                );
                                             nextSteps[activeIndex] = {
                                                 ...step,
-                                                componentId: selectedComponents[0]?.id || null,
-                                                prodUid: selectedComponents[0]?.uid || "",
-                                                value: compactStepValue(selectedComponents),
+                                                componentId:
+                                                    selectedComponents[0]?.id ||
+                                                    null,
+                                                prodUid:
+                                                    selectedComponents[0]
+                                                        ?.uid || "",
+                                                value: compactStepValue(
+                                                    selectedComponents,
+                                                ),
                                                 price: totalSales,
                                                 basePrice: totalBase,
                                                 meta: {
@@ -2252,7 +2962,9 @@ export function ItemWorkflowPanel() {
                                                     selectedComponents,
                                                 },
                                             };
-                                            updateLineItem(line.uid, { formSteps: nextSteps });
+                                            updateLineItem(line.uid, {
+                                                formSteps: nextSteps,
+                                            });
                                         }}
                                     >
                                         Select All
@@ -2260,14 +2972,22 @@ export function ItemWorkflowPanel() {
                                     <Menu.Item
                                         onClick={() => {
                                             const selectedComponent =
-                                                visibleComponents.find((component: any) =>
-                                                    selectedUids.has(component.uid),
+                                                visibleComponents.find(
+                                                    (component: any) =>
+                                                        selectedUids.has(
+                                                            component.uid,
+                                                        ),
                                                 ) || visibleComponents[0];
                                             if (!selectedComponent) return;
-                                            if (isDoorStepTitle(activeItemStep?.step?.title)) {
+                                            if (
+                                                isDoorStepTitle(
+                                                    activeItemStep?.step?.title,
+                                                )
+                                            ) {
                                                 setDoorStepModal({
                                                     open: true,
-                                                    component: selectedComponent,
+                                                    component:
+                                                        selectedComponent,
                                                 });
                                                 return;
                                             }
@@ -2297,10 +3017,13 @@ export function ItemWorkflowPanel() {
                                     </Menu.Item>
                                     <Menu.Item
                                         onClick={() =>
-                                            setIncludeCustomComponents((prev) => !prev)
+                                            setIncludeCustomComponents(
+                                                (prev) => !prev,
+                                            )
                                         }
                                     >
-                                        Enable Custom: {includeCustomComponents ? "On" : "Off"}
+                                        Enable Custom:{" "}
+                                        {includeCustomComponents ? "On" : "Off"}
                                     </Menu.Item>
                                 </Menu>
                             </div>
@@ -2325,7 +3048,8 @@ export function ItemWorkflowPanel() {
                                                     <Filter className="size-3 text-muted-foreground" />
                                                 </span>
                                             ) : null}
-                                            {component?.sectionOverride?.overrideMode ? (
+                                            {component?.sectionOverride
+                                                ?.overrideMode ? (
                                                 <span className="rounded bg-secondary p-1">
                                                     <LucideVariable className="size-3 text-muted-foreground" />
                                                 </span>
@@ -2350,7 +3074,13 @@ export function ItemWorkflowPanel() {
                                             >
                                                 <Menu.Item
                                                     onClick={() => {
-                                                        if (isDoorStepTitle(activeItemStep?.step?.title)) {
+                                                        if (
+                                                            isDoorStepTitle(
+                                                                activeItemStep
+                                                                    ?.step
+                                                                    ?.title,
+                                                            )
+                                                        ) {
                                                             setDoorStepModal({
                                                                 open: true,
                                                                 component,
@@ -2371,7 +3101,8 @@ export function ItemWorkflowPanel() {
                                                         saveSelectedComponent({
                                                             line,
                                                             steps,
-                                                            currentStepIndex: activeIndex,
+                                                            currentStepIndex:
+                                                                activeIndex,
                                                             component,
                                                         })
                                                     }
@@ -2393,7 +3124,8 @@ export function ItemWorkflowPanel() {
                                                             Cancel Redirect
                                                         </Menu.Item>,
                                                         ...Object.values(
-                                                            routeData?.stepsByUid || {},
+                                                            routeData?.stepsByUid ||
+                                                                {},
                                                         ).map((step: any) => (
                                                             <Menu.Item
                                                                 key={`redirect-${component.uid}-${step.uid}`}
@@ -2470,7 +3202,9 @@ export function ItemWorkflowPanel() {
                                             </div>
                                             <div className="space-y-1 p-3">
                                                 <p className="font-semibold leading-tight">
-                                                    {componentLabel(component.title)}
+                                                    {componentLabel(
+                                                        component.title,
+                                                    )}
                                                 </p>
                                                 {moneyIfPositive(
                                                     component.salesPrice ??
@@ -2484,8 +3218,10 @@ export function ItemWorkflowPanel() {
                                                         {moneyIfPositive(
                                                             component.salesPrice ??
                                                                 component.basePrice ??
-                                                                component?.pricing?.[
-                                                                    component.uid
+                                                                component
+                                                                    ?.pricing?.[
+                                                                    component
+                                                                        .uid
                                                                 ]?.price ??
                                                                 null,
                                                         )}
@@ -2539,7 +3275,7 @@ export function ItemWorkflowPanel() {
                         return (
                             <div
                                 key={line.uid}
-                                className={`rounded-xl border-2 bg-background p-4 transition-all ${
+                                className={`rounded-xl  bg-background p-4 transition-all ${
                                     isActive
                                         ? "border-primary ring-1 ring-primary/20"
                                         : "border-border/80 opacity-90 hover:opacity-100"
@@ -2724,3 +3460,4 @@ export function ItemWorkflowPanel() {
         </>
     );
 }
+

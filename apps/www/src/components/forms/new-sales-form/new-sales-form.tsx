@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "@gnd/ui/use-toast";
 import { Button } from "@gnd/ui/button";
 import { useNewSalesFormStore } from "./store";
@@ -59,6 +59,7 @@ export function NewSalesForm(props: Props) {
     const setEditor = useNewSalesFormStore((s) => s.setEditor);
     const [recoverySnapshot, setRecoverySnapshot] =
         useState<NewSalesFormRecoverySnapshot | null>(null);
+    const lastHydratedLoadKeyRef = useRef<string | null>(null);
 
     const bootstrapQuery = useNewSalesFormBootstrapQuery(
         {
@@ -82,12 +83,13 @@ export function NewSalesForm(props: Props) {
 
     useEffect(() => {
         if (!loadData) return;
+        const loadKey = `${props.mode}:${props.type}:${String(loadData.salesId ?? "new")}:${String(loadData.slug ?? "draft")}:${String(loadData.version ?? "v0")}`;
         const shouldHydrate =
-            !record ||
-            record.version !== loadData.version ||
-            record.salesId !== loadData.salesId;
-        if (shouldHydrate) hydrate(loadData);
-    }, [loadData, hydrate, record]);
+            !record || lastHydratedLoadKeyRef.current !== loadKey;
+        if (!shouldHydrate) return;
+        lastHydratedLoadKeyRef.current = loadKey;
+        hydrate(loadData);
+    }, [loadData, hydrate, record, props.mode, props.type]);
 
     const payload = useMemo(() => {
         if (!record) return null;

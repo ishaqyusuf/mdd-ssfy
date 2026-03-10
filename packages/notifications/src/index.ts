@@ -34,6 +34,15 @@ import { salesDispatchUnassigned } from "./types/sales-dispatch-unassigned";
 import { salesEmailReminder } from "./types/sales-email-reminder";
 import { salesMarkedAsProductionCompleted } from "./types/sales-marked-as-production-completed";
 import { salesRequestPacking } from "./types/sales-request-packing";
+export {
+  getActivityTree,
+  getActivityTagSuggestions,
+  type ActivityTreeNode,
+  type ActivityTagSuggestion,
+  type ActivityTagFilter,
+  type GetActivityTreeQuery,
+  type GetActivityTagSuggestionsQuery,
+} from "./activity-tree";
 const handlers = {
   job_assigned: jobAssigned,
   job_submitted: jobSubmitted,

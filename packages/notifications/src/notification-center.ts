@@ -1,7 +1,9 @@
 import {
   type DispatchPackingDelayTags,
+  type JobSubmittedTags,
   type JobTaskConfigureRequestTags,
   dispatchPackingDelayTags,
+  jobSubmittedTags,
   jobTaskConfigureRequestTags,
 } from "./schemas";
 
@@ -18,6 +20,7 @@ export type RawNotificationItem = {
 };
 
 type NotificationActionPayloadMap = {
+  job_submitted: Omit<JobSubmittedTags, "type">;
   job_task_configure_request: Omit<JobTaskConfigureRequestTags, "type">;
   dispatch_packing_delay: Omit<DispatchPackingDelayTags, "type">;
 };
@@ -80,7 +83,17 @@ function parseAction(
   tags: Record<string, unknown>,
 ): NotificationAction | undefined {
   const type = parseType(tags);
-  console.log(type);
+
+  if (type === "job_submitted") {
+    const parsed = jobSubmittedTags.safeParse(tags);
+    if (!parsed.success) return undefined;
+    return {
+      type: "job_submitted",
+      label: "View",
+      data: parsed.data,
+    };
+  }
+
   if (type === "job_task_configure_request") {
     const parsed = jobTaskConfigureRequestTags.safeParse(tags);
     if (!parsed.success) return undefined;

@@ -78,6 +78,14 @@ function Content({ data }) {
                             <MenuIcon className="mr-1 h-4 w-4" />
                             Preview
                         </Button>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="hidden xl:inline-flex"
+                            onClick={() => sidebar.toggleSidebar()}
+                        >
+                            {hidden ? "Show Sales Panel" : "Hide Sales Panel"}
+                        </Button>
                         <Sidebar.Trigger />
                     </div>
                 </div>

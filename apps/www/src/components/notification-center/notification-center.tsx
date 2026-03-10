@@ -12,17 +12,19 @@ import {
 } from "@notifications/notification-center";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ErrorFallback } from "../error-fallback";
 import { EmptyState } from "./empty-state";
 import { NotificationItem } from "./notification-item";
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
+import { useJobParams } from "@/hooks/use-contractor-jobs-params";
 
 export function NotificationCenter() {
     const [isOpen, setOpen] = useState(false);
     const router = useRouter();
+    const pathname = usePathname();
     const { hasUnseenNotifications, notifications, archived, isLoading } =
         useNotifications();
     const unreadNotifications = notifications; // Main notifications (unread/read)
@@ -34,12 +36,20 @@ export function NotificationCenter() {
     }, [hasUnseenNotifications, isOpen]);
     const { setParams: setCommunityInstallCostParams } =
         useCommunityInstallCostParams();
+    const { setParams: setJobParams } = useJobParams();
     const handlers = createNotificationHandlers<{ close: () => void }>({
+        job_submitted: (data, _notification, context) => {
+            context.close();
+            setJobParams({ openJobId: Number(data.jobId) });
+        },
         job_task_configure_request: (data, _notification, context) => {
             context.close();
+            const useSidebarView = pathname.includes(
+                "/community/community-template/",
+            );
             setCommunityInstallCostParams({
                 mode: "v2",
-                view: "template-edit",
+                view: useSidebarView ? "template-edit" : "template-list",
                 editCommunityModelInstallCostId: Number(data.modelId),
                 selectedBuilderTaskId: Number(data.builderTaskId),
                 requestBuilderTaskId: Number(data.builderTaskId),
@@ -184,4 +194,3 @@ export function NotificationCenter() {
         </Popover>
     );
 }
-

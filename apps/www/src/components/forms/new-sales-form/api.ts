@@ -6,6 +6,8 @@ import type {
     NewSalesFormGetInput,
     NewSalesFormRecalculateInput,
     NewSalesFormResolveCustomerInput,
+    NewSalesFormShelfCategoriesInput,
+    NewSalesFormShelfProductsInput,
     NewSalesFormStepRoutingInput,
     NewSalesFormSaveDraftInput,
     NewSalesFormSaveFinalInput,
@@ -43,6 +45,30 @@ export function useNewSalesFormStepRoutingQuery(
     return useQuery(
         trpc.newSalesForm.getStepRouting.queryOptions(input, {
             enabled,
+        }),
+    );
+}
+
+export function useNewSalesFormShelfCategoriesQuery(
+    input: NewSalesFormShelfCategoriesInput = {},
+    enabled = true,
+) {
+    const trpc = useTRPC();
+    return useQuery(
+        trpc.newSalesForm.getShelfCategories.queryOptions(input, {
+            enabled,
+        }),
+    );
+}
+
+export function useNewSalesFormShelfProductsQuery(
+    input: NewSalesFormShelfProductsInput,
+    enabled = true,
+) {
+    const trpc = useTRPC();
+    return useQuery(
+        trpc.newSalesForm.getShelfProducts.queryOptions(input, {
+            enabled: enabled && (input.categoryIds?.length || 0) > 0,
         }),
     );
 }
@@ -181,5 +207,7 @@ export type NewSalesFormApiInputs = {
     recalculate: NewSalesFormRecalculateInput;
     resolveCustomer: NewSalesFormResolveCustomerInput;
     stepRouting: NewSalesFormStepRoutingInput;
+    shelfCategories: NewSalesFormShelfCategoriesInput;
+    shelfProducts: NewSalesFormShelfProductsInput;
     deleteLineItem: NewSalesFormDeleteLineItemInput;
 };
