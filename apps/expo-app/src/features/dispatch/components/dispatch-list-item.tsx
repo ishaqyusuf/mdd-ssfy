@@ -24,6 +24,14 @@ function getPhone(item: DispatchListItem) {
 }
 
 function getPackPercentage(item: DispatchListItem) {
+  const packed = Number((item as any)?.order?.control?.packed?.total || 0);
+  const pending = Number(
+    (item as any)?.order?.control?.pendingPacking?.total || 0,
+  );
+  const total = packed + pending;
+  if (total > 0) {
+    return Math.max(0, Math.min(100, (packed / total) * 100));
+  }
   return item?.order?.stat?.[0]?.percentage ?? 0;
 }
 

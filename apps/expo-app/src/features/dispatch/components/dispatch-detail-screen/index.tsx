@@ -365,14 +365,14 @@ function DispatchDetailScreenInner({
 			return;
 		}
 
-		const packingList = selectedSalesRequestItems.flatMap(({ item, qty }) => {
+		const packingLines = selectedSalesRequestItems.flatMap(({ item, qty }) => {
 			const built = buildPackingPayload({
 				salesItemId: item.salesItemId,
 				enteredQty: qty,
 				deliverables: (item.deliverables || []) as any,
 				note: "Requested via sales_request_packing",
 			});
-			return built.packingList;
+			return built.packingLines;
 		});
 
 		try {
@@ -384,7 +384,7 @@ function DispatchDetailScreenInner({
 						dispatchId: dispatch.id,
 						dispatchStatus: ((dispatch.status as any) || "queue") as any,
 						packMode: "selection",
-						packingList,
+						packingLines,
 					},
 				},
 			} as any);

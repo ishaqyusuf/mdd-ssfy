@@ -11,6 +11,7 @@ export function initAuth(options: {
   baseUrl: string;
   productionUrl: string;
   secret: string | undefined;
+  trustedOrigins?: string[];
   //   discordClientId: string;
   //   discordClientSecret: string;
 }) {
@@ -99,12 +100,17 @@ export function initAuth(options: {
     hooks: {},
     trustedOrigins: [
       "expo://",
+      "gndprodesk://",
       "https://www.gndprodesk.com",
       "https://gndprodesk.com",
       "http://localhost:3000",
+      "http://localhost:*",
+      "http://*.localhost:*",
+      "https://*.localhost:*",
       "*.example.com", // Trust all subdomains of example.com (any protocol)
       "https://*.example.com", // Trust only HTTPS subdomains of example.com
       "http://*.dev.example.com", // Trust all HTTP subdomains of dev.example.com
+      ...(options.trustedOrigins ?? []),
     ],
     databaseHooks: {},
   } satisfies BetterAuthOptions;

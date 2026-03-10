@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { calculateNewSalesFormSummary } from "./new-sales-form-costing";
+import { calculateSalesFormSummary } from "./sales-form";
 
 describe("calculateNewSalesFormSummary", () => {
   it("matches current strategy summary behavior", () => {
-    const result = calculateNewSalesFormSummary({
+    const result = calculateSalesFormSummary({
       strategy: "current",
       taxRate: 10,
       lineItems: [
@@ -24,7 +24,7 @@ describe("calculateNewSalesFormSummary", () => {
   });
 
   it("applies percentage discount", () => {
-    const result = calculateNewSalesFormSummary({
+    const result = calculateSalesFormSummary({
       strategy: "current",
       taxRate: 0,
       lineItems: [{ qty: 1, unitPrice: 200 }],
@@ -38,7 +38,7 @@ describe("calculateNewSalesFormSummary", () => {
   });
 
   it("applies legacy credit card surcharge", () => {
-    const result = calculateNewSalesFormSummary({
+    const result = calculateSalesFormSummary({
       strategy: "legacy",
       taxRate: 10,
       paymentMethod: "Credit Card",
@@ -51,8 +51,86 @@ describe("calculateNewSalesFormSummary", () => {
     expect(result.grandTotal).toBe(113.3);
   });
 
+  it("excludes non-taxable custom costs from tax base", () => {
+    const result = calculateSalesFormSummary({
+      strategy: "legacy",
+      taxRate: 10,
+      lineItems: [{ qty: 1, unitPrice: 100 }],
+      extraCosts: [
+        { type: "CustomTaxxable", amount: 20 },
+        { type: "CustomNonTaxxable", amount: 30 },
+      ],
+    });
+
+    expect(result.taxableSubTotal).toBe(120);
+    expect(result.taxTotal).toBe(12);
+    expect(result.grandTotal).toBe(162);
+  });
+
+  it("does not include flat labor in legacy credit-card surcharge base", () => {
+    const result = calculateSalesFormSummary({
+      strategy: "legacy",
+      taxRate: 0,
+      paymentMethod: "Credit Card",
+      lineItems: [{ qty: 1, unitPrice: 100 }],
+      extraCosts: [
+        { type: "Labor", amount: 10 },
+        { type: "FlatLabor", amount: 20 },
+      ],
+    });
+
+    expect(result.ccc).toBe(3.3);
+    expect(result.grandTotal).toBe(133.3);
+  });
+
+  it("derives labor from grouped door rows when labor metadata exists", () => {
+    const result = calculateSalesFormSummary({
+      strategy: "legacy",
+      taxRate: 0,
+      lineItems: [
+        {
+          qty: 1,
+          unitPrice: 100,
+          housePackageTool: {
+            doors: [
+              {
+                totalQty: 3,
+                meta: { unitLabor: 5 },
+              },
+            ],
+          } as any,
+        } as any,
+      ],
+      extraCosts: [{ type: "Labor", amount: 2 }],
+    });
+
+    expect(result.labor).toBe(15);
+    expect(result.grandTotal).toBe(115);
+  });
+
+  it("derives labor from grouped service/moulding rows when metadata exists", () => {
+    const result = calculateSalesFormSummary({
+      strategy: "legacy",
+      taxRate: 0,
+      lineItems: [
+        {
+          qty: 1,
+          unitPrice: 100,
+          meta: {
+            serviceRows: [{ qty: 2, unitLabor: 3 }],
+            mouldingRows: [{ qty: 1, meta: { unitLabor: 4 } }],
+          },
+        } as any,
+      ],
+      extraCosts: [{ type: "Labor", amount: 0 }],
+    });
+
+    expect(result.labor).toBe(10);
+    expect(result.grandTotal).toBe(110);
+  });
+
   it("excludes service lines from tax in legacy strategy by default", () => {
-    const result = calculateNewSalesFormSummary({
+    const result = calculateSalesFormSummary({
       strategy: "legacy",
       taxRate: 10,
       lineItems: [
@@ -66,6 +144,48 @@ describe("calculateNewSalesFormSummary", () => {
             },
           ],
         },
+        { qty: 1, unitPrice: 100 },
+      ],
+    });
+
+    expect(result.subTotal).toBe(200);
+    expect(result.taxableSubTotal).toBe(100);
+    expect(result.taxTotal).toBe(10);
+    expect(result.grandTotal).toBe(210);
+  });
+
+  it("includes service line in tax base when service meta taxxable is true", () => {
+    const result = calculateSalesFormSummary({
+      strategy: "legacy",
+      taxRate: 10,
+      lineItems: [
+        {
+          qty: 1,
+          unitPrice: 100,
+          meta: { taxxable: true },
+          formSteps: [
+            {
+              step: { title: "Item Type" },
+              value: "Services",
+            },
+          ],
+        },
+        { qty: 1, unitPrice: 100 },
+      ],
+    });
+
+    expect(result.subTotal).toBe(200);
+    expect(result.taxableSubTotal).toBe(200);
+    expect(result.taxTotal).toBe(20);
+    expect(result.grandTotal).toBe(220);
+  });
+
+  it("respects explicit taxxable=false on non-service lines", () => {
+    const result = calculateSalesFormSummary({
+      strategy: "legacy",
+      taxRate: 10,
+      lineItems: [
+        { qty: 1, unitPrice: 100, taxxable: false },
         { qty: 1, unitPrice: 100 },
       ],
     });

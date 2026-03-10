@@ -1,0 +1,95 @@
+import { normalizeSalesFormTitle } from "./step-engine";
+
+export function findLineStepByTitle(line: any, title: string) {
+  const normalized = normalizeSalesFormTitle(title);
+  return (line?.formSteps || []).find(
+    (step: any) => normalizeSalesFormTitle(step?.step?.title) === normalized,
+  );
+}
+
+export function getItemType(line: any) {
+  const step = (line?.formSteps || []).find(
+    (s: any) => normalizeSalesFormTitle(s?.step?.title) === "item type",
+  );
+  return normalizeSalesFormTitle(step?.value);
+}
+
+export function isMouldingItem(line: any) {
+  return getItemType(line) === "moulding";
+}
+
+export function isServiceItem(line: any) {
+  const type = getItemType(line);
+  return type === "services" || type === "service";
+}
+
+export function isShelfItem(line: any) {
+  return getItemType(line) === "shelf items";
+}
+
+export function getSelectedDoorComponentsForLine(line: any) {
+  const doorStep = findLineStepByTitle(line, "Door");
+  const selected = Array.isArray(doorStep?.meta?.selectedComponents)
+    ? doorStep.meta.selectedComponents
+        .map((component: any) => ({
+          id: component?.id ?? null,
+          uid: component?.uid || "",
+          title: component?.title || "",
+          img: component?.img || null,
+          salesPrice:
+            component?.salesPrice == null ? null : Number(component.salesPrice || 0),
+          basePrice:
+            component?.basePrice == null ? null : Number(component.basePrice || 0),
+          pricing: component?.pricing || null,
+        }))
+        .filter((component: any) => !!component.uid)
+    : [];
+  if (selected.length) return selected;
+  const prodUid = String(doorStep?.prodUid || "").trim();
+  if (!prodUid) return [];
+  return [
+    {
+      id: doorStep?.componentId ?? null,
+      uid: prodUid,
+      title: doorStep?.value || "Door",
+      img: doorStep?.meta?.img || null,
+      salesPrice: doorStep?.price == null ? null : Number(doorStep.price || 0),
+      basePrice:
+        doorStep?.basePrice == null ? null : Number(doorStep.basePrice || 0),
+      pricing: null,
+    },
+  ];
+}
+
+export function getSelectedMouldingComponentsForLine(line: any) {
+  const mouldingStep = findLineStepByTitle(line, "Moulding");
+  const selected = Array.isArray(mouldingStep?.meta?.selectedComponents)
+    ? mouldingStep.meta.selectedComponents
+        .map((component: any) => ({
+          id: component?.id ?? null,
+          uid: component?.uid || "",
+          title: component?.title || "",
+          img: component?.img || null,
+          salesPrice:
+            component?.salesPrice == null ? null : Number(component.salesPrice || 0),
+          basePrice:
+            component?.basePrice == null ? null : Number(component.basePrice || 0),
+        }))
+        .filter((component: any) => !!component.uid)
+    : [];
+  if (selected.length) return selected;
+  const prodUid = String(mouldingStep?.prodUid || "").trim();
+  if (!prodUid) return [];
+  return [
+    {
+      id: mouldingStep?.componentId ?? null,
+      uid: prodUid,
+      title: mouldingStep?.value || "Moulding",
+      img: mouldingStep?.meta?.img || null,
+      salesPrice:
+        mouldingStep?.price == null ? null : Number(mouldingStep.price || 0),
+      basePrice:
+        mouldingStep?.basePrice == null ? null : Number(mouldingStep.basePrice || 0),
+    },
+  ];
+}

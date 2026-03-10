@@ -6,7 +6,10 @@ import type {
     NewSalesFormSaveDraftInput,
     NewSalesFormSummary,
 } from "./schema";
-import { calculateNewSalesFormSummary } from "@gnd/sales/new-sales-form-costing";
+import {
+    calculateSalesFormSummary,
+    repriceSalesFormLineItemsByProfile,
+} from "@gnd/sales/sales-form";
 
 function roundCurrency(value: number) {
     return Math.round((value + Number.EPSILON) * 100) / 100;
@@ -73,19 +76,9 @@ export function normalizeMeta(meta: Partial<NewSalesFormMeta>): NewSalesFormMeta
         po: meta.po ?? "",
         notes: meta.notes ?? "",
         deliveryOption: meta.deliveryOption ?? "pickup",
+        paymentMethod: meta.paymentMethod ?? null,
         taxCode: meta.taxCode ?? null,
     };
-}
-
-function toFinite(value: unknown): number | null {
-    const num = Number(value);
-    return Number.isFinite(num) ? num : null;
-}
-
-function toProfileMultiplier(coefficient?: number | null) {
-    const coeff = Number(coefficient);
-    if (!Number.isFinite(coeff) || coeff === 0) return 1;
-    return roundCurrency(1 / coeff);
 }
 
 export function repriceLineItemsByProfile(
@@ -93,143 +86,25 @@ export function repriceLineItemsByProfile(
     previousProfileCoefficient?: number | null,
     nextProfileCoefficient?: number | null,
 ): NewSalesFormLineItem[] {
-    const prevMultiplier = toProfileMultiplier(previousProfileCoefficient);
-    const nextMultiplier = toProfileMultiplier(nextProfileCoefficient);
-    const ratio = prevMultiplier === 0 ? 1 : nextMultiplier / prevMultiplier;
-
-    return (lineItems || []).map((line, index) => {
-        const formSteps = (line.formSteps || []).map((step: any) => {
-            const basePrice = toFinite(step?.basePrice);
-            const currentPrice = toFinite(step?.price);
-            const nextPrice =
-                basePrice != null
-                    ? roundCurrency(basePrice * nextMultiplier)
-                    : currentPrice != null
-                      ? roundCurrency(currentPrice * ratio)
-                      : currentPrice;
-            const selectedComponents = Array.isArray(step?.meta?.selectedComponents)
-                ? step.meta.selectedComponents.map((component: any) => {
-                      const componentBase = toFinite(component?.basePrice);
-                      const currentSales = toFinite(component?.salesPrice);
-                      return {
-                          ...component,
-                          salesPrice:
-                              componentBase != null
-                                  ? roundCurrency(componentBase * nextMultiplier)
-                                  : currentSales != null
-                                    ? roundCurrency(currentSales * ratio)
-                                    : currentSales,
-                      };
-                  })
-                : step?.meta?.selectedComponents;
-
-            return {
-                ...step,
-                price: nextPrice,
-                meta:
-                    selectedComponents == null
-                        ? step?.meta
-                        : {
-                              ...(step?.meta || {}),
-                              selectedComponents,
-                          },
-            };
-        });
-
-        const shelfItems = (line.shelfItems || []).map((row: any) => {
-            const unitPrice = toFinite(row?.unitPrice) ?? 0;
-            const qty = toFinite(row?.qty) ?? 0;
-            const nextUnitPrice = roundCurrency(unitPrice * ratio);
-            return {
-                ...row,
-                unitPrice: nextUnitPrice,
-                totalPrice: roundCurrency(qty * nextUnitPrice),
-            };
-        });
-
-        const existingDoors = line.housePackageTool?.doors || [];
-        const doors = existingDoors.map((door: any) => {
-            const currentUnit = toFinite(door?.unitPrice) ?? 0;
-            const totalQty = toFinite(door?.totalQty) ?? 0;
-            const nextUnit = roundCurrency(currentUnit * ratio);
-            return {
-                ...door,
-                unitPrice: nextUnit,
-                lineTotal: roundCurrency(totalQty * nextUnit),
-            };
-        });
-        const doorQty = doors.reduce(
-            (sum, row: any) => sum + Number(row?.totalQty || 0),
-            0,
-        );
-        const doorTotal = doors.reduce(
-            (sum, row: any) => sum + Number(row?.lineTotal || 0),
-            0,
-        );
-        const stepUnit = formSteps.reduce((sum, step: any) => {
-            const value = toFinite(step?.price);
-            return sum + Number(value || 0);
-        }, 0);
-        const shelfTotal = shelfItems.reduce(
-            (sum, row: any) => sum + Number(row?.totalPrice || 0),
-            0,
-        );
-
-        let qty = Number(line.qty || 0);
-        let unitPrice = Number(line.unitPrice || 0);
-        let lineTotal = Number(line.lineTotal || qty * unitPrice);
-
-        if (doors.length) {
-            qty = doorQty || qty;
-            lineTotal = roundCurrency(doorTotal);
-            unitPrice = qty > 0 ? roundCurrency(lineTotal / qty) : unitPrice;
-        } else if (shelfItems.length) {
-            lineTotal = roundCurrency(shelfTotal);
-            unitPrice = qty > 0 ? roundCurrency(lineTotal / qty) : unitPrice;
-        } else if (formSteps.length) {
-            unitPrice = roundCurrency(stepUnit);
-            lineTotal = roundCurrency(qty * unitPrice);
-        } else {
-            unitPrice = roundCurrency(unitPrice * ratio);
-            lineTotal = roundCurrency(qty * unitPrice);
-        }
-
-        return normalizeLineItem(
-            {
-                ...line,
-                qty,
-                unitPrice,
-                lineTotal,
-                formSteps,
-                shelfItems,
-                housePackageTool: line.housePackageTool
-                    ? {
-                          ...line.housePackageTool,
-                          doors,
-                          totalDoors: doors.length
-                              ? doorQty
-                              : line.housePackageTool.totalDoors,
-                          totalPrice: doors.length
-                              ? roundCurrency(doorTotal)
-                              : line.housePackageTool.totalPrice,
-                      }
-                    : line.housePackageTool,
-            },
-            index,
-        );
-    });
+    return repriceSalesFormLineItemsByProfile(
+        lineItems || [],
+        previousProfileCoefficient,
+        nextProfileCoefficient,
+    ).map((line, index) => normalizeLineItem(line, index));
 }
 
 export function computeSummary(
     lineItems: NewSalesFormLineItem[],
     taxRate = 0,
     extraCosts: NewSalesFormExtraCost[] = [],
+    paymentMethod?: string | null,
 ): NewSalesFormSummary {
-    const summary = calculateNewSalesFormSummary({
-        strategy: "current",
+    const summary = calculateSalesFormSummary({
+        strategy: "legacy",
         taxRate,
         lineItems,
         extraCosts,
+        paymentMethod,
     });
     return {
         subTotal: summary.subTotal,
@@ -279,6 +154,7 @@ export function hydrateRecord(record: NewSalesFormRecord): NewSalesFormRecord {
         lineItems,
         record.summary?.taxRate || 0,
         extraCosts,
+        meta.paymentMethod,
     );
     return {
         ...record,
@@ -318,6 +194,7 @@ export function toSaveDraftInput(
         lineItems,
         source.summary?.taxRate || 0,
         extraCosts,
+        meta.paymentMethod,
     );
     return {
         type: source.type,

@@ -26,7 +26,7 @@ import {
 import { getSalesCustomer } from "@api/db/queries/customer";
 import { TRPCError } from "@trpc/server";
 import { generateRandomString } from "@gnd/utils";
-import { calculateNewSalesFormSummary } from "@gnd/sales/new-sales-form-costing";
+import { calculateSalesFormSummary } from "@gnd/sales/sales-form";
 
 const DEFAULT_DELIVERY_OPTION = "pickup";
 const DEFAULT_PAYMENT_TERM = "None";
@@ -69,9 +69,10 @@ function roundCurrency(value: number) {
 }
 
 function recalculateSummary(input: RecalculateNewSalesFormSchema) {
-  const summary = calculateNewSalesFormSummary({
-    strategy: "current",
+  const summary = calculateSalesFormSummary({
+    strategy: "legacy",
     taxRate: input.taxRate,
+    paymentMethod: input.paymentMethod,
     lineItems: input.lineItems,
     extraCosts: input.extraCosts,
   });
@@ -380,14 +381,17 @@ function toBootstrapPayload(order: {
   const taxRate = Number(order.taxPercentage || persisted?.summary?.taxRate || 0);
   const summary = recalculateSummary({
     taxRate,
+    paymentMethod: (persisted?.form?.paymentMethod as string | null | undefined) || null,
     extraCosts: persistedExtraCosts.length
       ? persistedExtraCosts.map((cost) => ({
           type: cost.type,
           amount: Number(cost.amount || 0),
+          taxxable: cost.taxxable ?? false,
         }))
       : order.extraCosts.map((cost) => ({
           type: cost.type as any,
           amount: Number(cost.amount || 0),
+          taxxable: cost.taxxable ?? false,
         })),
     lineItems,
   });
@@ -412,6 +416,7 @@ function toBootstrapPayload(order: {
       billingAddressId: order.billingAddressId,
       shippingAddressId: order.shippingAddressId,
       paymentTerm: order.paymentTerm || DEFAULT_PAYMENT_TERM,
+      paymentMethod: (persisted?.form?.paymentMethod as string | null | undefined) || null,
       goodUntil: order.goodUntil?.toISOString() || null,
       po: null,
       notes: null,
@@ -466,6 +471,7 @@ export async function bootstrapNewSalesForm(
       billingAddressId: null,
       shippingAddressId: null,
       paymentTerm: DEFAULT_PAYMENT_TERM,
+      paymentMethod: null,
       goodUntil: null,
       po: null,
       notes: null,
@@ -869,8 +875,10 @@ async function saveNewSalesFormInternal(
     extraCosts: payload.extraCosts.map((cost) => ({
       type: cost.type,
       amount: Number(cost.amount || 0),
+      taxxable: cost.taxxable ?? false,
     })),
     lineItems: normalizedLines,
+    paymentMethod: payload.meta.paymentMethod || null,
   });
 
   return ctx.db.$transaction(async (tx) => {

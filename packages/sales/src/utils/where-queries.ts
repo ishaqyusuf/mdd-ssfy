@@ -9,9 +9,11 @@ import {
 } from "@gnd/utils";
 import dayjs from "@gnd/utils/dayjs";
 import { SalesQueryParamsSchema } from "../schema";
+import { isControlFilterV2Enabled } from "../control/application/feature-flags";
 
 export function whereSales(query: SalesQueryParamsSchema) {
   const where: Prisma.SalesOrdersWhereInput[] = [];
+  const useControlFilterV2 = isControlFilterV2Enabled();
   const qtyControlSome = (
     type: QtyControlType,
     qtyWhere: Prisma.QtyControlWhereInput = {},
@@ -26,6 +28,18 @@ export function whereSales(query: SalesQueryParamsSchema) {
             ...qtyWhere,
           },
         },
+      },
+    },
+  });
+  const salesStatSome = (
+    type: QtyControlType,
+    statWhere: Prisma.SalesStatWhereInput = {},
+  ): Prisma.SalesOrdersWhereInput => ({
+    stat: {
+      some: {
+        deletedAt: null,
+        type,
+        ...statWhere,
       },
     },
   });
@@ -299,39 +313,67 @@ export function whereSales(query: SalesQueryParamsSchema) {
   switch (production) {
     case "pending":
       where.push(
-        qtyControlSome("prodCompleted" as QtyControlType, {
-          total: {
-            gt: 0,
-          },
-          percentage: {
-            lt: 100,
-          },
-        }),
+        useControlFilterV2
+          ? qtyControlSome("prodCompleted" as QtyControlType, {
+              total: {
+                gt: 0,
+              },
+              percentage: {
+                lt: 100,
+              },
+            })
+          : salesStatSome("prodCompleted" as QtyControlType, {
+              total: {
+                gt: 0,
+              },
+              percentage: {
+                lt: 100,
+              },
+            }),
       );
       break;
     case "in progress":
       where.push(
-        qtyControlSome("prodCompleted" as QtyControlType, {
-          total: {
-            gt: 0,
-          },
-          AND: [
-            {
-              percentage: { gt: 0 },
-            },
-            { percentage: { lt: 100 } },
-          ],
-        }),
+        useControlFilterV2
+          ? qtyControlSome("prodCompleted" as QtyControlType, {
+              total: {
+                gt: 0,
+              },
+              AND: [
+                {
+                  percentage: { gt: 0 },
+                },
+                { percentage: { lt: 100 } },
+              ],
+            })
+          : salesStatSome("prodCompleted" as QtyControlType, {
+              total: {
+                gt: 0,
+              },
+              AND: [
+                {
+                  percentage: { gt: 0 },
+                },
+                { percentage: { lt: 100 } },
+              ],
+            }),
       );
       break;
     case "completed":
       where.push(
-        qtyControlSome("prodCompleted" as QtyControlType, {
-          total: {
-            gt: 0,
-          },
-          percentage: 100,
-        }),
+        useControlFilterV2
+          ? qtyControlSome("prodCompleted" as QtyControlType, {
+              total: {
+                gt: 0,
+              },
+              percentage: 100,
+            })
+          : salesStatSome("prodCompleted" as QtyControlType, {
+              total: {
+                gt: 0,
+              },
+              percentage: 100,
+            }),
       );
       break;
   }
@@ -464,27 +506,45 @@ export function whereSales(query: SalesQueryParamsSchema) {
     AND: [
       {
         OR: [
-          qtyControlSome("dispatchCompleted" as QtyControlType, {
-            total: {
-              gt: 0,
-            },
-            percentage: {
-              lt: 100,
-            },
-          }),
-          {
-            itemControls: {
-              none: {
-                deletedAt: null,
-                qtyControls: {
-                  some: {
+          useControlFilterV2
+            ? qtyControlSome("dispatchCompleted" as QtyControlType, {
+                total: {
+                  gt: 0,
+                },
+                percentage: {
+                  lt: 100,
+                },
+              })
+            : salesStatSome("dispatchCompleted" as QtyControlType, {
+                total: {
+                  gt: 0,
+                },
+                percentage: {
+                  lt: 100,
+                },
+              }),
+          useControlFilterV2
+            ? {
+                itemControls: {
+                  none: {
+                    deletedAt: null,
+                    qtyControls: {
+                      some: {
+                        deletedAt: null,
+                        type: "dispatchCompleted" as QtyControlType,
+                      },
+                    },
+                  },
+                },
+              }
+            : {
+                stat: {
+                  none: {
                     deletedAt: null,
                     type: "dispatchCompleted" as QtyControlType,
                   },
                 },
               },
-            },
-          },
         ],
       },
       {
@@ -545,27 +605,46 @@ export function whereSales(query: SalesQueryParamsSchema) {
       break;
     case "completed":
       where.push(
-        qtyControlSome("dispatchCompleted" as QtyControlType, {
-          total: {
-            gt: 0,
-          },
-          percentage: 100,
-        }),
+        useControlFilterV2
+          ? qtyControlSome("dispatchCompleted" as QtyControlType, {
+              total: {
+                gt: 0,
+              },
+              percentage: 100,
+            })
+          : salesStatSome("dispatchCompleted" as QtyControlType, {
+              total: {
+                gt: 0,
+              },
+              percentage: 100,
+            }),
       );
       break;
     case "backorder":
       where.push(
-        qtyControlSome("dispatchCompleted" as QtyControlType, {
-          total: {
-            gt: 0,
-          },
-          AND: [
-            {
-              percentage: { gt: 0 },
-            },
-            { percentage: { lt: 100 } },
-          ],
-        }),
+        useControlFilterV2
+          ? qtyControlSome("dispatchCompleted" as QtyControlType, {
+              total: {
+                gt: 0,
+              },
+              AND: [
+                {
+                  percentage: { gt: 0 },
+                },
+                { percentage: { lt: 100 } },
+              ],
+            })
+          : salesStatSome("dispatchCompleted" as QtyControlType, {
+              total: {
+                gt: 0,
+              },
+              AND: [
+                {
+                  percentage: { gt: 0 },
+                },
+                { percentage: { lt: 100 } },
+              ],
+            }),
       );
       break;
     case "late":

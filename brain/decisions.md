@@ -28,3 +28,10 @@
 - Decision: Enforce implementation order for parity closure: Schema -> API -> UI -> Validation -> Polish.
 - Rationale: Current audit confirms structural persistence parity is strong, but critical business behavior parity gaps remain in pricing/costing and route override/fallback semantics.
 - Consequence: Rollout confidence must be gated by parity scenario coverage (including HPT/moulding/service/shelf and tax/labor/payment edge cases), not by save/get contract completeness alone.
+
+## 2026-03-10 - Reopen Parity by Field-Reported Gaps
+
+- Decision: Re-open `new-sales-form` parity closure and prioritize user-reported production-path missing features as authoritative over prior PASS labels.
+- Decision: Track and execute closure through `brain/new-sales-form-missing-features-execution-plan.md` using hard phase gates (do not advance until current phase tests pass).
+- Rationale: Current field feedback indicates unresolved behavior gaps in pricing, grouped workflows, component controls, history, and state resilience even after previous matrix promotions.
+- Consequence: Existing parity matrix status should be treated as provisional; closure requires fresh reproducible scenarios and validated fixes per reported gap.

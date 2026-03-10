@@ -1,8 +1,10 @@
 import { DispatchDeliverable, QtyMatrix } from "../types/dispatch.types";
 
-export type PackingSubmission = {
+export type PackingLine = {
+  salesItemId: number;
   submissionId: number;
   qty: QtyMatrix;
+  note?: string;
 };
 
 export type BuildPackingPayloadInput = {
@@ -13,11 +15,7 @@ export type BuildPackingPayloadInput = {
 };
 
 export type BuildPackingPayloadResult = {
-  packingList: {
-    salesItemId: number;
-    note?: string;
-    submissions: PackingSubmission[];
-  }[];
+  packingLines: PackingLine[];
   remainder: QtyMatrix;
 };
 
@@ -69,15 +67,17 @@ export function buildPackingPayload(
     rh: asNumber(input.enteredQty.rh),
   };
 
-  const submissions: PackingSubmission[] = [];
+  const packingLines: PackingLine[] = [];
 
   for (const deliverable of input.deliverables) {
     if (!hasQty(remaining)) break;
     const { picked, pendingPick } = pickQtyFrom(remaining, deliverable.qty);
     if (hasQty(picked)) {
-      submissions.push({
+      packingLines.push({
+        salesItemId: input.salesItemId,
         submissionId: deliverable.submissionId,
         qty: picked,
+        note: input.note,
       });
       remaining = {
         qty: asNumber(pendingPick.qty),
@@ -88,13 +88,7 @@ export function buildPackingPayload(
   }
 
   return {
-    packingList: [
-      {
-        salesItemId: input.salesItemId,
-        note: input.note,
-        submissions,
-      },
-    ],
+    packingLines,
     remainder: remaining,
   };
 }

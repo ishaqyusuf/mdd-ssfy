@@ -59,22 +59,22 @@
 
 ## 9) Frontend Alignment
 
-- [ ] Update list consumers to use projected control fields only.
-- [ ] Remove dependence on old ambiguous qty fields in list displays.
-- [ ] Keep packing flow aligned with normalized command payloads.
+- [x] Update list consumers to use projected control fields only.
+- [x] Remove dependence on old ambiguous qty fields in list displays.
+- [x] Keep packing flow aligned with normalized command payloads.
 
 ## 10) Testing
 
-- [ ] Add domain unit tests for qty math and status derivation.
-- [ ] Add integration tests for transactional command behavior.
-- [ ] Add projection contract tests for sales/dispatch list payloads.
-- [ ] Add regression tests for mixed production + non-production dispatch paths.
-- [ ] Add idempotency tests for duplicate task submissions.
-- [ ] Add filter correctness tests for supported combinations.
+- [x] Add domain unit tests for qty math and status derivation.
+- [x] Add integration tests for transactional command behavior.
+- [x] Add projection contract tests for sales/dispatch list payloads.
+- [x] Add regression tests for mixed production + non-production dispatch paths.
+- [x] Add idempotency tests for duplicate task submissions.
+- [x] Add filter correctness tests for supported combinations.
 
 ## 11) Rollout
 
-- [ ] Add feature flags: `control_write_v2`, `control_read_v2`, `control_filter_v2`.
+- [x] Add feature flags: `control_write_v2`, `control_read_v2`, `control_filter_v2`.
 - [ ] Run dual-write/dual-read parity window and track mismatches.
 - [ ] Switch read/filter defaults to V2 after mismatch closure.
 - [ ] Decommission reset-dependent runtime paths.
@@ -82,5 +82,5 @@
 ## 12) Cleanup
 
 - [ ] Remove obsolete control derivation utilities outside new module.
-- [ ] Reduce `update-sales-control` to thin command router (or split explicit endpoints).
-- [ ] Publish final runbook for normal operations and repair operations.
+- [x] Reduce `update-sales-control` to thin command router (or split explicit endpoints).
+- [x] Publish final runbook for normal operations and repair operations.

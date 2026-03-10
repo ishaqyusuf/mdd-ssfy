@@ -4,6 +4,11 @@ Date: 2026-03-09
 Scope: Legacy sales-book step engine classes vs `new-sales-form` implementation.
 Verdict: Not 100% in line.
 
+## 2026-03-10 Addendum
+
+- Parity closure is re-opened based on current field/user-reported missing features across pricing, grouped workflows, supplier/door modal behaviors, component control UX, save history, and state resilience.
+- Execution authority for closure sequencing is now `brain/new-sales-form-missing-features-execution-plan.md`.
+
 ## Legacy Scope Reviewed
 
 - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/costing-class.ts`

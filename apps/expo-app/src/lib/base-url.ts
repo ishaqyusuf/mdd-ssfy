@@ -1,5 +1,12 @@
 import Constants from "expo-constants";
 
+const hasProtocol = (value: string) =>
+  value.startsWith("http://") || value.startsWith("https://");
+const isLoopbackHost = (value: string) =>
+  value === "localhost" || value === "127.0.0.1";
+const withProtocol = (value: string, protocol: "http" | "https" = "http") =>
+  hasProtocol(value) ? value : `${protocol}://${value}`;
+
 /**
  * Extend this function when going to production by
  * setting the baseUrl to your production API URL.
@@ -18,7 +25,7 @@ export const getBaseUrl = () => {
     process.env.EXPO_PUBLIC_APP_VARIANT === "preview" ||
     process.env.EXPO_PUBLIC_FORCE_BASE_URL === "true";
   if (useEnvBaseUrl && envBaseUrl) {
-    return envBaseUrl;
+    return withProtocol(envBaseUrl);
   }
 
   const debuggerHost = Constants.expoConfig?.hostUri;
@@ -32,7 +39,12 @@ export const getBaseUrl = () => {
   }
 
   const apiPort = process.env.EXPO_PUBLIC_API_PORT ?? "3000";
-  return `http://${localhost}:${apiPort}`;
+  const portlessDomain = process.env.EXPO_PUBLIC_PORTLESS_DOMAIN;
+  const host =
+    portlessDomain && isLoopbackHost(localhost)
+      ? `${portlessDomain}.localhost`
+      : localhost;
+  return `http://${host}:${apiPort}`;
 };
 export const getWebUrl = () => {
   const envBaseUrl = process.env.EXPO_PUBLIC_BASE_URL;
@@ -40,7 +52,7 @@ export const getWebUrl = () => {
     process.env.EXPO_PUBLIC_APP_VARIANT === "preview" ||
     process.env.EXPO_PUBLIC_FORCE_BASE_URL === "true";
   if (useEnvBaseUrl && envBaseUrl) {
-    return envBaseUrl;
+    return withProtocol(envBaseUrl);
   }
 
   const debuggerHost = Constants.expoConfig?.hostUri;
@@ -54,5 +66,10 @@ export const getWebUrl = () => {
   }
 
   const apiPort = process.env.EXPO_PUBLIC_API_PORT ?? "3006";
-  return `http://${localhost}:${apiPort}`;
+  const portlessDomain = process.env.EXPO_PUBLIC_PORTLESS_DOMAIN;
+  const host =
+    portlessDomain && isLoopbackHost(localhost)
+      ? `${portlessDomain}.localhost`
+      : localhost;
+  return `http://${host}:${apiPort}`;
 };

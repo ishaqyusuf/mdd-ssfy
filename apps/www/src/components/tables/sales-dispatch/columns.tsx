@@ -477,8 +477,16 @@ const packingProgress: ColumnDef<Item> = {
     header: "Progress",
     accessorKey: "progress",
     cell: ({ row: { original: item } }) => {
-        const packed = item?.statistic?.packed?.total || 0;
-        const pending = item?.statistic?.pendingPacking?.total || 0;
+        const packed =
+            (item as any)?.order?.control?.packed?.total ||
+            (item as any)?.control?.packed?.total ||
+            (item as any)?.statistic?.packed?.total ||
+            0;
+        const pending =
+            (item as any)?.order?.control?.pendingPacking?.total ||
+            (item as any)?.control?.pendingPacking?.total ||
+            (item as any)?.statistic?.pendingPacking?.total ||
+            0;
         const total = packed + pending;
         const ratio = total <= 0 ? 0 : packed / total;
         const colorClass =

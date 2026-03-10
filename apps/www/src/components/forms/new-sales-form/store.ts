@@ -89,6 +89,7 @@ function withDirty(record: NewSalesFormRecord | null) {
         record.lineItems,
         record.summary?.taxRate || 0,
         normalizeExtraCosts(record.extraCosts || []),
+        record.form?.paymentMethod || null,
     );
     return {
         ...record,

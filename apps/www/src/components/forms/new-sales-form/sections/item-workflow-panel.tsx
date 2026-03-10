@@ -23,165 +23,41 @@ import {
     useSalesStepComponentsQuery,
 } from "../api";
 import { DoorSizeQtyDialog, MouldingCalculatorDialog } from "./workflow-modals";
-
-const AUTO_ADVANCE_TITLES = new Set([
-    "height",
-    "width",
-    "hand",
-    "door",
-    "house package tool",
-]);
+import {
+    applyRouteRecursion,
+    applyMultiSelectStepMutation,
+    applySingleSelectStepMutation,
+    buildConfiguredRouteSteps,
+    buildSelectedByStepUid,
+    buildSelectedProdUidsByStepUid,
+    compactStepValue,
+    getSelectedProdUids,
+    isComponentVisibleByRules,
+    mergeConfiguredSeriesWithExisting,
+    normalizeSalesFormTitle as normalizeTitle,
+    deriveMouldingRows,
+    deriveServiceRows,
+    getRouteConfigForLine as resolveRouteConfigForLine,
+    getSelectedDoorComponentsForLine,
+    getSelectedMouldingComponentsForLine,
+    isMouldingItem,
+    isServiceItem,
+    isShelfItem,
+    findLineStepByTitle,
+    resolveSizeFromPricingKey,
+    resolvePricingBucketUnitPrice,
+    resolveComponentPriceByDeps,
+    sharedMouldingComponentPrice,
+    summarizeDoors,
+    summarizeMouldingPersistRows,
+    summarizeShelfRows,
+    summarizeServiceRows,
+} from "@gnd/sales/sales-form";
 const MULTI_SELECT_STEP_TITLES = new Set([
     "door",
     "moulding",
     "weatherstrip color",
 ]);
-
-function normalizeTitle(value?: string | null) {
-    return String(value || "")
-        .trim()
-        .toLowerCase();
-}
-
-function buildSelectedByStepUid(steps: any[]) {
-    const selected: Record<string, string> = {};
-    (steps || []).forEach((step) => {
-        const stepUid = step?.step?.uid;
-        const prodUid = step?.prodUid;
-        if (stepUid && prodUid) selected[stepUid] = prodUid;
-    });
-    return selected;
-}
-
-function isComponentVisibleByRules(
-    component: any,
-    selectedByStepUid: Record<string, string>,
-) {
-    const variations = Array.isArray(component?.variations)
-        ? component.variations
-        : [];
-    if (!variations.length) return true;
-    for (const variation of variations) {
-        const rules = Array.isArray(variation?.rules) ? variation.rules : [];
-        if (!rules.length) continue;
-        const matches = rules.every((rule: any) => {
-            const stepUid = String(rule?.stepUid || "");
-            const operator = String(rule?.operator || "is");
-            const candidates = Array.isArray(rule?.componentsUid)
-                ? rule.componentsUid.map((uid: any) => String(uid))
-                : [];
-            const selected = stepUid ? selectedByStepUid[stepUid] : null;
-            if (!candidates.length) return true;
-            if (!selected) return operator !== "is";
-            if (operator === "isNot")
-                return candidates.every((uid: string) => uid !== selected);
-            return candidates.some((uid: string) => uid === selected);
-        });
-        if (matches) return true;
-    }
-    return false;
-}
-
-function resolveComponentPriceByDeps(
-    component: any,
-    selectedByStepUid: Record<string, string>,
-) {
-    const directSales = Number(component?.salesPrice);
-    const directBase = Number(component?.basePrice);
-    if (Number.isFinite(directSales) || Number.isFinite(directBase)) {
-        return {
-            salesPrice: Number.isFinite(directSales) ? directSales : null,
-            basePrice: Number.isFinite(directBase) ? directBase : null,
-        };
-    }
-    const pricing =
-        component?.pricing ||
-        component?.pricings ||
-        component?.priceData ||
-        null;
-    if (!pricing || typeof pricing !== "object") {
-        return {
-            salesPrice: null,
-            basePrice: null,
-        };
-    }
-    const deps = Array.isArray(component?.priceStepDeps)
-        ? component.priceStepDeps
-        : Array.isArray(component?.meta?.priceStepDeps)
-          ? component.meta.priceStepDeps
-          : [];
-    const depKey = deps
-        .map((stepUid: string) => selectedByStepUid[stepUid] || "")
-        .filter(Boolean)
-        .join("-");
-    const fallbackKey = String(component?.uid || "");
-    const raw =
-        (depKey && (pricing as any)[depKey]) ||
-        (fallbackKey && (pricing as any)[fallbackKey]) ||
-        null;
-    const bucket = typeof raw === "number" ? { price: raw } : raw;
-    const price = Number(bucket?.price);
-    if (!Number.isFinite(price)) {
-        return {
-            salesPrice: null,
-            basePrice: null,
-        };
-    }
-    return {
-        salesPrice: price,
-        basePrice: price,
-    };
-}
-
-function customNextStepTitle(
-    doorType: string | null | undefined,
-    currentStepTitle: string | null | undefined,
-    currentValue: string | null | undefined,
-) {
-    const dt = normalizeTitle(doorType || currentValue);
-    const step = normalizeTitle(currentStepTitle);
-    const val = normalizeTitle(currentValue);
-
-    const base: Record<string, string> = {
-        "shelf items": "Shelf Items",
-        "cutdown height": "House Package Tool",
-        "jamb species": "Jamb Size",
-        door: "Jamb Species",
-        "jamb size": "Jamb Type",
-    };
-
-    if (dt === "moulding") {
-        const moulding: Record<string, string> = {
-            "item type": "Specie",
-            specie: "Moulding",
-            moulding: "Line Item",
-        };
-        return moulding[step] || null;
-    }
-    if (dt === "services") {
-        return step === "item type" ? "Line Item" : null;
-    }
-    if (dt === "door slabs only") {
-        const slab: Record<string, string> = {
-            "item type": "Height",
-            height: "Door Type",
-            door: "House Package Tool",
-        };
-        return slab[step] || null;
-    }
-    if (dt === "bifold") {
-        const bifold: Record<string, string> = {
-            "item type": "Height",
-            height: "Door Type",
-            "door type": "Door",
-            door: "House Package Tool",
-        };
-        return bifold[step] || null;
-    }
-
-    if (val && base[val]) return base[val];
-    return base[step] || null;
-}
 
 function stepKey(lineUid: string, stepIndex: number) {
     return `${lineUid}:${stepIndex}`;
@@ -206,41 +82,6 @@ function getDoorSupplierMeta(step: any) {
         supplierUid: supplierUid ? String(supplierUid) : null,
         supplierName: supplierName ? String(supplierName) : null,
     };
-}
-function getSelectedProdUids(step: any) {
-    const metaUids = Array.isArray(step?.meta?.selectedProdUids)
-        ? step.meta.selectedProdUids
-              .map((uid: unknown) => String(uid || "").trim())
-              .filter(Boolean)
-        : [];
-    if (metaUids.length) return Array.from(new Set(metaUids));
-    const prodUid = String(step?.prodUid || "").trim();
-    return prodUid ? [prodUid] : [];
-}
-function compactStepValue(selectedComponents: any[]) {
-    if (!selectedComponents.length) return "";
-    if (selectedComponents.length === 1)
-        return selectedComponents[0]?.title || "";
-    const first = selectedComponents[0]?.title || "";
-    return first
-        ? `${first} +${selectedComponents.length - 1}`
-        : `${selectedComponents.length} selected`;
-}
-
-function findStepByTitle(routeData: any, title: string | null) {
-    if (!title) return null;
-    const normalized = normalizeTitle(title);
-    return (
-        Object.values(routeData?.stepsByUid || {}).find(
-            (step: any) => normalizeTitle(step.title) === normalized,
-        ) || null
-    );
-}
-
-function stepMatches(routeData: any, step: any, candidate: any) {
-    if (!step || !candidate) return false;
-    const stepUid = step.step?.uid || routeData?.stepsById?.[step.stepId || -1];
-    return stepUid === candidate.uid || step.stepId === candidate.id;
 }
 
 function money(value?: number | null) {
@@ -279,24 +120,6 @@ function resolveComponentImageSrc(src?: string | null) {
     if (normalized.startsWith("dyke/")) return `${base}/${normalized}`;
     return `${base}/dyke/${normalized}`;
 }
-
-function getItemType(line: any) {
-    const step = (line?.formSteps || []).find(
-        (s: any) => normalizeTitle(s?.step?.title) === "item type",
-    );
-    return normalizeTitle(step?.value);
-}
-
-function isMouldingItem(line: any) {
-    return getItemType(line) === "moulding";
-}
-function isServiceItem(line: any) {
-    const type = getItemType(line);
-    return type === "services" || type === "service";
-}
-function isShelfItem(line: any) {
-    return getItemType(line) === "shelf items";
-}
 function firstPendingStepIndex(steps: any[]) {
     const pending = steps.findIndex(
         (step) => !String(step?.prodUid || "").trim(),
@@ -304,146 +127,6 @@ function firstPendingStepIndex(steps: any[]) {
     return pending >= 0 ? pending : Math.max(0, steps.length - 1);
 }
 
-function findLineStepByTitle(line: any, title: string) {
-    const normalized = normalizeTitle(title);
-    return (line?.formSteps || []).find(
-        (step: any) => normalizeTitle(step?.step?.title) === normalized,
-    );
-}
-
-function getSelectedDoorComponentsForLine(line: any) {
-    const doorStep = findLineStepByTitle(line, "Door");
-    const selected = Array.isArray(doorStep?.meta?.selectedComponents)
-        ? doorStep.meta.selectedComponents
-              .map((component: any) => ({
-                  id: component?.id ?? null,
-                  uid: component?.uid || "",
-                  title: component?.title || "",
-                  img: component?.img || null,
-                  salesPrice:
-                      component?.salesPrice == null
-                          ? null
-                          : Number(component.salesPrice || 0),
-                  basePrice:
-                      component?.basePrice == null
-                          ? null
-                          : Number(component.basePrice || 0),
-                  pricing: component?.pricing || null,
-              }))
-              .filter((component: any) => !!component.uid)
-        : [];
-    if (selected.length) return selected;
-    const prodUid = String(doorStep?.prodUid || "").trim();
-    if (!prodUid) return [];
-    return [
-        {
-            id: doorStep?.componentId ?? null,
-            uid: prodUid,
-            title: doorStep?.value || "Door",
-            img: doorStep?.meta?.img || null,
-            salesPrice:
-                doorStep?.price == null ? null : Number(doorStep.price || 0),
-            basePrice:
-                doorStep?.basePrice == null
-                    ? null
-                    : Number(doorStep.basePrice || 0),
-            pricing: null,
-        },
-    ];
-}
-
-function getSelectedMouldingComponentsForLine(line: any) {
-    const mouldingStep = findLineStepByTitle(line, "Moulding");
-    const selected = Array.isArray(mouldingStep?.meta?.selectedComponents)
-        ? mouldingStep.meta.selectedComponents
-              .map((component: any) => ({
-                  id: component?.id ?? null,
-                  uid: component?.uid || "",
-                  title: component?.title || "",
-                  img: component?.img || null,
-                  salesPrice:
-                      component?.salesPrice == null
-                          ? null
-                          : Number(component.salesPrice || 0),
-                  basePrice:
-                      component?.basePrice == null
-                          ? null
-                          : Number(component.basePrice || 0),
-              }))
-              .filter((component: any) => !!component.uid)
-        : [];
-    if (selected.length) return selected;
-    const prodUid = String(mouldingStep?.prodUid || "").trim();
-    if (!prodUid) return [];
-    return [
-        {
-            id: mouldingStep?.componentId ?? null,
-            uid: prodUid,
-            title: mouldingStep?.value || "Moulding",
-            img: mouldingStep?.meta?.img || null,
-            salesPrice:
-                mouldingStep?.price == null
-                    ? null
-                    : Number(mouldingStep.price || 0),
-            basePrice:
-                mouldingStep?.basePrice == null
-                    ? null
-                    : Number(mouldingStep.basePrice || 0),
-        },
-    ];
-}
-
-function resolveSizeFromPricingKey(
-    key: string,
-    supplierUid?: string | null,
-) {
-    const raw = String(key || "").trim();
-    if (!raw) return null;
-    if (supplierUid) {
-        const suffix = `& ${supplierUid}`;
-        if (raw.endsWith(suffix)) {
-            const size = raw.slice(0, -suffix.length).trim();
-            return size.includes("x") ? size : null;
-        }
-    }
-    if (raw.includes(" & ")) {
-        const size = raw.split(" & ")[0]?.trim() || "";
-        return size.includes("x") ? size : null;
-    }
-    return raw.includes("x") ? raw : null;
-}
-
-
-function summarizeDoors(rows: any[]) {
-    const normalized = (rows || []).map((row) => {
-        const lhQty = Number(row?.lhQty || 0);
-        const rhQty = Number(row?.rhQty || 0);
-        const totalQty =
-            lhQty + rhQty > 0 ? lhQty + rhQty : Number(row?.totalQty || 0);
-        const unitPrice = Number(row?.unitPrice || 0);
-        return {
-            ...row,
-            lhQty,
-            rhQty,
-            totalQty,
-            unitPrice,
-            lineTotal: Number((totalQty * unitPrice).toFixed(2)),
-        };
-    });
-    const totalDoors = normalized.reduce(
-        (sum, row) => sum + Number(row?.totalQty || 0),
-        0,
-    );
-    const totalPrice = normalized.reduce(
-        (sum, row) => sum + Number(row?.lineTotal || 0),
-        0,
-    );
-    return {
-        rows: normalized,
-        totalDoors,
-        totalPrice: Number(totalPrice.toFixed(2)),
-    };
-}
 
 function componentLabel(value?: string | null) {
     return String(value || "").trim().toUpperCase();
@@ -520,6 +203,8 @@ export function ItemWorkflowPanel() {
 
     const visibleComponents = useMemo(() => {
         const selectedByStepUid = buildSelectedByStepUid(activeLineSteps);
+        const selectedProdUidsByStepUid =
+            buildSelectedProdUidsByStepUid(activeLineSteps);
         return (stepComponentsQuery.data || [])
             .filter((component) => !component.isDeleted)
             .filter(
@@ -528,12 +213,22 @@ export function ItemWorkflowPanel() {
                     !(component as any)?.custom,
             )
             .filter((component) =>
-                isComponentVisibleByRules(component, selectedByStepUid),
+                isComponentVisibleByRules(
+                    component,
+                    selectedByStepUid,
+                    selectedProdUidsByStepUid,
+                ),
             )
             .map((component) => {
                 const price = resolveComponentPriceByDeps(
                     component,
                     selectedByStepUid,
+                    {
+                        priceStepDeps: Array.isArray((activeStep as any)?.meta?.priceStepDeps)
+                            ? ((activeStep as any).meta.priceStepDeps as string[])
+                            : null,
+                        selectedProdUidsByStepUid,
+                    },
                 );
                 return {
                     ...component,
@@ -555,6 +250,8 @@ export function ItemWorkflowPanel() {
         );
         if (!configured.size) return [];
         const selectedByStepUid = buildSelectedByStepUid(activeLineSteps);
+        const selectedProdUidsByStepUid =
+            buildSelectedProdUidsByStepUid(activeLineSteps);
         return roots
             .filter((component: any) => configured.has(component.uid))
             .filter(
@@ -562,12 +259,22 @@ export function ItemWorkflowPanel() {
                     !component?._metaData?.custom && !component?.custom,
             )
             .filter((component: any) =>
-                isComponentVisibleByRules(component, selectedByStepUid),
+                isComponentVisibleByRules(
+                    component,
+                    selectedByStepUid,
+                    selectedProdUidsByStepUid,
+                ),
             )
             .map((component: any) => {
                 const price = resolveComponentPriceByDeps(
                     component,
                     selectedByStepUid,
+                    {
+                        priceStepDeps: Array.isArray((activeStep as any)?.meta?.priceStepDeps)
+                            ? ((activeStep as any).meta.priceStepDeps as string[])
+                            : null,
+                        selectedProdUidsByStepUid,
+                    },
                 );
                 return {
                     ...component,
@@ -584,201 +291,6 @@ export function ItemWorkflowPanel() {
     }, [routeData, rootComponentsQuery.data, activeLineSteps]);
     const activeDoorSupplier = getDoorSupplierMeta(activeDoorStep || activeStep);
     if (!record) return null;
-
-    function resolveNextStep({
-        line,
-        steps,
-        currentStepIndex,
-        selectedComponent,
-    }: {
-        line: (typeof record.lineItems)[number];
-        steps: any[];
-        currentStepIndex: number;
-        selectedComponent: {
-            uid: string;
-            title?: string | null;
-            redirectUid?: string | null;
-        };
-    }) {
-        if (!routeData || !steps[currentStepIndex]) return null;
-
-        const currentStep = steps[currentStepIndex];
-        const rootComponentUid = steps[0]?.prodUid;
-        const rootRoute = rootComponentUid
-            ? routeData.composedRouter?.[rootComponentUid]
-            : null;
-
-        const currentStepUid =
-            currentStep.step?.uid ||
-            routeData.stepsById?.[currentStep.stepId || -1];
-
-        let nextStep: any = selectedComponent.redirectUid
-            ? routeData.stepsByUid?.[selectedComponent.redirectUid]
-            : null;
-
-        if (!nextStep && currentStepUid && rootRoute) {
-            const nextUid = rootRoute.route?.[currentStepUid];
-            if (nextUid) nextStep = routeData.stepsByUid?.[nextUid];
-        }
-
-        if (!nextStep) {
-            const customTitle = customNextStepTitle(
-                (line.meta as any)?.doorType || null,
-                currentStep.step?.title,
-                selectedComponent.title || currentStep.value,
-            );
-            nextStep = findStepByTitle(routeData, customTitle);
-        }
-
-        return nextStep || null;
-    }
-
-    function seedStep(step: any, selectedComponent?: any) {
-        return {
-            id: null,
-            stepId: step.id,
-            componentId: selectedComponent?.id || null,
-            prodUid: selectedComponent?.uid || "",
-            value: selectedComponent?.title || "",
-            meta: selectedComponent?.img
-                ? {
-                      img: selectedComponent.img,
-                  }
-                : {},
-            step: {
-                id: step.id,
-                uid: step.uid,
-                title: step.title || "",
-            },
-        };
-    }
-    function buildConfiguredRouteSteps(rootStep: any, selectedComponent: any) {
-        const initial = [seedStep(rootStep, selectedComponent)];
-        const route = routeData?.composedRouter?.[selectedComponent?.uid];
-        const sequenceUids: string[] = Array.isArray(route?.routeSequence)
-            ? route.routeSequence
-                  .map((entry: any) => String(entry?.uid || ""))
-                  .filter(Boolean)
-            : [];
-        if (!sequenceUids.length) return initial;
-
-        const deduped = Array.from(new Set(sequenceUids));
-        const routeSteps = deduped
-            .map((uid) => routeData?.stepsByUid?.[uid])
-            .filter(Boolean)
-            .map((step) => seedStep(step));
-        return [...initial, ...routeSteps];
-    }
-    function mergeSeriesWithExisting(
-        existingSteps: any[],
-        configuredSteps: any[],
-    ) {
-        return configuredSteps.map((seriesStep, index) => {
-            if (index === 0) return seriesStep;
-            const routeUid = seriesStep?.step?.uid;
-            const routeId = seriesStep?.stepId;
-            const existing = existingSteps.find(
-                (step) =>
-                    (routeUid && step?.step?.uid === routeUid) ||
-                    (routeId != null && step?.stepId === routeId),
-            );
-            if (!existing) return seriesStep;
-            return {
-                ...seriesStep,
-                ...existing,
-                stepId: seriesStep.stepId ?? existing.stepId ?? null,
-                step: {
-                    ...(existing.step || {}),
-                    ...(seriesStep.step || {}),
-                },
-            };
-        });
-    }
-
-    function applyRouteRecursion({
-        line,
-        steps,
-        startIndex,
-        selectedComponent,
-    }: {
-        line: (typeof record.lineItems)[number];
-        steps: any[];
-        startIndex: number;
-        selectedComponent: any;
-    }) {
-        const nextSteps = [...steps];
-        let currentIndex = startIndex;
-        let currentComponent = selectedComponent;
-        const visited = new Set<string>();
-
-        for (let i = 0; i < 12; i++) {
-            const nextStep = resolveNextStep({
-                line,
-                steps: nextSteps,
-                currentStepIndex: currentIndex,
-                selectedComponent: currentComponent,
-            });
-
-            if (!nextStep) break;
-            if (visited.has(nextStep.uid)) break;
-            visited.add(nextStep.uid);
-
-            const existingIndex = nextSteps.findIndex((step) =>
-                stepMatches(routeData, step, nextStep),
-            );
-            if (existingIndex >= 0) {
-                currentIndex = existingIndex;
-                break;
-            }
-
-            const routeStep = routeData?.stepsByUid?.[nextStep.uid];
-            const candidates = (routeStep?.components || []).filter(
-                (component: any) => !!component.uid,
-            );
-            const hiddenAuto = AUTO_ADVANCE_TITLES.has(
-                normalizeTitle(nextStep.title),
-            );
-
-            if (!candidates.length) {
-                const virtualSteps = [...nextSteps, seedStep(nextStep)];
-                const virtualNext = resolveNextStep({
-                    line,
-                    steps: virtualSteps,
-                    currentStepIndex: virtualSteps.length - 1,
-                    selectedComponent: {
-                        uid: "",
-                        title: nextStep.title,
-                    },
-                });
-                if (!virtualNext) break;
-                if (visited.has(virtualNext.uid)) break;
-                nextSteps.push(seedStep(nextStep));
-                currentIndex = nextSteps.length - 1;
-                currentComponent = {
-                    uid: "",
-                    title: nextStep.title,
-                };
-                continue;
-            }
-
-            if (candidates.length === 1 || hiddenAuto) {
-                const auto = candidates[0];
-                nextSteps.push(seedStep(nextStep, auto));
-                currentIndex = nextSteps.length - 1;
-                currentComponent = auto;
-                continue;
-            }
-
-            nextSteps.push(seedStep(nextStep));
-            currentIndex = nextSteps.length - 1;
-            break;
-        }
-
-        return {
-            steps: nextSteps,
-            activeIndex: currentIndex,
-        };
-    }
 
     function saveSelectedComponent({
         line,
@@ -799,70 +311,18 @@ export function ItemWorkflowPanel() {
         const isMultiSelectStep = isMultiSelectStepTitle(current?.step?.title);
 
         if (isMultiSelectStep) {
-            const selectedSet = new Set(getSelectedProdUids(current));
-            const nextSelected =
-                typeof selectedOverride === "boolean"
-                    ? selectedOverride
-                    : !selectedSet.has(component.uid);
-            if (nextSelected) selectedSet.add(component.uid);
-            else selectedSet.delete(component.uid);
+            const multiMutation = applyMultiSelectStepMutation({
+                steps: nextSteps,
+                currentStepIndex,
+                component,
+                visibleComponents,
+                selectedOverride,
+                activeStepTitle: activeStep?.step?.title || "",
+            });
 
-            const selectedUids = Array.from(selectedSet);
-            const selectedComponents = selectedUids
-                .map((uid) =>
-                    visibleComponents.find(
-                        (candidate: any) => candidate.uid === uid,
-                    ),
-                )
-                .filter(Boolean);
-            const primary = selectedComponents[0] || null;
-            const totalSales = selectedComponents.reduce(
-                (sum, c: any) => sum + Number(c?.salesPrice || 0),
-                0,
-            );
-            const totalBase = selectedComponents.reduce(
-                (sum, c: any) => sum + Number(c?.basePrice || 0),
-                0,
-            );
-
-            nextSteps[currentStepIndex] = {
-                ...current,
-                componentId: primary?.id || null,
-                prodUid: primary?.uid || "",
-                value: compactStepValue(selectedComponents),
-                price: selectedComponents.length ? totalSales : 0,
-                basePrice: selectedComponents.length ? totalBase : 0,
-                meta: {
-                    ...(current.meta || {}),
-                    img: primary?.img || null,
-                    selectedProdUids: selectedUids,
-                    selectedComponents: selectedComponents.map((c: any) => ({
-                        id: c.id ?? null,
-                        uid: c.uid,
-                        title: c.title,
-                        img: c.img || null,
-                        salesPrice:
-                            c.salesPrice == null
-                                ? null
-                                : Number(c.salesPrice || 0),
-                        basePrice:
-                            c.basePrice == null
-                                ? null
-                                : Number(c.basePrice || 0),
-                    })),
-                },
-                step: {
-                    ...(current.step || {
-                        id: current.stepId || null,
-                        title: "",
-                    }),
-                    title: current.step?.title || activeStep?.step?.title || "",
-                },
-            };
-
-            if (!selectedComponents.length) {
+            if (!multiMutation.hasSelection) {
                 updateLineItem(line.uid, {
-                    formSteps: nextSteps.slice(0, currentStepIndex + 1),
+                    formSteps: multiMutation.steps.slice(0, currentStepIndex + 1),
                 });
                 setActiveStepByLine((prev) => ({
                     ...prev,
@@ -871,7 +331,7 @@ export function ItemWorkflowPanel() {
                 return;
             }
             updateLineItem(line.uid, {
-                formSteps: nextSteps,
+                formSteps: multiMutation.steps,
             });
             setActiveStepByLine((prev) => ({
                 ...prev,
@@ -880,52 +340,34 @@ export function ItemWorkflowPanel() {
             return;
         }
 
-        nextSteps[currentStepIndex] = {
-            ...current,
-            componentId: component.id,
-            prodUid: component.uid,
-            value: component.title,
-            price:
-                component.salesPrice == null
-                    ? current.price
-                    : Number(component.salesPrice || 0),
-            basePrice:
-                component.basePrice == null
-                    ? current.basePrice
-                    : Number(component.basePrice || 0),
-            meta: {
-                ...(current.meta || {}),
-                img: component.img || null,
-            },
-            step: {
-                ...(current.step || {
-                    id: current.stepId || null,
-                    title: "",
-                }),
-                title: current.step?.title || activeStep?.step?.title || "",
-            },
-        };
+        const singleMutationSteps = applySingleSelectStepMutation({
+            steps: nextSteps,
+            currentStepIndex,
+            component,
+            activeStepTitle: activeStep?.step?.title || "",
+        });
 
         const selectedStepTitle = normalizeTitle(
-            nextSteps[currentStepIndex]?.step?.title,
+            singleMutationSteps[currentStepIndex]?.step?.title,
         );
         const isItemTypeStep =
             currentStepIndex === 0 || selectedStepTitle === "item type";
         if (isItemTypeStep) {
             const rootUid =
-                nextSteps[currentStepIndex]?.step?.uid ||
+                singleMutationSteps[currentStepIndex]?.step?.uid ||
                 routeData?.stepsById?.[
-                    nextSteps[currentStepIndex]?.stepId || -1
+                singleMutationSteps[currentStepIndex]?.stepId || -1
                 ] ||
                 routeData?.rootStepUid;
             const rootStep = rootUid ? routeData?.stepsByUid?.[rootUid] : null;
             if (rootStep) {
                 const configuredSeries = buildConfiguredRouteSteps(
+                    routeData,
                     rootStep,
                     component,
                 );
-                const mergedSeries = mergeSeriesWithExisting(
-                    nextSteps,
+                const mergedSeries = mergeConfiguredSeriesWithExisting(
+                    singleMutationSteps,
                     configuredSeries,
                 );
                 updateLineItem(line.uid, {
@@ -940,8 +382,9 @@ export function ItemWorkflowPanel() {
         }
 
         const routed = applyRouteRecursion({
+            routeData,
             line,
-            steps: nextSteps,
+            steps: singleMutationSteps,
             startIndex: currentStepIndex,
             selectedComponent: {
                 uid: component.uid,
@@ -985,6 +428,7 @@ export function ItemWorkflowPanel() {
         const primary = candidates[0];
         if (!primary) return;
         const routed = applyRouteRecursion({
+            routeData,
             line,
             steps,
             startIndex: stepIndex,
@@ -1016,7 +460,11 @@ export function ItemWorkflowPanel() {
             : null;
         if (!rootStep) return;
 
-        const routedSteps = buildConfiguredRouteSteps(rootStep, component);
+        const routedSteps = buildConfiguredRouteSteps(
+            routeData,
+            rootStep,
+            component,
+        );
 
         updateLineItem(line.uid, {
             formSteps: routedSteps,
@@ -1060,43 +508,19 @@ export function ItemWorkflowPanel() {
             formSteps: steps,
         });
     }
-    function getRouteConfigForLine(
-        line: (typeof record.lineItems)[number],
-        step: any,
-        component?: any,
-    ) {
-        const rootComponentUid = line?.formSteps?.[0]?.prodUid;
-        const routeConfigRaw =
-            routeData?.composedRouter?.[rootComponentUid]?.config;
-        const config = {
-            ...(routeConfigRaw && typeof routeConfigRaw === "object"
-                ? routeConfigRaw
-                : {}),
-        } as Record<string, any>;
-        const override = component?.sectionOverride;
-        if (override?.overrideMode) {
-            if (typeof override.noHandle === "boolean")
-                config.noHandle = override.noHandle;
-            if (typeof override.hasSwing === "boolean")
-                config.hasSwing = override.hasSwing;
-        }
-        if (step?.meta?.sectionOverride?.overrideMode) {
-            if (typeof step.meta.sectionOverride.noHandle === "boolean")
-                config.noHandle = step.meta.sectionOverride.noHandle;
-            if (typeof step.meta.sectionOverride.hasSwing === "boolean")
-                config.hasSwing = step.meta.sectionOverride.hasSwing;
-        }
-        return config;
-    }
     function renderHousePackageToolPanel(
         line: (typeof record.lineItems)[number],
         activeItemStep: any,
     ) {
         const rows = line.housePackageTool?.doors || [];
-        const summary = summarizeDoors(rows);
-        const routeConfig = getRouteConfigForLine(line, activeItemStep);
+        const routeConfig = resolveRouteConfigForLine({
+            routeData,
+            line,
+            step: activeItemStep,
+        });
         const noHandle = !!routeConfig?.noHandle;
         const hasSwing = !!routeConfig?.hasSwing;
+        const summary = summarizeDoors(rows, { noHandle, hasSwing });
         const doorStep = findLineStepByTitle(line, "Door");
         const supplier = getDoorSupplierMeta(doorStep);
         const selectedDoorComponents = getSelectedDoorComponentsForLine(line);
@@ -1161,7 +585,7 @@ export function ItemWorkflowPanel() {
         });
 
         function applyRows(nextRows: any[]) {
-            const next = summarizeDoors(nextRows);
+            const next = summarizeDoors(nextRows, { noHandle, hasSwing });
             updateLineItem(line.uid, {
                 housePackageTool: {
                     ...(line.housePackageTool || { id: null }),
@@ -1183,21 +607,13 @@ export function ItemWorkflowPanel() {
         function addSizeRow(size: string) {
             if (!activeDoorComponent) return;
             const pricing = activeDoorComponent?.pricing || {};
-            const supplierKey = supplier.supplierUid
-                ? `${size} & ${supplier.supplierUid}`
-                : null;
-            const priceBucket =
-                (supplierKey ? pricing?.[supplierKey] : null) ||
-                pricing?.[size] ||
-                null;
-            const computedPrice = Number(priceBucket?.price);
-            const unitPrice = Number.isFinite(computedPrice)
-                ? computedPrice
-                : Number(
-                      activeDoorComponent?.salesPrice ??
-                          activeDoorComponent?.basePrice ??
-                          0,
-                  );
+            const unitPrice = resolvePricingBucketUnitPrice({
+                pricing,
+                size,
+                supplierUid: supplier.supplierUid,
+                fallbackSalesPrice: activeDoorComponent?.salesPrice,
+                fallbackBasePrice: activeDoorComponent?.basePrice,
+            });
             const nextRows = [
                 ...summary.rows,
                 {
@@ -1537,78 +953,16 @@ export function ItemWorkflowPanel() {
         line: (typeof record.lineItems)[number],
     ) {
         const selectedMouldings = getSelectedMouldingComponentsForLine(line);
-        const byUid = new Map(
-            selectedMouldings.map((component: any) => [component.uid, component]),
-        );
         const existingRows = Array.isArray((line.meta as any)?.mouldingRows)
             ? ((line.meta as any)?.mouldingRows as any[])
             : [];
-        const existingByUid = new Map(
-            existingRows.map((row: any) => [String(row.uid), row]),
+        const sharedComponentPrice = sharedMouldingComponentPrice(
+            line.formSteps || [],
         );
-        const initialRows = selectedMouldings.map((component: any) => {
-            const existing = existingByUid.get(String(component.uid));
-            return {
-                uid: component.uid,
-                title: component.title,
-                description:
-                    String(existing?.description || "").trim() ||
-                    component.title ||
-                    "Moulding",
-                qty: Number(existing?.qty ?? 1),
-                addon: Number(existing?.addon ?? 0),
-                customPrice:
-                    existing?.customPrice == null || existing?.customPrice === ""
-                        ? null
-                        : Number(existing.customPrice || 0),
-                salesPrice: Number(
-                    existing?.salesPrice ?? component?.salesPrice ?? 0,
-                ),
-                basePrice: Number(
-                    existing?.basePrice ?? component?.basePrice ?? 0,
-                ),
-            };
-        });
-        const sharedComponentPrice = (line.formSteps || [])
-            .filter((step: any) => {
-                const title = normalizeTitle(step?.step?.title);
-                return title !== "line item" && title !== "moulding";
-            })
-            .reduce((sum, step: any) => sum + Number(step?.price || 0), 0);
-        const rows = initialRows.map((row: any) => {
-            const component = byUid.get(row.uid);
-            const componentPrice = Number(
-                row.salesPrice ?? component?.salesPrice ?? 0,
-            );
-            const qty = Number(row.qty || 0);
-            const addon = Number(row.addon || 0);
-            const customPrice =
-                row.customPrice == null || row.customPrice === ""
-                    ? null
-                    : Number(row.customPrice || 0);
-            const estimateUnit = Number(sharedComponentPrice + componentPrice);
-            const unit =
-                customPrice == null
-                    ? estimateUnit + addon
-                    : Number(customPrice) + addon;
-            const lineTotal = Number((qty * unit).toFixed(2));
-            return {
-                ...row,
-                title: row.title || component?.title || "Moulding",
-                description:
-                    row.description ||
-                    component?.title ||
-                    row.title ||
-                    "Moulding",
-                qty,
-                addon,
-                customPrice,
-                salesPrice: componentPrice,
-                basePrice: Number(row.basePrice ?? component?.basePrice ?? 0),
-                estimateUnit,
-                unit,
-                lineTotal,
-            };
+        const rows = deriveMouldingRows({
+            selectedMouldings,
+            existingRows,
+            sharedComponentPrice,
         });
         const aggregatedQty = rows.reduce(
             (sum, row: any) => sum + Number(row.qty || 0),
@@ -1620,52 +974,18 @@ export function ItemWorkflowPanel() {
                 .toFixed(2),
         );
         function persistRows(nextRowsRaw: any[]) {
-            const nextRows = nextRowsRaw.map((row: any) => ({
-                uid: row.uid,
-                title: row.title,
-                description: row.description,
-                qty: Number(row.qty || 0),
-                addon: Number(row.addon || 0),
-                customPrice:
-                    row.customPrice == null || row.customPrice === ""
-                        ? null
-                        : Number(row.customPrice || 0),
-                salesPrice: Number(row.salesPrice || 0),
-                basePrice: Number(row.basePrice || 0),
-            }));
-            const recalc = nextRows.map((row: any) => {
-                const estimateUnit = Number(
-                    sharedComponentPrice + Number(row.salesPrice || 0),
-                );
-                const unit =
-                    row.customPrice == null
-                        ? estimateUnit + Number(row.addon || 0)
-                        : Number(row.customPrice || 0) + Number(row.addon || 0);
-                return {
-                    ...row,
-                    lineTotal: Number((Number(row.qty || 0) * unit).toFixed(2)),
-                };
-            });
-            const nextQty = recalc.reduce(
-                (sum, row: any) => sum + Number(row.qty || 0),
-                0,
-            );
-            const nextTotal = Number(
-                recalc
-                    .reduce((sum, row: any) => sum + Number(row.lineTotal || 0), 0)
-                    .toFixed(2),
+            const next = summarizeMouldingPersistRows(
+                nextRowsRaw,
+                sharedComponentPrice,
             );
             updateLineItem(line.uid, {
                 meta: {
                     ...(line.meta || {}),
-                    mouldingRows: nextRows,
+                    mouldingRows: next.storedRows,
                 } as any,
-                qty: nextQty || line.qty,
-                lineTotal: nextTotal || line.lineTotal,
-                unitPrice:
-                    nextQty > 0
-                        ? Number((nextTotal / nextQty).toFixed(2))
-                        : line.unitPrice,
+                qty: next.qtyTotal,
+                lineTotal: next.total,
+                unitPrice: next.unitPrice,
                 } as any);
         }
         function removeSelectedMoulding(mouldingUid: string) {
@@ -1909,78 +1229,27 @@ export function ItemWorkflowPanel() {
         const existingRows = Array.isArray((line.meta as any)?.serviceRows)
             ? ((line.meta as any)?.serviceRows as any[])
             : [];
-        const rows =
-            existingRows.length > 0
-                ? existingRows.map((row: any, index: number) => {
-                      const qty = Number(row?.qty ?? 0);
-                      const unitPrice = Number(row?.unitPrice ?? 0);
-                      return {
-                          uid:
-                              String(row?.uid || "").trim() ||
-                              `service-${line.uid}-${index + 1}`,
-                          service: String(
-                              row?.service ?? row?.description ?? "",
-                          ),
-                          qty,
-                          unitPrice,
-                          lineTotal: Number((qty * unitPrice).toFixed(2)),
-                      };
-                  })
-                : [
-                      {
-                          uid: `service-${line.uid}-1`,
-                          service: String(line.description || "").trim(),
-                          qty: Number(line.qty ?? 1),
-                          unitPrice: Number(line.unitPrice ?? 0),
-                          lineTotal: Number(
-                              (
-                                  Number(line.qty ?? 1) *
-                                  Number(line.unitPrice ?? 0)
-                              ).toFixed(2),
-                          ),
-                      },
-                  ];
+        const rows = deriveServiceRows({
+            lineUid: line.uid,
+            existingRows,
+            lineDescription: line.description,
+            lineQty: line.qty,
+            lineUnitPrice: line.unitPrice,
+            lineTaxxable: Boolean((line.meta as any)?.taxxable),
+        });
 
         function persistRows(nextRowsRaw: any[]) {
-            const nextRows = nextRowsRaw.map((row: any, index: number) => {
-                const qty = Number(row?.qty ?? 0);
-                const unitPrice = Number(row?.unitPrice ?? 0);
-                return {
-                    uid:
-                        String(row?.uid || "").trim() ||
-                        `service-${line.uid}-${index + 1}`,
-                    service: String(row?.service ?? "").trim(),
-                    qty,
-                    unitPrice,
-                    lineTotal: Number((qty * unitPrice).toFixed(2)),
-                };
-            });
-            const qtyTotal = nextRows.reduce(
-                (sum: number, row: any) => sum + Number(row.qty || 0),
-                0,
-            );
-            const lineTotal = Number(
-                nextRows
-                    .reduce(
-                        (sum: number, row: any) => sum + Number(row.lineTotal || 0),
-                        0,
-                    )
-                    .toFixed(2),
-            );
-            const unitPrice =
-                qtyTotal > 0 ? Number((lineTotal / qtyTotal).toFixed(2)) : 0;
+            const next = summarizeServiceRows(line.uid, nextRowsRaw);
             updateLineItem(line.uid, {
                 meta: {
                     ...(line.meta || {}),
-                    serviceRows: nextRows,
+                    serviceRows: next.rows,
+                    taxxable: next.taxxable,
                 } as any,
-                qty: qtyTotal,
-                unitPrice,
-                lineTotal,
-                description: nextRows
-                    .map((row: any) => String(row?.service || "").trim())
-                    .filter(Boolean)
-                    .join(" | "),
+                qty: next.qtyTotal,
+                unitPrice: next.unitPrice,
+                lineTotal: next.lineTotal,
+                description: next.description,
             } as any);
         }
 
@@ -2093,7 +1362,6 @@ export function ItemWorkflowPanel() {
                                             }
                                         >
                                             <Menu.Item
-                                                disabled={rows.length <= 1}
                                                 className="text-red-600"
                                                 onClick={() =>
                                                     persistRows(
@@ -2122,6 +1390,7 @@ export function ItemWorkflowPanel() {
                             {
                                 uid: `service-${rows.length + 1}-${Date.now().toString(36)}`,
                                 service: "",
+                                taxxable: false,
                                 qty: 1,
                                 unitPrice: 0,
                             },
@@ -2301,6 +1570,19 @@ export function ItemWorkflowPanel() {
                       "shelf",
                   ) ? (
                     <div className="space-y-3 rounded-lg border p-3">
+                        {(() => {
+                            const currentRows = line.shelfItems || [];
+                            const persistRows = (nextRowsRaw: any[]) => {
+                                const next = summarizeShelfRows(nextRowsRaw);
+                                updateLineItem(line.uid, {
+                                    shelfItems: next.rows,
+                                    qty: next.qtyTotal,
+                                    unitPrice: next.unitPrice,
+                                    lineTotal: next.lineTotal,
+                                } as any);
+                            };
+                            return (
+                                <>
                         <div className="flex items-center">
                             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                                 Shelf Items
@@ -2310,29 +1592,27 @@ export function ItemWorkflowPanel() {
                                 variant="outline"
                                 className="ml-auto"
                                 onClick={() =>
-                                    updateLineItem(line.uid, {
-                                        shelfItems: [
-                                            ...(line.shelfItems || []),
-                                            {
-                                                id: null,
-                                                categoryId: null,
-                                                productId: null,
-                                                description: "",
-                                                qty: 1,
-                                                unitPrice: 0,
-                                                totalPrice: 0,
-                                                meta: {},
-                                            },
-                                        ],
-                                    })
+                                    persistRows([
+                                        ...currentRows,
+                                        {
+                                            id: null,
+                                            categoryId: null,
+                                            productId: null,
+                                            description: "",
+                                            qty: 1,
+                                            unitPrice: 0,
+                                            totalPrice: 0,
+                                            meta: {},
+                                        },
+                                    ])
                                 }
                             >
                                 Add Shelf Row
                             </Button>
                         </div>
-                        {(line.shelfItems || []).length ? (
+                        {currentRows.length ? (
                             <div className="space-y-2">
-                                {(line.shelfItems || []).map((row, idx) => (
+                                {currentRows.map((row, idx) => (
                                     <div
                                         key={`shelf-row-${idx}`}
                                         className="grid gap-2 md:grid-cols-12"
@@ -2341,20 +1621,16 @@ export function ItemWorkflowPanel() {
                                             className="md:col-span-5"
                                             value={row.description || ""}
                                             onChange={(e) =>
-                                                updateLineItem(line.uid, {
-                                                    shelfItems: (
-                                                        line.shelfItems || []
-                                                    ).map((item, i) =>
+                                                persistRows(
+                                                    currentRows.map((item, i) =>
                                                         i === idx
                                                             ? {
                                                                   ...item,
-                                                                  description:
-                                                                      e.target
-                                                                          .value,
+                                                                  description: e.target.value,
                                                               }
                                                             : item,
                                                     ),
-                                                })
+                                                )
                                             }
                                             placeholder="Description"
                                         />
@@ -2363,27 +1639,18 @@ export function ItemWorkflowPanel() {
                                             type="number"
                                             value={row.qty || 0}
                                             onChange={(e) =>
-                                                updateLineItem(line.uid, {
-                                                    shelfItems: (
-                                                        line.shelfItems || []
-                                                    ).map((item, i) => {
-                                                        if (i !== idx)
-                                                            return item;
-                                                        const qty = Number(
-                                                            e.target.value || 0,
-                                                        );
-                                                        return {
-                                                            ...item,
-                                                            qty,
-                                                            totalPrice:
-                                                                qty *
-                                                                Number(
-                                                                    item.unitPrice ||
-                                                                        0,
-                                                                ),
-                                                        };
-                                                    }),
-                                                })
+                                                persistRows(
+                                                    currentRows.map((item, i) =>
+                                                        i === idx
+                                                            ? {
+                                                                  ...item,
+                                                                  qty: Number(
+                                                                      e.target.value || 0,
+                                                                  ),
+                                                              }
+                                                            : item,
+                                                    ),
+                                                )
                                             }
                                             placeholder="Qty"
                                         />
@@ -2393,28 +1660,18 @@ export function ItemWorkflowPanel() {
                                             step="0.01"
                                             value={row.unitPrice || 0}
                                             onChange={(e) =>
-                                                updateLineItem(line.uid, {
-                                                    shelfItems: (
-                                                        line.shelfItems || []
-                                                    ).map((item, i) => {
-                                                        if (i !== idx)
-                                                            return item;
-                                                        const unitPrice =
-                                                            Number(
-                                                                e.target
-                                                                    .value || 0,
-                                                            );
-                                                        return {
-                                                            ...item,
-                                                            unitPrice,
-                                                            totalPrice:
-                                                                Number(
-                                                                    item.qty ||
-                                                                        0,
-                                                                ) * unitPrice,
-                                                        };
-                                                    }),
-                                                })
+                                                persistRows(
+                                                    currentRows.map((item, i) =>
+                                                        i === idx
+                                                            ? {
+                                                                  ...item,
+                                                                  unitPrice: Number(
+                                                                      e.target.value || 0,
+                                                                  ),
+                                                              }
+                                                            : item,
+                                                    ),
+                                                )
                                             }
                                             placeholder="Unit"
                                         />
@@ -2429,13 +1686,11 @@ export function ItemWorkflowPanel() {
                                             className="md:col-span-1"
                                             variant="destructive"
                                             onClick={() =>
-                                                updateLineItem(line.uid, {
-                                                    shelfItems: (
-                                                        line.shelfItems || []
-                                                    ).filter(
+                                                persistRows(
+                                                    currentRows.filter(
                                                         (_, i) => i !== idx,
                                                     ),
-                                                })
+                                                )
                                             }
                                         >
                                             X
@@ -2448,6 +1703,9 @@ export function ItemWorkflowPanel() {
                                 No shelf rows yet.
                             </p>
                         )}
+                                </>
+                            );
+                        })()}
                     </div>
                 ) : !activeItemStep?.stepId && !activeItemStep?.step?.id ? (
                     <p className="text-sm text-muted-foreground">
@@ -2830,11 +2088,12 @@ export function ItemWorkflowPanel() {
                     component={doorStepModal.component}
                     supplierUid={activeDoorSupplier.supplierUid}
                     supplierName={activeDoorSupplier.supplierName}
-                    routeConfig={getRouteConfigForLine(
-                        activeLine,
-                        activeStep,
-                        doorStepModal.component,
-                    )}
+                    routeConfig={resolveRouteConfigForLine({
+                        routeData,
+                        line: activeLine,
+                        step: activeStep,
+                        component: doorStepModal.component,
+                    })}
                     onApply={({ rows, selected }) => {
                         if (!doorStepModal.component) return;
                         const existingDoors =

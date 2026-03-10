@@ -379,12 +379,47 @@ describe("new-sales-form multi-line mixed parity", () => {
           id: null,
           uid: "line-service",
           title: "Service Line",
-          description: "",
-          qty: 1,
-          unitPrice: 80,
-          lineTotal: 80,
-          meta: {},
+          description: "Install | Delivery",
+          qty: 2,
+          unitPrice: 65,
+          lineTotal: 130,
+          meta: {
+            taxxable: true,
+            serviceRows: [
+              { uid: "svc-1", service: "Install", taxxable: true, qty: 1, unitPrice: 80 },
+              { uid: "svc-2", service: "Delivery", taxxable: false, qty: 1, unitPrice: 50 },
+            ],
+          },
           formSteps: [{ stepId: 11, value: "Services", prodUid: "service" }],
+          shelfItems: [],
+          housePackageTool: null,
+        } as any,
+        {
+          id: null,
+          uid: "line-moulding",
+          title: "Moulding Line",
+          description: "Casing",
+          qty: 2,
+          unitPrice: 75,
+          lineTotal: 150,
+          meta: {
+            mouldingRows: [
+              {
+                uid: "m-1",
+                title: "Casing",
+                description: "Casing",
+                qty: 2,
+                addon: 0,
+                customPrice: null,
+                salesPrice: 70,
+                basePrice: 40,
+              },
+            ],
+          },
+          formSteps: [
+            { stepId: 13, value: "Moulding", prodUid: "item-type-moulding" },
+            { stepId: 14, value: "Casing", prodUid: "moulding-casing" },
+          ],
           shelfItems: [],
           housePackageTool: null,
         } as any,
@@ -399,8 +434,9 @@ describe("new-sales-form multi-line mixed parity", () => {
     const doorLine = loaded.lineItems.find((l) => l.uid === "line-door");
     const shelfLine = loaded.lineItems.find((l) => l.uid === "line-shelf");
     const serviceLine = loaded.lineItems.find((l) => l.uid === "line-service");
+    const mouldingLine = loaded.lineItems.find((l) => l.uid === "line-moulding");
 
-    expect(loaded.lineItems).toHaveLength(3);
+    expect(loaded.lineItems).toHaveLength(4);
 
     expect(doorLine?.housePackageTool).toBeTruthy();
     expect(doorLine?.housePackageTool?.doors).toHaveLength(1);
@@ -410,9 +446,29 @@ describe("new-sales-form multi-line mixed parity", () => {
     expect(shelfLine?.housePackageTool).toBeNull();
     expect(shelfLine?.shelfItems || []).toHaveLength(1);
     expect(shelfLine?.formSteps || []).toHaveLength(1);
+    expect(shelfLine?.qty).toBe(1);
+    expect(shelfLine?.unitPrice).toBe(120);
+    expect(shelfLine?.lineTotal).toBe(120);
+    expect(shelfLine?.shelfItems?.[0]?.qty).toBe(2);
+    expect(shelfLine?.shelfItems?.[0]?.unitPrice).toBe(60);
+    expect(shelfLine?.shelfItems?.[0]?.totalPrice).toBe(120);
 
     expect(serviceLine?.housePackageTool).toBeNull();
     expect(serviceLine?.shelfItems || []).toHaveLength(0);
     expect(serviceLine?.formSteps || []).toHaveLength(1);
+    expect(serviceLine?.qty).toBe(2);
+    expect(serviceLine?.unitPrice).toBe(65);
+    expect(serviceLine?.lineTotal).toBe(130);
+    expect((serviceLine?.meta as any)?.taxxable).toBe(true);
+    expect(((serviceLine?.meta as any)?.serviceRows || []).length).toBe(2);
+
+    expect(mouldingLine?.housePackageTool).toBeNull();
+    expect(mouldingLine?.shelfItems || []).toHaveLength(0);
+    expect(mouldingLine?.formSteps || []).toHaveLength(2);
+    expect(mouldingLine?.qty).toBe(2);
+    expect(mouldingLine?.unitPrice).toBe(75);
+    expect(mouldingLine?.lineTotal).toBe(150);
+    expect(((mouldingLine?.meta as any)?.mouldingRows || []).length).toBe(1);
+    expect((mouldingLine?.meta as any)?.mouldingRows?.[0]?.salesPrice).toBe(70);
   });
 });

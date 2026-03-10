@@ -5,6 +5,7 @@ import {
   buildPackingPayload,
   hasQty,
 } from "../lib/packing-payload";
+import { buildPackItemTaskPayload } from "./pack-task-payload";
 import {
   DispatchDeliverable,
   DispatchStatus,
@@ -86,22 +87,16 @@ export function useDispatchPacking() {
         throw new Error("Unable to allocate full packing quantity");
       }
 
-      return taskTrigger.mutateAsync({
-        taskName: "update-sales-control",
-        payload: {
-          meta: {
-            salesId: input.salesId,
-            authorId: author.id,
-            authorName: author.name,
-          },
-          packItems: {
-            dispatchId: input.dispatchId,
-            dispatchStatus: input.dispatchStatus,
-            packMode: "selection",
-            packingList: packed.packingList,
-          },
-        },
-      });
+      return taskTrigger.mutateAsync(
+        buildPackItemTaskPayload({
+          salesId: input.salesId,
+          dispatchId: input.dispatchId,
+          dispatchStatus: input.dispatchStatus,
+          authorId: author.id,
+          authorName: author.name,
+          packingLines: packed.packingLines,
+        }),
+      );
     },
     onClearPackings(input: PackingMetaInput) {
       const author = getAuthor(auth.profile);

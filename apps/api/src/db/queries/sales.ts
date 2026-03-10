@@ -30,9 +30,21 @@ import {
 import { consoleLog, formatCurrency, formatMoney } from "@gnd/utils";
 import { calculateSalesDueAmount } from "@sales/sales-transaction";
 import { payrollUid } from "@sales/utils/utils";
-import { withSalesListControl } from "@gnd/sales";
+import {
+  isControlReadV2Enabled,
+  withSalesControl,
+  withSalesListControl,
+} from "@gnd/sales";
 import z from "zod";
 import type { SalesPaymentStatus } from "@sales/constants";
+
+function isControlReadParityEnabled() {
+  return ["1", "true", "yes", "on"].includes(
+    String(process.env.CONTROL_READ_PARITY || "")
+      .trim()
+      .toLowerCase(),
+  );
+}
 
 export async function getSales(
   ctx: TRPCContext,
@@ -72,8 +84,40 @@ export async function getSales(
     }));
   const rowsWithControl =
     query.salesType === "order"
-      ? await withSalesListControl(rows, db)
+      ? isControlReadV2Enabled()
+        ? await withSalesListControl(rows, db)
+        : await withSalesControl(rows, db)
       : rows;
+
+  if (
+    query.salesType === "order" &&
+    isControlReadV2Enabled() &&
+    isControlReadParityEnabled()
+  ) {
+    const legacyRows = await withSalesControl(rows, db);
+    const legacyById = new Map(legacyRows.map((row: any) => [row.id, row]));
+    const mismatches: number[] = [];
+    for (const row of rowsWithControl as any[]) {
+      const legacy = legacyById.get(row.id);
+      const control = row.control;
+      if (!legacy || !control) continue;
+      if (
+        legacy.statistic?.productionStatus !== control.productionStatus ||
+        legacy.statistic?.dispatchStatus !== control.dispatchStatus ||
+        legacy.statistic?.packables?.total !== control.packables?.total ||
+        legacy.statistic?.pendingDispatch?.total !==
+          control.pendingDispatch?.total
+      ) {
+        mismatches.push(row.id);
+      }
+    }
+    if (mismatches.length) {
+      console.warn("[control-read-parity][sales] mismatches", {
+        mismatchCount: mismatches.length,
+        salesIds: mismatches.slice(0, 20),
+      });
+    }
+  }
 
   const result = await response(rowsWithControl as any);
 
@@ -142,7 +186,9 @@ export async function getOrders(
       noteCount: 0,
       ...(notCounts[d.id.toString()] || {}),
     }));
-  const rowsWithControl = await withSalesListControl(rows, db);
+  const rowsWithControl = isControlReadV2Enabled()
+    ? await withSalesListControl(rows, db)
+    : await withSalesControl(rows, db);
   const result = await response(rowsWithControl as any);
   return result;
 }

@@ -40,6 +40,7 @@ function currency(value?: number | null) {
 
 const PAYMENT_TERMS = ["None", "Due on Receipt", "Net 7", "Net 15", "Net 30", "Net 60"];
 const DELIVERY_OPTIONS = ["pickup", "delivery", "ship"];
+const PAYMENT_METHODS = ["None", "Cash", "Check", "Credit Card", "ACH", "Link"];
 
 export function InvoiceOverviewPanel() {
     const record = useNewSalesFormStore((s) => s.record);
@@ -425,7 +426,7 @@ export function InvoiceOverviewPanel() {
                             </Select>
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                         <div className="flex flex-col gap-1.5">
                             <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                                 Due Date
@@ -442,6 +443,30 @@ export function InvoiceOverviewPanel() {
                                 }
                                 className="h-9 rounded-lg bg-card text-xs font-bold"
                             />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                Payment Method
+                            </label>
+                            <Select
+                                value={record.form.paymentMethod || "None"}
+                                onValueChange={(value) =>
+                                    setMeta({
+                                        paymentMethod: value === "None" ? null : value,
+                                    })
+                                }
+                            >
+                                <SelectTrigger className="h-9 rounded-lg bg-card text-xs font-bold">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {PAYMENT_METHODS.map((mode) => (
+                                        <SelectItem key={mode} value={mode}>
+                                            {mode}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">

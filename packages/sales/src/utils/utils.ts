@@ -346,6 +346,7 @@ export const FullSalesSelect = {
         },
         select: {
           id: true,
+          packingStatus: true,
           qty: true,
           lhQty: true,
           rhQty: true,

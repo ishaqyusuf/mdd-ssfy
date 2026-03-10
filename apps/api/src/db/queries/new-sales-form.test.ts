@@ -315,6 +315,7 @@ describe("new-sales-form relational parity", () => {
         billingAddressId: null,
         shippingAddressId: null,
         paymentTerm: "None",
+        paymentMethod: "Credit Card",
         goodUntil: null,
         po: null,
         notes: null,
@@ -406,6 +407,8 @@ describe("new-sales-form relational parity", () => {
     expect(loaded.lineItems[0].housePackageTool?.molding?.title).toBe(
       "Classic Moulding",
     );
+    expect(loaded.form.paymentMethod).toBe("Credit Card");
+    expect(loaded.summary.grandTotal).toBeGreaterThan(loaded.summary.subTotal);
   });
 
   it("soft-deletes prior relational rows on update and replaces with current payload", async () => {

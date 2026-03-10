@@ -47,20 +47,15 @@ export function PackingItemForm({}) {
     });
     const auth = useAuth();
     const onSubmit = (formData: z.infer<typeof schema>) => {
+        if (!item?.salesItemId) return;
         const packItems: UpdateSalesControl["packItems"] = {
             dispatchId: packing.data?.dispatch?.id,
             dispatchStatus: (packing.data?.dispatch?.status as any) || "queue",
-            packingList: [
-                {
-                    note: formData.note,
-                    salesItemId: item?.salesItemId,
-                    submissions: [],
-                },
-            ],
+            packingLines: [],
         };
 
         let qty = recomposeQty(formData.qty as any);
-        item.deliverables.map((a) => {
+        item.deliverables.forEach((a) => {
             const dispatchableQty = recomposeQty(a.qty);
             if (hasQty(qty)) {
                 const { pendingPick, picked, remainder } = pickQtyFrom(
@@ -68,7 +63,9 @@ export function PackingItemForm({}) {
                     dispatchableQty,
                 );
                 if (hasQty(picked)) {
-                    packItems.packingList[0].submissions.push({
+                    packItems.packingLines?.push({
+                        note: formData.note,
+                        salesItemId: item.salesItemId,
                         qty: recomposeQty(picked),
                         submissionId: a.submissionId,
                     });
@@ -180,4 +177,3 @@ export function PackingItemForm({}) {
         </div>
     );
 }
-

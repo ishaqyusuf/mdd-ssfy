@@ -12,7 +12,11 @@ export const salesRequestPacking: NotificationHandler = {
     author: UserData,
     _contact: UserData,
   ) {
-    const requestedCount = data.packItems?.packingList?.length || 0;
+    const requestedCount =
+      data.packItems?.packingLines?.length
+        ? new Set(data.packItems.packingLines.map((line) => line.salesItemId))
+            .size
+        : data.packItems?.packingList?.length || 0;
     const payload: SalesRequestPackingTags = {
       type: "sales_request_packing",
       source: "user",

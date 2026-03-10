@@ -119,6 +119,7 @@ export const newSalesFormMetaSchema = z.object({
   po: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   deliveryOption: z.string().optional().nullable(),
+  paymentMethod: z.string().optional().nullable(),
   taxCode: z.string().optional().nullable(),
 });
 export type NewSalesFormMeta = z.infer<typeof newSalesFormMetaSchema>;
@@ -213,11 +214,13 @@ export type DeleteNewSalesFormLineItemSchema = z.infer<
 
 export const recalculateNewSalesFormSchema = z.object({
   taxRate: z.number().min(0).max(100).default(0),
+  paymentMethod: z.string().optional().nullable(),
   extraCosts: z
     .array(
       z.object({
         type: newSalesFormExtraCostTypeSchema,
         amount: z.number(),
+        taxxable: z.boolean().optional().nullable(),
       }),
     )
     .default([]),
@@ -226,6 +229,22 @@ export const recalculateNewSalesFormSchema = z.object({
       qty: z.number(),
       unitPrice: z.number(),
       lineTotal: z.number().optional(),
+      taxxable: z.boolean().optional().nullable(),
+      meta: z.record(z.string(), z.any()).optional().nullable(),
+      formSteps: z
+        .array(
+          z.object({
+            value: z.string().optional().nullable(),
+            step: z
+              .object({
+                title: z.string().optional().nullable(),
+              })
+              .optional()
+              .nullable(),
+          }),
+        )
+        .optional()
+        .nullable(),
     }),
   ),
 });

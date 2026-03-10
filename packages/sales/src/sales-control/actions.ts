@@ -211,12 +211,23 @@ export async function packDispatchItemsAction(
   props: PackDispatchItemsAction,
 ) {
   const { data } = props;
-  const packingList = props.packItems?.packingList ?? [];
-  if (!packingList.length) return { created: 0, skipped: 0 };
+  const packingLines =
+    props.packItems?.packingLines?.length
+      ? props.packItems.packingLines
+      : (props.packItems?.packingList ?? []).flatMap((item) =>
+          item.submissions.map((submission) => ({
+            salesItemId: item.salesItemId,
+            submissionId: submission.submissionId,
+            qty: submission.qty,
+            note: item.note,
+          })),
+        );
+
+  if (!packingLines.length) return { created: 0, skipped: 0 };
 
   const dispatchId = props.packItems!.dispatchId;
-  const submissionIds = packingList
-    .flatMap((p) => p.submissions.map((s) => s.submissionId))
+  const submissionIds = packingLines
+    .map((line) => line.submissionId)
     .filter(Boolean);
 
   const existingPacked = submissionIds.length
@@ -257,43 +268,46 @@ export async function packDispatchItemsAction(
 
   const createRows: Prisma.OrderItemDeliveryCreateManyInput[] = [];
   let skipped = 0;
-  for (const pi of packingList) {
-    const packingUid = generateRandomString(4);
-    for (const ps of pi.submissions) {
-      const existing = packedBySubmission.get(ps.submissionId) || {
-        lh: 0,
-        rh: 0,
-        qty: 0,
-      };
-      const requested = recomposeQty(ps.qty as any);
-      const remaining = recomposeQty(
-        qtyMatrixDifference(requested, {
-          lh: existing.lh,
-          rh: existing.rh,
-          qty: existing.qty,
-        } as any),
-      );
-      if (!hasQty(remaining)) {
-        skipped += 1;
-        continue;
-      }
-
-      createRows.push({
-        orderId: data.order.id,
-        orderItemId: pi.salesItemId,
-        lhQty: remaining.lh,
-        rhQty: remaining.rh,
-        note: pi.note,
-        packingUid,
-        status: props.packItems!.dispatchStatus,
-        qty: remaining.qty || sum([remaining.rh, remaining.lh]),
-        meta: {},
-        orderDeliveryId: dispatchId,
-        orderProductionSubmissionId: ps.submissionId,
-        packedBy: props.authorName,
-        packingStatus: "packed" as DispatchItemPackingStatus,
-      });
+  for (const line of packingLines) {
+    const existing = packedBySubmission.get(line.submissionId) || {
+      lh: 0,
+      rh: 0,
+      qty: 0,
+    };
+    const requested = recomposeQty(line.qty as any);
+    const remaining = recomposeQty(
+      qtyMatrixDifference(requested, {
+        lh: existing.lh,
+        rh: existing.rh,
+        qty: existing.qty,
+      } as any),
+    );
+    if (!hasQty(remaining)) {
+      skipped += 1;
+      continue;
     }
+
+    createRows.push({
+      orderId: data.order.id,
+      orderItemId: line.salesItemId,
+      lhQty: remaining.lh,
+      rhQty: remaining.rh,
+      note: line.note,
+      packingUid: generateRandomString(4),
+      status: props.packItems!.dispatchStatus,
+      qty: remaining.qty || sum([remaining.rh, remaining.lh]),
+      meta: {},
+      orderDeliveryId: dispatchId,
+      orderProductionSubmissionId: line.submissionId,
+      packedBy: props.authorName,
+      packingStatus: "packed" as DispatchItemPackingStatus,
+    });
+
+    packedBySubmission.set(line.submissionId, {
+      lh: sum([existing.lh, remaining.lh]),
+      rh: sum([existing.rh, remaining.rh]),
+      qty: sum([existing.qty, remaining.qty]),
+    });
   }
 
   if (createRows.length) {

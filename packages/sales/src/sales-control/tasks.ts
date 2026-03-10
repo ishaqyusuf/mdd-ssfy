@@ -14,6 +14,7 @@ import { getSaleInformation } from "./get-sale-information";
 import { noteTag, saveNote, SaveNoteSchema } from "@gnd/utils/note";
 import { pickQtyFrom, recomposeQty } from "../utils/sales-control";
 import { hasQty } from "@gnd/utils/sales";
+import { RenturnTypeAsync } from "@gnd/utils";
 export async function submitAllTask(db: Db, data: UpdateSalesControl) {
   const submitArgs = data.submitAll;
   const info = await getSaleInformation(db, {
@@ -217,6 +218,32 @@ export async function submitDispatchTask(db: Db, data: UpdateSalesControl) {
   );
   return response;
 }
+
+export function buildAutoPackingLines(
+  info: RenturnTypeAsync<typeof getSaleInformation>,
+): NonNullable<NonNullable<UpdateSalesControl["packItems"]>["packingLines"]> {
+  const packingLines: NonNullable<
+    NonNullable<UpdateSalesControl["packItems"]>["packingLines"]
+  > = [];
+
+  for (const item of info.items) {
+    if (!item.itemId) continue;
+
+    const deliverables = (item.deliverables ?? []).filter((d) => hasQty(d.qty));
+
+    if (!deliverables.length) continue;
+    for (const deliverable of deliverables) {
+      packingLines.push({
+        salesItemId: item.itemId,
+        submissionId: deliverable.submissionId,
+        qty: deliverable.qty,
+      });
+    }
+  }
+
+  return packingLines;
+}
+
 export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
   const packMode = data.packItems?.packMode!;
   if (packMode == "all") {
@@ -259,27 +286,7 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
     salesId: data.meta.salesId,
   });
   if (data.packItems?.packMode !== "selection") {
-    const packingList: NonNullable<
-      NonNullable<typeof data.packItems>["packingList"]
-    > = [];
-
-    for (const item of info.items) {
-      if (!item.itemId) continue;
-
-      const deliverables = (item.deliverables ?? []).filter((d) =>
-        hasQty(d.qty),
-      );
-
-      if (!deliverables.length) continue;
-      packingList.push({
-        salesItemId: item.itemId,
-        submissions: deliverables.map((d) => ({
-          submissionId: d.submissionId,
-          qty: d.qty,
-        })),
-      });
-    }
-    data.packItems!.packingList = packingList;
+    data.packItems!.packingLines = buildAutoPackingLines(info);
   }
   const response = await db.$transaction(
     async (tx) => {
@@ -297,6 +304,7 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
       maxWait: 30 * 1000,
     },
   );
+  return response;
 }
 export async function resetSalesTask(db: Db, salesId) {
   const response = await db.$transaction(

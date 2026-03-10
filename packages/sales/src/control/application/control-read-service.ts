@@ -22,7 +22,7 @@ export class ControlReadService implements ControlReadServiceContract {
     return enriched.map((row) => {
       const { statistic, ...rest } = row as typeof row & { statistic: any };
       return {
-        ...(rest as T),
+        ...(rest as unknown as T),
         control: projectSalesListControl(statistic, fields),
       };
     });
@@ -36,7 +36,7 @@ export class ControlReadService implements ControlReadServiceContract {
     return enriched.map((row) => {
       const { statistic, ...rest } = row as typeof row & { statistic: any };
       return {
-        ...(rest as T),
+        ...(rest as unknown as T),
         control: projectDispatchListControl(statistic, fields),
       };
     });

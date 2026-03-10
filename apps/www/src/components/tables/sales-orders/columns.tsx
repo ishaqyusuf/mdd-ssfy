@@ -28,6 +28,19 @@ import { useTRPC } from "@/trpc/client";
 import { UpdateSalesControl } from "@sales/schema";
 import { toast } from "@gnd/ui/use-toast";
 export type Item = RouterOutputs["sales"]["index"]["data"][number];
+
+function getProductionStatusLabel(item: Item) {
+    const status = (item as any)?.control?.productionStatus;
+    if (status && status !== "unknown") return status;
+    return item.status.production?.scoreStatus || item.status.production?.status;
+}
+
+function getFulfillmentStatusLabel(item: Item) {
+    const status = (item as any)?.control?.dispatchStatus;
+    if (status && status !== "unknown") return status;
+    return item?.deliveryStatus || "-";
+}
+
 export const columns2: ColumnDef<Item>[] = [
     cells.selectColumn,
     {
@@ -136,10 +149,7 @@ export const columns2: ColumnDef<Item>[] = [
         accessorKey: "production",
         cell: ({ row: { original: item } }) => (
             <Progress>
-                <Progress.Status>
-                    {item.status.production?.scoreStatus ||
-                        item.status.production?.status}
-                </Progress.Status>
+                <Progress.Status>{getProductionStatusLabel(item)}</Progress.Status>
             </Progress>
         ),
     },
@@ -147,7 +157,7 @@ export const columns2: ColumnDef<Item>[] = [
         header: "Fulfillment",
         accessorKey: "dispatch",
         cell: ({ row: { original: item } }) => (
-            <Progress.Status>{item?.deliveryStatus || "-"}</Progress.Status>
+            <Progress.Status>{getFulfillmentStatusLabel(item)}</Progress.Status>
         ),
     },
     {
@@ -288,10 +298,7 @@ export const columns: ColumnDef<Item>[] = [
         accessorKey: "production",
         cell: ({ row: { original: item } }) => (
             <Progress>
-                <Progress.Status>
-                    {item.status.production?.scoreStatus ||
-                        item.status.production?.status}
-                </Progress.Status>
+                <Progress.Status>{getProductionStatusLabel(item)}</Progress.Status>
             </Progress>
         ),
     },
@@ -299,7 +306,7 @@ export const columns: ColumnDef<Item>[] = [
         header: "Fulfillment",
         accessorKey: "dispatch",
         cell: ({ row: { original: item } }) => (
-            <Progress.Status>{item?.deliveryStatus || "-"}</Progress.Status>
+            <Progress.Status>{getFulfillmentStatusLabel(item)}</Progress.Status>
         ),
     },
     {
@@ -480,4 +487,3 @@ function Actions({ item }: { item: Item }) {
         </div>
     );
 }
-

@@ -14,7 +14,12 @@ import type { TRPCContext } from "@api/trpc/init";
 import type { QtyControlType } from "@api/type";
 import type { Prisma } from "@gnd/db";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
-import { withDispatchListControl } from "@gnd/sales";
+import {
+  isControlReadV2Enabled,
+  withDispatchControl,
+  withDispatchListControl,
+  withSalesListControl,
+} from "@gnd/sales";
 import { tasks } from "@trigger.dev/sdk/v3";
 import type { NotificationJobInput } from "@notifications/schemas";
 import { TRPCError } from "@trpc/server";
@@ -22,6 +27,14 @@ import { TRPCError } from "@trpc/server";
 import { qtyMatrixSum, transformQtyHandle } from "@sales/utils/sales-control";
 import { getSalesDispatchOverview } from "@sales/exports";
 import { qtyMatrixDifference, recomposeQty } from "@sales/utils/sales-control";
+
+function isControlReadParityEnabled() {
+  return ["1", "true", "yes", "on"].includes(
+    String(process.env.CONTROL_READ_PARITY || "")
+      .trim()
+      .toLowerCase(),
+  );
+}
 
 function emptyQtyStat() {
   return {
@@ -117,26 +130,95 @@ export async function getDispatches(
       },
     },
   });
+  const orderControlRows = await withSalesListControl(
+    [...new Map(data.map((row) => [row.order.id, { id: row.order.id }])).values()],
+    db as any,
+    ["packed", "pendingPacking", "dispatchStatus"] as any,
+  );
+  const orderControlById = new Map(
+    orderControlRows.map((row) => [row.id, (row as any).control]),
+  );
 
-  const rowsWithControl = await withDispatchListControl(
+  if (isControlReadV2Enabled()) {
+    if (isControlReadParityEnabled()) {
+      const legacyRows = await withDispatchControl(
+        data.map((a) => ({
+          ...a,
+          salesOrderId: a.order.id,
+        })),
+        db,
+      );
+      const v2Rows = await withDispatchListControl(
+        data.map((a) => ({
+          ...a,
+          salesOrderId: a.order.id,
+        })),
+        db,
+      );
+      const legacyById = new Map(legacyRows.map((row) => [row.id, row]));
+      const mismatches: number[] = [];
+      for (const row of v2Rows) {
+        const legacy = legacyById.get(row.id) as any;
+        const v2 = (row as any).control;
+        if (!legacy || !v2) continue;
+        if (
+          legacy.statistic?.dispatchStatus !== v2.dispatchStatus ||
+          legacy.statistic?.packed?.total !== v2.packed?.total ||
+          legacy.statistic?.pendingPacking?.total !== v2.pendingPacking?.total
+        ) {
+          mismatches.push(row.id);
+        }
+      }
+      if (mismatches.length) {
+        console.warn("[control-read-parity][dispatch] mismatches", {
+          mismatchCount: mismatches.length,
+          dispatchIds: mismatches.slice(0, 20),
+        });
+      }
+    }
+
+    const rowsWithControl = await withDispatchListControl(
+      data.map((a) => ({
+        ...a,
+        salesOrderId: a.order.id,
+      })),
+      db,
+    );
+
+    return await response(
+      rowsWithControl.map((a) => {
+        const { salesOrderId, ...rest } = a as typeof a & {
+          salesOrderId: number;
+        };
+        return {
+          ...rest,
+          order: {
+            ...rest.order,
+            control: orderControlById.get(rest.order.id) || null,
+          },
+          statistic: toLegacyDispatchStatistic((a as any).control),
+          uid: String(a.id),
+        };
+      }),
+    );
+  }
+
+  const rowsWithStatistic = await withDispatchControl(
     data.map((a) => ({
       ...a,
       salesOrderId: a.order.id,
     })),
     db,
   );
-
   return await response(
-    rowsWithControl.map((a) => {
-      const { salesOrderId, ...rest } = a as typeof a & {
-        salesOrderId: number;
-      };
-      return {
-        ...rest,
-        statistic: toLegacyDispatchStatistic((a as any).control),
-        uid: String(a.id),
-      };
-    }),
+    rowsWithStatistic.map((a) => ({
+      ...a,
+      order: {
+        ...(a as any).order,
+        control: orderControlById.get((a as any).order?.id) || null,
+      },
+      uid: String(a.id),
+    })),
   );
 }
 
@@ -593,6 +675,12 @@ export async function getDispatchOverview(
   let address = result.order.shippingAddress;
   if (!address) address = {} as any;
   const order = result.order;
+  const orderWithControl = await withSalesListControl(
+    [{ id: order.id }],
+    ctx.db as any,
+    ["packed", "pendingPacking", "dispatchStatus"] as any,
+  );
+  const orderControl = (orderWithControl?.[0] as any)?.control;
   return {
     dispatch,
     dispatchItems: result.order.itemControls.map((item) => {
@@ -600,7 +688,7 @@ export async function getDispatchOverview(
         (a) => a.item?.controlUid == item.uid,
       );
       const packedItems = listedItems?.filter(
-        (a) => a.packingStatus === "packed",
+        (a) => !("packingStatus" in a) || a.packingStatus === "packed",
       );
       const totalListedQty = recomposeQty(
         qtyMatrixSum(
@@ -684,6 +772,7 @@ export async function getDispatchOverview(
       orderId: order.orderId,
       date: order.createdAt,
       id: order.id,
+      control: orderControl,
     },
     // orderRequiresUpdate: result.orderRequiresUpdate,
   };
