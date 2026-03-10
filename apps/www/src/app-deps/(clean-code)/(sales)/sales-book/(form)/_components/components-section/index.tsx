@@ -34,7 +34,6 @@ import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { Label } from "@gnd/ui/label";
-import { ScrollArea } from "@gnd/ui/scroll-area";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { Sortable, SortableItem } from "@gnd/ui/sortable";
 
@@ -128,9 +127,9 @@ function Content({ itemStepUid }) {
 
     return (
         <div className="grid gap-4">
-            <ScrollArea
+            <div
                 ref={sticky.containerRef}
-                className="smax-h-[80vh] sm:max-h-[200vh] relative h-full p-4 pb-20"
+                className="relative h-full p-4 pb-20"
             >
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
                     {!items.length &&
@@ -160,7 +159,7 @@ function Content({ itemStepUid }) {
                 </div>
 
                 <FloatingAction ctx={ctx} />
-            </ScrollArea>
+            </div>
         </div>
     );
 }
@@ -169,7 +168,7 @@ function FloatingAction({ ctx }: { ctx: UseStepContext }) {
     const {
         stepUid,
         items,
-        sticky: { actionRef, isFixed, fixedOffset },
+        sticky: { actionRef },
         selectionState,
     } = ctx;
     const isDoor = ctx.cls.isDoor();
@@ -203,13 +202,7 @@ function FloatingAction({ ctx }: { ctx: UseStepContext }) {
         <>
             <div
                 ref={actionRef}
-                style={isFixed ? { left: `${fixedOffset}px` } : {}}
-                className={cn(
-                    isFixed
-                        ? "fixed bottom-2 sm:bottom-12 left-1/2 -translate-x-1/2 transform"
-                        : "absolute bottom-4 left-1/2 -translate-x-1/2 transform",
-                    "z-10 bg-secondary",
-                )}
+                className="sticky bottom-2 left-1/2 z-20 w-fit -translate-x-1/2 transform bg-secondary sm:bottom-12"
             >
                 <div className="flex items-center gap-4 rounded-lg border p-2 px-4 shadow">
                     {selectionState?.count ? (

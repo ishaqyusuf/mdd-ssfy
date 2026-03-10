@@ -1,8 +1,10 @@
 import { BackBtn } from "@/components/back-btn";
 import { SafeArea } from "@/components/safe-area";
 import { InstallCostForm } from "@/components/forms/job-v2/install-cost-form";
+import { _trpc } from "@/components/static-trpc";
 import { Toast } from "@/components/ui/toast";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
+import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
 import { Text, View } from "react-native";
 
@@ -28,6 +30,20 @@ export default function InstallCostFormRoute() {
   const requestBuilderTaskId = parseNumberParam(params.requestBuilderTaskId);
   const contractorId = parseNumberParam(params.contractorId);
   const jobId = parseNumberParam(params.jobId);
+  const { data: builderTaskData } = useQuery(
+    _trpc.community.getModelBuilderTasks.queryOptions(
+      {
+        modelId: modelId || -1,
+      },
+      {
+        enabled: !!modelId,
+      },
+    ),
+  );
+
+  const headerTitle = builderTaskData?.modelName?.trim() || "Model";
+  const builderName = builderTaskData?.builderName?.trim() || "";
+  const headerSubtitle = builderName ? `Builder: ${builderName}` : "Builder";
 
   const notifyContractor = async () => {
     if (!contractorId || !jobId) {
@@ -45,7 +61,7 @@ export default function InstallCostFormRoute() {
       Toast.show("Contractor notified: job task is ready.", {
         type: "success",
       });
-    } catch (_error) {
+    } catch {
       Toast.show("Unable to notify contractor right now.", {
         type: "error",
       });
@@ -58,9 +74,12 @@ export default function InstallCostFormRoute() {
         <View className="flex-1 bg-background">
           <View className="flex-row items-center border-b border-border px-4 py-3">
             <BackBtn />
-            <Text className="ml-3 text-base font-bold text-foreground">
-              Install Cost
-            </Text>
+            <View className="ml-3 flex-1">
+              <Text className="text-base font-bold text-foreground">Model</Text>
+              <Text className="mt-0.5 text-xs text-muted-foreground">
+                Builder
+              </Text>
+            </View>
           </View>
           <View className="flex-1 items-center justify-center px-6">
             <Text className="text-center text-sm text-muted-foreground">
@@ -77,9 +96,14 @@ export default function InstallCostFormRoute() {
       <View className="flex-1 bg-background">
         <View className="flex-row items-center border-b border-border px-4 py-3">
           <BackBtn />
-          <Text className="ml-3 text-base font-bold text-foreground">
-            Install Cost
-          </Text>
+          <View className="ml-3 flex-1">
+            <Text numberOfLines={1} className="text-base font-bold text-foreground">
+              {headerTitle}
+            </Text>
+            <Text numberOfLines={1} className="mt-0.5 text-xs text-muted-foreground">
+              {headerSubtitle}
+            </Text>
+          </View>
         </View>
         <InstallCostForm
           modelId={modelId}

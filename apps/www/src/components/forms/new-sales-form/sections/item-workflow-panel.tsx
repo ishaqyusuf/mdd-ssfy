@@ -5,6 +5,16 @@ import { Button } from "@gnd/ui/button";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Input } from "@gnd/ui/input";
 import { Checkbox } from "@gnd/ui/checkbox";
+import { Skeleton } from "@gnd/ui/skeleton";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@gnd/ui/dialog";
+import { Label } from "@gnd/ui/label";
 import { env } from "@/env.mjs";
 import { MouldingCalculator } from "@/components/moulding-calculator";
 import {
@@ -130,6 +140,27 @@ function applySharedDoorSurcharge(rows: any[], surcharge: number) {
         };
     });
 }
+function getRedirectableRoutes(routeData: any, currentStepUid?: string | null) {
+    const stepsById = routeData?.stepsById || {};
+    const stepsByUid = routeData?.stepsByUid || {};
+    const sortedIds = Object.keys(stepsById)
+        .map((id) => Number(id))
+        .filter((id) => Number.isFinite(id))
+        .sort((a, b) => a - b);
+    const routes = sortedIds
+        .map((id) => stepsById[id])
+        .map((uid: string) => stepsByUid?.[uid])
+        .filter(Boolean)
+        .map((step: any) => ({
+            uid: String(step.uid || ""),
+            title: String(step.title || "").trim(),
+        }))
+        .filter((step: any) => step.uid && step.title)
+        .filter((step: any) => step.uid !== String(currentStepUid || ""));
+    return Array.from(
+        new Map(routes.map((step: any) => [step.uid, step])).values(),
+    );
+}
 
 function money(value?: number | null) {
     const amount = Number(value || 0);
@@ -188,6 +219,24 @@ function firstPendingStepIndex(steps: any[]) {
     );
     return pending >= 0 ? pending : Math.max(0, steps.length - 1);
 }
+function ComponentCardSkeletonGrid({ count = 6 }: { count?: number }) {
+    return (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: count }).map((_, index) => (
+                <div
+                    key={`component-skeleton-${index}`}
+                    className="overflow-hidden rounded-xl border bg-card"
+                >
+                    <Skeleton className="h-32 w-full" />
+                    <div className="space-y-2 p-3">
+                        <Skeleton className="h-4 w-4/5" />
+                        <Skeleton className="h-3 w-1/3" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
 
 function componentLabel(value?: string | null) {
     return String(value || "")
@@ -219,6 +268,29 @@ export function ItemWorkflowPanel() {
     const [activeHptDoorUidByLine, setActiveHptDoorUidByLine] = useState<
         Record<string, string>
     >({});
+    const [componentEditModal, setComponentEditModal] = useState<{
+        open: boolean;
+        lineUid: string | null;
+        stepIndex: number;
+        componentUid: string;
+        componentTitle: string;
+        salesPrice: string;
+        redirectUid: string;
+        overrideMode: boolean;
+        noHandle: boolean;
+        hasSwing: boolean;
+    }>({
+        open: false,
+        lineUid: null,
+        stepIndex: -1,
+        componentUid: "",
+        componentTitle: "",
+        salesPrice: "",
+        redirectUid: "",
+        overrideMode: false,
+        noHandle: false,
+        hasSwing: true,
+    });
     const [supplierNameInput, setSupplierNameInput] = useState("");
     const [editingSupplier, setEditingSupplier] = useState<{
         id: number;
@@ -248,6 +320,31 @@ export function ItemWorkflowPanel() {
     const activeDoorStep = activeLine
         ? findLineStepByTitle(activeLine, "Door")
         : null;
+    const activeStepComponentOverrides = useMemo(() => {
+        const overrides = new Map<string, any>();
+        const selected = Array.isArray(activeStep?.meta?.selectedComponents)
+            ? activeStep.meta.selectedComponents
+            : [];
+        selected.forEach((component: any) => {
+            const uid = String(component?.uid || "").trim();
+            if (!uid) return;
+            overrides.set(uid, component);
+        });
+        if (String(activeStep?.prodUid || "").trim()) {
+            const uid = String(activeStep?.prodUid || "").trim();
+            if (!overrides.has(uid)) {
+                overrides.set(uid, {
+                    uid,
+                    title: activeStep?.value || null,
+                    salesPrice: activeStep?.price ?? null,
+                    basePrice: activeStep?.basePrice ?? null,
+                    redirectUid: activeStep?.meta?.redirectUid || null,
+                    sectionOverride: activeStep?.meta?.sectionOverride || null,
+                });
+            }
+        }
+        return overrides;
+    }, [activeStep]);
     const shelfCategoryIds = useMemo(
         () =>
             Array.from(
@@ -345,8 +442,14 @@ export function ItemWorkflowPanel() {
                 ),
             )
             .map((component) => {
+                const override = activeStepComponentOverrides.get(
+                    String((component as any)?.uid || ""),
+                );
                 const price = resolveComponentPriceByDeps(
-                    component,
+                    {
+                        ...component,
+                        ...(override || {}),
+                    },
                     selectedByStepUid,
                     {
                         priceStepDeps: Array.isArray(
@@ -360,19 +463,20 @@ export function ItemWorkflowPanel() {
                 );
                 return {
                     ...component,
+                    ...(override || {}),
                     salesPrice: profileAdjustedSalesPrice(
-                        component?.salesPrice == null
+                        (override?.salesPrice ?? component?.salesPrice) == null
                             ? price.salesPrice
-                            : component.salesPrice,
-                        component?.basePrice == null
+                            : override?.salesPrice ?? component?.salesPrice,
+                        (override?.basePrice ?? component?.basePrice) == null
                             ? price.basePrice
-                            : component.basePrice,
+                            : override?.basePrice ?? component?.basePrice,
                         activeProfileCoefficient,
                     ),
                     basePrice: Number(
-                        component?.basePrice == null
+                        (override?.basePrice ?? component?.basePrice) == null
                             ? (price.basePrice ?? price.salesPrice ?? 0)
-                            : component.basePrice,
+                            : override?.basePrice ?? component?.basePrice,
                     ),
                 };
             });
@@ -381,6 +485,7 @@ export function ItemWorkflowPanel() {
         activeLineSteps,
         includeCustomComponents,
         activeProfileCoefficient,
+        activeStepComponentOverrides,
     ]);
     const activeRootComponents = useMemo(() => {
         const roots = rootComponentsQuery.data || [];
@@ -405,8 +510,14 @@ export function ItemWorkflowPanel() {
                 ),
             )
             .map((component: any) => {
+                const override = activeStepComponentOverrides.get(
+                    String(component?.uid || ""),
+                );
                 const price = resolveComponentPriceByDeps(
-                    component,
+                    {
+                        ...component,
+                        ...(override || {}),
+                    },
                     selectedByStepUid,
                     {
                         priceStepDeps: Array.isArray(
@@ -420,19 +531,20 @@ export function ItemWorkflowPanel() {
                 );
                 return {
                     ...component,
+                    ...(override || {}),
                     salesPrice: profileAdjustedSalesPrice(
-                        component?.salesPrice == null
+                        (override?.salesPrice ?? component?.salesPrice) == null
                             ? price.salesPrice
-                            : component.salesPrice,
-                        component?.basePrice == null
+                            : override?.salesPrice ?? component?.salesPrice,
+                        (override?.basePrice ?? component?.basePrice) == null
                             ? price.basePrice
-                            : component.basePrice,
+                            : override?.basePrice ?? component?.basePrice,
                         activeProfileCoefficient,
                     ),
                     basePrice: Number(
-                        component?.basePrice == null
+                        (override?.basePrice ?? component?.basePrice) == null
                             ? (price.basePrice ?? price.salesPrice ?? 0)
-                            : component.basePrice,
+                            : override?.basePrice ?? component?.basePrice,
                     ),
                 };
             });
@@ -442,6 +554,7 @@ export function ItemWorkflowPanel() {
         activeLineSteps,
         includeCustomComponents,
         activeProfileCoefficient,
+        activeStepComponentOverrides,
     ]);
     const activeDoorSupplier = getDoorSupplierMeta(
         activeDoorStep || activeStep,
@@ -686,6 +799,163 @@ export function ItemWorkflowPanel() {
             },
         };
         updateLineItem(line.uid, { formSteps: steps });
+    }
+    function setComponentRedirectUid(
+        line: (typeof record.lineItems)[number],
+        stepIndex: number,
+        componentUid: string,
+        redirectUid: string | null,
+    ) {
+        const steps = [...(line.formSteps || [])];
+        const step = steps[stepIndex];
+        if (!step) return;
+        const selectedComponents = Array.isArray(step?.meta?.selectedComponents)
+            ? step.meta.selectedComponents
+            : [];
+        const nextSelectedComponents = selectedComponents.map((component: any) =>
+            String(component?.uid || "") === String(componentUid || "")
+                ? {
+                      ...component,
+                      redirectUid: redirectUid || null,
+                  }
+                : component,
+        );
+        steps[stepIndex] = {
+            ...step,
+            meta: {
+                ...(step.meta || {}),
+                redirectUid:
+                    String(step?.prodUid || "") === String(componentUid || "")
+                        ? redirectUid || null
+                        : step?.meta?.redirectUid || null,
+                selectedComponents: nextSelectedComponents,
+            },
+        };
+        updateLineItem(line.uid, {
+            formSteps: steps,
+        });
+    }
+    function openComponentEditForm(
+        line: (typeof record.lineItems)[number],
+        stepIndex: number,
+        component: any,
+    ) {
+        const step = (line.formSteps || [])[stepIndex];
+        if (!step) return;
+        const selected = Array.isArray(step?.meta?.selectedComponents)
+            ? step.meta.selectedComponents
+            : [];
+        const current = selected.find(
+            (entry: any) =>
+                String(entry?.uid || "") === String(component?.uid || ""),
+        );
+        const sectionOverride = current?.sectionOverride || component?.sectionOverride || {};
+        setComponentEditModal({
+            open: true,
+            lineUid: line.uid,
+            stepIndex,
+            componentUid: String(component?.uid || ""),
+            componentTitle: String(component?.title || component?.uid || "Component"),
+            salesPrice: String(
+                Number(current?.salesPrice ?? component?.salesPrice ?? 0) || 0,
+            ),
+            redirectUid: String(
+                current?.redirectUid ??
+                    component?.redirectUid ??
+                    (String(step?.prodUid || "") === String(component?.uid || "")
+                        ? step?.meta?.redirectUid
+                        : "") ??
+                    "",
+            ),
+            overrideMode: Boolean(sectionOverride?.overrideMode),
+            noHandle: Boolean(sectionOverride?.noHandle),
+            hasSwing:
+                sectionOverride?.hasSwing == null
+                    ? true
+                    : Boolean(sectionOverride?.hasSwing),
+        });
+    }
+    function saveComponentEditForm() {
+        if (!componentEditModal.lineUid || componentEditModal.stepIndex < 0) {
+            setComponentEditModal((prev) => ({ ...prev, open: false }));
+            return;
+        }
+        const line = record.lineItems.find(
+            (item) => item.uid === componentEditModal.lineUid,
+        );
+        if (!line) {
+            setComponentEditModal((prev) => ({ ...prev, open: false }));
+            return;
+        }
+        const steps = [...(line.formSteps || [])];
+        const step = steps[componentEditModal.stepIndex];
+        if (!step) {
+            setComponentEditModal((prev) => ({ ...prev, open: false }));
+            return;
+        }
+        const salesPrice = Number(componentEditModal.salesPrice || 0);
+        const selected = Array.isArray(step?.meta?.selectedComponents)
+            ? step.meta.selectedComponents
+            : [];
+        const hasTarget = selected.some(
+            (entry: any) =>
+                String(entry?.uid || "") === String(componentEditModal.componentUid),
+        );
+        const nextSelectedComponents = (hasTarget ? selected : [...selected, {}]).map(
+            (entry: any, index: number) => {
+                const isPlaceholder = !hasTarget && index === selected.length;
+                const uid = isPlaceholder
+                    ? String(componentEditModal.componentUid)
+                    : String(entry?.uid || "");
+                if (uid !== String(componentEditModal.componentUid)) return entry;
+                return {
+                    ...entry,
+                    uid: String(componentEditModal.componentUid),
+                    title:
+                        entry?.title ||
+                        componentEditModal.componentTitle ||
+                        "Component",
+                    salesPrice,
+                    basePrice:
+                        entry?.basePrice == null
+                            ? salesPrice
+                            : Number(entry.basePrice || salesPrice),
+                    redirectUid: componentEditModal.redirectUid || null,
+                    sectionOverride: {
+                        overrideMode: componentEditModal.overrideMode,
+                        noHandle: componentEditModal.noHandle,
+                        hasSwing: componentEditModal.hasSwing,
+                    },
+                };
+            },
+        );
+        const isCurrentSelected =
+            String(step?.prodUid || "") === String(componentEditModal.componentUid);
+        steps[componentEditModal.stepIndex] = {
+            ...step,
+            price: isCurrentSelected ? salesPrice : step?.price,
+            meta: {
+                ...(step?.meta || {}),
+                redirectUid: isCurrentSelected
+                    ? componentEditModal.redirectUid || null
+                    : step?.meta?.redirectUid || null,
+                sectionOverride: isCurrentSelected
+                    ? {
+                          overrideMode: componentEditModal.overrideMode,
+                          noHandle: componentEditModal.noHandle,
+                          hasSwing: componentEditModal.hasSwing,
+                      }
+                    : step?.meta?.sectionOverride || null,
+                selectedComponents: nextSelectedComponents,
+            },
+        };
+        updateLineItem(line.uid, {
+            formSteps: steps,
+        });
+        setComponentEditModal((prev) => ({
+            ...prev,
+            open: false,
+        }));
     }
     function removeSelectedComponentFromStep(
         line: (typeof record.lineItems)[number],
@@ -2137,9 +2407,7 @@ export function ItemWorkflowPanel() {
                     </p>
                     {stepRoutingQuery.isPending ||
                     rootComponentsQuery.isPending ? (
-                        <p className="text-sm text-muted-foreground">
-                            Loading step routing...
-                        </p>
+                        <ComponentCardSkeletonGrid />
                     ) : !activeRootComponents.length ? (
                         <p className="text-sm text-muted-foreground">
                             No root components found in sales settings route.
@@ -2857,9 +3125,7 @@ export function ItemWorkflowPanel() {
                         )}
                     </div>
                 ) : stepComponentsQuery.isPending ? (
-                    <p className="text-sm text-muted-foreground">
-                        Loading components...
-                    </p>
+                    <ComponentCardSkeletonGrid />
                 ) : !visibleComponents.length ? (
                     <p className="text-sm text-muted-foreground">
                         No components returned for this step.
@@ -3063,6 +3329,10 @@ export function ItemWorkflowPanel() {
                                 const isSelected = selectedUids.has(
                                     component.uid,
                                 );
+                                const redirectRoutes = getRedirectableRoutes(
+                                    routeData,
+                                    activeItemStep?.step?.uid,
+                                );
                                 return (
                                     <div
                                         key={component.uid}
@@ -3103,26 +3373,13 @@ export function ItemWorkflowPanel() {
                                                 }
                                             >
                                                 <Menu.Item
-                                                    onClick={() => {
-                                                        if (
-                                                            isDoorStepTitle(
-                                                                activeItemStep
-                                                                    ?.step
-                                                                    ?.title,
-                                                            )
-                                                        ) {
-                                                            setDoorStepModal({
-                                                                open: true,
-                                                                component,
-                                                            });
-                                                            return;
-                                                        }
-                                                        quickEditComponentPrice(
+                                                    onClick={() =>
+                                                        openComponentEditForm(
                                                             line,
                                                             activeIndex,
                                                             component,
-                                                        );
-                                                    }}
+                                                        )
+                                                    }
                                                 >
                                                     Edit
                                                 </Menu.Item>
@@ -3140,29 +3397,29 @@ export function ItemWorkflowPanel() {
                                                     Select
                                                 </Menu.Item>
                                                 <Menu.Item
+                                                    disabled={!redirectRoutes.length}
                                                     SubMenu={[
                                                         <Menu.Item
                                                             key={`redirect-none-${component.uid}`}
                                                             onClick={() =>
-                                                                setStepRedirectUid(
+                                                                setComponentRedirectUid(
                                                                     line,
                                                                     activeIndex,
+                                                                    component.uid,
                                                                     null,
                                                                 )
                                                             }
                                                         >
                                                             Cancel Redirect
                                                         </Menu.Item>,
-                                                        ...Object.values(
-                                                            routeData?.stepsByUid ||
-                                                                {},
-                                                        ).map((step: any) => (
+                                                        ...redirectRoutes.map((step: any) => (
                                                             <Menu.Item
                                                                 key={`redirect-${component.uid}-${step.uid}`}
                                                                 onClick={() =>
-                                                                    setStepRedirectUid(
+                                                                    setComponentRedirectUid(
                                                                         line,
                                                                         activeIndex,
+                                                                        component.uid,
                                                                         step.uid,
                                                                     )
                                                                 }
@@ -3471,6 +3728,121 @@ export function ItemWorkflowPanel() {
                     }
                 />
             ) : null}
+
+            <Dialog
+                open={componentEditModal.open}
+                onOpenChange={(open) =>
+                    setComponentEditModal((prev) => ({ ...prev, open }))
+                }
+            >
+                <DialogContent className="max-w-xl">
+                    <DialogHeader>
+                        <DialogTitle>Component Edit</DialogTitle>
+                        <DialogDescription>
+                            Standard component edit form for this line step.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-1">
+                        <div className="grid gap-2">
+                            <Label>Component</Label>
+                            <Input value={componentEditModal.componentTitle} readOnly />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Sales Cost</Label>
+                            <Input
+                                type="number"
+                                step="0.01"
+                                value={componentEditModal.salesPrice}
+                                onChange={(e) =>
+                                    setComponentEditModal((prev) => ({
+                                        ...prev,
+                                        salesPrice: e.target.value,
+                                    }))
+                                }
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Redirect</Label>
+                            <select
+                                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                                value={componentEditModal.redirectUid || ""}
+                                onChange={(e) =>
+                                    setComponentEditModal((prev) => ({
+                                        ...prev,
+                                        redirectUid: e.target.value,
+                                    }))
+                                }
+                            >
+                                <option value="">None</option>
+                                {getRedirectableRoutes(
+                                    routeData,
+                                    activeStep?.step?.uid,
+                                ).map((route) => (
+                                    <option key={`edit-redirect-${route.uid}`} value={route.uid}>
+                                        {route.title}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="rounded-md border p-3">
+                            <div className="mb-2 flex items-center justify-between">
+                                <Label>Section Setting Override</Label>
+                                <Checkbox
+                                    checked={componentEditModal.overrideMode}
+                                    onCheckedChange={(checked) =>
+                                        setComponentEditModal((prev) => ({
+                                            ...prev,
+                                            overrideMode: Boolean(checked),
+                                        }))
+                                    }
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <label className="flex items-center justify-between rounded border px-3 py-2 text-sm">
+                                    <span>No Handle</span>
+                                    <Checkbox
+                                        checked={componentEditModal.noHandle}
+                                        disabled={!componentEditModal.overrideMode}
+                                        onCheckedChange={(checked) =>
+                                            setComponentEditModal((prev) => ({
+                                                ...prev,
+                                                noHandle: Boolean(checked),
+                                            }))
+                                        }
+                                    />
+                                </label>
+                                <label className="flex items-center justify-between rounded border px-3 py-2 text-sm">
+                                    <span>Has Swing</span>
+                                    <Checkbox
+                                        checked={componentEditModal.hasSwing}
+                                        disabled={!componentEditModal.overrideMode}
+                                        onCheckedChange={(checked) =>
+                                            setComponentEditModal((prev) => ({
+                                                ...prev,
+                                                hasSwing: Boolean(checked),
+                                            }))
+                                        }
+                                    />
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() =>
+                                setComponentEditModal((prev) => ({
+                                    ...prev,
+                                    open: false,
+                                }))
+                            }
+                        >
+                            Cancel
+                        </Button>
+                        <Button onClick={saveComponentEditForm}>Save</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

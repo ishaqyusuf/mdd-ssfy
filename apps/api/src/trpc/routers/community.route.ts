@@ -785,21 +785,35 @@ export const communityRouters = createTRPCRouter({
     .mutation(async (props) => {
       const { id, title, unit, unitCost } = props.input;
       if (id) {
-        await props.ctx.db.installCostModel.update({
+        return props.ctx.db.installCostModel.update({
           where: { id },
           data: {
             title,
             unit,
             unitCost,
           },
+          select: {
+            id: true,
+            title: true,
+            unit: true,
+            unitCost: true,
+            status: true,
+          },
         });
       } else {
-        await props.ctx.db.installCostModel.create({
+        return props.ctx.db.installCostModel.create({
           data: {
             title,
             unit,
             unitCost,
             status: "active",
+          },
+          select: {
+            id: true,
+            title: true,
+            unit: true,
+            unitCost: true,
+            status: true,
           },
         });
       }

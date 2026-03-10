@@ -1,8 +1,10 @@
 import { _qc, _trpc } from "@/components/static-trpc";
 import { SearchInput } from "@/components/search-input";
 import { Icon } from "@/components/ui/icon";
+import { Modal, useModal } from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toast } from "@/components/ui/toast";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -108,6 +110,18 @@ export function InstallCostForm({
   const autosaveTimersRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
   const taskTabsScrollRef = useRef<ScrollView>(null);
   const horizontalScrollXRef = useRef(0);
+  const {
+    ref: addInstallModalRef,
+    present: presentAddInstallModal,
+    dismiss: dismissAddInstallModal,
+  } = useModal();
+  const {
+    ref: createInstallModalRef,
+    present: presentCreateInstallModal,
+    dismiss: dismissCreateInstallModal,
+  } = useModal();
+  const [createInstallTitle, setCreateInstallTitle] = useState("");
+  const [createInstallCost, setCreateInstallCost] = useState("");
 
   const { data: builderTaskData, isPending: isBuilderTaskPending } = useQuery(
     _trpc.community.getModelBuilderTasks.queryOptions(
@@ -174,7 +188,7 @@ export function InstallCostForm({
     );
   }, [installTasks]);
 
-  const { mutate: updateTask, isPending: isUpdatingTask } = useMutation(
+  const { mutate: updateTask } = useMutation(
     _trpc.community.updateCommunityModelInstallTask.mutationOptions({
       onSuccess() {
         _qc.invalidateQueries({
@@ -194,6 +208,8 @@ export function InstallCostForm({
       },
     }),
   );
+  const { mutateAsync: updateInstallCostRate, isPending: isCreatingInstallCostRate } =
+    useMutation(_trpc.community.updateInstallCostRate.mutationOptions());
 
   const installTaskMap = useMemo(
     () =>
@@ -269,12 +285,68 @@ export function InstallCostForm({
     [installTaskMap, modelId, selectedBuilderTaskId, updateTask],
   );
 
+  const handleOpenAddModal = useCallback(() => {
+    if (!selectedBuilderTaskId) {
+      Toast.show("Select a builder task before adding install items.", {
+        type: "warning",
+      });
+      return;
+    }
+    presentAddInstallModal();
+  }, [presentAddInstallModal, selectedBuilderTaskId]);
+
+  const handleCreateInstallRate = useCallback(async () => {
+    const title = createInstallTitle.trim();
+    const cost = Number(createInstallCost);
+    if (!title) {
+      Toast.show("Enter a title to create install item.", { type: "warning" });
+      return;
+    }
+    if (!Number.isFinite(cost) || cost < 0) {
+      Toast.show("Enter a valid cost amount.", { type: "warning" });
+      return;
+    }
+
+    try {
+      const created = await updateInstallCostRate({
+        id: null,
+        title,
+        unitCost: cost,
+        unit: null,
+        status: "active",
+      });
+      if (!created?.id) {
+        Toast.show("Unable to create install item right now.", { type: "error" });
+        return;
+      }
+
+      handleAddInstallItem(created.id);
+      dismissCreateInstallModal();
+      dismissAddInstallModal();
+      setCreateInstallTitle("");
+      setCreateInstallCost("");
+      setAddSearchQuery("");
+      Toast.show("Install item created and added.", { type: "success" });
+    } catch {
+      Toast.show("Failed to create install item.", { type: "error" });
+    }
+  }, [
+    createInstallCost,
+    createInstallTitle,
+    dismissAddInstallModal,
+    dismissCreateInstallModal,
+    handleAddInstallItem,
+    updateInstallCostRate,
+  ]);
+
   const filteredSuggestions = useMemo(() => {
     const q = addSearchQuery.trim().toLowerCase();
     const list = (suggestions || []).filter((item) => !installTaskMap[item.id]);
     if (!q) return list;
     return list.filter((item) => String(item.title || "").toLowerCase().includes(q));
   }, [addSearchQuery, installTaskMap, suggestions]);
+  const trimmedSearchQuery = addSearchQuery.trim();
+  const shouldShowCreateOption = trimmedSearchQuery.length > 0;
 
   const canNotifyContractor = useMemo(
     () =>
@@ -284,6 +356,27 @@ export function InstallCostForm({
       selectedBuilderTaskId === requestBuilderTaskId,
     [contractorId, jobId, requestBuilderTaskId, selectedBuilderTaskId],
   );
+  const sumMaxQty = useMemo(
+    () =>
+      installTasks.reduce((total, task) => {
+        const qty = Number(task.qty || 0);
+        return Number.isFinite(qty) && qty > 0 ? total + qty : total;
+      }, 0),
+    [installTasks],
+  );
+  const possibleTotalCost = useMemo(
+    () =>
+      installTasks.reduce((total, task) => {
+        if (task.status !== "active") return total;
+        const qty = Number(task.qty || 0);
+        const unitCost = Number(task.installCostModel?.unitCost || 0);
+        if (!Number.isFinite(qty) || qty <= 0) return total;
+        if (!Number.isFinite(unitCost) || unitCost <= 0) return total;
+        return total + qty * unitCost;
+      }, 0),
+    [installTasks],
+  );
+  const showNotifyFooter = canNotifyContractor && sumMaxQty > 0;
 
   useEffect(() => {
     const timers = autosaveTimersRef.current;
@@ -304,23 +397,13 @@ export function InstallCostForm({
     >
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerClassName="gap-3 pb-36"
+        contentContainerClassName={showNotifyFooter ? "gap-3 pb-44" : "gap-3 pb-36"}
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         automaticallyAdjustKeyboardInsets
       >
-        <NeoCard className="bg-card">
-          <Text className="text-sm font-bold text-foreground">
-            {builderTaskData?.modelName || "Model"}{" "}
-            {builderTaskData?.builderName ? `- ${builderTaskData.builderName}` : ""}
-          </Text>
-          <Text className="mt-1 text-xs text-muted-foreground">
-            Configure quantities and status for builder task install items.
-          </Text>
-        </NeoCard>
-
         <View className="rounded-2xl border border-border bg-card px-3 py-2">
           <View className="flex-row items-center gap-2">
             <Pressable
@@ -374,157 +457,259 @@ export function InstallCostForm({
           </View>
         </View>
 
-        {canNotifyContractor ? (
-          <NeoCard className="border-primary/30 bg-primary/5">
-            <View className="flex-row items-center justify-between gap-3">
-              <View className="flex-1">
-                <Text className="text-sm font-bold text-foreground">
-                  Job task request ready
-                </Text>
-                <Text className="mt-1 text-xs text-muted-foreground">
-                  Notify contractor now that the requested task configuration is ready.
-                </Text>
-              </View>
-              <Pressable
-                onPress={() => onNotifyContractor?.()}
-                disabled={isNotifyingContractor}
-                className={`rounded-xl px-4 py-2 ${isNotifyingContractor ? "bg-muted" : "bg-primary"}`}
-              >
-                <Text
-                  className={
-                    isNotifyingContractor
-                      ? "text-xs font-semibold text-muted-foreground"
-                      : "text-xs font-semibold text-primary-foreground"
-                  }
-                >
-                  {isNotifyingContractor ? "Notifying..." : "Notify Contractor"}
-                </Text>
-              </Pressable>
-            </View>
-          </NeoCard>
-        ) : null}
-
-        <NeoCard className="border-dashed border-border bg-card">
-        <Text className="mb-2 text-xs font-bold uppercase tracking-[1px] text-muted-foreground">
-          Add Install Task Item
-        </Text>
-        <SearchInput
-          size="sm"
-          className="px-0 py-0"
-          placeholder="Search global costs..."
-          value={addSearchQuery}
-          onChangeText={setAddSearchQuery}
-        />
-        <View className="mt-2 gap-2">
-          {isSuggestionsPending ? (
-            <Skeleton className="h-10 w-full rounded-xl" />
-          ) : !filteredSuggestions.length ? (
-            <View className="rounded-xl border border-border bg-background px-3 py-2">
-              <Text className="text-xs text-muted-foreground">
-                No matching install costs available.
-              </Text>
-            </View>
-          ) : (
-            filteredSuggestions.slice(0, 6).map((item) => (
-              <Pressable
-                key={item.id}
-                onPress={() => handleAddInstallItem(item.id)}
-                className="flex-row items-center justify-between rounded-xl border border-border bg-background px-3 py-2 active:opacity-80"
-              >
-                <View className="flex-1 pr-3">
-                  <Text className="text-sm font-semibold text-foreground">{item.title}</Text>
-                  <Text className="text-xs text-muted-foreground">
-                    ${Number(item.unitCost || 0).toFixed(2)}
-                    {item.unit ? ` / ${item.unit}` : ""}
-                  </Text>
-                </View>
-                <Icon name="PlusCircle" className="text-primary" size={16} />
-              </Pressable>
-            ))
-          )}
-        </View>
-        </NeoCard>
-
         {isInstallTasksPending ? <StepSkeleton /> : null}
 
         {!isInstallTasksPending && !installTasks.length ? <EmptyInstallList /> : null}
 
         {!isInstallTasksPending &&
-          installTasks.map((task) => {
-          const draft = drafts[task.installCostModelId] || {
-            qty: "",
-            status: task.status || "inactive",
-          };
-          return (
-            <NeoCard key={task.installCostModelId} className="bg-card">
-              <View className="flex-row items-start justify-between gap-3">
-                <View className="flex-1">
-                  <Text className="text-sm font-bold text-foreground">
-                    {task.installCostModel?.title || "Install Item"}
+          installTasks.map((task, index) => {
+            const draft = drafts[task.installCostModelId] || {
+              qty: "",
+              status: task.status || "inactive",
+            };
+            const unitCost = Number(task.installCostModel?.unitCost || 0);
+            const qty = Number(draft.qty || 0);
+            const lineTotal = Number.isFinite(qty) ? qty * unitCost : 0;
+            const setStatus = (status: "active" | "inactive") => {
+              const nextDraft = { ...draft, status } as const;
+              setDrafts((prev) => ({
+                ...prev,
+                [task.installCostModelId]: nextDraft,
+              }));
+              queueAutosave(task.installCostModelId, nextDraft);
+            };
+
+            return (
+              <View
+                key={task.installCostModelId}
+                className={`px-3 py-4 ${index < installTasks.length - 1 ? "border-b border-border" : ""}`}
+              >
+                <View className="flex-row items-start justify-between gap-3">
+                  <View className="flex-1">
+                    <Text className="text-sm font-semibold text-foreground">
+                      {task.installCostModel?.title || "Install Item"}
+                    </Text>
+                    <Text className="mt-0.5 text-xs text-muted-foreground">
+                      ${unitCost.toFixed(2)}
+                      {task.installCostModel?.unit ? ` / ${task.installCostModel.unit}` : ""}
+                    </Text>
+                  </View>
+
+                  <Pressable
+                    onPress={() =>
+                      setStatus(draft.status === "active" ? "inactive" : "active")
+                    }
+                    className="h-6 w-6 items-center justify-center rounded-md border border-border"
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: draft.status === "active" }}
+                  >
+                    {draft.status === "active" ? (
+                      <Icon name="Check" className="text-primary" size={14} />
+                    ) : null}
+                  </Pressable>
+                </View>
+
+                <View className="mt-3 flex-row items-center gap-2">
+                  <View className="h-11 flex-1 flex-row items-center rounded-xl border border-border bg-card px-3">
+                    <Text className="mr-2 text-xs font-semibold text-muted-foreground">Qty</Text>
+                    <TextInput
+                      keyboardType="decimal-pad"
+                      value={draft.qty}
+                      onChangeText={(text) => {
+                        const nextDraft = {
+                          ...draft,
+                          qty: text.replace(/[^0-9.]/g, ""),
+                        };
+                        setDrafts((prev) => ({
+                          ...prev,
+                          [task.installCostModelId]: nextDraft,
+                        }));
+                        queueAutosave(task.installCostModelId, nextDraft);
+                      }}
+                      className="flex-1 text-sm text-foreground"
+                      placeholder="0"
+                      placeholderTextColor="hsl(var(--muted-foreground))"
+                    />
+                  </View>
+                  <View className="min-w-20 items-end">
+                    <Text className="text-[10px] uppercase tracking-[1px] text-muted-foreground">
+                      Total
+                    </Text>
+                    <Text className="text-sm font-semibold text-foreground">
+                      ${lineTotal.toFixed(2)}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            );
+          })}
+      </ScrollView>
+      <Pressable
+        onPress={handleOpenAddModal}
+        className={`absolute right-4 h-14 w-14 items-center justify-center rounded-full bg-primary shadow ${showNotifyFooter ? "bottom-28" : "bottom-8"}`}
+        accessibilityRole="button"
+        accessibilityLabel="Add install task item"
+      >
+        <Icon name="Plus" className="text-primary-foreground" size={22} />
+      </Pressable>
+
+      <Modal ref={addInstallModalRef} title="Add Install Task Item" snapPoints={["82%"]}>
+        <BottomSheetScrollView
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <SearchInput
+            size="sm"
+            className="px-0 py-0"
+            placeholder="Search global costs..."
+            value={addSearchQuery}
+            onChangeText={setAddSearchQuery}
+          />
+          <View className="mt-3 gap-2">
+            {shouldShowCreateOption ? (
+              <Pressable
+                onPress={() => {
+                  setCreateInstallTitle(trimmedSearchQuery);
+                  setCreateInstallCost("");
+                  presentCreateInstallModal();
+                }}
+                className="flex-row items-center justify-between rounded-xl border border-dashed border-primary/60 bg-primary/5 px-3 py-3 active:opacity-80"
+              >
+                <View className="flex-1 pr-3">
+                  <Text className="text-sm font-semibold text-primary">
+                    Create &quot;{trimmedSearchQuery}&quot;
                   </Text>
                   <Text className="text-xs text-muted-foreground">
-                    ${Number(task.installCostModel?.unitCost || 0).toFixed(2)}
-                    {task.installCostModel?.unit ? ` / ${task.installCostModel.unit}` : ""}
+                    Add this as a new global install cost rate.
                   </Text>
                 </View>
-                <Pressable
-                  className={`rounded-full border px-3 py-1 ${draft.status === "active" ? "border-primary bg-primary/15" : "border-border bg-background"}`}
-                  onPress={() => {
-                    const nextDraft = {
-                      ...draft,
-                      status:
-                        draft.status === "active"
-                          ? "inactive"
-                          : "active",
-                    } as const;
-                    setDrafts((prev) => ({
-                      ...prev,
-                      [task.installCostModelId]: nextDraft,
-                    }));
-                    queueAutosave(task.installCostModelId, nextDraft);
-                  }}
-                >
-                  <Text
-                    className={
-                      draft.status === "active"
-                        ? "text-xs font-semibold text-primary"
-                        : "text-xs font-semibold text-muted-foreground"
-                    }
-                  >
-                    {draft.status}
-                  </Text>
-                </Pressable>
-              </View>
+                <Icon name="PlusCircle" className="text-primary" size={18} />
+              </Pressable>
+            ) : null}
 
-              <View className="mt-3 flex-row items-center gap-2">
-                <TextInput
-                  keyboardType="decimal-pad"
-                  value={draft.qty}
-                  onChangeText={(text) => {
-                    const nextDraft = {
-                      ...draft,
-                      qty: text.replace(/[^0-9.]/g, ""),
-                    };
-                    setDrafts((prev) => ({
-                      ...prev,
-                      [task.installCostModelId]: nextDraft,
-                    }));
-                    queueAutosave(task.installCostModelId, nextDraft);
-                  }}
-                  className="h-11 flex-1 rounded-xl border border-border bg-background px-3 text-sm text-foreground"
-                  placeholder="Max qty"
-                  placeholderTextColor="hsl(var(--muted-foreground))"
-                />
-                <View className="h-11 min-w-16 items-center justify-center px-2">
-                  <Text className="text-[11px] text-muted-foreground">
-                    {isUpdatingTask ? "Saving..." : "Auto"}
-                  </Text>
-                </View>
+            {isSuggestionsPending ? (
+              <Skeleton className="h-10 w-full rounded-xl" />
+            ) : !filteredSuggestions.length ? (
+              <View className="rounded-xl border border-border bg-background px-3 py-2">
+                <Text className="text-xs text-muted-foreground">
+                  No matching install costs available.
+                </Text>
               </View>
-            </NeoCard>
-          );
-        })}
-      </ScrollView>
+            ) : (
+              filteredSuggestions.slice(0, 20).map((item) => (
+                <Pressable
+                  key={item.id}
+                  onPress={() => {
+                    handleAddInstallItem(item.id);
+                    dismissAddInstallModal();
+                  }}
+                  className="flex-row items-center justify-between rounded-xl border border-border bg-background px-3 py-2 active:opacity-80"
+                >
+                  <View className="flex-1 pr-3">
+                    <Text className="text-sm font-semibold text-foreground">{item.title}</Text>
+                    <Text className="text-xs text-muted-foreground">
+                      ${Number(item.unitCost || 0).toFixed(2)}
+                      {item.unit ? ` / ${item.unit}` : ""}
+                    </Text>
+                  </View>
+                  <Icon name="PlusCircle" className="text-primary" size={16} />
+                </Pressable>
+              ))
+            )}
+          </View>
+        </BottomSheetScrollView>
+      </Modal>
+
+      <Modal
+        ref={createInstallModalRef}
+        title="Create Install Item"
+        snapPoints={["55%"]}
+      >
+        <BottomSheetScrollView
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View className="gap-3">
+            <View>
+              <Text className="mb-1 text-xs font-semibold uppercase tracking-[1px] text-muted-foreground">
+                Title
+              </Text>
+              <TextInput
+                value={createInstallTitle}
+                onChangeText={setCreateInstallTitle}
+                className="h-11 rounded-xl border border-border bg-background px-3 text-sm text-foreground"
+                placeholder="Install item title"
+                placeholderTextColor="hsl(var(--muted-foreground))"
+              />
+            </View>
+
+            <View>
+              <Text className="mb-1 text-xs font-semibold uppercase tracking-[1px] text-muted-foreground">
+                Cost
+              </Text>
+              <TextInput
+                value={createInstallCost}
+                onChangeText={(value) =>
+                  setCreateInstallCost(value.replace(/[^0-9.]/g, ""))
+                }
+                keyboardType="decimal-pad"
+                className="h-11 rounded-xl border border-border bg-background px-3 text-sm text-foreground"
+                placeholder="0.00"
+                placeholderTextColor="hsl(var(--muted-foreground))"
+              />
+            </View>
+
+            <Pressable
+              onPress={handleCreateInstallRate}
+              disabled={isCreatingInstallCostRate}
+              className={`mt-2 h-11 items-center justify-center rounded-xl ${isCreatingInstallCostRate ? "bg-muted" : "bg-primary"}`}
+            >
+              <Text
+                className={
+                  isCreatingInstallCostRate
+                    ? "text-sm font-semibold text-muted-foreground"
+                    : "text-sm font-semibold text-primary-foreground"
+                }
+              >
+                {isCreatingInstallCostRate ? "Saving..." : "Save"}
+              </Text>
+            </Pressable>
+          </View>
+        </BottomSheetScrollView>
+      </Modal>
+
+      {showNotifyFooter ? (
+        <View className="absolute bottom-0 left-0 right-0 border-t border-border bg-background px-4 pb-6 pt-3">
+          <View className="flex-row items-center justify-between gap-3">
+            <View className="flex-1">
+              <Text className="text-[11px] uppercase tracking-[1px] text-muted-foreground">
+                Possible Total Cost
+              </Text>
+              <Text className="mt-0.5 text-lg font-bold text-foreground">
+                ${possibleTotalCost.toFixed(2)}
+              </Text>
+              <Text className="mt-1 text-xs text-muted-foreground">
+                Job task request ready
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => onNotifyContractor?.()}
+              disabled={isNotifyingContractor}
+              className={`min-h-11 justify-center rounded-xl px-4 ${isNotifyingContractor ? "bg-muted" : "bg-primary"}`}
+            >
+              <Text
+                className={
+                  isNotifyingContractor
+                    ? "text-xs font-semibold text-muted-foreground"
+                    : "text-xs font-semibold text-primary-foreground"
+                }
+              >
+                {isNotifyingContractor ? "Notifying..." : "Notify Contractor"}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
     </KeyboardAvoidingView>
   );
 }

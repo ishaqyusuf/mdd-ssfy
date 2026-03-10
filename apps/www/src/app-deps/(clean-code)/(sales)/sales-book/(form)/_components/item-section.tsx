@@ -38,7 +38,7 @@ export default function ItemSection({ uid }: Props) {
                     ignoreCollapse={sequence?.length <= 3}
                     uid={uid}
                 />
-                <CollapsibleContent className="flex  overflow-auto border">
+                <CollapsibleContent className="flex border">
                     <div className="flex flex-1 flex-col ">
                         {sequence?.map((stepUid, index) => (
                             <StepSection

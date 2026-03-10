@@ -28,7 +28,7 @@ export function ComponentSectionFooter({ ctx }: { ctx: UseStepContext }) {
     const {
         stepUid,
         items,
-        sticky: { actionRef, isFixed, fixedOffset },
+        sticky: { actionRef },
         selectionState,
     } = ctx;
     const isDoor = ctx.cls.isDoor();
@@ -62,13 +62,7 @@ export function ComponentSectionFooter({ ctx }: { ctx: UseStepContext }) {
         <>
             <div
                 ref={actionRef}
-                style={isFixed ? { left: `${fixedOffset}px` } : {}}
-                className={cn(
-                    isFixed
-                        ? "fixed bottom-2 sm:bottom-12 left-1/2 -translate-x-1/2 transform"
-                        : "absolute bottom-4 left-1/2 -translate-x-1/2 transform",
-                    "z-10 bg-secondary",
-                )}
+                className="sticky bottom-2 left-1/2 z-20 w-fit -translate-x-1/2 transform bg-secondary sm:bottom-12"
             >
                 <div className="flex items-center gap-4 rounded-lg border p-2 px-4 shadow">
                     {selectionState?.count ? (

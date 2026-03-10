@@ -799,6 +799,8 @@ model QtyControl {
     // @@index([itemControlUid])
 
     @@unique([itemControlUid, type])
+    @@index([type, deletedAt, percentage])
+    @@index([type, deletedAt, total])
 }
 
 model SalesItemControl {

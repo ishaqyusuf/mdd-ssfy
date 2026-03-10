@@ -21,7 +21,9 @@ export function Footer({}) {
                     Total
                 </p>
                 <p className="text-2xl font-black leading-tight text-foreground">
-                    <AnimatedNumber value={zus?.metaData?.pricing?.grandTotal || 0} />
+                    <AnimatedNumber
+                        value={zus?.metaData?.pricing?.grandTotal || 0}
+                    />
                 </p>
             </div>
             <div className="flex justify-end gap-3">
@@ -59,8 +61,8 @@ export function Footer({}) {
                         //     salesId: zus.metaData.id,
                         // });
                     }}
-                    size="xs"
-                    variant="outline"
+                    // size="xs"
+                    variant="secondary"
                 >
                     <span>Overview</span>
                 </Button>
@@ -69,3 +71,4 @@ export function Footer({}) {
         </div>
     );
 }
+

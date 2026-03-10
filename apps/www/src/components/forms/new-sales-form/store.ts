@@ -72,7 +72,7 @@ const initialEditorState: NewSalesFormEditorState = {
     mouldingViewMode: "selection",
     isOverviewOpen: false,
     showMobileSummary: false,
-    autosaveEnabled: true,
+    autosaveEnabled: false,
 };
 
 const initialState: NewSalesFormState = {
