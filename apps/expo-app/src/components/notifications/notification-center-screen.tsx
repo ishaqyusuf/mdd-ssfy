@@ -77,10 +77,6 @@ export function NotificationCenterScreen() {
             : {}),
         },
       } as any);
-      Toast.show(
-        `Open configuration for ${data.modelName} (${data.projectName})`,
-        { type: "info" },
-      );
     },
     dispatch_packing_delay: (data) => {
       Toast.show(`Approved pending packing for ${data.itemName}.`, {

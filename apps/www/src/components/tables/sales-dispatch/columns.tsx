@@ -18,16 +18,6 @@ import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { Card, CardContent, CardHeader } from "@gnd/ui/card";
 import { Calendar, Clock, MapPin, Package, Phone, Truck } from "lucide-react";
 import { useMutation } from "@gnd/ui/tanstack";
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@gnd/ui/alert-dialog";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@gnd/ui/avatar";
 import { getInitials } from "@/utils/format";
@@ -35,6 +25,7 @@ import { useTable } from "@gnd/ui/data-table";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { useAuth } from "@/hooks/use-auth";
 import { UpdateSalesControl } from "@sales/schema";
+import { DispatchCompletionDecisionModal } from "@/components/dispatch-completion-decision-modal";
 
 export type Item = RouterOutputs["dispatch"]["index"]["data"][number];
 export type Addon = {
@@ -52,11 +43,26 @@ const status: ColumnDef<Item> = {
 function Status({ item, admin }: { item: Item; admin?: boolean }) {
     const [status, setStatus] = useState(item.status);
     const [completionDialogOpen, setCompletionDialogOpen] = useState(false);
-    const [packedCount, setPackedCount] = useState<number>(0);
-    const [pendingCount, setPendingCount] = useState<number>(0);
+    const packedCount = Number(item?.statistic?.packed?.total || 0);
+    const pendingCount = Number(item?.statistic?.pendingPacking?.total || 0);
+    const hasPendingPackings = pendingCount > 0;
     const trpc = useTRPC();
     const queryClient = useQueryClient();
     const auth = useAuth();
+    const completeDispatchPackedOnly = () => {
+        submitDispatch.mutate({
+            meta: {
+                authorId: Number(auth.id || 0),
+                authorName: auth.name || "System",
+                salesId: Number(item?.order?.id || 0),
+            },
+            submitDispatch: {
+                dispatchId: item.id,
+                receivedBy: auth.name || "System",
+                receivedDate: new Date(),
+            },
+        });
+    };
     const submitDispatch = useMutation(
         trpc.dispatch.submitDispatch.mutationOptions({
             onSuccess() {
@@ -93,29 +99,12 @@ function Status({ item, admin }: { item: Item; admin?: boolean }) {
                 queryKey: trpc.dispatch.dispatchOverview.queryKey(),
             });
             setCompletionDialogOpen(false);
-            submitDispatch.mutate({
-                meta: {
-                    authorId: Number(auth.id || 0),
-                    authorName: auth.name || "System",
-                    salesId: Number(item?.order?.id || 0),
-                },
-                submitDispatch: {
-                    dispatchId: item.id,
-                    receivedBy: auth.name || "System",
-                    receivedDate: new Date(),
-                },
-            });
+            completeDispatchPackedOnly();
         },
     });
     const statusUpdate = useMutation(
         trpc.dispatch.updateDispatchStatus.mutationOptions({
             onSuccess(data) {
-                if ((data as any)?.confirmationRequired) {
-                    setPackedCount((data as any)?.packedCount || 0);
-                    setPendingCount((data as any)?.pendingCount || 0);
-                    setCompletionDialogOpen(true);
-                    return;
-                }
                 setStatus((data as any).newStatus);
                 toast({
                     duration: 2000,
@@ -140,13 +129,12 @@ function Status({ item, admin }: { item: Item; admin?: boolean }) {
             },
         }),
     );
-    const updateStatus = (newStatus: Item["status"], completionMode?) => {
-        if (newStatus === status && !completionMode) return;
+    const updateStatus = (newStatus: Item["status"]) => {
+        if (newStatus === status) return;
         statusUpdate.mutate({
             dispatchId: item.id,
             oldStatus: (status || "queue") as any,
             newStatus: (newStatus || "queue") as any,
-            completionMode,
         });
     };
 
@@ -164,6 +152,14 @@ function Status({ item, admin }: { item: Item; admin?: boolean }) {
                 {salesDispatchStatus.map((__status) => (
                     <Menu.Item
                         onClick={(e) => {
+                            if (__status === "completed") {
+                                if (hasPendingPackings) {
+                                    setCompletionDialogOpen(true);
+                                    return;
+                                }
+                                completeDispatchPackedOnly();
+                                return;
+                            }
                             updateStatus(__status as Item["status"]);
                         }}
                         key={__status}
@@ -178,71 +174,35 @@ function Status({ item, admin }: { item: Item; admin?: boolean }) {
                     </Menu.Item>
                 ))}
             </Menu>
-            <AlertDialog
+            <DispatchCompletionDecisionModal
                 open={completionDialogOpen}
-                onOpenChange={(open) => {
-                    if (trigger.isActionPending || submitDispatch.isPending)
-                        return;
-                    setCompletionDialogOpen(open);
+                onOpenChange={setCompletionDialogOpen}
+                packedCount={packedCount}
+                pendingCount={pendingCount}
+                isLoading={trigger.isActionPending || submitDispatch.isPending}
+                onCompletePacked={() => {
+                    setCompletionDialogOpen(false);
+                    completeDispatchPackedOnly();
                 }}
-            >
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>
-                            Complete Dispatch With Pending Packings
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Some items were not packed. Completing this without
-                            packing will open back-order on the order.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                            disabled={
-                                trigger.isActionPending ||
-                                submitDispatch.isPending
-                            }
-                            onClick={() => {
-                                setCompletionDialogOpen(false);
-                                updateStatus("completed", "packed_only");
-                            }}
-                        >
-                            Complete with packed ({packedCount} items)
-                        </AlertDialogAction>
-                        <AlertDialogAction
-                            disabled={
-                                trigger.isActionPending ||
-                                submitDispatch.isPending
-                            }
-                            onClick={() => {
-                                const packItems: UpdateSalesControl["packItems"] =
-                                    {
-                                        dispatchId: item.id,
-                                        packMode: "all",
-                                        dispatchStatus: "completed",
-                                    };
-                                trigger.trigger({
-                                    taskName: "update-sales-control",
-                                    payload: {
-                                        meta: {
-                                            authorId: Number(auth.id || 0),
-                                            authorName: auth.name || "System",
-                                            salesId: Number(item?.order?.id || 0),
-                                        },
-                                        packItems,
-                                    } as UpdateSalesControl,
-                                });
-                            }}
-                        >
-                            {trigger.isActionPending ||
-                            submitDispatch.isPending
-                                ? "Completing..."
-                                : "Complete all"}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                onPackAllComplete={() => {
+                    const packItems: UpdateSalesControl["packItems"] = {
+                        dispatchId: item.id,
+                        packMode: "all",
+                        dispatchStatus: "completed",
+                    };
+                    trigger.trigger({
+                        taskName: "update-sales-control",
+                        payload: {
+                            meta: {
+                                authorId: Number(auth.id || 0),
+                                authorName: auth.name || "System",
+                                salesId: Number(item?.order?.id || 0),
+                            },
+                            packItems,
+                        } as UpdateSalesControl,
+                    });
+                }}
+            />
         </>
     );
 }

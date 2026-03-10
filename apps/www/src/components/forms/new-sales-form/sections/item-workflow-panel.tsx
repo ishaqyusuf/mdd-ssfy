@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useNewSalesFormStore } from "../store";
 import {
+    useCustomerProfilesQuery,
     useNewSalesFormShelfCategoriesQuery,
     useNewSalesFormShelfProductsQuery,
     useSalesDeleteSupplierMutation,
@@ -146,6 +147,21 @@ function moneyIfPositive(value?: number | null) {
         currency: "USD",
     }).format(amount);
 }
+function profileAdjustedSalesPrice(
+    salesPrice: number | null | undefined,
+    basePrice: number | null | undefined,
+    coefficient?: number | null,
+) {
+    const base = Number(basePrice);
+    const sales = Number(salesPrice);
+    const coef = Number(coefficient || 0);
+    if (Number.isFinite(base) && base > 0 && Number.isFinite(coef) && coef > 0) {
+        return Number((base * coef).toFixed(2));
+    }
+    if (Number.isFinite(sales) && sales > 0) return sales;
+    if (Number.isFinite(base) && base > 0) return base;
+    return 0;
+}
 function resolveComponentImageSrc(src?: string | null) {
     const value = String(src || "").trim();
     if (!value) return null;
@@ -214,6 +230,7 @@ export function ItemWorkflowPanel() {
     const stepRoutingQuery = useNewSalesFormStepRoutingQuery({});
     const routeData = stepRoutingQuery.data;
     const suppliersQuery = useSalesSuppliersQuery(true);
+    const customerProfilesQuery = useCustomerProfilesQuery(true);
     const saveSupplierMutation = useSalesSaveSupplierMutation();
     const deleteSupplierMutation = useSalesDeleteSupplierMutation();
 
@@ -279,6 +296,15 @@ export function ItemWorkflowPanel() {
             ),
         [shelfCategories],
     );
+    const activeProfileCoefficient = useMemo(() => {
+        const selectedProfileId = Number(record?.form?.customerProfileId || 0);
+        if (!selectedProfileId) return 1;
+        const profile = (customerProfilesQuery.data || []).find(
+            (cp: any) => Number(cp?.id || 0) === selectedProfileId,
+        );
+        const coefficient = Number(profile?.coefficient || 0);
+        return Number.isFinite(coefficient) && coefficient > 0 ? coefficient : 1;
+    }, [customerProfilesQuery.data, record?.form?.customerProfileId]);
 
     const stepComponentsQuery = useSalesStepComponentsQuery(
         {
@@ -334,17 +360,28 @@ export function ItemWorkflowPanel() {
                 );
                 return {
                     ...component,
-                    salesPrice:
+                    salesPrice: profileAdjustedSalesPrice(
                         component?.salesPrice == null
                             ? price.salesPrice
                             : component.salesPrice,
-                    basePrice:
                         component?.basePrice == null
                             ? price.basePrice
                             : component.basePrice,
+                        activeProfileCoefficient,
+                    ),
+                    basePrice: Number(
+                        component?.basePrice == null
+                            ? (price.basePrice ?? price.salesPrice ?? 0)
+                            : component.basePrice,
+                    ),
                 };
             });
-    }, [stepComponentsQuery.data, activeLineSteps, includeCustomComponents]);
+    }, [
+        stepComponentsQuery.data,
+        activeLineSteps,
+        includeCustomComponents,
+        activeProfileCoefficient,
+    ]);
     const activeRootComponents = useMemo(() => {
         const roots = rootComponentsQuery.data || [];
         const configured = new Set(
@@ -383,14 +420,20 @@ export function ItemWorkflowPanel() {
                 );
                 return {
                     ...component,
-                    salesPrice:
+                    salesPrice: profileAdjustedSalesPrice(
                         component?.salesPrice == null
                             ? price.salesPrice
                             : component.salesPrice,
-                    basePrice:
                         component?.basePrice == null
                             ? price.basePrice
                             : component.basePrice,
+                        activeProfileCoefficient,
+                    ),
+                    basePrice: Number(
+                        component?.basePrice == null
+                            ? (price.basePrice ?? price.salesPrice ?? 0)
+                            : component.basePrice,
+                    ),
                 };
             });
     }, [
@@ -398,6 +441,7 @@ export function ItemWorkflowPanel() {
         rootComponentsQuery.data,
         activeLineSteps,
         includeCustomComponents,
+        activeProfileCoefficient,
     ]);
     const activeDoorSupplier = getDoorSupplierMeta(
         activeDoorStep || activeStep,
@@ -2140,23 +2184,9 @@ export function ItemWorkflowPanel() {
                                                     component.uid,
                                             )}
                                         </p>
-                                        {moneyIfPositive(
-                                            component.salesPrice ??
-                                                component.basePrice ??
-                                                component?.pricing?.[
-                                                    component.uid
-                                                ]?.price ??
-                                                null,
-                                        ) ? (
+                                        {moneyIfPositive(component.salesPrice) ? (
                                             <p className="text-xs font-medium text-primary">
-                                                {moneyIfPositive(
-                                                    component.salesPrice ??
-                                                        component.basePrice ??
-                                                        component?.pricing?.[
-                                                            component.uid
-                                                        ]?.price ??
-                                                        null,
-                                                )}
+                                                {moneyIfPositive(component.salesPrice)}
                                             </p>
                                         ) : null}
                                     </div>
@@ -3206,25 +3236,9 @@ export function ItemWorkflowPanel() {
                                                         component.title,
                                                     )}
                                                 </p>
-                                                {moneyIfPositive(
-                                                    component.salesPrice ??
-                                                        component.basePrice ??
-                                                        component?.pricing?.[
-                                                            component.uid
-                                                        ]?.price ??
-                                                        null,
-                                                ) ? (
+                                                {moneyIfPositive(component.salesPrice) ? (
                                                     <p className="text-xs font-medium text-primary">
-                                                        {moneyIfPositive(
-                                                            component.salesPrice ??
-                                                                component.basePrice ??
-                                                                component
-                                                                    ?.pricing?.[
-                                                                    component
-                                                                        .uid
-                                                                ]?.price ??
-                                                                null,
-                                                        )}
+                                                        {moneyIfPositive(component.salesPrice)}
                                                     </p>
                                                 ) : null}
                                             </div>
@@ -3460,4 +3474,3 @@ export function ItemWorkflowPanel() {
         </>
     );
 }
-

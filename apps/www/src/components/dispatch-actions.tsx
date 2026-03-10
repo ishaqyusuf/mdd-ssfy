@@ -12,16 +12,6 @@ import {
     X,
 } from "lucide-react";
 import { Icons } from "@gnd/ui/icons";
-import {
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialog,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@gnd/ui/alert-dialog";
 import { DispatchDeleteConfirmDialog } from "./dispatch-delete-confirm-dialog";
 import { DispatchCancelConfirmDialog } from "./dispatch-cancel-confirm-dialog";
 import { DispatchClearPackingConfirmDialog } from "./dispatch-clear-packing-confirm-dialog";
@@ -32,6 +22,7 @@ import {
 } from "@gnd/ui/dropdown-menu";
 import { useMemo, useState } from "react";
 import { qtyMatrixSum } from "@sales/utils/sales-control";
+import { DispatchCompletionDecisionModal } from "./dispatch-completion-decision-modal";
 
 export function DispatchActions({}) {
     const { data, ...ctx } = usePacking();
@@ -193,62 +184,21 @@ export function DispatchActions({}) {
             {/* Clear Packing Confirmation Dialog */}
             <DispatchClearPackingConfirmDialog />
 
-            <AlertDialog
+            <DispatchCompletionDecisionModal
                 open={completeDialogOpen}
-                onOpenChange={(open) => {
-                    if (ctx.isCompleting) return;
-                    setCompleteDialogOpen(open);
+                onOpenChange={setCompleteDialogOpen}
+                packedCount={packedCount}
+                pendingCount={pendingCount}
+                isLoading={ctx.isCompleting}
+                onCompletePacked={() => {
+                    ctx.onCompleteDispatch("packed_only");
+                    setCompleteDialogOpen(false);
                 }}
-            >
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>
-                            Complete Dispatch With Pending Packings
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Some items are not packed yet. Completing now can
-                            open back-order for unpacked items.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-
-                    <div className="rounded-md border p-3 text-sm space-y-1">
-                        <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">Packed</span>
-                            <span className="font-medium">{packedCount}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">Pending</span>
-                            <span className="font-medium text-amber-600">
-                                {pendingCount}
-                            </span>
-                        </div>
-                    </div>
-
-                    <AlertDialogFooter>
-                        <AlertDialogCancel disabled={ctx.isCompleting}>
-                            Cancel
-                        </AlertDialogCancel>
-                        <AlertDialogAction
-                            disabled={ctx.isCompleting}
-                            onClick={() => {
-                                ctx.onCompleteDispatch("packed_only");
-                                setCompleteDialogOpen(false);
-                            }}
-                        >
-                            Complete with packed ({packedCount})
-                        </AlertDialogAction>
-                        <AlertDialogAction
-                            disabled={ctx.isCompleting}
-                            onClick={() => {
-                                ctx.onCompleteDispatch("pack_all");
-                                setCompleteDialogOpen(false);
-                            }}
-                        >
-                            Pack all and complete
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                onPackAllComplete={() => {
+                    ctx.onCompleteDispatch("pack_all");
+                    setCompleteDialogOpen(false);
+                }}
+            />
 
             {/* Unstart Confirmation Dialog */}
         </>
