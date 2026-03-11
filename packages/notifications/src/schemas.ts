@@ -247,6 +247,7 @@ export type NotificationTypes = {
 	sales_dispatch_unassigned: SalesDispatchUnassignedInput;
 	sales_marked_as_production_completed: SalesMarkedAsProductionCompletedInput;
 	sales_email_reminder: SalesEmailReminderInput;
+	simple_sales_email_reminder: SimpleSalesEmailReminderInput;
 	sales_reminder_schedule_admin_notification: SalesReminderScheduleAdminNotificationInput;
 	sales_info: SalesInfoInput;
 	sales_item_info: SalesItemInfoInput;
@@ -449,6 +450,23 @@ export const salesEmailReminderTags = actityTagsSchema.extend({
 	pdfToken: z.string().optional().nullable(),
 });
 export type SalesEmailReminderTags = z.infer<typeof salesEmailReminderTags>;
+export const simpleSalesEmailReminderSchema = z.object({
+	salesId: z.number(),
+	payPlan: z.union([z.literal(25), z.literal(50), z.literal(75), z.literal(100)]).optional().nullable(),
+	attachInvoice: z.boolean().optional(),
+});
+export type SimpleSalesEmailReminderInput = z.infer<
+	typeof simpleSalesEmailReminderSchema
+>;
+export const simpleSalesEmailReminderTags = actityTagsSchema.extend({
+	salesId: z.number(),
+	salesNo: z.string(),
+	payPlan: z.union([z.literal(25), z.literal(50), z.literal(75), z.literal(100)]).optional().nullable(),
+	attachInvoice: z.boolean().optional(),
+});
+export type SimpleSalesEmailReminderTags = z.infer<
+	typeof simpleSalesEmailReminderTags
+>;
 export const salesReminderScheduleAdminNotificationSchema = z.object({
 	triggerType: z.enum(["scheduled", "now", "test"]),
 	statusUsed: z.enum(["active", "inactive"]),
@@ -688,6 +706,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_email_reminder"),
 		payload: salesEmailReminderSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("simple_sales_email_reminder"),
+		payload: simpleSalesEmailReminderSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_reminder_schedule_admin_notification"),

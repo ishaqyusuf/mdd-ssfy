@@ -119,7 +119,7 @@ export async function getSales(
     }
   }
 
-  const result = await response(rowsWithControl as any);
+  const result = await response(rowsWithControl);
 
   return result;
 }

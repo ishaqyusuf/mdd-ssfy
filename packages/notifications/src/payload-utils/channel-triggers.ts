@@ -150,6 +150,18 @@ export function createNotificationChannelTriggers(
 				recipients: resolvedRecipients,
 			});
 		},
+		simpleSalesEmailReminder(input: Input<"simple_sales_email_reminder">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("simple_sales_email_reminder", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
 		salesInfo(input: Input<"sales_info">) {
 			const { recipients, author, ...payload } = input;
 			const resolvedRecipients = resolveRecipients(

@@ -32,6 +32,7 @@ import { salesDispatchInProgress } from "./types/sales-dispatch-in-progress";
 import { salesDispatchQueued } from "./types/sales-dispatch-queued";
 import { salesDispatchUnassigned } from "./types/sales-dispatch-unassigned";
 import { salesEmailReminder } from "./types/sales-email-reminder";
+import { simpleSalesEmailReminder } from "./types/simple-sales-email-reminder";
 import { salesDispatchInfo } from "./types/sales-dispatch-info";
 import { salesInfo } from "./types/sales-info";
 import { salesItemInfo } from "./types/sales-item-info";
@@ -65,6 +66,7 @@ const handlers = {
 	sales_dispatch_unassigned: salesDispatchUnassigned,
 	sales_marked_as_production_completed: salesMarkedAsProductionCompleted,
 	sales_email_reminder: salesEmailReminder,
+	simple_sales_email_reminder: simpleSalesEmailReminder,
 	sales_reminder_schedule_admin_notification:
 		salesReminderScheduleAdminNotification,
 	sales_info: salesInfo,
@@ -107,7 +109,7 @@ export class Notifications {
 		// options?: NotificationOptions,
 		contacts?: UserData[],
 	) {
-		if (handler?.createActivityWithoutContact && !(contacts?.length > 0)) {
+		if (handler?.createActivityWithoutContact) {
 			const activityInput = handler.createActivity(
 				validatedData,
 				author,
@@ -317,8 +319,12 @@ export class Notifications {
 		// Transform team members to UserData format
 		// const users = teamMembers;
 
-		// Build the full notification data
-		const data = { ...payload } as NotificationTypes[T];
+		const rawData = { ...payload } as NotificationTypes[T];
+		const data = ((await handlers[type as any]?.extendData?.(
+			this.#db,
+			rawData,
+			author!,
+		)) ?? rawData) as NotificationTypes[T];
 
 		// return null;
 		return this.#createInternal(

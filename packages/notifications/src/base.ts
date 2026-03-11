@@ -1,7 +1,7 @@
 import type { CreateEmailOptions } from "resend";
 import { z } from "zod";
 import type { CreateActivityInput } from "./schemas";
-import { ContactRole } from "@gnd/db";
+import { type Db, ContactRole } from "@gnd/db";
 
 export interface TeamContext {
   id: string;
@@ -11,6 +11,11 @@ export interface TeamContext {
 
 export interface NotificationHandler<T = any> {
   schema: z.ZodSchema<T>;
+  extendData?: (
+    db: Db,
+    data: T,
+    author: UserData,
+  ) => Promise<unknown> | unknown;
   createActivityWithoutContact?: boolean;
   email?: {
     template: string;
