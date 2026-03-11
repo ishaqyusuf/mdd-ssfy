@@ -17,15 +17,29 @@ import { useEffect, useRef } from "react";
 import { BuilderTaskItem } from "./modals/model-install-cost-modal/builder-task-item";
 import { AddNewInstallCost } from "./modals/model-install-cost-modal/add-new-install-cost";
 import { InstallConfiguration } from "./modals/model-install-cost-modal/install-configuration";
+import { useSidebar } from "@gnd/ui/sidebar";
+import { Sheet, SheetContent } from "@gnd/ui/sheet";
+import { useMediaQuery } from "@gnd/ui/hooks";
 
 export function InstallCostSidebar() {
     const { editCommunityModelInstallCostId, openToSide, setParams } =
         useCommunityInstallCostParams();
+    const { setOpen } = useSidebar();
+    const isMdOrBelow = useMediaQuery("(max-width: 1023px)");
     const modelInstallCtx = useCreateModelInstallConfigContext();
     const builderModelInstallsCtx =
         useCreateBuilderModelInstallsContext(modelInstallCtx);
     const initializedModelIdRef = useRef<number | null>(null);
     const tabValue = modelInstallCtx.params.mode === "v1" ? "v1" : "v2";
+    const isPanelOpen = Boolean(openToSide && editCommunityModelInstallCostId);
+
+    useEffect(() => {
+        if (isMdOrBelow) {
+            setOpen(false);
+            return;
+        }
+        setOpen(isPanelOpen);
+    }, [isMdOrBelow, isPanelOpen, setOpen]);
 
     useEffect(() => {
         if (!openToSide || !editCommunityModelInstallCostId) {
@@ -45,13 +59,9 @@ export function InstallCostSidebar() {
         builderModelInstallsCtx.builderTaskIntallCosts || {},
     ).reduce((total, item) => total + (item?.total || 0), 0);
 
-    return (
-        <Sidebar
-            collapsible="none"
-            hidden={!openToSide || !editCommunityModelInstallCostId}
-            className="top-[var(--header-height)] h-[calc(100svh-var(--header-height))] border-l bg-background"
-        >
-            <Sidebar.Content className="flex w-sm flex-col overflow-hidden">
+    const panelContent = (
+        <>
+            <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
                 <div className="flex items-center gap-3 border-b px-4 py-3">
                     <div className="min-w-0">
                         <p className="text-muted-foreground text-xs uppercase tracking-wide">
@@ -165,8 +175,8 @@ export function InstallCostSidebar() {
                         </Tabs>
                     </BuilderModelInstallsProvider>
                 </ModelInstallConfigProvider>
-            </Sidebar.Content>
-            <Sidebar.Footer
+            </div>
+            <div
                 id="install-cost-sidebar-footer"
                 className={cn(
                     "border-t bg-background px-4 py-3",
@@ -175,6 +185,39 @@ export function InstallCostSidebar() {
                         : "hidden",
                 )}
             />
+        </>
+    );
+
+    if (isMdOrBelow) {
+        return (
+            <Sheet
+                open={isPanelOpen}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setParams(null);
+                    }
+                }}
+            >
+                <SheetContent
+                    side="right"
+                    hideClose
+                    className="w-screen max-w-none p-0"
+                >
+                    <div className="flex h-full flex-col">{panelContent}</div>
+                </SheetContent>
+            </Sheet>
+        );
+    }
+
+    return (
+        <Sidebar
+            side="right"
+            collapsible="offcanvas"
+            className="top-[var(--header-height)] h-[calc(100svh-var(--header-height))] border-l bg-background"
+        >
+            <Sidebar.Content className="flex min-h-0 w-full max-w-sm flex-col overflow-hidden">
+                {panelContent}
+            </Sidebar.Content>
         </Sidebar>
     );
 }

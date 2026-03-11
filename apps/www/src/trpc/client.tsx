@@ -10,6 +10,7 @@ import { makeQueryClient } from "./query-client";
 import { AppRouter } from "@gnd/api/trpc/routers/_app";
 import { generateRandomString } from "@/lib/utils";
 import { authUser } from "@/app-deps/(v1)/_actions/utils";
+import { getBaseUrl } from "@/lib/base-url";
 export const { TRPCProvider, useTRPC } = createTRPCContext<AppRouter>();
 
 let browserQueryClient: QueryClient;
@@ -39,7 +40,7 @@ export function TRPCReactProvider(
         createTRPCClient<AppRouter>({
             links: [
                 httpBatchLink({
-                    url: `${process.env.NEXT_PUBLIC_APP_URL}/api/trpc`,
+                    url: `${getBaseUrl()}/api/trpc`,
                     // url:
                     //     process.env.NODE_ENV === "production"
                     //         ? `${process.env.NEXT_PUBLIC_APP_URL}/api/trpc`
