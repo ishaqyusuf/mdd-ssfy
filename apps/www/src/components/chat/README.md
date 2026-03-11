@@ -67,9 +67,14 @@ import { Inbox, Chat } from "@/components/chat";
 export function NotificationInbox() {
   return (
     <Inbox
-      channel="job_assigned"
-      payload={{ jobId: 12 }}
-      contacts={{ employee: [1, 2] }}
+      activityHistoryProps={{
+        channel: "job_assigned",
+      }}
+      chatProps={{
+        channel: "job_assigned",
+        payload: { jobId: 12 },
+        contacts: { employee: [1, 2] },
+      }}
     >
       <Chat.ColorPicker />
       <Chat.Content />

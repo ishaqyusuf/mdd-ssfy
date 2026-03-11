@@ -6,15 +6,14 @@ import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 import { getColorFromName } from "@gnd/utils/colors";
 import { Icons } from "@gnd/ui/icons";
-import { Input } from "@gnd/ui/input";
-import { DropdownMenu as Dropdown, Select } from "@gnd/ui/namespace";
+import { DropdownMenu as Dropdown } from "@gnd/ui/namespace";
 import { Textarea } from "@gnd/ui/textarea";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@gnd/ui/tooltip";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   createContext,
   useContext,
   useEffect,
-  useId,
   useMemo,
   useState,
   type FormEvent,
@@ -207,7 +206,7 @@ function ChatHeader({ children, className }: BaseSlotProps) {
   return (
     <div
       className={cn(
-        "flex flex-row items-center gap-1.5 border-b border-border/70 bg-muted/35 px-2 py-1.5",
+        "flex flex-row items-center gap-1.5 px-2 py-1.5",
         className,
       )}
     >
@@ -220,7 +219,7 @@ function ChatFooter({ children, className }: BaseSlotProps) {
   return (
     <div
       className={cn(
-        "flex flex-row items-center gap-1.5 border-t border-border/70 bg-muted/25 px-2 py-1.5",
+        "flex flex-row items-center gap-1.5 px-2 py-1.5",
         className,
       )}
     >
@@ -241,7 +240,6 @@ function ChatChannelsOption({
   placeholder = "Type or select a channel",
 }: ChatChannelsOptionProps) {
   const { state, setChannel, channelOptions } = useChat();
-  const listId = useId();
 
   const options = useMemo(
     () =>
@@ -252,21 +250,43 @@ function ChatChannelsOption({
   );
 
   return (
-    <div className={cn("min-w-0 flex-1 space-y-1", className)}>
-      <Input
-        list={listId}
-        value={state.channel}
-        onChange={(event) => setChannel(event.target.value)}
-        placeholder={placeholder}
-        className="h-7 rounded-md border border-transparent bg-transparent px-2 shadow-none focus-visible:border-border/60 focus-visible:ring-0"
-      />
-      <datalist id={listId}>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </datalist>
+    <div className={cn("w-auto space-y-1", className)}>
+      <Dropdown.Root>
+        <TooltipProvider delayDuration={120}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Dropdown.Trigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-7 w-fit min-w-[170px] max-w-[240px] justify-between rounded-md border border-transparent bg-transparent px-2 shadow-none"
+                >
+                  <span className="truncate">
+                    {options.find((option) => option.value === state.channel)?.label ||
+                      placeholder}
+                  </span>
+                  <Icons.ChevronDown className="size-3.5 text-muted-foreground" />
+                </Button>
+              </Dropdown.Trigger>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="px-2 py-1 text-xs">
+              Channel
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <Dropdown.Content>
+          <Dropdown.Label>Channel</Dropdown.Label>
+          <Dropdown.Separator />
+          {options.map((option) => (
+            <Dropdown.Item
+              key={option.value}
+              onSelect={() => setChannel(option.value)}
+            >
+              {option.label}
+            </Dropdown.Item>
+          ))}
+        </Dropdown.Content>
+      </Dropdown.Root>
       {state.errors.channel ? <p className="text-xs text-destructive">{state.errors.channel}</p> : null}
     </div>
   );
@@ -286,9 +306,78 @@ type ChatMetaOptionProps = {
   name: string;
   label?: string;
   icon?: ReactNode;
+  options?: ChatOption[];
   className?: string;
   placeholder?: string;
 };
+
+type DropdownOptionFieldProps = {
+  value?: string;
+  name: string;
+  label?: string;
+  placeholder?: string;
+  options: ChatOption[];
+  onSelect: (value: string) => void;
+  className?: string;
+  error?: string;
+};
+
+function DropdownOptionField({
+  value,
+  name,
+  label,
+  placeholder,
+  options,
+  onSelect,
+  className,
+  error,
+}: DropdownOptionFieldProps) {
+  const selectedLabel =
+    options.find((option) => option.value === value)?.label ||
+    placeholder ||
+    (label ? `Select ${label}` : "Select option");
+  const triggerLabel = label ? `${label}: ${selectedLabel}` : selectedLabel;
+
+  return (
+    <div className={cn("w-auto space-y-1", className)}>
+      <Dropdown.Root>
+        <TooltipProvider delayDuration={120}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Dropdown.Trigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-7 w-auto justify-between rounded-md border border-transparent bg-transparent px-2 shadow-none font-normal"
+                >
+                  <span className="truncate">{triggerLabel}</span>
+                  <Icons.ChevronDown className="size-3.5 text-muted-foreground" />
+                </Button>
+              </Dropdown.Trigger>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="px-2 py-1 text-xs">
+              {label || name}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <Dropdown.Content>
+          <Dropdown.Label>{label || name}</Dropdown.Label>
+          <Dropdown.Separator />
+          {options.map((option) => (
+            <Dropdown.Item
+              key={option.value}
+              disabled={option.disabled}
+              onSelect={() => onSelect(option.value)}
+            >
+              {option.label}
+            </Dropdown.Item>
+          ))}
+        </Dropdown.Content>
+      </Dropdown.Root>
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+    </div>
+  );
+}
 
 function ChatMetaOption({
   show = true,
@@ -296,6 +385,7 @@ function ChatMetaOption({
   name,
   label,
   icon: _icon,
+  options = [],
   className,
   placeholder,
 }: ChatMetaOptionProps) {
@@ -310,15 +400,16 @@ function ChatMetaOption({
   const errorKey = createErrorKey("meta", name);
 
   return (
-    <div className={cn("w-auto space-y-1", className)}>
-      <Input
-        value={state.meta[name] || ""}
-        onChange={(event) => setMetaValue(name, event.target.value)}
-        placeholder={placeholder || `Enter ${label || name}`}
-        className="h-7 w-[150px] rounded-md border border-transparent bg-transparent px-2 shadow-none focus-visible:border-border/60 focus-visible:ring-0"
-      />
-      {state.errors[errorKey] ? <p className="text-xs text-destructive">{state.errors[errorKey]}</p> : null}
-    </div>
+    <DropdownOptionField
+      value={state.meta[name]}
+      name={name}
+      label={label}
+      placeholder={placeholder}
+      options={options}
+      onSelect={(value) => setMetaValue(name, value)}
+      className={className}
+      error={state.errors[errorKey]}
+    />
   );
 }
 
@@ -352,28 +443,15 @@ function ChatPayloadOption({
   const errorKey = createErrorKey("payload", name);
 
   return (
-    <div className={cn("w-auto space-y-1", className)}>
-      <Select.Root
-        value={state.payload[name] || ""}
-        onValueChange={(value) => setPayloadValue(name, value)}
-      >
-        <Select.Trigger className="h-7 w-[150px] rounded-md border border-transparent bg-transparent px-2 shadow-none focus-visible:border-border/60 focus-visible:ring-0">
-          <Select.Value placeholder={label ? `Select ${label}` : "Select option"} />
-        </Select.Trigger>
-        <Select.Content>
-          {options.map((option) => (
-            <Select.Item
-              key={option.value}
-              value={option.value}
-              disabled={option.disabled}
-            >
-              {option.label}
-            </Select.Item>
-          ))}
-        </Select.Content>
-      </Select.Root>
-      {state.errors[errorKey] ? <p className="text-xs text-destructive">{state.errors[errorKey]}</p> : null}
-    </div>
+    <DropdownOptionField
+      value={state.payload[name]}
+      name={name}
+      label={label}
+      options={options}
+      onSelect={(value) => setPayloadValue(name, value)}
+      className={className}
+      error={state.errors[errorKey]}
+    />
   );
 }
 
@@ -418,22 +496,32 @@ function ChatColorPicker({
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <Dropdown.Root>
-        <Dropdown.Trigger asChild>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-7 gap-1.5 rounded-md px-2"
-          >
-            <span
-              className="size-3 rounded-full border"
-              style={{ backgroundColor: state.noteColor }}
-            />
-            <span className="text-xs">{label}</span>
-            <Icons.ChevronDown className="size-3.5 text-muted-foreground" />
-          </Button>
-        </Dropdown.Trigger>
+        <TooltipProvider delayDuration={120}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Dropdown.Trigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-7 w-auto justify-between rounded-md border border-transparent bg-transparent px-2 shadow-none font-normal"
+                >
+                  <span className="truncate lowercase">{label}:</span>
+                  <span
+                    className="size-3 rounded-full border"
+                    style={{ backgroundColor: state.noteColor }}
+                  />
+                  <Icons.ChevronDown className="size-3.5 text-muted-foreground" />
+                </Button>
+              </Dropdown.Trigger>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="px-2 py-1 text-xs">
+              {label}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <Dropdown.Content align="start" className="w-36 p-1.5">
+          <Dropdown.Label>Note color</Dropdown.Label>
+          <Dropdown.Separator />
           <div className="grid grid-cols-5 gap-1">
             {palette.map((color) => (
               <Dropdown.Item
@@ -468,16 +556,25 @@ function ChatSendButton({ className, label = "Send" }: ChatSendButtonProps) {
   const resolvedLabel = state.isSubmitting ? "Sending..." : label;
 
   return (
-    <Button
-      type="submit"
-      disabled={state.isSubmitting}
-      className={cn("h-7 w-7 rounded-md p-0", className)}
-      aria-label={resolvedLabel}
-      title={resolvedLabel}
-    >
-      <Icons.ArrowOutward className="size-4" />
-      <span className="sr-only">{resolvedLabel}</span>
-    </Button>
+    <TooltipProvider delayDuration={120}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="submit"
+            disabled={state.isSubmitting}
+            className={cn("h-7 w-7 rounded-full p-0", className)}
+            aria-label={resolvedLabel}
+            title={resolvedLabel}
+          >
+            <Icons.ArrowOutward className="size-4" />
+            <span className="sr-only">{resolvedLabel}</span>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="px-2 py-1 text-xs">
+          {resolvedLabel}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -535,14 +632,6 @@ function ChatRoot({
   );
 
   useEffect(() => {
-    if (channel && isChannelName(channel)) {
-      setState((prev) => ({
-        ...prev,
-        channel,
-        payload: resolveDefaultPayloadValues(defaultPayloads, channel),
-      }));
-      return;
-    }
     if (!state.channel && defaultChannelOptions.length > 0) {
       setState((prev) => ({
         ...prev,
@@ -553,7 +642,7 @@ function ChatRoot({
         ),
       }));
     }
-  }, [channel, defaultChannelOptions, defaultPayloads, state.channel]);
+  }, [defaultChannelOptions, defaultPayloads, state.channel]);
 
   const channelOptions = useMemo(() => {
     const options = getChannelsOptionList({ names });

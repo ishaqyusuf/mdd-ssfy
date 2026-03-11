@@ -21,6 +21,7 @@ import { format } from "date-fns";
 interface Props {
   isQuote?: boolean;
   customerName: string;
+  note?: string;
   paymentLink?: string;
   pdfLink?: string;
   sales: {
@@ -50,10 +51,11 @@ const SalesEmail = ({
     },
   ],
   isQuote = false,
+  note,
   paymentLink = "https://payment.com",
   pdfLink = "https://pdf.com",
 }: Props) => {
-  const props = { customerName, sales, isQuote, paymentLink, pdfLink };
+  const props = { customerName, sales, isQuote, note, paymentLink, pdfLink };
   const previewText = `You've received ${
     props.isQuote ? "a quote" : "an Invoice"
   } from GND Millwork`;
@@ -119,6 +121,32 @@ const SalesEmail = ({
               : "Please review your invoice and submit payment before the due date."}{" "}
             If you have any questions, reply directly to this email.
           </Text>
+
+          {props.note ? (
+            <Section
+              className="mb-[16px] p-[12px]"
+              style={{
+                borderStyle: "solid",
+                borderWidth: 1,
+                borderColor: lightStyles.container.borderColor,
+                borderRadius: 10,
+                backgroundColor: "#f8fafc",
+              }}
+            >
+              <Text
+                className={`m-0 mb-[4px] text-[12px] uppercase tracking-[0.8px] ${themeClasses.mutedText}`}
+                style={{ color: "#64748b" }}
+              >
+                Additional Note
+              </Text>
+              <Text
+                className={`m-0 text-[14px] leading-[22px] ${themeClasses.text}`}
+                style={{ color: lightStyles.text.color }}
+              >
+                {props.note}
+              </Text>
+            </Section>
+          ) : null}
 
           <Section
             className="mb-[18px] p-[14px]"

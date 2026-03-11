@@ -6,7 +6,7 @@ import { Icons } from "@gnd/ui/icons";
 import { Separator } from "@gnd/ui/separator";
 import { useQuery } from "@tanstack/react-query";
 import { getColorFromName, hexToRgba } from "@gnd/utils/colors";
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 
 export type ActivityTagFilter = {
   tagName: string;
@@ -30,7 +30,8 @@ export interface ActivityHistoryProps {
   pageSize?: number;
   maxDepth?: number;
   className?: string;
-  emptyText?: string;
+  emptyText?: string | null;
+  emptyNode?: ReactNode;
 }
 
 function formatActivityDate(value: Date | string | null | undefined) {
@@ -77,43 +78,45 @@ function ActivityTreeItem({
 }) {
   const color = channelColor(node);
   const hasChildren = node.children.length > 0;
-  const indentClass = depth > 0 ? "pl-6" : "";
+  const indentClass = depth > 0 ? "pl-5" : "";
+  const note = activityNote(node);
 
   return (
-    <div className={cn("py-3", indentClass)}>
-      <div className="grid grid-cols-[16px_1fr] gap-3">
+    <div className={cn("py-2", indentClass)}>
+      <div className="grid grid-cols-[14px_1fr] gap-2.5">
         <div className="relative pt-1">
+          <span className="absolute left-[4px] top-4 bottom-[-10px] w-px bg-border/60" />
           <span
-            className="absolute left-0 top-1.5 size-2.5 rounded-full"
+            className="absolute left-0 top-1.5 size-2.5 rounded-full ring-2 ring-background"
             style={{
               backgroundColor: color,
             }}
           />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 rounded-lg border border-border/50 bg-card/70 px-2.5 py-2 shadow-sm">
           <div className="flex items-start gap-2">
-            <p className="min-w-0 flex-1 truncate text-sm font-medium">
+            <p className="min-w-0 flex-1 truncate text-sm font-semibold leading-5">
               {activityLabel(node)}
             </p>
-            <span className="text-[11px] text-muted-foreground">
+            <span className="shrink-0 text-[10px] text-muted-foreground/90">
               {formatActivityDate(node.createdAt)}
             </span>
           </div>
-          {!!activityNote(node) && (
+          {!!note && (
             <p
-              className="mt-1 whitespace-pre-wrap rounded px-2 py-1 text-sm text-muted-foreground"
+              className="mt-1.5 whitespace-pre-wrap rounded-md px-2 py-1 text-[13px] leading-5 text-muted-foreground"
               style={{
                 backgroundColor: hexToRgba(color, 0.08),
               }}
             >
-              {activityNote(node)}
+              {note}
             </p>
           )}
         </div>
       </div>
 
       {hasChildren && (
-        <div className="mt-2 space-y-1">
+        <div className="mt-1 space-y-0.5">
           {node.children.map((child) => (
             <ActivityTreeItem key={`${node.id}-${child.id}`} node={child} depth={depth + 1} />
           ))}
@@ -131,6 +134,7 @@ export function ActivityHistory({
   maxDepth = 4,
   className,
   emptyText = "No activity yet",
+  emptyNode,
 }: ActivityHistoryProps) {
   const trpc = useTRPC();
   const tagFilters = useMemo(
@@ -154,9 +158,9 @@ export function ActivityHistory({
 
   if (isPending) {
     return (
-      <div className={cn("space-y-2", className)}>
+      <div className={cn("space-y-2.5", className)}>
         {Array.from({ length: 3 }).map((_, index) => (
-          <div key={index} className="h-12 animate-pulse rounded bg-muted/40" />
+          <div key={index} className="h-16 animate-pulse rounded-lg border border-border/50 bg-muted/30" />
         ))}
       </div>
     );
@@ -173,22 +177,27 @@ export function ActivityHistory({
   const rows = (data?.data || []) as ActivityNode[];
 
   if (!rows.length) {
+    if (emptyNode) return <>{emptyNode}</>;
+    if (!emptyText) return null;
     return (
-      <div className={cn("py-6 text-center text-sm text-muted-foreground", className)}>
-        {emptyText}
+      <div className={cn("py-10 text-center", className)}>
+        <div className="mx-auto mb-2 flex size-8 items-center justify-center rounded-full border border-border/60 bg-muted/30">
+          <Icons.Notifications className="size-4 text-muted-foreground" />
+        </div>
+        <p className="text-sm text-muted-foreground">{emptyText}</p>
       </div>
     );
   }
 
   return (
-    <div className={cn("space-y-0", className)}>
+    <div className={cn("space-y-0.5", className)}>
       {rows.map((item, index) => (
         <div key={item.id}>
           <ActivityTreeItem node={item} />
-          {index < rows.length - 1 && <Separator />}
+          {index < rows.length - 1 && <Separator className="my-0.5" />}
         </div>
       ))}
-      <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
+      <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
         <Icons.Notifications className="size-3.5" />
         <span>Activity chain</span>
       </div>

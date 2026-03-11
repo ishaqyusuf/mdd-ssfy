@@ -133,6 +133,7 @@ async function buildReminderData(
     salesId: sale.id,
     payPlan: input.payPlan ?? null,
     attachInvoice: input.attachInvoice,
+    note: input.note || undefined,
     type: saleType,
     customerEmail,
     customerName,

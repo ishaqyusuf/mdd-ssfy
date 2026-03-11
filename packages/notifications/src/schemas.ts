@@ -425,6 +425,7 @@ export const salesEmailReminderSchema = z.object({
 	customerName: z.string(),
 	salesRep: z.string(),
 	salesRepEmail: z.string().email(),
+	note: z.string().optional().nullable(),
 	paymentToken: z.string().optional().nullable(),
 	pdfToken: z.string().optional().nullable(),
 	paymentLink: z.string().optional().nullable(),
@@ -454,6 +455,7 @@ export const simpleSalesEmailReminderSchema = z.object({
 	salesId: z.number(),
 	payPlan: z.union([z.literal(25), z.literal(50), z.literal(75), z.literal(100)]).optional().nullable(),
 	attachInvoice: z.boolean().optional(),
+	note: z.string().optional().nullable(),
 });
 export type SimpleSalesEmailReminderInput = z.infer<
 	typeof simpleSalesEmailReminderSchema

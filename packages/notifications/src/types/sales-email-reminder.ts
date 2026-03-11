@@ -63,6 +63,7 @@ export const salesEmailReminder: NotificationHandler = {
       data: {
         isQuote,
         customerName: data.customerName,
+        note: data.note || undefined,
         paymentLink: paymentLink || undefined,
         pdfLink: pdfLink || undefined,
         sales: data.sales.map((sale) => ({
