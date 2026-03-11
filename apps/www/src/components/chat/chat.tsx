@@ -4,7 +4,6 @@ import { useTRPC } from "@/trpc/client";
 import { getChannelsOptionList, isChannelName, type ChannelName } from "@notifications/channels";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
-import { getColorFromName } from "@gnd/utils/colors";
 import { Icons } from "@gnd/ui/icons";
 import { DropdownMenu as Dropdown } from "@gnd/ui/namespace";
 import { Textarea } from "@gnd/ui/textarea";
@@ -107,7 +106,14 @@ export type ChatProps = {
 
 const ChatContext = createContext<ChatContextValue | null>(null);
 
-const defaultPalette = ["#00A9FE", "#00D084", "#FF6900", "#EB144C", "#8A2BE2"] as const;
+const defaultPalette = [
+  "#000000",
+  "#00A9FE",
+  "#00D084",
+  "#FF6900",
+  "#EB144C",
+  "#8A2BE2",
+] as const;
 
 function createErrorKey(scope: "meta" | "payload", name: string) {
   return `${scope}:${name}`;
@@ -610,7 +616,7 @@ function ChatRoot({
     payload: resolveDefaultPayloadValues(defaultPayloads, resolvedDefaultChannel),
     errors: {},
     isSubmitting: false,
-    noteColor: getColorFromName(resolvedDefaultChannel || "activity"),
+    noteColor: "#000000",
   });
 
   const [metaFieldConfigs, setMetaFieldConfigs] = useState<Record<string, OptionFieldConfig>>({});

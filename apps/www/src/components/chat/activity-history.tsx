@@ -19,6 +19,7 @@ type ActivityNode = {
   subject: string | null;
   headline: string | null;
   note: string | null;
+  senderContactName?: string | null;
   tags: Record<string, unknown>;
   children: ActivityNode[];
 };
@@ -53,6 +54,10 @@ function activityLabel(node: ActivityNode) {
 
 function activityNote(node: ActivityNode) {
   return node.note || "";
+}
+
+function activityAuthor(node: ActivityNode) {
+  return node.senderContactName || "Unknown";
 }
 
 function channelColor(node: ActivityNode) {
@@ -93,7 +98,7 @@ function ActivityTreeItem({
             }}
           />
         </div>
-        <div className="min-w-0 rounded-lg border border-border/50 bg-card/70 px-2.5 py-2 shadow-sm">
+        <div className="min-w-0 px-0.5 py-0.5">
           <div className="flex items-start gap-2">
             <p className="min-w-0 flex-1 truncate text-sm font-semibold leading-5">
               {activityLabel(node)}
@@ -102,6 +107,9 @@ function ActivityTreeItem({
               {formatActivityDate(node.createdAt)}
             </span>
           </div>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            by {activityAuthor(node)}
+          </p>
           {!!note && (
             <p
               className="mt-1.5 whitespace-pre-wrap rounded-md px-2 py-1 text-[13px] leading-5 text-muted-foreground"

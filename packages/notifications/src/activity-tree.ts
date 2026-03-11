@@ -23,6 +23,7 @@ export type ActivityTreeNode = {
 	headline: string | null;
 	note: string | null;
 	senderContactId: number | null;
+	senderContactName: string | null;
 	receipt?: {
 		status?: NoteStatus | null;
 		notePadContactId?: number | null;
@@ -77,7 +78,7 @@ function mapActivity(row: {
 	subject: string | null;
 	headline: string | null;
 	note: string | null;
-	senderContact: { id: number } | null;
+	senderContact: { id: number; name: string | null } | null;
 	recipients: { status: NoteStatus | null; notePadContactId: number }[];
 	tags: { tagName: string; tagValue: string }[];
 }): ActivityTreeNode {
@@ -88,6 +89,7 @@ function mapActivity(row: {
 		headline: row.headline ?? null,
 		note: row.note ?? null,
 		senderContactId: row.senderContact?.id ?? null,
+		senderContactName: row.senderContact?.name ?? null,
 		receipt: row.recipients?.[0] ?? null,
 		tags: row.tags.reduce(
 			(acc, tag) => {
@@ -182,6 +184,7 @@ async function fetchActivitiesByIds(
 			senderContact: {
 				select: {
 					id: true,
+					name: true,
 				},
 			},
 			tags: {
@@ -230,6 +233,7 @@ export async function getActivityTree(db: Db, query: GetActivityTreeQuery) {
 			senderContact: {
 				select: {
 					id: true,
+					name: true,
 				},
 			},
 			tags: {

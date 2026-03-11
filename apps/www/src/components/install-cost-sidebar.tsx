@@ -49,7 +49,7 @@ export function InstallCostSidebar() {
         <Sidebar
             collapsible="none"
             hidden={!openToSide || !editCommunityModelInstallCostId}
-            className="top-[var(--header-height)] hidden h-[calc(100svh-var(--header-height))] border-l bg-background lg:flex"
+            className="top-[var(--header-height)] h-[calc(100svh-var(--header-height))] border-l bg-background"
         >
             <Sidebar.Content className="flex w-sm flex-col overflow-hidden">
                 <div className="flex items-center gap-3 border-b px-4 py-3">
@@ -178,4 +178,3 @@ export function InstallCostSidebar() {
         </Sidebar>
     );
 }
-
