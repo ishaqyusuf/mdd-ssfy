@@ -424,6 +424,8 @@ export const salesEmailReminderSchema = z.object({
 	customerName: z.string(),
 	salesRep: z.string(),
 	salesRepEmail: z.string().email(),
+	paymentToken: z.string().optional().nullable(),
+	pdfToken: z.string().optional().nullable(),
 	paymentLink: z.string().optional().nullable(),
 	pdfLink: z.string().optional().nullable(),
 	sales: z.array(
@@ -443,6 +445,8 @@ export const salesEmailReminderTags = actityTagsSchema.extend({
 	salesCount: z.number(),
 	reminderType: z.enum(["order", "quote"]),
 	salesNo: z.array(z.string()).optional(),
+	paymentToken: z.string().optional().nullable(),
+	pdfToken: z.string().optional().nullable(),
 });
 export type SalesEmailReminderTags = z.infer<typeof salesEmailReminderTags>;
 export const salesReminderScheduleAdminNotificationSchema = z.object({

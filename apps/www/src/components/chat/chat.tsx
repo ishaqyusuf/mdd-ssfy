@@ -7,7 +7,7 @@ import { cn } from "@gnd/ui/cn";
 import { getColorFromName } from "@gnd/utils/colors";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
-import { DropdownMenu as Dropdown } from "@gnd/ui/namespace";
+import { DropdownMenu as Dropdown, Select } from "@gnd/ui/namespace";
 import { Textarea } from "@gnd/ui/textarea";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -204,20 +204,40 @@ type BaseSlotProps = {
 };
 
 function ChatHeader({ children, className }: BaseSlotProps) {
-  return <div className={cn("space-y-3", className)}>{children}</div>;
+  return (
+    <div
+      className={cn(
+        "flex flex-row items-center gap-1.5 border-b border-border/70 bg-muted/35 px-2 py-1.5",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+function ChatFooter({ children, className }: BaseSlotProps) {
+  return (
+    <div
+      className={cn(
+        "flex flex-row items-center gap-1.5 border-t border-border/70 bg-muted/25 px-2 py-1.5",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
 }
 
 type ChatChannelsOptionProps = {
   names?: readonly string[];
   className?: string;
-  label?: string;
   placeholder?: string;
 };
 
 function ChatChannelsOption({
   names,
   className,
-  label = "Channel",
   placeholder = "Type or select a channel",
 }: ChatChannelsOptionProps) {
   const { state, setChannel, channelOptions } = useChat();
@@ -232,13 +252,13 @@ function ChatChannelsOption({
   );
 
   return (
-    <div className={cn("space-y-1", className)}>
-      <label className="text-xs font-medium text-muted-foreground">{label}</label>
+    <div className={cn("min-w-0 flex-1 space-y-1", className)}>
       <Input
         list={listId}
         value={state.channel}
         onChange={(event) => setChannel(event.target.value)}
         placeholder={placeholder}
+        className="h-7 rounded-md border border-transparent bg-transparent px-2 shadow-none focus-visible:border-border/60 focus-visible:ring-0"
       />
       <datalist id={listId}>
         {options.map((option) => (
@@ -253,7 +273,11 @@ function ChatChannelsOption({
 }
 
 function ChatOptions({ children, className }: BaseSlotProps) {
-  return <div className={cn("grid gap-3 md:grid-cols-2", className)}>{children}</div>;
+  return (
+    <div className={cn("flex flex-wrap items-center gap-1.5 px-2 py-0.5", className)}>
+      {children}
+    </div>
+  );
 }
 
 type ChatMetaOptionProps = {
@@ -271,7 +295,7 @@ function ChatMetaOption({
   required,
   name,
   label,
-  icon,
+  icon: _icon,
   className,
   placeholder,
 }: ChatMetaOptionProps) {
@@ -286,18 +310,12 @@ function ChatMetaOption({
   const errorKey = createErrorKey("meta", name);
 
   return (
-    <div className={cn("space-y-1", className)}>
-      <label className="text-xs font-medium text-muted-foreground">
-        <span className="inline-flex items-center gap-1">
-          {icon}
-          {label || name}
-          {required ? <span className="text-destructive">*</span> : null}
-        </span>
-      </label>
+    <div className={cn("w-auto space-y-1", className)}>
       <Input
         value={state.meta[name] || ""}
         onChange={(event) => setMetaValue(name, event.target.value)}
         placeholder={placeholder || `Enter ${label || name}`}
+        className="h-7 w-[150px] rounded-md border border-transparent bg-transparent px-2 shadow-none focus-visible:border-border/60 focus-visible:ring-0"
       />
       {state.errors[errorKey] ? <p className="text-xs text-destructive">{state.errors[errorKey]}</p> : null}
     </div>
@@ -319,7 +337,7 @@ function ChatPayloadOption({
   required,
   name,
   label,
-  icon,
+  icon: _icon,
   options,
   className,
 }: ChatPayloadOptionProps) {
@@ -334,40 +352,26 @@ function ChatPayloadOption({
   const errorKey = createErrorKey("payload", name);
 
   return (
-    <div className={cn("space-y-1", className)}>
-      <label className="text-xs font-medium text-muted-foreground">
-        <span className="inline-flex items-center gap-1">
-          {icon}
-          {label || name}
-          {required ? <span className="text-destructive">*</span> : null}
-        </span>
-      </label>
-      <Dropdown.Root>
-        <Dropdown.Trigger asChild>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full justify-between font-normal"
-          >
-            <span>
-              {options.find((option) => option.value === state.payload[name])
-                ?.label || "Select an option"}
-            </span>
-            <Icons.ChevronDown className="size-4 text-muted-foreground" />
-          </Button>
-        </Dropdown.Trigger>
-        <Dropdown.Content className="min-w-[var(--radix-dropdown-menu-trigger-width)]">
+    <div className={cn("w-auto space-y-1", className)}>
+      <Select.Root
+        value={state.payload[name] || ""}
+        onValueChange={(value) => setPayloadValue(name, value)}
+      >
+        <Select.Trigger className="h-7 w-[150px] rounded-md border border-transparent bg-transparent px-2 shadow-none focus-visible:border-border/60 focus-visible:ring-0">
+          <Select.Value placeholder={label ? `Select ${label}` : "Select option"} />
+        </Select.Trigger>
+        <Select.Content>
           {options.map((option) => (
-            <Dropdown.Item
+            <Select.Item
               key={option.value}
+              value={option.value}
               disabled={option.disabled}
-              onSelect={() => setPayloadValue(name, option.value)}
             >
               {option.label}
-            </Dropdown.Item>
+            </Select.Item>
           ))}
-        </Dropdown.Content>
-      </Dropdown.Root>
+        </Select.Content>
+      </Select.Root>
       {state.errors[errorKey] ? <p className="text-xs text-destructive">{state.errors[errorKey]}</p> : null}
     </div>
   );
@@ -385,12 +389,12 @@ export function ChatContent({
   const { state, setMessage } = useChat();
 
   return (
-    <div className={cn("space-y-2", className)}>
+    <div className={cn("space-y-1 px-2 py-1", className)}>
       <Textarea
         value={state.message}
         onChange={(event) => setMessage(event.target.value)}
         placeholder={placeholder}
-        className="min-h-[84px]"
+        className="min-h-[56px] resize-none rounded-lg border-0 bg-transparent px-1 py-0.5 shadow-none focus-visible:border-0 focus-visible:ring-0"
       />
       {state.errors.message ? <p className="text-xs text-destructive">{state.errors.message}</p> : null}
       {state.errors.submit ? <p className="text-xs text-destructive">{state.errors.submit}</p> : null}
@@ -413,23 +417,43 @@ function ChatColorPicker({
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <Icons.Notifications className="size-4 text-muted-foreground" />
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-1.5">
-        {palette.map((color) => (
-          <button
-            key={color}
+      <Dropdown.Root>
+        <Dropdown.Trigger asChild>
+          <Button
             type="button"
-            className={cn(
-              "size-4 rounded-full transition-transform",
-              state.noteColor === color && "scale-110 ring-1 ring-border",
-            )}
-            style={{ backgroundColor: color }}
-            onClick={() => setNoteColor(color)}
-            aria-label={`Select ${color} note color`}
-          />
-        ))}
-      </div>
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1.5 rounded-md px-2"
+          >
+            <span
+              className="size-3 rounded-full border"
+              style={{ backgroundColor: state.noteColor }}
+            />
+            <span className="text-xs">{label}</span>
+            <Icons.ChevronDown className="size-3.5 text-muted-foreground" />
+          </Button>
+        </Dropdown.Trigger>
+        <Dropdown.Content align="start" className="w-36 p-1.5">
+          <div className="grid grid-cols-5 gap-1">
+            {palette.map((color) => (
+              <Dropdown.Item
+                key={color}
+                className={cn(
+                  "h-5 w-5 min-w-0 rounded-sm p-0",
+                  state.noteColor === color && "ring-1 ring-foreground/50",
+                )}
+                onSelect={() => setNoteColor(color)}
+                aria-label={`Select ${color} note color`}
+              >
+                <span
+                  className="h-full w-full rounded-[5px] border"
+                  style={{ backgroundColor: color }}
+                />
+              </Dropdown.Item>
+            ))}
+          </div>
+        </Dropdown.Content>
+      </Dropdown.Root>
     </div>
   );
 }
@@ -441,11 +465,18 @@ type ChatSendButtonProps = {
 
 function ChatSendButton({ className, label = "Send" }: ChatSendButtonProps) {
   const { state } = useChat();
+  const resolvedLabel = state.isSubmitting ? "Sending..." : label;
 
   return (
-    <Button type="submit" disabled={state.isSubmitting} className={cn("gap-2", className)}>
+    <Button
+      type="submit"
+      disabled={state.isSubmitting}
+      className={cn("h-7 w-7 rounded-md p-0", className)}
+      aria-label={resolvedLabel}
+      title={resolvedLabel}
+    >
       <Icons.ArrowOutward className="size-4" />
-      <span>{state.isSubmitting ? "Sending..." : label}</span>
+      <span className="sr-only">{resolvedLabel}</span>
     </Button>
   );
 }
@@ -693,7 +724,13 @@ function ChatRoot({
 
   return (
     <ChatContext.Provider value={contextValue}>
-      <form className={cn("space-y-4", className)} onSubmit={handleSubmit}>
+      <form
+        className={cn(
+          "space-y-1 overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm transition-[border-color,box-shadow] focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/20",
+          className,
+        )}
+        onSubmit={handleSubmit}
+      >
         {children}
       </form>
     </ChatContext.Provider>
@@ -702,6 +739,7 @@ function ChatRoot({
 
 type ChatComponent = ((props: ChatProps) => ReactNode) & {
   Header: typeof ChatHeader;
+  Footer: typeof ChatFooter;
   ChannelsOption: typeof ChatChannelsOption;
   Options: typeof ChatOptions;
   MetaOption: typeof ChatMetaOption;
@@ -713,6 +751,7 @@ type ChatComponent = ((props: ChatProps) => ReactNode) & {
 
 export const Chat: ChatComponent = Object.assign(ChatRoot, {
   Header: ChatHeader,
+  Footer: ChatFooter,
   ChannelsOption: ChatChannelsOption,
   Options: ChatOptions,
   MetaOption: ChatMetaOption,

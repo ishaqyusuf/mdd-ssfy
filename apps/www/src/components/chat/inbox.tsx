@@ -85,11 +85,17 @@ export function Inbox({
       >
         {children || (
           <>
-            <Chat.ColorPicker />
+            <Chat.Header>
+              <div className="text-xs font-medium text-muted-foreground">
+                AI Compose
+              </div>
+            </Chat.Header>
             <Chat.Content placeholder={placeholder} />
-            <div className="flex items-center justify-end">
+            <Chat.Footer>
+              <Chat.ColorPicker />
+              <div className="flex-1" />
               <Chat.SendButton />
-            </div>
+            </Chat.Footer>
           </>
         )}
       </Chat>

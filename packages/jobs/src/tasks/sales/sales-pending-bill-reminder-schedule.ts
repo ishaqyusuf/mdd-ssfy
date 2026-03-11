@@ -15,6 +15,7 @@ import { addDays } from "date-fns";
 const baseApiUrl = getAppApiUrl();
 const MAX_HISTORY_BREAKDOWN_ITEMS = 50;
 const MAX_NOTIFICATION_BREAKDOWN_ITEMS = 25;
+const MAX_DEV_MODE_DELIVERY = 5;
 const isValidEmail = (value?: string | null) =>
   !!value && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
@@ -496,15 +497,6 @@ async function runPendingBillReminder(runType: RunType) {
       failed: 0,
     };
   }
-  // console.log(grouped.values().)
-  // console.log(
-  //   "Grouped reminders:",
-  //   Array.from(grouped.values()).map((g) => ({
-  //     salesRepId: g.salesRepId,
-  //     customerEmail: g.customerEmail,
-  //     salesCount: g.sales.length,
-  //   })),
-  // );
   logger.info("Sales pending-bill reminder groups prepared", {
     groups: Array.from(grouped.values()).map((g) => ({
       salesRepId: g.salesRepId,
@@ -514,13 +506,27 @@ async function runPendingBillReminder(runType: RunType) {
       salesCount: g.sales.length,
     })),
   });
-  return;
+  const shouldLimitEmails =
+    process.env.NODE_ENV === "development" || runType === "test";
+  const allGroups = Array.from(grouped.values());
+  const groupsToSend = shouldLimitEmails
+    ? allGroups.slice(0, MAX_DEV_MODE_DELIVERY)
+    : allGroups;
+  const cappedGroupsCount = Math.max(0, allGroups.length - groupsToSend.length);
+  if (cappedGroupsCount > 0) {
+    logger.info("Sales pending-bill reminder capped by environment", {
+      runType,
+      nodeEnv: process.env.NODE_ENV,
+      maxEmailsPerRun: MAX_DEV_MODE_DELIVERY,
+      cappedGroupsCount,
+    });
+  }
   const expiry = addDays(new Date(), 7).toISOString();
   let sent = 0;
   let failed = 0;
   const successfulRecipients: SuccessfulRecipientBreakdown[] = [];
 
-  for (const group of grouped.values()) {
+  for (const group of groupsToSend) {
     try {
       const downloadToken = tokenize({
         salesIds: group.salesIds,
@@ -600,6 +606,9 @@ async function runPendingBillReminder(runType: RunType) {
       skipped,
       failed,
       testMode: runType === "test",
+      emailCapApplied: shouldLimitEmails,
+      maxEmailsPerRun: shouldLimitEmails ? MAX_DEV_MODE_DELIVERY : null,
+      cappedGroupsCount,
       skippedSales:
         skippedSales.length > MAX_HISTORY_BREAKDOWN_ITEMS
           ? skippedSales.slice(0, MAX_HISTORY_BREAKDOWN_ITEMS)

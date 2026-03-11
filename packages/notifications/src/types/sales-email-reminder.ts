@@ -19,6 +19,8 @@ export const salesEmailReminder: NotificationHandler = {
       salesCount: data.sales.length,
       reminderType: data.type,
       salesNo: data.sales.map((a) => a.orderId),
+      paymentToken: data.paymentToken || null,
+      pdfToken: data.pdfToken || null,
     };
 
     return {
@@ -32,6 +34,26 @@ export const salesEmailReminder: NotificationHandler = {
   },
   createEmail(data, author, user, args) {
     const isQuote = data.type === "quote";
+    const appUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      process.env.APP_URL ||
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      "";
+    const apiUrl =
+      process.env.NEXT_PUBLIC_API_URL ||
+      process.env.APP_API_URL ||
+      appUrl;
+    const paymentLink =
+      data.paymentLink ||
+      (data.paymentToken && appUrl
+        ? `${appUrl}/checkout/${data.paymentToken}`
+        : undefined);
+    const pdfLink =
+      data.pdfLink ||
+      (data.pdfToken && apiUrl
+        ? `${apiUrl}/download/sales?token=${data.pdfToken}&download=true`
+        : undefined);
+
     return {
       ...args,
       template: "sales-email-reminder",
@@ -41,8 +63,8 @@ export const salesEmailReminder: NotificationHandler = {
       data: {
         isQuote,
         customerName: data.customerName,
-        paymentLink: data.paymentLink || undefined,
-        pdfLink: data.pdfLink || undefined,
+        paymentLink: paymentLink || undefined,
+        pdfLink: pdfLink || undefined,
         sales: data.sales.map((sale) => ({
           ...sale,
           date:
