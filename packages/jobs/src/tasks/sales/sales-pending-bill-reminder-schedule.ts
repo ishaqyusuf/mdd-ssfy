@@ -1,5 +1,5 @@
 import { db } from "@gnd/db";
-import { getAppApiUrl } from "@utils/envs";
+import { getAppApiUrl, getTestEmail } from "@utils/envs";
 import { type NotificationJobInput } from "@notifications/schemas";
 import { logger, schedules, task, tasks } from "@trigger.dev/sdk/v3";
 import { addDays } from "date-fns";
@@ -88,6 +88,27 @@ async function writeScheduleHistory(input: {
 }
 
 async function runPendingBillReminder(runType: RunType) {
+  const isDev = process.env.NODE_ENV === "development";
+  const testEmail = getTestEmail();
+  const useTestRecipient = runType === "test" || isDev;
+  //
+  if (useTestRecipient && (!testEmail || !isValidEmail(testEmail))) {
+    await writeScheduleHistory({
+      eventName: EVENT_NAME,
+      value: 0,
+      meta: {
+        triggerType: runType,
+        skipped: true,
+        reason: "missing_test_email",
+      },
+    });
+    logger.error("TEST_EMAIL is required for test/dev reminder runs.", {
+      runType,
+      nodeEnv: process.env.NODE_ENV,
+    });
+    return { found: 0, grouped: 0, sent: 0, skipped: 0, failed: 0 };
+  }
+
   const defaultConfig = getTaskEventDefaultConfig(EVENT_NAME);
   const settings = await getSettingAction("task-events-settings", db);
   const config = (() => {
@@ -121,68 +142,68 @@ async function runPendingBillReminder(runType: RunType) {
 
   const filterWhere = whereSales(config.filter as any);
   const [pendingSales, fallbackAuthor] = await Promise.all([
-      db.salesOrders.findMany({
-        where: filterWhere
-          ? {
-              AND: [
-                {
-                  deletedAt: null,
-                  type: "order",
-                  amountDue: {
-                    gt: 0,
-                  },
+    db.salesOrders.findMany({
+      where: filterWhere
+        ? {
+            AND: [
+              {
+                deletedAt: null,
+                type: "order",
+                amountDue: {
+                  gt: 0,
                 },
-                filterWhere,
-              ],
-            }
-          : {
-              deletedAt: null,
-              type: "order",
-              amountDue: {
-                gt: 0,
               },
-            },
-        orderBy: {
-          createdAt: "asc",
-        },
-        select: {
-          id: true,
-          orderId: true,
-          createdAt: true,
-          grandTotal: true,
-          amountDue: true,
-          meta: true,
-          salesRep: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
+              filterWhere,
+            ],
+          }
+        : {
+            deletedAt: null,
+            type: "order",
+            amountDue: {
+              gt: 0,
             },
           },
-          customer: {
-            select: {
-              name: true,
-              businessName: true,
-              email: true,
-            },
+      orderBy: {
+        createdAt: "asc",
+      },
+      select: {
+        id: true,
+        orderId: true,
+        createdAt: true,
+        grandTotal: true,
+        amountDue: true,
+        meta: true,
+        salesRep: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
           },
-          billingAddress: {
-            select: {
-              name: true,
-              email: true,
-            },
+        },
+        customer: {
+          select: {
+            name: true,
+            businessName: true,
+            email: true,
           },
         },
-      }),
-      db.users.findFirst({
-        where: {
-          deletedAt: null,
+        billingAddress: {
+          select: {
+            name: true,
+            email: true,
+          },
         },
-        select: {
-          id: true,
-        },
-      }),
-    ]);
+      },
+    }),
+    db.users.findFirst({
+      where: {
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    }),
+  ]);
 
   if (!pendingSales.length) {
     await writeScheduleHistory({
@@ -207,8 +228,9 @@ async function runPendingBillReminder(runType: RunType) {
   let skipped = 0;
 
   for (const sale of pendingSales) {
-    const customerEmail =
+    const rawCustomerEmail =
       sale.customer?.email?.trim() || sale.billingAddress?.email?.trim();
+    const customerEmail = useTestRecipient ? testEmail! : rawCustomerEmail;
     const customerName =
       sale.customer?.name?.trim() ||
       sale.customer?.businessName?.trim() ||
@@ -288,16 +310,29 @@ async function runPendingBillReminder(runType: RunType) {
       failed: 0,
     };
   }
+  // console.log(grouped.values().)
+  // console.log(
+  //   "Grouped reminders:",
+  //   Array.from(grouped.values()).map((g) => ({
+  //     salesRepId: g.salesRepId,
+  //     customerEmail: g.customerEmail,
+  //     salesCount: g.sales.length,
+  //   })),
+  // );
+  logger.info("Sales pending-bill reminder groups prepared", {
+    groups: Array.from(grouped.values()).map((g) => ({
+      salesRepId: g.salesRepId,
+      customerEmail: g.customerEmail,
+      salesCount: g.sales.length,
+    })),
+  });
 
+  return;
   const expiry = addDays(new Date(), 7).toISOString();
   let sent = 0;
   let failed = 0;
 
   for (const group of grouped.values()) {
-    if (runType === "test") {
-      sent += 1;
-      continue;
-    }
     try {
       const downloadToken = tokenize({
         salesIds: group.salesIds,
@@ -311,6 +346,7 @@ async function runPendingBillReminder(runType: RunType) {
           id: group.salesRepId,
           role: "employee",
         },
+        // recipients:
         payload: {
           type: "order",
           customerEmail: group.customerEmail,
@@ -349,6 +385,7 @@ async function runPendingBillReminder(runType: RunType) {
       triggerType: runType,
       statusUsed: config.status,
       filterUsed: config.filter,
+      testEmailUsed: useTestRecipient ? testEmail : null,
       found: pendingSales.length,
       grouped: grouped.size,
       sent,

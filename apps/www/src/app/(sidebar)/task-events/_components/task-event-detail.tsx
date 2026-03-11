@@ -18,6 +18,7 @@ export function TaskEventDetail({ eventName }: Props) {
   const [status, setStatus] = useState<"active" | "inactive">("active");
   const [filterText, setFilterText] = useState("{}");
   const [runId, setRunId] = useState<string | null>(null);
+  const [syncedRunId, setSyncedRunId] = useState<string | null>(null);
 
   const { data, isPending, refetch } = useQuery(
     _trpc.taskEvents.get.queryOptions({ eventName }),
@@ -26,6 +27,7 @@ export function TaskEventDetail({ eventName }: Props) {
   const historyQuery = useQuery(
     _trpc.taskEvents.history.queryOptions({ eventName }),
   );
+  const refetchHistory = historyQuery.refetch;
 
   const runStatusQuery = useQuery(
     _trpc.taskEvents.runStatus.queryOptions(
@@ -48,6 +50,30 @@ export function TaskEventDetail({ eventName }: Props) {
     setStatus(data.config.status);
     setFilterText(JSON.stringify(data.config.filter || {}, null, 2));
   }, [data?.config]);
+
+  useEffect(() => {
+    const runStatus = runStatusQuery.data?.status;
+    if (!runId || !runStatus || runId === syncedRunId) return;
+    if (runStatus !== "COMPLETED" && runStatus !== "FAILED") return;
+
+    setSyncedRunId(runId);
+    void (async () => {
+      await Promise.all([
+        refetchHistory(),
+        refetch(),
+        queryClient.invalidateQueries({
+          queryKey: _trpc.taskEvents.list.queryKey(),
+        }),
+      ]);
+    })();
+  }, [
+    queryClient,
+    refetchHistory,
+    refetch,
+    runId,
+    runStatusQuery.data?.status,
+    syncedRunId,
+  ]);
 
   const saveMutation = useMutation(
     _trpc.taskEvents.update.mutationOptions({

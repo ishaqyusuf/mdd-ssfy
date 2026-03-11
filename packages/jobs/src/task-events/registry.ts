@@ -10,7 +10,8 @@ const buildRunTaskName = (
   eventName: string,
   type: "now" | "test",
 ): `run-${string}-${"now" | "test"}` => {
-  return `run-${eventName}-${type}`;
+  const normalizedEventName = eventName.replace(/-schedule$/, "");
+  return `run-${normalizedEventName}-${type}`;
 };
 
 const registry = {
