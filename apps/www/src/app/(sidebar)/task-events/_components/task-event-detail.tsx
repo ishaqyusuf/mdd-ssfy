@@ -1,8 +1,11 @@
 "use client";
 
 import { _trpc } from "@/components/static-trpc";
+import { useAuth } from "@/hooks/use-auth";
+import { salesFilterParamsSchema } from "@/hooks/use-sales-filter-params";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import { SearchFilter } from "@gnd/ui/search-filter";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { Textarea } from "@gnd/ui/textarea";
 import { toast } from "@gnd/ui/use-toast";
@@ -42,8 +45,10 @@ type TaskHistoryMeta = {
 };
 
 export function TaskEventDetail({ eventName }: Props) {
+	const auth = useAuth();
 	const queryClient = useQueryClient();
 	const [status, setStatus] = useState<"active" | "inactive">("active");
+	const [filter, setFilter] = useState<Record<string, unknown>>({});
 	const [filterText, setFilterText] = useState("{}");
 	const [runId, setRunId] = useState<string | null>(null);
 	const [syncedRunId, setSyncedRunId] = useState<string | null>(null);
@@ -76,6 +81,7 @@ export function TaskEventDetail({ eventName }: Props) {
 	useEffect(() => {
 		if (!data?.config) return;
 		setStatus(data.config.status);
+		setFilter((data.config.filter || {}) as Record<string, unknown>);
 		setFilterText(JSON.stringify(data.config.filter || {}, null, 2));
 	}, [data?.config]);
 
@@ -163,6 +169,37 @@ export function TaskEventDetail({ eventName }: Props) {
 			return null;
 		}
 	}, [filterText]);
+	const filterSystem = data?.filterSystem;
+	const usesSalesFilterSystem =
+		filterSystem?.systemId === "sales-order-search-filter" &&
+		filterSystem?.paramsSchemaId === "use-sales-filter-params";
+	const saveFilter = usesSalesFilterSystem ? filter : parsedFilter;
+	const hasInvalidFilter = !usesSalesFilterSystem && parsedFilter === null;
+
+	const setSystemFilters = (next: Record<string, unknown> | null) => {
+		setFilter((current) => {
+			if (!next) return {};
+
+			const merged: Record<string, unknown> = {
+				...current,
+				...next,
+			};
+
+			for (const [key, value] of Object.entries(merged)) {
+				const emptyArray = Array.isArray(value) && value.length === 0;
+				if (
+					value === null ||
+					value === undefined ||
+					value === "" ||
+					emptyArray
+				) {
+					delete merged[key];
+				}
+			}
+
+			return merged;
+		});
+	};
 
 	if (isPending) {
 		return (
@@ -217,26 +254,56 @@ export function TaskEventDetail({ eventName }: Props) {
 				</div>
 
 				<div>
-					<div className="text-sm font-medium">Filter (JSON)</div>
-					<Textarea
-						className="mt-2 min-h-[180px] font-mono text-xs"
-						value={filterText}
-						onChange={(e) => setFilterText(e.target.value)}
-					/>
-					{parsedFilter === null ? (
-						<p className="text-xs text-destructive mt-2">
-							Invalid JSON filter.
-						</p>
-					) : null}
+					<div className="text-sm font-medium">Filter</div>
+					{usesSalesFilterSystem ? (
+						<div className="mt-2 flex flex-col gap-2">
+							<SearchFilter
+								filterSchema={salesFilterParamsSchema}
+								placeholder="Search Order Information..."
+								trpcRoute={_trpc.filters.salesOrders}
+								trpQueryOptions={{
+									salesManager: auth?.can?.viewSalesManager,
+								}}
+								filters={filter}
+								setFilters={setSystemFilters}
+							/>
+							<div className="text-xs text-muted-foreground">
+								System: {filterSystem?.paramsSchemaId} /{" "}
+								{filterSystem?.systemId}
+							</div>
+							{filterSystem?.definitions?.length ? (
+								<div className="text-xs text-muted-foreground">
+									Allowed keys:{" "}
+									{filterSystem.definitions.map((item) => item.key).join(", ")}
+								</div>
+							) : null}
+							<pre className="rounded border bg-muted/30 p-2 text-xs overflow-auto">
+								{JSON.stringify(filter, null, 2)}
+							</pre>
+						</div>
+					) : (
+						<div className="mt-2">
+							<Textarea
+								className="min-h-[180px] font-mono text-xs"
+								value={filterText}
+								onChange={(e) => setFilterText(e.target.value)}
+							/>
+							{parsedFilter === null ? (
+								<p className="text-xs text-destructive mt-2">
+									Invalid JSON filter.
+								</p>
+							) : null}
+						</div>
+					)}
 				</div>
 
 				<div className="flex gap-2">
 					<Button
 						onClick={() => {
-							if (parsedFilter === null) {
+							if (saveFilter === null) {
 								toast({
 									variant: "error",
-									title: "Fix filter JSON",
+									title: "Fix filter",
 								});
 								return;
 							}
@@ -244,10 +311,10 @@ export function TaskEventDetail({ eventName }: Props) {
 							saveMutation.mutate({
 								eventName,
 								status,
-								filter: parsedFilter,
+								filter: saveFilter,
 							});
 						}}
-						disabled={saveMutation.isPending || parsedFilter === null}
+						disabled={saveMutation.isPending || hasInvalidFilter}
 					>
 						{saveMutation.isPending ? "Saving..." : "Save Configuration"}
 					</Button>

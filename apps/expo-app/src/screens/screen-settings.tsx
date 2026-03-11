@@ -19,12 +19,15 @@ import { Pressable } from "@/components/ui/pressable";
 import { SettingsSections } from "@/components/settings-sections";
 import type { CurrentSectionKey } from "@/lib/session-store";
 
+type SettingsSectionKey = CurrentSectionKey | "hrm";
+
 const sectionRouteMap = {
   jobs: "/(job)/dashboard",
   dispatch: "/(drivers)/dispatch",
   installer: "/(job)/dashboard",
   driver: "/(drivers)",
   sales: "/(sales)",
+  hrm: "/hrm",
 } as const;
 
 export default function SettingsExampleScreen() {
@@ -71,7 +74,7 @@ export default function SettingsExampleScreen() {
   };
   // get expo build version
   const expoVersion = config.version;
-  const uiSections: { key: CurrentSectionKey; label: string }[] = [
+  const uiSections: { key: SettingsSectionKey; label: string }[] = [
     ...auth.sections.map((section) => ({
       key: section.key,
       label: section.label,
@@ -82,12 +85,20 @@ export default function SettingsExampleScreen() {
             key: "sales" as const,
             label: "Sales Dashboard",
           },
+          {
+            key: "hrm" as const,
+            label: "HRM",
+          },
         ]
       : []),
   ];
   const shouldShowSections = uiSections.length > 1;
 
-  const onSelectSection = (sectionKey: CurrentSectionKey) => {
+  const onSelectSection = (sectionKey: SettingsSectionKey) => {
+    if (sectionKey === "hrm") {
+      router.push(sectionRouteMap.hrm as any);
+      return;
+    }
     auth.setCurrentSectionByKey(sectionKey);
     router.replace(sectionRouteMap[sectionKey] as any);
   };
@@ -194,7 +205,7 @@ export default function SettingsExampleScreen() {
               icon="AppWindow"
               label="App Updates"
               subLabel="Check and install the latest updates"
-              isLast
+              isLast={!auth.isAdmin}
               onPress={() => router.push("/updates")}
               rightElement={
                 <Icon

@@ -24,6 +24,15 @@ import { tasks } from "@trigger.dev/sdk/v3";
 import { NotificationService } from "@notifications/services/triggers";
 // import { Notifications } from "@notifications/index";
 
+function serializeTagValue(value: unknown): string {
+  if (value === undefined) return "null";
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
 export const jobRoutes = createTRPCRouter({
   deleteJob: publicProcedure
     .input(
@@ -404,6 +413,53 @@ export const jobRoutes = createTRPCRouter({
           })
         )?.data || [];
       if (!job) throw new Error("Job not found");
+      const [requestCount, configuredCount] = await Promise.all([
+        db.notePad.count({
+          where: {
+            AND: [
+              {
+                tags: {
+                  some: {
+                    tagName: "jobId",
+                    tagValue: serializeTagValue(input.jobId),
+                  },
+                },
+              },
+              {
+                tags: {
+                  some: {
+                    tagName: "channel",
+                    tagValue: serializeTagValue("job_task_configure_request"),
+                  },
+                },
+              },
+            ],
+          },
+        }),
+        db.notePad.count({
+          where: {
+            AND: [
+              {
+                tags: {
+                  some: {
+                    tagName: "jobId",
+                    tagValue: serializeTagValue(input.jobId),
+                  },
+                },
+              },
+              {
+                tags: {
+                  some: {
+                    tagName: "channel",
+                    tagValue: serializeTagValue("job_task_configured"),
+                  },
+                },
+              },
+            ],
+          },
+        }),
+      ]);
+      const hasConfigRequested = requestCount > 0 && configuredCount === 0;
       const tasks: {
         title: string;
         qty: number;
@@ -440,6 +496,7 @@ export const jobRoutes = createTRPCRouter({
       ).filter((t) => t.qty > 0);
       return {
         ...job,
+        hasConfigRequested,
         financials: {
           addonPercent: job?.meta?.addonPercent,
           addonValue: job?.meta?.addon,

@@ -53,37 +53,13 @@ const TimelineItem = ({
   </View>
 );
 
-export const JobActivityHistory = ({ jobId }) => {
-  const { data: activities } = useQuery(
-    useTRPC().jobs.getJobActivityHistory.queryOptions({ jobId }),
-  );
-  if (!activities || activities?.length === 0) return null;
+export const JobActivityHistory = ({}) => {
   return (
     <View className=" ">
       <Text className="text-lg font-bold mb-3 text-foreground">
         Activity History
       </Text>
       <View className="p-4 bg-card rounded-2xl">
-        {activities.map((activity, index) => {
-          return (
-            <TimelineItem
-              key={activity.id}
-              title={activity.title}
-              time={formatDate(new Date(activity.createdAt), "PP, p")}
-              subtitle={
-                <Text>
-                  by{" "}
-                  <Text className="text-success font-semibold">
-                    {activity.performedBy}
-                  </Text>
-                </Text>
-              }
-              comment={activity.comment}
-              isLatest={index === 0}
-              isLast={index === activities.length - 1}
-            />
-          );
-        })}
         <TimelineItem
           title="Job Submitted for Approval"
           time="Today, 2:45 PM"

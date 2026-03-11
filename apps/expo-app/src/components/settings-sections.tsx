@@ -3,17 +3,20 @@ import { View, Text } from "react-native";
 import { Pressable } from "@/components/ui/pressable";
 import { Icon, type IconKeys } from "@/components/ui/icon";
 
+type SettingsSectionKey = CurrentSectionKey | "hrm";
+
 type SettingsSectionOption = {
-  key: CurrentSectionKey;
+  key: SettingsSectionKey;
   label: string;
 };
 
-const sectionIconMap: Record<CurrentSectionKey, IconKeys> = {
+const sectionIconMap: Record<SettingsSectionKey, IconKeys> = {
   jobs: "Briefcase",
   dispatch: "Route",
   installer: "Wrench",
   driver: "Truck",
   sales: "LayoutDashboard",
+  hrm: "Users",
 };
 
 export function SettingsSections({
@@ -24,7 +27,7 @@ export function SettingsSections({
 }: {
   sections: SettingsSectionOption[];
   currentSectionKey?: CurrentSectionKey | null;
-  onSelectSection: (section: CurrentSectionKey) => void;
+  onSelectSection: (section: SettingsSectionKey) => void;
   visible: boolean;
 }) {
   if (!visible) return null;
@@ -38,6 +41,7 @@ export function SettingsSections({
         {sections.map((section, index) => {
           const isActive = section.key === currentSectionKey;
           const isSales = section.key === "sales";
+          const isHrm = section.key === "hrm";
 
           return (
             <Pressable
@@ -60,7 +64,9 @@ export function SettingsSections({
                     {section.label}
                   </Text>
                   <Text className="text-xs text-muted-foreground">
-                    {isSales
+                    {isHrm
+                      ? "Open HRM dashboard"
+                      : isSales
                       ? "Open sales dashboard"
                       : isActive
                         ? "Current active section"
@@ -69,7 +75,7 @@ export function SettingsSections({
                 </View>
               </View>
               <View className="shrink-0 pl-2">
-                {isActive ? (
+                {isActive && !isHrm ? (
                   <Icon name="CircleCheck" className="text-primary" size={20} />
                 ) : (
                   <Icon

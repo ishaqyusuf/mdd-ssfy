@@ -773,6 +773,12 @@ export async function getDispatchOverview(
       date: order.createdAt,
       id: order.id,
       control: orderControl,
+      customer: order.customer
+        ? {
+            name: order.customer.name,
+            businessName: order.customer.businessName,
+          }
+        : null,
     },
     // orderRequiresUpdate: result.orderRequiresUpdate,
   };

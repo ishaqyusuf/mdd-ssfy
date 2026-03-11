@@ -15,9 +15,11 @@ import { cn } from "@/lib/utils";
 import { formatMoney } from "@gnd/utils";
 import { formatDate } from "@gnd/utils/dayjs";
 import { RefreshControl, ScrollView, Text, View } from "react-native";
-import { JobActivityHistory } from "@/components/job-activity-history";
+import { ActivityHistory } from "@/components/chat";
 import { _qc, _trpc } from "@/components/static-trpc";
 import { useCallback } from "react";
+import { JobActivityHistory } from "@/components/job-activity-history";
+import { Debug } from "@/components/debug";
 
 // All components are in this file as per the instructions.
 
@@ -278,16 +280,21 @@ export default function JobOverviewScreen(props: JobOverviewProps) {
 }
 function Content() {
   const { isPending, isRefetching, refetch, job } = useJobContext();
+  const jobId = Number(job?.id || 0);
   const onRefresh = useCallback(async () => {
     await Promise.all([
       refetch(),
       _qc.invalidateQueries({
-        queryKey: _trpc.jobs.getJobActivityHistory.queryKey({
-          jobId: Number(job?.id || 0),
+        queryKey: _trpc.notes.activityTree.queryKey({
+          tagFilters: [{ tagName: "jobId", tagValue: jobId }],
+          tagFilterMode: "all",
+          includeChildren: true,
+          pageSize: 40,
+          maxDepth: 4,
         }),
       }),
     ]);
-  }, [job?.id, refetch]);
+  }, [jobId, refetch]);
 
   if (isPending || !job) return <SkeletonView />;
 
@@ -296,7 +303,7 @@ function Content() {
       {/* <View className="flex-1 bg-background"> */}
       <Header />
       <ScrollView
-        contentContainerClassName="p-5 pt-4 gap-6 pb-32"
+        contentContainerClassName="p-5 pt-4 gap-6 pb-44"
         bounces
         alwaysBounceVertical
         overScrollMode="always"
@@ -343,9 +350,22 @@ function Content() {
           </ScrollView>
         </View>
         <NotesCard />
-        <JobActivityHistory jobId={job?.id} />
-        <JobOverviewActions />
+        <View>
+          <Text className="text-lg font-bold mb-3 text-foreground">
+            Activity History
+          </Text>
+          <ActivityHistory
+            tags={[{ tagName: "jobId", tagValue: jobId }]}
+            pageSize={40}
+            maxDepth={4}
+            emptyText="No activity yet"
+          />
+          <Debug>
+            <JobActivityHistory />
+          </Debug>
+        </View>
       </ScrollView>
+      <JobOverviewActions />
       <JobFooterContractor />
       {/* <Debug>
         <ActionBar />

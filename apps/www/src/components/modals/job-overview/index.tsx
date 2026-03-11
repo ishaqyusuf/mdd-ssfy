@@ -16,10 +16,12 @@ import { Card } from "@gnd/ui/namespace";
 import { JobScope } from "./job-scope";
 import { FinancialSummary } from "./financial-summary";
 import { Avatar } from "@/components/avatar";
-import { ActivityHistory } from "./activity-history";
+import { JobActivities } from "./job-activities";
 import { Button } from "@gnd/ui/button";
 import { PaymentOverviewModal } from "./payment-overview-modal";
 import React from "react";
+import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
+import { usePathname } from "next/navigation";
 
 export function JobOverviewModal() {
     const { setParams, openJobId, opened } = useJobParams();
@@ -53,6 +55,9 @@ export function JobOverviewModal() {
 function Content() {
     const ctx = useCreateJobOverviewContext();
     const job = ctx.overview!;
+    const pathname = usePathname();
+    const { setParams: setCommunityInstallCostParams } =
+        useCommunityInstallCostParams();
     const [isPaymentOverviewOpen, setIsPaymentOverviewOpen] = React.useState(
         false,
     );
@@ -62,6 +67,10 @@ function Content() {
     const isPaymentCancelled =
         normalizedStatus === "payment-cancelled" ||
         normalizedStatus === "payment-canceled";
+    const canConfigure =
+        !!job?.hasConfigRequested &&
+        Number(job?.home?.communityTemplateId || 0) > 0 &&
+        Number(job?.builderTaskId || 0) > 0;
     return (
         <JobOverviewProvider value={ctx}>
             <CustomModal.Title>
@@ -99,6 +108,41 @@ function Content() {
                         {job?.status === "Submitted" && <ApprovalForm />}
                         {job?.status === "Approved" && <ApprovedForm />}
                         {job?.status === "Rejected" && <RejectedForm />}
+                        {canConfigure && (
+                            <Card>
+                                <Card.Content className="p-5">
+                                    <Button
+                                        className="w-full"
+                                        onClick={() => {
+                                            const useSidebarView = pathname.includes(
+                                                "/community/community-template/",
+                                            );
+                                            setCommunityInstallCostParams({
+                                                mode: "v2",
+                                                view: useSidebarView
+                                                    ? "template-edit"
+                                                    : "template-list",
+                                                editCommunityModelInstallCostId: Number(
+                                                    job?.home?.communityTemplateId,
+                                                ),
+                                                selectedBuilderTaskId: Number(
+                                                    job?.builderTaskId,
+                                                ),
+                                                requestBuilderTaskId: Number(
+                                                    job?.builderTaskId,
+                                                ),
+                                                jobId: Number(job?.id),
+                                                contractorId: Number(
+                                                    job?.user?.id,
+                                                ),
+                                            });
+                                        }}
+                                    >
+                                        Configure
+                                    </Button>
+                                </Card.Content>
+                            </Card>
+                        )}
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <Card>
                                 <Card.Header>
@@ -207,7 +251,7 @@ function Content() {
                                 </button>
                             </div>
                         </div>
-                        <ActivityHistory />
+                        <JobActivities />
                     </div>
                 </div>
             </div>

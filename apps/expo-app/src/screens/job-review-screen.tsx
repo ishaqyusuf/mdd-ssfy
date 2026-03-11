@@ -1,4 +1,5 @@
 import { BackBtn } from "@/components/back-btn";
+import { BlurView } from "@/components/blur-view";
 import { SafeArea } from "@/components/safe-area";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
@@ -8,6 +9,7 @@ import { Toast } from "@/components/ui/toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Text, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type JobReviewScreenProps = {
   adminMode?: boolean;
@@ -15,6 +17,7 @@ type JobReviewScreenProps = {
 };
 
 export function JobReviewScreen({ adminMode, jobId }: JobReviewScreenProps) {
+  const { bottom } = useSafeAreaInsets();
   const [note, setNote] = useState("");
   const [pending, setPending] = useState<"approve" | "reject" | null>(null);
   const id = Number(jobId);
@@ -99,55 +102,84 @@ export function JobReviewScreen({ adminMode, jobId }: JobReviewScreenProps) {
 
   return (
     <SafeArea>
-      <View className="flex-1 gap-4 bg-background px-4 py-4">
-        <View className="flex-row items-center gap-3">
-          <BackBtn />
-          <View>
-            <Text className="text-lg font-bold text-foreground">Job Review</Text>
-            <Text className="text-xs text-muted-foreground">
-              Job #{overview.id} • {overview.status}
+      <View className="flex-1 bg-background">
+        <View className="px-4 pt-4">
+          <View className="flex-row items-center gap-3">
+            <BackBtn />
+            <View>
+              <Text className="text-lg font-bold text-foreground">
+                Job Review
+              </Text>
+              <Text className="text-xs text-muted-foreground">
+                Job #{overview.id} • {overview.status}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View className="px-4 mt-4">
+          <View className="rounded-3xl border border-border bg-card p-4">
+            <Text className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">
+              Reviewing
+            </Text>
+            <Text className="text-lg font-bold text-foreground">
+              {overview.title}
+            </Text>
+            <Text className="text-sm text-muted-foreground">
+              {overview.subtitle || overview.home?.lotBlock || "Job"}
             </Text>
           </View>
         </View>
 
-        <View className="rounded-3xl border border-border bg-card p-4">
-          <Text className="mb-2 text-sm font-bold text-foreground">
-            Review Note (Optional)
-          </Text>
-          <TextInput
-            value={note}
-            onChangeText={setNote}
-            multiline
-            numberOfLines={4}
-            className="mb-3 min-h-24 rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground"
-            placeholder="Add a note for this decision..."
-            placeholderTextColor="hsl(var(--muted-foreground))"
-            textAlignVertical="top"
-          />
-
-          <View className="flex-row gap-2">
-            <Button
-              variant="destructive"
-              className="flex-1"
-              onPress={() => runReview("reject")}
-              disabled={pending !== null}
+        <View className="absolute bottom-0 left-0 right-0">
+          <BlurView intensity={90} className="w-full">
+            <View
+              className="border-t border-border bg-card rounded-t-3xl px-4 pt-4"
+              style={{ paddingBottom: bottom || 16 }}
             >
-              <Icon
-                name="X"
-                className="text-destructive-foreground"
-                size={14}
+              <Text className="mb-2 text-sm font-bold text-foreground">
+                Review Note (Optional)
+              </Text>
+              <TextInput
+                value={note}
+                onChangeText={setNote}
+                multiline
+                numberOfLines={4}
+                className="mb-3 min-h-24 rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground"
+                placeholder="Add a note for this decision..."
+                placeholderTextColor="hsl(var(--muted-foreground))"
+                textAlignVertical="top"
               />
-              <Text className="text-destructive-foreground">Reject</Text>
-            </Button>
-            <Button
-              className="flex-1"
-              onPress={() => runReview("approve")}
-              disabled={pending !== null}
-            >
-              <Icon name="Check" className="text-primary-foreground" size={14} />
-              <Text className="text-primary-foreground">Approve</Text>
-            </Button>
-          </View>
+
+              <View className="flex-row gap-2">
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onPress={() => runReview("reject")}
+                  disabled={pending !== null}
+                >
+                  <Icon
+                    name="X"
+                    className="text-destructive-foreground"
+                    size={14}
+                  />
+                  <Text className="text-destructive-foreground">Reject</Text>
+                </Button>
+                <Button
+                  className="flex-1"
+                  onPress={() => runReview("approve")}
+                  disabled={pending !== null}
+                >
+                  <Icon
+                    name="Check"
+                    className="text-primary-foreground"
+                    size={14}
+                  />
+                  <Text className="text-primary-foreground">Approve</Text>
+                </Button>
+              </View>
+            </View>
+          </BlurView>
         </View>
       </View>
     </SafeArea>

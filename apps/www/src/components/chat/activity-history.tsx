@@ -3,9 +3,8 @@
 import { useTRPC } from "@/trpc/client";
 import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
-import { Separator } from "@gnd/ui/separator";
 import { useQuery } from "@tanstack/react-query";
-import { getColorFromName, hexToRgba } from "@gnd/utils/colors";
+import { CheckCircle2 } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
 
 export type ActivityTagFilter = {
@@ -48,88 +47,62 @@ function formatActivityDate(value: Date | string | null | undefined) {
   }).format(dateValue);
 }
 
-function activityLabel(node: ActivityNode) {
+function activityHeadline(node: ActivityNode) {
   return node.headline || node.subject || "Activity";
 }
 
-function activityNote(node: ActivityNode) {
-  return node.note || "";
+function activitySubject(node: ActivityNode) {
+  if (!node.subject) return null;
+  const headline = activityHeadline(node);
+  return node.subject === headline ? null : node.subject;
 }
 
 function activityAuthor(node: ActivityNode) {
   return node.senderContactName || "Unknown";
 }
 
-function channelColor(node: ActivityNode) {
-  const value =
-    typeof node.tags?.noteColor === "string"
-      ? node.tags.noteColor
-      : typeof node.tags?.channel === "string"
-        ? node.tags.channel
-        : typeof node.tags?.type === "string"
-          ? node.tags.type
-          : "activity";
-
-  if (typeof value === "string" && value.startsWith("#")) return value;
-  return getColorFromName(value);
-}
-
 function ActivityTreeItem({
   node,
   depth = 0,
+  isLatest = false,
 }: {
   node: ActivityNode;
   depth?: number;
+  isLatest?: boolean;
 }) {
-  const color = channelColor(node);
-  const hasChildren = node.children.length > 0;
-  const indentClass = depth > 0 ? "pl-5" : "";
-  const note = activityNote(node);
-
   return (
-    <div className={cn("py-2", indentClass)}>
-      <div className="grid grid-cols-[14px_1fr] gap-2.5">
-        <div className="relative pt-1">
-          <span className="absolute left-[4px] top-4 bottom-[-10px] w-px bg-border/60" />
-          <span
-            className="absolute left-0 top-1.5 size-2.5 rounded-full ring-2 ring-background"
-            style={{
-              backgroundColor: color,
-            }}
-          />
+    <div className={cn("relative pl-8", depth > 0 && "ml-4")}>
+      {isLatest ? (
+        <div className="absolute left-0 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border-4 border-card bg-green-500">
+          <CheckCircle2 size={12} className="text-white" />
         </div>
-        <div className="min-w-0 px-0.5 py-0.5">
-          <div className="flex items-start gap-2">
-            <p className="min-w-0 flex-1 truncate text-sm font-semibold leading-5">
-              {activityLabel(node)}
-            </p>
-            <span className="shrink-0 text-[10px] text-muted-foreground/90">
-              {formatActivityDate(node.createdAt)}
-            </span>
-          </div>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">
-            by {activityAuthor(node)}
-          </p>
-          {!!note && (
-            <p
-              className="mt-1.5 whitespace-pre-wrap rounded-md px-2 py-1 text-[13px] leading-5 text-muted-foreground"
-              style={{
-                backgroundColor: hexToRgba(color, 0.08),
-              }}
-            >
-              {note}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {hasChildren && (
-        <div className="mt-1 space-y-0.5">
-          {node.children.map((child) => (
-            <ActivityTreeItem key={`${node.id}-${child.id}`} node={child} depth={depth + 1} />
-          ))}
+      ) : (
+        <div className="absolute left-0 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border-4 border-card bg-muted">
+          <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
         </div>
       )}
+
+      <p className="text-xs font-bold text-muted-foreground">
+        {formatActivityDate(node.createdAt)}
+      </p>
+      <p className="text-sm font-semibold text-foreground">{activityHeadline(node)}</p>
+      {activitySubject(node) ? (
+        <p className="mt-0.5 text-xs text-muted-foreground">{activitySubject(node)}</p>
+      ) : null}
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        By <span className="font-semibold text-foreground">{activityAuthor(node)}</span>
+      </p>
+      {node.note ? (
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{node.note}</p>
+      ) : null}
+
+      {node.children?.length ? (
+        <div className="mt-4 space-y-6">
+          {node.children.map((child) => (
+            <ActivityTreeItem key={`${node.id}-${child.id}`} node={child} depth={depth + 1} isLatest={false} />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -145,6 +118,7 @@ export function ActivityHistory({
   emptyNode,
 }: ActivityHistoryProps) {
   const trpc = useTRPC();
+
   const tagFilters = useMemo(
     () => [
       ...(tags || []),
@@ -166,9 +140,12 @@ export function ActivityHistory({
 
   if (isPending) {
     return (
-      <div className={cn("space-y-2.5", className)}>
+      <div className={cn("space-y-6", className)}>
+        <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          Activity Timeline
+        </h4>
         {Array.from({ length: 3 }).map((_, index) => (
-          <div key={index} className="h-16 animate-pulse rounded-lg border border-border/50 bg-muted/30" />
+          <div key={index} className="h-16 animate-pulse rounded-lg bg-muted/40" />
         ))}
       </div>
     );
@@ -176,8 +153,11 @@ export function ActivityHistory({
 
   if (isError) {
     return (
-      <div className={cn("py-6 text-center text-sm text-muted-foreground", className)}>
-        Unable to load activity history
+      <div className={cn("py-6", className)}>
+        <h4 className="mb-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          Activity Timeline
+        </h4>
+        <p className="text-center text-sm text-muted-foreground">Unable to load activity history</p>
       </div>
     );
   }
@@ -187,27 +167,31 @@ export function ActivityHistory({
   if (!rows.length) {
     if (emptyNode) return <>{emptyNode}</>;
     if (!emptyText) return null;
+
     return (
-      <div className={cn("py-10 text-center", className)}>
-        <div className="mx-auto mb-2 flex size-8 items-center justify-center rounded-full border border-border/60 bg-muted/30">
-          <Icons.Notifications className="size-4 text-muted-foreground" />
+      <div className={cn("py-8", className)}>
+        <h4 className="mb-6 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          Activity Timeline
+        </h4>
+        <div className="flex flex-col items-center">
+          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+            <Icons.Notifications className="size-4 text-muted-foreground" />
+          </div>
+          <p className="text-sm text-muted-foreground">{emptyText}</p>
         </div>
-        <p className="text-sm text-muted-foreground">{emptyText}</p>
       </div>
     );
   }
 
   return (
-    <div className={cn("space-y-0.5", className)}>
-      {rows.map((item, index) => (
-        <div key={item.id}>
-          <ActivityTreeItem node={item} />
-          {index < rows.length - 1 && <Separator className="my-0.5" />}
-        </div>
-      ))}
-      <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-        <Icons.Notifications className="size-3.5" />
-        <span>Activity chain</span>
+    <div className={cn(className)}>
+      <h4 className="mb-6 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        Activity Timeline
+      </h4>
+      <div className="relative space-y-6 before:absolute before:inset-y-0 before:left-[11px] before:w-0.5 before:bg-border">
+        {rows.map((item, index) => (
+          <ActivityTreeItem key={item.id} node={item} isLatest={index === 0} />
+        ))}
       </div>
     </div>
   );

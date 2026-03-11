@@ -121,6 +121,7 @@ const InitialLayout = () => {
             <Stack.Screen name="unavailable" options={{ headerShown: false }} />
           </Stack.Protected>
           <Stack.Protected guard={!!token}>
+            <Stack.Screen name="hrm" options={{ headerShown: false }} />
             <Stack.Screen
               name="settings"
               options={{

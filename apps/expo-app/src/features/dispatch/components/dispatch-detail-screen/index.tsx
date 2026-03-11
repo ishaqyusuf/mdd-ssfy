@@ -1148,7 +1148,12 @@ function DispatchDetailScreenInner({
 				{ui.isCompleteSheetOpen ? (
 					<CompleteDispatchScreen
 						insetsTop={insets.top}
-						defaultReceivedBy={(data?.address as any)?.name || ""}
+						defaultReceivedBy={
+							(data?.address as any)?.name ||
+							(order as any)?.customer?.name ||
+							(order as any)?.customer?.businessName ||
+							""
+						}
 						isSubmitting={actions.submitDispatch.isPending}
 						onClose={() => ui.setCompleteSheetOpen(false)}
 						onSubmit={async (input) => {

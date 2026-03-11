@@ -3,7 +3,10 @@
 import { Chat, useChat } from "../chat";
 import { Inbox } from "../inbox";
 
-const channelNames = ["sales_info", "simple_sales_email_reminder"] as const;
+const channelNames = [
+    "sales_info",
+    // "simple_sales_email_reminder"
+] as const;
 
 const paymentLinkOptions = [
     { label: "None", value: "none" },
@@ -129,3 +132,4 @@ export function SalesOverviewInbox({ saleData }: SalesOverviewInboxProps) {
         </Inbox>
     );
 }
+
