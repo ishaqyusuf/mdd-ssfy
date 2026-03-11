@@ -1,18 +1,16 @@
 import {
     BatchAction,
-    BatchBtn,
     BatchDelete,
 } from "@gnd/ui/custom/data-table/batch-action";
-import { useRef } from "react";
-import { SalesEmailMenuItem } from "@/components/sales-email-menu-item";
 import { deleteSalesByOrderIds } from "@/app-deps/(clean-code)/(sales)/_common/data-actions/sales-actions";
 import { useTable } from "@gnd/ui/data-table";
-import { MenuItemPrintAction } from "@/components/menu-item-sales-print-action";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { sum } from "@gnd/utils";
-import { _qc, _trpc } from "@/components/static-trpc";
 import { invalidateInfiniteQueries } from "@/hooks/use-invalidate-query";
 import { Item } from "./columns";
+import { Button } from "@gnd/ui/button";
+import { Icons } from "@gnd/ui/icons";
+import { SalesMenu } from "@/components/sales-menu";
 
 export function BatchActions({}) {
     const ctx = useTable();
@@ -26,43 +24,36 @@ export function BatchActions({}) {
         sum(selections?.map((a) => a?.due)) > 0;
 
     const item = selections?.[0];
-    const buttonRef = useRef<HTMLButtonElement>(null);
     return (
         <>
             {!ctx.selectedRows?.length || (
                 <BatchAction>
-                    <BatchBtn
-                        icon="print"
-                        menu={
-                            <>
-                                <MenuItemPrintAction
-                                    pdf
-                                    type="order"
-                                    salesIds={salesIds}
-                                />
-                                <MenuItemPrintAction
-                                    type="order"
-                                    salesIds={salesIds}
-                                />
-                            </>
+                    <SalesMenu
+                        type="order"
+                        salesIds={salesIds}
+                        trigger={
+                            <Button variant="ghost">
+                                <Icons.print className="mr-2 size-4" />
+                                Print
+                            </Button>
                         }
                     >
-                        Print
-                    </BatchBtn>
-                    <BatchBtn
-                        icon="Email"
-                        menu={
-                            <>
-                                <SalesEmailMenuItem
-                                    asChild
-                                    salesType="order"
-                                    orderNo={slugs}
-                                />
-                            </>
+                        <SalesMenu.PDF />
+                        <SalesMenu.Print />
+                    </SalesMenu>
+                    <SalesMenu
+                        type="order"
+                        salesIds={salesIds}
+                        trigger={
+                            <Button variant="ghost">
+                                <Icons.Email className="mr-2 size-4" />
+                                Email
+                            </Button>
                         }
                     >
-                        Email
-                    </BatchBtn>
+                        <SalesMenu.Notifications />
+                        <SalesMenu.PaymentNotifications />
+                    </SalesMenu>
                     <SalesPaymentProcessor
                         phoneNo={item?.customerPhone}
                         selectedIds={salesIds}
@@ -82,4 +73,3 @@ export function BatchActions({}) {
         </>
     );
 }
-

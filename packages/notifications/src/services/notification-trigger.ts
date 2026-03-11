@@ -96,4 +96,9 @@ export class NotificationService {
     this.recipients = normalizeRecipients(makeRecipients("customer", ...ids));
     return this;
   }
+
+  setAddressRecipients(...ids: number[]) {
+    this.recipients = normalizeRecipients(makeRecipients("address", ...ids));
+    return this;
+  }
 }

@@ -9,7 +9,6 @@ import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { openLink } from "@/lib/open-link";
 import { salesFormUrl } from "@/utils/sales-utils";
-import { Inbox } from "@/components/activity";
 import {
     Building,
     Calendar,
@@ -31,7 +30,6 @@ import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent } from "@gnd/ui/card";
 import { Progress } from "@gnd/ui/progress";
-import { Separator } from "@gnd/ui/separator";
 
 import { useSaleOverview } from "./context";
 import { GeneralFooter } from "./general-footer";
@@ -40,7 +38,6 @@ import { GeneralActionBar } from "./general-action-bar";
 import { cn } from "@gnd/ui/cn";
 import { DeliveryOption } from "./delivery-option";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
-import salesData from "@/app-deps/(v2)/(loggedIn)/sales/sales-data";
 
 export function GeneralTab({}) {
     const ctx = useSalesOverviewQuery();
@@ -660,22 +657,23 @@ export function GeneralTab({}) {
                     </Card>
                 </div>
                 {!data?.id || (
-                    <Inbox
-                        channel="sales_info"
-                        query={{
-                            tags: [
-                                {
-                                    tagName: "salesId",
-                                    tagValue: data.id,
-                                },
-                            ],
-                        }}
-                        payload={{
-                            salesId: data.id,
-                            salesNo: data.orderId,
-                        }}
-                        placeholder="Write a sales activity note..."
-                    />
+                    <></>
+                    // <Inbox
+                    //     channel="sales_info"
+                    //     query={{
+                    //         tags: [
+                    //             {
+                    //                 tagName: "salesId",
+                    //                 tagValue: data.id,
+                    //             },
+                    //         ],
+                    //     }}
+                    //     payload={{
+                    //         salesId: data.id,
+                    //         salesNo: data.orderId,
+                    //     }}
+                    //     placeholder="Write a sales activity note..."
+                    // />
                 )}
                 <GeneralFooter />
             </div>

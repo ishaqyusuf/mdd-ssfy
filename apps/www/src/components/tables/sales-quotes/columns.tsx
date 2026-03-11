@@ -10,8 +10,7 @@ import { Badge } from "@gnd/ui/badge";
 import { cells } from "@gnd/ui/custom/data-table/cells";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
-import { printQuote } from "@/utils/sales-invoice";
-import { Download } from "lucide-react";
+import { SalesMenu } from "@/components/sales-menu";
 
 export type Item = RouterOutputs["sales"]["quotes"]["data"][number];
 export const columns: ColumnDef<Item>[] = [
@@ -113,30 +112,22 @@ export const columns: ColumnDef<Item>[] = [
         },
         cell: ({ row: { original: item } }) => (
             <div className="flex gap-4">
-                <Button
-                    onClick={async (e) => {
-                        await printQuote({
-                            salesIds: [item.id],
-                            preview: true,
-                        });
-                    }}
-                    size="xs"
-                    variant="outline"
+                <SalesMenu
+                    id={item.id}
+                    slug={item.slug}
+                    type="quote"
+                    trigger={
+                        <Button size="xs" variant="outline">
+                            <Icons.MoreHoriz className="size-4 text-muted-foreground" />
+                        </Button>
+                    }
                 >
-                    <Icons.print className="size-4 text-muted-foreground" />
-                </Button>
-                <Button
-                    onClick={async (e) => {
-                        await printQuote({
-                            salesIds: [item.id],
-                            preview: false,
-                        });
-                    }}
-                    size="xs"
-                    variant="outline"
-                >
-                    <Download className="size-4 text-muted-foreground" />
-                </Button>
+                    <SalesMenu.Notifications />
+                    <SalesMenu.Print />
+                    <SalesMenu.PDF />
+                    <SalesMenu.Copy />
+                    <SalesMenu.Move />
+                </SalesMenu>
             </div>
         ),
     },

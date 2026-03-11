@@ -47,7 +47,7 @@ export interface UserData {
   name: string;
   email?: string;
   phoneNo?: string;
-  role?: "employee" | "customer";
+  role?: "employee" | "customer" | "address";
   emailNotification?: boolean;
   inAppNotification?: boolean;
   whatsAppNotification?: boolean;
@@ -68,7 +68,7 @@ export type NotificationOptions = {
   };
   recipients?: {
     ids: number[];
-    role?: ContactRole;
+    role?: ContactRole | "address";
   }[];
   includeChannelSubscribers?: boolean;
   allowFallbackRecipient?: boolean;

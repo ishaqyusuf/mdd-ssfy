@@ -1,34 +1,71 @@
 import { db } from "@gnd/db";
-import { getAppApiUrl, getTestEmail } from "@utils/envs";
-import { type NotificationJobInput } from "@notifications/schemas";
-import { logger, schedules, task, tasks } from "@trigger.dev/sdk/v3";
-import { addDays } from "date-fns";
-import { tokenize, type SalesPdfToken } from "@gnd/utils/tokenizer";
-import { TaskName } from "@jobs/schema";
 import { whereSales } from "@gnd/sales/utils/where-queries";
 import { getSettingAction } from "@gnd/settings";
+import { type SalesPdfToken, tokenize } from "@gnd/utils/tokenizer";
+import type { TaskName } from "@jobs/schema";
 import {
   getTaskEventConfigFromMeta,
   getTaskEventDefaultConfig,
 } from "@jobs/task-events/registry";
+import type { NotificationJobInput } from "@notifications/schemas";
+import { logger, schedules, task, tasks } from "@trigger.dev/sdk/v3";
+import { getAppApiUrl } from "@utils/envs";
+import { addDays } from "date-fns";
 
 const baseApiUrl = getAppApiUrl();
+const MAX_HISTORY_BREAKDOWN_ITEMS = 50;
+const MAX_NOTIFICATION_BREAKDOWN_ITEMS = 25;
 const isValidEmail = (value?: string | null) =>
   !!value && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+type ReminderRecipientRole = "customer" | "address";
 
 type GroupedReminder = {
   salesRepId: number;
   salesRep: string;
   salesRepEmail: string;
+  recipientId: number;
+  recipientRole: ReminderRecipientRole;
   customerEmail: string;
   customerName: string;
   salesIds: number[];
   sales: Array<{
+    saleId: number;
     orderId: string;
     po?: string | null;
     date: Date;
     total: number;
     due: number;
+  }>;
+};
+
+type SkippedSaleBreakdown = {
+  saleId: number;
+  orderId: string;
+  customerName: string;
+  customerEmail?: string | null;
+  addressEmail?: string | null;
+  salesRepEmail?: string | null;
+  reasons: string[];
+  amountDue: number;
+  grandTotal: number;
+};
+
+type SuccessfulRecipientBreakdown = {
+  recipientRole: ReminderRecipientRole;
+  recipientId: number;
+  recipientName: string;
+  recipientEmail: string;
+  salesCount: number;
+  totalPendingAmount: number;
+  totalSalesAmount: number;
+  sales: Array<{
+    saleId: number;
+    orderId: string;
+    po?: string | null;
+    date: Date;
+    due: number;
+    total: number;
   }>;
 };
 
@@ -87,28 +124,81 @@ async function writeScheduleHistory(input: {
   }
 }
 
-async function runPendingBillReminder(runType: RunType) {
-  const isDev = process.env.NODE_ENV === "development";
-  const testEmail = getTestEmail();
-  const useTestRecipient = runType === "test" || isDev;
-  //
-  if (useTestRecipient && (!testEmail || !isValidEmail(testEmail))) {
-    await writeScheduleHistory({
-      eventName: EVENT_NAME,
-      value: 0,
-      meta: {
-        triggerType: runType,
-        skipped: true,
-        reason: "missing_test_email",
-      },
-    });
-    logger.error("TEST_EMAIL is required for test/dev reminder runs.", {
-      runType,
-      nodeEnv: process.env.NODE_ENV,
-    });
-    return { found: 0, grouped: 0, sent: 0, skipped: 0, failed: 0 };
+async function sendAdminRunSummary(input: {
+  authorId: number | null;
+  triggerType: RunType;
+  statusUsed: "active" | "inactive";
+  filterUsed: Record<string, unknown> | null | undefined;
+  foundSalesCount: number;
+  validSalesCount: number;
+  groupedRecipientCount: number;
+  deliveredGroupCount: number;
+  failedGroupCount: number;
+  skippedSalesCount: number;
+  totalPendingAmount: number;
+  totalSalesAmount: number;
+  successfulRecipients: SuccessfulRecipientBreakdown[];
+  skippedSales: SkippedSaleBreakdown[];
+}) {
+  if (!input.authorId) {
+    logger.warn(
+      "Skipping admin schedule summary notification: missing author.",
+    );
+    return;
   }
 
+  try {
+    const successfulRecipients =
+      input.successfulRecipients.length > MAX_NOTIFICATION_BREAKDOWN_ITEMS
+        ? input.successfulRecipients.slice(0, MAX_NOTIFICATION_BREAKDOWN_ITEMS)
+        : input.successfulRecipients;
+    const skippedSales =
+      input.skippedSales.length > MAX_NOTIFICATION_BREAKDOWN_ITEMS
+        ? input.skippedSales.slice(0, MAX_NOTIFICATION_BREAKDOWN_ITEMS)
+        : input.skippedSales;
+    const successfulRecipientsTruncated = Math.max(
+      0,
+      input.successfulRecipients.length - successfulRecipients.length,
+    );
+    const skippedSalesTruncated = Math.max(
+      0,
+      input.skippedSales.length - skippedSales.length,
+    );
+
+    await tasks.trigger("notification", {
+      channel: "sales_reminder_schedule_admin_notification",
+      author: {
+        id: input.authorId,
+        role: "employee",
+      },
+      payload: {
+        triggerType: input.triggerType,
+        statusUsed: input.statusUsed,
+        filterUsed: input.filterUsed || null,
+        foundSalesCount: input.foundSalesCount,
+        validSalesCount: input.validSalesCount,
+        groupedRecipientCount: input.groupedRecipientCount,
+        deliveredGroupCount: input.deliveredGroupCount,
+        failedGroupCount: input.failedGroupCount,
+        skippedSalesCount: input.skippedSalesCount,
+        totalPendingAmount: input.totalPendingAmount,
+        totalSalesAmount: input.totalSalesAmount,
+        successfulRecipients,
+        skippedSales,
+        successfulRecipientsTruncated,
+        skippedSalesTruncated,
+      },
+    } satisfies NotificationJobInput);
+  } catch (error) {
+    logger.error("Failed sending admin schedule summary notification", {
+      error,
+      eventName: EVENT_NAME,
+      triggerType: input.triggerType,
+    });
+  }
+}
+
+async function runPendingBillReminder(runType: RunType) {
   const defaultConfig = getTaskEventDefaultConfig(EVENT_NAME);
   const settings = await getSettingAction("task-events-settings", db);
   const config = (() => {
@@ -122,6 +212,15 @@ async function runPendingBillReminder(runType: RunType) {
       return defaultConfig;
     }
   })();
+  const notificationAuthor = await db.users.findFirst({
+    where: {
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+    },
+  });
+  const notificationAuthorId = notificationAuthor?.id || null;
 
   if (config.status === "inactive" && runType === "scheduled") {
     await writeScheduleHistory({
@@ -135,75 +234,91 @@ async function runPendingBillReminder(runType: RunType) {
         reason: "inactive",
       },
     });
+    await sendAdminRunSummary({
+      authorId: notificationAuthorId,
+      triggerType: runType,
+      statusUsed: "inactive",
+      filterUsed: config.filter as Record<string, unknown>,
+      foundSalesCount: 0,
+      validSalesCount: 0,
+      groupedRecipientCount: 0,
+      deliveredGroupCount: 0,
+      failedGroupCount: 0,
+      skippedSalesCount: 0,
+      totalPendingAmount: 0,
+      totalSalesAmount: 0,
+      successfulRecipients: [],
+      skippedSales: [],
+    });
 
     logger.info("Sales pending-bill reminder skipped (inactive schedule).");
     return { found: 0, grouped: 0, sent: 0, skipped: 0, failed: 0 };
   }
 
-  const filterWhere = whereSales(config.filter as any);
-  const [pendingSales, fallbackAuthor] = await Promise.all([
-    db.salesOrders.findMany({
-      where: filterWhere
-        ? {
-            AND: [
-              {
-                deletedAt: null,
-                type: "order",
-                amountDue: {
-                  gt: 0,
-                },
+  const filterWhere = whereSales(config.filter);
+  const pendingSales = await db.salesOrders.findMany({
+    where: filterWhere
+      ? {
+          AND: [
+            {
+              deletedAt: null,
+              type: "order",
+              amountDue: {
+                gt: 0,
               },
-              filterWhere,
-            ],
-          }
-        : {
-            deletedAt: null,
-            type: "order",
-            amountDue: {
-              gt: 0,
             },
-          },
-      orderBy: {
-        createdAt: "asc",
-      },
-      select: {
-        id: true,
-        orderId: true,
-        createdAt: true,
-        grandTotal: true,
-        amountDue: true,
-        meta: true,
-        salesRep: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
+            filterWhere,
+          ],
+        }
+      : {
+          deletedAt: null,
+          type: "order",
+          amountDue: {
+            gt: 0,
           },
         },
-        customer: {
-          select: {
-            name: true,
-            businessName: true,
-            email: true,
-          },
+    orderBy: {
+      createdAt: "asc",
+    },
+    select: {
+      id: true,
+      orderId: true,
+      customerId: true,
+      billingAddressId: true,
+      createdAt: true,
+      grandTotal: true,
+      amountDue: true,
+      meta: true,
+      salesRep: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
         },
-        billingAddress: {
-          select: {
-            name: true,
-            email: true,
-          },
+      },
+      customer: {
+        select: {
+          name: true,
+          businessName: true,
+          email: true,
         },
       },
-    }),
-    db.users.findFirst({
-      where: {
-        deletedAt: null,
+      billingAddress: {
+        select: {
+          name: true,
+          email: true,
+        },
       },
-      select: {
-        id: true,
-      },
-    }),
-  ]);
+    },
+  });
+  const totalPendingAmount = pendingSales.reduce(
+    (acc, sale) => acc + (sale.amountDue || 0),
+    0,
+  );
+  const totalSalesAmount = pendingSales.reduce(
+    (acc, sale) => acc + (sale.grandTotal || 0),
+    0,
+  );
 
   if (!pendingSales.length) {
     await writeScheduleHistory({
@@ -218,40 +333,89 @@ async function runPendingBillReminder(runType: RunType) {
         sent: 0,
         skipped: 0,
         failed: 0,
+        skippedSales: [],
+        successfulRecipients: [],
       },
+    });
+    await sendAdminRunSummary({
+      authorId: notificationAuthorId,
+      triggerType: runType,
+      statusUsed: config.status,
+      filterUsed: config.filter as Record<string, unknown>,
+      foundSalesCount: 0,
+      validSalesCount: 0,
+      groupedRecipientCount: 0,
+      deliveredGroupCount: 0,
+      failedGroupCount: 0,
+      skippedSalesCount: 0,
+      totalPendingAmount: 0,
+      totalSalesAmount: 0,
+      successfulRecipients: [],
+      skippedSales: [],
     });
     logger.info("No pending sales bills found for reminder schedule.");
     return { found: 0, grouped: 0, sent: 0, skipped: 0, failed: 0 };
   }
 
   const grouped = new Map<string, GroupedReminder>();
+  const skippedSales: SkippedSaleBreakdown[] = [];
   let skipped = 0;
 
   for (const sale of pendingSales) {
-    const rawCustomerEmail =
-      sale.customer?.email?.trim() || sale.billingAddress?.email?.trim();
-    const customerEmail = useTestRecipient ? testEmail! : rawCustomerEmail;
+    const customerId = sale.customerId ?? null;
+    const addressId = sale.billingAddressId ?? null;
+    const hasCustomerEmail = isValidEmail(sale.customer?.email?.trim());
+    const hasAddressEmail = isValidEmail(sale.billingAddress?.email?.trim());
+    const recipientRole: ReminderRecipientRole | null = hasCustomerEmail
+      ? "customer"
+      : hasAddressEmail
+        ? "address"
+        : null;
+    const recipientId =
+      recipientRole === "customer"
+        ? customerId
+        : recipientRole === "address"
+          ? addressId
+          : null;
+    const customerEmail =
+      recipientRole === "customer"
+        ? sale.customer?.email?.trim()
+        : sale.billingAddress?.email?.trim();
     const customerName =
       sale.customer?.name?.trim() ||
       sale.customer?.businessName?.trim() ||
       sale.billingAddress?.name?.trim() ||
       "Customer";
-    const salesRepId = sale.salesRep?.id ?? fallbackAuthor?.id;
+    const salesRepId = sale.salesRep?.id ?? notificationAuthorId;
     const salesRep = sale.salesRep?.name?.trim() || "Sales Team";
     const salesRepEmail = sale.salesRep?.email?.trim();
+    const reasons: string[] = [];
 
-    if (
-      !customerEmail ||
-      !isValidEmail(customerEmail) ||
-      !salesRepId ||
-      !salesRepEmail ||
-      !isValidEmail(salesRepEmail)
-    ) {
+    if (!recipientRole) reasons.push("missing_customer_and_address_email");
+    if (recipientRole && !recipientId) reasons.push("missing_recipient_id");
+    if (!customerEmail || !isValidEmail(customerEmail))
+      reasons.push("invalid_recipient_email");
+    if (!salesRepId) reasons.push("missing_sales_rep_id");
+    if (!salesRepEmail || !isValidEmail(salesRepEmail))
+      reasons.push("invalid_sales_rep_email");
+
+    if (reasons.length) {
       skipped += 1;
+      skippedSales.push({
+        saleId: sale.id,
+        orderId: sale.orderId,
+        customerName,
+        customerEmail: sale.customer?.email?.trim() || null,
+        addressEmail: sale.billingAddress?.email?.trim() || null,
+        salesRepEmail: salesRepEmail || null,
+        reasons,
+        amountDue: sale.amountDue || 0,
+        grandTotal: sale.grandTotal || 0,
+      });
       continue;
     }
 
-    const key = `${salesRepId}|${customerEmail}`;
+    const key = `${salesRepId}|${recipientRole}|${recipientId}`;
     const po = (sale.meta as { po?: string | null } | null)?.po;
     const existing = grouped.get(key);
 
@@ -260,11 +424,14 @@ async function runPendingBillReminder(runType: RunType) {
         salesRepId,
         salesRep,
         salesRepEmail,
+        recipientId,
+        recipientRole,
         customerEmail,
         customerName,
         salesIds: [sale.id],
         sales: [
           {
+            saleId: sale.id,
             orderId: sale.orderId,
             po: po || null,
             date: sale.createdAt || new Date(),
@@ -278,6 +445,7 @@ async function runPendingBillReminder(runType: RunType) {
 
     existing.salesIds.push(sale.id);
     existing.sales.push({
+      saleId: sale.id,
       orderId: sale.orderId,
       po: po || null,
       date: sale.createdAt || new Date(),
@@ -299,7 +467,25 @@ async function runPendingBillReminder(runType: RunType) {
         sent: 0,
         skipped,
         failed: 0,
+        skippedSales,
+        successfulRecipients: [],
       },
+    });
+    await sendAdminRunSummary({
+      authorId: notificationAuthorId,
+      triggerType: runType,
+      statusUsed: config.status,
+      filterUsed: config.filter as Record<string, unknown>,
+      foundSalesCount: pendingSales.length,
+      validSalesCount: pendingSales.length - skipped,
+      groupedRecipientCount: 0,
+      deliveredGroupCount: 0,
+      failedGroupCount: 0,
+      skippedSalesCount: skipped,
+      totalPendingAmount,
+      totalSalesAmount,
+      successfulRecipients: [],
+      skippedSales,
     });
     logger.info("No valid pending-bill reminder groups after filtering.");
     return {
@@ -322,15 +508,17 @@ async function runPendingBillReminder(runType: RunType) {
   logger.info("Sales pending-bill reminder groups prepared", {
     groups: Array.from(grouped.values()).map((g) => ({
       salesRepId: g.salesRepId,
+      recipientRole: g.recipientRole,
+      recipientId: g.recipientId,
       customerEmail: g.customerEmail,
       salesCount: g.sales.length,
     })),
   });
-
   return;
   const expiry = addDays(new Date(), 7).toISOString();
   let sent = 0;
   let failed = 0;
+  const successfulRecipients: SuccessfulRecipientBreakdown[] = [];
 
   for (const group of grouped.values()) {
     try {
@@ -346,7 +534,12 @@ async function runPendingBillReminder(runType: RunType) {
           id: group.salesRepId,
           role: "employee",
         },
-        // recipients:
+        recipients: [
+          {
+            ids: [group.recipientId],
+            role: group.recipientRole,
+          },
+        ],
         payload: {
           type: "order",
           customerEmail: group.customerEmail,
@@ -359,6 +552,22 @@ async function runPendingBillReminder(runType: RunType) {
         },
       } satisfies NotificationJobInput);
       sent += 1;
+      successfulRecipients.push({
+        recipientRole: group.recipientRole,
+        recipientId: group.recipientId,
+        recipientName: group.customerName,
+        recipientEmail: group.customerEmail,
+        salesCount: group.sales.length,
+        totalPendingAmount: group.sales.reduce(
+          (acc, sale) => acc + sale.due,
+          0,
+        ),
+        totalSalesAmount: group.sales.reduce(
+          (acc, sale) => acc + sale.total,
+          0,
+        ),
+        sales: group.sales,
+      });
     } catch (error) {
       failed += 1;
       logger.error("Failed sending sales pending-bill reminder group", {
@@ -385,14 +594,45 @@ async function runPendingBillReminder(runType: RunType) {
       triggerType: runType,
       statusUsed: config.status,
       filterUsed: config.filter,
-      testEmailUsed: useTestRecipient ? testEmail : null,
       found: pendingSales.length,
       grouped: grouped.size,
       sent,
       skipped,
       failed,
       testMode: runType === "test",
+      skippedSales:
+        skippedSales.length > MAX_HISTORY_BREAKDOWN_ITEMS
+          ? skippedSales.slice(0, MAX_HISTORY_BREAKDOWN_ITEMS)
+          : skippedSales,
+      successfulRecipients:
+        successfulRecipients.length > MAX_HISTORY_BREAKDOWN_ITEMS
+          ? successfulRecipients.slice(0, MAX_HISTORY_BREAKDOWN_ITEMS)
+          : successfulRecipients,
+      skippedSalesTruncated: Math.max(
+        0,
+        skippedSales.length - MAX_HISTORY_BREAKDOWN_ITEMS,
+      ),
+      successfulRecipientsTruncated: Math.max(
+        0,
+        successfulRecipients.length - MAX_HISTORY_BREAKDOWN_ITEMS,
+      ),
     },
+  });
+  await sendAdminRunSummary({
+    authorId: notificationAuthorId,
+    triggerType: runType,
+    statusUsed: config.status,
+    filterUsed: config.filter as Record<string, unknown>,
+    foundSalesCount: pendingSales.length,
+    validSalesCount: pendingSales.length - skipped,
+    groupedRecipientCount: grouped.size,
+    deliveredGroupCount: sent,
+    failedGroupCount: failed,
+    skippedSalesCount: skipped,
+    totalPendingAmount,
+    totalSalesAmount,
+    successfulRecipients,
+    skippedSales,
   });
 
   return {

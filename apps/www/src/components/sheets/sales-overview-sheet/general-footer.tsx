@@ -1,14 +1,6 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
-import {
-    deleteSalesUseCase,
-    restoreDeleteUseCase,
-} from "@/app-deps/(clean-code)/(sales)/_common/use-case/sales-use-case";
-import ConfirmBtn from "@/components/_v1/confirm-btn";
-import { Icons } from "@/components/_v1/icons";
-import { Menu } from "@gnd/ui/custom/menu";
-import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 
 import { RefreshCcw } from "lucide-react";
@@ -16,23 +8,17 @@ import { toast } from "sonner";
 
 import { Button } from "@gnd/ui/button";
 import { SheetFooter } from "@gnd/ui/sheet";
-import { ToastAction } from "@gnd/ui/toast";
 
 import { CustomSheetContentPortal } from "../custom-sheet-content";
 import { useSaleOverview } from "./context";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { openLink } from "@/lib/open-link";
-import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
-import { AuthGuard } from "@/components/auth-guard";
+import { AuthGuard, SuperAdminGuard } from "@/components/auth-guard";
 import { _perm } from "@/components/sidebar/links";
-import { useSalesPrintParams } from "@/hooks/use-sales-print-params";
-import { InvoicePrintModes } from "@sales/types";
-import { MenuItemSalesActions } from "@/components/menu-item-sales-actions";
-import { useMutation } from "@tanstack/react-query";
-import { useTRPC } from "@/trpc/client";
+import { SalesMenu } from "@/components/sales-menu";
 
 export function GeneralFooter({}) {
-    const { data } = useSaleOverview();
+    const { data } = useSaleOverview() as { data?: any };
     const [loading, startTransition] = useTransition();
     const qs = useSalesOverviewQuery();
     const sPreview = useSalesPreview();
@@ -59,62 +45,9 @@ export function GeneralFooter({}) {
     }
     const [menuOpen, setMenuOpen] = useState(false);
 
-    const sq = useSalesQueryClient();
-    const { mutate: deleteSale, isPending } = useMutation(
-        useTRPC().sales.deleteSale.mutationOptions({
-            onSuccess: () => {
-                data?.type == "order"
-                    ? sq.invalidate.salesList()
-                    : sq.invalidate.quoteList();
-                qs.close();
-            },
-            meta: {
-                toastTitle: {
-                    error: "Unable to complete",
-                    loading: "Delete...",
-                    success: "Deleted!.",
-                },
-            },
-        }),
-    );
-    // const deleteSale = async () => {
-    //     // const id = store?.salesId;
-    //     loader.loading("Deleting...");
-    //     await deleteSalesUseCase(data?.id);
-    //     data?.type == "order"
-    //         ? sq.invalidate.salesList()
-    //         : sq.invalidate.quoteList();
-    //     loader.success("Deleted", {
-    //         description: "Undo delete?",
-    //         action: (
-    //             <ToastAction
-    //                 onClick={async (e) => {
-    //                     await restoreDeleteUseCase(data?.id);
-    //                 }}
-    //                 altText="delete"
-    //             >
-    //                 Edit
-    //             </ToastAction>
-    //         ),
-    //     });
-    // };
-
-    const menuRef = useRef(null);
-
     return (
         <CustomSheetContentPortal>
             <SheetFooter className="sm:-m-4 sm:-mb-2 sm:border-t p-4  max-md:flex-row max-md:gap-4 max-md:justify-end max-md:fixed max-md:bottom-0 max-md:bg-accent max-md:w-full">
-                <ConfirmBtn
-                    size="icon"
-                    Icon={Icons.trash}
-                    onClick={(e) => {
-                        deleteSale({
-                            salesId: data?.id!,
-                        });
-                    }}
-                    trash
-                    variant="destructive"
-                />
                 <Button
                     size="sm"
                     onClick={(e) => {
@@ -124,30 +57,33 @@ export function GeneralFooter({}) {
                 >
                     Preview
                 </Button>
-                <Menu
-                    ref={menuRef}
+                <SalesMenu
                     open={menuOpen}
-                    onOpenChanged={setMenuOpen}
-                    variant="outline"
+                    onOpenChange={setMenuOpen}
+                    id={data?.id}
+                    slug={data?.uuid}
+                    type={data?.type}
                 >
-                    <MenuItemSalesActions
-                        slug={data?.uuid}
-                        menuRef={menuRef}
-                        setMenuOpen={setMenuOpen}
-                        id={data?.id}
-                        type={data?.type}
-                    />
-                    <Menu.Item
-                        Icon={RefreshCcw}
-                        onClick={reset}
-                        disabled={loading}
-                    >
+                    <SalesMenu.Share />
+                    <SalesMenu.PDF />
+                    <SuperAdminGuard>
+                        <SalesMenu.Print />
+                    </SuperAdminGuard>
+                    <SalesMenu.Copy />
+                    <SalesMenu.Move />
+                    <SalesMenu.Separator />
+                    <SalesMenu.Notifications />
+                    <SalesMenu.PaymentNotifications />
+                    <SalesMenu.Separator />
+                    <SalesMenu.Delete onDeleted={() => qs.close()} />
+                    <SalesMenu.Item onSelect={reset} disabled={loading}>
+                        <RefreshCcw className="mr-2 size-4 text-muted-foreground/70" />
                         Reset Stats
-                    </Menu.Item>
+                    </SalesMenu.Item>
                     <AuthGuard rules={[_perm.is("viewSalesResolution")]}>
-                        <Menu.Item
-                            Icon={RefreshCcw}
-                            onClick={(e) => {
+                        <SalesMenu.Item
+                            onSelect={(e) => {
+                                e.preventDefault();
                                 openLink(
                                     `/sales-book/accounting/resolution-center`,
                                     {
@@ -158,10 +94,11 @@ export function GeneralFooter({}) {
                             }}
                             disabled={loading}
                         >
+                            <RefreshCcw className="mr-2 size-4 text-muted-foreground/70" />
                             Resolution Center
-                        </Menu.Item>
+                        </SalesMenu.Item>
                     </AuthGuard>
-                </Menu>
+                </SalesMenu>
             </SheetFooter>
         </CustomSheetContentPortal>
     );

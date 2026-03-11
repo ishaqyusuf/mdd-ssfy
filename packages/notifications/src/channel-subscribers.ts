@@ -1,6 +1,12 @@
 import { Db, Prisma } from "@gnd/db";
 import { UserData } from "./base";
 
+type RecipientRole = "employee" | "customer" | "address";
+
+function toContactRole(role: RecipientRole): "employee" | "customer" {
+  return role === "employee" ? "employee" : "customer";
+}
+
 /**
  * Resolution chain:
  *
@@ -184,39 +190,52 @@ export async function getSubscribersForNotificationType(
 export async function getSubscriberAccount(
   db: Db,
   profileId: number,
-  role: "employee" | "customer" = "employee",
+  role: RecipientRole = "employee",
 ): Promise<{
   id: number;
   profileId: number;
   name: string;
   email?: string;
   phoneNo?: string;
-  role?: "employee" | "customer";
+  role?: RecipientRole;
 } | null> {
   // ── 1. Resolve email from the correct table ──────────────────────────────
   let email: string | null | undefined;
   let name: string | null | undefined;
+  let phoneNo: string | null | undefined;
+
   if (role === "employee") {
     const user = await db.users.findFirst({
       where: { id: profileId, deletedAt: null },
-      select: { email: true, name: true },
+      select: { email: true, name: true, phoneNo: true },
     });
     email = user?.email;
     name = user?.name;
-  } else {
+    phoneNo = user?.phoneNo;
+  } else if (role === "customer") {
     const customer = await db.customers.findFirst({
       where: { id: profileId, deletedAt: null },
-      select: { email: true, name: true, businessName: true },
+      select: { email: true, name: true, businessName: true, phoneNo: true },
     });
     email = customer?.email;
     name = customer?.name || customer?.businessName;
+    phoneNo = customer?.phoneNo;
+  } else {
+    const address = await db.addressBooks.findFirst({
+      where: { id: profileId, deletedAt: null },
+      select: { email: true, name: true, phoneNo: true },
+    });
+    email = address?.email;
+    name = address?.name;
+    phoneNo = address?.phoneNo;
   }
 
   if (!email) return null;
+  const contactRole = toContactRole(role);
 
   // ── 3. Find or create the NotePadContact ─────────────────────────────────
   let contact = await db.notePadContacts.findFirst({
-    where: { profileId, role, deletedAt: null },
+    where: { profileId, role: contactRole, deletedAt: null },
     select: {
       id: true,
       //   assignedChannels: {
@@ -235,7 +254,7 @@ export async function getSubscriberAccount(
       data: {
         // name: email,
         // email,
-        role,
+        role: contactRole,
         profileId,
       },
       select: {
@@ -259,6 +278,7 @@ export async function getSubscriberAccount(
     email,
     id: contact.id,
     name: name!,
+    phoneNo: phoneNo || undefined,
     role,
     profileId: profileId,
   };
@@ -267,28 +287,41 @@ export async function getSubscribersForNotificationTypeByIds(
   db: Db,
   notificationType: string,
   profileId: number,
-  role: "employee" | "customer",
+  role: RecipientRole,
 ): Promise<UserData | null> {
   // ── 1. Resolve email from the correct table ──────────────────────────────
   let email: string | null | undefined;
   let name: string | null | undefined;
+  let phoneNo: string | null | undefined;
+
   if (role === "employee") {
     const user = await db.users.findFirst({
       where: { id: profileId, deletedAt: null },
-      select: { email: true, name: true },
+      select: { email: true, name: true, phoneNo: true },
     });
     email = user?.email;
     name = user?.name;
-  } else {
+    phoneNo = user?.phoneNo;
+  } else if (role === "customer") {
     const customer = await db.customers.findFirst({
       where: { id: profileId, deletedAt: null },
-      select: { email: true, name: true, businessName: true },
+      select: { email: true, name: true, businessName: true, phoneNo: true },
     });
     email = customer?.email;
     name = customer?.name || customer?.businessName;
+    phoneNo = customer?.phoneNo;
+  } else {
+    const address = await db.addressBooks.findFirst({
+      where: { id: profileId, deletedAt: null },
+      select: { email: true, name: true, phoneNo: true },
+    });
+    email = address?.email;
+    name = address?.name;
+    phoneNo = address?.phoneNo;
   }
 
   if (!email) return null;
+  const contactRole = toContactRole(role);
 
   // ── 2. Find the channel ──────────────────────────────────────────────────
   const channel = await db.noteChannels.findUnique({
@@ -305,7 +338,7 @@ export async function getSubscribersForNotificationTypeByIds(
 
   // ── 3. Find or create the NotePadContact ─────────────────────────────────
   let contact = await db.notePadContacts.findFirst({
-    where: { profileId, role, deletedAt: null },
+    where: { profileId, role: contactRole, deletedAt: null },
     select: {
       id: true,
       profileId: true,
@@ -325,7 +358,7 @@ export async function getSubscribersForNotificationTypeByIds(
       data: {
         // name: email,
         // email,
-        role,
+        role: contactRole,
         profileId,
       },
       select: {
@@ -351,6 +384,7 @@ export async function getSubscribersForNotificationTypeByIds(
     id: contact.id,
     profileId: contact.profileId!,
     name: name!,
+    phoneNo: phoneNo || undefined,
     role,
     emailNotification: prefs?.emailEnabled ?? channel.emailSupport ?? false,
     inAppNotification: prefs?.inAppEnabled ?? channel.inAppSupport ?? false,
@@ -397,7 +431,7 @@ export interface ChannelNotificationConfig {
 // ─── Options ─────────────────────────────────────────────────────────────────
 
 export interface GetSubscribersAccountOptions {
-  role?: "employee" | "customer";
+  role?: RecipientRole;
   /**
    * NoteChannels.channelName.
    * When provided, each result includes resolved notification flags from:
@@ -438,6 +472,7 @@ export async function getSubscribersAccount(
   options: GetSubscribersAccountOptions = {},
 ): Promise<UserData[]> {
   const { role = "employee", channelName } = options;
+  const contactRole = toContactRole(role);
 
   if (!profileIds.length) return [];
 
@@ -498,7 +533,7 @@ export async function getSubscribersAccount(
         phoneNo: u.phoneNo,
       });
     }
-  } else {
+  } else if (role === "customer") {
     const customers = await db.customers.findMany({
       where: { id: { in: uniqueProfileIds }, deletedAt: null },
       select: { id: true, name: true, email: true, phoneNo: true },
@@ -509,6 +544,19 @@ export async function getSubscribersAccount(
         name: c.name,
         email: c.email,
         phoneNo: c.phoneNo,
+      });
+    }
+  } else {
+    const addresses = await db.addressBooks.findMany({
+      where: { id: { in: uniqueProfileIds }, deletedAt: null },
+      select: { id: true, name: true, email: true, phoneNo: true },
+    });
+    for (const address of addresses) {
+      accountMap.set(address.id, {
+        id: address.id,
+        name: address.name,
+        email: address.email,
+        phoneNo: address.phoneNo,
       });
     }
   }
@@ -541,7 +589,7 @@ export async function getSubscribersAccount(
       : {}),
   } satisfies Prisma.NotePadContactsSelect;
   const existingContacts = await db.notePadContacts.findMany({
-    where: { role, profileId: { in: resolvedIds }, deletedAt: null },
+    where: { role: contactRole, profileId: { in: resolvedIds }, deletedAt: null },
     select: contactSelect,
   });
 
@@ -561,14 +609,14 @@ export async function getSubscribersAccount(
 
         // Race-condition guard: another concurrent request may have just created it
         const alreadyExists = await db.notePadContacts.findFirst({
-          where: { role, profileId, deletedAt: null },
+          where: { role: contactRole, profileId, deletedAt: null },
           select: { id: true },
         });
         if (alreadyExists) return;
 
         await db.notePadContacts.create({
           data: {
-            role,
+            role: contactRole,
             profileId,
             name: account.name || undefined,
           },
@@ -578,7 +626,11 @@ export async function getSubscribersAccount(
 
     // Re-fetch newly created contacts (with channel assignments if applicable)
     const newContacts = await db.notePadContacts.findMany({
-      where: { role, profileId: { in: missingIds }, deletedAt: null },
+      where: {
+        role: contactRole,
+        profileId: { in: missingIds },
+        deletedAt: null,
+      },
       select: contactSelect,
     });
 
@@ -601,7 +653,7 @@ export async function getSubscribersAccount(
       id: contact.id,
       profileId,
       // Account fields (Users/Customers) are authoritative; contact may be stale
-      role: (contact.role as "employee" | "customer" | undefined) ?? role,
+      role,
       name: account.name || contact.name || `User ${profileId}`,
       email: account.email || undefined,
       phoneNo: account.phoneNo || undefined,

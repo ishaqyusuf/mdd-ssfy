@@ -1,17 +1,14 @@
 import {
     BatchAction,
-    BatchBtn,
     BatchDelete,
 } from "@gnd/ui/custom/data-table/batch-action";
-import { SalesEmailMenuItem } from "@/components/sales-email-menu-item";
 import { deleteSalesByOrderIds } from "@/app-deps/(clean-code)/(sales)/_common/data-actions/sales-actions";
 import { useTable } from "@gnd/ui/data-table";
-import { printQuote } from "@/utils/sales-invoice";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
-import { Download } from "lucide-react";
 import { invalidateInfiniteQueries } from "@/hooks/use-invalidate-query";
 import { Item } from "./columns";
+import { SalesMenu } from "@/components/sales-menu";
 
 export function BatchActions({}) {
     const ctx = useTable();
@@ -22,46 +19,31 @@ export function BatchActions({}) {
 
     return (
         <BatchAction>
-            <Button
-                // icon="print"
-                variant="ghost"
-                onClick={async (e) => {
-                    await printQuote({
-                        salesIds,
-                        preview: true,
-                    });
-                }}
-            >
-                <Icons.print className="size-4 mr-2" />
-                Print
-            </Button>
-            <Button
-                // icon="print"
-                variant="ghost"
-                onClick={async (e) => {
-                    await printQuote({
-                        salesIds,
-                        preview: false,
-                    });
-                }}
-            >
-                <Download className="size-4 mr-2" />
-                Download
-            </Button>
-            <BatchBtn
-                icon="Email"
-                menu={
-                    <>
-                        <SalesEmailMenuItem
-                            asChild
-                            salesType="quote"
-                            orderNo={slugs}
-                        />
-                    </>
+            <SalesMenu
+                type="quote"
+                salesIds={salesIds}
+                trigger={
+                    <Button variant="ghost">
+                        <Icons.print className="size-4 mr-2" />
+                        Print
+                    </Button>
                 }
             >
-                Email
-            </BatchBtn>
+                <SalesMenu.Print />
+                <SalesMenu.PDF />
+            </SalesMenu>
+            <SalesMenu
+                type="quote"
+                salesIds={salesIds}
+                trigger={
+                    <Button variant="ghost">
+                        <Icons.Email className="mr-2 size-4" />
+                        Email
+                    </Button>
+                }
+            >
+                <SalesMenu.Notifications />
+            </SalesMenu>
             <BatchDelete
                 onClick={async () => {
                     await deleteSalesByOrderIds(slugs);
@@ -71,4 +53,3 @@ export function BatchActions({}) {
         </BatchAction>
     );
 }
-

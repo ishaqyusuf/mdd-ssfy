@@ -1,4 +1,3 @@
-import { useSalesMailer } from "@/hooks/use-sales-email-sender";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { useSaleOverview } from "./context";
@@ -7,24 +6,17 @@ import { salesFormUrl } from "@/utils/sales-utils";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { CheckCheck, FileSearch, RefreshCcw } from "lucide-react";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
-import { MenuItemSalesActions } from "@/components/menu-item-sales-actions";
-import { AuthGuard } from "@/components/auth-guard";
+import { AuthGuard, SuperAdminGuard } from "@/components/auth-guard";
 import { _perm } from "@/components/sidebar/links";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-import { useRef, useState, useTransition } from "react";
+import { useTransition } from "react";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 
-import { useSalesPrintParams } from "@/hooks/use-sales-print-params";
-import { useLoadingToast } from "@/hooks/use-loading-toast";
-import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { toast } from "sonner";
-import { PaymentLinkMenuAction } from "./payment-link-menu-action";
-import { useSendSalesEmail } from "@/hooks/use-send-sales-email";
 import { SendSalesReminder } from "@/components/send-sales-reminder";
-import { Menu } from "@gnd/ui/custom/menu";
+import { SalesMenu } from "@/components/sales-menu";
 export function GeneralActionBar({ type, salesNo, salesId }) {
-    const mailer = useSalesMailer();
-    const { data } = useSaleOverview();
+    const { data } = useSaleOverview() as { data?: any };
     const isQuote = data?.type == "quote";
     const batchSales = useBatchSales();
     const sPreview = useSalesPreview();
@@ -37,7 +29,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
     async function reset() {
         startTransition(async () => {
             try {
-                const resp = await resetSalesStatAction(
+                await resetSalesStatAction(
                     data?.id,
                     data?.orderId
                 );
@@ -51,12 +43,6 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
             }
         });
     }
-    const [menuOpen, setMenuOpen] = useState(false);
-    const printer = useSalesPrintParams();
-    const loader = useLoadingToast();
-    const sq = useSalesQueryClient();
-    const menuRef = useRef(null);
-    const { setParams: setSalesEmailModalParams } = useSendSalesEmail();
     return (
         <div className="flex gap-2">
             <SendSalesReminder salesIds={[salesId]} />
@@ -83,113 +69,80 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
                 <Icons.Edit className="size-3.5" />
                 <span>Edit</span>
             </Button>
-            <Menu variant="secondary">
+            <SalesMenu
+                triggerVariant="secondary"
+                id={data?.id}
+                slug={data?.uuid}
+                type={data?.type}
+            >
                 {isQuote ? (
                     <>
-                        <Menu.Item
-                            // className={cn(!isQuote || "hidden")}
-                            onClick={(e) => {
-                                mailer.send({
-                                    emailType: "without payment",
-                                    salesIds: [salesId],
-                                    printType: type,
-                                });
-                            }}
-                        >
-                            Quote Email
-                        </Menu.Item>
+                        <SalesMenu.Notifications />
                     </>
                 ) : (
                     <>
-                        <Menu.Item
-                            icon="Email"
-                            SubMenu={
-                                <>
-                                    <Menu.Item
-                                        // className={cn(!isQuote || "hidden")}
-                                        onClick={(e) => {
-                                            mailer.send({
-                                                emailType: "with payment",
-                                                salesIds: [salesId],
-                                                printType: type,
-                                            });
-                                        }}
-                                    >
-                                        Default
-                                    </Menu.Item>
-                                    <PaymentLinkMenuAction
-                                        salesIds={[salesId]}
-                                    />
-                                </>
-                            }
-                        >
-                            Payment Link
-                        </Menu.Item>
-
-                        <Menu.Item
-                            Icon={CheckCheck}
-                            SubMenu={
-                                <>
-                                    <Menu.Item
-                                        // disabled={!produceable}
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            batchSales.markAsProductionCompleted(
-                                                salesId
-                                            );
-                                        }}
-                                    >
-                                        Production Complete
-                                    </Menu.Item>
-                                    <Menu.Item
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            batchSales.markAsFulfilled(salesId);
-                                        }}
-                                    >
-                                        Fulfillment Complete
-                                    </Menu.Item>
-                                </>
-                            }
-                        >
-                            Mark as
-                        </Menu.Item>
-                        <Menu.Separator />
-                        <MenuItemSalesActions
-                            slug={data?.uuid}
-                            menuRef={menuRef}
-                            setMenuOpen={setMenuOpen}
-                            id={data?.id}
-                            type={data?.type}
-                        />
-                        <Menu.Item
-                            Icon={RefreshCcw}
-                            onClick={reset}
-                            disabled={loading}
-                        >
+                        <SalesMenu.Notifications />
+                        <SalesMenu.PaymentNotifications />
+                        <SalesMenu.Sub>
+                            <SalesMenu.SubTrigger>
+                                <CheckCheck className="mr-2 size-4 text-muted-foreground/70" />
+                                Mark as
+                            </SalesMenu.SubTrigger>
+                            <SalesMenu.SubContent>
+                                <SalesMenu.Item
+                                    onSelect={(e) => {
+                                        e.preventDefault();
+                                        batchSales.markAsProductionCompleted(
+                                            salesId,
+                                        );
+                                    }}
+                                >
+                                    Production Complete
+                                </SalesMenu.Item>
+                                <SalesMenu.Item
+                                    onSelect={(e) => {
+                                        e.preventDefault();
+                                        batchSales.markAsFulfilled(salesId);
+                                    }}
+                                >
+                                    Fulfillment Complete
+                                </SalesMenu.Item>
+                            </SalesMenu.SubContent>
+                        </SalesMenu.Sub>
+                        <SalesMenu.Separator />
+                        <SalesMenu.Share />
+                        <SalesMenu.PDF />
+                        <SuperAdminGuard>
+                            <SalesMenu.Print />
+                        </SuperAdminGuard>
+                        <SalesMenu.Copy />
+                        <SalesMenu.Move />
+                        <SalesMenu.Separator />
+                        <SalesMenu.Item onSelect={reset} disabled={loading}>
+                            <RefreshCcw className="mr-2 size-4 text-muted-foreground/70" />
                             Reset Stats
-                        </Menu.Item>
+                        </SalesMenu.Item>
                         <AuthGuard rules={[_perm.is("viewSalesResolution")]}>
-                            <Menu.Item
-                                Icon={RefreshCcw}
-                                onClick={(e) => {
+                            <SalesMenu.Item
+                                onSelect={(e) => {
+                                    e.preventDefault();
                                     openLink(
                                         `/sales-book/accounting/resolution-center`,
                                         {
                                             salesNo: data.orderId,
                                         },
-                                        true
+                                        true,
                                     );
                                 }}
                                 disabled={loading}
                             >
+                                <RefreshCcw className="mr-2 size-4 text-muted-foreground/70" />
                                 Resolution Center
-                            </Menu.Item>
+                            </SalesMenu.Item>
                         </AuthGuard>
                     </>
                 )}
-            </Menu>
+            </SalesMenu>
         </div>
     );
 }
-

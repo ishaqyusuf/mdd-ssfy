@@ -2,13 +2,13 @@
 import * as React from "react";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
-import { Menu } from "@gnd/ui/custom/menu";
 import { Progress } from "@gnd/ui/custom/progress";
 import { cn } from "@/lib/utils";
 import { ColumnDef } from "@/types/type";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 
 import { Badge } from "@gnd/ui/badge";
+import { Button } from "@gnd/ui/button";
 import { buttonVariants } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 
@@ -17,7 +17,7 @@ import { InvoiceColumn } from "./column.invoice";
 import { cells } from "@gnd/ui/custom/data-table/cells";
 
 import Link from "next/link";
-import { MenuItemPrintAction } from "@/components/menu-item-sales-print-action";
+import { SalesMenu } from "@/components/sales-menu";
 import { useBin } from "@/hooks/use-bin";
 import { useAuth } from "@/hooks/use-auth";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
@@ -484,36 +484,46 @@ function Actions({ item }: { item: Item }) {
             >
                 <Icons.Edit className="size-4" />
             </Link>
-            <Menu>
-                <MenuItemPrintAction pdf type="order" salesIds={[item.id]} />
-                <MenuItemPrintAction type="order" salesIds={[item.id]} />
-                <Menu.Item
-                    Icon={Check}
-                    SubMenu={
-                        <>
-                            <Menu.Item
-                                disabled={!produceable}
-                                onClick={(e) => {
-                                    // e.preventDefault();
-                                    triggerProductionComplete();
-                                }}
-                            >
-                                Production Complete
-                            </Menu.Item>
-                            <Menu.Item
-                                onClick={(e) => {
-                                    // e.preventDefault();
-                                    ensureDispatchAndTriggerFulfillment();
-                                }}
-                            >
-                                Fulfillment Complete
-                            </Menu.Item>
-                        </>
-                    }
-                >
-                    Mark as
-                </Menu.Item>
-            </Menu>
+            <SalesMenu
+                id={item.id}
+                slug={item.slug}
+                type="order"
+                trigger={
+                    <Button size="xs" variant="outline">
+                        <Icons.MoreHoriz className="size-4 text-muted-foreground" />
+                    </Button>
+                }
+            >
+                <SalesMenu.PDF />
+                <SalesMenu.Print />
+                <SalesMenu.Sub>
+                    <SalesMenu.SubTrigger>
+                        <Check className="mr-2 size-4 text-muted-foreground/70" />
+                        Mark as
+                    </SalesMenu.SubTrigger>
+                    <SalesMenu.SubContent>
+                        <SalesMenu.Item
+                            disabled={!produceable}
+                            onSelect={(e) => {
+                                e.preventDefault();
+                                triggerProductionComplete();
+                            }}
+                        >
+                            <Check className="mr-2 size-4 text-muted-foreground/70" />
+                            Production Complete
+                        </SalesMenu.Item>
+                        <SalesMenu.Item
+                            onSelect={(e) => {
+                                e.preventDefault();
+                                ensureDispatchAndTriggerFulfillment();
+                            }}
+                        >
+                            <Check className="mr-2 size-4 text-muted-foreground/70" />
+                            Fulfillment Complete
+                        </SalesMenu.Item>
+                    </SalesMenu.SubContent>
+                </SalesMenu.Sub>
+            </SalesMenu>
         </div>
     );
 }
