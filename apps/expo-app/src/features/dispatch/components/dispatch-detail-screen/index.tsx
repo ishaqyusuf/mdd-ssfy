@@ -53,6 +53,14 @@ function formatDispatchStatusLabel(status?: string | null) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function resolvedAvailableQty(item: any) {
+  return (item?.availableQty || item?.deliverableQty || {}) as {
+    qty?: number | null;
+    lh?: number | null;
+    rh?: number | null;
+  };
+}
+
 export function DispatchDetailScreen({
   dispatchId,
   salesNo,
@@ -215,14 +223,7 @@ function DispatchDetailScreenInner({
   }, [data?.address, order]);
 
   const topPackingItems = useMemo(() => items, [items]);
-  const packableItems = useMemo(
-    () =>
-      items.filter((item) => {
-        const d = (item.deliverableQty || {}) as any;
-        return d.qty > 0 || Number(d.lh || 0) > 0 || Number(d.rh || 0) > 0;
-      }),
-    [items],
-  );
+  const packableItems = useMemo(() => items, [items]);
   const unpackableItems = useMemo(
     () =>
       items.filter((item) => {
@@ -486,10 +487,10 @@ function DispatchDetailScreenInner({
       const draft = packingDrafts[item.uid] || { qty: 0, lh: 0, rh: 0 };
       const hasSingle = itemHasSingleQty(item);
       const packedTotal = hasSingle ? draft.qty : draft.lh + draft.rh;
-      const deliverable = (item.deliverableQty || {}) as any;
-      const totalDeliverable = hasSingle
-        ? asNumber(deliverable.qty)
-        : asNumber(deliverable.lh) + asNumber(deliverable.rh);
+      const available = resolvedAvailableQty(item);
+      const totalAvailable = hasSingle
+        ? asNumber(available.qty)
+        : asNumber(available.lh) + asNumber(available.rh);
       const isVerified = packedTotal > 0;
       return {
         uid: item.uid,
@@ -497,7 +498,7 @@ function DispatchDetailScreenInner({
         img: item.img,
         isVerified,
         packedQty: packedTotal,
-        totalQty: totalDeliverable,
+        totalQty: totalAvailable,
         icon: isVerified
           ? hasSingle
             ? "HardHat"
@@ -512,7 +513,7 @@ function DispatchDetailScreenInner({
             : "Skipped from this shipment",
       };
     });
-  }, [packableItems, packingDrafts]);
+  }, [asNumber, itemHasSingleQty, packableItems, packingDrafts]);
 
   const verifiedPackingCount = useMemo(
     () => packingConfirmItems.filter((item) => item.isVerified).length,
@@ -542,18 +543,18 @@ function DispatchDetailScreenInner({
     setPackingDrafts(() =>
       Object.fromEntries(
         packableItems.map((item) => {
-          const deliverable = (item.deliverableQty || {}) as any;
+          const available = resolvedAvailableQty(item);
           const hasSingle = itemHasSingleQty(item);
           const next = hasSingle
             ? {
-                qty: asNumber(deliverable.qty),
+                qty: asNumber(available.qty),
                 lh: 0,
                 rh: 0,
               }
             : {
                 qty: 0,
-                lh: asNumber(deliverable.lh),
-                rh: asNumber(deliverable.rh),
+                lh: asNumber(available.lh),
+                rh: asNumber(available.rh),
               };
           return [item.uid, next];
         }),
@@ -939,7 +940,9 @@ function DispatchDetailScreenInner({
             <View className="overflow-hidden rounded-xl border border-border">
               {topPackingItems.map((item, index) => {
                 const itemImage = resolveItemImage(item.img as string | null);
-                const deliverableTotal = totalQty(item.deliverableQty as any);
+                const deliverableTotal = totalQty(
+                  resolvedAvailableQty(item) as any,
+                );
                 const packedTotal = totalQty((item as any).listedQty as any);
                 const unpackedTotal = Math.max(
                   0,

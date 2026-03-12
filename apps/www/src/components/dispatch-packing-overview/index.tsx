@@ -17,7 +17,7 @@ import { toast } from "@gnd/ui/use-toast";
 import { AlertTriangle, Minus, Plus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@gnd/ui/input";
-import { pickQtyFrom, recomposeQty } from "@sales/utils/sales-control";
+import { pickQtyFrom, qtyMatrixSum, recomposeQty } from "@sales/utils/sales-control";
 import type { UpdateSalesControl } from "@sales/schema";
 
 type Props = {
@@ -525,35 +525,25 @@ function toDraft(item: any) {
 }
 
 function getPackAllTarget(item: any) {
+  const deliverableQty = recomposeQty(
+    qtyMatrixSum(...((item?.deliverables || []).map((d: any) => d?.qty) as any)),
+  );
   const listedQty = recomposeQty(item?.listedQty as any);
-  const availableQty = recomposeQty(item?.availableQty as any);
-  const packedQty = recomposeQty(item?.packedQty as any);
-  const listedTotal = qtyTotal(listedQty);
+  const sourceQty = hasQty(deliverableQty) ? deliverableQty : listedQty;
 
   if (item?.totalQty?.noHandle) {
-    const qty =
-      listedTotal > 0
-        ? Number(listedQty?.qty || 0)
-        : Number(availableQty?.qty || 0) + Number(packedQty?.qty || 0);
+    const qtyFromSource = qtyTotal(sourceQty as any);
     return {
-      qty: Math.max(0, qty),
+      qty: Math.max(0, qtyFromSource),
       lh: 0,
       rh: 0,
     };
   }
 
-  if (listedTotal > 0) {
-    return {
-      qty: 0,
-      lh: Math.max(0, Number(listedQty?.lh || 0)),
-      rh: Math.max(0, Number(listedQty?.rh || 0)),
-    };
-  }
-
   return {
     qty: 0,
-    lh: Math.max(0, Number(availableQty?.lh || 0) + Number(packedQty?.lh || 0)),
-    rh: Math.max(0, Number(availableQty?.rh || 0) + Number(packedQty?.rh || 0)),
+    lh: Math.max(0, Number(sourceQty?.lh || 0)),
+    rh: Math.max(0, Number(sourceQty?.rh || 0)),
   };
 }
 

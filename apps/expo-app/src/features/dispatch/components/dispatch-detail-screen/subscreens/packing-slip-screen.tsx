@@ -5,6 +5,42 @@ import { resolveItemImage } from "../lib/resolve-item-image";
 import { Image } from "expo-image";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
+function asNumber(v?: number | null) {
+  return Number(v || 0);
+}
+
+function qtyTotal(qty?: { qty?: number | null; lh?: number | null; rh?: number | null }) {
+  const q = asNumber(qty?.qty);
+  if (q > 0) return q;
+  return asNumber(qty?.lh) + asNumber(qty?.rh);
+}
+
+function mergeQty(
+  left: { qty?: number | null; lh?: number | null; rh?: number | null },
+  right: { qty?: number | null; lh?: number | null; rh?: number | null },
+) {
+  return {
+    qty: asNumber(left.qty) + asNumber(right.qty),
+    lh: asNumber(left.lh) + asNumber(right.lh),
+    rh: asNumber(left.rh) + asNumber(right.rh),
+  };
+}
+
+function effectiveDeliverableQty(item: any) {
+  const available = (item?.availableQty || {}) as any;
+  if (qtyTotal(available) > 0) return available;
+  const deliverable = (item?.deliverableQty || {}) as any;
+  if (qtyTotal(deliverable) > 0) return deliverable;
+  const deliverables = (item?.deliverables || []) as {
+    qty?: { qty?: number | null; lh?: number | null; rh?: number | null };
+  }[];
+  if (!deliverables.length) return deliverable;
+  return deliverables.reduce(
+    (acc, entry) => mergeQty(acc, (entry?.qty || {}) as any),
+    { qty: 0, lh: 0, rh: 0 },
+  );
+}
+
 type Props = {
   insetsBottom: number;
   dispatchLabel: string;
@@ -150,11 +186,14 @@ export function PackingSlipScreen({
 
         {packableItems.map((item) => {
           const draft = packingDrafts[item.uid] || { qty: 0, lh: 0, rh: 0 };
-          const deliverable = (item.deliverableQty || {}) as any;
+          const deliverable = effectiveDeliverableQty(item);
           const hasSingle = itemHasSingleQty(item);
           const maxQty = asNumber(deliverable.qty);
           const maxLh = asNumber(deliverable.lh);
           const maxRh = asNumber(deliverable.rh);
+          const singleUnavailable = hasSingle && maxQty <= 0;
+          const lhUnavailable = !hasSingle && maxLh <= 0;
+          const rhUnavailable = !hasSingle && maxRh <= 0;
           const itemImage = resolveItemImage(item.img as string | null);
 
           return (
@@ -200,8 +239,11 @@ export function PackingSlipScreen({
                 </View>
               </View>
 
-              {hasSingle ? (
-                <View className="rounded-xl bg-muted/70 p-3">
+              {hasSingle && !singleUnavailable ? (
+                <View
+                  className="rounded-xl bg-muted/70 p-3"
+                  style={{ opacity: singleUnavailable ? 0.7 : 1 }}
+                >
                   <Text className="mb-2 text-[11px] font-semibold uppercase tracking-[1px] text-muted-foreground">
                     Available: {maxQty}
                   </Text>
@@ -211,8 +253,9 @@ export function PackingSlipScreen({
                     </Text>
                     <View className="flex-row items-center gap-3">
                       <Pressable
+                        disabled={singleUnavailable}
                         onPress={() => adjustSingle(item.uid, maxQty, -1)}
-                        className="h-9 w-9 items-center justify-center rounded-full border border-border bg-card"
+                        className="h-9 w-9 items-center justify-center rounded-full border border-border bg-card disabled:opacity-40"
                       >
                         <Icon
                           name="Minus"
@@ -222,6 +265,7 @@ export function PackingSlipScreen({
                       </Pressable>
                       <TextInput
                         value={String(draft.qty)}
+                        editable={!singleUnavailable}
                         onChangeText={(text) =>
                           setSingleValue(item.uid, maxQty, parseQtyInput(text))
                         }
@@ -230,19 +274,20 @@ export function PackingSlipScreen({
                           width: 56,
                           borderWidth: 1,
                           borderColor: "#D4D4D8",
-                          backgroundColor: "#FFFFFF",
+                          backgroundColor: singleUnavailable ? "#F4F4F5" : "#FFFFFF",
                           borderRadius: 8,
                           paddingHorizontal: 8,
                           paddingVertical: 4,
                           textAlign: "center",
                           fontSize: 16,
                           fontWeight: "700",
-                          color: "#09090B",
+                          color: singleUnavailable ? "#71717A" : "#09090B",
                         }}
                       />
                       <Pressable
+                        disabled={singleUnavailable}
                         onPress={() => adjustSingle(item.uid, maxQty, 1)}
-                        className="h-9 w-9 items-center justify-center rounded-full bg-primary"
+                        className="h-9 w-9 items-center justify-center rounded-full bg-primary disabled:opacity-40"
                       >
                         <Icon
                           name="Plus"
@@ -253,114 +298,118 @@ export function PackingSlipScreen({
                     </View>
                   </View>
                 </View>
-              ) : (
+              ) : !hasSingle ? (
                 <View className="mt-1 flex-row gap-3">
-                  <View className="flex-1 rounded-xl bg-muted/70 p-3">
-                    <Text className="text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
-                      LH Qty (Available: {maxLh})
-                    </Text>
-                    <View className="mt-2 flex-row items-center justify-between">
-                      <Pressable
-                        onPress={() => adjustSide(item.uid, "lh", maxLh, -1)}
-                        className="h-8 w-8 items-center justify-center rounded-full border border-border bg-card"
-                      >
-                        <Icon
-                          name="Minus"
-                          className="text-foreground"
-                          size={14}
+                  {!lhUnavailable ? (
+                    <View className="flex-1 rounded-xl bg-muted/70 p-3">
+                      <Text className="text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
+                        LH Qty (Available: {maxLh})
+                      </Text>
+                      <View className="mt-2 flex-row items-center justify-between">
+                        <Pressable
+                          onPress={() => adjustSide(item.uid, "lh", maxLh, -1)}
+                          className="h-8 w-8 items-center justify-center rounded-full border border-border bg-card"
+                        >
+                          <Icon
+                            name="Minus"
+                            className="text-foreground"
+                            size={14}
+                          />
+                        </Pressable>
+                        <TextInput
+                          value={String(draft.lh)}
+                          onChangeText={(text) =>
+                            setSideValue(
+                              item.uid,
+                              "lh",
+                              maxLh,
+                              parseQtyInput(text),
+                            )
+                          }
+                          keyboardType="number-pad"
+                          style={{
+                            width: 56,
+                            borderWidth: 1,
+                            borderColor: "#D4D4D8",
+                            backgroundColor: "#FFFFFF",
+                            borderRadius: 8,
+                            paddingHorizontal: 8,
+                            paddingVertical: 4,
+                            textAlign: "center",
+                            fontSize: 16,
+                            fontWeight: "700",
+                            color: "#09090B",
+                          }}
                         />
-                      </Pressable>
-                      <TextInput
-                        value={String(draft.lh)}
-                        onChangeText={(text) =>
-                          setSideValue(
-                            item.uid,
-                            "lh",
-                            maxLh,
-                            parseQtyInput(text),
-                          )
-                        }
-                        keyboardType="number-pad"
-                        style={{
-                          width: 56,
-                          borderWidth: 1,
-                          borderColor: "#D4D4D8",
-                          backgroundColor: "#FFFFFF",
-                          borderRadius: 8,
-                          paddingHorizontal: 8,
-                          paddingVertical: 4,
-                          textAlign: "center",
-                          fontSize: 16,
-                          fontWeight: "700",
-                          color: "#09090B",
-                        }}
-                      />
-                      <Pressable
-                        onPress={() => adjustSide(item.uid, "lh", maxLh, 1)}
-                        className="h-8 w-8 items-center justify-center rounded-full border border-border bg-card"
-                      >
-                        <Icon
-                          name="Plus"
-                          className="text-foreground"
-                          size={14}
-                        />
-                      </Pressable>
+                        <Pressable
+                          onPress={() => adjustSide(item.uid, "lh", maxLh, 1)}
+                          className="h-8 w-8 items-center justify-center rounded-full border border-border bg-card"
+                        >
+                          <Icon
+                            name="Plus"
+                            className="text-foreground"
+                            size={14}
+                          />
+                        </Pressable>
+                      </View>
                     </View>
-                  </View>
-                  <View className="flex-1 rounded-xl bg-muted/70 p-3">
-                    <Text className="text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
-                      RH Qty (Available: {maxRh})
-                    </Text>
-                    <View className="mt-2 flex-row items-center justify-between">
-                      <Pressable
-                        onPress={() => adjustSide(item.uid, "rh", maxRh, -1)}
-                        className="h-8 w-8 items-center justify-center rounded-full border border-border bg-card"
-                      >
-                        <Icon
-                          name="Minus"
-                          className="text-foreground"
-                          size={14}
+                  ) : null}
+                  {!rhUnavailable ? (
+                    <View className="flex-1 rounded-xl bg-muted/70 p-3">
+                      <Text className="text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
+                        RH Qty (Available: {maxRh})
+                      </Text>
+                      <View className="mt-2 flex-row items-center justify-between">
+                        <Pressable
+                          onPress={() => adjustSide(item.uid, "rh", maxRh, -1)}
+                          className="h-8 w-8 items-center justify-center rounded-full border border-border bg-card"
+                        >
+                          <Icon
+                            name="Minus"
+                            className="text-foreground"
+                            size={14}
+                          />
+                        </Pressable>
+                        <TextInput
+                          value={String(draft.rh)}
+                          onChangeText={(text) =>
+                            setSideValue(
+                              item.uid,
+                              "rh",
+                              maxRh,
+                              parseQtyInput(text),
+                            )
+                          }
+                          keyboardType="number-pad"
+                          style={{
+                            width: 56,
+                            borderWidth: 1,
+                            borderColor: "#D4D4D8",
+                            backgroundColor: "#FFFFFF",
+                            borderRadius: 8,
+                            paddingHorizontal: 8,
+                            paddingVertical: 4,
+                            textAlign: "center",
+                            fontSize: 16,
+                            fontWeight: "700",
+                            color: "#09090B",
+                          }}
                         />
-                      </Pressable>
-                      <TextInput
-                        value={String(draft.rh)}
-                        onChangeText={(text) =>
-                          setSideValue(
-                            item.uid,
-                            "rh",
-                            maxRh,
-                            parseQtyInput(text),
-                          )
-                        }
-                        keyboardType="number-pad"
-                        style={{
-                          width: 56,
-                          borderWidth: 1,
-                          borderColor: "#D4D4D8",
-                          backgroundColor: "#FFFFFF",
-                          borderRadius: 8,
-                          paddingHorizontal: 8,
-                          paddingVertical: 4,
-                          textAlign: "center",
-                          fontSize: 16,
-                          fontWeight: "700",
-                          color: "#09090B",
-                        }}
-                      />
-                      <Pressable
-                        onPress={() => adjustSide(item.uid, "rh", maxRh, 1)}
-                        className="h-8 w-8 items-center justify-center rounded-full border border-border bg-card"
-                      >
-                        <Icon
-                          name="Plus"
-                          className="text-foreground"
-                          size={14}
-                        />
-                      </Pressable>
+                        <Pressable
+                          onPress={() => adjustSide(item.uid, "rh", maxRh, 1)}
+                          className="h-8 w-8 items-center justify-center rounded-full border border-border bg-card"
+                        >
+                          <Icon
+                            name="Plus"
+                            className="text-foreground"
+                            size={14}
+                          />
+                        </Pressable>
+                      </View>
                     </View>
-                  </View>
+                  ) : null}
                 </View>
-              )}
+              ) : null}
             </View>
           );
         })}
