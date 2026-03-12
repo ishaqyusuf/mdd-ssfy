@@ -54,7 +54,25 @@ function formatDispatchStatusLabel(status?: string | null) {
 }
 
 function resolvedAvailableQty(item: any) {
-  return (item?.availableQty || item?.deliverableQty || {}) as {
+  const deliverables = (item?.deliverables || []) as {
+    qty?: { qty?: number | null; lh?: number | null; rh?: number | null };
+  }[];
+  if (deliverables.length) {
+    const sum = deliverables.reduce(
+      (acc, entry) => ({
+        qty: Number(acc.qty || 0) + Number(entry?.qty?.qty || 0),
+        lh: Number(acc.lh || 0) + Number(entry?.qty?.lh || 0),
+        rh: Number(acc.rh || 0) + Number(entry?.qty?.rh || 0),
+      }),
+      { qty: 0, lh: 0, rh: 0 },
+    );
+    if (totalQty(sum as any) > 0) return sum as any;
+  }
+
+  const listedQty = (item?.listedQty || {}) as any;
+  if (totalQty(listedQty) > 0) return listedQty;
+
+  return (item?.deliverableQty || item?.availableQty || item?.totalQty || {}) as {
     qty?: number | null;
     lh?: number | null;
     rh?: number | null;
@@ -222,11 +240,17 @@ function DispatchDetailScreenInner({
     return a?.email || customer?.email || "";
   }, [data?.address, order]);
 
-  const topPackingItems = useMemo(() => items, [items]);
-  const packableItems = useMemo(() => items, [items]);
+  const packableItems = useMemo(
+    () =>
+      items.filter(
+        (item) => item?.salesItemId && (item as any)?.shippable !== false,
+      ),
+    [items],
+  );
+  const topPackingItems = useMemo(() => packableItems, [packableItems]);
   const unpackableItems = useMemo(
     () =>
-      items.filter((item) => {
+      packableItems.filter((item) => {
         const unavailable = (item as any).nonDeliverableQty || {};
         return (
           Number(unavailable.qty || 0) > 0 ||
@@ -234,7 +258,7 @@ function DispatchDetailScreenInner({
           Number(unavailable.rh || 0) > 0
         );
       }),
-    [items],
+    [packableItems],
   );
   const {
     getSelection: getSalesRequestSelection,
@@ -547,7 +571,7 @@ function DispatchDetailScreenInner({
           const hasSingle = itemHasSingleQty(item);
           const next = hasSingle
             ? {
-                qty: asNumber(available.qty),
+                qty: totalQty(available as any),
                 lh: 0,
                 rh: 0,
               }

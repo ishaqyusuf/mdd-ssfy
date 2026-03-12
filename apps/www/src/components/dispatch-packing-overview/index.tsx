@@ -471,6 +471,25 @@ function qtyTotal(qty?: {
   return q > 0 ? q : lh + rh;
 }
 
+function itemHasSingleQty(item: any) {
+  const qtySources = [
+    item?.totalQty,
+    item?.deliverableQty,
+    item?.listedQty,
+    item?.availableQty,
+  ].filter(Boolean);
+  const explicitNoHandle = qtySources.find(
+    (qty) => typeof qty?.noHandle === "boolean",
+  )?.noHandle;
+  if (typeof explicitNoHandle === "boolean") {
+    return explicitNoHandle;
+  }
+  const hasHandledQty = qtySources.some(
+    (qty) => Number(qty?.lh || 0) > 0 || Number(qty?.rh || 0) > 0,
+  );
+  return !hasHandledQty;
+}
+
 function ItemRow({ item }: { item: any }) {
   const packed = qtyTotal(item?.packedQty);
   const listed = qtyTotal(item?.listedQty);
@@ -510,7 +529,7 @@ function ItemRow({ item }: { item: any }) {
 }
 
 function toDraft(item: any) {
-  if (item?.totalQty?.noHandle) {
+  if (itemHasSingleQty(item)) {
     return {
       qty: Math.max(0, Number(item?.packedQty?.qty || 0)),
       lh: 0,
@@ -529,9 +548,14 @@ function getPackAllTarget(item: any) {
     qtyMatrixSum(...((item?.deliverables || []).map((d: any) => d?.qty) as any)),
   );
   const listedQty = recomposeQty(item?.listedQty as any);
-  const sourceQty = hasQty(deliverableQty) ? deliverableQty : listedQty;
+  const fallbackDeliverableQty = recomposeQty(item?.deliverableQty as any);
+  const sourceQty = hasQty(deliverableQty)
+    ? deliverableQty
+    : hasQty(listedQty)
+      ? listedQty
+      : fallbackDeliverableQty;
 
-  if (item?.totalQty?.noHandle) {
+  if (itemHasSingleQty(item)) {
     const qtyFromSource = qtyTotal(sourceQty as any);
     return {
       qty: Math.max(0, qtyFromSource),
@@ -571,7 +595,9 @@ function PackItemsForm({
 
   const isSubmitting = ctx.trigger?.isLoading;
   const canEditPacking = dispatch?.status === "queue" || dispatch?.status === "in progress";
-  const packableItems = items.filter((item) => !!item?.salesItemId);
+  const packableItems = items.filter(
+    (item) => !!item?.salesItemId && item?.shippable !== false,
+  );
 
   const setQtyValue = (
     uid: string,
@@ -606,10 +632,13 @@ function PackItemsForm({
 
   const onPackAll = () => {
     const next: Record<string, { qty: number; lh: number; rh: number }> = {};
-    items.forEach((item) => {
+    packableItems.forEach((item) => {
       next[item.uid] = getPackAllTarget(item);
     });
-    setDrafts(next);
+    setDrafts((prev) => ({
+      ...prev,
+      ...next,
+    }));
   };
 
   const onSubmit = () => {
@@ -628,7 +657,7 @@ function PackItemsForm({
     packableItems.forEach((item) => {
       const draft = drafts[item.uid] || { qty: 0, lh: 0, rh: 0 };
       const enteredQty = recomposeQty(
-        item?.totalQty?.noHandle
+        itemHasSingleQty(item)
           ? { qty: draft.qty }
           : { lh: draft.lh, rh: draft.rh },
       );
@@ -699,7 +728,7 @@ function PackItemsForm({
       </div>
       <div className="max-h-[60vh] space-y-3 overflow-auto pr-1">
         {packableItems.map((item) => {
-          const noHandle = !!item?.totalQty?.noHandle;
+          const noHandle = itemHasSingleQty(item);
           const draft = drafts[item.uid] || { qty: 0, lh: 0, rh: 0 };
           return (
             <div key={item.uid} className="rounded-md border p-3">

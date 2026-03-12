@@ -1325,6 +1325,8 @@ export async function getDispatchOverviewV2(
       sectionTitle: item.sectionTitle || "",
       img: dispatchable?.img || null,
       dispatchable: true,
+      itemConfig: (dispatchable as any)?.itemConfig || null,
+      shippable: (dispatchable as any)?.itemConfig?.shipping !== false,
       salesItemId: dispatchable?.itemId || null,
       totalQty: toQtyMatrix(dispatchable?.totalQty as any),
       availableQty: toQtyMatrix(availableQty as any),
@@ -1349,6 +1351,8 @@ export async function getDispatchOverviewV2(
     rows: dispatchItems.map((item) => ({
       uid: item.uid,
       salesItemId: item.salesItemId,
+      shippable: item.shippable,
+      itemConfig: item.itemConfig,
       totalQty: item.totalQty,
       availableQty: item.availableQty,
       deliverableQty: item.deliverableQty,

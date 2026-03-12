@@ -39,18 +39,23 @@ function mergeQty(
 }
 
 function effectiveDeliverableQty(item: DispatchOverviewItem) {
-  const available = ((item as any)?.availableQty || {}) as any;
-  if (qtyTotal(available) > 0) return available;
-  const deliverable = (item?.deliverableQty || {}) as any;
-  if (qtyTotal(deliverable) > 0) return deliverable;
   const deliverables = ((item as any)?.deliverables || []) as {
     qty?: { qty?: number | null; lh?: number | null; rh?: number | null };
   }[];
-  if (!deliverables.length) return deliverable;
-  return deliverables.reduce(
-    (acc, entry) => mergeQty(acc, (entry?.qty || {}) as any),
-    { qty: 0, lh: 0, rh: 0 },
-  );
+  if (deliverables.length) {
+    const bySubmission = deliverables.reduce(
+      (acc, entry) => mergeQty(acc, (entry?.qty || {}) as any),
+      { qty: 0, lh: 0, rh: 0 },
+    );
+    if (qtyTotal(bySubmission) > 0) return bySubmission;
+  }
+  const listed = ((item as any)?.listedQty || {}) as any;
+  if (qtyTotal(listed) > 0) return listed;
+  const deliverable = (item?.deliverableQty || {}) as any;
+  if (qtyTotal(deliverable) > 0) return deliverable;
+  const available = ((item as any)?.availableQty || {}) as any;
+  if (qtyTotal(available) > 0) return available;
+  return ((item as any)?.totalQty || {}) as any;
 }
 
 function itemHasSingleQty(item: DispatchOverviewItem) {
