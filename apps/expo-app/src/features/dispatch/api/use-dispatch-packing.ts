@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   buildPackingPayload,
   hasQty,
+  type PackingLine,
 } from "../lib/packing-payload";
 import { buildPackItemTaskPayload } from "./pack-task-payload";
 import {
@@ -24,6 +25,11 @@ type PackItemInput = PackingMetaInput & {
   deliverables: DispatchDeliverable[];
   dispatchStatus: DispatchStatus;
   note?: string;
+};
+
+type PackItemsSelectionInput = PackingMetaInput & {
+  dispatchStatus: DispatchStatus;
+  packingLines: PackingLine[];
 };
 
 type DeletePackingInput = {
@@ -105,6 +111,24 @@ export function useDispatchPacking() {
           packingLines: packed.packingLines,
         }),
       );
+    },
+    async onPackItemsSelection(input: PackItemsSelectionInput) {
+      const author = getAuthor(auth.profile);
+      return packingTask.startAndWait({
+        payload: {
+          meta: {
+            salesId: input.salesId,
+            authorId: author.id,
+            authorName: author.name,
+          },
+          packItems: {
+            dispatchId: input.dispatchId,
+            dispatchStatus: input.dispatchStatus,
+            packMode: "selection",
+            packingLines: input.packingLines,
+          },
+        },
+      });
     },
     async onClearPackings(input: PackingMetaInput) {
       const author = getAuthor(auth.profile);
