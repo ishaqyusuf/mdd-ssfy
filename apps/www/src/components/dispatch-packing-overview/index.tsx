@@ -468,7 +468,8 @@ function ItemRow() {
   const ctx = usePacking();
   const { item } = usePackingItem() as any;
   const selected = ctx.packItemUid === item.uid;
-  const availableQty = item?.deliverableQty;
+  const availableQty = item?.availableQty || item?.deliverableQty;
+  const canPackQty = item?.deliverableQty;
 
   return (
     <div className="rounded-md border p-3">
@@ -498,7 +499,7 @@ function ItemRow() {
           </div>
         </div>
 
-        {hasQty(availableQty) ? (
+        {hasQty(canPackQty) ? (
           <Button
             variant={selected ? "secondary" : "outline"}
             onClick={(e) => {

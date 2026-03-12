@@ -7,10 +7,11 @@ import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
 type Props = {
   insetsBottom: number;
-  pageTitle: string;
+  dispatchLabel: string;
+  customerName: string;
   orderId?: string | null;
+  dueDateText: string;
   statusText: string;
-  topPackingItemTitle?: string | null;
   packableItems: any[];
   packingDrafts: Record<string, { qty: number; lh: number; rh: number }>;
   itemHasSingleQty: (item: any) => boolean;
@@ -31,6 +32,7 @@ type Props = {
   ) => void;
   parseQtyInput: (value: string) => number;
   progressPacked: number;
+  progressTotal: number;
   isSubmitting: boolean;
   onClose: () => void;
   onOpenPackAll: () => void;
@@ -40,10 +42,11 @@ type Props = {
 
 export function PackingSlipScreen({
   insetsBottom,
-  pageTitle,
+  dispatchLabel,
+  customerName,
   orderId,
+  dueDateText,
   statusText,
-  topPackingItemTitle,
   packableItems,
   packingDrafts,
   itemHasSingleQty,
@@ -54,6 +57,7 @@ export function PackingSlipScreen({
   setSideValue,
   parseQtyInput,
   progressPacked,
+  progressTotal,
   isSubmitting,
   onClose,
   onOpenPackAll,
@@ -93,11 +97,11 @@ export function PackingSlipScreen({
         <View className="mb-5 rounded-2xl border border-primary/15 bg-primary/5 p-4">
           <View className="mb-3 flex-row items-start justify-between">
             <View>
-              <Text className="text-[11px] font-semibold uppercase tracking-[1px] text-primary/75">
-                Order ID
-              </Text>
               <Text className="mt-1 text-xl font-black text-foreground">
-                {orderId ? `#${orderId}` : pageTitle}
+                {dispatchLabel}
+              </Text>
+              <Text className="mt-1 text-xs text-muted-foreground">
+                Dispatch Summary
               </Text>
             </View>
             <View className="rounded-full bg-primary/15 px-3 py-1">
@@ -107,17 +111,26 @@ export function PackingSlipScreen({
             </View>
           </View>
 
-          <View className="flex-row items-center gap-3 rounded-xl border border-border/70 bg-card/70 p-3">
-            <View className="h-14 w-14 items-center justify-center rounded-xl bg-muted">
-              <Icon name="HardHat" className="text-foreground" size={22} />
+          <View className="rounded-xl border border-border/70 bg-card/70 p-3">
+            <View className="mb-2 flex-row items-center justify-between">
+              <Text className="text-[11px] font-semibold uppercase tracking-[1px] text-muted-foreground">
+                Customer
+              </Text>
+              <Text className="text-xs font-medium text-foreground">{customerName}</Text>
             </View>
-            <View className="flex-1">
-              <Text className="text-sm font-bold text-foreground">
-                {topPackingItemTitle || "Packed Components"}
+            <View className="flex-row items-center justify-between">
+              <Text className="text-[11px] font-semibold uppercase tracking-[1px] text-muted-foreground">
+                Order #
               </Text>
-              <Text className="mt-1 text-xs text-muted-foreground">
-                Industrial Grade - Mixed Components
+              <Text className="text-xs font-medium text-foreground">
+                {orderId ? `#${orderId}` : "N/A"}
               </Text>
+            </View>
+            <View className="mt-2 flex-row items-center justify-between">
+              <Text className="text-[11px] font-semibold uppercase tracking-[1px] text-muted-foreground">
+                Due Date
+              </Text>
+              <Text className="text-xs font-medium text-foreground">{dueDateText}</Text>
             </View>
           </View>
         </View>
@@ -168,7 +181,11 @@ export function PackingSlipScreen({
                     className="items-center justify-center rounded-xl bg-muted"
                     style={{ width: 52, height: 52 }}
                   >
-                    <Icon name="HardHat" className="text-muted-foreground" size={18} />
+                    <Icon
+                      name="HardHat"
+                      className="text-muted-foreground"
+                      size={18}
+                    />
                   </View>
                 )}
                 <View className="flex-1">
@@ -176,7 +193,9 @@ export function PackingSlipScreen({
                     {item.title}
                   </Text>
                   <Text className="mt-0.5 text-xs uppercase text-muted-foreground">
-                    {item.subtitle || item.sectionTitle || "No size/type details"}
+                    {item.subtitle ||
+                      item.sectionTitle ||
+                      "No size/type details"}
                   </Text>
                 </View>
               </View>
@@ -195,7 +214,11 @@ export function PackingSlipScreen({
                         onPress={() => adjustSingle(item.uid, maxQty, -1)}
                         className="h-9 w-9 items-center justify-center rounded-full border border-border bg-card"
                       >
-                        <Icon name="Minus" className="text-foreground" size={16} />
+                        <Icon
+                          name="Minus"
+                          className="text-foreground"
+                          size={16}
+                        />
                       </Pressable>
                       <TextInput
                         value={String(draft.qty)}
@@ -241,12 +264,21 @@ export function PackingSlipScreen({
                         onPress={() => adjustSide(item.uid, "lh", maxLh, -1)}
                         className="h-8 w-8 items-center justify-center rounded-full border border-border bg-card"
                       >
-                        <Icon name="Minus" className="text-foreground" size={14} />
+                        <Icon
+                          name="Minus"
+                          className="text-foreground"
+                          size={14}
+                        />
                       </Pressable>
                       <TextInput
                         value={String(draft.lh)}
                         onChangeText={(text) =>
-                          setSideValue(item.uid, "lh", maxLh, parseQtyInput(text))
+                          setSideValue(
+                            item.uid,
+                            "lh",
+                            maxLh,
+                            parseQtyInput(text),
+                          )
                         }
                         keyboardType="number-pad"
                         style={{
@@ -267,7 +299,11 @@ export function PackingSlipScreen({
                         onPress={() => adjustSide(item.uid, "lh", maxLh, 1)}
                         className="h-8 w-8 items-center justify-center rounded-full border border-border bg-card"
                       >
-                        <Icon name="Plus" className="text-foreground" size={14} />
+                        <Icon
+                          name="Plus"
+                          className="text-foreground"
+                          size={14}
+                        />
                       </Pressable>
                     </View>
                   </View>
@@ -280,12 +316,21 @@ export function PackingSlipScreen({
                         onPress={() => adjustSide(item.uid, "rh", maxRh, -1)}
                         className="h-8 w-8 items-center justify-center rounded-full border border-border bg-card"
                       >
-                        <Icon name="Minus" className="text-foreground" size={14} />
+                        <Icon
+                          name="Minus"
+                          className="text-foreground"
+                          size={14}
+                        />
                       </Pressable>
                       <TextInput
                         value={String(draft.rh)}
                         onChangeText={(text) =>
-                          setSideValue(item.uid, "rh", maxRh, parseQtyInput(text))
+                          setSideValue(
+                            item.uid,
+                            "rh",
+                            maxRh,
+                            parseQtyInput(text),
+                          )
                         }
                         keyboardType="number-pad"
                         style={{
@@ -306,7 +351,11 @@ export function PackingSlipScreen({
                         onPress={() => adjustSide(item.uid, "rh", maxRh, 1)}
                         className="h-8 w-8 items-center justify-center rounded-full border border-border bg-card"
                       >
-                        <Icon name="Plus" className="text-foreground" size={14} />
+                        <Icon
+                          name="Plus"
+                          className="text-foreground"
+                          size={14}
+                        />
                       </Pressable>
                     </View>
                   </View>
@@ -317,14 +366,17 @@ export function PackingSlipScreen({
         })}
       </ScrollView>
 
-      <BlurView intensity={90} className="absolute bottom-0 left-0 right-0 border-t border-border">
+      <BlurView
+        intensity={90}
+        className="absolute bottom-0 left-0 right-0 border-t border-border"
+      >
         <View style={{ paddingBottom: Math.max(22, insetsBottom + 14) }}>
           <View className="px-4 pt-3">
             <ProgressBar
               label="Progress"
-              info="Packed"
+              info="Qty Packed"
               value={progressPacked}
-              max={packableItems.length}
+              max={progressTotal}
               className="mb-5"
               trackClassName="h-2"
             />
@@ -333,7 +385,11 @@ export function PackingSlipScreen({
               onPress={onConfirmAndStartTrip}
               className="w-full flex-row items-center justify-center gap-2 rounded-xl bg-primary py-4 disabled:opacity-50"
             >
-              <Icon name="Truck" className="text-primary-foreground" size={18} />
+              <Icon
+                name="Truck"
+                className="text-primary-foreground"
+                size={18}
+              />
               <Text className="text-base font-bold text-primary-foreground">
                 {isSubmitting ? "Saving..." : "Confirm & Start Trip"}
               </Text>

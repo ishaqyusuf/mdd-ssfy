@@ -45,7 +45,7 @@ export function StartTripConfirmScreen({
 }: Props) {
   return (
     <View className="absolute inset-0 z-[60] bg-background">
-      <View style={{ paddingTop: insetsTop + 8 }}>
+      <View>
         <View className="sticky top-0 z-10 flex-row items-center justify-between border-b border-border bg-card/95 px-4 py-3">
           <Pressable
             onPress={onClose}
@@ -63,7 +63,11 @@ export function StartTripConfirmScreen({
         <View className="p-4">
           <View className="overflow-hidden rounded-xl border border-border bg-card shadow-sm shadow-black/5">
             <View className="aspect-video w-full items-center justify-center bg-muted">
-              <Icon name="Warehouse" className="text-muted-foreground" size={30} />
+              <Icon
+                name="Warehouse"
+                className="text-muted-foreground"
+                size={30}
+              />
             </View>
             <View className="p-4">
               <View className="mb-2 flex-row items-center gap-2.5">
@@ -80,7 +84,11 @@ export function StartTripConfirmScreen({
                 Industrial Equipment Delivery
               </Text>
               <View className="mb-3 flex-row items-start gap-2.5">
-                <Icon name="MapPin" className="mt-0.5 text-muted-foreground" size={14} />
+                <Icon
+                  name="MapPin"
+                  className="mt-0.5 text-muted-foreground"
+                  size={14}
+                />
                 <Text className="flex-1 text-sm leading-5 text-muted-foreground">
                   {addressLine1 || "Address unavailable"}
                   {addressLine2 ? `, ${addressLine2}` : ""}
@@ -90,7 +98,9 @@ export function StartTripConfirmScreen({
                 onPress={onViewOrderDetails}
                 className="h-10 items-center justify-center rounded-lg bg-primary/10 active:bg-primary/20"
               >
-                <Text className="text-sm font-semibold text-primary">View Order Details</Text>
+                <Text className="text-sm font-semibold text-primary">
+                  View Order Details
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -99,7 +109,11 @@ export function StartTripConfirmScreen({
         <View className="px-4 pb-4">
           <View className="relative h-32 overflow-hidden rounded-xl border border-border bg-muted shadow-sm shadow-black/5">
             <View className="absolute inset-0 items-center justify-center">
-              <Icon name="Route" className="text-muted-foreground/60" size={22} />
+              <Icon
+                name="Route"
+                className="text-muted-foreground/60"
+                size={22}
+              />
             </View>
             <View className="absolute inset-x-0 bottom-0 h-16 bg-black/25" />
             <View className="absolute bottom-3 left-4 flex-row items-center gap-2">
@@ -147,7 +161,11 @@ export function StartTripConfirmScreen({
                     <View className="h-12 w-12 items-center justify-center rounded-xl bg-muted transition-colors">
                       <Icon
                         name={item.icon as any}
-                        className={item.isVerified ? "text-foreground" : "text-muted-foreground"}
+                        className={
+                          item.isVerified
+                            ? "text-foreground"
+                            : "text-muted-foreground"
+                        }
                         size={20}
                       />
                     </View>
@@ -162,18 +180,26 @@ export function StartTripConfirmScreen({
                     >
                       {item.title}
                     </Text>
-                    <Text className="text-sm text-muted-foreground">{item.subtitle}</Text>
+                    <Text className="text-sm text-muted-foreground">
+                      {item.subtitle}
+                    </Text>
                   </View>
                 </View>
                 <View className="flex-row items-center gap-1">
                   <Icon
                     name={item.isVerified ? "CircleCheck" : "Ban"}
-                    className={item.isVerified ? "text-emerald-600" : "text-muted-foreground"}
+                    className={
+                      item.isVerified
+                        ? "text-emerald-600"
+                        : "text-muted-foreground"
+                    }
                     size={17}
                   />
                   <Text
                     className={`text-sm font-medium ${
-                      item.isVerified ? "text-emerald-600" : "text-muted-foreground"
+                      item.isVerified
+                        ? "text-emerald-600"
+                        : "text-muted-foreground"
                     }`}
                   >
                     {item.isVerified ? "Confirmed" : "Skipped"}

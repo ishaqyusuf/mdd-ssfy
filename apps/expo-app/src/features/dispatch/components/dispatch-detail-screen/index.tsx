@@ -30,7 +30,6 @@ import { useSalesRequestPacking } from "./hooks/use-sales-request-packing";
 import { resolveItemImage } from "./lib/resolve-item-image";
 import { DispatchPackingDelayModal } from "./modals/dispatch-packing-delay-modal";
 import { ImagePreviewModal } from "./modals/image-preview-modal";
-import { PackAllModal } from "./modals/pack-all-modal";
 import { PackingItemModal } from "./modals/packing-item-modal";
 import { SalesRequestPackingModal } from "./modals/sales-request-packing-modal";
 import { CompleteDispatchScreen } from "./subscreens/complete-dispatch-screen";
@@ -120,8 +119,6 @@ function DispatchDetailScreenInner({
 		setSelectedIssueReason,
 		issueDetails,
 		setIssueDetails,
-		packOnlyAvailableChecked,
-		setPackOnlyAvailableChecked,
 	} = detailUi;
 	const selectedItem = useMemo(
 		() => items.find((it) => it.uid === ui.selectedItemUid) || null,
@@ -131,11 +128,6 @@ function DispatchDetailScreenInner({
 		ref: packingModalRef,
 		present: presentPackingModal,
 		dismiss: dismissPackingModal,
-	} = useModal();
-	const {
-		ref: packAllModalRef,
-		present: presentPackAllModal,
-		dismiss: dismissPackAllModal,
 	} = useModal();
 	const {
 		ref: salesRequestModalRef,
@@ -148,7 +140,6 @@ function DispatchDetailScreenInner({
 		dismiss: dismissPackingDelayModal,
 	} = useModal();
 	const packingSnapPoints = useMemo(() => ["70%"], []);
-	const packAllSnapPoints = useMemo(() => ["88%"], []);
 	const salesRequestSnapPoints = useMemo(() => ["85%"], []);
 	const packingDelaySnapPoints = useMemo(() => ["82%"], []);
 	const hasAutoOpenedCompleteRef = useRef(false);
@@ -296,6 +287,7 @@ function DispatchDetailScreenInner({
 		adjustSide,
 		setSideValue,
 		progressPacked,
+		progressTotal,
 		parseQtyInput,
 		asNumber,
 		itemHasSingleQty,
@@ -526,12 +518,18 @@ function DispatchDetailScreenInner({
 			const draft = packingDrafts[item.uid] || { qty: 0, lh: 0, rh: 0 };
 			const hasSingle = itemHasSingleQty(item);
 			const packedTotal = hasSingle ? draft.qty : draft.lh + draft.rh;
+			const deliverable = (item.deliverableQty || {}) as any;
+			const totalDeliverable = hasSingle
+				? asNumber(deliverable.qty)
+				: asNumber(deliverable.lh) + asNumber(deliverable.rh);
 			const isVerified = packedTotal > 0;
 			return {
 				uid: item.uid,
 				title: item.title,
 				img: item.img,
 				isVerified,
+				packedQty: packedTotal,
+				totalQty: totalDeliverable,
 				icon: isVerified
 					? hasSingle
 						? "HardHat"
@@ -559,75 +557,20 @@ function DispatchDetailScreenInner({
 			(verifiedPackingCount / packingConfirmItems.length) * 100,
 		);
 	}, [packingConfirmItems.length, verifiedPackingCount]);
-
-	const productionPackAllItems = useMemo(() => {
-		return packableItems
-			.map((item) => {
-				const d = packingDrafts[item.uid] || {
-					qty: 0,
-					lh: 0,
-					rh: 0,
-				};
-				const deliverable = (item.deliverableQty || {}) as any;
-				const pendingSource = (item.nonDeliverableQty || {}) as any;
-				const hasSingle = itemHasSingleQty(item);
-				const availableCompleted = hasSingle
-					? asNumber(deliverable.qty)
-					: asNumber(deliverable.lh) + asNumber(deliverable.rh);
-				const pendingProduction = hasSingle
-					? asNumber(pendingSource.qty)
-					: asNumber(pendingSource.lh) + asNumber(pendingSource.rh);
-				if (hasSingle) {
-					const remaining = Math.max(
-						0,
-						asNumber(deliverable.qty) - asNumber(d.qty),
-					);
-					return {
-						uid: item.uid,
-						title: item.title,
-						img: item.img,
-						remaining,
-						subtitle: `${remaining} units remaining`,
-						availableCompleted,
-						pendingProduction,
-						hasPending: remaining > 0,
-					};
-				}
-				const remainingLh = Math.max(
-					0,
-					asNumber(deliverable.lh) - asNumber(d.lh),
-				);
-				const remainingRh = Math.max(
-					0,
-					asNumber(deliverable.rh) - asNumber(d.rh),
-				);
-				const remaining = remainingLh + remainingRh;
-				return {
-					uid: item.uid,
-					title: item.title,
-					img: item.img,
-					remaining,
-					subtitle: `${remaining} units remaining`,
-					availableCompleted,
-					pendingProduction,
-					hasPending: remaining > 0,
-				};
-			})
-			.filter(
-				(item) =>
-					item.hasPending ||
-					item.availableCompleted > 0 ||
-					item.pendingProduction > 0,
-			);
-	}, [packableItems, packingDrafts]);
-
-	const pendingPackAllItems = useMemo(
-		() => productionPackAllItems.filter((item) => item.hasPending),
-		[productionPackAllItems],
+	const verifiedPackingQty = useMemo(
+		() => packingConfirmItems.reduce((sum, item) => sum + item.packedQty, 0),
+		[packingConfirmItems],
 	);
+	const verificationTotalQty = useMemo(
+		() => packingConfirmItems.reduce((sum, item) => sum + item.totalQty, 0),
+		[packingConfirmItems],
+	);
+	const verificationQtyPercent = useMemo(() => {
+		if (verificationTotalQty <= 0) return 0;
+		return Math.round((verifiedPackingQty / verificationTotalQty) * 100);
+	}, [verifiedPackingQty, verificationTotalQty]);
 
 	const onPackAllDraft = () => {
-		const packOnlyAvailable = packOnlyAvailableChecked;
 		setPackingDrafts(() =>
 			Object.fromEntries(
 				packableItems.map((item) => {
@@ -648,16 +591,9 @@ function DispatchDetailScreenInner({
 				}),
 			),
 		);
-		setPackOnlyAvailableChecked(true);
-		dismissPackAllModal();
-		Toast.show(
-			packOnlyAvailable
-				? "Available completed items are staged for packing."
-				: "All production items are staged (available quantities packed now).",
-			{
-				type: "success",
-			},
-		);
+		Toast.show("All item quantities updated to available quantities.", {
+			type: "success",
+		});
 	};
 
 	const savePackingSlip = async (opts?: { closeSlip?: boolean }) => {
@@ -1250,10 +1186,11 @@ function DispatchDetailScreenInner({
 				{isPackingSlipOpen ? (
 					<PackingSlipScreen
 						insetsBottom={insets.bottom}
-						pageTitle={pageTitle}
+						dispatchLabel={pageTitle}
+						customerName={customerName}
 						orderId={order?.orderId}
+						dueDateText={formatDispatchDate(dispatch?.dueDate as any)}
 						statusText={statusText}
-						topPackingItemTitle={topPackingItems[0]?.title}
 						packableItems={packableItems}
 						packingDrafts={packingDrafts}
 						itemHasSingleQty={itemHasSingleQty as any}
@@ -1264,11 +1201,10 @@ function DispatchDetailScreenInner({
 						setSideValue={setSideValue}
 						parseQtyInput={parseQtyInput}
 						progressPacked={progressPacked}
+						progressTotal={progressTotal}
 						isSubmitting={packing.taskTrigger.isPending}
 						onClose={() => setPackingSlipOpen(false)}
-						onOpenPackAll={() => {
-							presentPackAllModal();
-						}}
+						onOpenPackAll={onPackAllDraft}
 						onConfirmAndStartTrip={() => setDispatchConfirmOpen(true)}
 						onImagePress={setPreviewImageUri}
 					/>
@@ -1283,6 +1219,9 @@ function DispatchDetailScreenInner({
 						packingConfirmItems={packingConfirmItems as any}
 						verifiedPackingCount={verifiedPackingCount}
 						verificationPercent={verificationPercent}
+						verifiedPackingQty={verifiedPackingQty}
+						verificationTotalQty={verificationTotalQty}
+						verificationQtyPercent={verificationQtyPercent}
 						isSubmitting={packing.taskTrigger.isPending}
 						onClose={() => setDispatchConfirmOpen(false)}
 						onSaveDraft={onSavePackingDraft}
@@ -1363,26 +1302,6 @@ function DispatchDetailScreenInner({
 						}}
 					/>
 				) : null}
-
-				<PackAllModal
-					modalRef={packAllModalRef}
-					snapPoints={packAllSnapPoints}
-					packOnlyAvailableChecked={packOnlyAvailableChecked}
-					productionItems={productionPackAllItems as any}
-					pendingItemsCount={pendingPackAllItems.length}
-					onDismiss={() => {
-						setPackOnlyAvailableChecked(true);
-					}}
-					onTogglePackOnlyAvailable={() =>
-						setPackOnlyAvailableChecked((prev) => !prev)
-					}
-					onPackAll={onPackAllDraft}
-					onCancel={() => {
-						setPackOnlyAvailableChecked(true);
-						dismissPackAllModal();
-					}}
-					onImagePress={setPreviewImageUri}
-				/>
 
 				<PackingItemModal
 					modalRef={packingModalRef}

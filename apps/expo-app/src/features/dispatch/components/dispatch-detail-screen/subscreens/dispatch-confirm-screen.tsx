@@ -9,6 +9,8 @@ type ConfirmItem = {
   img?: string | null;
   subtitle: string;
   isVerified: boolean;
+  packedQty: number;
+  totalQty: number;
   icon: string;
 };
 
@@ -20,6 +22,9 @@ type Props = {
   packingConfirmItems: ConfirmItem[];
   verifiedPackingCount: number;
   verificationPercent: number;
+  verifiedPackingQty: number;
+  verificationTotalQty: number;
+  verificationQtyPercent: number;
   isSubmitting: boolean;
   onClose: () => void;
   onSaveDraft: () => void;
@@ -35,6 +40,9 @@ export function DispatchConfirmScreen({
   packingConfirmItems,
   verifiedPackingCount,
   verificationPercent,
+  verifiedPackingQty,
+  verificationTotalQty,
+  verificationQtyPercent,
   isSubmitting,
   onClose,
   onSaveDraft,
@@ -43,7 +51,7 @@ export function DispatchConfirmScreen({
 }: Props) {
   return (
     <View className="absolute inset-0 z-50 bg-background">
-      <View style={{ paddingTop: insetsTop + 8 }}>
+      <View>
         <View className="border-b border-border bg-card/90 px-4 py-3">
           <View className="flex-row items-center">
             <Pressable
@@ -86,13 +94,19 @@ export function DispatchConfirmScreen({
               <Text className="mt-1 text-xl font-bold text-foreground">
                 {verifiedPackingCount} / {packingConfirmItems.length} Items
               </Text>
+              <Text className="mt-1 text-sm font-semibold text-muted-foreground">
+                {verifiedPackingQty} / {verificationTotalQty} Qty Packed
+              </Text>
             </View>
             <View className="h-12 w-12 items-center justify-center rounded-full border-4 border-primary/20 border-t-primary">
               <Text className="text-xs font-bold text-primary">
-                {verificationPercent}%
+                {verificationQtyPercent}%
               </Text>
             </View>
           </View>
+          <Text className="mt-2 text-xs text-muted-foreground">
+            Item coverage: {verificationPercent}%
+          </Text>
         </View>
 
         <View className="gap-1 px-2">
@@ -126,7 +140,11 @@ export function DispatchConfirmScreen({
                   >
                     <Icon
                       name={item.icon as any}
-                      className={item.isVerified ? "text-primary" : "text-muted-foreground"}
+                      className={
+                        item.isVerified
+                          ? "text-primary"
+                          : "text-muted-foreground"
+                      }
                       size={20}
                     />
                   </View>
@@ -137,7 +155,9 @@ export function DispatchConfirmScreen({
                   </Text>
                   <Text
                     className={`mt-1 text-sm ${
-                      item.isVerified ? "text-muted-foreground" : "italic text-muted-foreground"
+                      item.isVerified
+                        ? "text-muted-foreground"
+                        : "italic text-muted-foreground"
                     }`}
                   >
                     {item.subtitle}
@@ -146,12 +166,20 @@ export function DispatchConfirmScreen({
                 <View className="shrink-0">
                   {item.isVerified ? (
                     <View className="flex-row items-center gap-1 rounded-full border border-emerald-200 bg-emerald-100 px-3 py-1">
-                      <Icon name="CircleCheck" className="text-emerald-700" size={12} />
-                      <Text className="text-xs font-bold text-emerald-700">Verified</Text>
+                      <Icon
+                        name="CircleCheck"
+                        className="text-emerald-700"
+                        size={12}
+                      />
+                      <Text className="text-xs font-bold text-emerald-700">
+                        Verified
+                      </Text>
                     </View>
                   ) : (
                     <View className="rounded-full bg-muted px-3 py-1">
-                      <Text className="text-xs font-bold text-muted-foreground">Pending</Text>
+                      <Text className="text-xs font-bold text-muted-foreground">
+                        Pending
+                      </Text>
                     </View>
                   )}
                 </View>

@@ -53,7 +53,7 @@ function ProgressBar({
   const safeValue = clamp(value, min, safeMax);
   const total = safeMax - min;
   const percent = total > 0 ? ((safeValue - min) / total) * 100 : 0;
-  const visualPercent = total > 0 && percent === 0 ? 6 : percent;
+  const visualPercent = total > 0 && percent > 0 ? Math.max(percent, 6) : 0;
   const progressColors = ['#ef4444', '#f59e0b', '#eab308', '#22c55e', '#3b82f6'];
   const colorIndex = Math.min(4, Math.floor(percent / 20));
   const fillColor = progressColors[colorIndex];

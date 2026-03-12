@@ -1213,6 +1213,7 @@ export async function getDispatchOverviewV2(
     const totalListedAllDispatches = recomposeQty(
       qtyMatrixSum(
         ...result.deliveries
+          .filter((d) => d.status !== "cancelled")
           .map((d) =>
             d.items
               .filter((i) => i.item.controlUid === item.uid)
@@ -1228,13 +1229,14 @@ export async function getDispatchOverviewV2(
     const packedQty = recomposeQty(
       qtyMatrixSum(...((packedItems || []).map(transformQtyHandle) as any)),
     );
+    const availableQty = recomposeQty(dispatchable?.availableQty as any);
     const deliverableQty = recomposeQty(
       qtyMatrixSum(...(dispatchable?.deliverables?.map((a) => a.qty) || [])),
     );
     const nonDeliverableQty = recomposeQty(
       qtyMatrixDifference(
         dispatchable?.totalQty!,
-        qtyMatrixSum(deliverableQty, totalListedAllDispatches),
+        qtyMatrixSum(availableQty, totalListedAllDispatches),
       ),
     );
 
@@ -1276,6 +1278,7 @@ export async function getDispatchOverviewV2(
       dispatchable: true,
       salesItemId: dispatchable?.itemId || null,
       totalQty: toQtyMatrix(dispatchable?.totalQty as any),
+      availableQty: toQtyMatrix(availableQty as any),
       deliverableQty: toQtyMatrix(deliverableQty as any),
       listedQty: toQtyMatrix(listedQty as any),
       packedQty: toQtyMatrix(packedQty as any),
@@ -1296,6 +1299,7 @@ export async function getDispatchOverviewV2(
       uid: item.uid,
       salesItemId: item.salesItemId,
       totalQty: item.totalQty,
+      availableQty: item.availableQty,
       deliverableQty: item.deliverableQty,
       listedQty: item.listedQty,
       packedQty: item.packedQty,
@@ -1312,6 +1316,7 @@ export async function getDispatchOverviewV2(
       acc.listed += qtyTotal(item.listedQty);
       acc.packed += qtyTotal(item.packedQty);
       acc.pending += qtyTotal(item.nonDeliverableQty);
+      acc.available += qtyTotal(item.availableQty);
       return acc;
     },
     {
@@ -1323,7 +1328,6 @@ export async function getDispatchOverviewV2(
       available: 0,
     },
   );
-  summary.available = Math.max(0, summary.deliverable - summary.listed);
 
   controlDebugLog("getDispatchOverviewV2.summary", {
     salesId: order.id,

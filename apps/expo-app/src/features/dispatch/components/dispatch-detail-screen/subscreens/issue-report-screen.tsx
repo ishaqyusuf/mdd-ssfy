@@ -39,7 +39,7 @@ export function IssueReportScreen({
 }: Props) {
   return (
     <View className="absolute inset-0 z-[70] bg-background">
-      <View style={{ paddingTop: insetsTop + 6 }}>
+      <View>
         <View className="sticky top-0 z-10 border-b border-border bg-background/95">
           <View className="flex-row items-center gap-3 px-4 py-4">
             <Pressable
@@ -87,27 +87,41 @@ export function IssueReportScreen({
                 key={reason.key}
                 onPress={() => onSelectReason(reason.key)}
                 className={`w-full flex-row items-center justify-between rounded-xl border p-4 ${
-                  selected ? "border-primary bg-primary/5" : "border-border bg-card"
+                  selected
+                    ? "border-primary bg-primary/5"
+                    : "border-border bg-card"
                 }`}
               >
                 <View className="flex-row items-center gap-4">
                   <View
                     className={`h-12 w-12 items-center justify-center rounded-xl ${
-                      selected ? "bg-primary text-primary-foreground" : "bg-primary/10"
+                      selected
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-primary/10"
                     }`}
                   >
                     <Icon
                       name={reason.icon as any}
-                      className={selected ? "text-primary-foreground" : "text-primary"}
+                      className={
+                        selected ? "text-primary-foreground" : "text-primary"
+                      }
                       size={19}
                     />
                   </View>
                   <View>
-                    <Text className="font-semibold text-foreground">{reason.title}</Text>
-                    <Text className="text-xs text-muted-foreground">{reason.subtitle}</Text>
+                    <Text className="font-semibold text-foreground">
+                      {reason.title}
+                    </Text>
+                    <Text className="text-xs text-muted-foreground">
+                      {reason.subtitle}
+                    </Text>
                   </View>
                 </View>
-                <Icon name="ChevronRight" className="text-muted-foreground" size={18} />
+                <Icon
+                  name="ChevronRight"
+                  className="text-muted-foreground"
+                  size={18}
+                />
               </Pressable>
             );
           })}

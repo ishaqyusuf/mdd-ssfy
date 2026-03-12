@@ -21,6 +21,12 @@ function itemHasSingleQty(item: DispatchOverviewItem) {
   return asNumber((item?.deliverableQty as any)?.qty) > 0;
 }
 
+function qtyTotal(qty?: { qty?: number | null; lh?: number | null; rh?: number | null }) {
+  const q = asNumber(qty?.qty);
+  if (q > 0) return q;
+  return asNumber(qty?.lh) + asNumber(qty?.rh);
+}
+
 function parseQtyInput(value: string) {
   const numeric = value.replace(/[^0-9]/g, "");
   if (!numeric) return 0;
@@ -106,12 +112,19 @@ export function usePackingSlipDrafts({
   };
 
   const progressPacked = useMemo(() => {
-    return packableItems.filter((item) => {
+    return packableItems.reduce((total, item) => {
       const d = packingDrafts[item.uid];
-      if (!d) return false;
-      return d.qty > 0 || d.lh > 0 || d.rh > 0;
-    }).length;
+      if (!d) return total;
+      const packed = itemHasSingleQty(item) ? d.qty : d.lh + d.rh;
+      return total + packed;
+    }, 0);
   }, [packableItems, packingDrafts]);
+
+  const progressTotal = useMemo(() => {
+    return packableItems.reduce((total, item) => {
+      return total + qtyTotal(item?.deliverableQty as any);
+    }, 0);
+  }, [packableItems]);
 
   return {
     packingDrafts,
@@ -121,6 +134,7 @@ export function usePackingSlipDrafts({
     adjustSide,
     setSideValue,
     progressPacked,
+    progressTotal,
     parseQtyInput,
     asNumber,
     itemHasSingleQty,
