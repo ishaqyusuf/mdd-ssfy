@@ -21,9 +21,10 @@ type SubmitDispatchInput = DispatchMeta & {
 };
 
 function getAuthor(profile: ReturnType<typeof useAuthContext>["profile"]) {
-  const id = profile?.user?.id;
+  const rawId = profile?.user?.id;
+  const id = Number(rawId);
   const name = profile?.user?.name;
-  if (!id || !name) {
+  if (!Number.isFinite(id) || id <= 0 || !name) {
     throw new Error("Missing authenticated user");
   }
   return { id, name };

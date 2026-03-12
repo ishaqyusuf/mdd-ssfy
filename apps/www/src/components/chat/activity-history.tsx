@@ -17,6 +17,7 @@ type ActivityNode = {
   createdAt: Date | string | null;
   subject: string | null;
   headline: string | null;
+  description: string | null;
   note: string | null;
   senderContactName?: string | null;
   tags: Record<string, unknown>;
@@ -48,13 +49,11 @@ function formatActivityDate(value: Date | string | null | undefined) {
 }
 
 function activityHeadline(node: ActivityNode) {
-  return node.headline || node.subject || "Activity";
+  return node.subject || "Activity";
 }
 
-function activitySubject(node: ActivityNode) {
-  if (!node.subject) return null;
-  const headline = activityHeadline(node);
-  return node.subject === headline ? null : node.subject;
+function activityDescription(node: ActivityNode) {
+  return node.headline || node.description || null;
 }
 
 function activityAuthor(node: ActivityNode) {
@@ -86,8 +85,8 @@ function ActivityTreeItem({
         {formatActivityDate(node.createdAt)}
       </p>
       <p className="text-sm font-semibold text-foreground">{activityHeadline(node)}</p>
-      {activitySubject(node) ? (
-        <p className="mt-0.5 text-xs text-muted-foreground">{activitySubject(node)}</p>
+      {activityDescription(node) ? (
+        <p className="mt-0.5 text-xs text-muted-foreground">{activityDescription(node)}</p>
       ) : null}
       <p className="mt-0.5 text-xs text-muted-foreground">
         By <span className="font-semibold text-foreground">{activityAuthor(node)}</span>

@@ -73,13 +73,24 @@ function parseTimestamp(line) {
 }
 
 function parseIdsFromLine(line, kind) {
-  const idsLabel = kind === "sales" ? "salesIds" : "dispatchIds";
-  const listMatch = line.match(new RegExp(`${idsLabel}\\s*:\\s*\\[([^\\]]*)\\]`));
-  if (!listMatch) return [];
-  return listMatch[1]
-    .split(",")
-    .map((s) => Number(String(s).trim()))
-    .filter((n) => Number.isFinite(n));
+  const labelsByKind = {
+    sales: ["salesIds"],
+    dispatch: ["dispatchIds"],
+    "dispatch-overview": ["dispatchIds"],
+  };
+  const labels = labelsByKind[kind] || [];
+  const ids = [];
+  for (const label of labels) {
+    const listMatch = line.match(new RegExp(`${label}\\s*:\\s*\\[([^\\]]*)\\]`));
+    if (!listMatch) continue;
+    ids.push(
+      ...listMatch[1]
+        .split(",")
+        .map((s) => Number(String(s).trim()))
+        .filter((n) => Number.isFinite(n)),
+    );
+  }
+  return [...new Set(ids)];
 }
 
 function parseMismatchCount(line) {
@@ -163,6 +174,7 @@ function printTextReport(report) {
   console.log(`files: ${report.files.join(", ")}`);
   printSection(report.sales);
   printSection(report.dispatch);
+  printSection(report.dispatchOverview);
 }
 
 function main() {
@@ -175,6 +187,7 @@ function main() {
       files: files.map((f) => path.resolve(f)),
       sales: summarizeLines(lines, "sales", since),
       dispatch: summarizeLines(lines, "dispatch", since),
+      dispatchOverview: summarizeLines(lines, "dispatch-overview", since),
     };
 
     if (asJson) {

@@ -7,11 +7,11 @@ import {
     parseAsInteger,
 } from "nuqs/server";
 import { RouterInputs } from "@api/trpc/routers/_app";
-import { inboundFilterStatus } from "@gnd/utils/constants";
+import { salesDispatchStatus } from "@gnd/utils/constants";
 type FilterKeys = keyof Exclude<RouterInputs["dispatch"]["index"], void>;
 
 export const dispatchFilterParamsSchema = {
-    status: parseAsStringLiteral(inboundFilterStatus),
+    status: parseAsStringLiteral(salesDispatchStatus),
     q: parseAsString,
     driversId: parseAsArrayOf(parseAsInteger, ","),
     scheduleDate: parseAsArrayOf(parseAsString, ","),

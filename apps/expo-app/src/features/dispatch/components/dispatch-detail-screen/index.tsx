@@ -187,12 +187,41 @@ function DispatchDetailScreenInner({
 
 	const addressLine1 = useMemo(() => {
 		const a = (data?.address || {}) as any;
-		return [a?.address1, a?.address2].filter(Boolean).join(", ");
-	}, [data?.address]);
+		const customer = (order as any)?.customer || {};
+		return (
+			[a?.address1, a?.address2].filter(Boolean).join(", ") ||
+			customer?.address ||
+			""
+		);
+	}, [data?.address, order]);
 	const addressLine2 = useMemo(() => {
 		const a = (data?.address || {}) as any;
-		return [a?.city, a?.state, a?.country].filter(Boolean).join(", ");
+		return (
+			[a?.city, a?.state, a?.region?.title, a?.zipCode, a?.country]
+				.filter(Boolean)
+				.join(", ") || ""
+		);
 	}, [data?.address]);
+	const customerName = useMemo(() => {
+		const a = (data?.address || {}) as any;
+		const customer = (order as any)?.customer || {};
+		return (
+			customer?.businessName ||
+			customer?.name ||
+			a?.name ||
+			"Customer"
+		);
+	}, [data?.address, order]);
+	const customerPhone = useMemo(() => {
+		const a = (data?.address || {}) as any;
+		const customer = (order as any)?.customer || {};
+		return a?.phoneNo || customer?.phoneNo || "";
+	}, [data?.address, order]);
+	const customerEmail = useMemo(() => {
+		const a = (data?.address || {}) as any;
+		const customer = (order as any)?.customer || {};
+		return a?.email || customer?.email || "";
+	}, [data?.address, order]);
 
 	const topPackingItems = useMemo(() => items.slice(0, 3), [items]);
 	const packableItems = useMemo(
@@ -819,14 +848,14 @@ function DispatchDetailScreenInner({
 										/>
 									</View>
 								</View>
-								<View className="flex-1">
-									<Text className="text-base font-bold text-foreground">
-										{(data?.address as any)?.name || "Customer"}
-									</Text>
-									<Text className="text-sm font-medium text-muted-foreground">
-										Customer
-									</Text>
-								</View>
+									<View className="flex-1">
+										<Text className="text-base font-bold text-foreground">
+											{customerName}
+										</Text>
+										<Text className="text-sm font-medium text-muted-foreground">
+											{customerPhone || customerEmail || "Customer"}
+										</Text>
+									</View>
 								<View className="flex-row gap-2">
 									<Pressable className="rounded-full bg-primary/10 p-2">
 										<Icon name="Phone" className="text-primary" size={18} />
@@ -845,10 +874,10 @@ function DispatchDetailScreenInner({
 									<Text className="text-base font-bold leading-tight text-foreground">
 										{addressLine1 || "Address unavailable"}
 									</Text>
-									<Text className="mt-0.5 text-sm font-medium text-muted-foreground">
-										{addressLine2 || (data?.address as any)?.phoneNo || ""}
-									</Text>
-								</View>
+										<Text className="mt-0.5 text-sm font-medium text-muted-foreground">
+											{addressLine2 || customerPhone || customerEmail || ""}
+										</Text>
+									</View>
 								<Pressable className="mt-1 rounded-full bg-primary/10 p-2">
 									<Icon name="LocateIcon" className="text-primary" size={18} />
 								</Pressable>
@@ -870,6 +899,14 @@ function DispatchDetailScreenInner({
 						<View className="overflow-hidden rounded-xl border border-border">
 							{topPackingItems.map((item, index) => {
 								const itemImage = resolveItemImage(item.img as string | null);
+								const deliverableTotal = totalQty(item.deliverableQty as any);
+								const packedTotal = totalQty((item as any).listedQty as any);
+								const unpackedTotal = Math.max(
+									0,
+									deliverableTotal - packedTotal,
+								);
+								const isPacked =
+									deliverableTotal > 0 && unpackedTotal <= 0;
 								return (
 									<Pressable
 										key={item.uid}
@@ -908,13 +945,35 @@ function DispatchDetailScreenInner({
 													/>
 												</View>
 											)}
-											<Text className="max-w-[220px] text-sm font-medium text-foreground">
-												{item.title}
+											<View className="max-w-[220px]">
+												<Text className="text-sm font-medium text-foreground">
+													{item.title}
+												</Text>
+												<Text className="mt-0.5 text-xs uppercase text-muted-foreground">
+													{item.subtitle ||
+														item.sectionTitle ||
+														"No size/type details"}
+												</Text>
+											</View>
+										</View>
+										<View className="items-end gap-1">
+											<View
+												className={`rounded-full px-2 py-1 ${
+													isPacked ? "bg-success/10" : "bg-warn/10"
+												}`}
+											>
+												<Text
+													className={`text-[10px] font-bold uppercase ${
+														isPacked ? "text-success" : "text-warn"
+													}`}
+												>
+													{isPacked ? "Packed" : "Unpacked"}
+												</Text>
+											</View>
+											<Text className="text-xs font-medium text-muted-foreground">
+												{packedTotal}/{deliverableTotal}
 											</Text>
 										</View>
-										<Text className="text-base font-bold text-foreground">
-											x {totalQty(item.deliverableQty)}
-										</Text>
 									</Pressable>
 								);
 							})}
@@ -922,7 +981,14 @@ function DispatchDetailScreenInner({
 
 						<View className="mt-4 flex-row gap-3">
 							<Pressable
+								disabled={!canEditPacking || packing.taskTrigger.isPending}
 								onPress={() => {
+									if (!canEditPacking) {
+										Toast.show("Packing can only be updated while dispatch is active.", {
+											type: "warning",
+										});
+										return;
+									}
 									if (!packableItems.length) {
 										if (pendingProductionItems.length > 0) {
 											presentPackingDelayModal();
@@ -935,7 +1001,7 @@ function DispatchDetailScreenInner({
 									}
 									setPackingSlipOpen(true);
 								}}
-								className="flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-primary py-3"
+								className="flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-primary py-3 disabled:opacity-50"
 							>
 								<Icon
 									name="CheckSquare"
@@ -1148,12 +1214,10 @@ function DispatchDetailScreenInner({
 				{ui.isCompleteSheetOpen ? (
 					<CompleteDispatchScreen
 						insetsTop={insets.top}
-						defaultReceivedBy={
-							(data?.address as any)?.name ||
-							(order as any)?.customer?.name ||
-							(order as any)?.customer?.businessName ||
-							""
-						}
+							defaultReceivedBy={
+								customerName ||
+								""
+							}
 						isSubmitting={actions.submitDispatch.isPending}
 						onClose={() => ui.setCompleteSheetOpen(false)}
 						onSubmit={async (input) => {

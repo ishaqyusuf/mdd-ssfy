@@ -18,6 +18,7 @@ type ActivityNode = {
   createdAt: Date | string | null;
   subject: string | null;
   headline: string | null;
+  description: string | null;
   note: string | null;
   senderContactName?: string | null;
   tags: Record<string, unknown>;
@@ -42,8 +43,12 @@ function formatActivityDate(value: Date | string | null | undefined) {
   return format(dateValue, "PP, p");
 }
 
-function activityLabel(node: ActivityNode) {
-  return node.headline || node.subject || "Activity";
+function activityHeadline(node: ActivityNode) {
+  return node.subject || "Activity";
+}
+
+function activityDescription(node: ActivityNode) {
+  return node.headline || node.description || null;
 }
 
 function activityAuthor(node: ActivityNode) {
@@ -77,19 +82,31 @@ function TimelineItem({
 
       <View className="flex-col pb-8">
         <View className="mb-0.5 flex-row items-start justify-between">
-          <Text className="text-sm font-bold text-foreground">{activityLabel(node)}</Text>
+          <Text className="text-sm font-bold text-foreground">
+            {activityHeadline(node)}
+          </Text>
           <Text className="text-[10px] font-medium uppercase text-muted-foreground">
             {formatActivityDate(node.createdAt)}
           </Text>
         </View>
+        {activityDescription(node) ? (
+          <Text className="mt-0.5 text-xs text-muted-foreground">
+            {activityDescription(node)}
+          </Text>
+        ) : null}
 
         <Text className="mt-0.5 text-xs text-muted-foreground">
-          by <Text className="font-semibold text-success">{activityAuthor(node)}</Text>
+          by{" "}
+          <Text className="text-xs font-semibold text-success">
+            {activityAuthor(node)}
+          </Text>
         </Text>
 
         {node.note ? (
           <View className="mt-3 rounded-lg border border-muted-foreground/20 bg-muted p-3">
-            <Text className="text-xs italic leading-relaxed text-muted-foreground">{node.note}</Text>
+            <Text className="text-xs italic leading-relaxed text-muted-foreground">
+              {node.note}
+            </Text>
           </View>
         ) : null}
 
@@ -126,7 +143,9 @@ export function ActivityHistory({
   const tagFilters = useMemo(
     () => [
       ...(tags || []),
-      ...(channel ? ([{ tagName: "channel", tagValue: channel }] as ActivityTagFilter[]) : []),
+      ...(channel
+        ? ([{ tagName: "channel", tagValue: channel }] as ActivityTagFilter[])
+        : []),
     ],
     [channel, tags],
   );

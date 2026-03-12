@@ -19,7 +19,7 @@ export function CompleteDispatchScreen({
 }: Props) {
   return (
     <View className="absolute inset-0 z-[80] bg-background">
-      <View style={{ paddingTop: insetsTop + 8 }}>
+      <View style={{ paddingTop: insetsTop }}>
         <View className="border-b border-border bg-card px-4 pb-3">
           <View className="flex-row items-center">
             <Pressable

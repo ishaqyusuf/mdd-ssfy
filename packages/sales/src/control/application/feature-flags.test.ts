@@ -20,4 +20,22 @@ describe("control feature flags", () => {
     expect(__controlFlagTestUtils.toBooleanFlag(undefined, true)).toBe(true);
     expect(__controlFlagTestUtils.toBooleanFlag(undefined, false)).toBe(false);
   });
+
+  it("defaults overview read flag to control_read_v2 value", () => {
+    expect(
+      __controlFlagTestUtils.resolveControlOverviewReadV2Flag(undefined, true),
+    ).toBe(true);
+    expect(
+      __controlFlagTestUtils.resolveControlOverviewReadV2Flag(undefined, false),
+    ).toBe(false);
+  });
+
+  it("allows explicit overview flag override", () => {
+    expect(
+      __controlFlagTestUtils.resolveControlOverviewReadV2Flag("0", true),
+    ).toBe(false);
+    expect(
+      __controlFlagTestUtils.resolveControlOverviewReadV2Flag("1", false),
+    ).toBe(true);
+  });
 });

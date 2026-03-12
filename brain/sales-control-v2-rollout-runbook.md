@@ -12,6 +12,10 @@ Roll out V2 control write/read/filter paths safely with mismatch visibility and 
 - `CONTROL_READ_V2`:
   - `1` => projected V2 read wrappers in sales/dispatch list queries
   - `0` => legacy statistic wrappers
+- `CONTROL_OVERVIEW_READ_V2`:
+  - `1` => projected V2 read wrappers in dispatch overview query
+  - `0` => legacy statistic projection path for dispatch overview
+  - unset => inherits `CONTROL_READ_V2`
 - `CONTROL_FILTER_V2`:
   - `1` => qtyControl-based filter predicates
   - `0` => legacy salesStat-based predicates for supported status filters
@@ -26,6 +30,7 @@ Set:
 - `CONTROL_WRITE_V2=0`
 - `CONTROL_READ_V2=0`
 - `CONTROL_FILTER_V2=0`
+- `CONTROL_OVERVIEW_READ_V2=0`
 - `CONTROL_READ_PARITY=0`
 
 Purpose:
@@ -38,12 +43,14 @@ Set:
 - `CONTROL_WRITE_V2=0`
 - `CONTROL_READ_V2=1`
 - `CONTROL_FILTER_V2=0`
+- `CONTROL_OVERVIEW_READ_V2=1`
 - `CONTROL_READ_PARITY=1`
 
 Monitor logs:
 
 - `[control-read-parity][sales] mismatches`
 - `[control-read-parity][dispatch] mismatches`
+- `[control-read-parity][dispatch-overview] mismatches`
 
 Summarize captured logs:
 
@@ -61,6 +68,7 @@ Set:
 - `CONTROL_WRITE_V2=0`
 - `CONTROL_READ_V2=1`
 - `CONTROL_FILTER_V2=1`
+- `CONTROL_OVERVIEW_READ_V2=1`
 - `CONTROL_READ_PARITY=1`
 
 Validate:
@@ -78,6 +86,7 @@ Set:
 - `CONTROL_WRITE_V2=1`
 - `CONTROL_READ_V2=1`
 - `CONTROL_FILTER_V2=1`
+- `CONTROL_OVERVIEW_READ_V2=1`
 - `CONTROL_READ_PARITY=1` (keep briefly)
 
 Validate:

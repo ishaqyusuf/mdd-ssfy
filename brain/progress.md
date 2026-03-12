@@ -1,5 +1,17 @@
 # Progress
 
+## 2026-03-11
+
+- Started Sales Control V2 dispatch overview read migration:
+- added `CONTROL_OVERVIEW_READ_V2` feature flag (defaults to `CONTROL_READ_V2`) in control application flags.
+- wired `apps/api` `getDispatchOverview` to use projected V2 control for order/dispatch summary fields with legacy projection fallback when overview flag is disabled.
+- added dispatch-overview parity warning channel: `[control-read-parity][dispatch-overview] mismatches`.
+- updated parity-report tooling (`scripts/sales-control-parity-report.mjs`) to summarize dispatch-overview parity events.
+- updated operations and rollout runbooks with new overview-read flag and parity key.
+- fixed Expo dispatch packing/reset reliability by switching mobile packing actions to `useTaskTrigger.startAndWait(...)` (wait for real task completion instead of enqueue-only responses).
+- hardened mobile dispatch task author identity payloads by normalizing `authorId` to numeric before sending trigger payloads.
+- updated dispatch detail UI to disable/update-guard packing actions when dispatch status is not editable, preventing false “not working” interactions.
+
 ## 2026-03-08
 
 - Initialized `/brain` project management system.

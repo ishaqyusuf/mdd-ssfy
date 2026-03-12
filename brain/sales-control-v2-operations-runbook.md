@@ -87,6 +87,7 @@ Recommended:
 
 - `CONTROL_WRITE_V2`
 - `CONTROL_READ_V2`
+- `CONTROL_OVERVIEW_READ_V2`
 - `CONTROL_FILTER_V2`
 - `CONTROL_READ_PARITY`
 
@@ -100,6 +101,7 @@ Parity logging keys:
 
 - `[control-read-parity][sales]`
 - `[control-read-parity][dispatch]`
+- `[control-read-parity][dispatch-overview]`
 
 Track mismatch count and record sampled IDs before any final cutover closure.
 
@@ -107,7 +109,7 @@ Track mismatch count and record sampled IDs before any final cutover closure.
 
 If control inconsistency is reported:
 
-1. Set `CONTROL_READ_V2=0` and/or `CONTROL_FILTER_V2=0` for immediate stabilization.
+1. Set `CONTROL_OVERVIEW_READ_V2=0` (overview-only rollback) and/or `CONTROL_READ_V2=0`/`CONTROL_FILTER_V2=0` for broader stabilization.
 2. Capture affected IDs and recent task payloads.
 3. Run targeted `reconcileOrder(salesId)`.
 4. If authorized, run `rebuildFromSource(salesId, authorId)`.

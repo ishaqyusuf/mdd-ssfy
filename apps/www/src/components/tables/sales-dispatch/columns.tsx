@@ -26,6 +26,7 @@ import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { useAuth } from "@/hooks/use-auth";
 import { UpdateSalesControl } from "@sales/schema";
 import { DispatchCompletionDecisionModal } from "@/components/dispatch-completion-decision-modal";
+import { AlertDialog } from "@gnd/ui/namespace";
 
 export type Item = RouterOutputs["dispatch"]["index"]["data"][number];
 export type Addon = {
@@ -406,28 +407,28 @@ const assignedTo: ColumnDef<Item> = {
                     ))}
                 </Menu>
                 <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>
+                    <AlertDialog.Content>
+                        <AlertDialog.Header>
+                            <AlertDialog.Title>
                                 Reassign Dispatch Driver
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
+                            </AlertDialog.Title>
+                            <AlertDialog.Description>
                                 This dispatch already has an assigned driver. Do
                                 you want to proceed with re-assignment?
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
+                            </AlertDialog.Description>
+                        </AlertDialog.Header>
+                        <AlertDialog.Footer>
+                            <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+                            <AlertDialog.Action
                                 onClick={() => {
                                     setConfirmOpen(false);
                                     submitDriverUpdate(selectedDriver?.id);
                                 }}
                             >
                                 Proceed
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
+                            </AlertDialog.Action>
+                        </AlertDialog.Footer>
+                    </AlertDialog.Content>
                 </AlertDialog>
             </>
         );
@@ -695,3 +696,4 @@ const formatDateTime = (dateString: string) => {
         hour12: true,
     });
 };
+

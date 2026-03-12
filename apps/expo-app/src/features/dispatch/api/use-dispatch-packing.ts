@@ -1,5 +1,6 @@
 import { _trpc } from "@/components/static-trpc";
 import { useAuthContext } from "@/hooks/use-auth";
+import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   buildPackingPayload,
@@ -32,9 +33,10 @@ type DeletePackingInput = {
 };
 
 function getAuthor(profile: ReturnType<typeof useAuthContext>["profile"]) {
-  const id = profile?.user?.id;
+  const rawId = profile?.user?.id;
+  const id = Number(rawId);
   const name = profile?.user?.name;
-  if (!id || !name) {
+  if (!Number.isFinite(id) || id <= 0 || !name) {
     throw new Error("Missing authenticated user");
   }
   return { id, name };
@@ -55,13 +57,10 @@ export function useDispatchPacking() {
     ]);
   };
 
-  const taskTrigger = useMutation(
-    _trpc.taskTrigger.trigger.mutationOptions({
-      async onSuccess() {
-        await invalidateDispatchQueries();
-      },
-    }),
-  );
+  const packingTask = useTaskTrigger({
+    taskName: "update-sales-control",
+    onCompleted: invalidateDispatchQueries,
+  });
 
   const deletePackingItem = useMutation(
     _trpc.dispatch.deletePackingItem.mutationOptions({
@@ -71,11 +70,20 @@ export function useDispatchPacking() {
     }),
   );
 
+  const taskTrigger = {
+    ...packingTask,
+    isPending:
+      packingTask.isStarting ||
+      packingTask.isQueued ||
+      packingTask.isExecuting ||
+      packingTask.isCheckingStatus,
+  };
+
   return {
     taskTrigger,
     deletePackingItem,
     invalidateDispatchQueries,
-    onPackItem(input: PackItemInput) {
+    async onPackItem(input: PackItemInput) {
       const author = getAuthor(auth.profile);
       const packed = buildPackingPayload({
         salesItemId: input.salesItemId,
@@ -87,7 +95,7 @@ export function useDispatchPacking() {
         throw new Error("Unable to allocate full packing quantity");
       }
 
-      return taskTrigger.mutateAsync(
+      return packingTask.startAndWait(
         buildPackItemTaskPayload({
           salesId: input.salesId,
           dispatchId: input.dispatchId,
@@ -98,10 +106,9 @@ export function useDispatchPacking() {
         }),
       );
     },
-    onClearPackings(input: PackingMetaInput) {
+    async onClearPackings(input: PackingMetaInput) {
       const author = getAuthor(auth.profile);
-      return taskTrigger.mutateAsync({
-        taskName: "update-sales-control",
+      return packingTask.startAndWait({
         payload: {
           meta: {
             salesId: input.salesId,

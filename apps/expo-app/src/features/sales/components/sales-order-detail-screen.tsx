@@ -199,7 +199,7 @@ export function SalesOrderDetailScreen({ orderNo }: Props) {
                       )}
                       <View className="flex-1">
                         <Text className="text-sm font-semibold text-foreground">{item.title}</Text>
-                        <Text className="text-xs text-muted-foreground">
+                        <Text className="text-xs uppercase text-muted-foreground">
                           {item.subtitle || "No subtitle"}
                         </Text>
                       </View>

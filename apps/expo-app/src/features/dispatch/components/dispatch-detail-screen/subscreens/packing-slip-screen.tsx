@@ -175,6 +175,9 @@ export function PackingSlipScreen({
                   <Text className="text-base font-semibold leading-tight text-foreground">
                     {item.title}
                   </Text>
+                  <Text className="mt-0.5 text-xs uppercase text-muted-foreground">
+                    {item.subtitle || item.sectionTitle || "No size/type details"}
+                  </Text>
                 </View>
               </View>
 

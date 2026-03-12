@@ -58,9 +58,8 @@ function Content() {
     const pathname = usePathname();
     const { setParams: setCommunityInstallCostParams } =
         useCommunityInstallCostParams();
-    const [isPaymentOverviewOpen, setIsPaymentOverviewOpen] = React.useState(
-        false,
-    );
+    const [isPaymentOverviewOpen, setIsPaymentOverviewOpen] =
+        React.useState(false);
     const normalizedStatus = String(job?.status || "")
         .toLowerCase()
         .replace(/[_\s]+/g, "-");
@@ -114,17 +113,20 @@ function Content() {
                                     <Button
                                         className="w-full"
                                         onClick={() => {
-                                            const useSidebarView = pathname.includes(
-                                                "/community/community-template/",
-                                            );
+                                            const useSidebarView =
+                                                pathname.includes(
+                                                    "/community/community-template/",
+                                                );
                                             setCommunityInstallCostParams({
                                                 mode: "v2",
                                                 view: useSidebarView
                                                     ? "template-edit"
                                                     : "template-list",
-                                                editCommunityModelInstallCostId: Number(
-                                                    job?.home?.communityTemplateId,
-                                                ),
+                                                editCommunityModelInstallCostId:
+                                                    Number(
+                                                        job?.home
+                                                            ?.communityTemplateId,
+                                                    ),
                                                 selectedBuilderTaskId: Number(
                                                     job?.builderTaskId,
                                                 ),
@@ -214,7 +216,10 @@ function Content() {
                                         Batch Amount
                                     </p>
                                     <p className="font-bold text-foreground">
-                                        ${Number(job.payment.amount || 0).toFixed(2)}
+                                        $
+                                        {Number(
+                                            job.payment.amount || 0,
+                                        ).toFixed(2)}
                                     </p>
                                 </div>
                             )}
@@ -301,3 +306,4 @@ function LoadingSkeleton() {
         </>
     );
 }
+

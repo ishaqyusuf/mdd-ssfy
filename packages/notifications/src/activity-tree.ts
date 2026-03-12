@@ -21,6 +21,7 @@ export type ActivityTreeNode = {
 	createdAt: Date | null;
 	subject: string | null;
 	headline: string | null;
+	description: string | null;
 	note: string | null;
 	senderContactId: number | null;
 	senderContactName: string | null;
@@ -82,22 +83,27 @@ function mapActivity(row: {
 	recipients: { status: NoteStatus | null; notePadContactId: number }[];
 	tags: { tagName: string; tagValue: string }[];
 }): ActivityTreeNode {
+	const tags = row.tags.reduce(
+		(acc, tag) => {
+			acc[tag.tagName] = deserializeTagValue(tag.tagValue);
+			return acc;
+		},
+		{} as Record<string, unknown>,
+	);
+	const descriptionFromTag =
+		typeof tags.description === "string" ? tags.description : null;
+
 	return {
 		id: row.id,
 		createdAt: row.createdAt ?? null,
 		subject: row.subject ?? null,
 		headline: row.headline ?? null,
+		description: descriptionFromTag,
 		note: row.note ?? null,
 		senderContactId: row.senderContact?.id ?? null,
 		senderContactName: row.senderContact?.name ?? null,
 		receipt: row.recipients?.[0] ?? null,
-		tags: row.tags.reduce(
-			(acc, tag) => {
-				acc[tag.tagName] = deserializeTagValue(tag.tagValue);
-				return acc;
-			},
-			{} as Record<string, unknown>,
-		),
+		tags,
 		children: [],
 	};
 }

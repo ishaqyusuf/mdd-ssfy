@@ -15,9 +15,13 @@ import type { QtyControlType } from "@api/type";
 import type { Prisma } from "@gnd/db";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
 import {
+  isControlOverviewReadV2Enabled,
   isControlReadV2Enabled,
+  projectDispatchListControl,
+  projectSalesListControl,
   withDispatchControl,
   withDispatchListControl,
+  withSalesControl,
   withSalesListControl,
 } from "@gnd/sales";
 import { tasks } from "@trigger.dev/sdk/v3";
@@ -66,6 +70,22 @@ function toLegacyDispatchStatistic(control: any) {
     dispatchStatus: control?.dispatchStatus || "unknown",
   };
 }
+
+const DISPATCH_OVERVIEW_ORDER_CONTROL_FIELDS = [
+  "dispatchStatus",
+  "packed",
+  "pendingPacking",
+] as const;
+
+const DISPATCH_OVERVIEW_DISPATCH_CONTROL_FIELDS = [
+  "dispatchStatus",
+  "packables",
+  "pendingPacking",
+  "packed",
+  "dispatchAssigned",
+  "dispatchInProgress",
+  "dispatchCompleted",
+] as const;
 
 export async function getDispatches(
   ctx: TRPCContext,
@@ -675,14 +695,101 @@ export async function getDispatchOverview(
   let address = result.order.shippingAddress;
   if (!address) address = {} as any;
   const order = result.order;
-  const orderWithControl = await withSalesListControl(
-    [{ id: order.id }],
-    ctx.db as any,
-    ["packed", "pendingPacking", "dispatchStatus"] as any,
-  );
-  const orderControl = (orderWithControl?.[0] as any)?.control;
+  const controlReadV2Enabled = isControlOverviewReadV2Enabled();
+
+  const orderRows = [{ id: order.id }];
+  let orderControl: any = null;
+  if (controlReadV2Enabled) {
+    const orderWithControl = await withSalesListControl(
+      orderRows,
+      ctx.db as any,
+      [...DISPATCH_OVERVIEW_ORDER_CONTROL_FIELDS] as any,
+    );
+    orderControl = (orderWithControl?.[0] as any)?.control || null;
+  } else {
+    const orderWithStatistic = await withSalesControl(orderRows, ctx.db as any);
+    const statistic = (orderWithStatistic?.[0] as any)?.statistic;
+    if (statistic) {
+      orderControl = projectSalesListControl(
+        statistic,
+        [...DISPATCH_OVERVIEW_ORDER_CONTROL_FIELDS] as any,
+      );
+    }
+  }
+
+  let dispatchControl: any = null;
+  if (dispatch?.id) {
+    const dispatchRows = [{ id: dispatch.id, salesOrderId: order.id }];
+    if (controlReadV2Enabled) {
+      const rows = await withDispatchListControl(
+        dispatchRows,
+        ctx.db as any,
+        [...DISPATCH_OVERVIEW_DISPATCH_CONTROL_FIELDS] as any,
+      );
+      dispatchControl = (rows?.[0] as any)?.control || null;
+    } else {
+      const rows = await withDispatchControl(dispatchRows, ctx.db as any);
+      const statistic = (rows?.[0] as any)?.statistic;
+      if (statistic) {
+        dispatchControl = projectDispatchListControl(
+          statistic,
+          [...DISPATCH_OVERVIEW_DISPATCH_CONTROL_FIELDS] as any,
+        );
+      }
+    }
+  }
+
+  if (dispatch?.id && controlReadV2Enabled && isControlReadParityEnabled()) {
+    const dispatchRows = [{ id: dispatch.id, salesOrderId: order.id }];
+    const [legacyOrderRows, legacyDispatchRows] = await Promise.all([
+      withSalesControl(orderRows, ctx.db as any),
+      withDispatchControl(dispatchRows, ctx.db as any),
+    ]);
+    const legacyOrderStatistic = (legacyOrderRows?.[0] as any)?.statistic;
+    const legacyDispatchStatistic = (legacyDispatchRows?.[0] as any)?.statistic;
+    const legacyOrderControl = legacyOrderStatistic
+      ? projectSalesListControl(
+          legacyOrderStatistic,
+          [...DISPATCH_OVERVIEW_ORDER_CONTROL_FIELDS] as any,
+        )
+      : null;
+    const legacyDispatchControl = legacyDispatchStatistic
+      ? projectDispatchListControl(
+          legacyDispatchStatistic,
+          [...DISPATCH_OVERVIEW_DISPATCH_CONTROL_FIELDS] as any,
+        )
+      : null;
+
+    const hasMismatch =
+      legacyOrderControl?.dispatchStatus !== orderControl?.dispatchStatus ||
+      Number(legacyOrderControl?.packed?.total || 0) !==
+        Number(orderControl?.packed?.total || 0) ||
+      Number(legacyOrderControl?.pendingPacking?.total || 0) !==
+        Number(orderControl?.pendingPacking?.total || 0) ||
+      legacyDispatchControl?.dispatchStatus !== dispatchControl?.dispatchStatus ||
+      Number(legacyDispatchControl?.packed?.total || 0) !==
+        Number(dispatchControl?.packed?.total || 0) ||
+      Number(legacyDispatchControl?.pendingPacking?.total || 0) !==
+        Number(dispatchControl?.pendingPacking?.total || 0);
+
+    if (hasMismatch) {
+      console.warn("[control-read-parity][dispatch-overview] mismatches", {
+        mismatchCount: 1,
+        orderId: order.id,
+        orderIds: [order.id],
+        dispatchId: dispatch.id,
+        dispatchIds: [dispatch.id],
+      });
+    }
+  }
+
   return {
-    dispatch,
+    dispatch: dispatch
+      ? {
+          ...dispatch,
+          control: dispatchControl,
+        }
+      : dispatch,
     dispatchItems: result.order.itemControls.map((item) => {
       const listedItems = dispatch?.items.filter(
         (a) => a.item?.controlUid == item.uid,
@@ -772,11 +879,14 @@ export async function getDispatchOverview(
       orderId: order.orderId,
       date: order.createdAt,
       id: order.id,
-      control: orderControl,
+      control: (orderControl as any) || null,
       customer: order.customer
         ? {
             name: order.customer.name,
             businessName: order.customer.businessName,
+            phoneNo: order.customer.phoneNo,
+            email: order.customer.email,
+            address: order.customer.address,
           }
         : null,
     },
