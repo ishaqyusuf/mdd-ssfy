@@ -67,7 +67,10 @@ export default function DriverDispatchListRoute() {
     () =>
       items
         .filter(
-          (item) => item?.status === "queue" || item?.status === "in progress",
+          (item) =>
+            item?.status === "queue" ||
+            item?.status === "packed" ||
+            item?.status === "in progress",
         )
         .slice(0, 5),
     [items],

@@ -190,6 +190,7 @@ function Status({ item, admin }: { item: Item; admin?: boolean }) {
                         dispatchId: item.id,
                         packMode: "all",
                         dispatchStatus: "completed",
+                        replaceExisting: true,
                     };
                     trigger.trigger({
                         taskName: "update-sales-control",
@@ -696,4 +697,3 @@ const formatDateTime = (dateString: string) => {
         hour12: true,
     });
 };
-

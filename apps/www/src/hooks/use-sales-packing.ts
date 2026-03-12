@@ -177,6 +177,7 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                         dispatchId: Number(data?.dispatch?.id || 0),
                         dispatchStatus: data?.dispatch?.status || "queue",
                         packMode,
+                        replaceExisting: true,
                     },
                 } as UpdateSalesControl,
             });
@@ -228,6 +229,7 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                             dispatchId: Number(data?.dispatch?.id || 0),
                             dispatchStatus: "completed",
                             packMode: "all",
+                            replaceExisting: true,
                         },
                     } as UpdateSalesControl,
                 });

@@ -246,6 +246,7 @@ export function buildAutoPackingLines(
 
 export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
   const packMode = data.packItems?.packMode!;
+  const requestedDispatchStatus = data.packItems?.dispatchStatus;
   if (packMode == "all") {
     const assignmentInfo = await getSaleInformation(db, {
       salesId: data.meta.salesId,
@@ -290,6 +291,20 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
   }
   const response = await db.$transaction(
     async (tx) => {
+      if (data.packItems?.replaceExisting) {
+        await tx.orderItemDelivery.updateMany({
+          where: {
+            orderDeliveryId: data.packItems.dispatchId,
+            packingStatus: {
+              not: "unpacked",
+            },
+          },
+          data: {
+            packingStatus: "unpacked" as DispatchItemPackingStatus,
+            unpackedBy: data.meta.authorName,
+          },
+        });
+      }
       const resp = await packDispatchItemsAction(tx as any, {
         data: info,
         authorId: data.meta.authorId!,
@@ -297,6 +312,20 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
         authorName: data.meta.authorName,
         update: true,
       });
+      if (
+        requestedDispatchStatus &&
+        ["queue", "missing items"].includes(requestedDispatchStatus as string) &&
+        (resp.created > 0 || resp.skipped > 0)
+      ) {
+        await tx.orderDelivery.update({
+          where: {
+            id: data.packItems!.dispatchId,
+          },
+          data: {
+            status: "packed" as SalesDispatchStatus,
+          },
+        });
+      }
       await resetSalesAction(tx as any, data.meta.salesId);
       return resp;
     },
@@ -426,6 +455,7 @@ export async function markAsCompletedTask(db: Db, args: UpdateSalesControl) {
       dispatchId: args.markAsCompleted?.dispatchId!,
       packMode: "all",
       dispatchStatus: "completed",
+      replaceExisting: true,
     },
   });
   await submitDispatchTask(db, {

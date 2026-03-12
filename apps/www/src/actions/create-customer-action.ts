@@ -93,6 +93,9 @@ export const createCustomerAction = actionClient
                 isPrimary: true,
                 meta: {
                     zip_code: input.zip_code,
+                    lat: input.lat,
+                    lng: input.lng,
+                    placeSearchText: input.formattedAddress,
                 } satisfies AddressBookMeta,
             } satisfies Prisma.AddressBooksUpdateInput;
             if (input.taxProfileId && !input.taxCode)

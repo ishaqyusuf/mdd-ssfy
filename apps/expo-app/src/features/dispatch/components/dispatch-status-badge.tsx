@@ -8,6 +8,8 @@ function getStatusClass(status?: string | null) {
   switch (status) {
     case "completed":
       return "bg-primary border-primary text-primary-foreground";
+    case "packed":
+      return "bg-emerald-500 border-emerald-500 text-white";
     case "in progress":
       return "bg-secondary border-border text-secondary-foreground";
     case "cancelled":

@@ -1,4 +1,5 @@
 import { BlurView } from "@/components/blur-view";
+import { ActivityHistory } from "@/components/chat/activity-history";
 import { SafeArea } from "@/components/safe-area";
 import { Icon } from "@/components/ui/icon";
 import { useModal } from "@/components/ui/modal";
@@ -170,14 +171,6 @@ function DispatchDetailScreenInner({
     return `#DISP-${dispatch?.id || dispatchId}`;
   }, [dispatch?.id, dispatchId]);
 
-  const activityHistory = useMemo(() => {
-    const history = items
-      .flatMap((item) => item?.packingHistory || [])
-      .slice()
-      .sort((a, b) => +new Date(b.date as any) - +new Date(a.date as any))
-      .slice(0, 4);
-    return history;
-  }, [items]);
   const statusText = dispatch?.status || "queue";
   const canStart = actions.canStart(dispatch?.status);
   const canCancel = actions.canCancel(dispatch?.status);
@@ -221,7 +214,7 @@ function DispatchDetailScreenInner({
     return a?.email || customer?.email || "";
   }, [data?.address, order]);
 
-  const topPackingItems = useMemo(() => items.slice(0, 3), [items]);
+  const topPackingItems = useMemo(() => items, [items]);
   const packableItems = useMemo(
     () =>
       items.filter((item) => {
@@ -290,26 +283,6 @@ function DispatchDetailScreenInner({
     isOpen: isPackingSlipOpen,
     packableItems,
   });
-
-  const timelineItems = useMemo(() => {
-    const dynamic = activityHistory.slice(0, 2).map((event, index) => ({
-      id: String(event.id),
-      title: index === 0 ? "In Transit" : "Started",
-      subtitle: `${formatDispatchDate(event.date as any)}${event.packedBy ? ` - ${event.packedBy}` : ""}`,
-      icon: index === 0 ? "Truck" : ("CircleCheck" as const),
-      active: index === 0,
-    }));
-    return [
-      ...dynamic,
-      {
-        id: "assigned",
-        title: "Assigned",
-        subtitle: `${formatDispatchDate(order?.date as any)} - Dispatch Center`,
-        icon: "UserCog" as const,
-        active: false,
-      },
-    ];
-  }, [activityHistory, order?.date]);
 
   const issueReasons = useMemo(
     () => [
@@ -591,7 +564,7 @@ function DispatchDetailScreenInner({
     });
   };
 
-  const buildSelectionPackingLinesFromDrafts = () => {
+  const buildPackingLinesFromDrafts = (note: string) => {
     return packableItems.flatMap((item) => {
       if (!item.salesItemId) return [];
       const draft = packingDrafts[item.uid] || {
@@ -610,7 +583,7 @@ function DispatchDetailScreenInner({
         salesItemId: item.salesItemId,
         enteredQty: enteredQty as any,
         deliverables: (item.deliverables || []) as any,
-        note: "Packed via dispatch confirm",
+        note,
       });
       if (hasQty(built.remainder)) {
         throw new Error("Unable to allocate full packing quantity");
@@ -623,69 +596,19 @@ function DispatchDetailScreenInner({
     const closeSlip = opts?.closeSlip ?? true;
     if (!order?.id || !dispatch?.id) return;
     try {
-      const changes = packableItems.map((item) => {
-        const draft = packingDrafts[item.uid] || {
-          qty: 0,
-          lh: 0,
-          rh: 0,
-        };
-        const listed = (item.listedQty || {}) as any;
-        const current = {
-          qty: asNumber(listed.qty),
-          lh: asNumber(listed.lh),
-          rh: asNumber(listed.rh),
-        };
-        return {
-          item,
-          draft,
-          delta: {
-            qty: draft.qty - current.qty,
-            lh: draft.lh - current.lh,
-            rh: draft.rh - current.rh,
-          },
-          current,
-        };
-      });
-
-      const hasDecrease = changes.some(
-        (entry) =>
-          entry.delta.qty < 0 || entry.delta.lh < 0 || entry.delta.rh < 0,
-      );
-
-      if (hasDecrease) {
+      const packingLines = buildPackingLinesFromDrafts("Packed via packing slip");
+      if (packingLines.length > 0) {
+        await packing.onPackItemsSelection({
+          salesId: order.id,
+          dispatchId: dispatch.id,
+          dispatchStatus: (dispatch.status as any) || "queue",
+          replaceExisting: true,
+          packingLines,
+        });
+      } else {
         await packing.onClearPackings({
           salesId: order.id,
           dispatchId: dispatch.id,
-        });
-      }
-
-      for (const entry of changes) {
-        const { item, draft, delta } = entry;
-        const hasSingle = itemHasSingleQty(item);
-        const entered = hasDecrease
-          ? hasSingle
-            ? { qty: draft.qty }
-            : { lh: draft.lh, rh: draft.rh }
-          : hasSingle
-            ? { qty: Math.max(0, delta.qty) }
-            : { lh: Math.max(0, delta.lh), rh: Math.max(0, delta.rh) };
-
-        if (
-          asNumber((entered as any).qty) <= 0 &&
-          asNumber((entered as any).lh) <= 0 &&
-          asNumber((entered as any).rh) <= 0
-        ) {
-          continue;
-        }
-
-        await packing.onPackItem({
-          salesId: order.id,
-          dispatchId: dispatch.id,
-          salesItemId: item.salesItemId,
-          enteredQty: entered as any,
-          dispatchStatus: (dispatch.status as any) || "queue",
-          deliverables: (item.deliverables || []) as any,
-          note: "Packed via packing slip",
         });
       }
 
@@ -709,17 +632,21 @@ function DispatchDetailScreenInner({
   const onConfirmDispatchAfterPacking = async () => {
     if (!order?.id || !dispatch?.id) return;
     try {
-      const packingLines = buildSelectionPackingLinesFromDrafts();
-      await packing.onClearPackings({
-        salesId: order.id,
-        dispatchId: dispatch.id,
-      });
+      const packingLines = buildPackingLinesFromDrafts(
+        "Packed via dispatch confirm",
+      );
       if (packingLines.length > 0) {
         await packing.onPackItemsSelection({
           salesId: order.id,
           dispatchId: dispatch.id,
           dispatchStatus: (dispatch.status as any) || "queue",
+          replaceExisting: true,
           packingLines,
+        });
+      } else {
+        await packing.onClearPackings({
+          salesId: order.id,
+          dispatchId: dispatch.id,
         });
       }
       await overview.refetch();
@@ -1164,40 +1091,12 @@ function DispatchDetailScreenInner({
 
           <View className="mb-4 pb-8">
             <Text className="mb-4 text-xl font-bold text-foreground">
-              Activity History
+              Chat History
             </Text>
-            <View className="gap-6 rounded-xl bg-card p-2">
-              {timelineItems.map((event, index) => (
-                <View key={event.id} className="flex-row items-center gap-3">
-                  <View
-                    className={`h-10 w-10 items-center justify-center rounded-full ${
-                      event.active ? "bg-primary" : "bg-muted"
-                    }`}
-                  >
-                    <Icon
-                      name={event.icon as any}
-                      className={
-                        event.active
-                          ? "text-primary-foreground"
-                          : "text-muted-foreground"
-                      }
-                      size={16}
-                    />
-                  </View>
-                  <View>
-                    <Text className="text-sm font-bold text-foreground">
-                      {event.title}
-                    </Text>
-                    <Text className="text-xs text-muted-foreground">
-                      {event.subtitle}
-                    </Text>
-                  </View>
-                  {index < timelineItems.length - 1 ? (
-                    <View className="absolute left-5 top-10 h-8 w-px bg-border" />
-                  ) : null}
-                </View>
-              ))}
-            </View>
+            <ActivityHistory
+              tags={[{ tagName: "dispatchId", tagValue: Number(activeDispatchId) }]}
+              emptyText="No chat history yet for this dispatch."
+            />
           </View>
         </ScrollView>
 

@@ -3,14 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
-import {
-  PackingProvider,
-  PackingItemProvider,
-  usePacking,
-  usePackingItem,
-} from "@/hooks/use-sales-packing";
-import { PackingItemForm } from "@/components/packing-item-form";
-import { PackingItemListings } from "@/components/packing-item-listings";
+import { PackingProvider, usePacking } from "@/hooks/use-sales-packing";
 import { PackingProgress } from "@/components/packing-progress";
 import { Progress } from "@/components/(clean-code)/progress";
 import { QtyLabel } from "@/components/qty-label";
@@ -21,8 +14,11 @@ import { Badge } from "@gnd/ui/badge";
 import { hasQty } from "@gnd/utils/sales";
 import { cn } from "@gnd/ui/cn";
 import { toast } from "@gnd/ui/use-toast";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Minus, Plus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { Input } from "@gnd/ui/input";
+import { pickQtyFrom, recomposeQty } from "@sales/utils/sales-control";
+import type { UpdateSalesControl } from "@sales/schema";
 
 type Props = {
   dispatchId?: number | null;
@@ -93,6 +89,7 @@ function DispatchPackingOverviewContent() {
     [duplicateInsight?.dispatches],
   );
   const [keepDispatchId, setKeepDispatchId] = useState<number | null>(null);
+  const [isPackMode, setIsPackMode] = useState(false);
   const canResolveDuplicates =
     auth.roleTitle?.toLowerCase() === "super admin";
 
@@ -382,16 +379,9 @@ function DispatchPackingOverviewContent() {
           <Button
             variant="outline"
             disabled={ctx.isCancelled}
-            onClick={() => ctx.onPackDispatch("available")}
+            onClick={() => setIsPackMode((prev) => !prev)}
           >
-            Pack Available
-          </Button>
-          <Button
-            variant="outline"
-            disabled={ctx.isCancelled}
-            onClick={() => ctx.onPackDispatch("all")}
-          >
-            Pack All
+            {isPackMode ? "Cancel" : "Pack Items"}
           </Button>
           <Button
             variant="outline"
@@ -411,21 +401,27 @@ function DispatchPackingOverviewContent() {
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Items</CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-base">Items</CardTitle>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={ctx.isCancelled}
+              onClick={() => setIsPackMode((prev) => !prev)}
+            >
+              {isPackMode ? "Cancel" : "Pack"}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          {rows.map((item) => (
-            <PackingItemProvider
-              key={item.uid}
-              args={[
-                {
-                  item: item as any,
-                },
-              ]}
-            >
-              <ItemRow />
-            </PackingItemProvider>
-          ))}
+          {isPackMode ? (
+            <PackItemsForm
+              items={rows}
+              onCancel={() => setIsPackMode(false)}
+            />
+          ) : (
+            rows.map((item) => <ItemRow key={item.uid} item={item} />)
+          )}
         </CardContent>
       </Card>
     </div>
@@ -464,61 +460,345 @@ function Metric({ label, value }: { label: string; value: number }) {
   );
 }
 
-function ItemRow() {
-  const ctx = usePacking();
-  const { item } = usePackingItem() as any;
-  const selected = ctx.packItemUid === item.uid;
-  const availableQty = item?.availableQty || item?.deliverableQty;
-  const canPackQty = item?.deliverableQty;
+function qtyTotal(qty?: {
+  qty?: number | null;
+  lh?: number | null;
+  rh?: number | null;
+}) {
+  const q = Number(qty?.qty || 0);
+  const lh = Number(qty?.lh || 0);
+  const rh = Number(qty?.rh || 0);
+  return q > 0 ? q : lh + rh;
+}
+
+function ItemRow({ item }: { item: any }) {
+  const packed = qtyTotal(item?.packedQty);
+  const listed = qtyTotal(item?.listedQty);
+  const available = qtyTotal(item?.availableQty);
+  const target = listed > 0 ? listed : packed + available;
+  const statusText =
+    target <= 0
+      ? "No packable qty"
+      : packed >= target
+        ? `Packed ${packed}/${target}`
+        : packed > 0
+          ? `Partially packed ${packed}/${target}`
+          : `Not packed 0/${target}`;
+
+  const statusClass =
+    target <= 0
+      ? "text-muted-foreground"
+      : packed >= target
+        ? "text-emerald-600"
+        : packed > 0
+          ? "text-amber-700"
+          : "text-rose-600";
 
   return (
     <div className="rounded-md border p-3">
-      <div
-        className="flex cursor-pointer flex-col gap-3 md:flex-row md:items-center md:justify-between"
-        onClick={() => {
-          if (selected) ctx.setPackItemUid(null);
-          else ctx.setPackItemUid(item.uid);
-        }}
-      >
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
           <p className="font-medium">{item.title}</p>
-          <p className="text-xs uppercase text-muted-foreground">{item.subtitle}</p>
-          <div className="flex flex-wrap gap-3 text-xs">
-            <span>
-              Available: <QtyLabel {...availableQty} />
-            </span>
-            <span>
-              Listed: <QtyLabel {...item.listedQty} />
-            </span>
-            <span>
-              Packed: <QtyLabel {...item.packedQty} />
-            </span>
-            <span className={cn(item?.nonDeliverableQty?.qty > 0 && "text-amber-700") }>
-              Pending: <QtyLabel {...item.nonDeliverableQty} />
-            </span>
-          </div>
+          <p className="text-xs uppercase text-muted-foreground">
+            {item.subtitle}
+          </p>
         </div>
-
-        {hasQty(canPackQty) ? (
-          <Button
-            variant={selected ? "secondary" : "outline"}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (selected) ctx.setPackItemUid(null);
-              else ctx.setPackItemUid(item.uid);
-            }}
-          >
-            {selected ? "Close" : "Pack"}
-          </Button>
-        ) : null}
+        <p className={cn("text-sm font-medium", statusClass)}>{statusText}</p>
       </div>
+    </div>
+  );
+}
 
-      {selected ? (
-        <div className="mt-3 space-y-3 border-t pt-3">
-          <PackingItemForm />
-          <PackingItemListings />
-        </div>
-      ) : null}
+function toDraft(item: any) {
+  if (item?.totalQty?.noHandle) {
+    return {
+      qty: Math.max(0, Number(item?.packedQty?.qty || 0)),
+      lh: 0,
+      rh: 0,
+    };
+  }
+  return {
+    qty: 0,
+    lh: Math.max(0, Number(item?.packedQty?.lh || 0)),
+    rh: Math.max(0, Number(item?.packedQty?.rh || 0)),
+  };
+}
+
+function getPackAllTarget(item: any) {
+  const listedQty = recomposeQty(item?.listedQty as any);
+  const availableQty = recomposeQty(item?.availableQty as any);
+  const packedQty = recomposeQty(item?.packedQty as any);
+  const listedTotal = qtyTotal(listedQty);
+
+  if (item?.totalQty?.noHandle) {
+    const qty =
+      listedTotal > 0
+        ? Number(listedQty?.qty || 0)
+        : Number(availableQty?.qty || 0) + Number(packedQty?.qty || 0);
+    return {
+      qty: Math.max(0, qty),
+      lh: 0,
+      rh: 0,
+    };
+  }
+
+  if (listedTotal > 0) {
+    return {
+      qty: 0,
+      lh: Math.max(0, Number(listedQty?.lh || 0)),
+      rh: Math.max(0, Number(listedQty?.rh || 0)),
+    };
+  }
+
+  return {
+    qty: 0,
+    lh: Math.max(0, Number(availableQty?.lh || 0) + Number(packedQty?.lh || 0)),
+    rh: Math.max(0, Number(availableQty?.rh || 0) + Number(packedQty?.rh || 0)),
+  };
+}
+
+function PackItemsForm({
+  items,
+  onCancel,
+}: {
+  items: any[];
+  onCancel: () => void;
+}) {
+  const ctx = usePacking();
+  const dispatch = ctx.data?.dispatch;
+  const order = ctx.data?.order;
+  const auth = useAuth();
+  const [note, setNote] = useState("");
+  const [drafts, setDrafts] = useState<Record<string, { qty: number; lh: number; rh: number }>>({});
+
+  useEffect(() => {
+    const next: Record<string, { qty: number; lh: number; rh: number }> = {};
+    items.forEach((item) => {
+      next[item.uid] = toDraft(item);
+    });
+    setDrafts(next);
+  }, [items]);
+
+  const isSubmitting = ctx.trigger?.isLoading;
+  const canEditPacking = dispatch?.status === "queue" || dispatch?.status === "in progress";
+  const packableItems = items.filter((item) => !!item?.salesItemId);
+
+  const setQtyValue = (
+    uid: string,
+    key: "qty" | "lh" | "rh",
+    value: number,
+  ) => {
+    setDrafts((prev) => ({
+      ...prev,
+      [uid]: {
+        ...(prev[uid] || { qty: 0, lh: 0, rh: 0 }),
+        [key]: Math.max(0, Number.isFinite(value) ? value : 0),
+      },
+    }));
+  };
+
+  const stepQtyValue = (
+    uid: string,
+    key: "qty" | "lh" | "rh",
+    delta: number,
+  ) => {
+    setDrafts((prev) => {
+      const current = prev[uid] || { qty: 0, lh: 0, rh: 0 };
+      return {
+        ...prev,
+        [uid]: {
+          ...current,
+          [key]: Math.max(0, Number(current[key] || 0) + delta),
+        },
+      };
+    });
+  };
+
+  const onPackAll = () => {
+    const next: Record<string, { qty: number; lh: number; rh: number }> = {};
+    items.forEach((item) => {
+      next[item.uid] = getPackAllTarget(item);
+    });
+    setDrafts(next);
+  };
+
+  const onSubmit = () => {
+    if (!dispatch?.id || !order?.id) return;
+
+    const packItems: NonNullable<UpdateSalesControl["packItems"]> = {
+      dispatchId: Number(dispatch.id),
+      dispatchStatus: (dispatch.status as any) || "queue",
+      packMode: "selection",
+      replaceExisting: true,
+      packingLines: [],
+    };
+
+    const insufficient: string[] = [];
+
+    packableItems.forEach((item) => {
+      const draft = drafts[item.uid] || { qty: 0, lh: 0, rh: 0 };
+      const enteredQty = recomposeQty(
+        item?.totalQty?.noHandle
+          ? { qty: draft.qty }
+          : { lh: draft.lh, rh: draft.rh },
+      );
+      if (!hasQty(enteredQty)) return;
+
+      let pending = recomposeQty(enteredQty as any);
+      const deliverables = item?.deliverables || [];
+
+      deliverables.forEach((deliverable: any) => {
+        if (!hasQty(pending)) return;
+        const picked = pickQtyFrom(
+          recomposeQty(pending as any),
+          recomposeQty(deliverable.qty as any),
+        );
+        if (!hasQty(picked?.picked)) return;
+        packItems.packingLines?.push({
+          salesItemId: Number(item.salesItemId),
+          submissionId: Number(deliverable.submissionId),
+          qty: recomposeQty(picked.picked as any),
+          note: note || undefined,
+        });
+        pending = recomposeQty(picked.pendingPick as any);
+      });
+
+      if (hasQty(pending)) {
+        insufficient.push(item.title);
+      }
+    });
+
+    if (insufficient.length) {
+      toast({
+        variant: "error",
+        title: "Unable to allocate packing qty",
+        description: `Insufficient deliverables for: ${insufficient.slice(0, 3).join(", ")}${insufficient.length > 3 ? "..." : ""}`,
+      });
+      return;
+    }
+
+    ctx.trigger.trigger({
+      taskName: "update-sales-control",
+      payload: {
+        meta: {
+          authorId: Number(auth.id || 0),
+          authorName: auth.name || "System",
+          salesId: Number(order.id),
+        },
+        packItems,
+      } as UpdateSalesControl,
+    });
+    onCancel();
+    setNote("");
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onPackAll}
+          disabled={!canEditPacking || isSubmitting}
+        >
+          Pack All
+        </Button>
+        <p className="text-xs text-muted-foreground">
+          Existing packing will be replaced to match this form.
+        </p>
+      </div>
+      <div className="max-h-[60vh] space-y-3 overflow-auto pr-1">
+        {packableItems.map((item) => {
+          const noHandle = !!item?.totalQty?.noHandle;
+          const draft = drafts[item.uid] || { qty: 0, lh: 0, rh: 0 };
+          return (
+            <div key={item.uid} className="rounded-md border p-3">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="font-medium">{item.title}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Available: <QtyLabel {...item.availableQty} /> • Listed:{" "}
+                    <QtyLabel {...item.listedQty} /> • Packed:{" "}
+                    <QtyLabel {...item.packedQty} />
+                  </p>
+                </div>
+              </div>
+              <div
+                className={cn("grid gap-2", noHandle ? "grid-cols-1" : "grid-cols-2")}
+              >
+                {(noHandle ? (["qty"] as const) : (["lh", "rh"] as const)).map(
+                  (key) => (
+                    <div key={key} className="space-y-1">
+                      <p className="text-xs font-medium uppercase text-muted-foreground">
+                        {key}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="outline"
+                          onClick={() => stepQtyValue(item.uid, key, -1)}
+                          disabled={isSubmitting || !canEditPacking}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={draft[key]}
+                          onChange={(e) =>
+                            setQtyValue(
+                              item.uid,
+                              key,
+                              Number(e.target.value || 0),
+                            )
+                          }
+                          disabled={isSubmitting || !canEditPacking}
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="outline"
+                          onClick={() => stepQtyValue(item.uid, key, 1)}
+                          disabled={isSubmitting || !canEditPacking}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ),
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-muted-foreground">Note</p>
+        <Input
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Optional note"
+          disabled={isSubmitting || !canEditPacking}
+        />
+      </div>
+      <div className="flex justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isSubmitting}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          onClick={onSubmit}
+          disabled={isSubmitting || !canEditPacking}
+        >
+          {isSubmitting ? "Packing..." : "Pack"}
+        </Button>
+      </div>
     </div>
   );
 }

@@ -2,6 +2,15 @@
 
 ## 2026-03-12
 
+- Completed full-system legacy sales-form audit across UI, state, pricing, and save pipeline.
+- Logged prioritized risk map and remediation path:
+  - `P0`: transactional save safety and server-trusted monetary totals.
+  - `P1`: pricing writeback/taxable consistency/subtotal rendering/state mutation risks.
+  - `P2`: selection counter bug, auto-scroll jank, type drift/dead code, and save-side effect ordering.
+- Published phased hardening execution plan:
+  - `brain/sales-form-system-hardening-plan.md`.
+- Reprioritized active backlog to start legacy sales-form hardening Phase 0/1 immediately in `brain/tasks.md`.
+- Added formal decision to track this as a dedicated stream in `brain/decisions.md`.
 - Started dispatch-control stabilization Phase 0 (repro and baseline evidence lock).
 - Added dedicated repro matrix and scope lock doc:
   - `brain/dispatch-control-phase0-repro-matrix.md`.

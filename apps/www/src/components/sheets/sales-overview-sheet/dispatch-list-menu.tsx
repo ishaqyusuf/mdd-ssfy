@@ -67,6 +67,7 @@ export function DispatchListMenu({ dispatch }: Props) {
                     dispatchId: dispatch.id,
                     dispatchStatus: dispatch.status || "queue",
                     packMode: "all",
+                    replaceExisting: true,
                 },
             } as UpdateSalesControl,
         });
@@ -112,4 +113,3 @@ export function DispatchListMenu({ dispatch }: Props) {
         </Menu>
     );
 }
-

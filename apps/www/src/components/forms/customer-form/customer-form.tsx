@@ -241,6 +241,8 @@ export function CustomerForm() {
                                                 "country",
                                                 address.country,
                                             );
+                                            form.setValue("lat", address.lat);
+                                            form.setValue("lng", address.lng);
                                             // form.setValue("country", address.);
                                             // form.setValue(
                                             //     "addressId",

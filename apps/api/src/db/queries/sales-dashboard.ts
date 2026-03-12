@@ -335,7 +335,7 @@ export async function getMobileSalesDashboardOverview(ctx: TRPCContext) {
 
     for (const d of order.deliveries) {
       const value = (d.status || "").toLowerCase();
-      if (value === "queue") delivery.queue += 1;
+      if (value === "queue" || value === "packed") delivery.queue += 1;
       else if (value === "in progress") delivery.inProgress += 1;
       else if (value === "completed") delivery.completed += 1;
       else if (value === "cancelled") delivery.cancelled += 1;

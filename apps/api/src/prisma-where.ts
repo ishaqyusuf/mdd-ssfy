@@ -42,7 +42,7 @@ export function whereDispatch(query: DispatchQueryParamsSchema) {
   } else if (query?.tab === "pending") {
     whereStack.push({
       status: {
-        in: ["in progress", "queue"] as SalesDispatchStatus[],
+        in: ["in progress", "packed", "queue"] as SalesDispatchStatus[],
       },
     });
   } else {
@@ -71,6 +71,7 @@ export function whereDispatch(query: DispatchQueryParamsSchema) {
         });
         break;
       case "in progress":
+      case "packed":
       case "queue":
       case "completed":
       case "cancelled":
@@ -81,7 +82,7 @@ export function whereDispatch(query: DispatchQueryParamsSchema) {
       default:
         whereStack.push({
           status: {
-            in: ["in progress", "queue"] as SalesDispatchStatus[],
+            in: ["in progress", "packed", "queue"] as SalesDispatchStatus[],
           },
         });
         break;

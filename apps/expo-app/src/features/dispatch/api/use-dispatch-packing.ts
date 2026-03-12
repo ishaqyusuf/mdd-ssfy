@@ -30,6 +30,7 @@ type PackItemInput = PackingMetaInput & {
 type PackItemsSelectionInput = PackingMetaInput & {
   dispatchStatus: DispatchStatus;
   packingLines: PackingLine[];
+  replaceExisting?: boolean;
 };
 
 type DeletePackingInput = {
@@ -125,6 +126,7 @@ export function useDispatchPacking() {
             dispatchId: input.dispatchId,
             dispatchStatus: input.dispatchStatus,
             packMode: "selection",
+            replaceExisting: input.replaceExisting ?? false,
             packingLines: input.packingLines,
           },
         },
@@ -155,7 +157,9 @@ export function useDispatchPacking() {
       });
     },
     canEditPacking(status?: DispatchStatus | null) {
-      return status === "queue" || status === "in progress";
+      return (
+        status === "queue" || status === "packed" || status === "in progress"
+      );
     },
   };
 }

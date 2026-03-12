@@ -32,6 +32,8 @@ export const createCustomerSchema = z
         businessName: z.string().optional(),
         addressId: z.number().optional(),
         zip_code: z.string().optional(),
+        lat: z.number().optional().nullable(),
+        lng: z.number().optional().nullable(),
         taxCode: z.string().optional(),
         country: z.string().optional(),
         state: z.string().optional(),

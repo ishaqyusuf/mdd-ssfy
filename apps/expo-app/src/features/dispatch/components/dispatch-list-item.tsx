@@ -1,5 +1,6 @@
 import { DispatchListItem } from "../types/dispatch.types";
-import { Pressable, Text, View } from "react-native";
+import { Pressable } from "@/components/ui/pressable";
+import { Text, View } from "react-native";
 import { formatDate } from "@gnd/utils/dayjs";
 import { DispatchStatusBadge } from "./dispatch-status-badge";
 import { Icon } from "@/components/ui/icon";

@@ -40,6 +40,7 @@ export type UpdateSalesDeliveryOptionSchema = z.infer<
 
 export const dispatchStatusSchema = z.enum([
   "queue",
+  "packed",
   "in progress",
   "completed",
   "cancelled",

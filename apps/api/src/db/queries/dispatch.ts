@@ -28,6 +28,7 @@ import {
 import { tasks } from "@trigger.dev/sdk/v3";
 import type { NotificationJobInput } from "@notifications/schemas";
 import { TRPCError } from "@trpc/server";
+import { hasQty } from "@gnd/utils/sales";
 
 import { qtyMatrixSum, transformQtyHandle } from "@sales/utils/sales-control";
 import { getSalesDispatchOverview } from "@sales/exports";
@@ -148,10 +149,12 @@ function dispatchKeepScore(dispatch: {
       ? 4
       : dispatch.status === "in progress"
         ? 3
-        : dispatch.status === "queue"
+        : dispatch.status === "packed"
           ? 2
+        : dispatch.status === "queue"
+          ? 1
           : dispatch.status === "missing items"
-            ? 1
+            ? 0
             : 0;
   return (
     statusRank * 1_000_000 +
@@ -610,6 +613,8 @@ function mapStatusToNotificationChannel(
 ): DispatchStatusNotificationChannel {
   switch (status) {
     case "queue":
+      return "sales_dispatch_queued";
+    case "packed":
       return "sales_dispatch_queued";
     case "in progress":
       return "sales_dispatch_in_progress";
@@ -1269,6 +1274,50 @@ export async function getDispatchOverviewV2(
         ),
       }));
 
+    // Merge available deliverables with currently-listed dispatch quantities so
+    // replaceExisting re-pack can re-allocate the same submission quantities.
+    const deliverableBySubmission = new Map<number, any>();
+    (dispatchable?.deliverables || []).forEach((entry) => {
+      if (!entry?.submissionId) return;
+      deliverableBySubmission.set(
+        entry.submissionId,
+        recomposeQty(entry.qty as any),
+      );
+    });
+    // Some rows (especially older or non-production flows) expose submission
+    // quantities via dispatchStat instead of deliverables. Use that as fallback
+    // so replaceExisting pack edits can still allocate correctly.
+    (dispatchable as any)?.dispatchStat?.forEach((entry: any) => {
+      const submissionId = Number(entry?.submissionId || 0);
+      if (!submissionId) return;
+      const existing = recomposeQty(
+        (deliverableBySubmission.get(submissionId) || {}) as any,
+      );
+      if (hasQty(existing)) return;
+      const available = recomposeQty(entry?.available as any);
+      const submitted = recomposeQty(entry?.submitted as any);
+      const delivered = recomposeQty(entry?.delivered as any);
+      const fallbackQty = hasQty(available)
+        ? available
+        : hasQty(submitted)
+          ? submitted
+          : delivered;
+      if (!hasQty(fallbackQty)) return;
+      deliverableBySubmission.set(submissionId, recomposeQty(fallbackQty as any));
+    });
+    (listedItems || []).forEach((entry) => {
+      const submissionId = Number((entry as any)?.orderProductionSubmissionId || 0);
+      if (!submissionId) return;
+      const listedSubmissionQty = recomposeQty(transformQtyHandle(entry) as any);
+      const existing = recomposeQty(
+        (deliverableBySubmission.get(submissionId) || {}) as any,
+      );
+      deliverableBySubmission.set(
+        submissionId,
+        recomposeQty(qtyMatrixSum(existing as any, listedSubmissionQty as any)),
+      );
+    });
+
     return {
       uid: item.uid,
       title: item.title,
@@ -1283,10 +1332,12 @@ export async function getDispatchOverviewV2(
       listedQty: toQtyMatrix(listedQty as any),
       packedQty: toQtyMatrix(packedQty as any),
       nonDeliverableQty: toQtyMatrix(nonDeliverableQty as any),
-      deliverables: (dispatchable?.deliverables || []).map((entry) => ({
-        submissionId: entry.submissionId,
-        qty: toQtyMatrix(entry.qty as any),
-      })),
+      deliverables: Array.from(deliverableBySubmission.entries()).map(
+        ([submissionId, qty]) => ({
+          submissionId,
+          qty: toQtyMatrix(qty as any),
+        }),
+      ),
       packingHistory,
     };
   });

@@ -46,6 +46,7 @@ export const salesType = ["order", "quote"] as const;
 export const salesDispatchStatus = [
   "queue",
   "missing items",
+  "packed",
   "in progress",
   "completed",
   "cancelled",
@@ -244,6 +245,7 @@ export const INVOICE_FILTER_OPTIONS = [
 ] as const;
 export const DISPATCH_FILTER_OPTIONS = [
   "queue",
+  "packed",
   "in progress",
   "cancelled",
   "completed",

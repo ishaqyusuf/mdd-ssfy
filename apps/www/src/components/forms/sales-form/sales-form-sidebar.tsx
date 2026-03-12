@@ -5,6 +5,9 @@ import { Footer } from "@/components/forms/sales-form/footer";
 import { cn } from "@gnd/ui/cn";
 import { ComponentProps, useState } from "react";
 import { Button } from "@gnd/ui/button";
+import { _modal } from "@/components/common/modal/provider";
+import FormSettingsModal from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/form-settings-modal";
+import { Settings2 } from "lucide-react";
 interface Props extends ComponentProps<typeof Sidebar> {
     opened?: boolean;
 }
@@ -28,9 +31,21 @@ export function SalesFormSidebar({
         >
             <Sidebar.Content className="flex w-[22rem] min-h-0 flex-col overflow-hidden">
                 <div className="border-b border-slate-200/80 px-4 py-3 space-y-3">
-                    <p className="text-[11px] uppercase tracking-wide text-slate-500">
-                        Sales Panel
-                    </p>
+                    <div className="flex items-center gap-2">
+                        <p className="text-[11px] uppercase tracking-wide text-slate-500">
+                            Sales Panel
+                        </p>
+                        <div className="flex-1" />
+                        <Button
+                            size="icon"
+                            variant="ghost"
+                            className="size-7"
+                            onClick={() => _modal.openModal(<FormSettingsModal />)}
+                            title="Step Settings"
+                        >
+                            <Settings2 className="size-4" />
+                        </Button>
+                    </div>
                     <p className="text-sm font-semibold text-slate-900">
                         Summary And Actions
                     </p>

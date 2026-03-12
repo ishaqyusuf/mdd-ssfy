@@ -17,6 +17,7 @@ export type ControlAggregate = {
 
 export type ControlDispatchStatus =
   | "queue"
+  | "packed"
   | "in progress"
   | "completed"
   | "cancelled"

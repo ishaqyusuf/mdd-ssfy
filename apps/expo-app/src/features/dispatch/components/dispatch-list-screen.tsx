@@ -3,17 +3,23 @@ import type { DispatchListItem } from "../types/dispatch.types";
 import { DriverDashboardDispatchItem } from "./driver-dashboard-dispatch-item";
 import { useRouter } from "expo-router";
 import { Icon } from "@/components/ui/icon";
+import { Pressable } from "@/components/ui/pressable";
 import { useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Pressable,
   ScrollView,
   Text,
   View,
 } from "react-native";
 
-type FilterKey = "all" | "queue" | "in progress" | "completed" | "cancelled";
+type FilterKey =
+  | "all"
+  | "queue"
+  | "packed"
+  | "in progress"
+  | "completed"
+  | "cancelled";
 
 function openDispatch(
   router: ReturnType<typeof useRouter>,
@@ -59,6 +65,11 @@ export function DispatchListScreen() {
         key: "queue" as const,
         label: "Queued",
         count: items.filter((item) => (item?.status || "").toLowerCase() === "queue").length,
+      },
+      {
+        key: "packed" as const,
+        label: "Packed",
+        count: items.filter((item) => (item?.status || "").toLowerCase() === "packed").length,
       },
       {
         key: "in progress" as const,

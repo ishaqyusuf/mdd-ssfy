@@ -35,3 +35,11 @@
 - Decision: Track and execute closure through `brain/new-sales-form-missing-features-execution-plan.md` using hard phase gates (do not advance until current phase tests pass).
 - Rationale: Current field feedback indicates unresolved behavior gaps in pricing, grouped workflows, component controls, history, and state resilience even after previous matrix promotions.
 - Consequence: Existing parity matrix status should be treated as provisional; closure requires fresh reproducible scenarios and validated fixes per reported gap.
+
+## 2026-03-12 - Legacy Sales Form Hardening Stream
+
+- Decision: Run a dedicated hardening stream for the active legacy sales-form runtime in parallel with new-sales-form parity.
+- Decision: Prioritize P0 blockers first: save transaction integrity and server-authoritative pricing persistence.
+- Decision: Track execution through `brain/sales-form-system-hardening-plan.md` with phase gates (Phase 0 -> Phase 4).
+- Rationale: System audit surfaced correctness risks in save atomicity, pricing trust boundary, and state reliability that can impact revenue/accounting behavior.
+- Consequence: Sales-form change sets should map to hardening phases and include focused pricing/save regression tests before rollout.

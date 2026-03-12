@@ -37,6 +37,9 @@ export const createCustomerAddressAction = actionClient
                 meta: {
                     // netTerm: input.netTerm,
                     zip_code: input.zip_code,
+                    lat: input.lat,
+                    lng: input.lng,
+                    placeSearchText: input.formattedAddress,
                 } satisfies AddressBookMeta,
                 customer: {
                     connect: {

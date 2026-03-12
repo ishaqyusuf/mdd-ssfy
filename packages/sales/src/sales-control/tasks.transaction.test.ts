@@ -79,7 +79,11 @@ describe("sales-control task transactions", () => {
   });
 
   it("packDispatchItemTask packs and resets within same transaction client", async () => {
-    const tx = {};
+    const tx = {
+      orderDelivery: {
+        update: mock(async () => ({})),
+      },
+    };
     const db = {
       $transaction: async (fn: any) => fn(tx),
     };
@@ -97,9 +101,51 @@ describe("sales-control task transactions", () => {
     expect(getSaleInformationMock).toHaveBeenCalledTimes(1);
     expect(packDispatchItemsActionMock).toHaveBeenCalledTimes(1);
     expect(packDispatchItemsActionMock.mock.calls[0]?.[0]).toBe(tx);
+    expect(tx.orderDelivery.update).toHaveBeenCalledTimes(1);
     expect(resetSalesActionMock).toHaveBeenCalledTimes(1);
     expect(resetSalesActionMock).toHaveBeenCalledWith(tx, 909);
     expect(response).toEqual({ created: 1, skipped: 0 });
+  });
+
+  it("packDispatchItemTask can replace existing dispatch packings atomically", async () => {
+    const tx = {
+      orderItemDelivery: {
+        updateMany: mock(async () => ({})),
+      },
+      orderDelivery: {
+        update: mock(async () => ({})),
+      },
+    };
+    const db = {
+      $transaction: async (fn: any) => fn(tx),
+    };
+
+    await tasksModule.packDispatchItemTask(db as any, {
+      meta: { salesId: 901, authorId: 17, authorName: "Operator" },
+      packItems: {
+        dispatchId: 91,
+        dispatchStatus: "queue",
+        packMode: "selection",
+        replaceExisting: true,
+        packingLines: [{ salesItemId: 1, submissionId: 2, qty: { qty: 1 } }],
+      },
+    } as any);
+
+    expect(tx.orderItemDelivery.updateMany).toHaveBeenCalledTimes(1);
+    expect(tx.orderItemDelivery.updateMany).toHaveBeenCalledWith({
+      where: {
+        orderDeliveryId: 91,
+        packingStatus: {
+          not: "unpacked",
+        },
+      },
+      data: {
+        packingStatus: "unpacked",
+        unpackedBy: "Operator",
+      },
+    });
+    expect(packDispatchItemsActionMock).toHaveBeenCalledTimes(1);
+    expect(tx.orderDelivery.update).toHaveBeenCalledTimes(1);
   });
 
   it("does not reset when transactional mutation fails", async () => {

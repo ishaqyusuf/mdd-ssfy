@@ -2,6 +2,7 @@ import { RouterOutputs } from "@api/trpc/routers/_app";
 
 export type DispatchStatus =
   | "queue"
+  | "packed"
   | "in progress"
   | "completed"
   | "cancelled";

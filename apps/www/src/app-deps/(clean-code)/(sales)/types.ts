@@ -157,6 +157,8 @@ export type TypedSales = SalesOrders & {
 };
 export interface AddressBookMeta {
     zip_code;
+    lat?: number | null;
+    lng?: number | null;
     placeId?: string;
     placeSearchText?: string;
 }

@@ -139,13 +139,13 @@ export function useDispatchActions() {
       });
     },
     canStart(status?: DispatchStatus | null) {
-      return status === "queue" || status === "cancelled";
+      return status === "queue" || status === "packed" || status === "cancelled";
     },
     canCancel(status?: DispatchStatus | null) {
-      return status === "in progress";
+      return status === "in progress" || status === "packed";
     },
     canComplete(status?: DispatchStatus | null) {
-      return status === "in progress";
+      return status === "in progress" || status === "packed";
     },
   };
 }

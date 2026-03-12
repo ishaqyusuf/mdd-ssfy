@@ -1,6 +1,7 @@
 import type { DispatchListItem } from "../types/dispatch.types";
 import { formatDate } from "@gnd/utils/dayjs";
-import { Image, Pressable, Text, View } from "react-native";
+import { Pressable } from "@/components/ui/pressable";
+import { Image, Text, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 
 const MAP_IMAGE =

@@ -31,6 +31,8 @@ export function FormContext({ children, data }: FormContextProps) {
         profileId: undefined,
         state: undefined,
         zip_code: undefined,
+        lat: undefined,
+        lng: undefined,
         customerType: "Personal",
         addressOnly: !!params.address,
         addressMeta: {},
@@ -76,4 +78,3 @@ export function FormContext({ children, data }: FormContextProps) {
 
 export const useCustomerForm = () =>
     useFormContext<z.infer<typeof createCustomerSchema>>();
-

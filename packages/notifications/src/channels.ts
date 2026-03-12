@@ -18,6 +18,7 @@ export const channelNames = [
 	"sales_dispatch_assigned",
 	"sales_dispatch_cancelled",
 	"sales_dispatch_completed",
+	"sales_dispatch_packed",
 	"sales_dispatch_in_progress",
 	"sales_dispatch_created",
 	"sales_dispatch_date_updated",
@@ -194,6 +195,12 @@ export const channelsConfig: Partial<{
 	sales_dispatch_completed: {
 		name: "Dispatch Completed",
 		description: "Send when a dispatch is completed.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_dispatch_packed: {
+		name: "Dispatch Packed",
+		description: "Send when dispatch packing is updated.",
 		priority: 5,
 		category: "Sales",
 	},

@@ -172,6 +172,8 @@ export interface IAddressBook extends Omit<AddressBooks, "meta"> {
 }
 export interface IAddressMeta {
     zip_code;
+    lat?;
+    lng?;
 }
 
 export type AddressType = "shippingAddress" | "billingAddress";

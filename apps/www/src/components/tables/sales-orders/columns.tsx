@@ -507,6 +507,7 @@ function Actions({ item }: { item: Item }) {
                         dispatchId,
                         dispatchStatus: "completed",
                         packMode: "all",
+                        replaceExisting: true,
                     },
                 };
                 trigger({
