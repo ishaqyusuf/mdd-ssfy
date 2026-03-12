@@ -3,6 +3,7 @@ import { SafeArea } from "@/components/safe-area";
 import { Icon } from "@/components/ui/icon";
 import { useModal } from "@/components/ui/modal";
 import { Toast } from "@/components/ui/toast";
+import { useAuthContext } from "@/hooks/use-auth";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -44,6 +45,14 @@ type Props = {
 	openCompleteOnMount?: boolean;
 };
 
+function formatDispatchStatusLabel(status?: string | null) {
+	if (!status) return "Queue";
+	return status
+		.split("_")
+		.join(" ")
+		.replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 export function DispatchDetailScreen({
 	dispatchId,
 	salesNo,
@@ -68,6 +77,7 @@ function DispatchDetailScreenInner({
 }: Props) {
 	const router = useRouter();
 	const insets = useSafeAreaInsets();
+	const auth = useAuthContext();
 	const ui = useDispatchUiState();
 	const detailUi = useDispatchDetailContext();
 	const actions = useDispatchActions();
@@ -88,6 +98,10 @@ function DispatchDetailScreenInner({
 	const data = overview.data!;
 	const dispatch = data?.dispatch;
 	const order = data?.order;
+	const duplicateInsight = data?.duplicateInsight;
+	const duplicateDispatches = duplicateInsight?.dispatches || [];
+	const hasDuplicateDispatch = duplicateInsight?.isDuplicate || false;
+	const activeDispatchId = dispatch?.id || dispatchId;
 	const items = useMemo(
 		() => (data?.dispatchItems || []).filter((item) => !!item.dispatchable),
 		[data?.dispatchItems],
@@ -106,8 +120,6 @@ function DispatchDetailScreenInner({
 		setSelectedIssueReason,
 		issueDetails,
 		setIssueDetails,
-		confirmPackAllChecked,
-		setConfirmPackAllChecked,
 		packOnlyAvailableChecked,
 		setPackOnlyAvailableChecked,
 	} = detailUi;
@@ -491,6 +503,24 @@ function DispatchDetailScreenInner({
 		}
 	};
 
+	const onNotifyDuplicateDispatchToAdmin = async () => {
+		if (!activeDispatchId) return;
+		try {
+			await notification.send("sales_dispatch_duplicate_alert", {
+				payload: {
+					dispatchId: activeDispatchId,
+				},
+			});
+			Toast.show("Admin has been notified about duplicate dispatch.", {
+				type: "success",
+			});
+		} catch {
+			Toast.show("Unable to notify admin right now.", {
+				type: "error",
+			});
+		}
+	};
+
 	const packingConfirmItems = useMemo(() => {
 		return packableItems.map((item) => {
 			const draft = packingDrafts[item.uid] || { qty: 0, lh: 0, rh: 0 };
@@ -618,7 +648,6 @@ function DispatchDetailScreenInner({
 				}),
 			),
 		);
-		setConfirmPackAllChecked(false);
 		setPackOnlyAvailableChecked(true);
 		dismissPackAllModal();
 		Toast.show(
@@ -832,6 +861,103 @@ function DispatchDetailScreenInner({
 							</Pressable>
 						</View>
 					</View>
+
+					{auth.isDriver && hasDuplicateDispatch ? (
+						<View className="mb-6 rounded-xl border border-amber-400/50 bg-amber-50 px-4 py-4 dark:bg-amber-950/25">
+							<View className="flex-row items-start gap-3">
+								<View className="mt-0.5 h-8 w-8 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/40">
+									<Icon name="AlertTriangle" className="text-amber-700 dark:text-amber-300" size={16} />
+								</View>
+								<View className="flex-1">
+									<Text className="text-sm font-bold text-amber-900 dark:text-amber-100">
+										Duplicate dispatch detected
+									</Text>
+									<Text className="mt-1 text-xs leading-5 text-amber-800 dark:text-amber-200">
+										This dispatch order has duplicates and may cause malfunction.
+									</Text>
+									<Pressable
+										onPress={onNotifyDuplicateDispatchToAdmin}
+										disabled={notification.isPending}
+										className="mt-3 h-10 items-center justify-center rounded-lg bg-amber-600 px-3 disabled:opacity-60"
+									>
+										<Text className="text-sm font-semibold text-amber-50">
+											{notification.isPending ? "Notifying..." : "Notify Admin"}
+										</Text>
+									</Pressable>
+								</View>
+							</View>
+						</View>
+					) : null}
+
+					{auth.isAdmin ? (
+						<View className="mb-6 rounded-xl border border-border bg-card p-4">
+							<View className="flex-row items-center justify-between">
+								<Text className="text-base font-bold text-foreground">
+									Duplicate Dispatches
+								</Text>
+								<View
+									className={`rounded-full px-2 py-1 ${
+										hasDuplicateDispatch ? "bg-amber-100 dark:bg-amber-900/40" : "bg-success/10"
+									}`}
+								>
+									<Text
+										className={`text-[10px] font-bold uppercase ${
+											hasDuplicateDispatch ? "text-amber-700 dark:text-amber-300" : "text-success"
+										}`}
+									>
+										{hasDuplicateDispatch ? "Detected" : "No Duplicate"}
+									</Text>
+								</View>
+							</View>
+							{hasDuplicateDispatch ? (
+								<View className="mt-3 gap-2">
+									{duplicateDispatches.map((item) => {
+										const isRecommended =
+											item.id === duplicateInsight?.recommendedKeepDispatchId;
+										const isCurrent = item.id === duplicateInsight?.currentDispatchId;
+										return (
+											<View
+												key={item.id}
+												className="rounded-lg border border-border/80 bg-background px-3 py-2"
+											>
+												<View className="flex-row items-center justify-between gap-3">
+													<Text className="text-sm font-semibold text-foreground">
+														#DISP-{item.id}
+													</Text>
+													<Text className="text-xs font-medium capitalize text-muted-foreground">
+														{formatDispatchStatusLabel(item.status)}
+													</Text>
+												</View>
+												<View className="mt-1 flex-row flex-wrap items-center gap-2">
+													{isCurrent ? (
+														<View className="rounded-full bg-primary/10 px-2 py-0.5">
+															<Text className="text-[10px] font-semibold uppercase text-primary">
+																Current
+															</Text>
+														</View>
+													) : null}
+													{isRecommended ? (
+														<View className="rounded-full bg-success/10 px-2 py-0.5">
+															<Text className="text-[10px] font-semibold uppercase text-success">
+																Recommended Keep
+															</Text>
+														</View>
+													) : null}
+													<Text className="text-[11px] text-muted-foreground">
+														{item.packedItemCount}/{item.itemCount} items packed
+													</Text>
+												</View>
+											</View>
+										);
+									})}
+								</View>
+							) : (
+								<Text className="mt-2 text-xs text-muted-foreground">
+									No duplicate dispatch found for this sales order.
+								</Text>
+							)}
+						</View>
+					) : null}
 
 					<View className="mb-6">
 						<Text className="mb-3 text-xl font-bold text-foreground">
@@ -1141,7 +1267,6 @@ function DispatchDetailScreenInner({
 						isSubmitting={packing.taskTrigger.isPending}
 						onClose={() => setPackingSlipOpen(false)}
 						onOpenPackAll={() => {
-							setConfirmPackAllChecked(false);
 							presentPackAllModal();
 						}}
 						onConfirmAndStartTrip={() => setDispatchConfirmOpen(true)}
@@ -1242,21 +1367,17 @@ function DispatchDetailScreenInner({
 				<PackAllModal
 					modalRef={packAllModalRef}
 					snapPoints={packAllSnapPoints}
-					confirmChecked={confirmPackAllChecked}
 					packOnlyAvailableChecked={packOnlyAvailableChecked}
 					productionItems={productionPackAllItems as any}
 					pendingItemsCount={pendingPackAllItems.length}
 					onDismiss={() => {
-						setConfirmPackAllChecked(false);
 						setPackOnlyAvailableChecked(true);
 					}}
-					onToggleConfirm={() => setConfirmPackAllChecked((prev) => !prev)}
 					onTogglePackOnlyAvailable={() =>
 						setPackOnlyAvailableChecked((prev) => !prev)
 					}
 					onPackAll={onPackAllDraft}
 					onCancel={() => {
-						setConfirmPackAllChecked(false);
 						setPackOnlyAvailableChecked(true);
 						dismissPackAllModal();
 					}}

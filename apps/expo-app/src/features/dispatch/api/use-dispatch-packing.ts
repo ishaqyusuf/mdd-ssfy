@@ -49,7 +49,7 @@ export function useDispatchPacking() {
   const invalidateDispatchQueries = async () => {
     await Promise.all([
       queryClient.invalidateQueries({
-        queryKey: _trpc.dispatch.dispatchOverview.queryKey(),
+        queryKey: _trpc.dispatch.dispatchOverviewV2.queryKey(),
       }),
       queryClient.invalidateQueries({
         queryKey: _trpc.dispatch.assignedDispatch.queryKey(),

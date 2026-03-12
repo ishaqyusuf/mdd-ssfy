@@ -4,6 +4,7 @@ import type {
   CompletionModeSchema,
   DispatchStatusSchema,
   DispatchQueryParamsSchema,
+  ResolveDuplicateDispatchGroupSchema,
   SalesDispatchOverviewSchema,
   UpdateDispatchDriverSchema,
   UpdateDispatchDueDateSchema,
@@ -38,6 +39,19 @@ function isControlReadParityEnabled() {
       .trim()
       .toLowerCase(),
   );
+}
+
+function isControlDebugEnabled() {
+  return ["1", "true", "yes", "on"].includes(
+    String(process.env.CONTROL_DEBUG || "")
+      .trim()
+      .toLowerCase(),
+  );
+}
+
+function controlDebugLog(label: string, payload: Record<string, unknown>) {
+  if (!isControlDebugEnabled()) return;
+  console.log(`[sales-control] ${label}`, payload);
 }
 
 function emptyQtyStat() {
@@ -86,6 +100,64 @@ const DISPATCH_OVERVIEW_DISPATCH_CONTROL_FIELDS = [
   "dispatchInProgress",
   "dispatchCompleted",
 ] as const;
+
+async function requireSuperAdmin(ctx: TRPCContext) {
+  if (!ctx.userId) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Unauthorized",
+    });
+  }
+  const user = await ctx.db.users.findFirst({
+    where: {
+      id: ctx.userId,
+    },
+    select: {
+      roles: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          role: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  const role = user?.roles?.[0]?.role?.name;
+  if (role?.toLowerCase() !== "super admin") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Only Super Admin can run dispatch sweeper.",
+    });
+  }
+}
+
+function dispatchKeepScore(dispatch: {
+  status: string | null;
+  packedItemCount: number;
+  itemCount: number;
+  updatedAt: Date | null;
+  createdAt: Date | null;
+}) {
+  const statusRank =
+    dispatch.status === "completed"
+      ? 4
+      : dispatch.status === "in progress"
+        ? 3
+        : dispatch.status === "queue"
+          ? 2
+          : dispatch.status === "missing items"
+            ? 1
+            : 0;
+  return (
+    statusRank * 1_000_000 +
+    Math.min(999_999, dispatch.packedItemCount * 10_000 + dispatch.itemCount)
+  );
+}
 
 export async function getDispatches(
   ctx: TRPCContext,
@@ -240,6 +312,199 @@ export async function getDispatches(
       uid: String(a.id),
     })),
   );
+}
+
+export async function findDuplicateDispatchGroups(ctx: TRPCContext) {
+  await requireSuperAdmin(ctx);
+
+  const dispatches = await ctx.db.orderDelivery.findMany({
+    where: {
+      deletedAt: null,
+    },
+    orderBy: [{ salesOrderId: "asc" }, { createdAt: "asc" }],
+    select: {
+      id: true,
+      salesOrderId: true,
+      status: true,
+      dueDate: true,
+      createdAt: true,
+      updatedAt: true,
+      deliveryMode: true,
+      driverId: true,
+      driver: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      order: {
+        select: {
+          id: true,
+          orderId: true,
+        },
+      },
+      items: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          packingStatus: true,
+        },
+      },
+    },
+  });
+
+  const bySalesId = new Map<number, typeof dispatches>();
+  for (const dispatch of dispatches) {
+    const stack = bySalesId.get(dispatch.salesOrderId) || [];
+    stack.push(dispatch);
+    bySalesId.set(dispatch.salesOrderId, stack);
+  }
+
+  const groups = [...bySalesId.entries()]
+    .filter(([, groupDispatches]) => groupDispatches.length > 1)
+    .map(([salesId, groupDispatches]) => {
+      const hydratedDispatches = groupDispatches.map((dispatch) => {
+        const itemCount = dispatch.items.length;
+        const packedItemCount = dispatch.items.filter(
+          (item) => item.packingStatus === "packed",
+        ).length;
+        return {
+          id: dispatch.id,
+          status: dispatch.status,
+          dueDate: dispatch.dueDate,
+          createdAt: dispatch.createdAt,
+          updatedAt: dispatch.updatedAt,
+          deliveryMode: dispatch.deliveryMode,
+          driverId: dispatch.driverId,
+          driverName: dispatch.driver?.name || null,
+          itemCount,
+          packedItemCount,
+          hasPacking: itemCount > 0,
+        };
+      });
+
+      const recommended = hydratedDispatches
+        .slice()
+        .sort((a, b) => {
+          const scoreDiff = dispatchKeepScore(b) - dispatchKeepScore(a);
+          if (scoreDiff !== 0) return scoreDiff;
+          const updatedDiff =
+            new Date(b.updatedAt || 0).getTime() -
+            new Date(a.updatedAt || 0).getTime();
+          if (updatedDiff !== 0) return updatedDiff;
+          return (
+            new Date(b.createdAt || 0).getTime() -
+            new Date(a.createdAt || 0).getTime()
+          );
+        })[0];
+
+      return {
+        salesId,
+        orderNo: groupDispatches[0]?.order?.orderId || null,
+        duplicateCount: hydratedDispatches.length,
+        recommendedKeepDispatchId: recommended?.id || hydratedDispatches[0]?.id,
+        dispatches: hydratedDispatches,
+      };
+    })
+    .sort((a, b) => b.duplicateCount - a.duplicateCount);
+
+  return {
+    groups,
+    summary: {
+      duplicateSalesCount: groups.length,
+      duplicateDispatchCount: groups.reduce(
+        (total, group) => total + group.duplicateCount,
+        0,
+      ),
+    },
+  };
+}
+
+export async function resolveDuplicateDispatchGroup(
+  ctx: TRPCContext,
+  input: ResolveDuplicateDispatchGroupSchema,
+) {
+  await requireSuperAdmin(ctx);
+
+  const deleteDispatchIds = [...new Set(input.deleteDispatchIds || [])].filter(
+    Boolean,
+  );
+  if (!deleteDispatchIds.length) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "No duplicate dispatch selected for deletion.",
+    });
+  }
+  if (deleteDispatchIds.includes(input.keepDispatchId)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Keep dispatch cannot be part of delete set.",
+    });
+  }
+
+  const now = new Date();
+  const result = await ctx.db.$transaction(async (tx) => {
+    const activeDispatches = await tx.orderDelivery.findMany({
+      where: {
+        salesOrderId: input.salesId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (activeDispatches.length <= 1) {
+      return {
+        salesId: input.salesId,
+        keepDispatchId: input.keepDispatchId,
+        deletedDispatchIds: [] as number[],
+        alreadyClean: true,
+      };
+    }
+
+    const activeIds = new Set(activeDispatches.map((dispatch) => dispatch.id));
+    if (!activeIds.has(input.keepDispatchId)) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "Selected keep dispatch is stale or no longer active.",
+      });
+    }
+
+    const validDeleteIds = deleteDispatchIds.filter((id) => activeIds.has(id));
+    if (!validDeleteIds.length) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "Selected duplicate dispatches are stale or already resolved.",
+      });
+    }
+
+    await tx.orderDelivery.updateMany({
+      where: {
+        salesOrderId: input.salesId,
+        id: {
+          in: validDeleteIds,
+        },
+        deletedAt: null,
+      },
+      data: {
+        deletedAt: now,
+      },
+    });
+
+    return {
+      salesId: input.salesId,
+      keepDispatchId: input.keepDispatchId,
+      deletedDispatchIds: validDeleteIds,
+      alreadyClean: false,
+    };
+  });
+
+  return {
+    ok: true,
+    ...result,
+  };
 }
 
 export async function getSalesDeliveryInfo(ctx: TRPCContext, salesId) {
@@ -891,6 +1156,297 @@ export async function getDispatchOverview(
         : null,
     },
     // orderRequiresUpdate: result.orderRequiresUpdate,
+  };
+}
+
+function toQtyMatrix(qty?: {
+  qty?: number | null;
+  lh?: number | null;
+  rh?: number | null;
+  noHandle?: boolean | null;
+}) {
+  const q = Number(qty?.qty || 0);
+  const lh = Number(qty?.lh || 0);
+  const rh = Number(qty?.rh || 0);
+  const noHandle =
+    qty?.noHandle === true ? true : lh <= 0 && rh <= 0;
+  return {
+    qty: q,
+    lh,
+    rh,
+    noHandle,
+  };
+}
+
+function qtyTotal(qty?: {
+  qty?: number | null;
+  lh?: number | null;
+  rh?: number | null;
+}) {
+  const q = Number(qty?.qty || 0);
+  const lh = Number(qty?.lh || 0);
+  const rh = Number(qty?.rh || 0);
+  return q > 0 ? q : lh + rh;
+}
+
+export async function getDispatchOverviewV2(
+  ctx: TRPCContext,
+  query: SalesDispatchOverviewSchema,
+) {
+  const result = await getSalesDispatchOverview(ctx.db, {
+    salesId: query.salesId,
+    salesNo: query.salesNo,
+  });
+
+  const dispatch = result.deliveries.find((d) => d.id === query.dispatchId);
+  const order = result.order;
+  const address = order.shippingAddress || ({} as any);
+
+  const dispatchItems = result.order.itemControls.map((item) => {
+    const dispatchable = result.dispatchables.find((d) => d.uid === item.uid);
+    const listedItems = dispatch?.items.filter(
+      (a) => a.item?.controlUid === item.uid,
+    );
+    const packedItems = listedItems?.filter(
+      (a) => !("packingStatus" in a) || a.packingStatus === "packed",
+    );
+    const totalListedAllDispatches = recomposeQty(
+      qtyMatrixSum(
+        ...result.deliveries
+          .map((d) =>
+            d.items
+              .filter((i) => i.item.controlUid === item.uid)
+              .map(transformQtyHandle)
+              .flat(),
+          )
+          .flat(),
+      ),
+    );
+    const listedQty = recomposeQty(
+      qtyMatrixSum(...((listedItems || []).map(transformQtyHandle) as any)),
+    );
+    const packedQty = recomposeQty(
+      qtyMatrixSum(...((packedItems || []).map(transformQtyHandle) as any)),
+    );
+    const deliverableQty = recomposeQty(
+      qtyMatrixSum(...(dispatchable?.deliverables?.map((a) => a.qty) || [])),
+    );
+    const nonDeliverableQty = recomposeQty(
+      qtyMatrixDifference(
+        dispatchable?.totalQty!,
+        qtyMatrixSum(deliverableQty, totalListedAllDispatches),
+      ),
+    );
+
+    let packingHistory = listedItems?.map((a) => ({
+      qty: toQtyMatrix(transformQtyHandle(a)),
+      date: a.createdAt,
+      note: "",
+      packedBy: a.packedBy,
+      id: a.id,
+      packingUid: a.packingUid,
+    }))!;
+    packingHistory = packingHistory
+      .filter(
+        (p, o) =>
+          !p.packingUid ||
+          (p.packingUid &&
+            packingHistory?.findIndex((a) => a.packingUid === p.packingUid) ===
+              o),
+      )
+      .map((d) => ({
+        ...d,
+        qty: toQtyMatrix(
+          !d.packingUid
+            ? d.qty
+            : qtyMatrixSum(
+                ...packingHistory?.filter(
+                  (p) => p.packingUid === d.packingUid,
+                )!,
+              ),
+        ),
+      }));
+
+    return {
+      uid: item.uid,
+      title: item.title,
+      subtitle: dispatchable?.subtitle || item.sectionTitle || "",
+      sectionTitle: item.sectionTitle || "",
+      img: dispatchable?.img || null,
+      dispatchable: true,
+      salesItemId: dispatchable?.itemId || null,
+      totalQty: toQtyMatrix(dispatchable?.totalQty as any),
+      deliverableQty: toQtyMatrix(deliverableQty as any),
+      listedQty: toQtyMatrix(listedQty as any),
+      packedQty: toQtyMatrix(packedQty as any),
+      nonDeliverableQty: toQtyMatrix(nonDeliverableQty as any),
+      deliverables: (dispatchable?.deliverables || []).map((entry) => ({
+        submissionId: entry.submissionId,
+        qty: toQtyMatrix(entry.qty as any),
+      })),
+      packingHistory,
+    };
+  });
+
+  controlDebugLog("getDispatchOverviewV2.dispatchItems", {
+    salesId: order.id,
+    dispatchId: query.dispatchId,
+    itemCount: dispatchItems.length,
+    rows: dispatchItems.map((item) => ({
+      uid: item.uid,
+      salesItemId: item.salesItemId,
+      totalQty: item.totalQty,
+      deliverableQty: item.deliverableQty,
+      listedQty: item.listedQty,
+      packedQty: item.packedQty,
+      nonDeliverableQty: item.nonDeliverableQty,
+      packingHistoryCount: item.packingHistory.length,
+      deliverablesCount: item.deliverables.length,
+    })),
+  });
+
+  const summary = dispatchItems.reduce(
+    (acc, item) => {
+      acc.total += qtyTotal(item.totalQty);
+      acc.deliverable += qtyTotal(item.deliverableQty);
+      acc.listed += qtyTotal(item.listedQty);
+      acc.packed += qtyTotal(item.packedQty);
+      acc.pending += qtyTotal(item.nonDeliverableQty);
+      return acc;
+    },
+    {
+      total: 0,
+      deliverable: 0,
+      listed: 0,
+      packed: 0,
+      pending: 0,
+      available: 0,
+    },
+  );
+  summary.available = Math.max(0, summary.deliverable - summary.listed);
+
+  controlDebugLog("getDispatchOverviewV2.summary", {
+    salesId: order.id,
+    dispatchId: query.dispatchId,
+    summary,
+    dispatchStatus: dispatch?.status ?? null,
+  });
+
+  const duplicateDispatches = result.deliveries.map((delivery) => {
+    const listedQty = recomposeQty(
+      qtyMatrixSum(...((delivery.items || []).map(transformQtyHandle) as any)),
+    );
+    const packedQty = recomposeQty(
+      qtyMatrixSum(
+        ...((delivery.items || [])
+          .filter((item) => item.packingStatus === "packed")
+          .map(transformQtyHandle) as any),
+      ),
+    );
+    const pendingPackingQty = recomposeQty(
+      qtyMatrixDifference(listedQty, packedQty),
+    );
+    const itemCount = (delivery.items || []).length;
+    const packedItemCount = (delivery.items || []).filter(
+      (item) => item.packingStatus === "packed",
+    ).length;
+
+    return {
+      id: delivery.id,
+      dispatchNumber: delivery.dispatchNumber,
+      status: delivery.status || null,
+      dueDate: delivery.dueDate,
+      createdAt: delivery.createdAt,
+      updatedAt: (delivery as any).updatedAt || null,
+      driverName: delivery.driver?.name || null,
+      itemCount,
+      packedItemCount,
+      listedQty: toQtyMatrix(listedQty as any),
+      packedQty: toQtyMatrix(packedQty as any),
+      pendingPackingQty: toQtyMatrix(pendingPackingQty as any),
+      listedTotal: qtyTotal(listedQty as any),
+      packedTotal: qtyTotal(packedQty as any),
+      pendingPackingTotal: qtyTotal(pendingPackingQty as any),
+      isCurrent: delivery.id === dispatch?.id,
+    };
+  });
+
+  const recommendedDuplicateKeep = duplicateDispatches
+    .slice()
+    .sort((a, b) => {
+      const scoreDiff = dispatchKeepScore(b) - dispatchKeepScore(a);
+      if (scoreDiff !== 0) return scoreDiff;
+      const updatedDiff =
+        new Date(b.updatedAt || 0).getTime() -
+        new Date(a.updatedAt || 0).getTime();
+      if (updatedDiff !== 0) return updatedDiff;
+      return (
+        new Date(b.createdAt || 0).getTime() -
+        new Date(a.createdAt || 0).getTime()
+      );
+    })[0];
+
+  const duplicateInsight = {
+    salesId: order.id,
+    currentDispatchId: dispatch?.id || null,
+    isDuplicate: duplicateDispatches.length > 1,
+    recommendedKeepDispatchId:
+      recommendedDuplicateKeep?.id || dispatch?.id || null,
+    dispatches: duplicateDispatches,
+  };
+
+  controlDebugLog("getDispatchOverviewV2.duplicateInsight", {
+    salesId: order.id,
+    dispatchId: query.dispatchId,
+    duplicateCount: duplicateDispatches.length,
+    recommendedKeepDispatchId: duplicateInsight.recommendedKeepDispatchId,
+    dispatches: duplicateDispatches.map((item) => ({
+      id: item.id,
+      status: item.status,
+      listedTotal: item.listedTotal,
+      packedTotal: item.packedTotal,
+      pendingPackingTotal: item.pendingPackingTotal,
+      itemCount: item.itemCount,
+      packedItemCount: item.packedItemCount,
+      isCurrent: item.isCurrent,
+    })),
+  });
+
+  return {
+    dispatch: dispatch
+      ? {
+          id: dispatch.id,
+          status: dispatch.status,
+          deliveryMode: dispatch.deliveryMode,
+          dispatchNumber: dispatch.dispatchNumber,
+          dueDate: dispatch.dueDate,
+          createdAt: dispatch.createdAt,
+          driver: dispatch.driver
+            ? {
+                id: dispatch.driver.id,
+                name: dispatch.driver.name,
+              }
+            : null,
+        }
+      : null,
+    order: {
+      id: order.id,
+      orderId: order.orderId,
+      date: order.createdAt,
+      customer: order.customer
+        ? {
+            name: order.customer.name,
+            businessName: order.customer.businessName,
+            phoneNo: order.customer.phoneNo,
+            email: order.customer.email,
+            address: order.customer.address,
+          }
+        : null,
+    },
+    address: address || {},
+    summary,
+    dispatchItems,
+    duplicateInsight,
   };
 }
 

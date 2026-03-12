@@ -22,12 +22,17 @@ import { useBin } from "@/hooks/use-bin";
 import { useAuth } from "@/hooks/use-auth";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { invalidateInfiniteQueries } from "@/hooks/use-invalidate-query";
+import { useDriversList } from "@/hooks/use-data-list";
 import { SubmitButton } from "@gnd/ui/submit-button";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
 import { UpdateSalesControl } from "@sales/schema";
 import { toast } from "@gnd/ui/use-toast";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
+import {
+    FulfillmentCompleteModal,
+    FulfillmentDispatch,
+} from "./fulfillment-complete-modal";
 export type Item = RouterOutputs["sales"]["index"]["data"][number];
 
 function getProductionStatusLabel(item: Item) {
@@ -328,9 +333,26 @@ export const columns: ColumnDef<Item>[] = [
 
 function Actions({ item }: { item: Item }) {
     const produceable = !!item.stats?.prodCompleted?.total;
+    const productionStatus = String(
+        (item as any)?.control?.productionStatus ||
+            item?.status?.production?.status ||
+            "",
+    ).toLowerCase();
+    const hasPendingProduction = ["pending", "in progress"].includes(
+        productionStatus,
+    );
+    const isFulfillmentCompleted = [
+        (item as any)?.control?.dispatchStatus,
+        item?.deliveryStatus,
+        (item as any)?.status?.delivery?.status,
+    ]
+        .filter(Boolean)
+        .some((status) => String(status).toLowerCase() === "completed");
     const isBin = useBin();
     const auth = useAuth();
     const trpc = useTRPC();
+    const queryClient = useQueryClient();
+    const [isFulfillmentModalOpen, setFulfillmentModalOpen] = React.useState(false);
     const notification = useNotificationTrigger({ silent: true });
     const { trigger } = useTaskTrigger({
         silent: true,
@@ -343,20 +365,56 @@ function Actions({ item }: { item: Item }) {
             });
         },
     });
-    const activeDispatch = ((item as any)?.deliveries || []).find(
-        (delivery) => !["cancelled", "completed"].includes(delivery?.status),
+    const drivers = useDriversList(isFulfillmentModalOpen);
+    const dispatchOverview = useQuery(
+        trpc.dispatch.orderDispatchOverview.queryOptions(
+            {
+                salesId: item.id,
+            },
+            {
+                enabled: isFulfillmentModalOpen,
+            },
+        ),
     );
-    const { mutate: createDispatch } = useMutation(
+    const dispatches = (dispatchOverview.data?.deliveries || []) as FulfillmentDispatch[];
+    const { mutateAsync: createDispatch, isPending: isCreatingDispatch } = useMutation(
         trpc.dispatch.createDispatch.mutationOptions({
             onSuccess() {
                 invalidateInfiniteQueries("sales.getOrders");
             },
         }),
     );
-    const { mutate: submitDispatch } = useMutation(
+    const { mutateAsync: submitDispatch, isPending: isSubmittingDispatch } = useMutation(
         trpc.dispatch.submitDispatch.mutationOptions({
             onSuccess() {
                 invalidateInfiniteQueries("sales.getOrders");
+            },
+        }),
+    );
+    const { mutateAsync: updateDispatchDriver, isPending: isUpdatingDriver } =
+        useMutation(
+            trpc.dispatch.updateDispatchDriver.mutationOptions({
+                onSuccess() {
+                    invalidateInfiniteQueries("sales.getOrders");
+                },
+            }),
+        );
+    const {
+        mutate: deleteDispatch,
+        isPending: isDeletingDispatch,
+        variables: deletingDispatchVars,
+    } = useMutation(
+        trpc.dispatch.deleteDispatch.mutationOptions({
+            onSuccess() {
+                dispatchOverview.refetch();
+                invalidateInfiniteQueries("sales.getOrders");
+            },
+            onError(error) {
+                toast({
+                    title: "Unable to delete dispatch.",
+                    description: error.message || "Please try again.",
+                    variant: "error",
+                });
             },
         }),
     );
@@ -365,16 +423,6 @@ function Actions({ item }: { item: Item }) {
         authorId: Number(auth?.id || 0),
         authorName: auth?.name || "System",
     });
-    const submitDispatchFromList = (dispatchId: number) => {
-        submitDispatch({
-            meta: getMeta(),
-            submitDispatch: {
-                dispatchId,
-                receivedBy: auth?.name || "System",
-                receivedDate: new Date(),
-            },
-        });
-    };
     const triggerProductionComplete = () => {
         toast({
             title: "Updating production status...",
@@ -400,44 +448,96 @@ function Actions({ item }: { item: Item }) {
             },
         });
     };
-    const triggerFulfillmentComplete = (dispatchId: number) => {
-        const payload: UpdateSalesControl = {
-            meta: getMeta(),
-            packItems: {
-                dispatchId,
-                dispatchStatus: "completed",
-                packMode: "all",
-            },
-        };
-        trigger({
-            taskName: "update-sales-control",
-            payload,
-        });
-        submitDispatchFromList(dispatchId);
-    };
-    const ensureDispatchAndTriggerFulfillment = () => {
+
+    const handleFulfillmentConfirm = async (payload: {
+        selectedDispatchId: number | null;
+        createNew: boolean;
+        completionMode: "pending_packing" | "pack_all";
+        recipient: string;
+        completedDate: Date;
+        driverId: number | null;
+    }) => {
+        if (hasPendingProduction) {
+            toast({
+                title: "Production pending",
+                description:
+                    "Fulfillment cannot be completed while production is still pending.",
+                variant: "error",
+            });
+            return;
+        }
         toast({
             title: "Updating fulfillment...",
             description: `Marking fulfillment as complete for order ${item.orderId}.`,
             variant: "spinner",
         });
-        if (activeDispatch?.id) {
-            triggerFulfillmentComplete(activeDispatch.id);
-            return;
-        }
-        createDispatch(
-            {
-                salesId: item.id,
-                deliveryMode: item.deliveryOption || "delivery",
-                dueDate: new Date(),
-                status: "queue",
-            },
-            {
-                onSuccess(dispatch) {
-                    triggerFulfillmentComplete(dispatch.id);
+
+        try {
+            let dispatchId = payload.selectedDispatchId;
+            const selectedDispatch = dispatches.find((dispatch) => dispatch.id === dispatchId);
+
+            if (payload.createNew || !dispatchId) {
+                const createdDispatch = await createDispatch({
+                    salesId: item.id,
+                    deliveryMode: item.deliveryOption || "delivery",
+                    dueDate: payload.completedDate || new Date(),
+                    driverId: payload.driverId || undefined,
+                    status: "queue",
+                });
+                dispatchId = createdDispatch.id;
+            } else if (
+                selectedDispatch &&
+                payload.driverId !== (selectedDispatch.driverId ?? null)
+            ) {
+                await updateDispatchDriver({
+                    dispatchId: selectedDispatch.id,
+                    oldDriverId: selectedDispatch.driverId ?? null,
+                    newDriverId: payload.driverId ?? null,
+                });
+            }
+
+            if (!dispatchId) {
+                throw new Error("Dispatch is required.");
+            }
+
+            if (payload.completionMode === "pack_all") {
+                const packAllPayload: UpdateSalesControl = {
+                    meta: getMeta(),
+                    packItems: {
+                        dispatchId,
+                        dispatchStatus: "completed",
+                        packMode: "all",
+                    },
+                };
+                trigger({
+                    taskName: "update-sales-control",
+                    payload: packAllPayload,
+                });
+            }
+
+            await submitDispatch({
+                meta: getMeta(),
+                submitDispatch: {
+                    dispatchId,
+                    receivedBy:
+                        payload.recipient || item?.addressData?.shipping?.name || "Customer",
+                    receivedDate: payload.completedDate || new Date(),
                 },
-            },
-        );
+            });
+
+            setFulfillmentModalOpen(false);
+            queryClient.invalidateQueries({
+                queryKey: trpc.dispatch.orderDispatchOverview.queryKey({
+                    salesId: item.id,
+                }),
+            });
+        } catch (error: any) {
+            toast({
+                title: "Unable to complete fulfillment.",
+                description: error?.message || "Please try again.",
+                variant: "error",
+            });
+        }
     };
     const { mutate: restore, isPending: isRestoring } = useMutation(
         trpc.sales.restore.mutationOptions({
@@ -513,9 +613,21 @@ function Actions({ item }: { item: Item }) {
                             Production Complete
                         </SalesMenu.Item>
                         <SalesMenu.Item
+                            disabled={isFulfillmentCompleted || hasPendingProduction}
                             onSelect={(e) => {
                                 e.preventDefault();
-                                ensureDispatchAndTriggerFulfillment();
+                                if (isFulfillmentCompleted || hasPendingProduction) {
+                                    if (hasPendingProduction) {
+                                        toast({
+                                            title: "Production pending",
+                                            description:
+                                                "Fulfillment cannot be completed while production is still pending.",
+                                            variant: "error",
+                                        });
+                                    }
+                                    return;
+                                }
+                                setFulfillmentModalOpen(true);
                             }}
                         >
                             <Check className="mr-2 size-4 text-muted-foreground/70" />
@@ -524,6 +636,34 @@ function Actions({ item }: { item: Item }) {
                     </SalesMenu.SubContent>
                 </SalesMenu.Sub>
             </SalesMenu>
+            <FulfillmentCompleteModal
+                open={isFulfillmentModalOpen}
+                onOpenChange={setFulfillmentModalOpen}
+                dispatches={dispatches}
+                drivers={(drivers || []).map((driver: any) => ({
+                    id: Number(driver.id),
+                    name: driver.name,
+                }))}
+                defaultRecipient={
+                    item?.addressData?.shipping?.name || item.displayName || "Customer"
+                }
+                isLoading={dispatchOverview.isLoading || dispatchOverview.isFetching}
+                isSubmitting={
+                    isCreatingDispatch ||
+                    isSubmittingDispatch ||
+                    isUpdatingDriver ||
+                    isDeletingDispatch
+                }
+                deletingDispatchId={
+                    deletingDispatchVars?.dispatchId
+                        ? Number(deletingDispatchVars.dispatchId)
+                        : null
+                }
+                onDeleteDispatch={(dispatchId) => {
+                    deleteDispatch({ dispatchId });
+                }}
+                onConfirm={handleFulfillmentConfirm}
+            />
         </div>
     );
 }

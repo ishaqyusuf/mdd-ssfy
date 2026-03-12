@@ -12,6 +12,8 @@ export const taskNames = [
   "create-sales-dispatch",
   "create-sales-history",
   "mark-sales-as-completed",
+  "run-dispatch-duplicate-sweeper-now",
+  "run-dispatch-duplicate-sweeper-test",
   "run-sales-pending-bill-reminder-now",
   "run-sales-pending-bill-reminder-test",
   "sales-rep-payment-received-notification",

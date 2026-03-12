@@ -3,6 +3,7 @@ import { SafeArea } from "@/components/safe-area";
 import { Icon } from "@/components/ui/icon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Toast } from "@/components/ui/toast";
+import { useAuthContext } from "@/hooks/use-auth";
 import { useNotifications } from "@/hooks/use-notifications";
 import {
   type TransformedNotification,
@@ -58,6 +59,7 @@ function NotificationList({
 
 export function NotificationCenterScreen() {
   const router = useRouter();
+  const auth = useAuthContext();
   const [tab, setTab] = useState("inbox");
   const { isLoading, error, notifications, archived } = useNotifications();
   const handlers = createNotificationHandlers({
@@ -81,6 +83,23 @@ export function NotificationCenterScreen() {
     dispatch_packing_delay: (data) => {
       Toast.show(`Approved pending packing for ${data.itemName}.`, {
         type: "success",
+      });
+    },
+    sales_dispatch_duplicate_alert: (data) => {
+      if (auth.isAdmin && auth.currentSectionKey === "sales") {
+        router.push({
+          pathname: "/(sales)/dispatch/[dispatchId]",
+          params: {
+            dispatchId: String(data.dispatchId),
+          },
+        });
+        return;
+      }
+      router.push({
+        pathname: "/(drivers)/dispatch/[dispatchId]",
+        params: {
+          dispatchId: String(data.dispatchId),
+        },
       });
     },
   });

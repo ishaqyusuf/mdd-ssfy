@@ -9,7 +9,7 @@ export type DispatchStatus =
 export type DispatchListResponse = RouterOutputs["dispatch"]["assignedDispatch"];
 export type DispatchListItem = DispatchListResponse["data"][number];
 
-export type DispatchOverview = RouterOutputs["dispatch"]["dispatchOverview"];
+export type DispatchOverview = RouterOutputs["dispatch"]["dispatchOverviewV2"];
 export type DispatchOverviewItem = DispatchOverview["dispatchItems"][number];
 export type DispatchPackingHistoryItem =
   DispatchOverviewItem["packingHistory"][number];

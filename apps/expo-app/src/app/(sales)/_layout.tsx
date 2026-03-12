@@ -10,6 +10,10 @@ export default function SalesLayout() {
         name="orders/[orderNo]/delivery/[dispatchId]"
         options={{ headerShown: false }}
       />
+      <Stack.Screen
+        name="dispatch/[dispatchId]"
+        options={{ headerShown: false }}
+      />
     </Stack>
   );
 }

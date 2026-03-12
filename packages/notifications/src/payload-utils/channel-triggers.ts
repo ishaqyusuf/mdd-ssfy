@@ -294,6 +294,20 @@ export function createNotificationChannelTriggers(
 				recipients: resolvedRecipients,
 			});
 		},
+		salesDispatchDuplicateAlert(
+			input: Input<"sales_dispatch_duplicate_alert">,
+		) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("sales_dispatch_duplicate_alert", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
 		jobReviewRequested(
 			input: NotificationEvent<"job_review_requested">["payload"] & {
 				recipients?: NotificationEvent<"job_review_requested">["recipients"];

@@ -7,6 +7,7 @@ import { PackingItemListings } from "./packing-item-listings";
 
 export function PackingItemsList() {
     const { data, packItemUid } = usePacking();
+
     return (
         <Card>
             <CardHeader className="bg-muted/20">

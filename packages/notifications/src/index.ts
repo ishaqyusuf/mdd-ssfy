@@ -28,17 +28,18 @@ import { salesDispatchAssigned } from "./types/sales-dispatch-assigned";
 import { salesDispatchCancelled } from "./types/sales-dispatch-cancelled";
 import { salesDispatchCompleted } from "./types/sales-dispatch-completed";
 import { salesDispatchDateUpdated } from "./types/sales-dispatch-date-updated";
+import { salesDispatchDuplicateAlert } from "./types/sales-dispatch-duplicate-alert";
 import { salesDispatchInProgress } from "./types/sales-dispatch-in-progress";
+import { salesDispatchInfo } from "./types/sales-dispatch-info";
 import { salesDispatchQueued } from "./types/sales-dispatch-queued";
 import { salesDispatchUnassigned } from "./types/sales-dispatch-unassigned";
 import { salesEmailReminder } from "./types/sales-email-reminder";
-import { simpleSalesEmailReminder } from "./types/simple-sales-email-reminder";
-import { salesDispatchInfo } from "./types/sales-dispatch-info";
 import { salesInfo } from "./types/sales-info";
 import { salesItemInfo } from "./types/sales-item-info";
 import { salesMarkedAsProductionCompleted } from "./types/sales-marked-as-production-completed";
 import { salesReminderScheduleAdminNotification } from "./types/sales-reminder-schedule-admin-notification";
 import { salesRequestPacking } from "./types/sales-request-packing";
+import { simpleSalesEmailReminder } from "./types/simple-sales-email-reminder";
 export {
 	getActivityTree,
 	getActivityTagSuggestions,
@@ -74,6 +75,7 @@ const handlers = {
 	sales_dispatch_info: salesDispatchInfo,
 	sales_request_packing: salesRequestPacking,
 	dispatch_packing_delay: dispatchPackingDelay,
+	sales_dispatch_duplicate_alert: salesDispatchDuplicateAlert,
 } as const;
 import { generateEmailMeta } from "./utils";
 

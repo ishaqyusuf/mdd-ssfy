@@ -6,19 +6,27 @@ import { Tabs, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
 export function DispatchHeader({}) {
     const { filters, setFilters } = useDispatchFilterParams();
-    const tabValue = filters.status === "completed" ? "completed" : "pending";
+    const tabValue =
+        filters.tab ||
+        (filters.status === "completed" ? "completed" : "pending");
 
     return (
         <div className="flex flex-col gap-3">
             <Tabs
                 value={tabValue}
                 onValueChange={(value) => {
+                    const nextTab =
+                        value === "all" || value === "pending" || value === "completed"
+                            ? value
+                            : "pending";
                     setFilters({
-                        status: value === "completed" ? "completed" : null,
+                        tab: nextTab,
+                        status: nextTab === "completed" ? "completed" : null,
                     });
                 }}
             >
                 <TabsList>
+                    <TabsTrigger value="all">All</TabsTrigger>
                     <TabsTrigger value="pending">Pending</TabsTrigger>
                     <TabsTrigger value="completed">Completed</TabsTrigger>
                 </TabsList>

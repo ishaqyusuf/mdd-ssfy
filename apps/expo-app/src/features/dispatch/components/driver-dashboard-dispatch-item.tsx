@@ -211,9 +211,9 @@ function ProgressDispatchCard({
           <View className="flex-row gap-2.5">
             <Pressable
               onPress={onComplete}
-              className="flex-1 items-center rounded-lg bg-primary py-3 active:opacity-85"
+              className="flex-1 items-center rounded-lg bg-success py-3 active:opacity-85"
             >
-              <Text className="text-sm font-bold text-primary-foreground">
+              <Text className="text-sm font-bold text-success-foreground">
                 Complete Delivery
               </Text>
             </Pressable>

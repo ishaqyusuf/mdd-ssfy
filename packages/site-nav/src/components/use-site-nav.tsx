@@ -25,12 +25,82 @@ export const createSiteNavContext = (props: Props) => {
         userId: props.userId,
       })
     );
-    const activeLink = Object.entries(linkModules.linksNameMap || {}).find(
-      ([href, data]) =>
-        (data as any).match == "part"
-          ? props.pathName?.toLocaleLowerCase()?.startsWith(href)
-          : href?.toLocaleLowerCase() === props.pathName?.toLocaleLowerCase()
-    )?.["1"];
+    const normalizePath = (path = "") =>
+      path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
+    const pathName = normalizePath(props.pathName?.toLocaleLowerCase() || "");
+    const candidates: Array<{
+      name?: string;
+      module?: string;
+      match?: "part";
+      hasAccess: boolean;
+      score: number;
+      pathLength: number;
+    }> = [];
+    const moduleList = linkModules?.modules || [];
+    moduleList.forEach((module) => {
+      const moduleName = module?.name;
+      const moduleScore =
+        typeof moduleName === "string" && moduleName.trim() !== "" ? 1 : 0;
+      module?.sections?.forEach((section) => {
+        section?.links?.forEach((link) => {
+          if (!link) return;
+          const exactHref = normalizePath(link?.href?.toLocaleLowerCase() || "");
+          if (exactHref && link.show && exactHref === pathName) {
+            candidates.push({
+              name: link.name,
+              module: moduleName,
+              hasAccess: true,
+              score: 3 + moduleScore,
+              pathLength: exactHref.length,
+            });
+          }
+          (link?.paths || []).forEach((partPath) => {
+            const normalizedPart = normalizePath(
+              partPath?.toLocaleLowerCase() || "",
+            );
+            if (!normalizedPart || !link.show || !pathName.startsWith(normalizedPart)) {
+              return;
+            }
+            candidates.push({
+              name: link.name,
+              module: moduleName,
+              match: "part",
+              hasAccess: true,
+              score: 1 + moduleScore,
+              pathLength: normalizedPart.length,
+            });
+          });
+          (link?.subLinks || []).forEach((subLink) => {
+            const subHref = normalizePath(
+              subLink?.href?.toLocaleLowerCase() || "",
+            );
+            if (!subHref || !subLink?.show) return;
+            if (subHref === pathName) {
+              candidates.push({
+                name: link.name,
+                module: moduleName,
+                hasAccess: true,
+                score: 3 + moduleScore,
+                pathLength: subHref.length,
+              });
+            }
+          });
+        });
+      });
+    });
+    const activeLink =
+      candidates.sort((a, b) => {
+        const byScore = b.score - a.score;
+        if (byScore !== 0) return byScore;
+        return b.pathLength - a.pathLength;
+      })[0] ||
+      Object.entries(linkModules.linksNameMap || {})
+        .map(([href, data]) => ({
+          href: normalizePath(href?.toLocaleLowerCase() || ""),
+          data: data as any,
+        }))
+        .find((entry) => entry.href === pathName && entry.data?.hasAccess !== false)
+        ?.data;
     const modules = linkModules?.modules
       ?.filter((a) => a.activeLinkCount && a?.name)
       .map((module) => {

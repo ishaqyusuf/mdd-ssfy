@@ -292,7 +292,7 @@ export async function getSaleInformation(
     items,
     orderNo: order.orderId,
     orderId: order.id,
-    deliveries: order.deliveries,
+    deliveries: order.deliveries.filter((delivery) => !delivery.deletedAt),
     order,
     orderMeta: order.meta as any as SalesMeta,
     // orderRequiresUpdate,

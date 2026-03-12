@@ -4,7 +4,7 @@ import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { useQueryClient } from "@tanstack/react-query";
 
-type DispatchOverview = RouterOutputs["dispatch"]["dispatchOverview"];
+type DispatchOverview = RouterOutputs["dispatch"]["dispatchOverviewV2"];
 type DispatchStatus = NonNullable<DispatchOverview["dispatch"]>["status"];
 
 type DispatchMeta = {
@@ -37,7 +37,7 @@ export function useDispatchActions() {
   const invalidateDispatchQueries = async () => {
     await Promise.all([
       queryClient.invalidateQueries({
-        queryKey: _trpc.dispatch.dispatchOverview.queryKey(),
+        queryKey: _trpc.dispatch.dispatchOverviewV2.queryKey(),
       }),
       queryClient.invalidateQueries({
         queryKey: _trpc.dispatch.assignedDispatch.queryKey(),

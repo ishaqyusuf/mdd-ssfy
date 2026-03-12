@@ -323,6 +323,7 @@ export const FullSalesSelect = {
       deletedAt: null,
     },
     select: {
+      deletedAt: true,
       status: true,
       deliveryMode: true,
       id: true,

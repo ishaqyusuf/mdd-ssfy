@@ -9,9 +9,6 @@ export function useDispatchDetailUiState() {
     null,
   );
   const [issueDetails, setIssueDetails] = useState("");
-  const [confirmPackAllChecked, setConfirmPackAllChecked] = useState(false);
-  const [packOnlyAvailableChecked, setPackOnlyAvailableChecked] =
-    useState(true);
 
   return {
     isPackingSlipOpen,
@@ -26,9 +23,5 @@ export function useDispatchDetailUiState() {
     setSelectedIssueReason,
     issueDetails,
     setIssueDetails,
-    confirmPackAllChecked,
-    setConfirmPackAllChecked,
-    packOnlyAvailableChecked,
-    setPackOnlyAvailableChecked,
   };
 }

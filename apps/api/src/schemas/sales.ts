@@ -12,6 +12,7 @@ import {
 } from "@gnd/utils/constants";
 export const dispatchQueryParamsSchema = z
   .object({
+    tab: z.enum(["all", "pending", "completed"]).optional().nullable(),
     driversId: z.array(z.number()).optional().nullable(),
     status: z.enum(salesDispatchStatus).optional().nullable(),
     scheduleDate: z
@@ -74,6 +75,15 @@ export const updateDispatchStatusSchema = z.object({
 });
 export type UpdateDispatchStatusSchema = z.infer<
   typeof updateDispatchStatusSchema
+>;
+
+export const resolveDuplicateDispatchGroupSchema = z.object({
+  salesId: z.number(),
+  keepDispatchId: z.number(),
+  deleteDispatchIds: z.array(z.number()).min(1),
+});
+export type ResolveDuplicateDispatchGroupSchema = z.infer<
+  typeof resolveDuplicateDispatchGroupSchema
 >;
 
 export const salesQueryParamsSchema = z

@@ -1,7 +1,6 @@
 import { useTRPC } from "@/trpc/client";
 import createContextFactory from "@/utils/context-factory";
 import { printSalesData } from "@/utils/sales-print-utils";
-import { RouterOutputs } from "@api/trpc/routers/_app";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { useState } from "react";
 import { useTaskTrigger } from "./use-task-trigger";
@@ -15,7 +14,7 @@ import { z } from "zod";
 import { toast } from "@gnd/ui/use-toast";
 
 interface Props {
-    data: RouterOutputs["dispatch"]["dispatchOverview"];
+    data: any;
 }
 export const { Provider: PackingProvider, useContext: usePacking } =
     createContextFactory(({ data }: Props) => {
@@ -23,9 +22,14 @@ export const { Provider: PackingProvider, useContext: usePacking } =
         const qc = useQueryClient();
         const trpc = useTRPC();
         const invalidate = () =>
-            qc.invalidateQueries({
-                queryKey: trpc.dispatch.dispatchOverview.queryKey(),
-            });
+            Promise.all([
+                qc.invalidateQueries({
+                    queryKey: trpc.dispatch.dispatchOverview.queryKey(),
+                }),
+                qc.invalidateQueries({
+                    queryKey: trpc.dispatch.dispatchOverviewV2.queryKey(),
+                }),
+            ]);
         const isQueue = data?.dispatch?.status === "queue";
         const isInProgress = data?.dispatch?.status === "in progress";
         const isCancelled = data?.dispatch?.status === "cancelled";
@@ -122,6 +126,9 @@ export const { Provider: PackingProvider, useContext: usePacking } =
             onSuccess() {
                 qc.invalidateQueries({
                     queryKey: trpc.dispatch.dispatchOverview.queryKey(),
+                });
+                qc.invalidateQueries({
+                    queryKey: trpc.dispatch.dispatchOverviewV2.queryKey(),
                 });
             },
         });

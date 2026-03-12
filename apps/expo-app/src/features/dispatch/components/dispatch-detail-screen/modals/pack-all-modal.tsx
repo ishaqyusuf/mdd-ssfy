@@ -17,12 +17,10 @@ type ProductionItem = {
 type Props = {
   modalRef: any;
   snapPoints: string[];
-  confirmChecked: boolean;
   packOnlyAvailableChecked: boolean;
   productionItems: ProductionItem[];
   pendingItemsCount: number;
   onDismiss: () => void;
-  onToggleConfirm: () => void;
   onTogglePackOnlyAvailable: () => void;
   onPackAll: () => void;
   onCancel: () => void;
@@ -32,12 +30,10 @@ type Props = {
 export function PackAllModal({
   modalRef,
   snapPoints,
-  confirmChecked,
   packOnlyAvailableChecked,
   productionItems,
   pendingItemsCount,
   onDismiss,
-  onToggleConfirm,
   onTogglePackOnlyAvailable,
   onPackAll,
   onCancel,
@@ -120,24 +116,9 @@ export function PackAllModal({
           </View>
         </View>
 
-        <Pressable onPress={onToggleConfirm} className="mt-6 flex-row items-start gap-3">
-          <View
-            className={`mt-0.5 h-5 w-5 items-center justify-center rounded border ${
-              confirmChecked ? "border-primary bg-primary" : "border-border bg-background"
-            }`}
-          >
-            {confirmChecked ? (
-              <Icon name="Check" className="text-primary-foreground" size={13} />
-            ) : null}
-          </View>
-          <Text className="flex-1 text-sm font-medium text-foreground">
-            I confirm all pending production is ready for packing
-          </Text>
-        </Pressable>
-
         <Pressable
           onPress={onTogglePackOnlyAvailable}
-          className="mt-4 flex-row items-start gap-3"
+          className="mt-6 flex-row items-start gap-3"
         >
           <View
             className={`mt-0.5 h-5 w-5 items-center justify-center rounded border ${
@@ -157,7 +138,7 @@ export function PackAllModal({
 
         <View className="mt-6 gap-3">
           <Pressable
-            disabled={!confirmChecked || !productionItems.length}
+            disabled={!productionItems.length}
             onPress={onPackAll}
             className="w-full flex-row items-center justify-center gap-2 rounded-xl bg-primary py-4 disabled:opacity-50"
           >

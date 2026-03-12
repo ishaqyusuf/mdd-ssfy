@@ -67,6 +67,18 @@ const DISPATCH_STATUSES: SalesDispatchStatus[] = [
   "cancelled",
 ];
 
+function isControlDebugEnabled() {
+  const flag = String(process.env.CONTROL_DEBUG ?? "")
+    .trim()
+    .toLowerCase();
+  return flag === "1" || flag === "true" || flag === "yes" || flag === "on";
+}
+
+function controlDebugLog(label: string, payload: Record<string, unknown>) {
+  if (!isControlDebugEnabled()) return;
+  console.log(`[sales-control] ${label}`, payload);
+}
+
 function isDispatchStatus(
   value: string | null | undefined,
 ): value is SalesDispatchStatus {
@@ -515,6 +527,14 @@ export async function withSalesControl<T extends { id: number }>(
   const { itemControls, qtyControls, deliveries, deliveryItems } =
     await loadOrderLevelData(orderIds, db);
 
+  controlDebugLog("withSalesControl.loadOrderLevelData", {
+    orderCount: orders.length,
+    itemControlCount: itemControls.length,
+    qtyControlCount: qtyControls.length,
+    deliveryCount: deliveries.length,
+    deliveryItemCount: deliveryItems.length,
+  });
+
   const controlsByOrder = buildControlsByOrderMap(itemControls, qtyControls);
   const packedByOrder = buildOrderPackedMap(deliveries, deliveryItems);
 
@@ -529,10 +549,30 @@ export async function withSalesControl<T extends { id: number }>(
       dispatchCancelled: sumControls(controls, "dispatchCancelled"),
     };
     const dispatchStatus = deriveDispatchStatusFromControls(baseDispatchControls);
+    const statistic = toStatistic(controls, packed, dispatchStatus);
+
+    controlDebugLog("withSalesControl.orderStatistic", {
+      orderId: order.id,
+      controlCount: controls.length,
+      packed,
+      dispatchStatus,
+      qty: statistic.qty,
+      prodAssigned: statistic.prodAssigned,
+      prodCompleted: statistic.prodCompleted,
+      pendingAssignment: statistic.pendingAssignment,
+      pendingSubmission: statistic.pendingSubmission,
+      packables: statistic.packables,
+      pendingPacking: statistic.pendingPacking,
+      pendingDispatch: statistic.pendingDispatch,
+      dispatchAssigned: statistic.dispatchAssigned,
+      dispatchInProgress: statistic.dispatchInProgress,
+      dispatchCompleted: statistic.dispatchCompleted,
+      dispatchCancelled: statistic.dispatchCancelled,
+    });
 
     return {
       ...order,
-      statistic: toStatistic(controls, packed, dispatchStatus),
+      statistic,
     };
   });
 }
@@ -573,6 +613,15 @@ export async function withDispatchControl<
     }),
   ]);
 
+  controlDebugLog("withDispatchControl.loadDispatchLevelData", {
+    dispatchCount: dispatches.length,
+    orderCount: orderIds.length,
+    itemControlCount: itemControls.length,
+    qtyControlCount: qtyControls.length,
+    persistedDispatchCount: persistedDispatches.length,
+    deliveryItemCount: deliveryItems.length,
+  });
+
   const controlsByOrder = buildControlsByOrderMap(itemControls, qtyControls);
   const packedByDispatch = buildDispatchPackedMap(
     persistedDispatches,
@@ -606,6 +655,25 @@ export async function withDispatchControl<
 
     const statistic = toStatistic(controls, packed, dispatchStatus);
     statistic.pendingPacking = diffQtyStat(listed, packed);
+
+    controlDebugLog("withDispatchControl.dispatchStatistic", {
+      dispatchId: dispatch.id,
+      salesOrderId: dispatch.salesOrderId,
+      storedStatus,
+      derivedStatus: dispatchStatus,
+      controlCount: controls.length,
+      listed,
+      packed,
+      qty: statistic.qty,
+      packables: statistic.packables,
+      pendingPacking: statistic.pendingPacking,
+      pendingDispatch: statistic.pendingDispatch,
+      packedStat: statistic.packed,
+      dispatchAssigned: statistic.dispatchAssigned,
+      dispatchInProgress: statistic.dispatchInProgress,
+      dispatchCompleted: statistic.dispatchCompleted,
+      dispatchCancelled: statistic.dispatchCancelled,
+    });
 
     return {
       ...dispatch,

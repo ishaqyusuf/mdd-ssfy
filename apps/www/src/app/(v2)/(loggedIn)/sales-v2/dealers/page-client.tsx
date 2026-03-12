@@ -4,16 +4,11 @@ import { use } from "react";
 import { useSearchParams } from "next/navigation";
 import { DataTable } from "@/app-deps/_components/data-table";
 import { TableToolbar } from "@/app-deps/_components/data-table/toolbar";
-
-import { FPageTabs } from "@/components/(clean-code)/fikr-ui/f-page-tabs";
 import { useDataTableColumn2 } from "@/components/common/data-table/columns/use-data-table-columns";
-
-import { Badge } from "@gnd/ui/badge";
 
 import {
     DealerStatus,
     GetDealersAction,
-    GetDealersPageTabAction,
 } from "./action";
 import { Cells } from "./cells";
 

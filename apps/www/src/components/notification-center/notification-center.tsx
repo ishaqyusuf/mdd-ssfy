@@ -1,4 +1,6 @@
 "use client";
+import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
+import { useJobParams } from "@/hooks/use-contractor-jobs-params";
 import { useNotifications } from "@/hooks/use-notifications";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
@@ -18,8 +20,6 @@ import { toast } from "sonner";
 import { ErrorFallback } from "../error-fallback";
 import { EmptyState } from "./empty-state";
 import { NotificationItem } from "./notification-item";
-import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
-import { useJobParams } from "@/hooks/use-contractor-jobs-params";
 
 export function NotificationCenter() {
     const [isOpen, setOpen] = useState(false);
@@ -66,6 +66,13 @@ export function NotificationCenter() {
             router.push("/sales-book/dispatch");
             toast.success(
                 `Approved pending packing for ${data.itemName}. Dispatch #${data.dispatchId}.`,
+            );
+        },
+        sales_dispatch_duplicate_alert: (data, _notification, context) => {
+            context.close();
+            router.push(`/sales-book/dispatch?q=${encodeURIComponent(String(data.dispatchId))}`);
+            toast.info(
+                `Duplicate dispatch alert opened for #${data.dispatchId}.`,
             );
         },
     });

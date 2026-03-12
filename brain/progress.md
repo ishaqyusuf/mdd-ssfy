@@ -1,5 +1,22 @@
 # Progress
 
+## 2026-03-12
+
+- Started dispatch-control stabilization Phase 0 (repro and baseline evidence lock).
+- Added dedicated repro matrix and scope lock doc:
+  - `brain/dispatch-control-phase0-repro-matrix.md`.
+- Added evidence workspace template for fixture-by-issue capture:
+  - `ai/dispatch-control-evidence/README.md`.
+- Added evidence scaffold folders for `F1..F4` x `issue-1..issue-6` plus tracker file:
+  - `ai/dispatch-control-evidence/STATUS.md`.
+- Added user-reported priority dispatch IDs to active Phase 0 baseline:
+  - `3419`, `3420` for packing metrics mismatch (`available/listed/pending`).
+- Attempted live fixture pull for `3419/3420` via Prisma to populate evidence snapshots; blocked by DB connectivity (`localhost:3306` unreachable in current runtime).
+- Captured initial static baseline findings to guide Phase 1 implementation:
+  - web mark-fulfilled path has non-awaited pack-then-submit sequence risk in `apps/www/src/components/tables/sales-orders/columns.tsx`.
+  - legacy server action `apps/www/src/actions/sales-mark-as-completed.ts` bypasses control-command flow via direct `qtyControl`/`orderDelivery` updates.
+  - dispatch progress consumers mix order-level and dispatch-level control fields (web and mobile list paths), which can produce mismatched progress numbers.
+
 ## 2026-03-11
 
 - Started Sales Control V2 dispatch overview read migration:

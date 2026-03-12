@@ -12,6 +12,19 @@ import { isEqual } from "lodash";
 import { getItemStatConfig, qtyControlsByType } from "./utils";
 import { GetSalesItemControllables } from "../sales-control";
 import { SalesInfoData } from "../exports";
+
+function isControlDebugEnabled() {
+  const flag = String(process.env.CONTROL_DEBUG ?? "")
+    .trim()
+    .toLowerCase();
+  return flag === "1" || flag === "true" || flag === "yes" || flag === "on";
+}
+
+function controlDebugLog(label: string, payload: Record<string, unknown>) {
+  if (!isControlDebugEnabled()) return;
+  console.log(`[sales-control] ${label}`, payload);
+}
+
 export const composeQtyMatrix = (rh, lh, qty) => {
   if (!qty || rh || lh) qty = sum([rh, lh]);
   return { rh, lh, qty, noHandle: !rh && !lh };
@@ -331,6 +344,26 @@ export function composeSalesItemControlStat({
     dispatchCompleted: dispatch.completed,
     dispatchInProgress: dispatch.inProgress,
   } as { [k in QtyControlType]: Qty };
+
+  controlDebugLog("composeSalesItemControlStat", {
+    salesId: order.id,
+    orderNo: order.orderId,
+    controlUid: props.controlUid,
+    itemId: props.itemId ?? null,
+    doorId: props.doorId ?? null,
+    production: !!production,
+    qty,
+    assigned,
+    submitted,
+    submissionIds,
+    dispatch,
+    pendingAssignment,
+    pendingProduction,
+    pendingDispatch,
+    availableDispatch,
+    deliverableCount: deliverables.length,
+  });
+
   return {
     // orderAssignments: order.assignments,
     assignmentUidUpdates: assignments

@@ -12,9 +12,9 @@ import { linkModules } from "./sidebar/links";
 export function SidebarContent({ children }) {
     const auth = useAuth();
     if (!auth.id) return null;
-    // if (process.env.NODE_ENV === "development") {
-    //     return <NavLayoutClient>{children}</NavLayoutClient>;
-    // }
+    if (process.env.NODE_ENV === "development") {
+        return <NavLayoutClient>{children}</NavLayoutClient>;
+    }
     return (
         <SidebarProvider args={[{}]}>
             <Sidebar />

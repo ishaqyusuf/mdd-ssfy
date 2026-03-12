@@ -1,6 +1,7 @@
 import { createTRPCRouter, publicProcedure } from "../init";
 import {
   dispatchQueryParamsSchema,
+  resolveDuplicateDispatchGroupSchema,
   salesDispatchOverviewSchema,
   updateDispatchDriverSchema,
   updateDispatchDueDateSchema,
@@ -8,9 +9,12 @@ import {
   updateSalesDeliveryOptionSchema,
 } from "@api/schemas/sales";
 import {
+  findDuplicateDispatchGroups,
   getDispatches,
   getDispatchOverview,
+  getDispatchOverviewV2,
   getSalesDeliveryInfo,
+  resolveDuplicateDispatchGroup,
   updateDispatchDriver,
   updateDispatchDueDate,
   updateDispatchStatus,
@@ -31,6 +35,7 @@ import type { SalesDispatchStatus } from "@sales/types";
 import type { DeliveryOption } from "@gnd/utils/sales";
 import { tasks } from "@trigger.dev/sdk/v3";
 import type { NotificationJobInput } from "@notifications/schemas";
+import { TRPCError } from "@trpc/server";
 
 export const dispatchRouters = createTRPCRouter({
   index: publicProcedure
@@ -106,6 +111,19 @@ export const dispatchRouters = createTRPCRouter({
     .query(async (props) => {
       return getDispatchOverview(props.ctx, props.input);
     }),
+  dispatchOverviewV2: publicProcedure
+    .input(salesDispatchOverviewSchema)
+    .query(async (props) => {
+      return getDispatchOverviewV2(props.ctx, props.input);
+    }),
+  findDuplicateGroups: publicProcedure.query(async (props) => {
+    return findDuplicateDispatchGroups(props.ctx);
+  }),
+  resolveDuplicateGroup: publicProcedure
+    .input(resolveDuplicateDispatchGroupSchema)
+    .mutation(async (props) => {
+      return resolveDuplicateDispatchGroup(props.ctx, props.input);
+    }),
   createDispatch: publicProcedure
     .input(createDispatchSchema)
     .mutation(async (props) => {
@@ -172,6 +190,27 @@ export const dispatchRouters = createTRPCRouter({
       }),
     )
     .mutation(async (props) => {
+      const dispatch = await props.ctx.db.orderDelivery.findFirst({
+        where: {
+          id: props.input.dispatchId,
+          deletedAt: null,
+        },
+        select: {
+          status: true,
+        },
+      });
+      if (!dispatch) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "DISPATCH_NOT_FOUND",
+        });
+      }
+      if (dispatch.status === "completed") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Completed dispatch cannot be deleted.",
+        });
+      }
       await props.ctx.db.orderDelivery.update({
         where: {
           id: props.input.dispatchId,

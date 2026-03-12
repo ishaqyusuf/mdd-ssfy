@@ -50,10 +50,19 @@ export function NavsList({ mobile = false }) {
   const { linkModules, activeLink, isExpanded: _isExpanded } = useSiteNav();
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const isExpanded = _isExpanded || mobile;
-  const [expandModule, setExpandModule] = useState(null);
+  const [expandModule, setExpandModule] = useState<string | null>(null);
+  const [collapseActiveModule, setCollapseActiveModule] = useState(false);
   useEffect(() => {
     setExpandModule(null);
+    setCollapseActiveModule(false);
   }, [_isExpanded]);
+  useEffect(() => {
+    if (!isExpanded) return;
+    setCollapseActiveModule(false);
+    setExpandModule(
+      typeof activeLink?.module === "string" ? activeLink.module : null,
+    );
+  }, [isExpanded, activeLink?.module]);
   return (
     <div className="mt-6 w-full">
       <nav className="w-full overflow-auto">
@@ -62,41 +71,61 @@ export function NavsList({ mobile = false }) {
           {linkModules?.modules
             // ?.filter((a) => a.activeLinkCount)
             .map((module, mi) => {
+              const hasModuleTitle = Boolean(module?.name?.trim());
               const isActiveModule = activeLink?.module == module?.name;
-              const isExpandedModule = expandModule === module.name;
-              const show = isActiveModule || (isExpandedModule && isExpanded);
+              const isExpandedModule =
+                hasModuleTitle && expandModule === module.name;
+              const showExpandedState =
+                isExpanded &&
+                (!hasModuleTitle ||
+                  isExpandedModule ||
+                  (isActiveModule && !collapseActiveModule));
+              const showCollapsedState =
+                !isExpanded &&
+                (isActiveModule ||
+                  (!activeLink?.module && !hasModuleTitle));
+              const show = showExpandedState || showCollapsedState;
               return (
                 <Fragment key={mi}>
-                  <div
-                    onClick={(e) => {
-                      if (isActiveModule) return;
-                      setExpandModule(module?.name);
-                    }}
-                    className={cn(
-                      "flex justify-between  gap-2 items-center uppercase pl-4 text-sm text-xs font-bold text-muted-foreground cursor-pointer h-8",
-                      !isExpanded && "hidden",
-                      !mobile ? "pr-4" : "",
-                      isExpanded && !show && "border-b border-muted",
-                    )}
-                  >
-                    <span>{module.name}</span>
-                    <Icons.ChevronDown
+                  {hasModuleTitle ? (
+                    <div
+                      onClick={() => {
+                        if (isActiveModule && expandModule === null) {
+                          setCollapseActiveModule((prev) => !prev);
+                          return;
+                        }
+                        setCollapseActiveModule(false);
+                        setExpandModule((prev) =>
+                          prev === module.name ? null : module.name,
+                        );
+                      }}
                       className={cn(
-                        "size-4",
-                        isActiveModule || isExpandedModule ? "" : "-rotate-90",
+                        "flex justify-between  gap-2 items-center uppercase pl-4 text-sm text-xs font-bold text-muted-foreground cursor-pointer h-8",
+                        !isExpanded && "hidden",
+                        !mobile ? "pr-4" : "",
+                        isExpanded && !show && "border-b border-muted",
                       )}
-                    />
-                  </div>
+                    >
+                      <span>{module.name}</span>
+                      <Icons.ChevronDown
+                        className={cn(
+                          "size-4",
+                          show ? "" : "-rotate-90",
+                        )}
+                      />
+                    </div>
+                  ) : null}
                   {module?.sections?.map((section, si) => (
                     <div
                       key={si}
                       className={cn(
                         !section?.linksCount && "hidden",
+                        !show && "hidden",
                         moduleVariants({
                           // isCurrent: activeLink?.module == module?.name,
                           isCurrent: show,
                           // renderMode,
-                          moduleType: module?.name ? "module" : "global",
+                          moduleType: hasModuleTitle ? "module" : "global",
                         }),
                       )}
                     >

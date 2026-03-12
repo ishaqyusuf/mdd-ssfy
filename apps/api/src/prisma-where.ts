@@ -33,45 +33,59 @@ export function whereCustomer(query: DispatchQueryParamsSchema) {
 export function whereDispatch(query: DispatchQueryParamsSchema) {
   const whereStack: Prisma.OrderDeliveryWhereInput[] = [];
 
-  switch (query?.status as SalesDispatchStatus) {
-    case "missing items":
-      whereStack.push({
-        order: {
-          itemControls: {
-            some: {
-              deletedAt: null,
-              qtyControls: {
-                some: {
-                  deletedAt: null,
-                  type: "dispatchCompleted",
-                  total: {
-                    gt: 0,
-                  },
-                  percentage: {
-                    lt: 100,
+  if (query?.tab === "all") {
+    // Keep all statuses.
+  } else if (query?.tab === "completed") {
+    whereStack.push({
+      status: "completed",
+    });
+  } else if (query?.tab === "pending") {
+    whereStack.push({
+      status: {
+        in: ["in progress", "queue"] as SalesDispatchStatus[],
+      },
+    });
+  } else {
+    switch (query?.status as SalesDispatchStatus) {
+      case "missing items":
+        whereStack.push({
+          order: {
+            itemControls: {
+              some: {
+                deletedAt: null,
+                qtyControls: {
+                  some: {
+                    deletedAt: null,
+                    type: "dispatchCompleted",
+                    total: {
+                      gt: 0,
+                    },
+                    percentage: {
+                      lt: 100,
+                    },
                   },
                 },
               },
             },
           },
-        },
-      });
-      break;
-    case "in progress":
-    case "queue":
-    case "completed":
-    case "cancelled":
-      whereStack.push({
-        status: query?.status,
-      });
-      break;
-    default:
-      whereStack.push({
-        status: {
-          in: ["in progress", "queue"] as SalesDispatchStatus[],
-        },
-      });
-      break;
+        });
+        break;
+      case "in progress":
+      case "queue":
+      case "completed":
+      case "cancelled":
+        whereStack.push({
+          status: query?.status,
+        });
+        break;
+      default:
+        whereStack.push({
+          status: {
+            in: ["in progress", "queue"] as SalesDispatchStatus[],
+          },
+        });
+        break;
+    }
   }
   if (query.driversId?.length && env.NODE_ENV === "production")
     whereStack.push({
@@ -81,6 +95,28 @@ export function whereDispatch(query: DispatchQueryParamsSchema) {
     });
   if (query.q) {
     const contains = { contains: query.q };
+    const addressContains = {
+      OR: [
+        {
+          name: contains,
+        },
+        {
+          address1: contains,
+        },
+        {
+          address2: contains,
+        },
+        {
+          city: contains,
+        },
+        {
+          state: contains,
+        },
+        {
+          country: contains,
+        },
+      ],
+    };
     whereStack.push({
       OR: [
         {
@@ -103,6 +139,12 @@ export function whereDispatch(query: DispatchQueryParamsSchema) {
                     },
                   ],
                 },
+              },
+              {
+                shippingAddress: addressContains,
+              },
+              {
+                billingAddress: addressContains,
               },
             ],
           },

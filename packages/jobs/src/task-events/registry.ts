@@ -5,6 +5,9 @@ export const taskEventStatusSchema = z.enum(["active", "inactive"]);
 export type TaskEventStatus = z.infer<typeof taskEventStatusSchema>;
 
 const salesPendingBillReminderFilterSchema = salesQueryParamsSchema.partial();
+const dispatchDuplicateSweeperFilterSchema = z
+	.record(z.string(), z.unknown())
+	.default({});
 
 type TaskEventFilterDefinition = {
 	key: string;
@@ -49,6 +52,25 @@ const buildRunTaskName = (
 };
 
 const registry = {
+	"dispatch-duplicate-sweeper-schedule": {
+		eventName: "dispatch-duplicate-sweeper-schedule",
+		title: "Dispatch Duplicate Sweeper",
+		description:
+			"Daily cleanup that removes duplicate active dispatch rows per sales order.",
+		runNowTaskId: buildRunTaskName(
+			"dispatch-duplicate-sweeper-schedule",
+			"now",
+		),
+		runTestTaskId: buildRunTaskName(
+			"dispatch-duplicate-sweeper-schedule",
+			"test",
+		),
+		filterSchema: dispatchDuplicateSweeperFilterSchema,
+		defaultConfig: {
+			status: "active" as TaskEventStatus,
+			filter: {},
+		},
+	},
 	"sales-pending-bill-reminder-schedule": {
 		eventName: "sales-pending-bill-reminder-schedule",
 		title: "Sales Pending Bill Reminder",

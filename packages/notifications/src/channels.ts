@@ -35,6 +35,7 @@ export const channelNames = [
 	"sales_production_all_completed",
 	"sales_request_packing",
 	"dispatch_packing_delay",
+	"sales_dispatch_duplicate_alert",
 ] as const;
 export type ChannelName = (typeof channelNames)[number];
 export const priorityStrings = [
@@ -278,6 +279,13 @@ export const channelsConfig: Partial<{
 		name: "Dispatch Packing Delay",
 		description:
 			"Send when a pending production item is marked ready but not yet updated in the system.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_dispatch_duplicate_alert: {
+		name: "Dispatch Duplicate Alert",
+		description:
+			"Send when a driver reports duplicate dispatch rows that need admin resolution.",
 		priority: 5,
 		category: "Sales",
 	},

@@ -236,6 +236,12 @@ import {
   FolderTree,
   Wrench,
   PackagePlus,
+  LogOut,
+  BarChart3,
+  Scale,
+  BarChart2,
+  Archive,
+  FileEdit,
 } from "lucide-react";
 
 import { Cross2Icon, DashboardIcon } from "@radix-ui/react-icons";
@@ -393,9 +399,20 @@ export const IconsBase = {
   view: Eye,
   flag: Flag,
   edit: ClipboardEdit,
-  ...PaymentMethodIcon,
+  Draft: FileEdit,
+  Published: CheckCircle,
+  Archived: Archive,
+  Archive: Archive,
+  report: BarChart2,
+  chart: BarChart2,
+  resolutionCenter: Scale,
+  salesDashboard: BarChart3,
   monitor: Monitor,
   category: FolderTree,
+  logout: LogOut,
+  notification: Monitor,
+  ...PaymentMethodIcon,
+
   builder: Wrench,
   installation: PackagePlus,
   WhatsApp: (props: SVGIconProps) => (

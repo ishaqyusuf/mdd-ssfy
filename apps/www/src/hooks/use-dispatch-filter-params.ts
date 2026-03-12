@@ -11,6 +11,7 @@ import { salesDispatchStatus } from "@gnd/utils/constants";
 type FilterKeys = keyof Exclude<RouterInputs["dispatch"]["index"], void>;
 
 export const dispatchFilterParamsSchema = {
+    tab: parseAsStringLiteral(["all", "pending", "completed"]),
     status: parseAsStringLiteral(salesDispatchStatus),
     q: parseAsString,
     driversId: parseAsArrayOf(parseAsInteger, ","),

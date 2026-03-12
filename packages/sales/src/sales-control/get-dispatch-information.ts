@@ -8,6 +8,18 @@ import {
 } from "../utils/sales-control";
 import { padStart } from "lodash";
 
+function isControlDebugEnabled() {
+  const flag = String(process.env.CONTROL_DEBUG ?? "")
+    .trim()
+    .toLowerCase();
+  return flag === "1" || flag === "true" || flag === "yes" || flag === "on";
+}
+
+function controlDebugLog(label: string, payload: Record<string, unknown>) {
+  if (!isControlDebugEnabled()) return;
+  console.log(`[sales-control] ${label}`, payload);
+}
+
 export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
   //   throw new Error("ERRORR!");
   const overview = await getSaleInformation(db, {
@@ -74,6 +86,34 @@ export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
       ),
     };
   });
+
+  controlDebugLog("getSalesDispatchOverview.dispatchables", {
+    salesId: overview.order.id,
+    dispatchableCount: dispatchables.length,
+    progress: {
+      availableDispatchQty,
+      dispatchedQty,
+      pendingDispatchQty,
+      pendingProductionQty,
+    },
+    dispatchables: dispatchables.map((item) => ({
+      uid: item.uid,
+      itemId: item.itemId,
+      production: !!item.itemConfig?.production,
+      totalQty: item.totalQty,
+      availableQty: item.availableQty,
+      deliverableCount: (item.deliverables || []).length,
+      submissionCount: (item.analytics?.submissionIds || []).length,
+      dispatchStats: item.analytics?.stats
+        ? {
+            dispatchAssigned: item.analytics.stats.dispatchAssigned,
+            dispatchInProgress: item.analytics.stats.dispatchInProgress,
+            dispatchCompleted: item.analytics.stats.dispatchCompleted,
+          }
+        : null,
+    })),
+  });
+
   const deliveries = overview.deliveries.map((delivery) => {
     return {
       ...delivery,
