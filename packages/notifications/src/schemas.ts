@@ -243,6 +243,7 @@ export type NotificationTypes = {
 	sales_dispatch_cancelled: SalesDispatchCancelledInput;
 	sales_dispatch_completed: SalesDispatchCompletedInput;
 	sales_dispatch_packed: SalesDispatchPackedInput;
+	sales_dispatch_packing_reset: SalesDispatchPackingResetInput;
 	sales_dispatch_in_progress: SalesDispatchInProgressInput;
 	sales_dispatch_date_updated: SalesDispatchDateUpdatedInput;
 	sales_dispatch_unassigned: SalesDispatchUnassignedInput;
@@ -363,6 +364,26 @@ export const salesDispatchPackedTags = actityTagsSchema.extend({
 	driverId: z.number().optional(),
 });
 export type SalesDispatchPackedTags = z.infer<typeof salesDispatchPackedTags>;
+export const salesDispatchPackingResetSchema = z.object({
+	orderNo: z.string().optional(),
+	dispatchId: z.number(),
+	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
+	dueDate: z.date().optional(),
+	driverId: z.number().optional(),
+});
+export type SalesDispatchPackingResetInput = z.infer<
+	typeof salesDispatchPackingResetSchema
+>;
+export const salesDispatchPackingResetTags = actityTagsSchema.extend({
+	dispatchId: z.number(),
+	orderNo: z.string().optional(),
+	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
+	dueDate: z.date().optional(),
+	driverId: z.number().optional(),
+});
+export type SalesDispatchPackingResetTags = z.infer<
+	typeof salesDispatchPackingResetTags
+>;
 export const salesDispatchInProgressSchema = z.object({
 	orderNo: z.string().optional(),
 	dispatchId: z.number(),
@@ -722,6 +743,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_dispatch_packed"),
 		payload: salesDispatchPackedSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("sales_dispatch_packing_reset"),
+		payload: salesDispatchPackingResetSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_dispatch_in_progress"),

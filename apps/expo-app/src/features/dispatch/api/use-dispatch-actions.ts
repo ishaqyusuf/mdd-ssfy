@@ -2,7 +2,7 @@ import { _trpc } from "@/components/static-trpc";
 import { useAuthContext } from "@/hooks/use-auth";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { RouterOutputs } from "@api/trpc/routers/_app";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 type DispatchOverview = RouterOutputs["dispatch"]["dispatchOverviewV2"];
 type DispatchStatus = NonNullable<DispatchOverview["dispatch"]>["status"];
@@ -18,6 +18,11 @@ type SubmitDispatchInput = DispatchMeta & {
   note?: string;
   signature?: string | null;
   attachments?: { pathname: string }[] | null;
+};
+
+type UpdateDispatchStatusInput = DispatchMeta & {
+  oldStatus?: DispatchStatus | null;
+  newStatus: DispatchStatus;
 };
 
 function getAuthor(profile: ReturnType<typeof useAuthContext>["profile"]) {
@@ -57,6 +62,11 @@ export function useDispatchActions() {
     taskName: "update-sales-control",
     onCompleted: invalidateDispatchQueries,
   });
+  const updateDispatchStatusMutation = useMutation(
+    _trpc.dispatch.updateDispatchStatus.mutationOptions({
+      onSuccess: invalidateDispatchQueries,
+    }),
+  );
 
   const startDispatch = {
     ...startDispatchTask,
@@ -87,6 +97,7 @@ export function useDispatchActions() {
     startDispatch,
     cancelDispatch,
     submitDispatch,
+    updateDispatchStatus: updateDispatchStatusMutation,
     invalidateDispatchQueries,
     onStartDispatch(input: DispatchMeta) {
       const author = getAuthor(auth.profile);
@@ -136,6 +147,13 @@ export function useDispatchActions() {
             attachments: input.attachments,
           },
         },
+      });
+    },
+    onUpdateDispatchStatus(input: UpdateDispatchStatusInput) {
+      return updateDispatchStatusMutation.mutateAsync({
+        dispatchId: input.dispatchId,
+        oldStatus: (input.oldStatus || "queue") as any,
+        newStatus: input.newStatus as any,
       });
     },
     canStart(status?: DispatchStatus | null) {

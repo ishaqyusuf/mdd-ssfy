@@ -258,6 +258,18 @@ export function createNotificationChannelTriggers(
 				recipients: resolvedRecipients,
 			});
 		},
+		salesDispatchPackingReset(input: Input<"sales_dispatch_packing_reset">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("sales_dispatch_packing_reset", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
 		salesDispatchInProgress(input: Input<"sales_dispatch_in_progress">) {
 			const { recipients, author, ...payload } = input;
 			const resolvedRecipients = resolveRecipients(

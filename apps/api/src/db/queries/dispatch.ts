@@ -1194,6 +1194,62 @@ function qtyTotal(qty?: {
   return q > 0 ? q : lh + rh;
 }
 
+function detectDispatchReadiness(
+  dispatchItems: Array<{
+    uid: string;
+    title: string;
+    shippable?: boolean | null;
+    itemConfig?: { production?: boolean | null } | null;
+    totalQty?: { qty?: number | null; lh?: number | null; rh?: number | null };
+    packedQty?: { qty?: number | null; lh?: number | null; rh?: number | null };
+    availableQty?: { qty?: number | null; lh?: number | null; rh?: number | null };
+    deliverableQty?: { qty?: number | null; lh?: number | null; rh?: number | null };
+    nonDeliverableQty?: {
+      qty?: number | null;
+      lh?: number | null;
+      rh?: number | null;
+    };
+  }>,
+) {
+  const unresolvedNonProduceables = dispatchItems
+    .filter((item) => {
+      if (item.shippable === false) return false;
+      if (item.itemConfig?.production !== false) return false;
+      const pendingQty = Math.max(
+        0,
+        qtyTotal(item.totalQty) - qtyTotal(item.packedQty),
+      );
+      if (pendingQty <= 0) return false;
+
+      const hasAvailable = qtyTotal(item.availableQty) > 0;
+      const hasDeliverables = qtyTotal(item.deliverableQty) > 0;
+      const hasNonDeliverable = qtyTotal(item.nonDeliverableQty) > 0;
+
+      // For non-production shippable items, lack of both deliverables and
+      // available quantities with pending qty means generation has not run.
+      return !hasAvailable && !hasDeliverables && hasNonDeliverable;
+    })
+    .map((item) => ({
+      uid: item.uid,
+      title: item.title,
+      pendingQty: Math.max(0, qtyTotal(item.totalQty) - qtyTotal(item.packedQty)),
+      missingQty: qtyTotal(item.nonDeliverableQty),
+    }));
+
+  return {
+    canDispatch: unresolvedNonProduceables.length === 0,
+    state:
+      unresolvedNonProduceables.length > 0
+        ? ("cant dispatch" as const)
+        : ("ready" as const),
+    reason:
+      unresolvedNonProduceables.length > 0
+        ? "Non-produceable items are missing auto-generated assignment/submission flow."
+        : "Ready for dispatch.",
+    unresolvedNonProduceables,
+  };
+}
+
 export async function getDispatchOverviewV2(
   ctx: TRPCContext,
   query: SalesDispatchOverviewSchema,
@@ -1471,6 +1527,22 @@ export async function getDispatchOverviewV2(
     })),
   });
 
+  const dispatchReadiness = detectDispatchReadiness(dispatchItems as any);
+
+  controlDebugLog("getDispatchOverviewV2.dispatchReadiness", {
+    salesId: order.id,
+    dispatchId: query.dispatchId,
+    state: dispatchReadiness.state,
+    canDispatch: dispatchReadiness.canDispatch,
+    unresolvedCount: dispatchReadiness.unresolvedNonProduceables.length,
+    unresolvedItems: dispatchReadiness.unresolvedNonProduceables.map((item) => ({
+      uid: item.uid,
+      title: item.title,
+      pendingQty: item.pendingQty,
+      missingQty: item.missingQty,
+    })),
+  });
+
   return {
     dispatch: dispatch
       ? {
@@ -1506,6 +1578,7 @@ export async function getDispatchOverviewV2(
     summary,
     dispatchItems,
     duplicateInsight,
+    dispatchReadiness,
   };
 }
 

@@ -1,50 +1,10 @@
 import { BlurView } from "@/components/blur-view";
 import { Icon } from "@/components/ui/icon";
 import { ProgressBar } from "@/components/ui/progress-bar";
+import { getPackTargetQty } from "../lib/packing-qty";
 import { resolveItemImage } from "../lib/resolve-item-image";
 import { Image } from "expo-image";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
-
-function asNumber(v?: number | null) {
-  return Number(v || 0);
-}
-
-function qtyTotal(qty?: { qty?: number | null; lh?: number | null; rh?: number | null }) {
-  const q = asNumber(qty?.qty);
-  if (q > 0) return q;
-  return asNumber(qty?.lh) + asNumber(qty?.rh);
-}
-
-function mergeQty(
-  left: { qty?: number | null; lh?: number | null; rh?: number | null },
-  right: { qty?: number | null; lh?: number | null; rh?: number | null },
-) {
-  return {
-    qty: asNumber(left.qty) + asNumber(right.qty),
-    lh: asNumber(left.lh) + asNumber(right.lh),
-    rh: asNumber(left.rh) + asNumber(right.rh),
-  };
-}
-
-function effectiveDeliverableQty(item: any) {
-  const deliverables = (item?.deliverables || []) as {
-    qty?: { qty?: number | null; lh?: number | null; rh?: number | null };
-  }[];
-  if (deliverables.length) {
-    const bySubmission = deliverables.reduce(
-      (acc, entry) => mergeQty(acc, (entry?.qty || {}) as any),
-      { qty: 0, lh: 0, rh: 0 },
-    );
-    if (qtyTotal(bySubmission) > 0) return bySubmission;
-  }
-  const listed = (item?.listedQty || {}) as any;
-  if (qtyTotal(listed) > 0) return listed;
-  const deliverable = (item?.deliverableQty || {}) as any;
-  if (qtyTotal(deliverable) > 0) return deliverable;
-  const available = (item?.availableQty || {}) as any;
-  if (qtyTotal(available) > 0) return available;
-  return (item?.totalQty || {}) as any;
-}
 
 type Props = {
   insetsBottom: number;
@@ -77,7 +37,7 @@ type Props = {
   isSubmitting: boolean;
   onClose: () => void;
   onOpenPackAll: () => void;
-  onConfirmAndStartTrip: () => void;
+  onOpenConfirmDispatch: () => void;
   onImagePress: (uri: string) => void;
 };
 
@@ -102,7 +62,7 @@ export function PackingSlipScreen({
   isSubmitting,
   onClose,
   onOpenPackAll,
-  onConfirmAndStartTrip,
+  onOpenConfirmDispatch,
   onImagePress,
 }: Props) {
   return (
@@ -191,7 +151,7 @@ export function PackingSlipScreen({
 
         {packableItems.map((item) => {
           const draft = packingDrafts[item.uid] || { qty: 0, lh: 0, rh: 0 };
-          const deliverable = effectiveDeliverableQty(item);
+          const deliverable = getPackTargetQty(item);
           const hasSingle = itemHasSingleQty(item);
           const maxQty = asNumber(deliverable.qty);
           const maxLh = asNumber(deliverable.lh);
@@ -436,7 +396,7 @@ export function PackingSlipScreen({
             />
             <Pressable
               disabled={isSubmitting}
-              onPress={onConfirmAndStartTrip}
+              onPress={onOpenConfirmDispatch}
               className="w-full flex-row items-center justify-center gap-2 rounded-xl bg-primary py-4 disabled:opacity-50"
             >
               <Icon
@@ -445,7 +405,7 @@ export function PackingSlipScreen({
                 size={18}
               />
               <Text className="text-base font-bold text-primary-foreground">
-                {isSubmitting ? "Saving..." : "Confirm & Start Trip"}
+                {isSubmitting ? "Saving..." : "Confirm Dispatch"}
               </Text>
             </Pressable>
           </View>

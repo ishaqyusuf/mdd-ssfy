@@ -27,6 +27,7 @@ import {
   deletePackingItem,
   deletePackingSchema,
   getSalesDispatchOverview,
+  submitNonProductionsTask,
   startDispatchTask,
   submitDispatchTask,
   updateSalesControlSchema,
@@ -36,6 +37,8 @@ import type { DeliveryOption } from "@gnd/utils/sales";
 import { tasks } from "@trigger.dev/sdk/v3";
 import type { NotificationJobInput } from "@notifications/schemas";
 import { TRPCError } from "@trpc/server";
+import { appendDevLogEntryToFile } from "@gnd/dev-logger/file-sink";
+import type { DevLogEntry } from "@gnd/dev-logger";
 
 export const dispatchRouters = createTRPCRouter({
   index: publicProcedure
@@ -124,6 +127,23 @@ export const dispatchRouters = createTRPCRouter({
     .mutation(async (props) => {
       return resolveDuplicateDispatchGroup(props.ctx, props.input);
     }),
+  prepareNonProduceablePacking: publicProcedure
+    .input(
+      z.object({
+        salesId: z.number(),
+      }),
+    )
+    .mutation(async (props) => {
+      const authorId = Number(props.ctx.userId || 0);
+      await submitNonProductionsTask(props.ctx.db as any, {
+        meta: {
+          salesId: props.input.salesId,
+          authorId: Number.isFinite(authorId) && authorId > 0 ? authorId : 1,
+          authorName: "System",
+        },
+      } as any);
+      return { ok: true };
+    }),
   createDispatch: publicProcedure
     .input(createDispatchSchema)
     .mutation(async (props) => {
@@ -159,6 +179,32 @@ export const dispatchRouters = createTRPCRouter({
           },
         },
       });
+      try {
+        const authorId = Number(props.ctx.userId || 0);
+        await submitNonProductionsTask(props.ctx.db as any, {
+          meta: {
+            salesId,
+            authorId: Number.isFinite(authorId) && authorId > 0 ? authorId : 1,
+            authorName: "System",
+          },
+        } as any);
+      } catch {
+        // Do not block dispatch creation if pre-pack preparation fails.
+      }
+      await tasks.trigger("notification", {
+        channel: "sales_dispatch_created",
+        author: {
+          id: props.ctx.userId!,
+          role: "employee",
+        },
+        payload: {
+          orderNo: dispatch.order?.orderId,
+          dispatchId: dispatch.id,
+          deliveryMode: dispatch.deliveryMode,
+          dueDate: dispatch.dueDate,
+          driverId: dispatch.driverId || undefined,
+        },
+      } as NotificationJobInput);
       if (dispatch.driverId)
         await tasks.trigger("notification", {
           channel: "sales_dispatch_assigned",
@@ -220,5 +266,22 @@ export const dispatchRouters = createTRPCRouter({
         },
       });
       // return deletePackingItem(props.ctx.db, props.input);
+    }),
+  debugLog: publicProcedure
+    .input(
+      z.object({
+        entry: z.any(),
+      }),
+    )
+    .mutation(async (props) => {
+      const isDev = process.env.NODE_ENV === "development";
+      const enabled =
+        String(process.env.EXPO_PUBLIC_DEBUG_LOGGER ?? "1").toLowerCase() !==
+        "false";
+      if (!isDev || !enabled) {
+        return { ok: true, skipped: true };
+      }
+      await appendDevLogEntryToFile(props.input.entry as DevLogEntry);
+      return { ok: true, skipped: false };
     }),
 });

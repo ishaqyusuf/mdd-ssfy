@@ -26,6 +26,7 @@
     "@gnd/auth": "workspace:*",
     "@gnd/community": "workspace:*",
     "@gnd/db": "workspace:*",
+    "@gnd/dev-logger": "workspace:*",
     "@gnd/logger": "workspace:*",
     "@gnd/utils": "workspace:*",
     "@gnd/jobs": "workspace:*",

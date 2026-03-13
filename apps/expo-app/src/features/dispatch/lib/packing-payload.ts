@@ -23,38 +23,59 @@ function asNumber(value: number | null | undefined) {
   return Number(value || 0);
 }
 
+function recomposeQty(qty?: QtyMatrix | null): QtyMatrix & { noHandle: boolean } {
+  const lh = asNumber(qty?.lh);
+  const rh = asNumber(qty?.rh);
+  const noHandle = lh <= 0 && rh <= 0;
+  const summed = lh + rh;
+  return {
+    lh,
+    rh,
+    qty: noHandle ? asNumber(qty?.qty) : summed,
+    noHandle,
+  };
+}
+
 export function hasQty(qty?: QtyMatrix | null) {
   if (!qty) return false;
   return asNumber(qty.qty) > 0 || asNumber(qty.lh) > 0 || asNumber(qty.rh) > 0;
 }
 
-function subtractQty(source: QtyMatrix, picked: QtyMatrix): QtyMatrix {
-  return {
-    qty: Math.max(0, asNumber(source.qty) - asNumber(picked.qty)),
-    lh: Math.max(0, asNumber(source.lh) - asNumber(picked.lh)),
-    rh: Math.max(0, asNumber(source.rh) - asNumber(picked.rh)),
-  };
-}
-
 function pickQtyFrom(source: QtyMatrix, available: QtyMatrix) {
-  const sourceQty = asNumber(source.qty);
-  const sourceLh = asNumber(source.lh);
-  const sourceRh = asNumber(source.rh);
-  const availableQty = asNumber(available.qty);
-  const availableLh = asNumber(available.lh);
-  const availableRh = asNumber(available.rh);
+  const requested = recomposeQty(source);
+  const basket = recomposeQty(available);
 
-  const useSingleQty = sourceQty > 0 || availableQty > 0;
-  const picked: QtyMatrix = useSingleQty
-    ? {
-        qty: Math.min(sourceQty, availableQty),
-      }
-    : {
-        lh: Math.min(sourceLh, availableLh),
-        rh: Math.min(sourceRh, availableRh),
-      };
+  const picked: QtyMatrix = { lh: 0, rh: 0, qty: 0 };
+  let remainingPick = asNumber(requested.qty);
 
-  const pendingPick = subtractQty(source, picked);
+  if (asNumber(basket.rh) > 0 && remainingPick > 0) {
+    const take = Math.min(asNumber(basket.rh), remainingPick);
+    picked.rh = take;
+    remainingPick -= take;
+  }
+
+  if (asNumber(basket.lh) > 0 && remainingPick > 0) {
+    const take = Math.min(asNumber(basket.lh), remainingPick);
+    picked.lh = take;
+    remainingPick -= take;
+  }
+
+  if (basket.noHandle && asNumber(basket.qty) > 0 && remainingPick > 0) {
+    const take = Math.min(asNumber(basket.qty), remainingPick);
+    picked.qty = take;
+    remainingPick -= take;
+  }
+
+  const handledPicked = asNumber(picked.lh) + asNumber(picked.rh);
+  if (handledPicked > 0 && asNumber(picked.qty) <= 0) {
+    picked.qty = handledPicked;
+  }
+
+  const pendingPick: QtyMatrix =
+    remainingPick > 0
+      ? { qty: remainingPick, lh: 0, rh: 0 }
+      : { qty: 0, lh: 0, rh: 0 };
+
   return { picked, pendingPick };
 }
 

@@ -14,7 +14,7 @@ import { Badge } from "@gnd/ui/badge";
 import { hasQty } from "@gnd/utils/sales";
 import { cn } from "@gnd/ui/cn";
 import { toast } from "@gnd/ui/use-toast";
-import { AlertTriangle, Minus, Plus } from "lucide-react";
+import { AlertTriangle, Minus, Plus, Wrench } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@gnd/ui/input";
 import { pickQtyFrom, qtyMatrixSum, recomposeQty } from "@sales/utils/sales-control";
@@ -82,6 +82,20 @@ function DispatchPackingOverviewContent() {
     pending: 0,
     available: 0,
   };
+  const readiness = data?.dispatchReadiness as
+    | {
+        canDispatch?: boolean;
+        state?: string;
+        reason?: string;
+        unresolvedNonProduceables?: Array<{
+          uid: string;
+          title: string;
+          pendingQty: number;
+          missingQty: number;
+        }>;
+      }
+    | undefined;
+  const hasCantDispatch = readiness?.state === "cant dispatch";
 
   const rows = useMemo(() => data?.dispatchItems || [], [data?.dispatchItems]);
   const duplicateDispatches = useMemo(
@@ -90,6 +104,8 @@ function DispatchPackingOverviewContent() {
   );
   const [keepDispatchId, setKeepDispatchId] = useState<number | null>(null);
   const [isPackMode, setIsPackMode] = useState(false);
+  const isPackedStatus = dispatch?.status === "packed";
+  const isTripStarted = dispatch?.status === "in progress";
   const canResolveDuplicates =
     auth.roleTitle?.toLowerCase() === "super admin";
 
@@ -107,6 +123,12 @@ function DispatchPackingOverviewContent() {
     duplicateInsight?.currentDispatchId,
     duplicateInsight?.recommendedKeepDispatchId,
   ]);
+
+  useEffect(() => {
+    if (isPackedStatus && isPackMode) {
+      setIsPackMode(false);
+    }
+  }, [isPackedStatus, isPackMode]);
 
   const resolveDuplicate = useMutation(
     trpc.dispatch.resolveDuplicateGroup.mutationOptions({
@@ -133,6 +155,33 @@ function DispatchPackingOverviewContent() {
         toast({
           variant: "error",
           title: "Unable to resolve duplicate",
+          description: error?.message || "Please try again.",
+        });
+      },
+    }),
+  );
+  const prepareNonProduceablePacking = useMutation(
+    trpc.dispatch.prepareNonProduceablePacking.mutationOptions({
+      async onSuccess() {
+        await Promise.all([
+          ctx.invalidate(),
+          queryClient.invalidateQueries({
+            queryKey: trpc.dispatch.dispatchOverviewV2.queryKey({
+              dispatchId: dispatch?.id || undefined,
+            }),
+          }),
+        ]);
+        toast({
+          variant: "success",
+          title: "Non-produceable flow prepared",
+          description:
+            "Assignments/submissions were generated. Review packing and continue.",
+        });
+      },
+      onError(error) {
+        toast({
+          variant: "error",
+          title: "Unable to prepare packing",
           description: error?.message || "Please try again.",
         });
       },
@@ -191,7 +240,7 @@ function DispatchPackingOverviewContent() {
             </div>
             <Progress>
               <Progress.Status badge>
-                {dispatch?.status || "queue"}
+                {hasCantDispatch ? "cant dispatch" : dispatch?.status || "queue"}
               </Progress.Status>
             </Progress>
           </div>
@@ -208,6 +257,50 @@ function DispatchPackingOverviewContent() {
           <PackingProgress />
         </CardContent>
       </Card>
+
+      {hasCantDispatch ? (
+        <Card className="border-rose-300 bg-rose-50/40">
+          <CardHeader className="pb-3">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="mt-0.5 h-4 w-4 text-rose-700" />
+                <div>
+                  <CardTitle className="text-base text-rose-900">
+                    Cannot dispatch yet
+                  </CardTitle>
+                  <p className="text-sm text-rose-800">
+                    {readiness?.reason ||
+                      "Some non-produceable items are not prepared for shipping."}
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                disabled={
+                  prepareNonProduceablePacking.isPending || !order?.id
+                }
+                onClick={() =>
+                  order?.id
+                    ? prepareNonProduceablePacking.mutate({ salesId: order.id })
+                    : null
+                }
+              >
+                <Wrench className="mr-1 h-4 w-4" />
+                {prepareNonProduceablePacking.isPending
+                  ? "Preparing..."
+                  : "Generate Non-Produceable Flow"}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            {(readiness?.unresolvedNonProduceables || []).map((item) => (
+              <p key={item.uid} className="text-xs text-rose-900">
+                {item.title}: pending {item.pendingQty}, unresolved {item.missingQty}
+              </p>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader className="pb-3">
@@ -371,31 +464,35 @@ function DispatchPackingOverviewContent() {
         <CardContent className="flex flex-wrap gap-2">
           <Button
             variant="outline"
-            disabled={!ctx.isQueue || ctx.isStarting}
+            disabled={!ctx.isQueue || ctx.isStarting || hasCantDispatch}
             onClick={ctx.onStartDispatch}
           >
-            Start Dispatch
+            Start Trip
           </Button>
           <Button
             variant="outline"
-            disabled={ctx.isCancelled}
+            disabled={ctx.isCancelled || isPackedStatus}
             onClick={() => setIsPackMode((prev) => !prev)}
           >
             {isPackMode ? "Cancel" : "Pack Items"}
           </Button>
-          <Button
-            variant="outline"
-            disabled={ctx.isCompleting}
-            onClick={() => ctx.onCompleteDispatch("packed_only")}
-          >
-            Complete with Packed
-          </Button>
-          <Button
-            disabled={ctx.isCompleting}
-            onClick={() => ctx.onCompleteDispatch("pack_all")}
-          >
-            Pack All + Complete
-          </Button>
+          {isTripStarted ? (
+            <>
+              <Button
+                variant="outline"
+                disabled={ctx.isCompleting}
+                onClick={() => ctx.onCompleteDispatch("packed_only")}
+              >
+                Mark Delivered (Packed Only)
+              </Button>
+              <Button
+                disabled={ctx.isCompleting}
+                onClick={() => ctx.onCompleteDispatch("pack_all")}
+              >
+                Pack All + Mark Delivered
+              </Button>
+            </>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -406,7 +503,7 @@ function DispatchPackingOverviewContent() {
             <Button
               size="sm"
               variant="outline"
-              disabled={ctx.isCancelled}
+              disabled={ctx.isCancelled || isPackedStatus}
               onClick={() => setIsPackMode((prev) => !prev)}
             >
               {isPackMode ? "Cancel" : "Pack"}
@@ -478,12 +575,17 @@ function itemHasSingleQty(item: any) {
     item?.listedQty,
     item?.availableQty,
   ].filter(Boolean);
-  const explicitNoHandle = qtySources.find(
-    (qty) => typeof qty?.noHandle === "boolean",
-  )?.noHandle;
-  if (typeof explicitNoHandle === "boolean") {
-    return explicitNoHandle;
+
+  // Prefer explicit noHandle=true signals, but ignore noHandle=false noise
+  // when LH/RH are both zero (older/inconsistent payloads can send this).
+  if (item?.totalQty && typeof item.totalQty.noHandle === "boolean") {
+    if (item.totalQty.noHandle === true) return true;
+    const totalHasHandles =
+      Number(item?.totalQty?.lh || 0) > 0 || Number(item?.totalQty?.rh || 0) > 0;
+    if (totalHasHandles) return false;
   }
+  const hasExplicitSingle = qtySources.some((qty) => qty?.noHandle === true);
+  if (hasExplicitSingle) return true;
   const hasHandledQty = qtySources.some(
     (qty) => Number(qty?.lh || 0) > 0 || Number(qty?.rh || 0) > 0,
   );
@@ -553,7 +655,9 @@ function getPackAllTarget(item: any) {
     ? deliverableQty
     : hasQty(listedQty)
       ? listedQty
-      : fallbackDeliverableQty;
+      : hasQty(fallbackDeliverableQty)
+        ? fallbackDeliverableQty
+        : recomposeQty(item?.totalQty as any);
 
   if (itemHasSingleQty(item)) {
     const qtyFromSource = qtyTotal(sourceQty as any);
@@ -594,7 +698,9 @@ function PackItemsForm({
   }, [items]);
 
   const isSubmitting = ctx.trigger?.isLoading;
-  const canEditPacking = dispatch?.status === "queue" || dispatch?.status === "in progress";
+  const canEditPacking =
+    dispatch?.status === "queue" ||
+    dispatch?.status === "in progress";
   const packableItems = items.filter(
     (item) => !!item?.salesItemId && item?.shippable !== false,
   );

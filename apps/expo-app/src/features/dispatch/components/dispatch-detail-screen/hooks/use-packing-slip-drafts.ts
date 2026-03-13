@@ -1,4 +1,5 @@
 import type { DispatchOverviewItem } from "../../../types/dispatch.types";
+import { getPackTargetQty, itemHasSingleQty, qtyTotal } from "../lib/packing-qty";
 import * as Haptics from "expo-haptics";
 import { useEffect, useMemo, useState } from "react";
 
@@ -17,69 +18,6 @@ function asNumber(v?: number | null) {
   return Number(v || 0);
 }
 
-function qtyTotal(qty?: {
-  qty?: number | null;
-  lh?: number | null;
-  rh?: number | null;
-}) {
-  const q = asNumber(qty?.qty);
-  if (q > 0) return q;
-  return asNumber(qty?.lh) + asNumber(qty?.rh);
-}
-
-function mergeQty(
-  left: { qty?: number | null; lh?: number | null; rh?: number | null },
-  right: { qty?: number | null; lh?: number | null; rh?: number | null },
-) {
-  return {
-    qty: asNumber(left.qty) + asNumber(right.qty),
-    lh: asNumber(left.lh) + asNumber(right.lh),
-    rh: asNumber(left.rh) + asNumber(right.rh),
-  };
-}
-
-function effectiveDeliverableQty(item: DispatchOverviewItem) {
-  const deliverables = ((item as any)?.deliverables || []) as {
-    qty?: { qty?: number | null; lh?: number | null; rh?: number | null };
-  }[];
-  if (deliverables.length) {
-    const bySubmission = deliverables.reduce(
-      (acc, entry) => mergeQty(acc, (entry?.qty || {}) as any),
-      { qty: 0, lh: 0, rh: 0 },
-    );
-    if (qtyTotal(bySubmission) > 0) return bySubmission;
-  }
-  const listed = ((item as any)?.listedQty || {}) as any;
-  if (qtyTotal(listed) > 0) return listed;
-  const deliverable = (item?.deliverableQty || {}) as any;
-  if (qtyTotal(deliverable) > 0) return deliverable;
-  const available = ((item as any)?.availableQty || {}) as any;
-  if (qtyTotal(available) > 0) return available;
-  return ((item as any)?.totalQty || {}) as any;
-}
-
-function itemHasSingleQty(item: DispatchOverviewItem) {
-  const effectiveDeliverable = effectiveDeliverableQty(item) as any;
-  const qtySources = [
-    effectiveDeliverable,
-    (item as any)?.availableQty as any,
-    item?.deliverableQty as any,
-    item?.listedQty as any,
-    item?.totalQty as any,
-  ].filter(Boolean);
-
-  const explicitNoHandle = qtySources.find(
-    (qty) => typeof qty?.noHandle === "boolean",
-  )?.noHandle;
-  if (typeof explicitNoHandle === "boolean") {
-    return explicitNoHandle;
-  }
-
-  const hasHandledQty = qtySources.some(
-    (qty) => asNumber(qty?.lh) > 0 || asNumber(qty?.rh) > 0,
-  );
-  return !hasHandledQty;
-}
 function parseQtyInput(value: string) {
   const numeric = value.replace(/[^0-9]/g, "");
   if (!numeric) return 0;
@@ -175,7 +113,7 @@ export function usePackingSlipDrafts({
 
   const progressTotal = useMemo(() => {
     return packableItems.reduce((total, item) => {
-      const deliverable = qtyTotal(effectiveDeliverableQty(item) as any);
+      const deliverable = qtyTotal(getPackTargetQty(item) as any);
       const listed = qtyTotal(item?.listedQty as any);
       const overall = qtyTotal(item?.totalQty as any);
       return total + (deliverable || listed || overall);
