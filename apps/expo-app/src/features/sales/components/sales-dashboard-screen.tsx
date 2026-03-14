@@ -3,6 +3,7 @@ import { SafeArea } from "@/components/safe-area";
 import { Icon } from "@/components/ui/icon";
 import { Pressable } from "@/components/ui/pressable";
 import { useSalesDashboardOverview } from "@/features/sales/api/use-sales-dashboard-overview";
+import { useAuthContext } from "@/hooks/use-auth";
 import { useRouter } from "expo-router";
 import {
   ActivityIndicator,
@@ -14,6 +15,7 @@ import {
 
 export function SalesDashboardScreen() {
   const router = useRouter();
+  const auth = useAuthContext();
   const { data, isPending, refetch, isRefetching } = useSalesDashboardOverview();
 
   return (
@@ -155,6 +157,16 @@ export function SalesDashboardScreen() {
           )}
         </View>
       </View>
+      {auth.isAdmin ? (
+        <View className="absolute bottom-8 right-5">
+          <Pressable
+            onPress={() => router.push("/(sales)/dispatch/new" as any)}
+            className="h-14 w-14 items-center justify-center rounded-full bg-primary shadow-md active:opacity-85"
+          >
+            <Icon name="Plus" className="text-primary-foreground" size={24} />
+          </Pressable>
+        </View>
+      ) : null}
     </SafeArea>
   );
 }

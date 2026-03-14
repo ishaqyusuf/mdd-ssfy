@@ -1,5 +1,21 @@
 import { normalizeSalesFormTitle } from "./step-engine";
 
+function snapshotSelectedComponent(component: any) {
+  return {
+    id: component?.id ?? null,
+    uid: component?.uid || "",
+    title: component?.title || "",
+    img: component?.img || null,
+    salesPrice:
+      component?.salesPrice == null ? null : Number(component.salesPrice || 0),
+    basePrice:
+      component?.basePrice == null ? null : Number(component.basePrice || 0),
+    pricing: component?.pricing || null,
+    redirectUid: component?.redirectUid || null,
+    sectionOverride: component?.sectionOverride || null,
+  };
+}
+
 export function findLineStepByTitle(line: any, title: string) {
   const normalized = normalizeSalesFormTitle(title);
   return (line?.formSteps || []).find(
@@ -37,17 +53,7 @@ export function getSelectedDoorComponentsForLine(line: any) {
   const doorStep = findLineStepByTitle(line, "Door");
   const selected = Array.isArray(doorStep?.meta?.selectedComponents)
     ? doorStep.meta.selectedComponents
-        .map((component: any) => ({
-          id: component?.id ?? null,
-          uid: component?.uid || "",
-          title: component?.title || "",
-          img: component?.img || null,
-          salesPrice:
-            component?.salesPrice == null ? null : Number(component.salesPrice || 0),
-          basePrice:
-            component?.basePrice == null ? null : Number(component.basePrice || 0),
-          pricing: component?.pricing || null,
-        }))
+        .map((component: any) => snapshotSelectedComponent(component))
         .filter((component: any) => !!component.uid)
     : [];
   if (selected.length) return selected;
@@ -63,6 +69,8 @@ export function getSelectedDoorComponentsForLine(line: any) {
       basePrice:
         doorStep?.basePrice == null ? null : Number(doorStep.basePrice || 0),
       pricing: null,
+      redirectUid: doorStep?.meta?.redirectUid || null,
+      sectionOverride: doorStep?.meta?.sectionOverride || null,
     },
   ];
 }
@@ -71,16 +79,7 @@ export function getSelectedMouldingComponentsForLine(line: any) {
   const mouldingStep = findLineStepByTitle(line, "Moulding");
   const selected = Array.isArray(mouldingStep?.meta?.selectedComponents)
     ? mouldingStep.meta.selectedComponents
-        .map((component: any) => ({
-          id: component?.id ?? null,
-          uid: component?.uid || "",
-          title: component?.title || "",
-          img: component?.img || null,
-          salesPrice:
-            component?.salesPrice == null ? null : Number(component.salesPrice || 0),
-          basePrice:
-            component?.basePrice == null ? null : Number(component.basePrice || 0),
-        }))
+        .map((component: any) => snapshotSelectedComponent(component))
         .filter((component: any) => !!component.uid)
     : [];
   if (selected.length) return selected;
@@ -96,6 +95,9 @@ export function getSelectedMouldingComponentsForLine(line: any) {
         mouldingStep?.price == null ? null : Number(mouldingStep.price || 0),
       basePrice:
         mouldingStep?.basePrice == null ? null : Number(mouldingStep.basePrice || 0),
+      pricing: null,
+      redirectUid: mouldingStep?.meta?.redirectUid || null,
+      sectionOverride: mouldingStep?.meta?.sectionOverride || null,
     },
   ];
 }

@@ -59,6 +59,37 @@ describe("selectors domain", () => {
     expect(doors[0].uid).toBe("door-1");
   });
 
+  it("preserves richer selected component metadata", () => {
+    const richLine = {
+      formSteps: [
+        {
+          step: { title: "Door" },
+          meta: {
+            selectedComponents: [
+              {
+                id: 11,
+                uid: "door-rich",
+                title: "Door Rich",
+                salesPrice: 150,
+                basePrice: 100,
+                pricing: { "2-8 x 7-0": { price: 150 } },
+                redirectUid: "next",
+                sectionOverride: { overrideMode: true, noHandle: true },
+              },
+            ],
+          },
+        },
+      ],
+    };
+    const doors = getSelectedDoorComponentsForLine(richLine);
+    expect(doors[0].pricing).toEqual({ "2-8 x 7-0": { price: 150 } });
+    expect(doors[0].redirectUid).toBe("next");
+    expect(doors[0].sectionOverride).toEqual({
+      overrideMode: true,
+      noHandle: true,
+    });
+  });
+
   it("extracts selected moulding components fallback", () => {
     const mouldings = getSelectedMouldingComponentsForLine(line);
     expect(mouldings).toHaveLength(1);

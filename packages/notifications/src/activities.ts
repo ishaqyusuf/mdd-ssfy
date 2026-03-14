@@ -5,29 +5,7 @@ import {
   getSubscribersAccount,
 } from "./channel-subscribers";
 import type { CreateActivityInput } from "./schemas";
-
-function serializeTagValue(value: unknown): string {
-  if (value === undefined) return "null";
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
-}
-
-function deserializeTagValue(value: unknown): unknown {
-  if (typeof value !== "string") return value;
-  if (value === "undefined") return undefined;
-
-  try {
-    return JSON.parse(value);
-  } catch {
-    if (/^-?\d+(\.\d+)?$/.test(value)) return Number(value);
-    if (value === "true") return true;
-    if (value === "false") return false;
-    return value;
-  }
-}
+import { explodeTagEntries, mergeTagRows } from "./tag-values";
 
 // const activityTypes = ["sales_checkout_success"] as const;
 const activityStatus = [] as const;
@@ -95,12 +73,7 @@ export async function createActivity(
           },
       tags: {
         createMany: {
-          data: Object.entries(tags)
-            .filter(([, tagValue]) => tagValue !== undefined)
-            .map(([tagName, tagValue]) => ({
-              tagName,
-              tagValue: serializeTagValue(tagValue),
-            })),
+          data: explodeTagEntries(tags),
         },
       },
     },
@@ -165,13 +138,7 @@ export async function getActivties(db: Db, params: GetActivitiesParams) {
       return {
         ...activity,
         receipt: recipients[0],
-        tags: tags.reduce(
-          (acc, { tagName, tagValue }) => {
-            acc[tagName] = deserializeTagValue(tagValue);
-            return acc;
-          },
-          {} as Record<string, any>,
-        ),
+        tags: mergeTagRows(tags),
       };
     }),
   };

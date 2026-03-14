@@ -11,7 +11,6 @@ type DispatchMeta = {
   salesId: number;
   dispatchId: number;
 };
-
 type SubmitDispatchInput = DispatchMeta & {
   receivedBy?: string | null;
   receivedDate?: Date | null;

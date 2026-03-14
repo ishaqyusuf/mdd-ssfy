@@ -3,9 +3,12 @@ import { Sheet } from "@gnd/ui/namespace";
 import { Icons } from "@gnd/ui/icons";
 import { useState } from "react";
 import { NavsList } from "./navs-list";
+import { useSiteNav } from "./use-site-nav";
 
 export function MobileSidebar() {
   const [isOpen, setOpen] = useState(false);
+  const { linkModules } = useSiteNav();
+  if (linkModules?.noSidebar) return null;
   return (
     <div className="md:hidden">
       <Sheet.Root open={isOpen} onOpenChange={setOpen}>

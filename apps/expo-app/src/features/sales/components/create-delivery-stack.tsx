@@ -63,18 +63,28 @@ export function CreateDeliveryStack({
             <Icon name="ArrowLeft" className="text-foreground" size={20} />
           </Pressable>
           <View className="flex-1">
-            <Text className="text-lg font-bold text-foreground">Create Delivery</Text>
-            <Text className="text-xs text-muted-foreground">Configure delivery details for this order</Text>
+            <Text className="text-lg font-bold text-foreground">
+              Create Delivery
+            </Text>
+            <Text className="text-xs text-muted-foreground">
+              Configure delivery details for this order
+            </Text>
           </View>
         </View>
       </View>
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 112 }}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingTop: 16,
+          paddingBottom: 112,
+        }}
         showsVerticalScrollIndicator={false}
       >
-        <Text className="mb-2 text-xs font-semibold text-muted-foreground">Delivery Mode</Text>
+        <Text className="mb-2 text-xs font-semibold text-muted-foreground">
+          Delivery Mode
+        </Text>
         <View className="mb-4 flex-row gap-2">
           {(["delivery", "pickup"] as const).map((mode) => {
             const active = deliveryMode === mode;
@@ -86,7 +96,9 @@ export function CreateDeliveryStack({
                   active ? "border-primary bg-primary/10" : "border-border"
                 }`}
               >
-                <Text className={`text-xs font-semibold ${active ? "text-primary" : "text-foreground"}`}>
+                <Text
+                  className={`text-xs font-semibold ${active ? "text-primary" : "text-foreground"}`}
+                >
                   {mode}
                 </Text>
               </Pressable>
@@ -94,7 +106,9 @@ export function CreateDeliveryStack({
           })}
         </View>
 
-        <Text className="mb-2 text-xs font-semibold text-muted-foreground">Status</Text>
+        <Text className="mb-2 text-xs font-semibold text-muted-foreground">
+          Status
+        </Text>
         <View className="mb-4 flex-row gap-2">
           {(["queue", "in progress", "completed"] as const).map((status) => {
             const active = deliveryStatus === status;
@@ -106,7 +120,9 @@ export function CreateDeliveryStack({
                   active ? "border-primary bg-primary/10" : "border-border"
                 }`}
               >
-                <Text className={`text-xs font-semibold ${active ? "text-primary" : "text-foreground"}`}>
+                <Text
+                  className={`text-xs font-semibold ${active ? "text-primary" : "text-foreground"}`}
+                >
                   {status}
                 </Text>
               </Pressable>
@@ -114,7 +130,9 @@ export function CreateDeliveryStack({
           })}
         </View>
 
-        <Text className="mb-2 text-xs font-semibold text-muted-foreground">Due Date (YYYY-MM-DD)</Text>
+        <Text className="mb-2 text-xs font-semibold text-muted-foreground">
+          Due Date (YYYY-MM-DD)
+        </Text>
         <View className="mb-2 rounded-xl border border-border bg-card px-3 py-2.5">
           <View className="flex-row items-center gap-2">
             <Icon name="Calendar" className="text-muted-foreground" size={14} />
@@ -134,9 +152,15 @@ export function CreateDeliveryStack({
             />
           </View>
         </View>
-        {dueDateError ? <Text className="mb-4 text-xs font-medium text-red-500">{dueDateError}</Text> : null}
+        {dueDateError ? (
+          <Text className="mb-4 text-xs font-medium text-red-500">
+            {dueDateError}
+          </Text>
+        ) : null}
 
-        <Text className="mb-2 text-xs font-semibold text-muted-foreground">Assign Driver</Text>
+        <Text className="mb-2 text-xs font-semibold text-muted-foreground">
+          Assign Driver
+        </Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View className="flex-row gap-2 pb-1">
             <Pressable
@@ -145,7 +169,9 @@ export function CreateDeliveryStack({
                 !driverId ? "border-primary bg-primary/10" : "border-border"
               }`}
             >
-              <Text className={`text-xs font-semibold ${!driverId ? "text-primary" : "text-foreground"}`}>
+              <Text
+                className={`text-xs font-semibold ${!driverId ? "text-primary" : "text-foreground"}`}
+              >
                 Unassigned
               </Text>
             </Pressable>
@@ -159,7 +185,9 @@ export function CreateDeliveryStack({
                     active ? "border-primary bg-primary/10" : "border-border"
                   }`}
                 >
-                  <Text className={`text-xs font-semibold ${active ? "text-primary" : "text-foreground"}`}>
+                  <Text
+                    className={`text-xs font-semibold ${active ? "text-primary" : "text-foreground"}`}
+                  >
                     {driver.name || "Unnamed"}
                   </Text>
                 </Pressable>
@@ -175,7 +203,9 @@ export function CreateDeliveryStack({
             onPress={handleClose}
             className="h-11 flex-1 items-center justify-center rounded-xl border border-border"
           >
-            <Text className="text-sm font-semibold text-foreground">Cancel</Text>
+            <Text className="text-sm font-semibold text-foreground">
+              Cancel
+            </Text>
           </Pressable>
           <Pressable
             disabled={Boolean(disabled || isSubmitting)}

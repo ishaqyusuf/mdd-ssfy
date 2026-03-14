@@ -25,8 +25,8 @@ import {
   withSalesControl,
   withSalesListControl,
 } from "@gnd/sales";
+import { NotificationService } from "@notifications/services/triggers";
 import { tasks } from "@trigger.dev/sdk/v3";
-import type { NotificationJobInput } from "@notifications/schemas";
 import { TRPCError } from "@trpc/server";
 import { hasQty } from "@gnd/utils/sales";
 
@@ -61,6 +61,31 @@ function emptyQtyStat() {
     rhQty: 0,
     qty: 0,
     total: 0,
+  };
+}
+
+function normalizeShippingAddress(
+  address:
+    | {
+        meta?: unknown;
+        [key: string]: unknown;
+      }
+    | null
+    | undefined,
+) {
+  const base = (address || {}) as Record<string, unknown>;
+  const rawMeta =
+    base.meta && typeof base.meta === "object" && !Array.isArray(base.meta)
+      ? (base.meta as Record<string, unknown>)
+      : {};
+  return {
+    ...base,
+    meta: {
+      ...rawMeta,
+      placeId: rawMeta.placeId ?? null,
+      lat: rawMeta.lat ?? null,
+      lng: rawMeta.lng ?? null,
+    },
   };
 }
 
@@ -213,6 +238,7 @@ export async function getDispatches(
               city: true,
               state: true,
               country: true,
+              meta: true,
             },
           },
         },
@@ -285,13 +311,19 @@ export async function getDispatches(
         const { salesOrderId, ...rest } = a as typeof a & {
           salesOrderId: number;
         };
+        const control = (a as any).control || null;
+        const effectiveStatus = control?.dispatchStatus || (rest as any).status;
         return {
           ...rest,
+          status: effectiveStatus,
           order: {
             ...rest.order,
+            shippingAddress: normalizeShippingAddress(
+              (rest.order as any)?.shippingAddress,
+            ),
             control: orderControlById.get(rest.order.id) || null,
           },
-          statistic: toLegacyDispatchStatistic((a as any).control),
+          statistic: toLegacyDispatchStatistic(control),
           uid: String(a.id),
         };
       }),
@@ -306,14 +338,21 @@ export async function getDispatches(
     db,
   );
   return await response(
-    rowsWithStatistic.map((a) => ({
-      ...a,
-      order: {
-        ...(a as any).order,
-        control: orderControlById.get((a as any).order?.id) || null,
-      },
-      uid: String(a.id),
-    })),
+    rowsWithStatistic.map((a) => {
+      const effectiveStatus = (a as any)?.statistic?.dispatchStatus || (a as any)?.status;
+      return {
+        ...a,
+        status: effectiveStatus,
+        order: {
+          ...(a as any).order,
+          shippingAddress: normalizeShippingAddress(
+            (a as any)?.order?.shippingAddress,
+          ),
+          control: orderControlById.get((a as any).order?.id) || null,
+        },
+        uid: String(a.id),
+      };
+    }),
   );
 }
 
@@ -606,7 +645,8 @@ type DispatchStatusNotificationChannel =
   | "sales_dispatch_queued"
   | "sales_dispatch_in_progress"
   | "sales_dispatch_completed"
-  | "sales_dispatch_cancelled";
+  | "sales_dispatch_cancelled"
+  | "sales_dispatch_trip_canceled";
 
 function mapStatusToNotificationChannel(
   status: DispatchStatusSchema,
@@ -626,6 +666,7 @@ function mapStatusToNotificationChannel(
 }
 
 async function sendDispatchNotification(
+  db: TRPCContext["db"],
   authorId: number,
   recipientId: number | null | undefined,
   channel:
@@ -643,18 +684,16 @@ async function sendDispatchNotification(
 ) {
   if (!recipientId) return;
 
-  await tasks.trigger("notification", {
-    channel,
+  const notification = new NotificationService(tasks, {
+    db,
+    userId: authorId,
+  }).setEmployeeRecipients(recipientId);
+
+  await notification.send(channel as any, {
     author: {
       id: authorId,
       role: "employee",
     },
-    recipients: [
-      {
-        ids: [recipientId],
-        role: "employee",
-      },
-    ],
     payload: {
       orderNo: payload.orderNo || undefined,
       dispatchId: payload.dispatchId,
@@ -662,7 +701,7 @@ async function sendDispatchNotification(
       dueDate: payload.dueDate || undefined,
       driverId: payload.driverId || undefined,
     },
-  } as NotificationJobInput);
+  } as any);
 }
 
 type DispatchSelect = {
@@ -778,6 +817,7 @@ export async function updateDispatchDriver(
   });
 
   await sendDispatchNotification(
+    ctx.db,
     ctx.userId!,
     oldDriverId,
     "sales_dispatch_unassigned",
@@ -790,6 +830,7 @@ export async function updateDispatchDriver(
     },
   );
   await sendDispatchNotification(
+    ctx.db,
     ctx.userId!,
     newDriverId,
     "sales_dispatch_assigned",
@@ -848,6 +889,7 @@ export async function updateDispatchDueDate(
   });
 
   await sendDispatchNotification(
+    ctx.db,
     ctx.userId!,
     dispatch.driverId,
     "sales_dispatch_date_updated",
@@ -923,8 +965,12 @@ export async function updateDispatchStatus(
     },
   });
 
-  const channel = mapStatusToNotificationChannel(newStatus);
+  let channel = mapStatusToNotificationChannel(newStatus);
+  if (newStatus === "cancelled" && oldStatus === "in progress") {
+    channel = "sales_dispatch_trip_canceled";
+  }
   await sendDispatchNotification(
+    ctx.db,
     ctx.userId!,
     dispatch.driverId,
     channel,
@@ -962,8 +1008,7 @@ export async function getDispatchOverview(
   });
 
   const dispatch = result.deliveries.find((d) => d.id === query.dispatchId);
-  let address = result.order.shippingAddress;
-  if (!address) address = {} as any;
+  const address = normalizeShippingAddress(result.order.shippingAddress as any);
   const order = result.order;
   const controlReadV2Enabled = isControlOverviewReadV2Enabled();
 
@@ -1143,7 +1188,7 @@ export async function getDispatchOverview(
         // itemConfig: item.produceable
       };
     }),
-    address: address || ({} as any),
+    address,
     // scheduleDate: dispatch?.dueDate,
     order: {
       orderId: order.orderId,
@@ -1261,7 +1306,7 @@ export async function getDispatchOverviewV2(
 
   const dispatch = result.deliveries.find((d) => d.id === query.dispatchId);
   const order = result.order;
-  const address = order.shippingAddress || ({} as any);
+  const address = normalizeShippingAddress(order.shippingAddress as any);
 
   const dispatchItems = result.order.itemControls.map((item) => {
     const dispatchable = result.dispatchables.find((d) => d.uid === item.uid);
@@ -1574,7 +1619,7 @@ export async function getDispatchOverviewV2(
           }
         : null,
     },
-    address: address || {},
+    address,
     summary,
     dispatchItems,
     duplicateInsight,

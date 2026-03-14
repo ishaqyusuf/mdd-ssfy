@@ -16,7 +16,21 @@ import {
 import { OrdersFilterModal } from "./orders-filter-modal";
 import { SalesOrderCard } from "./sales-order-card";
 
-export function SalesOrdersListScreen() {
+type SalesOrdersListMode = "default" | "dispatch-search";
+
+type SalesOrdersListScreenProps = {
+  title?: string;
+  subtitle?: string;
+  mode?: SalesOrdersListMode;
+  onSalesOrderPress?: (item: any) => void;
+};
+
+export function SalesOrdersListScreen({
+  title = "Orders",
+  subtitle = "Search and filter sales orders",
+  mode = "default",
+  onSalesOrderPress,
+}: SalesOrdersListScreenProps = {}) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
@@ -33,6 +47,7 @@ export function SalesOrdersListScreen() {
   });
 
   const items = (data as any)?.data || [];
+  const isDispatchSearchMode = mode === "dispatch-search";
 
   return (
     <SafeArea>
@@ -46,10 +61,8 @@ export function SalesOrdersListScreen() {
               <Icon name="ArrowLeft" className="text-foreground" size={20} />
             </Pressable>
             <View className="flex-1">
-              <Text className="text-2xl font-bold text-foreground">Orders</Text>
-              <Text className="text-sm text-muted-foreground">
-                Search and filter sales orders
-              </Text>
+              <Text className="text-2xl font-bold text-foreground">{title}</Text>
+              <Text className="text-sm text-muted-foreground">{subtitle}</Text>
             </View>
           </View>
 
@@ -64,12 +77,14 @@ export function SalesOrdersListScreen() {
                 className="ml-2 flex-1 text-foreground"
               />
             </View>
-            <Pressable
-              onPress={() => setFilterOpen(true)}
-              className="h-12 w-12 items-center justify-center rounded-xl border border-border bg-card active:opacity-80"
-            >
-              <Icon name="SlidersHorizontal" className="text-foreground" size={18} />
-            </Pressable>
+            {!isDispatchSearchMode ? (
+              <Pressable
+                onPress={() => setFilterOpen(true)}
+                className="h-12 w-12 items-center justify-center rounded-xl border border-border bg-card active:opacity-80"
+              >
+                <Icon name="SlidersHorizontal" className="text-foreground" size={18} />
+              </Pressable>
+            ) : null}
           </View>
         </View>
 
@@ -95,25 +110,31 @@ export function SalesOrdersListScreen() {
             renderItem={({ item }) => (
               <SalesOrderCard
                 item={item}
-                onPress={() =>
+                onPress={() => {
+                  if (onSalesOrderPress) {
+                    onSalesOrderPress(item);
+                    return;
+                  }
                   router.push({
                     pathname: "/(sales)/orders/[orderNo]",
                     params: { orderNo: item.orderId },
-                  } as any)
-                }
+                  } as any);
+                }}
               />
             )}
           />
         )}
       </View>
 
-      <OrdersFilterModal
-        open={filterOpen}
-        onClose={() => setFilterOpen(false)}
-        filters={filters.filter((f) => f.value !== "q")}
-        selected={selectedFilters}
-        onApply={(next) => setSelectedFilters(next)}
-      />
+      {!isDispatchSearchMode ? (
+        <OrdersFilterModal
+          open={filterOpen}
+          onClose={() => setFilterOpen(false)}
+          filters={filters.filter((f) => f.value !== "q")}
+          selected={selectedFilters}
+          onApply={(next) => setSelectedFilters(next)}
+        />
+      ) : null}
     </SafeArea>
   );
 }

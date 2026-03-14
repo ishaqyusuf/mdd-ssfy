@@ -5,7 +5,7 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode, useEffect, useMemo } from "react";
 import { View } from "react-native";
 
 export type ActivityTagFilter = {
@@ -34,6 +34,7 @@ export type ActivityHistoryProps = {
   className?: string;
   emptyText?: string | null;
   emptyNode?: ReactNode;
+  refreshToken?: number;
 };
 
 function formatActivityDate(value: Date | string | null | undefined) {
@@ -137,6 +138,7 @@ export function ActivityHistory({
   className,
   emptyText = "No activity yet",
   emptyNode,
+  refreshToken = 0,
 }: ActivityHistoryProps) {
   const trpc = useTRPC();
 
@@ -150,7 +152,7 @@ export function ActivityHistory({
     [channel, tags],
   );
 
-  const { data, isPending, isError } = useQuery(
+  const { data, isPending, isError, refetch } = useQuery(
     trpc.notes.activityTree.queryOptions({
       ...(contactId ? { contactIds: [contactId] } : {}),
       ...(tagFilters.length ? { tagFilters } : {}),
@@ -160,6 +162,11 @@ export function ActivityHistory({
       maxDepth,
     }),
   );
+
+  useEffect(() => {
+    if (!refreshToken) return;
+    refetch();
+  }, [refreshToken, refetch]);
 
   if (isPending) {
     return (

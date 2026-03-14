@@ -1,6 +1,7 @@
 import { Prisma } from "@gnd/db";
 import { UserData } from "./base";
 import { ChannelName } from "./channels";
+import { mergeTagRows } from "./tag-values";
 
 export type TagFilters = ReturnType<typeof noteTagFilter>;
 // export function filterNotesByTags(notes: GetNotes, tagFilters: TagFilters[]) {
@@ -51,11 +52,9 @@ export function transformActivityTags(
   ...tags: Array<Pick<Prisma.NoteTagsGetPayload<{}>, "tagName" | "tagValue">>
 ): // ...tags: T
 { [K in NoteTagNames]?: TagValueMap[K] } {
-  const result = {} as { [K in NoteTagNames]?: TagValueMap[K] };
-  tags.forEach((t) => {
-    result[t.tagName] = t.tagValue as any;
-  });
-  return result;
+  return mergeTagRows(tags as Array<{ tagName: string; tagValue: unknown }>) as {
+    [K in NoteTagNames]?: TagValueMap[K];
+  };
 }
 
 export const noteTagNames = [

@@ -9,6 +9,7 @@ import { usePathname } from "next/dist/client/components/navigation";
 import { createSiteNavContext, SiteNav } from "@gnd/site-nav";
 import Link from "next/link";
 import { linkModules } from "./sidebar/links";
+import { Icons } from "./_v1/icons";
 export function SidebarContent({ children }) {
     const auth = useAuth();
     if (!auth.id) return null;
@@ -48,8 +49,18 @@ function NavLayoutClient({ children }) {
         >
             <div className="relative ">
                 <SiteNav.Sidebar>
+                    <SiteNav.Logo Icon={Icons.LogoLg} />
+                    <SiteNav.LogoSm Icon={Icons.Logo} />
                     {/* <TermSwitcher /> */}
                     {/* <ModuleSwitcher /> */}
+                    <div className="absolute bottom-4 left-0 right-0 z-10 px-2 w-full flex items-center justify-center md:justify-start md:px-2">
+                        <SiteNav.User
+                            user={auth}
+                            onLogout={() => {
+                                window.location.href = "/signout";
+                            }}
+                        />
+                    </div>
                 </SiteNav.Sidebar>
                 <SiteNav.Shell className="pb-8">
                     <Header />
@@ -59,4 +70,3 @@ function NavLayoutClient({ children }) {
         </SiteNav.Provider>
     );
 }
-

@@ -1,4 +1,5 @@
 import { createWhatsAppClient } from "@gnd/app-store/whatsapp-client";
+import { logger } from "@gnd/logger";
 import type { UserData } from "../base";
 
 type WhatsAppInput = {
@@ -34,7 +35,32 @@ export class WhatsAppService {
       };
     }
 
-    const client = createWhatsAppClient();
+    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+    if (!phoneNumberId || !accessToken) {
+      logger.warn(
+        "WhatsApp notification skipped: missing WHATSAPP_PHONE_NUMBER_ID or WHATSAPP_ACCESS_TOKEN",
+      );
+      return {
+        sent: 0,
+        skipped: messages.length,
+        failed: 0,
+      };
+    }
+
+    let client: ReturnType<typeof createWhatsAppClient>;
+    try {
+      client = createWhatsAppClient();
+    } catch (error) {
+      logger.warn(
+        `WhatsApp notification skipped: failed to initialize WhatsApp client (${String(error)})`,
+      );
+      return {
+        sent: 0,
+        skipped: messages.length,
+        failed: 0,
+      };
+    }
     let sent = 0;
     let skipped = 0;
     let failed = 0;

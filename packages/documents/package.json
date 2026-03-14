@@ -1,0 +1,22 @@
+{
+	"name": "@gnd/documents",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"main": "src/index.ts",
+	"types": "src/index.ts",
+	"exports": {
+		".": "./src/index.ts",
+		"./providers/vercel-blob": "./src/providers/vercel-blob.ts",
+		"./providers/cloudinary": "./src/providers/cloudinary.ts"
+	},
+	"scripts": {
+		"lint": "biome check .",
+		"lint:fix": "biome check --write .",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@gnd/tsconfig": "workspace:*",
+		"typescript": "catalog:"
+	}
+}

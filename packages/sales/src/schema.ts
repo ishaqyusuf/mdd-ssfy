@@ -133,6 +133,18 @@ export const updateSalesControlSchema = z.object({
       dispatchId: z.number(),
       dispatchStatus: z.enum(SALES_DISPATCH_STATUS),
       replaceExisting: z.boolean().optional().nullable(),
+      requestedItems: z
+        .array(
+          z.object({
+            salesItemId: z.number(),
+            itemUid: z.string().optional(),
+            title: z.string().optional(),
+            qty: qty,
+            note: z.string().optional(),
+          }),
+        )
+        .nullable()
+        .optional(),
       packingLines: z
         .array(
           z.object({

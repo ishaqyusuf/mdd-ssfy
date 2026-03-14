@@ -18,6 +18,20 @@ export function compactStepValue(selectedComponents: any[]) {
     : `${selectedComponents.length} selected`;
 }
 
+function snapshotSelectedComponent(component: any) {
+  return {
+    id: component?.id ?? null,
+    uid: component?.uid || "",
+    title: component?.title || "",
+    img: component?.img || null,
+    salesPrice: component?.salesPrice == null ? null : Number(component.salesPrice || 0),
+    basePrice: component?.basePrice == null ? null : Number(component.basePrice || 0),
+    pricing: component?.pricing || null,
+    redirectUid: component?.redirectUid || null,
+    sectionOverride: component?.sectionOverride || null,
+  };
+}
+
 type MultiSelectMutationArgs = {
   steps: any[];
   currentStepIndex: number;
@@ -80,14 +94,9 @@ export function applyMultiSelectStepMutation({
       ...(current.meta || {}),
       img: primary?.img || null,
       selectedProdUids: selectedUids,
-      selectedComponents: selectedComponents.map((c: any) => ({
-        id: c.id ?? null,
-        uid: c.uid,
-        title: c.title,
-        img: c.img || null,
-        salesPrice: c.salesPrice == null ? null : Number(c.salesPrice || 0),
-        basePrice: c.basePrice == null ? null : Number(c.basePrice || 0),
-      })),
+      selectedComponents: selectedComponents.map((c: any) =>
+        snapshotSelectedComponent(c),
+      ),
     },
     step: {
       ...(current.step || {

@@ -55,7 +55,18 @@ describe("mutation-engine domain", () => {
       currentStepIndex: 0,
       component: { uid: "d1" },
       visibleComponents: [
-        { id: 1, uid: "d1", title: "Door A", salesPrice: 10, basePrice: 8 },
+        {
+          id: 1,
+          uid: "d1",
+          title: "Door A",
+          salesPrice: 10,
+          basePrice: 8,
+          pricing: {
+            "2-0 x 7-0": { price: 120 },
+          },
+          redirectUid: "next-step",
+          sectionOverride: { overrideMode: true, noHandle: true },
+        },
       ],
       selectedOverride: true,
       activeStepTitle: "Door",
@@ -63,5 +74,15 @@ describe("mutation-engine domain", () => {
     expect(result.hasSelection).toBe(true);
     expect(result.steps[0].meta.selectedProdUids).toEqual(["d1"]);
     expect(result.steps[0].value).toBe("Door A");
+    expect(result.steps[0].meta.selectedComponents[0].pricing).toEqual({
+      "2-0 x 7-0": { price: 120 },
+    });
+    expect(result.steps[0].meta.selectedComponents[0].redirectUid).toBe(
+      "next-step",
+    );
+    expect(result.steps[0].meta.selectedComponents[0].sectionOverride).toEqual({
+      overrideMode: true,
+      noHandle: true,
+    });
   });
 });

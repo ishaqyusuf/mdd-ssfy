@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@gnd/ui/button";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Input } from "@gnd/ui/input";
@@ -17,6 +17,7 @@ import {
 import { Label } from "@gnd/ui/label";
 import { env } from "@/env.mjs";
 import { MouldingCalculator } from "@/components/moulding-calculator";
+import { FileUploader } from "@/components/common/file-uploader";
 import {
     DoorOpen,
     ExternalLink,
@@ -178,6 +179,47 @@ function moneyIfPositive(value?: number | null) {
         currency: "USD",
     }).format(amount);
 }
+function firstFiniteNumber(...values: Array<number | null | undefined>) {
+    for (const value of values) {
+        const candidate = Number(value);
+        if (Number.isFinite(candidate)) return candidate;
+    }
+    return null;
+}
+function snapshotSelectedComponent(component: any) {
+    return {
+        id: component?.id ?? null,
+        uid: component?.uid || "",
+        title: component?.title || "",
+        img: component?.img || null,
+        salesPrice:
+            component?.salesPrice == null
+                ? null
+                : Number(component.salesPrice || 0),
+        basePrice:
+            component?.basePrice == null
+                ? null
+                : Number(component.basePrice || 0),
+        pricing: component?.pricing || null,
+        redirectUid: component?.redirectUid || null,
+        sectionOverride: component?.sectionOverride || null,
+    };
+}
+function normalizeMouldingStoredRows(rows: any[]) {
+    return (rows || []).map((row: any) => ({
+        uid: String(row?.uid || ""),
+        title: String(row?.title || ""),
+        description: String(row?.description || ""),
+        qty: Number(row?.qty || 0),
+        addon: Number(row?.addon || 0),
+        customPrice:
+            row?.customPrice == null || row?.customPrice === ""
+                ? null
+                : Number(row.customPrice || 0),
+        salesPrice: Number(row?.salesPrice || 0),
+        basePrice: Number(row?.basePrice || 0),
+    }));
+}
 function profileAdjustedSalesPrice(
     salesPrice: number | null | undefined,
     basePrice: number | null | undefined,
@@ -274,6 +316,7 @@ export function ItemWorkflowPanel() {
         stepIndex: number;
         componentUid: string;
         componentTitle: string;
+        componentImg: string;
         salesPrice: string;
         redirectUid: string;
         overrideMode: boolean;
@@ -285,6 +328,7 @@ export function ItemWorkflowPanel() {
         stepIndex: -1,
         componentUid: "",
         componentTitle: "",
+        componentImg: "",
         salesPrice: "",
         redirectUid: "",
         overrideMode: false,
@@ -317,9 +361,76 @@ export function ItemWorkflowPanel() {
             : (activeStepByLine[activeLine.uid] ??
               Math.max(0, activeLineSteps.length - 1));
     const activeStep = activeLineSteps[activeStepIndex] || null;
+    const componentEditStepUid = useMemo(() => {
+        if (!componentEditModal.lineUid || componentEditModal.stepIndex < 0) {
+            return null;
+        }
+        const line = record?.lineItems?.find(
+            (item) => item.uid === componentEditModal.lineUid,
+        );
+        const step = line?.formSteps?.[componentEditModal.stepIndex];
+        return step?.step?.uid ? String(step.step.uid) : null;
+    }, [
+        componentEditModal.lineUid,
+        componentEditModal.stepIndex,
+        record?.lineItems,
+    ]);
     const activeDoorStep = activeLine
         ? findLineStepByTitle(activeLine, "Door")
         : null;
+    const activeMouldingSync = useMemo(() => {
+        if (!activeLine || !isMouldingItem(activeLine)) return null;
+        const selectedMouldings = getSelectedMouldingComponentsForLine(activeLine);
+        if (!selectedMouldings.length) return null;
+        const existingRows = Array.isArray((activeLine.meta as any)?.mouldingRows)
+            ? ((activeLine.meta as any)?.mouldingRows as any[])
+            : [];
+        const sharedComponentPrice = sharedMouldingComponentPrice(
+            activeLine.formSteps || [],
+        );
+        const derivedRows = deriveMouldingRows({
+            selectedMouldings,
+            existingRows,
+            sharedComponentPrice,
+        });
+        const summary = summarizeMouldingPersistRows(
+            derivedRows,
+            sharedComponentPrice,
+        );
+        const normalizedExistingRows = normalizeMouldingStoredRows(existingRows);
+        const rowsChanged =
+            JSON.stringify(normalizedExistingRows) !==
+            JSON.stringify(summary.storedRows);
+        const qtyChanged = Number(activeLine.qty || 0) !== summary.qtyTotal;
+        const totalChanged =
+            Number(Number(activeLine.lineTotal || 0).toFixed(2)) !==
+            summary.total;
+        const unitPriceChanged =
+            Number(Number(activeLine.unitPrice || 0).toFixed(2)) !==
+            summary.unitPrice;
+        if (!rowsChanged && !qtyChanged && !totalChanged && !unitPriceChanged) {
+            return null;
+        }
+        return {
+            lineUid: activeLine.uid,
+            storedRows: summary.storedRows,
+            qtyTotal: summary.qtyTotal,
+            total: summary.total,
+            unitPrice: summary.unitPrice,
+        };
+    }, [activeLine]);
+    useEffect(() => {
+        if (!activeMouldingSync) return;
+        updateLineItem(activeMouldingSync.lineUid, {
+            meta: {
+                ...(activeLine?.meta || {}),
+                mouldingRows: activeMouldingSync.storedRows,
+            } as any,
+            qty: activeMouldingSync.qtyTotal,
+            lineTotal: activeMouldingSync.total,
+            unitPrice: activeMouldingSync.unitPrice,
+        } as any);
+    }, [activeLine?.meta, activeMouldingSync, updateLineItem]);
     const activeStepComponentOverrides = useMemo(() => {
         const overrides = new Map<string, any>();
         const selected = Array.isArray(activeStep?.meta?.selectedComponents)
@@ -856,6 +967,7 @@ export function ItemWorkflowPanel() {
             stepIndex,
             componentUid: String(component?.uid || ""),
             componentTitle: String(component?.title || component?.uid || "Component"),
+            componentImg: String(current?.img || component?.img || ""),
             salesPrice: String(
                 Number(current?.salesPrice ?? component?.salesPrice ?? 0) || 0,
             ),
@@ -915,11 +1027,12 @@ export function ItemWorkflowPanel() {
                         entry?.title ||
                         componentEditModal.componentTitle ||
                         "Component",
+                    img: componentEditModal.componentImg || null,
                     salesPrice,
                     basePrice:
                         entry?.basePrice == null
                             ? salesPrice
-                            : Number(entry.basePrice || salesPrice),
+                            : Number(entry.basePrice),
                     redirectUid: componentEditModal.redirectUid || null,
                     sectionOverride: {
                         overrideMode: componentEditModal.overrideMode,
@@ -936,6 +1049,9 @@ export function ItemWorkflowPanel() {
             price: isCurrentSelected ? salesPrice : step?.price,
             meta: {
                 ...(step?.meta || {}),
+                img: isCurrentSelected
+                    ? componentEditModal.componentImg || null
+                    : step?.meta?.img || null,
                 redirectUid: isCurrentSelected
                     ? componentEditModal.redirectUid || null
                     : step?.meta?.redirectUid || null,
@@ -1030,12 +1146,7 @@ export function ItemWorkflowPanel() {
         component: any,
     ) {
         if (typeof window === "undefined") return;
-        const currentPrice = Number(
-            component?.salesPrice ??
-                component?.basePrice ??
-                component?.pricing?.price ??
-                0,
-        );
+        const currentPrice = Number(component?.salesPrice ?? 0);
         const raw = window.prompt(
             "Set line-level component price override",
             currentPrice ? String(currentPrice) : "",
@@ -1057,7 +1168,7 @@ export function ItemWorkflowPanel() {
                       basePrice:
                           entry?.basePrice == null
                               ? parsed
-                              : Number(entry.basePrice || parsed),
+                              : Number(entry.basePrice),
                   }
                 : entry,
         );
@@ -1067,7 +1178,7 @@ export function ItemWorkflowPanel() {
             ...step,
             price: isTargetStep ? parsed : step?.price,
             basePrice: isTargetStep
-                ? Number(step?.basePrice || parsed)
+                ? (firstFiniteNumber(step?.basePrice, parsed) ?? parsed)
                 : step?.basePrice,
             meta: {
                 ...(step.meta || {}),
@@ -1095,6 +1206,9 @@ export function ItemWorkflowPanel() {
         const doorStep = findLineStepByTitle(line, "Door");
         const supplier = getDoorSupplierMeta(doorStep);
         const selectedDoorComponents = getSelectedDoorComponentsForLine(line);
+        const doorStepIndex = (line.formSteps || []).findIndex((step: any) =>
+            isDoorStepTitle(step?.step?.title),
+        );
         const activeDoorUid =
             activeHptDoorUidByLine[line.uid] ||
             selectedDoorComponents[0]?.uid ||
@@ -1256,6 +1370,20 @@ export function ItemWorkflowPanel() {
                                 }
                             >
                                 Configure Sizes
+                            </Button>
+                        ) : null}
+                        {doorStepIndex >= 0 ? (
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() =>
+                                    setActiveStepByLine((prev) => ({
+                                        ...prev,
+                                        [line.uid]: doorStepIndex,
+                                    }))
+                                }
+                            >
+                                Add Door Option
                             </Button>
                         ) : null}
                     </div>
@@ -1698,20 +1826,16 @@ export function ItemWorkflowPanel() {
                                                                             </span>
                                                                             <span className="font-semibold">
                                                                                 {money(
-                                                                                    Number(
+                                                                                    firstFiniteNumber(
                                                                                         row
                                                                                             ?.meta
-                                                                                            ?.baseUnitPrice ==
-                                                                                            null
-                                                                                            ? Number(
-                                                                                                  row.unitPrice ||
-                                                                                                      0,
-                                                                                              ) -
-                                                                                                  sharedDoorSurcharge
-                                                                                            : row
-                                                                                                  .meta
-                                                                                                  .baseUnitPrice,
-                                                                                    ),
+                                                                                            ?.baseUnitPrice,
+                                                                                        Number(
+                                                                                            row.unitPrice ??
+                                                                                                0,
+                                                                                        ) -
+                                                                                            sharedDoorSurcharge,
+                                                                                    ) ?? 0,
                                                                                 ) ||
                                                                                     "$0.00"}
                                                                             </span>
@@ -1886,21 +2010,8 @@ export function ItemWorkflowPanel() {
                 meta: {
                     ...(mouldingStep?.meta || {}),
                     selectedProdUids: selectedUids,
-                    selectedComponents: remainingComponents.map(
-                        (component: any) => ({
-                            id: component?.id ?? null,
-                            uid: component?.uid || "",
-                            title: component?.title || "",
-                            img: component?.img || null,
-                            salesPrice:
-                                component?.salesPrice == null
-                                    ? null
-                                    : Number(component.salesPrice || 0),
-                            basePrice:
-                                component?.basePrice == null
-                                    ? null
-                                    : Number(component.basePrice || 0),
-                        }),
+                    selectedComponents: remainingComponents.map((component: any) =>
+                        snapshotSelectedComponent(component),
                     ),
                 },
             };
@@ -3181,36 +3292,10 @@ export function ItemWorkflowPanel() {
                                             if (!step) return;
                                             const selectedComponents =
                                                 visibleComponents.map(
-                                                    (component: any) => ({
-                                                        id:
-                                                            component?.id ??
-                                                            null,
-                                                        uid:
-                                                            component?.uid ||
-                                                            "",
-                                                        title:
-                                                            component?.title ||
-                                                            "",
-                                                        img:
-                                                            component?.img ||
-                                                            null,
-                                                        salesPrice:
-                                                            component?.salesPrice ==
-                                                            null
-                                                                ? null
-                                                                : Number(
-                                                                      component.salesPrice ||
-                                                                          0,
-                                                                  ),
-                                                        basePrice:
-                                                            component?.basePrice ==
-                                                            null
-                                                                ? null
-                                                                : Number(
-                                                                      component.basePrice ||
-                                                                          0,
-                                                                  ),
-                                                    }),
+                                                    (component: any) =>
+                                                        snapshotSelectedComponent(
+                                                            component,
+                                                        ),
                                                 );
                                             const selectedProdUids =
                                                 selectedComponents
@@ -3748,6 +3833,21 @@ export function ItemWorkflowPanel() {
                             <Input value={componentEditModal.componentTitle} readOnly />
                         </div>
                         <div className="grid gap-2">
+                            <FileUploader
+                                src={componentEditModal.componentImg || null}
+                                label="Component Image"
+                                folder="dyke"
+                                width={120}
+                                height={120}
+                                onUpload={(assetId) =>
+                                    setComponentEditModal((prev) => ({
+                                        ...prev,
+                                        componentImg: String(assetId || ""),
+                                    }))
+                                }
+                            />
+                        </div>
+                        <div className="grid gap-2">
                             <Label>Sales Cost</Label>
                             <Input
                                 type="number"
@@ -3776,7 +3876,7 @@ export function ItemWorkflowPanel() {
                                 <option value="">None</option>
                                 {getRedirectableRoutes(
                                     routeData,
-                                    activeStep?.step?.uid,
+                                    componentEditStepUid,
                                 ).map((route) => (
                                     <option key={`edit-redirect-${route.uid}`} value={route.uid}>
                                         {route.title}

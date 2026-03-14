@@ -1,5 +1,13 @@
 import { normalizeSalesFormTitle } from "./step-engine";
 
+function firstFiniteNumber(...values: Array<number | null | undefined>) {
+  for (const value of values) {
+    const candidate = Number(value);
+    if (Number.isFinite(candidate)) return candidate;
+  }
+  return null;
+}
+
 export function resolveSizeFromPricingKey(key: string, supplierUid?: string | null) {
   const raw = String(key || "").trim();
   if (!raw) return null;
@@ -36,16 +44,16 @@ export function resolvePricingBucketUnitPrice({
     (supplierKey ? source[supplierKey] : null) ||
     source[size] ||
     null;
-  const unit =
-    Number(
-      bucket?.salesPrice ??
-        bucket?.price ??
-        bucket?.salesUnitCost ??
-        bucket?.basePrice ??
-        bucket?.baseUnitCost,
-    ) ||
-    Number(fallbackSalesPrice ?? fallbackBasePrice ?? 0);
-  return Number.isFinite(unit) ? unit : 0;
+  const unit = firstFiniteNumber(
+    bucket?.salesPrice,
+    bucket?.price,
+    bucket?.salesUnitCost,
+    bucket?.basePrice,
+    bucket?.baseUnitCost,
+    fallbackSalesPrice,
+    fallbackBasePrice,
+  );
+  return unit == null ? 0 : unit;
 }
 
 export function summarizeDoors(

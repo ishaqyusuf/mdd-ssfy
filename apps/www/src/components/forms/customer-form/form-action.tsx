@@ -1,16 +1,12 @@
 import { Button } from "@gnd/ui/button";
 import { SubmitButton } from "@/components/submit-button";
 import { useTRPC } from "@/trpc/client";
-import { useQueryClient } from "@gnd/ui/tanstack";
+import { useMutation } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import { FormDebugBtn } from "@/components/form-debug-btn";
 
 import { useCustomerForm } from "./form-context";
 import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
-import { useAction } from "next-safe-action/hooks";
-import { createCustomerAction } from "@/actions/create-customer-action";
-
-import { createCustomerAddressAction } from "@/actions/create-customer-address-action";
 
 export function FormAction({ onCancel }) {
     const { setParams, params } = useCreateCustomerParams();
@@ -18,43 +14,15 @@ export function FormAction({ onCancel }) {
     const id = form.watch("id");
     const isEditing = params.customerId > 0;
     const trpc = useTRPC();
-    const qc = useQueryClient();
-    const { execute: mutateAddress } = useAction(createCustomerAddressAction, {
-        onSuccess: ({ data: resp }) => {
-            toast({
-                title: id ? "Updated" : "Created",
-            });
-            setParams({
-                customerForm: false,
-                payload: {
-                    customerId: resp.customerId,
-                    addressId: resp.addressId,
-                    address: params.address as any,
-                },
-            });
-            // if (resp) {
-            // setParams(null);
-            // }
-        },
-        onError(e) {
-            toast({
-                title: "Error",
-            });
-        },
-    });
-    const { isPending: isSubmitting, execute: mutate } = useAction(
-        createCustomerAction,
-        {
-            onError() {},
-            onSuccess: ({ data: resp }) => {
-                // toast.success(id ? "Updated" : "Created");
+    const {
+        mutate: mutateAddress,
+        isPending: isAddressSubmitting,
+    } = useMutation(
+        trpc.customers.createCustomerAddress.mutationOptions({
+            onSuccess: (resp) => {
                 toast({
                     title: id ? "Updated" : "Created",
                 });
-                // customerFormStaticCallbacks?.created?.(
-                //     resp.customerId,
-                //     resp?.addressId,
-                // );
                 setParams({
                     customerForm: false,
                     payload: {
@@ -63,11 +31,33 @@ export function FormAction({ onCancel }) {
                         address: params.address as any,
                     },
                 });
-                // if (resp) {
-                // }
             },
-        },
+            onError() {
+                toast({
+                    title: "Error",
+                });
+            },
+        }),
     );
+    const { mutate, isPending: isCustomerSubmitting } = useMutation(
+        trpc.customers.createCustomer.mutationOptions({
+            onError() {},
+            onSuccess: (resp) => {
+                toast({
+                    title: id ? "Updated" : "Created",
+                });
+                setParams({
+                    customerForm: false,
+                    payload: {
+                        customerId: resp.customerId,
+                        addressId: resp.addressId,
+                        address: params.address as any,
+                    },
+                });
+            },
+        }),
+    );
+    const isSubmitting = isAddressSubmitting || isCustomerSubmitting;
 
     return (
         <div className="flex flex-1 py-4 items-center gap-4">
@@ -88,9 +78,10 @@ export function FormAction({ onCancel }) {
                 </Button>
                 <FormDebugBtn />
                 <form
-                    // onSubmit={form.handleSubmit(onSubmit)}
                     onSubmit={form.handleSubmit(
-                        params?.address ? mutateAddress : mutate,
+                        params?.address
+                            ? (values) => mutateAddress(values)
+                            : (values) => mutate(values),
                     )}
                 >
                     <SubmitButton
@@ -104,4 +95,3 @@ export function FormAction({ onCancel }) {
         </div>
     );
 }
-

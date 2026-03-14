@@ -1,5 +1,40 @@
 # Progress
 
+## 2026-03-14
+
+- Archived the former component-local new-sales-form handoff plan into Brain:
+  - moved `apps/www/src/components/forms/new-sales-form/plan.md` to `brain/new-sales-form-master-plan-archive.md`.
+- Removed the duplicate non-Brain copy so `brain/` remains the single durable documentation home for new-sales-form planning/handoff context.
+- Captured a new field-reported `new-sales-form` parity gap batch and updated Brain execution docs/tasks accordingly:
+  - component edit parity
+  - component image attachment
+  - redirect route list accuracy
+  - inline door base-cost edit parity
+  - calculated sales-cost display vs raw base cost
+  - HPT `Add Size` failure
+  - HPT add-door option parity
+  - moulding calculator outside-click close parity
+- Expanded the active Phase 0 repro matrix from 15 to 23 tracked rows in `brain/new-sales-form-phase0-repro-matrix.md`.
+- Updated `brain/new-sales-form-missing-features-execution-plan.md` and `brain/tasks.md` so these user-reported gaps are now part of the formal execution order.
+- Started the first `new-sales-form` implementation batch for the newly reported parity gaps:
+  - persisted richer multi-select component metadata (`pricing`, `redirectUid`, `sectionOverride`) in shared sales-form mutation domain so downstream HPT flows keep size-bucket context.
+  - added an HPT `Add Door Option` action that jumps back to the `Door` step for adding another selected door path.
+  - upgraded door size `B` control from passive capture to an editable base-cost prompt that preserves row surcharge math.
+  - added image upload support to the new component edit dialog and persisted edited component image state back into line-step metadata.
+  - fixed component edit redirect options to derive from the actual edited step rather than whichever step is currently active.
+  - preserved richer component metadata in the step-level `Select All` action so downstream pricing/redirect behavior keeps the same component snapshot shape as other selection paths.
+  - normalized moulding multi-select removal to preserve the same richer component snapshot shape (`pricing`, redirect, overrides) instead of collapsing metadata on re-save.
+  - normalized shared sales-form domain selectors/mutation snapshots so selected component payloads consistently preserve `pricing`, `redirectUid`, and `sectionOverride` across fallback and multi-select paths.
+  - tightened quick component price edit defaults to prefer resolved sales cost only, avoiding silent fallback to base cost in the prompt path.
+- Continued parity hardening for the same batch:
+  - changed shared HPT pricing-bucket resolution to preserve explicit zero-valued bucket prices instead of silently falling back to base/sales defaults.
+  - rewired the door size modal to prefer resolved sales pricing with finite-number fallbacks instead of truthy `||` chains, while preserving per-row `baseUnitPrice` metadata.
+  - tightened component-edit and quick-price-override flows to preserve existing `basePrice` values instead of replacing them whenever the stored base was `0`.
+  - normalized the HPT estimate breakdown base-unit fallback to use preserved row base-cost metadata before deriving from final unit price minus surcharge.
+  - fixed moulding selection summary sync so newly selected mouldings with default `qty: 1` immediately persist `mouldingRows`, `qty`, `unitPrice`, and `lineTotal` without requiring a manual qty edit first.
+- Focused gate after this batch:
+  - `bun test packages/sales/src/sales-form/domain/mutation-engine.test.ts packages/sales/src/sales-form/domain/selectors.test.ts packages/sales/src/sales-form/domain/workflow-calculators.test.ts` => `23 pass, 0 fail`.
+
 ## 2026-03-12
 
 - Completed full-system legacy sales-form audit across UI, state, pricing, and save pipeline.

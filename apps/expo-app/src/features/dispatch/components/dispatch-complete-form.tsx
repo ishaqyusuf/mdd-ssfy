@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   GestureResponderEvent,
+  Image,
   PanResponder,
   Pressable,
+  ScrollView,
   Text,
   TextInput,
   View,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { Icon } from "@/components/ui/icon";
+import * as ImagePicker from "expo-image-picker";
 
 type Props = {
   defaultReceivedBy?: string;
@@ -19,6 +22,13 @@ type Props = {
     note?: string;
     receivedDate?: Date;
     signature?: string;
+    signaturePath?: string;
+    attachments?: {
+      fileName: string;
+      contentType?: string;
+      base64: string;
+      uri: string;
+    }[];
   }) => Promise<void> | void;
 };
 
@@ -31,6 +41,14 @@ export function DispatchCompleteForm({
   const [receivedBy, setReceivedBy] = useState(defaultReceivedBy || "");
   const [note, setNote] = useState("");
   const [signaturePath, setSignaturePath] = useState("");
+  const [attachments, setAttachments] = useState<
+    {
+      fileName: string;
+      contentType?: string;
+      base64: string;
+      uri: string;
+    }[]
+  >([]);
   const pathRef = useRef("");
 
   useEffect(() => {
@@ -66,6 +84,30 @@ export function DispatchCompleteForm({
   );
 
   const hasSignature = signaturePath.trim().length > 0;
+
+  const pickAttachments = async () => {
+    if (isSubmitting) return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+      allowsMultipleSelection: true,
+      base64: true,
+    });
+    if (result.canceled) return;
+    const next = result.assets
+      .filter((asset) => !!asset.base64)
+      .map((asset, index) => ({
+        fileName:
+          asset.fileName ||
+          `dispatch-attachment-${Date.now()}-${index}.${asset.uri
+            .split(".")
+            .pop() || "jpg"}`,
+        contentType: asset.mimeType || "image/jpeg",
+        base64: asset.base64!,
+        uri: asset.uri,
+      }));
+    setAttachments((prev) => [...prev, ...next]);
+  };
 
   return (
     <View className="pb-4">
@@ -155,6 +197,60 @@ export function DispatchCompleteForm({
             )}
           </View>
         </View>
+
+        <View className="rounded-xl border border-input bg-background p-3.5">
+          <View className="mb-2 flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2">
+              <Icon name="Image" className="size-14 text-muted-foreground" />
+              <Text className="text-sm font-medium text-foreground">
+                Attach Photos (Optional)
+              </Text>
+            </View>
+            <Pressable
+              disabled={isSubmitting}
+              onPress={pickAttachments}
+              className="rounded-full border border-border px-3 py-1 active:opacity-80 disabled:opacity-40"
+            >
+              <Text className="text-xs font-semibold text-foreground">
+                Add Photos
+              </Text>
+            </Pressable>
+          </View>
+
+          {attachments.length ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerClassName="gap-2 pb-1"
+            >
+              {attachments.map((file) => (
+                <View key={`${file.uri}-${file.fileName}`} className="relative">
+                  <Image
+                    source={{ uri: file.uri }}
+                    style={{ width: 72, height: 72, borderRadius: 10 }}
+                  />
+                  <Pressable
+                    disabled={isSubmitting}
+                    onPress={() =>
+                      setAttachments((prev) =>
+                        prev.filter((item) => item.uri !== file.uri),
+                      )
+                    }
+                    className="absolute -right-1 -top-1 h-5 w-5 items-center justify-center rounded-full bg-destructive"
+                  >
+                    <Text className="text-[10px] font-bold text-destructive-foreground">
+                      x
+                    </Text>
+                  </Pressable>
+                </View>
+              ))}
+            </ScrollView>
+          ) : (
+            <Text className="text-xs text-muted-foreground">
+              No photos attached.
+            </Text>
+          )}
+        </View>
       </View>
 
       <View className="mt-5 flex-row gap-3">
@@ -173,6 +269,8 @@ export function DispatchCompleteForm({
               note: note || undefined,
               receivedDate: new Date(),
               signature: signaturePath,
+              signaturePath,
+              attachments,
             })
           }
           className="h-11 flex-1 items-center justify-center rounded-xl bg-primary px-4 active:opacity-80 disabled:opacity-40"

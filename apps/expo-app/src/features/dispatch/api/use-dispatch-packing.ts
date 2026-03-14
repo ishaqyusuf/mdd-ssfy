@@ -30,6 +30,13 @@ type PackItemInput = PackingMetaInput & {
 type PackItemsSelectionInput = PackingMetaInput & {
   dispatchStatus: DispatchStatus;
   packingLines: PackingLine[];
+  requestedItems?: {
+    salesItemId: number;
+    itemUid?: string;
+    title?: string;
+    qty: QtyMatrix;
+    note?: string;
+  }[];
   replaceExisting?: boolean;
 };
 
@@ -125,11 +132,12 @@ export function useDispatchPacking() {
           packItems: {
             dispatchId: input.dispatchId,
             dispatchStatus: input.dispatchStatus,
-            packMode: "selection",
-            replaceExisting: input.replaceExisting ?? false,
-            packingLines: input.packingLines,
-          },
+          packMode: "selection",
+          replaceExisting: input.replaceExisting ?? false,
+          requestedItems: input.requestedItems,
+          packingLines: input.packingLines,
         },
+      },
       });
     },
     async onClearPackings(input: PackingMetaInput) {

@@ -168,4 +168,135 @@ describe("sales-control task transactions", () => {
     ).rejects.toThrow("update failed");
     expect(resetSalesActionMock).toHaveBeenCalledTimes(0);
   });
+
+  it("retries selection packing after non-production submit when initial allocation is insufficient", async () => {
+    const tx = {
+      orderItemDelivery: {
+        updateMany: mock(async () => ({})),
+      },
+      orderDelivery: {
+        update: mock(async () => ({})),
+      },
+    };
+    const db = {
+      $transaction: async (fn: any) => fn(tx),
+    };
+
+    getSaleInformationMock
+      .mockResolvedValueOnce({
+        order: { id: 9001 },
+        items: [
+          {
+            itemId: 1,
+            controlUid: "uid-1",
+            title: "Alpha",
+            deliverables: [{ submissionId: 1001, qty: { qty: 1 } }],
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        order: { id: 9001 },
+        items: [],
+      })
+      .mockResolvedValueOnce({
+        order: { id: 9001 },
+        items: [
+          {
+            itemId: 1,
+            controlUid: "uid-1",
+            title: "Alpha",
+            deliverables: [
+              { submissionId: 1001, qty: { qty: 1 } },
+              { submissionId: 1002, qty: { qty: 1 } },
+            ],
+          },
+        ],
+      });
+
+    await tasksModule.packDispatchItemTask(db as any, {
+      meta: { salesId: 9001, authorId: 12, authorName: "Operator" },
+      packItems: {
+        dispatchId: 90,
+        dispatchStatus: "queue",
+        packMode: "selection",
+        replaceExisting: true,
+        requestedItems: [
+          {
+            salesItemId: 1,
+            itemUid: "uid-1",
+            title: "Alpha",
+            qty: { qty: 2 },
+          },
+        ],
+      },
+    } as any);
+
+    expect(submitNonProductionsActionMock).toHaveBeenCalledTimes(1);
+    expect(packDispatchItemsActionMock).toHaveBeenCalledTimes(1);
+    const payload = packDispatchItemsActionMock.mock.calls[0]?.[1];
+    expect(payload.packItems.packingLines).toHaveLength(2);
+    expect(payload.packItems.packingLines[0].submissionId).toBe(1001);
+    expect(payload.packItems.packingLines[1].submissionId).toBe(1002);
+  });
+
+  it("throws insufficient error when still insufficient after non-production retry", async () => {
+    const tx = {
+      orderDelivery: {
+        update: mock(async () => ({})),
+      },
+    };
+    const db = {
+      $transaction: async (fn: any) => fn(tx),
+    };
+
+    getSaleInformationMock
+      .mockResolvedValueOnce({
+        order: { id: 9002 },
+        items: [
+          {
+            itemId: 1,
+            controlUid: "uid-1",
+            title: "Alpha",
+            deliverables: [{ submissionId: 1001, qty: { qty: 1 } }],
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        order: { id: 9002 },
+        items: [],
+      })
+      .mockResolvedValueOnce({
+        order: { id: 9002 },
+        items: [
+          {
+            itemId: 1,
+            controlUid: "uid-1",
+            title: "Alpha",
+            deliverables: [{ submissionId: 1001, qty: { qty: 1 } }],
+          },
+        ],
+      });
+
+    await expect(
+      tasksModule.packDispatchItemTask(db as any, {
+        meta: { salesId: 9002, authorId: 12, authorName: "Operator" },
+        packItems: {
+          dispatchId: 90,
+          dispatchStatus: "queue",
+          packMode: "selection",
+          requestedItems: [
+            {
+              salesItemId: 1,
+              itemUid: "uid-1",
+              title: "Alpha",
+              qty: { qty: 2 },
+            },
+          ],
+        },
+      } as any),
+    ).rejects.toThrow("Insufficient deliverables for: Alpha");
+
+    expect(submitNonProductionsActionMock).toHaveBeenCalledTimes(1);
+    expect(packDispatchItemsActionMock).toHaveBeenCalledTimes(0);
+  });
 });

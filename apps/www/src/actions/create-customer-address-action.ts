@@ -40,6 +40,7 @@ export const createCustomerAddressAction = actionClient
                     lat: input.lat,
                     lng: input.lng,
                     placeSearchText: input.formattedAddress,
+                    placeId: input.placeId,
                 } satisfies AddressBookMeta,
                 customer: {
                     connect: {

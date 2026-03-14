@@ -34,6 +34,7 @@ import { salesDispatchInfo } from "./types/sales-dispatch-info";
 import { salesDispatchPacked } from "./types/sales-dispatch-packed";
 import { salesDispatchPackingReset } from "./types/sales-dispatch-packing-reset";
 import { salesDispatchQueued } from "./types/sales-dispatch-queued";
+import { salesDispatchTripCanceled } from "./types/sales-dispatch-trip-canceled";
 import { salesDispatchUnassigned } from "./types/sales-dispatch-unassigned";
 import { salesEmailReminder } from "./types/sales-email-reminder";
 import { salesInfo } from "./types/sales-info";
@@ -67,6 +68,7 @@ const handlers = {
 	sales_dispatch_packed: salesDispatchPacked,
 	sales_dispatch_packing_reset: salesDispatchPackingReset,
 	sales_dispatch_in_progress: salesDispatchInProgress,
+	sales_dispatch_trip_canceled: salesDispatchTripCanceled,
 	sales_dispatch_date_updated: salesDispatchDateUpdated,
 	sales_dispatch_unassigned: salesDispatchUnassigned,
 	sales_marked_as_production_completed: salesMarkedAsProductionCompleted,

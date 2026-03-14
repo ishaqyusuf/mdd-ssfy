@@ -1,5 +1,10 @@
 import type { Db, NoteStatus } from "@gnd/db";
 import { channelNames } from "./channels";
+import {
+	deserializeTagValue,
+	mergeTagRows,
+	serializeTagValue,
+} from "./tag-values";
 
 export type ActivityTagFilter = {
 	tagName: string;
@@ -50,29 +55,6 @@ export type GetActivityTagSuggestionsQuery = {
 	maxRows?: number;
 };
 
-function serializeTagValue(value: unknown): string {
-	if (value === undefined) return "null";
-	try {
-		return JSON.stringify(value);
-	} catch {
-		return String(value);
-	}
-}
-
-function deserializeTagValue(value: unknown): unknown {
-	if (typeof value !== "string") return value;
-	if (value === "undefined") return undefined;
-
-	try {
-		return JSON.parse(value);
-	} catch {
-		if (/^-?\d+(\.\d+)?$/.test(value)) return Number(value);
-		if (value === "true") return true;
-		if (value === "false") return false;
-		return value;
-	}
-}
-
 function mapActivity(row: {
 	id: number;
 	createdAt: Date | null;
@@ -83,13 +65,7 @@ function mapActivity(row: {
 	recipients: { status: NoteStatus | null; notePadContactId: number }[];
 	tags: { tagName: string; tagValue: string }[];
 }): ActivityTreeNode {
-	const tags = row.tags.reduce(
-		(acc, tag) => {
-			acc[tag.tagName] = deserializeTagValue(tag.tagValue);
-			return acc;
-		},
-		{} as Record<string, unknown>,
-	);
+	const tags = mergeTagRows(row.tags);
 	const descriptionFromTag =
 		typeof tags.description === "string" ? tags.description : null;
 

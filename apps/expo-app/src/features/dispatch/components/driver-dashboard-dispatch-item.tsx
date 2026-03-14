@@ -1,8 +1,8 @@
-import type { DispatchListItem } from "../types/dispatch.types";
-import { formatDate } from "@gnd/utils/dayjs";
-import { Pressable } from "@/components/ui/pressable";
-import { Image, Text, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
+import { Pressable } from "@/components/ui/pressable";
+import { formatDate } from "@gnd/utils/dayjs";
+import { Image, Text, View } from "react-native";
+import type { DispatchListItem } from "../types/dispatch.types";
 
 const MAP_IMAGE =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuCi2rYWC1JRFzhqHI9Gtm-QS1wqRL_9SGLB6IRixpBSQq9F4lsGKmUuWWwXM3Fm7e0jep82ChjnoPijTvdJlvTZV_7_X2deHoUvaEwRr5yYfigVgwtJYfWz1IfXHYsL25UIB3yBhaxCa8wENUmIT441o6sLIfEJy7KFstBtjEeDXbAu2Me6jIAkjCspzIPTGL-s8IWg4cQeIjO-RjK0Pd-fK1chNfSsPRHptQmsq6CgRyZ9n6UHPrNfrC3qUr-43-db943E5BtoBWw";
@@ -46,13 +46,67 @@ function dueText(item: DispatchListItem) {
   return item?.dueDate ? formatDate(item.dueDate) : "No due date";
 }
 
-function MapDispatchCard({
-  item,
-  onOpen,
-}: {
+function getStatus(item: DispatchListItem) {
+  return String(item?.status || "queue").toLowerCase();
+}
+
+function statusLabel(status: string) {
+  return status
+    .split("_")
+    .join(" ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function hasMapData(item: DispatchListItem) {
+  const ship = item?.order?.shippingAddress as any;
+  const placeId = String(ship?.placeId || "").trim();
+  const lat = Number(ship?.lat);
+  const lng = Number(ship?.lng);
+  return Boolean(placeId) && Number.isFinite(lat) && Number.isFinite(lng);
+}
+
+function getPrimaryAction(status: string, onOpen: () => void, onComplete: () => void) {
+  if (status === "in progress") {
+    return {
+      label: "Complete Delivery",
+      onPress: onComplete,
+      buttonClass: "bg-success",
+      textClass: "text-success-foreground",
+    };
+  }
+  if (status === "packed") {
+    return {
+      label: "Start Trip",
+      onPress: onOpen,
+      buttonClass: "bg-primary",
+      textClass: "text-primary-foreground",
+    };
+  }
+  return {
+    label: "View Details",
+    onPress: onOpen,
+    buttonClass: "bg-secondary",
+    textClass: "text-secondary-foreground",
+  };
+}
+
+type Props = {
   item: DispatchListItem;
+  index: number;
   onOpen: () => void;
-}) {
+  onComplete: () => void;
+};
+
+export function DriverDashboardDispatchItem({
+  item,
+  index: _index,
+  onOpen,
+  onComplete,
+}: Props) {
+  const status = getStatus(item);
+  const action = getPrimaryAction(status, onOpen, onComplete);
+  const showMap = hasMapData(item);
+
   return (
     <Pressable
       onPress={onOpen}
@@ -60,42 +114,55 @@ function MapDispatchCard({
     >
       {({ pressed }) => (
         <View>
-          <View className="relative h-36 w-full overflow-hidden">
-            <Image
-              source={{ uri: MAP_IMAGE }}
-              className="h-full w-full"
-              resizeMode="cover"
-            />
-            <View className="absolute right-2 top-2 rounded bg-card/95 px-2 py-1">
-              <Text className="text-[10px] font-bold text-destructive">
-                {dueText(item)}
-              </Text>
-            </View>
-            <View className="absolute bottom-2 left-2 rounded bg-primary px-2 py-1">
-              <View className="flex-row items-center gap-1">
-                <Icon
-                  name="MapPin"
-                  className="text-primary-foreground"
-                  size={11}
-                />
-                <Text className="text-[10px] font-bold text-primary-foreground">
-                  Route
+          {showMap ? (
+            <View className="relative h-36 w-full overflow-hidden">
+              <Image
+                source={{ uri: MAP_IMAGE }}
+                className="h-full w-full"
+                resizeMode="cover"
+              />
+              <View className="absolute right-2 top-2 rounded bg-card/95 px-2 py-1">
+                <Text className="text-[10px] font-bold text-destructive">
+                  {dueText(item)}
                 </Text>
               </View>
+              <View className="absolute bottom-2 left-2 rounded bg-primary px-2 py-1">
+                <View className="flex-row items-center gap-1">
+                  <Icon
+                    name="MapPin"
+                    className="text-primary-foreground"
+                    size={11}
+                  />
+                  <Text className="text-[10px] font-bold text-primary-foreground">
+                    Route
+                  </Text>
+                </View>
+              </View>
             </View>
-          </View>
+          ) : null}
 
           <View className="p-5">
-            <View className="mb-3 flex-row items-start justify-between">
-              <View className="flex-1 pr-2">
-                <Text className="mb-1 text-[10px] font-bold uppercase tracking-[1.2px] text-muted-foreground">
-                  Order #{item?.order?.orderId || item.id}
-                </Text>
+            <View className="mb-4 flex-row items-start justify-between">
+              <View className="flex-1 pr-3">
+                <View className="mb-1 flex-row items-center gap-2">
+                  <Text className="text-[10px] font-bold uppercase tracking-[1.2px] text-muted-foreground">
+                    Order #{item?.order?.orderId || item.id}
+                  </Text>
+                  <View className="rounded bg-secondary px-1.5 py-0.5">
+                    <Text className="text-[9px] font-black text-secondary-foreground">
+                      {statusLabel(status).toUpperCase()}
+                    </Text>
+                  </View>
+                </View>
                 <Text className="text-lg font-bold text-foreground">
                   {getShipTo(item)}
                 </Text>
               </View>
-              <Icon name="MapPin" className="text-muted-foreground" size={18} />
+              <View className="rounded-lg bg-muted px-2 py-1.5">
+                <Text className="text-[10px] font-bold text-muted-foreground">
+                  {dueText(item)}
+                </Text>
+              </View>
             </View>
 
             <View className="mb-5 gap-3">
@@ -112,9 +179,10 @@ function MapDispatchCard({
               <View className="flex-row items-start gap-2.5">
                 <Icon
                   name="MapPin"
-                  className="mt-0.5 size-sm text-muted-foreground"
+                  className="mt-0.5 text-muted-foreground"
+                  size={16}
                 />
-                <Text className="flex-1 text-muted-foreground">
+                <Text className="flex-1 text-sm text-muted-foreground">
                   {getLocation(item)}
                 </Text>
               </View>
@@ -122,18 +190,22 @@ function MapDispatchCard({
 
             <View className="flex-row gap-2.5">
               <Pressable
-                onPress={onOpen}
-                className="flex-1 items-center rounded-lg bg-primary py-3 active:opacity-85"
+                onPress={action.onPress}
+                className={`flex-1 items-center rounded-lg py-3 active:opacity-85 ${action.buttonClass}`}
               >
-                <Text className="text-sm font-bold text-primary-foreground">
-                  Start Trip
+                <Text className={`text-sm font-bold ${action.textClass}`}>
+                  {action.label}
                 </Text>
               </Pressable>
               <Pressable
                 onPress={onOpen}
-                className="items-center justify-center rounded-lg border border-border bg-background px-3 active:opacity-85"
+                className="flex-row items-center gap-1 rounded-lg bg-primary/10 px-4 active:opacity-85"
               >
-                <Icon name="more" className="text-foreground" size={18} />
+                <Icon
+                  name={showMap ? "LocateIcon" : "ChevronRight"}
+                  className="text-primary"
+                  size={16}
+                />
               </Pressable>
             </View>
           </View>
@@ -147,162 +219,4 @@ function MapDispatchCard({
       )}
     </Pressable>
   );
-}
-
-function ProgressDispatchCard({
-  item,
-  onOpen,
-  onComplete,
-}: {
-  item: DispatchListItem;
-  onOpen: () => void;
-  onComplete: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onOpen}
-      className="mx-4 mb-6 overflow-hidden rounded-xl border border-border bg-card p-5"
-    >
-      {({ pressed }) => (
-        <View>
-          <View className="mb-4 flex-row items-start justify-between">
-            <View className="flex-1 pr-3">
-              <View className="mb-1 flex-row items-center gap-2">
-                <Text className="text-[10px] font-bold uppercase tracking-[1.2px] text-muted-foreground">
-                  Order #{item?.order?.orderId || item.id}
-                </Text>
-                <View className="rounded bg-secondary px-1.5 py-0.5">
-                  <Text className="text-[9px] font-black text-secondary-foreground">
-                    IN PROGRESS
-                  </Text>
-                </View>
-              </View>
-              <Text className="text-lg font-bold text-foreground">
-                {getShipTo(item)}
-              </Text>
-            </View>
-            <View className="rounded-lg bg-muted p-2">
-              <Icon name="Clock" className="text-foreground" size={18} />
-            </View>
-          </View>
-
-          <View className="mb-5 gap-3">
-            <View className="flex-row items-start gap-2.5">
-              <Icon
-                name="User"
-                className="mt-0.5 text-muted-foreground"
-                size={16}
-              />
-              <Text className="text-sm font-medium text-muted-foreground">
-                {getContact(item)}
-              </Text>
-            </View>
-            <View className="flex-row items-start gap-2.5">
-              <Icon
-                name="MapPin"
-                className="mt-0.5 text-muted-foreground"
-                size={16}
-              />
-              <Text className="flex-1 text-sm text-muted-foreground">
-                {getLocation(item)}
-              </Text>
-            </View>
-          </View>
-
-          <View className="flex-row gap-2.5">
-            <Pressable
-              onPress={onComplete}
-              className="flex-1 items-center rounded-lg bg-success py-3 active:opacity-85"
-            >
-              <Text className="text-sm font-bold text-success-foreground">
-                Complete Delivery
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={onOpen}
-              className="flex-row items-center gap-1 rounded-lg bg-primary/10 px-4 active:opacity-85"
-            >
-              <Icon name="LocateIcon" className="text-primary" size={16} />
-            </Pressable>
-          </View>
-          {pressed ? (
-            <View
-              pointerEvents="none"
-              className="absolute inset-0 rounded-xl bg-black/10"
-            />
-          ) : null}
-        </View>
-      )}
-    </Pressable>
-  );
-}
-
-function CompactDispatchCard({
-  item,
-  onOpen,
-}: {
-  item: DispatchListItem;
-  onOpen: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onOpen}
-      className="mx-4 mb-6 overflow-hidden rounded-xl border border-border bg-card p-5"
-    >
-      {({ pressed }) => (
-        <View>
-          <View className="mb-2 flex-row items-center justify-between">
-            <Text className="text-[10px] font-bold uppercase tracking-[1.2px] text-muted-foreground">
-              Order #{item?.order?.orderId || item.id}
-            </Text>
-            <View className="rounded bg-muted px-2 py-1">
-              <Text className="text-[10px] font-bold text-muted-foreground">
-                {dueText(item)}
-              </Text>
-            </View>
-          </View>
-          <View className="flex-row items-center justify-between">
-            <Text className="text-base font-bold text-foreground">
-              {getShipTo(item)}
-            </Text>
-            <Pressable onPress={onOpen}>
-              <Text className="text-sm font-bold text-primary">Details</Text>
-            </Pressable>
-          </View>
-          {pressed ? (
-            <View
-              pointerEvents="none"
-              className="absolute inset-0 rounded-xl bg-black/10"
-            />
-          ) : null}
-        </View>
-      )}
-    </Pressable>
-  );
-}
-
-type Props = {
-  item: DispatchListItem;
-  index: number;
-  onOpen: () => void;
-  onComplete: () => void;
-};
-
-export function DriverDashboardDispatchItem({
-  item,
-  index,
-  onOpen,
-  onComplete,
-}: Props) {
-  if (index % 3 === 0) return <MapDispatchCard item={item} onOpen={onOpen} />;
-  if (index % 3 === 1) {
-    return (
-      <ProgressDispatchCard
-        item={item}
-        onOpen={onOpen}
-        onComplete={onComplete}
-      />
-    );
-  }
-  return <CompactDispatchCard item={item} onOpen={onOpen} />;
 }

@@ -2,6 +2,7 @@ import type { TRPCContext } from "@api/trpc/init";
 import type {
   GetCustomers,
   SearchCustomersSchema,
+  UpsertCustomerSchema,
 } from "@api/schemas/customer";
 import { z } from "zod";
 import type { AddressBookMeta, CustomerMeta } from "@sales/types";
@@ -10,8 +11,9 @@ import { whereCustomer, whereSales } from "@api/prisma-where";
 import { salesAddressLines } from "@sales/utils/utils";
 import type { SalesQueryParamsSchema } from "@sales/schema";
 import { getCustomerWallet } from "@sales/wallet";
-import { sum } from "@gnd/utils";
+import { nextId, sum } from "@gnd/utils";
 import { fetchDevicesByLocations, getSquareDevices } from "@gnd/square";
+import { TRPCError } from "@trpc/server";
 
 export async function getCustomers(ctx: TRPCContext, query: GetCustomers) {
   const { db } = ctx;
@@ -26,6 +28,220 @@ export async function getCustomers(ctx: TRPCContext, query: GetCustomers) {
     include: {},
   });
   return await response(data.map((line) => line));
+}
+
+export async function createOrUpdateCustomer(
+  ctx: TRPCContext,
+  input: UpsertCustomerSchema,
+) {
+  return ctx.db.$transaction(async (tx) => {
+    let customerId = input.id;
+    const isBusiness = input.customerType === "Business";
+    const customerData: any = {
+      name: isBusiness ? null : input.name,
+      businessName: isBusiness ? input.businessName : null,
+      phoneNo: input.phoneNo,
+      phoneNo2: input.phoneNo2,
+      email: input.email,
+      address: input.address1,
+      meta: {
+        netTerm: input.netTerm,
+      } as CustomerMeta,
+      profile: input.profileId
+        ? {
+            connect: {
+              id: Number(input.profileId),
+            },
+          }
+        : undefined,
+      taxProfiles: input?.taxProfileId
+        ? input?.taxCode
+          ? {
+              update: {
+                where: {
+                  id: Number(input.taxProfileId),
+                },
+                data: {
+                  taxCode: input.taxCode,
+                },
+              },
+            }
+          : undefined
+        : input?.taxCode
+          ? {
+              create: {
+                taxCode: input.taxCode,
+              },
+            }
+          : undefined,
+    };
+
+    if (input.id) {
+      await tx.customers.update({
+        where: {
+          id: input.id,
+        },
+        data: customerData,
+      });
+    } else {
+      const customer = await tx.customers.create({
+        data: customerData,
+      });
+      customerId = customer.id;
+    }
+
+    if (!customerId) {
+      const nextCustomerId = await nextId(tx.customers);
+      customerId = nextCustomerId;
+    }
+
+    if (input.taxProfileId && !input.taxCode) {
+      await tx.customerTaxProfiles.update({
+        where: {
+          id: Number(input.taxProfileId),
+        },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+    }
+
+    const addressData: any = {
+      address1: input.address1,
+      address2: input.address2,
+      phoneNo2: input.phoneNo2,
+      phoneNo: input.phoneNo,
+      country: input.country,
+      state: input.state,
+      city: input.city,
+      isPrimary: true,
+      meta: {
+        zip_code: input.zip_code,
+        lat: input.lat,
+        lng: input.lng,
+        placeSearchText: input.formattedAddress,
+      } as AddressBookMeta,
+    };
+
+    let addressId = input.addressId;
+    if (addressId) {
+      const existingPrimary = await tx.addressBooks.findFirst({
+        where: {
+          id: addressId,
+          isPrimary: true,
+        },
+        select: {
+          id: true,
+        },
+      });
+      if (existingPrimary?.id) {
+        const updated = await tx.addressBooks.update({
+          where: { id: existingPrimary.id },
+          data: addressData,
+        });
+        addressId = updated.id;
+      } else {
+        const created = await tx.addressBooks.create({
+          data: {
+            ...addressData,
+            customerId,
+            isPrimary: true,
+          },
+        });
+        addressId = created.id;
+      }
+    } else {
+      const created = await tx.addressBooks.create({
+        data: {
+          ...addressData,
+          customerId,
+          isPrimary: true,
+        },
+      });
+      addressId = created.id;
+    }
+
+    return {
+      customerId,
+      addressId,
+    };
+  });
+}
+
+export async function createOrUpdateCustomerAddress(
+  ctx: TRPCContext,
+  input: UpsertCustomerSchema,
+) {
+  return ctx.db.$transaction(async (tx) => {
+    let addressId = input.addressId;
+    const customerId = input.customerId || input.id;
+    if (!customerId) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Customer id is required for address update.",
+      });
+    }
+    const name =
+      input.customerType === "Business" ? input.businessName : input.name;
+    const addressData: any = {
+      name,
+      phoneNo: input.phoneNo,
+      phoneNo2: input.phoneNo2,
+      email: input.email,
+      address1: input.address1,
+      city: input.city,
+      state: input.state,
+      country: input.country,
+      address2: input.address2,
+      meta: {
+        zip_code: input.zip_code,
+        lat: input.lat,
+        lng: input.lng,
+        placeSearchText: input.formattedAddress,
+        placeId: input.placeId,
+      } as AddressBookMeta,
+      customer: {
+        connect: {
+          id: customerId,
+        },
+      },
+    };
+
+    if (addressId) {
+      const ordersOnAddress = await tx.salesOrders.count({
+        where: {
+          OR: [
+            {
+              shippingAddressId: addressId,
+            },
+            {
+              billingAddressId: addressId,
+            },
+          ],
+        },
+      });
+      if (ordersOnAddress > 0) addressId = null;
+    }
+    if (addressId) {
+      const updated = await tx.addressBooks.update({
+        where: {
+          id: addressId,
+        },
+        data: addressData,
+      });
+      addressId = updated.id;
+    } else {
+      const created = await tx.addressBooks.create({
+        data: addressData,
+      });
+      addressId = created.id;
+    }
+
+    return {
+      customerId,
+      addressId,
+    };
+  });
 }
 export async function searchCustomers(
   ctx: TRPCContext,

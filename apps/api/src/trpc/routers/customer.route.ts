@@ -1,6 +1,11 @@
 import { createTRPCRouter, publicProcedure } from "../init";
-import { searchCustomersSchema } from "@api/schemas/customer";
 import {
+  searchCustomersSchema,
+  upsertCustomerSchema,
+} from "@api/schemas/customer";
+import {
+  createOrUpdateCustomer,
+  createOrUpdateCustomerAddress,
   customerInfoSearch,
   customerInfoSearchSchema,
   getCustomerPayPortal,
@@ -57,4 +62,14 @@ export const customerRouter = createTRPCRouter({
       meta: cp.meta as CustomerProfileMeta,
     }));
   }),
+  createCustomer: publicProcedure
+    .input(upsertCustomerSchema)
+    .mutation(async (props) => {
+      return createOrUpdateCustomer(props.ctx, props.input);
+    }),
+  createCustomerAddress: publicProcedure
+    .input(upsertCustomerSchema)
+    .mutation(async (props) => {
+      return createOrUpdateCustomerAddress(props.ctx, props.input);
+    }),
 });

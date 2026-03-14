@@ -34,6 +34,7 @@ export const createCustomerSchema = z
         zip_code: z.string().optional(),
         lat: z.number().optional().nullable(),
         lng: z.number().optional().nullable(),
+        placeId: z.string().optional().nullable(),
         taxCode: z.string().optional(),
         country: z.string().optional(),
         state: z.string().optional(),
@@ -130,7 +131,7 @@ export const updateComponentPricingSchema = z.object({
             id: z.number().optional(),
             dependenciesUid: z.string().optional(),
             price: z.number().optional(),
-        })
+        }),
     ),
 });
 export const createPaymentSchema = z
@@ -214,7 +215,7 @@ export const createSalesDispatchItemsSchema = z.object({
             itemUid: z.string(),
             note: z.string().optional().nullable(),
             totalItemQty: z.number(),
-        })
+        }),
     ),
 });
 export const createSalesDispatchSchema = z.object({

@@ -1,13 +1,9 @@
-import { _trpc } from "@/components/static-trpc";
 import { SafeArea } from "@/components/safe-area";
 import { Icon } from "@/components/ui/icon";
-import { useCreateOrderDelivery } from "@/features/sales/api/use-create-order-delivery";
 import { useSalesOrderOverview } from "@/features/sales/api/use-sales-order-overview";
-import { CreateDeliveryStack } from "@/features/sales/components/create-delivery-stack";
-import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 
 type Props = {
@@ -16,25 +12,11 @@ type Props = {
 
 export function SalesOrderDetailScreen({ orderNo }: Props) {
   const router = useRouter();
-  const [deliveryOpen, setDeliveryOpen] = useState(false);
 
   const { sale, dispatch } = useSalesOrderOverview(orderNo);
-  const { data: drivers } = useQuery(_trpc.hrm.getDrivers.queryOptions({}));
 
   const saleData = sale.data as any;
   const dispatchData = dispatch.data as any;
-
-  const { mutate: createDelivery, isPending: isCreatingDelivery } =
-    useCreateOrderDelivery((dispatchId) => {
-      setDeliveryOpen(false);
-      router.push({
-        pathname: "/(sales)/orders/[orderNo]/delivery/[dispatchId]",
-        params: {
-          orderNo,
-          dispatchId: String(dispatchId),
-        },
-      } as any);
-    });
 
   const taxAmount = useMemo(() => {
     const lines = saleData?.costLines || [];
@@ -253,7 +235,12 @@ export function SalesOrderDetailScreen({ orderNo }: Props) {
 
             <Pressable
               disabled={!saleData?.id}
-              onPress={() => setDeliveryOpen(true)}
+              onPress={() =>
+                router.push({
+                  pathname: "/(sales)/orders/[orderNo]/delivery/create",
+                  params: { orderNo },
+                } as any)
+              }
               className="mb-1 mt-1 h-12 items-center justify-center rounded-xl bg-primary disabled:opacity-50"
             >
               <Text className="text-sm font-semibold text-primary-foreground">Create Delivery</Text>
@@ -261,23 +248,6 @@ export function SalesOrderDetailScreen({ orderNo }: Props) {
           </View>
         </ScrollView>
       </View>
-
-      <CreateDeliveryStack
-        visible={deliveryOpen}
-        drivers={drivers || []}
-        disabled={!saleData?.id}
-        isSubmitting={isCreatingDelivery}
-        onClose={() => setDeliveryOpen(false)}
-        onSubmit={({ deliveryMode, status, dueDate, driverId }) => {
-          createDelivery({
-            salesId: Number(saleData.id),
-            deliveryMode,
-            status,
-            dueDate,
-            driverId: driverId ? String(driverId) : undefined,
-          } as any);
-        }}
-      />
     </SafeArea>
   );
 }

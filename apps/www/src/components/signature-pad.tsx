@@ -4,9 +4,6 @@ import type React from "react";
 import { useState } from "react";
 import { Button } from "@gnd/ui/button";
 import { Label } from "@gnd/ui/label";
-import { put } from "@vercel/blob";
-import { BlobPath } from "@gnd/utils/constants";
-import { env } from "@/env.mjs";
 
 interface SignaturePadProps {
     onSignatureChange: (signature: string) => void;

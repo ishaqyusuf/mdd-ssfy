@@ -244,6 +244,64 @@ export function buildAutoPackingLines(
   return packingLines;
 }
 
+function buildSelectionPackingLinesFromRequestedItems(
+  info: RenturnTypeAsync<typeof getSaleInformation>,
+  requestedItems: NonNullable<
+    NonNullable<UpdateSalesControl["packItems"]>["requestedItems"]
+  >,
+) {
+  const packingLines: NonNullable<
+    NonNullable<UpdateSalesControl["packItems"]>["packingLines"]
+  > = [];
+  const insufficient: string[] = [];
+
+  for (const request of requestedItems) {
+    const enteredQty = recomposeQty(request.qty as any);
+    if (!hasQty(enteredQty)) continue;
+
+    const matchedItem =
+      (request.itemUid
+        ? info.items.find((item) => item.controlUid === request.itemUid)
+        : null) ||
+      info.items.find((item) => item.itemId === request.salesItemId);
+
+    if (!matchedItem) {
+      insufficient.push(request.title || `Item #${request.salesItemId}`);
+      continue;
+    }
+
+    let pending = recomposeQty(enteredQty as any);
+    const deliverables = (matchedItem.deliverables || []).filter((deliverable) =>
+      hasQty(deliverable.qty as any),
+    );
+
+    for (const deliverable of deliverables) {
+      if (!hasQty(pending)) break;
+      const picked = pickQtyFrom(
+        recomposeQty(pending as any),
+        recomposeQty(deliverable.qty as any),
+      );
+      if (!hasQty(picked?.picked)) continue;
+      packingLines.push({
+        salesItemId: Number(request.salesItemId),
+        submissionId: Number(deliverable.submissionId),
+        qty: recomposeQty(picked.picked as any),
+        note: request.note,
+      });
+      pending = recomposeQty(picked.pendingPick as any);
+    }
+
+    if (hasQty(pending)) {
+      insufficient.push(request.title || matchedItem.title || "Item");
+    }
+  }
+
+  return {
+    packingLines,
+    insufficient,
+  };
+}
+
 export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
   const packMode = data.packItems?.packMode!;
   const requestedDispatchStatus = data.packItems?.dispatchStatus;
@@ -286,6 +344,36 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
   const info = await getSaleInformation(db, {
     salesId: data.meta.salesId,
   });
+  if (
+    data.packItems?.packMode === "selection" &&
+    (data.packItems?.requestedItems?.length || 0) > 0
+  ) {
+    let built = buildSelectionPackingLinesFromRequestedItems(
+      info,
+      data.packItems!.requestedItems!,
+    );
+
+    if (built.insufficient.length) {
+      await submitNonProductionsTask(db, {
+        meta: data.meta,
+      } as UpdateSalesControl);
+      const refreshed = await getSaleInformation(db, {
+        salesId: data.meta.salesId,
+      });
+      built = buildSelectionPackingLinesFromRequestedItems(
+        refreshed,
+        data.packItems!.requestedItems!,
+      );
+      if (built.insufficient.length) {
+        throw new Error(
+          `Insufficient deliverables for: ${built.insufficient
+            .slice(0, 3)
+            .join(", ")}${built.insufficient.length > 3 ? "..." : ""}`,
+        );
+      }
+    }
+    data.packItems!.packingLines = built.packingLines;
+  }
   if (data.packItems?.packMode !== "selection") {
     data.packItems!.packingLines = buildAutoPackingLines(info);
   }

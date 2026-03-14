@@ -12,6 +12,7 @@ Deliver full behavioral parity for critical sales-form workflows by closing all 
 - Existing package extraction in `packages/sales/src/sales-form/*` remains the canonical domain layer and should absorb missing logic where possible.
 - We should continue ongoing migration work (no reset/rewrite), and integrate missing items into the current task stream.
 - Phase progression rule: do not start next phase until current phase validation checklist passes.
+- Field-reported gaps captured on 2026-03-14 are authoritative even if related UI exists in current new-form code.
 
 ## Explicit Old vs New Comparison
 
@@ -132,6 +133,54 @@ Deliver full behavioral parity for critical sales-form workflows by closing all 
 - New: no history sidebar flow
 - Status: Missing
 
+16. Component edit parity
+- Legacy: `apps/www/src/components/forms/sales-form/component-item-card.tsx:320` + `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/step-component-modal/step-component-modal.tsx`
+- New: `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx` (component edit dialog)
+- Status: Partial/Fail in field
+- Gap: edit action exists, but the practical edit-component workflow still does not match old-form behavior.
+
+17. Component image attachment in edit flow
+- Legacy: component edit/product modal flow under `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/step-component-modal/*`
+- New: `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx` (component edit dialog)
+- Status: Missing
+- Gap: no equivalent image attachment/update path exists in the new component edit surface.
+
+18. Redirect component route list parity
+- Legacy: `apps/www/src/components/forms/sales-form/component-item-card.tsx:343` + `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class.ts:109`
+- New: `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:143`
+- Status: Partial/Fail in field
+- Gap: redirect selector/menu exists, but the route options shown do not yet match old-form redirectable route semantics.
+
+19. Door size inline base-cost edit parity
+- Legacy: `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-select-modal/index.tsx:245`
+- New: `apps/www/src/components/forms/new-sales-form/sections/workflow-modals.tsx`
+- Status: Partial/Fail in field
+- Gap: quick base-price support exists in principle, but the inline edit UX still needs to behave like the old form.
+
+20. Component cost display should show calculated sales cost
+- Legacy: sales-form component pricing surfaces show resolved sales pricing, not raw base cost.
+- New: `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx` + `packages/sales/src/sales-form/domain/step-engine.ts`
+- Status: Partial/Fail in field
+- Gap: component price display is using base cost in places where old form shows calculated sales cost after dependency/profile resolution.
+
+21. HPT add-size action broken
+- Legacy: `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-select-modal/index.tsx`
+- New: `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:1410`
+- Status: Fail in field
+- Gap: `Add Size` UI is present but not functioning reliably in the HPT flow.
+
+22. HPT section add-door option parity
+- Legacy: grouped door workflow in `apps/www/src/components/forms/sales-form/hpt/*` and legacy sales-book grouped door controls
+- New: `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
+- Status: Missing/Fail in field
+- Gap: new-form HPT section is missing the old-form-style add-door option flow.
+
+23. Moulding calculator outside-click dismiss parity
+- Legacy: `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/moulding-step/index.tsx`
+- New: `apps/www/src/components/forms/new-sales-form/sections/workflow-modals.tsx:613`
+- Status: Partial/Fail in field
+- Gap: moulding calculator should close on outside click like the old flow, but current dialog behavior does not match.
+
 ## Detailed Execution Plan
 
 ### Phase 0: Baseline Reproduction and Acceptance Contract
@@ -174,6 +223,7 @@ Dependencies: Phase 1
 2. HPT modal parity
 - Add clickable estimate breakdown column.
 - Add quick base-price update controls in size/qty modal (permission-gated, old-flow parity).
+- Fix HPT `Add Size` behavior and restore add-door option parity.
 
 3. Supplier propagation parity
 - Ensure supplier changes immediately affect size-price options and resolved row prices.
@@ -181,6 +231,9 @@ Dependencies: Phase 1
 4. Service and Shelf parity
 - Add tax and production switches to service rows with persistence.
 - Expand shelf workflow to match legacy category/product behavior.
+
+5. Moulding modal interaction parity
+- Match old-form dismiss/close behavior, including outside-click close semantics.
 
 Validation gate:
 - End-to-end scenarios for door+supplier+size pricing, service toggles, moulding defaults, shelf edits.
@@ -196,6 +249,12 @@ Dependencies: Phase 2
 
 3. Implement component top-left status indicators:
 - variation, override, redirect icons/badges.
+
+4. Complete component edit parity:
+- restore practical edit behavior
+- add image attachment flow
+- show accurate redirect route list
+- display calculated sales cost instead of raw base cost
 
 Validation gate:
 - Legacy action paths functionally mirrored in new form with role guard parity.

@@ -1,9 +1,8 @@
 import { useZodForm } from "@/hooks/use-zod-form";
-import { inventoryCategoryFormSchema } from "@sales/schema";
 import { useEffect } from "react";
 import { FormProvider, useForm, useFormContext } from "react-hook-form";
 import { z } from "zod";
-import { CustomerFormData } from "./customer-form";
+
 import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
 import { createCustomerSchema } from "@/actions/schema";
 
@@ -32,6 +31,7 @@ export function FormContext({ children, data }: FormContextProps) {
         state: undefined,
         zip_code: undefined,
         lat: undefined,
+        placeId: undefined,
         lng: undefined,
         customerType: "Personal",
         addressOnly: !!params.address,
@@ -54,7 +54,7 @@ export function FormContext({ children, data }: FormContextProps) {
             let formData = {};
 
             Object.entries(data).map(
-                ([k, v]) => (formData[k] = v || undefined)
+                ([k, v]) => (formData[k] = v || undefined),
             );
             form.reset({
                 ...formData,
@@ -78,3 +78,4 @@ export function FormContext({ children, data }: FormContextProps) {
 
 export const useCustomerForm = () =>
     useFormContext<z.infer<typeof createCustomerSchema>>();
+

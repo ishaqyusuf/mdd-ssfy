@@ -12,7 +12,15 @@ export const salesDispatchCompleted: NotificationHandler = {
 		author: UserData,
 		_contact: UserData,
 	) {
-		const { orderNo, dispatchId, deliveryMode, dueDate, driverId } = data;
+		const {
+			orderNo,
+			dispatchId,
+			deliveryMode,
+			dueDate,
+			driverId,
+			signature,
+			attachments,
+		} = data;
 		const payload: SalesDispatchCompletedTags = {
 			type: "sales_dispatch_completed",
 			source: "user",
@@ -22,6 +30,8 @@ export const salesDispatchCompleted: NotificationHandler = {
 			deliveryMode,
 			dueDate,
 			driverId,
+			signature,
+			attachments,
 		};
 
 		return {

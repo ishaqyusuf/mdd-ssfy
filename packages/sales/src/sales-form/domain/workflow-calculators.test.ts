@@ -163,4 +163,16 @@ describe("workflow-calculators domain", () => {
     });
     expect(unit).toBe(155);
   });
+
+  it("keeps explicit zero pricing buckets instead of falling back", () => {
+    const unit = resolvePricingBucketUnitPrice({
+      pricing: {
+        "2-8 x 7-0 & SUP-1": { salesUnitCost: 0, baseUnitCost: 45 },
+      },
+      size: "2-8 x 7-0",
+      supplierUid: "SUP-1",
+      fallbackSalesPrice: 99,
+    });
+    expect(unit).toBe(0);
+  });
 });

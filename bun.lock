@@ -36,6 +36,7 @@
         "@gnd/community": "workspace:*",
         "@gnd/db": "workspace:*",
         "@gnd/dev-logger": "workspace:*",
+        "@gnd/documents": "workspace:*",
         "@gnd/jobs": "workspace:*",
         "@gnd/logger": "workspace:*",
         "@gnd/notifications": "workspace:*",
@@ -51,6 +52,7 @@
         "@sindresorhus/slugify": "^2.2.1",
         "@trigger.dev/sdk": "3.3.17",
         "@trpc/server": "^11.4.1",
+        "@vercel/blob": "^1.1.1",
         "bun-vercel": "^1.0.0-alpha.5",
         "camelcase-keys": "^9.1.3",
         "date-fns": "^4.1.0",
@@ -112,6 +114,7 @@
         "expo-font": "~14.0.11",
         "expo-haptics": "~15.0.8",
         "expo-image": "~3.0.10",
+        "expo-image-picker": "~17.0.7",
         "expo-linear-gradient": "~15.0.8",
         "expo-linking": "~8.0.9",
         "expo-router": "~6.0.23",
@@ -594,6 +597,14 @@
       "devDependencies": {
         "@gnd/tsconfig": "workspace:*",
         "@types/node": "^25.2.3",
+        "typescript": "catalog:",
+      },
+    },
+    "packages/documents": {
+      "name": "@gnd/documents",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@gnd/tsconfig": "workspace:*",
         "typescript": "catalog:",
       },
     },
@@ -1504,6 +1515,8 @@
     "@gnd/db": ["@gnd/db@workspace:packages/db"],
 
     "@gnd/dev-logger": ["@gnd/dev-logger@workspace:packages/dev-logger"],
+
+    "@gnd/documents": ["@gnd/documents@workspace:packages/documents"],
 
     "@gnd/email": ["@gnd/email@workspace:packages/email"],
 
@@ -3858,6 +3871,10 @@
     "expo-haptics": ["expo-haptics@15.0.8", "", { "peerDependencies": { "expo": "*" } }, "sha512-lftutojy8Qs8zaDzzjwM3gKHFZ8bOOEZDCkmh2Ddpe95Ra6kt2izeOfOfKuP/QEh0MZ1j9TfqippyHdRd1ZM9g=="],
 
     "expo-image": ["expo-image@3.0.11", "", { "peerDependencies": { "expo": "*", "react": "*", "react-native": "*", "react-native-web": "*" }, "optionalPeers": ["react-native-web"] }, "sha512-4TudfUCLgYgENv+f48omnU8tjS2S0Pd9EaON5/s1ZUBRwZ7K8acEr4NfvLPSaeXvxW24iLAiyQ7sV7BXQH3RoA=="],
+
+    "expo-image-loader": ["expo-image-loader@6.0.0", "", { "peerDependencies": { "expo": "*" } }, "sha512-nKs/xnOGw6ACb4g26xceBD57FKLFkSwEUTDXEDF3Gtcu3MqF3ZIYd3YM+sSb1/z9AKV1dYT7rMSGVNgsveXLIQ=="],
+
+    "expo-image-picker": ["expo-image-picker@17.0.10", "", { "dependencies": { "expo-image-loader": "~6.0.0" }, "peerDependencies": { "expo": "*" } }, "sha512-a2xrowp2trmvXyUWgX3O6Q2rZaa2C59AqivKI7+bm+wLvMfTEbZgldLX4rEJJhM8xtmEDTNU+lzjtObwzBRGaw=="],
 
     "expo-json-utils": ["expo-json-utils@0.15.0", "", {}, "sha512-duRT6oGl80IDzH2LD2yEFWNwGIC2WkozsB6HF3cDYNoNNdUvFk6uN3YiwsTsqVM/D0z6LEAQ01/SlYvN+Fw0JQ=="],
 

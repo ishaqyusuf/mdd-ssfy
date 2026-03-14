@@ -1,24 +1,14 @@
-import { BlurView } from "@/components/blur-view";
-import { ActivityHistory } from "@/components/chat/activity-history";
 import { SafeArea } from "@/components/safe-area";
-import { Icon } from "@/components/ui/icon";
 import { useModal } from "@/components/ui/modal";
 import { Toast } from "@/components/ui/toast";
 import { useAuthContext } from "@/hooks/use-auth";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
-import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatchActions } from "../../api/use-dispatch-actions";
+import { useDispatchDocuments } from "../../api/use-dispatch-documents";
 import { useDispatchOverview } from "../../api/use-dispatch-overview";
 import { useDispatchPacking } from "../../api/use-dispatch-packing";
 import { formatDispatchDate, totalQty } from "../../lib/format-dispatch";
@@ -39,6 +29,13 @@ import { CompleteDispatchScreen } from "./subscreens/complete-dispatch-screen";
 import { DispatchConfirmScreen } from "./subscreens/dispatch-confirm-screen";
 import { IssueReportScreen } from "./subscreens/issue-report-screen";
 import { PackingSlipScreen } from "./subscreens/packing-slip-screen";
+import { DispatchDetailFooterActions } from "./components/footer-actions";
+import { DispatchDetailScrollContent } from "./components/scroll-content";
+import {
+  DispatchDetailScreenProvider,
+  type DispatchDetailScreenVm,
+} from "./components/screen-context";
+import { DispatchDetailTopBar } from "./components/top-bar";
 
 type Props = {
   dispatchId: number;
@@ -46,20 +43,14 @@ type Props = {
   openCompleteOnMount?: boolean;
 };
 
-function formatDispatchStatusLabel(status?: string | null) {
-  if (!status) return "Queue";
-  return status
-    .split("_")
-    .join(" ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
 function resolvedAvailableQty(item: any) {
   return getPackTargetQty(item) as any;
 }
 
 function sumPackedLinesQty(
-  lines: { qty?: { qty?: number | null; lh?: number | null; rh?: number | null } }[],
+  lines: {
+    qty?: { qty?: number | null; lh?: number | null; rh?: number | null };
+  }[],
 ) {
   return lines.reduce(
     (acc, line) => ({
@@ -69,6 +60,10 @@ function sumPackedLinesQty(
     }),
     { qty: 0, lh: 0, rh: 0 },
   );
+}
+
+function buildSignatureSvg(path: string) {
+  return `<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 320 160\"><path d=\"${path}\" fill=\"none\" stroke=\"#111827\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" /></svg>`;
 }
 
 export function DispatchDetailScreen({
@@ -100,6 +95,7 @@ function DispatchDetailScreenInner({
   const detailUi = useDispatchDetailContext();
   const actions = useDispatchActions();
   const packing = useDispatchPacking();
+  const documents = useDispatchDocuments();
   const notification = useNotificationTrigger();
   const [previewImageUri, setPreviewImageUri] = useState<string | null>(null);
 
@@ -161,6 +157,7 @@ function DispatchDetailScreenInner({
   const packingDelaySnapPoints = useMemo(() => ["82%"], []);
   const hasAutoOpenedCompleteRef = useRef(false);
   const [readyLoadingUid, setReadyLoadingUid] = useState<string | null>(null);
+  const [activityRefreshToken, setActivityRefreshToken] = useState(0);
 
   useEffect(() => {
     if (selectedItem) {
@@ -174,7 +171,7 @@ function DispatchDetailScreenInner({
     if (!isPackingSlipOpen) {
       setDispatchConfirmOpen(false);
     }
-  }, [isPackingSlipOpen]);
+  }, [isPackingSlipOpen, setDispatchConfirmOpen]);
 
   useEffect(() => {
     if (!openCompleteOnMount || hasAutoOpenedCompleteRef.current) return;
@@ -389,6 +386,36 @@ function DispatchDetailScreenInner({
     });
   };
 
+  const onFooterPrimaryAction = async () => {
+    if (!order?.id || !dispatch?.id) return;
+    if (dispatch.status === "in progress") {
+      onMarkDelivered();
+      return;
+    }
+    if (!canStart) {
+      Toast.show("Trip cannot be started at this dispatch stage.", {
+        type: "warning",
+      });
+      return;
+    }
+    try {
+      await actions.onStartDispatch({
+        salesId: order.id,
+        dispatchId: dispatch.id,
+      });
+      Toast.show("Trip started", { type: "success" });
+    } catch {
+      Toast.show("Unable to start trip", { type: "error" });
+    }
+  };
+
+  const footerPrimaryLabel = dispatch?.status === "in progress" ? "Complete" : "Start Trip";
+  const footerPrimaryDisabled =
+    actions.startDispatch.isPending ||
+    actions.submitDispatch.isPending ||
+    dispatch?.status === "queue" ||
+    (dispatch?.status === "in progress" ? !canComplete : !canStart);
+
   const onIssue = async () => {
     if (!order?.id || !dispatch?.id || !canCancel) {
       Toast.show("Issue reporting is unavailable at this dispatch stage.", {
@@ -521,6 +548,81 @@ function DispatchDetailScreenInner({
     }
   };
 
+  const onCancelTrip = async () => {
+    if (!order?.id || !dispatch?.id) return;
+    try {
+      await actions.onCancelDispatch({
+        salesId: order.id,
+        dispatchId: dispatch.id,
+      });
+      Toast.show("Trip cancelled", { type: "success" });
+    } catch {
+      Toast.show("Unable to cancel trip", { type: "error" });
+    }
+  };
+
+  const onRefreshOverview = async () => {
+    setActivityRefreshToken((prev) => prev + 1);
+    await overview.refetch();
+  };
+
+  const onOpenUpdatePacking = () => {
+    if (!canEditPacking) {
+      Toast.show("Packing can only be updated while dispatch is active.", {
+        type: "warning",
+      });
+      return;
+    }
+    if (!packableItems.length) {
+      if (pendingProductionItems.length > 0) {
+        presentPackingDelayModal();
+      } else {
+        Toast.show("No packing items available.", {
+          type: "warning",
+        });
+      }
+      return;
+    }
+    setPackingSlipOpen(true);
+  };
+
+  const onResetPacking = async () => {
+    if (!order?.id || !dispatch?.id) return;
+    try {
+      await packing.onClearPackings({
+        salesId: order.id,
+        dispatchId: dispatch.id,
+      });
+      const prevStatus = (dispatch.status as any) || "queue";
+      if (prevStatus !== "queue") {
+        await actions.onUpdateDispatchStatus({
+          salesId: order.id,
+          dispatchId: dispatch.id,
+          oldStatus: prevStatus,
+          newStatus: "queue" as any,
+        });
+      }
+      try {
+        await notification.send("sales_dispatch_packing_reset", {
+          payload: {
+            orderNo: String(order?.orderId || pageTitle),
+            dispatchId: dispatch.id,
+            deliveryMode: dispatch.deliveryMode as any,
+            dueDate: dispatch.dueDate as any,
+            driverId: dispatch.driver?.id || undefined,
+          },
+        } as any);
+      } catch {
+        Toast.show("Packing reset completed, but notification failed to send.", {
+          type: "warning",
+        });
+      }
+      Toast.show("Packing reset", { type: "success" });
+    } catch {
+      Toast.show("Unable to reset packing", { type: "error" });
+    }
+  };
+
   const packingConfirmItems = useMemo(() => {
     return packableItems.map((item) => {
       const draft = packingDrafts[item.uid] || { qty: 0, lh: 0, rh: 0 };
@@ -643,16 +745,41 @@ function DispatchDetailScreenInner({
       },
     });
     endFlow(flow, { action: "pack_all_applied" });
-    Toast.show("All item quantities updated to available quantities.", {
-      type: "success",
-    });
+    // Toast.show("All item quantities updated to available quantities.", {
+    //   type: "success",
+    // });
   };
 
-  const buildPackingLinesFromDrafts = (
+  const buildPackingSelectionFromDrafts = (
     note: string,
     flow?: ReturnType<typeof startFlow>,
   ) => {
-    const insufficient: string[] = [];
+    const requestedItems = packableItems.flatMap((item) => {
+      if (!item.salesItemId) return [];
+      const draft = packingDrafts[item.uid] || {
+        qty: 0,
+        lh: 0,
+        rh: 0,
+      };
+      const hasSingle = itemHasSingleQty(item);
+      const enteredQty = hasSingle
+        ? { qty: Math.max(0, asNumber(draft.qty)) }
+        : {
+            lh: Math.max(0, asNumber(draft.lh)),
+            rh: Math.max(0, asNumber(draft.rh)),
+          };
+      if (!hasQty(enteredQty as any)) return [];
+      return [
+        {
+          salesItemId: item.salesItemId,
+          itemUid: item.uid,
+          title: String(item.title || "Item"),
+          qty: enteredQty as any,
+          note,
+        },
+      ];
+    });
+
     const packingLines = packableItems.flatMap((item) => {
       if (!item.salesItemId) return [];
       const draft = packingDrafts[item.uid] || {
@@ -693,32 +820,29 @@ function DispatchDetailScreenInner({
           insufficient: hasQty(built.remainder),
         },
       });
-      if (hasQty(built.remainder)) {
-        insufficient.push(String(item.title || "Item"));
-        return [];
-      }
       return built.packingLines;
     });
-    if (insufficient.length) {
-      throw new Error(
-        `Insufficient deliverables for: ${insufficient.slice(0, 3).join(", ")}${insufficient.length > 3 ? "..." : ""}`,
-      );
-    }
-    return packingLines;
+    return {
+      packingLines,
+      requestedItems,
+    };
   };
 
   const savePackingSlip = async (opts?: { closeSlip?: boolean }) => {
     const closeSlip = opts?.closeSlip ?? true;
     if (!order?.id || !dispatch?.id) return;
     try {
-      const packingLines = buildPackingLinesFromDrafts("Packed via packing slip");
-      if (packingLines.length > 0) {
+      const selection = buildPackingSelectionFromDrafts(
+        "Packed via packing slip",
+      );
+      if ((selection.requestedItems || []).length > 0) {
         await packing.onPackItemsSelection({
           salesId: order.id,
           dispatchId: dispatch.id,
           dispatchStatus: (dispatch.status as any) || "queue",
           replaceExisting: true,
-          packingLines,
+          requestedItems: selection.requestedItems as any,
+          packingLines: selection.packingLines,
         });
       } else {
         await packing.onClearPackings({
@@ -772,7 +896,7 @@ function DispatchDetailScreenInner({
           progressTotal,
         },
       });
-      const packingLines = buildPackingLinesFromDrafts(
+      const selection = buildPackingSelectionFromDrafts(
         "Packed via dispatch confirm",
         flow,
       );
@@ -781,16 +905,18 @@ function DispatchDetailScreenInner({
         stage: "pack_items_selection",
         outputs: {
           replaceExisting: true,
-          packingLineCount: packingLines.length,
+          packingLineCount: selection.packingLines.length,
+          requestedItemsCount: selection.requestedItems.length,
         },
       });
-      if (packingLines.length > 0) {
+      if ((selection.requestedItems || []).length > 0) {
         await packing.onPackItemsSelection({
           salesId: order.id,
           dispatchId: dispatch.id,
           dispatchStatus: (dispatch.status as any) || "queue",
           replaceExisting: true,
-          packingLines,
+          requestedItems: selection.requestedItems as any,
+          packingLines: selection.packingLines,
         });
       } else {
         await packing.onClearPackings({
@@ -817,6 +943,62 @@ function DispatchDetailScreenInner({
         type: "error",
       });
     }
+  };
+
+  const screenVm: DispatchDetailScreenVm = {
+    onBack: () => router.back(),
+    titleText: order?.orderId ? `Order #${order.orderId}` : pageTitle,
+    insetsBottom: insets.bottom,
+    statusText,
+    isPrimaryActionDisabled:
+      actions.startDispatch.isPending ||
+      !canStart ||
+      dispatch?.status === "queue",
+    isPrimaryActionPending: actions.startDispatch.isPending,
+    primaryStatusActionLabel,
+    onPrimaryStatusAction,
+    isRefetching: overview.isRefetching,
+    onRefresh: onRefreshOverview,
+    showDriverDuplicateAlert: auth.isDriver && hasDuplicateDispatch,
+    isNotificationPending: notification.isPending,
+    onNotifyDuplicateDispatchToAdmin,
+    showAdminDuplicateCard: auth.isAdmin,
+    hasDuplicateDispatch,
+    duplicateDispatches,
+    duplicateInsight,
+    showTripCancelCard: dispatch?.status === "in progress",
+    onCancelTrip,
+    isCancelTripPending: actions.cancelDispatch.isPending,
+    customerName,
+    customerPhone,
+    customerEmail,
+    addressLine1,
+    addressLine2,
+    itemsCount: items.length,
+    topPackingItems,
+    resolveItemImage,
+    resolvedAvailableQty,
+    totalQty,
+    onSelectPackingItem: (uid: string) => ui.setSelectedItemUid(uid),
+    onImagePress: setPreviewImageUri,
+    showPackingButtons:
+      dispatch?.status === "queue" || dispatch?.status === "packed",
+    isUpdatePackingDisabled:
+      !canEditPacking || packing.taskTrigger.isPending || dispatch?.status === "packed",
+    onOpenUpdatePacking,
+    isResetPackingDisabled:
+      !canEditPacking || packing.taskTrigger.isPending || dispatch?.status === "queue",
+    onResetPacking,
+    showUnpackableHint: unpackableItems.length > 0,
+    unpackableCount: unpackableItems.length,
+    onOpenSalesRequestModal: () => presentSalesRequestModal(),
+    activeDispatchId,
+    activityRefreshToken,
+    onIssue,
+    isIssuePending: actions.cancelDispatch.isPending,
+    onFooterPrimaryAction,
+    footerPrimaryDisabled,
+    footerPrimaryLabel,
   };
 
   if (overview.isPending) {
@@ -846,469 +1028,11 @@ function DispatchDetailScreenInner({
   return (
     <SafeArea>
       <View className="flex-1 bg-background">
-        <View className="border-b border-border bg-card px-4 pb-3">
-          <View className="flex-row items-center justify-between">
-            <Pressable
-              onPress={() => router.back()}
-              className="h-10 w-10 items-center justify-center active:opacity-80"
-            >
-              <Icon name="ArrowLeft" className="text-foreground" size={20} />
-            </Pressable>
-            <Text className="flex-1 px-2 text-lg font-bold tracking-tight text-foreground">
-              {order?.orderId ? `Order #${order.orderId}` : pageTitle}
-            </Text>
-            <Pressable className="h-10 w-10 items-center justify-center rounded-lg active:opacity-80">
-              <Icon name="more" className="text-foreground" size={20} />
-            </Pressable>
-          </View>
-        </View>
-
-        <ScrollView
-          className="flex-1"
-          contentContainerStyle={{
-            paddingHorizontal: 16,
-            paddingTop: 16,
-            paddingBottom: 24,
-          }}
-          refreshControl={
-            <RefreshControl
-              refreshing={overview.isRefetching}
-              onRefresh={() => {
-                overview.refetch();
-              }}
-            />
-          }
-        >
-          <View className="mb-6 rounded-xl border border-border bg-card p-5">
-            <View className="flex-row items-center justify-between gap-3">
-              <View className="flex-1">
-                <Text className="text-xs font-semibold uppercase tracking-[1px] text-muted-foreground">
-                  Current Status
-                </Text>
-                <View className="mt-1 flex-row items-center gap-2">
-                  <View className="h-2.5 w-2.5 rounded-full bg-primary" />
-                  <Text className="text-base font-bold capitalize text-foreground">
-                    {statusText}
-                  </Text>
-                </View>
-              </View>
-              <Pressable
-                disabled={actions.startDispatch.isPending || !canStart}
-                onPress={onPrimaryStatusAction}
-                className="min-w-[100px] items-center justify-center rounded-lg bg-primary px-4 py-2.5 active:opacity-90 disabled:opacity-50"
-              >
-                <Text className="text-sm font-semibold text-primary-foreground">
-                  {actions.startDispatch.isPending
-                    ? "Updating..."
-                    : primaryStatusActionLabel}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-
-          {auth.isDriver && hasDuplicateDispatch ? (
-            <View className="mb-6 rounded-xl border border-amber-400/50 bg-amber-50 px-4 py-4 dark:bg-amber-950/25">
-              <View className="flex-row items-start gap-3">
-                <View className="mt-0.5 h-8 w-8 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/40">
-                  <Icon
-                    name="AlertTriangle"
-                    className="text-amber-700 dark:text-amber-300"
-                    size={16}
-                  />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-sm font-bold text-amber-900 dark:text-amber-100">
-                    Duplicate dispatch detected
-                  </Text>
-                  <Text className="mt-1 text-xs leading-5 text-amber-800 dark:text-amber-200">
-                    This dispatch order has duplicates and may cause
-                    malfunction.
-                  </Text>
-                  <Pressable
-                    onPress={onNotifyDuplicateDispatchToAdmin}
-                    disabled={notification.isPending}
-                    className="mt-3 h-10 items-center justify-center rounded-lg bg-amber-600 px-3 disabled:opacity-60"
-                  >
-                    <Text className="text-sm font-semibold text-amber-50">
-                      {notification.isPending ? "Notifying..." : "Notify Admin"}
-                    </Text>
-                  </Pressable>
-                </View>
-              </View>
-            </View>
-          ) : null}
-
-          {auth.isAdmin ? (
-            <View className="mb-6 rounded-xl border border-border bg-card p-4">
-              <View className="flex-row items-center justify-between">
-                <Text className="text-base font-bold text-foreground">
-                  Duplicate Dispatches
-                </Text>
-                <View
-                  className={`rounded-full px-2 py-1 ${
-                    hasDuplicateDispatch
-                      ? "bg-amber-100 dark:bg-amber-900/40"
-                      : "bg-success/10"
-                  }`}
-                >
-                  <Text
-                    className={`text-[10px] font-bold uppercase ${
-                      hasDuplicateDispatch
-                        ? "text-amber-700 dark:text-amber-300"
-                        : "text-success"
-                    }`}
-                  >
-                    {hasDuplicateDispatch ? "Detected" : "No Duplicate"}
-                  </Text>
-                </View>
-              </View>
-              {hasDuplicateDispatch ? (
-                <View className="mt-3 gap-2">
-                  {duplicateDispatches.map((item) => {
-                    const isRecommended =
-                      item.id === duplicateInsight?.recommendedKeepDispatchId;
-                    const isCurrent =
-                      item.id === duplicateInsight?.currentDispatchId;
-                    return (
-                      <View
-                        key={item.id}
-                        className="rounded-lg border border-border/80 bg-background px-3 py-2"
-                      >
-                        <View className="flex-row items-center justify-between gap-3">
-                          <Text className="text-sm font-semibold text-foreground">
-                            #DISP-{item.id}
-                          </Text>
-                          <Text className="text-xs font-medium capitalize text-muted-foreground">
-                            {formatDispatchStatusLabel(item.status)}
-                          </Text>
-                        </View>
-                        <View className="mt-1 flex-row flex-wrap items-center gap-2">
-                          {isCurrent ? (
-                            <View className="rounded-full bg-primary/10 px-2 py-0.5">
-                              <Text className="text-[10px] font-semibold uppercase text-primary">
-                                Current
-                              </Text>
-                            </View>
-                          ) : null}
-                          {isRecommended ? (
-                            <View className="rounded-full bg-success/10 px-2 py-0.5">
-                              <Text className="text-[10px] font-semibold uppercase text-success">
-                                Recommended Keep
-                              </Text>
-                            </View>
-                          ) : null}
-                          <Text className="text-[11px] text-muted-foreground">
-                            {item.packedItemCount}/{item.itemCount} items packed
-                          </Text>
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
-              ) : (
-                <Text className="mt-2 text-xs text-muted-foreground">
-                  No duplicate dispatch found for this sales order.
-                </Text>
-              )}
-            </View>
-          ) : null}
-
-          <View className="mb-6">
-            <Text className="mb-3 text-xl font-bold text-foreground">
-              Delivery Details
-            </Text>
-            <View className="gap-4">
-              <View className="flex-row items-center gap-3 rounded-xl border border-border bg-card p-3">
-                <View className="h-14 w-14 overflow-hidden rounded-full border-2 border-primary/20">
-                  <View className="h-full w-full bg-primary/10">
-                    <Icon
-                      name="User"
-                      className="m-auto text-primary"
-                      size={22}
-                    />
-                  </View>
-                </View>
-                <View className="flex-1">
-                  <Text className="text-base font-bold text-foreground">
-                    {customerName}
-                  </Text>
-                  <Text className="text-sm font-medium text-muted-foreground">
-                    {customerPhone || customerEmail || "Customer"}
-                  </Text>
-                </View>
-                <View className="flex-row gap-2">
-                  <Pressable className="rounded-full bg-primary/10 p-2">
-                    <Icon name="Phone" className="text-primary" size={18} />
-                  </Pressable>
-                  <Pressable className="rounded-full bg-primary/10 p-2">
-                    <Icon name="Mail" className="text-primary" size={18} />
-                  </Pressable>
-                </View>
-              </View>
-
-              <View className="flex-row items-start gap-3 rounded-xl border border-border bg-card p-3">
-                <View className="h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                  <Icon name="MapPin" className="text-primary" size={20} />
-                </View>
-                <View className="flex-1 pt-1">
-                  <Text className="text-base font-bold leading-tight text-foreground">
-                    {addressLine1 || "Address unavailable"}
-                  </Text>
-                  <Text className="mt-0.5 text-sm font-medium text-muted-foreground">
-                    {addressLine2 || customerPhone || customerEmail || ""}
-                  </Text>
-                </View>
-                <Pressable className="mt-1 rounded-full bg-primary/10 p-2">
-                  <Icon name="LocateIcon" className="text-primary" size={18} />
-                </Pressable>
-              </View>
-            </View>
-          </View>
-
-          <View className="mb-6">
-            <View className="mb-3 flex-row items-center justify-between">
-              <Text className="text-xl font-bold text-foreground">
-                Packing List
-              </Text>
-              <View className="rounded-full bg-primary/10 px-2 py-1">
-                <Text className="text-xs font-bold text-primary">
-                  {items.length} Items
-                </Text>
-              </View>
-            </View>
-            <View className="overflow-hidden rounded-xl border border-border">
-              {topPackingItems.map((item, index) => {
-                const itemImage = resolveItemImage(item.img as string | null);
-                const deliverableTotal = totalQty(
-                  resolvedAvailableQty(item) as any,
-                );
-                const packedTotal = totalQty((item as any).listedQty as any);
-                const unpackedTotal = Math.max(
-                  0,
-                  deliverableTotal - packedTotal,
-                );
-                const isPacked = deliverableTotal > 0 && unpackedTotal <= 0;
-                return (
-                  <Pressable
-                    key={item.uid}
-                    onPress={() => ui.setSelectedItemUid(item.uid)}
-                    className={`flex-row items-center justify-between bg-card p-4 ${
-                      index < topPackingItems.length - 1
-                        ? "border-b border-border"
-                        : ""
-                    }`}
-                  >
-                    <View className="flex-row items-center gap-3">
-                      {itemImage ? (
-                        <Pressable
-                          onPress={(event) => {
-                            event.stopPropagation();
-                            setPreviewImageUri(itemImage);
-                          }}
-                        >
-                          <Image
-                            source={{ uri: itemImage }}
-                            style={{
-                              width: 40,
-                              height: 40,
-                              borderRadius: 8,
-                              backgroundColor: "#F4F4F5",
-                            }}
-                            contentFit="cover"
-                          />
-                        </Pressable>
-                      ) : (
-                        <View className="h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                          <Icon
-                            name="HardHat"
-                            className="text-muted-foreground"
-                            size={18}
-                          />
-                        </View>
-                      )}
-                      <View className="max-w-[220px]">
-                        <Text className="text-sm font-medium text-foreground">
-                          {item.title}
-                        </Text>
-                        <Text className="mt-0.5 text-xs uppercase text-muted-foreground">
-                          {item.subtitle ||
-                            item.sectionTitle ||
-                            "No size/type details"}
-                        </Text>
-                      </View>
-                    </View>
-                    <View className="items-end gap-1">
-                      <View
-                        className={`rounded-full px-2 py-1 ${
-                          isPacked ? "bg-success/10" : "bg-warn/10"
-                        }`}
-                      >
-                        <Text
-                          className={`text-[10px] font-bold uppercase ${
-                            isPacked ? "text-success" : "text-warn"
-                          }`}
-                        >
-                          {isPacked ? "Packed" : "Unpacked"}
-                        </Text>
-                      </View>
-                      <Text className="text-xs font-medium text-muted-foreground">
-                        {packedTotal}/{deliverableTotal}
-                      </Text>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <View className="mt-4 flex-row gap-3">
-              <Pressable
-                disabled={
-                  !canEditPacking ||
-                  packing.taskTrigger.isPending ||
-                  dispatch?.status === "packed"
-                }
-                onPress={() => {
-                  if (!canEditPacking) {
-                    Toast.show(
-                      "Packing can only be updated while dispatch is active.",
-                      {
-                        type: "warning",
-                      },
-                    );
-                    return;
-                  }
-                  if (!packableItems.length) {
-                    if (pendingProductionItems.length > 0) {
-                      presentPackingDelayModal();
-                    } else {
-                      Toast.show("No packing items available.", {
-                        type: "warning",
-                      });
-                    }
-                    return;
-                  }
-                  setPackingSlipOpen(true);
-                }}
-                className="flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-primary py-3 disabled:opacity-50"
-              >
-                <Icon
-                  name="CheckSquare"
-                  className="text-primary-foreground"
-                  size={18}
-                />
-                <Text className="text-sm font-bold text-primary-foreground">
-                  Update Packing
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={async () => {
-                  if (!order?.id || !dispatch?.id) return;
-                  try {
-                    await packing.onClearPackings({
-                      salesId: order.id,
-                      dispatchId: dispatch.id,
-                    });
-                    const prevStatus = (dispatch.status as any) || "queue";
-                    if (prevStatus !== "queue") {
-                      await actions.onUpdateDispatchStatus({
-                        salesId: order.id,
-                        dispatchId: dispatch.id,
-                        oldStatus: prevStatus,
-                        newStatus: "queue" as any,
-                      });
-                    }
-                    try {
-                      await notification.send("sales_dispatch_packing_reset", {
-                        payload: {
-                          orderNo: String(order?.orderId || pageTitle),
-                          dispatchId: dispatch.id,
-                          deliveryMode: dispatch.deliveryMode as any,
-                          dueDate: dispatch.dueDate as any,
-                          driverId: dispatch.driver?.id || undefined,
-                        },
-                      } as any);
-                    } catch {
-                      Toast.show(
-                        "Packing reset completed, but notification failed to send.",
-                        { type: "warning" },
-                      );
-                    }
-                    Toast.show("Packing reset", { type: "success" });
-                  } catch {
-                    Toast.show("Unable to reset packing", { type: "error" });
-                  }
-                }}
-                disabled={
-                  !canEditPacking ||
-                  packing.taskTrigger.isPending ||
-                  dispatch?.status === "queue"
-                }
-                className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border-2 border-border py-3 disabled:opacity-50"
-              >
-                <Icon name="Loader2" className="text-foreground" size={18} />
-                <Text className="text-sm font-bold text-foreground">
-                  Reset Packing
-                </Text>
-              </Pressable>
-            </View>
-
-            {unpackableItems.length > 0 ? (
-              <Pressable
-                onPress={() => presentSalesRequestModal()}
-                className="mt-3 h-11 flex-row items-center justify-center rounded-xl border border-amber-400/40 bg-amber-50 dark:bg-amber-950/30"
-              >
-                <Text className="text-xs font-semibold text-amber-700 dark:text-amber-300">
-                  Packing not available for {unpackableItems.length} items
-                </Text>
-              </Pressable>
-            ) : null}
-          </View>
-
-          <View className="mb-4 pb-8">
-            <Text className="mb-4 text-xl font-bold text-foreground">
-              Chat History
-            </Text>
-            <ActivityHistory
-              tags={[{ tagName: "dispatchId", tagValue: Number(activeDispatchId) }]}
-              emptyText="No chat history yet for this dispatch."
-            />
-          </View>
-        </ScrollView>
-
-        <BlurView intensity={90} className="border-t border-border">
-          <View style={{ paddingBottom: Math.max(22, insets.bottom + 14) }}>
-            <View className="px-5 pt-3">
-              <View className="flex-row gap-3">
-                <Pressable
-                  onPress={onIssue}
-                  disabled={actions.cancelDispatch.isPending}
-                  className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-xl border-2 border-border disabled:opacity-50"
-                >
-                  <Icon
-                    name="AlertCircle"
-                    className="text-foreground"
-                    size={18}
-                  />
-                  <Text className="font-bold text-foreground">Issue</Text>
-                </Pressable>
-                <Pressable
-                  onPress={onMarkDelivered}
-                  disabled={actions.submitDispatch.isPending || !canComplete}
-                  className="h-12 flex-[2] flex-row items-center justify-center gap-2 rounded-xl bg-primary disabled:opacity-50"
-                >
-                  <Icon
-                    name="CheckSquare"
-                    className="text-primary-foreground"
-                    size={18}
-                  />
-                  <Text className="font-bold text-primary-foreground">
-                    Mark Delivered
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        </BlurView>
+        <DispatchDetailScreenProvider value={screenVm}>
+          <DispatchDetailTopBar />
+          <DispatchDetailScrollContent />
+          <DispatchDetailFooterActions />
+        </DispatchDetailScreenProvider>
 
         {isPackingSlipOpen ? (
           <PackingSlipScreen
@@ -1395,15 +1119,47 @@ function DispatchDetailScreenInner({
           <CompleteDispatchScreen
             insetsTop={insets.top}
             defaultReceivedBy={customerName || ""}
-            isSubmitting={actions.submitDispatch.isPending}
+            isSubmitting={
+              actions.submitDispatch.isPending || documents.uploadDocument.isPending
+            }
             onClose={() => ui.setCompleteSheetOpen(false)}
             onSubmit={async (input) => {
               if (!order?.id || !dispatch?.id) return;
               try {
+                const attachmentPaths: { pathname: string }[] = [];
+                const files = (input as any)?.attachments || [];
+                for (const file of files) {
+                  const uploaded = await documents.uploadBase64({
+                    filename:
+                      file.fileName ||
+                      `dispatch-attachment-${Date.now()}.jpg`,
+                    contentType: file.contentType || "image/jpeg",
+                    folder: `dispatch/${dispatch.id}/attachments`,
+                    base64: file.base64,
+                  });
+                  attachmentPaths.push({ pathname: uploaded.pathname });
+                }
+
+                let signaturePathname: string | null | undefined;
+                const signaturePathRaw = String(
+                  (input as any)?.signaturePath || "",
+                ).trim();
+                if (signaturePathRaw) {
+                  const uploadedSignature = await documents.uploadText({
+                    filename: `dispatch-signature-${dispatch.id}-${Date.now()}.svg`,
+                    contentType: "image/svg+xml",
+                    folder: `dispatch/${dispatch.id}/signature`,
+                    text: buildSignatureSvg(signaturePathRaw),
+                  });
+                  signaturePathname = uploadedSignature.pathname;
+                }
+
                 await actions.onSubmitDispatch({
                   salesId: order.id,
                   dispatchId: dispatch.id,
                   ...input,
+                  signature: signaturePathname || undefined,
+                  attachments: attachmentPaths,
                 });
                 ui.setCompleteSheetOpen(false);
                 Toast.show("Dispatch completed", { type: "success" });

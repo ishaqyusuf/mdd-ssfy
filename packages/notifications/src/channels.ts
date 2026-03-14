@@ -21,6 +21,7 @@ export const channelNames = [
 	"sales_dispatch_packed",
 	"sales_dispatch_packing_reset",
 	"sales_dispatch_in_progress",
+	"sales_dispatch_trip_canceled",
 	"sales_dispatch_created",
 	"sales_dispatch_date_updated",
 	"sales_dispatch_queued",
@@ -214,6 +215,12 @@ export const channelsConfig: Partial<{
 	sales_dispatch_in_progress: {
 		name: "Dispatch In Progress",
 		description: "Send when a dispatch moves to in progress.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_dispatch_trip_canceled: {
+		name: "Dispatch Trip Canceled",
+		description: "Send when an active dispatch trip is canceled.",
 		priority: 5,
 		category: "Sales",
 	},

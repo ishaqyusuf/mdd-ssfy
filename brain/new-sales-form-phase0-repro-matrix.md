@@ -269,9 +269,139 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   - save-side-effect and history-query integration tests.
 - Triage: Partial (Implemented, Runtime Repro Pending)
 
+16. Component edit parity
+- Old anchors:
+  - `apps/www/src/components/forms/sales-form/component-item-card.tsx:320`
+  - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/step-component-modal/step-component-modal.tsx`
+- New anchors:
+  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:3734`
+- Manual repro:
+  1. Open a component card in editable mode.
+  2. Trigger `Edit`.
+  3. Modify editable fields and save/apply.
+  4. Compare resulting behavior and persisted output against old form.
+- Expected: edit flow matches old modal behavior and applies changes consistently.
+- Current observed (new): field-reported parity gap; current edit dialog exists but behavior is not yet old-form equivalent.
+- Evidence path: `ai/new-sales-form-parity-evidence/component-edit/`
+- Automation target:
+  - component edit integration test.
+- Triage: Fail (User Reported)
+
+17. Component image attachment in edit flow
+- Old anchors:
+  - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/step-component-modal/*`
+- New anchors:
+  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:3734`
+- Manual repro:
+  1. Open component edit.
+  2. Attempt to add or replace component image/attachment as in old flow.
+- Expected: image attachment/update path available and persisted.
+- Current observed (new): field-reported missing feature; no equivalent attachment path confirmed in new edit dialog.
+- Evidence path: `ai/new-sales-form-parity-evidence/component-image-attachment/`
+- Automation target:
+  - component edit UI coverage + persistence integration.
+- Triage: Fail (User Reported)
+
+18. Redirect component route list parity
+- Old anchors:
+  - `apps/www/src/components/forms/sales-form/component-item-card.tsx:343`
+  - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class.ts:109`
+- New anchors:
+  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:143`
+  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:3777`
+- Manual repro:
+  1. Open redirect menu/list for same component in old and new forms.
+  2. Compare available routes and ordering.
+- Expected: redirectable route list matches old-form semantics exactly.
+- Current observed (new): field-reported list mismatch.
+- Evidence path: `ai/new-sales-form-parity-evidence/component-redirect-routes/`
+- Automation target:
+  - redirect-route list derivation unit/integration test.
+- Triage: Fail (User Reported)
+
+19. Door size inline base-cost edit parity
+- Old anchors:
+  - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-select-modal/index.tsx:245`
+- New anchors:
+  - `apps/www/src/components/forms/new-sales-form/sections/workflow-modals.tsx`
+- Manual repro:
+  1. Open door size/qty modal.
+  2. Attempt inline base-cost edit on a size row.
+  3. Confirm UX, permission behavior, and persistence match old form.
+- Expected: same inline price-edit affordance and save behavior as old modal.
+- Current observed (new): field-reported mismatch; current implementation is not yet old-form equivalent.
+- Evidence path: `ai/new-sales-form-parity-evidence/door-inline-base-cost/`
+- Automation target:
+  - door size modal edit interaction test.
+- Triage: Fail (User Reported)
+
+20. Component cost display should show calculated sales cost
+- Old anchors:
+  - `apps/www/src/components/forms/sales-form/component-item-card.tsx`
+- New anchors:
+  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
+- Manual repro:
+  1. Open same component in old and new forms with dependency/profile-sensitive pricing.
+  2. Compare displayed cost value.
+- Expected: displayed component cost uses calculated sales cost, not raw base cost.
+- Current observed (new): partially hardened in code. Component card/edit/quick-price paths now prefer resolved sales pricing and preserve explicit base-cost metadata; runtime parity evidence is still pending for dependency/profile-sensitive fixtures.
+- Evidence path: `ai/new-sales-form-parity-evidence/component-sales-cost-display/`
+- Automation target:
+  - pricing-display integration test with dependency/profile fixture.
+- Triage: Partial (Implemented, Runtime Repro Pending)
+
+21. HPT add-size action broken
+- Old anchors:
+  - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-select-modal/index.tsx`
+- New anchors:
+  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:1410`
+- Manual repro:
+  1. Open HPT section for a door component.
+  2. Click `Add Size`.
+  3. Select an available size.
+  4. Verify row is added and priced.
+- Expected: selected size row is added immediately and works like old form.
+- Current observed (new): partially hardened in code. HPT size-row addition and door-size modal row derivation now use the shared pricing-bucket resolver with richer persisted component metadata; runtime proof is still pending.
+- Evidence path: `ai/new-sales-form-parity-evidence/hpt-add-size/`
+- Automation target:
+  - HPT add-size interaction test.
+- Triage: Partial (Implemented, Runtime Repro Pending)
+
+22. HPT section add-door option parity
+- Old anchors:
+  - `apps/www/src/components/forms/sales-form/hpt/*`
+- New anchors:
+  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
+- Manual repro:
+  1. Open HPT section.
+  2. Attempt to add a new door option/entry as in old form.
+  3. Compare workflow and resulting rows.
+- Expected: old-form add-door option flow exists and persists correctly.
+- Current observed (new): implemented in code. HPT now provides an `Add Door Option` action that returns the user to the `Door` step to add another path; runtime parity evidence is still pending.
+- Evidence path: `ai/new-sales-form-parity-evidence/hpt-add-door-option/`
+- Automation target:
+  - grouped HPT add-door integration test.
+- Triage: Partial (Implemented, Runtime Repro Pending)
+
+23. Moulding calculator outside-click dismiss parity
+- Old anchors:
+  - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/moulding-step/index.tsx`
+- New anchors:
+  - `apps/www/src/components/forms/new-sales-form/sections/workflow-modals.tsx:613`
+- Manual repro:
+  1. Open moulding calculator.
+  2. Click outside the modal/dialog content.
+  3. Compare close behavior in old and new forms.
+- Expected: outside click dismiss behavior matches old form.
+- Current observed (new): code review indicates the current modal already wires backdrop click to `onOpenChange(false)` and stops propagation on content; runtime parity evidence is still needed to confirm the reported mismatch path.
+- Evidence path: `ai/new-sales-form-parity-evidence/moulding-outside-click-dismiss/`
+- Automation target:
+  - modal dismiss interaction test.
+- Triage: Partial (Needs Runtime Verification)
+
 ## Phase 0 Working Checklist
 - [x] Matrix created and anchored.
-- [ ] Capture real new-form failing evidence for all 15 rows.
+- [ ] Capture real new-form failing evidence for all 23 rows.
 - [ ] Assign each row to `Fail` / `Partial` / `Pass` based on evidence.
 - [ ] Link failing row IDs to implementation-phase task IDs.
 - [ ] Mark Phase 0 complete in `brain/progress.md` only after above is done.

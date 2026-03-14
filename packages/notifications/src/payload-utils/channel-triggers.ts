@@ -282,6 +282,18 @@ export function createNotificationChannelTriggers(
 				recipients: resolvedRecipients,
 			});
 		},
+		salesDispatchTripCanceled(input: Input<"sales_dispatch_trip_canceled">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("sales_dispatch_trip_canceled", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
 		salesDispatchDateUpdated(input: Input<"sales_dispatch_date_updated">) {
 			const { recipients, author, ...payload } = input;
 			const resolvedRecipients = resolveRecipients(

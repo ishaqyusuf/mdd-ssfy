@@ -27,6 +27,14 @@ function toNumber(value: unknown, fallback = 0) {
     return Number.isFinite(num) ? num : fallback;
 }
 
+function firstFiniteNumber(...values: Array<number | null | undefined>) {
+    for (const value of values) {
+        const candidate = Number(value);
+        if (Number.isFinite(candidate)) return candidate;
+    }
+    return null;
+}
+
 function calcDoorRow(row: DoorLine): DoorLine {
     const lhQty = toNumber(row.lhQty, 0);
     const rhQty = toNumber(row.rhQty, 0);
@@ -325,20 +333,31 @@ function deriveDoorSizeRows(
             fallbackSalesPrice: component?.salesPrice,
             fallbackBasePrice: component?.basePrice,
         });
-        const rowBaseUnit = Number((existing as any)?.meta?.baseUnitPrice);
-        const unitPrice = Number(
-            computedPrice ||
-                rowBaseUnit ||
-                component?.salesPrice ||
-                component?.basePrice ||
-                existing?.unitPrice ||
-                0,
-        );
+        const rowBaseUnit = firstFiniteNumber((existing as any)?.meta?.baseUnitPrice);
+        const unitPrice =
+            firstFiniteNumber(
+                computedPrice,
+                rowBaseUnit,
+                component?.salesPrice,
+                component?.basePrice,
+                existing?.unitPrice,
+            ) ?? 0;
         return calcDoorRow({
             ...(existing || blankDoorRow()),
             dimension: normalizedSize,
             stepProductId: component?.id || existing?.stepProductId || null,
             unitPrice,
+            meta: {
+                ...((existing as any)?.meta || {}),
+                baseUnitPrice:
+                    rowBaseUnit ??
+                    firstFiniteNumber(
+                        component?.basePrice,
+                        component?.salesPrice,
+                        existing?.unitPrice,
+                    ) ??
+                    0,
+            },
         });
     });
 }
@@ -507,7 +526,12 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                                 className="col-span-1"
                                 type="number"
                                 step="0.01"
-                                value={row.unitPrice || props.component?.salesPrice || 0}
+                                value={
+                                    firstFiniteNumber(
+                                        row.unitPrice,
+                                        props.component?.salesPrice,
+                                    ) ?? 0
+                                }
                                 onChange={(e) =>
                                     setRows((prev) =>
                                         prev.map((item, ri) =>
@@ -524,24 +548,55 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                             <Button
                                 className="col-span-1"
                                 variant="outline"
-                                onClick={() =>
+                                onClick={() => {
+                                    if (typeof window === "undefined") return;
+                                    const currentBase = toNumber(
+                                        (row.meta as any)?.baseUnitPrice,
+                                        toNumber(row.unitPrice, 0),
+                                    );
+                                    const raw = window.prompt(
+                                        "Set door size base cost",
+                                        currentBase
+                                            ? String(currentBase)
+                                            : "",
+                                    );
+                                    if (raw == null) return;
+                                    const nextBase = toNumber(raw, Number.NaN);
+                                    if (!Number.isFinite(nextBase) || nextBase < 0) {
+                                        return;
+                                    }
                                     setRows((prev) =>
-                                        prev.map((item, ri) =>
-                                            ri === index
-                                                ? {
-                                                      ...item,
-                                                      meta: {
-                                                          ...(item.meta || {}),
-                                                          baseUnitPrice: toNumber(
-                                                              row.unitPrice,
-                                                              0,
-                                                          ),
-                                                      },
-                                                  }
-                                                : item,
-                                        ),
-                                    )
-                                }
+                                        prev.map((item, ri) => {
+                                            if (ri !== index) return item;
+                                            const priorBase = toNumber(
+                                                (item.meta as any)?.baseUnitPrice,
+                                                toNumber(item.unitPrice, 0),
+                                            );
+                                            const surcharge = Number(
+                                                (
+                                                    toNumber(item.unitPrice, 0) -
+                                                    priorBase
+                                                ).toFixed(2),
+                                            );
+                                            return calcDoorRow({
+                                                ...item,
+                                                unitPrice: Number(
+                                                    (
+                                                        Math.max(0, nextBase) +
+                                                        surcharge
+                                                    ).toFixed(2),
+                                                ),
+                                                meta: {
+                                                    ...(item.meta || {}),
+                                                    baseUnitPrice: Math.max(
+                                                        0,
+                                                        nextBase,
+                                                    ),
+                                                },
+                                            });
+                                        }),
+                                    );
+                                }}
                             >
                                 B
                             </Button>
