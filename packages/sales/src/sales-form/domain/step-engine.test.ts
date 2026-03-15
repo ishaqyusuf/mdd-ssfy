@@ -3,6 +3,7 @@ import {
   buildSelectedByStepUid,
   buildSelectedProdUidsByStepUid,
   customNextStepTitle,
+  getRedirectableRoutes,
   isComponentVisibleByRules,
   resolveComponentPriceByDeps,
 } from "./step-engine";
@@ -74,6 +75,29 @@ describe("step-engine domain", () => {
       },
     ]);
     expect(selected["door-step"]).toEqual(["door-a", "door-b"]);
+  });
+
+  it("lists redirect routes in configured step order and keeps the current step available", () => {
+    const routes = getRedirectableRoutes({
+      stepsById: {
+        10: "item-type",
+        20: "door",
+        30: "house-package-tool",
+      },
+      stepsByUid: {
+        "item-type": { uid: "item-type", title: "Item Type" },
+        door: { uid: "door", title: "Door" },
+        "house-package-tool": {
+          uid: "house-package-tool",
+          title: "House Package Tool",
+        },
+      },
+    });
+    expect(routes).toEqual([
+      { uid: "item-type", title: "Item Type" },
+      { uid: "door", title: "Door" },
+      { uid: "house-package-tool", title: "House Package Tool" },
+    ]);
   });
 
   it("resolves price by dependency key", () => {

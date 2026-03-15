@@ -63,6 +63,7 @@ import {
     isServiceItem,
     isShelfItem,
     findLineStepByTitle,
+    getRedirectableRoutes,
     resolveSizeFromPricingKey,
     resolvePricingBucketUnitPrice,
     resolveComponentPriceByDeps,
@@ -141,28 +142,6 @@ function applySharedDoorSurcharge(rows: any[], surcharge: number) {
         };
     });
 }
-function getRedirectableRoutes(routeData: any, currentStepUid?: string | null) {
-    const stepsById = routeData?.stepsById || {};
-    const stepsByUid = routeData?.stepsByUid || {};
-    const sortedIds = Object.keys(stepsById)
-        .map((id) => Number(id))
-        .filter((id) => Number.isFinite(id))
-        .sort((a, b) => a - b);
-    const routes = sortedIds
-        .map((id) => stepsById[id])
-        .map((uid: string) => stepsByUid?.[uid])
-        .filter(Boolean)
-        .map((step: any) => ({
-            uid: String(step.uid || ""),
-            title: String(step.title || "").trim(),
-        }))
-        .filter((step: any) => step.uid && step.title)
-        .filter((step: any) => step.uid !== String(currentStepUid || ""));
-    return Array.from(
-        new Map(routes.map((step: any) => [step.uid, step])).values(),
-    );
-}
-
 function money(value?: number | null) {
     const amount = Number(value || 0);
     if (!Number.isFinite(amount) || amount <= 0) return null;
@@ -361,20 +340,6 @@ export function ItemWorkflowPanel() {
             : (activeStepByLine[activeLine.uid] ??
               Math.max(0, activeLineSteps.length - 1));
     const activeStep = activeLineSteps[activeStepIndex] || null;
-    const componentEditStepUid = useMemo(() => {
-        if (!componentEditModal.lineUid || componentEditModal.stepIndex < 0) {
-            return null;
-        }
-        const line = record?.lineItems?.find(
-            (item) => item.uid === componentEditModal.lineUid,
-        );
-        const step = line?.formSteps?.[componentEditModal.stepIndex];
-        return step?.step?.uid ? String(step.step.uid) : null;
-    }, [
-        componentEditModal.lineUid,
-        componentEditModal.stepIndex,
-        record?.lineItems,
-    ]);
     const activeDoorStep = activeLine
         ? findLineStepByTitle(activeLine, "Door")
         : null;
@@ -3414,10 +3379,8 @@ export function ItemWorkflowPanel() {
                                 const isSelected = selectedUids.has(
                                     component.uid,
                                 );
-                                const redirectRoutes = getRedirectableRoutes(
-                                    routeData,
-                                    activeItemStep?.step?.uid,
-                                );
+                                const redirectRoutes =
+                                    getRedirectableRoutes(routeData);
                                 return (
                                     <div
                                         key={component.uid}
@@ -3874,10 +3837,7 @@ export function ItemWorkflowPanel() {
                                 }
                             >
                                 <option value="">None</option>
-                                {getRedirectableRoutes(
-                                    routeData,
-                                    componentEditStepUid,
-                                ).map((route) => (
+                                {getRedirectableRoutes(routeData).map((route) => (
                                     <option key={`edit-redirect-${route.uid}`} value={route.uid}>
                                         {route.title}
                                     </option>

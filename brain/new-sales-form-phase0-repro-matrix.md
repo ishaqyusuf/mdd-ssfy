@@ -313,11 +313,11 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   1. Open redirect menu/list for same component in old and new forms.
   2. Compare available routes and ordering.
 - Expected: redirectable route list matches old-form semantics exactly.
-- Current observed (new): field-reported list mismatch.
+- Current observed (new): implemented in code. Shared redirect-route derivation now mirrors legacy behavior by listing the full ordered step set without excluding the current step; runtime parity proof is still pending.
 - Evidence path: `ai/new-sales-form-parity-evidence/component-redirect-routes/`
 - Automation target:
   - redirect-route list derivation unit/integration test.
-- Triage: Fail (User Reported)
+- Triage: Partial (Implemented, Runtime Repro Pending)
 
 19. Door size inline base-cost edit parity
 - Old anchors:

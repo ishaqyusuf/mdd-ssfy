@@ -4,6 +4,7 @@ export {
   buildSelectedProdUidsByStepUid,
   customNextStepTitle,
   findStepByTitle,
+  getRedirectableRoutes,
   isComponentVisibleByRules,
   normalizeSalesFormTitle,
   resolveComponentPriceByDeps,

@@ -31,6 +31,32 @@ export function buildSelectedByStepUid(steps: any[]) {
   return selected;
 }
 
+export function getRedirectableRoutes(routeData: any) {
+  const configuredSteps = Array.isArray(routeData?.steps) ? routeData.steps : null;
+  const orderedSteps = configuredSteps
+    ? configuredSteps
+    : Object.keys(routeData?.stepsById || {})
+        .map((id) => Number(id))
+        .filter((id) => Number.isFinite(id))
+        .sort((a, b) => a - b)
+        .map((id) => {
+          const uid = routeData?.stepsById?.[id];
+          return uid ? routeData?.stepsByUid?.[uid] : null;
+        });
+
+  const routes = orderedSteps
+    .filter(Boolean)
+    .map((step: any) => ({
+      uid: String(step?.uid || ""),
+      title: String(step?.title || "").trim(),
+    }))
+    .filter((step: any) => step.uid && step.title);
+
+  return Array.from(
+    new Map(routes.map((step: any) => [step.uid, step])).values(),
+  );
+}
+
 export function isComponentVisibleByRules(
   component: any,
   selectedByStepUid: Record<string, string>,
