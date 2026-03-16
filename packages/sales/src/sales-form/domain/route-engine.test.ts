@@ -3,6 +3,7 @@ import {
   applyRouteRecursion,
   buildConfiguredRouteSteps,
   mergeConfiguredSeriesWithExisting,
+  rebuildStepsFromSelection,
   resolveNextStep,
 } from "./route-engine";
 
@@ -203,5 +204,197 @@ describe("route-engine domain", () => {
     const stepUids = routed.steps.map((step: any) => step?.step?.uid);
     expect(stepUids).toContain("hiddenStep");
     expect(stepUids).toContain("stepC");
+  });
+
+  it("removes skipped downstream steps when a redirect changes the route", () => {
+    const redirectRouteData = {
+      composedRouter: {
+        rootA: {
+          route: {
+            rootStep: "stepB",
+            stepB: "stepC",
+            stepC: "stepD",
+          },
+        },
+      },
+      stepsByUid: {
+        rootStep: {
+          id: 1,
+          uid: "rootStep",
+          title: "Item Type",
+          components: [{ uid: "rootA", id: 11, title: "Door" }],
+        },
+        stepB: {
+          id: 2,
+          uid: "stepB",
+          title: "Casing Y/N",
+          components: [
+            { uid: "yes-casing", id: 21, title: "Yes Casing" },
+            { uid: "no-casing", id: 22, title: "No Casing", redirectUid: "stepD" },
+          ],
+        },
+        stepC: {
+          id: 3,
+          uid: "stepC",
+          title: "Casing",
+          components: [{ uid: "casing-a", id: 31, title: "Colonial" }],
+        },
+        stepD: {
+          id: 4,
+          uid: "stepD",
+          title: "House Package Tool",
+          components: [{ uid: "hpt", id: 41, title: "HPT" }],
+        },
+      },
+      stepsById: {
+        1: "rootStep",
+        2: "stepB",
+        3: "stepC",
+        4: "stepD",
+      },
+    };
+
+    const steps = [
+      {
+        stepId: 1,
+        prodUid: "rootA",
+        value: "Door",
+        step: { id: 1, uid: "rootStep", title: "Item Type" },
+      },
+      {
+        stepId: 2,
+        prodUid: "yes-casing",
+        value: "Yes Casing",
+        step: { id: 2, uid: "stepB", title: "Casing Y/N" },
+      },
+      {
+        stepId: 3,
+        prodUid: "casing-a",
+        value: "Colonial",
+        meta: { preserved: true },
+        step: { id: 3, uid: "stepC", title: "Casing" },
+      },
+      {
+        stepId: 4,
+        prodUid: "hpt",
+        value: "HPT",
+        step: { id: 4, uid: "stepD", title: "House Package Tool" },
+      },
+    ];
+
+    const rebuilt = rebuildStepsFromSelection({
+      routeData: redirectRouteData,
+      line: { meta: {} },
+      steps,
+      startIndex: 1,
+      selectedComponent: {
+        uid: "no-casing",
+        title: "No Casing",
+        redirectUid: "stepD",
+      },
+    });
+
+    expect(rebuilt.steps.map((step: any) => step.step.uid)).toEqual([
+      "rootStep",
+      "stepB",
+      "stepD",
+    ]);
+  });
+
+  it("restores skipped steps when redirecting component changes back", () => {
+    const redirectRouteData = {
+      composedRouter: {
+        rootA: {
+          routeSequence: [{ uid: "stepB" }, { uid: "stepC" }, { uid: "stepD" }],
+          route: {
+            rootStep: "stepB",
+            stepB: "stepC",
+            stepC: "stepD",
+          },
+        },
+      },
+      stepsByUid: {
+        rootStep: {
+          id: 1,
+          uid: "rootStep",
+          title: "Item Type",
+          components: [{ uid: "rootA", id: 11, title: "Door" }],
+        },
+        stepB: {
+          id: 2,
+          uid: "stepB",
+          title: "Casing Y/N",
+          components: [
+            { uid: "yes-casing", id: 21, title: "Yes Casing" },
+            { uid: "no-casing", id: 22, title: "No Casing", redirectUid: "stepD" },
+          ],
+        },
+        stepC: {
+          id: 3,
+          uid: "stepC",
+          title: "Casing",
+          components: [{ uid: "casing-a", id: 31, title: "Colonial" }],
+        },
+        stepD: {
+          id: 4,
+          uid: "stepD",
+          title: "House Package Tool",
+          components: [{ uid: "hpt", id: 41, title: "HPT" }],
+        },
+      },
+      stepsById: {
+        1: "rootStep",
+        2: "stepB",
+        3: "stepC",
+        4: "stepD",
+      },
+    };
+
+    const steps = [
+      {
+        stepId: 1,
+        prodUid: "rootA",
+        value: "Door",
+        step: { id: 1, uid: "rootStep", title: "Item Type" },
+      },
+      {
+        stepId: 2,
+        prodUid: "no-casing",
+        value: "No Casing",
+        step: { id: 2, uid: "stepB", title: "Casing Y/N" },
+      },
+      {
+        stepId: 3,
+        prodUid: "casing-a",
+        value: "Colonial",
+        meta: { restored: true },
+        step: { id: 3, uid: "stepC", title: "Casing" },
+      },
+      {
+        stepId: 4,
+        prodUid: "hpt",
+        value: "HPT",
+        step: { id: 4, uid: "stepD", title: "House Package Tool" },
+      },
+    ];
+
+    const rebuilt = rebuildStepsFromSelection({
+      routeData: redirectRouteData,
+      line: { meta: {} },
+      steps,
+      startIndex: 1,
+      selectedComponent: {
+        uid: "yes-casing",
+        title: "Yes Casing",
+      },
+    });
+
+    expect(rebuilt.steps.map((step: any) => step.step.uid)).toEqual([
+      "rootStep",
+      "stepB",
+      "stepC",
+      "stepD",
+    ]);
+    expect(rebuilt.steps[2]?.meta?.restored).toBe(true);
   });
 });

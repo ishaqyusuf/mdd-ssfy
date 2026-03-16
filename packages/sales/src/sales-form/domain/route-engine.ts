@@ -243,3 +243,57 @@ export function applyRouteRecursion({
     activeIndex: currentIndex,
   };
 }
+
+export function rebuildStepsFromSelection({
+  routeData,
+  line,
+  steps,
+  startIndex,
+  selectedComponent,
+  autoAdvanceTitles = DEFAULT_AUTO_ADVANCE_TITLES,
+  maxIterations = 12,
+}: {
+  routeData: any;
+  line: any;
+  steps: any[];
+  startIndex: number;
+  selectedComponent: SelectedComponent;
+  autoAdvanceTitles?: Set<string>;
+  maxIterations?: number;
+}) {
+  const prefix = steps.slice(0, startIndex + 1);
+  const rebuilt = applyRouteRecursion({
+    routeData,
+    line,
+    steps: prefix,
+    startIndex,
+    selectedComponent,
+    autoAdvanceTitles,
+    maxIterations,
+  });
+
+  const merged = rebuilt.steps.map((step, index) => {
+    if (index <= startIndex) return step;
+    const existing = steps.find((candidate) => stepMatches(routeData, candidate, step?.step));
+    if (!existing) return step;
+    return {
+      ...step,
+      ...existing,
+      stepId: step.stepId ?? existing.stepId ?? null,
+      step: {
+        ...(existing.step || {}),
+        ...(step.step || {}),
+      },
+    };
+  });
+
+  const activeIndex =
+    merged[rebuilt.activeIndex] != null
+      ? rebuilt.activeIndex
+      : Math.max(0, merged.length - 1);
+
+  return {
+    steps: merged,
+    activeIndex,
+  };
+}

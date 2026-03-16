@@ -14,6 +14,7 @@ export {
   applyRouteRecursion,
   buildConfiguredRouteSteps,
   mergeConfiguredSeriesWithExisting,
+  rebuildStepsFromSelection,
   resolveNextStep,
   seedRouteStep,
 } from "./route-engine";

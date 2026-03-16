@@ -48,7 +48,6 @@ import {
     deriveDoorSizeCandidates,
 } from "./workflow-modals";
 import {
-    applyRouteRecursion,
     applyMultiSelectStepMutation,
     applySingleSelectStepMutation,
     buildConfiguredRouteSteps,
@@ -59,6 +58,7 @@ import {
     isComponentVisibleByRules,
     mergeConfiguredSeriesWithExisting,
     normalizeSalesFormTitle as normalizeTitle,
+    rebuildStepsFromSelection,
     deriveMouldingRows,
     deriveServiceRows,
     getRouteConfigForLine as resolveRouteConfigForLine,
@@ -828,7 +828,7 @@ export function ItemWorkflowPanel() {
             }
         }
 
-        const routed = applyRouteRecursion({
+        const routed = rebuildStepsFromSelection({
             routeData,
             line,
             steps: singleMutationSteps,
@@ -876,7 +876,7 @@ export function ItemWorkflowPanel() {
             .filter(Boolean);
         const primary = candidates[0];
         if (!primary) return;
-        const routed = applyRouteRecursion({
+        const routed = rebuildStepsFromSelection({
             routeData,
             line,
             steps,
