@@ -242,4 +242,33 @@ describe("calculateNewSalesFormSummary", () => {
     expect(result.taxTotal).toBe(5);
     expect(result.grandTotal).toBe(55);
   });
+
+  it("falls back to shelf base-price metadata for invoice summary when sales/unit totals are stale", () => {
+    const result = calculateSalesFormSummary({
+      strategy: "legacy",
+      taxRate: 10,
+      lineItems: [
+        {
+          qty: 0,
+          unitPrice: 0,
+          lineTotal: 0,
+          shelfItems: [
+            {
+              qty: 2,
+              unitPrice: 0,
+              totalPrice: 0,
+              meta: {
+                basePrice: 12.5,
+              },
+            },
+          ],
+        } as any,
+      ],
+    });
+
+    expect(result.subTotal).toBe(25);
+    expect(result.taxableSubTotal).toBe(25);
+    expect(result.taxTotal).toBe(2.5);
+    expect(result.grandTotal).toBe(27.5);
+  });
 });

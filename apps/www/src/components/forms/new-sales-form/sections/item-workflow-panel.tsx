@@ -381,10 +381,12 @@ function ShelfProductCombobox({
                             e.preventDefault();
                             if (onClearRequest) {
                                 onClearRequest();
+                                setOpen(true);
                                 return;
                             }
                             setInputValue("");
                             onChange(null);
+                            setOpen(true);
                         }}
                         className="absolute right-2 top-3"
                     >

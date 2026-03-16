@@ -1,5 +1,6 @@
 import type { Db, TransactionClient } from "@gnd/db";
 import { calculateSalesDueAmount } from "../../sales-transaction";
+import { mirrorVoidedLegacySalesPayment } from "../infrastructure";
 
 export interface DeleteLegacySalesPaymentInput {
 	salesPaymentId: number;
@@ -28,6 +29,10 @@ export async function deleteLegacySalesPayment(
 	});
 
 	await calculateSalesDueAmount(db, payment.orderId);
+	await mirrorVoidedLegacySalesPayment(db, {
+		salesId: payment.orderId,
+		salesPaymentId: payment.id,
+	});
 
 	return payment;
 }

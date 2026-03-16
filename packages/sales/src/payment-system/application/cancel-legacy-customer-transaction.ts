@@ -1,4 +1,5 @@
 import type { Db, TransactionClient } from "@gnd/db";
+import { mirrorCancelledLegacyCustomerTransaction } from "../infrastructure";
 
 export interface CancelLegacyCustomerTransactionInput {
 	transactionId: number;
@@ -12,7 +13,7 @@ export async function cancelLegacyCustomerTransaction(
 	db: Db | TransactionClient,
 	input: CancelLegacyCustomerTransactionInput,
 ) {
-	return db.customerTransaction.update({
+	const transaction = await db.customerTransaction.update({
 		where: {
 			id: input.transactionId,
 		},
@@ -54,4 +55,8 @@ export async function cancelLegacyCustomerTransaction(
 			},
 		},
 	});
+	await mirrorCancelledLegacyCustomerTransaction(db, {
+		customerTransactionId: input.transactionId,
+	});
+	return transaction;
 }

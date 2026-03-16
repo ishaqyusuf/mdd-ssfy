@@ -9,7 +9,6 @@ import { Icons } from "@/components/_v1/icons";
 import { formatPaymentParams } from "@gnd/utils/sales";
 import { motion } from "framer-motion";
 import { CheckCircle, XCircle } from "lucide-react";
-import { useTaskTrigger } from "@/hooks/use-task-trigger";
 
 export default function PaymentResponsePage(props) {
     const params = use(props.params);
@@ -21,9 +20,6 @@ export default function PaymentResponsePage(props) {
     const router = useRouter();
 
     const hasRun = useRef(false);
-    const trig = useTaskTrigger({
-        silent: true,
-    });
     useEffect(() => {
         if (hasRun.current) return; // prevent second run
         hasRun.current = true; // mark as run
@@ -35,17 +31,9 @@ export default function PaymentResponsePage(props) {
 
                 // return;
                 await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate processing delay
-                const response = await finalizeSalesCheckout({
+                await finalizeSalesCheckout({
                     salesPaymentId: paymentId,
                 });
-                await Promise.all(
-                    response?.notifications?.map(async (not) => {
-                        await trig.trigger({
-                            taskName: "sales-rep-payment-received-notification",
-                            payload: not,
-                        });
-                    }),
-                );
                 // const response = await salesPaymentCheckoutResponse({
                 //     emailToken,
                 //     slug,
@@ -133,4 +121,3 @@ export default function PaymentResponsePage(props) {
         </div>
     );
 }
-

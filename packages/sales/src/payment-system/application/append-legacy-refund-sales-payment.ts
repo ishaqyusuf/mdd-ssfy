@@ -1,4 +1,5 @@
 import type { Db, TransactionClient } from "@gnd/db";
+import { mirrorLegacyRefundSalesPayment } from "../infrastructure";
 
 export interface AppendLegacyRefundSalesPaymentInput {
 	transactionId: number;
@@ -15,7 +16,7 @@ export async function appendLegacyRefundSalesPayment(
 	db: Db | TransactionClient,
 	input: AppendLegacyRefundSalesPaymentInput,
 ) {
-	return db.customerTransaction.update({
+	const transaction = await db.customerTransaction.update({
 		where: {
 			id: input.transactionId,
 		},
@@ -55,4 +56,15 @@ export async function appendLegacyRefundSalesPayment(
 			},
 		},
 	});
+	const salesPayment = transaction.salesPayments[0];
+	if (salesPayment) {
+		await mirrorLegacyRefundSalesPayment(db, {
+			amount: -1 * input.refundAmount,
+			customerTransactionId: input.transactionId,
+			salesId: input.orderId,
+			salesPaymentId: salesPayment.id,
+			walletId: transaction.wallet?.id,
+		});
+	}
+	return transaction;
 }

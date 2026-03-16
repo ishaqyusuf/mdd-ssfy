@@ -5,6 +5,8 @@ import { SalesPaymentStatus } from "@/app-deps/(clean-code)/(sales)/types";
 import { prisma } from "@/db";
 import { formatMoney } from "@/lib/use-number";
 import { sum } from "@/lib/utils";
+import { NotificationService } from "@notifications/services/triggers";
+import { tasks } from "@trigger.dev/sdk/v3";
 
 import { createPayrollAction } from "./create-payroll";
 
@@ -33,6 +35,7 @@ export async function finalizeSalesCheckout({ salesPaymentId }: Props) {
                                     id: true,
                                     amountDue: true,
                                     orderId: true,
+                                    customerId: true,
                                     customer: {
                                         select: {
                                             businessName: true,
@@ -99,9 +102,16 @@ export async function finalizeSalesCheckout({ salesPaymentId }: Props) {
     const tip =
         totalTip > 0 ? formatMoney(totalTip / squarePayment.orders.length) : 0;
     let balance = totalAmount;
-    let salesRepsNotifications: {
-        [email in string]: any;
-    } = {};
+    let salesRepsNotifications: Record<
+        string,
+        {
+            amount: number;
+            customerId: number | null;
+            customerName?: string;
+            ordersNo: string[];
+            salesRepId: number;
+        }
+    > = {};
     const proms = await Promise.all(
         squarePayment.orders.map(async (o) => {
             let orderAmountDue = formatMoney(o.order.amountDue);
@@ -161,13 +171,13 @@ export async function finalizeSalesCheckout({ salesPaymentId }: Props) {
                     if (!salesRepsNotifications[salesRep.email])
                         salesRepsNotifications[salesRep.email] = {
                             amount: 0,
-                            email: salesRep.email,
-                            repName: salesRep.name,
+                            customerId: o.order.customerId ?? null,
                             customerName:
                                 o.order.customer?.businessName ||
                                 o.order.customer?.name ||
                                 o.order.billingAddress?.name,
                             ordersNo: [],
+                            salesRepId: sp.order.salesRepId,
                         };
                     salesRepsNotifications[salesRep.email].amount += paidAmount;
                     salesRepsNotifications[salesRep.email].ordersNo.push(
@@ -199,6 +209,27 @@ export async function finalizeSalesCheckout({ salesPaymentId }: Props) {
             amount: totalAmount,
         },
     });
+    await Promise.all(
+        Object.values(salesRepsNotifications).map(async (notification) => {
+            if (!notification.salesRepId || !notification.customerId) return;
+
+            const service = new NotificationService(tasks, {
+                db: prisma as any,
+            }).setEmployeeRecipients(notification.salesRepId);
+
+            await service.send("sales_checkout_success", {
+                author: {
+                    id: notification.customerId,
+                    role: "customer",
+                },
+                payload: {
+                    orderNos: notification.ordersNo,
+                    customerName: notification.customerName,
+                    totalAmount: notification.amount,
+                },
+            });
+        })
+    );
     return {
         proms,
         notifications: Object.values(salesRepsNotifications),

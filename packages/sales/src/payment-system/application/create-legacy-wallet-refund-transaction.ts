@@ -1,4 +1,5 @@
 import type { Db, TransactionClient } from "@gnd/db";
+import { mirrorLegacyWalletRefundTransaction } from "../infrastructure";
 
 export interface CreateLegacyWalletRefundTransactionInput {
 	walletId: number;
@@ -12,7 +13,7 @@ export async function createLegacyWalletRefundTransaction(
 	db: Db | TransactionClient,
 	input: CreateLegacyWalletRefundTransactionInput,
 ) {
-	return db.customerTransaction.create({
+	const transaction = await db.customerTransaction.create({
 		data: {
 			amount: input.refundAmount,
 			status: "success",
@@ -22,4 +23,11 @@ export async function createLegacyWalletRefundTransaction(
 			walletId: input.walletId,
 		},
 	});
+	await mirrorLegacyWalletRefundTransaction(db, {
+		amount: input.refundAmount,
+		customerTransactionId: transaction.id,
+		reason: input.reason,
+		walletId: input.walletId,
+	});
+	return transaction;
 }

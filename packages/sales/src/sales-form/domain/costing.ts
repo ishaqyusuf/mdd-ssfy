@@ -14,6 +14,14 @@ function safeNumber(value: unknown) {
   return Number.isFinite(num) ? num : 0;
 }
 
+function firstPositiveNumber(...values: unknown[]) {
+  for (const value of values) {
+    const num = Number(value);
+    if (Number.isFinite(num) && num > 0) return num;
+  }
+  return 0;
+}
+
 function normalizeTitle(value?: string | null) {
   return String(value || "")
     .trim()
@@ -115,13 +123,15 @@ function deriveShelfLineTotal(line: SalesFormLineItemLike) {
       const explicitTotal = safeNumber(row?.totalPrice);
       if (explicitTotal > 0) return sum + explicitTotal;
       const qty = safeNumber(row?.qty);
-      const unitPrice = safeNumber(
-        row?.customPrice ??
-          row?.salesPrice ??
-          row?.unitPrice ??
-          row?.meta?.customPrice ??
-          row?.meta?.salesPrice ??
-          row?.meta?.unitPrice,
+      const unitPrice = firstPositiveNumber(
+        row?.customPrice,
+        row?.salesPrice,
+        row?.unitPrice,
+        row?.basePrice,
+        row?.meta?.customPrice,
+        row?.meta?.salesPrice,
+        row?.meta?.unitPrice,
+        row?.meta?.basePrice,
       );
       return sum + roundCurrency(qty * unitPrice);
     }, 0),

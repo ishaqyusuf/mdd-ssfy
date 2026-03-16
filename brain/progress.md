@@ -37,6 +37,26 @@
   - `createLegacyWalletRefundTransaction`
   - `createLegacySalesResolution`
 - Rewired `apps/api/src/db/queries/wallet.ts` refund/cancel flow to use the shared helpers for transaction cancellation, refund sales-payment append, wallet refund credit creation, due repair, and resolution logging.
+- Added shared checkout-oriented payment-system helpers for:
+  - checkout token resolution
+  - pending checkout creation
+  - square-order linkage
+  - checkout settlement application
+- Rewired `apps/api/src/db/queries/checkout.ts` so the remaining checkout flow now consumes shared payment-system services, not just the final payment-write step.
+- Added a guarded canonical mirror layer in `packages/sales/src/payment-system/infrastructure/canonical-mirror.ts` that dual-writes ledger/projection/resolution records when the canonical tables are present.
+- Hooked the shared payment-system and resolution-system services into that mirror layer so centralized legacy writes can now populate:
+  - `PaymentLedgerEntry`
+  - `PaymentAllocation`
+  - `PaymentProjection`
+  - `ResolutionCase`
+  - `ResolutionFinding`
+  - `ResolutionAction`
+- Added migration scaffold `packages/db/src/schema/migrations/20260316143000_payment_system_foundation/migration.sql` for the canonical payment/resolution tables.
+- Added reconciliation reporting support:
+  - shared report builder in `packages/sales/src/resolution-system/reports/payment-reconciliation-report.ts`
+  - root runner script `scripts/payment-system-reconciliation-report.mjs`
+  - root command `bun run payment:reconciliation-report -- --limit <n> [--json]`
+- Attempted to apply the payment-system migration and run the reconciliation report in the current environment, but both are currently blocked by local DB connectivity to `localhost:3306`.
 - Created ADR `brain/decisions/ADR-001-payment-and-resolution-boundaries.md` to lock the new module boundaries before broader cutover work.
 
 ## 2026-03-14

@@ -6,6 +6,7 @@ import type {
 } from "../../constants";
 import { calculateSalesDueAmount } from "../../sales-transaction";
 import type { CustomerTransactionType } from "../../types";
+import { mirrorPostedLegacySalesPayment } from "../infrastructure";
 
 export interface RecordLegacySalesPaymentInput {
 	amount: number;
@@ -76,6 +77,15 @@ export async function recordLegacySalesPayment(
 		});
 
 		await calculateSalesDueAmount(db, input.salesId);
+		await mirrorPostedLegacySalesPayment(db, {
+			amount: input.amount,
+			customerTransactionId: input.customerTransactionId,
+			paymentMethod: input.paymentMethod,
+			salesId: input.salesId,
+			salesPaymentId: salesPayment.id,
+			squarePaymentId: input.squarePaymentId,
+			walletId: input.walletId,
+		});
 
 		return {
 			customerTransactionId: input.customerTransactionId,
@@ -164,9 +174,21 @@ export async function recordLegacySalesPayment(
 	});
 
 	await calculateSalesDueAmount(db, input.salesId);
+	const salesPayment = transaction.salesPayments[0] || null;
+	if (salesPayment) {
+		await mirrorPostedLegacySalesPayment(db, {
+			amount: input.amount,
+			customerTransactionId: transaction.id,
+			paymentMethod: input.paymentMethod,
+			salesId: input.salesId,
+			salesPaymentId: salesPayment.id,
+			squarePaymentId: input.squarePaymentId,
+			walletId: input.walletId,
+		});
+	}
 
 	return {
 		customerTransactionId: transaction.id,
-		salesPayment: transaction.salesPayments[0] || null,
+		salesPayment,
 	};
 }
