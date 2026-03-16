@@ -5600,60 +5600,92 @@ export function ItemWorkflowPanel() {
                                     current size and quantity rows.
                                 </DialogDescription>
                             </DialogHeader>
-                            <div className="max-h-[70vh] overflow-y-auto pr-1">
-                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                                {candidates.map((component: any) => (
-                                    <button
-                                        key={`swap-door-${component.uid}`}
-                                        type="button"
-                                        className="rounded-2xl border bg-white p-4 text-left transition hover:border-primary hover:bg-primary/5"
-                                        onClick={() => {
-                                            if (
-                                                !sourceComponent ||
-                                                doorStepIndex < 0
-                                            ) {
-                                                return;
-                                            }
-                                            swapDoorComponentAtStep(
-                                                activeLine,
-                                                doorStepIndex,
-                                                sourceComponent,
-                                                component,
-                                            );
-                                            setDoorSwapModal({
-                                                open: false,
-                                                lineUid: null,
-                                                sourceUid: null,
-                                            });
-                                        }}
-                                    >
-                                        <div className="space-y-2">
-                                            <p className="text-sm font-semibold text-foreground">
-                                                {componentLabel(
-                                                    component?.title ||
-                                                        component?.uid ||
-                                                        "Door",
-                                                )}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">
-                                                Existing rows for{" "}
-                                                {componentLabel(
-                                                    sourceComponent?.title ||
-                                                        sourceComponent?.uid ||
-                                                        "current door",
-                                                )}{" "}
-                                                will be repriced on this door.
-                                            </p>
-                                        </div>
-                                    </button>
-                                ))}
-                                {!candidates.length ? (
-                                    <div className="rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
-                                        No other visible door options are
-                                        available to swap into right now.
-                                    </div>
-                                ) : null}
+                            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-muted-foreground">
+                                Existing rows for{" "}
+                                {componentLabel(
+                                    sourceComponent?.title ||
+                                        sourceComponent?.uid ||
+                                        "current door",
+                                )}{" "}
+                                will be repriced on the selected door.
                             </div>
+                            <div className="max-h-[70vh] overflow-y-auto pr-1">
+                                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                    {candidates.map((component: any) => (
+                                        <button
+                                            key={`swap-door-${component.uid}`}
+                                            type="button"
+                                            className="overflow-hidden rounded-xl border bg-card text-left transition hover:border-primary"
+                                            onClick={() => {
+                                                if (
+                                                    !sourceComponent ||
+                                                    doorStepIndex < 0
+                                                ) {
+                                                    return;
+                                                }
+                                                swapDoorComponentAtStep(
+                                                    activeLine,
+                                                    doorStepIndex,
+                                                    sourceComponent,
+                                                    component,
+                                                );
+                                                setDoorSwapModal({
+                                                    open: false,
+                                                    lineUid: null,
+                                                    sourceUid: null,
+                                                });
+                                            }}
+                                        >
+                                            <div className="h-32 bg-muted">
+                                                {resolveComponentImageSrc(
+                                                    component.img,
+                                                ) ? (
+                                                    <img
+                                                        src={
+                                                            resolveComponentImageSrc(
+                                                                component.img,
+                                                            ) || ""
+                                                        }
+                                                        alt={
+                                                            component.title ||
+                                                            component.uid ||
+                                                            "Door"
+                                                        }
+                                                        className="h-full w-full object-contain p-2"
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                                                        No image
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="space-y-2 p-3">
+                                                <p className="font-semibold">
+                                                    {componentLabel(
+                                                        component?.title ||
+                                                            component?.uid ||
+                                                            "Door",
+                                                    )}
+                                                </p>
+                                                {moneyIfPositive(
+                                                    component?.salesPrice,
+                                                ) ? (
+                                                    <p className="text-xs font-medium text-primary">
+                                                        {moneyIfPositive(
+                                                            component?.salesPrice,
+                                                        )}
+                                                    </p>
+                                                ) : null}
+                                            </div>
+                                        </button>
+                                    ))}
+                                    {!candidates.length ? (
+                                        <div className="rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
+                                            No other visible door options are
+                                            available to swap into right now.
+                                        </div>
+                                    ) : null}
+                                </div>
                             </div>
                             <DialogFooter>
                                 <Button
