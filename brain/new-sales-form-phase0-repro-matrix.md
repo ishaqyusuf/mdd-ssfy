@@ -361,9 +361,10 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   3. Select an available size.
   4. Verify row is added and priced.
 - Expected: selected size row is added immediately and works like old form.
-- Current observed (new): partially hardened in code. HPT size-row addition and door-size modal row derivation now use the shared pricing-bucket resolver with richer persisted component metadata; runtime proof is still pending.
+- Current observed (new): implemented in code. HPT `Add Size` and door-size modal row derivation now use shared `deriveDoorSizeCandidates(...)`, including old-form-style `doorSizeVariation` width rules saved from the Door step controls modal; runtime proof is still pending.
 - Evidence path: `ai/new-sales-form-parity-evidence/hpt-add-size/`
 - Automation target:
+  - `packages/sales/src/sales-form/domain/workflow-calculators.test.ts`
   - HPT add-size interaction test.
 - Triage: Partial (Implemented, Runtime Repro Pending)
 
@@ -381,6 +382,30 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 - Evidence path: `ai/new-sales-form-parity-evidence/hpt-add-door-option/`
 - Automation target:
   - grouped HPT add-door integration test.
+- Triage: Partial (Implemented, Runtime Repro Pending)
+
+24. Door size variant control + filtering parity
+- Old anchors:
+  - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/components-section/component-section-footer.tsx`
+  - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-modal/index.tsx`
+  - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/zus-form-helper.ts:365`
+- New anchors:
+  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
+  - `apps/www/src/components/forms/new-sales-form/sections/workflow-modals.tsx`
+  - `packages/sales/src/sales-form/domain/workflow-calculators.ts`
+- Manual repro:
+  1. Open a Door step in the new form.
+  2. Open `Controls` -> `Door Size Variant`.
+  3. Add a variant group with a rule tied to another step and a width list.
+  4. Save and reopen the door size modal and HPT `Add Size`.
+  5. Confirm matching widths appear for the active height and non-matching widths do not.
+- Expected (old): variant rules save on the Door step and filter visible sizes by active height + selected step components.
+- Current observed (new): implemented in code. A redesigned `Door Size Variant` modal now reads and writes old-form-style `meta.doorSizeVariation`, persists updates back to step settings via `sales.updateStepMeta`, and the shared `deriveDoorSizeCandidates(...)` helper now falls back to configured route-step meta so both door modal and HPT size lists can use already-configured variants even when the line-step copy is empty.
+- Evidence path: `ai/new-sales-form-parity-evidence/door-size-variants/`
+- Automation target:
+  - `packages/sales/src/sales-form/domain/workflow-calculators.test.ts`
+  - `packages/sales/src/sales-form/domain/route-engine.test.ts`
+  - targeted door modal/HPT interaction test.
 - Triage: Partial (Implemented, Runtime Repro Pending)
 
 23. Moulding calculator outside-click dismiss parity

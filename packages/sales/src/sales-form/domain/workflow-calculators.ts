@@ -130,6 +130,90 @@ export function resolveDoorTierPricing({
   };
 }
 
+function sizeToInches(part?: string | null) {
+  const raw = String(part || "").trim();
+  if (!raw) return Number.NaN;
+  const [ft, inch] = raw.split("-").map((value) => Number(value || 0));
+  if (Number.isFinite(ft) && Number.isFinite(inch)) return ft * 12 + inch;
+  return Number(raw);
+}
+
+export function sortDoorSizesAsc(a: string, b: string) {
+  const [aw, ah] = String(a || "").split(" x ");
+  const [bw, bh] = String(b || "").split(" x ");
+  const widthDiff = sizeToInches(aw) - sizeToInches(bw);
+  if (widthDiff !== 0) return widthDiff;
+  return sizeToInches(ah) - sizeToInches(bh);
+}
+
+export function deriveDoorSizeCandidates(
+  line: any,
+  pricing: Record<string, any>,
+  routeData?: any,
+) {
+  const sizes = new Set<string>();
+  Object.keys(pricing || {}).forEach((key) => {
+    const size = resolveSizeFromPricingKey(key);
+    if (size) sizes.add(String(size).trim());
+  });
+
+  (line?.housePackageTool?.doors || []).forEach((row: any) => {
+    const size = String(row?.dimension || "").trim();
+    if (size) sizes.add(size);
+  });
+
+  const heightStep = (line?.formSteps || []).find(
+    (step: any) => normalizeSalesFormTitle(step?.step?.title) === "height",
+  );
+  const currentHeight = String(heightStep?.value || "").trim();
+  const selectedByStepUid = new Map<string, string>();
+  (line?.formSteps || []).forEach((step: any) => {
+    const stepUid = String(step?.step?.uid || step?.uid || "").trim();
+    if (!stepUid) return;
+    selectedByStepUid.set(
+      stepUid,
+      String(step?.prodUid || step?.componentUid || "").trim(),
+    );
+  });
+
+  (line?.formSteps || []).forEach((step: any) => {
+    const stepUid = String(step?.step?.uid || step?.uid || "").trim();
+    const routeStepMeta =
+      stepUid && routeData?.stepsByUid?.[stepUid]?.meta
+        ? routeData.stepsByUid[stepUid].meta
+        : null;
+    const variations = Array.isArray(step?.meta?.doorSizeVariation)
+      ? step.meta.doorSizeVariation
+      : Array.isArray(routeStepMeta?.doorSizeVariation)
+        ? routeStepMeta.doorSizeVariation
+        : [];
+    variations.forEach((variation: any) => {
+      const rules = Array.isArray(variation?.rules) ? variation.rules : [];
+      const valid = rules.every((rule: any) => {
+        const components = Array.isArray(rule?.componentsUid)
+          ? rule.componentsUid.map((value: any) => String(value || ""))
+          : [];
+        if (!components.length) return true;
+        const selected = selectedByStepUid.get(String(rule?.stepUid || "")) || "";
+        return String(rule?.operator || "is") === "isNot"
+          ? components.every((value: string) => value !== selected)
+          : components.some((value: string) => value === selected);
+      });
+      if (!valid || !currentHeight) return;
+      const widths = Array.isArray(variation?.widthList)
+        ? variation.widthList
+        : [];
+      widths.forEach((width: any) => {
+        const normalized = String(width || "").trim();
+        if (!normalized) return;
+        sizes.add(`${normalized} x ${currentHeight}`);
+      });
+    });
+  });
+
+  return Array.from(sizes).sort(sortDoorSizesAsc);
+}
+
 export function summarizeDoors(
   rows: any[],
   options?: {

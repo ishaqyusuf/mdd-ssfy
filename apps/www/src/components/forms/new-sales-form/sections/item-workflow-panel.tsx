@@ -38,14 +38,17 @@ import {
     useSalesDeleteSupplierMutation,
     useSalesSaveSupplierMutation,
     useSalesSuppliersQuery,
+    useSalesUpdateStepMetaMutation,
     useNewSalesFormStepRoutingQuery,
     useSalesStepComponentsQuery,
 } from "../api";
 import {
     DoorPriceCell,
     DoorSizeQtyDialog,
+    DoorSizeVariantDialog,
     MouldingCalculatorDialog,
-    deriveDoorSizeCandidates,
+    profileAdjustedDoorSalesPrice,
+    updateDoorRowBasePrice,
 } from "./workflow-modals";
 import {
     applyMultiSelectStepMutation,
@@ -76,6 +79,7 @@ import {
     summarizeMouldingPersistRows,
     summarizeShelfRows,
     summarizeServiceRows,
+    deriveDoorSizeCandidates,
 } from "@gnd/sales/sales-form";
 const MULTI_SELECT_STEP_TITLES = new Set([
     "door",
@@ -127,18 +131,32 @@ function computeSharedDoorSurcharge(line: any) {
             .toFixed(2),
     );
 }
-function applySharedDoorSurcharge(rows: any[], surcharge: number) {
+function applySharedDoorSurcharge(
+    rows: any[],
+    surcharge: number,
+    profileCoefficient?: number | null,
+) {
     return (rows || []).map((row: any) => {
         const baseUnitPrice =
             row?.meta?.baseUnitPrice == null
                 ? Number(row?.unitPrice || 0) - surcharge
                 : Number(row.meta.baseUnitPrice || 0);
+        const calculatedSalesUnit =
+            row?.meta?.baseUnitPrice == null
+                ? Math.max(0, Number(row?.unitPrice || 0) - surcharge)
+                : profileAdjustedDoorSalesPrice(
+                      null,
+                      Math.max(0, baseUnitPrice),
+                      profileCoefficient,
+                  );
         const effectiveUnitPrice = Number(
-            (Math.max(0, baseUnitPrice) + surcharge).toFixed(2),
+            (Math.max(0, calculatedSalesUnit) + surcharge).toFixed(2),
         );
+        const totalQty = Number(row?.totalQty || 0);
         return {
             ...row,
             unitPrice: effectiveUnitPrice,
+            lineTotal: Number((totalQty * effectiveUnitPrice).toFixed(2)),
             meta: {
                 ...(row?.meta || {}),
                 baseUnitPrice: Math.max(0, baseUnitPrice),
@@ -336,6 +354,24 @@ function firstPendingStepIndex(steps: any[]) {
     );
     return pending >= 0 ? pending : Math.max(0, steps.length - 1);
 }
+function isRedirectDisabledStep(step: any) {
+    return Boolean(step?.meta?.redirectDisabled);
+}
+function resolveInteractiveStepIndex(steps: any[], preferredIndex: number) {
+    if (!steps.length) return 0;
+    const clampedIndex = Math.max(
+        0,
+        Math.min(preferredIndex, Math.max(0, steps.length - 1)),
+    );
+    if (!isRedirectDisabledStep(steps[clampedIndex])) return clampedIndex;
+    for (let index = clampedIndex + 1; index < steps.length; index += 1) {
+        if (!isRedirectDisabledStep(steps[index])) return index;
+    }
+    for (let index = clampedIndex - 1; index >= 0; index -= 1) {
+        if (!isRedirectDisabledStep(steps[index])) return index;
+    }
+    return clampedIndex;
+}
 function ComponentCardSkeletonGrid({ count = 6 }: { count?: number }) {
     return (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
@@ -417,6 +453,15 @@ export function ItemWorkflowPanel() {
     } | null>(null);
     const [includeCustomComponents, setIncludeCustomComponents] =
         useState(false);
+    const [doorSizeVariantModal, setDoorSizeVariantModal] = useState<{
+        open: boolean;
+        lineUid: string | null;
+        stepIndex: number;
+    }>({
+        open: false,
+        lineUid: null,
+        stepIndex: -1,
+    });
 
     const stepRoutingQuery = useNewSalesFormStepRoutingQuery({});
     const routeData = stepRoutingQuery.data;
@@ -424,6 +469,7 @@ export function ItemWorkflowPanel() {
     const customerProfilesQuery = useCustomerProfilesQuery(true);
     const saveSupplierMutation = useSalesSaveSupplierMutation();
     const deleteSupplierMutation = useSalesDeleteSupplierMutation();
+    const updateStepMetaMutation = useSalesUpdateStepMetaMutation();
 
     const activeLine =
         record?.lineItems?.find((line) => line.uid === editor.activeItem) ||
@@ -433,8 +479,11 @@ export function ItemWorkflowPanel() {
     const activeStepIndex =
         activeLine == null
             ? 0
-            : (activeStepByLine[activeLine.uid] ??
-              Math.max(0, activeLineSteps.length - 1));
+            : resolveInteractiveStepIndex(
+                  activeLineSteps,
+                  activeStepByLine[activeLine.uid] ??
+                      Math.max(0, activeLineSteps.length - 1),
+              );
     const activeStep = activeLineSteps[activeStepIndex] || null;
     const activeDoorStep = activeLine
         ? findLineStepByTitle(activeLine, "Door")
@@ -636,22 +685,27 @@ export function ItemWorkflowPanel() {
                         selectedProdUidsByStepUid,
                     },
                 );
+                const resolvedBasePrice =
+                    override?.basePrice == null
+                        ? (price.basePrice ??
+                          component?.basePrice ??
+                          price.salesPrice ??
+                          component?.salesPrice)
+                        : override?.basePrice;
+                const resolvedSalesPrice =
+                    override?.salesPrice == null
+                        ? (price.salesPrice ?? component?.salesPrice)
+                        : override?.salesPrice;
                 return {
                     ...component,
                     ...(override || {}),
                     salesPrice: profileAdjustedSalesPrice(
-                        (override?.salesPrice ?? component?.salesPrice) == null
-                            ? price.salesPrice
-                            : override?.salesPrice ?? component?.salesPrice,
-                        (override?.basePrice ?? component?.basePrice) == null
-                            ? price.basePrice
-                            : override?.basePrice ?? component?.basePrice,
+                        resolvedSalesPrice,
+                        resolvedBasePrice,
                         activeProfileCoefficient,
                     ),
                     basePrice: Number(
-                        (override?.basePrice ?? component?.basePrice) == null
-                            ? (price.basePrice ?? price.salesPrice ?? 0)
-                            : override?.basePrice ?? component?.basePrice,
+                        resolvedBasePrice ?? 0,
                     ),
                 };
             });
@@ -704,22 +758,27 @@ export function ItemWorkflowPanel() {
                         selectedProdUidsByStepUid,
                     },
                 );
+                const resolvedBasePrice =
+                    override?.basePrice == null
+                        ? (price.basePrice ??
+                          component?.basePrice ??
+                          price.salesPrice ??
+                          component?.salesPrice)
+                        : override?.basePrice;
+                const resolvedSalesPrice =
+                    override?.salesPrice == null
+                        ? (price.salesPrice ?? component?.salesPrice)
+                        : override?.salesPrice;
                 return {
                     ...component,
                     ...(override || {}),
                     salesPrice: profileAdjustedSalesPrice(
-                        (override?.salesPrice ?? component?.salesPrice) == null
-                            ? price.salesPrice
-                            : override?.salesPrice ?? component?.salesPrice,
-                        (override?.basePrice ?? component?.basePrice) == null
-                            ? price.basePrice
-                            : override?.basePrice ?? component?.basePrice,
+                        resolvedSalesPrice,
+                        resolvedBasePrice,
                         activeProfileCoefficient,
                     ),
                     basePrice: Number(
-                        (override?.basePrice ?? component?.basePrice) == null
-                            ? (price.basePrice ?? price.salesPrice ?? 0)
-                            : override?.basePrice ?? component?.basePrice,
+                        resolvedBasePrice ?? 0,
                     ),
                 };
             });
@@ -845,10 +904,12 @@ export function ItemWorkflowPanel() {
         updateLineItem(line.uid, {
             formSteps: routed.steps,
         });
-        const autoNext =
+        const autoNext = resolveInteractiveStepIndex(
+            routed.steps,
             routed.steps[currentStepIndex + 1] != null
                 ? currentStepIndex + 1
-                : routed.activeIndex;
+                : routed.activeIndex,
+        );
         setActiveStepByLine((prev) => ({
             ...prev,
             [line.uid]: autoNext,
@@ -891,10 +952,12 @@ export function ItemWorkflowPanel() {
         updateLineItem(line.uid, {
             formSteps: routed.steps,
         });
-        const nextIndex =
+        const nextIndex = resolveInteractiveStepIndex(
+            routed.steps,
             routed.steps[stepIndex + 1] != null
                 ? stepIndex + 1
-                : routed.activeIndex;
+                : routed.activeIndex,
+        );
         setActiveStepByLine((prev) => ({
             ...prev,
             [line.uid]: nextIndex,
@@ -1025,6 +1088,69 @@ export function ItemWorkflowPanel() {
                         : step?.meta?.redirectUid || null,
                 selectedComponents: nextSelectedComponents,
             },
+        };
+        const selectedForRouting =
+            String(step?.prodUid || "") === String(componentUid || "")
+                ? nextSelectedComponents.find(
+                      (component: any) =>
+                          String(component?.uid || "") ===
+                          String(componentUid || ""),
+                  ) || {
+                      uid: componentUid,
+                      title: step?.value || "",
+                      redirectUid: redirectUid || null,
+                  }
+                : null;
+        if (!selectedForRouting) {
+            updateLineItem(line.uid, {
+                formSteps: steps,
+            });
+            return;
+        }
+        const routed = rebuildStepsFromSelection({
+            routeData,
+            line,
+            steps,
+            startIndex: stepIndex,
+            selectedComponent: {
+                uid: selectedForRouting.uid,
+                title: selectedForRouting.title,
+                redirectUid: selectedForRouting.redirectUid || null,
+            },
+        });
+        updateLineItem(line.uid, {
+            formSteps: routed.steps,
+        });
+        setActiveStepByLine((prev) => ({
+            ...prev,
+            [line.uid]: resolveInteractiveStepIndex(
+                routed.steps,
+                routed.activeIndex,
+            ),
+        }));
+    }
+    async function saveDoorSizeVariants(
+        line: (typeof record.lineItems)[number],
+        stepIndex: number,
+        variations: any[],
+    ) {
+        const steps = [...(line.formSteps || [])];
+        const step = steps[stepIndex];
+        if (!step) return;
+        const nextMeta = {
+            ...(step?.meta || {}),
+            doorSizeVariation: variations,
+        };
+        if (step.stepId) {
+            await updateStepMetaMutation.mutateAsync({
+                stepId: Number(step.stepId),
+                meta: nextMeta,
+            });
+            await stepRoutingQuery.refetch();
+        }
+        steps[stepIndex] = {
+            ...step,
+            meta: nextMeta,
         };
         updateLineItem(line.uid, {
             formSteps: steps,
@@ -1315,6 +1441,7 @@ export function ItemWorkflowPanel() {
             const sizes = deriveDoorSizeCandidates(
                 line as any,
                 activeDoorComponent?.pricing || {},
+                routeData,
             );
             return sizes.filter((size) => {
                 return !focusedRows.some(
@@ -1359,6 +1486,7 @@ export function ItemWorkflowPanel() {
             const normalizedRows = applySharedDoorSurcharge(
                 nextRows,
                 sharedDoorSurcharge,
+                activeProfileCoefficient,
             );
             const next = summarizeDoors(normalizedRows, { noHandle, hasSwing });
             updateLineItem(line.uid, {
@@ -1863,29 +1991,18 @@ export function ItemWorkflowPanel() {
                                                                     ) =>
                                                                         patchRow(
                                                                             row,
-                                                                            {
-                                                                                unitPrice:
-                                                                                    Number(
-                                                                                        (
-                                                                                            nextBase +
-                                                                                            sharedDoorSurcharge
-                                                                                        ).toFixed(
-                                                                                            2,
-                                                                                        ),
-                                                                                    ),
-                                                                                meta: {
-                                                                                    ...(row?.meta ||
-                                                                                        {}),
-                                                                                    baseUnitPrice:
+                                                                            updateDoorRowBasePrice(
+                                                                                {
+                                                                                    ...row,
+                                                                                    unitPrice:
                                                                                         Number(
-                                                                                            nextBase.toFixed(
-                                                                                                2,
-                                                                                            ),
+                                                                                            row?.unitPrice ||
+                                                                                                0,
                                                                                         ),
-                                                                                    priceMissing:
-                                                                                        false,
-                                                                                },
-                                                                            },
+                                                                                } as any,
+                                                                                nextBase,
+                                                                                activeProfileCoefficient,
+                                                                            ),
                                                                         )
                                                                     }
                                                                 />
@@ -1966,6 +2083,27 @@ export function ItemWorkflowPanel() {
                                                                                         ) -
                                                                                             sharedDoorSurcharge,
                                                                                     ) ?? 0,
+                                                                                ) ||
+                                                                                    "$0.00"}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="flex justify-between">
+                                                                            <span>
+                                                                                Calculated
+                                                                                Sales
+                                                                            </span>
+                                                                            <span className="font-semibold">
+                                                                                {money(
+                                                                                    profileAdjustedDoorSalesPrice(
+                                                                                        null,
+                                                                                        firstFiniteNumber(
+                                                                                            row
+                                                                                                ?.meta
+                                                                                                ?.baseUnitPrice,
+                                                                                            0,
+                                                                                        ) ?? 0,
+                                                                                        activeProfileCoefficient,
+                                                                                    ),
                                                                                 ) ||
                                                                                     "$0.00"}
                                                                             </span>
@@ -2705,6 +2843,7 @@ export function ItemWorkflowPanel() {
         const isHptStep = isHousePackageToolStepTitle(
             activeItemStep?.step?.title,
         );
+        const isRedirectDisabled = isRedirectDisabledStep(activeItemStep);
         const selectedUids = new Set(getSelectedProdUids(activeItemStep));
         if (!steps.length) {
             return (
@@ -2775,6 +2914,23 @@ export function ItemWorkflowPanel() {
 
         if (isHptStep) {
             return renderHousePackageToolPanel(line, activeItemStep);
+        }
+
+        if (isRedirectDisabled) {
+            return (
+                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
+                    This step is skipped by redirect and stays here for context.
+                    Continue from{" "}
+                    <span className="font-semibold">
+                        {activeItemStep?.meta?.redirectTargetUid
+                            ? routeData?.stepsByUid?.[
+                                  activeItemStep.meta.redirectTargetUid
+                              ]?.title || "the redirected step"
+                            : "the redirected step"}
+                    </span>
+                    .
+                </div>
+            );
         }
 
         return (
@@ -3577,6 +3733,21 @@ export function ItemWorkflowPanel() {
                                     >
                                         Pricing
                                     </Menu.Item>
+                                    {isDoorStepTitle(
+                                        activeItemStep?.step?.title,
+                                    ) ? (
+                                        <Menu.Item
+                                            onClick={() =>
+                                                setDoorSizeVariantModal({
+                                                    open: true,
+                                                    lineUid: line.uid,
+                                                    stepIndex: activeIndex,
+                                                })
+                                            }
+                                        >
+                                            Door Size Variant
+                                        </Menu.Item>
+                                    ) : null}
                                     <Menu.Item
                                         onClick={() => {
                                             setIncludeCustomComponents(true);
@@ -3818,8 +3989,11 @@ export function ItemWorkflowPanel() {
                         const isActive = line.uid === activeLine?.uid;
                         const steps = line.formSteps || [];
                         const activeIndex =
-                            activeStepByLine[line.uid] ??
-                            Math.max(0, steps.length - 1);
+                            resolveInteractiveStepIndex(
+                                steps,
+                                activeStepByLine[line.uid] ??
+                                    Math.max(0, steps.length - 1),
+                            );
                         const activeItemStep = steps[activeIndex];
 
                         return (
@@ -3879,16 +4053,29 @@ export function ItemWorkflowPanel() {
                                                 className={`rounded-full border px-3 py-1 text-xs ${
                                                     activeIndex === si
                                                         ? "border-primary bg-primary/10 text-primary"
-                                                        : "text-muted-foreground"
+                                                        : isRedirectDisabledStep(
+                                                                step,
+                                                            )
+                                                          ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                                                          : "text-muted-foreground"
                                                 }`}
-                                                onClick={() =>
+                                                disabled={isRedirectDisabledStep(
+                                                    step,
+                                                )}
+                                                onClick={() => {
+                                                    if (
+                                                        isRedirectDisabledStep(
+                                                            step,
+                                                        )
+                                                    )
+                                                        return;
                                                     setActiveStepByLine(
                                                         (prev) => ({
                                                             ...prev,
                                                             [line.uid]: si,
                                                         }),
-                                                    )
-                                                }
+                                                    );
+                                                }}
                                             >
                                                 {step.value
                                                     ? componentLabel(step.value)
@@ -3915,6 +4102,44 @@ export function ItemWorkflowPanel() {
             </section>
 
             {activeLine ? (
+                <DoorSizeVariantDialog
+                    open={
+                        doorSizeVariantModal.open &&
+                        doorSizeVariantModal.lineUid === activeLine.uid
+                    }
+                    onOpenChange={(open) =>
+                        setDoorSizeVariantModal((prev) => ({
+                            ...prev,
+                            open,
+                            lineUid: open ? prev.lineUid : null,
+                            stepIndex: open ? prev.stepIndex : -1,
+                        }))
+                    }
+                    routeData={routeData}
+                    steps={activeLineSteps}
+                    initialVariations={
+                        doorSizeVariantModal.stepIndex >= 0
+                            ? activeLineSteps[doorSizeVariantModal.stepIndex]?.meta
+                                  ?.doorSizeVariation ||
+                              routeData?.stepsByUid?.[
+                                  activeLineSteps[doorSizeVariantModal.stepIndex]
+                                      ?.step?.uid || ""
+                              ]?.meta?.doorSizeVariation ||
+                              []
+                            : []
+                    }
+                    onSave={(variations) => {
+                        if (doorSizeVariantModal.stepIndex < 0) return;
+                        saveDoorSizeVariants(
+                            activeLine,
+                            doorSizeVariantModal.stepIndex,
+                            variations,
+                        );
+                    }}
+                />
+            ) : null}
+
+            {activeLine ? (
                 <DoorSizeQtyDialog
                     open={doorStepModal.open}
                     onOpenChange={(open) =>
@@ -3925,6 +4150,7 @@ export function ItemWorkflowPanel() {
                         }))
                     }
                     line={activeLine}
+                    routeData={routeData}
                     component={doorStepModal.component}
                     supplierUid={activeDoorSupplier.supplierUid}
                     supplierName={activeDoorSupplier.supplierName}
@@ -4004,6 +4230,7 @@ export function ItemWorkflowPanel() {
                         const nextRows = applySharedDoorSurcharge(
                             rows,
                             sharedDoorSurcharge,
+                            activeProfileCoefficient,
                         );
                         const nextDoors = [
                             ...retainedDoors,
@@ -4038,11 +4265,26 @@ export function ItemWorkflowPanel() {
                         } as any);
 
                         if (isDoorStepTitle(activeStep?.step?.title)) {
+                            const firstResolvedRow = nextRows.find(
+                                (row) => Number(row.totalQty || 0) > 0,
+                            );
+                            const resolvedDoorComponent = firstResolvedRow
+                                ? {
+                                      ...doorStepModal.component,
+                                      salesPrice: Number(
+                                          firstResolvedRow.unitPrice || 0,
+                                      ),
+                                      basePrice: Number(
+                                          (firstResolvedRow as any)?.meta
+                                              ?.baseUnitPrice || 0,
+                                      ),
+                                  }
+                                : doorStepModal.component;
                             saveSelectedComponent({
                                 line: activeLine,
                                 steps: activeLineSteps,
                                 currentStepIndex: activeStepIndex,
-                                component: doorStepModal.component,
+                                component: resolvedDoorComponent,
                                 selectedOverride: selected,
                             });
                         }

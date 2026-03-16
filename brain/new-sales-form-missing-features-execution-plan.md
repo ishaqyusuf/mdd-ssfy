@@ -166,8 +166,8 @@ Deliver full behavioral parity for critical sales-form workflows by closing all 
 21. HPT add-size action broken
 - Legacy: `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-select-modal/index.tsx`
 - New: `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:1410`
-- Status: Fail in field
-- Gap: `Add Size` UI is present but not functioning reliably in the HPT flow.
+- Status: Partial
+- Gap: shared candidate-derivation logic and variant-aware filtering are now implemented; runtime parity proof is still needed for real Door/HPT fixtures.
 
 22. HPT section add-door option parity
 - Legacy: grouped door workflow in `apps/www/src/components/forms/sales-form/hpt/*` and legacy sales-book grouped door controls
@@ -180,6 +180,12 @@ Deliver full behavioral parity for critical sales-form workflows by closing all 
 - New: `apps/www/src/components/forms/new-sales-form/sections/workflow-modals.tsx:613`
 - Status: Partial/Fail in field
 - Gap: moulding calculator should close on outside click like the old flow, but current dialog behavior does not match.
+
+24. Door size variant control parity
+- Legacy: `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-modal/index.tsx` + `.../_components/components-section/component-section-footer.tsx`
+- New: `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx` + `apps/www/src/components/forms/new-sales-form/sections/workflow-modals.tsx`
+- Status: Partial
+- Gap: new control and redesigned editor are implemented, and configured variants now hydrate from route-step meta plus persist back through `sales.updateStepMeta`; runtime parity proof is still needed for existing-record reopen/filter flows in both Door modal and HPT.
 
 ## Detailed Execution Plan
 
@@ -224,6 +230,7 @@ Dependencies: Phase 1
 - Add clickable estimate breakdown column.
 - Add quick base-price update controls in size/qty modal (permission-gated, old-flow parity).
 - Fix HPT `Add Size` behavior and restore add-door option parity.
+- Keep Door Size Variant control/filtering parity locked to the same shared candidate helper used by both Door modal and HPT size lists.
 
 3. Supplier propagation parity
 - Ensure supplier changes immediately affect size-price options and resolved row prices.

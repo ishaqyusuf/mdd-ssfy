@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+  deriveDoorSizeCandidates,
   deriveMouldingRows,
   deriveServiceRows,
   getRouteConfigForLine,
@@ -217,5 +218,140 @@ describe("workflow-calculators domain", () => {
     expect(pricing.hasPrice).toBe(false);
     expect(pricing.basePrice).toBe(0);
     expect(pricing.salesPrice).toBe(0);
+  });
+
+  it("derives sorted door sizes from pricing, persisted rows, and matching variant widths", () => {
+    const sizes = deriveDoorSizeCandidates(
+      {
+        housePackageTool: {
+          doors: [{ dimension: "1-10 x 6-8" }],
+        },
+        formSteps: [
+          {
+            step: { uid: "height-step", title: "Height" },
+            value: "6-8",
+            prodUid: "h-68",
+          },
+          {
+            step: { uid: "casing-step", title: "Casing Y/N" },
+            prodUid: "no-casing",
+          },
+          {
+            step: { uid: "door-step", title: "Door" },
+            meta: {
+              doorSizeVariation: [
+                {
+                  rules: [
+                    {
+                      stepUid: "casing-step",
+                      operator: "is",
+                      componentsUid: ["no-casing"],
+                    },
+                  ],
+                  widthList: ["1-4", "1-8"],
+                },
+              ],
+            },
+          },
+        ],
+      },
+      {
+        "2-0 x 6-8": { price: 50 },
+      },
+    );
+
+    expect(sizes).toEqual([
+      "1-4 x 6-8",
+      "1-8 x 6-8",
+      "1-10 x 6-8",
+      "2-0 x 6-8",
+    ]);
+  });
+
+  it("ignores non-matching door size variants", () => {
+    const sizes = deriveDoorSizeCandidates(
+      {
+        formSteps: [
+          {
+            step: { uid: "height-step", title: "Height" },
+            value: "8-0",
+            prodUid: "h-80",
+          },
+          {
+            step: { uid: "casing-step", title: "Casing Y/N" },
+            prodUid: "yes-casing",
+          },
+          {
+            step: { uid: "door-step", title: "Door" },
+            meta: {
+              doorSizeVariation: [
+                {
+                  rules: [
+                    {
+                      stepUid: "casing-step",
+                      operator: "is",
+                      componentsUid: ["no-casing"],
+                    },
+                  ],
+                  widthList: ["1-10"],
+                },
+              ],
+            },
+          },
+        ],
+      },
+      {
+        "2-0 x 8-0": { price: 50 },
+      },
+    );
+
+    expect(sizes).toEqual(["2-0 x 8-0"]);
+  });
+
+  it("falls back to configured route step variants when line step meta is empty", () => {
+    const sizes = deriveDoorSizeCandidates(
+      {
+        formSteps: [
+          {
+            step: { uid: "height-step", title: "Height" },
+            value: "6-8",
+            prodUid: "h-68",
+          },
+          {
+            step: { uid: "casing-step", title: "Casing Y/N" },
+            prodUid: "no-casing",
+          },
+          {
+            step: { uid: "door-step", title: "Door" },
+            meta: {},
+          },
+        ],
+      },
+      {
+        "2-0 x 6-8": { price: 50 },
+      },
+      {
+        stepsByUid: {
+          "door-step": {
+            meta: {
+              doorSizeVariation: [
+                {
+                  rules: [
+                    {
+                      stepUid: "casing-step",
+                      operator: "is",
+                      componentsUid: ["no-casing"],
+                    },
+                  ],
+                  widthList: ["1-10"],
+                },
+              ],
+            },
+          },
+        },
+      },
+    );
+
+    expect(sizes).toEqual(["1-10 x 6-8", "2-0 x 6-8"]);
   });
 });

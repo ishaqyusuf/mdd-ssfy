@@ -108,6 +108,32 @@ export async function deleteSupplier(
   });
 }
 
+export const updateStepMetaSchema = z.object({
+  stepId: z.number(),
+  meta: z.record(z.string(), z.any()),
+});
+export type UpdateStepMetaSchema = z.infer<typeof updateStepMetaSchema>;
+
+export async function updateStepMeta(
+  ctx: TRPCContext,
+  data: UpdateStepMetaSchema
+) {
+  return ctx.db.dykeSteps.update({
+    where: {
+      id: data.stepId,
+    },
+    data: {
+      meta: data.meta as any,
+    },
+    select: {
+      id: true,
+      uid: true,
+      title: true,
+      meta: true,
+    },
+  });
+}
+
 export const getStepComponentsSchema = z.object({
   stepTitle: z.string().optional().nullable(),
   title: z.string().optional().nullable(),

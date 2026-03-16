@@ -693,6 +693,7 @@ export async function getNewSalesFormStepRouting(
         id: true,
         uid: true,
         title: true,
+        meta: true,
         stepProducts: {
           where: {
             deletedAt: null,
@@ -764,6 +765,7 @@ export async function getNewSalesFormStepRouting(
       id: number;
       uid: string;
       title: string | null;
+      meta: Record<string, unknown>;
       components: Array<{
         id: number;
         uid: string;
@@ -782,6 +784,7 @@ export async function getNewSalesFormStepRouting(
       id: step.id,
       uid: step.uid,
       title: step.title,
+      meta: safeRecord(step.meta),
       components: (step.stepProducts || [])
         .filter((component) => !!component.uid)
         .map((component) => ({

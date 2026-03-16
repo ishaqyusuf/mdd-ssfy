@@ -21,6 +21,29 @@ type SelectedComponent = {
   img?: string | null;
 };
 
+function clearRedirectDisabledMeta(step: any) {
+  const meta = step?.meta || {};
+  return {
+    ...step,
+    meta: {
+      ...meta,
+      redirectDisabled: false,
+      redirectTargetUid: null,
+    },
+  };
+}
+
+function markRedirectDisabled(step: any, redirectTargetUid: string) {
+  return {
+    ...step,
+    meta: {
+      ...(step?.meta || {}),
+      redirectDisabled: true,
+      redirectTargetUid,
+    },
+  };
+}
+
 export function seedRouteStep(step: any, selectedComponent?: SelectedComponent) {
   return {
     id: null,
@@ -28,11 +51,16 @@ export function seedRouteStep(step: any, selectedComponent?: SelectedComponent) 
     componentId: selectedComponent?.id || null,
     prodUid: selectedComponent?.uid || "",
     value: selectedComponent?.title || "",
-    meta: selectedComponent?.img
-      ? {
-          img: selectedComponent.img,
-        }
-      : {},
+    meta: {
+      ...((step?.meta && typeof step.meta === "object" && !Array.isArray(step.meta))
+        ? step.meta
+        : {}),
+      ...(selectedComponent?.img
+        ? {
+            img: selectedComponent.img,
+          }
+        : {}),
+    },
     step: {
       id: step.id,
       uid: step.uid,
@@ -80,6 +108,10 @@ export function mergeConfiguredSeriesWithExisting(
     return {
       ...seriesStep,
       ...existing,
+      meta: {
+        ...(seriesStep?.meta || {}),
+        ...(existing?.meta || {}),
+      },
       stepId: seriesStep.stepId ?? existing.stepId ?? null,
       step: {
         ...(existing.step || {}),
@@ -95,12 +127,16 @@ export function resolveNextStep({
   steps,
   currentStepIndex,
   selectedComponent,
+  allowPriorFallback = true,
+  allowCustomFallback = true,
 }: {
   routeData: any;
   line: any;
   steps: any[];
   currentStepIndex: number;
   selectedComponent: SelectedComponent;
+  allowPriorFallback?: boolean;
+  allowCustomFallback?: boolean;
 }) {
   if (!routeData || !steps[currentStepIndex]) return null;
 
@@ -122,7 +158,7 @@ export function resolveNextStep({
     if (nextUid) nextStep = routeData.stepsByUid?.[nextUid];
   }
 
-  if (!nextStep && rootRoute?.route) {
+  if (!nextStep && allowPriorFallback && rootRoute?.route) {
     for (let i = currentStepIndex; i >= 0; i--) {
       const priorStep = steps[i];
       const priorUid =
@@ -139,7 +175,7 @@ export function resolveNextStep({
     }
   }
 
-  if (!nextStep) {
+  if (!nextStep && allowCustomFallback) {
     const customTitle = customNextStepTitle(
       (line.meta as any)?.doorType || null,
       currentStep.step?.title,
@@ -171,15 +207,19 @@ export function applyRouteRecursion({
   const nextSteps = [...steps];
   let currentIndex = startIndex;
   let currentComponent = selectedComponent;
+  let onRedirectPath = false;
   const visited = new Set<string>();
 
   for (let i = 0; i < maxIterations; i++) {
+    const redirectedThisHop = Boolean(currentComponent?.redirectUid);
     const nextStep = resolveNextStep({
       routeData,
       line,
       steps: nextSteps,
       currentStepIndex: currentIndex,
       selectedComponent: currentComponent,
+      allowPriorFallback: !onRedirectPath,
+      allowCustomFallback: !onRedirectPath,
     });
 
     if (!nextStep) break;
@@ -230,11 +270,13 @@ export function applyRouteRecursion({
       nextSteps.push(seedRouteStep(nextStep, auto));
       currentIndex = nextSteps.length - 1;
       currentComponent = auto;
+      onRedirectPath = onRedirectPath || redirectedThisHop;
       continue;
     }
 
     nextSteps.push(seedRouteStep(nextStep));
     currentIndex = nextSteps.length - 1;
+    onRedirectPath = onRedirectPath || redirectedThisHop;
     break;
   }
 
@@ -261,7 +303,8 @@ export function rebuildStepsFromSelection({
   autoAdvanceTitles?: Set<string>;
   maxIterations?: number;
 }) {
-  const prefix = steps.slice(0, startIndex + 1);
+  const sanitizedSteps = steps.map(clearRedirectDisabledMeta);
+  const prefix = sanitizedSteps.slice(0, startIndex + 1);
   const rebuilt = applyRouteRecursion({
     routeData,
     line,
@@ -274,11 +317,17 @@ export function rebuildStepsFromSelection({
 
   const merged = rebuilt.steps.map((step, index) => {
     if (index <= startIndex) return step;
-    const existing = steps.find((candidate) => stepMatches(routeData, candidate, step?.step));
+    const existing = sanitizedSteps.find((candidate) =>
+      stepMatches(routeData, candidate, step?.step),
+    );
     if (!existing) return step;
     return {
       ...step,
       ...existing,
+      meta: {
+        ...(step?.meta || {}),
+        ...(existing?.meta || {}),
+      },
       stepId: step.stepId ?? existing.stepId ?? null,
       step: {
         ...(existing.step || {}),
@@ -286,6 +335,25 @@ export function rebuildStepsFromSelection({
       },
     };
   });
+
+  if (selectedComponent?.redirectUid) {
+    const redirectStep = routeData?.stepsByUid?.[selectedComponent.redirectUid];
+    const targetIndex = sanitizedSteps.findIndex((candidate) =>
+      stepMatches(routeData, candidate, redirectStep),
+    );
+    if (targetIndex > startIndex) {
+      const redirectedSteps = sanitizedSteps.map((step, index) => {
+        if (index > startIndex && index < targetIndex) {
+          return markRedirectDisabled(step, selectedComponent.redirectUid || "");
+        }
+        return clearRedirectDisabledMeta(step);
+      });
+      return {
+        steps: redirectedSteps,
+        activeIndex: targetIndex,
+      };
+    }
+  }
 
   const activeIndex =
     merged[rebuilt.activeIndex] != null

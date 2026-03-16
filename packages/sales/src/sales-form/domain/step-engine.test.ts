@@ -138,6 +138,28 @@ describe("step-engine domain", () => {
     expect(resolved.basePrice).toBe(260);
   });
 
+  it("prefers dependency pricing over direct component fields when deps apply", () => {
+    const resolved = resolveComponentPriceByDeps(
+      {
+        uid: "door-comp",
+        salesPrice: 999,
+        basePrice: 777,
+        pricing: {
+          "sup-a-2-8 x 7-0": { price: 260 },
+        },
+      },
+      {
+        supplier: "sup-a",
+        size: "2-8 x 7-0",
+      },
+      {
+        priceStepDeps: ["supplier", "size"],
+      },
+    );
+    expect(resolved.salesPrice).toBe(260);
+    expect(resolved.basePrice).toBe(260);
+  });
+
   it("supports pricing buckets with separate sales/base fields", () => {
     const resolved = resolveComponentPriceByDeps(
       {

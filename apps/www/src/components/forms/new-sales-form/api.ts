@@ -145,6 +145,11 @@ export function useSalesDeleteSupplierMutation() {
     return useMutation(trpc.sales.deleteSupplier.mutationOptions());
 }
 
+export function useSalesUpdateStepMetaMutation() {
+    const trpc = useTRPC();
+    return useMutation(trpc.sales.updateStepMeta.mutationOptions());
+}
+
 export function useNewSalesFormResolveCustomerQuery(
     input: NewSalesFormResolveCustomerInput,
     enabled = true,

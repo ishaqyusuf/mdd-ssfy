@@ -57,6 +57,43 @@ describe("route-engine domain", () => {
     expect(steps[2].step.uid).toBe("stepC");
   });
 
+  it("preserves configured step meta when seeding route steps", () => {
+    const routeWithMeta = {
+      ...routeData,
+      stepsByUid: {
+        ...routeData.stepsByUid,
+        stepC: {
+          ...routeData.stepsByUid.stepC,
+          meta: {
+            doorSizeVariation: [
+              {
+                rules: [],
+                widthList: ["1-10"],
+              },
+            ],
+          },
+        },
+      },
+    };
+
+    const steps = buildConfiguredRouteSteps(
+      routeWithMeta,
+      routeWithMeta.stepsByUid.rootStep,
+      {
+        uid: "rootA",
+        id: 11,
+        title: "Door",
+      },
+    );
+
+    expect(steps[2]?.meta?.doorSizeVariation).toEqual([
+      {
+        rules: [],
+        widthList: ["1-10"],
+      },
+    ]);
+  });
+
   it("merges configured series with existing step selections", () => {
     const configured = buildConfiguredRouteSteps(
       routeData,
@@ -206,7 +243,7 @@ describe("route-engine domain", () => {
     expect(stepUids).toContain("stepC");
   });
 
-  it("removes skipped downstream steps when a redirect changes the route", () => {
+  it("disables skipped downstream steps when a redirect changes the route", () => {
     const redirectRouteData = {
       composedRouter: {
         rootA: {
@@ -297,8 +334,12 @@ describe("route-engine domain", () => {
     expect(rebuilt.steps.map((step: any) => step.step.uid)).toEqual([
       "rootStep",
       "stepB",
+      "stepC",
       "stepD",
     ]);
+    expect(rebuilt.steps[2]?.meta?.redirectDisabled).toBe(true);
+    expect(rebuilt.steps[2]?.meta?.redirectTargetUid).toBe("stepD");
+    expect(rebuilt.activeIndex).toBe(3);
   });
 
   it("restores skipped steps when redirecting component changes back", () => {
@@ -396,5 +437,7 @@ describe("route-engine domain", () => {
       "stepD",
     ]);
     expect(rebuilt.steps[2]?.meta?.restored).toBe(true);
+    expect(rebuilt.steps[2]?.meta?.redirectDisabled).toBe(false);
+    expect(rebuilt.steps[2]?.meta?.redirectTargetUid).toBe(null);
   });
 });

@@ -107,22 +107,8 @@ export function resolveComponentPriceByDeps(
     selectedProdUidsByStepUid?: Record<string, string[]>;
   },
 ) {
-  const directSales = Number(component?.salesPrice);
-  const directBase = Number(component?.basePrice);
-  if (Number.isFinite(directSales) || Number.isFinite(directBase)) {
-    return {
-      salesPrice: Number.isFinite(directSales) ? directSales : null,
-      basePrice: Number.isFinite(directBase) ? directBase : null,
-    };
-  }
   const pricing =
     component?.pricing || component?.pricings || component?.priceData || null;
-  if (!pricing || typeof pricing !== "object") {
-    return {
-      salesPrice: null,
-      basePrice: null,
-    };
-  }
   const deps = Array.isArray(options?.priceStepDeps)
     ? options?.priceStepDeps
     : Array.isArray(component?.priceStepDeps)
@@ -130,6 +116,15 @@ export function resolveComponentPriceByDeps(
     : Array.isArray(component?.meta?.priceStepDeps)
       ? component.meta.priceStepDeps
       : [];
+  const directSales = Number(component?.salesPrice);
+  const directBase = Number(component?.basePrice);
+
+  if (!pricing || typeof pricing !== "object") {
+    return {
+      salesPrice: Number.isFinite(directSales) ? directSales : null,
+      basePrice: Number.isFinite(directBase) ? directBase : null,
+    };
+  }
   const depValueGroups = deps
     .map((stepUid: string) => {
       const selectedAll = Array.isArray(options?.selectedProdUidsByStepUid?.[stepUid])
@@ -237,8 +232,8 @@ export function resolveComponentPriceByDeps(
   );
   if (!Number.isFinite(salesPrice) && !Number.isFinite(basePrice)) {
     return {
-      salesPrice: null,
-      basePrice: null,
+      salesPrice: Number.isFinite(directSales) ? directSales : null,
+      basePrice: Number.isFinite(directBase) ? directBase : null,
     };
   }
   return {

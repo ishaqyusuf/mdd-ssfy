@@ -52,6 +52,8 @@ import {
   getSuppliersSchema,
   saveSupplier,
   saveSupplierSchema,
+  updateStepMeta,
+  updateStepMetaSchema,
 } from "@api/db/queries/sales-form";
 import {
   getSalesAccountings,
@@ -230,6 +232,11 @@ export const salesRouter = createTRPCRouter({
     .input(deleteSupplierSchema)
     .mutation(async (props) => {
       return deleteSupplier(props.ctx, props.input);
+    }),
+  updateStepMeta: publicProcedure
+    .input(updateStepMetaSchema)
+    .mutation(async (props) => {
+      return updateStepMeta(props.ctx, props.input);
     }),
   deleteSale: publicProcedure
     .input(z.object({ salesId: z.number() }))
