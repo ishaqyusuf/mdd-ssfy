@@ -230,7 +230,7 @@ Dependencies: Phase 1
 - Add clickable estimate breakdown column.
 - Add quick base-price update controls in size/qty modal (permission-gated, old-flow parity).
 - Fix HPT `Add Size` behavior and restore add-door option parity.
-- Keep Door Size Variant control/filtering parity locked to the same shared candidate helper used by both Door modal and HPT size lists.
+- Keep Door Size Variant control/filtering parity locked to the same shared candidate helper used by both Door modal and HPT size lists, with old-form semantics where configured variant widths define the canonical visible size list and pricing buckets do not add extra sizes.
 
 3. Supplier propagation parity
 - Ensure supplier changes immediately affect size-price options and resolved row prices.

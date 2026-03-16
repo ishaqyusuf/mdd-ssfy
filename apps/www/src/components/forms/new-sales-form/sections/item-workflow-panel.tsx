@@ -304,6 +304,33 @@ function normalizeMouldingStoredRows(rows: any[]) {
         basePrice: Number(row?.basePrice || 0),
     }));
 }
+function normalizeStoredDoorRows(rows: any[]) {
+    return (rows || []).map((row: any) => ({
+        id: row?.id ?? null,
+        dimension: String(row?.dimension || ""),
+        swing: String(row?.swing || ""),
+        stepProductId: Number(row?.stepProductId || 0),
+        lhQty: Number(row?.lhQty || 0),
+        rhQty: Number(row?.rhQty || 0),
+        totalQty: Number(row?.totalQty || 0),
+        unitPrice: Number(Number(row?.unitPrice || 0).toFixed(2)),
+        lineTotal: Number(Number(row?.lineTotal || 0).toFixed(2)),
+        addon:
+            row?.addon == null || row?.addon === ""
+                ? null
+                : Number(Number(row.addon || 0).toFixed(2)),
+        customPrice:
+            row?.customPrice == null || row?.customPrice === ""
+                ? null
+                : Number(Number(row.customPrice || 0).toFixed(2)),
+        meta: {
+            baseUnitPrice: Number(
+                Number(row?.meta?.baseUnitPrice || 0).toFixed(2),
+            ),
+            priceMissing: Boolean(row?.meta?.priceMissing),
+        },
+    }));
+}
 function profileAdjustedSalesPrice(
     salesPrice: number | null | undefined,
     basePrice: number | null | undefined,
@@ -421,6 +448,15 @@ export function ItemWorkflowPanel() {
     const [activeHptDoorUidByLine, setActiveHptDoorUidByLine] = useState<
         Record<string, string>
     >({});
+    const [doorSwapModal, setDoorSwapModal] = useState<{
+        open: boolean;
+        lineUid: string | null;
+        sourceUid: string | null;
+    }>({
+        open: false,
+        lineUid: null,
+        sourceUid: null,
+    });
     const [componentEditModal, setComponentEditModal] = useState<{
         open: boolean;
         lineUid: string | null;
@@ -626,6 +662,55 @@ export function ItemWorkflowPanel() {
         const coefficient = Number(profile?.coefficient || 0);
         return Number.isFinite(coefficient) && coefficient > 0 ? coefficient : 1;
     }, [customerProfilesQuery.data, record?.form?.customerProfileId]);
+    const activeDoorSync = useMemo(() => {
+        if (!activeLine) return null;
+        const storedDoors = Array.isArray(activeLine.housePackageTool?.doors)
+            ? activeLine.housePackageTool.doors
+            : [];
+        if (!storedDoors.length) return null;
+        const routeConfig = resolveRouteConfigForLine({
+            routeData,
+            line: activeLine,
+            step: findLineStepByTitle(activeLine, "House Package Tool"),
+        });
+        const normalizedRows = applySharedDoorSurcharge(
+            storedDoors,
+            computeSharedDoorSurcharge(activeLine),
+            activeProfileCoefficient,
+        );
+        const summary = summarizeDoors(normalizedRows, {
+            noHandle: !!routeConfig?.noHandle,
+            hasSwing: !!routeConfig?.hasSwing,
+        });
+        const rowsChanged =
+            JSON.stringify(normalizeStoredDoorRows(storedDoors)) !==
+            JSON.stringify(normalizeStoredDoorRows(summary.rows));
+        const qtyChanged =
+            Number(activeLine.qty || 0) !== Number(summary.totalDoors || 0);
+        const totalChanged =
+            Number(Number(activeLine.lineTotal || 0).toFixed(2)) !==
+            Number(Number(summary.totalPrice || 0).toFixed(2));
+        if (!rowsChanged && !qtyChanged && !totalChanged) return null;
+        return {
+            lineUid: activeLine.uid,
+            rows: summary.rows,
+            totalDoors: summary.totalDoors,
+            totalPrice: summary.totalPrice,
+        };
+    }, [activeLine, activeProfileCoefficient, routeData]);
+    useEffect(() => {
+        if (!activeDoorSync) return;
+        updateLineItem(activeDoorSync.lineUid, {
+            housePackageTool: {
+                ...(activeLine?.housePackageTool || { id: null }),
+                doors: activeDoorSync.rows,
+                totalDoors: activeDoorSync.totalDoors,
+                totalPrice: activeDoorSync.totalPrice,
+            } as any,
+            qty: activeDoorSync.totalDoors,
+            lineTotal: activeDoorSync.totalPrice,
+        } as any);
+    }, [activeDoorSync, activeLine?.housePackageTool, updateLineItem]);
 
     const stepComponentsQuery = useSalesStepComponentsQuery(
         {
@@ -1156,6 +1241,101 @@ export function ItemWorkflowPanel() {
             formSteps: steps,
         });
     }
+    function swapDoorComponentAtStep(
+        line: (typeof record.lineItems)[number],
+        stepIndex: number,
+        sourceComponent: any,
+        targetComponent: any,
+    ) {
+        const steps = [...(line.formSteps || [])];
+        const step = steps[stepIndex];
+        if (!step || !sourceComponent || !targetComponent) return;
+        const sourceUid = String(sourceComponent?.uid || "");
+        const targetUid = String(targetComponent?.uid || "");
+        if (!sourceUid || !targetUid || sourceUid === targetUid) return;
+
+        const selectedComponents = Array.isArray(step?.meta?.selectedComponents)
+            ? step.meta.selectedComponents
+            : [];
+        const nextSelectedComponents = selectedComponents.map((component: any) =>
+            String(component?.uid || "") === sourceUid
+                ? {
+                      ...snapshotSelectedComponent(targetComponent),
+                      redirectUid:
+                          component?.redirectUid || targetComponent?.redirectUid || null,
+                  }
+                : component,
+        );
+
+        const nextStep = {
+            ...step,
+            componentId:
+                String(step?.prodUid || "") === sourceUid
+                    ? targetComponent?.id || step?.componentId || null
+                    : step?.componentId,
+            prodUid:
+                String(step?.prodUid || "") === sourceUid
+                    ? targetUid
+                    : step?.prodUid,
+            value:
+                String(step?.prodUid || "") === sourceUid
+                    ? targetComponent?.title || step?.value || ""
+                    : step?.value,
+            meta: {
+                ...(step?.meta || {}),
+                selectedComponents: nextSelectedComponents,
+            },
+        };
+        steps[stepIndex] = nextStep;
+
+        const sourceId = Number(sourceComponent?.id || 0);
+        const targetId = Number(targetComponent?.id || 0);
+        const remappedDoors = (line.housePackageTool?.doors || []).map((row: any) =>
+            Number(row?.stepProductId || 0) === sourceId
+                ? {
+                      ...row,
+                      stepProductId: targetId || row?.stepProductId || null,
+                  }
+                : row,
+        );
+        const lineWithRemappedDoors = {
+            ...line,
+            formSteps: steps,
+            housePackageTool: {
+                ...(line.housePackageTool || { id: null }),
+                doors: remappedDoors,
+            },
+        };
+        const repricedDoors = repricePersistedDoorRowsForSupplier(
+            lineWithRemappedDoors,
+            steps,
+            getDoorSupplierMeta(nextStep).supplierUid,
+            Number.isFinite(activeProfileCoefficient) &&
+                activeProfileCoefficient > 0
+                ? Number((1 / activeProfileCoefficient).toFixed(2))
+                : 1,
+        );
+
+        updateLineItem(line.uid, {
+            formSteps: steps,
+            ...(repricedDoors
+                ? ({
+                      housePackageTool: {
+                          ...(line.housePackageTool || { id: null }),
+                          doors: repricedDoors.doors,
+                          totalDoors: repricedDoors.totalDoors,
+                          totalPrice: repricedDoors.totalPrice,
+                      },
+                      qty: repricedDoors.totalDoors,
+                      lineTotal: repricedDoors.totalPrice,
+                  } as any)
+                : {}),
+        } as any);
+        setActiveHptDoorUidByLine((prev) => ({
+            ...prev,
+            [line.uid]: targetUid,
+        }));
+    }
     function openComponentEditForm(
         line: (typeof record.lineItems)[number],
         stepIndex: number,
@@ -1449,6 +1629,29 @@ export function ItemWorkflowPanel() {
                 );
             });
         })();
+        const swapDoorCandidates = (() => {
+            const doorStepUid = String(doorStep?.step?.uid || "");
+            if (!doorStepUid) return [] as any[];
+            const doorStepConfig = routeData?.stepsByUid?.[doorStepUid];
+            const selectedByStepUid = buildSelectedByStepUid(line.formSteps || []);
+            const selectedProdUidsByStepUid = buildSelectedProdUidsByStepUid(
+                line.formSteps || [],
+            );
+            return (doorStepConfig?.components || [])
+                .filter((component: any) => !component?.isDeleted)
+                .filter((component: any) =>
+                    isComponentVisibleByRules(
+                        component,
+                        selectedByStepUid,
+                        selectedProdUidsByStepUid,
+                    ),
+                )
+                .filter(
+                    (component: any) =>
+                        String(component?.uid || "") !==
+                        String(activeDoorComponent?.uid || ""),
+                );
+        })();
 
         const componentLookupById = new Map<
             number,
@@ -1574,19 +1777,36 @@ export function ItemWorkflowPanel() {
                             {supplier.supplierName || "GND MILLWORK"}
                         </span>
                         {activeDoorComponent ? (
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                className="ml-auto"
-                                onClick={() =>
-                                    setDoorStepModal({
-                                        open: true,
-                                        component: activeDoorComponent,
-                                    })
-                                }
-                            >
-                                Configure Sizes
-                            </Button>
+                            <>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="ml-auto"
+                                    onClick={() =>
+                                        setDoorStepModal({
+                                            open: true,
+                                            component: activeDoorComponent,
+                                        })
+                                    }
+                                >
+                                    Configure Sizes
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                        setDoorSwapModal({
+                                            open: true,
+                                            lineUid: line.uid,
+                                            sourceUid:
+                                                activeDoorComponent?.uid || null,
+                                        })
+                                    }
+                                    disabled={!swapDoorCandidates.length}
+                                >
+                                    Swap Door
+                                </Button>
+                            </>
                         ) : null}
                         {doorStepIndex >= 0 ? (
                             <Button
@@ -1986,6 +2206,9 @@ export function ItemWorkflowPanel() {
                                                             <td className="px-3 py-2">
                                                                 <DoorPriceCell
                                                                     row={row as any}
+                                                                    profileCoefficient={
+                                                                        activeProfileCoefficient
+                                                                    }
                                                                     onSave={(
                                                                         nextBase,
                                                                     ) =>
@@ -4291,6 +4514,134 @@ export function ItemWorkflowPanel() {
                     }}
                 />
             ) : null}
+
+            {activeLine ? (() => {
+                const doorStep = findLineStepByTitle(activeLine, "Door");
+                const doorStepIndex = (activeLine.formSteps || []).findIndex(
+                    (step: any) => isDoorStepTitle(step?.step?.title),
+                );
+                const sourceUid = String(doorSwapModal.sourceUid || "");
+                const selectedDoors = getSelectedDoorComponentsForLine(activeLine);
+                const sourceComponent = selectedDoors.find(
+                    (component) => String(component?.uid || "") === sourceUid,
+                );
+                const doorStepUid = String(doorStep?.step?.uid || "");
+                const selectedByStepUid = buildSelectedByStepUid(
+                    activeLine.formSteps || [],
+                );
+                const selectedProdUidsByStepUid = buildSelectedProdUidsByStepUid(
+                    activeLine.formSteps || [],
+                );
+                const candidates = (
+                    routeData?.stepsByUid?.[doorStepUid]?.components || []
+                )
+                    .filter((component: any) => !component?.isDeleted)
+                    .filter((component: any) =>
+                        isComponentVisibleByRules(
+                            component,
+                            selectedByStepUid,
+                            selectedProdUidsByStepUid,
+                        ),
+                    )
+                    .filter(
+                        (component: any) =>
+                            String(component?.uid || "") !== sourceUid,
+                    );
+
+                return (
+                    <Dialog
+                        open={
+                            doorSwapModal.open &&
+                            doorSwapModal.lineUid === activeLine.uid
+                        }
+                        onOpenChange={(open) =>
+                            setDoorSwapModal((prev) => ({
+                                ...prev,
+                                open,
+                                lineUid: open ? prev.lineUid : null,
+                                sourceUid: open ? prev.sourceUid : null,
+                            }))
+                        }
+                    >
+                        <DialogContent className="max-w-[880px]">
+                            <DialogHeader>
+                                <DialogTitle>Swap Door</DialogTitle>
+                                <DialogDescription>
+                                    Replace the selected door while keeping the
+                                    current size and quantity rows.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                {candidates.map((component: any) => (
+                                    <button
+                                        key={`swap-door-${component.uid}`}
+                                        type="button"
+                                        className="rounded-2xl border bg-white p-4 text-left transition hover:border-primary hover:bg-primary/5"
+                                        onClick={() => {
+                                            if (
+                                                !sourceComponent ||
+                                                doorStepIndex < 0
+                                            ) {
+                                                return;
+                                            }
+                                            swapDoorComponentAtStep(
+                                                activeLine,
+                                                doorStepIndex,
+                                                sourceComponent,
+                                                component,
+                                            );
+                                            setDoorSwapModal({
+                                                open: false,
+                                                lineUid: null,
+                                                sourceUid: null,
+                                            });
+                                        }}
+                                    >
+                                        <div className="space-y-2">
+                                            <p className="text-sm font-semibold text-foreground">
+                                                {componentLabel(
+                                                    component?.title ||
+                                                        component?.uid ||
+                                                        "Door",
+                                                )}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Existing rows for{" "}
+                                                {componentLabel(
+                                                    sourceComponent?.title ||
+                                                        sourceComponent?.uid ||
+                                                        "current door",
+                                                )}{" "}
+                                                will be repriced on this door.
+                                            </p>
+                                        </div>
+                                    </button>
+                                ))}
+                                {!candidates.length ? (
+                                    <div className="rounded-2xl border border-dashed p-4 text-sm text-muted-foreground">
+                                        No other visible door options are
+                                        available to swap into right now.
+                                    </div>
+                                ) : null}
+                            </div>
+                            <DialogFooter>
+                                <Button
+                                    variant="outline"
+                                    onClick={() =>
+                                        setDoorSwapModal({
+                                            open: false,
+                                            lineUid: null,
+                                            sourceUid: null,
+                                        })
+                                    }
+                                >
+                                    Cancel
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                );
+            })() : null}
 
             {activeLine ? (
                 <MouldingCalculatorDialog

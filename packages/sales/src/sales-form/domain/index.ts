@@ -26,6 +26,7 @@ export {
 } from "./mutation-engine";
 export {
   deriveDoorSizeCandidates,
+  hasDoorSizeVariationConfig,
   deriveMouldingRows,
   deriveServiceRows,
   getRouteConfigForLine,

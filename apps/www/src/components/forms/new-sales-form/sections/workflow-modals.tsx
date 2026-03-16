@@ -25,6 +25,7 @@ import { Calculator, CheckCircle2, Trash2, X } from "lucide-react";
 import type { NewSalesFormLineItem } from "../schema";
 import {
     deriveDoorSizeCandidates,
+    hasDoorSizeVariationConfig,
     normalizeSalesFormTitle,
     resolveDoorTierPricing,
 } from "@gnd/sales/sales-form";
@@ -369,9 +370,11 @@ function deriveDoorSizeRows(
         if (row.dimension) bySize.set(String(row.dimension).trim(), row);
     });
     const pricing = component?.pricing || {};
+    const usesVariantFiltering = hasDoorSizeVariationConfig(line, routeData);
     const candidateSizes = deriveDoorSizeCandidates(line, pricing, routeData);
     if (!candidateSizes.length) {
-        if (existingRows.length) return existingRows;
+        if (existingRows.length && !usesVariantFiltering) return existingRows;
+        if (usesVariantFiltering) return [];
         const fallbackBase =
             firstFiniteNumber(component?.basePrice, component?.salesPrice) ?? 0;
         return [
@@ -474,15 +477,22 @@ export function updateDoorRowBasePrice(
 export function DoorPriceCell({
     row,
     onSave,
+    profileCoefficient,
 }: {
     row: DoorLine | any;
     onSave: (nextBase: number) => void;
+    profileCoefficient?: number | null;
 }) {
     const [open, setOpen] = useState(false);
     const [draft, setDraft] = useState("");
     const baseUnit =
         firstFiniteNumber((row.meta as any)?.baseUnitPrice, row.unitPrice) ?? 0;
     const isMissingPrice = Boolean((row.meta as any)?.priceMissing);
+    const doorSalesPrice = profileAdjustedDoorSalesPrice(
+        null,
+        baseUnit,
+        profileCoefficient,
+    );
 
     useEffect(() => {
         setDraft(isMissingPrice || !baseUnit ? "" : String(baseUnit));
@@ -532,9 +542,9 @@ export function DoorPriceCell({
                     />
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Current final</span>
+                    <span>Door sales price</span>
                     <span className="font-semibold text-foreground">
-                        {currency(row.unitPrice)}
+                        {currency(doorSalesPrice)}
                     </span>
                 </div>
                 <div className="flex justify-end gap-2">
@@ -1192,6 +1202,9 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                                     <div className="min-w-[120px]">
                                         <DoorPriceCell
                                             row={row}
+                                            profileCoefficient={
+                                                props.profileCoefficient
+                                            }
                                             onSave={(nextBase) =>
                                                 setRows((prev) =>
                                                     prev.map((item, ri) =>
@@ -1342,6 +1355,9 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                                         <td className="px-4 py-3">
                                             <DoorPriceCell
                                                 row={row}
+                                                profileCoefficient={
+                                                    props.profileCoefficient
+                                                }
                                                 onSave={(nextBase) =>
                                                     setRows((prev) =>
                                                         prev.map((item, ri) =>

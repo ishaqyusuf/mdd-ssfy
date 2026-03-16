@@ -220,12 +220,9 @@ describe("workflow-calculators domain", () => {
     expect(pricing.salesPrice).toBe(0);
   });
 
-  it("derives sorted door sizes from pricing, persisted rows, and matching variant widths", () => {
+  it("uses matching variant widths as the canonical door-size list when configured", () => {
     const sizes = deriveDoorSizeCandidates(
       {
-        housePackageTool: {
-          doors: [{ dimension: "1-10 x 6-8" }],
-        },
         formSteps: [
           {
             step: { uid: "height-step", title: "Height" },
@@ -260,12 +257,50 @@ describe("workflow-calculators domain", () => {
       },
     );
 
-    expect(sizes).toEqual([
-      "1-4 x 6-8",
-      "1-8 x 6-8",
-      "1-10 x 6-8",
-      "2-0 x 6-8",
-    ]);
+    expect(sizes).toEqual(["1-4 x 6-8", "1-8 x 6-8"]);
+  });
+
+  it("does not let persisted or priced sizes expand the canonical list when variants exist", () => {
+    const sizes = deriveDoorSizeCandidates(
+      {
+        housePackageTool: {
+          doors: [{ dimension: "1-10 x 6-8" }],
+        },
+        formSteps: [
+          {
+            step: { uid: "height-step", title: "Height" },
+            value: "6-8",
+            prodUid: "h-68",
+          },
+          {
+            step: { uid: "casing-step", title: "Casing Y/N" },
+            prodUid: "no-casing",
+          },
+          {
+            step: { uid: "door-step", title: "Door" },
+            meta: {
+              doorSizeVariation: [
+                {
+                  rules: [
+                    {
+                      stepUid: "casing-step",
+                      operator: "is",
+                      componentsUid: ["no-casing"],
+                    },
+                  ],
+                  widthList: ["1-4"],
+                },
+              ],
+            },
+          },
+        ],
+      },
+      {
+        "2-0 x 6-8": { price: 50 },
+      },
+    );
+
+    expect(sizes).toEqual(["1-4 x 6-8"]);
   });
 
   it("ignores non-matching door size variants", () => {
@@ -305,7 +340,7 @@ describe("workflow-calculators domain", () => {
       },
     );
 
-    expect(sizes).toEqual(["2-0 x 8-0"]);
+    expect(sizes).toEqual([]);
   });
 
   it("falls back to configured route step variants when line step meta is empty", () => {
@@ -349,6 +384,26 @@ describe("workflow-calculators domain", () => {
             },
           },
         },
+      },
+    );
+
+    expect(sizes).toEqual(["1-10 x 6-8"]);
+  });
+
+  it("falls back to pricing-derived sizes when no variant configuration exists", () => {
+    const sizes = deriveDoorSizeCandidates(
+      {
+        formSteps: [
+          {
+            step: { uid: "height-step", title: "Height" },
+            value: "6-8",
+            prodUid: "h-68",
+          },
+        ],
+      },
+      {
+        "1-10 x 6-8": { price: 40 },
+        "2-0 x 6-8 & SUP-1": { price: 50 },
       },
     );
 
