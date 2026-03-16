@@ -41,7 +41,12 @@ import {
     useNewSalesFormStepRoutingQuery,
     useSalesStepComponentsQuery,
 } from "../api";
-import { DoorSizeQtyDialog, MouldingCalculatorDialog } from "./workflow-modals";
+import {
+    DoorPriceCell,
+    DoorSizeQtyDialog,
+    MouldingCalculatorDialog,
+    deriveDoorSizeCandidates,
+} from "./workflow-modals";
 import {
     applyRouteRecursion,
     applyMultiSelectStepMutation,
@@ -64,7 +69,6 @@ import {
     isShelfItem,
     findLineStepByTitle,
     getRedirectableRoutes,
-    resolveSizeFromPricingKey,
     resolveDoorTierPricing,
     resolveComponentPriceByDeps,
     sharedMouldingComponentPrice,
@@ -334,7 +338,7 @@ function firstPendingStepIndex(steps: any[]) {
 }
 function ComponentCardSkeletonGrid({ count = 6 }: { count?: number }) {
     return (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
             {Array.from({ length: count }).map((_, index) => (
                 <div
                     key={`component-skeleton-${index}`}
@@ -1308,19 +1312,9 @@ export function ItemWorkflowPanel() {
             : summary.rows;
         const availableSizes = (() => {
             if (!activeDoorComponent) return [] as string[];
-            const pricing = activeDoorComponent?.pricing || {};
-            const keys = Object.keys(pricing || {});
-            const sizes = Array.from(
-                new Set(
-                    keys
-                        .map((key) =>
-                            resolveSizeFromPricingKey(
-                                key,
-                                supplier.supplierUid,
-                            ),
-                        )
-                        .filter(Boolean) as string[],
-                ),
+            const sizes = deriveDoorSizeCandidates(
+                line as any,
+                activeDoorComponent?.pricing || {},
             );
             return sizes.filter((size) => {
                 return !focusedRows.some(
@@ -1562,6 +1556,20 @@ export function ItemWorkflowPanel() {
                                 componentLookupById.get(componentId) ||
                                 activeDoorComponent;
                             const rowsForComponent = focusedRows;
+                            const pricedSteps = (line.formSteps || []).filter(
+                                (step: any) => {
+                                    const title = normalizeTitle(
+                                        step?.step?.title,
+                                    );
+                                    return (
+                                        Number(step?.price || 0) > 0 &&
+                                        title !== "item type" &&
+                                        title !== "door" &&
+                                        title !== "house package tool" &&
+                                        title !== "hpt"
+                                    );
+                                },
+                            );
                             if (!rowsForComponent.length) {
                                 return (
                                     <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
@@ -1735,10 +1743,19 @@ export function ItemWorkflowPanel() {
                                                                 <td className="px-3 py-2">
                                                                     <Input
                                                                         type="number"
-                                                                        value={Number(
-                                                                            row.totalQty ||
-                                                                                0,
-                                                                        )}
+                                                                        value={
+                                                                            Number(
+                                                                                row.totalQty ||
+                                                                                    0,
+                                                                            ) > 0
+                                                                                ? String(
+                                                                                      Number(
+                                                                                          row.totalQty ||
+                                                                                              0,
+                                                                                      ),
+                                                                                  )
+                                                                                : ""
+                                                                        }
                                                                         onChange={(
                                                                             e,
                                                                         ) =>
@@ -1765,10 +1782,19 @@ export function ItemWorkflowPanel() {
                                                                     <td className="px-3 py-2">
                                                                         <Input
                                                                             type="number"
-                                                                            value={Number(
-                                                                                row.lhQty ||
-                                                                                    0,
-                                                                            )}
+                                                                            value={
+                                                                                Number(
+                                                                                    row.lhQty ||
+                                                                                        0,
+                                                                                ) > 0
+                                                                                    ? String(
+                                                                                          Number(
+                                                                                              row.lhQty ||
+                                                                                                  0,
+                                                                                          ),
+                                                                                      )
+                                                                                    : ""
+                                                                            }
                                                                             onChange={(
                                                                                 e,
                                                                             ) =>
@@ -1790,10 +1816,19 @@ export function ItemWorkflowPanel() {
                                                                     <td className="px-3 py-2">
                                                                         <Input
                                                                             type="number"
-                                                                            value={Number(
-                                                                                row.rhQty ||
-                                                                                    0,
-                                                                            )}
+                                                                            value={
+                                                                                Number(
+                                                                                    row.rhQty ||
+                                                                                        0,
+                                                                                ) > 0
+                                                                                    ? String(
+                                                                                          Number(
+                                                                                              row.rhQty ||
+                                                                                                  0,
+                                                                                          ),
+                                                                                      )
+                                                                                    : ""
+                                                                            }
                                                                             onChange={(
                                                                                 e,
                                                                             ) =>
@@ -1821,25 +1856,10 @@ export function ItemWorkflowPanel() {
                                                                 </>
                                                             )}
                                                             <td className="px-3 py-2">
-                                                                <Input
-                                                                    type="number"
-                                                                    step="0.01"
-                                                                    value={Number(
-                                                                        row
-                                                                            ?.meta
-                                                                            ?.baseUnitPrice ==
-                                                                            null
-                                                                            ? Number(
-                                                                                  row.unitPrice ||
-                                                                                      0,
-                                                                              ) -
-                                                                                  sharedDoorSurcharge
-                                                                            : row
-                                                                                  .meta
-                                                                                  .baseUnitPrice,
-                                                                    )}
-                                                                    onChange={(
-                                                                        e,
+                                                                <DoorPriceCell
+                                                                    row={row as any}
+                                                                    onSave={(
+                                                                        nextBase,
                                                                     ) =>
                                                                         patchRow(
                                                                             row,
@@ -1847,12 +1867,7 @@ export function ItemWorkflowPanel() {
                                                                                 unitPrice:
                                                                                     Number(
                                                                                         (
-                                                                                            Number(
-                                                                                                e
-                                                                                                    .target
-                                                                                                    .value ||
-                                                                                                    0,
-                                                                                            ) +
+                                                                                            nextBase +
                                                                                             sharedDoorSurcharge
                                                                                         ).toFixed(
                                                                                             2,
@@ -1863,16 +1878,16 @@ export function ItemWorkflowPanel() {
                                                                                         {}),
                                                                                     baseUnitPrice:
                                                                                         Number(
-                                                                                            e
-                                                                                                .target
-                                                                                                .value ||
-                                                                                                0,
+                                                                                            nextBase.toFixed(
+                                                                                                2,
+                                                                                            ),
                                                                                         ),
+                                                                                    priceMissing:
+                                                                                        false,
                                                                                 },
                                                                             },
                                                                         )
                                                                     }
-                                                                    className="h-8 rounded-md border-slate-200 text-right text-xs"
                                                                 />
                                                             </td>
                                                             <td className="px-3 py-2 text-right text-xs font-semibold text-slate-900">
@@ -1893,6 +1908,27 @@ export function ItemWorkflowPanel() {
                                                                             Estimate
                                                                             Breakdown
                                                                         </p>
+                                                                        {pricedSteps.map(
+                                                                            (
+                                                                                step: any,
+                                                                            ) => (
+                                                                                <div
+                                                                                    key={`priced-step-${row.dimension}-${step.stepId}-${step.value}`}
+                                                                                    className="flex justify-between gap-3"
+                                                                                >
+                                                                                    <span>
+                                                                                        {step?.step?.title ||
+                                                                                            "Component"}
+                                                                                    </span>
+                                                                                    <span className="font-semibold">
+                                                                                        {money(
+                                                                                            step?.price,
+                                                                                        ) ||
+                                                                                            "$0.00"}
+                                                                                    </span>
+                                                                                </div>
+                                                                            ),
+                                                                        )}
                                                                         <div className="flex justify-between">
                                                                             <span>
                                                                                 Door
@@ -1968,6 +2004,72 @@ export function ItemWorkflowPanel() {
                                                                                         0,
                                                                                 )}
                                                                             </span>
+                                                                        </div>
+                                                                        <div className="flex items-center justify-between gap-3">
+                                                                            <span>
+                                                                                Addon
+                                                                                Price
+                                                                            </span>
+                                                                            <Input
+                                                                                type="number"
+                                                                                step="0.01"
+                                                                                value={
+                                                                                    row.addon ??
+                                                                                    0
+                                                                                }
+                                                                                onChange={(
+                                                                                    e,
+                                                                                ) =>
+                                                                                    patchRow(
+                                                                                        row,
+                                                                                        {
+                                                                                            addon: Number(
+                                                                                                e
+                                                                                                    .target
+                                                                                                    .value ||
+                                                                                                    0,
+                                                                                            ),
+                                                                                        },
+                                                                                    )
+                                                                                }
+                                                                                className="h-8 w-24 text-right text-xs"
+                                                                            />
+                                                                        </div>
+                                                                        <div className="flex items-center justify-between gap-3">
+                                                                            <span>
+                                                                                Custom
+                                                                                Price
+                                                                            </span>
+                                                                            <Input
+                                                                                type="number"
+                                                                                step="0.01"
+                                                                                value={
+                                                                                    row.customPrice ??
+                                                                                    ""
+                                                                                }
+                                                                                onChange={(
+                                                                                    e,
+                                                                                ) =>
+                                                                                    patchRow(
+                                                                                        row,
+                                                                                        {
+                                                                                            customPrice:
+                                                                                                e
+                                                                                                    .target
+                                                                                                    .value ===
+                                                                                                ""
+                                                                                                    ? null
+                                                                                                    : Number(
+                                                                                                          e
+                                                                                                              .target
+                                                                                                              .value ||
+                                                                                                              0,
+                                                                                                      ),
+                                                                                        },
+                                                                                    )
+                                                                                }
+                                                                                className="h-8 w-24 text-right text-xs"
+                                                                            />
                                                                         </div>
                                                                         <div className="border-t pt-2" />
                                                                         <div className="flex justify-between text-sm">
@@ -2618,7 +2720,7 @@ export function ItemWorkflowPanel() {
                             No root components found in sales settings route.
                         </p>
                     ) : (
-                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
                             {activeRootComponents.map((component: any) => (
                                 <button
                                     key={component.uid}
@@ -3503,7 +3605,7 @@ export function ItemWorkflowPanel() {
                                 </Menu>
                             </div>
                         </div>
-                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
                             {visibleComponents.map((component) => {
                                 const isSelected = selectedUids.has(
                                     component.uid,
@@ -3860,6 +3962,31 @@ export function ItemWorkflowPanel() {
                         step: activeDoorStep || activeStep,
                         component: doorStepModal.component,
                     })}
+                    onRemoveSelection={() => {
+                        if (
+                            !doorStepModal.component ||
+                            !isDoorStepTitle(activeStep?.step?.title)
+                        ) {
+                            return;
+                        }
+                        saveSelectedComponent({
+                            line: activeLine,
+                            steps: activeLineSteps,
+                            currentStepIndex: activeStepIndex,
+                            component: doorStepModal.component,
+                            selectedOverride: false,
+                        });
+                    }}
+                    onNextStep={() => {
+                        if (activeDoorStepIndex < 0) return;
+                        setActiveStepByLine((prev) => ({
+                            ...prev,
+                            [activeLine.uid]: Math.min(
+                                activeDoorStepIndex + 1,
+                                Math.max(0, activeLineSteps.length - 1),
+                            ),
+                        }));
+                    }}
                     onApply={({ rows, selected }) => {
                         if (!doorStepModal.component) return;
                         const existingDoors =

@@ -23,6 +23,16 @@ describe("workflow-calculators domain", () => {
     expect(out.totalPrice).toBe(300);
   });
 
+  it("applies addon and custom override in door summaries", () => {
+    const out = summarizeDoors([
+      { totalQty: 2, unitPrice: 100, addon: 15 },
+      { totalQty: 1, unitPrice: 50, addon: 5, customPrice: 77.25 },
+    ]);
+    expect(out.rows[0].lineTotal).toBe(215);
+    expect(out.rows[1].lineTotal).toBe(77.25);
+    expect(out.totalPrice).toBe(292.25);
+  });
+
   it("uses totalQty when noHandle route config is active", () => {
     const out = summarizeDoors(
       [{ lhQty: 1, rhQty: 2, totalQty: 4, unitPrice: 50 }],

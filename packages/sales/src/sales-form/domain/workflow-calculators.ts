@@ -148,6 +148,19 @@ export function summarizeDoors(
         ? lhQty + rhQty
         : Number(row?.totalQty || 0);
     const unitPrice = Number(row?.unitPrice || 0);
+    const addon =
+      row?.addon == null || row?.addon === ""
+        ? 0
+        : Number(row?.addon || 0);
+    const rawCustomPrice =
+      row?.customPrice == null || row?.customPrice === ""
+        ? null
+        : Number(row?.customPrice);
+    const calculatedLineTotal = Number((totalQty * unitPrice + addon).toFixed(2));
+    const lineTotal =
+      rawCustomPrice != null && Number.isFinite(rawCustomPrice)
+        ? Number(rawCustomPrice.toFixed(2))
+        : calculatedLineTotal;
     return {
       ...row,
       swing: hasSwing ? (row?.swing ?? "") : "",
@@ -155,7 +168,9 @@ export function summarizeDoors(
       rhQty: noHandle ? 0 : rhQty,
       totalQty,
       unitPrice,
-      lineTotal: Number((totalQty * unitPrice).toFixed(2)),
+      addon,
+      customPrice: rawCustomPrice,
+      lineTotal,
     };
   });
   const totalDoors = normalized.reduce((sum, row) => sum + Number(row?.totalQty || 0), 0);

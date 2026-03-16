@@ -26,6 +26,7 @@ import {
     resolveDoorTierPricing,
     resolveSizeFromPricingKey,
 } from "@gnd/sales/sales-form";
+import { ftToIn } from "@/lib/utils";
 
 type DoorLine = NonNullable<
     NonNullable<NewSalesFormLineItem["housePackageTool"]>["doors"]
@@ -332,7 +333,93 @@ interface DoorSizeQtyDialogProps {
         noHandle?: boolean;
         hasSwing?: boolean;
     } | null;
+    onRemoveSelection?: () => void;
+    onNextStep?: () => void;
     onApply: (payload: { rows: DoorLine[]; selected: boolean }) => void;
+}
+
+function sizeToInches(part?: string | null) {
+    const raw = String(part || "").trim();
+    if (!raw) return Number.NaN;
+    const [ft, inch] = raw.split("-").map((value) => Number(value || 0));
+    if (Number.isFinite(ft) && Number.isFinite(inch)) return ft * 12 + inch;
+    return Number(raw);
+}
+
+function sortDoorSizesAsc(a: string, b: string) {
+    const [aw, ah] = String(a || "").split(" x ");
+    const [bw, bh] = String(b || "").split(" x ");
+    const widthDiff = sizeToInches(aw) - sizeToInches(bw);
+    if (widthDiff !== 0) return widthDiff;
+    return sizeToInches(ah) - sizeToInches(bh);
+}
+
+export function formatDoorSizeTitle(size?: string | null) {
+    const [width, height] = String(size || "").split(" x ");
+    const widthIn = width ? ftToIn(width.trim())?.replace("in", '"') : "";
+    const heightIn = height ? ftToIn(height.trim())?.replace("in", '"') : "";
+    if (!widthIn || !heightIn) return String(size || "--");
+    return `${widthIn} x ${heightIn}`;
+}
+
+export function deriveDoorSizeCandidates(
+    line: NewSalesFormLineItem,
+    pricing: Record<string, any>,
+) {
+    const sizes = new Set<string>();
+    Object.keys(pricing || {}).forEach((key) => {
+        const size = resolveSizeFromPricingKey(key);
+        if (size) sizes.add(String(size).trim());
+    });
+    (line.housePackageTool?.doors || []).forEach((row) => {
+        const size = String(row?.dimension || "").trim();
+        if (size) sizes.add(size);
+    });
+
+    const heightStep = (line.formSteps || []).find(
+        (step: any) =>
+            String(step?.step?.title || "").trim().toLowerCase() === "height",
+    );
+    const currentHeight = String(heightStep?.value || "").trim();
+    const selectedByStepUid = new Map<string, string>();
+    (line.formSteps || []).forEach((step: any) => {
+        const stepUid = String(step?.step?.uid || step?.uid || "").trim();
+        if (!stepUid) return;
+        selectedByStepUid.set(
+            stepUid,
+            String(step?.prodUid || step?.componentUid || "").trim(),
+        );
+    });
+    (line.formSteps || []).forEach((step: any) => {
+        const variations = Array.isArray(step?.meta?.doorSizeVariation)
+            ? step.meta.doorSizeVariation
+            : [];
+        variations.forEach((variation: any) => {
+            const rules = Array.isArray(variation?.rules) ? variation.rules : [];
+            const valid = rules.every((rule: any) => {
+                const components = Array.isArray(rule?.componentsUid)
+                    ? rule.componentsUid.map((value: any) => String(value || ""))
+                    : [];
+                if (!components.length) return true;
+                const selected =
+                    selectedByStepUid.get(String(rule?.stepUid || "")) || "";
+                return String(rule?.operator || "is") === "isNot"
+                    ? components.every((value: string) => value !== selected)
+                    : components.some((value: string) => value === selected);
+            });
+            if (!valid || !currentHeight) return;
+            const widths = Array.isArray(variation?.widthList)
+                ? variation.widthList
+                : [];
+            widths.forEach((width: any) => {
+                const normalized = String(width || "").trim();
+                if (!normalized) return;
+                sizes.add(`${normalized} x ${currentHeight}`);
+            });
+        });
+    });
+
+    return Array.from(sizes).sort(sortDoorSizesAsc);
 }
 
 function rowsForComponent(line: NewSalesFormLineItem, componentId: number | null) {
@@ -342,6 +429,7 @@ function rowsForComponent(line: NewSalesFormLineItem, componentId: number | null
     return rows;
 }
 function deriveDoorSizeRows(
+    line: NewSalesFormLineItem,
     existingRows: DoorLine[],
     component: DoorSizeQtyDialogProps["component"],
     supplierUid?: string | null,
@@ -352,15 +440,8 @@ function deriveDoorSizeRows(
         if (row.dimension) bySize.set(String(row.dimension).trim(), row);
     });
     const pricing = component?.pricing || {};
-    const keys = Object.keys(pricing || {});
-    const candidateSizes = Array.from(
-        new Set(
-            keys
-                .map((key) => resolveSizeFromPricingKey(key, supplierUid))
-                .filter(Boolean),
-        ),
-    );
-        if (!candidateSizes.length) {
+    const candidateSizes = deriveDoorSizeCandidates(line, pricing);
+    if (!candidateSizes.length) {
         if (existingRows.length) return existingRows;
         const fallbackBase =
             firstFiniteNumber(component?.basePrice, component?.salesPrice) ?? 0;
@@ -447,11 +528,11 @@ function updateDoorRowBasePrice(
     });
 }
 
-function DoorPriceCell({
+export function DoorPriceCell({
     row,
     onSave,
 }: {
-    row: DoorLine;
+    row: DoorLine | any;
     onSave: (nextBase: number) => void;
 }) {
     const [open, setOpen] = useState(false);
@@ -547,6 +628,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
         if (!props.open || !props.component) return;
         const existing = rowsForComponent(props.line, props.component.id);
         const nextRows = deriveDoorSizeRows(
+            props.line,
             existing,
             props.component,
             props.supplierUid,
@@ -578,6 +660,20 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
     }, [rows, props.component]);
 
     if (!props.component) return null;
+
+    function persistSelection(nextRows = totals.normalized, selected = true) {
+        const persistedRows = nextRows.filter(
+            (row) => selected && Number(row.totalQty || 0) > 0,
+        );
+        props.onApply({
+            rows: persistedRows,
+            selected: selected && persistedRows.length > 0,
+        });
+    }
+
+    function qtyInputValue(value?: number | null) {
+        return Number(value || 0) > 0 ? String(Number(value || 0)) : "";
+    }
 
     return (
         <Dialog open={props.open} onOpenChange={props.onOpenChange}>
@@ -639,6 +735,9 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                                             Size
                                         </p>
                                         <p className="text-sm font-semibold text-foreground">
+                                            {formatDoorSizeTitle(row.dimension)}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
                                             {row.dimension || "--"}
                                         </p>
                                     </div>
@@ -686,7 +785,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                                         <Label>Qty</Label>
                                         <Input
                                             type="number"
-                                            value={row.totalQty || 0}
+                                            value={qtyInputValue(row.totalQty)}
                                             onChange={(e) =>
                                                 setRows((prev) =>
                                                     prev.map((item, ri) =>
@@ -712,7 +811,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                                             <Label>LH</Label>
                                             <Input
                                                 type="number"
-                                                value={row.lhQty || 0}
+                                                value={qtyInputValue(row.lhQty)}
                                                 onChange={(e) =>
                                                     setRows((prev) =>
                                                         prev.map((item, ri) =>
@@ -734,7 +833,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                                             <Label>RH</Label>
                                             <Input
                                                 type="number"
-                                                value={row.rhQty || 0}
+                                                value={qtyInputValue(row.rhQty)}
                                                 onChange={(e) =>
                                                     setRows((prev) =>
                                                         prev.map((item, ri) =>
@@ -775,6 +874,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                                             <th className="px-4 py-3">RH</th>
                                         </>
                                     )}
+                                    <th className="px-4 py-3 text-right">Line Total</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -783,10 +883,10 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                                         <td className="px-4 py-3">
                                             <div className="space-y-1">
                                                 <p className="font-semibold text-foreground">
-                                                    {row.dimension || "--"}
+                                                    {formatDoorSizeTitle(row.dimension)}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground">
-                                                    {currency(row.lineTotal)} line total
+                                                    {row.dimension || "--"}
                                                 </p>
                                             </div>
                                         </td>
@@ -832,7 +932,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                                             <td className="px-4 py-3">
                                                 <Input
                                                     type="number"
-                                                    value={row.totalQty || 0}
+                                                    value={qtyInputValue(row.totalQty)}
                                                     onChange={(e) =>
                                                         setRows((prev) =>
                                                             prev.map((item, ri) =>
@@ -858,7 +958,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                                                 <td className="px-4 py-3">
                                                     <Input
                                                         type="number"
-                                                        value={row.lhQty || 0}
+                                                        value={qtyInputValue(row.lhQty)}
                                                         onChange={(e) =>
                                                             setRows((prev) =>
                                                                 prev.map((item, ri) =>
@@ -880,7 +980,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                                                 <td className="px-4 py-3">
                                                     <Input
                                                         type="number"
-                                                        value={row.rhQty || 0}
+                                                        value={qtyInputValue(row.rhQty)}
                                                         onChange={(e) =>
                                                             setRows((prev) =>
                                                                 prev.map((item, ri) =>
@@ -901,6 +1001,9 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                                                 </td>
                                             </>
                                         )}
+                                        <td className="px-4 py-3 text-right text-sm font-semibold text-slate-900">
+                                            {currency(row.lineTotal)}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -919,6 +1022,26 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                 </div>
                 <DialogFooter className="border-t px-4 py-4 sm:px-5">
                     <Button
+                        variant="destructive"
+                        onClick={() => {
+                            props.onRemoveSelection?.();
+                            persistSelection([], false);
+                            props.onOpenChange(false);
+                        }}
+                    >
+                        Remove Selection
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        onClick={() => {
+                            persistSelection();
+                            props.onNextStep?.();
+                            props.onOpenChange(false);
+                        }}
+                    >
+                        Next Step
+                    </Button>
+                    <Button
                         variant="outline"
                         onClick={() => props.onOpenChange(false)}
                     >
@@ -926,13 +1049,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                     </Button>
                     <Button
                         onClick={() => {
-                            const persistedRows = totals.normalized.filter(
-                                (row) => Number(row.totalQty || 0) > 0,
-                            );
-                            props.onApply({
-                                rows: persistedRows,
-                                selected: persistedRows.length > 0,
-                            });
+                            persistSelection();
                             props.onOpenChange(false);
                         }}
                     >

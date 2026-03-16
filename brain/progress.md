@@ -354,3 +354,12 @@
 - This keeps HPT/package totals, stored door rows, and the door size modal aligned to the same supplier-linked price model.
 - Tightened door size pricing to match the legacy modal's strict supplier lookup: when a supplier is selected and a `size & supplierUid` bucket is missing, the new form now treats that row as missing pricing instead of falling back to generic/component pricing.
 - Added an `Add Price` state in the new door size modal for missing supplier-size buckets, and repriced persisted/HPT door rows to `0` with a `priceMissing` marker until a base price is entered.
+- Started the next door/HPT parity batch:
+  - door modal size candidates now merge pricing keys, persisted rows, and legacy-style `doorSizeVariation` width rules from the active line so missing sizes like `1-10 x 6-8` can appear even when no pricing bucket exists yet.
+  - door modal size rows are now sorted ascending and display both inch and foot-inch formats like the old form.
+  - qty inputs in the door modal and HPT rows now render blank by default instead of `0`.
+  - added a `Line Total` column to the door size modal desktop table.
+  - added legacy-style `Remove Selection` and `Next Step` actions to the door modal footer without removing the current actions.
+  - mirrored the door price popover editor into HPT rows so missing-price and base-price update behavior matches the door size modal.
+  - upgraded grouped-door math so `addon` increases calculated line total and `customPrice` overrides it, enabling old-form-style HPT estimate breakdown editing.
+  - extended HPT estimate breakdown to show priced step contributors plus editable `Addon Price` and `Custom Price`.
