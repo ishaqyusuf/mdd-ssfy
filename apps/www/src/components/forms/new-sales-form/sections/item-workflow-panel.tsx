@@ -65,7 +65,7 @@ import {
     findLineStepByTitle,
     getRedirectableRoutes,
     resolveSizeFromPricingKey,
-    resolvePricingBucketUnitPrice,
+    resolveDoorTierPricing,
     resolveComponentPriceByDeps,
     sharedMouldingComponentPrice,
     summarizeDoors,
@@ -142,6 +142,89 @@ function applySharedDoorSurcharge(rows: any[], surcharge: number) {
         };
     });
 }
+function repricePersistedDoorRowsForSupplier(
+    line: any,
+    nextSteps: any[],
+    supplierUid?: string | null,
+    salesMultiplier?: number | null,
+) {
+    const existingDoors = Array.isArray(line?.housePackageTool?.doors)
+        ? line.housePackageTool.doors
+        : [];
+    if (!existingDoors.length) return null;
+
+    const selectedDoorComponents = getSelectedDoorComponentsForLine({
+        ...line,
+        formSteps: nextSteps,
+    });
+    if (!selectedDoorComponents.length) return null;
+
+    const componentById = new Map<number, any>();
+    selectedDoorComponents.forEach((component: any) => {
+        const componentId = Number(component?.id || 0);
+        if (componentId > 0) componentById.set(componentId, component);
+    });
+
+    const sharedDoorSurcharge = computeSharedDoorSurcharge({
+        ...line,
+        formSteps: nextSteps,
+    });
+    const repricedRows = existingDoors.map((row: any) => {
+        const component = componentById.get(Number(row?.stepProductId || 0));
+        const size = String(row?.dimension || "").trim();
+        if (!component || !size) return row;
+
+        const tierPricing = resolveDoorTierPricing({
+            pricing: component?.pricing || {},
+            size,
+            supplierUid,
+            salesMultiplier,
+            fallbackSalesPrice: component?.salesPrice,
+            fallbackBasePrice: component?.basePrice,
+        });
+        const hasResolvedPrice = Boolean(tierPricing.hasPrice);
+        const baseUnitPrice = hasResolvedPrice
+            ? Number((tierPricing.basePrice || 0).toFixed(2))
+            : 0;
+        const unitPrice = hasResolvedPrice
+            ? Number(
+                  (
+                      Number(tierPricing.salesPrice || 0) + sharedDoorSurcharge
+                  ).toFixed(2),
+              )
+            : 0;
+        const totalQty = Number(row?.totalQty || 0);
+        return {
+            ...row,
+            unitPrice,
+            lineTotal: Number((totalQty * unitPrice).toFixed(2)),
+            meta: {
+                ...(row?.meta || {}),
+                baseUnitPrice,
+                priceMissing: !hasResolvedPrice,
+            },
+        };
+    });
+
+    const totalDoors = repricedRows.reduce(
+        (sum: number, row: any) => sum + Number(row?.totalQty || 0),
+        0,
+    );
+    const totalPrice = Number(
+        repricedRows
+            .reduce(
+                (sum: number, row: any) => sum + Number(row?.lineTotal || 0),
+                0,
+            )
+            .toFixed(2),
+    );
+
+    return {
+        doors: repricedRows,
+        totalDoors,
+        totalPrice,
+    };
+}
 function money(value?: number | null) {
     const amount = Number(value || 0);
     if (!Number.isFinite(amount) || amount <= 0) return null;
@@ -206,9 +289,18 @@ function profileAdjustedSalesPrice(
 ) {
     const base = Number(basePrice);
     const sales = Number(salesPrice);
-    const coef = Number(coefficient || 0);
-    if (Number.isFinite(base) && base > 0 && Number.isFinite(coef) && coef > 0) {
-        return Number((base * coef).toFixed(2));
+    const coeff = Number(coefficient || 0);
+    const multiplier =
+        Number.isFinite(coeff) && coeff > 0
+            ? Number((1 / coeff).toFixed(2))
+            : 1;
+    if (
+        Number.isFinite(base) &&
+        base > 0 &&
+        Number.isFinite(multiplier) &&
+        multiplier > 0
+    ) {
+        return Number((base * multiplier).toFixed(2));
     }
     if (Number.isFinite(sales) && sales > 0) return sales;
     if (Number.isFinite(base) && base > 0) return base;
@@ -343,6 +435,9 @@ export function ItemWorkflowPanel() {
     const activeDoorStep = activeLine
         ? findLineStepByTitle(activeLine, "Door")
         : null;
+    const activeDoorStepIndex = activeLineSteps.findIndex((step: any) =>
+        isDoorStepTitle(step?.step?.title),
+    );
     const activeMouldingSync = useMemo(() => {
         if (!activeLine || !isMouldingItem(activeLine)) return null;
         const selectedMouldings = getSelectedMouldingComponentsForLine(activeLine);
@@ -855,9 +950,29 @@ export function ItemWorkflowPanel() {
                 },
             },
         };
-        updateLineItem(line.uid, {
+        const repricedDoors = repricePersistedDoorRowsForSupplier(
+            line,
+            steps,
+            supplier?.uid || null,
+            Number.isFinite(activeProfileCoefficient) &&
+                activeProfileCoefficient > 0
+                ? Number((1 / activeProfileCoefficient).toFixed(2))
+                : 1,
+        );
+        const linePatch: Record<string, unknown> = {
             formSteps: steps,
-        });
+        };
+        if (repricedDoors) {
+            linePatch.housePackageTool = {
+                ...(line.housePackageTool || { id: null }),
+                doors: repricedDoors.doors,
+                totalDoors: repricedDoors.totalDoors,
+                totalPrice: repricedDoors.totalPrice,
+            };
+            linePatch.qty = repricedDoors.totalDoors || line.qty;
+            linePatch.lineTotal = repricedDoors.totalPrice || line.lineTotal;
+        }
+        updateLineItem(line.uid, linePatch as any);
     }
     function setStepRedirectUid(
         line: (typeof record.lineItems)[number],
@@ -1273,13 +1388,19 @@ export function ItemWorkflowPanel() {
         function addSizeRow(size: string) {
             if (!activeDoorComponent) return;
             const pricing = activeDoorComponent?.pricing || {};
-            const unitPrice = resolvePricingBucketUnitPrice({
+            const tierPricing = resolveDoorTierPricing({
                 pricing,
                 size,
                 supplierUid: supplier.supplierUid,
+                salesMultiplier:
+                    Number.isFinite(activeProfileCoefficient) &&
+                    activeProfileCoefficient > 0
+                        ? Number((1 / activeProfileCoefficient).toFixed(2))
+                        : 1,
                 fallbackSalesPrice: activeDoorComponent?.salesPrice,
                 fallbackBasePrice: activeDoorComponent?.basePrice,
             });
+            const hasResolvedPrice = Boolean(tierPricing.hasPrice);
             const nextRows = [
                 ...summary.rows,
                 {
@@ -1290,16 +1411,24 @@ export function ItemWorkflowPanel() {
                     doorPrice: 0,
                     jambSizePrice: 0,
                     casingPrice: 0,
-                    unitPrice: Number(
-                        (unitPrice + sharedDoorSurcharge).toFixed(2),
-                    ),
+                    unitPrice: hasResolvedPrice
+                        ? Number(
+                              (
+                                  tierPricing.salesPrice +
+                                  sharedDoorSurcharge
+                              ).toFixed(2),
+                          )
+                        : 0,
                     lhQty: 0,
                     rhQty: 0,
                     totalQty: 0,
                     lineTotal: 0,
                     stepProductId: activeDoorComponent.id || null,
                     meta: {
-                        baseUnitPrice: Number(unitPrice.toFixed(2)),
+                        baseUnitPrice: hasResolvedPrice
+                            ? Number(tierPricing.basePrice.toFixed(2))
+                            : 0,
+                        priceMissing: !hasResolvedPrice,
                     },
                 },
             ];
@@ -3697,10 +3826,38 @@ export function ItemWorkflowPanel() {
                     component={doorStepModal.component}
                     supplierUid={activeDoorSupplier.supplierUid}
                     supplierName={activeDoorSupplier.supplierName}
+                    suppliers={(suppliersQuery.data?.stepProducts || []).map(
+                        (supplier) => ({
+                            uid: String(supplier.uid || ""),
+                            name: String(supplier.name || ""),
+                        }),
+                    )}
+                    profileCoefficient={activeProfileCoefficient}
+                    onSupplierChange={(supplierUid) => {
+                        if (activeDoorStepIndex < 0) return;
+                        const supplier =
+                            supplierUid == null
+                                ? null
+                                : (suppliersQuery.data?.stepProducts || []).find(
+                                      (entry) =>
+                                          String(entry.uid || "") ===
+                                          String(supplierUid || ""),
+                                  ) || null;
+                        updateDoorSupplierAtStep(
+                            activeLine,
+                            activeDoorStepIndex,
+                            supplier
+                                ? {
+                                      uid: supplier.uid,
+                                      name: supplier.name,
+                                  }
+                                : null,
+                        );
+                    }}
                     routeConfig={resolveRouteConfigForLine({
                         routeData,
                         line: activeLine,
-                        step: activeStep,
+                        step: activeDoorStep || activeStep,
                         component: doorStepModal.component,
                     })}
                     onApply={({ rows, selected }) => {

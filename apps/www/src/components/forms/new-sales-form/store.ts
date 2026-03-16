@@ -254,7 +254,12 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
                         Object.prototype.hasOwnProperty.call(patch, "unitPrice"))
                 ) {
                     merged.lineTotal =
-                        Number(merged.qty || 0) * Number(merged.unitPrice || 0);
+                        Math.round(
+                            (Number(merged.qty || 0) *
+                                Number(merged.unitPrice || 0) +
+                                Number.EPSILON) *
+                                100,
+                        ) / 100;
                 }
                 return normalizeLineItem(merged, index);
             });

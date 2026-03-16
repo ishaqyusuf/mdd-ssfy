@@ -2,7 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@gnd/ui/button";
+import { Label } from "@gnd/ui/label";
 import { Input } from "@gnd/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@gnd/ui/select";
 import {
     Dialog,
     DialogContent,
@@ -14,7 +23,7 @@ import {
 import { Calculator, CheckCircle2, Trash2, X } from "lucide-react";
 import type { NewSalesFormLineItem } from "../schema";
 import {
-    resolvePricingBucketUnitPrice,
+    resolveDoorTierPricing,
     resolveSizeFromPricingKey,
 } from "@gnd/sales/sales-form";
 
@@ -33,6 +42,38 @@ function firstFiniteNumber(...values: Array<number | null | undefined>) {
         if (Number.isFinite(candidate)) return candidate;
     }
     return null;
+}
+
+function currency(value?: number | null) {
+    return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+    }).format(Number(value || 0));
+}
+
+function profileAdjustedDoorSalesPrice(
+    salesPrice: number | null | undefined,
+    basePrice: number | null | undefined,
+    coefficient?: number | null,
+) {
+    const base = Number(basePrice);
+    const sales = Number(salesPrice);
+    const coeff = Number(coefficient || 0);
+    const multiplier =
+        Number.isFinite(coeff) && coeff > 0
+            ? Number((1 / coeff).toFixed(2))
+            : 1;
+    if (
+        Number.isFinite(base) &&
+        base > 0 &&
+        Number.isFinite(multiplier) &&
+        multiplier > 0
+    ) {
+        return Number((base * multiplier).toFixed(2));
+    }
+    if (Number.isFinite(sales) && sales > 0) return sales;
+    if (Number.isFinite(base) && base > 0) return base;
+    return 0;
 }
 
 function calcDoorRow(row: DoorLine): DoorLine {
@@ -281,6 +322,12 @@ interface DoorSizeQtyDialogProps {
     } | null;
     supplierUid?: string | null;
     supplierName?: string | null;
+    suppliers?: Array<{
+        uid: string;
+        name: string;
+    }>;
+    onSupplierChange?: (supplierUid: string | null) => void;
+    profileCoefficient?: number | null;
     routeConfig?: {
         noHandle?: boolean;
         hasSwing?: boolean;
@@ -298,6 +345,7 @@ function deriveDoorSizeRows(
     existingRows: DoorLine[],
     component: DoorSizeQtyDialogProps["component"],
     supplierUid?: string | null,
+    profileCoefficient?: number | null,
 ) {
     const bySize = new Map<string, DoorLine>();
     existingRows.forEach((row) => {
@@ -312,13 +360,22 @@ function deriveDoorSizeRows(
                 .filter(Boolean),
         ),
     );
-    if (!candidateSizes.length) {
+        if (!candidateSizes.length) {
         if (existingRows.length) return existingRows;
+        const fallbackBase =
+            firstFiniteNumber(component?.basePrice, component?.salesPrice) ?? 0;
         return [
             calcDoorRow({
                 ...blankDoorRow(),
                 stepProductId: component?.id || null,
-                unitPrice: Number(component?.salesPrice ?? component?.basePrice ?? 0),
+                unitPrice: profileAdjustedDoorSalesPrice(
+                    component?.salesPrice,
+                    component?.basePrice,
+                    profileCoefficient,
+                ),
+                meta: {
+                    baseUnitPrice: fallbackBase,
+                },
             }),
         ];
     }
@@ -326,22 +383,36 @@ function deriveDoorSizeRows(
     return candidateSizes.map((size) => {
         const normalizedSize = String(size).trim();
         const existing = bySize.get(normalizedSize);
-        const computedPrice = resolvePricingBucketUnitPrice({
+        const pricingPair = resolveDoorTierPricing({
             pricing,
             size: normalizedSize,
             supplierUid,
+            salesMultiplier:
+                Number.isFinite(Number(profileCoefficient || 0)) &&
+                Number(profileCoefficient || 0) > 0
+                    ? Number((1 / Number(profileCoefficient || 0)).toFixed(2))
+                    : 1,
             fallbackSalesPrice: component?.salesPrice,
             fallbackBasePrice: component?.basePrice,
         });
-        const rowBaseUnit = firstFiniteNumber((existing as any)?.meta?.baseUnitPrice);
+        const hasResolvedPrice = Boolean(pricingPair.hasPrice);
+        const rowBaseUnit = firstFiniteNumber(
+            hasResolvedPrice ? pricingPair.basePrice : null,
+            hasResolvedPrice ? component?.basePrice : null,
+            hasResolvedPrice ? component?.salesPrice : null,
+        );
         const unitPrice =
-            firstFiniteNumber(
-                computedPrice,
-                rowBaseUnit,
-                component?.salesPrice,
-                component?.basePrice,
-                existing?.unitPrice,
-            ) ?? 0;
+            hasResolvedPrice
+                ? (firstFiniteNumber(
+                      profileAdjustedDoorSalesPrice(
+                          pricingPair.salesPrice,
+                          pricingPair.basePrice,
+                          profileCoefficient,
+                      ),
+                      component?.salesPrice,
+                      component?.basePrice,
+                  ) ?? 0)
+                : 0;
         return calcDoorRow({
             ...(existing || blankDoorRow()),
             dimension: normalizedSize,
@@ -349,17 +420,124 @@ function deriveDoorSizeRows(
             unitPrice,
             meta: {
                 ...((existing as any)?.meta || {}),
-                baseUnitPrice:
-                    rowBaseUnit ??
-                    firstFiniteNumber(
-                        component?.basePrice,
-                        component?.salesPrice,
-                        existing?.unitPrice,
-                    ) ??
-                    0,
+                priceMissing: !hasResolvedPrice,
+                baseUnitPrice: rowBaseUnit ?? 0,
             },
         });
     });
+}
+
+function updateDoorRowBasePrice(
+    row: DoorLine,
+    nextBase: number,
+) {
+    const priorBase = toNumber(
+        (row.meta as any)?.baseUnitPrice,
+        toNumber(row.unitPrice, 0),
+    );
+    const surcharge = Number((toNumber(row.unitPrice, 0) - priorBase).toFixed(2));
+    return calcDoorRow({
+        ...row,
+        unitPrice: Number((Math.max(0, nextBase) + surcharge).toFixed(2)),
+        meta: {
+            ...(row.meta || {}),
+            baseUnitPrice: Math.max(0, nextBase),
+            priceMissing: false,
+        },
+    });
+}
+
+function DoorPriceCell({
+    row,
+    onSave,
+}: {
+    row: DoorLine;
+    onSave: (nextBase: number) => void;
+}) {
+    const [open, setOpen] = useState(false);
+    const [draft, setDraft] = useState("");
+    const baseUnit =
+        firstFiniteNumber((row.meta as any)?.baseUnitPrice, row.unitPrice) ?? 0;
+    const isMissingPrice = Boolean((row.meta as any)?.priceMissing);
+
+    useEffect(() => {
+        setDraft(isMissingPrice || !baseUnit ? "" : String(baseUnit));
+    }, [baseUnit, isMissingPrice, open]);
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button
+                    type="button"
+                    variant={
+                        isMissingPrice
+                            ? "destructive"
+                            : row.unitPrice > 0
+                              ? "outline"
+                              : "secondary"
+                    }
+                    className="h-10 w-full min-w-[116px] flex-col items-start gap-0 rounded-xl border-slate-300 px-3 py-2 text-left"
+                >
+                    <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                        {isMissingPrice ? "Missing" : "Price"}
+                    </span>
+                    <span className="text-sm font-semibold text-foreground">
+                        {isMissingPrice ? "Add Price" : currency(row.unitPrice)}
+                    </span>
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-72 space-y-3 p-4">
+                <div className="space-y-1">
+                    <p className="text-sm font-semibold text-foreground">
+                        {isMissingPrice ? "Add Base Price" : "Edit Base Price"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                        Final price keeps the current surcharge delta and updates from this base.
+                    </p>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor={`door-base-${row.dimension || "row"}`}>
+                        Base Price
+                    </Label>
+                    <Input
+                        id={`door-base-${row.dimension || "row"}`}
+                        type="number"
+                        step="0.01"
+                        value={draft}
+                        onChange={(e) => setDraft(e.target.value)}
+                    />
+                </div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Current final</span>
+                    <span className="font-semibold text-foreground">
+                        {currency(row.unitPrice)}
+                    </span>
+                </div>
+                <div className="flex justify-end gap-2">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setOpen(false)}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                            const nextBase = toNumber(draft, Number.NaN);
+                            if (!Number.isFinite(nextBase) || nextBase < 0) return;
+                            onSave(nextBase);
+                            setOpen(false);
+                        }}
+                    >
+                        Save
+                    </Button>
+                </div>
+            </PopoverContent>
+        </Popover>
+    );
 }
 
 export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
@@ -372,9 +550,16 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
             existing,
             props.component,
             props.supplierUid,
+            props.profileCoefficient,
         );
         setRows(nextRows);
-    }, [props.open, props.component, props.line, props.supplierUid]);
+    }, [
+        props.open,
+        props.component,
+        props.line,
+        props.profileCoefficient,
+        props.supplierUid,
+    ]);
 
     const totals = useMemo(() => {
         const normalized = rows.map((row) =>
@@ -396,242 +581,343 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 
     return (
         <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-            <DialogContent className="max-w-4xl">
-                <DialogHeader>
-                    <DialogTitle>{props.component.title || "Door"} Size/Qty</DialogTitle>
+            <DialogContent className="max-w-[720px] gap-0 overflow-hidden p-0 sm:max-w-[760px]">
+                <DialogHeader className="border-b bg-gradient-to-r from-slate-50 to-white px-4 py-4 sm:px-5">
+                    <DialogTitle>{props.component.title || "Door"} Size Select</DialogTitle>
                     <DialogDescription>
-                        Set dimensions and quantities for this door component.
+                        Select size, price, and quantity for this door option.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="text-xs text-muted-foreground">
-                    Supplier: <span className="font-semibold text-foreground">{props.supplierName || "GND MILLWORK"}</span>
-                </div>
-                <div className="max-h-[60vh] space-y-3 overflow-auto rounded-lg border p-3">
-                    <div className="grid grid-cols-12 gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        <p className="col-span-3">Dimension</p>
-                        {props.routeConfig?.hasSwing ? (
-                            <p className="col-span-2">Swing</p>
-                        ) : (
-                            <p className="col-span-2" />
-                        )}
-                        {props.routeConfig?.noHandle ? (
-                            <p className="col-span-4">Qty</p>
-                        ) : (
-                            <>
-                                <p className="col-span-2">LH</p>
-                                <p className="col-span-2">RH</p>
-                            </>
-                        )}
-                        <p className="col-span-1">Unit</p>
-                        <p className="col-span-1">Base</p>
-                        <p className="col-span-1">Del</p>
-                    </div>
-                    {rows.map((row, index) => (
-                        <div key={`door-size-row-${index}`} className="grid grid-cols-12 gap-2">
-                            <Input
-                                className="col-span-3"
-                                value={row.dimension || ""}
-                                placeholder="2-8 x 8-0"
-                                readOnly
-                            />
-                            {props.routeConfig?.hasSwing ? (
-                                <Input
-                                    className="col-span-2"
-                                    value={row.swing || ""}
-                                    onChange={(e) =>
-                                        setRows((prev) =>
-                                            prev.map((item, ri) =>
-                                                ri === index
-                                                    ? {
-                                                          ...item,
-                                                          swing: e.target.value,
-                                                      }
-                                                    : item,
-                                            ),
-                                        )
-                                    }
-                                    placeholder="LH/RH"
-                                />
-                            ) : (
-                                <div className="col-span-2" />
-                            )}
-                            {props.routeConfig?.noHandle ? (
-                                <Input
-                                    className="col-span-4"
-                                    type="number"
-                                    value={row.totalQty || 0}
-                                    onChange={(e) =>
-                                        setRows((prev) =>
-                                            prev.map((item, ri) =>
-                                                ri === index
-                                                    ? calcDoorRow({
-                                                          ...item,
-                                                          totalQty: toNumber(
-                                                              e.target.value,
-                                                              0,
-                                                          ),
-                                                          lhQty: 0,
-                                                          rhQty: 0,
-                                                      })
-                                                    : item,
-                                            ),
-                                        )
-                                    }
-                                />
-                            ) : (
-                                <>
-                                    <Input
-                                        className="col-span-2"
-                                        type="number"
-                                        value={row.lhQty || 0}
-                                        onChange={(e) =>
-                                            setRows((prev) =>
-                                                prev.map((item, ri) =>
-                                                    ri === index
-                                                        ? calcDoorRow({
-                                                              ...item,
-                                                              lhQty: toNumber(
-                                                                  e.target.value,
-                                                                  0,
-                                                              ),
-                                                          })
-                                                        : item,
-                                                ),
-                                            )
-                                        }
-                                    />
-                                    <Input
-                                        className="col-span-2"
-                                        type="number"
-                                        value={row.rhQty || 0}
-                                        onChange={(e) =>
-                                            setRows((prev) =>
-                                                prev.map((item, ri) =>
-                                                    ri === index
-                                                        ? calcDoorRow({
-                                                              ...item,
-                                                              rhQty: toNumber(
-                                                                  e.target.value,
-                                                                  0,
-                                                              ),
-                                                          })
-                                                        : item,
-                                                ),
-                                            )
-                                        }
-                                    />
-                                </>
-                            )}
-                            <Input
-                                className="col-span-1"
-                                type="number"
-                                step="0.01"
-                                value={
-                                    firstFiniteNumber(
-                                        row.unitPrice,
-                                        props.component?.salesPrice,
-                                    ) ?? 0
-                                }
-                                onChange={(e) =>
-                                    setRows((prev) =>
-                                        prev.map((item, ri) =>
-                                            ri === index
-                                                ? calcDoorRow({
-                                                      ...item,
-                                                      unitPrice: toNumber(e.target.value, 0),
-                                                  })
-                                                : item,
-                                        ),
-                                    )
-                                }
-                            />
-                            <Button
-                                className="col-span-1"
-                                variant="outline"
-                                onClick={() => {
-                                    if (typeof window === "undefined") return;
-                                    const currentBase = toNumber(
-                                        (row.meta as any)?.baseUnitPrice,
-                                        toNumber(row.unitPrice, 0),
-                                    );
-                                    const raw = window.prompt(
-                                        "Set door size base cost",
-                                        currentBase
-                                            ? String(currentBase)
-                                            : "",
-                                    );
-                                    if (raw == null) return;
-                                    const nextBase = toNumber(raw, Number.NaN);
-                                    if (!Number.isFinite(nextBase) || nextBase < 0) {
-                                        return;
-                                    }
-                                    setRows((prev) =>
-                                        prev.map((item, ri) => {
-                                            if (ri !== index) return item;
-                                            const priorBase = toNumber(
-                                                (item.meta as any)?.baseUnitPrice,
-                                                toNumber(item.unitPrice, 0),
-                                            );
-                                            const surcharge = Number(
-                                                (
-                                                    toNumber(item.unitPrice, 0) -
-                                                    priorBase
-                                                ).toFixed(2),
-                                            );
-                                            return calcDoorRow({
-                                                ...item,
-                                                unitPrice: Number(
-                                                    (
-                                                        Math.max(0, nextBase) +
-                                                        surcharge
-                                                    ).toFixed(2),
-                                                ),
-                                                meta: {
-                                                    ...(item.meta || {}),
-                                                    baseUnitPrice: Math.max(
-                                                        0,
-                                                        nextBase,
-                                                    ),
-                                                },
-                                            });
-                                        }),
-                                    );
-                                }}
-                            >
-                                B
-                            </Button>
-                            <Button
-                                className="col-span-1"
-                                variant="destructive"
-                                onClick={() =>
-                                    setRows((prev) =>
-                                        prev.map((item, ri) =>
-                                            ri === index
-                                                ? calcDoorRow({
-                                                      ...item,
-                                                      lhQty: 0,
-                                                      rhQty: 0,
-                                                      totalQty: 0,
-                                                  })
-                                                : item,
-                                        ),
-                                    )
-                                }
-                            >
-                                X
-                            </Button>
+                <div className="space-y-4 px-4 py-4 sm:px-5">
+                    <div className="flex flex-col gap-3 rounded-xl border bg-slate-50/70 p-3 sm:flex-row sm:items-end sm:justify-between">
+                        <div className="space-y-1">
+                            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                                Door Supplier
+                            </p>
+                            <p className="text-sm font-semibold text-foreground">
+                                {props.supplierName || "GND MILLWORK"}
+                            </p>
                         </div>
-                    ))}
+                        <div className="w-full sm:w-[260px]">
+                            <Select
+                                value={props.supplierUid || "default"}
+                                onValueChange={(value) =>
+                                    props.onSupplierChange?.(
+                                        value === "default" ? null : value,
+                                    )
+                                }
+                            >
+                                <SelectTrigger className="h-10 rounded-xl bg-white text-sm font-medium">
+                                    <SelectValue placeholder="Select supplier" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="default">
+                                        GND MILLWORK (Default)
+                                    </SelectItem>
+                                    {(props.suppliers || []).map((supplier) => (
+                                        <SelectItem
+                                            key={supplier.uid}
+                                            value={supplier.uid}
+                                        >
+                                            {supplier.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    <div className="md:hidden space-y-3">
+                        {rows.map((row, index) => (
+                            <div
+                                key={`door-size-card-${index}`}
+                                className="space-y-3 rounded-2xl border bg-white p-4 shadow-sm"
+                            >
+                                <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                                            Size
+                                        </p>
+                                        <p className="text-sm font-semibold text-foreground">
+                                            {row.dimension || "--"}
+                                        </p>
+                                    </div>
+                                    <div className="min-w-[120px]">
+                                        <DoorPriceCell
+                                            row={row}
+                                            onSave={(nextBase) =>
+                                                setRows((prev) =>
+                                                    prev.map((item, ri) =>
+                                                        ri === index
+                                                            ? updateDoorRowBasePrice(
+                                                                  item,
+                                                                  nextBase,
+                                                              )
+                                                            : item,
+                                                    ),
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                </div>
+                                {props.routeConfig?.hasSwing ? (
+                                    <div className="space-y-2">
+                                        <Label>Swing</Label>
+                                        <Input
+                                            value={row.swing || ""}
+                                            onChange={(e) =>
+                                                setRows((prev) =>
+                                                    prev.map((item, ri) =>
+                                                        ri === index
+                                                            ? {
+                                                                  ...item,
+                                                                  swing: e.target.value,
+                                                              }
+                                                            : item,
+                                                    ),
+                                                )
+                                            }
+                                            placeholder="LH/RH"
+                                        />
+                                    </div>
+                                ) : null}
+                                {props.routeConfig?.noHandle ? (
+                                    <div className="space-y-2">
+                                        <Label>Qty</Label>
+                                        <Input
+                                            type="number"
+                                            value={row.totalQty || 0}
+                                            onChange={(e) =>
+                                                setRows((prev) =>
+                                                    prev.map((item, ri) =>
+                                                        ri === index
+                                                            ? calcDoorRow({
+                                                                  ...item,
+                                                                  totalQty: toNumber(
+                                                                      e.target.value,
+                                                                      0,
+                                                                  ),
+                                                                  lhQty: 0,
+                                                                  rhQty: 0,
+                                                              })
+                                                            : item,
+                                                    ),
+                                                )
+                                            }
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-2">
+                                            <Label>LH</Label>
+                                            <Input
+                                                type="number"
+                                                value={row.lhQty || 0}
+                                                onChange={(e) =>
+                                                    setRows((prev) =>
+                                                        prev.map((item, ri) =>
+                                                            ri === index
+                                                                ? calcDoorRow({
+                                                                      ...item,
+                                                                      lhQty: toNumber(
+                                                                          e.target.value,
+                                                                          0,
+                                                                      ),
+                                                                  })
+                                                                : item,
+                                                        ),
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>RH</Label>
+                                            <Input
+                                                type="number"
+                                                value={row.rhQty || 0}
+                                                onChange={(e) =>
+                                                    setRows((prev) =>
+                                                        prev.map((item, ri) =>
+                                                            ri === index
+                                                                ? calcDoorRow({
+                                                                      ...item,
+                                                                      rhQty: toNumber(
+                                                                          e.target.value,
+                                                                          0,
+                                                                      ),
+                                                                  })
+                                                                : item,
+                                                        ),
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="hidden max-h-[52vh] overflow-auto rounded-2xl border md:block">
+                        <table className="min-w-full text-sm">
+                            <thead className="bg-slate-50">
+                                <tr className="text-left text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                                    <th className="px-4 py-3">Size</th>
+                                    <th className="px-4 py-3">Price</th>
+                                    {props.routeConfig?.hasSwing ? (
+                                        <th className="px-4 py-3">Swing</th>
+                                    ) : null}
+                                    {props.routeConfig?.noHandle ? (
+                                        <th className="px-4 py-3">Qty</th>
+                                    ) : (
+                                        <>
+                                            <th className="px-4 py-3">LH</th>
+                                            <th className="px-4 py-3">RH</th>
+                                        </>
+                                    )}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {rows.map((row, index) => (
+                                    <tr key={`door-size-row-${index}`} className="border-t">
+                                        <td className="px-4 py-3">
+                                            <div className="space-y-1">
+                                                <p className="font-semibold text-foreground">
+                                                    {row.dimension || "--"}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {currency(row.lineTotal)} line total
+                                                </p>
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <DoorPriceCell
+                                                row={row}
+                                                onSave={(nextBase) =>
+                                                    setRows((prev) =>
+                                                        prev.map((item, ri) =>
+                                                            ri === index
+                                                                ? updateDoorRowBasePrice(
+                                                                      item,
+                                                                      nextBase,
+                                                                  )
+                                                                : item,
+                                                        ),
+                                                    )
+                                                }
+                                            />
+                                        </td>
+                                        {props.routeConfig?.hasSwing ? (
+                                            <td className="px-4 py-3">
+                                                <Input
+                                                    value={row.swing || ""}
+                                                    onChange={(e) =>
+                                                        setRows((prev) =>
+                                                            prev.map((item, ri) =>
+                                                                ri === index
+                                                                    ? {
+                                                                          ...item,
+                                                                          swing: e.target.value,
+                                                                      }
+                                                                    : item,
+                                                            ),
+                                                        )
+                                                    }
+                                                    placeholder="LH/RH"
+                                                    className="h-10 rounded-xl"
+                                                />
+                                            </td>
+                                        ) : null}
+                                        {props.routeConfig?.noHandle ? (
+                                            <td className="px-4 py-3">
+                                                <Input
+                                                    type="number"
+                                                    value={row.totalQty || 0}
+                                                    onChange={(e) =>
+                                                        setRows((prev) =>
+                                                            prev.map((item, ri) =>
+                                                                ri === index
+                                                                    ? calcDoorRow({
+                                                                          ...item,
+                                                                          totalQty: toNumber(
+                                                                              e.target.value,
+                                                                              0,
+                                                                          ),
+                                                                          lhQty: 0,
+                                                                          rhQty: 0,
+                                                                      })
+                                                                    : item,
+                                                            ),
+                                                        )
+                                                    }
+                                                    className="h-10 w-24 rounded-xl text-right"
+                                                />
+                                            </td>
+                                        ) : (
+                                            <>
+                                                <td className="px-4 py-3">
+                                                    <Input
+                                                        type="number"
+                                                        value={row.lhQty || 0}
+                                                        onChange={(e) =>
+                                                            setRows((prev) =>
+                                                                prev.map((item, ri) =>
+                                                                    ri === index
+                                                                        ? calcDoorRow({
+                                                                              ...item,
+                                                                              lhQty: toNumber(
+                                                                                  e.target.value,
+                                                                                  0,
+                                                                              ),
+                                                                          })
+                                                                        : item,
+                                                                ),
+                                                            )
+                                                        }
+                                                        className="h-10 w-24 rounded-xl text-right"
+                                                    />
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <Input
+                                                        type="number"
+                                                        value={row.rhQty || 0}
+                                                        onChange={(e) =>
+                                                            setRows((prev) =>
+                                                                prev.map((item, ri) =>
+                                                                    ri === index
+                                                                        ? calcDoorRow({
+                                                                              ...item,
+                                                                              rhQty: toNumber(
+                                                                                  e.target.value,
+                                                                                  0,
+                                                                              ),
+                                                                          })
+                                                                        : item,
+                                                                ),
+                                                            )
+                                                        }
+                                                        className="h-10 w-24 rounded-xl text-right"
+                                                    />
+                                                </td>
+                                            </>
+                                        )}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <div className="flex items-center gap-3 rounded-lg border bg-muted/20 p-3 text-sm">
+                <div className="border-t bg-muted/20 px-4 py-3 sm:px-5">
+                    <div className="flex items-center gap-3 rounded-lg border bg-background p-3 text-sm">
                     <p className="ml-auto">
                         Doors: <span className="font-semibold">{totals.totalDoors}</span>
                     </p>
                     <p>
-                        Total: <span className="font-semibold">${totals.totalPrice.toFixed(2)}</span>
+                        Total: <span className="font-semibold">{currency(totals.totalPrice)}</span>
                     </p>
+                    </div>
                 </div>
-                <DialogFooter>
+                <DialogFooter className="border-t px-4 py-4 sm:px-5">
                     <Button
                         variant="outline"
                         onClick={() => props.onOpenChange(false)}

@@ -8,6 +8,10 @@ function firstFiniteNumber(...values: Array<number | null | undefined>) {
   return null;
 }
 
+function roundCurrency(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
 export function resolveSizeFromPricingKey(key: string, supplierUid?: string | null) {
   const raw = String(key || "").trim();
   if (!raw) return null;
@@ -54,6 +58,76 @@ export function resolvePricingBucketUnitPrice({
     fallbackBasePrice,
   );
   return unit == null ? 0 : unit;
+}
+
+export function resolveDoorTierPricing({
+  pricing,
+  size,
+  supplierUid,
+  salesMultiplier,
+  fallbackSalesPrice,
+  fallbackBasePrice,
+}: {
+  pricing: Record<string, any> | null | undefined;
+  size: string;
+  supplierUid?: string | null;
+  salesMultiplier?: number | null;
+  fallbackSalesPrice?: number | null;
+  fallbackBasePrice?: number | null;
+}) {
+  const source = pricing || {};
+  const supplierKey = supplierUid ? `${size} & ${supplierUid}` : null;
+  const raw = supplierKey ? (source[supplierKey] ?? null) : (source[size] ?? null);
+  const bucket = typeof raw === "number" ? { price: raw } : raw;
+  const hasPrice =
+    raw != null &&
+    firstFiniteNumber(
+      bucket?.price,
+      bucket?.basePrice,
+      bucket?.baseUnitCost,
+      bucket?.salesPrice,
+      bucket?.salesUnitCost,
+    ) != null;
+
+  if (!hasPrice) {
+    return {
+      hasPrice: false,
+      basePrice: 0,
+      salesPrice: 0,
+    };
+  }
+
+  const basePrice = firstFiniteNumber(
+    bucket?.price,
+    bucket?.basePrice,
+    bucket?.baseUnitCost,
+    fallbackBasePrice,
+    bucket?.salesPrice,
+    bucket?.salesUnitCost,
+    fallbackSalesPrice,
+  );
+  const multiplier = Number(salesMultiplier);
+  const normalizedMultiplier =
+    Number.isFinite(multiplier) && multiplier > 0
+      ? roundCurrency(multiplier)
+      : 1;
+  const derivedSales =
+    basePrice != null
+      ? roundCurrency(basePrice * normalizedMultiplier)
+      : null;
+  const salesPrice = firstFiniteNumber(
+    derivedSales,
+    bucket?.salesPrice,
+    bucket?.salesUnitCost,
+    fallbackSalesPrice,
+    basePrice,
+  );
+
+  return {
+    hasPrice: true,
+    basePrice: basePrice ?? 0,
+    salesPrice: salesPrice ?? 0,
+  };
 }
 
 export function summarizeDoors(

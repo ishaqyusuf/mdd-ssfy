@@ -1,4 +1,5 @@
 import { cn } from "@gnd/ui/cn";
+import { useEffect, useRef } from "react";
 import { useSiteNav } from "./use-site-nav";
 import { NavsList } from "./navs-list";
 
@@ -7,6 +8,16 @@ interface Props {}
 export function Sidebar({ children }: { children?: React.ReactNode }) {
   const ctx = useSiteNav();
   const { isExpanded, mainMenuRef, setIsExpanded, linkModules } = ctx;
+  const expandTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (expandTimeoutRef.current) {
+        clearTimeout(expandTimeoutRef.current);
+      }
+    };
+  }, []);
+
   if (linkModules?.noSidebar) return null;
   return (
     <aside
@@ -20,8 +31,22 @@ export function Sidebar({ children }: { children?: React.ReactNode }) {
     >
       <div
         ref={mainMenuRef}
-        onMouseEnter={() => setIsExpanded(true)}
-        onMouseLeave={() => setIsExpanded(false)}
+        onMouseEnter={() => {
+          if (expandTimeoutRef.current) {
+            clearTimeout(expandTimeoutRef.current);
+          }
+          expandTimeoutRef.current = setTimeout(() => {
+            setIsExpanded(true);
+            expandTimeoutRef.current = null;
+          }, 333);
+        }}
+        onMouseLeave={() => {
+          if (expandTimeoutRef.current) {
+            clearTimeout(expandTimeoutRef.current);
+            expandTimeoutRef.current = null;
+          }
+          setIsExpanded(false);
+        }}
         className="flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-hide w-full pb-[100px] pt-[75px]"
       >
         <NavsList />

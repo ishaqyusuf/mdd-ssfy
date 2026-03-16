@@ -3,6 +3,7 @@ import {
   deriveMouldingRows,
   deriveServiceRows,
   getRouteConfigForLine,
+  resolveDoorTierPricing,
   resolvePricingBucketUnitPrice,
   resolveSizeFromPricingKey,
   summarizeDoors,
@@ -174,5 +175,37 @@ describe("workflow-calculators domain", () => {
       fallbackSalesPrice: 99,
     });
     expect(unit).toBe(0);
+  });
+
+  it("derives door tier sales price from base tier price and sales multiplier", () => {
+    const pricing = resolveDoorTierPricing({
+      pricing: {
+        "2-8 x 7-0 & SUP-1": { price: 120 },
+      },
+      size: "2-8 x 7-0",
+      supplierUid: "SUP-1",
+      salesMultiplier: 0.25,
+      fallbackSalesPrice: 99,
+      fallbackBasePrice: 88,
+    });
+    expect(pricing.hasPrice).toBe(true);
+    expect(pricing.basePrice).toBe(120);
+    expect(pricing.salesPrice).toBe(30);
+  });
+
+  it("treats missing supplier-specific door pricing as empty instead of falling back", () => {
+    const pricing = resolveDoorTierPricing({
+      pricing: {
+        "2-8 x 7-0": { price: 120 },
+      },
+      size: "2-8 x 7-0",
+      supplierUid: "SUP-1",
+      salesMultiplier: 1.54,
+      fallbackSalesPrice: 99,
+      fallbackBasePrice: 88,
+    });
+    expect(pricing.hasPrice).toBe(false);
+    expect(pricing.basePrice).toBe(0);
+    expect(pricing.salesPrice).toBe(0);
   });
 });

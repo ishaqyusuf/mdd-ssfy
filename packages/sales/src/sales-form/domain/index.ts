@@ -27,6 +27,7 @@ export {
   deriveMouldingRows,
   deriveServiceRows,
   getRouteConfigForLine,
+  resolveDoorTierPricing,
   resolvePricingBucketUnitPrice,
   resolveSizeFromPricingKey,
   sharedMouldingComponentPrice,

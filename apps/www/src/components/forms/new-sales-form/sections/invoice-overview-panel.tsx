@@ -42,6 +42,33 @@ const PAYMENT_TERMS = ["None", "Due on Receipt", "Net 7", "Net 15", "Net 30", "N
 const DELIVERY_OPTIONS = ["pickup", "delivery", "ship"];
 const PAYMENT_METHODS = ["None", "Cash", "Check", "Credit Card", "ACH", "Link"];
 
+function normalizeProfileTitle(value?: string | null) {
+    return String(value || "")
+        .trim()
+        .toLowerCase();
+}
+
+function getDefaultCustomerProfile(profiles: any[]) {
+    if (!Array.isArray(profiles) || !profiles.length) return null;
+    return (
+        profiles.find(
+            (profile: any) =>
+                normalizeProfileTitle(profile?.title) === "tier 1",
+        ) ||
+        profiles.find((profile: any) => {
+            const meta = profile?.meta || {};
+            return Boolean(
+                meta?.isDefault ||
+                    meta?.default ||
+                    meta?.selected ||
+                    meta?.is_default,
+            );
+        }) ||
+        profiles[0] ||
+        null
+    );
+}
+
 export function InvoiceOverviewPanel() {
     const record = useNewSalesFormStore((s) => s.record);
     const setMeta = useNewSalesFormStore((s) => s.setMeta);
@@ -172,6 +199,22 @@ export function InvoiceOverviewPanel() {
         lastProfileCoefficientRef.current = normalizedCurrent;
         lastProfileIdRef.current = currentProfileId;
     }, [profileOptions, record, setLineItems]);
+
+    useEffect(() => {
+        if (!record) return;
+        if (record.form.customerProfileId != null) return;
+        const defaultProfile = getDefaultCustomerProfile(profileOptions);
+        if (!defaultProfile?.id) return;
+        const profileMeta = defaultProfile?.meta || {};
+        setMeta({
+            customerProfileId: Number(defaultProfile.id),
+            paymentTerm:
+                profileMeta?.netTerm ||
+                profileMeta?.net ||
+                record.form.paymentTerm ||
+                "None",
+        });
+    }, [profileOptions, record, setMeta]);
 
     useEffect(() => {
         if (!record) return;
