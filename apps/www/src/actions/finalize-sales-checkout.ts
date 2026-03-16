@@ -5,7 +5,8 @@ import { SalesPaymentStatus } from "@/app-deps/(clean-code)/(sales)/types";
 import { prisma } from "@/db";
 import { formatMoney } from "@/lib/use-number";
 import { sum } from "@/lib/utils";
-import { NotificationService } from "@notifications/services/triggers";
+import { sendPaymentSystemNotifications } from "@gnd/notifications/payment-system";
+import { buildSalesCheckoutSuccessNotificationEvent } from "@gnd/sales";
 import { tasks } from "@trigger.dev/sdk/v3";
 
 import { createPayrollAction } from "./create-payroll";
@@ -75,12 +76,12 @@ export async function finalizeSalesCheckout({ salesPaymentId }: Props) {
             },
         },
     });
-    const status: SquarePaymentStatus = cTx.status as any;
-    if (status == "COMPLETED") throw new Error("Payment Already Applied!");
+    const status = cTx.status as SquarePaymentStatus;
+    if (status === "COMPLETED") throw new Error("Payment Already Applied!");
 
     const tenders = cTx.squarePayment.checkout.tenders;
     const validTenders = tenders.filter(
-        (s) => s.status == ("COMPLETED" as SquarePaymentStatus)
+        (s) => s.status === ("COMPLETED" as SquarePaymentStatus)
     );
     if (!validTenders.length) {
         // const _status = Array.from(new Set(cTx.squarePayment.checkout.tenders.map(s =>s.status)));
@@ -131,8 +132,8 @@ export async function finalizeSalesCheckout({ salesPaymentId }: Props) {
                         //         id: squarePayment.id,
                         //     },
                         // },
-                        note: `payment via square checkout`,
-                        status: `success` as SalesPaymentStatus,
+                        note: "payment via square checkout",
+                        status: "success" as SalesPaymentStatus,
                         transactionId: cTx.id,
                         squarePaymentsId: squarePayment.id,
 
@@ -209,26 +210,21 @@ export async function finalizeSalesCheckout({ salesPaymentId }: Props) {
             amount: totalAmount,
         },
     });
-    await Promise.all(
-        Object.values(salesRepsNotifications).map(async (notification) => {
-            if (!notification.salesRepId || !notification.customerId) return;
-
-            const service = new NotificationService(tasks, {
-                db: prisma as any,
-            }).setEmployeeRecipients(notification.salesRepId);
-
-            await service.send("sales_checkout_success", {
-                author: {
-                    id: notification.customerId,
-                    role: "customer",
-                },
-                payload: {
-                    orderNos: notification.ordersNo,
-                    customerName: notification.customerName,
-                    totalAmount: notification.amount,
-                },
-            });
-        })
+    await sendPaymentSystemNotifications(
+        tasks,
+        {
+            db: prisma,
+        },
+        Object.values(salesRepsNotifications).map((notification) =>
+            buildSalesCheckoutSuccessNotificationEvent({
+                amount: notification.amount,
+                customerId: notification.customerId,
+                customerName: notification.customerName,
+                orderNos: notification.ordersNo,
+                recipientEmployeeId: notification.salesRepId,
+                recipientEmail: undefined,
+            })
+        )
     );
     return {
         proms,

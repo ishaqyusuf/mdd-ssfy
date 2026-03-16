@@ -5,6 +5,7 @@ import type {
 	SalesPaymentStatus,
 } from "../../constants";
 import type { CustomerTransactionType } from "../../types";
+import { buildSalesCheckoutSuccessNotificationEvent } from "../contracts";
 import type {
 	SalesCheckoutNotificationSeed,
 	SalesCheckoutOrderSummary,
@@ -99,6 +100,16 @@ export async function applyLegacySalesCheckoutSettlement(
 	});
 
 	return {
+		events: Array.from(notificationsByEmail.values()).map((notification) =>
+			buildSalesCheckoutSuccessNotificationEvent({
+				amount: notification.amount,
+				customerId: notification.customerId,
+				customerName: notification.customerName,
+				orderNos: notification.ordersNo,
+				recipientEmployeeId: notification.salesRepId,
+				recipientEmail: notification.email,
+			}),
+		),
 		notifications: Array.from(notificationsByEmail.values()),
 	};
 }

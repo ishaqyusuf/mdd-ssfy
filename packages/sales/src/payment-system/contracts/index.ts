@@ -49,3 +49,4 @@ export interface OrderPaymentProjection {
 }
 
 export * from "./checkout";
+export * from "./payment-events";

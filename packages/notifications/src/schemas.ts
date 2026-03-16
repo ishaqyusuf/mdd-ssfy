@@ -88,9 +88,41 @@ export const salesCheckoutSuccessTags = actityTagsSchema.extend({
 	customerName: z.string().optional(),
 	totalAmount: z.number().optional(),
 });
-export type SalesCheckoutSuccessTags = z.infer<
-	typeof salesCheckoutSuccessTags
+export type SalesCheckoutSuccessTags = z.infer<typeof salesCheckoutSuccessTags>;
+
+export const salesPaymentRecordedSchema = z.object({
+	orderNo: z.string(),
+	customerName: z.string().optional(),
+	amount: z.number(),
+	paymentMethod: z.string(),
+});
+export type SalesPaymentRecordedInput = z.infer<
+	typeof salesPaymentRecordedSchema
 >;
+export const salesPaymentRecordedTags = actityTagsSchema.extend({
+	orderNo: z.string(),
+	customerName: z.string().optional(),
+	amount: z.number(),
+	paymentMethod: z.string(),
+});
+export type SalesPaymentRecordedTags = z.infer<typeof salesPaymentRecordedTags>;
+
+export const salesPaymentRefundedSchema = z.object({
+	orderNo: z.string(),
+	customerName: z.string().optional(),
+	amount: z.number(),
+	reason: z.string().optional(),
+});
+export type SalesPaymentRefundedInput = z.infer<
+	typeof salesPaymentRefundedSchema
+>;
+export const salesPaymentRefundedTags = actityTagsSchema.extend({
+	orderNo: z.string(),
+	customerName: z.string().optional(),
+	amount: z.number(),
+	reason: z.string().optional(),
+});
+export type SalesPaymentRefundedTags = z.infer<typeof salesPaymentRefundedTags>;
 
 export const jobActivitySchema = z.object({
 	users: z.array(userSchema).optional().nullable(),
@@ -233,6 +265,8 @@ export type JobTaskConfiguredTags = z.infer<typeof jobTaskConfiguredTags>;
 
 export type NotificationTypes = {
 	sales_checkout_success: SalesCheckoutSuccessInput;
+	sales_payment_recorded: SalesPaymentRecordedInput;
+	sales_payment_refunded: SalesPaymentRefundedInput;
 	// job_activity: JobActivityInput;
 	job_assigned: JobAssignedInput;
 	job_submitted: JobSubmittedInput;
@@ -732,6 +766,14 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_checkout_success"),
 		payload: salesCheckoutSuccessSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("sales_payment_recorded"),
+		payload: salesPaymentRecordedSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("sales_payment_refunded"),
+		payload: salesPaymentRefundedSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("job_assigned"),

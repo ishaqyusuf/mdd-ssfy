@@ -2,6 +2,12 @@
 
 ## 2026-03-16
 
+- Added a standalone public checkout v2 route at `apps/www/src/app/(payment)/checkout/[token]/v2` that preserves the legacy `/checkout/[token]` experience while reusing the new payment-system-backed tRPC checkout flow.
+- Added dedicated v2 payment UI components in `apps/www/src/components/square-token-checkout-v2*.tsx` with:
+  - order-level preview
+  - explicit invalid/expired/processing/paid/failed states
+  - Square checkout launch via `checkout.createSalesCheckoutLink`
+  - post-redirect verification via `checkout.verifyPayment`
 - Started the sales accounting source-of-truth migration foundation.
 - Added canonical schema foundations for payment and resolution streams in `packages/db/src/schema/sales.payment-system.prisma`:
   - `PaymentLedgerEntry`
@@ -56,6 +62,12 @@
   - shared report builder in `packages/sales/src/resolution-system/reports/payment-reconciliation-report.ts`
   - root runner script `scripts/payment-system-reconciliation-report.mjs`
   - root command `bun run payment:reconciliation-report -- --limit <n> [--json]`
+- Added a package-level payment notification-event contract in `packages/sales/src/payment-system/contracts/payment-events.ts` so shared payment flows can emit standardized notification events without hard-coding `NotificationService` in domain/application code.
+- Updated checkout settlement to consume the shared payment notification event contract, and extended manual/refund payment writers to return package-owned notification events for future delivery adapters.
+- Added centralized payment notification dispatch in `packages/notifications/src/payment-system.ts` and new notification channels/templates for:
+  - `sales_payment_recorded`
+  - `sales_payment_refunded`
+- Rewired checkout, manual payment, refund, and legacy finalize-checkout flows to use the centralized payment notification dispatcher instead of sending payment notifications inline.
 - Attempted to apply the payment-system migration and run the reconciliation report in the current environment, but both are currently blocked by local DB connectivity to `localhost:3306`.
 - Created ADR `brain/decisions/ADR-001-payment-and-resolution-boundaries.md` to lock the new module boundaries before broader cutover work.
 

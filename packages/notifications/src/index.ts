@@ -24,6 +24,7 @@ import { jobReviewRequested } from "./types/job-review-requested";
 import { jobSubmitted } from "./types/job-submitted";
 import { jobTaskConfigured } from "./types/job-task-configured";
 import { jobTaskConfigureRequest } from "./types/job-tasks-configure-request";
+import { salesCheckoutSuccess } from "./types/sales-checkout-success";
 import { salesDispatchAssigned } from "./types/sales-dispatch-assigned";
 import { salesDispatchCancelled } from "./types/sales-dispatch-cancelled";
 import { salesDispatchCompleted } from "./types/sales-dispatch-completed";
@@ -36,11 +37,12 @@ import { salesDispatchPackingReset } from "./types/sales-dispatch-packing-reset"
 import { salesDispatchQueued } from "./types/sales-dispatch-queued";
 import { salesDispatchTripCanceled } from "./types/sales-dispatch-trip-canceled";
 import { salesDispatchUnassigned } from "./types/sales-dispatch-unassigned";
-import { salesCheckoutSuccess } from "./types/sales-checkout-success";
 import { salesEmailReminder } from "./types/sales-email-reminder";
 import { salesInfo } from "./types/sales-info";
 import { salesItemInfo } from "./types/sales-item-info";
 import { salesMarkedAsProductionCompleted } from "./types/sales-marked-as-production-completed";
+import { salesPaymentRecorded } from "./types/sales-payment-recorded";
+import { salesPaymentRefunded } from "./types/sales-payment-refunded";
 import { salesReminderScheduleAdminNotification } from "./types/sales-reminder-schedule-admin-notification";
 import { salesRequestPacking } from "./types/sales-request-packing";
 import { simpleSalesEmailReminder } from "./types/simple-sales-email-reminder";
@@ -84,6 +86,8 @@ const handlers = {
 	sales_request_packing: salesRequestPacking,
 	dispatch_packing_delay: dispatchPackingDelay,
 	sales_dispatch_duplicate_alert: salesDispatchDuplicateAlert,
+	sales_payment_recorded: salesPaymentRecorded,
+	sales_payment_refunded: salesPaymentRefunded,
 } as const;
 import { generateEmailMeta } from "./utils";
 

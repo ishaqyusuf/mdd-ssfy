@@ -1,15 +1,19 @@
 import type { TRPCContext } from "@api/trpc/init";
 import type { TransactionClient } from "@gnd/db";
+import { sendPaymentSystemNotifications } from "@gnd/notifications/payment-system";
 import {
 	applyLegacySalesCheckoutSettlement,
 	createPendingLegacySalesCheckout,
 	linkLegacySalesCheckoutSquareOrder,
 	resolveSalesCheckoutToken,
 } from "@gnd/sales";
+import type {
+	PaymentSystemNotificationEvent,
+	SalesCheckoutSuccessNotificationPayload,
+} from "@gnd/sales";
 import { SQUARE_LOCATION_ID, squareClient } from "@gnd/square";
 import { timeout } from "@gnd/utils";
 import { getAppUrl } from "@gnd/utils/envs";
-import { NotificationService } from "@notifications/services/triggers";
 import type {
 	CustomerTransanctionStatus,
 	SalesPaymentMethods,
@@ -151,15 +155,10 @@ export const verifyPaymentSchema = z.object({
 });
 export type VerifyPaymentSchema = z.infer<typeof verifyPaymentSchema>;
 
-type SalesCheckoutNotification = {
-	amount: number;
-	customerId: number | null;
-	customerName?: string;
-	ordersNo: string[];
-	salesRepId: number;
-};
-
-let salesRepsNotifications: Record<string, SalesCheckoutNotification>;
+let salesRepsNotifications: Record<
+	string,
+	PaymentSystemNotificationEvent<SalesCheckoutSuccessNotificationPayload>
+>;
 export async function verifyPayment(
 	ctx: TRPCContext,
 	query: VerifyPaymentSchema,
@@ -167,7 +166,7 @@ export async function verifyPayment(
 	amount?: number;
 	tip?: number | null;
 	status?: SquarePaymentStatus | "error";
-	notifications?: SalesCheckoutNotification[];
+	notifications?: PaymentSystemNotificationEvent<SalesCheckoutSuccessNotificationPayload>[];
 }> {
 	salesRepsNotifications = {};
 	const attempts = query.attempts || 1;
@@ -284,7 +283,7 @@ export async function verifyPayment(
 	const notifications =
 		"notifications" in result ? result.notifications || [] : [];
 	if (result.status === "COMPLETED") {
-		await sendSalesCheckoutNotifications(ctx, notifications);
+		await sendPaymentSystemNotifications(tasks, ctx, notifications);
 	}
 	return result;
 }
@@ -327,36 +326,11 @@ export async function paymentSuccess(
 			);
 		},
 	});
-	for (const notification of settlement.notifications) {
-		salesRepsNotifications[notification.email] = notification;
+	for (const event of settlement.events) {
+		salesRepsNotifications[
+			event.recipientEmail || `${event.recipientEmployeeId}`
+		] = event;
 	}
-}
-
-async function sendSalesCheckoutNotifications(
-	ctx: TRPCContext,
-	notifications: SalesCheckoutNotification[],
-) {
-	await Promise.all(
-		notifications.map(async (notification) => {
-			if (!notification.salesRepId || !notification.customerId) return;
-
-			const service = new NotificationService(tasks, {
-				db: ctx.db,
-			}).setEmployeeRecipients(notification.salesRepId);
-
-			await service.send("sales_checkout_success", {
-				author: {
-					id: notification.customerId,
-					role: "customer",
-				},
-				payload: {
-					orderNos: notification.ordersNo,
-					customerName: notification.customerName,
-					totalAmount: notification.amount,
-				},
-			});
-		}),
-	);
 }
 
 /*

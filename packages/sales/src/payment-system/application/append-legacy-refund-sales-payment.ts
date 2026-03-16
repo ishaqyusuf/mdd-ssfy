@@ -1,4 +1,5 @@
 import type { Db, TransactionClient } from "@gnd/db";
+import { buildSalesPaymentRefundedNotificationEvent } from "../contracts";
 import { mirrorLegacyRefundSalesPayment } from "../infrastructure";
 
 export interface AppendLegacyRefundSalesPaymentInput {
@@ -52,6 +53,29 @@ export async function appendLegacyRefundSalesPayment(
 				select: {
 					orderId: true,
 					id: true,
+					order: {
+						select: {
+							customerId: true,
+							orderId: true,
+							customer: {
+								select: {
+									name: true,
+									businessName: true,
+								},
+							},
+							billingAddress: {
+								select: {
+									name: true,
+								},
+							},
+							salesRep: {
+								select: {
+									email: true,
+									id: true,
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -66,5 +90,28 @@ export async function appendLegacyRefundSalesPayment(
 			walletId: transaction.wallet?.id,
 		});
 	}
-	return transaction;
+	const events =
+		salesPayment?.order?.salesRep?.id != null
+			? [
+					buildSalesPaymentRefundedNotificationEvent({
+						amount: input.refundAmount,
+						reason: input.reason,
+						seed: {
+							customerId: salesPayment.order.customerId,
+							customerName:
+								salesPayment.order.customer?.businessName ||
+								salesPayment.order.customer?.name ||
+								salesPayment.order.billingAddress?.name ||
+								undefined,
+							orderNo: salesPayment.order.orderId,
+							salesRepEmail: salesPayment.order.salesRep.email,
+							salesRepId: salesPayment.order.salesRep.id,
+						},
+					}),
+				]
+			: [];
+	return {
+		...transaction,
+		events,
+	};
 }

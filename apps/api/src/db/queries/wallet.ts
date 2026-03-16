@@ -1,4 +1,5 @@
 import type { TRPCContext } from "@api/trpc/init";
+import { sendPaymentSystemNotifications } from "@gnd/notifications/payment-system";
 import {
 	appendLegacyRefundSalesPayment,
 	cancelLegacyCustomerTransaction,
@@ -10,6 +11,7 @@ import { squareCreateRefund } from "@gnd/square";
 import { SALES_PAYMENT_METHODS, SALES_REFUND_METHODS } from "@sales/constants";
 import type { CustomerTransanctionStatus } from "@sales/constants";
 import type { CustomerTransactionType } from "@sales/types";
+import { tasks } from "@trigger.dev/sdk/v3";
 import { z } from "zod";
 import { getAuthUser } from "./user";
 export const resolvePaymentSchema = z.object({
@@ -79,6 +81,9 @@ export async function resolvePayment(ctx: TRPCContext, data: ResolvePayment) {
 				authorId: ctx.userId,
 				authorName: user.name,
 			});
+			if (tx.events?.length) {
+				await sendPaymentSystemNotifications(tasks, ctx, tx.events);
+			}
 			walletId = tx.wallet?.id;
 			const sp = tx.salesPayments?.[0];
 			orderId = sp?.orderId;

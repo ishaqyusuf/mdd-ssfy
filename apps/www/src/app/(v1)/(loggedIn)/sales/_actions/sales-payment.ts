@@ -3,11 +3,13 @@
 import { prisma } from "@/db";
 import { toFixed } from "@/lib/use-number";
 import type { ISalesSetting } from "@/types/post";
+import { sendPaymentSystemNotifications } from "@gnd/notifications/payment-system";
 import {
 	deleteLegacySalesPayment,
 	recordLegacySalesPayment,
 	repairLegacySalesPaymentBalance,
 } from "@gnd/sales";
+import { tasks } from "@trigger.dev/sdk/v3";
 
 import {
 	creditTransaction,
@@ -93,6 +95,16 @@ export async function applyPaymentAction({
 						},
 					},
 				});
+			}
+
+			if (paymentWrite.events?.length) {
+				await sendPaymentSystemNotifications(
+					tasks,
+					{
+						db: prisma,
+					},
+					paymentWrite.events,
+				);
 			}
 		}),
 	);

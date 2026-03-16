@@ -9,6 +9,8 @@ export const channelNames = [
 	"job_task_configure_request",
 	"job_task_configured",
 	"sales_checkout_success",
+	"sales_payment_recorded",
+	"sales_payment_refunded",
 	"sales_info",
 	"sales_item_info",
 	"sales_dispatch_info",
@@ -126,6 +128,18 @@ export const channelsConfig: Partial<{
 		priority: 5,
 		category: "Sales",
 	},
+	sales_payment_recorded: {
+		name: "Sales Payment Recorded",
+		description: "Send when a payment is recorded against a sales order.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_payment_refunded: {
+		name: "Sales Payment Refunded",
+		description: "Send when a refund is recorded against a sales order.",
+		priority: 5,
+		category: "Sales",
+	},
 	sales_info: {
 		name: "Sales Info",
 		description: "Send sales notes and info updates.",
@@ -208,7 +222,8 @@ export const channelsConfig: Partial<{
 	},
 	sales_dispatch_packing_reset: {
 		name: "Dispatch Packing Reset",
-		description: "Send when dispatch packing is reset and status returns to queue.",
+		description:
+			"Send when dispatch packing is reset and status returns to queue.",
 		priority: 5,
 		category: "Sales",
 	},

@@ -6,6 +6,7 @@ import type {
 } from "../../constants";
 import { calculateSalesDueAmount } from "../../sales-transaction";
 import type { CustomerTransactionType } from "../../types";
+import { buildSalesPaymentRecordedNotificationEvent } from "../contracts";
 import { mirrorPostedLegacySalesPayment } from "../infrastructure";
 
 export interface RecordLegacySalesPaymentInput {
@@ -52,6 +53,7 @@ export async function recordLegacySalesPayment(
 				order: {
 					select: {
 						id: true,
+						customerId: true,
 						orderId: true,
 						customer: {
 							select: {
@@ -87,8 +89,30 @@ export async function recordLegacySalesPayment(
 			walletId: input.walletId,
 		});
 
+		const events =
+			salesPayment?.order?.salesRep?.id != null
+				? [
+						buildSalesPaymentRecordedNotificationEvent({
+							amount: salesPayment.amount,
+							paymentMethod: input.paymentMethod,
+							seed: {
+								customerId: salesPayment.order.customerId,
+								customerName:
+									salesPayment.order.customer?.businessName ||
+									salesPayment.order.customer?.name ||
+									salesPayment.order.billingAddress?.name ||
+									undefined,
+								orderNo: salesPayment.order.orderId,
+								salesRepEmail: salesPayment.order.salesRep.email,
+								salesRepId: salesPayment.order.salesRep.id,
+							},
+						}),
+					]
+				: [];
+
 		return {
 			customerTransactionId: input.customerTransactionId,
+			events,
 			salesPayment,
 		};
 	}
@@ -147,6 +171,7 @@ export async function recordLegacySalesPayment(
 					order: {
 						select: {
 							id: true,
+							customerId: true,
 							orderId: true,
 							customer: {
 								select: {
@@ -187,8 +212,30 @@ export async function recordLegacySalesPayment(
 		});
 	}
 
+	const events =
+		salesPayment?.order?.salesRep?.id != null
+			? [
+					buildSalesPaymentRecordedNotificationEvent({
+						amount: salesPayment.amount,
+						paymentMethod: input.paymentMethod,
+						seed: {
+							customerId: salesPayment.order.customerId,
+							customerName:
+								salesPayment.order.customer?.businessName ||
+								salesPayment.order.customer?.name ||
+								salesPayment.order.billingAddress?.name ||
+								undefined,
+							orderNo: salesPayment.order.orderId,
+							salesRepEmail: salesPayment.order.salesRep.email,
+							salesRepId: salesPayment.order.salesRep.id,
+						},
+					}),
+				]
+			: [];
+
 	return {
 		customerTransactionId: transaction.id,
+		events,
 		salesPayment,
 	};
 }
