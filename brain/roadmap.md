@@ -6,6 +6,7 @@
 - Harden API boundaries and query/mutation surfaces.
 - Align web/mobile UI usage with shared package interfaces.
 - Close validation gaps (typecheck/lint/build + critical runtime checks).
+- Expand sales payment checkout into an account-aware customer flow with flexible payment selection, longer-lived tokens, wallet visibility, and dashboard entry.
 
 ## Mid Term
 
