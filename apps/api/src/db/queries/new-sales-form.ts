@@ -50,6 +50,12 @@ type NewSalesFormContainer = {
   [key: string]: unknown;
 };
 
+type NewSalesFormSettings = {
+  cccPercentage: number;
+  taxCode: string | null;
+  customerProfileId: number | null;
+};
+
 function safeMeta(meta: unknown): NewSalesFormContainer {
   if (!meta || typeof meta !== "object" || Array.isArray(meta)) {
     return {};
@@ -72,11 +78,34 @@ function roundCurrency(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
-function recalculateSummary(input: RecalculateNewSalesFormSchema) {
+function deriveNewSalesFormSettings(settingMeta?: unknown): NewSalesFormSettings {
+  const settingsMeta = safeRecord(settingMeta);
+  const nestedSettingsMeta = safeRecord(settingsMeta.data);
+  return {
+    cccPercentage: Number(
+      settingsMeta.ccc ?? nestedSettingsMeta.ccc ?? 3.5,
+    ) || 3.5,
+    taxCode:
+      (settingsMeta.taxCode as string | null | undefined) ??
+      (nestedSettingsMeta.taxCode as string | null | undefined) ??
+      null,
+    customerProfileId:
+      Number(
+        settingsMeta.customerProfileId ??
+          nestedSettingsMeta.customerProfileId ??
+          0,
+      ) || null,
+  };
+}
+
+function recalculateSummary(
+  input: RecalculateNewSalesFormSchema & { cccPercentage?: number | null },
+) {
   const summary = calculateSalesFormSummary({
     strategy: "legacy",
     taxRate: input.taxRate,
     paymentMethod: input.paymentMethod,
+    cccPercentage: input.cccPercentage,
     lineItems: input.lineItems,
     extraCosts: input.extraCosts,
   });
@@ -92,6 +121,7 @@ function recalculateSummary(input: RecalculateNewSalesFormSchema) {
     labor: summary.labor,
     delivery: summary.delivery,
     otherCosts: summary.otherCosts,
+    ccc: summary.ccc,
   };
 }
 
@@ -252,7 +282,7 @@ function toBootstrapPayload(order: {
     email: string | null;
   } | null;
   meta: unknown;
-}) {
+}, settings: NewSalesFormSettings) {
   const container = safeMeta(order.meta);
   const persisted = container.newSalesForm;
   const persistedLines = persisted?.lineItems || [];
@@ -386,6 +416,7 @@ function toBootstrapPayload(order: {
   const summary = recalculateSummary({
     taxRate,
     paymentMethod: (persisted?.form?.paymentMethod as string | null | undefined) || null,
+    cccPercentage: settings.cccPercentage,
     extraCosts: persistedExtraCosts.length
       ? persistedExtraCosts.map((cost) => ({
           type: cost.type,
@@ -414,6 +445,7 @@ function toBootstrapPayload(order: {
       order.updatedAt?.toISOString() ||
       new Date().toISOString(),
     customer: order.customer,
+    settings,
     form: {
       customerId: order.customerId,
       customerProfileId: order.customerProfileId,
@@ -450,15 +482,25 @@ function toBootstrapPayload(order: {
       labor: Number(summary.labor || 0),
       delivery: Number(summary.delivery || 0),
       otherCosts: Number(summary.otherCosts || 0),
+      ccc: Number(summary.ccc || 0),
     },
   };
 }
 
 export async function bootstrapNewSalesForm(
-  _ctx: TRPCContext,
+  ctx: TRPCContext,
   input: BootstrapNewSalesFormSchema,
 ) {
   bootstrapNewSalesFormSchema.parse(input);
+  const setting = await ctx.db.settings.findFirst({
+    where: {
+      type: "sales-settings",
+    },
+    select: {
+      meta: true,
+    },
+  });
+  const settings = deriveNewSalesFormSettings(setting?.meta);
   const now = new Date().toISOString();
   return {
     salesId: null,
@@ -469,9 +511,10 @@ export async function bootstrapNewSalesForm(
     version: `new-${Date.now()}-${generateRandomString(6)}`,
     updatedAt: now,
     customer: null,
+    settings,
     form: {
       customerId: input.customerId || null,
-      customerProfileId: null,
+      customerProfileId: settings.customerProfileId,
       billingAddressId: null,
       shippingAddressId: null,
       paymentTerm: DEFAULT_PAYMENT_TERM,
@@ -480,7 +523,7 @@ export async function bootstrapNewSalesForm(
       po: null,
       notes: null,
       deliveryOption: DEFAULT_DELIVERY_OPTION,
-      taxCode: null,
+      taxCode: settings.taxCode,
     },
     lineItems: [],
     extraCosts: [
@@ -504,6 +547,7 @@ export async function bootstrapNewSalesForm(
       labor: 0,
       delivery: 0,
       otherCosts: 0,
+      ccc: 0,
     },
   };
 }
@@ -513,7 +557,8 @@ export async function getNewSalesForm(
   input: GetNewSalesFormSchema,
 ) {
   getNewSalesFormSchema.parse(input);
-  const order = await ctx.db.salesOrders.findFirst({
+  const [order, setting] = await Promise.all([
+    ctx.db.salesOrders.findFirst({
     where: {
       slug: input.slug,
       type: input.type,
@@ -659,7 +704,16 @@ export async function getNewSalesForm(
         },
       },
     },
-  });
+    }),
+    ctx.db.settings.findFirst({
+      where: {
+        type: "sales-settings",
+      },
+      select: {
+        meta: true,
+      },
+    }),
+  ]);
 
   if (!order) {
     throw new TRPCError({
@@ -667,7 +721,7 @@ export async function getNewSalesForm(
       message: "Sales form not found.",
     });
   }
-  return toBootstrapPayload(order);
+  return toBootstrapPayload(order, deriveNewSalesFormSettings(setting?.meta));
 }
 
 export async function getNewSalesFormStepRouting(
@@ -906,11 +960,22 @@ export async function getNewSalesFormShelfProducts(
 }
 
 export async function recalculateNewSalesForm(
-  _ctx: TRPCContext,
+  ctx: TRPCContext,
   input: RecalculateNewSalesFormSchema,
 ) {
   const data = recalculateNewSalesFormSchema.parse(input);
-  return recalculateSummary(data);
+  const setting = await ctx.db.settings.findFirst({
+    where: {
+      type: "sales-settings",
+    },
+    select: {
+      meta: true,
+    },
+  });
+  return recalculateSummary({
+    ...data,
+    cccPercentage: deriveNewSalesFormSettings(setting?.meta).cccPercentage,
+  });
 }
 
 export async function resolveNewSalesCustomer(
@@ -931,6 +996,15 @@ async function saveNewSalesFormInternal(
   status: string,
 ) {
   const normalizedLines = normalizeLineItems(payload.lineItems);
+  const setting = await ctx.db.settings.findFirst({
+    where: {
+      type: "sales-settings",
+    },
+    select: {
+      meta: true,
+    },
+  });
+  const settings = deriveNewSalesFormSettings(setting?.meta);
   const summary = recalculateSummary({
     taxRate: payload.summary.taxRate,
     extraCosts: payload.extraCosts.map((cost) => ({
@@ -940,6 +1014,7 @@ async function saveNewSalesFormInternal(
     })),
     lineItems: normalizedLines,
     paymentMethod: payload.meta.paymentMethod || null,
+    cccPercentage: settings.cccPercentage,
   });
 
   return ctx.db.$transaction(async (tx) => {

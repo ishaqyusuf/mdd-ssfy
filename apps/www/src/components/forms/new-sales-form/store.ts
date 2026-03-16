@@ -91,6 +91,7 @@ function withDirty(record: NewSalesFormRecord | null) {
         record.summary?.taxRate || 0,
         normalizeExtraCosts(record.extraCosts || []),
         record.form?.paymentMethod || null,
+        (record as any).settings?.cccPercentage,
     );
     return {
         ...record,
@@ -133,13 +134,13 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
             if (!state.record) return state;
             return {
                 ...state,
-                record: {
+                record: withDirty({
                     ...state.record,
                     form: normalizeMeta({
                         ...state.record.form,
                         ...patch,
                     }),
-                },
+                }),
                 dirty: true,
                 saveStatus: state.saveStatus === "error" ? "idle" : state.saveStatus,
             };

@@ -137,6 +137,8 @@ export function InvoiceOverviewPanel() {
     const addOnTotal = (record.extraCosts || [])
         .filter((cost) => !["Labor", "Discount", "DiscountPercentage"].includes(cost.type))
         .reduce((sum, cost) => sum + Number(cost.amount || 0), 0);
+    const cccPercentage = Number((record as any).settings?.cccPercentage ?? 3.5);
+    const showCcc = String(record.form.paymentMethod || "").trim().toLowerCase() === "credit card";
 
     const creditUsed = Number(record.summary.grandTotal || 0);
     const usagePct = creditLimit > 0 ? Math.min(100, Math.max(0, (creditUsed / creditLimit) * 100)) : 0;
@@ -587,6 +589,13 @@ export function InvoiceOverviewPanel() {
                         </div>
                     </div>
 
+                    <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-muted-foreground">Tax Amount</span>
+                        <span className="text-sm font-bold text-foreground">
+                            {currency(record.summary.taxTotal)}
+                        </span>
+                    </div>
+
                     <div className="flex items-center justify-between gap-4">
                         <div className="flex flex-col">
                             <span className="text-sm font-medium text-muted-foreground">Total Labor Cost</span>
@@ -627,6 +636,22 @@ export function InvoiceOverviewPanel() {
                         </button>
                         <span className="text-xs font-bold text-muted-foreground">+{currency(addOnTotal)}</span>
                     </div>
+
+                    {showCcc ? (
+                        <div className="flex items-center justify-between">
+                            <div className="flex flex-col">
+                                <span className="text-sm font-medium text-muted-foreground">
+                                    CCC ({cccPercentage}%)
+                                </span>
+                                <span className="text-[10px] text-muted-foreground">
+                                    Credit card processing surcharge
+                                </span>
+                            </div>
+                            <span className="text-sm font-bold text-foreground">
+                                {currency(record.summary.ccc)}
+                            </span>
+                        </div>
+                    ) : null}
 
                     <div className="mt-2 flex items-center justify-between rounded-lg border border-primary/10 bg-primary/5 p-4">
                         <div className="flex flex-col">

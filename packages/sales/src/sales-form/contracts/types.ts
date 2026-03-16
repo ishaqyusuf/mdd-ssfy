@@ -36,6 +36,7 @@ export type CalculateSalesFormSummaryInput = {
   lineItems: SalesFormLineItemLike[];
   extraCosts?: SalesFormExtraCostLike[];
   paymentMethod?: string | null;
+  cccPercentage?: number | null;
   strategy?: NewSalesFormCostingStrategy;
 };
 

@@ -7,6 +7,17 @@ import { Input } from "@gnd/ui/input";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { Skeleton } from "@gnd/ui/skeleton";
 import {
+    Combobox,
+    ComboboxAnchor,
+    ComboboxBadgeItem,
+    ComboboxBadgeList,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxTrigger,
+} from "@gnd/ui/combobox";
+import {
     Dialog,
     DialogContent,
     DialogDescription,
@@ -20,6 +31,7 @@ import { MouldingCalculator } from "@/components/moulding-calculator";
 import { FileUploader } from "@/components/common/file-uploader";
 import {
     DoorOpen,
+    ChevronDown,
     ExternalLink,
     Filter,
     Hammer,
@@ -29,6 +41,7 @@ import {
     Ruler,
     Trash2,
     WalletCards,
+    X,
 } from "lucide-react";
 import { useNewSalesFormStore } from "../store";
 import {
@@ -53,10 +66,12 @@ import {
 import {
     applyMultiSelectStepMutation,
     applySingleSelectStepMutation,
+    buildShelfSections,
     buildConfiguredRouteSteps,
     buildSelectedByStepUid,
     buildSelectedProdUidsByStepUid,
     compactStepValue,
+    flattenShelfSections,
     getSelectedProdUids,
     isComponentVisibleByRules,
     mergeConfiguredSeriesWithExisting,
@@ -89,6 +104,257 @@ const MULTI_SELECT_STEP_TITLES = new Set([
 
 function stepKey(lineUid: string, stepIndex: number) {
     return `${lineUid}:${stepIndex}`;
+}
+function shelfUid(prefix: string) {
+    return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+}
+function createShelfProductDraft() {
+    return {
+        uid: shelfUid("shelf-product"),
+        id: null,
+        categoryId: null,
+        productId: null,
+        description: "",
+        qty: 1,
+        unitPrice: 0,
+        totalPrice: 0,
+        meta: {},
+    };
+}
+function createShelfSectionDraft() {
+    return {
+        uid: shelfUid("shelf-section"),
+        categoryIds: [],
+        parentCategoryId: null,
+        categoryId: null,
+        rows: [createShelfProductDraft()],
+        subTotal: 0,
+    };
+}
+function getShelfChildCategories(categories: any[], parentId?: number | null) {
+    return (categories || []).filter((category: any) => {
+        const categoryParentId = Number(
+            category?.categoryId ?? category?.parentCategoryId ?? 0,
+        );
+        if (!parentId) {
+            return String(category?.type || "").toLowerCase() === "parent";
+        }
+        return categoryParentId === Number(parentId || 0);
+    });
+}
+function getShelfLeafCategoryIds(categories: any[], categoryId?: number | null) {
+    const targetId = Number(categoryId || 0);
+    if (!targetId) return [];
+    const children = getShelfChildCategories(categories || [], targetId);
+    if (!children.length) return [targetId];
+    return children.flatMap((child: any) =>
+        getShelfLeafCategoryIds(categories || [], Number(child?.id || 0)),
+    );
+}
+function buildShelfProductsById(products: any[]) {
+    return new Map(
+        (products || []).map((product: any) => [Number(product?.id || 0), product]),
+    );
+}
+function ShelfCategoryPathInput({
+    categories,
+    categoryIds,
+    onChange,
+}: {
+    categories: any[];
+    categoryIds: number[];
+    onChange: (ids: number[]) => void;
+}) {
+    const [open, setOpen] = useState(false);
+    const [inputValue, setInputValue] = useState("");
+    const selectedIds = Array.isArray(categoryIds) ? categoryIds : [];
+    const lastSelectedId = selectedIds.length
+        ? selectedIds[selectedIds.length - 1]
+        : null;
+    const options = useMemo(
+        () => getShelfChildCategories(categories, lastSelectedId),
+        [categories, lastSelectedId],
+    );
+    const filteredOptions = useMemo(() => {
+        const normalized = inputValue.trim().toLowerCase();
+        if (!normalized) return options;
+        return options.filter((option: any) =>
+            String(option?.name || "")
+                .toLowerCase()
+                .includes(normalized),
+        );
+    }, [inputValue, options]);
+
+    return (
+        <Combobox
+            open={open}
+            onOpenChange={setOpen}
+            value={selectedIds.map(String)}
+            onValueChange={(value) => {
+                const nextId = Number(value);
+                if (!nextId) return;
+                onChange([...selectedIds, nextId]);
+                setInputValue("");
+            }}
+            multiple
+            inputValue={inputValue}
+            onInputValueChange={setInputValue}
+            manualFiltering
+            className="w-full"
+            autoHighlight
+        >
+            <ComboboxAnchor className="relative min-h-10 flex-wrap px-3 py-2">
+                <ComboboxBadgeList>
+                    {selectedIds.map((item, index) => {
+                        const option = (categories || []).find(
+                            (category: any) =>
+                                Number(category?.id || 0) === Number(item || 0),
+                        );
+                        if (!option) return null;
+                        return (
+                            <ComboboxBadgeItem
+                                key={`shelf-cat-badge-${item}`}
+                                value={String(item)}
+                                noDelete={!(selectedIds.length - 1 === index)}
+                                onDelete={(e) => {
+                                    e.preventDefault();
+                                    onChange(selectedIds.slice(0, index));
+                                }}
+                            >
+                                {option.name}
+                            </ComboboxBadgeItem>
+                        );
+                    })}
+                    {selectedIds.length > 1 ? (
+                        <ComboboxBadgeItem
+                            value="clear"
+                            onDelete={(e) => {
+                                e.preventDefault();
+                                onChange([]);
+                                setInputValue("");
+                            }}
+                        >
+                            Clear
+                        </ComboboxBadgeItem>
+                    ) : null}
+                </ComboboxBadgeList>
+                {options.length ? (
+                    <>
+                        <ComboboxInput
+                            className="h-auto min-w-20 flex-1"
+                            placeholder="Select category..."
+                            onFocus={() => setOpen(true)}
+                        />
+                        <ComboboxTrigger className="absolute right-2 top-3">
+                            <ChevronDown className="h-4 w-4" />
+                        </ComboboxTrigger>
+                    </>
+                ) : null}
+            </ComboboxAnchor>
+            {options.length ? (
+                <ComboboxContent className="relative max-h-[280px] overflow-y-auto overflow-x-hidden">
+                    <ComboboxEmpty>No category found</ComboboxEmpty>
+                    {filteredOptions.map((option: any) => (
+                        <ComboboxItem
+                            key={`shelf-cat-option-${option.id}`}
+                            value={String(option.id)}
+                            outset
+                        >
+                            {option.name}
+                        </ComboboxItem>
+                    ))}
+                </ComboboxContent>
+            ) : null}
+        </Combobox>
+    );
+}
+function ShelfProductCombobox({
+    products,
+    value,
+    onChange,
+    disabled,
+}: {
+    products: any[];
+    value?: number | null;
+    onChange: (productId: number | null) => void;
+    disabled?: boolean;
+}) {
+    const [open, setOpen] = useState(false);
+    const selectedProduct = (products || []).find(
+        (product: any) => Number(product?.id || 0) === Number(value || 0),
+    );
+    const [inputValue, setInputValue] = useState(
+        selectedProduct?.title || "",
+    );
+    useEffect(() => {
+        setInputValue(selectedProduct?.title || "");
+    }, [selectedProduct?.title]);
+    const filteredProducts = useMemo(() => {
+        const normalized = inputValue.trim().toLowerCase();
+        if (!normalized) return products || [];
+        return (products || []).filter((product: any) =>
+            String(product?.title || "")
+                .toLowerCase()
+                .includes(normalized),
+        );
+    }, [inputValue, products]);
+
+    return (
+        <Combobox
+            open={open}
+            onOpenChange={setOpen}
+            value={value ? String(value) : ""}
+            onValueChange={(next) => {
+                const nextId = Number(next || 0) || null;
+                onChange(nextId);
+                setTimeout(() => {
+                    if (nextId) setOpen(false);
+                }, 100);
+            }}
+            inputValue={inputValue}
+            onInputValueChange={setInputValue}
+            manualFiltering
+            className="w-full"
+            autoHighlight
+            disabled={disabled}
+        >
+            <ComboboxAnchor className="relative h-full min-h-10 flex-wrap px-3 py-2">
+                <ComboboxInput
+                    className="h-auto min-w-20 flex-1"
+                    placeholder="Select product..."
+                    onFocus={() => setOpen(true)}
+                />
+                {value ? (
+                    <ComboboxTrigger
+                        onClick={(e) => {
+                            e.preventDefault();
+                            setInputValue("");
+                            onChange(null);
+                        }}
+                        className="absolute right-2 top-3"
+                    >
+                        <X className="h-4 w-4" />
+                    </ComboboxTrigger>
+                ) : (
+                    <ComboboxTrigger className="absolute right-2 top-3">
+                        <ChevronDown className="h-4 w-4" />
+                    </ComboboxTrigger>
+                )}
+            </ComboboxAnchor>
+            <ComboboxContent className="relative max-h-[300px] overflow-y-auto overflow-x-hidden">
+                <ComboboxEmpty>No product found</ComboboxEmpty>
+                {filteredProducts.map((product: any) => (
+                    <ComboboxItem
+                        key={`shelf-product-option-${product.id}`}
+                        value={String(product.id)}
+                        outset
+                    >
+                        {product.title}
+                    </ComboboxItem>
+                ))}
+            </ComboboxContent>
+        </Combobox>
+    );
 }
 function isMultiSelectStepTitle(title?: string | null) {
     return MULTI_SELECT_STEP_TITLES.has(normalizeTitle(title));
@@ -614,6 +880,9 @@ export function ItemWorkflowPanel() {
                             Number(row?.categoryId || 0),
                             Number(
                                 (row?.meta as any)?.shelfParentCategoryId || 0,
+                            ),
+                            ...(((row?.meta as any)?.categoryIds || []) as any[]).map(
+                                (value: any) => Number(value || 0),
                             ),
                         ])
                         .filter((id) => id > 0),
@@ -3315,8 +3584,19 @@ export function ItemWorkflowPanel() {
                     <div className="space-y-3 rounded-lg border p-3">
                         {(() => {
                             const currentRows = line.shelfItems || [];
-                            const persistRows = (nextRowsRaw: any[]) => {
-                                const next = summarizeShelfRows(nextRowsRaw);
+                            const sections = buildShelfSections(
+                                currentRows,
+                                activeProfileCoefficient,
+                            );
+                            const persistSections = (nextSections: any[]) => {
+                                const flatRows = flattenShelfSections(
+                                    nextSections,
+                                    activeProfileCoefficient,
+                                );
+                                const next = summarizeShelfRows(
+                                    flatRows,
+                                    activeProfileCoefficient,
+                                );
                                 updateLineItem(line.uid, {
                                     shelfItems: next.rows,
                                     qty: next.qtyTotal,
@@ -3326,7 +3606,7 @@ export function ItemWorkflowPanel() {
                             };
                             return (
                                 <>
-                                    <div className="flex items-center">
+                                    <div className="flex items-center gap-2">
                                         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                                             Shelf Items
                                         </p>
@@ -3335,300 +3615,376 @@ export function ItemWorkflowPanel() {
                                             variant="outline"
                                             className="ml-auto"
                                             onClick={() =>
-                                                persistRows([
-                                                    ...currentRows,
-                                                    {
-                                                        id: null,
-                                                        categoryId: null,
-                                                        productId: null,
-                                                        description: "",
-                                                        qty: 1,
-                                                        unitPrice: 0,
-                                                        totalPrice: 0,
-                                                        meta: {},
-                                                    },
+                                                persistSections([
+                                                    ...sections,
+                                                    createShelfSectionDraft(),
                                                 ])
                                             }
                                         >
-                                            Add Shelf Row
+                                            Add Section
                                         </Button>
                                     </div>
-                                    {currentRows.length ? (
+                                    {sections.length ? (
                                         <div className="space-y-2">
-                                            {currentRows.map((row, idx) => (
-                                                <div
-                                                    key={`shelf-row-${idx}`}
-                                                    className="grid gap-2 md:grid-cols-12"
-                                                >
-                                                    {(() => {
-                                                        const rowMeta =
-                                                            (row?.meta ||
-                                                                {}) as any;
-                                                        const selectedParentId =
-                                                            Number(
-                                                                rowMeta?.shelfParentCategoryId ||
-                                                                    0,
-                                                            ) || null;
-                                                        const childCategories =
-                                                            shelfCategories.filter(
-                                                                (
-                                                                    category: any,
-                                                                ) => {
-                                                                    if (
-                                                                        String(
-                                                                            category?.type ||
-                                                                                "",
-                                                                        ).toLowerCase() !==
-                                                                        "child"
-                                                                    )
-                                                                        return false;
-                                                                    return (
-                                                                        Number(
-                                                                            category?.parentCategoryId ||
-                                                                                0,
-                                                                        ) ===
+                                            {sections.map(
+                                                (section: any, sectionIndex: number) => {
+                                                    const categoryIds = Array.isArray(
+                                                        section?.categoryIds,
+                                                    )
+                                                        ? section.categoryIds
+                                                        : [];
+                                                    const leafCategoryIds =
+                                                        getShelfLeafCategoryIds(
+                                                            shelfCategories,
+                                                            categoryIds.length
+                                                                ? categoryIds[
+                                                                      categoryIds.length -
+                                                                          1
+                                                                  ]
+                                                                : null,
+                                                        );
+                                                    const productOptions = Array.from(
+                                                        new Map(
+                                                            leafCategoryIds
+                                                                .flatMap(
+                                                                    (
+                                                                        categoryId,
+                                                                    ) =>
+                                                                        shelfProductsByCategory.get(
                                                                             Number(
-                                                                                selectedParentId ||
+                                                                                categoryId ||
                                                                                     0,
-                                                                            ) ||
+                                                                            ),
+                                                                        ) || [],
+                                                                )
+                                                                .map(
+                                                                    (
+                                                                        product: any,
+                                                                    ) => [
                                                                         Number(
-                                                                            category?.categoryId ||
+                                                                            product?.id ||
                                                                                 0,
-                                                                        ) ===
-                                                                            Number(
-                                                                                selectedParentId ||
-                                                                                    0,
-                                                                            )
-                                                                    );
-                                                                },
-                                                            );
-                                                        const selectedCategoryId =
-                                                            Number(
-                                                                row.categoryId ||
-                                                                    0,
-                                                            ) || null;
-                                                        const productOptions =
-                                                            shelfProductsByCategory.get(
-                                                                Number(
-                                                                    selectedCategoryId ||
-                                                                        selectedParentId ||
-                                                                        0,
+                                                                        ),
+                                                                        product,
+                                                                    ],
                                                                 ),
-                                                            ) || [];
-                                                        return (
-                                                            <>
-                                                                <select
-                                                                    className="h-10 rounded-md border border-input bg-background px-3 text-sm md:col-span-2"
-                                                                    value={
-                                                                        selectedParentId ??
-                                                                        ""
-                                                                    }
-                                                                    onChange={(
-                                                                        e,
-                                                                    ) => {
-                                                                        const parentCategoryId =
-                                                                            e
-                                                                                .target
-                                                                                .value
-                                                                                ? Number(
-                                                                                      e
-                                                                                          .target
-                                                                                          .value,
-                                                                                  )
-                                                                                : null;
-                                                                        persistRows(
-                                                                            currentRows.map(
-                                                                                (
-                                                                                    item,
-                                                                                    i,
-                                                                                ) =>
-                                                                                    i ===
-                                                                                    idx
-                                                                                        ? {
-                                                                                              ...item,
-                                                                                              categoryId:
-                                                                                                  null,
-                                                                                              productId:
-                                                                                                  null,
-                                                                                              meta: {
-                                                                                                  ...((item?.meta ||
-                                                                                                      {}) as any),
-                                                                                                  shelfParentCategoryId:
-                                                                                                      parentCategoryId,
-                                                                                              },
-                                                                                          }
-                                                                                        : item,
-                                                                            ),
-                                                                        );
-                                                                    }}
-                                                                >
-                                                                    <option value="">
-                                                                        Parent
-                                                                    </option>
-                                                                    {shelfParentCategories.map(
-                                                                        (
-                                                                            category: any,
-                                                                        ) => (
-                                                                            <option
-                                                                                key={`shelf-parent-cat-${category.id}`}
-                                                                                value={
-                                                                                    category.id
-                                                                                }
-                                                                            >
-                                                                                {
-                                                                                    category.name
-                                                                                }
-                                                                            </option>
-                                                                        ),
-                                                                    )}
-                                                                </select>
-                                                                <select
-                                                                    className="h-10 rounded-md border border-input bg-background px-3 text-sm md:col-span-2"
-                                                                    value={
-                                                                        selectedCategoryId ??
-                                                                        ""
-                                                                    }
-                                                                    onChange={(
-                                                                        e,
-                                                                    ) => {
-                                                                        const categoryId =
-                                                                            e
-                                                                                .target
-                                                                                .value
-                                                                                ? Number(
-                                                                                      e
-                                                                                          .target
-                                                                                          .value,
-                                                                                  )
-                                                                                : null;
-                                                                        persistRows(
-                                                                            currentRows.map(
-                                                                                (
-                                                                                    item,
-                                                                                    i,
-                                                                                ) =>
-                                                                                    i ===
-                                                                                    idx
-                                                                                        ? {
-                                                                                              ...item,
-                                                                                              categoryId,
-                                                                                              productId:
-                                                                                                  null,
-                                                                                          }
-                                                                                        : item,
-                                                                            ),
-                                                                        );
-                                                                    }}
-                                                                    disabled={
-                                                                        !selectedParentId
+                                                        ).values(),
+                                                    );
+                                                    const productsById =
+                                                        buildShelfProductsById(
+                                                            productOptions,
+                                                        );
+                                                    const patchSection = (
+                                                        patch:
+                                                            | Record<string, unknown>
+                                                            | ((section: any) => any),
+                                                    ) => {
+                                                        persistSections(
+                                                            sections.map(
+                                                                (item: any, i: number) =>
+                                                                    i === sectionIndex
+                                                                        ? typeof patch ===
+                                                                          "function"
+                                                                            ? patch(
+                                                                                  item,
+                                                                              )
+                                                                            : {
+                                                                                  ...item,
+                                                                                  ...patch,
+                                                                              }
+                                                                        : item,
+                                                            ),
+                                                        );
+                                                    };
+                                                    return (
+                                                        <div
+                                                            key={`shelf-section-${section.uid}`}
+                                                            className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3"
+                                                        >
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <p className="text-xs font-bold uppercase tracking-wide text-slate-700">
+                                                                    Section{" "}
+                                                                    {sectionIndex + 1}
+                                                                </p>
+                                                                <span className="rounded-full bg-slate-200 px-2 py-1 text-[10px] font-semibold text-slate-700">
+                                                                    {money(
+                                                                        section.subTotal,
+                                                                    ) || "$0.00"}
+                                                                </span>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="ghost"
+                                                                    className="ml-auto"
+                                                                    onClick={() =>
+                                                                        patchSection({
+                                                                            parentCategoryId:
+                                                                                null,
+                                                                            categoryId:
+                                                                                null,
+                                                                            rows: [
+                                                                                createShelfProductDraft(),
+                                                                            ],
+                                                                        })
                                                                     }
                                                                 >
-                                                                    <option value="">
-                                                                        Category
-                                                                    </option>
-                                                                    {childCategories.map(
-                                                                        (
-                                                                            category: any,
-                                                                        ) => (
-                                                                            <option
-                                                                                key={`shelf-child-cat-${category.id}`}
-                                                                                value={
-                                                                                    category.id
-                                                                                }
-                                                                            >
-                                                                                {
-                                                                                    category.name
-                                                                                }
-                                                                            </option>
-                                                                        ),
-                                                                    )}
-                                                                </select>
-                                                                <select
-                                                                    className="h-10 rounded-md border border-input bg-background px-3 text-sm md:col-span-2"
-                                                                    value={
-                                                                        row.productId ??
-                                                                        ""
+                                                                    Clear
+                                                                </Button>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="destructive"
+                                                                    onClick={() =>
+                                                                        persistSections(
+                                                                            sections.filter(
+                                                                                (
+                                                                                    _: any,
+                                                                                    i: number,
+                                                                                ) =>
+                                                                                    i !==
+                                                                                    sectionIndex,
+                                                                            ),
+                                                                        )
                                                                     }
-                                                                    onChange={(
-                                                                        e,
-                                                                    ) => {
-                                                                        const productId =
-                                                                            e
-                                                                                .target
-                                                                                .value
-                                                                                ? Number(
-                                                                                      e
-                                                                                          .target
-                                                                                          .value,
-                                                                                  )
-                                                                                : null;
-                                                                        const selectedProduct =
-                                                                            productOptions.find(
-                                                                                (
-                                                                                    product: any,
-                                                                                ) =>
-                                                                                    Number(
-                                                                                        product?.id ||
+                                                                >
+                                                                    Remove Section
+                                                                </Button>
+                                                            </div>
+
+                                                            <div className="grid gap-2 md:grid-cols-12">
+                                                                <div className="md:col-span-6">
+                                                                    <ShelfCategoryPathInput
+                                                                        categories={
+                                                                            shelfCategories
+                                                                        }
+                                                                        categoryIds={
+                                                                            categoryIds
+                                                                        }
+                                                                        onChange={(
+                                                                            nextCategoryIds,
+                                                                        ) =>
+                                                                            patchSection({
+                                                                                categoryIds:
+                                                                                    nextCategoryIds,
+                                                                                parentCategoryId:
+                                                                                    nextCategoryIds[0] ??
+                                                                                    null,
+                                                                                categoryId:
+                                                                                    nextCategoryIds.length
+                                                                                        ? nextCategoryIds[
+                                                                                              nextCategoryIds.length -
+                                                                                                  1
+                                                                                          ]
+                                                                                        : null,
+                                                                                rows: (
+                                                                                    section?.rows ||
+                                                                                    []
+                                                                                ).map(
+                                                                                    (
+                                                                                        row: any,
+                                                                                    ) => ({
+                                                                                        ...row,
+                                                                                        categoryId:
+                                                                                            nextCategoryIds.length
+                                                                                                ? nextCategoryIds[
+                                                                                                      nextCategoryIds.length -
+                                                                                                          1
+                                                                                                  ]
+                                                                                                : null,
+                                                                                        productId:
+                                                                                            null,
+                                                                                        description:
+                                                                                            "",
+                                                                                        unitPrice:
                                                                                             0,
-                                                                                    ) ===
-                                                                                    Number(
-                                                                                        productId ||
+                                                                                        totalPrice:
                                                                                             0,
-                                                                                    ),
-                                                                            );
-                                                                        persistRows(
-                                                                            currentRows.map(
+                                                                                        meta: {
+                                                                                            ...(row?.meta ||
+                                                                                                {}),
+                                                                                            categoryIds:
+                                                                                                nextCategoryIds,
+                                                                                            shelfParentCategoryId:
+                                                                                                nextCategoryIds[0] ??
+                                                                                                null,
+                                                                                            basePrice:
+                                                                                                0,
+                                                                                            salesPrice:
+                                                                                                0,
+                                                                                            customPrice:
+                                                                                                null,
+                                                                                        },
+                                                                                    }),
+                                                                                ),
+                                                                            })
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                                <div className="md:col-span-6 flex items-center justify-end">
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        onClick={() =>
+                                                                            patchSection(
                                                                                 (
-                                                                                    item,
-                                                                                    i,
-                                                                                ) =>
-                                                                                    i ===
-                                                                                    idx
-                                                                                        ? {
-                                                                                              ...item,
-                                                                                              productId,
-                                                                                              description:
-                                                                                                  selectedProduct?.title ??
-                                                                                                  item.description,
-                                                                                              unitPrice:
+                                                                                    current: any,
+                                                                                ) => ({
+                                                                                    ...current,
+                                                                                    rows: [
+                                                                                        ...(current?.rows ||
+                                                                                            []),
+                                                                                        createShelfProductDraft(),
+                                                                                    ],
+                                                                                }),
+                                                                            )
+                                                                        }
+                                                                    >
+                                                                        Add Product
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="space-y-2">
+                                                                <div className="hidden grid-cols-12 gap-2 px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground md:grid">
+                                                                    <span className="md:col-span-3">
+                                                                        Product
+                                                                    </span>
+                                                                    <span className="md:col-span-3">
+                                                                        Description
+                                                                    </span>
+                                                                    <span className="md:col-span-2 text-right">
+                                                                        Price
+                                                                    </span>
+                                                                    <span className="md:col-span-1 text-right">
+                                                                        Qty
+                                                                    </span>
+                                                                    <span className="md:col-span-2 text-right">
+                                                                        Total
+                                                                    </span>
+                                                                    <span className="md:col-span-1" />
+                                                                </div>
+                                                                {(section?.rows || []).map(
+                                                                    (
+                                                                        row: any,
+                                                                        rowIndex: number,
+                                                                    ) => (
+                                                <div
+                                                    key={`shelf-row-${section.uid}-${row.uid || rowIndex}`}
+                                                    className="grid gap-2 rounded-lg border border-white/80 bg-white p-2 md:grid-cols-12"
+                                                >
+                                                    <div className="md:col-span-3">
+                                                        <ShelfProductCombobox
+                                                            products={
+                                                                productOptions
+                                                            }
+                                                            value={
+                                                                row.productId
+                                                            }
+                                                            disabled={
+                                                                !categoryIds.length
+                                                            }
+                                                            onChange={(
+                                                                productId,
+                                                            ) => {
+                                                                const selectedProduct =
+                                                                    productsById.get(
+                                                                        Number(
+                                                                            productId ||
+                                                                                0,
+                                                                        ),
+                                                                    ) || null;
+                                                                patchSection(
+                                                                    (
+                                                                        current: any,
+                                                                    ) => ({
+                                                                        ...current,
+                                                                        rows: (
+                                                                            current?.rows ||
+                                                                            []
+                                                                        ).map(
+                                                                            (
+                                                                                item: any,
+                                                                                i: number,
+                                                                            ) =>
+                                                                                i ===
+                                                                                rowIndex
+                                                                                    ? {
+                                                                                          ...item,
+                                                                                          categoryId:
+                                                                                              current?.categoryId ??
+                                                                                              item?.categoryId ??
+                                                                                              null,
+                                                                                          productId,
+                                                                                          description:
+                                                                                              selectedProduct?.title ??
+                                                                                              item.description,
+                                                                                          unitPrice:
+                                                                                              selectedProduct?.unitPrice ==
+                                                                                              null
+                                                                                                  ? item.unitPrice
+                                                                                                  : profileAdjustedDoorSalesPrice(
+                                                                                                        null,
+                                                                                                        Number(
+                                                                                                            selectedProduct.unitPrice,
+                                                                                                        ),
+                                                                                                        activeProfileCoefficient,
+                                                                                                    ),
+                                                                                          totalPrice:
+                                                                                              0,
+                                                                                          meta: {
+                                                                                              ...(item?.meta ||
+                                                                                                  {}),
+                                                                                              categoryIds:
+                                                                                                  current?.categoryIds ||
+                                                                                                  item?.meta
+                                                                                                      ?.categoryIds ||
+                                                                                                  [],
+                                                                                              shelfParentCategoryId:
+                                                                                                  current?.parentCategoryId ??
+                                                                                                  item?.meta
+                                                                                                      ?.shelfParentCategoryId ??
+                                                                                                  null,
+                                                                                              basePrice:
                                                                                                   selectedProduct?.unitPrice ==
                                                                                                   null
-                                                                                                      ? item.unitPrice
+                                                                                                      ? Number(
+                                                                                                            item
+                                                                                                                ?.meta
+                                                                                                                ?.basePrice ||
+                                                                                                                0,
+                                                                                                        )
                                                                                                       : Number(
                                                                                                             selectedProduct.unitPrice,
                                                                                                         ),
-                                                                                          }
-                                                                                        : item,
-                                                                            ),
-                                                                        );
-                                                                    }}
-                                                                    disabled={
-                                                                        !selectedParentId
-                                                                    }
-                                                                >
-                                                                    <option value="">
-                                                                        Product
-                                                                    </option>
-                                                                    {productOptions.map(
-                                                                        (
-                                                                            product: any,
-                                                                        ) => (
-                                                                            <option
-                                                                                key={`shelf-prod-${product.id}`}
-                                                                                value={
-                                                                                    product.id
-                                                                                }
-                                                                            >
-                                                                                {
-                                                                                    product.title
-                                                                                }
-                                                                            </option>
+                                                                                              salesPrice:
+                                                                                                  selectedProduct?.unitPrice ==
+                                                                                                  null
+                                                                                                      ? Number(
+                                                                                                            item
+                                                                                                                ?.meta
+                                                                                                                ?.salesPrice ||
+                                                                                                                item.unitPrice ||
+                                                                                                                0,
+                                                                                                        )
+                                                                                                      : profileAdjustedDoorSalesPrice(
+                                                                                                            null,
+                                                                                                            Number(
+                                                                                                                selectedProduct.unitPrice,
+                                                                                                            ),
+                                                                                                            activeProfileCoefficient,
+                                                                                                        ),
+                                                                                              customPrice:
+                                                                                                  item
+                                                                                                      ?.meta
+                                                                                                      ?.customPrice ??
+                                                                                                  null,
+                                                                                          },
+                                                                                      }
+                                                                                    : item,
                                                                         ),
-                                                                    )}
-                                                                </select>
-                                                            </>
-                                                        );
-                                                    })()}
+                                                                    }),
+                                                                );
+                                                            }}
+                                                        />
+                                                    </div>
                                                     <Input
                                                         className="md:col-span-3"
                                                         value={
@@ -3636,89 +3992,234 @@ export function ItemWorkflowPanel() {
                                                             ""
                                                         }
                                                         onChange={(e) =>
-                                                            persistRows(
-                                                                currentRows.map(
-                                                                    (
-                                                                        item,
-                                                                        i,
-                                                                    ) =>
-                                                                        i ===
-                                                                        idx
-                                                                            ? {
-                                                                                  ...item,
-                                                                                  description:
-                                                                                      e
-                                                                                          .target
-                                                                                          .value,
-                                                                              }
-                                                                            : item,
-                                                                ),
+                                                            patchSection(
+                                                                (current: any) => ({
+                                                                    ...current,
+                                                                    rows: (
+                                                                        current?.rows ||
+                                                                        []
+                                                                    ).map(
+                                                                        (
+                                                                            item: any,
+                                                                            i: number,
+                                                                        ) =>
+                                                                            i ===
+                                                                            rowIndex
+                                                                                ? {
+                                                                                      ...item,
+                                                                                      description:
+                                                                                          e
+                                                                                              .target
+                                                                                              .value,
+                                                                                  }
+                                                                                : item,
+                                                                    ),
+                                                                }),
                                                             )
                                                         }
                                                         placeholder="Description"
                                                     />
+                                                    <div className="md:col-span-2">
+                                                        <Menu
+                                                            noSize
+                                                            Icon={null}
+                                                            label={
+                                                                <Button
+                                                                    variant="outline"
+                                                                    className="h-10 w-full justify-end text-xs font-semibold"
+                                                                >
+                                                                    {money(
+                                                                        row?.meta
+                                                                            ?.customPrice ??
+                                                                            row?.meta
+                                                                                ?.salesPrice ??
+                                                                            row.unitPrice,
+                                                                    ) || "$0.00"}
+                                                                </Button>
+                                                            }
+                                                        >
+                                                            <div className="min-w-[260px] space-y-3 p-2">
+                                                                <div className="space-y-1">
+                                                                    <p className="text-xs font-bold uppercase text-muted-foreground">
+                                                                        Edit Shelf Price
+                                                                    </p>
+                                                                    <p className="text-xs text-muted-foreground">
+                                                                        Base price recalculates sales price. Custom price overrides the final line price.
+                                                                    </p>
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    <Label className="text-xs">
+                                                                        Base Price
+                                                                    </Label>
+                                                                    <Input
+                                                                        type="number"
+                                                                        step="0.01"
+                                                                        value={
+                                                                            row
+                                                                                ?.meta
+                                                                                ?.basePrice ??
+                                                                            0
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            patchSection(
+                                                                                (
+                                                                                    current: any,
+                                                                                ) => ({
+                                                                                    ...current,
+                                                                                    rows: (
+                                                                                        current?.rows ||
+                                                                                        []
+                                                                                    ).map(
+                                                                                        (
+                                                                                            item: any,
+                                                                                            i: number,
+                                                                                        ) => {
+                                                                                            if (
+                                                                                                i !==
+                                                                                                rowIndex
+                                                                                            )
+                                                                                                return item;
+                                                                                            const nextBase =
+                                                                                                Number(
+                                                                                                    e
+                                                                                                        .target
+                                                                                                        .value ||
+                                                                                                        0,
+                                                                                                );
+                                                                                            return {
+                                                                                                ...item,
+                                                                                                meta: {
+                                                                                                    ...(item?.meta ||
+                                                                                                        {}),
+                                                                                                    basePrice:
+                                                                                                        nextBase,
+                                                                                                    salesPrice:
+                                                                                                        profileAdjustedDoorSalesPrice(
+                                                                                                            null,
+                                                                                                            nextBase,
+                                                                                                            activeProfileCoefficient,
+                                                                                                        ),
+                                                                                                },
+                                                                                            };
+                                                                                        },
+                                                                                    ),
+                                                                                }),
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                                <div className="flex justify-between text-xs">
+                                                                    <span className="text-muted-foreground">
+                                                                        Calculated Sales
+                                                                    </span>
+                                                                    <span className="font-semibold">
+                                                                        {money(
+                                                                            row
+                                                                                ?.meta
+                                                                                ?.salesPrice ??
+                                                                                row.unitPrice,
+                                                                        ) ||
+                                                                            "$0.00"}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    <Label className="text-xs">
+                                                                        Custom Price
+                                                                    </Label>
+                                                                    <Input
+                                                                        type="number"
+                                                                        step="0.01"
+                                                                        value={
+                                                                            row
+                                                                                ?.meta
+                                                                                ?.customPrice ??
+                                                                            ""
+                                                                        }
+                                                                        onChange={(
+                                                                            e,
+                                                                        ) =>
+                                                                            patchSection(
+                                                                                (
+                                                                                    current: any,
+                                                                                ) => ({
+                                                                                    ...current,
+                                                                                    rows: (
+                                                                                        current?.rows ||
+                                                                                        []
+                                                                                    ).map(
+                                                                                        (
+                                                                                            item: any,
+                                                                                            i: number,
+                                                                                        ) =>
+                                                                                            i ===
+                                                                                            rowIndex
+                                                                                                ? {
+                                                                                                      ...item,
+                                                                                                      meta: {
+                                                                                                          ...(item?.meta ||
+                                                                                                              {}),
+                                                                                                          customPrice:
+                                                                                                              e
+                                                                                                                  .target
+                                                                                                                  .value ===
+                                                                                                              ""
+                                                                                                                  ? null
+                                                                                                                  : Number(
+                                                                                                                        e
+                                                                                                                            .target
+                                                                                                                            .value ||
+                                                                                                                            0,
+                                                                                                                    ),
+                                                                                                      },
+                                                                                                  }
+                                                                                                : item,
+                                                                                    ),
+                                                                                }),
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </Menu>
+                                                    </div>
                                                     <Input
-                                                        className="md:col-span-1"
+                                                        className="md:col-span-1 text-right"
                                                         type="number"
                                                         value={row.qty || 0}
                                                         onChange={(e) =>
-                                                            persistRows(
-                                                                currentRows.map(
-                                                                    (
-                                                                        item,
-                                                                        i,
-                                                                    ) =>
-                                                                        i ===
-                                                                        idx
-                                                                            ? {
-                                                                                  ...item,
-                                                                                  qty: Number(
-                                                                                      e
-                                                                                          .target
-                                                                                          .value ||
-                                                                                          0,
-                                                                                  ),
-                                                                              }
-                                                                            : item,
-                                                                ),
-                                                            )
-                                                        }
-                                                        placeholder="Qty"
-                                                    />
-                                                    <Input
-                                                        className="md:col-span-2"
-                                                        type="number"
-                                                        step="0.01"
-                                                        value={
-                                                            row.unitPrice || 0
-                                                        }
-                                                        onChange={(e) =>
-                                                            persistRows(
-                                                                currentRows.map(
-                                                                    (
-                                                                        item,
-                                                                        i,
-                                                                    ) =>
-                                                                        i ===
-                                                                        idx
-                                                                            ? {
-                                                                                  ...item,
-                                                                                  unitPrice:
-                                                                                      Number(
+                                                            patchSection(
+                                                                (current: any) => ({
+                                                                    ...current,
+                                                                    rows: (
+                                                                        current?.rows ||
+                                                                        []
+                                                                    ).map(
+                                                                        (
+                                                                            item: any,
+                                                                            i: number,
+                                                                        ) =>
+                                                                            i ===
+                                                                            rowIndex
+                                                                                ? {
+                                                                                      ...item,
+                                                                                      qty: Number(
                                                                                           e
                                                                                               .target
                                                                                               .value ||
                                                                                               0,
                                                                                       ),
-                                                                              }
-                                                                            : item,
-                                                                ),
+                                                                                  }
+                                                                                : item,
+                                                                    ),
+                                                                }),
                                                             )
                                                         }
-                                                        placeholder="Unit"
+                                                        placeholder="Qty"
                                                     />
                                                     <Input
-                                                        className="md:col-span-1"
+                                                        className="md:col-span-2 text-right"
                                                         value={
                                                             money(
                                                                 row.totalPrice,
@@ -3730,23 +4231,38 @@ export function ItemWorkflowPanel() {
                                                         className="md:col-span-1"
                                                         variant="destructive"
                                                         onClick={() =>
-                                                            persistRows(
-                                                                currentRows.filter(
-                                                                    (_, i) =>
-                                                                        i !==
-                                                                        idx,
-                                                                ),
+                                                            patchSection(
+                                                                (current: any) => ({
+                                                                    ...current,
+                                                                    rows: (
+                                                                        current?.rows ||
+                                                                        []
+                                                                    ).filter(
+                                                                        (
+                                                                            _: any,
+                                                                            i: number,
+                                                                        ) =>
+                                                                            i !==
+                                                                            rowIndex,
+                                                                    ),
+                                                                }),
                                                             )
                                                         }
                                                     >
                                                         X
                                                     </Button>
                                                 </div>
-                                            ))}
+                                                                    ),
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                },
+                                            )}
                                         </div>
                                     ) : (
                                         <p className="text-sm text-muted-foreground">
-                                            No shelf rows yet.
+                                            No shelf sections yet.
                                         </p>
                                     )}
                                 </>

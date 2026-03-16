@@ -12,6 +12,90 @@ function roundCurrency(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
+function computeSalesMultiplier(coefficient?: number | null) {
+  const coeff = Number(coefficient || 0);
+  return Number.isFinite(coeff) && coeff > 0
+    ? roundCurrency(1 / coeff)
+    : 1;
+}
+
+function profileAdjustedSalesPrice(
+  salesPrice: number | null | undefined,
+  basePrice: number | null | undefined,
+  coefficient?: number | null,
+) {
+  const base = Number(basePrice);
+  const sales = Number(salesPrice);
+  const multiplier = computeSalesMultiplier(coefficient);
+  if (Number.isFinite(base) && base > 0 && multiplier > 0) {
+    return roundCurrency(base * multiplier);
+  }
+  if (Number.isFinite(sales) && sales > 0) return sales;
+  if (Number.isFinite(base) && base > 0) return base;
+  return 0;
+}
+
+function isShelfPlaceholderRow(row: any) {
+  const description = String(row?.description || "").trim();
+  const meta = row?.meta || {};
+  const basePrice = firstFiniteNumber(
+    row?.basePrice,
+    row?.baseUnitPrice,
+    meta?.basePrice,
+    meta?.baseUnitPrice,
+  );
+  const customPrice = firstFiniteNumber(row?.customPrice, meta?.customPrice);
+  return !row?.productId && !description && basePrice == null && customPrice == null;
+}
+
+function normalizeShelfProductRow(
+  row: any,
+  index: number,
+  profileCoefficient?: number | null,
+) {
+  const meta = row?.meta || {};
+  const qty = Number(row?.qty ?? 0);
+  const basePrice =
+    firstFiniteNumber(
+      row?.basePrice,
+      row?.baseUnitPrice,
+      meta?.basePrice,
+      meta?.baseUnitPrice,
+      row?.unitPrice,
+    ) ?? 0;
+  const salesPrice = profileAdjustedSalesPrice(
+    firstFiniteNumber(row?.salesPrice, meta?.salesPrice),
+    basePrice,
+    profileCoefficient,
+  );
+  const customPrice = firstFiniteNumber(row?.customPrice, meta?.customPrice);
+  const effectiveUnitPrice =
+    customPrice != null ? customPrice : salesPrice;
+  return {
+    ...row,
+    uid:
+      String(meta?.productRowUid || "").trim() ||
+      String(row?.uid || "").trim() ||
+      `shelf-product-${index + 1}`,
+    qty,
+    basePrice,
+    salesPrice,
+    customPrice,
+    unitPrice: effectiveUnitPrice,
+    totalPrice: roundCurrency(qty * effectiveUnitPrice),
+    meta: {
+      ...meta,
+      basePrice,
+      salesPrice,
+      customPrice,
+      productRowUid:
+        String(meta?.productRowUid || "").trim() ||
+        String(row?.uid || "").trim() ||
+        `shelf-product-${index + 1}`,
+    },
+  };
+}
+
 export function resolveSizeFromPricingKey(key: string, supplierUid?: string | null) {
   const raw = String(key || "").trim();
   if (!raw) return null;
@@ -399,20 +483,20 @@ export function summarizeServiceRows(lineUid: string, nextRowsRaw: any[]) {
   };
 }
 
-export function summarizeShelfRows(nextRowsRaw: any[]) {
-  const rows = (nextRowsRaw || []).map((row: any) => {
-    const qty = Number(row?.qty ?? 0);
-    const unitPrice = Number(row?.unitPrice ?? 0);
-    return {
-      ...row,
-      qty,
-      unitPrice,
-      totalPrice: Number((qty * unitPrice).toFixed(2)),
-    };
-  });
-  const qtyTotal = rows.reduce((sum: number, row: any) => sum + Number(row.qty || 0), 0);
+export function summarizeShelfRows(
+  nextRowsRaw: any[],
+  profileCoefficient?: number | null,
+) {
+  const rows = (nextRowsRaw || []).map((row: any, index: number) =>
+    normalizeShelfProductRow(row, index, profileCoefficient),
+  );
+  const activeRows = rows.filter((row: any) => !isShelfPlaceholderRow(row));
+  const qtyTotal = activeRows.reduce(
+    (sum: number, row: any) => sum + Number(row.qty || 0),
+    0,
+  );
   const lineTotal = Number(
-    rows
+    activeRows
       .reduce((sum: number, row: any) => sum + Number(row.totalPrice || 0), 0)
       .toFixed(2),
   );
@@ -423,6 +507,109 @@ export function summarizeShelfRows(nextRowsRaw: any[]) {
     lineTotal,
     unitPrice,
   };
+}
+
+export function buildShelfSections(
+  nextRowsRaw: any[],
+  profileCoefficient?: number | null,
+) {
+  const rows = (nextRowsRaw || []).map((row: any, index: number) =>
+    normalizeShelfProductRow(row, index, profileCoefficient),
+  );
+  const sections = new Map<string, any>();
+  rows.forEach((row: any, index: number) => {
+    const rowMeta = row?.meta || {};
+    const sectionUid =
+      String(rowMeta?.sectionUid || "").trim() || `shelf-section-${index + 1}`;
+    const existing = sections.get(sectionUid);
+    const nextRow = {
+      ...row,
+      meta: {
+        ...rowMeta,
+        sectionUid,
+      },
+    };
+    if (existing) {
+      existing.rows.push(nextRow);
+      existing.subTotal = roundCurrency(
+        existing.rows.reduce(
+          (sum: number, sectionRow: any) =>
+            sum +
+            (isShelfPlaceholderRow(sectionRow)
+              ? 0
+              : Number(sectionRow.totalPrice || 0)),
+          0,
+        ),
+      );
+      return;
+    }
+    sections.set(sectionUid, {
+      uid: sectionUid,
+      categoryIds: Array.isArray(rowMeta?.categoryIds)
+        ? rowMeta.categoryIds.map((value: any) => Number(value || 0)).filter((value: number) => value > 0)
+        : [],
+      parentCategoryId:
+        Number(rowMeta?.shelfParentCategoryId || 0) || null,
+      categoryId: Number(row?.categoryId || 0) || null,
+      rows: [nextRow],
+      subTotal: isShelfPlaceholderRow(nextRow)
+        ? 0
+        : Number(nextRow.totalPrice || 0),
+    });
+  });
+  return Array.from(sections.values());
+}
+
+export function flattenShelfSections(
+  sections: any[],
+  profileCoefficient?: number | null,
+) {
+  return (sections || []).flatMap((section: any, sectionIndex: number) => {
+    const sectionUid =
+      String(section?.uid || "").trim() || `shelf-section-${sectionIndex + 1}`;
+    const sourceRows = Array.isArray(section?.rows) ? section.rows : [];
+    const rows = sourceRows.length
+      ? sourceRows
+      : [
+          {
+            productId: null,
+            description: "",
+            qty: 1,
+            unitPrice: 0,
+            totalPrice: 0,
+            meta: {},
+          },
+        ];
+    return rows.map((row: any, rowIndex: number) =>
+      normalizeShelfProductRow(
+        {
+          ...row,
+          categoryId: firstFiniteNumber(
+            section?.categoryId,
+            row?.categoryId,
+            Array.isArray(section?.categoryIds) && section.categoryIds.length
+              ? section.categoryIds[section.categoryIds.length - 1]
+              : null,
+          ),
+          meta: {
+            ...(row?.meta || {}),
+            sectionUid,
+            categoryIds: Array.isArray(section?.categoryIds)
+              ? section.categoryIds
+              : row?.meta?.categoryIds ?? [],
+            shelfParentCategoryId:
+              section?.parentCategoryId ??
+              row?.meta?.shelfParentCategoryId ??
+              null,
+            productRowUid:
+              row?.meta?.productRowUid || row?.uid || `product-${rowIndex + 1}`,
+          },
+        },
+        rowIndex,
+        profileCoefficient,
+      ),
+    );
+  });
 }
 
 export function deriveMouldingRows({

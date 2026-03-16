@@ -42,13 +42,14 @@ describe("calculateNewSalesFormSummary", () => {
       strategy: "legacy",
       taxRate: 10,
       paymentMethod: "Credit Card",
+      cccPercentage: 3.5,
       lineItems: [{ qty: 1, unitPrice: 100 }],
       extraCosts: [],
     });
 
     expect(result.taxTotal).toBe(10);
-    expect(result.ccc).toBe(3.3);
-    expect(result.grandTotal).toBe(113.3);
+    expect(result.ccc).toBe(3.85);
+    expect(result.grandTotal).toBe(113.85);
   });
 
   it("excludes non-taxable custom costs from tax base", () => {
@@ -72,6 +73,7 @@ describe("calculateNewSalesFormSummary", () => {
       strategy: "legacy",
       taxRate: 0,
       paymentMethod: "Credit Card",
+      cccPercentage: 3.5,
       lineItems: [{ qty: 1, unitPrice: 100 }],
       extraCosts: [
         { type: "Labor", amount: 10 },
@@ -79,8 +81,22 @@ describe("calculateNewSalesFormSummary", () => {
       ],
     });
 
-    expect(result.ccc).toBe(3.3);
-    expect(result.grandTotal).toBe(133.3);
+    expect(result.ccc).toBe(3.85);
+    expect(result.grandTotal).toBe(133.85);
+  });
+
+  it("uses provided credit card percentage instead of a hardcoded default", () => {
+    const result = calculateSalesFormSummary({
+      strategy: "legacy",
+      taxRate: 0,
+      paymentMethod: "Credit Card",
+      cccPercentage: 5,
+      lineItems: [{ qty: 1, unitPrice: 100 }],
+      extraCosts: [],
+    });
+
+    expect(result.ccc).toBe(5);
+    expect(result.grandTotal).toBe(105);
   });
 
   it("derives labor from grouped door rows when labor metadata exists", () => {

@@ -98,6 +98,7 @@ export function computeSummary(
     taxRate = 0,
     extraCosts: NewSalesFormExtraCost[] = [],
     paymentMethod?: string | null,
+    cccPercentage?: number | null,
 ): NewSalesFormSummary {
     const summary = calculateSalesFormSummary({
         strategy: "legacy",
@@ -105,6 +106,7 @@ export function computeSummary(
         lineItems,
         extraCosts,
         paymentMethod,
+        cccPercentage,
     });
     return {
         subTotal: summary.subTotal,
@@ -118,6 +120,7 @@ export function computeSummary(
         labor: summary.labor,
         delivery: summary.delivery,
         otherCosts: summary.otherCosts,
+        ccc: summary.ccc,
     };
 }
 
@@ -155,6 +158,7 @@ export function hydrateRecord(record: NewSalesFormRecord): NewSalesFormRecord {
         record.summary?.taxRate || 0,
         extraCosts,
         meta.paymentMethod,
+        (record as any).settings?.cccPercentage,
     );
     return {
         ...record,
@@ -195,6 +199,7 @@ export function toSaveDraftInput(
         source.summary?.taxRate || 0,
         extraCosts,
         meta.paymentMethod,
+        (source as any).settings?.cccPercentage,
     );
     return {
         type: source.type,

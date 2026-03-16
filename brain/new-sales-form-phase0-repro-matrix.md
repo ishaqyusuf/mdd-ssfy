@@ -170,9 +170,10 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   1. Build shelf line using category/product paths in old/new.
   2. Compare editability, rollups, and persistence.
 - Expected: parity in workflow depth and totals.
-- Current observed (new): partial. Shelf rows now support parent->category->product selection with product-driven autofill, but full legacy nested category management workflow is still missing.
+- Current observed (new): partial. New form shelf flow now supports old-form-style grouped sections with parent/category/product selection, add-section/add-product actions, price editing (base -> calculated sales -> custom override), and section subtotal rollups on top of the persisted flat `shelfItems` rows. Runtime parity proof is still pending for legacy category-clear/create edge cases and reopen/save behavior on existing shelf fixtures.
 - Evidence path: `ai/new-sales-form-parity-evidence/shelf-parity/`
 - Automation target:
+  - `packages/sales/src/sales-form/domain/workflow-calculators.test.ts`
   - shelf row + category/product integration tests.
 - Triage: Partial (Implemented, Runtime Repro Pending)
 

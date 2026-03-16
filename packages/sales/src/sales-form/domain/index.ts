@@ -25,10 +25,12 @@ export {
   getSelectedProdUids,
 } from "./mutation-engine";
 export {
+  buildShelfSections,
   deriveDoorSizeCandidates,
   hasDoorSizeVariationConfig,
   deriveMouldingRows,
   deriveServiceRows,
+  flattenShelfSections,
   getRouteConfigForLine,
   resolveDoorTierPricing,
   resolvePricingBucketUnitPrice,

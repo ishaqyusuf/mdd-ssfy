@@ -1,8 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import {
+  buildShelfSections,
   deriveDoorSizeCandidates,
   deriveMouldingRows,
   deriveServiceRows,
+  flattenShelfSections,
   getRouteConfigForLine,
   resolveDoorTierPricing,
   resolvePricingBucketUnitPrice,
@@ -151,6 +153,79 @@ describe("workflow-calculators domain", () => {
     expect(summary.qtyTotal).toBe(3);
     expect(summary.lineTotal).toBe(25.5);
     expect(summary.unitPrice).toBe(8.5);
+  });
+
+  it("groups flat shelf rows into old-form-style sections", () => {
+    const sections = buildShelfSections([
+      {
+        categoryId: 20,
+        productId: 101,
+        description: "Panel",
+        qty: 2,
+        unitPrice: 15,
+        meta: {
+          sectionUid: "sec-a",
+          shelfParentCategoryId: 10,
+          productRowUid: "row-a",
+        },
+      },
+      {
+        categoryId: 20,
+        productId: 102,
+        description: "Trim",
+        qty: 1,
+        unitPrice: 5,
+        meta: {
+          sectionUid: "sec-a",
+          shelfParentCategoryId: 10,
+          productRowUid: "row-b",
+        },
+      },
+    ]);
+
+    expect(sections).toHaveLength(1);
+    expect(sections[0].uid).toBe("sec-a");
+    expect(sections[0].categoryIds).toEqual([]);
+    expect(sections[0].parentCategoryId).toBe(10);
+    expect(sections[0].categoryId).toBe(20);
+    expect(sections[0].rows).toHaveLength(2);
+    expect(sections[0].subTotal).toBe(35);
+  });
+
+  it("flattens shelf sections while preserving base/sales/custom pricing metadata", () => {
+    const rows = flattenShelfSections(
+      [
+        {
+          uid: "sec-a",
+          categoryIds: [10, 20],
+          parentCategoryId: 10,
+          categoryId: 20,
+          rows: [
+            {
+              uid: "row-a",
+              productId: 101,
+              description: "Panel",
+              qty: 2,
+              meta: {
+                basePrice: 10,
+                customPrice: 18,
+              },
+            },
+          ],
+        },
+      ],
+      0.65,
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].unitPrice).toBe(18);
+    expect(rows[0].totalPrice).toBe(36);
+    expect(rows[0].meta.sectionUid).toBe("sec-a");
+    expect(rows[0].meta.categoryIds).toEqual([10, 20]);
+    expect(rows[0].meta.shelfParentCategoryId).toBe(10);
+    expect(rows[0].meta.basePrice).toBe(10);
+    expect(rows[0].meta.salesPrice).toBe(15.4);
+    expect(rows[0].meta.customPrice).toBe(18);
   });
 
   it("derives and summarizes moulding rows", () => {

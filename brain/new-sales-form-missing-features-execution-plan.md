@@ -97,9 +97,9 @@ Deliver full behavioral parity for critical sales-form workflows by closing all 
 
 9. Shelf item feature parity
 - Legacy: `apps/www/src/components/forms/sales-form/shelf-items.tsx`
-- New: simplified shelf rows in `item-workflow-panel.tsx:1570+`
+- New: grouped shelf sections now implemented in `item-workflow-panel.tsx` on top of shared shelf adapters in `packages/sales/src/sales-form/domain/workflow-calculators.ts`
 - Status: Partial
-- Gap: reduced feature surface versus legacy shelf category/product workflow.
+- Gap: sectioned parent/category/product workflow, shelf price editing, and subtotal rollups are now implemented in code; remaining parity work is runtime verification plus any legacy-only category-create/clear edge cases that still diverge from the old shelf UI.
 
 10. Service line items tax switch + production switch
 - Legacy: `service-content.tsx` tax/prod `LineSwitch`

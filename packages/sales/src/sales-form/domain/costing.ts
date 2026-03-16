@@ -212,8 +212,11 @@ export function calculateSalesFormSummary(
     const isCreditCard =
       normalizeTitle(input.paymentMethod) === "credit card" ||
       normalizeTitle(input.paymentMethod) === "card";
+    const cccPercentage = Math.max(0, safeNumber(input.cccPercentage ?? 3.5));
     const cccBase = roundCurrency(subGrandTot + extraCostsBeforeCcc + effectiveLabor);
-    const ccc = isCreditCard ? roundCurrency((cccBase * 3) / 100) : 0;
+    const ccc = isCreditCard
+      ? roundCurrency((cccBase * cccPercentage) / 100)
+      : 0;
 
     return {
       subTotal,
