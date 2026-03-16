@@ -951,6 +951,7 @@ export async function getNewSalesFormShelfProducts(
     select: {
       id: true,
       title: true,
+      img: true,
       unitPrice: true,
       categoryId: true,
       parentCategoryId: true,

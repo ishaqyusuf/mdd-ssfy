@@ -156,14 +156,57 @@ function buildShelfProductsById(products: any[]) {
         (products || []).map((product: any) => [Number(product?.id || 0), product]),
     );
 }
+function firstFiniteValue(...values: Array<number | null | undefined>) {
+    for (const value of values) {
+        const candidate = Number(value);
+        if (Number.isFinite(candidate) && candidate > 0) return candidate;
+    }
+    return 0;
+}
+function getShelfRowBasePrice(row: any) {
+    return firstFiniteValue(row?.basePrice, row?.meta?.basePrice);
+}
+function getShelfRowSalesPrice(row: any) {
+    return firstFiniteValue(
+        row?.salesPrice,
+        row?.meta?.salesPrice,
+        row?.unitPrice,
+        row?.meta?.unitPrice,
+        row?.basePrice,
+        row?.meta?.basePrice,
+    );
+}
+function getShelfRowDisplayUnitPrice(row: any) {
+    return firstFiniteValue(
+        row?.customPrice,
+        row?.meta?.customPrice,
+        row?.salesPrice,
+        row?.meta?.salesPrice,
+        row?.unitPrice,
+        row?.meta?.unitPrice,
+        row?.basePrice,
+        row?.meta?.basePrice,
+    );
+}
+function getShelfRowDisplayTotal(row: any) {
+    const explicitTotal = Number(row?.totalPrice);
+    if (Number.isFinite(explicitTotal) && explicitTotal > 0) return explicitTotal;
+    return Number(
+        (
+            Number(row?.qty || 0) * getShelfRowDisplayUnitPrice(row)
+        ).toFixed(2),
+    );
+}
 function ShelfCategoryPathInput({
     categories,
     categoryIds,
     onChange,
+    onClearRequest,
 }: {
     categories: any[];
     categoryIds: number[];
     onChange: (ids: number[]) => void;
+    onClearRequest?: () => void;
 }) {
     const [open, setOpen] = useState(false);
     const [inputValue, setInputValue] = useState("");
@@ -191,9 +234,10 @@ function ShelfCategoryPathInput({
             onOpenChange={setOpen}
             value={selectedIds.map(String)}
             onValueChange={(value) => {
-                const nextId = Number(value);
-                if (!nextId) return;
-                onChange([...selectedIds, nextId]);
+                const nextIds = Array.isArray(value)
+                    ? value.map((entry) => Number(entry || 0)).filter((entry) => entry > 0)
+                    : [];
+                onChange(nextIds);
                 setInputValue("");
             }}
             multiple
@@ -230,6 +274,10 @@ function ShelfCategoryPathInput({
                             value="clear"
                             onDelete={(e) => {
                                 e.preventDefault();
+                                if (onClearRequest) {
+                                    onClearRequest();
+                                    return;
+                                }
                                 onChange([]);
                                 setInputValue("");
                             }}
@@ -273,11 +321,13 @@ function ShelfProductCombobox({
     value,
     onChange,
     disabled,
+    onClearRequest,
 }: {
     products: any[];
     value?: number | null;
     onChange: (productId: number | null) => void;
     disabled?: boolean;
+    onClearRequest?: () => void;
 }) {
     const [open, setOpen] = useState(false);
     const selectedProduct = (products || []).find(
@@ -328,6 +378,10 @@ function ShelfProductCombobox({
                     <ComboboxTrigger
                         onClick={(e) => {
                             e.preventDefault();
+                            if (onClearRequest) {
+                                onClearRequest();
+                                return;
+                            }
                             setInputValue("");
                             onChange(null);
                         }}
@@ -349,7 +403,27 @@ function ShelfProductCombobox({
                         value={String(product.id)}
                         outset
                     >
-                        {product.title}
+                        <div className="flex w-full items-center gap-3">
+                            {product?.img ? (
+                                <img
+                                    src={String(product.img)}
+                                    alt={String(product?.title || "Product")}
+                                    className="size-8 rounded-md border border-slate-200 object-cover"
+                                />
+                            ) : (
+                                <div className="flex size-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-500">
+                                    <Package2 className="size-4" />
+                                </div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium text-slate-900">
+                                    {product.title}
+                                </p>
+                                <p className="text-[11px] text-muted-foreground">
+                                    {money(Number(product?.unitPrice || 0))}
+                                </p>
+                            </div>
+                        </div>
                     </ComboboxItem>
                 ))}
             </ComboboxContent>
@@ -914,6 +988,10 @@ export function ItemWorkflowPanel() {
         () => shelfCategoriesQuery.data || [],
         [shelfCategoriesQuery.data],
     );
+    const [pendingShelfClear, setPendingShelfClear] = useState<{
+        sectionUid: string;
+        scope: "category" | "section";
+    } | null>(null);
     const shelfParentCategories = useMemo(
         () =>
             shelfCategories.filter(
@@ -931,6 +1009,24 @@ export function ItemWorkflowPanel() {
         const coefficient = Number(profile?.coefficient || 0);
         return Number.isFinite(coefficient) && coefficient > 0 ? coefficient : 1;
     }, [customerProfilesQuery.data, record?.form?.customerProfileId]);
+    useEffect(() => {
+        if (!activeLine || !isShelfItem(activeLine)) return;
+        if ((activeLine.shelfItems || []).length > 0) return;
+        const initialRows = flattenShelfSections(
+            [createShelfSectionDraft()],
+            activeProfileCoefficient,
+        );
+        const summary = summarizeShelfRows(
+            initialRows,
+            activeProfileCoefficient,
+        );
+        updateLineItem(activeLine.uid, {
+            shelfItems: summary.rows,
+            qty: summary.qtyTotal,
+            unitPrice: summary.unitPrice,
+            lineTotal: summary.lineTotal,
+        } as any);
+    }, [activeLine, activeProfileCoefficient, updateLineItem]);
     const activeDoorSync = useMemo(() => {
         if (!activeLine) return null;
         const storedDoors = Array.isArray(activeLine.housePackageTool?.doors)
@@ -3674,6 +3770,13 @@ export function ItemWorkflowPanel() {
                                                         buildShelfProductsById(
                                                             productOptions,
                                                         );
+                                                    const sectionHasSelectedProducts =
+                                                        (section?.rows || []).some(
+                                                            (row: any) =>
+                                                                Number(
+                                                                    row?.productId || 0,
+                                                                ) > 0,
+                                                        );
                                                     const patchSection = (
                                                         patch:
                                                             | Record<string, unknown>
@@ -3701,6 +3804,72 @@ export function ItemWorkflowPanel() {
                                                             key={`shelf-section-${section.uid}`}
                                                             className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3"
                                                         >
+                                                            <Dialog
+                                                                open={
+                                                                    pendingShelfClear?.sectionUid ===
+                                                                        section.uid &&
+                                                                    (pendingShelfClear?.scope ===
+                                                                        "category" ||
+                                                                        pendingShelfClear?.scope ===
+                                                                            "section")
+                                                                }
+                                                                onOpenChange={(
+                                                                    open,
+                                                                ) => {
+                                                                    if (!open) {
+                                                                        setPendingShelfClear(
+                                                                            null,
+                                                                        );
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <DialogContent className="max-w-sm">
+                                                                    <DialogHeader>
+                                                                        <DialogTitle>
+                                                                            Clear Categories
+                                                                        </DialogTitle>
+                                                                        <DialogDescription>
+                                                                            Clearing categories
+                                                                            will remove all
+                                                                            selected products
+                                                                            in this section.
+                                                                        </DialogDescription>
+                                                                    </DialogHeader>
+                                                                    <DialogFooter>
+                                                                        <Button
+                                                                            variant="secondary"
+                                                                            onClick={() =>
+                                                                                setPendingShelfClear(
+                                                                                    null,
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            Cancel
+                                                                        </Button>
+                                                                        <Button
+                                                                            variant="destructive"
+                                                                            onClick={() => {
+                                                                                patchSection({
+                                                                                    categoryIds:
+                                                                                        [],
+                                                                                    parentCategoryId:
+                                                                                        null,
+                                                                                    categoryId:
+                                                                                        null,
+                                                                                    rows: [
+                                                                                        createShelfProductDraft(),
+                                                                                    ],
+                                                                                });
+                                                                                setPendingShelfClear(
+                                                                                    null,
+                                                                                );
+                                                                            }}
+                                                                        >
+                                                                            Continue
+                                                                        </Button>
+                                                                    </DialogFooter>
+                                                                </DialogContent>
+                                                            </Dialog>
                                                             <div className="flex flex-wrap items-center gap-2">
                                                                 <p className="text-xs font-bold uppercase tracking-wide text-slate-700">
                                                                     Section{" "}
@@ -3715,8 +3884,24 @@ export function ItemWorkflowPanel() {
                                                                     size="sm"
                                                                     variant="ghost"
                                                                     className="ml-auto"
-                                                                    onClick={() =>
+                                                                    onClick={() => {
+                                                                        if (
+                                                                            sectionHasSelectedProducts
+                                                                        ) {
+                                                                            setPendingShelfClear(
+                                                                                {
+                                                                                    sectionUid:
+                                                                                        String(
+                                                                                            section.uid,
+                                                                                        ),
+                                                                                    scope: "section",
+                                                                                },
+                                                                            );
+                                                                            return;
+                                                                        }
                                                                         patchSection({
+                                                                            categoryIds:
+                                                                                [],
                                                                             parentCategoryId:
                                                                                 null,
                                                                             categoryId:
@@ -3724,8 +3909,8 @@ export function ItemWorkflowPanel() {
                                                                             rows: [
                                                                                 createShelfProductDraft(),
                                                                             ],
-                                                                        })
-                                                                    }
+                                                                        });
+                                                                    }}
                                                                 >
                                                                     Clear
                                                                 </Button>
@@ -3758,6 +3943,64 @@ export function ItemWorkflowPanel() {
                                                                         categoryIds={
                                                                             categoryIds
                                                                         }
+                                                                        onClearRequest={() => {
+                                                                            if (
+                                                                                sectionHasSelectedProducts
+                                                                            ) {
+                                                                                setPendingShelfClear(
+                                                                                    {
+                                                                                        sectionUid:
+                                                                                            String(
+                                                                                                section.uid,
+                                                                                            ),
+                                                                                        scope: "category",
+                                                                                    },
+                                                                                );
+                                                                                return;
+                                                                            }
+                                                                            patchSection({
+                                                                                categoryIds:
+                                                                                    [],
+                                                                                parentCategoryId:
+                                                                                    null,
+                                                                                categoryId:
+                                                                                    null,
+                                                                                rows: (
+                                                                                    section?.rows ||
+                                                                                    []
+                                                                                ).map(
+                                                                                    (
+                                                                                        row: any,
+                                                                                    ) => ({
+                                                                                        ...row,
+                                                                                        categoryId:
+                                                                                            null,
+                                                                                        productId:
+                                                                                            null,
+                                                                                        description:
+                                                                                            "",
+                                                                                        unitPrice:
+                                                                                            0,
+                                                                                        totalPrice:
+                                                                                            0,
+                                                                                        meta: {
+                                                                                            ...(row?.meta ||
+                                                                                                {}),
+                                                                                            categoryIds:
+                                                                                                [],
+                                                                                            shelfParentCategoryId:
+                                                                                                null,
+                                                                                            basePrice:
+                                                                                                0,
+                                                                                            salesPrice:
+                                                                                                0,
+                                                                                            customPrice:
+                                                                                                null,
+                                                                                        },
+                                                                                    }),
+                                                                                ),
+                                                                            });
+                                                                        }}
                                                                         onChange={(
                                                                             nextCategoryIds,
                                                                         ) =>
@@ -3844,11 +4087,8 @@ export function ItemWorkflowPanel() {
 
                                                             <div className="space-y-2">
                                                                 <div className="hidden grid-cols-12 gap-2 px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground md:grid">
-                                                                    <span className="md:col-span-3">
+                                                                    <span className="md:col-span-5">
                                                                         Product
-                                                                    </span>
-                                                                    <span className="md:col-span-3">
-                                                                        Description
                                                                     </span>
                                                                     <span className="md:col-span-2 text-right">
                                                                         Price
@@ -3870,7 +4110,7 @@ export function ItemWorkflowPanel() {
                                                     key={`shelf-row-${section.uid}-${row.uid || rowIndex}`}
                                                     className="grid gap-2 rounded-lg border border-white/80 bg-white p-2 md:grid-cols-12"
                                                 >
-                                                    <div className="md:col-span-3">
+                                                    <div className="md:col-span-5">
                                                         <ShelfProductCombobox
                                                             products={
                                                                 productOptions
@@ -3880,6 +4120,53 @@ export function ItemWorkflowPanel() {
                                                             }
                                                             disabled={
                                                                 !categoryIds.length
+                                                            }
+                                                            onClearRequest={() =>
+                                                                patchSection(
+                                                                    (
+                                                                        current: any,
+                                                                    ) => ({
+                                                                        ...current,
+                                                                        rows: (
+                                                                            current?.rows || []
+                                                                        ).map(
+                                                                            (
+                                                                                item: any,
+                                                                                i: number,
+                                                                            ) =>
+                                                                                i ===
+                                                                                rowIndex
+                                                                                    ? {
+                                                                                          ...item,
+                                                                                          productId:
+                                                                                              null,
+                                                                                          description:
+                                                                                              "",
+                                                                                          basePrice:
+                                                                                              0,
+                                                                                          salesPrice:
+                                                                                              0,
+                                                                                          customPrice:
+                                                                                              null,
+                                                                                          unitPrice:
+                                                                                              0,
+                                                                                          totalPrice:
+                                                                                              0,
+                                                                                          meta: {
+                                                                                              ...(item?.meta ||
+                                                                                                  {}),
+                                                                                              basePrice:
+                                                                                                  0,
+                                                                                              salesPrice:
+                                                                                                  0,
+                                                                                              customPrice:
+                                                                                                  null,
+                                                                                          },
+                                                                                      }
+                                                                                    : item,
+                                                                        ),
+                                                                    }),
+                                                                )
                                                             }
                                                             onChange={(
                                                                 productId,
@@ -3891,6 +4178,52 @@ export function ItemWorkflowPanel() {
                                                                                 0,
                                                                         ),
                                                                     ) || null;
+                                                                const resolvedBasePrice =
+                                                                    selectedProduct?.unitPrice ==
+                                                                    null
+                                                                        ? Number(
+                                                                              row?.basePrice ??
+                                                                                  row
+                                                                                      ?.meta
+                                                                                      ?.basePrice ??
+                                                                                  0,
+                                                                          )
+                                                                        : Number(
+                                                                              selectedProduct.unitPrice,
+                                                                          );
+                                                                const resolvedSalesPrice =
+                                                                    selectedProduct?.unitPrice ==
+                                                                    null
+                                                                        ? Number(
+                                                                              row?.salesPrice ??
+                                                                                  row
+                                                                                      ?.meta
+                                                                                      ?.salesPrice ??
+                                                                                  row?.unitPrice ??
+                                                                                  0,
+                                                                          )
+                                                                        : profileAdjustedDoorSalesPrice(
+                                                                              null,
+                                                                              Number(
+                                                                                  selectedProduct.unitPrice,
+                                                                              ),
+                                                                              activeProfileCoefficient,
+                                                                          );
+                                                                const resolvedCustomPrice =
+                                                                    row?.customPrice ??
+                                                                    row?.meta
+                                                                        ?.customPrice ??
+                                                                    null;
+                                                                const resolvedUnitPrice =
+                                                                    resolvedCustomPrice !=
+                                                                    null
+                                                                        ? Number(
+                                                                              resolvedCustomPrice,
+                                                                          )
+                                                                        : Number(
+                                                                              resolvedSalesPrice ||
+                                                                                  0,
+                                                                          );
                                                                 patchSection(
                                                                     (
                                                                         current: any,
@@ -3916,19 +4249,26 @@ export function ItemWorkflowPanel() {
                                                                                           description:
                                                                                               selectedProduct?.title ??
                                                                                               item.description,
+                                                                                          basePrice:
+                                                                                              resolvedBasePrice,
+                                                                                          salesPrice:
+                                                                                              resolvedSalesPrice,
+                                                                                          customPrice:
+                                                                                              resolvedCustomPrice,
                                                                                           unitPrice:
-                                                                                              selectedProduct?.unitPrice ==
-                                                                                              null
-                                                                                                  ? item.unitPrice
-                                                                                                  : profileAdjustedDoorSalesPrice(
-                                                                                                        null,
-                                                                                                        Number(
-                                                                                                            selectedProduct.unitPrice,
-                                                                                                        ),
-                                                                                                        activeProfileCoefficient,
-                                                                                                    ),
+                                                                                              resolvedUnitPrice,
                                                                                           totalPrice:
-                                                                                              0,
+                                                                                              Number(
+                                                                                                  (
+                                                                                                      Number(
+                                                                                                          item?.qty ??
+                                                                                                              1,
+                                                                                                      ) *
+                                                                                                      resolvedUnitPrice
+                                                                                                  ).toFixed(
+                                                                                                      2,
+                                                                                                  ),
+                                                                                              ),
                                                                                           meta: {
                                                                                               ...(item?.meta ||
                                                                                                   {}),
@@ -3943,39 +4283,13 @@ export function ItemWorkflowPanel() {
                                                                                                       ?.shelfParentCategoryId ??
                                                                                                   null,
                                                                                               basePrice:
-                                                                                                  selectedProduct?.unitPrice ==
-                                                                                                  null
-                                                                                                      ? Number(
-                                                                                                            item
-                                                                                                                ?.meta
-                                                                                                                ?.basePrice ||
-                                                                                                                0,
-                                                                                                        )
-                                                                                                      : Number(
-                                                                                                            selectedProduct.unitPrice,
-                                                                                                        ),
+                                                                                                  resolvedBasePrice,
                                                                                               salesPrice:
-                                                                                                  selectedProduct?.unitPrice ==
-                                                                                                  null
-                                                                                                      ? Number(
-                                                                                                            item
-                                                                                                                ?.meta
-                                                                                                                ?.salesPrice ||
-                                                                                                                item.unitPrice ||
-                                                                                                                0,
-                                                                                                        )
-                                                                                                      : profileAdjustedDoorSalesPrice(
-                                                                                                            null,
-                                                                                                            Number(
-                                                                                                                selectedProduct.unitPrice,
-                                                                                                            ),
-                                                                                                            activeProfileCoefficient,
-                                                                                                        ),
+                                                                                                  resolvedSalesPrice,
                                                                                               customPrice:
-                                                                                                  item
-                                                                                                      ?.meta
-                                                                                                      ?.customPrice ??
-                                                                                                  null,
+                                                                                                  resolvedCustomPrice,
+                                                                                              unitPrice:
+                                                                                                  resolvedUnitPrice,
                                                                                           },
                                                                                       }
                                                                                     : item,
@@ -3985,40 +4299,6 @@ export function ItemWorkflowPanel() {
                                                             }}
                                                         />
                                                     </div>
-                                                    <Input
-                                                        className="md:col-span-3"
-                                                        value={
-                                                            row.description ||
-                                                            ""
-                                                        }
-                                                        onChange={(e) =>
-                                                            patchSection(
-                                                                (current: any) => ({
-                                                                    ...current,
-                                                                    rows: (
-                                                                        current?.rows ||
-                                                                        []
-                                                                    ).map(
-                                                                        (
-                                                                            item: any,
-                                                                            i: number,
-                                                                        ) =>
-                                                                            i ===
-                                                                            rowIndex
-                                                                                ? {
-                                                                                      ...item,
-                                                                                      description:
-                                                                                          e
-                                                                                              .target
-                                                                                              .value,
-                                                                                  }
-                                                                                : item,
-                                                                    ),
-                                                                }),
-                                                            )
-                                                        }
-                                                        placeholder="Description"
-                                                    />
                                                     <div className="md:col-span-2">
                                                         <Menu
                                                             noSize
@@ -4029,11 +4309,9 @@ export function ItemWorkflowPanel() {
                                                                     className="h-10 w-full justify-end text-xs font-semibold"
                                                                 >
                                                                     {money(
-                                                                        row?.meta
-                                                                            ?.customPrice ??
-                                                                            row?.meta
-                                                                                ?.salesPrice ??
-                                                                            row.unitPrice,
+                                                                        getShelfRowDisplayUnitPrice(
+                                                                            row,
+                                                                        ),
                                                                     ) || "$0.00"}
                                                                 </Button>
                                                             }
@@ -4055,10 +4333,9 @@ export function ItemWorkflowPanel() {
                                                                         type="number"
                                                                         step="0.01"
                                                                         value={
-                                                                            row
-                                                                                ?.meta
-                                                                                ?.basePrice ??
-                                                                            0
+                                                                            getShelfRowBasePrice(
+                                                                                row,
+                                                                            )
                                                                         }
                                                                         onChange={(
                                                                             e,
@@ -4090,6 +4367,31 @@ export function ItemWorkflowPanel() {
                                                                                                 );
                                                                                             return {
                                                                                                 ...item,
+                                                                                                basePrice:
+                                                                                                    nextBase,
+                                                                                                salesPrice:
+                                                                                                    profileAdjustedDoorSalesPrice(
+                                                                                                        null,
+                                                                                                        nextBase,
+                                                                                                        activeProfileCoefficient,
+                                                                                                    ),
+                                                                                                unitPrice:
+                                                                                                    item?.customPrice !=
+                                                                                                        null ||
+                                                                                                    item?.meta
+                                                                                                        ?.customPrice !=
+                                                                                                        null
+                                                                                                        ? Number(
+                                                                                                              item?.customPrice ??
+                                                                                                                  item?.meta
+                                                                                                                      ?.customPrice ??
+                                                                                                                  0,
+                                                                                                          )
+                                                                                                        : profileAdjustedDoorSalesPrice(
+                                                                                                              null,
+                                                                                                              nextBase,
+                                                                                                              activeProfileCoefficient,
+                                                                                                          ),
                                                                                                 meta: {
                                                                                                     ...(item?.meta ||
                                                                                                         {}),
@@ -4116,12 +4418,10 @@ export function ItemWorkflowPanel() {
                                                                     </span>
                                                                     <span className="font-semibold">
                                                                         {money(
-                                                                            row
-                                                                                ?.meta
-                                                                                ?.salesPrice ??
-                                                                                row.unitPrice,
-                                                                        ) ||
-                                                                            "$0.00"}
+                                                                            getShelfRowSalesPrice(
+                                                                                row,
+                                                                            ),
+                                                                        )}
                                                                     </span>
                                                                 </div>
                                                                 <div className="space-y-2">
@@ -4157,6 +4457,39 @@ export function ItemWorkflowPanel() {
                                                                                             rowIndex
                                                                                                 ? {
                                                                                                       ...item,
+                                                                                                      customPrice:
+                                                                                                          e
+                                                                                                              .target
+                                                                                                              .value ===
+                                                                                                          ""
+                                                                                                              ? null
+                                                                                                              : Number(
+                                                                                                                    e
+                                                                                                                        .target
+                                                                                                                        .value ||
+                                                                                                                        0,
+                                                                                                                ),
+                                                                                                      unitPrice:
+                                                                                                          e
+                                                                                                              .target
+                                                                                                              .value ===
+                                                                                                          ""
+                                                                                                              ? Number(
+                                                                                                                    item
+                                                                                                                        ?.salesPrice ??
+                                                                                                                        item
+                                                                                                                            ?.meta
+                                                                                                                            ?.salesPrice ??
+                                                                                                                        item
+                                                                                                                            ?.unitPrice ??
+                                                                                                                        0,
+                                                                                                                )
+                                                                                                              : Number(
+                                                                                                                    e
+                                                                                                                        .target
+                                                                                                                        .value ||
+                                                                                                                        0,
+                                                                                                                ),
                                                                                                       meta: {
                                                                                                           ...(item?.meta ||
                                                                                                               {}),
@@ -4170,7 +4503,7 @@ export function ItemWorkflowPanel() {
                                                                                                                         e
                                                                                                                             .target
                                                                                                                             .value ||
-                                                                                                                            0,
+                                                                                                                              0,
                                                                                                                     ),
                                                                                                       },
                                                                                                   }
@@ -4222,7 +4555,9 @@ export function ItemWorkflowPanel() {
                                                         className="md:col-span-2 text-right"
                                                         value={
                                                             money(
-                                                                row.totalPrice,
+                                                                getShelfRowDisplayTotal(
+                                                                    row,
+                                                                ),
                                                             ) || "$0.00"
                                                         }
                                                         readOnly
