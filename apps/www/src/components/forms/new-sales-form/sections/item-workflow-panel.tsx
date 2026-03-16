@@ -27,6 +27,7 @@ import {
 } from "@gnd/ui/dialog";
 import { Label } from "@gnd/ui/label";
 import { env } from "@/env.mjs";
+import { endFlow, logStage, startFlow } from "@/lib/dev-flow-logger";
 import { MouldingCalculator } from "@/components/moulding-calculator";
 import { FileUploader } from "@/components/common/file-uploader";
 import {
@@ -1009,6 +1010,71 @@ export function ItemWorkflowPanel() {
         const coefficient = Number(profile?.coefficient || 0);
         return Number.isFinite(coefficient) && coefficient > 0 ? coefficient : 1;
     }, [customerProfilesQuery.data, record?.form?.customerProfileId]);
+    const activeShelfSync = useMemo(() => {
+        if (!activeLine || !isShelfItem(activeLine)) return null;
+        const currentRows = Array.isArray(activeLine.shelfItems)
+            ? activeLine.shelfItems
+            : [];
+        if (!currentRows.length) return null;
+        const summary = summarizeShelfRows(
+            currentRows,
+            activeProfileCoefficient,
+        );
+        return {
+            lineUid: activeLine.uid,
+            rows: summary.rows,
+            qty: summary.qtyTotal,
+            unitPrice: summary.unitPrice,
+            lineTotal: summary.lineTotal,
+        };
+    }, [activeLine, activeProfileCoefficient]);
+    useEffect(() => {
+        if (!activeShelfSync || !activeLine) return;
+        const rowsChanged =
+            JSON.stringify(activeLine.shelfItems || []) !==
+            JSON.stringify(activeShelfSync.rows);
+        const qtyChanged =
+            Number(activeLine.qty || 0) !== Number(activeShelfSync.qty || 0);
+        const unitPriceChanged =
+            Number(Number(activeLine.unitPrice || 0).toFixed(2)) !==
+            Number(Number(activeShelfSync.unitPrice || 0).toFixed(2));
+        const totalChanged =
+            Number(Number(activeLine.lineTotal || 0).toFixed(2)) !==
+            Number(Number(activeShelfSync.lineTotal || 0).toFixed(2));
+        if (!rowsChanged && !qtyChanged && !unitPriceChanged && !totalChanged) {
+            return;
+        }
+        const flow = startFlow({
+            feature: "new-sales-form/shelf",
+            threadContext: "active-shelf-sync",
+            tags: ["debug", "dev-only", "shelf"],
+            inputs: {
+                lineUid: activeShelfSync.lineUid,
+                rowsChanged,
+                qtyChanged,
+                unitPriceChanged,
+                totalChanged,
+            },
+        });
+        logStage(flow, {
+            stage: "derive",
+            eventType: "payload.transformed",
+            outputs: {
+                qty: activeShelfSync.qty,
+                unitPrice: activeShelfSync.unitPrice,
+                lineTotal: activeShelfSync.lineTotal,
+            },
+        });
+        updateLineItem(activeShelfSync.lineUid, {
+            shelfItems: activeShelfSync.rows,
+            qty: activeShelfSync.qty,
+            unitPrice: activeShelfSync.unitPrice,
+            lineTotal: activeShelfSync.lineTotal,
+        });
+        endFlow(flow, {
+            lineUid: activeShelfSync.lineUid,
+        });
+    }, [activeLine, activeShelfSync, updateLineItem]);
     useEffect(() => {
         if (!activeLine || !isShelfItem(activeLine)) return;
         if ((activeLine.shelfItems || []).length > 0) return;
@@ -3685,20 +3751,59 @@ export function ItemWorkflowPanel() {
                                 activeProfileCoefficient,
                             );
                             const persistSections = (nextSections: any[]) => {
+                                const flow = startFlow({
+                                    feature: "new-sales-form/shelf",
+                                    threadContext: "persist-sections",
+                                    tags: ["debug", "dev-only", "shelf"],
+                                    inputs: {
+                                        lineUid: line.uid,
+                                        sectionCount: nextSections.length,
+                                    },
+                                });
                                 const flatRows = flattenShelfSections(
                                     nextSections,
                                     activeProfileCoefficient,
                                 );
+                                logStage(flow, {
+                                    stage: "transform",
+                                    eventType: "payload.transformed",
+                                    derived: {
+                                        flatRows: flatRows.map((row: any) => ({
+                                            uid: row?.uid,
+                                            productId: row?.productId,
+                                            qty: row?.qty,
+                                            basePrice: row?.basePrice,
+                                            salesPrice: row?.salesPrice,
+                                            unitPrice: row?.unitPrice,
+                                            totalPrice: row?.totalPrice,
+                                        })),
+                                    },
+                                });
                                 const next = summarizeShelfRows(
                                     flatRows,
                                     activeProfileCoefficient,
                                 );
+                                logStage(flow, {
+                                    stage: "derive",
+                                    eventType: "payload.transformed",
+                                    outputs: {
+                                        qtyTotal: next.qtyTotal,
+                                        unitPrice: next.unitPrice,
+                                        lineTotal: next.lineTotal,
+                                    },
+                                });
                                 updateLineItem(line.uid, {
                                     shelfItems: next.rows,
                                     qty: next.qtyTotal,
                                     unitPrice: next.unitPrice,
                                     lineTotal: next.lineTotal,
                                 } as any);
+                                endFlow(flow, {
+                                    lineUid: line.uid,
+                                    qtyTotal: next.qtyTotal,
+                                    unitPrice: next.unitPrice,
+                                    lineTotal: next.lineTotal,
+                                });
                             };
                             return (
                                 <>

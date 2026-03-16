@@ -31,7 +31,9 @@
     "./wallet": "./src/wallet.ts",
     "./control": "./src/control/index.ts",
     "./new-sales-form-costing": "./src/new-sales-form-costing.ts",
-    "./sales-form": "./src/sales-form/index.ts"
+    "./sales-form": "./src/sales-form/index.ts",
+    "./payment-system": "./src/payment-system/index.ts",
+    "./resolution-system": "./src/resolution-system/index.ts"
   },
   "dependencies": {
     "@gnd/db": "workspace:*",

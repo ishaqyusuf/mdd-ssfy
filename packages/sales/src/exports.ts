@@ -7,6 +7,8 @@ export * from "./sales-control/tasks";
 export * from "./control";
 export { withDispatchControl, withSalesControl } from "./utils/with-sales-control";
 export * from "./new-sales-form-costing";
+export * from "./payment-system";
+export * from "./resolution-system";
 export * from "./sales-form";
 export * from "./sales-template/invoice-print-data";
 export * from "./schema";

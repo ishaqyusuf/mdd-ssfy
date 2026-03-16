@@ -13,6 +13,7 @@ import type { CustomerTransactionType } from "@sales/types";
 import { getAppUrl } from "@gnd/utils/envs";
 import { SQUARE_LOCATION_ID, squareClient } from "@gnd/square";
 import type { Db } from "@gnd/db";
+import { recordLegacySalesPayment } from "@gnd/sales";
 export const initializeCheckoutSchema = z.object({
   token: z.string(),
 });
@@ -333,75 +334,17 @@ export async function paymentSuccess(
   for (const order of p.orders) {
     let payAmount = balance > order.amountDue ? order.amountDue : balance;
     balance -= payAmount;
-    const __tx = await tx.customerTransaction.create({
-      data: {
-        amount: payAmount,
-        wallet: {
-          connect: {
-            id: p.walletId,
-          },
-        },
-        paymentMethod: "link" as SalesPaymentMethods,
-        status: "success" as any as CustomerTransanctionStatus,
-        meta: {},
-        type: "transaction" as CustomerTransactionType,
-        // author: {
-        //   connect: {
-        //     id: await authId(),
-        //   },
-        // },
-        squarePayment: {
-          connect: {
-            id: p?.squarePaymentId,
-          },
-        },
-        salesPayments: {
-          create: {
-            meta: {
-              // checkNo: props.checkNo,
-            },
-            amount: payAmount,
-            status: "success" as SalesPaymentStatus,
-            orderId: order.id,
-            squarePaymentsId: p?.squarePaymentId,
-            // props.terminalPaymentSession?.squarePaymentId,
-          },
-        },
-      },
-      select: {
-        salesPayments: {
-          select: {
-            id: true,
-            amount: true,
-            order: {
-              select: {
-                salesRepId: true,
-                customer: {
-                  select: {
-                    name: true,
-                    businessName: true,
-                  },
-                },
-                billingAddress: {
-                  select: { name: true },
-                },
-                salesRep: {
-                  select: {
-                    id: true,
-                    email: true,
-                    name: true,
-                  },
-                },
-                id: true,
-                orderId: true,
-              },
-            },
-          },
-        },
-      },
+    const paymentWrite = await recordLegacySalesPayment(tx, {
+      amount: payAmount,
+      walletId: p.walletId,
+      paymentMethod: "link" as SalesPaymentMethods,
+      salesId: order.id,
+      transactionType: "transaction" as CustomerTransactionType,
+      squarePaymentId: p.squarePaymentId,
+      transactionStatus: "success" as CustomerTransanctionStatus,
+      paymentStatus: "success" as SalesPaymentStatus,
     });
-    const sp = __tx.salesPayments?.[0]!;
-    await updateSalesDueAmount(order.id, tx);
+    const sp = paymentWrite.salesPayment!;
 
     await createPayrollAction(
       {

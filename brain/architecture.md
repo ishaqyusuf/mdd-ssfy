@@ -9,6 +9,10 @@
 - `apps/expo-app` (mobile)
 - `apps/site`, `apps/gnd-backlog` (additional surfaces)
 - Shared packages: domain and infra modules under `packages/*` (`db`, `ui`, `auth`, `notifications`, `jobs`, etc.).
+- Sales domain is now explicitly splitting into dedicated package boundaries:
+- `packages/sales/src/control/*` for production/dispatch quantity truth
+- `packages/sales/src/payment-system/*` for canonical payment/accounting logic
+- `packages/sales/src/resolution-system/*` for inconsistency detection and audited repair workflows
 
 ## Flow
 
@@ -22,3 +26,4 @@
 - Build reproducibility with Turbo pipelines.
 - Strong type safety across package boundaries.
 - Minimal duplication between web/mobile feature logic.
+- Single-authority domain modules for correctness-critical workflows.

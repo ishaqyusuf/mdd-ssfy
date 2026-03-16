@@ -15,6 +15,7 @@ import {
     normalizeLineItem,
     normalizeMeta,
 } from "./mappers";
+import { endFlow, logStage, startFlow } from "@/lib/dev-flow-logger";
 
 type StepDisplayMode = "compact" | "extended";
 type ActiveItem = string | null;
@@ -242,6 +243,20 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
     updateLineItem: (uid, patch) =>
         set((state) => {
             if (!state.record) return state;
+            const shouldLogShelf =
+                Object.prototype.hasOwnProperty.call(patch, "shelfItems") ||
+                Object.prototype.hasOwnProperty.call(patch, "lineTotal");
+            const flow = shouldLogShelf
+                ? startFlow({
+                      feature: "new-sales-form/store",
+                      threadContext: "update-line-item",
+                      tags: ["debug", "dev-only", "shelf"],
+                      inputs: {
+                          uid,
+                          patch,
+                      },
+                  })
+                : null;
             const lineItems = state.record.lineItems.map((line, index) => {
                 if (line.uid !== uid) return line;
                 const merged: Partial<NewSalesFormLineItem> = {
@@ -262,14 +277,49 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
                                 100,
                         ) / 100;
                 }
+                if (flow) {
+                    logStage(flow, {
+                        stage: "transform",
+                        eventType: "payload.transformed",
+                        outputs: {
+                            mergedLine: {
+                                qty: merged.qty,
+                                unitPrice: merged.unitPrice,
+                                lineTotal: merged.lineTotal,
+                                shelfItems: (merged.shelfItems || []).map((row: any) => ({
+                                    productId: row?.productId,
+                                    qty: row?.qty,
+                                    unitPrice: row?.unitPrice,
+                                    totalPrice: row?.totalPrice,
+                                })),
+                            },
+                        },
+                    });
+                }
                 return normalizeLineItem(merged, index);
             });
+            const nextRecord = withDirty({
+                ...state.record,
+                lineItems,
+            });
+            if (flow) {
+                logStage(flow, {
+                    stage: "derive",
+                    eventType: "response.received",
+                    outputs: {
+                        updatedLine: lineItems.find((line) => line.uid === uid),
+                        summary: nextRecord?.summary,
+                    },
+                });
+                endFlow(flow, {
+                    uid,
+                    subTotal: nextRecord?.summary?.subTotal,
+                    grandTotal: nextRecord?.summary?.grandTotal,
+                });
+            }
             return {
                 ...state,
-                record: withDirty({
-                    ...state.record,
-                    lineItems,
-                }),
+                record: nextRecord,
                 dirty: true,
                 saveStatus: state.saveStatus === "error" ? "idle" : state.saveStatus,
             };

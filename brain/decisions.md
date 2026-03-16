@@ -43,3 +43,11 @@
 - Decision: Track execution through `brain/sales-form-system-hardening-plan.md` with phase gates (Phase 0 -> Phase 4).
 - Rationale: System audit surfaced correctness risks in save atomicity, pricing trust boundary, and state reliability that can impact revenue/accounting behavior.
 - Consequence: Sales-form change sets should map to hardening phases and include focused pricing/save regression tests before rollout.
+
+## 2026-03-16 - Split Payment Truth from Resolution Workflow
+
+- Decision: Introduce `payment-system` and `resolution-system` as separate module boundaries inside `packages/sales`.
+- Decision: `payment-system` will become the canonical authority for money events, allocations, and order balance projections.
+- Decision: `resolution-system` will be limited to inconsistency detection, classification, and audited repair flows; it must not be required for routine runtime correctness.
+- Rationale: Current accounting behavior is spread across multiple write/read paths, while resolution logic is currently embedded in ad hoc query code instead of a reusable diagnostic module.
+- Consequence: Future payment refactors should route mutations through shared payment-system application services, and existing resolution queries should migrate to shared resolution-system rules.
