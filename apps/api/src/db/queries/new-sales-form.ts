@@ -816,6 +816,7 @@ export async function getNewSalesFormStepRouting(
     null;
   return {
     settingId: setting?.id || null,
+    settingsMeta,
     composedRouter,
     stepsByUid,
     stepsById,

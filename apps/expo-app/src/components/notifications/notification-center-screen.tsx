@@ -12,7 +12,7 @@ import {
 } from "@notifications/notification-center";
 import { useRouter } from "expo-router";
 import { Fragment, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { NotificationItem } from "./notification-item";
 
 function EmptyState({ description }: { description: string }) {
@@ -31,12 +31,26 @@ function EmptyState({ description }: { description: string }) {
 function NotificationList({
   items,
   onAction,
+  refreshing = false,
+  onRefresh,
 }: {
   items: TransformedNotification[];
   onAction?: (notification: TransformedNotification) => void;
+  refreshing?: boolean;
+  onRefresh?: () => void | Promise<void>;
 }) {
   if (!items.length) {
-    return <EmptyState description="Nothing here yet." />;
+    return (
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="flex-grow"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        <EmptyState description="Nothing here yet." />
+      </ScrollView>
+    );
   }
 
   return (
@@ -44,6 +58,9 @@ function NotificationList({
       className="flex-1"
       contentContainerClassName="px-4 pb-24 pt-2"
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
     >
       {items.map((item, index) => (
         <Fragment key={item.id}>
@@ -61,7 +78,8 @@ export function NotificationCenterScreen() {
   const router = useRouter();
   const auth = useAuthContext();
   const [tab, setTab] = useState("inbox");
-  const { isLoading, error, notifications, archived } = useNotifications();
+  const { isLoading, isRefreshing, error, notifications, archived, refresh } =
+    useNotifications();
   const handlers = createNotificationHandlers({
     job_submitted: (data) => {
       router.push(`/job/${data.jobId}` as any);
@@ -150,12 +168,39 @@ export function NotificationCenterScreen() {
 
           <TabsContent value="inbox">
             {isLoading ? (
-              <EmptyState description="Loading notifications..." />
+              <ScrollView
+                className="flex-1"
+                contentContainerClassName="flex-grow"
+                refreshControl={
+                  <RefreshControl
+                    refreshing={isRefreshing}
+                    onRefresh={refresh}
+                  />
+                }
+              >
+                <EmptyState description="Loading notifications..." />
+              </ScrollView>
             ) : error ? (
-              <EmptyState description="Unable to load notifications right now." />
+              <ScrollView
+                className="flex-1"
+                contentContainerClassName="flex-grow"
+                refreshControl={
+                  <RefreshControl
+                    refreshing={isRefreshing}
+                    onRefresh={refresh}
+                  />
+                }
+              >
+                <EmptyState description="Unable to load notifications right now." />
+              </ScrollView>
             ) : notifications.length ? (
               <>
-                <NotificationList items={notifications} onAction={onAction} />
+                <NotificationList
+                  items={notifications}
+                  onAction={onAction}
+                  refreshing={isRefreshing}
+                  onRefresh={refresh}
+                />
                 <View className="absolute bottom-0 left-0 right-0 border-t border-border bg-card px-4 py-2">
                   <Pressable
                     className="h-10 items-center justify-center rounded-full opacity-50"
@@ -168,19 +213,68 @@ export function NotificationCenterScreen() {
                 </View>
               </>
             ) : (
-              <EmptyState description="No new notifications" />
+              <ScrollView
+                className="flex-1"
+                contentContainerClassName="flex-grow"
+                refreshControl={
+                  <RefreshControl
+                    refreshing={isRefreshing}
+                    onRefresh={refresh}
+                  />
+                }
+              >
+                <EmptyState description="No new notifications" />
+              </ScrollView>
             )}
           </TabsContent>
 
           <TabsContent value="archive">
             {isLoading ? (
-              <EmptyState description="Loading notifications..." />
+              <ScrollView
+                className="flex-1"
+                contentContainerClassName="flex-grow"
+                refreshControl={
+                  <RefreshControl
+                    refreshing={isRefreshing}
+                    onRefresh={refresh}
+                  />
+                }
+              >
+                <EmptyState description="Loading notifications..." />
+              </ScrollView>
             ) : error ? (
-              <EmptyState description="Unable to load notifications right now." />
+              <ScrollView
+                className="flex-1"
+                contentContainerClassName="flex-grow"
+                refreshControl={
+                  <RefreshControl
+                    refreshing={isRefreshing}
+                    onRefresh={refresh}
+                  />
+                }
+              >
+                <EmptyState description="Unable to load notifications right now." />
+              </ScrollView>
             ) : archived.length ? (
-              <NotificationList items={archived} onAction={onAction} />
+              <NotificationList
+                items={archived}
+                onAction={onAction}
+                refreshing={isRefreshing}
+                onRefresh={refresh}
+              />
             ) : (
-              <EmptyState description="Nothing in the archive" />
+              <ScrollView
+                className="flex-1"
+                contentContainerClassName="flex-grow"
+                refreshControl={
+                  <RefreshControl
+                    refreshing={isRefreshing}
+                    onRefresh={refresh}
+                  />
+                }
+              >
+                <EmptyState description="Nothing in the archive" />
+              </ScrollView>
             )}
           </TabsContent>
         </Tabs>

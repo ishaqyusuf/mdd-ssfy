@@ -22,13 +22,18 @@ import {
 import { Form } from "@gnd/ui/form";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import { Sortable, SortableItem } from "@gnd/ui/sortable";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import Modal from "@/components/common/modal";
 import { _modal } from "@/components/common/modal/provider";
 import { Icons } from "@/components/_v1/icons";
 import { FormCheckbox } from "@gnd/ui/controls/form-checkbox";
 import { FormSelect } from "@gnd/ui/controls/form-select";
 import { FormInput } from "@gnd/ui/controls/form-input";
-import { useNewSalesFormStepRoutingQuery } from "@/components/forms/new-sales-form/api";
+import {
+    useCustomerProfilesQuery,
+    useCustomerTaxProfilesQuery,
+    useNewSalesFormStepRoutingQuery,
+} from "@/components/forms/new-sales-form/api";
 
 type SettingsFormValues = {
     data: {
@@ -50,6 +55,9 @@ type SettingsFormValues = {
                         };
                     }
                 >;
+                ccc: number | string | null;
+                taxCode: string | null;
+                customerProfileId: string | null;
             };
         };
         newStepTitle: string;
@@ -59,6 +67,8 @@ type SettingsFormValues = {
 function useNewSalesFormSettingsContext() {
     const stepRoutingQuery = useNewSalesFormStepRoutingQuery({}, true);
     const routeData = stepRoutingQuery.data;
+    const customerProfilesQuery = useCustomerProfilesQuery(true);
+    const customerTaxProfilesQuery = useCustomerTaxProfilesQuery(true);
     const queryClient = useQueryClient();
     const form = useForm<SettingsFormValues>({
         defaultValues: {
@@ -67,6 +77,9 @@ function useNewSalesFormSettingsContext() {
                 setting: {
                     data: {
                         route: {},
+                        ccc: 3.5,
+                        taxCode: null,
+                        customerProfileId: null,
                     },
                 },
                 newStepTitle: "",
@@ -94,6 +107,11 @@ function useNewSalesFormSettingsContext() {
 
     useEffect(() => {
         if (!routeData) return;
+        const settingsMeta = (routeData as any)?.settingsMeta || {};
+        const nestedSettingsMeta =
+            settingsMeta && typeof settingsMeta.data === "object"
+                ? settingsMeta.data
+                : {};
         const composedRouter = routeData.composedRouter || {};
         const routeBySection: SettingsFormValues["data"]["setting"]["data"]["route"] =
             {};
@@ -127,6 +145,21 @@ function useNewSalesFormSettingsContext() {
                 setting: {
                     data: {
                         route: routeBySection,
+                        ccc: Number(
+                            settingsMeta?.ccc ??
+                                nestedSettingsMeta?.ccc ??
+                                3.5,
+                        ),
+                        taxCode:
+                            (settingsMeta?.taxCode as string | null) ??
+                            (nestedSettingsMeta?.taxCode as string | null) ??
+                            "none",
+                        customerProfileId:
+                            String(
+                                settingsMeta?.customerProfileId ??
+                                    nestedSettingsMeta?.customerProfileId ??
+                                    "none",
+                            ) || "none",
                     },
                 },
                 newStepTitle: "",
@@ -200,14 +233,30 @@ function useNewSalesFormSettingsContext() {
 
     async function save() {
         const data = form.getValues();
-        const meta = data.data?.setting?.data;
-        if (!meta) {
+        const rawMeta = data.data?.setting?.data;
+        if (!rawMeta) {
             toast({
                 title: "Nothing to save",
                 variant: "destructive",
             });
             return;
         }
+        const meta = {
+            ...rawMeta,
+            ccc:
+                rawMeta.ccc == null || rawMeta.ccc === ""
+                    ? null
+                    : Number(rawMeta.ccc),
+            taxCode:
+                !rawMeta.taxCode || rawMeta.taxCode === "none"
+                    ? null
+                    : rawMeta.taxCode,
+            customerProfileId:
+                !rawMeta.customerProfileId ||
+                rawMeta.customerProfileId === "none"
+                    ? null
+                    : Number(rawMeta.customerProfileId),
+        };
 
         await saveSetting.mutateAsync({
             type: "sales-settings",
@@ -216,9 +265,11 @@ function useNewSalesFormSettingsContext() {
         });
     }
 
-    return {
+        return {
         isLoading: stepRoutingQuery.isPending,
         routeData,
+        customerProfiles: customerProfilesQuery.data || [],
+        taxProfiles: customerTaxProfilesQuery.data || [],
         rootComponentsByUid,
         form,
         sectionArray,
@@ -406,6 +457,7 @@ function RouteSection({ uid }: { uid: string }) {
 export function NewSalesFormSettingsModal() {
     const value = useNewSalesFormSettingsContext();
     const rootProducts = value.routeData?.rootComponents ?? [];
+    const [tab, setTab] = useState("invoice-steps");
 
     return (
         <Form {...value.form}>
@@ -413,71 +465,163 @@ export function NewSalesFormSettingsModal() {
                 <Modal.Content size="lg" className="overflow-hidden">
                     <Modal.Header
                         title="Form Step Sequence"
-                        subtitle="Configure section route sequence and step behavior."
+                        subtitle="Configure invoice steps and default sales settings."
                     />
 
-                    <ScrollArea className="-mx-6 h-[70vh] px-6">
-                        <div className="flex flex-col gap-4 pb-6">
-                            {value.isLoading ? (
-                                <div className="rounded-lg border bg-muted/20 p-6 text-sm text-muted-foreground">
-                                    Loading step settings...
-                                </div>
-                            ) : (
-                                <Accordion
-                                    type="single"
-                                    collapsible
-                                    className="space-y-2"
-                                >
-                                    {value.sectionArray.fields.map(
-                                        (field: any) => (
-                                            <RouteSection
-                                                key={field._id}
-                                                uid={field.uid}
-                                            />
-                                        ),
-                                    )}
-                                </Accordion>
-                            )}
+                    <Tabs
+                        value={tab}
+                        onValueChange={setTab}
+                        className="min-h-0"
+                    >
+                        <div className="border-b px-6 pb-4">
+                            <TabsList className="grid w-full max-w-md grid-cols-2">
+                                <TabsTrigger value="invoice-steps">
+                                    Invoice Steps
+                                </TabsTrigger>
+                                <TabsTrigger value="settings">
+                                    Settings
+                                </TabsTrigger>
+                            </TabsList>
                         </div>
-                    </ScrollArea>
+
+                        <TabsContent value="invoice-steps" className="mt-0">
+                            <ScrollArea className="-mx-6 h-[62vh] px-6">
+                                <div className="flex flex-col gap-4 pb-6">
+                                    {value.isLoading ? (
+                                        <div className="rounded-lg border bg-muted/20 p-6 text-sm text-muted-foreground">
+                                            Loading step settings...
+                                        </div>
+                                    ) : (
+                                        <Accordion
+                                            type="single"
+                                            collapsible
+                                            className="space-y-2"
+                                        >
+                                            {value.sectionArray.fields.map(
+                                                (field: any) => (
+                                                    <RouteSection
+                                                        key={field._id}
+                                                        uid={field.uid}
+                                                    />
+                                                ),
+                                            )}
+                                        </Accordion>
+                                    )}
+                                </div>
+                            </ScrollArea>
+                        </TabsContent>
+
+                        <TabsContent value="settings" className="mt-0">
+                            <ScrollArea className="-mx-6 h-[62vh] px-6">
+                                <div className="space-y-4 pb-6">
+                                    <div className="rounded-xl border bg-card p-4 shadow-sm">
+                                        <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                                            Sales Defaults
+                                        </p>
+                                        <div className="grid gap-4">
+                                            <FormInput
+                                                control={value.form.control}
+                                                name="data.setting.data.ccc"
+                                                label="CCC (%)"
+                                                type="number"
+                                                step="0.01"
+                                                placeholder="3.5"
+                                            />
+                                            <FormSelect
+                                                control={value.form.control}
+                                                name="data.setting.data.taxCode"
+                                                label="Default Tax"
+                                                titleKey="title"
+                                                valueKey="taxCode"
+                                                options={[
+                                                    {
+                                                        taxCode: "none",
+                                                        title: "None",
+                                                    },
+                                                    ...(value.taxProfiles || []).map(
+                                                        (tax: any) => ({
+                                                            taxCode: String(
+                                                                tax?.taxCode || "",
+                                                            ),
+                                                            title: String(
+                                                                tax?.title ||
+                                                                    tax?.taxCode ||
+                                                                    "Tax",
+                                                            ),
+                                                        }),
+                                                    ),
+                                                ]}
+                                            />
+                                            <FormSelect
+                                                control={value.form.control}
+                                                name="data.setting.data.customerProfileId"
+                                                label="Default Customer Profile"
+                                                titleKey="title"
+                                                valueKey="id"
+                                                options={[
+                                                    {
+                                                        id: "none",
+                                                        title: "None",
+                                                    },
+                                                    ...(value.customerProfiles || []).map(
+                                                        (profile: any) => ({
+                                                            id: String(
+                                                                profile?.id || "",
+                                                            ),
+                                                            title: String(
+                                                                profile?.title ||
+                                                                    `Profile ${profile?.id || ""}`,
+                                                            ),
+                                                        }),
+                                                    ),
+                                                ]}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </ScrollArea>
+                        </TabsContent>
+                    </Tabs>
 
                     <div className="border-t bg-background p-4">
                         <Modal.Footer onSubmit={value.save} submitText="Save">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className="gap-2 uppercase"
-                                        disabled={value.isLoading}
-                                    >
-                                        <Icons.add className="size-4" />
-                                        <span>Section</span>
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent>
-                                    {rootProducts.map((stepProd) => (
-                                        <DropdownMenuItem
-                                            key={stepProd.uid}
-                                            disabled={value.sectionArray.fields.some(
-                                                (section: any) =>
-                                                    section.uid ===
-                                                    stepProd.uid,
-                                            )}
-                                            onClick={() =>
-                                                value.createSection(
-                                                    stepProd.uid,
-                                                )
-                                            }
-                                            className="uppercase"
+                            {tab === "invoice-steps" ? (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="gap-2 uppercase"
+                                            disabled={value.isLoading}
                                         >
-                                            {String(
-                                                stepProd.title || "",
-                                            ).toUpperCase()}
-                                        </DropdownMenuItem>
-                                    ))}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                                            <Icons.add className="size-4" />
+                                            <span>Section</span>
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                        {rootProducts.map((stepProd) => (
+                                            <DropdownMenuItem
+                                                key={stepProd.uid}
+                                                disabled={value.sectionArray.fields.some(
+                                                    (section: any) =>
+                                                        section.uid ===
+                                                        stepProd.uid,
+                                                )}
+                                                onClick={() =>
+                                                    value.createSection(
+                                                        stepProd.uid,
+                                                    )
+                                                }
+                                                className="uppercase"
+                                            >
+                                                {String(
+                                                    stepProd.title || "",
+                                                ).toUpperCase()}
+                                            </DropdownMenuItem>
+                                        ))}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            ) : null}
                         </Modal.Footer>
                     </div>
                 </Modal.Content>
@@ -487,4 +631,3 @@ export function NewSalesFormSettingsModal() {
 }
 
 export default NewSalesFormSettingsModal;
-

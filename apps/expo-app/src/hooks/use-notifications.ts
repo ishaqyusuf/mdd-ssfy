@@ -11,7 +11,9 @@ export function useNotifications() {
 	const {
 		data: activitiesData,
 		isLoading,
+		isRefetching,
 		error,
+		refetch: refetchNotifications,
 	} = useQuery(
 		trpc.notes.list.queryOptions({
 			contactIds: [notificationAccount?.id || 0],
@@ -21,7 +23,12 @@ export function useNotifications() {
 		}),
 	);
 
-	const { data: archivedActivitiesData, isLoading: archivedIsLoading } =
+	const {
+		data: archivedActivitiesData,
+		isLoading: archivedIsLoading,
+		isRefetching: archivedIsRefetching,
+		refetch: refetchArchived,
+	} =
 		useQuery(
 			trpc.notes.list.queryOptions({
 				maxPriority: 3,
@@ -48,12 +55,18 @@ export function useNotifications() {
 
 	const markMessageAsRead = (_messageId: number) => {};
 
+	const refresh = async () => {
+		await Promise.all([refetchNotifications(), refetchArchived()]);
+	};
+
 	return {
 		isLoading: isLoading || archivedIsLoading,
+		isRefreshing: isRefetching || archivedIsRefetching,
 		error,
 		notifications,
 		archived: archivedNotifications,
 		hasUnseenNotifications,
 		markMessageAsRead,
+		refresh,
 	};
 }
