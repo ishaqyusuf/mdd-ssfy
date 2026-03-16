@@ -10,6 +10,7 @@ import type { CustomerTransactionType } from "../../types";
 export interface RecordLegacySalesPaymentInput {
 	amount: number;
 	authorId?: number | null;
+	customerTransactionId?: number | null;
 	walletId: number;
 	paymentMethod: SalesPaymentMethods;
 	salesId: number;
@@ -26,6 +27,62 @@ export async function recordLegacySalesPayment(
 	db: Db | TransactionClient,
 	input: RecordLegacySalesPaymentInput,
 ) {
+	if (input.customerTransactionId != null) {
+		const salesPayment = await db.salesPayments.create({
+			data: {
+				transaction: {
+					connect: {
+						id: input.customerTransactionId,
+					},
+				},
+				amount: input.amount,
+				status: input.paymentStatus || ("success" as SalesPaymentStatus),
+				orderId: input.salesId,
+				squarePaymentsId: input.squarePaymentId || undefined,
+				meta: {
+					...(input.paymentMeta || {}),
+					checkNo: input.checkNo || undefined,
+				},
+			},
+			select: {
+				id: true,
+				amount: true,
+				status: true,
+				order: {
+					select: {
+						id: true,
+						orderId: true,
+						customer: {
+							select: {
+								name: true,
+								businessName: true,
+							},
+						},
+						billingAddress: {
+							select: {
+								name: true,
+							},
+						},
+						salesRep: {
+							select: {
+								id: true,
+								email: true,
+								name: true,
+							},
+						},
+					},
+				},
+			},
+		});
+
+		await calculateSalesDueAmount(db, input.salesId);
+
+		return {
+			customerTransactionId: input.customerTransactionId,
+			salesPayment,
+		};
+	}
+
 	const transaction = await db.customerTransaction.create({
 		data: {
 			amount: input.amount,

@@ -106,6 +106,37 @@ function deriveLaborFromLineItems(lineItems: SalesFormLineItemLike[]) {
   );
 }
 
+function deriveShelfLineTotal(line: SalesFormLineItemLike) {
+  const lineAny = line as any;
+  const shelfRows = Array.isArray(lineAny?.shelfItems) ? lineAny.shelfItems : [];
+  if (!shelfRows.length) return null;
+  return roundCurrency(
+    shelfRows.reduce((sum: number, row: any) => {
+      const explicitTotal = safeNumber(row?.totalPrice);
+      if (explicitTotal > 0) return sum + explicitTotal;
+      const qty = safeNumber(row?.qty);
+      const unitPrice = safeNumber(
+        row?.customPrice ??
+          row?.salesPrice ??
+          row?.unitPrice ??
+          row?.meta?.customPrice ??
+          row?.meta?.salesPrice ??
+          row?.meta?.unitPrice,
+      );
+      return sum + roundCurrency(qty * unitPrice);
+    }, 0),
+  );
+}
+
+function deriveLineTotalForSummary(line: SalesFormLineItemLike) {
+  const shelfTotal = deriveShelfLineTotal(line);
+  if (shelfTotal != null) return shelfTotal;
+  const qty = safeNumber(line.qty);
+  const unitPrice = safeNumber(line.unitPrice);
+  const computed = roundCurrency(qty * unitPrice);
+  return line.lineTotal == null ? computed : safeNumber(line.lineTotal);
+}
+
 export function calculateSalesFormSummary(
   input: CalculateSalesFormSummaryInput,
 ): SalesFormSummaryResult {
@@ -115,12 +146,7 @@ export function calculateSalesFormSummary(
 
   const subTotal = roundCurrency(
     lineItems.reduce((sum, line) => {
-      const qty = safeNumber(line.qty);
-      const unitPrice = safeNumber(line.unitPrice);
-      const computed = roundCurrency(qty * unitPrice);
-      const lineTotalRaw =
-        line.lineTotal == null ? computed : safeNumber(line.lineTotal);
-      return sum + lineTotalRaw;
+      return sum + deriveLineTotalForSummary(line);
     }, 0),
   );
 
@@ -178,11 +204,7 @@ export function calculateSalesFormSummary(
   if (strategy === "legacy") {
     const taxableLineSubTotal = roundCurrency(
       lineItems.reduce((sum, line) => {
-        const qty = safeNumber(line.qty);
-        const unitPrice = safeNumber(line.unitPrice);
-        const computed = roundCurrency(qty * unitPrice);
-        const lineTotalRaw =
-          line.lineTotal == null ? computed : safeNumber(line.lineTotal);
+        const lineTotalRaw = deriveLineTotalForSummary(line);
         return isTaxableLineLegacy(line) ? sum + lineTotalRaw : sum;
       }, 0),
     );
@@ -238,10 +260,7 @@ export function calculateSalesFormSummary(
 
   const taxableLineSubTotalCurrent = roundCurrency(
     lineItems.reduce((sum, line) => {
-      const qty = safeNumber(line.qty);
-      const unitPrice = safeNumber(line.unitPrice);
-      const computed = roundCurrency(qty * unitPrice);
-      const lineTotalRaw = line.lineTotal == null ? computed : safeNumber(line.lineTotal);
+      const lineTotalRaw = deriveLineTotalForSummary(line);
       return isTaxableLineCurrent(line) ? sum + lineTotalRaw : sum;
     }, 0),
   );

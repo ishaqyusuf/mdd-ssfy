@@ -10,7 +10,6 @@ import { useEffect, useMemo } from "react";
 
 import { openLink } from "@/lib/open-link";
 import { toast } from "@gnd/ui/use-toast";
-import { useTaskTrigger } from "@/hooks/use-task-trigger";
 
 interface Props {
     token: string;
@@ -28,9 +27,6 @@ export function SquareTokenCheckout(props: Props) {
     );
     const paymentId = data?.payload?.paymentId;
     const walletId = data?.payload?.walletId;
-    const trig = useTaskTrigger({
-        silent: true,
-    });
     const {
         isPending: isVerifying,
         data: verifyData,
@@ -38,18 +34,8 @@ export function SquareTokenCheckout(props: Props) {
         mutate,
     } = useMutation(
         _trpc.checkout.verifyPayment.mutationOptions({
-            async onSuccess(data, variables, onMutateResult, context) {
+            onSuccess(data) {
                 console.log({ data });
-                if (data.notifications)
-                    await Promise.all(
-                        data?.notifications?.map(async (payload) => {
-                            await trig.trigger({
-                                taskName:
-                                    "sales-rep-payment-received-notification",
-                                payload,
-                            });
-                        }),
-                    );
             },
             onError(error, variables, context) {
                 console.log({
@@ -409,4 +395,3 @@ function InvalidToken({ handleContactSupport }) {
         </Card>
     );
 }
-

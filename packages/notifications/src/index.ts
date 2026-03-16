@@ -36,6 +36,7 @@ import { salesDispatchPackingReset } from "./types/sales-dispatch-packing-reset"
 import { salesDispatchQueued } from "./types/sales-dispatch-queued";
 import { salesDispatchTripCanceled } from "./types/sales-dispatch-trip-canceled";
 import { salesDispatchUnassigned } from "./types/sales-dispatch-unassigned";
+import { salesCheckoutSuccess } from "./types/sales-checkout-success";
 import { salesEmailReminder } from "./types/sales-email-reminder";
 import { salesInfo } from "./types/sales-info";
 import { salesItemInfo } from "./types/sales-item-info";
@@ -53,6 +54,7 @@ export {
 	type GetActivityTagSuggestionsQuery,
 } from "./activity-tree";
 const handlers = {
+	sales_checkout_success: salesCheckoutSuccess,
 	job_assigned: jobAssigned,
 	job_submitted: jobSubmitted,
 	job_approved: jobApproved,

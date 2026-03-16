@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
+import { endFlow, logStage, startFlow } from "@/lib/dev-flow-logger";
 import { Input } from "@gnd/ui/input";
 import { Button } from "@gnd/ui/button";
 import {
@@ -29,7 +30,7 @@ import {
     useNewSalesFormSearchCustomersQuery,
 } from "../api";
 import { useNewSalesFormStore } from "../store";
-import { repriceLineItemsByProfile } from "../mappers";
+import { computeSummary, repriceLineItemsByProfile } from "../mappers";
 
 function currency(value?: number | null) {
     return new Intl.NumberFormat("en-US", {
@@ -74,6 +75,7 @@ export function InvoiceOverviewPanel() {
     const setMeta = useNewSalesFormStore((s) => s.setMeta);
     const setTaxRate = useNewSalesFormStore((s) => s.setTaxRate);
     const setLineItems = useNewSalesFormStore((s) => s.setLineItems);
+    const setSummary = useNewSalesFormStore((s) => s.setSummary);
     const patchRecord = useNewSalesFormStore((s) => s.patchRecord);
     const upsertExtraCost = useNewSalesFormStore((s) => s.upsertExtraCost);
     const lastProfileCoefficientRef = useRef<number | null | undefined>(undefined);
@@ -139,8 +141,79 @@ export function InvoiceOverviewPanel() {
         .reduce((sum, cost) => sum + Number(cost.amount || 0), 0);
     const cccPercentage = Number((record as any).settings?.cccPercentage ?? 3.5);
     const showCcc = String(record.form.paymentMethod || "").trim().toLowerCase() === "credit card";
+    const liveSummary = useMemo(
+        () =>
+            computeSummary(
+                record.lineItems || [],
+                Number(record.summary?.taxRate || 0),
+                record.extraCosts || [],
+                record.form.paymentMethod || null,
+                cccPercentage,
+            ),
+        [
+            cccPercentage,
+            record.extraCosts,
+            record.form.paymentMethod,
+            record.lineItems,
+            record.summary?.taxRate,
+        ],
+    );
 
-    const creditUsed = Number(record.summary.grandTotal || 0);
+    useEffect(() => {
+        if (!record) return;
+        const flow = startFlow({
+            feature: "new-sales-form/invoice-summary",
+            threadContext: "summary-render",
+            tags: ["debug", "dev-only", "shelf", "summary"],
+            inputs: {
+                lineCount: record.lineItems?.length || 0,
+            },
+        });
+        logStage(flow, {
+            stage: "derive",
+            eventType: "response.received",
+            outputs: {
+                summary: liveSummary,
+                shelfLines: (record.lineItems || [])
+                    .filter((line: any) => Array.isArray(line?.shelfItems) && line.shelfItems.length)
+                    .map((line: any) => ({
+                        uid: line.uid,
+                        qty: line.qty,
+                        unitPrice: line.unitPrice,
+                        lineTotal: line.lineTotal,
+                        shelfItems: (line.shelfItems || []).map((row: any) => ({
+                            productId: row?.productId,
+                            qty: row?.qty,
+                            unitPrice: row?.unitPrice,
+                            totalPrice: row?.totalPrice,
+                        })),
+                    })),
+            },
+        });
+        endFlow(flow, {
+            subTotal: liveSummary?.subTotal,
+            taxTotal: liveSummary?.taxTotal,
+            grandTotal: liveSummary?.grandTotal,
+        });
+    }, [liveSummary, record]);
+
+    useEffect(() => {
+        if (!record) return;
+        const hasDrift =
+            Number(record.summary?.subTotal || 0) !== Number(liveSummary.subTotal || 0) ||
+            Number(record.summary?.adjustedSubTotal || 0) !==
+                Number(liveSummary.adjustedSubTotal || 0) ||
+            Number(record.summary?.taxTotal || 0) !== Number(liveSummary.taxTotal || 0) ||
+            Number(record.summary?.grandTotal || 0) !== Number(liveSummary.grandTotal || 0) ||
+            Number(record.summary?.ccc || 0) !== Number(liveSummary.ccc || 0);
+        if (!hasDrift) return;
+        setSummary({
+            ...record.summary,
+            ...liveSummary,
+        });
+    }, [liveSummary, record, setSummary]);
+
+    const creditUsed = Number(liveSummary.grandTotal || 0);
     const usagePct = creditLimit > 0 ? Math.min(100, Math.max(0, (creditUsed / creditLimit) * 100)) : 0;
 
     const customerInitial = useMemo(() => {
@@ -557,7 +630,7 @@ export function InvoiceOverviewPanel() {
                 <div className="flex flex-col gap-4 rounded-xl border border-primary/20 bg-card p-4 shadow-sm">
                     <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-muted-foreground">Subtotal (All Items)</span>
-                        <span className="text-sm font-bold text-foreground">{currency(record.summary.subTotal)}</span>
+                        <span className="text-sm font-bold text-foreground">{currency(liveSummary.subTotal)}</span>
                     </div>
 
                     <div className="flex items-center justify-between gap-4">
@@ -592,7 +665,7 @@ export function InvoiceOverviewPanel() {
                     <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-muted-foreground">Tax Amount</span>
                         <span className="text-sm font-bold text-foreground">
-                            {currency(record.summary.taxTotal)}
+                            {currency(liveSummary.taxTotal)}
                         </span>
                     </div>
 
@@ -648,7 +721,7 @@ export function InvoiceOverviewPanel() {
                                 </span>
                             </div>
                             <span className="text-sm font-bold text-foreground">
-                                {currency(record.summary.ccc)}
+                                {currency(liveSummary.ccc)}
                             </span>
                         </div>
                     ) : null}
@@ -661,7 +734,7 @@ export function InvoiceOverviewPanel() {
                             <span className="text-[10px] text-primary/60">Includes all taxes & labor</span>
                         </div>
                         <span className="text-2xl font-black text-primary">
-                            {currency(record.summary.grandTotal)}
+                            {currency(liveSummary.grandTotal)}
                         </span>
                     </div>
                 </div>

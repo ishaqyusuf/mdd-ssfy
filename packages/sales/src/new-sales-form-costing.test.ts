@@ -211,4 +211,35 @@ describe("calculateNewSalesFormSummary", () => {
     expect(result.taxTotal).toBe(10);
     expect(result.grandTotal).toBe(210);
   });
+
+  it("uses shelf item totals for invoice summary when line total is stale", () => {
+    const result = calculateSalesFormSummary({
+      strategy: "legacy",
+      taxRate: 10,
+      lineItems: [
+        {
+          qty: 0,
+          unitPrice: 0,
+          lineTotal: 0,
+          shelfItems: [
+            {
+              qty: 2,
+              unitPrice: 15,
+              totalPrice: 30,
+            },
+            {
+              qty: 1,
+              unitPrice: 20,
+              totalPrice: 20,
+            },
+          ],
+        } as any,
+      ],
+    });
+
+    expect(result.subTotal).toBe(50);
+    expect(result.taxableSubTotal).toBe(50);
+    expect(result.taxTotal).toBe(5);
+    expect(result.grandTotal).toBe(55);
+  });
 });

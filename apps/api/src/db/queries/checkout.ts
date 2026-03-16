@@ -14,6 +14,8 @@ import { getAppUrl } from "@gnd/utils/envs";
 import { SQUARE_LOCATION_ID, squareClient } from "@gnd/square";
 import type { Db } from "@gnd/db";
 import { recordLegacySalesPayment } from "@gnd/sales";
+import { NotificationService } from "@notifications/services/triggers";
+import { tasks } from "@trigger.dev/sdk/v3";
 export const initializeCheckoutSchema = z.object({
   token: z.string(),
 });
@@ -207,9 +209,15 @@ export const verifyPaymentSchema = z.object({
 });
 export type VerifyPaymentSchema = z.infer<typeof verifyPaymentSchema>;
 
-let salesRepsNotifications: {
-  [email in string]: any;
+type SalesCheckoutNotification = {
+  amount: number;
+  customerId: number | null;
+  customerName?: string;
+  ordersNo: string[];
+  salesRepId: number;
 };
+
+let salesRepsNotifications: Record<string, SalesCheckoutNotification>;
 export async function verifyPayment(
   ctx: TRPCContext,
   query: VerifyPaymentSchema,
@@ -225,7 +233,7 @@ export async function verifyPayment(
       status: "error",
     };
   const { db } = ctx;
-  return db.$transaction(async (tx) => {
+  const result = await db.$transaction(async (tx) => {
     const squarePayment = await tx.squarePayments.findFirstOrThrow({
       where: {
         id: query.paymentId,
@@ -318,6 +326,10 @@ export async function verifyPayment(
       notifications: Object.values(salesRepsNotifications || {}),
     };
   });
+  if (result.status === "COMPLETED") {
+    await sendSalesCheckoutNotifications(ctx, result.notifications || []);
+  }
+  return result;
 }
 export async function paymentSuccess(
   p: {
@@ -360,13 +372,13 @@ export async function paymentSuccess(
       if (!salesRepsNotifications[salesRep.email])
         salesRepsNotifications[salesRep.email] = {
           amount: 0,
-          email: salesRep.email,
-          repName: salesRep.name,
+          customerId: order.customerId ?? null,
           customerName:
             sp.order.customer?.businessName ||
             sp.order.customer?.name ||
             sp.order.billingAddress?.name,
           ordersNo: [],
+          salesRepId: order.salesRepId,
         };
       salesRepsNotifications[salesRep.email].amount += sp?.amount;
       salesRepsNotifications[salesRep.email].ordersNo.push(sp.order.orderId);
@@ -383,6 +395,33 @@ export async function paymentSuccess(
       // salesPaymentsId: _p.id,
     },
   });
+}
+
+async function sendSalesCheckoutNotifications(
+  ctx: TRPCContext,
+  notifications: SalesCheckoutNotification[],
+) {
+  await Promise.all(
+    notifications.map(async (notification) => {
+      if (!notification.salesRepId || !notification.customerId) return;
+
+      const service = new NotificationService(tasks, {
+        db: ctx.db,
+      }).setEmployeeRecipients(notification.salesRepId);
+
+      await service.send("sales_checkout_success", {
+        author: {
+          id: notification.customerId,
+          role: "customer",
+        },
+        payload: {
+          orderNos: notification.ordersNo,
+          customerName: notification.customerName,
+          totalAmount: notification.amount,
+        },
+      });
+    }),
+  );
 }
 
 /*

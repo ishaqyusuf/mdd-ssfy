@@ -1,56 +1,39 @@
-// import { getI18n } from "@gnd/email/locales";
-// import { getInboxEmail } from "@gnd/inbox";
 import type { NotificationHandler } from "../base";
-import { salesCheckoutSuccessSchema } from "../schemas";
+import {
+  type SalesCheckoutSuccessInput,
+  type SalesCheckoutSuccessTags,
+  salesCheckoutSuccessSchema,
+} from "../schemas";
 
 export const salesCheckoutSuccess: NotificationHandler = {
   schema: salesCheckoutSuccessSchema,
-  createActivity: (data, user) => {
-    const firstTransaction = data.transactions[0];
-    const lastTransaction = data.transactions[data.transactions.length - 1];
-
-    return {
-      teamId: user.team_id,
-      userId: user.id,
-      type: "transactions_created",
+  createActivity(data: SalesCheckoutSuccessInput, author, user) {
+    const orderLabel =
+      data.orderNos.length === 1
+        ? `order ${data.orderNos[0]}`
+        : `${data.orderNos.length} orders`;
+    const payload: SalesCheckoutSuccessTags = {
+      type: "sales_checkout_success",
       source: "system",
-      priority: 3,
-      metadata: {
-        count: data.transactions.length,
-        dateRange: {
-          from: lastTransaction?.date,
-          to: firstTransaction?.date,
-        },
-        // For single transactions, store the transaction details for richer notifications
-        ...(data.transactions.length === 1 &&
-          firstTransaction && {
-            recordId: firstTransaction.id,
-            transaction: {
-              name: firstTransaction.name,
-              amount: firstTransaction.amount,
-              currency: firstTransaction.currency,
-              date: firstTransaction.date,
-            },
-          }),
-      },
+      priority: 5,
+      orderNos: data.orderNos,
+      customerName: data.customerName,
+      totalAmount: data.totalAmount,
     };
-  },
-
-  createEmail: (data, user, team) => {
-    // const { t } = getI18n({ locale: user?.locale ?? "en" });
 
     return {
-      template: "sales_checkout_success",
-      //   template: "transactions",
-      //   emailType: "owners",
-      //   subject: t("transactions.subject"),
-      //   user,
-      //   replyTo: getInboxEmail(team.inboxId),
-      //   data: {
-      //     transactions: data.transactions,
-      //     teamName: team.name,
-      //     fullName: user.full_name,
-      //   },
+      type: "sales_checkout_success",
+      source: "system",
+      subject: "Payment received",
+      headline: data.customerName
+        ? `${data.customerName} completed payment for ${orderLabel}.`
+        : `Payment received for ${orderLabel}.`,
+      note:
+        typeof data.totalAmount === "number"
+          ? `Total received: $${data.totalAmount.toFixed(2)}`
+          : undefined,
+      authorId: author.id,
+      tags: payload,
     };
   },
 };

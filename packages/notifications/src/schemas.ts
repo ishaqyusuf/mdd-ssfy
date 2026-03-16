@@ -75,17 +75,21 @@ export const userSchema = z.object({
 // });
 
 export const salesCheckoutSuccessSchema = z.object({
-	orderId: z.string(),
-	users: z.array(userSchema),
-
-	// totalCount: z.number(),
-	// inboxType: z.enum(["email", "sync", "slack", "upload"]),
-	// source: z.enum(["user", "system"]).default("system"),
-	// provider: z.string().optional(),
+	orderNos: z.array(z.string()).min(1),
+	customerName: z.string().optional(),
+	totalAmount: z.number().optional(),
 });
 
 export type SalesCheckoutSuccessInput = z.infer<
 	typeof salesCheckoutSuccessSchema
+>;
+export const salesCheckoutSuccessTags = actityTagsSchema.extend({
+	orderNos: z.array(z.string()).min(1),
+	customerName: z.string().optional(),
+	totalAmount: z.number().optional(),
+});
+export type SalesCheckoutSuccessTags = z.infer<
+	typeof salesCheckoutSuccessTags
 >;
 
 export const jobActivitySchema = z.object({
@@ -228,7 +232,7 @@ export type JobTaskConfiguredTags = z.infer<typeof jobTaskConfiguredTags>;
 // Notification types map - all available notification types with their data structures
 
 export type NotificationTypes = {
-	// sales_checkout_success: SalesCheckoutSuccessInput;
+	sales_checkout_success: SalesCheckoutSuccessInput;
 	// job_activity: JobActivityInput;
 	job_assigned: JobAssignedInput;
 	job_submitted: JobSubmittedInput;
@@ -725,6 +729,10 @@ export const baseNotificationJobSchema = z.object({
 const _channel = (channel: ChannelName) => channel as string;
 //z.literal(channel);
 export const notificationJobSchema = z.discriminatedUnion("channel", [
+	baseNotificationJobSchema.extend({
+		channel: z.literal("sales_checkout_success"),
+		payload: salesCheckoutSuccessSchema,
+	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("job_assigned"),
 		payload: jobAssignedSchema,
