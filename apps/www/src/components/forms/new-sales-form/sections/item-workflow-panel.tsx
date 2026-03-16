@@ -729,6 +729,39 @@ export function ItemWorkflowPanel() {
         },
         !!rootStepId,
     );
+    const doorStepComponentsQuery = useSalesStepComponentsQuery(
+        {
+            stepId: activeDoorStep?.stepId || activeDoorStep?.step?.id,
+            stepTitle: activeDoorStep?.step?.title || null,
+        },
+        !!activeDoorStep,
+    );
+    const activeDoorStepComponentOverrides = useMemo(() => {
+        const overrides = new Map<string, any>();
+        const selected = Array.isArray(activeDoorStep?.meta?.selectedComponents)
+            ? activeDoorStep.meta.selectedComponents
+            : [];
+        selected.forEach((component: any) => {
+            const uid = String(component?.uid || "").trim();
+            if (!uid) return;
+            overrides.set(uid, component);
+        });
+        if (String(activeDoorStep?.prodUid || "").trim()) {
+            const uid = String(activeDoorStep?.prodUid || "").trim();
+            if (!overrides.has(uid)) {
+                overrides.set(uid, {
+                    uid,
+                    title: activeDoorStep?.value || null,
+                    salesPrice: activeDoorStep?.price ?? null,
+                    basePrice: activeDoorStep?.basePrice ?? null,
+                    redirectUid: activeDoorStep?.meta?.redirectUid || null,
+                    sectionOverride:
+                        activeDoorStep?.meta?.sectionOverride || null,
+                });
+            }
+        }
+        return overrides;
+    }, [activeDoorStep]);
 
     const visibleComponents = useMemo(() => {
         const selectedByStepUid = buildSelectedByStepUid(activeLineSteps);
@@ -800,6 +833,76 @@ export function ItemWorkflowPanel() {
         includeCustomComponents,
         activeProfileCoefficient,
         activeStepComponentOverrides,
+    ]);
+    const visibleDoorComponents = useMemo(() => {
+        const selectedByStepUid = buildSelectedByStepUid(activeLineSteps);
+        const selectedProdUidsByStepUid =
+            buildSelectedProdUidsByStepUid(activeLineSteps);
+        return (doorStepComponentsQuery.data || [])
+            .filter((component) => !component.isDeleted)
+            .filter((component) => {
+                if (includeCustomComponents) return true;
+                return (
+                    !(component as any)?._metaData?.custom &&
+                    !(component as any)?.custom
+                );
+            })
+            .filter((component) =>
+                isComponentVisibleByRules(
+                    component,
+                    selectedByStepUid,
+                    selectedProdUidsByStepUid,
+                ),
+            )
+            .map((component) => {
+                const override = activeDoorStepComponentOverrides.get(
+                    String((component as any)?.uid || ""),
+                );
+                const price = resolveComponentPriceByDeps(
+                    {
+                        ...component,
+                        ...(override || {}),
+                    },
+                    selectedByStepUid,
+                    {
+                        priceStepDeps: Array.isArray(
+                            (activeDoorStep as any)?.meta?.priceStepDeps,
+                        )
+                            ? ((activeDoorStep as any).meta
+                                  .priceStepDeps as string[])
+                            : null,
+                        selectedProdUidsByStepUid,
+                    },
+                );
+                const resolvedBasePrice =
+                    override?.basePrice == null
+                        ? (price.basePrice ??
+                          component?.basePrice ??
+                          price.salesPrice ??
+                          component?.salesPrice)
+                        : override?.basePrice;
+                const resolvedSalesPrice =
+                    override?.salesPrice == null
+                        ? (price.salesPrice ?? component?.salesPrice)
+                        : override?.salesPrice;
+                return {
+                    ...component,
+                    ...(override || {}),
+                    salesPrice: profileAdjustedSalesPrice(
+                        resolvedSalesPrice,
+                        resolvedBasePrice,
+                        activeProfileCoefficient,
+                    ),
+                    basePrice: Number(resolvedBasePrice ?? 0),
+                };
+            });
+    }, [
+        doorStepComponentsQuery.data,
+        activeLineSteps,
+        includeCustomComponents,
+        activeProfileCoefficient,
+        activeDoorStepComponentOverrides,
+        activeDoorStep,
     ]);
     const activeRootComponents = useMemo(() => {
         const roots = rootComponentsQuery.data || [];
@@ -1630,22 +1733,7 @@ export function ItemWorkflowPanel() {
             });
         })();
         const swapDoorCandidates = (() => {
-            const doorStepUid = String(doorStep?.step?.uid || "");
-            if (!doorStepUid) return [] as any[];
-            const doorStepConfig = routeData?.stepsByUid?.[doorStepUid];
-            const selectedByStepUid = buildSelectedByStepUid(line.formSteps || []);
-            const selectedProdUidsByStepUid = buildSelectedProdUidsByStepUid(
-                line.formSteps || [],
-            );
-            return (doorStepConfig?.components || [])
-                .filter((component: any) => !component?.isDeleted)
-                .filter((component: any) =>
-                    isComponentVisibleByRules(
-                        component,
-                        selectedByStepUid,
-                        selectedProdUidsByStepUid,
-                    ),
-                )
+            return visibleDoorComponents
                 .filter(
                     (component: any) =>
                         String(component?.uid || "") !==
@@ -4525,24 +4613,7 @@ export function ItemWorkflowPanel() {
                 const sourceComponent = selectedDoors.find(
                     (component) => String(component?.uid || "") === sourceUid,
                 );
-                const doorStepUid = String(doorStep?.step?.uid || "");
-                const selectedByStepUid = buildSelectedByStepUid(
-                    activeLine.formSteps || [],
-                );
-                const selectedProdUidsByStepUid = buildSelectedProdUidsByStepUid(
-                    activeLine.formSteps || [],
-                );
-                const candidates = (
-                    routeData?.stepsByUid?.[doorStepUid]?.components || []
-                )
-                    .filter((component: any) => !component?.isDeleted)
-                    .filter((component: any) =>
-                        isComponentVisibleByRules(
-                            component,
-                            selectedByStepUid,
-                            selectedProdUidsByStepUid,
-                        ),
-                    )
+                const candidates = visibleDoorComponents
                     .filter(
                         (component: any) =>
                             String(component?.uid || "") !== sourceUid,
@@ -4571,6 +4642,7 @@ export function ItemWorkflowPanel() {
                                     current size and quantity rows.
                                 </DialogDescription>
                             </DialogHeader>
+                            <div className="max-h-[70vh] overflow-y-auto pr-1">
                             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                                 {candidates.map((component: any) => (
                                     <button
@@ -4623,6 +4695,7 @@ export function ItemWorkflowPanel() {
                                         available to swap into right now.
                                     </div>
                                 ) : null}
+                            </div>
                             </div>
                             <DialogFooter>
                                 <Button

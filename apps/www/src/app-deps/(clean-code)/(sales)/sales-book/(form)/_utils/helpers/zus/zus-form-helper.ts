@@ -25,6 +25,11 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
         return formatMoney(sp / salesMultiplier);
     }
     const selectedTax = data._taxForm?.selection?.[0];
+    const cccPercentage = Number(
+        data.salesSetting?.setting?.data?.ccc ||
+            data.order?.meta?.ccc_percentage ||
+            3.5,
+    );
     if (copy && selectedTax) selectedTax.salesTaxId = null;
     const isLegacy =
         dayjs("2025-02-12").diff(dayjs(data._rawData?.createdAt), "days") > 0;
@@ -74,6 +79,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
                 taxValue: data.order?.tax,
                 taxCode: selectedTax?.taxCode,
                 ccc: data.order?.meta?.ccc,
+                cccPercentage,
                 subTotal: data.order?.subTotal,
                 grandTotal: data.order?.grandTotal,
                 paid: copy ? 0 : data.paidAmount || 0,

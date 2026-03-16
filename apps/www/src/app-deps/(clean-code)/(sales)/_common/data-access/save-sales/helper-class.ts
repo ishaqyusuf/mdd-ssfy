@@ -30,6 +30,7 @@ export class SaveSalesHelper {
         const md = form.metaData;
         const meta: Partial<SalesMeta> = {
             ccc: md.pricing.ccc,
+            ccc_percentage: md.pricing.cccPercentage || 3.5,
             discount: md.pricing.discount,
             deliveryCost: Number(md.pricing?.delivery),
             labor_cost: md.pricing.labour,

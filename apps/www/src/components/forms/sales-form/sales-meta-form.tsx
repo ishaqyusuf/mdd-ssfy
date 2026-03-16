@@ -279,7 +279,9 @@ function SummaryTab({}) {
                                 />
                                 <span>
                                     {md.paymentMethod != "Credit Card" || (
-                                        <span className="text-sm">(3%)</span>
+                                        <span className="text-sm">
+                                            ({md.pricing?.cccPercentage || 3.5}%)
+                                        </span>
                                     )}
                                     :
                                 </span>

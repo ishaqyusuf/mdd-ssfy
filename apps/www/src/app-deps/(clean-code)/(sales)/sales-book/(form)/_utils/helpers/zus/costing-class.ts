@@ -10,6 +10,9 @@ import { laborRate } from "@/utils/sales-utils";
 
 export class CostingClass {
     constructor(public setting?: SettingsClass) {}
+    public get cccPercentage() {
+        return Number(this.setting?.zus?.setting?.setting?.data?.ccc || 3.5);
+    }
     public get salesMultiplier() {
         return this.setting.dotGet("metaData.salesMultiplier") || 1;
     }
@@ -349,9 +352,10 @@ export class CostingClass {
         if (data.metaData.paymentMethod == "Credit Card") {
             estimate.ccc = percentageValue(
                 sum([subGrandTot, extraCosts, Labor]),
-                3,
+                this.cccPercentage,
             );
         } else estimate.ccc = 0;
+        estimate.cccPercentage = this.cccPercentage;
         estimate.grandTotal = formatMoney(
             sum([
                 estimate.labour,

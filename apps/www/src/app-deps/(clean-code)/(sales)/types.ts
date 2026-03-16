@@ -399,6 +399,7 @@ export interface PricingMetaData {
     taxValue?: number;
     taxId?: number;
     ccc?: number;
+    cccPercentage?: number;
 }
 export type PaymentTerms = "None" | "Net10" | "Net20" | "Net30";
 
@@ -616,6 +617,7 @@ export interface SalesFormZusData extends SalesFormFields {
     oldFormState?: SalesFormFields;
 }
 export type SalesSettingsMeta = {
+    ccc?: number;
     route: {
         [primaryRouteUid in string]: {
             routeSequence: { uid: string }[];

@@ -106,7 +106,7 @@ export async function createSalesBookFormDataDta(
             deliveryOption: "pickup" as DeliveryOption,
             meta: {
                 sales_percentage: ctx.defaultProfile?.coefficient,
-                ccc_percentage: +ctx?.settings?.ccc,
+                ccc_percentage: +(ctx?.settings?.ccc || 3.5),
                 tax: true,
                 calculatedPriceMode: true,
             },

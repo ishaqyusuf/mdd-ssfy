@@ -129,6 +129,7 @@ export type SalesType =
   | "order-hx"
   | "quote-hx";
 export type SalesSettingsMeta = {
+  ccc?: number;
   route: {
     [primaryRouteUid in string]: {
       routeSequence: { uid: string }[];
