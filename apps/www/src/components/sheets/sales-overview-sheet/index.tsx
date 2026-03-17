@@ -29,8 +29,8 @@ export default function SalesOverviewSheet() {
 	const v2SheetQuery = useSalesOverviewV2SheetQuery();
 
 	return query["sales-overview-id"] &&
-		!v2PageQuery.params["sales-overview-v2-id"] &&
-		!v2SheetQuery.params["sales-overview-v2-sheet-id"] ? (
+		!v2PageQuery.params.overviewId &&
+		!v2SheetQuery.params.overviewSheetId ? (
 		<Modal />
 	) : null;
 }

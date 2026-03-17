@@ -29,6 +29,13 @@ Design a new sales overview system that replaces the current noisy sheet with a 
   - dedicated v2 tab model
   - new summary-first UI sections for overview, finance, operations, and details
   - no rendering dependency on legacy overview tabs or legacy overview providers
+- Updated the v2 access model to match runtime roles:
+  - `salesAdmin`: full tab access
+  - `production`: production-only view unless the user is an admin
+  - `dispatch`: dispatch-only single-view mode unless the user is an admin
+- Renamed the v2 query contract to camelCase:
+  - page: `overviewId`, `overviewType`, `overviewMode`, `overviewTab`, `dispatchId`
+  - sheet: `overviewSheetId`, `overviewSheetType`, `overviewSheetMode`, `overviewSheetTab`, `overviewSheetDispatchId`
 
 ## Why This Exists
 

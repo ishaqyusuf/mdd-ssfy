@@ -37,8 +37,13 @@
   - `sales-overview-v2-sheet-*` for the v2 sheet
 - Reworked the v2 overview away from the legacy overview internals:
   - direct provider query against `trpc.sales.getSaleOverview`
-  - dedicated v2 tab model (`overview`, `finance`, `operations`, `details`)
+  - dedicated v2 tab model (`overview`, `finance`, `production`, `dispatch`, `details`)
   - new information-first UI with summary cards, customer/order blocks, finance context, and operational status panels
+- Matched the v2 access rules to the real runtime views:
+  - sales-admin sees all tabs
+  - production-only users see only the production tab, with assigned-item filtering
+  - dispatch-only users see only the dispatch overview
+- Renamed the v2 query params to camelCase for both page and sheet contracts.
 - Published ADR `brain/decisions/ADR-003-sales-overview-system-architecture.md` to lock the new architecture direction before deeper tab migration work.
 
 - Added a dedicated Brain architecture plan for the sales overview redesign in `brain/sales-overview-system-architecture-plan.md`.

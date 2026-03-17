@@ -2,17 +2,19 @@
 
 export type SalesOverviewSurface = "sheet" | "page";
 
-export type SalesOverviewAudience = "general" | "production" | "dispatch";
+export type SalesOverviewAccessView = "salesAdmin" | "production" | "dispatch";
 
 export type SalesOverviewTabId =
 	| "overview"
 	| "finance"
-	| "operations"
+	| "production"
+	| "dispatch"
 	| "details";
 
 export const SALES_OVERVIEW_TAB_ORDER: SalesOverviewTabId[] = [
 	"overview",
 	"finance",
-	"operations",
+	"production",
+	"dispatch",
 	"details",
 ];

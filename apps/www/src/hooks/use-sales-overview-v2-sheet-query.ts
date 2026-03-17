@@ -11,18 +11,17 @@ const openModes = [
 
 export function useSalesOverviewV2SheetQuery() {
 	const [params, setParams] = useQueryStates({
-		"sales-overview-v2-sheet-id": parseAsString,
-		"sales-overview-v2-sheet-type": parseAsStringEnum([
-			"quote",
-			"sales",
-		] as SalesType[]),
-		"sales-overview-v2-sheet-mode": parseAsStringEnum([...openModes]),
-		"sales-overview-v2-sheet-tab": parseAsStringEnum([
+		overviewSheetId: parseAsString,
+		overviewSheetType: parseAsStringEnum(["quote", "sales"] as SalesType[]),
+		overviewSheetMode: parseAsStringEnum([...openModes]),
+		overviewSheetTab: parseAsStringEnum([
 			"overview",
 			"finance",
-			"operations",
+			"production",
+			"dispatch",
 			"details",
 		] as const),
+		overviewSheetDispatchId: parseAsString,
 	});
 
 	return {

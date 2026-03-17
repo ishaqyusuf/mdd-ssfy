@@ -25,9 +25,7 @@ export function SalesOverviewPageShell() {
 
 	const handleTabChange = (tab: SalesOverviewTabId) => {
 		query.setParams({
-			...(query.params["sales-overview-v2-id"]
-				? { "sales-overview-v2-tab": tab }
-				: { "sales-overview-v2-sheet-tab": tab }),
+			overviewTab: tab,
 		});
 	};
 

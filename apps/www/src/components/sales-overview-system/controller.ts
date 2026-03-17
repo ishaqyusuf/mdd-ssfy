@@ -1,6 +1,10 @@
 "use client";
 
-import { SALES_OVERVIEW_TAB_ORDER, type SalesOverviewTabId } from "./types";
+import {
+	SALES_OVERVIEW_TAB_ORDER,
+	type SalesOverviewAccessView,
+	type SalesOverviewTabId,
+} from "./types";
 
 export function normalizeSalesOverviewTab(
 	tab: string | null | undefined,
@@ -25,4 +29,21 @@ export function resolveSalesOverviewActiveTab({
 		availableTabs[0] ||
 		"overview"
 	);
+}
+
+export function resolveSalesOverviewAccessView({
+	isAdmin,
+	mode,
+	canProduction,
+	canDispatch,
+}: {
+	isAdmin: boolean;
+	mode?: string | null;
+	canProduction?: boolean;
+	canDispatch?: boolean;
+}): SalesOverviewAccessView {
+	if (isAdmin) return "salesAdmin";
+	if (mode === "dispatch-modal" || canDispatch) return "dispatch";
+	if (mode === "production-tasks" || canProduction) return "production";
+	return "salesAdmin";
 }

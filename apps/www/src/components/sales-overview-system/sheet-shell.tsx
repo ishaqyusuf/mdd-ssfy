@@ -29,7 +29,7 @@ export function SalesOverviewSheetShell({ onClose }: { onClose?: () => void }) {
 
 	const handleTabChange = (tab: SalesOverviewTabId) => {
 		query.setParams({
-			"sales-overview-v2-sheet-tab": tab,
+			overviewSheetTab: tab,
 		});
 	};
 

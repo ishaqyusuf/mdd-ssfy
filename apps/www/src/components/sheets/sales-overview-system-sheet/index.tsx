@@ -5,7 +5,7 @@ import { useSalesOverviewV2SheetQuery } from "@/hooks/use-sales-overview-v2-shee
 
 export default function SalesOverviewSystemSheet() {
 	const query = useSalesOverviewV2SheetQuery();
-	const overviewId = query.params["sales-overview-v2-sheet-id"];
+	const overviewId = query.params.overviewSheetId;
 
 	return overviewId ? (
 		<SalesOverviewSystem surface="sheet" onSheetClose={query.close} />
