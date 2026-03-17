@@ -2,6 +2,18 @@
 
 ## 2026-03-16
 
+- Added a separated sales payment-notifications feature path without reusing the legacy payment-link menu action:
+  - new direct `Payment Notifications` submenu component in `apps/www/src/components/sales-payment-notifications-menu.tsx`
+  - preset sends for `25%`, `50%`, `75%`, `full`
+  - compact inline `custom` amount prompt
+  - direct delivery through the `simple_sales_email_reminder` notification channel
+- Expanded reminder-token compatibility for new pay-plan behavior:
+  - added `payPlan` and `preferredAmount` to sales payment tokens
+  - kept legacy `percentage` support, including `100`, for backward compatibility
+  - added shared reminder pay-plan resolution helpers and regression tests in `packages/sales/src/utils/reminder-pay-plan*.ts`
+- Updated reminder email generation paths to use 7-day reminder expiry consistently and route new reminder payment links to the standalone checkout v2 route.
+- Updated `apps/www/src/components/send-sales-reminder.tsx` to support `25%`, `50%`, `75%`, `full`, and `custom` reminder amounts without changing the legacy payment-link menu action.
+- Updated `apps/www/src/components/square-token-checkout-v2.tsx` so checkout v2 can label and explain legacy percentage tokens plus new `full` and `custom` reminder payment requests.
 - Added a standalone public checkout v2 route at `apps/www/src/app/(payment)/checkout/[token]/v2` that preserves the legacy `/checkout/[token]` experience while reusing the new payment-system-backed tRPC checkout flow.
 - Added dedicated v2 payment UI components in `apps/www/src/components/square-token-checkout-v2*.tsx` with:
   - order-level preview

@@ -693,6 +693,7 @@
         "@gnd/db": "workspace:*",
         "@gnd/email": "workspace:*",
         "@gnd/logger": "workspace:*",
+        "@gnd/sales": "workspace:*",
         "@gnd/utils": "workspace:*",
         "resend": "^6.5.2",
         "zod": "catalog:",

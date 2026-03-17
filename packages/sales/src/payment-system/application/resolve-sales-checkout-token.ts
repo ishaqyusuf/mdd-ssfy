@@ -7,7 +7,10 @@ export function resolveSalesCheckoutToken(
 	return (
 		validateToken(token, tokenSchemas.salesPaymentTokenSchema) || {
 			amount: null,
+			payPlan: null,
 			paymentId: null,
+			percentage: null,
+			preferredAmount: null,
 			salesIds: [],
 			walletId: null,
 		}

@@ -555,15 +555,26 @@ export const salesEmailReminderTags = actityTagsSchema.extend({
 	pdfToken: z.string().optional().nullable(),
 });
 export type SalesEmailReminderTags = z.infer<typeof salesEmailReminderTags>;
-export const simpleSalesEmailReminderSchema = z.object({
-	salesId: z.number(),
-	payPlan: z
-		.union([z.literal(25), z.literal(50), z.literal(75), z.literal(100)])
-		.optional()
-		.nullable(),
-	attachInvoice: z.boolean().optional(),
-	note: z.string().optional().nullable(),
-});
+export const simpleSalesEmailReminderSchema = z
+	.object({
+		salesId: z.number(),
+		payPlan: z
+			.union([z.number(), z.literal("full"), z.literal("custom")])
+			.optional()
+			.nullable(),
+		preferredAmount: z.number().optional().nullable(),
+		attachInvoice: z.boolean().optional(),
+		note: z.string().optional().nullable(),
+	})
+	.superRefine((value, ctx) => {
+		if (value.payPlan === "custom" && !value.preferredAmount) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["preferredAmount"],
+				message: "Preferred amount is required for custom pay plans.",
+			});
+		}
+	});
 export type SimpleSalesEmailReminderInput = z.infer<
 	typeof simpleSalesEmailReminderSchema
 >;
@@ -571,9 +582,10 @@ export const simpleSalesEmailReminderTags = actityTagsSchema.extend({
 	salesId: z.number(),
 	salesNo: z.string(),
 	payPlan: z
-		.union([z.literal(25), z.literal(50), z.literal(75), z.literal(100)])
+		.union([z.number(), z.literal("full"), z.literal("custom")])
 		.optional()
 		.nullable(),
+	preferredAmount: z.number().optional().nullable(),
 	attachInvoice: z.boolean().optional(),
 });
 export type SimpleSalesEmailReminderTags = z.infer<

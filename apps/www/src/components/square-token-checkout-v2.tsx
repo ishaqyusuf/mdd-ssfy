@@ -15,6 +15,7 @@ import {
 import { Separator } from "@gnd/ui/separator";
 import { useMutation, useSuspenseQuery } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
+import { resolveReminderPlanLabel } from "@sales/utils/reminder-pay-plan";
 import {
 	AlertCircle,
 	ArrowRight,
@@ -134,6 +135,13 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 	const amountDue =
 		payload?.amount ??
 		orders.reduce((sum, order) => sum + Number(order.due ?? 0), 0);
+	const paymentPlanLabel = resolveReminderPlanLabel({
+		payPlan: payload?.payPlan,
+		percentage: payload?.percentage,
+		preferredAmount: payload?.preferredAmount,
+		amount: payload?.amount,
+	});
+	const amountLabel = payload?.amount ? "Requested amount" : "Amount due";
 	const merchantName = data?.customerName || "gnd";
 	const hasOrders = orders.length > 0;
 	const isInvalidToken =
@@ -189,7 +197,7 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 				</CardHeader>
 
 				<CardContent className="space-y-6 p-6">
-					<div className="grid gap-4 md:grid-cols-3">
+					<div className="grid gap-4 md:grid-cols-4">
 						<SummaryTile
 							icon={<Wallet className="h-4 w-4" />}
 							label="Merchant"
@@ -197,8 +205,13 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 						/>
 						<SummaryTile
 							icon={<CreditCard className="h-4 w-4" />}
-							label="Amount due"
+							label={amountLabel}
 							value={currencyFormatter.format(amountDue)}
+						/>
+						<SummaryTile
+							icon={<CreditCard className="h-4 w-4" />}
+							label="Payment plan"
+							value={paymentPlanLabel}
 						/>
 						<SummaryTile
 							icon={<ShieldCheck className="h-4 w-4" />}
@@ -206,6 +219,17 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 							value={`${token.slice(0, 10)}...`}
 						/>
 					</div>
+
+					{payload?.payPlan === "custom" || payload?.preferredAmount ? (
+						<Alert className="border-sky-200 bg-sky-50 text-sky-950">
+							<CreditCard className="h-4 w-4 text-sky-700" />
+							<AlertTitle>Custom payment request</AlertTitle>
+							<AlertDescription>
+								This reminder asked the customer to pay a preferred amount now.
+								Remaining order balances may still exist after this payment.
+							</AlertDescription>
+						</Alert>
+					) : null}
 
 					{state.name === "invalid" ? (
 						<Alert variant="destructive">

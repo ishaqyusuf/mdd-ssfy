@@ -11,6 +11,9 @@
     "baseUrl": ".",
     "paths": {
       "@emails/*": ["../email/emails/*"],
+      "@gnd/sales": ["../sales/src/exports.ts"],
+      "@sales/*": ["../sales/src/*"],
+      "@gnd/sales/*": ["../sales/src/*"],
       "@gnd/app-store/whatsapp-client": [
         "../app-store/src/whatsapp/server/client.ts"
       ]

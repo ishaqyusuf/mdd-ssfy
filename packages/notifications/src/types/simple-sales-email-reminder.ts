@@ -1,8 +1,14 @@
 import type { Db } from "@gnd/db";
 import {
-  tokenize,
-  type SalesPdfToken,
+  type ReminderPayPlan,
+  SALES_REMINDER_EXPIRY_DAYS,
+  resolveReminderAmount,
+  resolveReminderPlanLabel,
+} from "@gnd/sales/utils";
+import {
   type SalesPaymentTokenSchema,
+  type SalesPdfToken,
+  tokenize,
 } from "@gnd/utils/tokenizer";
 import { addDays } from "date-fns";
 import { z } from "zod";
@@ -18,23 +24,17 @@ import { salesEmailReminder } from "./sales-email-reminder";
 const simpleSalesEmailReminderResolvedSchema = salesEmailReminderSchema.extend({
   salesId: z.number(),
   payPlan: z
-    .union([z.literal(25), z.literal(50), z.literal(75), z.literal(100)])
+    .union([z.number(), z.literal("full"), z.literal("custom")])
     .optional()
     .nullable(),
+  preferredAmount: z.number().optional().nullable(),
   attachInvoice: z.boolean().optional(),
+  paymentLabel: z.string().optional().nullable(),
 });
 
 type SimpleSalesEmailReminderResolvedInput = z.infer<
   typeof simpleSalesEmailReminderResolvedSchema
 >;
-
-function toPayPlanAmount(
-  amountDue: number,
-  payPlan?: 25 | 50 | 75 | 100 | null,
-) {
-  if (payPlan == null) return null;
-  return Number((((amountDue || 0) * payPlan) / 100).toFixed(2));
-}
 
 function resolveBaseUrls() {
   const appUrl =
@@ -103,7 +103,7 @@ async function buildReminderData(
   }
 
   const { appUrl, apiUrl } = resolveBaseUrls();
-  const expiry = addDays(new Date(), 7).toISOString();
+  const expiry = addDays(new Date(), SALES_REMINDER_EXPIRY_DAYS).toISOString();
   const pdfToken = input.attachInvoice
     ? tokenize({
         salesIds: [sale.id],
@@ -113,7 +113,19 @@ async function buildReminderData(
     : null;
 
   let paymentToken: string | null = null;
-  if (input.payPlan != null) {
+  const amount = resolveReminderAmount({
+    due: sale.amountDue || 0,
+    payPlan: input.payPlan as ReminderPayPlan | null | undefined,
+    preferredAmount: input.preferredAmount,
+  });
+
+  if (input.payPlan === "custom" && amount <= 0) {
+    throw new Error(
+      `Invalid preferredAmount for custom payment reminder, salesId=${input.salesId}`,
+    );
+  }
+
+  if (amount > 0) {
     const walletId = sale.customer?.walletId;
     if (!walletId) {
       throw new Error(
@@ -123,8 +135,10 @@ async function buildReminderData(
     paymentToken = tokenize({
       salesIds: [sale.id],
       expiry,
-      percentage: input.payPlan,
-      amount: toPayPlanAmount(sale.amountDue || 0, input.payPlan),
+      percentage: typeof input.payPlan === "number" ? input.payPlan : null,
+      payPlan: input.payPlan,
+      preferredAmount: input.preferredAmount,
+      amount,
       walletId,
     } satisfies SalesPaymentTokenSchema);
   }
@@ -132,8 +146,14 @@ async function buildReminderData(
   return {
     salesId: sale.id,
     payPlan: input.payPlan ?? null,
+    preferredAmount: input.preferredAmount ?? null,
     attachInvoice: input.attachInvoice,
     note: input.note || undefined,
+    paymentLabel: resolveReminderPlanLabel({
+      payPlan: input.payPlan as ReminderPayPlan | null | undefined,
+      preferredAmount: input.preferredAmount,
+      amount,
+    }),
     type: saleType,
     customerEmail,
     customerName,
@@ -142,7 +162,7 @@ async function buildReminderData(
     paymentToken,
     pdfToken,
     paymentLink:
-      paymentToken && appUrl ? `${appUrl}/checkout/${paymentToken}` : null,
+      paymentToken && appUrl ? `${appUrl}/checkout/${paymentToken}/v2` : null,
     pdfLink:
       pdfToken && apiUrl
         ? `${apiUrl}/download/sales?token=${pdfToken}&download=true`
@@ -150,7 +170,7 @@ async function buildReminderData(
     sales: [
       {
         orderId: sale.orderId,
-        po: (sale.meta as any)?.po,
+        po: (sale.meta as { po?: string | null } | null)?.po,
         date: sale.createdAt || new Date(),
         total: sale.grandTotal || 0,
         due: sale.amountDue || 0,
@@ -167,6 +187,9 @@ export const simpleSalesEmailReminder: NotificationHandler = {
   },
   createActivity: salesEmailReminder.createActivity,
   createEmail(data: SalesEmailReminderInput, author, user, args) {
-    return salesEmailReminder.createEmail!(data, author, user, args);
+    if (!salesEmailReminder.createEmail) {
+      throw new Error("salesEmailReminder.createEmail is not configured");
+    }
+    return salesEmailReminder.createEmail(data, author, user, args);
   },
 };
