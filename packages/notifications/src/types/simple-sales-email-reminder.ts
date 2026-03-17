@@ -1,4 +1,5 @@
 import type { Db } from "@gnd/db";
+import { getCustomerWallet } from "@gnd/sales/wallet";
 import {
   type ReminderPayPlan,
   SALES_REMINDER_EXPIRY_DAYS,
@@ -10,6 +11,7 @@ import {
   type SalesPdfToken,
   tokenize,
 } from "@gnd/utils/tokenizer";
+import { getAppApiUrl, getAppUrl } from "@gnd/utils/envs";
 import { addDays } from "date-fns";
 import { z } from "zod";
 import type { NotificationHandler, UserData } from "../base";
@@ -37,13 +39,8 @@ type SimpleSalesEmailReminderResolvedInput = z.infer<
 >;
 
 function resolveBaseUrls() {
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.APP_URL ||
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    "";
-  const apiUrl =
-    process.env.NEXT_PUBLIC_API_URL || process.env.APP_API_URL || appUrl;
+  const appUrl = getAppUrl();
+  const apiUrl = getAppApiUrl();
   return { appUrl, apiUrl };
 }
 
@@ -64,8 +61,10 @@ async function buildReminderData(
       createdAt: true,
       customer: {
         select: {
+          id: true,
           name: true,
           email: true,
+          phoneNo: true,
           walletId: true,
         },
       },
@@ -126,7 +125,11 @@ async function buildReminderData(
   }
 
   if (amount > 0) {
-    const walletId = sale.customer?.walletId;
+    const accountNo =
+      sale.customer?.phoneNo || (sale.customer?.id ? `cust-${sale.customer.id}` : null);
+    const walletId =
+      sale.customer?.walletId ||
+      (accountNo ? (await getCustomerWallet(db, accountNo)).id : null);
     if (!walletId) {
       throw new Error(
         `Missing walletId for payment reminder, salesId=${input.salesId}`,

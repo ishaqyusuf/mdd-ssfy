@@ -551,8 +551,8 @@ export const salesEmailReminderTags = actityTagsSchema.extend({
 	salesCount: z.number(),
 	reminderType: z.enum(["order", "quote"]),
 	salesNo: z.array(z.string()).optional(),
-	paymentToken: z.string().optional().nullable(),
-	pdfToken: z.string().optional().nullable(),
+	hasPaymentLink: z.boolean().optional(),
+	hasPdfLink: z.boolean().optional(),
 });
 export type SalesEmailReminderTags = z.infer<typeof salesEmailReminderTags>;
 export const simpleSalesEmailReminderSchema = z

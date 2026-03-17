@@ -98,7 +98,7 @@ export async function createSalesCheckoutLink(
 			paymentMethod: "link" as SalesPaymentMethods,
 			tokenPayload: payload,
 		});
-		const redirectUrl = `${getAppUrl()}/checkout/${pendingCheckout.redirectToken}`;
+		const redirectUrl = `${getAppUrl()}/checkout/${pendingCheckout.redirectToken}/v2`;
 		const buyerEmail = cust?.email;
 		try {
 			const resp = await squareClient.checkout.paymentLinks.create({
