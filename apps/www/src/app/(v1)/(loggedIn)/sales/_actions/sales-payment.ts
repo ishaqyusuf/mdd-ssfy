@@ -8,7 +8,7 @@ import {
 	deleteLegacySalesPayment,
 	recordLegacySalesPayment,
 	repairLegacySalesPaymentBalance,
-} from "@gnd/sales";
+} from "@gnd/sales/payment-system";
 import { tasks } from "@trigger.dev/sdk/v3";
 
 import {

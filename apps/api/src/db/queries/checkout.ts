@@ -6,11 +6,11 @@ import {
 	createPendingLegacySalesCheckout,
 	linkLegacySalesCheckoutSquareOrder,
 	resolveSalesCheckoutToken,
-} from "@gnd/sales";
+} from "@gnd/sales/payment-system";
 import type {
 	PaymentSystemNotificationEvent,
 	SalesCheckoutSuccessNotificationPayload,
-} from "@gnd/sales";
+} from "@gnd/sales/payment-system";
 import { SQUARE_LOCATION_ID, squareClient } from "@gnd/square";
 import { timeout } from "@gnd/utils";
 import { getAppUrl } from "@gnd/utils/envs";

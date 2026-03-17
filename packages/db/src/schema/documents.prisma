@@ -1,0 +1,60 @@
+model StoredDocument {
+    id          String   @id @default(cuid())
+    kind        String   @db.VarChar(100)
+    ownerType   String   @db.VarChar(100)
+    ownerId     String   @db.VarChar(191)
+    ownerKey    String?  @db.VarChar(191)
+    provider    String   @db.VarChar(100)
+    pathname    String   @db.VarChar(512)
+    url         String?  @db.VarChar(512)
+    filename    String?  @db.VarChar(255)
+    mimeType    String?  @db.VarChar(255)
+    extension   String?  @db.VarChar(50)
+    size        Int?
+    checksum    String?  @db.VarChar(191)
+    visibility  String   @default("private") @db.VarChar(50)
+    status      String   @default("ready") @db.VarChar(50)
+    isCurrent   Boolean  @default(true)
+    generated   Boolean  @default(false)
+    sourceType  String?  @db.VarChar(100)
+    sourceId    String?  @db.VarChar(191)
+    uploadedBy  Int?
+    title       String?  @db.VarChar(255)
+    description String?  @db.Text
+    meta        Json?    @db.Json
+    createdAt   DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt   DateTime? @updatedAt
+    deletedAt   DateTime? @db.Timestamp(0)
+
+    @@index([ownerType, ownerId, kind, status])
+    @@index([ownerType, ownerId, kind, isCurrent])
+    @@index([kind, status, updatedAt])
+    @@index([provider, pathname])
+    @@index([sourceType, sourceId])
+    @@index([uploadedBy])
+}
+
+model SalesDocumentSnapshot {
+    id               String   @id @default(cuid())
+    salesOrderId     Int
+    storedDocumentId String?  @db.VarChar(191)
+    documentType     String   @db.VarChar(100)
+    version          Int      @default(1)
+    generationStatus String   @default("pending") @db.VarChar(50)
+    reason           String?  @db.VarChar(100)
+    isCurrent        Boolean  @default(true)
+    sourceUpdatedAt  DateTime? @db.Timestamp(0)
+    generatedAt      DateTime? @db.Timestamp(0)
+    invalidatedAt    DateTime? @db.Timestamp(0)
+    failedAt         DateTime? @db.Timestamp(0)
+    errorMessage     String?  @db.Text
+    meta             Json?    @db.Json
+    createdAt        DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime? @updatedAt
+    deletedAt        DateTime? @db.Timestamp(0)
+
+    @@unique([salesOrderId, documentType, version])
+    @@index([salesOrderId, documentType, isCurrent])
+    @@index([storedDocumentId])
+    @@index([generationStatus, updatedAt])
+}

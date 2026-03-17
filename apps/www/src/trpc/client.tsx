@@ -7,7 +7,7 @@ import { createTRPCContext } from "@gnd/ui/tanstack";
 import { useState } from "react";
 import superjson from "superjson";
 import { makeQueryClient } from "./query-client";
-import { AppRouter } from "@gnd/api/trpc/routers/_app";
+import type { AppRouter } from "@gnd/api/trpc/routers/_app";
 import { generateRandomString } from "@/lib/utils";
 import { authUser } from "@/app-deps/(v1)/_actions/utils";
 import { getBaseUrl } from "@/lib/base-url";

@@ -30,7 +30,7 @@ import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { Env } from "@/components/env";
 import { isProdClient } from "@/lib/is-prod";
-import { RouterOutputs } from "@api/trpc/routers/_app";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
 
 export type Item =
     RouterOutputs["sales"]["getSalesResolutions"]["data"][number];

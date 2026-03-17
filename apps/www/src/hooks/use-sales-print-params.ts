@@ -1,4 +1,4 @@
-import { PrintInvoice } from "@sales/exports";
+import type { PrintInvoice } from "@sales/exports";
 import {
     parseAsArrayOf,
     parseAsBoolean,
@@ -30,4 +30,3 @@ export function useSalesPrintParams() {
         },
     };
 }
-

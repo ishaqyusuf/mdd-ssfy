@@ -6,7 +6,7 @@ import { prisma } from "@/db";
 import { formatMoney } from "@/lib/use-number";
 import { sum } from "@/lib/utils";
 import { sendPaymentSystemNotifications } from "@gnd/notifications/payment-system";
-import { buildSalesCheckoutSuccessNotificationEvent } from "@gnd/sales";
+import { buildSalesCheckoutSuccessNotificationEvent } from "@gnd/sales/payment-system";
 import { tasks } from "@trigger.dev/sdk/v3";
 
 import { createPayrollAction } from "./create-payroll";

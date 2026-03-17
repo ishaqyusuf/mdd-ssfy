@@ -5,7 +5,7 @@ import type {
 	SalesCheckoutSuccessNotificationPayload,
 	SalesPaymentRecordedNotificationPayload,
 	SalesPaymentRefundedNotificationPayload,
-} from "@gnd/sales";
+} from "@gnd/sales/payment-system";
 import { NotificationService } from "./services/triggers";
 
 type TriggerTasksClient = {

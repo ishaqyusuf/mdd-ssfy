@@ -9,10 +9,12 @@
 - `apps/expo-app` (mobile)
 - `apps/site`, `apps/gnd-backlog` (additional surfaces)
 - Shared packages: domain and infra modules under `packages/*` (`db`, `ui`, `auth`, `notifications`, `jobs`, etc.).
+- Shared document infrastructure is now beginning to consolidate under `packages/documents` for provider-agnostic storage + metadata lifecycle handling across uploads and generated files.
 - Sales domain is now explicitly splitting into dedicated package boundaries:
 - `packages/sales/src/control/*` for production/dispatch quantity truth
 - `packages/sales/src/payment-system/*` for canonical payment/accounting logic
 - `packages/sales/src/resolution-system/*` for inconsistency detection and audited repair workflows
+- `packages/sales/src/pdf-system/*` for sales-specific PDF invalidation and current-document resolution on top of the shared document platform
 
 ## Flow
 

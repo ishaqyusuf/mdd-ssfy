@@ -3,10 +3,10 @@ import { sendPaymentSystemNotifications } from "@gnd/notifications/payment-syste
 import {
 	appendLegacyRefundSalesPayment,
 	cancelLegacyCustomerTransaction,
-	createLegacySalesResolution,
 	createLegacyWalletRefundTransaction,
 	repairLegacySalesPaymentBalance,
-} from "@gnd/sales";
+} from "@gnd/sales/payment-system";
+import { createLegacySalesResolution } from "@gnd/sales/resolution-system";
 import { squareCreateRefund } from "@gnd/square";
 import { SALES_PAYMENT_METHODS, SALES_REFUND_METHODS } from "@sales/constants";
 import type { CustomerTransanctionStatus } from "@sales/constants";

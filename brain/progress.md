@@ -1,5 +1,47 @@
 # Progress
 
+## 2026-03-17
+
+- Started the first implementation slice of the sales overview system redesign.
+- Added a new shared feature path at `apps/www/src/components/sales-overview-system/*` with:
+  - controller utilities for canonical tab/audience resolution
+  - root provider
+  - registry-driven tabs
+  - shared layout
+  - sheet shell
+  - page shell
+- Restored `apps/www/src/components/sheets/sales-overview-sheet/index.tsx` as the active legacy runtime after deciding the old system must remain fully functional while the new system is built separately.
+- Kept the new `sales-overview-system` scaffold disconnected from the legacy sheet flow so future work can proceed without changing current behavior.
+- Added a dedicated build route for the new system at `apps/www/src/app/(sidebar)/(sales)/sales-book/orders/overview-v2/page.tsx`.
+- Added a separate v2 sheet component at `apps/www/src/components/sheets/sales-overview-system-sheet/index.tsx` without mounting it into `global-sheets`.
+- Published ADR `brain/decisions/ADR-003-sales-overview-system-architecture.md` to lock the new architecture direction before deeper tab migration work.
+
+- Added a dedicated Brain architecture plan for the sales overview redesign in `brain/sales-overview-system-architecture-plan.md`.
+- Captured the target direction for the new sales overview system:
+  - headless feature core
+  - canonical `surface/audience/tab` state model
+  - registry-driven tabs
+  - reusable overview sections
+  - thin sheet/page shells
+- Added a tracked NEXT task to execute the sales overview system reset while preserving the current sheet entry as a compatibility wrapper during migration.
+
+## 2026-03-17
+
+- Started the shared document-platform foundation so file-backed features can converge on one storage/metadata contract instead of route-local or UI-local upload logic.
+- Added schema foundations for:
+  - `StoredDocument`
+  - `SalesDocumentSnapshot`
+- Added a new Prisma migration scaffold at `packages/db/src/schema/migrations/20260317154500_document_platform_foundation/migration.sql`.
+- Extended `packages/documents` with:
+  - stored-document contracts
+  - owner-folder/path helpers
+  - registry helpers for uploaded/current/failed/deleted document state transitions
+- Added initial sales PDF-domain scaffolding in `packages/sales/src/pdf-system/*` for:
+  - document-type/status/reason contracts
+  - invalidation flow
+  - current-document resolution
+- Published ADR `brain/decisions/ADR-002-shared-document-platform.md` to lock the new shared document pattern before caller migration begins.
+
 ## 2026-03-16
 
 - Added a separated sales payment-notifications feature path without reusing the legacy payment-link menu action:
