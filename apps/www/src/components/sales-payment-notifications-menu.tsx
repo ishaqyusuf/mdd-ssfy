@@ -84,7 +84,7 @@ export function SalesPaymentNotificationsMenu({
 	);
 
 	const sendReminder = (
-		payPlan: number | "full" | "custom",
+		payPlan: number | "full" | "custom" | "flexible",
 		preferredAmount?: number,
 	) => {
 		if (!saleId) return;
@@ -159,6 +159,19 @@ export function SalesPaymentNotificationsMenu({
 							</DropdownMenu.Item>
 						))
 					: null}
+
+				{!isPending && isSingleSale && dueAmount > 0 ? (
+					<DropdownMenu.Item
+						disabled={isDisabled}
+						onSelect={(event) => {
+							event.preventDefault();
+							sendReminder("flexible");
+						}}
+					>
+						<BellRing className="mr-2 size-4 text-muted-foreground/70" />
+						Flexible
+					</DropdownMenu.Item>
+				) : null}
 
 				{!isPending && isSingleSale && dueAmount > 0 ? (
 					<DropdownMenu.Item

@@ -7,7 +7,11 @@ export const reminderCompatibilityPayPlans = [
 export type ReminderPresetPayPlan =
 	(typeof reminderCompatibilityPayPlans)[number];
 
-export type ReminderPayPlan = ReminderPresetPayPlan | "full" | "custom";
+export type ReminderPayPlan =
+	| ReminderPresetPayPlan
+	| "full"
+	| "custom"
+	| "flexible";
 
 type ResolveReminderAmountInput = {
 	due: number;
@@ -21,7 +25,12 @@ function roundMoney(value: number) {
 }
 
 export function isReminderPayPlan(value: unknown): value is ReminderPayPlan {
-	return typeof value === "number" || value === "full" || value === "custom";
+	return (
+		typeof value === "number" ||
+		value === "full" ||
+		value === "custom" ||
+		value === "flexible"
+	);
 }
 
 export function normalizeReminderPayPlan(input: {
@@ -85,6 +94,10 @@ export function resolveReminderPlanLabel(input: {
 
 	if (normalizedPayPlan === "custom") {
 		return "Custom amount";
+	}
+
+	if (normalizedPayPlan === "flexible") {
+		return "Flexible amount";
 	}
 
 	if (typeof normalizedPayPlan === "number") {

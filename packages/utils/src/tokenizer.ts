@@ -20,7 +20,12 @@ export const salesPaymentTokenSchema = z.object({
 	expiry: z.string(),
 	percentage: z.number().optional().nullable(),
 	payPlan: z
-		.union([z.number(), z.literal("full"), z.literal("custom")])
+		.union([
+			z.number(),
+			z.literal("full"),
+			z.literal("custom"),
+			z.literal("flexible"),
+		])
 		.optional()
 		.nullable(),
 	preferredAmount: z.number().optional().nullable(),

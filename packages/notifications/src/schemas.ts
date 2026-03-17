@@ -559,7 +559,12 @@ export const simpleSalesEmailReminderSchema = z
 	.object({
 		salesId: z.number(),
 		payPlan: z
-			.union([z.number(), z.literal("full"), z.literal("custom")])
+			.union([
+				z.number(),
+				z.literal("full"),
+				z.literal("custom"),
+				z.literal("flexible"),
+			])
 			.optional()
 			.nullable(),
 		preferredAmount: z.number().optional().nullable(),
@@ -582,7 +587,12 @@ export const simpleSalesEmailReminderTags = actityTagsSchema.extend({
 	salesId: z.number(),
 	salesNo: z.string(),
 	payPlan: z
-		.union([z.number(), z.literal("full"), z.literal("custom")])
+		.union([
+			z.number(),
+			z.literal("full"),
+			z.literal("custom"),
+			z.literal("flexible"),
+		])
 		.optional()
 		.nullable(),
 	preferredAmount: z.number().optional().nullable(),

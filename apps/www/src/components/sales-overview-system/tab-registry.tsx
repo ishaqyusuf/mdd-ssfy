@@ -2,88 +2,46 @@
 
 import type { ReactNode } from "react";
 
-import Note from "@/modules/notes";
-import { noteTagFilter } from "@/modules/notes/utils";
-
-import { Badge } from "@gnd/ui/badge";
-
-import { TransactionsTab } from "../sheets/customer-overview-sheet/transactions-tab";
-import { DispatchTab } from "../sheets/sales-overview-sheet/dispatch-tab";
-import { GeneralTab } from "../sheets/sales-overview-sheet/general-tab";
-import { PackingTab } from "../sheets/sales-overview-sheet/packing-tab";
-import { ProductionTab } from "../sheets/sales-overview-sheet/production-tab";
-import { useSalesOverviewSystem } from "./provider";
-import type { SalesOverviewAudience, SalesOverviewTabId } from "./types";
+import { SalesOverviewDetailsTab } from "./tabs/details-tab";
+import { SalesOverviewFinanceTab } from "./tabs/finance-tab";
+import { SalesOverviewOperationsTab } from "./tabs/operations-tab";
+import { SalesOverviewOverviewTab } from "./tabs/overview-tab";
+import type { SalesOverviewTabId } from "./types";
 
 type TabDefinition = {
 	value: SalesOverviewTabId;
 	label: string;
-	disabled?: boolean;
-	badge?: ReactNode;
-	audiences: SalesOverviewAudience[];
-	hidden?: boolean;
+	description: string;
 	content: ReactNode;
 };
 
 export function useSalesOverviewTabs() {
-	const { audience, data, prodQty, isQuote } = useSalesOverviewSystem();
-
 	const tabs: TabDefinition[] = [
 		{
-			value: "general",
-			label: "General",
-			audiences: ["general", "dispatch"],
-			content: <GeneralTab />,
+			value: "overview",
+			label: "Overview",
+			description: "Customer, order, payment, and status summary",
+			content: <SalesOverviewOverviewTab />,
 		},
 		{
-			value: "production",
-			label: "Productions",
-			audiences: ["general", "dispatch", "production"],
-			disabled: audience === "general" ? !prodQty : false,
-			hidden: audience === "general" ? isQuote : false,
-			badge:
-				audience === "general" ? (
-					<Badge className="ml-2" variant={prodQty ? "default" : "outline"}>
-						{prodQty}
-					</Badge>
-				) : null,
-			content: <ProductionTab />,
+			value: "finance",
+			label: "Finance",
+			description: "Invoice, balance, and cost context",
+			content: <SalesOverviewFinanceTab />,
 		},
 		{
-			value: "transactions",
-			label: "Transactions",
-			audiences: ["general"],
-			hidden: isQuote,
-			content: <TransactionsTab salesId={data?.orderId} />,
+			value: "operations",
+			label: "Operations",
+			description: "Production and fulfillment status",
+			content: <SalesOverviewOperationsTab />,
 		},
 		{
-			value: "dispatch",
-			label: "Dispatch",
-			audiences: ["general"],
-			hidden: isQuote,
-			content: <DispatchTab />,
-		},
-		{
-			value: "packing",
-			label: "Packing List",
-			audiences: ["dispatch"],
-			content: <PackingTab />,
-		},
-		{
-			value: "notes",
-			label: "Notes",
-			audiences: ["production"],
-			content: (
-				<Note
-					subject="Production Note"
-					headline=""
-					statusFilters={["public"]}
-					typeFilters={["production", "general"]}
-					tagFilters={[noteTagFilter("salesId", data?.id)]}
-				/>
-			),
+			value: "details",
+			label: "Details",
+			description: "Reference data and identifiers",
+			content: <SalesOverviewDetailsTab />,
 		},
 	];
 
-	return tabs.filter((tab) => tab.audiences.includes(audience) && !tab.hidden);
+	return tabs;
 }

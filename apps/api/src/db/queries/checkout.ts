@@ -50,6 +50,7 @@ export async function initializeCheckout(
 
 export const createSalesCheckoutLinkSchema = z.object({
 	token: z.string(),
+	amount: z.number().positive().optional().nullable(),
 });
 export type CreateSalesCheckoutLinkSchema = z.infer<
 	typeof createSalesCheckoutLinkSchema
@@ -70,9 +71,22 @@ export async function createSalesCheckoutLink(
 		if (!sales?.length) {
 			throw new Error("No payable sales found for checkout");
 		}
-		const amount = payload.amount || 0;
+		const totalDue = sales.reduce((sum, order) => sum + Number(order.due || 0), 0);
+		const amount =
+			payload.payPlan === "flexible"
+				? Number(data.amount || 0)
+				: Number(payload.amount || 0);
 		if (!SQUARE_LOCATION_ID) {
 			throw new Error("Square location is not configured");
+		}
+		if (payload.payPlan === "flexible" && amount <= 0) {
+			throw new Error("Enter an amount to continue");
+		}
+		if (amount <= 0) {
+			throw new Error("Checkout amount is invalid");
+		}
+		if (amount > totalDue) {
+			throw new Error("Amount cannot exceed the outstanding balance");
 		}
 
 		const cust = sales.find((a) => !!a.email && !!a.displayName);

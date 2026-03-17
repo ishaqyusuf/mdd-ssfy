@@ -18,12 +18,10 @@ export function useSalesOverviewV2SheetQuery() {
 		] as SalesType[]),
 		"sales-overview-v2-sheet-mode": parseAsStringEnum([...openModes]),
 		"sales-overview-v2-sheet-tab": parseAsStringEnum([
-			"general",
-			"production",
-			"transactions",
-			"dispatch",
-			"packing",
-			"notes",
+			"overview",
+			"finance",
+			"operations",
+			"details",
 		] as const),
 	});
 

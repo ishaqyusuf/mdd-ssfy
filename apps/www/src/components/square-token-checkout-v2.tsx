@@ -12,6 +12,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@gnd/ui/card";
+import { Input } from "@gnd/ui/input";
 import { Separator } from "@gnd/ui/separator";
 import { useMutation, useSuspenseQuery } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
@@ -52,9 +53,11 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 		),
 	);
 	const [verificationAttempt, setVerificationAttempt] = useState(0);
+	const [flexibleAmount, setFlexibleAmount] = useState("");
 	const payload = data?.payload;
 	const paymentId = payload?.paymentId;
 	const walletId = payload?.walletId;
+	const isFlexiblePayPlan = payload?.payPlan === "flexible";
 
 	const {
 		data: verificationData,
@@ -134,16 +137,19 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 	]);
 
 	const orders = data?.sales ?? [];
-	const amountDue =
-		payload?.amount ??
-		orders.reduce((sum, order) => sum + Number(order.due ?? 0), 0);
+	const totalDue = orders.reduce((sum, order) => sum + Number(order.due ?? 0), 0);
+	const amountDue = payload?.amount ?? totalDue;
 	const paymentPlanLabel = resolveReminderPlanLabel({
 		payPlan: payload?.payPlan,
 		percentage: payload?.percentage,
 		preferredAmount: payload?.preferredAmount,
 		amount: payload?.amount,
 	});
-	const amountLabel = payload?.amount ? "Requested amount" : "Amount due";
+	const amountLabel = isFlexiblePayPlan
+		? "Outstanding balance"
+		: payload?.amount
+			? "Requested amount"
+			: "Amount due";
 	const merchantName = data?.customerName || "gnd";
 	const hasOrders = orders.length > 0;
 	const isInvalidToken =
@@ -159,9 +165,17 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 		isInvalidToken,
 		verifyStatus: verificationData?.status,
 	});
+	const flexibleAmountValue = Number(flexibleAmount);
+	const isFlexibleAmountValid =
+		Number.isFinite(flexibleAmountValue) &&
+		flexibleAmountValue > 0 &&
+		flexibleAmountValue <= totalDue;
 
 	const handleStartPayment = () => {
-		createCheckout({ token });
+		createCheckout({
+			token,
+			amount: isFlexiblePayPlan ? flexibleAmountValue : undefined,
+		});
 	};
 
 	const handleRetryVerification = () => {
@@ -222,6 +236,17 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 						/>
 					</div>
 
+					{isFlexiblePayPlan ? (
+						<Alert className="border-sky-200 bg-sky-50 text-sky-950">
+							<CreditCard className="h-4 w-4 text-sky-700" />
+							<AlertTitle>Flexible payment</AlertTitle>
+							<AlertDescription>
+								The customer can choose how much to pay right now. Enter any
+								amount up to the current outstanding balance to continue.
+							</AlertDescription>
+						</Alert>
+					) : null}
+
 					{payload?.payPlan === "custom" || payload?.preferredAmount ? (
 						<Alert className="border-sky-200 bg-sky-50 text-sky-950">
 							<CreditCard className="h-4 w-4 text-sky-700" />
@@ -231,6 +256,31 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 								Remaining order balances may still exist after this payment.
 							</AlertDescription>
 						</Alert>
+					) : null}
+
+					{isFlexiblePayPlan ? (
+						<div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+							<div className="mb-3">
+								<p className="text-sm font-semibold text-slate-900">
+									Choose payment amount
+								</p>
+								<p className="mt-1 text-sm text-slate-600">
+									Enter any amount between {currencyFormatter.format(0.01)} and{" "}
+									{currencyFormatter.format(totalDue)}.
+								</p>
+							</div>
+							<div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+								<Input
+									inputMode="decimal"
+									placeholder="Enter amount"
+									value={flexibleAmount}
+									onChange={(event) => setFlexibleAmount(event.target.value)}
+								/>
+								<div className="text-sm font-medium text-slate-700">
+									Max: {currencyFormatter.format(totalDue)}
+								</div>
+							</div>
+						</div>
 					) : null}
 
 					{state.name === "invalid" ? (
@@ -313,7 +363,10 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 					{state.name === "ready" ? (
 						<Button
 							onClick={handleStartPayment}
-							disabled={isCreatingCheckout}
+							disabled={
+								isCreatingCheckout ||
+								(isFlexiblePayPlan && !isFlexibleAmountValid)
+							}
 							className="bg-slate-950 text-white hover:bg-slate-800"
 						>
 							{isCreatingCheckout ? (
@@ -323,7 +376,7 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 								</>
 							) : (
 								<>
-									Pay now
+									{isFlexiblePayPlan ? "Continue to payment" : "Pay now"}
 									<ArrowRight className="h-4 w-4" />
 								</>
 							)}

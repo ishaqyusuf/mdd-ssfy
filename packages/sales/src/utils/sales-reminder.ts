@@ -86,7 +86,7 @@ export async function buildSalesReminderTaskPayload(
 		} satisfies SalesPdfToken);
 
 		const paymentToken =
-			!amount || sale.walletId == null
+			((!amount && sale.payPlan !== "flexible") || sale.walletId == null)
 				? null
 				: await generateToken({
 						salesIds: sale.ids,
@@ -94,7 +94,7 @@ export async function buildSalesReminderTaskPayload(
 						percentage: sale.percentage,
 						payPlan: sale.payPlan,
 						preferredAmount: sale.preferredAmount,
-						amount,
+						amount: amount > 0 ? amount : null,
 						walletId: sale.walletId,
 					} satisfies SalesPaymentTokenSchema);
 

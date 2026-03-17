@@ -41,7 +41,12 @@ const reminderSaleSchema = z.object({
 	amount: z.number(),
 	dueAmount: z.number(),
 	payPlan: z
-		.union([z.number(), z.literal("full"), z.literal("custom")])
+		.union([
+			z.number(),
+			z.literal("full"),
+			z.literal("custom"),
+			z.literal("flexible"),
+		])
 		.optional()
 		.nullable(),
 	percentage: z.number().optional().nullable(),

@@ -24,7 +24,11 @@ Design a new sales overview system that replaces the current noisy sheet with a 
 - Split the new system open logic into separate query contracts:
   - page route: `sales-overview-v2-*`
   - sheet: `sales-overview-v2-sheet-*`
-- Added a legacy-query bridge so the new system can reuse existing overview internals without sharing the old sheet's public open trigger.
+- Replaced the bridge-based experiment with a clean v2 architecture:
+  - direct v2 data provider using `trpc.sales.getSaleOverview`
+  - dedicated v2 tab model
+  - new summary-first UI sections for overview, finance, operations, and details
+  - no rendering dependency on legacy overview tabs or legacy overview providers
 
 ## Why This Exists
 

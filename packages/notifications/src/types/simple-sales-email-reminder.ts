@@ -26,7 +26,12 @@ import { salesEmailReminder } from "./sales-email-reminder";
 const simpleSalesEmailReminderResolvedSchema = salesEmailReminderSchema.extend({
   salesId: z.number(),
   payPlan: z
-    .union([z.number(), z.literal("full"), z.literal("custom")])
+    .union([
+      z.number(),
+      z.literal("full"),
+      z.literal("custom"),
+      z.literal("flexible"),
+    ])
     .optional()
     .nullable(),
   preferredAmount: z.number().optional().nullable(),
@@ -124,7 +129,7 @@ async function buildReminderData(
     );
   }
 
-  if (amount > 0) {
+  if (amount > 0 || input.payPlan === "flexible") {
     const accountNo =
       sale.customer?.phoneNo || (sale.customer?.id ? `cust-${sale.customer.id}` : null);
     const walletId =
@@ -141,7 +146,7 @@ async function buildReminderData(
       percentage: typeof input.payPlan === "number" ? input.payPlan : null,
       payPlan: input.payPlan,
       preferredAmount: input.preferredAmount,
-      amount,
+      amount: amount > 0 ? amount : null,
       walletId,
     } satisfies SalesPaymentTokenSchema);
   }

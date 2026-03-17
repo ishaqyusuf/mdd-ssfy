@@ -1,19 +1,15 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect } from "react";
 
-import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { useSalesOverviewV2PageQuery } from "@/hooks/use-sales-overview-v2-page-query";
+import { useSalesOverviewV2SheetQuery } from "@/hooks/use-sales-overview-v2-sheet-query";
+import { useTRPC } from "@/trpc/client";
 import createContextFactory from "@/utils/context-factory";
 
-import {
-	SalesOverviewProvider as LegacySalesOverviewProvider,
-	useSaleOverview,
-} from "../sheets/sales-overview-sheet/context";
-import {
-	normalizeLegacySalesOverviewTab,
-	resolveSalesOverviewAudience,
-} from "./controller";
+import { useQuery } from "@gnd/ui/tanstack";
+
+import { normalizeSalesOverviewTab } from "./controller";
 import type { SalesOverviewSurface } from "./types";
 
 const {
@@ -25,33 +21,45 @@ const {
 	}: {
 		surface: SalesOverviewSurface;
 	}) => {
-		const query = useSalesOverviewQuery();
-		const { data } = useSaleOverview();
+		const pageQuery = useSalesOverviewV2PageQuery();
+		const sheetQuery = useSalesOverviewV2SheetQuery();
+		const query = surface === "page" ? pageQuery : sheetQuery;
+		const overviewId =
+			surface === "page"
+				? query.params["sales-overview-v2-id"]
+				: query.params["sales-overview-v2-sheet-id"];
+		const salesType =
+			surface === "page"
+				? query.params["sales-overview-v2-type"]
+				: query.params["sales-overview-v2-sheet-type"];
+		const currentTab =
+			surface === "page"
+				? query.params["sales-overview-v2-tab"]
+				: query.params["sales-overview-v2-sheet-tab"];
+		const trpc = useTRPC();
+		const { data } = useQuery(
+			trpc.sales.getSaleOverview.queryOptions(
+				{
+					orderNo: overviewId,
+					salesType: salesType === "quote" ? "quote" : "order",
+				},
+				{
+					enabled: !!overviewId,
+				},
+			),
+		);
 		const prodQty =
 			data?.salesStat?.prodAssigned?.total ?? data?.stats?.prodAssigned?.total;
-		const audience = resolveSalesOverviewAudience({
-			assignedTo: query.assignedTo,
-			viewMode: query.viewMode,
-		});
-		const normalizedTab = normalizeLegacySalesOverviewTab(
-			query.params.salesTab,
-		);
+		const normalizedTab = normalizeSalesOverviewTab(currentTab);
 		const title = [data?.orderId, data?.displayName]
 			.filter(Boolean)
 			.join(" | ");
 
-		useEffect(() => {
-			if (normalizedTab && normalizedTab !== query.params.salesTab) {
-				query.setParams({
-					salesTab: normalizedTab,
-				});
-			}
-		}, [normalizedTab, query]);
-
 		return {
 			surface,
-			audience,
 			query,
+			overviewId,
+			currentTab: normalizedTab || "overview",
 			data,
 			prodQty: prodQty || 0,
 			isQuote: data?.type === "quote",
@@ -68,11 +76,9 @@ export function SalesOverviewSystemProvider({
 	children: ReactNode;
 }) {
 	return (
-		<LegacySalesOverviewProvider args={[]}>
-			<SalesOverviewSystemContextProvider args={[{ surface }]}>
-				{children}
-			</SalesOverviewSystemContextProvider>
-		</LegacySalesOverviewProvider>
+		<SalesOverviewSystemContextProvider args={[{ surface }]}>
+			{children}
+		</SalesOverviewSystemContextProvider>
 	);
 }
 

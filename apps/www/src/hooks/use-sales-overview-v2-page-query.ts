@@ -18,12 +18,10 @@ export function useSalesOverviewV2PageQuery() {
 		] as SalesType[]),
 		"sales-overview-v2-mode": parseAsStringEnum([...openModes]),
 		"sales-overview-v2-tab": parseAsStringEnum([
-			"general",
-			"production",
-			"transactions",
-			"dispatch",
-			"packing",
-			"notes",
+			"overview",
+			"finance",
+			"operations",
+			"details",
 		] as const),
 	});
 

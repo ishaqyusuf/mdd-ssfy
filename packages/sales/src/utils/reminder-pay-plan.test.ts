@@ -25,6 +25,13 @@ describe("reminder pay plan helpers", () => {
 		).toBe(650);
 	});
 
+	test("treats flexible pay plans as customer-entered at checkout", () => {
+		expect(resolveReminderAmount({ due: 2000, payPlan: "flexible" })).toBe(0);
+		expect(resolveReminderPlanLabel({ payPlan: "flexible" })).toBe(
+			"Flexible amount",
+		);
+	});
+
 	test("falls back to legacy percentage", () => {
 		expect(resolveReminderAmount({ due: 2000, percentage: 75 })).toBe(1500);
 	});

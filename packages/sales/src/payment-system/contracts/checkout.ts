@@ -1,6 +1,6 @@
 export interface SalesCheckoutTokenPayload {
 	amount?: number | null;
-	payPlan?: number | "full" | "custom" | null;
+	payPlan?: number | "full" | "custom" | "flexible" | null;
 	paymentId?: string | null;
 	percentage?: number | null;
 	preferredAmount?: number | null;

@@ -211,7 +211,7 @@ export function NavsList({ mobile = false }) {
                   {hasModuleTitle ? (
                     <div
                       onClick={() => {
-                        setExpandModule(module.name);
+                        setExpandModule(isExpandedModule ? null : module.name);
                       }}
                       className={cn(
                         "flex justify-between  gap-2 items-center uppercase pl-4 text-sm text-xs font-bold text-muted-foreground cursor-pointer h-8",
