@@ -1,5 +1,7 @@
 # Progress
 
+> Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
+
 ## 2026-03-17 (session 2)
 
 - Fixed PrismaClient bundled-in-browser error on resolution center page.

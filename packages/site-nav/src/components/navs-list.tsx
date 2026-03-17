@@ -30,7 +30,6 @@ export function NavsList({ mobile = false }) {
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const isExpanded = _isExpanded || mobile;
   const [expandModule, setExpandModule] = useState<string | null>(null);
-  const [collapseActiveModule, setCollapseActiveModule] = useState(false);
   const [stableModuleName, setStableModuleName] = useState<string | null>(null);
   const [stableLinkModules, setStableLinkModules] = useState(linkModules);
   const renderedLinkModules =
@@ -181,11 +180,9 @@ export function NavsList({ mobile = false }) {
   }, [linkModules]);
   useEffect(() => {
     setExpandModule(null);
-    setCollapseActiveModule(false);
   }, [_isExpanded]);
   useEffect(() => {
     if (!isExpanded) return;
-    setCollapseActiveModule(false);
     // Expanded sidebar default: open the current module.
     setExpandModule(visibleModuleName);
   }, [isExpanded, visibleModuleName]);
@@ -204,10 +201,7 @@ export function NavsList({ mobile = false }) {
                 hasModuleTitle && expandModule === module.name;
               const showExpandedState =
                 isExpanded &&
-                (!hasModuleTitle ||
-                  isExpandedModule ||
-                  (isActiveModule && !collapseActiveModule) ||
-                  (!visibleModuleName && !hasModuleTitle));
+                (!hasModuleTitle || isExpandedModule || (!visibleModuleName && !hasModuleTitle));
               const showCollapsedState =
                 !isExpanded &&
                 (!hasModuleTitle || isActiveModule);
@@ -217,16 +211,7 @@ export function NavsList({ mobile = false }) {
                   {hasModuleTitle ? (
                     <div
                       onClick={() => {
-                        if (isActiveModule) {
-                          const currentlyShown = isExpandedModule || !collapseActiveModule;
-                          setExpandModule(null);
-                          setCollapseActiveModule(currentlyShown);
-                          return;
-                        }
-                        setCollapseActiveModule(false);
-                        setExpandModule((prev) =>
-                          prev === module.name ? null : module.name,
-                        );
+                        setExpandModule(module.name);
                       }}
                       className={cn(
                         "flex justify-between  gap-2 items-center uppercase pl-4 text-sm text-xs font-bold text-muted-foreground cursor-pointer h-8",

@@ -1,5 +1,12 @@
 # Decisions
 
+## Purpose
+Legacy compatibility index for durable project decisions.
+
+## Canonical Location
+- ADR files live in `brain/decisions/`.
+- Summary decisions may still be logged here for quick scanning.
+
 ## 2026-03-08 - Adopt Project Brain Structure
 
 - Decision: Standardize project planning artifacts under `/brain` with six canonical files.
