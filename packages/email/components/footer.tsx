@@ -8,9 +8,9 @@ import {
   Text,
 } from "@react-email/components";
 
-import { getAppUrl } from "@gnd/utils/envs";
+import { getAppUrl, getEmailUrl } from "@gnd/utils/envs";
 
-const baseUrl = getAppUrl();
+const baseUrl = getEmailUrl();
 
 export function Footer() {
   return (
