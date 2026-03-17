@@ -1,5 +1,5 @@
 import type { TRPCContext } from "@api/trpc/init";
-import type { TransactionClient } from "@gnd/db";
+import { Prisma, type TransactionClient } from "@gnd/db";
 import { sendPaymentSystemNotifications } from "@gnd/notifications/payment-system";
 import {
 	applyLegacySalesCheckoutSettlement,
@@ -175,110 +175,118 @@ export async function verifyPayment(
 			status: "error",
 		};
 	const { db } = ctx;
-	const result = await db.$transaction(async (tx) => {
-		const squarePayment = await tx.squarePayments.findFirstOrThrow({
-			where: {
-				id: query.paymentId,
-			},
-			include: {
-				customerTxs: {},
-				orders: {
-					select: {
-						order: {
-							select: {
-								amountDue: true,
-								id: true,
-								customerId: true,
-								salesRepId: true,
+	const result = await db.$transaction(
+		async (tx) => {
+			const squarePayment = await tx.squarePayments.findFirstOrThrow({
+				where: {
+					id: query.paymentId,
+				},
+				include: {
+					customerTxs: {},
+					orders: {
+						select: {
+							order: {
+								select: {
+									amountDue: true,
+									id: true,
+									customerId: true,
+									salesRepId: true,
+								},
 							},
 						},
 					},
-				},
-				checkout: {
-					include: {
-						// order: true,
-						tenders: true,
+					checkout: {
+						include: {
+							// order: true,
+							tenders: true,
+						},
 					},
 				},
-			},
-		});
-		if (squarePayment?.customerTxs?.length)
-			return {
-				status: "COMPLETED",
-			};
-		const checkout = squarePayment.checkout;
-		if (!squarePayment.squareOrderId || !checkout?.id) {
-			return {
+			});
+			if (squarePayment?.customerTxs?.length)
+				return {
+					status: "COMPLETED",
+				};
+			const checkout = squarePayment.checkout;
+			if (!squarePayment.squareOrderId || !checkout?.id) {
+				return {
+					status: "PENDING",
+				};
+			}
+
+			// const meta = checkout?.meta as any;
+			// const {
+			//     result: {
+			//         order: { id: orderId, tenders },
+			//     },
+			// } = await squareClient.ordersApi.retrieveOrder(meta.squareOrderId);
+			const { errors, order } = await squareClient.orders.get({
+				orderId: squarePayment.squareOrderId,
+			});
+			const tenders = order?.tenders || [];
+
+			const resp: {
+				amount: number;
+				tip: number | null;
+				status: SquarePaymentStatus;
+			} = {
+				amount: 0,
+				tip: null,
 				status: "PENDING",
 			};
-		}
-
-		// const meta = checkout?.meta as any;
-		// const {
-		//     result: {
-		//         order: { id: orderId, tenders },
-		//     },
-		// } = await squareClient.ordersApi.retrieveOrder(meta.squareOrderId);
-		const { errors, order } = await squareClient.orders.get({
-			orderId: squarePayment.squareOrderId,
-		});
-		const tenders = order?.tenders || [];
-
-		const resp: {
-			amount: number;
-			tip: number | null;
-			status: SquarePaymentStatus;
-		} = {
-			amount: 0,
-			tip: null,
-			status: "PENDING",
-		};
-		await Promise.all(
-			tenders.map(async (tender) => {
-				// const {
-				//     result: { payment },
-				// } = await squareClient.paymentsApi.getPayment(tender.paymentId);
-				if (!tender.paymentId) return;
-				const payment = (
-					await squareClient.payments.get({
-						paymentId: tender.paymentId,
-					})
-				)?.payment;
-				if (!payment) return;
-				//   payment.payment.tim
-				const tip = payment.tipMoney?.amount;
-				resp.status = payment.status as SquarePaymentStatus;
-				if (resp.status === "COMPLETED") {
-					resp.amount += Number(payment.amountMoney?.amount || 0) / 100;
-					const t = Number(tip);
-					resp.tip = t > 0 ? t / 100 : 0;
-				}
-			}),
-		);
-
-		if (resp.amount > 0)
-			await paymentSuccess(
-				{
-					// ...checkout,
-					walletId: query.walletId,
-					checkoutId: checkout.id,
-					squarePaymentId: squarePayment.id,
-					orders: squarePayment?.orders
-						?.map((a) => a.order)
-						.filter(Boolean)
-						.map((a) => ({
-							...a,
-						})), //.[0]?.order,
-					tip: resp.tip,
-					// amount: checkout?.amount || squarePayment.amount,
-					amount: resp.amount,
-				},
-				tx,
+			await Promise.all(
+				tenders.map(async (tender) => {
+					// const {
+					//     result: { payment },
+					// } = await squareClient.paymentsApi.getPayment(tender.paymentId);
+					if (!tender.paymentId) return;
+					const payment = (
+						await squareClient.payments.get({
+							paymentId: tender.paymentId,
+						})
+					)?.payment;
+					if (!payment) return;
+					//   payment.payment.tim
+					const tip = payment.tipMoney?.amount;
+					resp.status = payment.status as SquarePaymentStatus;
+					if (resp.status === "COMPLETED") {
+						resp.amount += Number(payment.amountMoney?.amount || 0) / 100;
+						const t = Number(tip);
+						resp.tip = t > 0 ? t / 100 : 0;
+					}
+				}),
 			);
-		return {
-			...resp,
-			notifications: Object.values(salesRepsNotifications || {}),
-		};
+
+			if (resp.amount > 0)
+				await paymentSuccess(
+					{
+						// ...checkout,
+						walletId: query.walletId,
+						checkoutId: checkout.id,
+						squarePaymentId: squarePayment.id,
+						orders: squarePayment?.orders
+							?.map((a) => a.order)
+							.filter(Boolean)
+							.map((a) => ({
+								...a,
+							})), //.[0]?.order,
+						tip: resp.tip,
+						// amount: checkout?.amount || squarePayment.amount,
+						amount: resp.amount,
+					},
+					tx,
+				);
+			return {
+				...resp,
+				notifications: Object.values(salesRepsNotifications || {}),
+			};
+		},
+		{ isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+	).catch((e) => {
+		// P2034: transaction conflict under Serializable isolation — another
+		// concurrent request already processed this payment successfully.
+		if (e?.code === "P2034") return { status: "COMPLETED" as const };
+		throw e;
 	});
 	const notifications =
 		"notifications" in result ? result.notifications || [] : [];

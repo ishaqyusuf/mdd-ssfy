@@ -111,6 +111,7 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 		if (!paymentId || !walletId) return;
 		if (verificationData?.status !== "PENDING") return;
 		if (verificationAttempt >= maxVerificationAttempts) return;
+		if (isVerifying) return;
 
 		const timeoutId = window.setTimeout(() => {
 			const nextAttempt = verificationAttempt + 1;
@@ -124,6 +125,7 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 
 		return () => window.clearTimeout(timeoutId);
 	}, [
+		isVerifying,
 		paymentId,
 		verificationAttempt,
 		verificationData?.status,

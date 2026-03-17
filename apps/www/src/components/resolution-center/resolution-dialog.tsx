@@ -16,7 +16,7 @@ import { Form } from "@gnd/ui/form";
 import { Icons } from "@gnd/ui/icons";
 import { GetSalesResolutionData } from "@/actions/get-sales-resolution-data";
 import { useResolutionCenterParams } from "@/hooks/use-resolution-center-params";
-import { ResolvePayment, resolvePaymentSchema } from "@api/db/queries/wallet";
+import { ResolvePayment, resolvePaymentSchema } from "@sales/schema";
 import { useZodForm } from "@/hooks/use-zod-form";
 import FormSelect from "../common/controls/form-select";
 import FormInput from "../common/controls/form-input";

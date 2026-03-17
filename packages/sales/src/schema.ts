@@ -8,7 +8,7 @@ import {
 } from "@gnd/utils/constants";
 import { z } from "zod";
 import { SALES_DISPATCH_STATUS } from "./utils/constants";
-import { INVENTORY_STATUS, SalesProductionStatusFilter } from "./constants";
+import { INVENTORY_STATUS, SALES_PAYMENT_METHODS, SALES_REFUND_METHODS, SalesProductionStatusFilter } from "./constants";
 import { paginationSchema } from "@gnd/utils/schema";
 import { id } from "date-fns/locale";
 export const getFullSalesDataSchema = z.object({
@@ -430,3 +430,16 @@ export const createDispatchSchema = z.object({
   status: z.string().optional(),
 });
 export type CreateDispatchSchema = z.infer<typeof createDispatchSchema>;
+
+export const resolvePaymentSchema = z.object({
+  transactionId: z.number(),
+  action: z.enum(["cancel", "refund"]),
+  refundAmount: z.number().optional().nullable(),
+  refundMethod: z.enum(SALES_REFUND_METHODS),
+  paymentMethod: z.enum(SALES_PAYMENT_METHODS),
+  refundMode: z.enum(["full", "part"]),
+  reason: z.string(),
+  note: z.string().optional().nullable(),
+  squarePaymentId: z.string().optional().nullable(),
+});
+export type ResolvePayment = z.infer<typeof resolvePaymentSchema>;

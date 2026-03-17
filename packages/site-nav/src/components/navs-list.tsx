@@ -217,8 +217,10 @@ export function NavsList({ mobile = false }) {
                   {hasModuleTitle ? (
                     <div
                       onClick={() => {
-                        if (isActiveModule && expandModule === null) {
-                          setCollapseActiveModule((prev) => !prev);
+                        if (isActiveModule) {
+                          const currentlyShown = isExpandedModule || !collapseActiveModule;
+                          setExpandModule(null);
+                          setCollapseActiveModule(currentlyShown);
                           return;
                         }
                         setCollapseActiveModule(false);

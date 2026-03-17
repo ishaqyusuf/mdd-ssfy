@@ -195,7 +195,7 @@ export async function getSalesResolvables(
 				due,
 				status,
 				calculatedDue,
-				paymentCount: payments.length,
+				paymentCount: ls.payments.length,
 				salesRep: salesRep?.name,
 				orderDate: formatDate(ls.createdAt),
 				orderId,

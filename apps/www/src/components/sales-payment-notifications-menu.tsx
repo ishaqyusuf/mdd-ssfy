@@ -10,6 +10,12 @@ import {
 	reminderPresetPayPlans,
 	resolveReminderAmount,
 } from "@sales/utils/reminder-pay-plan";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@gnd/ui/tooltip";
 import { BellRing, CreditCard, Loader2, Send } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -55,12 +61,14 @@ export function SalesPaymentNotificationsMenu({
 	const sale = data?.data?.[0];
 	const dueAmount = Number(sale?.due || 0);
 	const isSingleSale = salesIds.length === 1;
+	const hasEmail = !saleId || isPending || !!sale?.email;
 	const isDisabled =
 		disabled ||
 		type === "quote" ||
 		!isSingleSale ||
 		!saleId ||
 		dueAmount <= 0 ||
+		!hasEmail ||
 		trigger.isActionPending;
 
 	const presetOptions = useMemo(
@@ -99,10 +107,21 @@ export function SalesPaymentNotificationsMenu({
 
 	return (
 		<DropdownMenu.Sub>
-			<DropdownMenu.SubTrigger disabled={disabled || trigger.isActionPending}>
-				<CreditCard className="mr-2 size-4 text-muted-foreground/70" />
-				Payment Notifications
-			</DropdownMenu.SubTrigger>
+			<TooltipProvider disableHoverableContent>
+				<Tooltip delayDuration={100}>
+					<TooltipTrigger asChild>
+						<DropdownMenu.SubTrigger
+							disabled={disabled || !hasEmail || trigger.isActionPending}
+						>
+							<CreditCard className="mr-2 size-4 text-muted-foreground/70" />
+							Payment Notifications
+						</DropdownMenu.SubTrigger>
+					</TooltipTrigger>
+					{!hasEmail && (
+						<TooltipContent>Customer email not available!</TooltipContent>
+					)}
+				</Tooltip>
+			</TooltipProvider>
 			<DropdownMenu.SubContent className="w-[250px]">
 				{!isSingleSale ? (
 					<DropdownMenu.Item disabled>

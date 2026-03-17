@@ -1,11 +1,8 @@
 "use client";
-import { TableProvider, useTableData } from "../tables";
+import { Table, useTableData } from "@gnd/ui/data-table";
 import { useTRPC } from "@/trpc/client";
 import { useResolutionCenterFilterParams } from "@/hooks/use-resolution-center-filter-params";
 import { columns } from "./resolution-center-content";
-import { Table, TableBody } from "@gnd/ui/table";
-import { TableRow } from "../tables/table-row";
-import { LoadMoreTRPC } from "../tables/load-more";
 import Portal from "../_v1/portal";
 import { Badge } from "@gnd/ui/badge";
 import { AlertTriangle } from "lucide-react";
@@ -13,17 +10,23 @@ import { AlertTriangle } from "lucide-react";
 export function ResolutionCenter({}) {
     const { filters } = useResolutionCenterFilterParams();
     const trpc = useTRPC();
-    const { hasNextPage, queryData, ref, data } = useTableData({
+    const {
+        hasNextPage,
+        queryData,
+        ref: loadMoreRef,
+        data,
+    } = useTableData({
         filter: filters,
         route: trpc.sales.getSalesResolutions,
     });
 
     return (
-        <TableProvider
+        <Table.Provider
             args={[
                 {
-                    columns: columns,
+                    columns,
                     data,
+                    props: { loadMoreRef, hasNextPage },
                     tableMeta: {},
                 },
             ]}
@@ -37,17 +40,13 @@ export function ResolutionCenter({}) {
                 </div>
             </Portal>
             <div className="flex flex-col gap-4 w-full">
-                <div className="overflow-x-auto overscroll-x-none md:border-l md:border-r border-border scrollbar-hide">
-                    <Table>
-                        <TableBody>
-                            <TableRow />
-                        </TableBody>
-                    </Table>
-                </div>
-                {hasNextPage && (
-                    <LoadMoreTRPC ref={ref} hasNextPage={hasNextPage} />
-                )}
+                <Table>
+                    <Table.Body>
+                        <Table.TableRow />
+                    </Table.Body>
+                </Table>
+                <Table.LoadMore />
             </div>
-        </TableProvider>
+        </Table.Provider>
     );
 }

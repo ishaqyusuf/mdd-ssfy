@@ -2,7 +2,6 @@
 
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
-import { useInventoryParams } from "@/hooks/use-inventory-params";
 import { CommunitySearchFilter } from "./community-search-filter";
 import { useCommunityProjectParams } from "@/hooks/use-community-project-params";
 import ProjectModal from "@/app-deps/(v1)/(loggedIn)/community/projects/project-modal";

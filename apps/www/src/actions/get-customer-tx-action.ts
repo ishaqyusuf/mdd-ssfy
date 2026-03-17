@@ -144,7 +144,9 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
             const paymentMethod = item.paymentMethod as PaymentMethods;
             const description = item.description;
             const salesReps = Array.from(
-                new Set(item.salesPayments?.map((s) => s.order?.salesRep?.name))
+                new Set(
+                    item.salesPayments?.map((s) => s.order?.salesRep?.name),
+                ),
             );
             const meta = (item.meta || {}) as any as CustomerTransactionMeta;
             const spMeta = item.salesPayments?.[0]
@@ -165,10 +167,10 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
             const squarePaymentId =
                 item?.salesPayments?.[0]?.squarePayments?.paymentId;
             const laborCost = order?.extraCosts?.find(
-                (a) => a.type == "Labor"
+                (a) => a.type == "Labor",
             )?.amount;
             const deliveryCost = order?.extraCosts?.find(
-                (a) => a.type == "Delivery"
+                (a) => a.type == "Delivery",
             )?.amount;
             return {
                 checkNo: meta?.checkNo || spMeta?.checkNo,
@@ -195,7 +197,7 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
                 subTotal: order?.subTotal,
                 squarePaymentId,
             };
-        })
+        }),
     );
 }
 
