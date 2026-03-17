@@ -174,42 +174,4 @@ export function DataTable({}) {
             </div>
         </Table.Provider>
     );
-    // return (
-    //     <TableProvider
-    //         args={[
-    //             {
-    //                 columns: columns,
-    //                 data: tableData,
-    //                 // hasNextPage,
-    //                 // loadMore,
-    //                 // pageSize,
-    //                 // setParams,
-    //                 // params,
-    //                 tableMeta: {
-    //                     deleteAction(id) {
-    //                         // deleteStudent.execute({
-    //                         //   studentId: id,
-    //                         // });
-    //                     },
-    //                     rowClick(id, rowData) {
-    //                         // setParams({
-    //                         //     studentViewId: id,
-    //                         // });
-    //                     },
-    //                 },
-    //             },
-    //         ]}
-    //     >
-    //         <div className="flex flex-col gap-4">
-    //             <Table>
-    //                 <TableHeaderComponent />
-
-    //                 <TableBody>
-    //                     <TableRow />
-    //                 </TableBody>
-    //             </Table>
-    //             <LoadMore ref={ref} hasNextPage={hasNextPage} />
-    //         </div>
-    //     </TableProvider>
-    // );
 }

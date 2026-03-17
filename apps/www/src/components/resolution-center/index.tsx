@@ -23,15 +23,8 @@ export function ResolutionCenter({}) {
             args={[
                 {
                     columns: columns,
-                    //mobileColumn: mobileColumn,
                     data,
-                    //checkbox: true,
-                    //tableScroll,
-                    //rowSelection,
-                    //setRowSelection,
-                    tableMeta: {
-                        //rowClick(id, rowData) {},
-                    },
+                    tableMeta: {},
                 },
             ]}
         >
@@ -44,10 +37,7 @@ export function ResolutionCenter({}) {
                 </div>
             </Portal>
             <div className="flex flex-col gap-4 w-full">
-                <div
-                    // {/* ref={tableScroll.containerRef} */}
-                    className="overflow-x-auto overscroll-x-none md:border-l md:border-r border-border scrollbar-hide"
-                >
+                <div className="overflow-x-auto overscroll-x-none md:border-l md:border-r border-border scrollbar-hide">
                     <Table>
                         <TableBody>
                             <TableRow />
@@ -57,7 +47,6 @@ export function ResolutionCenter({}) {
                 {hasNextPage && (
                     <LoadMoreTRPC ref={ref} hasNextPage={hasNextPage} />
                 )}
-                {/* <BatchActions /> */}
             </div>
         </TableProvider>
     );

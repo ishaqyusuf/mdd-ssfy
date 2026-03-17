@@ -1,7 +1,7 @@
 "use client";
 
+import { useTableData } from "@gnd/ui/data-table";
 import { useTRPC } from "@/trpc/client";
-import { useTableData } from "..";
 
 import { LoadMoreTRPC } from "../load-more";
 
@@ -137,43 +137,5 @@ export function DataTable(props: Props) {
             )}
         </div>
     );
-    // return (
-    //     <TableProvider
-    //         args={[
-    //             {
-    //                 columns,
-    //                 mobileColumn: mobileColumn,
-    //                 data,
-    //                 checkbox: true,
-    //                 tableScroll,
-    //                 rowSelection,
-    //                 setRowSelection,
-    //                 tableMeta: {
-    //                     rowClick(id, rowData) {
-    //                         overviewQuery.open2(rowData.uuid, "sales");
-    //                     },
-    //                 },
-    //             },
-    //         ]}
-    //     >
-    //         <div className="flex flex-col gap-4 w-full">
-    //             <div
-    //                 ref={tableScroll.containerRef}
-    //                 className="overflow-x-auto overscroll-x-none md:border-l md:border-r border-border scrollbar-hide"
-    //             >
-    //                 <Table>
-    //                     <TableHeaderComponent />
-    //                     <TableBody>
-    //                         <TableRow />
-    //                     </TableBody>
-    //                 </Table>
-    //             </div>
-    //             {hasNextPage && (
-    //                 <LoadMoreTRPC ref={ref} hasNextPage={hasNextPage} />
-    //             )}
-    //             <BatchActions />
-    //         </div>
-    //     </TableProvider>
-    // );
 }
 

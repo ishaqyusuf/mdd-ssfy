@@ -16,7 +16,7 @@ import { useSalesOverviewSystem } from "./provider";
 import { useSalesOverviewTabs } from "./tab-registry";
 import type { SalesOverviewTabId } from "./types";
 
-export function SalesOverviewSheetShell() {
+export function SalesOverviewSheetShell({ onClose }: { onClose?: () => void }) {
 	usePageTitle();
 	const { query } = useSalesOverviewSystem();
 	const tabs = useSalesOverviewTabs();
@@ -40,7 +40,12 @@ export function SalesOverviewSheetShell() {
 		<CustomSheet
 			sheetName="sales-overview-system-sheet"
 			open
-			onOpenChange={query.close}
+			onOpenChange={(open) => {
+				if (!open) {
+					if (onClose) onClose();
+					else query.close();
+				}
+			}}
 			floating
 			rounded
 			size="2xl"

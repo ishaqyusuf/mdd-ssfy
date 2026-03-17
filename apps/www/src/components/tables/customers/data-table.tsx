@@ -6,18 +6,14 @@ import {
 } from "@/hooks/use-inbound-filter-params";
 import { useTRPC } from "@/trpc/client";
 
-import { TableProvider, useTableData } from "..";
+import { Table, useTableData } from "@gnd/ui/data-table";
 import { columns } from "./columns";
-import { Table, TableBody } from "@gnd/ui/table";
-import { TableHeaderComponent } from "../table-header";
-import { TableRow } from "../table-row";
-import { LoadMoreTRPC } from "../load-more";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 
 export function DataTable({}) {
     const trpc = useTRPC();
     const { filter, setFilter } = useInboundFilterParams();
-    const { data, ref, hasNextPage } = useTableData({
+    const { data, ref: loadMoreRef, hasNextPage } = useTableData({
         filter,
         route: trpc.sales.customersIndex,
     });
@@ -25,11 +21,12 @@ export function DataTable({}) {
     const { open } = useCustomerOverviewQuery();
 
     return (
-        <TableProvider
+        <Table.Provider
             args={[
                 {
-                    columns: columns,
+                    columns,
                     data,
+                    props: { loadMoreRef, hasNextPage },
                     tableMeta: {
                         deleteAction(id) {
                             // deleteStudent.execute({
@@ -45,17 +42,13 @@ export function DataTable({}) {
         >
             <div className="flex flex-col gap-4">
                 <Table>
-                    <TableHeaderComponent />
-                    <TableBody>
-                        <TableRow />
-                    </TableBody>
+                    <Table.TableHeader />
+                    <Table.Body>
+                        <Table.TableRow />
+                    </Table.Body>
                 </Table>
-                {/* {JSON.stringify(data?.pages?.[0]?.meta)} */}
-                {hasNextPage ? "Load More" : "No more data"}
-                {!hasNextPage || (
-                    <LoadMoreTRPC ref={ref} hasNextPage={hasNextPage} />
-                )}
+                <Table.LoadMore />
             </div>
-        </TableProvider>
+        </Table.Provider>
     );
 }

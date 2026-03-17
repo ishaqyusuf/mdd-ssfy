@@ -2,20 +2,11 @@
 
 import React, { use } from "react";
 
-import { MiddaySearchFilter } from "@/components/midday-search-filter/search-filter";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 
-import { useAction } from "next-safe-action/hooks";
-
 import { Button } from "@gnd/ui/button";
-import { Table, TableBody } from "@gnd/ui/table";
-
-import { TableProvider } from "..";
-import { TableHeaderComponent } from "../table-header";
-import { TableRow } from "../table-row";
-
+import { Table } from "@gnd/ui/data-table";
 import { columns, Item } from "./columns";
-import { LoadMore } from "../load-more";
 import { useRolesParams } from "@/hooks/use-roles-params";
 import Portal from "@/components/_v1/portal";
 import { Icons } from "@gnd/ui/icons";
@@ -33,7 +24,7 @@ export function EmployeeProfilesDataTable({ data }: Props) {
     const toast = useLoadingToast();
 
     return (
-        <TableProvider
+        <Table.Provider
             args={[
                 {
                     columns,
@@ -70,13 +61,12 @@ export function EmployeeProfilesDataTable({ data }: Props) {
                     </div>
                 </Portal>
                 <Table>
-                    <TableHeaderComponent />
-                    <TableBody>
-                        <TableRow />
-                    </TableBody>
+                    <Table.TableHeader />
+                    <Table.Body>
+                        <Table.TableRow />
+                    </Table.Body>
                 </Table>
-                <LoadMore />
             </div>
-        </TableProvider>
+        </Table.Provider>
     );
 }

@@ -14,6 +14,7 @@ import Link from "next/link";
 import { Icons } from "@gnd/ui/icons";
 import { _trpc } from "@/components/static-trpc";
 import { RouterInputs } from "@api/trpc/routers/_app";
+import { useSalesOverviewV2SheetQuery } from "@/hooks/use-sales-overview-v2-sheet-query";
 
 interface Props {
     defaultFilters?: RouterInputs["sales"]["getOrders"];
@@ -41,6 +42,16 @@ export function DataTable(props: Props) {
         startFromColumn: 2,
     });
     const overviewQuery = useSalesOverviewQuery();
+    // Enable this when you want row clicks to open the new v2 sheet instead.
+    // const v2SheetQuery = useSalesOverviewV2SheetQuery();
+    // const openSalesOverviewV2Sheet = (rowData) => {
+    //     v2SheetQuery.setParams({
+    //         "sales-overview-v2-sheet-id": rowData.uuid,
+    //         "sales-overview-v2-sheet-type": "sales",
+    //         "sales-overview-v2-sheet-mode": "sales",
+    //         "sales-overview-v2-sheet-tab": "general",
+    //     });
+    // };
     if (hasFilters && !data?.length) {
         return <NoResults setFilter={setFilters} />;
     }
@@ -77,6 +88,7 @@ export function DataTable(props: Props) {
                     tableMeta: {
                         rowClick(id, rowData) {
                             overviewQuery.open2(rowData.uuid, "sales");
+                            // openSalesOverviewV2Sheet(rowData);
                         },
                     },
                 },

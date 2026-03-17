@@ -5,6 +5,8 @@ import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { useSalesOverviewV2PageQuery } from "@/hooks/use-sales-overview-v2-page-query";
+import { useSalesOverviewV2SheetQuery } from "@/hooks/use-sales-overview-v2-sheet-query";
 import Note from "@/modules/notes";
 import { noteTagFilter } from "@/modules/notes/utils";
 
@@ -23,7 +25,14 @@ import { ProductionTab } from "./production-tab";
 
 export default function SalesOverviewSheet() {
 	const query = useSalesOverviewQuery();
-	return query["sales-overview-id"] ? <Modal /> : null;
+	const v2PageQuery = useSalesOverviewV2PageQuery();
+	const v2SheetQuery = useSalesOverviewV2SheetQuery();
+
+	return query["sales-overview-id"] &&
+		!v2PageQuery.params["sales-overview-v2-id"] &&
+		!v2SheetQuery.params["sales-overview-v2-sheet-id"] ? (
+		<Modal />
+	) : null;
 }
 function Modal() {
 	return (

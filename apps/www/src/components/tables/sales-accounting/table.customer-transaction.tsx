@@ -1,11 +1,7 @@
 "use client";
 
 import React, { use } from "react";
-import { Table, TableBody } from "@gnd/ui/table";
-
-import { TableProvider } from "..";
-import { TableHeaderComponent } from "../table-header";
-import { TableRow } from "../table-row";
+import { Table } from "@gnd/ui/data-table";
 
 import { useEmployeeParams } from "@/hooks/use-employee-params";
 import { PageFilterData } from "@/types/type";
@@ -32,14 +28,11 @@ export function CustomerTxDataTable({
         ? use(filterDataPromise)
         : [];
     return (
-        <TableProvider
+        <Table.Provider
             args={[
                 {
                     columns: customerTransactionsColumn,
                     data,
-                    nextMeta,
-                    loadMore,
-                    pageSize,
                     setParams,
                     params,
                     tableMeta: {
@@ -55,12 +48,12 @@ export function CustomerTxDataTable({
         >
             <div className="flex flex-col gap-4">
                 <Table>
-                    <TableHeaderComponent />
-                    <TableBody>
-                        <TableRow />
-                    </TableBody>
+                    <Table.TableHeader />
+                    <Table.Body>
+                        <Table.TableRow />
+                    </Table.Body>
                 </Table>
             </div>
-        </TableProvider>
+        </Table.Provider>
     );
 }

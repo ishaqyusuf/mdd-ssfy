@@ -7,15 +7,17 @@ import type { SalesOverviewSurface } from "./types";
 
 export function SalesOverviewSystem({
 	surface = "sheet",
+	onSheetClose,
 }: {
 	surface?: SalesOverviewSurface;
+	onSheetClose?: () => void;
 }) {
 	return (
 		<SalesOverviewSystemProvider surface={surface}>
 			{surface === "page" ? (
 				<SalesOverviewPageShell />
 			) : (
-				<SalesOverviewSheetShell />
+				<SalesOverviewSheetShell onClose={onSheetClose} />
 			)}
 		</SalesOverviewSystemProvider>
 	);

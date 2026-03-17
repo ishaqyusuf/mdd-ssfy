@@ -20,7 +20,11 @@ Design a new sales overview system that replaces the current noisy sheet with a 
 - The legacy sheet entry at `apps/www/src/components/sheets/sales-overview-sheet/index.tsx` remains fully unchanged as the active production path.
 - The scaffolded `sales-overview-system` files should only be connected through a dedicated page route or explicit opt-in once parity is ready.
 - Added a dedicated build route at `apps/www/src/app/(sidebar)/(sales)/sales-book/orders/overview-v2/page.tsx`.
-- Added a separate v2 sheet entry at `apps/www/src/components/sheets/sales-overview-system-sheet/index.tsx`, but it is intentionally not mounted in global sheets yet.
+- Added a separate v2 sheet entry at `apps/www/src/components/sheets/sales-overview-system-sheet/index.tsx` and mounted it independently from the legacy sheet.
+- Split the new system open logic into separate query contracts:
+  - page route: `sales-overview-v2-*`
+  - sheet: `sales-overview-v2-sheet-*`
+- Added a legacy-query bridge so the new system can reuse existing overview internals without sharing the old sheet's public open trigger.
 
 ## Why This Exists
 
