@@ -11,7 +11,8 @@
   "exports": {
     "./*": "./src/*",
     ".": "./src/index.ts",
-    "./sales": "./src/sales/index.tsx"
+    "./sales": "./src/sales/index.tsx",
+    "./sales-v2": "./src/sales-v2/index.ts"
   },
   "dependencies": {
     "@gnd/sales": "workspace:*",

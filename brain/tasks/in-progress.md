@@ -4,6 +4,7 @@
 Tracks the active work queue. Keep this focused and execution-ready.
 
 ## Current Focus
+- [x] Sales PDF V2: isolated multi-template print system (`brain/features/sales-pdf-system.md`) — COMPLETED: Phase 4 (salesV2 tRPC endpoint), Phase 6 (print-sales-v2.tsx + /p/sales-invoice-v2 route), quick-print helper, sales-menu-print component
 - [ ] Employee Management V2 — remaining phases: DB schema migration (`EmployeeRecord`), `employees.route.ts` API layer, `[employeeId]` per-employee overview route, insurance gate on job creation, expo app mirror
 - [ ] Sales PDF V2: isolated multi-template print system (`brain/features/sales-pdf-system.md`) — plan approved, pending execution
 - [ ] Sales form system hardening Phase 0: transactional save safety and server-authoritative pricing validation (`brain/sales-form-system-hardening-plan.md`) (Schema + API + Validation)
