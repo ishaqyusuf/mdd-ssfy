@@ -1630,3 +1630,75 @@ export async function getDispatchOverviewV2(
 export async function enlistItemToForDispatch(ctx: TRPCContext) {
   //
 }
+
+export async function getDispatchSummary(ctx: TRPCContext) {
+  const { db } = ctx;
+
+  const [statusCounts, driverWorkload, overdueCount] = await Promise.all([
+    db.orderDelivery.groupBy({
+      by: ["status"],
+      where: { deletedAt: null },
+      _count: { id: true },
+    }),
+    db.orderDelivery.groupBy({
+      by: ["driverId"],
+      where: {
+        deletedAt: null,
+        driverId: { not: null },
+        status: { in: ["queue", "in progress", "packed"] },
+      },
+      _count: { id: true },
+    }),
+    db.orderDelivery.count({
+      where: {
+        deletedAt: null,
+        status: { in: ["queue", "in progress", "packed"] },
+        dueDate: { lt: new Date() },
+      },
+    }),
+  ]);
+
+  const driverIds = driverWorkload
+    .map((d) => d.driverId)
+    .filter((id): id is number => id != null);
+
+  const drivers =
+    driverIds.length > 0
+      ? await db.users.findMany({
+          where: { id: { in: driverIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+
+  const driverMap = Object.fromEntries(drivers.map((d) => [d.id, d.name]));
+
+  const byStatus = Object.fromEntries(
+    statusCounts.map((row) => [row.status ?? "unknown", row._count.id]),
+  );
+
+  const total = statusCounts.reduce((sum, row) => sum + row._count.id, 0);
+  const pending =
+    (byStatus["queue"] ?? 0) +
+    (byStatus["in progress"] ?? 0) +
+    (byStatus["packed"] ?? 0) +
+    (byStatus["missing items"] ?? 0);
+
+  return {
+    total,
+    pending,
+    byStatus: {
+      queue: byStatus["queue"] ?? 0,
+      inProgress: byStatus["in progress"] ?? 0,
+      packed: byStatus["packed"] ?? 0,
+      completed: byStatus["completed"] ?? 0,
+      cancelled: byStatus["cancelled"] ?? 0,
+      missingItems: byStatus["missing items"] ?? 0,
+    },
+    overdue: overdueCount,
+    driverWorkload: driverWorkload.map((row) => ({
+      driverId: row.driverId!,
+      driverName: driverMap[row.driverId!] ?? "Unknown",
+      activeDispatches: row._count.id,
+    })),
+  };
+}
