@@ -35,3 +35,4 @@ export default async function Page(props: Props) {
         </HydrateClient>
     );
 }
+

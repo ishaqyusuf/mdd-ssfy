@@ -1,10 +1,11 @@
-// Placeholder hooks for employee overview data.
-// Wire up to tRPC once employees.route.ts procedures are implemented.
+import { useTRPC } from "@/trpc/client";
+import { useQuery } from "@tanstack/react-query";
 
-export function useEmployeeOverview(_employeeId: number) {
-    return {
-        data: null as null,
-        isLoading: false,
-        error: null,
-    };
+export function useEmployeeOverview(employeeId: number) {
+    const trpc = useTRPC();
+    const { data, isLoading, error } = useQuery(
+        trpc.hrm.getEmployeeOverview.queryOptions({ id: employeeId }),
+    );
+
+    return { data: data ?? null, isLoading, error };
 }

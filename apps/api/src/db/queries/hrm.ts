@@ -335,9 +335,7 @@ export async function getEmployeeOverview(ctx: TRPCContext, id: number) {
             id: a.id,
             item: a.item?.description || "Unknown",
             qty: a.qtyAssigned || 0,
-            completedAt: a.completedAt
-              ? formatDate(a.completedAt)
-              : undefined,
+            completedAt: a.completedAt ? formatDate(a.completedAt) : undefined,
           })),
         }
       : undefined;
