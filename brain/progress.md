@@ -6,6 +6,17 @@
 
 - **Planned feature**: Sales invoice print should display door images, mouldings, and shelf items when available.
 
+## 2026-03-18 (session 2)
+
+- Finalized Sales PDF V2 redesign plan with swappable multi-template architecture (`brain/features/sales-pdf-system.md`).
+  - Data layer in `packages/sales/src/print/` — typed `PrintPage` contract, isolated Prisma query, compose functions.
+  - Template registry in `packages/pdf/src/sales/` — each template folder implements `SalesTemplateRenderer`, selected by `templateId`.
+  - Classic template first; new templates = new folder + registry entry.
+  - 6 execution phases: types → compose → entry → tRPC → template → client wiring.
+- Added image support for mouldings (from `molding.img` / `stepProduct.img` / `product.img`) and shelf items (from `shelfProduct.img`) in the legacy print renderer.
+- Fixed door image renderer: removed debug styling, re-enabled `<Image>` rendering at 40×40.
+- Passed `baseUrl` to `SalesPrintShelfItems` for image resolution.
+
 ## 2026-03-18
 
 - Implemented sales PDF print data/render updates for invoice output fidelity:

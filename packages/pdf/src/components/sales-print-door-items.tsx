@@ -118,19 +118,18 @@ export default function SalesPrintDoorItems({
                     (() => {
                       const imageSrc = resolveImageSrc(ld.image);
                       return (
-                        <View style={tw("flex-col bg-red-500")}>
-                          {/* <View style={cn("flex-col")}> */}
-                          {/* {imageSrc ? (
+                        <View style={cn("flex-col")}>
+                          {imageSrc ? (
                             <Image
                               src={imageSrc}
                               style={{
-                                width: 52,
-                                height: 52,
+                                width: 40,
+                                height: 40,
                                 objectFit: "contain",
-                                marginBottom: 4,
+                                marginBottom: 2,
                               }}
                             />
-                          ) : null} */}
+                          ) : null}
                           <Text>{ld.value}</Text>
                         </View>
                       );
