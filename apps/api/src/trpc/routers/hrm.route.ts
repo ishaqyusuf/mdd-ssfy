@@ -1,6 +1,7 @@
 import {
   getEmployeeFormData,
   getEmployees,
+  getEmployeeOverview,
   resetEmployeePassword,
   saveEmployee,
 } from "@api/db/queries/hrm";
@@ -162,5 +163,10 @@ export const hrmRoutes = createTRPCRouter({
           // description,
         },
       });
+    }),
+  getEmployeeOverview: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async (props) => {
+      return getEmployeeOverview(props.ctx, props.input.id);
     }),
 });

@@ -38,7 +38,9 @@ export type Item = RouterOutputs["sales"]["index"]["data"][number];
 function getProductionStatusLabel(item: Item) {
     const status = (item as any)?.control?.productionStatus;
     if (status && status !== "unknown") return status;
-    return item.status.production?.scoreStatus || item.status.production?.status;
+    return (
+        item.status.production?.scoreStatus || item.status.production?.status
+    );
 }
 
 function getFulfillmentStatusLabel(item: Item) {
@@ -155,7 +157,9 @@ export const columns2: ColumnDef<Item>[] = [
         accessorKey: "production",
         cell: ({ row: { original: item } }) => (
             <Progress>
-                <Progress.Status>{getProductionStatusLabel(item)}</Progress.Status>
+                <Progress.Status>
+                    {getProductionStatusLabel(item)}
+                </Progress.Status>
             </Progress>
         ),
     },
@@ -304,7 +308,9 @@ export const columns: ColumnDef<Item>[] = [
         accessorKey: "production",
         cell: ({ row: { original: item } }) => (
             <Progress>
-                <Progress.Status>{getProductionStatusLabel(item)}</Progress.Status>
+                <Progress.Status>
+                    {getProductionStatusLabel(item)}
+                </Progress.Status>
             </Progress>
         ),
     },
@@ -352,7 +358,8 @@ function Actions({ item }: { item: Item }) {
     const auth = useAuth();
     const trpc = useTRPC();
     const queryClient = useQueryClient();
-    const [isFulfillmentModalOpen, setFulfillmentModalOpen] = React.useState(false);
+    const [isFulfillmentModalOpen, setFulfillmentModalOpen] =
+        React.useState(false);
     const notification = useNotificationTrigger({ silent: true });
     const { trigger } = useTaskTrigger({
         silent: true,
@@ -376,21 +383,24 @@ function Actions({ item }: { item: Item }) {
             },
         ),
     );
-    const dispatches = (dispatchOverview.data?.deliveries || []) as FulfillmentDispatch[];
-    const { mutateAsync: createDispatch, isPending: isCreatingDispatch } = useMutation(
-        trpc.dispatch.createDispatch.mutationOptions({
-            onSuccess() {
-                invalidateInfiniteQueries("sales.getOrders");
-            },
-        }),
-    );
-    const { mutateAsync: submitDispatch, isPending: isSubmittingDispatch } = useMutation(
-        trpc.dispatch.submitDispatch.mutationOptions({
-            onSuccess() {
-                invalidateInfiniteQueries("sales.getOrders");
-            },
-        }),
-    );
+    const dispatches = (dispatchOverview.data?.deliveries ||
+        []) as FulfillmentDispatch[];
+    const { mutateAsync: createDispatch, isPending: isCreatingDispatch } =
+        useMutation(
+            trpc.dispatch.createDispatch.mutationOptions({
+                onSuccess() {
+                    invalidateInfiniteQueries("sales.getOrders");
+                },
+            }),
+        );
+    const { mutateAsync: submitDispatch, isPending: isSubmittingDispatch } =
+        useMutation(
+            trpc.dispatch.submitDispatch.mutationOptions({
+                onSuccess() {
+                    invalidateInfiniteQueries("sales.getOrders");
+                },
+            }),
+        );
     const { mutateAsync: updateDispatchDriver, isPending: isUpdatingDriver } =
         useMutation(
             trpc.dispatch.updateDispatchDriver.mutationOptions({
@@ -474,7 +484,9 @@ function Actions({ item }: { item: Item }) {
 
         try {
             let dispatchId = payload.selectedDispatchId;
-            const selectedDispatch = dispatches.find((dispatch) => dispatch.id === dispatchId);
+            const selectedDispatch = dispatches.find(
+                (dispatch) => dispatch.id === dispatchId,
+            );
 
             if (payload.createNew || !dispatchId) {
                 const createdDispatch = await createDispatch({
@@ -521,7 +533,9 @@ function Actions({ item }: { item: Item }) {
                 submitDispatch: {
                     dispatchId,
                     receivedBy:
-                        payload.recipient || item?.addressData?.shipping?.name || "Customer",
+                        payload.recipient ||
+                        item?.addressData?.shipping?.name ||
+                        "Customer",
                     receivedDate: payload.completedDate || new Date(),
                 },
             });
@@ -595,8 +609,10 @@ function Actions({ item }: { item: Item }) {
                     </Button>
                 }
             >
-                <SalesMenu.PDF />
                 <SalesMenu.Print />
+                <SalesMenu.PDF />
+
+                {/* <SalesMenu.PrintModes /> */}
                 <SalesMenu.Sub>
                     <SalesMenu.SubTrigger>
                         <Check className="mr-2 size-4 text-muted-foreground/70" />
@@ -614,10 +630,15 @@ function Actions({ item }: { item: Item }) {
                             Production Complete
                         </SalesMenu.Item>
                         <SalesMenu.Item
-                            disabled={isFulfillmentCompleted || hasPendingProduction}
+                            disabled={
+                                isFulfillmentCompleted || hasPendingProduction
+                            }
                             onSelect={(e) => {
                                 e.preventDefault();
-                                if (isFulfillmentCompleted || hasPendingProduction) {
+                                if (
+                                    isFulfillmentCompleted ||
+                                    hasPendingProduction
+                                ) {
                                     if (hasPendingProduction) {
                                         toast({
                                             title: "Production pending",
@@ -646,9 +667,13 @@ function Actions({ item }: { item: Item }) {
                     name: driver.name,
                 }))}
                 defaultRecipient={
-                    item?.addressData?.shipping?.name || item.displayName || "Customer"
+                    item?.addressData?.shipping?.name ||
+                    item.displayName ||
+                    "Customer"
                 }
-                isLoading={dispatchOverview.isLoading || dispatchOverview.isFetching}
+                isLoading={
+                    dispatchOverview.isLoading || dispatchOverview.isFetching
+                }
                 isSubmitting={
                     isCreatingDispatch ||
                     isSubmittingDispatch ||
@@ -668,3 +693,4 @@ function Actions({ item }: { item: Item }) {
         </div>
     );
 }
+

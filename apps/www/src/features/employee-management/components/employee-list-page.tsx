@@ -1,3 +1,4 @@
+"use client";
 import { Suspense } from "react";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { ErrorFallback } from "@/components/error-fallback";
@@ -52,3 +53,4 @@ export function EmployeeListPage({ stats }: Props) {
         </div>
     );
 }
+
