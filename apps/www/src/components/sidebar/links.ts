@@ -243,6 +243,10 @@ export const linkModules = [
             // _link("HRM", "hrm", "/").access(_perm.in("viewHrm")).data,
             _link("Employees", "employees", "/hrm/employees").access(
                 _perm.some("viewHrm", "viewEmployee"),
+            ).subLinks(
+                _subLink("Employees - v2", "/hrm/employees/v2").access(
+                    _role.is("Super Admin"),
+                ).data,
             ).data,
             // _link("Profile", "profile", "/hrm/profiles").access(
             //     _perm.some("viewHrm", "viewEmployee"),

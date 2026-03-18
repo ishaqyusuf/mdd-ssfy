@@ -2,16 +2,21 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
-## 2026-03-18 (session 3)
+## 2026-03-18 (session 4)
 
-- **Planned feature**: Employee Management V2 (`brain/features/employee-management-v2.md`) — awaiting approval before implementation.
-  - New `EmployeeRecord` DB model for insurance/cert upload with approval workflow.
-  - New `employees.route.ts` tRPC router with overview, analytics, record management, and `hasValidInsurance` gate.
-  - Standalone feature folder at `apps/www/src/features/employee-management/`.
-  - Per-employee overview page at `/hrm/employees/[employeeId]/page.tsx`.
-  - Role-specific analytics: sales rep, contractor, production.
-  - Insurance gate on job creation (web + expo).
-  - 10 execution phases: DB → API → types/hooks → shared components → analytics → records → page shells → routes → insurance gate → expo.
+- **Started Employee Management V2** (`brain/features/employee-management-v2.md`):
+  - Created standalone feature folder at `apps/www/src/features/employee-management/`.
+  - Created `types.ts` with `EmployeeOverview`, `EmployeeRecord`, `SalesAnalytics`, `ContractorAnalytics`, `ProductionAnalytics`.
+  - Created shared components: `overview-stat-card.tsx`, `employee-info-header.tsx`.
+  - Created analytics components: `sales-analytics.tsx`, `contractor-analytics.tsx`, `production-analytics.tsx`.
+  - Created records components: `employee-records-tab.tsx`, `record-upload-form.tsx`, `record-approval-actions.tsx`.
+  - Created `employee-list-page.tsx` (stat bar + existing table) and `employee-overview-page.tsx` (tabs: analytics + records).
+  - Created placeholder hook `use-employee-overview.ts` (wires to tRPC when `employees.route.ts` is implemented).
+  - Added route `apps/www/src/app/(sidebar)/hrm/employees/v2/page.tsx`.
+  - Registered "Employees - v2" sub-link in sidebar HRM module as Super Admin only.
+  - **Remaining phases**: DB schema migration, `employees.route.ts` API layer, `[employeeId]` route, insurance gate, expo mirror.
+
+- **Started feature**: Employee Management V2 (`brain/features/employee-management-v2.md`) — initial scaffolding implemented in session 4 (see above).
 
 ## 2026-03-17 (session 3)
 
