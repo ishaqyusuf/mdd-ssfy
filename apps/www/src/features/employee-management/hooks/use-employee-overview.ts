@@ -9,3 +9,4 @@ export function useEmployeeOverview(employeeId: number) {
 
     return { data: data ?? null, isLoading, error };
 }
+

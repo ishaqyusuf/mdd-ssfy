@@ -15,3 +15,4 @@ export function EmployeeOverviewClient({ employeeId }: Props) {
 
     return <EmployeeOverviewPage data={data} />;
 }
+
