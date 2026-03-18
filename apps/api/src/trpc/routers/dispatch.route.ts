@@ -2,6 +2,7 @@ import {
 	findDuplicateDispatchGroups,
 	getDispatchOverview,
 	getDispatchOverviewV2,
+	getDispatchSummary,
 	getDispatches,
 	getSalesDeliveryInfo,
 	resolveDuplicateDispatchGroup,
@@ -400,4 +401,7 @@ export const dispatchRouters = createTRPCRouter({
 				url: uploaded.url || uploaded.pathname,
 			};
 		}),
+	dispatchSummary: publicProcedure.query(async (props) => {
+		return getDispatchSummary(props.ctx);
+	}),
 });

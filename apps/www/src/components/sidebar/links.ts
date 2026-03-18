@@ -526,6 +526,12 @@ export const linkModules = [
                 _subLink("Pickup", "/sales-book/pickups").access(
                     _perm.is("editPickup"),
                 ).data,
+                _subLink("Delivery V2", "/sales-book/dispatch-v2").access(
+                    _role.is("Super Admin"),
+                ).data,
+                _subLink("Admin Dashboard", "/sales-book/dispatch-admin").access(
+                    _role.is("Super Admin"),
+                ).data,
             ]).access(_perm.is("editOrders")).data,
         ]),
         _section("", "", [
