@@ -18,8 +18,6 @@ export function colWidth(
   return `${Number(span) * 5}%`;
 }
 
-export function sumColSpans(
-  cells: { colSpan?: number }[],
-): number {
+export function sumColSpans(cells: { colSpan?: number }[]): number {
   return cells.reduce((a, c) => a + (c.colSpan ?? 0), 0);
 }

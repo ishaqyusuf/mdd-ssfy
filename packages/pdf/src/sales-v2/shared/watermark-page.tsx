@@ -16,7 +16,7 @@ export function WatermarkPage({
   ...pageProps
 }: WatermarkPageProps) {
   return (
-    <Page {...pageProps} style={{...cn(`relative`), ...(style as object) }}>
+    <Page {...pageProps} style={{ ...cn(`relative`), ...(style as object) }}>
       <View
         fixed
         style={{

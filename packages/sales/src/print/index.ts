@@ -1,3 +1,7 @@
+export { getPrintData } from "./get-print-data";
+export { printSalesV2Schema } from "./schema";
+export type { PrintSalesV2Input } from "./schema";
+
 export type {
   PrintMode,
   PrintPage,

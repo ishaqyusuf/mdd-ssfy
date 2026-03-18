@@ -16,7 +16,10 @@ export function ShelfBlock({ section, baseUrl, showImages }: ShelfBlockProps) {
   return (
     <View style={cn(`flex-col border-x border-t text-sm`)}>
       <Text
-        style={{...cn(`text-sm p-1 uppercase text-center bg-slate-200`), fontWeight: 700 }}
+        style={{
+          ...cn(`text-sm p-1 uppercase text-center bg-slate-200`),
+          fontWeight: 700,
+        }}
       >
         {section.title}
       </Text>
@@ -28,7 +31,9 @@ export function ShelfBlock({ section, baseUrl, showImages }: ShelfBlockProps) {
             <View
               key={i}
               style={{
-                ...cn(`p-1 font-semibold ${i === section.headers.length - 1 ? "" : "border-r uppercase"}`),
+                ...cn(
+                  `p-1 font-semibold ${i === section.headers.length - 1 ? "" : "border-r uppercase"}`,
+                ),
                 width: colWidth(h.colSpan, totalSpan),
                 backgroundColor: hexToRgba(colorsObject.black, 0.2),
               }}
@@ -58,7 +63,9 @@ export function ShelfBlock({ section, baseUrl, showImages }: ShelfBlockProps) {
                 <View
                   key={ci}
                   style={{
-                    ...cn(`p-1 ${alignClass} ${ci === row.cells.length - 1 ? "" : "border-r uppercase"}`),
+                    ...cn(
+                      `p-1 ${alignClass} ${ci === row.cells.length - 1 ? "" : "border-r uppercase"}`,
+                    ),
                     width: colWidth(cell.colSpan, totalSpan),
                   }}
                 >

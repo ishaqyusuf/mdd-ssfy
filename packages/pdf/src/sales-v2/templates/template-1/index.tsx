@@ -1,6 +1,11 @@
 import type { SalesTemplateRenderProps } from "../../registry";
 import { WatermarkPage } from "../../shared/watermark-page";
-import { InvoiceMode, QuoteMode, ProductionMode, PackingSlipMode } from "./modes";
+import {
+  InvoiceMode,
+  QuoteMode,
+  ProductionMode,
+  PackingSlipMode,
+} from "./modes";
 
 export function Template1(props: SalesTemplateRenderProps) {
   const { page, baseUrl, watermark, logoUrl, companyAddress, config } = props;

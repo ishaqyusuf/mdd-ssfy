@@ -22,23 +22,24 @@ export function FooterBlock({ footer }: FooterBlockProps) {
         </View>
 
         {/* Right: totals */}
-        <View style={{...cn(`relative text-sm`), width: "40%" }}>
+        <View style={{ ...cn(`relative text-sm`), width: "40%" }}>
           <View style={cn(`w-full`)}>
             {footer.lines.map((line, i) => (
-              <View
-                key={i}
-                style={cn(`border-t flex justify-between`)}
-              >
+              <View key={i} style={cn(`border-t flex justify-between`)}>
                 <View style={cn(`bg-slate-200 flex-4 px-1 py-1.5`)}>
                   <Text
-                    style={cn(`${line.bold ? "font-bold" : ""} ${line.large ? "text-sm" : ""}`)}
+                    style={cn(
+                      `${line.bold ? "font-bold" : ""} ${line.large ? "text-sm" : ""}`,
+                    )}
                   >
                     {line.label}
                   </Text>
                 </View>
                 <View style={cn(`flex-2 px-1 py-1`)}>
                   <Text
-                    style={cn(`${line.bold ? "font-bold" : ""} ${line.large ? "text-sm" : ""}`)}
+                    style={cn(
+                      `${line.bold ? "font-bold" : ""} ${line.large ? "text-sm" : ""}`,
+                    )}
                   >
                     {line.value}
                   </Text>

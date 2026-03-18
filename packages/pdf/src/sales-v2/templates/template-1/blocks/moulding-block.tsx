@@ -31,7 +31,9 @@ export function MouldingBlock({
               <View
                 key={i}
                 style={{
-                  ...cn(`p-1 font-semibold uppercase ${i === section.headers.length - 1 ? "" : "border-r"}`),
+                  ...cn(
+                    `p-1 font-semibold uppercase ${i === section.headers.length - 1 ? "" : "border-r"}`,
+                  ),
                   width: colWidth(h.colSpan, totalSpan),
                   backgroundColor: hexToRgba(colorsObject.black, 0.2),
                 }}
@@ -65,7 +67,9 @@ export function MouldingBlock({
                   <View
                     key={ci}
                     style={{
-                      ...cn(`p-1 ${alignClass} ${cell.bold ? "font-bold" : ""} ${ci === row.cells.length - 1 ? "" : "border-r uppercase"}`),
+                      ...cn(
+                        `p-1 ${alignClass} ${cell.bold ? "font-bold" : ""} ${ci === row.cells.length - 1 ? "" : "border-r uppercase"}`,
+                      ),
                       width: colWidth(cell.colSpan, totalSpan),
                     }}
                   >

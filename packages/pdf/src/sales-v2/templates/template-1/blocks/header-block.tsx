@@ -1,6 +1,10 @@
 import { Image, Text, View } from "@react-pdf/renderer";
 import { cn } from "../../../../utils/tw";
-import type { PageMeta, AddressBlock, CompanyAddress } from "@gnd/sales/print/types";
+import type {
+  PageMeta,
+  AddressBlock,
+  CompanyAddress,
+} from "@gnd/sales/print/types";
 
 interface HeaderBlockProps {
   meta: PageMeta;
@@ -24,7 +28,7 @@ export function HeaderBlock({
   return (
     <View style={cn(`mb-2`)}>
       {/* Top row: logo + company info | heading */}
-      <View style={{...cn(`flex`), alignItems: "flex-start" }}>
+      <View style={{ ...cn(`flex`), alignItems: "flex-start" }}>
         {/* Left: logo + company address */}
         <View style={{ width: "62.5%" }}>
           <View style={cn(`flex`)}>
@@ -33,7 +37,7 @@ export function HeaderBlock({
               style={{ width: 150, height: 80, objectFit: "contain" }}
             />
           </View>
-          <View style={{...cn(`font-bold`), marginBottom: 16 }} wrap={false}>
+          <View style={{ ...cn(`font-bold`), marginBottom: 16 }} wrap={false}>
             <Text style={cn(`text-sm`)}>{companyAddress.address1}</Text>
             <Text style={cn(`text-sm`)}>{companyAddress.address2}</Text>
             <Text style={cn(`text-sm`)}>Phone: {companyAddress.phone}</Text>
@@ -45,9 +49,13 @@ export function HeaderBlock({
         </View>
 
         {/* Right: heading info */}
-        <View style={{...cn(`flex-col p-2 text-sm`), width: "37.5%" }}>
+        <View style={{ ...cn(`flex-col p-2 text-sm`), width: "37.5%" }}>
           <Text
-            style={{...cn(`text-right capitalize mb-4`), fontSize: 18, fontWeight: 700 }}
+            style={{
+              ...cn(`text-right capitalize mb-4`),
+              fontSize: 18,
+              fontWeight: 700,
+            }}
           >
             {meta.title}
           </Text>
@@ -69,7 +77,9 @@ export function HeaderBlock({
           {meta.balanceDue && (
             <HeadingLine label="Balance Due" value={meta.balanceDue} bold />
           )}
-          {meta.dueDate && <HeadingLine label="Due Date" value={meta.dueDate} />}
+          {meta.dueDate && (
+            <HeadingLine label="Due Date" value={meta.dueDate} />
+          )}
         </View>
       </View>
 
@@ -78,11 +88,7 @@ export function HeaderBlock({
         {[billing, null, shipping].map((addr, i) => (
           <View
             key={i}
-            style={
-              i === 1
-                ? cn(`w-1/4`)
-                : {...cn(`border`), width: "70%" }
-            }
+            style={i === 1 ? cn(`w-1/4`) : { ...cn(`border`), width: "70%" }}
           >
             {i === 1 ? (
               <PaidStamp paymentDate={meta.paymentDate} />
@@ -90,7 +96,9 @@ export function HeaderBlock({
               <>
                 <View>
                   <Text
-                    style={cn(`text-sm border-b bg-slate-200 text-gray-700 p-1 px-1 font-bold uppercase`)}
+                    style={cn(
+                      `text-sm border-b bg-slate-200 text-gray-700 p-1 px-1 font-bold uppercase`,
+                    )}
                   >
                     {addr.title}
                   </Text>
@@ -119,7 +127,7 @@ function HeadingLine({
   bold?: boolean;
 }) {
   return (
-    <View style={{...cn(`flex justify-between items-end`), marginBottom: 2 }}>
+    <View style={{ ...cn(`flex justify-between items-end`), marginBottom: 2 }}>
       <Text style={{ fontWeight: 700 }}>{label}</Text>
       <Text style={cn(`${bold ? "font-bold" : ""}`)}>{value}</Text>
     </View>
