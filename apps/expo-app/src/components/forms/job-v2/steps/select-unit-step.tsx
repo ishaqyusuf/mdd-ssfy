@@ -176,10 +176,10 @@ export function SelectUnitStep() {
                 <View className="flex-row items-start justify-between gap-3">
                   <View>
                     <Text className="text-base font-black text-foreground">
-                      {unit.modelName}
+                      Lot {unit.lot} / Block {unit.block}
                     </Text>
                     <Text className="text-xs uppercase tracking-[1px] text-muted-foreground">
-                      Lot {unit.lot} / Block {unit.block}
+                      {unit.modelName}
                     </Text>
                     {!unit.modelId ? (
                       <Text className="mt-1 text-[11px] text-muted-foreground">

@@ -32,58 +32,71 @@ packages/sales/src/print/
 └── constants.ts                # tax codes, office addresses, mode visibility config
 ```
 
-### Template layer: `packages/pdf/src/sales/`
+### Template layer: `packages/pdf/src/sales-v2/`
 
 Templates are self-contained folders registered in a central registry. Each template implements the same `PrintPage` → PDF contract. Swapping templates = picking a different registry key.
 
 ```
-packages/pdf/src/sales/
-├── index.ts                    # template registry + SalesPdfDocument wrapper
-├── types.ts                    # TemplateRenderer interface
-├── fonts.ts                    # shared Font.register (Inter family)
+packages/pdf/src/sales-v2/
+├── index.ts                    # barrel: SalesPdfDocument, registry types
+├── document.tsx                # <Document> wrapper — selects template by id
+├── registry.tsx                # SalesTemplateConfig, SalesTemplateRenderProps, getTemplate()
 ├── shared/
-│   ├── table.tsx               # reusable table-row, table-cell, image-cell primitives
 │   ├── watermark-page.tsx      # page wrapper with watermark + page numbering
-│   └── utils.ts                # resolveImageSrc, width helpers
+│   └── utils.ts                # resolveImageSrc, colWidth, sumColSpans
 ├── templates/
-│   ├── classic/                # current invoice look
-│   │   ├── index.tsx           # ClassicTemplate — renders PrintPage
-│   │   ├── header.tsx
-│   │   ├── section-doors.tsx
-│   │   ├── section-mouldings.tsx
-│   │   ├── section-shelves.tsx
-│   │   ├── section-services.tsx
-│   │   ├── section-line-items.tsx
-│   │   └── footer.tsx
-│   └── modern/                 # future alternate template (same contract)
-│       ├── index.tsx
+│   ├── template-1/             # first template ("classic" invoice look)
+│   │   ├── index.tsx           # Template1 — routes to mode composer
+│   │   ├── blocks/             # isolated block components
+│   │   │   ├── index.ts
+│   │   │   ├── header-block.tsx
+│   │   │   ├── door-block.tsx
+│   │   │   ├── moulding-block.tsx
+│   │   │   ├── service-block.tsx
+│   │   │   ├── shelf-block.tsx
+│   │   │   ├── line-item-block.tsx
+│   │   │   ├── footer-block.tsx
+│   │   │   └── signature-block.tsx
+│   │   └── modes/              # each print mode composed separately
+│   │       ├── index.ts
+│   │       ├── invoice.tsx     # invoice mode composer (prices + footer + signature)
+│   │       ├── quote.tsx       # quote mode composer (prices + footer + signature + goodUntil)
+│   │       ├── production.tsx  # production mode (no prices, no footer, no signature)
+│   │       └── packing-slip.tsx # packing slip mode (no prices, packing col, signature)
+│   └── template-2/            # future template (same contract)
 │       └── ...
 ```
 
 ### Template registry pattern
 
 ```ts
-// packages/pdf/src/sales/types.ts
-export interface SalesTemplateProps {
+// packages/pdf/src/sales-v2/registry.tsx
+export interface SalesTemplateConfig {
+  showImages: boolean;    // toggle image display on all blocks
+}
+
+export interface SalesTemplateRenderProps {
   page: PrintPage;
   baseUrl?: string;
   watermark?: string;
+  logoUrl?: string;
+  companyAddress: CompanyAddress;
+  config: SalesTemplateConfig;
 }
-export type SalesTemplateRenderer = (props: SalesTemplateProps) => JSX.Element;
 
-// packages/pdf/src/sales/index.ts
-import { ClassicTemplate } from "./templates/classic";
+export type SalesTemplateRenderer = (props: SalesTemplateRenderProps) => JSX.Element;
 
 const templates: Record<string, SalesTemplateRenderer> = {
-  classic: ClassicTemplate,
-  // modern: ModernTemplate,  ← drop in later
+  "template-1": Template1,
+  // "template-2": Template2,  ← drop in later
 };
 
-export function SalesPdfDocument({ pages, templateId = "classic", baseUrl, watermark }) {
-  const Template = templates[templateId] ?? templates.classic;
+// packages/pdf/src/sales-v2/document.tsx
+export function SalesPdfDocument({ pages, templateId = "template-1", config, ... }) {
+  const Template = getTemplate(templateId);
   return (
     <Document>
-      {pages.map((page, i) => <Template key={i} page={page} baseUrl={baseUrl} watermark={watermark} />)}
+      {pages.map((page, i) => <Template key={i} page={page} config={config} ... />)}
     </Document>
   );
 }
@@ -152,11 +165,11 @@ type PrintSection =
 
 | Phase | Scope | Deliverable |
 |-------|-------|-------------|
-| **1** | Types + Prisma query | `print/types.ts`, `print/schema.ts`, `print/query.ts` |
+| **1** | Types + barrel export | `print/types.ts`, `print/index.ts` — ✅ DONE |
 | **2** | Compose functions | `print/compose/*.ts` — pure data transformers |
 | **3** | getPrintData entry | `print/get-print-data.ts` wiring compose → PrintPage[] |
 | **4** | tRPC endpoint | `salesV2` procedure in `print.route.ts` |
-| **5** | Template registry + classic template | `pdf/src/sales/` with shared primitives + classic template |
+| **5** | Template registry + template-1 | `pdf/src/sales-v2/` — ✅ DONE: blocks, modes, registry, document |
 | **6** | Client wiring | `print-sales-v2.tsx` + v2 page route |
 
 ---

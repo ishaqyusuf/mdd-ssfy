@@ -2,6 +2,17 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-03-18 (session 3)
+
+- **Planned feature**: Employee Management V2 (`brain/features/employee-management-v2.md`) — awaiting approval before implementation.
+  - New `EmployeeRecord` DB model for insurance/cert upload with approval workflow.
+  - New `employees.route.ts` tRPC router with overview, analytics, record management, and `hasValidInsurance` gate.
+  - Standalone feature folder at `apps/www/src/features/employee-management/`.
+  - Per-employee overview page at `/hrm/employees/[employeeId]/page.tsx`.
+  - Role-specific analytics: sales rep, contractor, production.
+  - Insurance gate on job creation (web + expo).
+  - 10 execution phases: DB → API → types/hooks → shared components → analytics → records → page shells → routes → insurance gate → expo.
+
 ## 2026-03-17 (session 3)
 
 - **Planned feature**: Sales invoice print should display door images, mouldings, and shelf items when available.
@@ -13,9 +24,25 @@
   - Template registry in `packages/pdf/src/sales/` — each template folder implements `SalesTemplateRenderer`, selected by `templateId`.
   - Classic template first; new templates = new folder + registry entry.
   - 6 execution phases: types → compose → entry → tRPC → template → client wiring.
-- Added image support for mouldings (from `molding.img` / `stepProduct.img` / `product.img`) and shelf items (from `shelfProduct.img`) in the legacy print renderer.
-- Fixed door image renderer: removed debug styling, re-enabled `<Image>` rendering at 40×40.
-- Passed `baseUrl` to `SalesPrintShelfItems` for image resolution.
+- Created `packages/sales/src/print/types.ts` — full typed contracts: `PrintPage`, `PrintSection` (discriminated union: door/moulding/service/shelf/line-item), `PrintModeConfig`, `FooterData`, `CompanyAddress`.
+- Created `packages/sales/src/print/index.ts` — barrel export for all types.
+- Added `./print` and `./print/types` exports to `@gnd/sales` package.json.
+- Built `packages/pdf/src/sales-v2/` — complete template system:
+  - `document.tsx` — `SalesPdfDocument` wrapper with font registration + template selection.
+  - `registry.tsx` — `SalesTemplateConfig` (showImages toggle), `SalesTemplateRenderer` interface, `getTemplate()`.
+  - `shared/watermark-page.tsx` — shared watermarked page wrapper.
+  - `shared/utils.ts` — `resolveImageSrc`, `colWidth`, `sumColSpans` utilities.
+  - `templates/template-1/blocks/` — 8 isolated block components: header, door, moulding, service, shelf, line-item, footer, signature.
+  - `templates/template-1/modes/` — 4 mode composers: invoice, quote, production, packing-slip. Each composes blocks differently per mode.
+  - `templates/template-1/index.tsx` — routes to mode composer based on `page.config.mode`.
+  - All image blocks support `showImages` toggle from `SalesTemplateConfig`.
+- **cn syntax rewrite (complete)**: All 11 sales-v2 files now use:
+  - Import: `import { cn } from "../../../../utils/tw"` (relative path to `packages/pdf/src/utils/tw.ts`)
+  - Syntax: `cn(`\`class1 class2\``)` (template literal inside parens)
+  - Spread: `{...cn(`\`class1\``), extra: val}`
+  - Dynamic: `cn(`\`text-sm ${condition ? "font-bold" : ""}\``)`
+  - Files fixed: moulding-block, service-block, shelf-block, line-item-block, footer-block, signature-block, watermark-page, invoice, quote, production, packing-slip (+ header-block, door-block done earlier).
+- Phases 1 (types) and 5 (template) are complete. Remaining: phases 2-4 (compose functions, getPrintData, tRPC) and phase 6 (client wiring).
 
 ## 2026-03-18
 

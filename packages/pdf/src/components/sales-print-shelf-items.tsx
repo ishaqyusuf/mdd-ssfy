@@ -44,7 +44,7 @@ export default function SalesPrintShelfItems({
               style={{
                 ...cn(
                   "p-1 font-semibold",
-                  i == shelf?.cells?.length - 1 ? "" : "border-r uppercase"
+                  i == shelf?.cells?.length - 1 ? "" : "border-r uppercase",
                 ),
                 // flex: cell.colSpan,
                 width: width(cell.colSpan, shelf?.cells),
@@ -63,7 +63,7 @@ export default function SalesPrintShelfItems({
                 style={{
                   ...cn(
                     "p-1",
-                    ci == line.length - 1 ? "" : "border-r uppercase"
+                    ci == line.length - 1 ? "" : "border-r uppercase",
                   ),
                   width: width(cell?.colSpan, line),
                 }} // Use flex-1 to distribute space evenly
