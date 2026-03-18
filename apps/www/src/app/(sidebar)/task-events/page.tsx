@@ -4,7 +4,7 @@ import { ErrorFallback } from "@/components/error-fallback";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import { Suspense } from "react";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
-import { TaskEventsDashboard } from "./_components/task-events-dashboard";
+import { TaskEventsDashboard } from "@/app-deps/(sidebar)/task-events/_components/task-events-dashboard";
 
 export default async function Page() {
   return (

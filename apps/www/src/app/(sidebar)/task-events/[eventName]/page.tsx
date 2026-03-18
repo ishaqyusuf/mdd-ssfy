@@ -4,7 +4,7 @@ import { ErrorFallback } from "@/components/error-fallback";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import { Suspense } from "react";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
-import { TaskEventDetail } from "../_components/task-event-detail";
+import { TaskEventDetail } from "@/app-deps/(sidebar)/task-events/_components/task-event-detail";
 
 type Props = {
   params: Promise<{

@@ -1,6 +1,6 @@
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 
-import { FormClient } from "../_components/form-client";
+import { FormClient } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/form-client";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { createSalesBookFormUseCase } from "@/app-deps/(clean-code)/(sales)/_common/use-case/sales-book-form-use-case";
 
