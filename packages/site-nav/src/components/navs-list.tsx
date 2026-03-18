@@ -214,16 +214,15 @@ export function NavsList({ mobile = false }) {
                         setExpandModule(isExpandedModule ? null : module.name);
                       }}
                       className={cn(
-                        "flex justify-between  gap-2 items-center uppercase pl-4 text-sm text-xs font-bold text-muted-foreground cursor-pointer h-8",
+                        "flex justify-between gap-2 items-center uppercase pl-3 text-[10px] tracking-[0.08em] font-semibold text-muted-foreground/50 cursor-pointer h-7 select-none",
                         !isExpanded && "hidden",
-                        !mobile ? "pr-4" : "",
-                        isExpanded && !show && "border-b border-muted",
+                        !mobile ? "pr-3" : "",
                       )}
                     >
                       <span>{module.name}</span>
                       <Icons.ChevronDown
                         className={cn(
-                          "size-4",
+                          "size-3 transition-transform duration-200",
                           show ? "" : "-rotate-90",
                         )}
                       />
@@ -439,28 +438,34 @@ const Item = ({
           {/* Background that expands */}
           <div
             className={cn(
-              "border border-transparent h-[40px] transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] ml-[15px] mr-[15px]",
-              isActive &&
-                "bg-[#F2F1EF] dark:bg-secondary border-[#DCDAD2] dark:border-[#2C2C2C]",
-              isExpanded ? "w-[calc(100%-30px)]" : "w-[40px]",
+              "rounded-md h-[36px] transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] ml-[10px] mr-[10px]",
+              isActive
+                ? "bg-primary/[0.07] dark:bg-primary/[0.12]"
+                : "group-hover:bg-muted/60",
+              isExpanded ? "w-[calc(100%-20px)]" : "w-[40px]",
             )}
           />
 
+          {/* Left accent strip for active */}
+          {isActive && (
+            <div className="absolute top-[8px] bottom-[8px] left-[10px] w-[3px] rounded-full bg-primary" />
+          )}
+
           {/* Icon - always in same position from sidebar edge */}
-          <div className="absolute top-0 left-[15px] w-[40px] h-[40px] flex items-center justify-center dark:text-[#666666] text-black group-hover:!text-primary pointer-events-none">
-            <div className={cn(isActive && "dark:!text-white")}>
+          <div className="absolute top-0 left-[10px] w-[40px] h-[36px] flex items-center justify-center text-muted-foreground group-hover:!text-primary pointer-events-none">
+            <div className={cn(isActive && "!text-primary")}>
               <Icon name={item.icon} className={cn("h-4 w-4")} />
             </div>
           </div>
 
           {isExpanded && (
-            <div className="absolute top-0 left-[55px] right-[4px] h-[40px] flex items-center pointer-events-none">
+            <div className="absolute top-0 left-[50px] right-[4px] h-[36px] flex items-center pointer-events-none">
               <span
                 className={cn(
-                  "text-sm font-medium transition-opacity duration-200 ease-in-out text-[#666] group-hover:text-primary",
+                  "text-sm font-medium transition-colors duration-150 text-muted-foreground group-hover:text-foreground",
                   "whitespace-nowrap overflow-hidden",
                   hasChildren ? "pr-2" : "",
-                  isActive && "text-primary",
+                  isActive && "text-foreground font-semibold",
                 )}
               >
                 {item.name}

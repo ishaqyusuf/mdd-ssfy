@@ -38,7 +38,7 @@ export function User({ user, onLogout, children }: SiteNavUserProps) {
   const { isExpanded } = useSiteNav();
 
   return (
-    <div className="relative h-[40px] w-full overflow-hidden rounded-md border border-border bg-background">
+    <div className="relative h-[40px] w-full overflow-hidden rounded-lg bg-muted/40 hover:bg-muted/70 transition-colors duration-150">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button

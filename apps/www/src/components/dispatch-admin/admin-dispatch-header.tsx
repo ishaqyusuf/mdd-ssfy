@@ -4,7 +4,7 @@ import { DispatchSearchFilter } from "@/components/dispatch-search-filter";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 import { Tabs, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { Button } from "@gnd/ui/button";
-import { RefreshCw, ShieldAlert } from "lucide-react";
+import { ShieldAlert, Trash2, LayoutGrid, Table2 } from "lucide-react";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { useEffect, useState } from "react";
@@ -19,6 +19,9 @@ import {
 import { Button as Btn } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { useAuth } from "@/hooks/use-auth";
+import { DispatchAutoRefresh } from "@/components/dispatch-admin/dispatch-auto-refresh";
+import { DispatchExportButton } from "@/components/dispatch-admin/dispatch-export-button";
+import { DispatchDeletedPanel } from "@/components/dispatch-admin/dispatch-deleted-panel";
 
 type GroupSelection = {
     keepDispatchId: number;
@@ -112,7 +115,8 @@ function SweeperDialog({
                 <DialogHeader>
                     <DialogTitle>Dispatch Sweeper</DialogTitle>
                     <DialogDescription>
-                        Detect and resolve orders with multiple active dispatches.
+                        Detect and resolve orders with multiple active
+                        dispatches.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -136,8 +140,7 @@ function SweeperDialog({
                             <div className="flex items-center justify-between gap-3">
                                 <div>
                                     <p className="font-medium">
-                                        Order{" "}
-                                        {group.orderNo || group.salesId}
+                                        Order {group.orderNo || group.salesId}
                                     </p>
                                     <p className="text-sm text-muted-foreground">
                                         {group.duplicateCount} active dispatches
@@ -178,7 +181,8 @@ function SweeperDialog({
                             <div className="space-y-2">
                                 {group.dispatches.map((dispatch) => {
                                     const isKeep =
-                                        selection?.keepDispatchId === dispatch.id;
+                                        selection?.keepDispatchId ===
+                                        dispatch.id;
                                     const shouldDelete =
                                         selection?.deleteDispatchIds?.includes(
                                             dispatch.id,
@@ -197,8 +201,9 @@ function SweeperDialog({
                                                     Driver:{" "}
                                                     {dispatch.driverName ||
                                                         "Unassigned"}{" "}
-                                                    • Items: {dispatch.itemCount}{" "}
-                                                    • Packed:{" "}
+                                                    • Items:{" "}
+                                                    {dispatch.itemCount} •
+                                                    Packed:{" "}
                                                     {dispatch.packedItemCount}
                                                 </p>
                                             </div>
@@ -273,10 +278,7 @@ function SweeperDialog({
                 })}
 
                 <div className="flex justify-end gap-2">
-                    <Btn
-                        variant="outline"
-                        onClick={() => onOpenChange(false)}
-                    >
+                    <Btn variant="outline" onClick={() => onOpenChange(false)}>
                         Close
                     </Btn>
                     <Btn
@@ -295,6 +297,7 @@ function SweeperDialog({
 export function AdminDispatchHeader() {
     const { filters, setFilters } = useDispatchFilterParams();
     const [sweeperOpen, setSweeperOpen] = useState(false);
+    const [deletedOpen, setDeletedOpen] = useState(false);
     const trpc = useTRPC();
     const queryClient = useQueryClient();
     const auth = useAuth();
@@ -304,67 +307,82 @@ export function AdminDispatchHeader() {
         filters.tab ||
         (filters.status === "completed" ? "completed" : "pending");
 
-    function refreshAll() {
-        queryClient.invalidateQueries({
-            queryKey: trpc.dispatch.index.pathKey(),
-        });
-        queryClient.invalidateQueries({
-            queryKey: trpc.dispatch.dispatchSummary.queryKey(),
-        });
-        toast({
-            duration: 1500,
-            variant: "success",
-            title: "Refreshed",
-            description: "Dispatch data refreshed",
-        });
-    }
+    const currentView = filters.view ?? "table";
 
     return (
         <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-2 flex-wrap">
-                <Tabs
-                    value={tabValue}
-                    onValueChange={(value) => {
-                        const nextTab =
-                            value === "all" ||
-                            value === "pending" ||
-                            value === "completed"
-                                ? value
-                                : "pending";
-                        setFilters({
-                            tab: nextTab,
-                            status:
-                                nextTab === "completed" ? "completed" : null,
-                        });
-                    }}
-                >
-                    <TabsList>
-                        <TabsTrigger value="all">All</TabsTrigger>
-                        <TabsTrigger value="pending">Pending</TabsTrigger>
-                        <TabsTrigger value="completed">Completed</TabsTrigger>
-                    </TabsList>
-                </Tabs>
-
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={refreshAll}
-                        className="gap-1.5"
+                <div className="flex items-center gap-2 flex-wrap">
+                    <Tabs
+                        value={tabValue}
+                        onValueChange={(value) => {
+                            const nextTab =
+                                value === "all" ||
+                                value === "pending" ||
+                                value === "completed"
+                                    ? value
+                                    : "pending";
+                            setFilters({
+                                tab: nextTab,
+                                status:
+                                    nextTab === "completed" ? "completed" : null,
+                            });
+                        }}
                     >
-                        <RefreshCw size={14} />
-                        Refresh
-                    </Button>
-                    {isSuperAdmin && (
+                        <TabsList>
+                            <TabsTrigger value="all">All</TabsTrigger>
+                            <TabsTrigger value="pending">Pending</TabsTrigger>
+                            <TabsTrigger value="completed">Completed</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+
+                    {/* View toggle: table / calendar */}
+                    <div className="flex items-center rounded-md border overflow-hidden">
                         <Button
-                            variant="outline"
+                            variant={currentView === "table" ? "secondary" : "ghost"}
                             size="sm"
-                            onClick={() => setSweeperOpen(true)}
-                            className="gap-1.5 text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950"
+                            className="rounded-none border-0 gap-1.5 h-8"
+                            onClick={() => setFilters({ view: "table" })}
+                            title="Table view"
                         >
-                            <ShieldAlert size={14} />
-                            Duplicate Sweeper
+                            <Table2 size={14} />
                         </Button>
+                        <Button
+                            variant={currentView === "calendar" ? "secondary" : "ghost"}
+                            size="sm"
+                            className="rounded-none border-0 gap-1.5 h-8 border-l"
+                            onClick={() => setFilters({ view: "calendar" })}
+                            title="Calendar view"
+                        >
+                            <LayoutGrid size={14} />
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                    <DispatchAutoRefresh />
+                    <DispatchExportButton />
+                    {isSuperAdmin && (
+                        <>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setDeletedOpen(true)}
+                                className="gap-1.5 text-muted-foreground"
+                            >
+                                <Trash2 size={14} />
+                                Deleted
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSweeperOpen(true)}
+                                className="gap-1.5 text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950"
+                            >
+                                <ShieldAlert size={14} />
+                                Duplicate Sweeper
+                            </Button>
+                        </>
                     )}
                 </div>
             </div>
@@ -372,11 +390,18 @@ export function AdminDispatchHeader() {
             <DispatchSearchFilter />
 
             {isSuperAdmin && (
-                <SweeperDialog
-                    open={sweeperOpen}
-                    onOpenChange={setSweeperOpen}
-                />
+                <>
+                    <SweeperDialog
+                        open={sweeperOpen}
+                        onOpenChange={setSweeperOpen}
+                    />
+                    <DispatchDeletedPanel
+                        open={deletedOpen}
+                        onOpenChange={setDeletedOpen}
+                    />
+                </>
             )}
         </div>
     );
 }
+

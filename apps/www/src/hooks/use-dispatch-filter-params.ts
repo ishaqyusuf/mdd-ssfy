@@ -16,7 +16,8 @@ export const dispatchFilterParamsSchema = {
     q: parseAsString,
     driversId: parseAsArrayOf(parseAsInteger, ","),
     scheduleDate: parseAsArrayOf(parseAsString, ","),
-} satisfies Partial<Record<FilterKeys, any>>;
+    view: parseAsStringLiteral(["table", "calendar"]).withDefault("table"),
+} satisfies Partial<Record<FilterKeys | "view", any>>;
 
 export function useDispatchFilterParams() {
     const [filters, setFilters] = useQueryStates(dispatchFilterParamsSchema);

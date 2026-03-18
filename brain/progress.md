@@ -555,3 +555,22 @@
 - Created `dispatch-admin/driver-workload-card.tsx`: sidebar card showing active dispatch count per driver, sorted by workload, with badge colors (red ≥5, secondary ≥3, outline otherwise).
 - Created `dispatch-admin/admin-dispatch-header.tsx`: enhanced header with tab filter, search filter, Refresh button, and inline Duplicate Sweeper dialog accessible to Super Admins.
 - Added "Admin Dashboard" sidebar link under Dispatch group (Super Admin only).
+
+## 2026-03-18
+
+- **Dispatch Admin Dashboard - Major Feature Expansion**
+  - New backend procedures: `bulkAssignDriver`, `bulkCancel`, `exportDispatches`, `getDeleted`, `restore`
+  - New DB query functions: `bulkAssignDispatchDriver`, `bulkCancelDispatches`, `exportDispatches`, `getDeletedDispatches`, `restoreDispatch`
+  - New schemas in `apps/api/src/schemas/sales.ts`: `bulkAssignDriverSchema`, `bulkCancelDispatchSchema`, `exportDispatchesSchema`
+  - New components in `apps/www/src/components/dispatch-admin/`:
+    - `dispatch-auto-refresh.tsx` — polling toggle (off/15s/30s/1m/5m) with instant refresh
+    - `dispatch-export-button.tsx` — CSV export of current filtered dispatches
+    - `dispatch-calendar-view.tsx` — 7-day calendar view with week navigation + unscheduled list
+    - `dispatch-overdue-banner.tsx` — overdue alert banner with View Pending + Escalate actions
+    - `dispatch-deleted-panel.tsx` — view and restore soft-deleted dispatches (dialog)
+  - Updated `batch-actions.tsx` — fully implemented bulk assign driver (with driver dropdown) and bulk cancel
+  - Updated `driver-workload-card.tsx` — click driver to filter table, progress bars, clear filter button
+  - Updated `admin-dispatch-header.tsx` — view toggle (table/calendar), auto-refresh, export, deleted dispatches button
+  - Updated `use-dispatch-filter-params.ts` — added `view` param (table | calendar)
+  - Updated `page.tsx` — conditional calendar/table layout, overdue banner, new components integrated
+  - All new files pass TypeScript checks with no new errors

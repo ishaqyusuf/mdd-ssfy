@@ -28,7 +28,7 @@ function BaseLogo({
   return (
     <div
       className={cn(
-        "absolute top-0 left-0 h-[70px] flex items-center bg-background border-b border-border transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] z-[999]",
+        "absolute top-0 left-0 h-[70px] flex items-center bg-card shadow-[0_1px_0_0_hsl(var(--border))] transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] z-[999]",
         isExpanded
           ? "w-full px-4 justify-start"
           : "w-[69px] justify-center",

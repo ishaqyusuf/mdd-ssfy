@@ -155,3 +155,20 @@ export const enlistDispatchItemSchema = z.object({
   dispatchId: z.number(),
   submissions: z.array(z.object({})),
 });
+
+export const bulkAssignDriverSchema = z.object({
+  dispatchIds: z.array(z.number()).min(1),
+  newDriverId: z.number().nullable(),
+});
+export type BulkAssignDriverSchema = z.infer<typeof bulkAssignDriverSchema>;
+
+export const bulkCancelDispatchSchema = z.object({
+  dispatchIds: z.array(z.number()).min(1),
+});
+export type BulkCancelDispatchSchema = z.infer<typeof bulkCancelDispatchSchema>;
+
+export const exportDispatchesSchema = dispatchQueryParamsSchema.omit({
+  page: true,
+  limit: true,
+});
+export type ExportDispatchesSchema = z.infer<typeof exportDispatchesSchema>;
