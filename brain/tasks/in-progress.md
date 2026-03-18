@@ -4,6 +4,7 @@
 Tracks the active work queue. Keep this focused and execution-ready.
 
 ## Current Focus
+- [ ] Employee Management V2 — remaining phases: DB schema migration (`EmployeeRecord`), `employees.route.ts` API layer, `[employeeId]` per-employee overview route, insurance gate on job creation, expo app mirror
 - [ ] Sales PDF V2: isolated multi-template print system (`brain/features/sales-pdf-system.md`) — plan approved, pending execution
 - [ ] Sales form system hardening Phase 0: transactional save safety and server-authoritative pricing validation (`brain/sales-form-system-hardening-plan.md`) (Schema + API + Validation)
 - [ ] Sales form system hardening Phase 1: pricing integrity fixes (labor writeback guard removal, taxable consistency, subtotal rendering correctness) with focused unit/integration coverage (API + UI + Validation)
