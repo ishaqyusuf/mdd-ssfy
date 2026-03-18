@@ -28,6 +28,7 @@
     "@types/react": "~19.1.0",
     "@types/qrcode": "^1.5.5",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "react-pdf-tailwind": "^3.0.0"
   }
 }

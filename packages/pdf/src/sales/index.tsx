@@ -110,6 +110,7 @@ export function SalesPdfTemplate(props: Props) {
                       <SalesPrintDoorItems
                         key={`door${i}`}
                         index={i}
+                        baseUrl={props.baseUrl}
                         printData={printData}
                       />
                     ) : (

@@ -6,6 +6,15 @@
 
 - **Planned feature**: Sales invoice print should display door images, mouldings, and shelf items when available.
 
+## 2026-03-18
+
+- Implemented sales PDF print data/render updates for invoice output fidelity:
+  - Added door image field selection in `SalesIncludeAll` so print composition can access step-product, door, and product image values.
+  - Updated legacy print composition to keep moulding entries visible in door-detail metadata (no longer filtering out `Moulding`).
+  - Added optional `image` payload on door table cells in `print-legacy-format` for `Door` cells.
+  - Updated PDF renderer to resolve relative image paths using `baseUrl` and render door thumbnails inline with door row values.
+  - Kept shelf-item rendering path intact via existing `orderedPrinting` + `SalesPrintShelfItems` flow.
+
 ## 2026-03-17 (session 2)
 
 - Fixed PrismaClient bundled-in-browser error on resolution center page.

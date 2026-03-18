@@ -531,10 +531,7 @@ function getDoorsTable(
             ? []
             : [
                 ...item.formSteps.filter(
-                  (t) =>
-                    !["Door", "Item Type", "Moulding"].some(
-                      (s) => s == t.step.title,
-                    ),
+                  (t) => !["Door", "Item Type"].some((s) => s == t.step.title),
                 ),
               ].map((v) => {
                 v.step.title = transformStepTitle(v.step.title);
@@ -620,6 +617,14 @@ function getDoorsTable(
               );
               lines.push(
                 res.cells.map((cell, _cellId) => {
+                  const doorImage =
+                    door?.stepProduct?.img ||
+                    door?.stepProduct?.door?.img ||
+                    door?.stepProduct?.product?.img ||
+                    m?.housePackageTool?.stepProduct?.img ||
+                    m?.housePackageTool?.stepProduct?.door?.img ||
+                    m?.housePackageTool?.stepProduct?.product?.img ||
+                    m?.housePackageTool?.door?.img;
                   const ret = {
                     style: cell.cellStyle,
                     colSpan: cell.colSpan,
@@ -628,6 +633,7 @@ function getDoorsTable(
                       door,
                       (isPh ? "PH - " : "") + doorTitle,
                     ),
+                    image: cell.cell === "door" ? doorImage : null,
                   };
                   return ret;
                 }),
