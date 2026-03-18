@@ -8,7 +8,7 @@ import ModelCostTableShell from "@/components/_v1/shells/model-costs-table-shell
 import ModelCostModal from "@/components/_v1/modals/model-cost-modal";
 import ModelInstallCostModal from "@/app-deps/(v1)/(loggedIn)/settings/community/community-templates/install-cost-modal/model-install-cost-modal";
 import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
-import { getHomeTemplates } from "../_components/home-template";
+import { getHomeTemplates } from "@/app-deps/(v1)/(loggedIn)/settings/community/_components/home-template";
 
 import { OpenCommunitModelCostCreateModal } from "@/components/open-community-model-cost-create-modal";
 

@@ -10,7 +10,7 @@ import { getJobPayments } from "@/app-deps/(v1)/_actions/hrm-jobs/get-payments";
 import TabbedLayout from "@/components/_v1/tab-layouts/tabbed-layout";
 import PaymentOverviewSheet from "@/components/_v1/sheets/payment-overview-sheet";
 import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
-import JobPaymentTableShell from "./job-payment-table-shell";
+import JobPaymentTableShell from "@/app-deps/(v1)/(loggedIn)/contractor/jobs/payments/job-payment-table-shell";
 
 export const metadata: Metadata = {
     title: "Payment Receipts",

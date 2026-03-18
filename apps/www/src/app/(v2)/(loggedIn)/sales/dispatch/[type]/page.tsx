@@ -3,11 +3,11 @@ import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 import { DeliveryOption } from "@/types/sales";
 import { Metadata } from "next";
-import SalesTab from "../../_components/sales-tab";
+import SalesTab from "@/app-deps/(v2)/(loggedIn)/sales/_components/sales-tab";
 import PageHeader from "@/components/_v1/page-header";
-import { getDispatchSales } from "../_actions/get-dispatch-sales";
-import DispatchTableShell from "./dispatch-table-shell";
-import PageAction from "../_components/page-action";
+import { getDispatchSales } from "@/app-deps/(v2)/(loggedIn)/sales/dispatch/_actions/get-dispatch-sales";
+import DispatchTableShell from "@/app-deps/(v2)/(loggedIn)/sales/dispatch/[type]/dispatch-table-shell";
+import PageAction from "@/app-deps/(v2)/(loggedIn)/sales/dispatch/_components/page-action";
 import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 
 export const metadata: Metadata = {

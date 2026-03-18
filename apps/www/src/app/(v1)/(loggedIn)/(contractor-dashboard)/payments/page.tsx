@@ -11,7 +11,7 @@ import {
 } from "@/app-deps/(v1)/_actions/hrm-jobs/get-payments";
 
 import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
-import JobPaymentTableShell from "../../contractor/jobs/payments/job-payment-table-shell";
+import JobPaymentTableShell from "@/app-deps/(v1)/(loggedIn)/contractor/jobs/payments/job-payment-table-shell";
 
 export const metadata: Metadata = {
     title: "My Payments",

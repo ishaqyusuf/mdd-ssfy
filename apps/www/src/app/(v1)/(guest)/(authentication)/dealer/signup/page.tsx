@@ -11,7 +11,7 @@ import {
     CardTitle,
 } from "@gnd/ui/card";
 
-import SignupForm from "./signup-form";
+import SignupForm from "@/app-deps/(v1)/(guest)/(authentication)/dealer/signup/signup-form";
 
 export const metadata: Metadata = {
     title: "Sign Up - GND Prodesk",

@@ -9,7 +9,7 @@ import { queryParams } from "@/app-deps/(v1)/_actions/action-utils";
 
 import HomeTemplatesTableShell from "@/components/_v1/shells/home-templates-table-shell";
 import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
-import { getHomeTemplates } from "../_components/home-template";
+import { getHomeTemplates } from "@/app-deps/(v1)/(loggedIn)/settings/community/_components/home-template";
 
 export const metadata: Metadata = {
     title: "Builders",

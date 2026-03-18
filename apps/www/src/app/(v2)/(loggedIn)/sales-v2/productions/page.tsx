@@ -1,6 +1,6 @@
 import { Metadata } from "next";
-import { _getProductionList } from "./_components/actions";
-import ProductionList from "./_components/production-list";
+import { _getProductionList } from "@/app-deps/(v2)/(loggedIn)/sales-v2/productions/_components/actions";
+import ProductionList from "@/app-deps/(v2)/(loggedIn)/sales-v2/productions/_components/production-list";
 import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";

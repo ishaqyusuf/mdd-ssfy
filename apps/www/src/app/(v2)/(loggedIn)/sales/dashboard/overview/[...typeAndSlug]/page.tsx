@@ -1,6 +1,6 @@
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 import { capitalize } from "lodash";
-import SalesOverviewClient from "../_components/sales-overview-client";
+import SalesOverviewClient from "@/app-deps/(v2)/(loggedIn)/sales/dashboard/overview/_components/sales-overview-client";
 
 export async function generateMetadata(props) {
     const params = await props.params;

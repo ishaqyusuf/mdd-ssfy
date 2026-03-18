@@ -1,5 +1,5 @@
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
-import { searchParamsCache } from "./search-params";
+import { searchParamsCache } from "@/app-deps/(clean-code)/(sales)/sales-book/(pages)/accounting/resolution-center/search-params";
 import { ErrorFallback } from "@/components/error-fallback";
 import { Suspense } from "react";
 import { TableSkeleton } from "@/components/tables/skeleton";

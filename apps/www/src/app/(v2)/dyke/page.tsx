@@ -3,9 +3,9 @@
 import { useEffect } from "react";
 import { DykeShelfProducts } from "@/db";
 
-import { createDykeProducts } from "./_dyke-action";
-import categoryUtils from "./category-utils";
-import { prods } from "./products";
+import { createDykeProducts } from "@/app-deps/(v2)/dyke/_dyke-action";
+import categoryUtils from "@/app-deps/(v2)/dyke/category-utils";
+import { prods } from "@/app-deps/(v2)/dyke/products";
 
 export default function DykePage() {
     useEffect(() => {

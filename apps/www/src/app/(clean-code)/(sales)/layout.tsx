@@ -6,7 +6,7 @@ import { CustomerCreateSheet } from "@/components/sheets/customer-create-sheet";
 import { CustomerOverviewSheet } from "@/components/sheets/customer-overview-sheet";
 import SalesOverviewSheet from "@/components/sheets/sales-overview-sheet";
 
-import BackwardCompat from "./_backward-compat";
+import BackwardCompat from "@/app-deps/(clean-code)/(sales)/_backward-compat";
 import NewSideBarLayout from "@/app-deps/(sidebar)/layout";
 import { SalesNav } from "@/components/sales-nav";
 

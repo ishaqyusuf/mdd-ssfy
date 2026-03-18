@@ -2,10 +2,10 @@ import { Metadata } from "next";
 import {
     SalesQueryParams,
     getSalesAction,
-} from "../../_actions/get-sales-action";
+} from "@/app-deps/(v2)/(loggedIn)/sales/dashboard/_actions/get-sales-action";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
-import PageClient from "../../_components/page-client";
-import ServerTab from "../../_components/server-tab";
+import PageClient from "@/app-deps/(v2)/(loggedIn)/sales/dashboard/_components/page-client";
+import ServerTab from "@/app-deps/(v2)/(loggedIn)/sales/dashboard/_components/server-tab";
 
 export const metadata: Metadata = {
     title: "Sales",

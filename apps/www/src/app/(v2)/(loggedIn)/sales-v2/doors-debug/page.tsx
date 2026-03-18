@@ -1,5 +1,5 @@
 import { prisma } from "@/db";
-import Search from "./search";
+import Search from "@/app-deps/(v2)/(loggedIn)/sales-v2/doors-debug/search";
 
 export default async function DoorsDebug(props) {
     const searchParams = await props.searchParams;

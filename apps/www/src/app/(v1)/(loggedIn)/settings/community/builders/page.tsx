@@ -7,7 +7,7 @@ import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 import { queryParams } from "@/app-deps/(v1)/_actions/action-utils";
 import { getBuildersAction } from "@/app-deps/(v1)/(loggedIn)/settings/community/builders/action";
 import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
-import BuildersTableShell from "./builders-table-shell";
+import BuildersTableShell from "@/app-deps/(v1)/(loggedIn)/settings/community/builders/builders-table-shell";
 
 export const metadata: Metadata = {
     title: "Builders",

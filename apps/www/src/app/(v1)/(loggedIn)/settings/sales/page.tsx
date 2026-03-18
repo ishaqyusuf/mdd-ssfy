@@ -2,7 +2,7 @@ import { ISalesSetting } from "@/types/post";
 import { getSettingAction } from "@/app-deps/(v1)/_actions/settings";
 import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";
-import SalesSettings from "./SalesSettings";
+import SalesSettings from "@/app-deps/(v1)/(loggedIn)/settings/sales/SalesSettings";
 import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 
 export const metadata = {

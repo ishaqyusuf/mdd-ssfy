@@ -22,7 +22,7 @@ import { buttonVariants } from "@gnd/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
-import { searchParamsCache } from "./search-params";
+import { searchParamsCache } from "@/app-deps/(sidebar)/(sales)/sales-rep/search-params";
 import { cn } from "@gnd/ui/cn";
 import { DataTable } from "@/components/tables/sales-orders/data-table";
 import { DataTable as RecentQuoteDataTable } from "@/components/tables/sales-quotes/data-table";

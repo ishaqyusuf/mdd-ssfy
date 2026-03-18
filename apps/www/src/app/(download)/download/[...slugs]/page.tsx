@@ -1,5 +1,5 @@
 import { prisma } from "@/db";
-import SalesDownload from "./sales";
+import SalesDownload from "@/app-deps/(download)/download/[...slugs]/sales";
 
 export default async function DownloadPage(props) {
     const params = await props.params;

@@ -2,10 +2,10 @@ import { cn } from "@/lib/utils";
 import { IOrderPrintMode } from "@/types/sales";
 import { SalesPrintProps as BaseSalesPrintProps } from "@/utils/sales-print-utils";
 
-import BasePrinter from "../base-printer";
+import BasePrinter from "@/app-deps/(v2)/printer/base-printer";
 // import { getSalesPrintData } from "./get-sales-print-data";
-import { OrderBasePrinter } from "./order-base-printer";
-import SalesPrintBlock from "./sales-print-block";
+import { OrderBasePrinter } from "@/app-deps/(v2)/printer/sales/order-base-printer";
+import SalesPrintBlock from "@/app-deps/(v2)/printer/sales/sales-print-block";
 import { getSalesPrintData } from "@/app-deps/(v2)/printer/sales/get-sales-print-data";
 
 export interface SalesPrintProps {

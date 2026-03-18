@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import ContractorsList from "./_components/contractors-list";
+import ContractorsList from "@/app-deps/(v2)/(loggedIn)/contractors/payout/_components/contractors-list";
 
 export default async function PayoutLayout({ children }) {
     return (

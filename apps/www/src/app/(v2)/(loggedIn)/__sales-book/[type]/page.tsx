@@ -1,6 +1,6 @@
 import { ISalesType } from "@/types/sales";
-import { getSalesAction } from "./action";
-import AuthGuard from "../../_components/auth-guard";
+import { getSalesAction } from "@/app-deps/(v2)/(loggedIn)/__sales-book/[type]/action";
+import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 import { capitalizeFirstLetter } from "@/lib/utils";

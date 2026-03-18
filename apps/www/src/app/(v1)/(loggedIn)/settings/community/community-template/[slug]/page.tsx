@@ -5,8 +5,8 @@ import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 import { DataPageShell } from "@/components/_v1/shells/data-page-shell";
 import { transformCommunityTemplate } from "@/lib/community/community-template";
 import { Metadata } from "next";
-import ModelForm from "../../_components/model-form/model-form";
-import { getCommunityTemplate } from "../../_components/home-template";
+import ModelForm from "@/app-deps/(v1)/(loggedIn)/settings/community/_components/model-form/model-form";
+import { getCommunityTemplate } from "@/app-deps/(v1)/(loggedIn)/settings/community/_components/home-template";
 import Link from "next/link";
 
 export const metadata: Metadata = {

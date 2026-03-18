@@ -1,9 +1,9 @@
 import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
-import DykeTabLayout from "./_components/dyke-tab-layout";
+import DykeTabLayout from "@/app-deps/(v2)/(loggedIn)/sales-v2/products/_components/dyke-tab-layout";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";
-import { getDykeProducts } from "./_actions/get-dyke-products";
+import { getDykeProducts } from "@/app-deps/(v2)/(loggedIn)/sales-v2/products/_actions/get-dyke-products";
 import { queryParams } from "@/app-deps/(v1)/_actions/action-utils";
-import ProductsTable from "./_components/products-table";
+import ProductsTable from "@/app-deps/(v2)/(loggedIn)/sales-v2/products/_components/products-table";
 import { Metadata } from "next";
 import { Shell } from "@/components/shell";
 import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";

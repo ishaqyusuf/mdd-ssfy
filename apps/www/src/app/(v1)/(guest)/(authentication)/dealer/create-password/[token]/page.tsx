@@ -12,8 +12,8 @@ import {
     CardTitle,
 } from "@gnd/ui/card";
 
-import { verifyToken } from "./action";
-import Form from "./form";
+import { verifyToken } from "@/app-deps/(v1)/(guest)/(authentication)/dealer/create-password/[token]/action";
+import Form from "@/app-deps/(v1)/(guest)/(authentication)/dealer/create-password/[token]/form";
 
 export const metadata: Metadata = {
     title: "Sign Up - GND Prodesk",

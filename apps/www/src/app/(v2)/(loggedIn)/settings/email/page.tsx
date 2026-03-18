@@ -1,6 +1,6 @@
 import { _dbUser, user } from "@/app-deps/(v1)/_actions/utils";
 import { Metadata } from "next";
-import EmailPersolizeForm from "./email-personalize-form";
+import EmailPersolizeForm from "@/app-deps/(v2)/(loggedIn)/settings/email/email-personalize-form";
 import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 import { IUser } from "@/types/hrm";

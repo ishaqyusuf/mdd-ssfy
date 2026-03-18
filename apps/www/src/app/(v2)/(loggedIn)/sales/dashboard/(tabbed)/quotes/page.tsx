@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import {
     SalesQueryParams,
     getSalesAction,
-} from "../../_actions/get-sales-action";
+} from "@/app-deps/(v2)/(loggedIn)/sales/dashboard/_actions/get-sales-action";
 import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 import PageClient from "@/app-deps/(v2)/(loggedIn)/sales/dashboard/_components/page-client";
 // import PageClient from "@/app-deps/(v2)/(loggedin)/sales/dashboard/(tabbed)/_components/page-client";

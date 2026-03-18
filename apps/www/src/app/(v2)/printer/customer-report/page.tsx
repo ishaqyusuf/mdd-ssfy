@@ -1,6 +1,6 @@
-import BasePrinter from "../base-printer";
-import { generateCustomerPrintReport } from "./_action";
-import ReportCtx from "./report-ctx";
+import BasePrinter from "@/app-deps/(v2)/printer/base-printer";
+import { generateCustomerPrintReport } from "@/app-deps/(v2)/printer/customer-report/_action";
+import ReportCtx from "@/app-deps/(v2)/printer/customer-report/report-ctx";
 
 export default async function CustomerReportPage(
     props: {

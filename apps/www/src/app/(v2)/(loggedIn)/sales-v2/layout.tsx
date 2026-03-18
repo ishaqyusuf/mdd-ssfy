@@ -1,4 +1,4 @@
-import CustomerMerger from "./_components/customer-merger";
+import CustomerMerger from "@/app-deps/(v2)/(loggedIn)/sales-v2/_components/customer-merger";
 
 export default function SalesLayout({ children }) {
     return (

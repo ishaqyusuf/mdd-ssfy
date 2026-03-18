@@ -1,10 +1,10 @@
 import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
-import { getContractorOverviewAction } from "../_actions/get-contractor-overview";
+import { getContractorOverviewAction } from "@/app-deps/(v2)/(loggedIn)/contractors/overview/_actions/get-contractor-overview";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 import { StartCard, StatCardContainer } from "@/components/_v1/stat-card";
 import UploadDocumentModal from "@/components/_v2/contractor/modals/upload-document";
 import ImgModal from "@/components/_v1/modals/img-modal";
-import ContractorDocuments from "../documents";
+import ContractorDocuments from "@/app-deps/(v2)/(loggedIn)/contractors/overview/documents";
 import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 
 export default async function ContractorOverviewPage(props) {

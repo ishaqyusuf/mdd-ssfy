@@ -9,7 +9,7 @@ import { getJobs } from "@/app-deps/(v1)/_actions/hrm-jobs/get-jobs";
 import TabbedLayout from "@/components/_v1/tab-layouts/tabbed-layout";
 import SubmitJobBtn from "@/app-deps/(v2)/(loggedIn)/contractors/_components/submit-job-btn";
 import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
-import JobTableShell from "./job-table-shell";
+import JobTableShell from "@/app-deps/(v1)/(loggedIn)/contractor/jobs/job-table-shell";
 
 export const metadata: Metadata = {
     title: "Jobs",

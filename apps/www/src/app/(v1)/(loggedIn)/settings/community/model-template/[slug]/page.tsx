@@ -4,8 +4,8 @@ import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 
 import { DataPageShell } from "@/components/_v1/shells/data-page-shell";
 import { Metadata } from "next";
-import ModelForm from "../../_components/model-form/model-form";
-import { getHomeTemplate } from "../../_components/home-template";
+import ModelForm from "@/app-deps/(v1)/(loggedIn)/settings/community/_components/model-form/model-form";
+import { getHomeTemplate } from "@/app-deps/(v1)/(loggedIn)/settings/community/_components/home-template";
 
 export const metadata: Metadata = {
     title: "Edit Model Template",
