@@ -2,6 +2,25 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-03-18
+
+- Completed full v2 sales overview feature build — fully independent of legacy sheet.
+- Fixed render bug: `SalesOverviewHeader` in `layout.tsx` referenced undefined `activeTab`; added it as a required prop and threaded it from both shells.
+- Extended `SalesOverviewTabId` union and `SALES_OVERVIEW_TAB_ORDER` to include `packing` and `transactions`.
+- Updated both v2 query hooks (`use-sales-overview-v2-page-query.ts` and `use-sales-overview-v2-sheet-query.ts`) to enumerate all 7 tabs.
+- Built `sections/quick-actions-bar.tsx`: fully v2-native action bar (Preview, Edit, SalesMenu with all sub-actions) sourced from `SalesMenu`, `SendSalesReminder`, `useSalesPreview`, `useBatchSales` — zero imports from legacy sheet.
+- Rebuilt all tabs with a fresh, compact design (accent-bordered stat pills, icon section labels, tight data rows, colored progress bars, status dots):
+  - `overview-tab.tsx`: hero stat strip + customer/order/payment/production/delivery/address/invoice blocks
+  - `finance-tab.tsx`: payment progress bar, collect-payment widget (SalesPaymentProcessor), invoice rows, cost line breakdown
+  - `production-tab.tsx`: summary stat pills + per-item progress cards with status badges
+  - `dispatch-tab.tsx`: overall dispatch progress + per-delivery cards with status, mode, driver, due date
+  - `details-tab.tsx`: identifiers, classification, dates/terms, raw status JSON snapshot
+  - `packing-tab.tsx` (new): delegates to `DispatchPackingOverview` with v2 `overviewId` + `dispatchId`
+  - `transactions-tab.tsx` (new): delegates to `TransactionsTab` with v2 `overviewId`
+- Updated `tab-registry.tsx` to register all 7 tabs with access rules (`salesAdmin`/`production`/`dispatch`) and `hideForQuote` filtering.
+- Confirmed `SalesOverviewSystemSheet` is already mounted in `global-sheets.tsx` alongside the legacy sheet.
+- Legacy `sales-overview-sheet` remains the active production path; v2 activates on `overviewSheetId` query param.
+
 ## 2026-03-17 (session 3)
 
 - **Planned feature**: Sales invoice print should display door images, mouldings, and shelf items when available.

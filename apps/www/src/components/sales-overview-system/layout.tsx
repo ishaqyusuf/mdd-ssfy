@@ -12,12 +12,15 @@ import { useSalesOverviewTabs } from "./tab-registry";
 import type { SalesOverviewTabId } from "./types";
 
 export function SalesOverviewHeader({
+	activeTab,
 	onTabChange,
 }: {
+	activeTab: SalesOverviewTabId;
 	onTabChange: (tab: SalesOverviewTabId) => void;
 }) {
 	const { data, title } = useSalesOverviewSystem();
 	const tabs = useSalesOverviewTabs();
+	const activeTabDef = tabs.find((tab) => tab.value === activeTab);
 
 	return (
 		<SheetHeader>
@@ -25,31 +28,32 @@ export function SalesOverviewHeader({
 				<SheetTitle>
 					<DataSkeleton pok="textLg">
 						<div className="flex flex-wrap items-center gap-3">
-							<span>{title || "Sales Overview V2"}</span>
+							<span>{title || "Sales Overview"}</span>
 							{data?.type ? <Badge variant="outline">{data.type}</Badge> : null}
 						</div>
 					</DataSkeleton>
 				</SheetTitle>
 			</DataSkeletonProvider>
-			<SheetDescription>
-				A clean, decision-first overview built separately from the legacy sheet.
+			<SheetDescription asChild>
+				<div className="space-y-2">
+					<TabsList className="flex w-full justify-start">
+						{tabs.map((tab) => (
+							<TabsTrigger
+								key={tab.value}
+								value={tab.value}
+								onClick={() => onTabChange(tab.value)}
+							>
+								{tab.label}
+							</TabsTrigger>
+						))}
+					</TabsList>
+					{activeTabDef?.description ? (
+						<p className="text-xs text-muted-foreground">
+							{activeTabDef.description}
+						</p>
+					) : null}
+				</div>
 			</SheetDescription>
-			<div className="space-y-2">
-				<TabsList className="flex w-full justify-start">
-					{tabs.map((tab) => (
-						<TabsTrigger
-							key={tab.value}
-							value={tab.value}
-							onClick={() => onTabChange(tab.value)}
-						>
-							{tab.label}
-						</TabsTrigger>
-					))}
-				</TabsList>
-				<p className="text-sm text-muted-foreground">
-					{tabs.find((tab) => tab.value === activeTab)?.description}
-				</p>
-			</div>
 		</SheetHeader>
 	);
 }
