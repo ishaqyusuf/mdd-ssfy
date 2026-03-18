@@ -28,8 +28,7 @@ export function packingInfo(
     const checks = [item.orderItemId === itemId];
     if (doorId)
       checks.push(item.submission?.assignment?.salesDoorId === doorId);
-    if (dispatchId !== -1)
-      checks.push(item.orderDeliveryId === dispatchId);
+    if (dispatchId !== -1) checks.push(item.orderDeliveryId === dispatchId);
     return checks.every(Boolean);
   });
 

@@ -19,9 +19,7 @@ function buildAddressLines(
       .join(" "),
     (address?.email || customer?.email)?.toLowerCase(),
     address?.address1 || address?.address2 || customer?.address,
-    [address?.city, address?.state, meta?.zip_code]
-      .filter(Boolean)
-      .join(" "),
+    [address?.city, address?.state, meta?.zip_code].filter(Boolean).join(" "),
   ].filter(Boolean) as string[];
 }
 

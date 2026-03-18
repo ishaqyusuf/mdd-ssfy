@@ -3,7 +3,10 @@ import type { PrintSalesData } from "../query";
 import { formatDate } from "@gnd/utils/dayjs";
 import { formatCurrency } from "@gnd/utils";
 
-function calculatePaymentTerm(paymentTerm: string, createdAt: Date): string | null {
+function calculatePaymentTerm(
+  paymentTerm: string,
+  createdAt: Date,
+): string | null {
   const t = Number.parseInt(paymentTerm?.replace("Net", ""));
   if (!t) return null;
   const d = new Date(createdAt);
@@ -19,10 +22,7 @@ const modeTitles: Record<PrintMode, string> = {
   "order-packing": "Invoice",
 };
 
-export function composeMeta(
-  sale: PrintSalesData,
-  mode: PrintMode,
-): PageMeta {
+export function composeMeta(sale: PrintSalesData, mode: PrintMode): PageMeta {
   const isQuote = mode === "quote";
   const salesNo = sale.orderId
     ?.toUpperCase()
@@ -62,6 +62,7 @@ export function composeMeta(
     dueDate,
     total: `$${formatCurrency(sale.grandTotal)}`,
     paymentDate,
-    goodUntil: isQuote && sale.goodUntil ? formatDate(sale.goodUntil) : undefined,
+    goodUntil:
+      isQuote && sale.goodUntil ? formatDate(sale.goodUntil) : undefined,
   };
 }

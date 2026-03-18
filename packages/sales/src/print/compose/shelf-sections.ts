@@ -38,8 +38,7 @@ export function composeShelfSections(
       const cells: RowCell[] = [
         { value: i + 1, colSpan: 1, align: "center" },
         {
-          value:
-            sItem.description || sItem.shelfProduct?.title || "",
+          value: sItem.description || sItem.shelfProduct?.title || "",
           colSpan: 4,
           align: "left",
           image: shelfImage,

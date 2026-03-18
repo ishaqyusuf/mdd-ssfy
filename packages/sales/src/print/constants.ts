@@ -49,10 +49,8 @@ export const salesTaxes = [
 
 export type SalesTaxCode = (typeof salesTaxes)[number]["code"];
 
-export const salesTaxByCode: Record<
-  SalesTaxCode,
-  (typeof salesTaxes)[number]
-> = {
-  A: salesTaxes[0],
-  B: salesTaxes[1],
-};
+export const salesTaxByCode: Record<SalesTaxCode, (typeof salesTaxes)[number]> =
+  {
+    A: salesTaxes[0],
+    B: salesTaxes[1],
+  };
