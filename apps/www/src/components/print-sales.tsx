@@ -24,6 +24,7 @@ export function PrintSales() {
     useEffect(() => {
         // viewerRef?.current?.print();
         // console.log({ viewerRef });
+        if (filters.preview) return;
         setTimeout(() => {
             viewerRef.current?.contentWindow?.print();
         }, 3000);

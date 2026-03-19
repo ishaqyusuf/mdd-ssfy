@@ -1,4 +1,4 @@
-import { Text, View } from "@react-pdf/renderer";
+import { Image, Text, View } from "@react-pdf/renderer";
 
 import { cn } from "@gnd/utils/react-pdf";
 import { sum } from "@gnd/utils";
@@ -7,10 +7,20 @@ import { colorsObject, hexToRgba } from "@gnd/utils/colors";
 export default function SalesPrintDoorItems({
   printData: sale,
   index,
-}: any & { index: number }) {
+  baseUrl,
+}: any & { index: number; baseUrl?: string }) {
   const { orderedPrinting } = sale;
   const doors = orderedPrinting?.[index]?.nonShelf;
   if (!doors) return null;
+
+  const resolveImageSrc = (src?: string | null) => {
+    if (!src) return null;
+    if (/^https?:\/\//i.test(src) || src.startsWith("data:")) return src;
+    if (!baseUrl) return src;
+    const normalizedBase = baseUrl.replace(/\/$/, "");
+    const normalizedSrc = src.startsWith("/") ? src : `/${src}`;
+    return `${normalizedBase}${normalizedSrc}`;
+  };
 
   const width = (span, lns) =>
     !span
@@ -22,8 +32,8 @@ export default function SalesPrintDoorItems({
     <View style={cn("flex-col border-x text-sm")}>
       <Text
         wrap={false}
-        style={cn("text-sm p-1 uppercase text-center bg-slate-200", {
-          fontWeight: 700,
+        style={cn("text-sm p-1 uppercase text-left ", {
+          // fontWeight: 700,
         })}
       >
         {doors?.sectionTitle}
@@ -33,7 +43,7 @@ export default function SalesPrintDoorItems({
         <View style={cn("flex text-xs uppercase flex-wrap")}>
           {doors.details
             .filter(
-              (d) => d.value && !["Height"].includes(d.step?.title as string)
+              (d) => d.value && !["Height"].includes(d.step?.title as string),
             )
             .map((detail, i) => (
               <View
@@ -41,7 +51,7 @@ export default function SalesPrintDoorItems({
                 key={i}
                 style={cn(
                   "col-span-2 border-b w-1/2 flex",
-                  i % 2 == 1 ? "border-l" : ""
+                  i % 2 == 1 ? "border-l" : "",
                 )}
               >
                 <View
@@ -68,7 +78,7 @@ export default function SalesPrintDoorItems({
                   ...cn(
                     cell.cellStyle,
                     "p-1 font-semibold uppercase ",
-                    i == doors.itemCells.length - 1 ? "" : "border-r "
+                    i == doors.itemCells.length - 1 ? "" : "border-r ",
                   ),
                   // flex: cell.colSpan,
                   width: width(cell.colSpan, doors.itemCells),
@@ -93,7 +103,7 @@ export default function SalesPrintDoorItems({
                     ...cn(
                       "p-1",
                       ld.style,
-                      ldi == line.length - 1 ? "" : "border-r uppercase"
+                      ldi == line.length - 1 ? "" : "border-r uppercase",
                     ),
 
                     // flex: ld.colSpan,
@@ -105,7 +115,25 @@ export default function SalesPrintDoorItems({
                   ) : Array.isArray(ld.value) ? (
                     ld.value.map((val, vi) => <Text key={vi}>{val}</Text>)
                   ) : (
-                    <Text>{ld.value}</Text>
+                    (() => {
+                      const imageSrc = resolveImageSrc(ld.image);
+                      return (
+                        <View style={cn("flex-col")}>
+                          {imageSrc ? (
+                            <Image
+                              src={imageSrc}
+                              style={{
+                                width: 40,
+                                height: 40,
+                                objectFit: "contain",
+                                marginBottom: 2,
+                              }}
+                            />
+                          ) : null}
+                          <Text>{ld.value}</Text>
+                        </View>
+                      );
+                    })()
                   )}
                 </View>
               ))}

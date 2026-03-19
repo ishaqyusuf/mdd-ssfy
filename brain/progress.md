@@ -20,10 +20,61 @@
 - Updated `tab-registry.tsx` to register all 7 tabs with access rules (`salesAdmin`/`production`/`dispatch`) and `hideForQuote` filtering.
 - Confirmed `SalesOverviewSystemSheet` is already mounted in `global-sheets.tsx` alongside the legacy sheet.
 - Legacy `sales-overview-sheet` remains the active production path; v2 activates on `overviewSheetId` query param.
+## 2026-03-18 (session 4)
+
+- **Started Employee Management V2** (`brain/features/employee-management-v2.md`):
+  - Created standalone feature folder at `apps/www/src/features/employee-management/`.
+  - Created `types.ts` with `EmployeeOverview`, `EmployeeRecord`, `SalesAnalytics`, `ContractorAnalytics`, `ProductionAnalytics`.
+  - Created shared components: `overview-stat-card.tsx`, `employee-info-header.tsx`.
+  - Created analytics components: `sales-analytics.tsx`, `contractor-analytics.tsx`, `production-analytics.tsx`.
+  - Created records components: `employee-records-tab.tsx`, `record-upload-form.tsx`, `record-approval-actions.tsx`.
+  - Created `employee-list-page.tsx` (stat bar + existing table) and `employee-overview-page.tsx` (tabs: analytics + records).
+  - Created placeholder hook `use-employee-overview.ts` (wires to tRPC when `employees.route.ts` is implemented).
+  - Added route `apps/www/src/app/(sidebar)/hrm/employees/v2/page.tsx`.
+  - Registered "Employees - v2" sub-link in sidebar HRM module as Super Admin only.
+  - **Remaining phases**: DB schema migration, `employees.route.ts` API layer, `[employeeId]` route, insurance gate, expo mirror.
+
+- **Started feature**: Employee Management V2 (`brain/features/employee-management-v2.md`) — initial scaffolding implemented in session 4 (see above).
 
 ## 2026-03-17 (session 3)
 
 - **Planned feature**: Sales invoice print should display door images, mouldings, and shelf items when available.
+
+## 2026-03-18 (session 2)
+
+- Finalized Sales PDF V2 redesign plan with swappable multi-template architecture (`brain/features/sales-pdf-system.md`).
+  - Data layer in `packages/sales/src/print/` — typed `PrintPage` contract, isolated Prisma query, compose functions.
+  - Template registry in `packages/pdf/src/sales/` — each template folder implements `SalesTemplateRenderer`, selected by `templateId`.
+  - Classic template first; new templates = new folder + registry entry.
+  - 6 execution phases: types → compose → entry → tRPC → template → client wiring.
+- Created `packages/sales/src/print/types.ts` — full typed contracts: `PrintPage`, `PrintSection` (discriminated union: door/moulding/service/shelf/line-item), `PrintModeConfig`, `FooterData`, `CompanyAddress`.
+- Created `packages/sales/src/print/index.ts` — barrel export for all types.
+- Added `./print` and `./print/types` exports to `@gnd/sales` package.json.
+- Built `packages/pdf/src/sales-v2/` — complete template system:
+  - `document.tsx` — `SalesPdfDocument` wrapper with font registration + template selection.
+  - `registry.tsx` — `SalesTemplateConfig` (showImages toggle), `SalesTemplateRenderer` interface, `getTemplate()`.
+  - `shared/watermark-page.tsx` — shared watermarked page wrapper.
+  - `shared/utils.ts` — `resolveImageSrc`, `colWidth`, `sumColSpans` utilities.
+  - `templates/template-1/blocks/` — 8 isolated block components: header, door, moulding, service, shelf, line-item, footer, signature.
+  - `templates/template-1/modes/` — 4 mode composers: invoice, quote, production, packing-slip. Each composes blocks differently per mode.
+  - `templates/template-1/index.tsx` — routes to mode composer based on `page.config.mode`.
+  - All image blocks support `showImages` toggle from `SalesTemplateConfig`.
+- **cn syntax rewrite (complete)**: All 11 sales-v2 files now use:
+  - Import: `import { cn } from "../../../../utils/tw"` (relative path to `packages/pdf/src/utils/tw.ts`)
+  - Syntax: `cn(`\`class1 class2\``)` (template literal inside parens)
+  - Spread: `{...cn(`\`class1\``), extra: val}`
+  - Dynamic: `cn(`\`text-sm ${condition ? "font-bold" : ""}\``)`
+  - Files fixed: moulding-block, service-block, shelf-block, line-item-block, footer-block, signature-block, watermark-page, invoice, quote, production, packing-slip (+ header-block, door-block done earlier).
+- Phases 1 (types) and 5 (template) are complete. Remaining: phases 2-4 (compose functions, getPrintData, tRPC) and phase 6 (client wiring).
+
+## 2026-03-18
+
+- Implemented sales PDF print data/render updates for invoice output fidelity:
+  - Added door image field selection in `SalesIncludeAll` so print composition can access step-product, door, and product image values.
+  - Updated legacy print composition to keep moulding entries visible in door-detail metadata (no longer filtering out `Moulding`).
+  - Added optional `image` payload on door table cells in `print-legacy-format` for `Door` cells.
+  - Updated PDF renderer to resolve relative image paths using `baseUrl` and render door thumbnails inline with door row values.
+  - Kept shelf-item rendering path intact via existing `orderedPrinting` + `SalesPrintShelfItems` flow.
 
 ## 2026-03-17 (session 2)
 
@@ -564,3 +615,32 @@
 - 2026-03-16: Hardened invoice summary rendering/sync for the remaining shelf parity bug. The invoice overview panel now derives a live summary from the current `record.lineItems` + extra costs + payment method each render and syncs it back into store when drift is detected, matching the old form's “recalculate totals from current form state” behavior more closely than relying on a previously stored summary snapshot. Focused gate: `bun test packages/sales/src/new-sales-form-costing.test.ts packages/sales/src/sales-form/domain/workflow-calculators.test.ts` -> `34 pass, 0 fail`.
 - 2026-03-16: Patched the shared sales-form costing engine so shelf lines use their `shelfItems` row totals as the authoritative invoice-summary input when present, matching the old form's `shelfItems.subTotal -> calculateTotalPrice()` contract instead of relying solely on `line.lineTotal`. Added regression coverage proving a shelf line with stale `lineTotal: 0` still contributes correctly to subtotal, tax, and grand total. Focused gate: `bun test packages/sales/src/new-sales-form-costing.test.ts packages/sales/src/sales-form/domain/workflow-calculators.test.ts` -> `35 pass, 0 fail`.
 - 2026-03-17: Extended the separated sales payment-notification flow with a true `flexible` reminder option. Reminder tokens can now carry `payPlan: "flexible"` without a fixed amount, the new `Payment Notifications` sales-menu submenu exposes that option alongside preset/full/custom sends, and checkout v2 now prompts the customer for an amount before creating the Square link. The checkout API validates the entered amount against the current outstanding balance, and the reminder pay-plan helper/test suite now covers the new label/amount semantics. Focused gate: `bun test packages/sales/src/utils/reminder-pay-plan.test.ts` -> `6 pass, 0 fail`.
+
+## 2026-03-18
+
+- Built full admin dispatch dashboard at `/sales-book/dispatch-admin` (Super Admin + editDelivery gated).
+- Added `getDispatchSummary()` API query returning status-grouped counts (queue/in progress/packed/completed/cancelled/missing items), total, overdue dispatches, and per-driver active workload.
+- Exposed `dispatch.dispatchSummary` tRPC procedure for the new dashboard query.
+- Created `dispatch-admin/dispatch-summary-cards.tsx`: 7 clickable KPI cards with click-to-filter behavior (Total, Queued, In Progress, Packed, Completed, Cancelled, Overdue).
+- Created `dispatch-admin/driver-workload-card.tsx`: sidebar card showing active dispatch count per driver, sorted by workload, with badge colors (red ≥5, secondary ≥3, outline otherwise).
+- Created `dispatch-admin/admin-dispatch-header.tsx`: enhanced header with tab filter, search filter, Refresh button, and inline Duplicate Sweeper dialog accessible to Super Admins.
+- Added "Admin Dashboard" sidebar link under Dispatch group (Super Admin only).
+
+## 2026-03-18
+
+- **Dispatch Admin Dashboard - Major Feature Expansion**
+  - New backend procedures: `bulkAssignDriver`, `bulkCancel`, `exportDispatches`, `getDeleted`, `restore`
+  - New DB query functions: `bulkAssignDispatchDriver`, `bulkCancelDispatches`, `exportDispatches`, `getDeletedDispatches`, `restoreDispatch`
+  - New schemas in `apps/api/src/schemas/sales.ts`: `bulkAssignDriverSchema`, `bulkCancelDispatchSchema`, `exportDispatchesSchema`
+  - New components in `apps/www/src/components/dispatch-admin/`:
+    - `dispatch-auto-refresh.tsx` — polling toggle (off/15s/30s/1m/5m) with instant refresh
+    - `dispatch-export-button.tsx` — CSV export of current filtered dispatches
+    - `dispatch-calendar-view.tsx` — 7-day calendar view with week navigation + unscheduled list
+    - `dispatch-overdue-banner.tsx` — overdue alert banner with View Pending + Escalate actions
+    - `dispatch-deleted-panel.tsx` — view and restore soft-deleted dispatches (dialog)
+  - Updated `batch-actions.tsx` — fully implemented bulk assign driver (with driver dropdown) and bulk cancel
+  - Updated `driver-workload-card.tsx` — click driver to filter table, progress bars, clear filter button
+  - Updated `admin-dispatch-header.tsx` — view toggle (table/calendar), auto-refresh, export, deleted dispatches button
+  - Updated `use-dispatch-filter-params.ts` — added `view` param (table | calendar)
+  - Updated `page.tsx` — conditional calendar/table layout, overdue banner, new components integrated
+  - All new files pass TypeScript checks with no new errors

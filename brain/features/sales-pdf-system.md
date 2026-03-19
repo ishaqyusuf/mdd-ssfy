@@ -2,30 +2,202 @@
 
 ## Goal
 
-Move sales PDFs from request-time rendering toward a stored-document pipeline that can reuse the central document platform.
+Build a clean, isolated sales PDF system with zero legacy dependencies, typed data contracts, and a registry-driven template architecture that makes it trivial to add/swap invoice templates.
 
-## Core Architecture
+---
 
-- `StoredDocument` stores generic file metadata and owner linkage.
-- `SalesDocumentSnapshot` stores sales-specific PDF generation/version lifecycle.
-- `packages/documents` owns provider-agnostic document registration helpers.
-- `packages/sales/src/pdf-system` owns invalidation and current-PDF resolution rules.
+## V2 Architecture — Multi-Template Design
 
-## Initial Scope
+### Data layer: `packages/sales/src/print/`
 
-- invoice/quote/packing/production PDF snapshot contracts
-- stale/current lifecycle for sales PDFs
-- compatibility-preserving migration path for existing download routes
+One shared data pipeline produces typed `PrintPage` payloads. Templates never touch the database.
 
-## Planned Flow
+```
+packages/sales/src/print/
+├── index.ts                    # public barrel: getPrintData, types
+├── types.ts                    # PrintPage, PrintSection, DoorRow, ShelfRow, etc.
+├── schema.ts                   # zod input schema for the print endpoint
+├── query.ts                    # isolated Prisma select (only what print needs)
+├── get-print-data.ts           # db → PrintPage[] (main entry)
+├── compose/
+│   ├── meta.ts                 # invoice title, dates, rep, PO, status, payment stamp
+│   ├── addresses.ts            # billing/shipping address block
+│   ├── door-sections.ts        # HPT → DoorSection with image, configs, rows
+│   ├── moulding-sections.ts    # moulding items → MouldingSection with image, rows
+│   ├── service-sections.ts     # service items → ServiceSection
+│   ├── shelf-sections.ts       # shelf items → ShelfSection with image, rows
+│   ├── line-items.ts           # legacy non-dyke line items
+│   ├── footer.ts               # subtotal, tax, labor, extra costs, paid, due
+│   └── packing.ts              # dispatch/packing qty resolution
+└── constants.ts                # tax codes, office addresses, mode visibility config
+```
 
-1. Sales or payment mutation changes invoice truth.
-2. Sales PDF snapshot is invalidated and a new pending version is created.
-3. Async job renders the PDF and uploads it through the shared document platform.
-4. The completed `StoredDocument` is linked to the current `SalesDocumentSnapshot`.
-5. Download/email flows resolve the current stored document instead of rendering on demand.
+### Template layer: `packages/pdf/src/sales-v2/`
+
+Templates are self-contained folders registered in a central registry. Each template implements the same `PrintPage` → PDF contract. Swapping templates = picking a different registry key.
+
+```
+packages/pdf/src/sales-v2/
+├── index.ts                    # barrel: SalesPdfDocument, registry types
+├── document.tsx                # <Document> wrapper — selects template by id
+├── registry.tsx                # SalesTemplateConfig, SalesTemplateRenderProps, getTemplate()
+├── shared/
+│   ├── watermark-page.tsx      # page wrapper with watermark + page numbering
+│   └── utils.ts                # resolveImageSrc, colWidth, sumColSpans
+├── templates/
+│   ├── template-1/             # first template ("classic" invoice look)
+│   │   ├── index.tsx           # Template1 — routes to mode composer
+│   │   ├── blocks/             # isolated block components
+│   │   │   ├── index.ts
+│   │   │   ├── header-block.tsx
+│   │   │   ├── door-block.tsx
+│   │   │   ├── moulding-block.tsx
+│   │   │   ├── service-block.tsx
+│   │   │   ├── shelf-block.tsx
+│   │   │   ├── line-item-block.tsx
+│   │   │   ├── footer-block.tsx
+│   │   │   └── signature-block.tsx
+│   │   └── modes/              # each print mode composed separately
+│   │       ├── index.ts
+│   │       ├── invoice.tsx     # invoice mode composer (prices + footer + signature)
+│   │       ├── quote.tsx       # quote mode composer (prices + footer + signature + goodUntil)
+│   │       ├── production.tsx  # production mode (no prices, no footer, no signature)
+│   │       └── packing-slip.tsx # packing slip mode (no prices, packing col, signature)
+│   └── template-2/            # future template (same contract)
+│       └── ...
+```
+
+### Template registry pattern
+
+```ts
+// packages/pdf/src/sales-v2/registry.tsx
+export interface SalesTemplateConfig {
+  showImages: boolean;    // toggle image display on all blocks
+}
+
+export interface SalesTemplateRenderProps {
+  page: PrintPage;
+  baseUrl?: string;
+  watermark?: string;
+  logoUrl?: string;
+  companyAddress: CompanyAddress;
+  config: SalesTemplateConfig;
+}
+
+export type SalesTemplateRenderer = (props: SalesTemplateRenderProps) => JSX.Element;
+
+const templates: Record<string, SalesTemplateRenderer> = {
+  "template-1": Template1,
+  // "template-2": Template2,  ← drop in later
+};
+
+// packages/pdf/src/sales-v2/document.tsx
+export function SalesPdfDocument({ pages, templateId = "template-1", config, ... }) {
+  const Template = getTemplate(templateId);
+  return (
+    <Document>
+      {pages.map((page, i) => <Template key={i} page={page} config={config} ... />)}
+    </Document>
+  );
+}
+```
+
+### API layer
+
+```
+apps/api/src/trpc/routers/print.route.ts
+  └── salesV2 procedure
+       input: { token, preview?, templateId? }
+       → validates token
+       → calls getPrintData(db, tokenPayload)
+       → returns { pages: PrintPage[], title, templateId }
+```
+
+### Client layer
+
+```
+apps/www/src/components/print-sales-v2.tsx     # uses SalesPdfDocument
+apps/www/src/app/(public)/p/sales-invoice-v2/  # new route (legacy route untouched)
+```
+
+---
+
+## Type contract
+
+```ts
+type PrintMode = "invoice" | "quote" | "production" | "packing-slip" | "order-packing";
+
+interface PrintPage {
+  meta: PageMeta;
+  billing: AddressBlock;
+  shipping: AddressBlock;
+  sections: PrintSection[];       // ordered by lineIndex
+  footer: FooterData | null;      // null for production/packing
+  config: PrintModeConfig;        // controls column/section visibility
+}
+
+interface PageMeta {
+  title: string;
+  salesNo: string;
+  date: string;
+  rep?: string;
+  po?: string;
+  status: "paid" | "pending";
+  balanceDue?: string;
+  dueDate?: string;
+  total: string;
+  paymentDate?: string;
+}
+
+type PrintSection =
+  | DoorSection
+  | MouldingSection
+  | ServiceSection
+  | ShelfSection
+  | LineItemSection;
+
+// Each section has `kind` discriminator, `index`, `title`, typed rows with optional `image`
+```
+
+---
+
+## Execution phases
+
+| Phase | Scope | Deliverable |
+|-------|-------|-------------|
+| **1** | Types + barrel export | `print/types.ts`, `print/index.ts` — ✅ DONE |
+| **2** | Compose functions | `print/compose/*.ts` — pure data transformers |
+| **3** | getPrintData entry | `print/get-print-data.ts` wiring compose → PrintPage[] |
+| **4** | tRPC endpoint | `salesV2` procedure in `print.route.ts` |
+| **5** | Template registry + template-1 | `pdf/src/sales-v2/` — ✅ DONE: blocks, modes, registry, document |
+| **6** | Client wiring | `print-sales-v2.tsx` + v2 page route |
+
+---
+
+## What stays untouched
+
+- `print-legacy-format.ts` — existing `trpc.print.sales`
+- `invoice-print-data.ts` — existing `trpc.sales.printInvoice`
+- All current PDF components in `packages/pdf/src/components/`
+- Public page at `(public)/p/sales-invoice/page.tsx`
+
+---
+
+## Stored-document pipeline (future phase)
+
+Once the v2 print system is stable:
+
+1. `StoredDocument` stores generic file metadata and owner linkage.
+2. `SalesDocumentSnapshot` stores sales-specific PDF generation/version lifecycle.
+3. `packages/documents` owns provider-agnostic document registration helpers.
+4. `packages/sales/src/pdf-system` owns invalidation and current-PDF resolution rules.
+5. Async job renders PDF → uploads via shared document platform → links to snapshot.
+6. Download/email flows resolve stored document instead of rendering on demand.
 
 ## Notes
 
-- This feature is intentionally layered on the generic document platform so Gallery, dispatch uploads, and signatures can share the same binary-storage contract.
-- Existing public tokenized download URLs should remain stable while internals migrate.
+- Templates never touch the database — they receive typed `PrintPage` props only.
+- Adding a template = creating a new folder under `templates/` and registering it.
+- `templateId` defaults to `"classic"` — backward compatible with no client changes.
+- Image fields (`image?: string`) are first-class on `DoorRow`, `MouldingRow`, and `ShelfRow`.
+- Existing public tokenized download URLs remain stable while internals migrate.

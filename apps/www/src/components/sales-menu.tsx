@@ -10,9 +10,11 @@ import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { openLink } from "@/lib/open-link";
 import { newSalesHelper } from "@/lib/sales";
+import { quickPrint } from "@/lib/quick-print";
 import { useTRPC } from "@/trpc/client";
 import type { SalesPrintProps } from "@/utils/sales-print-utils";
 import { salesFormUrl } from "@/utils/sales-utils";
+import type { PrintMode } from "@gnd/sales/print/types";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { DropdownMenu } from "@gnd/ui/namespace";
@@ -349,6 +351,13 @@ function useSalesPrintAction() {
 	};
 }
 
+const ORDER_MODES: { label: string; mode: PrintMode }[] = [
+	{ label: "Order & Packing", mode: "order-packing" },
+	{ label: "Order", mode: "invoice" },
+	{ label: "Packing", mode: "packing-slip" },
+	{ label: "Production", mode: "production" },
+];
+
 function SalesMenuShare({ disabled }: ActionProps) {
 	const runPrint = useSalesPrintAction();
 	const { state } = useSalesMenuContext();
@@ -610,6 +619,58 @@ function SalesMenuItem(props: ComponentProps<typeof DropdownMenu.Item>) {
 	return <DropdownMenu.Item {...props} />;
 }
 
+/**
+ * V2 print sub-menu using quickPrint. Reads salesIds + type from context.
+ * For quotes: single Print item. For orders: sub-menu with all 4 modes.
+ */
+function SalesMenuPrintModes({ disabled }: ActionProps) {
+	const { state, actions } = useSalesMenuContext();
+	const isDisabled = disabled || !state.salesIds.length;
+	const isQuote = state.type === "quote";
+
+	if (isQuote) {
+		return (
+			<DropdownMenu.Item
+				disabled={isDisabled}
+				onSelect={(e) => {
+					e.preventDefault();
+					void quickPrint({ salesIds: state.salesIds, mode: "quote" }).then(
+						() => actions.closeMenu(),
+					);
+				}}
+			>
+				<Printer className="mr-2 size-4 text-muted-foreground/70" />
+				Print
+			</DropdownMenu.Item>
+		);
+	}
+
+	return (
+		<DropdownMenu.Sub>
+			<DropdownMenu.SubTrigger disabled={isDisabled}>
+				<Printer className="mr-2 size-4 text-muted-foreground/70" />
+				Print
+			</DropdownMenu.SubTrigger>
+			<DropdownMenu.SubContent>
+				{ORDER_MODES.map(({ label, mode }) => (
+					<DropdownMenu.Item
+						key={mode}
+						onSelect={(e) => {
+							e.preventDefault();
+							void quickPrint({ salesIds: state.salesIds, mode }).then(() =>
+								actions.closeMenu(),
+							);
+						}}
+					>
+						<Printer className="mr-2 size-4 text-muted-foreground/70" />
+						{label}
+					</DropdownMenu.Item>
+				))}
+			</DropdownMenu.SubContent>
+		</DropdownMenu.Sub>
+	);
+}
+
 function SalesMenuSeparator() {
 	return <DropdownMenu.Separator />;
 }
@@ -636,6 +697,7 @@ export const SalesMenu = Object.assign(SalesMenuRoot, {
 	Share: SalesMenuShare,
 	Print: SalesMenuPrint,
 	PDF: SalesMenuPDF,
+	PrintModes: SalesMenuPrintModes,
 	Notifications: SalesMenuNotifications,
 	PaymentNotifications: SalesMenuPaymentNotifications,
 	Delete: SalesMenuDelete,

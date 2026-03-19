@@ -36,4 +36,18 @@ export const salesCheckoutSuccess: NotificationHandler = {
       tags: payload,
     };
   },
+  createEmail(data: SalesCheckoutSuccessInput, author, user, args) {
+    return {
+      ...args,
+      template: "sales-rep-online-payment-received",
+      to: [user.email],
+      subject: `Payment Received - Order${data.orderNos.length > 1 ? "s" : ""} #${data.orderNos.join(", ")}`,
+      data: {
+        ordersNo: data.orderNos,
+        amount: data.totalAmount ?? 0,
+        repName: user.name,
+        customerName: data.customerName ?? "",
+      },
+    };
+  },
 };

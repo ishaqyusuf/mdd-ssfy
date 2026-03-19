@@ -11,7 +11,8 @@
   "exports": {
     "./*": "./src/*",
     ".": "./src/index.ts",
-    "./sales": "./src/sales/index.tsx"
+    "./sales": "./src/sales/index.tsx",
+    "./sales-v2": "./src/sales-v2/index.ts"
   },
   "dependencies": {
     "@gnd/sales": "workspace:*",
@@ -28,6 +29,7 @@
     "@types/react": "~19.1.0",
     "@types/qrcode": "^1.5.5",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "react-pdf-tailwind": "^3.0.0"
   }
 }

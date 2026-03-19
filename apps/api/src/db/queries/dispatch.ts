@@ -10,6 +10,9 @@ import type {
   UpdateDispatchDueDateSchema,
   UpdateDispatchStatusSchema,
   UpdateSalesDeliveryOptionSchema,
+  BulkAssignDriverSchema,
+  BulkCancelDispatchSchema,
+  ExportDispatchesSchema,
 } from "@api/schemas/sales";
 import type { TRPCContext } from "@api/trpc/init";
 import type { QtyControlType } from "@api/type";
@@ -176,11 +179,11 @@ function dispatchKeepScore(dispatch: {
         ? 3
         : dispatch.status === "packed"
           ? 2
-        : dispatch.status === "queue"
-          ? 1
-          : dispatch.status === "missing items"
-            ? 0
-            : 0;
+          : dispatch.status === "queue"
+            ? 1
+            : dispatch.status === "missing items"
+              ? 0
+              : 0;
   return (
     statusRank * 1_000_000 +
     Math.min(999_999, dispatch.packedItemCount * 10_000 + dispatch.itemCount)
@@ -252,7 +255,11 @@ export async function getDispatches(
     },
   });
   const orderControlRows = await withSalesListControl(
-    [...new Map(data.map((row) => [row.order.id, { id: row.order.id }])).values()],
+    [
+      ...new Map(
+        data.map((row) => [row.order.id, { id: row.order.id }]),
+      ).values(),
+    ],
     db as any,
     ["packed", "pendingPacking", "dispatchStatus"] as any,
   );
@@ -339,7 +346,8 @@ export async function getDispatches(
   );
   return await response(
     rowsWithStatistic.map((a) => {
-      const effectiveStatus = (a as any)?.statistic?.dispatchStatus || (a as any)?.status;
+      const effectiveStatus =
+        (a as any)?.statistic?.dispatchStatus || (a as any)?.status;
       return {
         ...a,
         status: effectiveStatus,
@@ -426,20 +434,18 @@ export async function findDuplicateDispatchGroups(ctx: TRPCContext) {
         };
       });
 
-      const recommended = hydratedDispatches
-        .slice()
-        .sort((a, b) => {
-          const scoreDiff = dispatchKeepScore(b) - dispatchKeepScore(a);
-          if (scoreDiff !== 0) return scoreDiff;
-          const updatedDiff =
-            new Date(b.updatedAt || 0).getTime() -
-            new Date(a.updatedAt || 0).getTime();
-          if (updatedDiff !== 0) return updatedDiff;
-          return (
-            new Date(b.createdAt || 0).getTime() -
-            new Date(a.createdAt || 0).getTime()
-          );
-        })[0];
+      const recommended = hydratedDispatches.slice().sort((a, b) => {
+        const scoreDiff = dispatchKeepScore(b) - dispatchKeepScore(a);
+        if (scoreDiff !== 0) return scoreDiff;
+        const updatedDiff =
+          new Date(b.updatedAt || 0).getTime() -
+          new Date(a.updatedAt || 0).getTime();
+        if (updatedDiff !== 0) return updatedDiff;
+        return (
+          new Date(b.createdAt || 0).getTime() -
+          new Date(a.createdAt || 0).getTime()
+        );
+      })[0];
 
       return {
         salesId,
@@ -689,19 +695,22 @@ async function sendDispatchNotification(
     userId: authorId,
   }).setEmployeeRecipients(recipientId);
 
-  await notification.send(channel as any, {
-    author: {
-      id: authorId,
-      role: "employee",
-    },
-    payload: {
-      orderNo: payload.orderNo || undefined,
-      dispatchId: payload.dispatchId,
-      deliveryMode: payload.deliveryMode || undefined,
-      dueDate: payload.dueDate || undefined,
-      driverId: payload.driverId || undefined,
-    },
-  } as any);
+  await notification.send(
+    channel as any,
+    {
+      author: {
+        id: authorId,
+        role: "employee",
+      },
+      payload: {
+        orderNo: payload.orderNo || undefined,
+        dispatchId: payload.dispatchId,
+        deliveryMode: payload.deliveryMode || undefined,
+        dueDate: payload.dueDate || undefined,
+        driverId: payload.driverId || undefined,
+      },
+    } as any,
+  );
 }
 
 type DispatchSelect = {
@@ -812,7 +821,9 @@ export async function updateDispatchDriver(
       id: dispatch.id,
     },
     data: {
-      driver: newDriverId ? { connect: { id: newDriverId } } : { disconnect: true },
+      driver: newDriverId
+        ? { connect: { id: newDriverId } }
+        : { disconnect: true },
     },
   });
 
@@ -993,7 +1004,8 @@ export async function updateDispatchStatus(
     newStatus,
     packedCount: dispatch.packedCount,
     pendingCount: dispatch.pendingCount,
-    completionMode: (input.completionMode ?? null) as CompletionModeSchema | null,
+    completionMode: (input.completionMode ??
+      null) as CompletionModeSchema | null,
     notifications: [channel],
   };
 }
@@ -1025,10 +1037,9 @@ export async function getDispatchOverview(
     const orderWithStatistic = await withSalesControl(orderRows, ctx.db as any);
     const statistic = (orderWithStatistic?.[0] as any)?.statistic;
     if (statistic) {
-      orderControl = projectSalesListControl(
-        statistic,
-        [...DISPATCH_OVERVIEW_ORDER_CONTROL_FIELDS] as any,
-      );
+      orderControl = projectSalesListControl(statistic, [
+        ...DISPATCH_OVERVIEW_ORDER_CONTROL_FIELDS,
+      ] as any);
     }
   }
 
@@ -1046,10 +1057,9 @@ export async function getDispatchOverview(
       const rows = await withDispatchControl(dispatchRows, ctx.db as any);
       const statistic = (rows?.[0] as any)?.statistic;
       if (statistic) {
-        dispatchControl = projectDispatchListControl(
-          statistic,
-          [...DISPATCH_OVERVIEW_DISPATCH_CONTROL_FIELDS] as any,
-        );
+        dispatchControl = projectDispatchListControl(statistic, [
+          ...DISPATCH_OVERVIEW_DISPATCH_CONTROL_FIELDS,
+        ] as any);
       }
     }
   }
@@ -1063,16 +1073,14 @@ export async function getDispatchOverview(
     const legacyOrderStatistic = (legacyOrderRows?.[0] as any)?.statistic;
     const legacyDispatchStatistic = (legacyDispatchRows?.[0] as any)?.statistic;
     const legacyOrderControl = legacyOrderStatistic
-      ? projectSalesListControl(
-          legacyOrderStatistic,
-          [...DISPATCH_OVERVIEW_ORDER_CONTROL_FIELDS] as any,
-        )
+      ? projectSalesListControl(legacyOrderStatistic, [
+          ...DISPATCH_OVERVIEW_ORDER_CONTROL_FIELDS,
+        ] as any)
       : null;
     const legacyDispatchControl = legacyDispatchStatistic
-      ? projectDispatchListControl(
-          legacyDispatchStatistic,
-          [...DISPATCH_OVERVIEW_DISPATCH_CONTROL_FIELDS] as any,
-        )
+      ? projectDispatchListControl(legacyDispatchStatistic, [
+          ...DISPATCH_OVERVIEW_DISPATCH_CONTROL_FIELDS,
+        ] as any)
       : null;
 
     const hasMismatch =
@@ -1081,7 +1089,8 @@ export async function getDispatchOverview(
         Number(orderControl?.packed?.total || 0) ||
       Number(legacyOrderControl?.pendingPacking?.total || 0) !==
         Number(orderControl?.pendingPacking?.total || 0) ||
-      legacyDispatchControl?.dispatchStatus !== dispatchControl?.dispatchStatus ||
+      legacyDispatchControl?.dispatchStatus !==
+        dispatchControl?.dispatchStatus ||
       Number(legacyDispatchControl?.packed?.total || 0) !==
         Number(dispatchControl?.packed?.total || 0) ||
       Number(legacyDispatchControl?.pendingPacking?.total || 0) !==
@@ -1218,8 +1227,7 @@ function toQtyMatrix(qty?: {
   const q = Number(qty?.qty || 0);
   const lh = Number(qty?.lh || 0);
   const rh = Number(qty?.rh || 0);
-  const noHandle =
-    qty?.noHandle === true ? true : lh <= 0 && rh <= 0;
+  const noHandle = qty?.noHandle === true ? true : lh <= 0 && rh <= 0;
   return {
     qty: q,
     lh,
@@ -1247,8 +1255,16 @@ function detectDispatchReadiness(
     itemConfig?: { production?: boolean | null } | null;
     totalQty?: { qty?: number | null; lh?: number | null; rh?: number | null };
     packedQty?: { qty?: number | null; lh?: number | null; rh?: number | null };
-    availableQty?: { qty?: number | null; lh?: number | null; rh?: number | null };
-    deliverableQty?: { qty?: number | null; lh?: number | null; rh?: number | null };
+    availableQty?: {
+      qty?: number | null;
+      lh?: number | null;
+      rh?: number | null;
+    };
+    deliverableQty?: {
+      qty?: number | null;
+      lh?: number | null;
+      rh?: number | null;
+    };
     nonDeliverableQty?: {
       qty?: number | null;
       lh?: number | null;
@@ -1277,7 +1293,10 @@ function detectDispatchReadiness(
     .map((item) => ({
       uid: item.uid,
       title: item.title,
-      pendingQty: Math.max(0, qtyTotal(item.totalQty) - qtyTotal(item.packedQty)),
+      pendingQty: Math.max(
+        0,
+        qtyTotal(item.totalQty) - qtyTotal(item.packedQty),
+      ),
       missingQty: qtyTotal(item.nonDeliverableQty),
     }));
 
@@ -1404,12 +1423,19 @@ export async function getDispatchOverviewV2(
           ? submitted
           : delivered;
       if (!hasQty(fallbackQty)) return;
-      deliverableBySubmission.set(submissionId, recomposeQty(fallbackQty as any));
+      deliverableBySubmission.set(
+        submissionId,
+        recomposeQty(fallbackQty as any),
+      );
     });
     (listedItems || []).forEach((entry) => {
-      const submissionId = Number((entry as any)?.orderProductionSubmissionId || 0);
+      const submissionId = Number(
+        (entry as any)?.orderProductionSubmissionId || 0,
+      );
       if (!submissionId) return;
-      const listedSubmissionQty = recomposeQty(transformQtyHandle(entry) as any);
+      const listedSubmissionQty = recomposeQty(
+        transformQtyHandle(entry) as any,
+      );
       const existing = recomposeQty(
         (deliverableBySubmission.get(submissionId) || {}) as any,
       );
@@ -1531,20 +1557,18 @@ export async function getDispatchOverviewV2(
     };
   });
 
-  const recommendedDuplicateKeep = duplicateDispatches
-    .slice()
-    .sort((a, b) => {
-      const scoreDiff = dispatchKeepScore(b) - dispatchKeepScore(a);
-      if (scoreDiff !== 0) return scoreDiff;
-      const updatedDiff =
-        new Date(b.updatedAt || 0).getTime() -
-        new Date(a.updatedAt || 0).getTime();
-      if (updatedDiff !== 0) return updatedDiff;
-      return (
-        new Date(b.createdAt || 0).getTime() -
-        new Date(a.createdAt || 0).getTime()
-      );
-    })[0];
+  const recommendedDuplicateKeep = duplicateDispatches.slice().sort((a, b) => {
+    const scoreDiff = dispatchKeepScore(b) - dispatchKeepScore(a);
+    if (scoreDiff !== 0) return scoreDiff;
+    const updatedDiff =
+      new Date(b.updatedAt || 0).getTime() -
+      new Date(a.updatedAt || 0).getTime();
+    if (updatedDiff !== 0) return updatedDiff;
+    return (
+      new Date(b.createdAt || 0).getTime() -
+      new Date(a.createdAt || 0).getTime()
+    );
+  })[0];
 
   const duplicateInsight = {
     salesId: order.id,
@@ -1580,12 +1604,14 @@ export async function getDispatchOverviewV2(
     state: dispatchReadiness.state,
     canDispatch: dispatchReadiness.canDispatch,
     unresolvedCount: dispatchReadiness.unresolvedNonProduceables.length,
-    unresolvedItems: dispatchReadiness.unresolvedNonProduceables.map((item) => ({
-      uid: item.uid,
-      title: item.title,
-      pendingQty: item.pendingQty,
-      missingQty: item.missingQty,
-    })),
+    unresolvedItems: dispatchReadiness.unresolvedNonProduceables.map(
+      (item) => ({
+        uid: item.uid,
+        title: item.title,
+        pendingQty: item.pendingQty,
+        missingQty: item.missingQty,
+      }),
+    ),
   });
 
   return {
@@ -1629,4 +1655,204 @@ export async function getDispatchOverviewV2(
 
 export async function enlistItemToForDispatch(ctx: TRPCContext) {
   //
+}
+
+export async function getDispatchSummary(ctx: TRPCContext) {
+  const { db } = ctx;
+
+  const [statusCounts, driverWorkload, overdueCount] = await Promise.all([
+    db.orderDelivery.groupBy({
+      by: ["status"],
+      where: { deletedAt: null },
+      _count: { id: true },
+    }),
+    db.orderDelivery.groupBy({
+      by: ["driverId"],
+      where: {
+        deletedAt: null,
+        driverId: { not: null },
+        status: { in: ["queue", "in progress", "packed"] },
+      },
+      _count: { id: true },
+    }),
+    db.orderDelivery.count({
+      where: {
+        deletedAt: null,
+        status: { in: ["queue", "in progress", "packed"] },
+        dueDate: { lt: new Date() },
+      },
+    }),
+  ]);
+
+  const driverIds = driverWorkload
+    .map((d) => d.driverId)
+    .filter((id): id is number => id != null);
+
+  const drivers =
+    driverIds.length > 0
+      ? await db.users.findMany({
+          where: { id: { in: driverIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+
+  const driverMap = Object.fromEntries(drivers.map((d) => [d.id, d.name]));
+
+  const byStatus = Object.fromEntries(
+    statusCounts.map((row) => [row.status ?? "unknown", row._count.id]),
+  );
+
+  const total = statusCounts.reduce((sum, row) => sum + row._count.id, 0);
+  const pending =
+    (byStatus["queue"] ?? 0) +
+    (byStatus["in progress"] ?? 0) +
+    (byStatus["packed"] ?? 0) +
+    (byStatus["missing items"] ?? 0);
+
+  return {
+    total,
+    pending,
+    byStatus: {
+      queue: byStatus["queue"] ?? 0,
+      inProgress: byStatus["in progress"] ?? 0,
+      packed: byStatus["packed"] ?? 0,
+      completed: byStatus["completed"] ?? 0,
+      cancelled: byStatus["cancelled"] ?? 0,
+      missingItems: byStatus["missing items"] ?? 0,
+    },
+    overdue: overdueCount,
+    driverWorkload: driverWorkload.map((row) => ({
+      driverId: row.driverId!,
+      driverName: driverMap[row.driverId!] ?? "Unknown",
+      activeDispatches: row._count.id,
+    })),
+  };
+}
+
+export async function bulkAssignDispatchDriver(
+  ctx: TRPCContext,
+  input: BulkAssignDriverSchema,
+) {
+  const { db } = ctx;
+  const now = new Date();
+  await db.orderDelivery.updateMany({
+    where: {
+      id: { in: input.dispatchIds },
+      deletedAt: null,
+    },
+    data: {
+      driverId: input.newDriverId,
+      updatedAt: now,
+    },
+  });
+  return { ok: true, updated: input.dispatchIds.length };
+}
+
+export async function bulkCancelDispatches(
+  ctx: TRPCContext,
+  input: BulkCancelDispatchSchema,
+) {
+  const { db } = ctx;
+  const now = new Date();
+  await db.orderDelivery.updateMany({
+    where: {
+      id: { in: input.dispatchIds },
+      deletedAt: null,
+      status: { notIn: ["completed", "cancelled"] },
+    },
+    data: {
+      status: "cancelled",
+      updatedAt: now,
+    },
+  });
+  return { ok: true, cancelled: input.dispatchIds.length };
+}
+
+export async function exportDispatches(
+  ctx: TRPCContext,
+  input: ExportDispatchesSchema,
+) {
+  const { db } = ctx;
+  const where = whereDispatch(input as any);
+  const data = await db.orderDelivery.findMany({
+    where,
+    orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
+    take: 5000,
+    select: {
+      id: true,
+      status: true,
+      createdAt: true,
+      dueDate: true,
+      deliveryMode: true,
+      order: {
+        select: {
+          orderId: true,
+          customer: {
+            select: { name: true, businessName: true, phoneNo: true },
+          },
+          shippingAddress: {
+            select: { address1: true, city: true, state: true },
+          },
+        },
+      },
+      driver: { select: { id: true, name: true } },
+    },
+  });
+  return data.map((row) => ({
+    id: row.id,
+    orderNo: row.order?.orderId ?? "",
+    status: row.status,
+    dueDate: row.dueDate?.toISOString() ?? "",
+    deliveryMode: row.deliveryMode,
+    driver: row.driver?.name ?? "Unassigned",
+    customer: row.order?.customer?.businessName || row.order?.customer?.name || "",
+    phone: row.order?.customer?.phoneNo ?? "",
+    address: [
+      row.order?.shippingAddress?.address1,
+      row.order?.shippingAddress?.city,
+      row.order?.shippingAddress?.state,
+    ]
+      .filter(Boolean)
+      .join(", "),
+    createdAt: row.createdAt?.toISOString() ?? "",
+  }));
+}
+
+export async function getDeletedDispatches(ctx: TRPCContext) {
+  const { db } = ctx;
+  return db.orderDelivery.findMany({
+    where: { deletedAt: { not: null } },
+    orderBy: { deletedAt: "desc" },
+    take: 200,
+    select: {
+      id: true,
+      status: true,
+      deletedAt: true,
+      dueDate: true,
+      deliveryMode: true,
+      order: {
+        select: {
+          orderId: true,
+          customer: { select: { name: true, businessName: true } },
+        },
+      },
+      driver: { select: { id: true, name: true } },
+    },
+  });
+}
+
+export async function restoreDispatch(ctx: TRPCContext, dispatchId: number) {
+  const { db } = ctx;
+  const dispatch = await db.orderDelivery.findUnique({
+    where: { id: dispatchId },
+    select: { id: true, deletedAt: true },
+  });
+  if (!dispatch) throw new TRPCError({ code: "NOT_FOUND", message: "Dispatch not found" });
+  if (!dispatch.deletedAt) throw new TRPCError({ code: "BAD_REQUEST", message: "Dispatch is not deleted" });
+
+  await db.orderDelivery.update({
+    where: { id: dispatchId },
+    data: { deletedAt: null, status: "queue" },
+  });
+  return { ok: true, dispatchId };
 }

@@ -339,7 +339,8 @@ function composeShelfItem<T>(
   cells: T,
   shelfItem,
   itemIndex,
-): { style; value; colSpan }[] {
+): { style; value; colSpan; image? }[] {
+  const shelfImage = shelfItem.shelfProduct?.img || null;
   return (cells as any).map((cell, _i) => {
     const ret = {
       style: cell.cellStyle,
@@ -350,6 +351,7 @@ function composeShelfItem<T>(
             ? shelfItem.description || shelfItem.shelfProduct?.title
             : shelfItem?.[cell.cell as any],
       colSpan: cell.colSpan,
+      image: cell.cell === "description" ? shelfImage : null,
     };
     if (_i > 2 && ret.value) ret.value = formatCurrency(ret.value);
     return ret;
@@ -531,10 +533,7 @@ function getDoorsTable(
             ? []
             : [
                 ...item.formSteps.filter(
-                  (t) =>
-                    !["Door", "Item Type", "Moulding"].some(
-                      (s) => s == t.step.title,
-                    ),
+                  (t) => !["Door", "Item Type"].some((s) => s == t.step.title),
                 ),
               ].map((v) => {
                 v.step.title = transformStepTitle(v.step.title);
@@ -597,12 +596,18 @@ function getDoorsTable(
           };
           if (is.moulding && !m.total) return;
           if (is.moulding || is.service) {
+            const mouldingImage =
+              m?.housePackageTool?.molding?.img ||
+              m?.housePackageTool?.stepProduct?.img ||
+              m?.housePackageTool?.stepProduct?.product?.img ||
+              null;
             lines.push(
               res.cells.map((cell, _i) => {
                 const ret = {
                   style: cell.cellStyle,
                   colSpan: cell.colSpan,
                   value: getVal(cell.cell),
+                  image: cell.cell === "moulding" ? mouldingImage : null,
                 };
                 return ret;
               }),
@@ -620,6 +625,14 @@ function getDoorsTable(
               );
               lines.push(
                 res.cells.map((cell, _cellId) => {
+                  const doorImage =
+                    door?.stepProduct?.img ||
+                    door?.stepProduct?.door?.img ||
+                    door?.stepProduct?.product?.img ||
+                    m?.housePackageTool?.stepProduct?.img ||
+                    m?.housePackageTool?.stepProduct?.door?.img ||
+                    m?.housePackageTool?.stepProduct?.product?.img ||
+                    m?.housePackageTool?.door?.img;
                   const ret = {
                     style: cell.cellStyle,
                     colSpan: cell.colSpan,
@@ -628,6 +641,7 @@ function getDoorsTable(
                       door,
                       (isPh ? "PH - " : "") + doorTitle,
                     ),
+                    image: cell.cell === "door" ? doorImage : null,
                   };
                   return ret;
                 }),

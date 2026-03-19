@@ -243,6 +243,10 @@ export const linkModules = [
             // _link("HRM", "hrm", "/").access(_perm.in("viewHrm")).data,
             _link("Employees", "employees", "/hrm/employees").access(
                 _perm.some("viewHrm", "viewEmployee"),
+            ).subLinks(
+                _subLink("Employees - v2", "/hrm/employees/v2").access(
+                    _role.is("Super Admin"),
+                ).data,
             ).data,
             // _link("Profile", "profile", "/hrm/profiles").access(
             //     _perm.some("viewHrm", "viewEmployee"),
@@ -525,6 +529,12 @@ export const linkModules = [
                 ).data,
                 _subLink("Pickup", "/sales-book/pickups").access(
                     _perm.is("editPickup"),
+                ).data,
+                _subLink("Delivery V2", "/sales-book/dispatch-v2").access(
+                    _role.is("Super Admin"),
+                ).data,
+                _subLink("Admin Dashboard", "/sales-book/dispatch-admin").access(
+                    _role.is("Super Admin"),
                 ).data,
             ]).access(_perm.is("editOrders")).data,
         ]),

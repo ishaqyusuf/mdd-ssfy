@@ -77,9 +77,12 @@ function EmptyInstallList() {
       <View className="mb-4 h-12 w-12 items-center justify-center rounded-full bg-muted">
         <Icon name="ListX" className="text-muted-foreground" size={22} />
       </View>
-      <Text className="text-base font-bold text-foreground">No install items</Text>
+      <Text className="text-base font-bold text-foreground">
+        No install items
+      </Text>
       <Text className="mt-1 px-5 text-center text-xs text-muted-foreground">
-        Add install cost items for this builder task in web admin if the list is empty.
+        Add install cost items for this builder task in web admin if the list is
+        empty.
       </Text>
     </NeoCard>
   );
@@ -94,9 +97,9 @@ export function InstallCostForm({
   onNotifyContractor,
   isNotifyingContractor,
 }: InstallCostFormProps) {
-  const [selectedBuilderTaskId, setSelectedBuilderTaskId] = useState<number | null>(
-    initialBuilderTaskId || null,
-  );
+  const [selectedBuilderTaskId, setSelectedBuilderTaskId] = useState<
+    number | null
+  >(initialBuilderTaskId || null);
   const [addSearchQuery, setAddSearchQuery] = useState("");
   const [drafts, setDrafts] = useState<
     Record<
@@ -107,7 +110,9 @@ export function InstallCostForm({
       }
     >
   >({});
-  const autosaveTimersRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+  const autosaveTimersRef = useRef<
+    Record<number, ReturnType<typeof setTimeout>>
+  >({});
   const taskTabsScrollRef = useRef<ScrollView>(null);
   const horizontalScrollXRef = useRef(0);
   const {
@@ -138,7 +143,9 @@ export function InstallCostForm({
     if (!builderTaskData?.builderTasks?.length) return;
     if (
       initialBuilderTaskId &&
-      builderTaskData.builderTasks.some((item) => item.id === initialBuilderTaskId)
+      builderTaskData.builderTasks.some(
+        (item) => item.id === initialBuilderTaskId,
+      )
     ) {
       setSelectedBuilderTaskId(initialBuilderTaskId);
       return;
@@ -175,14 +182,19 @@ export function InstallCostForm({
   );
 
   useEffect(() => {
-    setDrafts(
+    setDrafts((prev) =>
       Object.fromEntries(
         installTasks.map((item) => [
           item.installCostModelId,
-          {
-            qty: item.qty === null || item.qty === undefined ? "" : String(item.qty),
-            status: item.status || "inactive",
-          },
+          item.installCostModelId in prev
+            ? prev[item.installCostModelId]!
+            : {
+                qty:
+                  item.qty === null || item.qty === undefined
+                    ? ""
+                    : String(item.qty),
+                status: item.status || "inactive",
+              },
         ]),
       ),
     );
@@ -192,7 +204,8 @@ export function InstallCostForm({
     _trpc.community.updateCommunityModelInstallTask.mutationOptions({
       onSuccess() {
         _qc.invalidateQueries({
-          queryKey: _trpc.community.getModelInstallTasksByBuilderTask.queryKey(),
+          queryKey:
+            _trpc.community.getModelInstallTasksByBuilderTask.queryKey(),
         });
         _qc.invalidateQueries({
           queryKey: _trpc.community.getJobForm.queryKey(),
@@ -208,8 +221,10 @@ export function InstallCostForm({
       },
     }),
   );
-  const { mutateAsync: updateInstallCostRate, isPending: isCreatingInstallCostRate } =
-    useMutation(_trpc.community.updateInstallCostRate.mutationOptions());
+  const {
+    mutateAsync: updateInstallCostRate,
+    isPending: isCreatingInstallCostRate,
+  } = useMutation(_trpc.community.updateInstallCostRate.mutationOptions());
 
   const installTaskMap = useMemo(
     () =>
@@ -220,7 +235,10 @@ export function InstallCostForm({
   );
 
   const saveTaskDraft = useCallback(
-    (task: InstallTaskItem, draft: { qty: string; status: "active" | "inactive" }) => {
+    (
+      task: InstallTaskItem,
+      draft: { qty: string; status: "active" | "inactive" },
+    ) => {
       if (!modelId || !selectedBuilderTaskId) return;
       const parsedQty = draft.qty.trim() ? Number(draft.qty) : null;
       if (draft.qty.trim() && Number.isNaN(parsedQty)) return;
@@ -316,7 +334,9 @@ export function InstallCostForm({
         status: "active",
       });
       if (!created?.id) {
-        Toast.show("Unable to create install item right now.", { type: "error" });
+        Toast.show("Unable to create install item right now.", {
+          type: "error",
+        });
         return;
       }
 
@@ -343,7 +363,11 @@ export function InstallCostForm({
     const q = addSearchQuery.trim().toLowerCase();
     const list = (suggestions || []).filter((item) => !installTaskMap[item.id]);
     if (!q) return list;
-    return list.filter((item) => String(item.title || "").toLowerCase().includes(q));
+    return list.filter((item) =>
+      String(item.title || "")
+        .toLowerCase()
+        .includes(q),
+    );
   }, [addSearchQuery, installTaskMap, suggestions]);
   const trimmedSearchQuery = addSearchQuery.trim();
   const shouldShowCreateOption = trimmedSearchQuery.length > 0;
@@ -397,7 +421,9 @@ export function InstallCostForm({
     >
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerClassName={showNotifyFooter ? "gap-3 pb-44" : "gap-3 pb-36"}
+        contentContainerClassName={
+          showNotifyFooter ? "gap-3 pb-44" : "gap-3 pb-36"
+        }
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
         keyboardShouldPersistTaps="handled"
@@ -409,7 +435,10 @@ export function InstallCostForm({
             <Pressable
               onPress={() => {
                 const nextX = Math.max(0, horizontalScrollXRef.current - 180);
-                taskTabsScrollRef.current?.scrollTo({ x: nextX, animated: true });
+                taskTabsScrollRef.current?.scrollTo({
+                  x: nextX,
+                  animated: true,
+                });
               }}
               className="h-9 w-9 items-center justify-center rounded-full border border-border bg-background active:opacity-80"
             >
@@ -425,7 +454,8 @@ export function InstallCostForm({
               nestedScrollEnabled
               directionalLockEnabled
               onScroll={(event) => {
-                horizontalScrollXRef.current = event.nativeEvent.contentOffset.x;
+                horizontalScrollXRef.current =
+                  event.nativeEvent.contentOffset.x;
               }}
               scrollEventThrottle={16}
             >
@@ -437,7 +467,9 @@ export function InstallCostForm({
                     onPress={() => setSelectedBuilderTaskId(task.id)}
                     className={`rounded-full border px-4 py-2 ${selected ? "border-primary bg-primary/10" : "border-border bg-background"}`}
                   >
-                    <Text className={selected ? "text-primary" : "text-foreground"}>
+                    <Text
+                      className={selected ? "text-primary" : "text-foreground"}
+                    >
                       {task.taskName}
                     </Text>
                   </Pressable>
@@ -448,7 +480,10 @@ export function InstallCostForm({
             <Pressable
               onPress={() => {
                 const nextX = horizontalScrollXRef.current + 180;
-                taskTabsScrollRef.current?.scrollTo({ x: nextX, animated: true });
+                taskTabsScrollRef.current?.scrollTo({
+                  x: nextX,
+                  animated: true,
+                });
               }}
               className="h-9 w-9 items-center justify-center rounded-full border border-border bg-background active:opacity-80"
             >
@@ -459,7 +494,9 @@ export function InstallCostForm({
 
         {isInstallTasksPending ? <StepSkeleton /> : null}
 
-        {!isInstallTasksPending && !installTasks.length ? <EmptyInstallList /> : null}
+        {!isInstallTasksPending && !installTasks.length ? (
+          <EmptyInstallList />
+        ) : null}
 
         {!isInstallTasksPending &&
           installTasks.map((task, index) => {
@@ -491,13 +528,17 @@ export function InstallCostForm({
                     </Text>
                     <Text className="mt-0.5 text-xs text-muted-foreground">
                       ${unitCost.toFixed(2)}
-                      {task.installCostModel?.unit ? ` / ${task.installCostModel.unit}` : ""}
+                      {task.installCostModel?.unit
+                        ? ` / ${task.installCostModel.unit}`
+                        : ""}
                     </Text>
                   </View>
 
                   <Pressable
                     onPress={() =>
-                      setStatus(draft.status === "active" ? "inactive" : "active")
+                      setStatus(
+                        draft.status === "active" ? "inactive" : "active",
+                      )
                     }
                     className="h-6 w-6 items-center justify-center rounded-md border border-border"
                     accessibilityRole="checkbox"
@@ -511,7 +552,9 @@ export function InstallCostForm({
 
                 <View className="mt-3 flex-row items-center gap-2">
                   <View className="h-11 flex-1 flex-row items-center rounded-xl border border-border bg-card px-3">
-                    <Text className="mr-2 text-xs font-semibold text-muted-foreground">Qty</Text>
+                    <Text className="mr-2 text-xs font-semibold text-muted-foreground">
+                      Qty
+                    </Text>
                     <TextInput
                       keyboardType="decimal-pad"
                       value={draft.qty}
@@ -553,7 +596,11 @@ export function InstallCostForm({
         <Icon name="Plus" className="text-primary-foreground" size={22} />
       </Pressable>
 
-      <Modal ref={addInstallModalRef} title="Add Install Task Item" snapPoints={["82%"]}>
+      <Modal
+        ref={addInstallModalRef}
+        title="Add Install Task Item"
+        snapPoints={["82%"]}
+      >
         <BottomSheetScrollView
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
           keyboardShouldPersistTaps="handled"
@@ -606,7 +653,9 @@ export function InstallCostForm({
                   className="flex-row items-center justify-between rounded-xl border border-border bg-background px-3 py-2 active:opacity-80"
                 >
                   <View className="flex-1 pr-3">
-                    <Text className="text-sm font-semibold text-foreground">{item.title}</Text>
+                    <Text className="text-sm font-semibold text-foreground">
+                      {item.title}
+                    </Text>
                     <Text className="text-xs text-muted-foreground">
                       ${Number(item.unitCost || 0).toFixed(2)}
                       {item.unit ? ` / ${item.unit}` : ""}

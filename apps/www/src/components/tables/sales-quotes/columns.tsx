@@ -123,8 +123,7 @@ export const columns: ColumnDef<Item>[] = [
                     }
                 >
                     <SalesMenu.Notifications />
-                    <SalesMenu.Print />
-                    <SalesMenu.PDF />
+                    <SalesMenu.PrintModes />
                     <SalesMenu.Copy />
                     <SalesMenu.Move />
                 </SalesMenu>

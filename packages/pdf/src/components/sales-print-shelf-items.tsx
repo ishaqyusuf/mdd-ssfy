@@ -1,4 +1,4 @@
-import { Text, View } from "@react-pdf/renderer";
+import { Image, Text, View } from "@react-pdf/renderer";
 
 import { cn } from "@gnd/utils/react-pdf";
 import { colorsObject, hexToRgba } from "@gnd/utils/colors";
@@ -9,7 +9,16 @@ type SalesInvoiceTemplateProps = any;
 export default function SalesPrintShelfItems({
   printData: sale,
   index,
-}: SalesInvoiceTemplateProps & { index: number }) {
+  baseUrl,
+}: SalesInvoiceTemplateProps & { index: number; baseUrl?: string }) {
+  const resolveImageSrc = (src?: string | null) => {
+    if (!src) return null;
+    if (/^https?:\/\//i.test(src) || src.startsWith("data:")) return src;
+    if (!baseUrl) return src;
+    const normalizedBase = baseUrl.replace(/\/$/, "");
+    const normalizedSrc = src.startsWith("/") ? src : `/${src}`;
+    return `${normalizedBase}${normalizedSrc}`;
+  };
   // const { sale } = printData;
   const shelf = sale.orderedPrinting?.[index]?.shelf;
   if (!shelf) return null;
@@ -35,7 +44,7 @@ export default function SalesPrintShelfItems({
               style={{
                 ...cn(
                   "p-1 font-semibold",
-                  i == shelf?.cells?.length - 1 ? "" : "border-r uppercase"
+                  i == shelf?.cells?.length - 1 ? "" : "border-r uppercase",
                 ),
                 // flex: cell.colSpan,
                 width: width(cell.colSpan, shelf?.cells),
@@ -54,12 +63,30 @@ export default function SalesPrintShelfItems({
                 style={{
                   ...cn(
                     "p-1",
-                    ci == line.length - 1 ? "" : "border-r uppercase"
+                    ci == line.length - 1 ? "" : "border-r uppercase",
                   ),
                   width: width(cell?.colSpan, line),
                 }} // Use flex-1 to distribute space evenly
               >
-                <Text {...cell.style}>{cell.value}</Text>
+                {(() => {
+                  const imgSrc = resolveImageSrc(cell.image);
+                  return (
+                    <View style={cn("flex-col")}>
+                      {imgSrc ? (
+                        <Image
+                          src={imgSrc}
+                          style={{
+                            width: 40,
+                            height: 40,
+                            objectFit: "contain",
+                            marginBottom: 2,
+                          }}
+                        />
+                      ) : null}
+                      <Text {...cell.style}>{cell.value}</Text>
+                    </View>
+                  );
+                })()}
               </View>
             ))}
           </View>

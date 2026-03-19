@@ -7,7 +7,6 @@ import SalesPrintShelfItems from "../components/sales-print-shelf-items";
 import SalesPrintLineItems from "../components/sales-print-line-items";
 import SalesPrintFooter from "../components/sales-print-footer";
 import WatermarkPage from "../components/watermark-page";
-import { ComponentProps } from "react";
 // import { QRCode } from "../components/qr-code";
 // import { Info } from ".../.../generate-print-data";
 // import { DataCell } from "../components/data-cell";
@@ -110,12 +109,14 @@ export function SalesPdfTemplate(props: Props) {
                       <SalesPrintDoorItems
                         key={`door${i}`}
                         index={i}
+                        baseUrl={props.baseUrl}
                         printData={printData}
                       />
                     ) : (
                       <SalesPrintShelfItems
                         key={`shelf${i}`}
                         index={i}
+                        baseUrl={props.baseUrl}
                         printData={printData}
                       />
                     ),

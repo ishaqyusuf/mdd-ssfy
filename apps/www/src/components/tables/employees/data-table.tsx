@@ -12,6 +12,7 @@ import { Button } from "@gnd/ui/button";
 import Link from "next/link";
 import { Icons } from "@gnd/ui/icons";
 import { GetEmployeesSchema } from "@api/schemas/hrm";
+import { useRouter } from "next/navigation";
 interface Props {
     defaultFilters?: GetEmployeesSchema;
 }
@@ -30,6 +31,7 @@ export function DataTable(props: Props) {
         },
         route: _trpc.hrm.getEmployees,
     });
+    const router = useRouter();
     const tableScroll = useTableScroll({
         useColumnWidths: true,
         startFromColumn: 2,
@@ -70,9 +72,10 @@ export function DataTable(props: Props) {
                     // setRowSelection,
                     tableMeta: {
                         rowClick(id, rowData) {
-                            setParams({
-                                employeeViewId: rowData.id,
-                            });
+                            router.push(`/hrm/employees/v2/${rowData.id}`);
+                            // setParams({
+                            //     employeeViewId: rowData.id,
+                            // });
                         },
                     },
                 },
