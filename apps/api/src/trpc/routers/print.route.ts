@@ -62,7 +62,7 @@ export const printRouter = createTRPCRouter({
       // if (!payload) notFound();
 
       const printData = await generateLegacyPrintData(props.ctx.db, payload!);
-      consoleLog("PAYLOAD", printData!?.[0]?.pageData?.address);
+
       const title = printData.map((a) => a.orderNo).join("-");
       const safeTitle = title.replace(/[^\w\-]+/g, "_");
       const { preview } = props.input;
@@ -101,8 +101,7 @@ export const printRouter = createTRPCRouter({
 
       if (!payload) return null;
 
-      const mode: PrintMode =
-        LEGACY_TO_V2_MODE[payload.mode] ?? "invoice";
+      const mode: PrintMode = LEGACY_TO_V2_MODE[payload.mode] ?? "invoice";
 
       const { pages, title } = await getPrintData(props.ctx.db, {
         ids: payload.salesIds,
