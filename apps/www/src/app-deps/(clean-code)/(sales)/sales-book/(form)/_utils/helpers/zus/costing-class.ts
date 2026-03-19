@@ -227,7 +227,10 @@ export class CostingClass {
         let noHandle = this.setting.getRouteConfig(itemUid)?.noHandle;
         Object.entries(groupItem?.form ?? {}).map(([uid, formData]) => {
             const handleSum = sum([formData.qty.lh, formData.qty.rh]);
-            const qty = noHandle ? formData.qty?.total || handleSum : handleSum;
+            const existingTotal = Number(formData.qty?.total) || 0;
+            const qty = noHandle
+                ? existingTotal || handleSum
+                : handleSum || existingTotal;
             if (noHandle) formData.qty.lh = formData.qty.rh = 0;
             formData.qty.total = qty;
             this.getEstimatePricing(groupItem, formData);

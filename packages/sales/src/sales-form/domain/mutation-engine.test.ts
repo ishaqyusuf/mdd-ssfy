@@ -27,17 +27,30 @@ describe("mutation-engine domain", () => {
         step: { title: "Item Type" },
         componentId: null,
         prodUid: "",
+        meta: {},
       },
     ];
     const next = applySingleSelectStepMutation({
       steps,
       currentStepIndex: 0,
-      component: { id: 10, uid: "rootA", title: "Door", salesPrice: 100 },
+      component: {
+        id: 10,
+        uid: "rootA",
+        title: "Door",
+        salesPrice: 100,
+        redirectUid: "step-b",
+        sectionOverride: { overrideMode: true, noHandle: true },
+      },
       activeStepTitle: "Item Type",
     });
     expect(next[0].componentId).toBe(10);
     expect(next[0].prodUid).toBe("rootA");
     expect(next[0].value).toBe("Door");
+    expect(next[0].meta.redirectUid).toBe("step-b");
+    expect(next[0].meta.sectionOverride).toEqual({
+      overrideMode: true,
+      noHandle: true,
+    });
   });
 
   it("applies multi select mutation and stores selected components", () => {
@@ -74,6 +87,11 @@ describe("mutation-engine domain", () => {
     expect(result.hasSelection).toBe(true);
     expect(result.steps[0].meta.selectedProdUids).toEqual(["d1"]);
     expect(result.steps[0].value).toBe("Door A");
+    expect(result.steps[0].meta.redirectUid).toBe("next-step");
+    expect(result.steps[0].meta.sectionOverride).toEqual({
+      overrideMode: true,
+      noHandle: true,
+    });
     expect(result.steps[0].meta.selectedComponents[0].pricing).toEqual({
       "2-0 x 7-0": { price: 120 },
     });

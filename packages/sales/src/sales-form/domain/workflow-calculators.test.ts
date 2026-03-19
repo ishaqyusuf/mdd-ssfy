@@ -120,6 +120,42 @@ describe("workflow-calculators domain", () => {
     expect(config.hasSwing).toBe(true);
   });
 
+  it("lets the active component override beat persisted prior-step override state", () => {
+    const config = getRouteConfigForLine({
+      routeData: {
+        composedRouter: {
+          root1: { config: { noHandle: false, hasSwing: false } },
+        },
+      },
+      line: {
+        formSteps: [
+          {
+            prodUid: "root1",
+          },
+          {
+            meta: {
+              sectionOverride: {
+                overrideMode: true,
+                noHandle: true,
+                hasSwing: true,
+              },
+            },
+          },
+        ],
+      },
+      component: {
+        sectionOverride: {
+          overrideMode: true,
+          noHandle: false,
+          hasSwing: false,
+        },
+      },
+      step: {},
+    });
+    expect(config.noHandle).toBe(false);
+    expect(config.hasSwing).toBe(false);
+  });
+
   it("derives and summarizes service rows", () => {
     const rows = deriveServiceRows({
       lineUid: "l1",

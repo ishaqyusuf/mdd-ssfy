@@ -802,6 +802,7 @@ export function ItemWorkflowPanel() {
     });
     const [componentEditModal, setComponentEditModal] = useState<{
         open: boolean;
+        mode: "edit" | "sectionOverride";
         lineUid: string | null;
         stepIndex: number;
         componentUid: string;
@@ -814,6 +815,7 @@ export function ItemWorkflowPanel() {
         hasSwing: boolean;
     }>({
         open: false,
+        mode: "edit",
         lineUid: null,
         stepIndex: -1,
         componentUid: "",
@@ -1101,10 +1103,25 @@ export function ItemWorkflowPanel() {
             ? activeLine.housePackageTool.doors
             : [];
         if (!storedDoors.length) return null;
+        const selectedDoorComponents = getSelectedDoorComponentsForLine(
+            activeLine,
+        );
+        const activeDoorUid =
+            activeHptDoorUidByLine[activeLine.uid] ||
+            selectedDoorComponents[0]?.uid ||
+            "";
+        const activeDoorComponent =
+            selectedDoorComponents.find(
+                (component) =>
+                    String(component?.uid || "") === String(activeDoorUid),
+            ) ||
+            selectedDoorComponents[0] ||
+            null;
         const routeConfig = resolveRouteConfigForLine({
             routeData,
             line: activeLine,
             step: findLineStepByTitle(activeLine, "House Package Tool"),
+            component: activeDoorComponent,
         });
         const normalizedRows = applySharedDoorSurcharge(
             storedDoors,
@@ -1130,7 +1147,12 @@ export function ItemWorkflowPanel() {
             totalDoors: summary.totalDoors,
             totalPrice: summary.totalPrice,
         };
-    }, [activeLine, activeProfileCoefficient, routeData]);
+    }, [
+        activeHptDoorUidByLine,
+        activeLine,
+        activeProfileCoefficient,
+        routeData,
+    ]);
     useEffect(() => {
         if (!activeDoorSync) return;
         updateLineItem(activeDoorSync.lineUid, {
@@ -1876,6 +1898,7 @@ export function ItemWorkflowPanel() {
         line: (typeof record.lineItems)[number],
         stepIndex: number,
         component: any,
+        mode: "edit" | "sectionOverride" = "edit",
     ) {
         const step = (line.formSteps || [])[stepIndex];
         if (!step) return;
@@ -1889,6 +1912,7 @@ export function ItemWorkflowPanel() {
         const sectionOverride = current?.sectionOverride || component?.sectionOverride || {};
         setComponentEditModal({
             open: true,
+            mode,
             lineUid: line.uid,
             stepIndex,
             componentUid: String(component?.uid || ""),
@@ -1922,13 +1946,21 @@ export function ItemWorkflowPanel() {
             (item) => item.uid === componentEditModal.lineUid,
         );
         if (!line) {
-            setComponentEditModal((prev) => ({ ...prev, open: false }));
+            setComponentEditModal((prev) => ({
+                ...prev,
+                open: false,
+                mode: "edit",
+            }));
             return;
         }
         const steps = [...(line.formSteps || [])];
         const step = steps[componentEditModal.stepIndex];
         if (!step) {
-            setComponentEditModal((prev) => ({ ...prev, open: false }));
+            setComponentEditModal((prev) => ({
+                ...prev,
+                open: false,
+                mode: "edit",
+            }));
             return;
         }
         const salesPrice = Number(componentEditModal.salesPrice || 0);
@@ -1997,6 +2029,7 @@ export function ItemWorkflowPanel() {
         setComponentEditModal((prev) => ({
             ...prev,
             open: false,
+            mode: "edit",
         }));
     }
     function removeSelectedComponentFromStep(
@@ -2120,17 +2153,6 @@ export function ItemWorkflowPanel() {
         activeItemStep: any,
     ) {
         const rows = line.housePackageTool?.doors || [];
-        const routeConfig = resolveRouteConfigForLine({
-            routeData,
-            line,
-            step: activeItemStep,
-        });
-        const noHandle = !!routeConfig?.noHandle;
-        const hasSwing = !!routeConfig?.hasSwing;
-        const summary = summarizeDoors(rows, { noHandle, hasSwing });
-        const sharedDoorSurcharge = computeSharedDoorSurcharge(line);
-        const doorStep = findLineStepByTitle(line, "Door");
-        const supplier = getDoorSupplierMeta(doorStep);
         const selectedDoorComponents = getSelectedDoorComponentsForLine(line);
         const doorStepIndex = (line.formSteps || []).findIndex((step: any) =>
             isDoorStepTitle(step?.step?.title),
@@ -2145,6 +2167,18 @@ export function ItemWorkflowPanel() {
             ) ||
             selectedDoorComponents[0] ||
             null;
+        const routeConfig = resolveRouteConfigForLine({
+            routeData,
+            line,
+            step: activeItemStep,
+            component: activeDoorComponent,
+        });
+        const noHandle = !!routeConfig?.noHandle;
+        const hasSwing = !!routeConfig?.hasSwing;
+        const summary = summarizeDoors(rows, { noHandle, hasSwing });
+        const sharedDoorSurcharge = computeSharedDoorSurcharge(line);
+        const doorStep = findLineStepByTitle(line, "Door");
+        const supplier = getDoorSupplierMeta(doorStep);
         const focusedRows = activeDoorComponent
             ? summary.rows.filter(
                   (row) =>
@@ -5104,6 +5138,18 @@ export function ItemWorkflowPanel() {
                                                 </Menu.Item>
                                                 <Menu.Item
                                                     onClick={() =>
+                                                        openComponentEditForm(
+                                                            line,
+                                                            activeIndex,
+                                                            component,
+                                                            "sectionOverride",
+                                                        )
+                                                    }
+                                                >
+                                                    Section Setting Override
+                                                </Menu.Item>
+                                                <Menu.Item
+                                                    onClick={() =>
                                                         saveSelectedComponent({
                                                             line,
                                                             steps,
@@ -5720,14 +5766,24 @@ export function ItemWorkflowPanel() {
             <Dialog
                 open={componentEditModal.open}
                 onOpenChange={(open) =>
-                    setComponentEditModal((prev) => ({ ...prev, open }))
+                    setComponentEditModal((prev) => ({
+                        ...prev,
+                        open,
+                        mode: open ? prev.mode : "edit",
+                    }))
                 }
             >
                 <DialogContent className="max-w-xl">
                     <DialogHeader>
-                        <DialogTitle>Component Edit</DialogTitle>
+                        <DialogTitle>
+                            {componentEditModal.mode === "sectionOverride"
+                                ? "Section Setting Override"
+                                : "Component Edit"}
+                        </DialogTitle>
                         <DialogDescription>
-                            Standard component edit form for this line step.
+                            {componentEditModal.mode === "sectionOverride"
+                                ? "Configure how this component overrides the section behavior."
+                                : "Standard component edit form for this line step."}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-1">
@@ -5735,55 +5791,59 @@ export function ItemWorkflowPanel() {
                             <Label>Component</Label>
                             <Input value={componentEditModal.componentTitle} readOnly />
                         </div>
-                        <div className="grid gap-2">
-                            <FileUploader
-                                src={componentEditModal.componentImg || null}
-                                label="Component Image"
-                                folder="dyke"
-                                width={120}
-                                height={120}
-                                onUpload={(assetId) =>
-                                    setComponentEditModal((prev) => ({
-                                        ...prev,
-                                        componentImg: String(assetId || ""),
-                                    }))
-                                }
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label>Sales Cost</Label>
-                            <Input
-                                type="number"
-                                step="0.01"
-                                value={componentEditModal.salesPrice}
-                                onChange={(e) =>
-                                    setComponentEditModal((prev) => ({
-                                        ...prev,
-                                        salesPrice: e.target.value,
-                                    }))
-                                }
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label>Redirect</Label>
-                            <select
-                                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                                value={componentEditModal.redirectUid || ""}
-                                onChange={(e) =>
-                                    setComponentEditModal((prev) => ({
-                                        ...prev,
-                                        redirectUid: e.target.value,
-                                    }))
-                                }
-                            >
-                                <option value="">None</option>
-                                {getRedirectableRoutes(routeData).map((route) => (
-                                    <option key={`edit-redirect-${route.uid}`} value={route.uid}>
-                                        {route.title}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                        {componentEditModal.mode === "edit" ? (
+                            <>
+                                <div className="grid gap-2">
+                                    <FileUploader
+                                        src={componentEditModal.componentImg || null}
+                                        label="Component Image"
+                                        folder="dyke"
+                                        width={120}
+                                        height={120}
+                                        onUpload={(assetId) =>
+                                            setComponentEditModal((prev) => ({
+                                                ...prev,
+                                                componentImg: String(assetId || ""),
+                                            }))
+                                        }
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>Sales Cost</Label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        value={componentEditModal.salesPrice}
+                                        onChange={(e) =>
+                                            setComponentEditModal((prev) => ({
+                                                ...prev,
+                                                salesPrice: e.target.value,
+                                            }))
+                                        }
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>Redirect</Label>
+                                    <select
+                                        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                                        value={componentEditModal.redirectUid || ""}
+                                        onChange={(e) =>
+                                            setComponentEditModal((prev) => ({
+                                                ...prev,
+                                                redirectUid: e.target.value,
+                                            }))
+                                        }
+                                    >
+                                        <option value="">None</option>
+                                        {getRedirectableRoutes(routeData).map((route) => (
+                                            <option key={`edit-redirect-${route.uid}`} value={route.uid}>
+                                                {route.title}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </>
+                        ) : null}
                         <div className="rounded-md border p-3">
                             <div className="mb-2 flex items-center justify-between">
                                 <Label>Section Setting Override</Label>
@@ -5834,6 +5894,7 @@ export function ItemWorkflowPanel() {
                                 setComponentEditModal((prev) => ({
                                     ...prev,
                                     open: false,
+                                    mode: "edit",
                                 }))
                             }
                         >

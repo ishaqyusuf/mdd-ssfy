@@ -138,7 +138,7 @@ export class SettingsClass extends CostingClass {
         const config = route[componentUid]?.config || {};
 
         let _baseConfig = config || {};
-        let componentOverride = this.getRouteOverrideConfig();
+        let componentOverride = this.getRouteOverrideConfig(itemUid);
         // if (componentOverride)
         return {
             ..._baseConfig,

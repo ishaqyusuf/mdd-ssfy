@@ -93,6 +93,8 @@ export function applyMultiSelectStepMutation({
     meta: {
       ...(current.meta || {}),
       img: primary?.img || null,
+      redirectUid: primary?.redirectUid || null,
+      sectionOverride: primary?.sectionOverride || null,
       selectedProdUids: selectedUids,
       selectedComponents: selectedComponents.map((c: any) =>
         snapshotSelectedComponent(c),
@@ -143,6 +145,8 @@ export function applySingleSelectStepMutation({
     meta: {
       ...(current.meta || {}),
       img: component.img || null,
+      redirectUid: component.redirectUid || null,
+      sectionOverride: component.sectionOverride || null,
     },
     step: {
       ...(current.step || {

@@ -8,7 +8,8 @@ import {
 } from "./utils/utils";
 import { formatDate } from "@gnd/utils/dayjs";
 import { formatCurrency as _formatCurrency, sum } from "@gnd/utils";
-import { AddressBookMeta, CustomerMeta } from "./types";
+import { getSalesSetting, type SalesSetting } from "./sales-control/settings";
+import { AddressBookMeta, CustomerMeta, StepComponentMeta } from "./types";
 import { SalesPrintModes } from "./constants";
 
 function formatCurrency(value) {
@@ -19,6 +20,7 @@ export async function generateLegacyPrintData(
   db: Db,
   tokenData: SalesPdfToken,
 ) {
+  const setting = await getSalesSetting(db);
   const sales = await db.salesOrders.findMany({
     include: SalesIncludeAll,
     where: {
@@ -49,6 +51,7 @@ export async function generateLegacyPrintData(
       {
         ...salesitems,
         order: s,
+        setting,
       },
       {
         mode,
@@ -191,6 +194,7 @@ export function composeDoorDetails(
 
 type PrintData = {
   order: ViewSaleType;
+  setting?: SalesSetting | null;
   isEstimate?: boolean;
   isProd?: boolean;
   isPacking?: boolean;
@@ -442,10 +446,24 @@ function getDoorsTable(
 
         const is = isComponentType(doorType);
 
-        const noHandle = !!item.configs
-          ? item.configs?.noHandle
-          : is.bifold || is.service || is.slab;
-        const hasSwing = item.configs?.hasSwing;
+        const ovs = item.formSteps
+          ?.map(
+            (fs) =>
+              (fs.component?.meta as any as StepComponentMeta)?.sectionOverride,
+          )
+          ?.filter(Boolean);
+        const sectionOverride = ovs?.find((s) => s!.overrideMode);
+        const rootStep = item.formSteps?.find(
+          (fs) => fs.step.title === "Item Type",
+        );
+        const rootConfig =
+          data.setting?.data?.route?.[rootStep?.prodUid!]?.config;
+        const resolvedConfig = sectionOverride || rootConfig || item.configs;
+
+        const noHandle = resolvedConfig
+          ? resolvedConfig?.noHandle
+          : !is.bifold && !is.service && !is.slab;
+        const hasSwing = resolvedConfig ? resolvedConfig.hasSwing : is.garage;
 
         const res = {
           cells: [
@@ -492,7 +510,7 @@ function getDoorsTable(
                           { position: "left" },
                         ),
                       ]),
-                  ...(is.garage ? [_cell("Swing", "swing", 2, {}, {})] : []),
+                  ...(hasSwing ? [_cell("Swing", "swing", 2, {}, {})] : []),
                   ...// is.bifold || is.slab || is.service
                   (noHandle
                     ? [_cell("Qty", "qty", 1.2, "text-center", "text-center")]
