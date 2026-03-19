@@ -2,6 +2,7 @@
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { useJobParams } from "@/hooks/use-contractor-jobs-params";
 import { useNotifications } from "@/hooks/use-notifications";
+import { useSalesOverviewOpen } from "@/hooks/use-sales-overview-open";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { Popover, Tabs } from "@gnd/ui/namespace";
@@ -37,10 +38,18 @@ export function NotificationCenter() {
     const { setParams: setCommunityInstallCostParams } =
         useCommunityInstallCostParams();
     const { setParams: setJobParams } = useJobParams();
+    const salesOverview = useSalesOverviewOpen();
     const handlers = createNotificationHandlers<{ close: () => void }>({
         job_submitted: (data, _notification, context) => {
             context.close();
             setJobParams({ openJobId: Number(data.jobId) });
+        },
+        sales_checkout_success: (data, _notification, context) => {
+            const firstOrderNo = data.orderNos[0];
+            if (!firstOrderNo) return;
+
+            context.close();
+            salesOverview.openSalesAdminPage(String(firstOrderNo));
         },
         job_task_configure_request: (data, _notification, context) => {
             context.close();

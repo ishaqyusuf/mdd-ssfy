@@ -2,10 +2,12 @@ import {
   type DispatchPackingDelayTags,
   type JobSubmittedTags,
   type JobTaskConfigureRequestTags,
+  type SalesCheckoutSuccessTags,
   type SalesDispatchDuplicateAlertTags,
   dispatchPackingDelayTags,
   jobSubmittedTags,
   jobTaskConfigureRequestTags,
+  salesCheckoutSuccessTags,
   salesDispatchDuplicateAlertTags,
 } from "./schemas";
 
@@ -26,6 +28,7 @@ type NotificationActionPayloadMap = {
   job_task_configure_request: Omit<JobTaskConfigureRequestTags, "type">;
   dispatch_packing_delay: Omit<DispatchPackingDelayTags, "type">;
   sales_dispatch_duplicate_alert: Omit<SalesDispatchDuplicateAlertTags, "type">;
+  sales_checkout_success: Omit<SalesCheckoutSuccessTags, "type">;
 };
 
 export type NotificationActionType = keyof NotificationActionPayloadMap;
@@ -123,6 +126,16 @@ function parseAction(
     return {
       type: "sales_dispatch_duplicate_alert",
       label: "Open Dispatch",
+      data: parsed.data,
+    };
+  }
+
+  if (type === "sales_checkout_success") {
+    const parsed = salesCheckoutSuccessTags.safeParse(tags);
+    if (!parsed.success) return undefined;
+    return {
+      type: "sales_checkout_success",
+      label: "Open Sale",
       data: parsed.data,
     };
   }

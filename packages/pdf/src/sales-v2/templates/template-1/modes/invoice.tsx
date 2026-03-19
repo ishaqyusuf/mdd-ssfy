@@ -9,6 +9,7 @@ import {
   ServiceBlock,
   ShelfBlock,
   LineItemBlock,
+  ImageGalleryBlock,
   FooterBlock,
   SignatureBlock,
 } from "../blocks";
@@ -90,6 +91,12 @@ export function InvoiceMode({
               );
           }
         })}
+
+        {config.showImages ? (
+          <View style={page.sections.length > 0 ? { marginTop: 6 } : undefined}>
+            <ImageGalleryBlock sections={page.sections} baseUrl={baseUrl} />
+          </View>
+        ) : null}
       </View>
 
       <View

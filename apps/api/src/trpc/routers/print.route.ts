@@ -1,5 +1,8 @@
 import { createTRPCRouter, publicProcedure } from "../init";
 import z from "zod";
+import fs from "node:fs";
+import path from "node:path";
+import { createRequire } from "node:module";
 import {
   generatePrintData,
   modelPrintSchema,
@@ -31,6 +34,48 @@ const LAKE_WALES_ADDRESS = {
   address2: "Lake Wales FL 33859",
   phone: "863-275-1011",
 };
+
+const requireFromHere = createRequire(import.meta.url);
+
+async function loadSharp() {
+  const resolutionBases = [
+    process.cwd(),
+    path.join(process.cwd(), "..", "www"),
+    path.join(process.cwd(), "..", "..", "apps", "www"),
+  ];
+
+  for (const base of resolutionBases) {
+    try {
+      const resolved = requireFromHere.resolve("sharp", { paths: [base] });
+      const mod = requireFromHere(resolved);
+      return mod.default ?? mod;
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
+
+async function getGrayscaleWatermark() {
+  const candidates = [
+    path.join(process.cwd(), "public", "logo.png"),
+    path.join(process.cwd(), "..", "www", "public", "logo.png"),
+    path.join(process.cwd(), "..", "..", "apps", "www", "public", "logo.png"),
+  ];
+
+  const logoPath = candidates.find((candidate) => fs.existsSync(candidate));
+  if (!logoPath) return null;
+
+  try {
+    const sharp = await loadSharp();
+    if (!sharp) return null;
+    const buffer = await sharp(logoPath).grayscale().png().toBuffer();
+    return `data:image/png;base64,${buffer.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
 
 export const printRouter = createTRPCRouter({
   modelTemplate: publicProcedure
@@ -66,14 +111,7 @@ export const printRouter = createTRPCRouter({
       const safeTitle = title.replace(/[^\w\-]+/g, "_");
       const { preview } = props.input;
       const pages = printData.map((a) => a.pageData);
-      const watermark = await (async () => {
-        // try {
-        //     const logoPath = path.join(process.cwd(), "public", "logo.png");
-        //     const buffer = await sharp(logoPath).grayscale().toBuffer();
-        //     return `data:image/png;base64,${buffer.toString("base64")}`;
-        // } catch (error) {}
-        return null;
-      })();
+      const watermark = await getGrayscaleWatermark();
       // return sales(props.ctx, props.input);
       return {
         pages,
@@ -123,7 +161,7 @@ export const printRouter = createTRPCRouter({
         title: title.replace(/[^\w\-]+/g, "_"),
         templateId: props.input.templateId,
         companyAddress,
-        watermark: null,
+        watermark: await getGrayscaleWatermark(),
       };
     }),
 });

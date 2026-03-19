@@ -84,6 +84,17 @@ export function NotificationCenterScreen() {
     job_submitted: (data) => {
       router.push(`/job/${data.jobId}` as any);
     },
+    sales_checkout_success: (data) => {
+      const firstOrderNo = data.orderNos[0];
+      if (!firstOrderNo) return;
+
+      router.push({
+        pathname: "/(sales)/orders/[orderNo]",
+        params: {
+          orderNo: String(firstOrderNo),
+        },
+      });
+    },
     job_task_configure_request: (data) => {
       router.push({
         pathname: "/(job)/install-cost/[modelId]/form",

@@ -9,6 +9,7 @@ import {
   ServiceBlock,
   ShelfBlock,
   LineItemBlock,
+  ImageGalleryBlock,
 } from "../blocks";
 
 interface ProductionModeProps {
@@ -92,6 +93,12 @@ export function ProductionMode({
               );
           }
         })}
+
+        {config.showImages ? (
+          <View style={page.sections.length > 0 ? { marginTop: 6 } : undefined}>
+            <ImageGalleryBlock sections={page.sections} baseUrl={baseUrl} />
+          </View>
+        ) : null}
       </View>
     </>
   );

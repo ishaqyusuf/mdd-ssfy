@@ -55,6 +55,7 @@ packages/pdf/src/sales-v2/
 │   │   │   ├── service-block.tsx
 │   │   │   ├── shelf-block.tsx
 │   │   │   ├── line-item-block.tsx
+│   │   │   ├── image-gallery-block.tsx
 │   │   │   ├── footer-block.tsx
 │   │   │   └── signature-block.tsx
 │   │   └── modes/              # each print mode composed separately
@@ -205,4 +206,5 @@ Once the v2 print system is stable:
 - Template behavior matches the legacy print flow for customer signoff: `invoice`, `quote`, and packing modes render the signature block, while `production` intentionally omits footer/signature content.
 - Product image resolution in Sales PDF V2 mirrors the new sales form: stored image keys resolve through `NEXT_PUBLIC_CLOUDINARY_BASE_URL` under the `dyke/` bucket first, while absolute/data/blob URLs pass through unchanged.
 - V2 now mirrors the legacy three-bucket content split: door-like sections (doors, mouldings, HPT services), shelf sections, and generic line-item sections. Generic invoice lines are composed separately from non-HPT, non-shelf sales items and then merged into `page.sections` by line order.
+- Template 1 now appends a deduplicated end-of-document image reference block that collects unique row images, renders them in a larger grid, and labels each image with its row title.
 - Existing public tokenized download URLs remain stable while internals migrate.

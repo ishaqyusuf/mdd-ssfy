@@ -9,6 +9,7 @@ import {
   ServiceBlock,
   ShelfBlock,
   LineItemBlock,
+  ImageGalleryBlock,
   SignatureBlock,
 } from "../blocks";
 
@@ -93,6 +94,12 @@ export function PackingSlipMode({
               );
           }
         })}
+
+        {config.showImages ? (
+          <View style={page.sections.length > 0 ? { marginTop: 6 } : undefined}>
+            <ImageGalleryBlock sections={page.sections} baseUrl={baseUrl} />
+          </View>
+        ) : null}
       </View>
 
       <View
