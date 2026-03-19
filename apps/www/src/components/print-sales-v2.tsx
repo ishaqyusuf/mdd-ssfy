@@ -4,6 +4,7 @@ import { _trpc } from "./static-trpc";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { useSalesPrintFilter } from "@/hooks/use-sales-print-filter";
+import { getBaseUrl } from "@/lib/base-url";
 import { PDFViewer } from "@gnd/pdf";
 import { SalesPdfDocument } from "@gnd/pdf/sales-v2";
 
@@ -34,7 +35,7 @@ export function PrintSalesV2() {
                 title={data.title}
                 companyAddress={data.companyAddress}
                 watermark={data.watermark ?? undefined}
-                baseUrl={process.env.NEXT_PUBLIC_APP_URL}
+                baseUrl={getBaseUrl()}
             />
         </PDFViewer>
     );

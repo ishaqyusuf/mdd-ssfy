@@ -10,6 +10,7 @@ import {
   ShelfBlock,
   LineItemBlock,
   FooterBlock,
+  SignatureBlock,
 } from "../blocks";
 
 interface InvoiceModeProps {
@@ -97,6 +98,7 @@ export function InvoiceMode({
           justifyContent: "flex-end",
         }}
       >
+        <SignatureBlock />
         {page.footer && <FooterBlock footer={page.footer} />}
       </View>
     </>

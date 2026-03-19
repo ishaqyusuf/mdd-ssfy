@@ -2,10 +2,13 @@ export function resolveImageSrc(
   src: string | null | undefined,
   baseUrl?: string,
 ): string | null {
+  console.log(src);
   if (!src) return null;
   if (/^https?:\/\//i.test(src) || src.startsWith("data:")) return src;
   if (!baseUrl) return src;
-  const normalizedBase = baseUrl.replace(/\/$/, "");
+  const normalizedBase = /^https?:\/\//i.test(baseUrl)
+    ? baseUrl.replace(/\/$/, "")
+    : `https://${baseUrl.replace(/\/$/, "")}`;
   const normalizedSrc = src.startsWith("/") ? src : `/${src}`;
   return `${normalizedBase}${normalizedSrc}`;
 }

@@ -200,4 +200,7 @@ Once the v2 print system is stable:
 - Adding a template = creating a new folder under `templates/` and registering it.
 - `templateId` defaults to `"classic"` — backward compatible with no client changes.
 - Image fields (`image?: string`) are first-class on `DoorRow`, `MouldingRow`, and `ShelfRow`.
+- Client PDF preview should pass a fully qualified origin via `getBaseUrl()` so image rows resolve correctly in-browser; shared `resolveImageSrc()` also normalizes host-only base URLs by prefixing `https://`.
+- `packages/pdf/src/utils/tw.ts` acts as the safety bridge for `react-pdf-tailwind` in Sales PDF V2: it filters blank class tokens and maps unsupported classes like `col-span-*` to plain react-pdf style objects so ports from the legacy helper stay warning-free.
+- Template behavior matches the legacy print flow for customer signoff: `invoice`, `quote`, and packing modes render the signature block, while `production` intentionally omits footer/signature content.
 - Existing public tokenized download URLs remain stable while internals migrate.
