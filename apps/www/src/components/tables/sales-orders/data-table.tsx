@@ -15,101 +15,105 @@ import Link from "next/link";
 
 import { BatchActions } from "./batch-actions";
 import { columns } from "./columns";
+import { useSalesOverviewV2SheetQuery } from "@/hooks/use-sales-overview-v2-sheet-query";
+import { useSalesOverviewOpen } from "@/hooks/use-sales-overview-open";
 
 interface Props {
-	defaultFilters?: RouterInputs["sales"]["getOrders"];
-	singlePage?: boolean;
-	bin?: boolean;
+    defaultFilters?: RouterInputs["sales"]["getOrders"];
+    singlePage?: boolean;
+    bin?: boolean;
 }
 export function DataTable(props: Props) {
-	const { rowSelection, setRowSelection } = useSalesOrdersStore();
-	const { filters, hasFilters, setFilters } = useOrderFilterParams();
-	const {
-		data,
-		ref: loadMoreRef,
-		hasNextPage,
-		isFetching,
-	} = useTableData({
-		filter: {
-			...filters,
-			...(props.defaultFilters || {}),
-			bin: props.bin,
-		},
-		route: _trpc.sales.getOrders,
-	});
-	const tableScroll = useTableScroll({
-		useColumnWidths: true,
-		startFromColumn: 2,
-	});
-	const overviewQuery = useSalesOverviewQuery();
-	// Enable this when you want row clicks to open the new v2 sheet instead.
-	// const v2SheetQuery = useSalesOverviewV2SheetQuery();
-	// const openSalesOverviewV2Sheet = (rowData) => {
-	//     v2SheetQuery.setParams({
-	//         overviewSheetId: rowData.uuid,
-	//         overviewSheetType: "sales",
-	//         overviewSheetMode: "sales",
-	//         overviewSheetTab: "overview",
-	//     });
-	// };
-	if (hasFilters && !data?.length) {
-		return <NoResults setFilter={setFilters} />;
-	}
+    const { rowSelection, setRowSelection } = useSalesOrdersStore();
+    const { filters, hasFilters, setFilters } = useOrderFilterParams();
+    const {
+        data,
+        ref: loadMoreRef,
+        hasNextPage,
+        isFetching,
+    } = useTableData({
+        filter: {
+            ...filters,
+            ...(props.defaultFilters || {}),
+            bin: props.bin,
+        },
+        route: _trpc.sales.getOrders,
+    });
+    const tableScroll = useTableScroll({
+        useColumnWidths: true,
+        startFromColumn: 2,
+    });
+    const overviewQuery = useSalesOverviewQuery();
+    // Enable this when you want row clicks to open the new v2 sheet instead.
+    // const v2SheetQuery = useSalesOverviewV2SheetQuery();
+    // const openSalesOverviewV2Sheet = (rowData) => {
+    //     v2SheetQuery.setParams({
+    //         overviewSheetId: rowData.uuid,
+    //         overviewSheetType: "sales",
+    //         overviewSheetMode: "sales",
+    //         overviewSheetTab: "overview",
+    //     });
+    // };
+    const { openSalesAdminSheet } = useSalesOverviewOpen();
+    if (hasFilters && !data?.length) {
+        return <NoResults setFilter={setFilters} />;
+    }
 
-	if (!data?.length && !isFetching) {
-		return (
-			<EmptyState
-				CreateButton={
-					<Button asChild size="sm">
-						<Link href="/sales-book/create-order">
-							<Icons.add className="mr-2 size-4" />
-							<span>New</span>
-						</Link>
-					</Button>
-				}
-			/>
-		);
-	}
-	return (
-		<Table.Provider
-			args={[
-				{
-					columns,
-					// mobileColumn: mobileColumn,
-					data,
-					checkbox: true,
-					tableScroll,
-					rowSelection,
-					props: {
-						hasNextPage,
-						loadMoreRef: props.singlePage ? null : loadMoreRef,
-					},
-					setRowSelection,
-					tableMeta: {
-						rowClick(id, rowData) {
-							overviewQuery.open2(rowData.uuid, "sales");
-							// openSalesOverviewV2Sheet(rowData);
-						},
-					},
-				},
-			]}
-		>
-			<div className="flex flex-col gap-4 w-full">
-				<Table.SummaryHeader />
-				<div
-					ref={tableScroll.containerRef}
-					className="overflow-x-auto overscroll-x-none md:border-l md:border-r border-border scrollbar-hide"
-				>
-					<Table>
-						<Table.TableHeader />
-						<Table.Body>
-							<Table.TableRow />
-						</Table.Body>
-					</Table>
-				</div>
-				<Table.LoadMore />
-				<BatchActions />
-			</div>
-		</Table.Provider>
-	);
+    if (!data?.length && !isFetching) {
+        return (
+            <EmptyState
+                CreateButton={
+                    <Button asChild size="sm">
+                        <Link href="/sales-book/create-order">
+                            <Icons.add className="mr-2 size-4" />
+                            <span>New</span>
+                        </Link>
+                    </Button>
+                }
+            />
+        );
+    }
+    return (
+        <Table.Provider
+            args={[
+                {
+                    columns,
+                    // mobileColumn: mobileColumn,
+                    data,
+                    checkbox: true,
+                    tableScroll,
+                    rowSelection,
+                    props: {
+                        hasNextPage,
+                        loadMoreRef: props.singlePage ? null : loadMoreRef,
+                    },
+                    setRowSelection,
+                    tableMeta: {
+                        rowClick(id, rowData) {
+                            overviewQuery.open2(rowData.uuid, "sales");
+                            // openSalesAdminSheet(rowData.uuid)
+                        },
+                    },
+                },
+            ]}
+        >
+            <div className="flex flex-col gap-4 w-full">
+                <Table.SummaryHeader />
+                <div
+                    ref={tableScroll.containerRef}
+                    className="overflow-x-auto overscroll-x-none md:border-l md:border-r border-border scrollbar-hide"
+                >
+                    <Table>
+                        <Table.TableHeader />
+                        <Table.Body>
+                            <Table.TableRow />
+                        </Table.Body>
+                    </Table>
+                </div>
+                <Table.LoadMore />
+                <BatchActions />
+            </div>
+        </Table.Provider>
+    );
 }
+

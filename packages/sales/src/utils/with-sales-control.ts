@@ -76,7 +76,6 @@ function isControlDebugEnabled() {
 
 function controlDebugLog(label: string, payload: Record<string, unknown>) {
   if (!isControlDebugEnabled()) return;
-  console.log(`[sales-control] ${label}`, payload);
 }
 
 function isDispatchStatus(
@@ -317,7 +316,8 @@ function buildControlsByOrderMap(
     const type = control.type as QtyControlType;
     if (!QTY_CONTROL_TYPES.includes(type)) continue;
 
-    target.stats[type] = sumQtyStat(target.stats[type],
+    target.stats[type] = sumQtyStat(
+      target.stats[type],
       toQtyStat({
         lhQty: toNumber(control.lh),
         rhQty: toNumber(control.rh),
@@ -548,7 +548,8 @@ export async function withSalesControl<T extends { id: number }>(
       dispatchCompleted: sumControls(controls, "dispatchCompleted"),
       dispatchCancelled: sumControls(controls, "dispatchCancelled"),
     };
-    const dispatchStatus = deriveDispatchStatusFromControls(baseDispatchControls);
+    const dispatchStatus =
+      deriveDispatchStatusFromControls(baseDispatchControls);
     const statistic = toStatistic(controls, packed, dispatchStatus);
 
     controlDebugLog("withSalesControl.orderStatistic", {
@@ -643,15 +644,14 @@ export async function withDispatchControl<
     const listed = listedByDispatch.get(dispatch.id) ?? emptyQtyStat();
 
     const storedStatus = dispatchStatusById.get(dispatch.id);
-    const dispatchStatus =
-      isDispatchStatus(storedStatus)
-        ? storedStatus
-        : deriveDispatchStatusFromControls({
-            dispatchAssigned: sumControls(controls, "dispatchAssigned"),
-            dispatchInProgress: sumControls(controls, "dispatchInProgress"),
-            dispatchCompleted: sumControls(controls, "dispatchCompleted"),
-            dispatchCancelled: sumControls(controls, "dispatchCancelled"),
-          });
+    const dispatchStatus = isDispatchStatus(storedStatus)
+      ? storedStatus
+      : deriveDispatchStatusFromControls({
+          dispatchAssigned: sumControls(controls, "dispatchAssigned"),
+          dispatchInProgress: sumControls(controls, "dispatchInProgress"),
+          dispatchCompleted: sumControls(controls, "dispatchCompleted"),
+          dispatchCancelled: sumControls(controls, "dispatchCancelled"),
+        });
 
     const statistic = toStatistic(controls, packed, dispatchStatus);
     statistic.pendingPacking = diffQtyStat(listed, packed);

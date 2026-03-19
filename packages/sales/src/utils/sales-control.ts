@@ -22,7 +22,6 @@ function isControlDebugEnabled() {
 
 function controlDebugLog(label: string, payload: Record<string, unknown>) {
   if (!isControlDebugEnabled()) return;
-  console.log(`[sales-control] ${label}`, payload);
 }
 
 export const composeQtyMatrix = (rh, lh, qty) => {
@@ -212,7 +211,7 @@ export function composeSalesItemControlStat({
       (a) =>
         a.itemId == props.itemId &&
         a.salesDoorId == props.doorId &&
-        a.shelfItemId == props.shelfId
+        a.shelfItemId == props.shelfId,
     )
     .filter((a) => {
       if (a.salesDoorId) return true;
@@ -233,7 +232,7 @@ export function composeSalesItemControlStat({
       lh,
       rh,
       qty,
-    }))
+    })),
   );
   const submitted = qtyMatrixSum(
     ...assignments
@@ -242,9 +241,9 @@ export function composeSalesItemControlStat({
           lh,
           rh,
           qty,
-        }))
+        })),
       )
-      .flat()
+      .flat(),
   );
   const deliverables = assignments
     .map((assignment) => {
@@ -257,10 +256,10 @@ export function composeSalesItemControlStat({
               qtyMatrixSum(
                 ...d.items
                   .filter((i) => i.orderProductionSubmissionId == s.id)
-                  .map(transformQtyHandle)
-              )
+                  .map(transformQtyHandle),
+              ),
             )
-            .flat()
+            .flat(),
         );
         return {
           submissionId: s.id,
@@ -286,31 +285,31 @@ export function composeSalesItemControlStat({
           status: d.status as SalesDispatchStatus,
           orderProductionSubmissionId,
         }))
-        .filter((a) => submissionIds.includes(a.orderProductionSubmissionId!))
+        .filter((a) => submissionIds.includes(a.orderProductionSubmissionId!)),
     )
     .flat();
   const dispatch = {
     queued: qtyMatrixSum(
-      ...(deliveries.filter((a) => a.status == "queue") as any)
+      ...(deliveries.filter((a) => a.status == "queue") as any),
     ),
     inProgress: qtyMatrixSum(
-      ...(deliveries.filter((a) => a.status == "in progress") as any)
+      ...(deliveries.filter((a) => a.status == "in progress") as any),
     ),
     completed: qtyMatrixSum(
-      ...(deliveries.filter((a) => a.status == "completed") as any)
+      ...(deliveries.filter((a) => a.status == "completed") as any),
     ),
     cancelled: qtyMatrixSum(
-      ...(deliveries.filter((a) => a.status == "cancelled") as any)
+      ...(deliveries.filter((a) => a.status == "cancelled") as any),
     ),
   };
   const pendingDispatch = qtyMatrixDifference(
     qty,
-    qtyMatrixSum(dispatch.queued, dispatch.inProgress, dispatch.completed)
+    qtyMatrixSum(dispatch.queued, dispatch.inProgress, dispatch.completed),
   );
 
   const availableDispatch = qtyMatrixDifference(
     !production ? qty : submitted,
-    qtyMatrixSum(dispatch.queued, dispatch.inProgress, dispatch.completed)
+    qtyMatrixSum(dispatch.queued, dispatch.inProgress, dispatch.completed),
   );
   const pendingSubmissions = assignments
     .map((assignment) => {
@@ -325,8 +324,8 @@ export function composeSalesItemControlStat({
             lh: s.lhQty,
             rh: s.rhQty,
             qty: s.qty,
-          }))
-        )
+          })),
+        ),
       );
       return {
         qty: pendingSubmission,
@@ -375,7 +374,7 @@ export function composeSalesItemControlStat({
     deliveredQty: qtyMatrixSum(
       stats.dispatchAssigned,
       stats.dispatchCompleted,
-      stats.dispatchInProgress
+      stats.dispatchInProgress,
     )?.qty,
     submitQty: submitted.qty,
     pendingSubmissions,
@@ -479,7 +478,7 @@ function composeQtyControl(props: ComposeQtyControlProps) {
   const totalQty = props.qty ? props.qty : sum([props.lh, props.rh]);
   if (!totalQty) return [];
   const previousControls = qtyControlsByType(
-    props.order?.itemControls?.filter((c) => c.uid == props.controlUid) as any
+    props.order?.itemControls?.filter((c) => c.uid == props.controlUid) as any,
   );
 
   const controls: QtyControlByType = {} as any;
@@ -497,7 +496,7 @@ function composeQtyControl(props: ComposeQtyControlProps) {
     itemTotal: totalQty,
   };
   let assignments = props.order.assignments.filter((a) =>
-    props.doorId ? a.salesDoorId == props.doorId : a.itemId == props.itemId
+    props.doorId ? a.salesDoorId == props.doorId : a.itemId == props.itemId,
   );
   const singleHandle = assignments?.every((a) => !a.lhQty && !a.rhQty);
   controls.prodAssigned = {
@@ -523,7 +522,7 @@ function composeQtyControl(props: ComposeQtyControlProps) {
   const dispatches = submissions.map((s) => s.itemDeliveries).flat();
   function registerDispatch(
     status: SalesDispatchStatus,
-    controlType: QtyControlType
+    controlType: QtyControlType,
   ) {
     const dispatchItems = dispatches.filter((d) => {
       const _status =
@@ -616,7 +615,7 @@ export function composeControls(order: GetSalesItemControllables) {
       } else {
         let controlUid = mouldingItemControlUid(
           item.id,
-          item.housePackageTool.id
+          item.housePackageTool.id,
         );
         controls.push({
           uid: controlUid,
@@ -741,7 +740,7 @@ const hiddenDisplaySteps = [
 ];
 export const composeStepFormDisplay = (
   stepForms: any[],
-  sectionTitle: any = null
+  sectionTitle: any = null,
 ) => {
   const configs = stepForms
     ?.map((stepForm) => {

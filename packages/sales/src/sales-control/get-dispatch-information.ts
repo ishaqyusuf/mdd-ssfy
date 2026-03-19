@@ -17,7 +17,6 @@ function isControlDebugEnabled() {
 
 function controlDebugLog(label: string, payload: Record<string, unknown>) {
   if (!isControlDebugEnabled()) return;
-  console.log(`[sales-control] ${label}`, payload);
 }
 
 export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
@@ -27,24 +26,24 @@ export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
     salesNo,
   });
   const availableDispatchQty = sum(
-    overview.items.map((item) => item?.analytics?.dispatch.available.qty)
+    overview.items.map((item) => item?.analytics?.dispatch.available.qty),
   );
   const pendingDispatchQty = sum(
-    overview.items.map((item) => item?.analytics?.dispatch.pending?.qty)
+    overview.items.map((item) => item?.analytics?.dispatch.pending?.qty),
   );
   const dispatchedQty = sum(
-    overview.items.map((item) => item?.analytics?.deliveredQty)
+    overview.items.map((item) => item?.analytics?.deliveredQty),
   );
   const pendingProductionQty =
     sum(
       overview.items
         ?.filter((a) => a.itemConfig?.production)
-        .map((item) => item.analytics?.production?.pending?.qty)
+        .map((item) => item.analytics?.production?.pending?.qty),
     ) +
     sum(
       overview.items
         ?.filter((a) => a.itemConfig?.production)
-        .map((item) => item.analytics?.assignment?.pending?.qty)
+        .map((item) => item.analytics?.assignment?.pending?.qty),
     );
   const dispatchables = overview.items.map((item) => {
     // if (!item.analytics) return;
@@ -54,7 +53,7 @@ export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
     const currentDispatchQty = qtyMatrixSum(
       item.analytics.stats.dispatchAssigned,
       item.analytics.stats.dispatchCompleted,
-      item.analytics.stats.dispatchInProgress
+      item.analytics.stats.dispatchInProgress,
     );
     const dispatchStat = item.analytics.deliverables;
 
@@ -66,7 +65,7 @@ export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
       itemId: item.itemId,
       unitLabor: laborRate(
         overview?.orderMeta?.laborConfig?.rate,
-        item.unitLabor
+        item.unitLabor,
       ),
       deliverables: item.deliverables,
       totalQty: item.qty,
@@ -82,7 +81,7 @@ export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
         item.itemConfig?.production
           ? item.analytics.stats.prodCompleted
           : item.analytics.stats.qty,
-        currentDispatchQty
+        currentDispatchQty,
       ),
     };
   });
@@ -122,8 +121,8 @@ export async function getSalesDispatchOverview(db: Db, { salesId, salesNo }) {
       items: delivery.items.map((item) => {
         const _item = overview.items.find((i) =>
           i?.analytics?.submissionIds.includes(
-            item.orderProductionSubmissionId!
-          )
+            item.orderProductionSubmissionId!,
+          ),
         );
         const { controlUid, title, sectionTitle, subtitle } = _item || {};
         return {

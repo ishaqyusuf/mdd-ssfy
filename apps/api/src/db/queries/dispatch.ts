@@ -55,7 +55,6 @@ function isControlDebugEnabled() {
 
 function controlDebugLog(label: string, payload: Record<string, unknown>) {
   if (!isControlDebugEnabled()) return;
-  console.log(`[sales-control] ${label}`, payload);
 }
 
 function emptyQtyStat() {
@@ -1805,7 +1804,8 @@ export async function exportDispatches(
     dueDate: row.dueDate?.toISOString() ?? "",
     deliveryMode: row.deliveryMode,
     driver: row.driver?.name ?? "Unassigned",
-    customer: row.order?.customer?.businessName || row.order?.customer?.name || "",
+    customer:
+      row.order?.customer?.businessName || row.order?.customer?.name || "",
     phone: row.order?.customer?.phoneNo ?? "",
     address: [
       row.order?.shippingAddress?.address1,
@@ -1847,8 +1847,13 @@ export async function restoreDispatch(ctx: TRPCContext, dispatchId: number) {
     where: { id: dispatchId },
     select: { id: true, deletedAt: true },
   });
-  if (!dispatch) throw new TRPCError({ code: "NOT_FOUND", message: "Dispatch not found" });
-  if (!dispatch.deletedAt) throw new TRPCError({ code: "BAD_REQUEST", message: "Dispatch is not deleted" });
+  if (!dispatch)
+    throw new TRPCError({ code: "NOT_FOUND", message: "Dispatch not found" });
+  if (!dispatch.deletedAt)
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Dispatch is not deleted",
+    });
 
   await db.orderDelivery.update({
     where: { id: dispatchId },
