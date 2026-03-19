@@ -26,7 +26,7 @@ packages/sales/src/print/
 │   ├── moulding-sections.ts    # moulding items → MouldingSection with image, rows
 │   ├── service-sections.ts     # service items → ServiceSection
 │   ├── shelf-sections.ts       # shelf items → ShelfSection with image, rows
-│   ├── line-items.ts           # legacy non-dyke line items
+│   ├── line-item-sections.ts   # generic invoice line items excluded from dyke/shelf sections
 │   ├── footer.ts               # subtotal, tax, labor, extra costs, paid, due
 │   └── packing.ts              # dispatch/packing qty resolution
 └── constants.ts                # tax codes, office addresses, mode visibility config
@@ -204,4 +204,5 @@ Once the v2 print system is stable:
 - `packages/pdf/src/utils/tw.ts` acts as the safety bridge for `react-pdf-tailwind` in Sales PDF V2: it filters blank class tokens and maps unsupported classes like `col-span-*` to plain react-pdf style objects so ports from the legacy helper stay warning-free.
 - Template behavior matches the legacy print flow for customer signoff: `invoice`, `quote`, and packing modes render the signature block, while `production` intentionally omits footer/signature content.
 - Product image resolution in Sales PDF V2 mirrors the new sales form: stored image keys resolve through `NEXT_PUBLIC_CLOUDINARY_BASE_URL` under the `dyke/` bucket first, while absolute/data/blob URLs pass through unchanged.
+- V2 now mirrors the legacy three-bucket content split: door-like sections (doors, mouldings, HPT services), shelf sections, and generic line-item sections. Generic invoice lines are composed separately from non-HPT, non-shelf sales items and then merged into `page.sections` by line order.
 - Existing public tokenized download URLs remain stable while internals migrate.

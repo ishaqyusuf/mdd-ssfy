@@ -8,6 +8,7 @@ import { composeDoorSections } from "./compose/door-sections";
 import { composeMouldingSections } from "./compose/moulding-sections";
 import { composeServiceSections } from "./compose/service-sections";
 import { composeShelfSections } from "./compose/shelf-sections";
+import { composeLineItemSections } from "./compose/line-item-sections";
 import { composeFooter } from "./compose/footer";
 import { getSalesSetting } from "../exports";
 import type { PrintSalesV2Input } from "./schema";
@@ -68,6 +69,7 @@ function composePage(
   const mouldings = composeMouldingSections(sale, config, dispatchId);
   const services = composeServiceSections(sale, config, dispatchId);
   const shelves = composeShelfSections(sale, config);
+  const lineItems = composeLineItemSections(sale, config, dispatchId);
 
   // Merge and sort all sections by their lineIndex
   const sections: PrintSection[] = [
@@ -75,6 +77,7 @@ function composePage(
     ...mouldings,
     ...services,
     ...shelves,
+    ...lineItems,
   ].sort((a, b) => a.index - b.index);
 
   const footer = config.showFooter ? composeFooter(sale) : null;
