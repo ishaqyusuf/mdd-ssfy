@@ -4,9 +4,19 @@
 
 ## 2026-03-19
 
-- Added install-cost to model-cost modal handoff for community template configuration in `apps/www`.
-- `ModelInstallCostModal` and `InstallCostSidebar` now detect when the install-cost editor opens without any model-cost history and show a warning with an `Open Builder Model Cost` action.
-- Extended community model-cost modal query params with a `returnToInstallCost` payload so closing the model-cost modal restores the previous install-cost modal/sidebar payload, including job-form return context when present.
+- Fixed missing community tabs by moving `CommunityTabs` to the parent `/community` layout so it appears on non-`(main)` pages too, while keeping the final tab set aligned to the original seven sections: Projects, Units, Productions, Invoices, Templates, Builders, and Install Cost Rate.
+- Redesigned the community section tabs in `apps/www`:
+  - replaced the plain tab strip with a gradient card-style navigator on desktop
+  - refreshed the mobile dropdown trigger/menu to match the new visual system
+  - simplified the final nav copy so tabs render with titles only
+- Updated community templates install-cost CTA in the current sidebar table:
+  - removed the visible `v1` action
+  - `v2` now renders as a single estimated-cost button with green intensity based on builder-task configuration coverage
+  - added a tooltip summary showing configured tasks, total qty, and total estimated install cost
+- Updated `getCommunityTemplates` to return a compact `installCostV2Summary` payload so the table can render install-cost progress without extra per-row queries.
+- Added install-cost to builder-form handoff for community template configuration in `apps/www`.
+- `ModelInstallCostModal` and `InstallCostSidebar` now detect when the v2 install-cost editor opens without any model-cost history and show a warning with an `Open Builder Form` action.
+- Extended builder modal query params with a `returnToInstallCost` payload so closing the builder form restores the previous install-cost modal/sidebar payload, including job-form return context when present.
 
 ## 2026-03-18
 

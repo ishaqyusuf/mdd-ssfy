@@ -1,6 +1,7 @@
 import { parseAsInteger, parseAsJson, useQueryStates } from "nuqs";
 import { z } from "zod";
 import { useJobFormParams } from "./use-job-form-params";
+import { useCommunityInstallCostParams } from "./use-community-install-cost-params";
 import { invalidateQueries } from "./use-invalidate-query";
 
 const builderJobPayloadSchema = z.object({
@@ -18,18 +19,28 @@ export type BuilderJobPayload = z.infer<typeof builderJobPayloadSchema>;
 
 export function useBuilderParams(options?: { shallow: boolean }) {
     const { setParams: setJobFormParams } = useJobFormParams();
+    const { setParams: setInstallCostParams } = useCommunityInstallCostParams();
     const [params, setParams] = useQueryStates(
         {
             openBuilderId: parseAsInteger,
             jobPayload: parseAsJson(builderJobPayloadSchema.parse),
+            returnToInstallCost: parseAsJson<any>(null as any),
         },
         options,
     );
     const opened = !!params.openBuilderId;
 
     const onClose = () => {
+        const nextInstallCostPayload = params.returnToInstallCost;
         const nextJobPayload = params.jobPayload;
         setParams(null).then(() => {
+            if (
+                nextInstallCostPayload &&
+                typeof nextInstallCostPayload === "object"
+            ) {
+                setInstallCostParams(nextInstallCostPayload);
+                return;
+            }
             if (nextJobPayload && typeof nextJobPayload === "object") {
                 setJobFormParams(nextJobPayload);
                 invalidateQueries("community.getBuilderTasksForProject");

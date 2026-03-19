@@ -15,6 +15,13 @@ import Money from "@/components/_v1/money";
 import Link from "next/link";
 import { openLink } from "@/lib/open-link";
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@gnd/ui/tooltip";
+import { formatCurrency } from "@/lib/utils";
 
 export type Item =
     RouterOutputs["community"]["getCommunityTemplates"]["data"][number];
@@ -124,42 +131,88 @@ const installCost: Column = {
     },
     cell: ({ row: { original: item } }) => {
         const { setParams } = useCommunityInstallCostParams();
+        const summary = item.installCostV2Summary;
+        const completionRatio = Math.max(
+            0,
+            Math.min(1, summary?.completionRatio ?? 0),
+        );
+        const backgroundOpacity = +(0.18 + completionRatio * 0.72).toFixed(2);
+        const totalEstimate = summary?.totalEstimate ?? 0;
+        const configuredTasks = summary?.configuredBuilderTasks ?? 0;
+        const totalTasks = summary?.totalBuilderTasks ?? 0;
+        const tooltipTasks = summary?.tasks ?? [];
+
         return (
-            <div className="gap-2 flex">
-                <Button
-                    size="sm"
-                    onClick={(e) => {
-                        setParams({
-                            editCommunityModelInstallCostId: item.id,
-                            mode: "v1",
-                        });
-                    }}
-                    className={cn(
-                        item?.hasInstallCost && item?.hasPivotInstallCost
-                            ? "bg-orange-200 text-orange-700 hover:bg-orange-200"
-                            : item?.hasPivotInstallCost
-                              ? "bg-green-200 text-green-700 hover:bg-green-200"
-                              : "bg-slate-200 text-slate-700 hover:bg-slate-200",
-                    )}
-                >
-                    v1
-                    {/* {item.hasInstallCost || item?.hasPivotInstallCost
-                        ? "v1"
-                        : "Set Cost"} */}
-                </Button>
-                <Button
-                    onClick={(e) => {
-                        setParams({
-                            editCommunityModelInstallCostId: item.id,
-                            mode: "v2",
-                        });
-                    }}
-                    variant={"secondary"}
-                    size="sm"
-                >
-                    v2
-                </Button>
-            </div>
+            <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            onClick={(e) => {
+                                setParams({
+                                    editCommunityModelInstallCostId: item.id,
+                                    mode: "v2",
+                                });
+                            }}
+                            size="sm"
+                            variant="outline"
+                            className={cn(
+                                "min-w-[112px] justify-center border-emerald-700/20 font-semibold shadow-none transition-colors",
+                                completionRatio > 0.5
+                                    ? "text-white hover:text-white"
+                                    : "text-emerald-950 hover:text-emerald-950",
+                            )}
+                            style={{
+                                backgroundColor: `rgba(34, 197, 94, ${backgroundOpacity})`,
+                                borderColor: `rgba(21, 128, 61, ${Math.max(
+                                    0.2,
+                                    completionRatio,
+                                )})`,
+                            }}
+                        >
+                            {formatCurrency.format(totalEstimate)}
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-72 space-y-2">
+                        <div className="space-y-1">
+                            <p className="text-sm font-semibold">
+                                {configuredTasks} of {totalTasks} builder tasks
+                                configured
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                Total qty: {summary?.totalQty ?? 0}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                Total estimate:{" "}
+                                {formatCurrency.format(totalEstimate)}
+                            </p>
+                        </div>
+                        <div className="space-y-1">
+                            {tooltipTasks.length ? (
+                                tooltipTasks.map((task) => (
+                                    <div
+                                        key={task.taskId}
+                                        className="flex items-center justify-between gap-3 text-xs"
+                                    >
+                                        <span className="truncate">
+                                            {task.taskName}
+                                        </span>
+                                        <span className="shrink-0 text-muted-foreground">
+                                            {task.totalQty} ·{" "}
+                                            {formatCurrency.format(
+                                                task.totalEstimate,
+                                            )}
+                                        </span>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-xs text-muted-foreground">
+                                    No builder tasks configured yet.
+                                </p>
+                            )}
+                        </div>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
         );
     },
 };
@@ -239,4 +292,3 @@ function ItemCard({ item }: ItemProps) {
     const { setParams } = useCommunityTemplateParams();
     return <></>;
 }
-

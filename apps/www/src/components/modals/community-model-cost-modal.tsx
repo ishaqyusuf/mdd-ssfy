@@ -1,5 +1,4 @@
 import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-params";
-import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { CustomModal, CustomModalContent } from "./custom-modal";
 import { CommunityModelCostForm } from "../forms/community-model-cost-form";
 import { useTRPC } from "@/trpc/client";
@@ -20,11 +19,9 @@ export function CommunityModelCostModal() {
     const {
         editModelCostTemplateId,
         editModelCostId,
-        returnToInstallCost,
         setParams,
     } =
         useCommunityModelCostParams();
-    const { setParams: setInstallCostParams } = useCommunityInstallCostParams();
     const trpc = useTRPC();
     const { data, error } = useQuery(
         trpc.community.communityModelCostHistory.queryOptions(
@@ -41,16 +38,7 @@ export function CommunityModelCostModal() {
         <CustomModal
             open={!!editModelCostTemplateId}
             onOpenChange={(e) => {
-                if (e) return;
-                const nextInstallCostPayload = returnToInstallCost;
-                setParams(null).then(() => {
-                    if (
-                        nextInstallCostPayload &&
-                        typeof nextInstallCostPayload === "object"
-                    ) {
-                        setInstallCostParams(nextInstallCostPayload);
-                    }
-                });
+                setParams(null);
             }}
             size="xl"
             title={`Model Cost (${data?.model?.modelName})`}

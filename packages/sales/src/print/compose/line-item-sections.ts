@@ -32,6 +32,17 @@ function getOrderIndex(item: PrintSalesItem, fallback: number): number {
   );
 }
 
+function getLegacyUid(item: PrintSalesItem, fallback: number): number {
+  const uid = getMetaNumber(item, "uid");
+  if (uid != null) return uid;
+
+  const lineIndex =
+    getMetaNumber(item, "line_index") ?? getMetaNumber(item, "lineIndex");
+  if (lineIndex != null && lineIndex >= 0) return lineIndex;
+
+  return fallback;
+}
+
 function getSectionIndex(items: PrintSalesItem[]): number {
   return Math.min(
     ...items
@@ -48,11 +59,10 @@ export function composeLineItemSections(
   const items = sale.items
     .filter((item) => !item.housePackageTool)
     .filter((item) => !item.shelfItems?.length)
-    .sort(
-      (a, b) =>
-        getOrderIndex(a, Number.MAX_SAFE_INTEGER) -
-        getOrderIndex(b, Number.MAX_SAFE_INTEGER),
-    );
+    .map((item, index) => ({
+      item,
+      uid: getLegacyUid(item, index),
+    }));
 
   if (!items.length) return [];
 
@@ -80,71 +90,84 @@ export function composeLineItemSections(
   }
 
   let sequenceNumber = 0;
+  const uids = items.map(({ uid }) => uid).filter((uid) => uid > -1);
+  const maxIndex = uids.length ? Math.max(...uids) : -1;
+  const totalLines = maxIndex > 0 ? maxIndex + 1 : items.length;
 
-  const rows: LineItemRow[] = items.map((item) => {
-    const isGroupHeader = !item.rate && !item.total;
-    const cells: RowCell[] = [
-      {
-        value: item.rate ? ++sequenceNumber : "",
-        colSpan: 1,
-        align: "center",
-        bold: true,
-      },
-      {
-        value: item.description ?? "",
-        colSpan: 5,
-        align: isGroupHeader ? "center" : "left",
-        // bold: true,
-      },
-      {
-        value: item.swing ?? "",
-        colSpan: 2,
-        align: "center",
-        bold: true,
-      },
-      {
-        value: item.qty ?? "",
-        colSpan: 1.2,
-        align: "center",
-        bold: true,
-      },
-    ];
+  const rows: LineItemRow[] = Array(totalLines)
+    .fill(null)
+    .map((_, index) => {
+      const entry = items.find(({ uid }) => uid === index);
+      if (!entry) {
+        return {
+          cells: [],
+        };
+      }
 
-    if (config.showPackingCol) {
-      cells.push({
-        value: packingInfo(sale, item.id, undefined, dispatchId),
-        colSpan: 2,
-        align: "center",
-        bold: true,
-      });
-    }
-
-    if (config.showPrices) {
-      cells.push(
+      const item = entry.item;
+      const isGroupHeader = !item.rate;
+      const cells: RowCell[] = [
         {
-          value: item.total ? `$${formatCurrency(item.rate || 0)}` : null,
-          colSpan: 2.5,
-          align: "right",
-        },
-        {
-          value: item.total ? `$${formatCurrency(item.total || 0)}` : null,
-          colSpan: 2.5,
-          align: "right",
+          value: item.rate ? ++sequenceNumber : "",
+          colSpan: 1,
+          align: "center",
           bold: true,
         },
-      );
-    }
+        {
+          value: item.description ?? "",
+          colSpan: 5,
+          align: isGroupHeader ? "center" : "left",
+          bold: true,
+        },
+        {
+          value: item.swing ?? "",
+          colSpan: 2,
+          align: "center",
+          bold: true,
+        },
+        {
+          value: item.qty ?? "",
+          colSpan: 1.2,
+          align: "center",
+          bold: true,
+        },
+      ];
 
-    return {
-      cells,
-      isGroupHeader,
-    };
-  });
+      if (config.showPackingCol) {
+        cells.push({
+          value: packingInfo(sale, item.id, undefined, dispatchId),
+          colSpan: 2,
+          align: "center",
+          bold: true,
+        });
+      }
+
+      if (config.showPrices) {
+        cells.push(
+          {
+            value: item.total ? `$${formatCurrency(item.rate || 0)}` : null,
+            colSpan: 2.5,
+            align: "right",
+          },
+          {
+            value: item.total ? `$${formatCurrency(item.total || 0)}` : null,
+            colSpan: 2.5,
+            align: "right",
+            bold: true,
+          },
+        );
+      }
+
+      return {
+        cells,
+        isGroupHeader,
+      };
+    });
 
   return [
     {
       kind: "line-item",
-      index: getSectionIndex(items),
+      index: getSectionIndex(items.map(({ item }) => item)),
       title: "Invoice Lines",
       headers,
       rows,

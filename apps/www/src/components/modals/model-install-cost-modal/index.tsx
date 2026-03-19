@@ -1,9 +1,7 @@
 import { CustomModal, CustomModalContent } from "../custom-modal";
-import { useTRPC } from "@/trpc/client";
-import { useQuery } from "@gnd/ui/tanstack";
 
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
-import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-params";
+import { useBuilderParams } from "@/hooks/use-builder-params";
 import { CommunityInstallCostForm } from "../../forms/community-install-cost-form";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { Badge } from "@gnd/ui/badge";
@@ -29,7 +27,6 @@ export function ModelInstallCostModal() {
     const sideBarView = true;
     const ctx = useCreateModelInstallConfigContext();
     const { data, isPending, dataV2, isV2 } = ctx;
-    const trpc = useTRPC();
     const {
         editCommunityModelInstallCostId,
         setParams,
@@ -38,24 +35,10 @@ export function ModelInstallCostModal() {
         openToSide,
         onClose,
     } = useCommunityInstallCostParams();
-    const { setParams: setModelCostParams } = useCommunityModelCostParams();
+    const { setParams: setBuilderParams } = useBuilderParams();
     const _modelInstallContext = useCreateBuilderModelInstallsContext(ctx);
-    const { data: modelCostHistory, isPending: isModelCostHistoryPending } =
-        useQuery(
-            trpc.community.communityModelCostHistory.queryOptions(
-                {
-                    id: editCommunityModelInstallCostId!,
-                },
-                {
-                    enabled: !!editCommunityModelInstallCostId,
-                },
-            ),
-        );
-    const hasModelCostList = !!modelCostHistory?.modelCosts?.length;
     const shouldShowModelCostAlert =
-        !!editCommunityModelInstallCostId &&
-        !isModelCostHistoryPending &&
-        !hasModelCostList;
+        !!editCommunityModelInstallCostId && isV2 && !isPending && !dataV2?.builderTasks?.length;
 
     const installCostReturnPayload = editCommunityModelInstallCostId
         ? {
@@ -70,14 +53,13 @@ export function ModelInstallCostModal() {
           }
         : null;
 
-    const openBuilderModelCost = () => {
-        if (!editCommunityModelInstallCostId || !installCostReturnPayload) {
+    const openBuilderForm = () => {
+        if (!dataV2?.builderId || !installCostReturnPayload) {
             return;
         }
         setParams(null).then(() => {
-            setModelCostParams({
-                editModelCostTemplateId: editCommunityModelInstallCostId,
-                editModelCostId: modelCostHistory?.modelCosts?.[0]?.id || -1,
+            setBuilderParams({
+                openBuilderId: dataV2.builderId,
                 returnToInstallCost: installCostReturnPayload,
             });
         });
@@ -156,6 +138,33 @@ export function ModelInstallCostModal() {
                             <BuilderModelInstallsProvider
                                 value={_modelInstallContext}
                             >
+                                {shouldShowModelCostAlert ? (
+                                    <div className="mx-6 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
+                                        <div className="flex items-start gap-3">
+                                            <AlertTriangle className="mt-0.5 size-5 text-amber-600" />
+                                            <div className="flex-1">
+                                                <p className="font-semibold">
+                                                    Builder model is not configured
+                                                </p>
+                                                <p className="text-sm text-amber-800">
+                                                    This v2 install-cost tab opened
+                                                    without any builder task list.
+                                                    Open the builder form to
+                                                    configure it, then
+                                                    you&apos;ll return here
+                                                    automatically.
+                                                </p>
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                onClick={openBuilderForm}
+                                            >
+                                                Open Builder Form
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : null}
                                 <div className="bg-amber-50 hidden dark:bg-amber-900/10 border-b border-amber-100 dark:border-amber-800 px-6 py-3 flex items-start gap-3">
                                     <AlertTriangle className="text-amber-600 mt-0.5 size-10" />
                                     <div>
@@ -215,31 +224,6 @@ export function ModelInstallCostModal() {
                     </Sidebar.Provider>
                 ) : (
                     <div className="flex flex-col gap-4">
-                        {shouldShowModelCostAlert ? (
-                            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
-                                <div className="flex items-start gap-3">
-                                    <AlertTriangle className="mt-0.5 size-5 text-amber-600" />
-                                    <div className="flex-1">
-                                        <p className="font-semibold">
-                                            Builder model cost is not configured
-                                        </p>
-                                        <p className="text-sm text-amber-800">
-                                            This install cost form opened without
-                                            any model cost list. Open Builder
-                                            Model Cost to configure it, then
-                                            you&apos;ll return here automatically.
-                                        </p>
-                                    </div>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        onClick={openBuilderModelCost}
-                                    >
-                                        Open Builder Model Cost
-                                    </Button>
-                                </div>
-                            </div>
-                        ) : null}
                         <div className="" id="installCostModalAction"></div>
                         <CustomModal.Content className="lg:max-h-[55vh] overflow-auto">
                             {isPending ? (

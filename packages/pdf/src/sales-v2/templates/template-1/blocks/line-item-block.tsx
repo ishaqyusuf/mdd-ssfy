@@ -77,13 +77,14 @@ export function LineItemBlock({ section }: LineItemBlockProps) {
           >
             {row.cells.map((cell, ci) => {
               const key = headerKey(section.headers[ci]!, ci);
+              const isDescription = key === "description";
 
               return (
                 <View
                   key={ci}
                   style={{
                     ...cn(
-                      `${ci === row.cells.length - 1 ? "" : "border-r"} ${row.isGroupHeader ? "uppercase" : ""}`,
+                      `${ci === row.cells.length - 1 ? "" : "border-r"}`,
                     ),
                     borderColor: BORDER_COLOR,
                     width: widths[key],
@@ -93,8 +94,9 @@ export function LineItemBlock({ section }: LineItemBlockProps) {
                   <Text
                     style={{
                       ...cn(
-                        `${cell.bold ? "font-bold" : ""} ${cell.align === "right" ? "text-right" : cell.align === "center" ? "text-center" : "text-left"} ${row.isGroupHeader ? "text-center uppercase" : ""}`,
+                        `${cell.bold ? "font-bold" : ""} ${row.isGroupHeader && isDescription ? "text-center uppercase" : cell.align === "right" ? "text-right" : cell.align === "center" ? "text-center" : "text-left"}`,
                       ),
+                      fontWeight: row.isGroupHeader && isDescription ? 700 : undefined,
                       paddingHorizontal: 4,
                       paddingVertical: 3,
                     }}

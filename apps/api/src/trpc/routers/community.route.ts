@@ -1369,6 +1369,7 @@ export const communityRouters = createTRPCRouter({
               title: true,
               builder: {
                 select: {
+                  id: true,
                   name: true,
 
                   tasks: {
@@ -1407,6 +1408,7 @@ export const communityRouters = createTRPCRouter({
           };
         }),
         projectName: model?.project?.title || "",
+        builderId: model?.project?.builder?.id || null,
         builderName: model?.project?.builder?.name || "",
         modelName: model?.modelName,
       };
