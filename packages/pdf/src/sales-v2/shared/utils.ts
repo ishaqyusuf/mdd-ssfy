@@ -2,15 +2,34 @@ export function resolveImageSrc(
   src: string | null | undefined,
   baseUrl?: string,
 ): string | null {
-  console.log(src);
   if (!src) return null;
-  if (/^https?:\/\//i.test(src) || src.startsWith("data:")) return src;
-  if (!baseUrl) return src;
+  const value = String(src).trim();
+  if (!value) return null;
+  if (
+    /^https?:\/\//i.test(value) ||
+    value.startsWith("data:") ||
+    value.startsWith("blob:")
+  ) {
+    return value;
+  }
+
+  const cloudinaryBase = String(
+    process.env.NEXT_PUBLIC_CLOUDINARY_BASE_URL || "",
+  ).replace(/\/$/, "");
+  const normalizedValue = value.replace(/^\//, "");
+
+  if (cloudinaryBase) {
+    if (normalizedValue.startsWith("dyke/")) {
+      return `${cloudinaryBase}/${normalizedValue}`;
+    }
+    return `${cloudinaryBase}/dyke/${normalizedValue}`;
+  }
+
+  if (!baseUrl) return normalizedValue;
   const normalizedBase = /^https?:\/\//i.test(baseUrl)
     ? baseUrl.replace(/\/$/, "")
     : `https://${baseUrl.replace(/\/$/, "")}`;
-  const normalizedSrc = src.startsWith("/") ? src : `/${src}`;
-  return `${normalizedBase}${normalizedSrc}`;
+  return `${normalizedBase}/${normalizedValue}`;
 }
 
 export function colWidth(

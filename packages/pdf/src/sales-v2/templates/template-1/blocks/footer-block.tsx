@@ -22,7 +22,7 @@ export function FooterBlock({ footer }: FooterBlockProps) {
       <View style={cn(`text-right font-bold flex-row`)}>
         <View
           style={{
-            ...cn(`border-r border-t flex-col justify-between w-2/3 p-2`),
+            ...cn(`border-r flex-col justify-between w-2/3 p-2`),
             borderColor: "#9ca3af",
             minHeight: 88,
           }}
@@ -53,8 +53,9 @@ export function FooterBlock({ footer }: FooterBlockProps) {
               <View
                 key={i}
                 style={{
-                  ...cn(`border-t flex-row justify-between`),
+                  ...cn(`flex-row justify-between`),
                   borderColor: "#9ca3af",
+                  ...(i > 0 ? cn(`border-t`) : {}),
                 }}
               >
                 <View style={cn(`bg-slate-200 flex-4 px-1 py-1.5`)}>
