@@ -29,10 +29,7 @@ export function PrintSales() {
             viewerRef.current?.contentWindow?.print();
         }, 3000);
     }, [viewerRef]);
-    // const onRender = (e) => {
-    //     console.log(e);
-    // };
-    console.log({ printData });
+
     return (
         <>
             <PDFViewer

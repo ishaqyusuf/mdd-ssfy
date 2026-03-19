@@ -886,13 +886,16 @@ export async function searchNewSalesCustomers(
   const data = searchNewSalesCustomersSchema.parse(input);
   const query = data.query?.trim();
   if (!query) return [];
-  return ctx.db.customers.findMany({
+  const customers = await ctx.db.customers.findMany({
+    take: data.limit,
+    distinct: ["id"],
     where: {
       OR: [
         { name: { contains: query } },
         { businessName: { contains: query } },
         { phoneNo: { contains: query } },
         { email: { contains: query } },
+        { address: { contains: query } },
       ],
     },
     select: {
@@ -901,8 +904,55 @@ export async function searchNewSalesCustomers(
       businessName: true,
       phoneNo: true,
       email: true,
+      profile: {
+        select: {
+          id: true,
+          title: true,
+        },
+      },
+      taxProfiles: {
+        take: 1,
+        select: {
+          tax: {
+            select: {
+              title: true,
+              taxCode: true,
+            },
+          },
+        },
+      },
+      addressBooks: {
+        take: 1,
+        orderBy: [{ isPrimary: "desc" }, { id: "asc" }],
+        select: {
+          id: true,
+        },
+      },
     },
-    take: data.limit,
+  });
+  return customers.map((customer) => {
+    const businessName = String(customer?.businessName || "").trim();
+    const [taxProfile] = customer.taxProfiles || [];
+    const [addressBook] = customer.addressBooks || [];
+    return {
+      id: Number(customer?.id || 0),
+      customerId: Number(customer?.id || 0),
+      name: String(customer?.name || ""),
+      businessName,
+      phoneNo: String(customer?.phoneNo || ""),
+      phone: String(customer?.phoneNo || ""),
+      email: String(customer?.email || ""),
+      profileId:
+        customer?.profile?.id == null ? null : Number(customer.profile.id || 0),
+      profileName: String(customer?.profile?.title || ""),
+      taxName: String(taxProfile?.tax?.title || ""),
+      taxCode: String(taxProfile?.tax?.taxCode || ""),
+      billingAddressId:
+        addressBook?.id == null ? null : Number(addressBook.id || 0),
+      shippingAddressId:
+        addressBook?.id == null ? null : Number(addressBook.id || 0),
+      isBusiness: businessName.length > 0,
+    };
   });
 }
 

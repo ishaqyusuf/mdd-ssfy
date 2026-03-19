@@ -119,7 +119,7 @@ export default function SalesPrintDoorItems({
                       const imageSrc = resolveImageSrc(ld.image);
                       return (
                         <View style={cn("flex-col")}>
-                          {imageSrc ? (
+                          {/* {imageSrc ? (
                             <Image
                               src={imageSrc}
                               style={{
@@ -129,7 +129,7 @@ export default function SalesPrintDoorItems({
                                 marginBottom: 2,
                               }}
                             />
-                          ) : null}
+                          ) : null} */}
                           <Text>{ld.value}</Text>
                         </View>
                       );

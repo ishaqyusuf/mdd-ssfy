@@ -13,12 +13,14 @@ import {
     SelectValue,
 } from "@gnd/ui/select";
 import {
+    Building2,
     Check,
     ChevronDown,
     ChevronUp,
     CreditCard,
     Info,
     Plus,
+    Phone,
     Search,
     Truck,
     X,
@@ -352,7 +354,7 @@ export function InvoiceOverviewPanel() {
                             <input
                                 autoFocus
                                 className="h-12 w-full flex-1 border-none bg-transparent pl-4 pr-10 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:outline-none"
-                                placeholder="Search by name, ID, or city..."
+                                placeholder="Search customer name, phone, or profile"
                                 type="text"
                                 value={customerSearchQuery}
                                 onChange={(e) => setCustomerSearchQuery(e.target.value)}
@@ -385,9 +387,16 @@ export function InvoiceOverviewPanel() {
                                         onClick={() => {
                                             setMeta({
                                                 customerId: customer.id,
-                                                customerProfileId: null,
-                                                billingAddressId: null,
-                                                shippingAddressId: null,
+                                                customerProfileId:
+                                                    customer.profileId ?? null,
+                                                billingAddressId:
+                                                    customer.billingAddressId ??
+                                                    null,
+                                                shippingAddressId:
+                                                    customer.shippingAddressId ??
+                                                    null,
+                                                taxCode:
+                                                    customer.taxCode || null,
                                             });
                                             patchRecord({
                                                 customer: {
@@ -406,10 +415,33 @@ export function InvoiceOverviewPanel() {
                                             {(customer.name || customer.businessName || "C").slice(0, 2).toUpperCase()}
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <p className="truncate text-sm font-semibold text-foreground">
-                                                {customer.name || customer.businessName}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">#{customer.id}</p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="truncate text-sm font-semibold text-foreground">
+                                                    {customer.name || customer.businessName}
+                                                </p>
+                                                {customer.isBusiness ? (
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                                                        <Building2 size={12} />
+                                                        Business
+                                                    </span>
+                                                ) : null}
+                                            </div>
+                                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                                {customer.phoneNo ? (
+                                                    <span className="inline-flex items-center gap-1">
+                                                        <Phone size={12} />
+                                                        {customer.phoneNo}
+                                                    </span>
+                                                ) : null}
+                                                {customer.profileName ? (
+                                                    <span className="font-medium text-foreground/80">
+                                                        Tier: {customer.profileName}
+                                                    </span>
+                                                ) : null}
+                                                {customer.taxName ? (
+                                                    <span>{customer.taxName}</span>
+                                                ) : null}
+                                            </div>
                                         </div>
                                     </button>
                                 ))}

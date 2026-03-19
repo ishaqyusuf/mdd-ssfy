@@ -28,7 +28,7 @@ export function HeaderBlock({
   return (
     <View style={cn(`mb-2`)}>
       {/* Top row: logo + company info | heading */}
-      <View style={{ ...cn(`flex`), alignItems: "flex-start" }}>
+      <View style={{ ...cn(`flex flex-row`), alignItems: "flex-start" }}>
         {/* Left: logo + company address */}
         <View style={{ width: "62.5%" }}>
           <View style={cn(`flex`)}>
