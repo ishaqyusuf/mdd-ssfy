@@ -5,7 +5,7 @@ Tracks queued work that is important but not currently in the top execution slic
 
 ## Next Up
 - [ ] Table sorting and arrangement pass: standardize sortable header behavior, query-param sync, and column arrangement UX across shared table surfaces before rolling fixes into feature-specific tables (UI + Validation)
-- [ ] Sales overview system architecture reset: replace the noisy legacy sales overview sheet with a reusable feature core, tab registry, and shared sheet/page shells; phase the rollout through `brain/sales-overview-system-architecture-plan.md` and keep the current sheet entry as a compatibility wrapper during migration (Architecture + UI + Validation)
+- [ ] Sales overview v2 Phase 6 verification + lock-in: validate role-based tab visibility (production-only, dispatch-only users), validate deep-link tab behavior, validate sheet/page parity, then deprecate legacy sheet entry as a compatibility adapter (Validation + Architecture)
 - [ ] Build the shared document platform migration path: back `Gallery`, `dispatch` uploads, `signature` capture, and `sales PDFs` with the new `StoredDocument`/`SalesDocumentSnapshot` foundation and cut callers over incrementally (Schema + API + UI + Validation + Architecture)
 - [ ] Sales payment v2 checkout expansion: add preferred-payment selection, increase token expiry, support quick customer password creation/login, show wallet in logged-in checkout, and route customers into a dashboard experience (API + UI + Auth + Validation)
 - [ ] Sales form system hardening Phase 2: state/interaction reliability (immutable store update patterns, selection count fix, auto-scroll removal, debug-log cleanup) (UI + Validation)

@@ -19,6 +19,8 @@ export function useSalesOverviewV2SheetQuery() {
 			"finance",
 			"production",
 			"dispatch",
+			"packing",
+			"transactions",
 			"details",
 		] as const),
 		overviewSheetDispatchId: parseAsString,

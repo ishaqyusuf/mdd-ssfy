@@ -6,6 +6,21 @@ Design a new sales overview system that replaces the current noisy sheet with a 
 
 ## Current Status
 
+### 2026-03-18
+
+- All 7 tabs built and registered: overview, finance, production, dispatch, packing, transactions, details.
+- `packing` and `transactions` added to `SalesOverviewTabId`, both query hooks, and `SALES_OVERVIEW_TAB_ORDER`.
+- `layout.tsx` render bug fixed: `SalesOverviewHeader` now receives `activeTab` as a prop.
+- `sections/quick-actions-bar.tsx` built — fully independent of legacy sheet, uses `SalesMenu` + `SendSalesReminder` + `useSalesPreview` + `useBatchSales`.
+- All tabs use a fresh design system: accent-bordered stat pills, icon section labels, tight data rows, colored progress bars, status dots.
+- `finance-tab.tsx` includes `SalesPaymentProcessor` for payment collection.
+- `packing-tab.tsx` wraps `DispatchPackingOverview` with v2 query params.
+- `transactions-tab.tsx` wraps `TransactionsTab` with v2 `overviewId`.
+- `tab-registry.tsx` applies `hideForQuote` filtering so quotes only see appropriate tabs.
+- `SalesOverviewSystemSheet` confirmed mounted in `global-sheets.tsx`.
+- Legacy sheet remains active production path; v2 activates on `overviewSheetId` / `overviewId` query params.
+- Phases 1–5 complete. Phase 6 (verification + lock-in) is next before cutover.
+
 ### 2026-03-17
 
 - Phase 1 started by extracting shared controller utilities into `apps/www/src/components/sales-overview-system/controller.ts`.

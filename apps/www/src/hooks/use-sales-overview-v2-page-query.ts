@@ -19,6 +19,8 @@ export function useSalesOverviewV2PageQuery() {
 			"finance",
 			"production",
 			"dispatch",
+			"packing",
+			"transactions",
 			"details",
 		] as const),
 		dispatchId: parseAsString,
