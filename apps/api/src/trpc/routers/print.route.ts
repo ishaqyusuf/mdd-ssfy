@@ -161,7 +161,7 @@ export const printRouter = createTRPCRouter({
         title: title.replace(/[^\w\-]+/g, "_"),
         templateId: props.input.templateId,
         companyAddress,
-        watermark: await getGrayscaleWatermark(),
+        watermark: null,
       };
     }),
 });

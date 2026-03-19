@@ -31,7 +31,7 @@ export function WatermarkPage({
       >
         <View>
           <Image
-            src={watermarkSrc || `${baseUrl}/logo.png`}
+            src={watermarkSrc || `${baseUrl}/logo-grayscale.png`}
             style={{
               width: 500,
               height: 500,
