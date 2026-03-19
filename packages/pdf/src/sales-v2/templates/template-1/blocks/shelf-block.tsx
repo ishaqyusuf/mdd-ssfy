@@ -28,8 +28,9 @@ export function ShelfBlock({ section, baseUrl, showImages }: ShelfBlockProps) {
     <View style={cn(`flex-col border-x border-t text-sm`)}>
       <Text
         style={{
-          ...cn(`text-sm p-1 uppercase text-center bg-slate-200`),
+          ...cn(`text-sm p-1 uppercase text-center bg-slate-100`),
           fontWeight: 700,
+          letterSpacing: 0.3,
         }}
       >
         {section.title}

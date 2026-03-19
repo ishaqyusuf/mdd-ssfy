@@ -3,6 +3,7 @@ import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
 
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
+import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-params";
 import { CommunityInstallCostForm } from "../../forms/community-install-cost-form";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { Badge } from "@gnd/ui/badge";
@@ -28,6 +29,7 @@ export function ModelInstallCostModal() {
     const sideBarView = true;
     const ctx = useCreateModelInstallConfigContext();
     const { data, isPending, dataV2, isV2 } = ctx;
+    const trpc = useTRPC();
     const {
         editCommunityModelInstallCostId,
         setParams,
@@ -36,7 +38,50 @@ export function ModelInstallCostModal() {
         openToSide,
         onClose,
     } = useCommunityInstallCostParams();
+    const { setParams: setModelCostParams } = useCommunityModelCostParams();
     const _modelInstallContext = useCreateBuilderModelInstallsContext(ctx);
+    const { data: modelCostHistory, isPending: isModelCostHistoryPending } =
+        useQuery(
+            trpc.community.communityModelCostHistory.queryOptions(
+                {
+                    id: editCommunityModelInstallCostId!,
+                },
+                {
+                    enabled: !!editCommunityModelInstallCostId,
+                },
+            ),
+        );
+    const hasModelCostList = !!modelCostHistory?.modelCosts?.length;
+    const shouldShowModelCostAlert =
+        !!editCommunityModelInstallCostId &&
+        !isModelCostHistoryPending &&
+        !hasModelCostList;
+
+    const installCostReturnPayload = editCommunityModelInstallCostId
+        ? {
+              editCommunityModelInstallCostId,
+              mode,
+              selectedBuilderTaskId: selectedBuilderTaskId ?? null,
+              requestBuilderTaskId: ctx.params.requestBuilderTaskId ?? null,
+              contractorId: ctx.params.contractorId ?? null,
+              jobId: ctx.params.jobId ?? null,
+              view: ctx.params.view,
+              jobPayload: ctx.params.jobPayload ?? null,
+          }
+        : null;
+
+    const openBuilderModelCost = () => {
+        if (!editCommunityModelInstallCostId || !installCostReturnPayload) {
+            return;
+        }
+        setParams(null).then(() => {
+            setModelCostParams({
+                editModelCostTemplateId: editCommunityModelInstallCostId,
+                editModelCostId: modelCostHistory?.modelCosts?.[0]?.id || -1,
+                returnToInstallCost: installCostReturnPayload,
+            });
+        });
+    };
 
     return (
         <CustomModal
@@ -170,6 +215,31 @@ export function ModelInstallCostModal() {
                     </Sidebar.Provider>
                 ) : (
                     <div className="flex flex-col gap-4">
+                        {shouldShowModelCostAlert ? (
+                            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
+                                <div className="flex items-start gap-3">
+                                    <AlertTriangle className="mt-0.5 size-5 text-amber-600" />
+                                    <div className="flex-1">
+                                        <p className="font-semibold">
+                                            Builder model cost is not configured
+                                        </p>
+                                        <p className="text-sm text-amber-800">
+                                            This install cost form opened without
+                                            any model cost list. Open Builder
+                                            Model Cost to configure it, then
+                                            you&apos;ll return here automatically.
+                                        </p>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={openBuilderModelCost}
+                                    >
+                                        Open Builder Model Cost
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : null}
                         <div className="" id="installCostModalAction"></div>
                         <CustomModal.Content className="lg:max-h-[55vh] overflow-auto">
                             {isPending ? (
@@ -194,4 +264,3 @@ export function ModelInstallCostModal() {
         </CustomModal>
     );
 }
-

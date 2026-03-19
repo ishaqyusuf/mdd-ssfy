@@ -6,12 +6,15 @@ import {
     useCreateModelInstallConfigContext,
 } from "@/hooks/use-model-install-config";
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
+import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-params";
+import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 import { Sidebar } from "@gnd/ui/namespace";
 import { Icons } from "@gnd/ui/icons";
 import { CommunityInstallCostForm } from "./forms/community-install-cost-form";
 import { Skeleton } from "@gnd/ui/skeleton";
+import { useQuery } from "@gnd/ui/tanstack";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { useEffect, useRef } from "react";
 import { BuilderTaskItem } from "./modals/model-install-cost-modal/builder-task-item";
@@ -20,18 +23,32 @@ import { InstallConfiguration } from "./modals/model-install-cost-modal/install-
 import { useSidebar } from "@gnd/ui/sidebar";
 import { Sheet, SheetContent } from "@gnd/ui/sheet";
 import { useMediaQuery } from "@gnd/ui/hooks";
+import { AlertTriangle } from "lucide-react";
 
 export function InstallCostSidebar() {
     const { editCommunityModelInstallCostId, openToSide, setParams } =
         useCommunityInstallCostParams();
+    const { setParams: setModelCostParams } = useCommunityModelCostParams();
     const { setOpen } = useSidebar();
     const isMdOrBelow = useMediaQuery("(max-width: 1023px)");
+    const trpc = useTRPC();
     const modelInstallCtx = useCreateModelInstallConfigContext();
     const builderModelInstallsCtx =
         useCreateBuilderModelInstallsContext(modelInstallCtx);
     const initializedModelIdRef = useRef<number | null>(null);
     const tabValue = modelInstallCtx.params.mode === "v1" ? "v1" : "v2";
     const isPanelOpen = Boolean(openToSide && editCommunityModelInstallCostId);
+    const { data: modelCostHistory, isPending: isModelCostHistoryPending } =
+        useQuery(
+            trpc.community.communityModelCostHistory.queryOptions(
+                {
+                    id: editCommunityModelInstallCostId!,
+                },
+                {
+                    enabled: !!editCommunityModelInstallCostId,
+                },
+            ),
+        );
 
     useEffect(() => {
         if (isMdOrBelow) {
@@ -58,6 +75,37 @@ export function InstallCostSidebar() {
     const estimatedBaseCost = Object.values(
         builderModelInstallsCtx.builderTaskIntallCosts || {},
     ).reduce((total, item) => total + (item?.total || 0), 0);
+    const shouldShowModelCostAlert =
+        !!editCommunityModelInstallCostId &&
+        !isModelCostHistoryPending &&
+        !modelCostHistory?.modelCosts?.length;
+    const installCostReturnPayload = editCommunityModelInstallCostId
+        ? {
+              editCommunityModelInstallCostId,
+              mode: modelInstallCtx.params.mode,
+              selectedBuilderTaskId:
+                  modelInstallCtx.params.selectedBuilderTaskId ?? null,
+              requestBuilderTaskId:
+                  modelInstallCtx.params.requestBuilderTaskId ?? null,
+              contractorId: modelInstallCtx.params.contractorId ?? null,
+              jobId: modelInstallCtx.params.jobId ?? null,
+              view: modelInstallCtx.params.view,
+              jobPayload: modelInstallCtx.params.jobPayload ?? null,
+          }
+        : null;
+
+    const openBuilderModelCost = () => {
+        if (!editCommunityModelInstallCostId || !installCostReturnPayload) {
+            return;
+        }
+        setParams(null).then(() => {
+            setModelCostParams({
+                editModelCostTemplateId: editCommunityModelInstallCostId,
+                editModelCostId: modelCostHistory?.modelCosts?.[0]?.id || -1,
+                returnToInstallCost: installCostReturnPayload,
+            });
+        });
+    };
 
     const panelContent = (
         <>
@@ -87,6 +135,32 @@ export function InstallCostSidebar() {
                     <BuilderModelInstallsProvider
                         value={builderModelInstallsCtx}
                     >
+                        {shouldShowModelCostAlert ? (
+                            <div className="mx-4 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
+                                <div className="flex items-start gap-3">
+                                    <AlertTriangle className="mt-0.5 size-5 text-amber-600" />
+                                    <div className="flex-1">
+                                        <p className="font-semibold">
+                                            Builder model cost is not configured
+                                        </p>
+                                        <p className="text-sm text-amber-800">
+                                            This install cost form opened without
+                                            any model cost list. Open Builder
+                                            Model Cost to configure it, then
+                                            you&apos;ll return here automatically.
+                                        </p>
+                                    </div>
+                                </div>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    className="mt-3"
+                                    onClick={openBuilderModelCost}
+                                >
+                                    Open Builder Model Cost
+                                </Button>
+                            </div>
+                        ) : null}
                         <Tabs
                             value={tabValue}
                             onValueChange={(value) => {

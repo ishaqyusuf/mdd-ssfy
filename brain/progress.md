@@ -2,6 +2,12 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-03-19
+
+- Added install-cost to model-cost modal handoff for community template configuration in `apps/www`.
+- `ModelInstallCostModal` and `InstallCostSidebar` now detect when the install-cost editor opens without any model-cost history and show a warning with an `Open Builder Model Cost` action.
+- Extended community model-cost modal query params with a `returnToInstallCost` payload so closing the model-cost modal restores the previous install-cost modal/sidebar payload, including job-form return context when present.
+
 ## 2026-03-18
 
 - Completed full v2 sales overview feature build — fully independent of legacy sheet.

@@ -45,48 +45,51 @@ export function PackingSlipMode({
       </View>
 
       <View style={cn(`w-full`)}>
-        {page.sections.map((section) => {
+        {page.sections.map((section, index) => {
+          const wrapperStyle = index === 0 ? undefined : { marginTop: 6 };
+
           switch (section.kind) {
             case "door":
               return (
-                <DoorBlock
-                  key={`door-${section.index}`}
-                  section={section}
-                  baseUrl={baseUrl}
-                  showImages={config.showImages}
-                />
+                <View key={`door-${section.index}`} style={wrapperStyle}>
+                  <DoorBlock
+                    section={section}
+                    baseUrl={baseUrl}
+                    showImages={config.showImages}
+                  />
+                </View>
               );
             case "moulding":
               return (
-                <MouldingBlock
-                  key={`moulding-${section.index}`}
-                  section={section}
-                  baseUrl={baseUrl}
-                  showImages={config.showImages}
-                />
+                <View key={`moulding-${section.index}`} style={wrapperStyle}>
+                  <MouldingBlock
+                    section={section}
+                    baseUrl={baseUrl}
+                    showImages={config.showImages}
+                  />
+                </View>
               );
             case "service":
               return (
-                <ServiceBlock
-                  key={`service-${section.index}`}
-                  section={section}
-                />
+                <View key={`service-${section.index}`} style={wrapperStyle}>
+                  <ServiceBlock section={section} />
+                </View>
               );
             case "shelf":
               return (
-                <ShelfBlock
-                  key={`shelf-${section.index}`}
-                  section={section}
-                  baseUrl={baseUrl}
-                  showImages={config.showImages}
-                />
+                <View key={`shelf-${section.index}`} style={wrapperStyle}>
+                  <ShelfBlock
+                    section={section}
+                    baseUrl={baseUrl}
+                    showImages={config.showImages}
+                  />
+                </View>
               );
             case "line-item":
               return (
-                <LineItemBlock
-                  key={`line-${section.index}`}
-                  section={section}
-                />
+                <View key={`line-${section.index}`} style={wrapperStyle}>
+                  <LineItemBlock section={section} />
+                </View>
               );
           }
         })}
@@ -99,6 +102,7 @@ export function PackingSlipMode({
           flex: 1,
           flexDirection: "column",
           justifyContent: "flex-end",
+          borderColor: "#9ca3af",
         }}
       >
         <SignatureBlock />

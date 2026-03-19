@@ -11,6 +11,9 @@ import { cells } from "@gnd/ui/custom/data-table/cells";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { SalesMenu } from "@/components/sales-menu";
+import { SuperAdminGuard } from "@/components/auth-guard";
+import { useSalesOverviewOpen } from "@/hooks/use-sales-overview-open";
+import { ExternalLink } from "lucide-react";
 
 export type Item = RouterOutputs["sales"]["quotes"]["data"][number];
 export const columns: ColumnDef<Item>[] = [
@@ -112,22 +115,63 @@ export const columns: ColumnDef<Item>[] = [
         },
         cell: ({ row: { original: item } }) => (
             <div className="flex gap-4">
-                <SalesMenu
-                    id={item.id}
-                    slug={item.slug}
-                    type="quote"
-                    trigger={
-                        <Button size="xs" variant="outline">
-                            <Icons.MoreHoriz className="size-4 text-muted-foreground" />
-                        </Button>
-                    }
-                >
-                    <SalesMenu.Notifications />
-                    <SalesMenu.PrintModes />
-                    <SalesMenu.Copy />
-                    <SalesMenu.Move />
-                </SalesMenu>
+                <QuoteActions item={item} />
             </div>
         ),
     },
 ];
+
+function QuoteActions({ item }: { item: Item }) {
+    const overviewOpen = useSalesOverviewOpen();
+
+    return (
+        <SalesMenu
+            id={item.id}
+            slug={item.slug}
+            type="quote"
+            trigger={
+                <Button size="xs" variant="outline">
+                    <Icons.MoreHoriz className="size-4 text-muted-foreground" />
+                </Button>
+            }
+        >
+            <SuperAdminGuard>
+                <SalesMenu.Sub>
+                    <SalesMenu.SubTrigger className="whitespace-nowrap">
+                        <ExternalLink className="mr-2 size-4 text-muted-foreground/70" />
+                        <span className="whitespace-nowrap">Open overview</span>
+                        <span className="ml-auto rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                            v2
+                        </span>
+                    </SalesMenu.SubTrigger>
+                    <SalesMenu.SubContent>
+                        <SalesMenu.Item
+                            className="whitespace-nowrap"
+                            onSelect={(e) => {
+                                e.preventDefault();
+                                overviewOpen.openQuoteSheet(item.uuid);
+                            }}
+                        >
+                            Open v2 sheet
+                        </SalesMenu.Item>
+                        <SalesMenu.Item
+                            className="whitespace-nowrap"
+                            onSelect={(e) => {
+                                e.preventDefault();
+                                overviewOpen.openQuotePage(item.uuid);
+                            }}
+                        >
+                            Open v2 page
+                        </SalesMenu.Item>
+                    </SalesMenu.SubContent>
+                </SalesMenu.Sub>
+            </SuperAdminGuard>
+            <SalesMenu.Notifications />
+            <SuperAdminGuard>
+                <SalesMenu.PrintModes />
+            </SuperAdminGuard>
+            <SalesMenu.Copy />
+            <SalesMenu.Move />
+        </SalesMenu>
+    );
+}

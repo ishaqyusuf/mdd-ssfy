@@ -392,6 +392,9 @@ function SalesMenuPrint({ disabled }: ActionProps) {
 			>
 				<Printer className="mr-2 size-4 text-muted-foreground/70" />
 				Print
+				<span className="ml-auto rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+					v2
+				</span>
 			</DropdownMenu.Item>
 		);
 	}
@@ -650,6 +653,9 @@ function SalesMenuPrintModes({ disabled }: ActionProps) {
 			<DropdownMenu.SubTrigger disabled={isDisabled}>
 				<Printer className="mr-2 size-4 text-muted-foreground/70" />
 				Print
+				<span className="ml-auto rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+					v2
+				</span>
 			</DropdownMenu.SubTrigger>
 			<DropdownMenu.SubContent>
 				{ORDER_MODES.map(({ label, mode }) => (

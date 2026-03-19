@@ -35,8 +35,15 @@ export function DoorBlock({ section, baseUrl, showImages }: DoorBlockProps) {
   }
 
   return (
-    <View style={cn(`flex-col border-x text-sm`)}>
-      <Text wrap={false} style={cn(`text-sm p-1 uppercase text-left`)}>
+    <View style={cn(`flex-col border-x border-t text-sm`)}>
+      <Text
+        wrap={false}
+        style={{
+          ...cn(`text-sm p-1 uppercase text-left bg-slate-100`),
+          fontWeight: 700,
+          letterSpacing: 0.3,
+        }}
+      >
         {section.title}
       </Text>
 

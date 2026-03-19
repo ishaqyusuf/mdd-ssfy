@@ -8,7 +8,7 @@ interface LineItemBlockProps {
 
 export function LineItemBlock({ section }: LineItemBlockProps) {
   return (
-    <View style={cn(`uppercase`)}>
+    <View style={{ ...cn(`uppercase border-x border-t`), marginTop: 0 }}>
       <View style={cn(`w-full`)}>
         <View
           style={{

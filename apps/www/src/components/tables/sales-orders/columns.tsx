@@ -12,14 +12,16 @@ import { Button } from "@gnd/ui/button";
 import { buttonVariants } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 
-import { Check, StickyNote } from "lucide-react";
+import { Check, ExternalLink, StickyNote } from "lucide-react";
 import { InvoiceColumn } from "./column.invoice";
 import { cells } from "@gnd/ui/custom/data-table/cells";
 
 import Link from "next/link";
 import { SalesMenu } from "@/components/sales-menu";
+import { SuperAdminGuard } from "@/components/auth-guard";
 import { useBin } from "@/hooks/use-bin";
 import { useAuth } from "@/hooks/use-auth";
+import { useSalesOverviewOpen } from "@/hooks/use-sales-overview-open";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { invalidateInfiniteQueries } from "@/hooks/use-invalidate-query";
 import { useDriversList } from "@/hooks/use-data-list";
@@ -338,6 +340,7 @@ export const columns: ColumnDef<Item>[] = [
 ];
 
 function Actions({ item }: { item: Item }) {
+    const overviewOpen = useSalesOverviewOpen();
     const produceable = !!item.stats?.prodCompleted?.total;
     const productionStatus = String(
         (item as any)?.control?.productionStatus ||
@@ -609,10 +612,42 @@ function Actions({ item }: { item: Item }) {
                     </Button>
                 }
             >
+                <SuperAdminGuard>
+                    <SalesMenu.Sub>
+                        <SalesMenu.SubTrigger className="whitespace-nowrap">
+                            <ExternalLink className="mr-2 size-4 text-muted-foreground/70" />
+                            <span className="whitespace-nowrap">Open overview</span>
+                            <span className="ml-auto rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                                v2
+                            </span>
+                        </SalesMenu.SubTrigger>
+                        <SalesMenu.SubContent>
+                            <SalesMenu.Item
+                                className="whitespace-nowrap"
+                                onSelect={(e) => {
+                                    e.preventDefault();
+                                    overviewOpen.openSalesAdminSheet(item.uuid);
+                                }}
+                            >
+                                Open v2 sheet
+                            </SalesMenu.Item>
+                            <SalesMenu.Item
+                                className="whitespace-nowrap"
+                                onSelect={(e) => {
+                                    e.preventDefault();
+                                    overviewOpen.openSalesAdminPage(item.uuid);
+                                }}
+                            >
+                                Open v2 page
+                            </SalesMenu.Item>
+                        </SalesMenu.SubContent>
+                    </SalesMenu.Sub>
+                </SuperAdminGuard>
                 <SalesMenu.Print />
                 <SalesMenu.PDF />
-
-                {/* <SalesMenu.PrintModes /> */}
+                <SuperAdminGuard>
+                    <SalesMenu.PrintModes />
+                </SuperAdminGuard>
                 <SalesMenu.Sub>
                     <SalesMenu.SubTrigger>
                         <Check className="mr-2 size-4 text-muted-foreground/70" />
@@ -693,4 +728,3 @@ function Actions({ item }: { item: Item }) {
         </div>
     );
 }
-

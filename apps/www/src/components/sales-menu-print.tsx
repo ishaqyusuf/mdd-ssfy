@@ -11,7 +11,13 @@
  *   <SalesMenuPrint salesIds={[123]} mode="quote" showPdf />
  */
 
-import { quickPrint } from "@/lib/quick-print";
+import {
+    printOrder,
+    printOrderWithPacking,
+    printPackingSlip,
+    printProduction,
+    printQuote,
+} from "@/lib/quick-print";
 import { DropdownMenu } from "@gnd/ui/namespace";
 import type { PrintMode } from "@gnd/sales/print/types";
 import { FileText, Printer } from "lucide-react";
@@ -43,7 +49,7 @@ export function SalesMenuPrint({
                 disabled={isDisabled}
                 onSelect={(e) => {
                     e.preventDefault();
-                    void quickPrint({ salesIds, mode, v2: true });
+                    void PRINT_ACTIONS[mode]({ salesIds, v2: true });
                 }}
             >
                 <Printer className="mr-2 size-4 text-muted-foreground/70" />
@@ -63,7 +69,7 @@ export function SalesMenuPrint({
                     disabled={isDisabled}
                     onSelect={(e) => {
                         e.preventDefault();
-                        void quickPrint({ salesIds, mode, v2: true });
+                        void PRINT_ACTIONS[mode]({ salesIds, v2: true });
                     }}
                 >
                     <Printer className="mr-2 size-4 text-muted-foreground/70" />
@@ -73,7 +79,7 @@ export function SalesMenuPrint({
                     disabled={isDisabled}
                     onSelect={(e) => {
                         e.preventDefault();
-                        void quickPrint({ salesIds, mode, v2: true });
+                        void PRINT_ACTIONS[mode]({ salesIds, v2: true });
                     }}
                 >
                     <FileText className="mr-2 size-4 text-muted-foreground/70" />
@@ -91,12 +97,43 @@ interface SalesMenuPrintModesProps {
     disabled?: boolean;
 }
 
-const ORDER_MODES: { label: string; mode: PrintMode }[] = [
+function V2Badge() {
+    return (
+        <span className="ml-auto rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+            v2
+        </span>
+    );
+}
+
+type OrderPrintMode = Exclude<PrintMode, "quote">;
+
+const PRINT_ACTIONS = {
+    invoice: printOrder,
+    "order-packing": printOrderWithPacking,
+    "packing-slip": printPackingSlip,
+    production: printProduction,
+    quote: printQuote,
+} satisfies Record<
+    PrintMode,
+    (args: { salesIds: number[]; dispatchId?: number | null; v2?: boolean }) => Promise<void>
+>;
+
+const ORDER_MODES: { label: string; mode: OrderPrintMode }[] = [
     { label: "Order & Packing", mode: "order-packing" },
     { label: "Order", mode: "invoice" },
     { label: "Packing", mode: "packing-slip" },
     { label: "Production", mode: "production" },
 ];
+
+const ORDER_MODE_ACTIONS = {
+    "order-packing": printOrderWithPacking,
+    invoice: printOrder,
+    "packing-slip": printPackingSlip,
+    production: printProduction,
+} satisfies Record<
+    OrderPrintMode,
+    (args: { salesIds: number[]; dispatchId?: number | null; v2?: boolean }) => Promise<void>
+>;
 
 /**
  * A print sub-menu that exposes all print modes for an order.
@@ -115,11 +152,12 @@ export function SalesMenuPrintModes({
                 disabled={isDisabled}
                 onSelect={(e) => {
                     e.preventDefault();
-                    void quickPrint({ salesIds, mode: "quote", v2: true });
+                    void printQuote({ salesIds, v2: true });
                 }}
             >
                 <Printer className="mr-2 size-4 text-muted-foreground/70" />
                 Print
+                <V2Badge />
             </DropdownMenu.Item>
         );
     }
@@ -129,6 +167,7 @@ export function SalesMenuPrintModes({
             <DropdownMenu.SubTrigger disabled={isDisabled}>
                 <Printer className="mr-2 size-4 text-muted-foreground/70" />
                 Print
+                <V2Badge />
             </DropdownMenu.SubTrigger>
             <DropdownMenu.SubContent>
                 {ORDER_MODES.map(({ label, mode }) => (
@@ -137,7 +176,7 @@ export function SalesMenuPrintModes({
                         disabled={isDisabled}
                         onSelect={(e) => {
                             e.preventDefault();
-                            void quickPrint({ salesIds, mode, v2: true });
+                            void ORDER_MODE_ACTIONS[mode]({ salesIds, v2: true });
                         }}
                     >
                         <Printer className="mr-2 size-4 text-muted-foreground/70" />
