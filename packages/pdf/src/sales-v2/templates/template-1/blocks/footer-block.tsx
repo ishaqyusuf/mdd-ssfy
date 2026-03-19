@@ -6,8 +6,16 @@ interface FooterBlockProps {
   footer: FooterData;
 }
 
+const DEFAULT_FOOTER_NOTES = [
+  "Note: Payments made with Cards will have an additional 3% charge to cover credit cards merchants fees.",
+  "1) NO RETURN ON SPECIAL ORDER",
+  "2) NO DAMAGED ORDER MAY BE EXCHANGE OR RETURN",
+  "3) ONCE SIGN THERE IS NO RETURN OR EXCHANGE.",
+];
+
 export function FooterBlock({ footer }: FooterBlockProps) {
-  const [leadNote, ...restNotes] = footer.notes;
+  const notes = footer.notes.length > 0 ? footer.notes : DEFAULT_FOOTER_NOTES;
+  const [leadNote, ...restNotes] = notes;
 
   return (
     <View>
@@ -16,6 +24,7 @@ export function FooterBlock({ footer }: FooterBlockProps) {
           style={{
             ...cn(`border-r border-t flex-col justify-between w-2/3 p-2`),
             borderColor: "#9ca3af",
+            minHeight: 88,
           }}
         >
           {leadNote ? (
