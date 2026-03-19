@@ -17,6 +17,7 @@ const COLUMN_WIDTHS: Record<string, number> = {
   unitPrice: 9,
   totalPrice: 9,
 };
+const BORDER_COLOR = "#9ca3af";
 
 export function ShelfBlock({ section, baseUrl, showImages }: ShelfBlockProps) {
   const hasImageColumn =
@@ -25,7 +26,7 @@ export function ShelfBlock({ section, baseUrl, showImages }: ShelfBlockProps) {
   const widths = getColumnWidths(section.headers, hasImageColumn);
 
   return (
-    <View style={cn(`flex-col border-x border-t text-sm`)}>
+    <View style={{ ...cn(`flex-col border-x border-t text-sm`), borderColor: BORDER_COLOR }}>
       <Text
         style={{
           ...cn(`text-sm p-1 uppercase text-center bg-slate-100`),
@@ -37,7 +38,7 @@ export function ShelfBlock({ section, baseUrl, showImages }: ShelfBlockProps) {
       </Text>
 
       <View style={cn(`flex-col`)}>
-        <View style={cn(`flex-row`)}>
+        <View style={{ ...cn(`flex-row`), borderColor: BORDER_COLOR }}>
           {buildHeaderColumns(section.headers, hasImageColumn).map(
             (column, index, columns) => (
               <View
@@ -48,6 +49,7 @@ export function ShelfBlock({ section, baseUrl, showImages }: ShelfBlockProps) {
                   ),
                   width: widths[column.key],
                   backgroundColor: hexToRgba(colorsObject.black, 0.2),
+                  borderColor: BORDER_COLOR,
                 }}
               >
                 <Text>{column.title}</Text>
@@ -68,7 +70,7 @@ export function ShelfBlock({ section, baseUrl, showImages }: ShelfBlockProps) {
           );
 
           return (
-            <View key={rowIndex} style={cn(`flex-row border-t`)}>
+            <View key={rowIndex} style={{ ...cn(`flex-row border-t`), borderColor: BORDER_COLOR }}>
               {visualCells.map((column, columnIndex) => (
                 <TableCell
                   key={`${column.key}-${columnIndex}`}
@@ -117,6 +119,7 @@ function TableCell({
           `p-1 ${alignClass} ${bold ? "font-bold" : ""} ${isLast ? "" : "border-r uppercase"}`,
         ),
         width,
+        borderColor: BORDER_COLOR,
       }}
     >
       {imageSrc ? (

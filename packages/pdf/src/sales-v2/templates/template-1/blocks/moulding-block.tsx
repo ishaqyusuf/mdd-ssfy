@@ -22,6 +22,7 @@ const COLUMN_WIDTHS: Record<string, number> = {
   lineTotal: 9,
   packing: 10,
 };
+const BORDER_COLOR = "#9ca3af";
 
 export function MouldingBlock({
   section,
@@ -34,7 +35,7 @@ export function MouldingBlock({
   const widths = getColumnWidths(section.headers, hasImageColumn);
 
   return (
-    <View style={cn(`flex-col border-x border-t text-sm`)}>
+    <View style={{ ...cn(`flex-col border-x border-t text-sm`), borderColor: BORDER_COLOR }}>
       <Text
         wrap={false}
         style={{
@@ -48,7 +49,7 @@ export function MouldingBlock({
 
       {section.rows.length > 0 && (
         <View style={cn(`flex-col`)}>
-          <View style={cn(`flex-row border-t`)}>
+          <View style={{ ...cn(`flex-row border-t`), borderColor: BORDER_COLOR }}>
             {buildHeaderColumns(section.headers, hasImageColumn).map(
               (column, index, columns) => (
                 <View
@@ -59,6 +60,7 @@ export function MouldingBlock({
                     ),
                     width: widths[column.key],
                     backgroundColor: hexToRgba(colorsObject.black, 0.2),
+                    borderColor: BORDER_COLOR,
                   }}
                 >
                   <Text>{column.title}</Text>
@@ -82,7 +84,7 @@ export function MouldingBlock({
               <View
                 wrap={false}
                 key={rowIndex}
-                style={cn(`flex-row border-b font-medium text-xs`)}
+                style={{ ...cn(`flex-row border-b font-medium text-xs`), borderColor: BORDER_COLOR }}
               >
                 {visualCells.map((column, columnIndex) => (
                   <TableCell
@@ -133,6 +135,7 @@ function TableCell({
           `p-1 ${alignClass} ${bold ? "font-bold" : ""} ${isLast ? "" : "border-r uppercase"}`,
         ),
         width,
+        borderColor: BORDER_COLOR,
       }}
     >
       {imageSrc ? (

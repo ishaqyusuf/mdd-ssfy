@@ -7,12 +7,13 @@ import { hexToRgba, colorsObject } from "@gnd/utils/colors";
 interface ServiceBlockProps {
   section: ServiceSection;
 }
+const BORDER_COLOR = "#9ca3af";
 
 export function ServiceBlock({ section }: ServiceBlockProps) {
   const totalSpan = sumColSpans(section.headers);
 
   return (
-    <View style={cn(`flex-col border-x border-t text-sm`)}>
+    <View style={{ ...cn(`flex-col border-x border-t text-sm`), borderColor: BORDER_COLOR }}>
       <Text
         wrap={false}
         style={{
@@ -26,7 +27,7 @@ export function ServiceBlock({ section }: ServiceBlockProps) {
 
       {section.rows.length > 0 && (
         <View style={cn(`flex-col`)}>
-          <View style={cn(`flex-row border-t`)}>
+          <View style={{ ...cn(`flex-row border-t`), borderColor: BORDER_COLOR }}>
             {section.headers.map((h, i) => (
               <View
                 key={i}
@@ -36,6 +37,7 @@ export function ServiceBlock({ section }: ServiceBlockProps) {
                   ),
                   width: colWidth(h.colSpan, totalSpan),
                   backgroundColor: hexToRgba(colorsObject.black, 0.2),
+                  borderColor: BORDER_COLOR,
                 }}
               >
                 <Text>{h.title}</Text>
@@ -47,7 +49,7 @@ export function ServiceBlock({ section }: ServiceBlockProps) {
             <View
               wrap={false}
               key={ri}
-              style={cn(`flex-row border-b font-medium text-xs`)}
+              style={{ ...cn(`flex-row border-b font-medium text-xs`), borderColor: BORDER_COLOR }}
             >
               {row.cells.map((cell, ci) => {
                 const align = cell.align || "left";
@@ -66,6 +68,7 @@ export function ServiceBlock({ section }: ServiceBlockProps) {
                         `p-1 ${alignClass} ${cell.bold ? "font-bold" : ""} ${ci === row.cells.length - 1 ? "" : "border-r uppercase"}`,
                       ),
                       width: colWidth(cell.colSpan, totalSpan),
+                      borderColor: BORDER_COLOR,
                     }}
                   >
                     <Text>{cell.value ?? ""}</Text>

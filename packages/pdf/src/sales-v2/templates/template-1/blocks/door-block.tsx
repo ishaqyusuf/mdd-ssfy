@@ -22,6 +22,7 @@ const COLUMN_WIDTHS: Record<string, number> = {
   lineTotal: 9,
   packing: 10,
 };
+const BORDER_COLOR = "#9ca3af";
 
 export function DoorBlock({ section, baseUrl, showImages }: DoorBlockProps) {
   const detailRows = [];
@@ -35,7 +36,7 @@ export function DoorBlock({ section, baseUrl, showImages }: DoorBlockProps) {
   }
 
   return (
-    <View style={cn(`flex-col border-x border-t text-sm`)}>
+    <View style={{ ...cn(`flex-col border-x border-t text-sm`), borderColor: BORDER_COLOR }}>
       <Text
         wrap={false}
         style={{
@@ -53,7 +54,7 @@ export function DoorBlock({ section, baseUrl, showImages }: DoorBlockProps) {
             <View
               wrap={false}
               key={rowIndex}
-              style={cn(`flex-row border-b`)}
+              style={{ ...cn(`flex-row border-b`), borderColor: BORDER_COLOR }}
             >
               {row.map((detail, detailIndex) => (
                 <View
@@ -61,9 +62,10 @@ export function DoorBlock({ section, baseUrl, showImages }: DoorBlockProps) {
                   style={{
                     ...cn(`flex-row w-1/2`),
                     ...(detailIndex > 0 ? cn(`border-l`) : {}),
+                    borderColor: BORDER_COLOR,
                   }}
                 >
-                  <View style={cn(`p-1 w-1/3 border-r font-bold`)}>
+                  <View style={{ ...cn(`p-1 w-1/3 border-r font-bold`), borderColor: BORDER_COLOR }}>
                     <Text>{detail.label}</Text>
                   </View>
                   <View style={cn(`p-1 w-2/3 font-medium`)}>
@@ -79,7 +81,7 @@ export function DoorBlock({ section, baseUrl, showImages }: DoorBlockProps) {
 
       {section.rows.length > 0 && (
         <View style={cn(`flex-col`)}>
-          <View style={cn(`flex-row border-t`)}>
+          <View style={{ ...cn(`flex-row border-t`), borderColor: BORDER_COLOR }}>
             {buildHeaderColumns(section.headers, hasImageColumn).map(
               (column, index, columns) => (
                 <View
@@ -90,6 +92,7 @@ export function DoorBlock({ section, baseUrl, showImages }: DoorBlockProps) {
                     ),
                     width: widths[column.key],
                     backgroundColor: hexToRgba(colorsObject.black, 0.2),
+                    borderColor: BORDER_COLOR,
                   }}
                 >
                   <Text>{column.title}</Text>
@@ -113,7 +116,7 @@ export function DoorBlock({ section, baseUrl, showImages }: DoorBlockProps) {
               <View
                 wrap={false}
                 key={rowIndex}
-                style={cn(`flex-row border-b font-medium text-xs`)}
+                style={{ ...cn(`flex-row border-b font-medium text-xs`), borderColor: BORDER_COLOR }}
               >
                 {visualCells.map((column, columnIndex) => (
                   <TableCell
@@ -164,6 +167,7 @@ function TableCell({
           `p-1 ${alignClass} ${bold ? "font-bold" : ""} ${isLast ? "" : "border-r uppercase"}`,
         ),
         width,
+        borderColor: BORDER_COLOR,
       }}
     >
       {imageSrc ? (

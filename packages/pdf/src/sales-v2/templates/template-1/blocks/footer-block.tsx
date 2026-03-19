@@ -13,17 +13,19 @@ const DEFAULT_FOOTER_NOTES = [
   "3) ONCE SIGN THERE IS NO RETURN OR EXCHANGE.",
 ];
 
+const BORDER_COLOR = "#9ca3af";
+
 export function FooterBlock({ footer }: FooterBlockProps) {
   const notes = footer.notes.length > 0 ? footer.notes : DEFAULT_FOOTER_NOTES;
   const [leadNote, ...restNotes] = notes;
 
   return (
-    <View>
+    <View style={{ borderColor: BORDER_COLOR }}>
       <View style={cn(`text-right font-bold flex-row`)}>
         <View
           style={{
             ...cn(`border-r flex-col justify-between w-2/3 p-2`),
-            borderColor: "#9ca3af",
+            borderColor: BORDER_COLOR,
             minHeight: 88,
           }}
         >
@@ -47,31 +49,48 @@ export function FooterBlock({ footer }: FooterBlockProps) {
           ) : null}
         </View>
 
-        <View style={{ ...cn(`relative text-sm`), width: "40%" }}>
+        <View style={{ ...cn(`relative text-sm`), width: "45%" }}>
           <View style={cn(`w-full`)}>
             {footer.lines.map((line, i) => (
               <View
                 key={i}
                 style={{
                   ...cn(`flex-row justify-between`),
-                  borderColor: "#9ca3af",
+                  borderColor: BORDER_COLOR,
                   ...(i > 0 ? cn(`border-t`) : {}),
                 }}
               >
-                <View style={cn(`bg-slate-200 flex-4 px-1 py-1.5`)}>
+                <View
+                  style={{
+                    ...cn(`bg-slate-200 px-1 py-1.5`),
+                    width: "46%",
+                  }}
+                >
                   <Text
-                    style={cn(
-                      `${line.bold ? "font-bold" : ""} ${line.large ? "text-sm" : ""}`,
-                    )}
+                    style={{
+                      ...cn(`${line.bold ? "font-bold" : ""}`),
+                      fontSize: line.large ? 10.5 : 9.5,
+                    }}
                   >
                     {line.label}
                   </Text>
                 </View>
-                <View style={cn(`flex-2 px-1 py-1`)}>
+                <View
+                  style={{
+                    ...cn(`px-1 py-1 text-right`),
+                    width: "54%",
+                    alignItems: "flex-end",
+                    justifyContent: "center",
+                  }}
+                >
                   <Text
-                    style={cn(
-                      `${line.bold ? "font-bold" : ""} ${line.large ? "text-sm" : ""}`,
-                    )}
+                    style={{
+                      ...cn(`${line.bold ? "font-bold" : ""}`),
+                      ...(line.large
+                        ? { fontSize: 16, fontWeight: 700 }
+                        : { fontSize: 10 }),
+                      textAlign: "right",
+                    }}
                   >
                     {line.value}
                   </Text>

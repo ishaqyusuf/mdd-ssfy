@@ -7,8 +7,15 @@ interface LineItemBlockProps {
 }
 
 export function LineItemBlock({ section }: LineItemBlockProps) {
+  const borderColor = "#9ca3af";
   return (
-    <View style={{ ...cn(`uppercase border-x border-t`), marginTop: 0 }}>
+    <View
+      style={{
+        ...cn(`uppercase border-x border-t`),
+        marginTop: 0,
+        borderColor,
+      }}
+    >
       <View style={cn(`w-full`)}>
         <View
           style={{
