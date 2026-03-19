@@ -27,11 +27,9 @@ export function HeaderBlock({
 
   return (
     <View style={cn(`mb-2`)}>
-      {/* Top row: logo + company info | heading */}
-      <View style={{ ...cn(`flex flex-row`), alignItems: "flex-start" }}>
-        {/* Left: logo + company address */}
+      <View style={{ ...cn(`flex-row`), alignItems: "flex-start" }}>
         <View style={{ width: "62.5%" }}>
-          <View style={cn(`flex`)}>
+          <View style={cn(`flex-row`)}>
             <Image
               src={logoSrc}
               style={{ width: 150, height: 80, objectFit: "contain" }}
@@ -40,15 +38,16 @@ export function HeaderBlock({
           <View style={{ ...cn(`font-bold`), marginBottom: 16 }} wrap={false}>
             <Text style={cn(`text-sm`)}>{companyAddress.address1}</Text>
             <Text style={cn(`text-sm`)}>{companyAddress.address2}</Text>
-            <Text style={cn(`text-sm`)}>Phone: {companyAddress.phone}</Text>
+            <Text style={cn(`text-sm`)}>Phone:{companyAddress.phone}</Text>
             {companyAddress.fax && (
               <Text style={cn(`text-sm`)}>Fax: {companyAddress.fax}</Text>
             )}
-            <Text style={cn(`text-sm`)}>support@gndmillwork.com</Text>
+            <Text style={{ ...cn(`text-sm`), textWrap: "nowrap" }}>
+              support@gndmillwork.com
+            </Text>
           </View>
         </View>
 
-        {/* Right: heading info */}
         <View style={{ ...cn(`flex-col p-2 text-sm`), width: "37.5%" }}>
           <Text
             style={{
@@ -83,8 +82,7 @@ export function HeaderBlock({
         </View>
       </View>
 
-      {/* Address row */}
-      <View style={cn(`flex`)}>
+      <View style={cn(`flex-row`)}>
         {[billing, null, shipping].map((addr, i) => (
           <View
             key={i}
@@ -97,7 +95,7 @@ export function HeaderBlock({
                 <View>
                   <Text
                     style={cn(
-                      `text-sm border-b bg-slate-200 text-gray-700 p-1 px-1 font-bold uppercase`,
+                      `text-sm border-b bg-slate-200 text-gray-700 p-1 px-2 font-bold uppercase`,
                     )}
                   >
                     {addr.title}
@@ -127,7 +125,9 @@ function HeadingLine({
   bold?: boolean;
 }) {
   return (
-    <View style={{ ...cn(`flex justify-between items-end`), marginBottom: 2 }}>
+    <View
+      style={{ ...cn(`flex-row justify-between items-end`), marginBottom: 2 }}
+    >
       <Text style={{ fontWeight: 700 }}>{label}</Text>
       <Text style={cn(`${bold ? "font-bold" : ""}`)}>{value}</Text>
     </View>

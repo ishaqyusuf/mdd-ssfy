@@ -7,25 +7,47 @@ interface FooterBlockProps {
 }
 
 export function FooterBlock({ footer }: FooterBlockProps) {
+  const [leadNote, ...restNotes] = footer.notes;
+
   return (
     <View>
-      <View style={cn(`text-right font-bold flex`)}>
-        {/* Left: notes & disclaimers */}
+      <View style={cn(`text-right font-bold flex-row`)}>
         <View
-          style={cn(`border-r border-t flex-col justify-between w-2/3 p-2`)}
+          style={{
+            ...cn(`border-r border-t flex-col justify-between w-2/3 p-2`),
+            borderColor: "#9ca3af",
+          }}
         >
-          {footer.notes.map((note, i) => (
-            <Text key={i} style={cn(`text-left text-xs text-red-600`)}>
-              {note}
+          {leadNote ? (
+            <Text
+              style={cn(`text-left text-xs font-normal italic text-red-600`)}
+            >
+              {leadNote}
             </Text>
-          ))}
+          ) : null}
+          {restNotes.length > 0 ? (
+            <View style={cn(`p-1 flex-col`)}>
+              {restNotes.map((note, i) => (
+                <View key={i}>
+                  <Text style={cn(`text-left text-xs text-red-600`)}>
+                    {note}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
         </View>
 
-        {/* Right: totals */}
         <View style={{ ...cn(`relative text-sm`), width: "40%" }}>
           <View style={cn(`w-full`)}>
             {footer.lines.map((line, i) => (
-              <View key={i} style={cn(`border-t flex justify-between`)}>
+              <View
+                key={i}
+                style={{
+                  ...cn(`border-t flex-row justify-between`),
+                  borderColor: "#9ca3af",
+                }}
+              >
                 <View style={cn(`bg-slate-200 flex-4 px-1 py-1.5`)}>
                   <Text
                     style={cn(

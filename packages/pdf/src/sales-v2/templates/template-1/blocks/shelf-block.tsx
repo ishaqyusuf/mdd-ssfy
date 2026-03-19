@@ -26,7 +26,7 @@ export function ShelfBlock({ section, baseUrl, showImages }: ShelfBlockProps) {
 
       <View style={cn(`flex-col border-t`)}>
         {/* Header */}
-        <View style={cn(`flex`)}>
+        <View style={cn(`flex-row`)}>
           {section.headers.map((h, i) => (
             <View
               key={i}
@@ -45,7 +45,7 @@ export function ShelfBlock({ section, baseUrl, showImages }: ShelfBlockProps) {
 
         {/* Rows */}
         {section.rows.map((row, ri) => (
-          <View key={ri} style={cn(`flex border-t`)}>
+          <View key={ri} style={cn(`flex-row border-t`)}>
             {row.cells.map((cell, ci) => {
               const align = cell.align || "left";
               const alignClass =
@@ -81,7 +81,9 @@ export function ShelfBlock({ section, baseUrl, showImages }: ShelfBlockProps) {
                         }}
                       />
                     )}
-                    <Text>{cell.value ?? ""}</Text>
+                    <Text style={cell.bold ? { fontWeight: 700 } : undefined}>
+                      {cell.value ?? ""}
+                    </Text>
                   </View>
                 </View>
               );

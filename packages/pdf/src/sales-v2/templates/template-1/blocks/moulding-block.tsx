@@ -26,7 +26,7 @@ export function MouldingBlock({
       {section.rows.length > 0 && (
         <View style={cn(`flex-col`)}>
           {/* Header */}
-          <View style={cn(`flex border-t`)}>
+          <View style={cn(`flex-row border-t`)}>
             {section.headers.map((h, i) => (
               <View
                 key={i}
@@ -48,7 +48,7 @@ export function MouldingBlock({
             <View
               wrap={false}
               key={ri}
-              style={cn(`flex border-b font-medium text-xs`)}
+              style={cn(`flex-row border-b font-medium text-xs`)}
             >
               {row.cells.map((cell, ci) => {
                 const align = cell.align || "left";

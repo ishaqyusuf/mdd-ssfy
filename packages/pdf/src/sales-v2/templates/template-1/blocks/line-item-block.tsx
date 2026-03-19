@@ -10,28 +10,54 @@ export function LineItemBlock({ section }: LineItemBlockProps) {
   return (
     <View style={cn(`uppercase`)}>
       <View style={cn(`w-full`)}>
-        {/* Header row */}
-        <View style={cn(`flex bg-slate-100`)}>
+        <View
+          style={{
+            ...cn(`flex-row bg-slate-100`),
+            borderColor: "#9ca3af",
+          }}
+        >
           {section.headers.map((h) => (
-            <View key={h.title} style={{ ...cn(`border p-1`), flex: 1 }}>
+            <View
+              key={h.title}
+              style={{
+                ...cn(`border uppercase`),
+                borderColor: "#9ca3af",
+                paddingHorizontal: 2,
+                paddingVertical: 1,
+                flex: 1,
+              }}
+            >
               <Text>{h.title}</Text>
             </View>
           ))}
         </View>
 
-        {/* Data rows */}
         <View style={cn(`flex-col`)}>
           {section.rows.map((row, ri) => (
             <View
               key={ri}
-              style={cn(`flex ${row.isGroupHeader ? "bg-slate-200" : ""}`)}
+              style={{
+                ...cn(`flex-row ${row.isGroupHeader ? "bg-slate-200" : ""}`),
+                borderColor: "#9ca3af",
+              }}
             >
               {row.cells.map((cell, ci) => (
-                <View key={ci} style={{ ...cn(`border uppercase`), flex: 1 }}>
+                <View
+                  key={ci}
+                  style={{
+                    ...cn(`border uppercase`),
+                    borderColor: "#9ca3af",
+                    flex: 1,
+                  }}
+                >
                   <Text
-                    style={cn(
-                      `p-1 ${cell.bold ? "font-bold" : ""} ${cell.align === "right" ? "text-right" : cell.align === "center" ? "text-center" : ""} ${row.isGroupHeader ? "text-center uppercase" : ""}`,
-                    )}
+                    style={{
+                      ...cn(
+                        `${cell.bold ? "font-bold" : ""} ${cell.align === "right" ? "text-right" : cell.align === "center" ? "text-center" : ""} ${row.isGroupHeader ? "text-center uppercase" : ""}`,
+                      ),
+                      paddingHorizontal: 2,
+                      paddingVertical: 1,
+                    }}
                   >
                     {cell.value ?? ""}
                   </Text>

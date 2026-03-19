@@ -22,13 +22,13 @@ export function DoorBlock({ section, baseUrl, showImages }: DoorBlockProps) {
 
       {/* Detail configs (2-column grid) */}
       {section.details.length > 0 && (
-        <View style={cn(`flex text-xs uppercase flex-wrap`)}>
+        <View style={cn(`flex-row text-xs uppercase flex-wrap`)}>
           {section.details.map((detail, i) => (
             <View
               wrap={false}
               key={i}
               style={cn(
-                `col-span-2 border-b w-1/2 flex ${i % 2 === 1 ? "border-l" : ""}`,
+                `col-span-2 border-b w-1/2 flex-row ${i % 2 === 1 ? "border-l" : ""}`,
               )}
             >
               <View style={cn(`col-span-3 p-1 w-1/3 border-r font-bold`)}>
@@ -46,7 +46,7 @@ export function DoorBlock({ section, baseUrl, showImages }: DoorBlockProps) {
       {section.rows.length > 0 && (
         <View style={cn(`flex-col`)}>
           {/* Header row */}
-          <View style={cn(`flex border-t`)}>
+          <View style={cn(`flex-row border-t`)}>
             {section.headers.map((h, i) => (
               <View
                 key={i}
@@ -68,7 +68,7 @@ export function DoorBlock({ section, baseUrl, showImages }: DoorBlockProps) {
             <View
               wrap={false}
               key={ri}
-              style={cn(`flex border-b font-medium text-xs`)}
+              style={cn(`flex-row border-b font-medium text-xs`)}
             >
               {row.cells.map((cell, ci) => (
                 <CellView
