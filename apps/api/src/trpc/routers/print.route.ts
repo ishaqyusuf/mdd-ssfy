@@ -9,7 +9,6 @@ import { tokenSchemas, validateToken } from "@gnd/utils/tokenizer";
 import { generateLegacyPrintData } from "@sales/print-legacy-format";
 import { getPrintData } from "@gnd/sales/print";
 import type { PrintMode } from "@gnd/sales/print/types";
-import { consoleLog } from "@gnd/utils";
 
 const LEGACY_TO_V2_MODE: Record<string, PrintMode> = {
   order: "invoice",
