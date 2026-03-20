@@ -3,11 +3,24 @@ import type {
   UpdateUserProfileSchema,
 } from "@api/schemas/hrm";
 import type { TRPCContext } from "@api/trpc/init";
-import { camel, consoleLog } from "@gnd/utils";
+import { camel } from "@gnd/utils";
 import { allPermissions, type ICan } from "@gnd/utils/constants";
 import z from "zod";
-import { loginAction } from "@gnd/auth/utils";
-import { sign } from "jsonwebtoken";
+import { loginAction, checkPassword } from "@gnd/auth/utils";
+import { hashPassword } from "@gnd/utils/crypto";
+import { TRPCError } from "@trpc/server";
+
+// ─── Meta helpers ───────────────────────────────────────────
+
+type UserMeta = Record<string, unknown>;
+
+function parseMeta(raw: unknown): UserMeta {
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    return raw as UserMeta;
+  }
+  return {};
+}
+
 export async function getAuthUser(ctx: TRPCContext) {
   const user = await ctx.db.users.findFirstOrThrow({
     where: {
@@ -39,6 +52,188 @@ export async function getAuthUser(ctx: TRPCContext) {
     role,
   };
 }
+
+export async function getProfile(ctx: TRPCContext) {
+  const user = await ctx.db.users.findFirstOrThrow({
+    where: { id: ctx.userId },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      username: true,
+      phoneNo: true,
+      meta: true,
+      documents: {
+        where: { deletedAt: null },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          url: true,
+          meta: true,
+          createdAt: true,
+        },
+      },
+    },
+  });
+
+  const meta = parseMeta(user.meta);
+  return {
+    ...user,
+    avatarUrl: meta.avatarUrl as string | null,
+    notificationPreferences: (meta.notificationPreferences ?? {
+      emailNotifications: true,
+      smsNotifications: false,
+      orderUpdates: true,
+      dispatchAlerts: true,
+      paymentAlerts: true,
+      systemAnnouncements: true,
+    }) as {
+      emailNotifications: boolean;
+      smsNotifications: boolean;
+      orderUpdates: boolean;
+      dispatchAlerts: boolean;
+      paymentAlerts: boolean;
+      systemAnnouncements: boolean;
+    },
+    documents: user.documents.map((doc) => ({
+      ...doc,
+      expiresAt: (parseMeta(doc.meta).expiresAt as string | null) ?? null,
+    })),
+  };
+}
+
+export async function updateProfile(
+  ctx: TRPCContext,
+  data: {
+    name: string;
+    username?: string | null;
+    phoneNo?: string | null;
+    avatarUrl?: string | null;
+  },
+) {
+  const existing = await ctx.db.users.findFirstOrThrow({
+    where: { id: ctx.userId },
+    select: { meta: true },
+  });
+  const meta = parseMeta(existing.meta);
+  if (data.avatarUrl !== undefined) {
+    meta.avatarUrl = data.avatarUrl;
+  }
+
+  return ctx.db.users.update({
+    where: { id: ctx.userId },
+    data: {
+      name: data.name,
+      username: data.username,
+      phoneNo: data.phoneNo,
+      meta,
+    },
+    select: { id: true, name: true, username: true, phoneNo: true },
+  });
+}
+
+export async function changePassword(
+  ctx: TRPCContext,
+  data: { currentPassword: string; newPassword: string },
+) {
+  const user = await ctx.db.users.findFirstOrThrow({
+    where: { id: ctx.userId },
+    select: { id: true, password: true },
+  });
+
+  if (!user.password) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "No password set for this account.",
+    });
+  }
+
+  await checkPassword(user.password, data.currentPassword);
+
+  const hashed = await hashPassword(data.newPassword);
+  await ctx.db.users.update({
+    where: { id: ctx.userId },
+    data: { password: hashed },
+  });
+
+  return { success: true };
+}
+
+export async function saveUserDocument(
+  ctx: TRPCContext,
+  data: {
+    id?: number | null;
+    title: string;
+    url: string;
+    description?: string | null;
+    expiresAt?: string | null;
+  },
+) {
+  const docMeta: Record<string, any> = {};
+  if (data.expiresAt) {
+    docMeta.expiresAt = data.expiresAt;
+  }
+
+  if (data.id) {
+    return ctx.db.userDocuments.update({
+      where: { id: data.id },
+      data: {
+        title: data.title,
+        description: data.description,
+        url: data.url,
+        meta: docMeta,
+      },
+      select: { id: true, title: true, url: true, meta: true },
+    });
+  }
+
+  return ctx.db.userDocuments.create({
+    data: {
+      title: data.title,
+      description: data.description,
+      url: data.url,
+      userId: ctx.userId!,
+      meta: docMeta,
+    },
+    select: { id: true, title: true, url: true, meta: true },
+  });
+}
+
+export async function deleteUserDocument(ctx: TRPCContext, id: number) {
+  await ctx.db.userDocuments.update({
+    where: { id, userId: ctx.userId },
+    data: { deletedAt: new Date() },
+  });
+  return { success: true };
+}
+
+export async function updateNotificationPreferences(
+  ctx: TRPCContext,
+  preferences: {
+    emailNotifications: boolean;
+    smsNotifications: boolean;
+    orderUpdates: boolean;
+    dispatchAlerts: boolean;
+    paymentAlerts: boolean;
+    systemAnnouncements: boolean;
+  },
+) {
+  const existing = await ctx.db.users.findFirstOrThrow({
+    where: { id: ctx.userId },
+    select: { meta: true },
+  });
+  const meta = parseMeta(existing.meta);
+  meta.notificationPreferences = preferences;
+
+  await ctx.db.users.update({
+    where: { id: ctx.userId },
+    data: { meta },
+  });
+  return { success: true };
+}
+
 export async function updateUserProfileAction(
   ctx: TRPCContext,
   data: UpdateUserProfileSchema,
