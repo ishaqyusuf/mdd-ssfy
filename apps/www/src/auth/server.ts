@@ -4,10 +4,8 @@ import { cache } from "react";
 import { headers } from "next/headers";
 
 import { initAuth } from "@gnd/auth";
-import { Resend } from "resend";
-import { render } from "@gnd/email/render";
-import LoginEmail from "@gnd/email/emails/login-link-email";
-import StorefrontPasswordResetRequest from "@gnd/email/emails/storefront-password-reset-request";
+import { db } from "@gnd/db";
+import { EmailService } from "@gnd/notifications/services/email-service";
 
 const baseUrl =
     process.env.NODE_ENV === "production"
@@ -16,29 +14,7 @@ const baseUrl =
           //   ? `https://${env.VERCEL_URL}`
           "http://daarulhadith.localhost:2200";
 
-const resend = new Resend(process.env.RESEND_API_KEY!);
-const fromEmail = "GND Millwork <noreply@gndprodesk.com>";
-
-async function sendEmail({
-    to,
-    subject,
-    html,
-}: {
-    to: string;
-    subject: string;
-    html: string;
-}) {
-    const recipient =
-        process.env.NODE_ENV === "production"
-            ? to
-            : (process.env.TEST_EMAIL ?? to);
-    await resend.emails.send({
-        from: fromEmail,
-        to: recipient,
-        subject,
-        html,
-    });
-}
+const emailService = new EmailService(db);
 
 export const auth = initAuth({
     baseUrl,
@@ -46,30 +22,19 @@ export const auth = initAuth({
     secret: process.env.BETTER_AUTH_SECRET,
     emailHandlers: {
         async sendMagicLink({ email, url }) {
-            const html = await render(
-                LoginEmail({
-                    customerName: email,
-                    loginLink: url,
-                    revokeLink: url,
-                }),
-            );
-            await sendEmail({
+            await emailService.sendTransactional({
                 to: email,
                 subject: "Your GND Millwork login link",
-                html,
+                template: "login-link-email",
+                data: { customerName: email, loginLink: url, revokeLink: url },
             });
         },
         async sendResetPassword({ user, url }) {
-            const html = await render(
-                StorefrontPasswordResetRequest({
-                    name: user.name || user.email,
-                    resetLink: url,
-                }),
-            );
-            await sendEmail({
+            await emailService.sendTransactional({
                 to: user.email,
                 subject: "Reset your GND Millwork password",
-                html,
+                template: "password-reset-request",
+                data: { name: user.name || user.email, resetLink: url },
             });
         },
     },

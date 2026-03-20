@@ -17,3 +17,10 @@ The app was using next-auth with credential-based login. The migration to better
 - Clean separation: `packages/auth` has no dependency on email infrastructure; email sending is configured at the app level.
 - All auth-related emails go through Resend (consistent with rest of notification infrastructure).
 - next-auth session provider and session-based features remain for now; gradual migration continues.
+
+## Update (session 2)
+
+Refined the implementation to fully connect auth emails to the notification package:
+- `EmailService` in `packages/notifications` now has a public `sendTransactional` method for single-recipient transactional emails (magic link, password reset) that bypass user-preference checks but use the same `getRecipient`/`getTestEmail` routing.
+- Auth email templates (`login-link-email`, `password-reset-request`) are registered in `EmailService#getTemplate` so they use the same template registry as all other notification emails.
+- `apps/www/src/auth/server.ts` no longer creates its own Resend instance — it uses `EmailService` from `@gnd/notifications`.

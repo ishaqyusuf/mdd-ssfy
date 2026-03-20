@@ -14,6 +14,8 @@ import { JobRejectedEmail } from "@gnd/email/emails/job-rejected";
 import { JobTaskConfigureRequestEmail } from "@gnd/email/emails/job-task-configure-request";
 import SalesEmail from "@gnd/email/emails/sales-email";
 import SalesReminderScheduleAdminNotificationEmail from "@gnd/email/emails/sales-reminder-schedule-admin-notification";
+import LoginEmail from "@gnd/email/emails/login-link-email";
+import StorefrontPasswordResetRequest from "@gnd/email/emails/storefront-password-reset-request";
 
 export class EmailService {
 	private client: Resend;
@@ -22,6 +24,44 @@ export class EmailService {
 		// @ts-ignore
 		this.client = new Resend(process.env.RESEND_API_KEY!);
 		// env
+	}
+
+	async sendTransactional({
+		to,
+		subject,
+		template,
+		data,
+		from,
+	}: {
+		to: string;
+		subject: string;
+		template: string;
+		data: Record<string, any>;
+		from?: string;
+	}) {
+		const emailTemplate = this.#getTemplate(template);
+		const html = await render(emailTemplate(data as any));
+
+		const testEmail = getTestEmail();
+		const isTestEnv = process.env.NODE_ENV === "test";
+		const recipients = isTestEnv && testEmail
+			? [testEmail]
+			: getRecipient([to]) as string[];
+
+		const response = await this.client.emails.send({
+			from: from || "GND Millwork <noreply@gndprodesk.com>",
+			to: recipients,
+			subject,
+			html,
+			headers: {
+				"X-Entity-Ref-ID": nanoid(),
+			},
+		});
+
+		if (response.error) {
+			console.error("Failed to send transactional email:", response.error);
+			throw new Error(`Failed to send email: ${response.error.message}`);
+		}
 	}
 
 	async sendBulk(emails: EmailInput[], notificationType: string) {
@@ -180,6 +220,8 @@ export class EmailService {
 			"sales-email-reminder": SalesEmail,
 			"sales-reminder-schedule-admin-notification":
 				SalesReminderScheduleAdminNotificationEmail,
+			"login-link-email": LoginEmail,
+			"password-reset-request": StorefrontPasswordResetRequest,
 		};
 
 		const template = templates[templateName as keyof typeof templates];

@@ -8,7 +8,8 @@
     "./utils": "./src/utils.ts",
     "./*": "./src/*.ts",
     ".": "./src/index.ts",
-    "./types/*": "./src/types/*.ts"
+    "./types/*": "./src/types/*.ts",
+    "./services/email-service": "./src/services/email-service.ts"
   },
   "scripts": {
     "clean": "rm -rf .turbo node_modules",
