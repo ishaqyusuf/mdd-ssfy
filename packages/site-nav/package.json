@@ -18,6 +18,9 @@
   },
   "exports": {
     ".": "./src/index.tsx",
+    "./types": "./src/lib/types.ts",
+    "./access": "./src/lib/access.ts",
+    "./links": "./src/lib/links.ts",
     "./*": "./src/utils/*.tsx"
   },
   "dependencies": {
