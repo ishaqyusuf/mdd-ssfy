@@ -35,8 +35,7 @@ export function BatchActions() {
 							</Button>
 						}
 					>
-						<SalesMenu.PDF />
-						<SalesMenu.Print />
+						<SalesMenu.SalesPrintMenuItems />
 						<SuperAdminGuard>
 							<SalesMenu.PrintModes />
 						</SuperAdminGuard>

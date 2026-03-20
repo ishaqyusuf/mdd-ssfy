@@ -13,7 +13,7 @@ import { CustomSheetContentPortal } from "../custom-sheet-content";
 import { useSaleOverview } from "./context";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { openLink } from "@/lib/open-link";
-import { AuthGuard, SuperAdminGuard } from "@/components/auth-guard";
+import { AuthGuard } from "@/components/auth-guard";
 import { _perm } from "@/components/sidebar/links";
 import { SalesMenu } from "@/components/sales-menu";
 
@@ -65,15 +65,19 @@ export function GeneralFooter({}) {
                     type={data?.type}
                 >
                     <SalesMenu.Share />
-                    <SalesMenu.PDF />
-                    <SuperAdminGuard>
-                        <SalesMenu.Print />
-                    </SuperAdminGuard>
+                    {data?.type === "quote" ? (
+                        <SalesMenu.QuotePrintMenuItems />
+                    ) : (
+                        <SalesMenu.SalesPrintMenuItems />
+                    )}
                     <SalesMenu.Copy />
                     <SalesMenu.Move />
                     <SalesMenu.Separator />
-                    <SalesMenu.Notifications />
-                    <SalesMenu.PaymentNotifications />
+                    {data?.type === "quote" ? (
+                        <SalesMenu.QuoteEmailMenuItems />
+                    ) : (
+                        <SalesMenu.SalesEmailMenuItems />
+                    )}
                     <SalesMenu.Separator />
                     <SalesMenu.Delete onDeleted={() => qs.close()} />
                     <SalesMenu.Item onSelect={reset} disabled={loading}>

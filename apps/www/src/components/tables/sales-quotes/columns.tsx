@@ -166,7 +166,7 @@ function QuoteActions({ item }: { item: Item }) {
                     </SalesMenu.SubContent>
                 </SalesMenu.Sub>
             </SuperAdminGuard>
-            <SalesMenu.Notifications />
+            <SalesMenu.QuoteEmailMenuItems />
             <SuperAdminGuard>
                 <SalesMenu.PrintModes />
             </SuperAdminGuard>

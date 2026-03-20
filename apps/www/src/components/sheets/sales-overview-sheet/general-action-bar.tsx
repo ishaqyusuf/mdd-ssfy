@@ -6,7 +6,7 @@ import { salesFormUrl } from "@/utils/sales-utils";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { CheckCheck, FileSearch, RefreshCcw } from "lucide-react";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
-import { AuthGuard, SuperAdminGuard } from "@/components/auth-guard";
+import { AuthGuard } from "@/components/auth-guard";
 import { _perm } from "@/components/sidebar/links";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useTransition } from "react";
@@ -76,13 +76,10 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
                 type={data?.type}
             >
                 {isQuote ? (
-                    <>
-                        <SalesMenu.Notifications />
-                    </>
+                    <SalesMenu.QuoteEmailMenuItems />
                 ) : (
                     <>
-                        <SalesMenu.Notifications />
-                        <SalesMenu.PaymentNotifications />
+                        <SalesMenu.SalesEmailMenuItems />
                         <SalesMenu.Sub>
                             <SalesMenu.SubTrigger>
                                 <CheckCheck className="mr-2 size-4 text-muted-foreground/70" />
@@ -111,10 +108,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
                         </SalesMenu.Sub>
                         <SalesMenu.Separator />
                         <SalesMenu.Share />
-                        <SalesMenu.PDF />
-                        <SuperAdminGuard>
-                            <SalesMenu.Print />
-                        </SuperAdminGuard>
+                        <SalesMenu.SalesPrintMenuItems />
                         <SalesMenu.Copy />
                         <SalesMenu.Move />
                         <SalesMenu.Separator />

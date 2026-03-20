@@ -29,8 +29,7 @@ export function BatchActions({}) {
                     </Button>
                 }
             >
-                <SalesMenu.Print />
-                <SalesMenu.PDF />
+                <SalesMenu.QuotePrintMenuItems />
             </SalesMenu>
             <SalesMenu
                 type="quote"
@@ -42,7 +41,7 @@ export function BatchActions({}) {
                     </Button>
                 }
             >
-                <SalesMenu.Notifications />
+                <SalesMenu.QuoteEmailMenuItems />
             </SalesMenu>
             <BatchDelete
                 onClick={async () => {

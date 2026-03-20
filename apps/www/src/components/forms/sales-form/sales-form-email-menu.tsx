@@ -9,8 +9,11 @@ export function SalesFormEmailMenu({}) {
             id={zus?.metaData?.id}
             type={zus.metaData.type}
         >
-            <SalesMenu.Notifications />
-            <SalesMenu.PaymentNotifications />
+            {zus.metaData.type === "quote" ? (
+                <SalesMenu.QuoteEmailMenuItems />
+            ) : (
+                <SalesMenu.SalesEmailMenuItems />
+            )}
         </SalesMenu>
     );
 }

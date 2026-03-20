@@ -643,8 +643,7 @@ function Actions({ item }: { item: Item }) {
                         </SalesMenu.SubContent>
                     </SalesMenu.Sub>
                 </SuperAdminGuard>
-                <SalesMenu.Print />
-                <SalesMenu.PDF />
+                <SalesMenu.SalesPrintMenuItems />
                 <SuperAdminGuard>
                     <SalesMenu.PrintModes />
                 </SuperAdminGuard>

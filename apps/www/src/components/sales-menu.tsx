@@ -677,6 +677,37 @@ function SalesMenuPrintModes({ disabled }: ActionProps) {
 	);
 }
 
+function SalesMenuSalesPrintMenuItems({ disabled }: ActionProps) {
+	return (
+		<>
+			<SalesMenuPDF disabled={disabled} />
+			<SalesMenuPrint disabled={disabled} />
+		</>
+	);
+}
+
+function SalesMenuQuotePrintMenuItems({ disabled }: ActionProps) {
+	return (
+		<>
+			<SalesMenuPrint disabled={disabled} />
+			<SalesMenuPDF disabled={disabled} />
+		</>
+	);
+}
+
+function SalesMenuSalesEmailMenuItems({ disabled }: ActionProps) {
+	return (
+		<>
+			<SalesMenuNotifications disabled={disabled} />
+			<SalesMenuPaymentNotifications disabled={disabled} />
+		</>
+	);
+}
+
+function SalesMenuQuoteEmailMenuItems({ disabled }: ActionProps) {
+	return <SalesMenuNotifications disabled={disabled} />;
+}
+
 function SalesMenuSeparator() {
 	return <DropdownMenu.Separator />;
 }
@@ -704,8 +735,12 @@ export const SalesMenu = Object.assign(SalesMenuRoot, {
 	Print: SalesMenuPrint,
 	PDF: SalesMenuPDF,
 	PrintModes: SalesMenuPrintModes,
+	SalesPrintMenuItems: SalesMenuSalesPrintMenuItems,
+	QuotePrintMenuItems: SalesMenuQuotePrintMenuItems,
 	Notifications: SalesMenuNotifications,
 	PaymentNotifications: SalesMenuPaymentNotifications,
+	SalesEmailMenuItems: SalesMenuSalesEmailMenuItems,
+	QuoteEmailMenuItems: SalesMenuQuoteEmailMenuItems,
 	Delete: SalesMenuDelete,
 	Item: SalesMenuItem,
 	Separator: SalesMenuSeparator,

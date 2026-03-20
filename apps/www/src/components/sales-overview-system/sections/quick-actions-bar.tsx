@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
-import { AuthGuard, SuperAdminGuard } from "@/components/auth-guard";
+import { AuthGuard } from "@/components/auth-guard";
 import { SendSalesReminder } from "@/components/send-sales-reminder";
 import { SalesMenu } from "@/components/sales-menu";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
@@ -72,11 +72,10 @@ export function QuickActionsBar() {
 				type={data.type}
 			>
 				{isQuote ? (
-					<SalesMenu.Notifications />
+					<SalesMenu.QuoteEmailMenuItems />
 				) : (
 					<>
-						<SalesMenu.Notifications />
-						<SalesMenu.PaymentNotifications />
+						<SalesMenu.SalesEmailMenuItems />
 						<SalesMenu.Sub>
 							<SalesMenu.SubTrigger>
 								<CheckCheck className="mr-2 size-4 text-muted-foreground/70" />
@@ -103,10 +102,7 @@ export function QuickActionsBar() {
 						</SalesMenu.Sub>
 						<SalesMenu.Separator />
 						<SalesMenu.Share />
-						<SalesMenu.PDF />
-						<SuperAdminGuard>
-							<SalesMenu.Print />
-						</SuperAdminGuard>
+						<SalesMenu.SalesPrintMenuItems />
 						<SalesMenu.Copy />
 						<SalesMenu.Move />
 						<SalesMenu.Separator />
