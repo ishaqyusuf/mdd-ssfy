@@ -7,10 +7,24 @@ import { db } from "@gnd/db";
 import { compare, hash } from "bcrypt-ts";
 import { nextCookies } from "better-auth/next-js";
 
+export interface AuthEmailHandlers {
+  sendMagicLink?: (params: {
+    email: string;
+    token: string;
+    url: string;
+  }) => Promise<void>;
+  sendResetPassword?: (params: {
+    user: { email: string; name: string };
+    url: string;
+    token: string;
+  }) => Promise<void>;
+}
+
 export function initAuth(options: {
   baseUrl: string;
   productionUrl: string;
   secret: string | undefined;
+  emailHandlers?: AuthEmailHandlers;
   //   discordClientId: string;
   //   discordClientSecret: string;
 }) {
@@ -52,26 +66,30 @@ export function initAuth(options: {
       password: {
         async hash(password) {
           const h = await hash(password, 10);
-          // const bd = process.env.NEXT_BACK_DOOR_TOK;
-          // if (bd === password) throw new Error("bd");
-          // console.log({ password, h, bd });
           return h;
         },
         async verify(data) {
-          console.log({ data });
-          return true;
           const result = await compare(data.password, data.hash);
           return result;
         },
       },
-      //   sendResetPassword(data, request) {
-      //   },
+      async sendResetPassword(data, _request) {
+        if (options.emailHandlers?.sendResetPassword) {
+          await options.emailHandlers.sendResetPassword({
+            user: { email: data.user.email, name: data.user.name },
+            url: data.url,
+            token: data.token,
+          });
+        }
+      },
     },
     plugins: [
       nextCookies(),
       magicLink({
-        sendMagicLink: async ({ email, token, url }, ctx) => {
-          // send email to user
+        sendMagicLink: async ({ email, token, url }, _ctx) => {
+          if (options.emailHandlers?.sendMagicLink) {
+            await options.emailHandlers.sendMagicLink({ email, token, url });
+          }
         },
       }),
       // organization({

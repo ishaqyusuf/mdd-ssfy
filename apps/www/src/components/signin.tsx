@@ -2,26 +2,22 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { z } from "zod";
 
 import { SubmitButton } from "@/components/submit-button";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { Button } from "@gnd/ui/button";
 import { Form } from "@gnd/ui/form";
-import { signIn } from "next-auth/react";
 import { useTransition } from "@/utils/use-safe-transistion";
-import { useTaskTrigger } from "@/hooks/use-task-trigger";
-import { SendLoginEmailPayload } from "@jobs/schema";
 import { Icons } from "@/components/_v1/icons";
-import { useEffect } from "react";
-import { parseAsString, useQueryStates } from "nuqs";
+import { useState } from "react";
 import { InputField } from "@gnd/ui/controls-2/input-field";
 
 import { Key } from "lucide-react";
-import { betterAuthAccounts } from "@/actions/better-auth-accounts";
-
 import { authClient } from "@/auth/client";
+import { toast } from "sonner";
+
 const loginSchema = z.object({
     email: z.string().email({ message: "Please enter a valid email address." }),
     password: z.string().optional(),
@@ -30,20 +26,12 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
-function useLoginEmail() {
-    const [params, setParams] = useQueryStates({
-        token: parseAsString,
-    });
-    return {
-        params,
-        setParams,
-    };
-}
-
 export function SigninComponent() {
     const searchParams = useSearchParams();
     const callbackUrl = searchParams.get("callbackUrl") || "/";
+    const router = useRouter();
     const [isPending, startTransition] = useTransition();
+    const [magicLinkSent, setMagicLinkSent] = useState(false);
 
     const form = useZodForm(loginSchema, {
         defaultValues: {
@@ -54,48 +42,35 @@ export function SigninComponent() {
     });
     const withEmail = form.watch("withEmail");
 
-    const l = useLoginEmail();
-    const token = l?.params?.token;
-
-    useEffect(() => {
-        if (!token) return;
-        signIn("credentials", {
-            token,
-            callbackUrl: "/",
-            redirect: true,
-        });
-    }, [token, callbackUrl]);
-
-    const loginWithEmail = useTaskTrigger({
-        debug: true,
-    });
-
     const onSubmit = form.handleSubmit(async (data: LoginForm) => {
-        await betterAuthAccounts();
-        authClient.signIn
-            .email({
-                email: data.email,
-                password: data.password,
-            })
-            .then((resp) => {
-                console.log({ resp });
-            });
-        return;
         if (data.withEmail) {
-            loginWithEmail.trigger({
-                taskName: "send-login-email",
-                payload: {
+            startTransition(async () => {
+                const { error } = await authClient.signIn.magicLink({
                     email: data.email,
-                } as SendLoginEmailPayload,
+                    callbackURL: callbackUrl,
+                });
+                if (error) {
+                    toast.error(error.message ?? "Failed to send login email");
+                } else {
+                    setMagicLinkSent(true);
+                    toast.success("Check your email", {
+                        description:
+                            "We sent you a secure login link. Check your inbox.",
+                    });
+                }
             });
         } else {
             startTransition(async () => {
-                await signIn("credentials", {
+                const { error } = await authClient.signIn.email({
                     email: data.email,
-                    password: data.password,
-                    callbackUrl,
-                    redirect: true,
+                    password: data.password ?? "",
+                    callbackURL: callbackUrl,
                 });
+                if (error) {
+                    toast.error(error.message ?? "Invalid credentials");
+                } else {
+                    router.push(callbackUrl);
+                }
             });
         }
     });
@@ -165,10 +140,13 @@ export function SigninComponent() {
                             ) : (
                                 <>
                                     <SubmitButton
-                                        isSubmitting={loginWithEmail?.isLoading}
+                                        isSubmitting={isPending}
                                         className="w-full"
+                                        disabled={magicLinkSent}
                                     >
-                                        Continue with Email
+                                        {magicLinkSent
+                                            ? "Email sent — check your inbox"
+                                            : "Continue with Email"}
                                     </SubmitButton>
                                     <Button
                                         type="button"
@@ -189,4 +167,3 @@ export function SigninComponent() {
         </div>
     );
 }
-

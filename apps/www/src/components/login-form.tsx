@@ -5,22 +5,20 @@ import { Form } from "@gnd/ui/form";
 import { z } from "zod";
 import FormInput from "./common/controls/form-input";
 import { SubmitButton } from "./submit-button";
-import { signIn, useSession } from "next-auth/react";
 import { useTransition } from "@/utils/use-safe-transistion";
 
 import Link from "@/components/link";
 import { Button } from "@gnd/ui/button";
 
-import { useTaskTrigger } from "@/hooks/use-task-trigger";
-import { SendLoginEmailPayload } from "@jobs/schema";
 import { parseAsString, useQueryStates } from "nuqs";
 
-import { useEffect } from "react";
-import { redirect } from "next/navigation";
+import { useEffect, useState } from "react";
+import { authClient } from "@/auth/client";
+import { toast } from "sonner";
 
 const loginSchema = z.object({
     email: z.string().email(),
-    password: z.string(), //.min(4).max(12)
+    password: z.string(),
     withEmail: z.boolean().nullable().default(true),
 });
 function useLoginEmail() {
@@ -32,7 +30,7 @@ function useLoginEmail() {
         setParams,
     };
 }
-export function LoginForm({}) {
+export function LoginForm() {
     const form = useZodForm(loginSchema, {
         defaultValues: {
             email: "",
@@ -41,60 +39,37 @@ export function LoginForm({}) {
         },
     });
     const withEmail = form.watch("withEmail");
-    const l = useLoginEmail();
-    const token = l?.params?.token;
-
-    const { data: session } = useSession();
-    useEffect(() => {
-        if (session?.user?.id) redirect("/");
-    }, [session]);
-    useEffect(() => {
-        if (!token) return;
-        signIn("credentials", {
-            token,
-            callbackUrl: "/",
-            redirect: true,
-        });
-    }, [token]);
-    // const trpc = useTRPC();
-    // const { data } = useQuery({
-    //     ...trpc.user.getLoginByToken.queryOptions(
-    //         {
-    //             token: l?.params?.token,
-    //         },
-    //         {
-    //             enabled: !!l?.params?.token,
-    //         },
-    //     ),
-    // });
-    // useEffect(() => {
-    //     const email = data?.email;
-    //     const token = l?.params?.token;
-    //     if(email && token)
-    //     {
-
-    //     }
-    // }, [l?.params?.token, data?.email]);
+    const [magicLinkSent, setMagicLinkSent] = useState(false);
     const [isPending, startTransition] = useTransition();
     const onSubmit = form.handleSubmit(async (data) => {
-        if (data.withEmail)
-            loginWithEmail.trigger({
-                taskName: "send-login-email",
-                payload: {
-                    email: data.email,
-                } as SendLoginEmailPayload,
-            });
-        else
+        if (data.withEmail) {
             startTransition(async () => {
-                await signIn("credentials", {
-                    ...data,
-                    callbackUrl: "/",
-                    redirect: true,
+                const { error } = await authClient.signIn.magicLink({
+                    email: data.email,
+                    callbackURL: "/",
                 });
+                if (error) {
+                    toast.error(error.message ?? "Failed to send login email");
+                } else {
+                    setMagicLinkSent(true);
+                    toast.success("Check your email", {
+                        description:
+                            "We sent you a secure login link. Check your inbox.",
+                    });
+                }
             });
-    });
-    const loginWithEmail = useTaskTrigger({
-        debug: true,
+        } else {
+            startTransition(async () => {
+                const { error } = await authClient.signIn.email({
+                    email: data.email,
+                    password: data.password,
+                    callbackURL: "/",
+                });
+                if (error) {
+                    toast.error(error.message ?? "Invalid credentials");
+                }
+            });
+        }
     });
     return (
         <>
@@ -115,26 +90,9 @@ export function LoginForm({}) {
                                     name="password"
                                 />
                                 <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-2">
-                                        {/* <Checkbox
-                                    id="remember"
-                                    checked={formData.rememberMe}
-                                    onCheckedChange={(checked) =>
-                                        handleInputChange(
-                                            "rememberMe",
-                                            checked as boolean,
-                                        )
-                                    }
-                                />
-                                <Label
-                                    htmlFor="remember"
-                                    className="text-sm text-slate-600"
-                                >
-                                    Remember me
-                                </Label> */}
-                                    </div>
+                                    <div className="flex items-center space-x-2"></div>
                                     <Link
-                                        href="/forgot-password"
+                                        href="/login/password-reset"
                                         className="text-sm text-primary hover:text-primary/80 font-medium transition-colors"
                                     >
                                         Forgot password?
@@ -157,10 +115,13 @@ export function LoginForm({}) {
                         ) : (
                             <>
                                 <SubmitButton
-                                    isSubmitting={loginWithEmail?.isLoading}
+                                    isSubmitting={isPending}
                                     className="w-full"
+                                    disabled={magicLinkSent}
                                 >
-                                    Continue with Email
+                                    {magicLinkSent
+                                        ? "Email sent — check your inbox"
+                                        : "Continue with Email"}
                                 </SubmitButton>
                                 <Button
                                     type="button"
@@ -180,4 +141,3 @@ export function LoginForm({}) {
         </>
     );
 }
-
