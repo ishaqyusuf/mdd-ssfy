@@ -27,6 +27,7 @@
         "@gnd/auth": "workspace:*",
         "@gnd/community": "workspace:*",
         "@gnd/db": "workspace:*",
+        "@gnd/email": "workspace:*",
         "@gnd/events": "workspace:*",
         "@gnd/notifications": "workspace:*",
         "@gnd/printer": "workspace:*",

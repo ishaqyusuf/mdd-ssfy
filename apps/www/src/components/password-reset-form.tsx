@@ -5,32 +5,39 @@ import { Form } from "@gnd/ui/form";
 import { z } from "zod";
 import FormInput from "./common/controls/form-input";
 import { SubmitButton } from "./submit-button";
-import { signIn } from "next-auth/react";
 import { useTransition } from "@/utils/use-safe-transistion";
 
 import Link from "@/components/link";
 import { Button } from "@gnd/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { authClient } from "@/auth/client";
+import { toast } from "sonner";
 
-const loginSchema = z.object({
+const forgotPasswordSchema = z.object({
     email: z.string().email(),
-    password: z.string(), //.min(4).max(12)
 });
-export function PasswordResetForm({}) {
-    const form = useZodForm(loginSchema, {
+
+export function PasswordResetForm() {
+    const form = useZodForm(forgotPasswordSchema, {
         defaultValues: {
             email: "",
-            password: "",
         },
     });
     const [isPending, startTransition] = useTransition();
     const onSubmit = form.handleSubmit(async (data) => {
         startTransition(async () => {
-            await signIn("credentials", {
-                ...data,
-                callbackUrl: "/",
-                redirect: true,
+            const { error } = await authClient.forgetPassword({
+                email: data.email,
+                redirectTo: "/login/reset-password",
             });
+            if (error) {
+                toast.error(error.message ?? "Failed to send reset email");
+            } else {
+                toast.success("Reset link sent", {
+                    description:
+                        "If an account exists for this email, you will receive a password reset link shortly.",
+                });
+            }
         });
     });
     return (
@@ -67,4 +74,3 @@ export function PasswordResetForm({}) {
         </>
     );
 }
-
