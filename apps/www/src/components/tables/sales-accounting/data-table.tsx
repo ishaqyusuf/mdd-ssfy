@@ -6,7 +6,7 @@ import {
     Table,
     useTableData,
 } from "@gnd/ui/data-table";
-import { columns } from "./columns";
+import { columns, mobileColumn } from "./columns";
 import { useSalesAccountingFilterParams } from "@/hooks/use-sales-accounting-filter-params";
 import { useSalesAccountingParams } from "@/hooks/use-sales-accounting-params";
 import { NoResults } from "@gnd/ui/custom/no-results";
@@ -68,7 +68,7 @@ export function DataTable(props: Props) {
             args={[
                 {
                     columns,
-                    // mobileColumn,
+                    mobileColumn,
                     data,
                     props: {
                         loadMoreRef,

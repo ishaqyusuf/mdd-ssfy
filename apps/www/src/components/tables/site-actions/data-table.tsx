@@ -2,7 +2,7 @@
 
 import { Table, useTableData } from "@gnd/ui/data-table";
 import { useTRPC } from "@/trpc/client";
-import { columns } from "./columns";
+import { columns, mobileColumn } from "./columns";
 import { useSiteActionFilterParams } from "@/hooks/use-site-action-filter-params";
 import { _trpc } from "@/components/static-trpc";
 import { cn } from "@gnd/ui/cn";
@@ -54,7 +54,7 @@ export function DataTable({}) {
             args={[
                 {
                     columns,
-                    // mobileColumn: mobileColumn,
+                    mobileColumn,
                     data,
                     checkbox: true,
                     // tableScroll,

@@ -3,7 +3,7 @@
 import { useTRPC } from "@/trpc/client";
 import { Table, useTableData } from "@gnd/ui/data-table";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
-import { columns } from "./columns";
+import { columns, mobileColumn } from "./columns";
 import { useInventoryFilterParams } from "@/hooks/use-inventory-filter-params";
 
 export function DataTable() {
@@ -25,6 +25,7 @@ export function DataTable() {
             args={[
                 {
                     columns,
+                    mobileColumn,
                     data,
                     checkbox: true,
                     tableScroll,

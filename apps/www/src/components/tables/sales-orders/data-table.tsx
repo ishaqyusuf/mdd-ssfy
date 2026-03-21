@@ -14,7 +14,7 @@ import { Icons } from "@gnd/ui/icons";
 import Link from "next/link";
 
 import { BatchActions } from "./batch-actions";
-import { columns } from "./columns";
+import { columns, mobileColumn } from "./columns";
 import { useSalesOverviewV2SheetQuery } from "@/hooks/use-sales-overview-v2-sheet-query";
 import { useSalesOverviewOpen } from "@/hooks/use-sales-overview-open";
 
@@ -78,7 +78,7 @@ export function DataTable(props: Props) {
             args={[
                 {
                     columns,
-                    // mobileColumn: mobileColumn,
+                    mobileColumn,
                     data,
                     checkbox: true,
                     tableScroll,

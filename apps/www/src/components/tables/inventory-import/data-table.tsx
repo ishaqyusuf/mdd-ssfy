@@ -3,7 +3,7 @@
 import { useTRPC } from "@/trpc/client";
 import { Table, useTableData } from "@gnd/ui/data-table";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
-import { columns } from "./columns";
+import { columns, mobileColumn } from "./columns";
 import { useInventoryImportFilterParams } from "@/hooks/use-inventory-import-filter-params";
 
 export function DataTable() {
@@ -24,9 +24,9 @@ export function DataTable() {
             args={[
                 {
                     columns,
+                    mobileColumn,
                     data,
                     tableScroll,
-                    props: { loadMoreRef, hasNextPage },
                     // rowSelection,
                     // setRowSelection,
                     tableMeta: {
