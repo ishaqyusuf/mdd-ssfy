@@ -16,6 +16,9 @@ import { CheckCircle, Clock, Upload } from "lucide-react";
 
 export type Item =
     RouterOutputs["inventories"]["inventoryImports"]["data"][number];
+interface ItemProps {
+    item: Item;
+}
 
 const categoryColumn = {
     header: "Category",
@@ -146,4 +149,50 @@ export const columns: ColumnDef<Item>[] = [
     productCount,
     actionColumn,
 ];
+export const mobileColumn: ColumnDef<Item>[] = [
+    {
+        header: "",
+        accessorKey: "row",
+        meta: {
+            className: "flex-1 p-0",
+        },
+        cell: ({ row: { original: item } }) => {
+            return <ItemCard item={item} />;
+        },
+    },
+];
+function ItemCard({ item }: ItemProps) {
+    return (
+        <div className="flex flex-col space-y-2 p-3 border-b">
+            <div className="flex items-center justify-between">
+                <TCell.Primary>{item.title}</TCell.Primary>
+                <Badge
+                    style={{
+                        backgroundColor: hexToRgba(
+                            item?.categoryUid
+                                ? colorsObject?.emerald
+                                : colorsObject?.orange,
+                            0.1,
+                        ),
+                        color: item?.categoryUid
+                            ? colorsObject?.emerald
+                            : colorsObject?.orange,
+                    }}
+                    className={cn("gap-1 px-1")}
+                >
+                    {item.categoryUid ? (
+                        <CheckCircle className="size-3" />
+                    ) : (
+                        <Clock className="size-3" />
+                    )}
+                    {item.categoryUid ? "Imported" : "Pending"}
+                </Badge>
+            </div>
+            <Progress>
+                <Progress.Status noDot>{item.subCategory}</Progress.Status>
+            </Progress>
+            <TCell.Secondary>{item.totalProducts} products</TCell.Secondary>
+        </div>
+    );
+}
 

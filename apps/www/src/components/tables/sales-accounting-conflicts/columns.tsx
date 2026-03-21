@@ -13,6 +13,9 @@ import { cn } from "@gnd/ui/cn";
 import { CancelSalesTransactionAction } from "@/components/cancel-sales-transaction";
 
 export type Item = PageItemData<typeof getCustomerTransactionsAction>;
+interface ItemProps {
+    item: Item;
+}
 export const columns: ColumnDef<Item>[] = [
     {
         header: "date",
@@ -252,5 +255,48 @@ function Action({ item }: { item: Item }) {
                 customerTransactionId={item.id}
             />
         </>
+    );
+}
+export const mobileColumn: ColumnDef<Item>[] = [
+    {
+        header: "",
+        accessorKey: "row",
+        meta: {
+            className: "flex-1 p-0",
+        },
+        cell: ({ row: { original: item } }) => {
+            return <ItemCard item={item} />;
+        },
+    },
+];
+function ItemCard({ item }: ItemProps) {
+    const money = formatMoney(Math.abs(item.amount));
+    return (
+        <div className="flex flex-col space-y-2 p-3 border-b">
+            <div className="flex items-center justify-between">
+                <TCell.Date>{item.createdAt}</TCell.Date>
+                <TCell.Secondary
+                    className={cn(
+                        "font-mono$ text-sm",
+                        item.amount < 0 && "text-red-700/70",
+                    )}
+                >
+                    {item.amount <= 0 ? `($${money})` : `$${money}`}
+                </TCell.Secondary>
+            </div>
+            <TCell.Secondary className="whitespace-nowrap uppercase">
+                <TextWithTooltip
+                    className="max-w-[250px]"
+                    text={item.description}
+                />
+            </TCell.Secondary>
+            <Progress>
+                <Progress.Status>{item.paymentMethod}</Progress.Status>
+            </Progress>
+            <TCell.Secondary>{item.authorName}</TCell.Secondary>
+            <Progress>
+                <Progress.Status>{item.status}</Progress.Status>
+            </Progress>
+        </div>
     );
 }
