@@ -662,3 +662,12 @@
   - Updated `use-dispatch-filter-params.ts` — added `view` param (table | calendar)
   - Updated `page.tsx` — conditional calendar/table layout, overdue banner, new components integrated
   - All new files pass TypeScript checks with no new errors
+
+## 2026-03-20
+
+- **Mobile Column Support for Data Tables**
+  - Added `mobileColumn` exports and `ItemCard` components to 14 table columns.tsx files
+  - Files modified: customers, employee-profiles, employees, inbound-managment, inventory-categories, inventory-import, inventory-products, roles, sales-accounting, sales-accounting-conflicts, sales-orders, sales-quotes, site-actions, sales-production
+  - Replaced broken commented-out mobileColumn in sales-production with proper implementation using correct production Item type properties
+  - Added `interface ItemProps { item: Item }` where not already present
+  - Each ItemCard renders key data in a mobile-friendly card layout using existing imported components
