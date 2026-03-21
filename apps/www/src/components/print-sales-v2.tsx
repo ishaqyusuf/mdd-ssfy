@@ -40,3 +40,4 @@ export function PrintSalesV2() {
         </PDFViewer>
     );
 }
+

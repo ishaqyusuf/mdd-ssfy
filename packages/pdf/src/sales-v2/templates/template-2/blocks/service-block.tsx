@@ -37,7 +37,7 @@ export function ServiceBlock({ section }: ServiceBlockProps) {
             letterSpacing: 0.4,
           }}
         >
-          {section.title}
+          {String(section.title || "").toUpperCase()}
         </Text>
       </View>
 

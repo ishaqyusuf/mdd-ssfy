@@ -50,7 +50,7 @@ export function MouldingBlock({ section, baseUrl, showImages }: MouldingBlockPro
             letterSpacing: 0.4,
           }}
         >
-          {section.title}
+          {String(section.title || "").toUpperCase()}
         </Text>
       </View>
 

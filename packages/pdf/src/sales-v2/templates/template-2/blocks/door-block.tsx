@@ -31,9 +31,14 @@ export function DoorBlock({ section, baseUrl, showImages }: DoorBlockProps) {
   const hasImageColumn =
     showImages && section.rows.some((row) => row.cells.some((cell) => cell.image));
   const widths = getColumnWidths(section.headers, hasImageColumn);
+  const visibleDetails = section.details.filter((detail) => {
+    const label = String(detail.label || "").trim();
+    const value = String(detail.value || "").trim();
+    return Boolean(label && value);
+  });
   const detailRows: (typeof section.details)[] = [];
-  for (let i = 0; i < section.details.length; i += 2) {
-    detailRows.push(section.details.slice(i, i + 2));
+  for (let i = 0; i < visibleDetails.length; i += 2) {
+    detailRows.push(visibleDetails.slice(i, i + 2));
   }
 
   return (
@@ -59,7 +64,7 @@ export function DoorBlock({ section, baseUrl, showImages }: DoorBlockProps) {
             letterSpacing: 0.4,
           }}
         >
-          {section.title}
+          {String(section.title || "").toUpperCase()}
         </Text>
       </View>
 
@@ -96,7 +101,7 @@ export function DoorBlock({ section, baseUrl, showImages }: DoorBlockProps) {
                     }}
                   >
                     <Text style={{ fontSize: 7.5, fontWeight: 700, color: "#1e293b" }}>
-                      {detail.label}
+                      {formatDetailLabel(detail.label)}
                     </Text>
                   </View>
                   <View
@@ -108,7 +113,7 @@ export function DoorBlock({ section, baseUrl, showImages }: DoorBlockProps) {
                     }}
                   >
                     <Text style={{ fontSize: 7.5, color: "#374151" }}>
-                      {detail.value}
+                      {String(detail.value || "").toUpperCase()}
                     </Text>
                   </View>
                 </View>
@@ -180,6 +185,7 @@ export function DoorBlock({ section, baseUrl, showImages }: DoorBlockProps) {
                 {visualCells.map((column, ci) => (
                   <TableCell
                     key={`${column.key}-${ci}`}
+                    columnKey={column.key}
                     value={column.value}
                     width={widths[column.key]}
                     align={column.align}
@@ -198,9 +204,15 @@ export function DoorBlock({ section, baseUrl, showImages }: DoorBlockProps) {
   );
 }
 
+function formatDetailLabel(label: string) {
+  const normalized = String(label || "").trim().toUpperCase();
+  return normalized === "DOOR CONFIGURATION" ? "CONFIGURATION" : normalized;
+}
+
 // ─── TableCell ─────────────────────────────────────────────
 
 function TableCell({
+  columnKey,
   value,
   width,
   align,
@@ -209,6 +221,7 @@ function TableCell({
   imageSrc,
   borderColor,
 }: {
+  columnKey: string;
   value: RowCell["value"] | null;
   width: string;
   align?: RowCell["align"];
@@ -245,7 +258,11 @@ function TableCell({
             textAlign,
           }}
         >
-          {value === "as-above" ? "✔" : (value ?? "")}
+          {value === "as-above"
+            ? "✔"
+            : columnKey === "door"
+              ? String(value ?? "").toUpperCase()
+              : (value ?? "")}
         </Text>
       )}
     </View>

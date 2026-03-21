@@ -30,6 +30,7 @@ export function HeaderBlock({
   logoUrl,
 }: HeaderBlockProps) {
   const logoSrc = logoUrl || `${baseUrl}/logo.png`;
+  const isQuote = meta.title === "Quote";
 
   return (
     <View>
@@ -102,12 +103,12 @@ export function HeaderBlock({
 
           {/* Detail rows */}
           <MetaRow
-            label={meta.status === "paid" ? "Invoice #" : "Quote #"}
+            label={isQuote ? "Quote #" : "Order #"}
             value={meta.salesNo}
             bold
           />
           <MetaRow
-            label={meta.status === "paid" ? "Invoice Date" : "Quote Date"}
+            label={isQuote ? "Quote Date" : "Order Date"}
             value={meta.date}
           />
           {meta.rep && <MetaRow label="Rep" value={meta.rep} />}

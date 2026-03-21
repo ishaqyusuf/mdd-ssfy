@@ -87,7 +87,7 @@ export const printRouter = createTRPCRouter({
       z.object({
         token: z.string(),
         preview: z.boolean().optional().default(false),
-        templateId: z.string().optional().default("template-1"),
+        templateId: z.string().optional().default("template-2"),
       }),
     )
     .query(async (props) => {

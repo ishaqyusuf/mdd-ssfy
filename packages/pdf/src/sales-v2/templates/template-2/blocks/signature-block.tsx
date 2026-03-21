@@ -9,7 +9,7 @@ interface SignatureBlockProps {
 }
 
 export function SignatureBlock({
-  label = "Customer Signature & Date",
+  label = "Customer Signature",
 }: SignatureBlockProps) {
   return (
     <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 }}>
@@ -25,7 +25,9 @@ export function SignatureBlock({
               marginBottom: 4,
             }}
           />
-          <Text style={{ fontSize: 7.5, color: TEXT_MUTED, fontStyle: "italic" }}>
+          <Text
+            style={{ fontSize: 7.5, color: TEXT_MUTED, fontStyle: "italic" }}
+          >
             {label}
           </Text>
         </View>
@@ -40,7 +42,9 @@ export function SignatureBlock({
               marginBottom: 4,
             }}
           />
-          <Text style={{ fontSize: 7.5, color: TEXT_MUTED, fontStyle: "italic" }}>
+          <Text
+            style={{ fontSize: 7.5, color: TEXT_MUTED, fontStyle: "italic" }}
+          >
             Date
           </Text>
         </View>
