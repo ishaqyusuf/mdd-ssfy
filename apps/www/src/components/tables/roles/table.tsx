@@ -33,6 +33,7 @@ export function RolesDataTable({ data }: Props) {
                     mobileColumn,
                     data,
                     setParams,
+                    params,
                     tableMeta: {
                         deleteAction(id) {
                             deleteProfileAction(id).then((e) => {

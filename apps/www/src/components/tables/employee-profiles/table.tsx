@@ -31,6 +31,7 @@ export function EmployeeProfilesDataTable({ data }: Props) {
                     mobileColumn,
                     data,
                     setParams,
+                    params,
                     tableMeta: {
                         deleteAction(id) {
                             deleteRoleAction(id).then((e) => {

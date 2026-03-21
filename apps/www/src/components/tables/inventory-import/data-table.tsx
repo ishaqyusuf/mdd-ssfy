@@ -27,6 +27,7 @@ export function DataTable() {
                     mobileColumn,
                     data,
                     tableScroll,
+                    props: { loadMoreRef, hasNextPage },
                     // rowSelection,
                     // setRowSelection,
                     tableMeta: {
