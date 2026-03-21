@@ -37,46 +37,6 @@ const LAKE_WALES_ADDRESS = {
 
 const requireFromHere = createRequire(import.meta.url);
 
-async function loadSharp() {
-  const resolutionBases = [
-    process.cwd(),
-    path.join(process.cwd(), "..", "www"),
-    path.join(process.cwd(), "..", "..", "apps", "www"),
-  ];
-
-  for (const base of resolutionBases) {
-    try {
-      const resolved = requireFromHere.resolve("sharp", { paths: [base] });
-      const mod = requireFromHere(resolved);
-      return mod.default ?? mod;
-    } catch {
-      continue;
-    }
-  }
-
-  return null;
-}
-
-async function getGrayscaleWatermark() {
-  const candidates = [
-    path.join(process.cwd(), "public", "logo.png"),
-    path.join(process.cwd(), "..", "www", "public", "logo.png"),
-    path.join(process.cwd(), "..", "..", "apps", "www", "public", "logo.png"),
-  ];
-
-  const logoPath = candidates.find((candidate) => fs.existsSync(candidate));
-  if (!logoPath) return null;
-
-  try {
-    const sharp = await loadSharp();
-    if (!sharp) return null;
-    const buffer = await sharp(logoPath).grayscale().png().toBuffer();
-    return `data:image/png;base64,${buffer.toString("base64")}`;
-  } catch {
-    return null;
-  }
-}
-
 export const printRouter = createTRPCRouter({
   modelTemplate: publicProcedure
     .input(modelPrintSchema)
@@ -111,11 +71,11 @@ export const printRouter = createTRPCRouter({
       const safeTitle = title.replace(/[^\w\-]+/g, "_");
       const { preview } = props.input;
       const pages = printData.map((a) => a.pageData);
-      const watermark = await getGrayscaleWatermark();
+      // const watermark = await getGrayscaleWatermark();
       // return sales(props.ctx, props.input);
       return {
         pages,
-        watermark,
+        watermark: null,
         title: safeTitle,
         template: {
           size: "A4",
