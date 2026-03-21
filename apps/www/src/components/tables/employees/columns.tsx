@@ -280,3 +280,35 @@ function Role({ item }: { item: Item }) {
         </AuthGuard>
     );
 }
+export const mobileColumn: ColumnDef<Item>[] = [
+    {
+        header: "",
+        accessorKey: "row",
+        meta: {
+            className: "flex-1 p-0",
+        },
+        cell: ({ row: { original: item } }) => {
+            return <ItemCard item={item} />;
+        },
+    },
+];
+function ItemCard({ item }: ItemProps) {
+    return (
+        <div className="flex flex-col space-y-2 p-3 border-b">
+            <div className="flex items-center gap-2">
+                <TCell.Primary>{item.uid}</TCell.Primary>
+                <TCell.Secondary>{item.date}</TCell.Secondary>
+            </div>
+            <div>
+                <TCell.Primary>{item.name}</TCell.Primary>
+                <TCell.Secondary>{item.username}</TCell.Secondary>
+            </div>
+            <div className="flex items-center gap-2">
+                {item.role && <Badge variant="secondary">{item.role}</Badge>}
+                {item.profile?.name && (
+                    <Badge variant="outline">{item.profile.name}</Badge>
+                )}
+            </div>
+        </div>
+    );
+}
