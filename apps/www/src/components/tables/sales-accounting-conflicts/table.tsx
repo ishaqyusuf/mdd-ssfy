@@ -3,16 +3,11 @@
 import React, { use } from "react";
 import { MiddaySearchFilter } from "@/components/midday-search-filter/search-filter";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
-import { Table, TableBody } from "@gnd/ui/table";
-
-import { TableProvider } from "..";
-import { TableHeaderComponent } from "../table-header";
-import { TableRow } from "../table-row";
+import { Table } from "@gnd/ui/data-table";
 
 import { useEmployeeParams } from "@/hooks/use-employee-params";
 import { PageFilterData } from "@/types/type";
-import { columns, Item } from "./columns";
-import { LoadMore } from "../load-more";
+import { columns, Item, mobileColumn } from "./columns";
 import FContentShell from "@/components/(clean-code)/fikr-ui/f-content-shell";
 import { useRolesParams } from "@/hooks/use-roles-params";
 import { _perm } from "@/components/sidebar/links";
@@ -23,17 +18,11 @@ import Link from "@/components/link";
 
 type Props = {
     data: Item[];
-    loadMore: (query) => Promise<any>;
-    pageSize: number;
-    nextMeta;
     filterDataPromise;
 };
 
 export function DataTable({
     data,
-    loadMore,
-    pageSize,
-    nextMeta,
     filterDataPromise,
 }: Props) {
     const { setParams, params } = useEmployeeParams();
@@ -42,33 +31,16 @@ export function DataTable({
         : [];
     const role = useRolesParams();
     const toast = useLoadingToast();
-    //   const deleteEmployee = useAction(deleteStudentAction, {
-    //     onSuccess(args) {
-    //       toast.success("Deleted!", {
-    //         variant: "destructive",
-    //       });
-    //     },
-    //     onError(e) {},
-    //   });
     const txView = useTransactionOverviewModal();
     return (
-        <TableProvider
+        <Table.Provider
             args={[
                 {
                     columns,
+                    mobileColumn,
                     data,
-                    nextMeta,
-                    loadMore,
-                    pageSize,
-                    setParams,
-                    params,
                     tableMeta: {
-                        filterData,
-                        deleteAction(id) {
-                            //   deleteStudent.execute({
-                            //     studentId: id,
-                            //   });
-                        },
+                        deleteAction(id) {},
                         rowClick(id, rowData) {
                             txView.viewTx(rowData?.id);
                         },
@@ -94,14 +66,12 @@ export function DataTable({
                     </div>
                 </FContentShell>
                 <Table>
-                    <TableHeaderComponent />
-
-                    <TableBody>
-                        <TableRow />
-                    </TableBody>
+                    <Table.TableHeader />
+                    <Table.Body>
+                        <Table.TableRow />
+                    </Table.Body>
                 </Table>
-                <LoadMore />
             </div>
-        </TableProvider>
+        </Table.Provider>
     );
 }
