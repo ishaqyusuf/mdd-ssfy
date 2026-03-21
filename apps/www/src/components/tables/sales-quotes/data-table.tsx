@@ -6,7 +6,7 @@ import {
     Table,
     useTableData,
 } from "@gnd/ui/data-table";
-import { columns } from "./columns";
+import { columns, mobileColumn } from "./columns";
 import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
 import { BatchActions } from "./batch-actions";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
@@ -66,7 +66,7 @@ export function DataTable(props: Props) {
             args={[
                 {
                     columns,
-                    // mobileColumn: mobileColumn,
+                    mobileColumn,
                     data,
                     checkbox: true,
                     tableScroll,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
-import { columns, workerColumns } from "./columns";
+import { columns, mobileColumn, workerColumns } from "./columns";
 import { Table, useTableData } from "@gnd/ui/data-table";
 
 import { useTableScroll } from "@/hooks/use-table-scroll";
@@ -52,6 +52,7 @@ export function DataTable(props: Props) {
             args={[
                 {
                     columns: workerMode ? workerColumns : columns,
+                    mobileColumn,
                     data,
                     tableScroll,
                     rowSelection,

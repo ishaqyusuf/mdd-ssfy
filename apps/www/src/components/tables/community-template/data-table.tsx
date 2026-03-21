@@ -2,7 +2,7 @@
 
 import { useTRPC } from "@/trpc/client";
 import { Table, useTableData } from "@gnd/ui/data-table";
-import { columns } from "./columns";
+import { columns, mobileColumn } from "./columns";
 import { useCommunityTemplateFilterParams } from "@/hooks/use-community-template-filter-params";
 import { useCommunityTemplateParams } from "@/hooks/use-community-template-params";
 import { NoResults } from "@gnd/ui/custom/no-results";
@@ -62,7 +62,7 @@ export function DataTable(props: Props) {
             args={[
                 {
                     columns,
-                    // mobileColumn,
+                    mobileColumn,
                     data,
                     props: {
                         loadMoreRef,

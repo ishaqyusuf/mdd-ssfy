@@ -18,6 +18,9 @@ import { Eye, Package } from "lucide-react";
 
 export type Item =
     RouterOutputs["inventories"]["inventoryProducts"]["data"][number];
+interface ItemProps {
+    item: Item;
+}
 export const columns: ColumnDef<Item>[] = [
     {
         header: "Product",
@@ -165,6 +168,38 @@ function ProductCell({ item: product }: { item: Item }) {
                         +{product.images.length - 1} more
                     </Badge>
                 )}
+            </div>
+        </div>
+    );
+}
+export const mobileColumn: ColumnDef<Item>[] = [
+    {
+        header: "",
+        accessorKey: "row",
+        meta: {
+            className: "flex-1 p-0",
+        },
+        cell: ({ row: { original: item } }) => {
+            return <ItemCard item={item} />;
+        },
+    },
+];
+function ItemCard({ item }: ItemProps) {
+    return (
+        <div className="flex flex-col space-y-2 p-3 border-b">
+            <TCell.Primary>{item.title}</TCell.Primary>
+            <TCell.Secondary>{item.category}</TCell.Secondary>
+            <Progress>
+                <Progress.Status>{item.status}</Progress.Status>
+            </Progress>
+            <div className="flex items-center justify-between">
+                <StockModeStatus status={item.stockMode} />
+                <Badge variant="outline">{item.variantCount} variants</Badge>
+            </div>
+            <div className="flex justify-end">
+                <TCell.Primary>
+                    <TCell.Money>{item.stockValue}</TCell.Money>
+                </TCell.Primary>
             </div>
         </div>
     );

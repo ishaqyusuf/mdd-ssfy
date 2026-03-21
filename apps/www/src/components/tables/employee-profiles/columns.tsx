@@ -12,6 +12,9 @@ import { getEmployeeProfilesList } from "@/actions/get-employee-profiles";
 import NumberFlow from "@number-flow/react";
 
 export type Item = PageItemData<typeof getEmployeeProfilesList>;
+interface ItemProps {
+    item: Item;
+}
 export const columns: ColumnDef<Item>[] = [
     {
         header: "Title",
@@ -82,5 +85,39 @@ function Action({ item }: { item: Item }) {
                 <Icons.Edit className="size-4" />
             </Button>
         </ActionCell>
+    );
+}
+export const mobileColumn: ColumnDef<Item>[] = [
+    {
+        header: "",
+        accessorKey: "row",
+        meta: {
+            className: "flex-1 p-0",
+        },
+        cell: ({ row: { original: item } }) => {
+            return <ItemCard item={item} />;
+        },
+    },
+];
+function ItemCard({ item }: ItemProps) {
+    return (
+        <div className="flex flex-col space-y-2 p-3 border-b">
+            <TCell.Primary>{item.name}</TCell.Primary>
+            <TCell.Secondary>
+                {`${item._count?.employees || 0}`} employees
+            </TCell.Secondary>
+            <div className="flex items-center gap-2">
+                {!item.salesComissionPercentage || (
+                    <Badge variant="outline">
+                        {item.salesComissionPercentage}% commission
+                    </Badge>
+                )}
+                {!item.discount || (
+                    <Badge variant="outline">
+                        {item.discount}% paycut
+                    </Badge>
+                )}
+            </div>
+        </div>
     );
 }

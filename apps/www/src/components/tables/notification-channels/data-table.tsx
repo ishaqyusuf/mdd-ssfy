@@ -62,7 +62,7 @@ export function DataTable(props: Props) {
             args={[
                 {
                     columns,
-                    // mobileColumn,
+                    mobileColumn,
                     data,
                     props: {
                         loadMoreRef,

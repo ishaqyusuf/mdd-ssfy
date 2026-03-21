@@ -12,6 +12,9 @@ import { Badge } from "@gnd/ui/badge";
 import { useAction } from "next-safe-action/hooks";
 
 export type Item = PageItemData<typeof getRolesList>;
+interface ItemProps {
+    item: Item;
+}
 export const columns: ColumnDef<Item>[] = [
     {
         header: "Title",
@@ -72,5 +75,32 @@ function Action({ item }: { item: Item }) {
                 <Icons.Edit className="size-4" />
             </Button>
         </ActionCell>
+    );
+}
+export const mobileColumn: ColumnDef<Item>[] = [
+    {
+        header: "",
+        accessorKey: "row",
+        meta: {
+            className: "flex-1 p-0",
+        },
+        cell: ({ row: { original: item } }) => {
+            return <ItemCard item={item} />;
+        },
+    },
+];
+function ItemCard({ item }: ItemProps) {
+    return (
+        <div className="flex flex-col space-y-2 p-3 border-b">
+            <TCell.Primary>{item.name}</TCell.Primary>
+            <TCell.Secondary>
+                {`${item._count?.ModelHasRoles || 0}`} employees
+            </TCell.Secondary>
+            <div>
+                <Badge variant="outline">
+                    {item._count?.RoleHasPermissions} permissions
+                </Badge>
+            </div>
+        </div>
     );
 }

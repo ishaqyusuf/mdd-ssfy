@@ -7,7 +7,7 @@ import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { Button } from "@gnd/ui/button";
 import { Table } from "@gnd/ui/data-table";
 import { useEmployeeParams } from "@/hooks/use-employee-params";
-import { columns, Item } from "./columns";
+import { columns, Item, mobileColumn } from "./columns";
 import { useRolesParams } from "@/hooks/use-roles-params";
 import Portal from "@/components/_v1/portal";
 import { Icons } from "@gnd/ui/icons";
@@ -30,6 +30,7 @@ export function RolesDataTable({ data }: Props) {
             args={[
                 {
                     columns,
+                    mobileColumn,
                     data,
                     setParams,
                     params,

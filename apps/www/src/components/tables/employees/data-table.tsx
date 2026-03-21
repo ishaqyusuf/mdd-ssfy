@@ -2,7 +2,7 @@
 
 import { _trpc } from "@/components/static-trpc";
 import { createTableContext, Table, useTableData } from "@gnd/ui/data-table";
-import { columns } from "./columns";
+import { columns, mobileColumn } from "./columns";
 import { useEmployeeFilterParams } from "@/hooks/use-employee-filter-params";
 import { useEmployeeParams } from "@/hooks/use-employee-params";
 import { NoResults } from "@gnd/ui/custom/no-results";
@@ -61,7 +61,7 @@ export function DataTable(props: Props) {
             args={[
                 {
                     columns,
-                    // mobileColumn,
+                    mobileColumn,
                     data,
                     props: {
                         loadMoreRef,

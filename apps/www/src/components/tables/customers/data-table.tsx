@@ -7,7 +7,7 @@ import {
 import { useTRPC } from "@/trpc/client";
 
 import { Table, useTableData } from "@gnd/ui/data-table";
-import { columns } from "./columns";
+import { columns, mobileColumn } from "./columns";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 
 export function DataTable({}) {
@@ -25,6 +25,7 @@ export function DataTable({}) {
             args={[
                 {
                     columns,
+                    mobileColumn,
                     data,
                     props: { loadMoreRef, hasNextPage },
                     tableMeta: {

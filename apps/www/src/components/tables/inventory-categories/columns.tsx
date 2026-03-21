@@ -82,4 +82,35 @@ export const columns: Column[] = [
     inventories,
     action,
 ];
+export const mobileColumn: ColumnDef<Item>[] = [
+    {
+        header: "",
+        accessorKey: "row",
+        meta: {
+            className: "flex-1 p-0",
+        },
+        cell: ({ row: { original: item } }) => {
+            return <ItemCard item={item} />;
+        },
+    },
+];
+function ItemCard({ item }: ItemProps) {
+    return (
+        <div className="flex flex-col space-y-2 p-3 border-b">
+            <div>
+                <TCell.Primary>{item.title}</TCell.Primary>
+                <TCell.Secondary>{item.type}</TCell.Secondary>
+            </div>
+            <TCell.Secondary>{item.description}</TCell.Secondary>
+            <div className="flex items-center gap-4">
+                <TCell.Secondary>
+                    Variations: {item._count?.categoryVariantAttributes || 0}
+                </TCell.Secondary>
+                <TCell.Secondary>
+                    Inventories: {item._count?.inventories || 0}
+                </TCell.Secondary>
+            </div>
+        </div>
+    );
+}
 
