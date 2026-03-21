@@ -11,13 +11,13 @@ import {
   Row,
   Column,
 } from "@react-email/components";
-import { Footer } from "components/footer";
-import { Logo } from "components/logo";
+import { Footer } from "../components/footer";
+import { Logo } from "../components/logo";
 import {
   EmailThemeProvider,
   getEmailInlineStyles,
   getEmailThemeClasses,
-} from "components/theme";
+} from "../components/theme";
 
 interface Product {
   name: string;

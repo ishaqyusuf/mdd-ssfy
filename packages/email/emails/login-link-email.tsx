@@ -11,8 +11,8 @@ import {
   getEmailInlineStyles,
   getEmailThemeClasses,
   Button,
-} from "components/theme";
-import { Logo } from "components/logo";
+} from "../components/theme";
+import { Logo } from "../components/logo";
 
 interface Props {
   customerName: string;
