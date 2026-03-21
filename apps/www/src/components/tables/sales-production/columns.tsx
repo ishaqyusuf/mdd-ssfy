@@ -205,136 +205,44 @@ function Actions({ item }: { item: Item }) {
         </div>
     );
 }
-// export const mobileColumn: ColumnDef<Item>[] = [
-//     {
-//         header: "",
-//         accessorKey: "row",
-//         meta: {
-//             className: "flex-1 p-0",
-//             // preventDefault: true,
-//         },
-//         cell: ({ row: { original: item } }) => {
-//             return <ItemCard item={item} />;
-//         },
-//     },
-// ];
-// function ItemCard({ item }: { item: Item }) {
-//     // design a mobile version of the columns here
-
-//     const overviewQuery = useSalesOverviewQuery();
-//     return (
-//         <div
-//             onClick={(e) => {
-//                 e.preventDefault();
-//             }}
-//             className="flex flex-col space-y-2 p-3 border-b"
-//         >
-//             <div className="flex justify-between items-start">
-//                 <div className="flex flex-col">
-//                     <div className="flex items-center gap-2">
-//                         <TCell.Secondary className="font-bold">
-//                             {item.orderId}
-//                         </TCell.Secondary>
-//                         {!item.orderId
-//                             ?.toUpperCase()
-//                             .endsWith(item.salesRepInitial) && (
-//                             <Badge
-//                                 className="font-mono$ text-xs"
-//                                 variant="secondary"
-//                             >
-//                                 {item.salesRepInitial}
-//                             </Badge>
-//                         )}
-//                         {!item.noteCount || (
-//                             <Badge
-//                                 className="p-1 h-5 text-xs"
-//                                 variant="secondary"
-//                             >
-//                                 <StickyNote className="w-3 mr-1" />
-//                                 <span className="">{item.noteCount}</span>
-//                             </Badge>
-//                         )}
-//                     </div>
-//                     <TCell.Secondary className="text-xs font-mono$">
-//                         {item?.salesDate}
-//                     </TCell.Secondary>
-//                 </div>
-//                 <Actions item={item} />
-//             </div>
-
-//             <div>
-//                 <TCell.Primary
-//                     className={cn(
-//                         "font-semibold",
-//                         item.isBusiness && "text-blue-700",
-//                     )}
-//                 >
-//                     <TextWithTooltip
-//                         className="max-w-full"
-//                         text={item.displayName || "-"}
-//                     />
-//                 </TCell.Primary>
-//                 {item.poNo && (
-//                     <TCell.Secondary className="text-xs">
-//                         P.O: {item.poNo}
-//                     </TCell.Secondary>
-//                 )}
-//             </div>
-
-//             <div className="text-xs text-muted-foreground">
-//                 <TextWithTooltip className="max-w-full" text={item?.address} />
-//                 <div>{item?.customerPhone}</div>
-//             </div>
-
-//             <div className="flex justify-between items-center border-t pt-2 mt-2">
-//                 <div>
-//                     <div className="text-xs text-muted-foreground">Invoice</div>
-//                     <TCell.Money
-//                         value={item.invoice.total}
-//                         className={cn(
-//                             "font-mono$ font-bold",
-//                             item.invoice.pending == item.invoice.total
-//                                 ? "text-red-600"
-//                                 : item.invoice.pending > 0
-//                                   ? "text-purple-500"
-//                                   : "text-green-600",
-//                         )}
-//                     />
-//                     {item.invoice.pending > 0 && (
-//                         <TCell.Secondary className="text-xs">
-//                             (Pending:{" "}
-//                             <TCell.Money
-//                                 value={item.invoice.pending}
-//                                 className="inline-block"
-//                             />
-//                             )
-//                         </TCell.Secondary>
-//                     )}
-//                 </div>
-//                 <div className="text-right">
-//                     <div className="text-xs text-muted-foreground">Method</div>
-//                     <Progress.Status>
-//                         {item?.deliveryOption || "Not set"}
-//                     </Progress.Status>
-//                 </div>
-//             </div>
-
-//             <div className="grid grid-cols-2 gap-2 text-xs">
-//                 <div>
-//                     <div className="text-muted-foreground">Production</div>
-//                     <Progress.Status>
-//                         {item.status.production?.scoreStatus ||
-//                             item.status.production?.status}
-//                     </Progress.Status>
-//                 </div>
-//                 <div>
-//                     <div className="text-muted-foreground">Fulfillment</div>
-//                     <Progress.Status>
-//                         {item?.deliveryStatus || "-"}
-//                     </Progress.Status>
-//                 </div>
-//             </div>
-//         </div>
-//     );
-// }
+export const mobileColumn: ColumnDef<Item>[] = [
+    {
+        header: "",
+        accessorKey: "row",
+        meta: {
+            className: "flex-1 p-0",
+        },
+        cell: ({ row: { original: item } }) => {
+            return <ItemCard item={item} />;
+        },
+    },
+];
+function ItemCard({ item }: ItemProps) {
+    return (
+        <div className="flex flex-col space-y-2 p-3 border-b">
+            <div className="flex justify-between items-start">
+                <div className="flex flex-col">
+                    <TCell.Primary className="font-mono$">{item.orderId}</TCell.Primary>
+                    <TCell.Secondary>{item.customer}</TCell.Secondary>
+                </div>
+                <Progress>
+                    <Progress.Status badge>
+                        {item.status?.production?.scoreStatus || item.status?.production?.status}
+                    </Progress.Status>
+                </Progress>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+                <TCell.Secondary className="uppercase">
+                    <TextWithTooltip className="max-w-[150px]" text={item.salesRep} />
+                </TCell.Secondary>
+                {item.alert?.date && (
+                    <TCell.Secondary className="font-mono$">{item.alert.dateString}</TCell.Secondary>
+                )}
+            </div>
+            {item.assignedTo && (
+                <TCell.Secondary className="text-xs">Assigned: {item.assignedTo}</TCell.Secondary>
+            )}
+        </div>
+    );
+}
 

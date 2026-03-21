@@ -6,6 +6,9 @@ import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { Progress } from "@gnd/ui/custom/progress";
 
 export type Item = RouterOutputs["siteActions"]["index"]["data"][number];
+interface ItemProps {
+    item: Item;
+}
 export const columns: ColumnDef<Item>[] = [
     {
         header: "date",
@@ -51,3 +54,37 @@ export const columns: ColumnDef<Item>[] = [
         ),
     },
 ];
+export const mobileColumn: ColumnDef<Item>[] = [
+    {
+        header: "",
+        accessorKey: "row",
+        meta: {
+            className: "flex-1 p-0",
+        },
+        cell: ({ row: { original: item } }) => {
+            return <ItemCard item={item} />;
+        },
+    },
+];
+function ItemCard({ item }: ItemProps) {
+    return (
+        <div className="flex flex-col space-y-2 p-3 border-b">
+            <div>
+                <TCell.Date>{item.createdAt}</TCell.Date>
+            </div>
+            <div>
+                <Progress>
+                    <Progress.Status>{item.event}</Progress.Status>
+                </Progress>
+            </div>
+            <div>
+                <TCell.Secondary className="font-mono$">
+                    {item?.description}
+                </TCell.Secondary>
+                <TCell.Secondary>
+                    {(item?.meta as any)?.description}
+                </TCell.Secondary>
+            </div>
+        </div>
+    );
+}

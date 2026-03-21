@@ -16,6 +16,9 @@ import { useSalesOverviewOpen } from "@/hooks/use-sales-overview-open";
 import { ExternalLink } from "lucide-react";
 
 export type Item = RouterOutputs["sales"]["quotes"]["data"][number];
+interface ItemProps {
+    item: Item;
+}
 export const columns: ColumnDef<Item>[] = [
     cells.selectColumn,
     {
@@ -173,5 +176,79 @@ function QuoteActions({ item }: { item: Item }) {
             <SalesMenu.Copy />
             <SalesMenu.Move />
         </SalesMenu>
+    );
+}
+export const mobileColumn: ColumnDef<Item>[] = [
+    {
+        header: "",
+        accessorKey: "row",
+        meta: {
+            className: "flex-1 p-0",
+        },
+        cell: ({ row: { original: item } }) => {
+            return <ItemCard item={item} />;
+        },
+    },
+];
+function ItemCard({ item }: ItemProps) {
+    return (
+        <div className="flex flex-col space-y-2 p-3 border-b">
+            <div className="flex justify-between items-start">
+                <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                        <TCell.Secondary className="font-bold">
+                            {item.orderId}
+                        </TCell.Secondary>
+                        {!item.orderId
+                            ?.toUpperCase()
+                            .endsWith(item.salesRepInitial) && (
+                            <Badge
+                                className="font-mono$ text-xs"
+                                variant="secondary"
+                            >
+                                {item.salesRepInitial}
+                            </Badge>
+                        )}
+                    </div>
+                    <TCell.Secondary className="text-xs font-mono$">
+                        {item?.salesDate}
+                    </TCell.Secondary>
+                </div>
+            </div>
+
+            <div>
+                <TCell.Primary
+                    className={cn(
+                        "font-semibold",
+                        item.isBusiness && "text-blue-700",
+                    )}
+                >
+                    <TextWithTooltip
+                        className="max-w-full"
+                        text={item.displayName || "-"}
+                    />
+                </TCell.Primary>
+                {item.poNo && (
+                    <TCell.Secondary className="text-xs">
+                        P.O: {item.poNo}
+                    </TCell.Secondary>
+                )}
+            </div>
+
+            <div className="text-xs text-muted-foreground">
+                <TextWithTooltip className="max-w-full" text={item?.address} />
+                <div>{item?.customerPhone}</div>
+            </div>
+
+            <div className="flex justify-between items-center border-t pt-2 mt-2">
+                <div>
+                    <div className="text-xs text-muted-foreground">Invoice</div>
+                    <TCell.Money
+                        value={item.invoice.total}
+                        className="font-mono$ font-bold"
+                    />
+                </div>
+            </div>
+        </div>
     );
 }

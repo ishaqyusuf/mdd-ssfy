@@ -36,6 +36,9 @@ import {
     FulfillmentDispatch,
 } from "./fulfillment-complete-modal";
 export type Item = RouterOutputs["sales"]["index"]["data"][number];
+interface ItemProps {
+    item: Item;
+}
 
 function getProductionStatusLabel(item: Item) {
     const status = (item as any)?.control?.productionStatus;
@@ -724,6 +727,135 @@ function Actions({ item }: { item: Item }) {
                 }}
                 onConfirm={handleFulfillmentConfirm}
             />
+        </div>
+    );
+}
+export const mobileColumn: ColumnDef<Item>[] = [
+    {
+        header: "",
+        accessorKey: "row",
+        meta: {
+            className: "flex-1 p-0",
+        },
+        cell: ({ row: { original: item } }) => {
+            return <ItemCard item={item} />;
+        },
+    },
+];
+function ItemCard({ item }: ItemProps) {
+    return (
+        <div className="flex flex-col space-y-2 p-3 border-b">
+            <div className="flex justify-between items-start">
+                <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                        <TCell.Secondary className="font-bold">
+                            {item.orderId}
+                        </TCell.Secondary>
+                        {!item.orderId
+                            ?.toUpperCase()
+                            .endsWith(item.salesRepInitial) && (
+                            <Badge
+                                className="font-mono$ text-xs"
+                                variant="secondary"
+                            >
+                                {item.salesRepInitial}
+                            </Badge>
+                        )}
+                        {!item.noteCount || (
+                            <Badge
+                                className="p-1 h-5 text-xs"
+                                variant="secondary"
+                            >
+                                <StickyNote className="w-3 mr-1" />
+                                <span>{item.noteCount}</span>
+                            </Badge>
+                        )}
+                    </div>
+                    <TCell.Secondary className="text-xs font-mono$">
+                        {item?.salesDate}
+                    </TCell.Secondary>
+                </div>
+            </div>
+
+            <div>
+                <TCell.Primary
+                    className={cn(
+                        "font-semibold",
+                        item.isBusiness && "text-blue-700",
+                    )}
+                >
+                    <TextWithTooltip
+                        className="max-w-full"
+                        text={item.displayName || "-"}
+                    />
+                </TCell.Primary>
+                {item.poNo && (
+                    <TCell.Secondary className="text-xs">
+                        P.O: {item.poNo}
+                    </TCell.Secondary>
+                )}
+            </div>
+
+            <div className="text-xs text-muted-foreground">
+                <TextWithTooltip className="max-w-full" text={item?.address} />
+                <div>{item?.customerPhone}</div>
+            </div>
+
+            <div className="flex justify-between items-center border-t pt-2 mt-2">
+                <div>
+                    <div className="text-xs text-muted-foreground">Invoice</div>
+                    <TCell.Money
+                        value={item.invoice.total}
+                        className={cn(
+                            "font-mono$ font-bold",
+                            item.invoice.pending == item.invoice.total
+                                ? "text-red-600"
+                                : item.invoice.pending > 0
+                                  ? "text-purple-500"
+                                  : "text-green-600",
+                        )}
+                    />
+                    {item.invoice.pending > 0 && (
+                        <TCell.Secondary className="text-xs">
+                            (Pending:{" "}
+                            <TCell.Money
+                                value={item.invoice.pending}
+                                className="inline-block"
+                            />
+                            )
+                        </TCell.Secondary>
+                    )}
+                </div>
+                <div className="text-right">
+                    <div className="text-xs text-muted-foreground">
+                        Delivery
+                    </div>
+                    <Progress>
+                        <Progress.Status>
+                            {item?.deliveryOption || "Not set"}
+                        </Progress.Status>
+                    </Progress>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                    <div className="text-muted-foreground">Production</div>
+                    <Progress>
+                        <Progress.Status>
+                            {getProductionStatusLabel(item)}
+                        </Progress.Status>
+                    </Progress>
+                </div>
+                <div>
+                    <div className="text-muted-foreground">Fulfillment</div>
+                    <Progress>
+                        <Progress.Status>
+                            {getFulfillmentStatusLabel(item)}
+                        </Progress.Status>
+                    </Progress>
+                </div>
+            </div>
         </div>
     );
 }
