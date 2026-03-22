@@ -112,7 +112,7 @@ export function DoorBlock({ section, baseUrl, showImages }: DoorBlockProps) {
                       justifyContent: "center",
                     }}
                   >
-                    <Text style={{ fontSize: 7.5, color: "#374151" }}>
+                    <Text style={{ fontSize: 7.5, color: "#1e293b" }}>
                       {String(detail.value || "").toUpperCase()}
                     </Text>
                   </View>
@@ -254,7 +254,7 @@ function TableCell({
           style={{
             fontSize: 7.5,
             fontWeight: bold ? 700 : 400,
-            color: "#374151",
+            color: "#1e293b",
             textAlign,
           }}
         >

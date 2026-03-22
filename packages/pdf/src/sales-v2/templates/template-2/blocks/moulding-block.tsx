@@ -173,7 +173,7 @@ function TableCell({
           style={{
             fontSize: 7.5,
             fontWeight: bold ? 700 : 400,
-            color: "#374151",
+            color: "#1e293b",
             textAlign,
           }}
         >
