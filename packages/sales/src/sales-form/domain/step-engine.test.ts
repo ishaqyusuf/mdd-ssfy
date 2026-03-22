@@ -100,6 +100,25 @@ describe("step-engine domain", () => {
     ]);
   });
 
+  it("dedupes repeated redirect steps by title while preserving first canonical entry", () => {
+    const routes = getRedirectableRoutes({
+      stepsById: {
+        10: "item-type-a",
+        20: "item-type-b",
+        30: "door",
+      },
+      stepsByUid: {
+        "item-type-a": { uid: "item-type-a", title: "Item Type" },
+        "item-type-b": { uid: "item-type-b", title: "Item Type" },
+        door: { uid: "door", title: "Door" },
+      },
+    });
+    expect(routes).toEqual([
+      { uid: "item-type-a", title: "Item Type" },
+      { uid: "door", title: "Door" },
+    ]);
+  });
+
   it("resolves price by dependency key", () => {
     const resolved = resolveComponentPriceByDeps(
       {

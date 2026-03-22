@@ -52,9 +52,18 @@ export function getRedirectableRoutes(routeData: any) {
     }))
     .filter((step: any) => step.uid && step.title);
 
-  return Array.from(
+  const uniqueByUid = Array.from(
     new Map(routes.map((step: any) => [step.uid, step])).values(),
   );
+
+  const uniqueByTitle = new Map<string, any>();
+  uniqueByUid.forEach((step: any) => {
+    const titleKey = normalizeSalesFormTitle(step.title);
+    if (!titleKey || uniqueByTitle.has(titleKey)) return;
+    uniqueByTitle.set(titleKey, step);
+  });
+
+  return Array.from(uniqueByTitle.values());
 }
 
 export function isComponentVisibleByRules(

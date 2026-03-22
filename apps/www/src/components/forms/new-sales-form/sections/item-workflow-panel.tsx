@@ -5773,7 +5773,7 @@ export function ItemWorkflowPanel() {
                     }))
                 }
             >
-                <DialogContent className="max-w-xl">
+                <DialogContent className="max-h-[90vh] max-w-xl overflow-hidden">
                     <DialogHeader>
                         <DialogTitle>
                             {componentEditModal.mode === "sectionOverride"
@@ -5786,7 +5786,7 @@ export function ItemWorkflowPanel() {
                                 : "Standard component edit form for this line step."}
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-4 py-1">
+                    <div className="grid max-h-[calc(90vh-9rem)] gap-4 overflow-y-auto py-1 pr-1">
                         <div className="grid gap-2">
                             <Label>Component</Label>
                             <Input value={componentEditModal.componentTitle} readOnly />
