@@ -1,8 +1,7 @@
 import { Icons } from "@/components/_v1/icons";
-import { ResetPasswordConfirmForm } from "@/components/reset-password-confirm-form";
+import { ResetPasswordStep2Form } from "@/components/_v1/forms/reset-password-form-step2";
 import { Card, CardDescription, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Metadata } from "next";
-import { Suspense } from "react";
 
 export const metadata: Metadata = {
     title: "Reset Password | GND",
@@ -21,15 +20,14 @@ export default async function Page() {
             <Card className="shadow-xl border-0">
                 <CardHeader className="space-y-1 pb-6">
                     <CardTitle className="text-xl font-semibold text-center">
-                        Set New Password
+                        Reset Password
                     </CardTitle>
                     <CardDescription className="text-center">
-                        Enter your new password below to complete the reset
+                        Enter your verification code and new password to finish
+                        resetting your account
                     </CardDescription>
                 </CardHeader>
-                <Suspense>
-                    <ResetPasswordConfirmForm />
-                </Suspense>
+                <ResetPasswordStep2Form />
             </Card>
         </div>
     );

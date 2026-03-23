@@ -2,21 +2,23 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { z } from "zod";
 
 import { SubmitButton } from "@/components/submit-button";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { Button } from "@gnd/ui/button";
 import { Form } from "@gnd/ui/form";
+import { signIn } from "next-auth/react";
 import { useTransition } from "@/utils/use-safe-transistion";
+import { useTaskTrigger } from "@/hooks/use-task-trigger";
+import { SendLoginEmailPayload } from "@jobs/schema";
 import { Icons } from "@/components/_v1/icons";
-import { useState } from "react";
+import { useEffect } from "react";
 import { InputField } from "@gnd/ui/controls-2/input-field";
+import { parseAsString, useQueryStates } from "nuqs";
 
 import { Key } from "lucide-react";
-import { authClient } from "@/auth/client";
-import { toast } from "sonner";
 
 const loginSchema = z.object({
     email: z.string().email({ message: "Please enter a valid email address." }),
@@ -26,12 +28,21 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
+function useLoginEmail() {
+    const [params, setParams] = useQueryStates({
+        token: parseAsString,
+    });
+
+    return {
+        params,
+        setParams,
+    };
+}
+
 export function SigninComponent() {
     const searchParams = useSearchParams();
     const callbackUrl = searchParams.get("callbackUrl") || "/";
-    const router = useRouter();
     const [isPending, startTransition] = useTransition();
-    const [magicLinkSent, setMagicLinkSent] = useState(false);
 
     const form = useZodForm(loginSchema, {
         defaultValues: {
@@ -41,36 +52,39 @@ export function SigninComponent() {
         },
     });
     const withEmail = form.watch("withEmail");
+    const loginEmail = useLoginEmail();
+    const token = loginEmail.params.token;
+
+    useEffect(() => {
+        if (!token) return;
+
+        signIn("credentials", {
+            token,
+            callbackUrl,
+            redirect: true,
+        });
+    }, [callbackUrl, token]);
+
+    const loginWithEmail = useTaskTrigger({
+        debug: true,
+    });
 
     const onSubmit = form.handleSubmit(async (data: LoginForm) => {
         if (data.withEmail) {
-            startTransition(async () => {
-                const { error } = await authClient.signIn.magicLink({
+            loginWithEmail.trigger({
+                taskName: "send-login-email",
+                payload: {
                     email: data.email,
-                    callbackURL: callbackUrl,
-                });
-                if (error) {
-                    toast.error(error.message ?? "Failed to send login email");
-                } else {
-                    setMagicLinkSent(true);
-                    toast.success("Check your email", {
-                        description:
-                            "We sent you a secure login link. Check your inbox.",
-                    });
-                }
+                } as SendLoginEmailPayload,
             });
         } else {
             startTransition(async () => {
-                const { error } = await authClient.signIn.email({
+                await signIn("credentials", {
                     email: data.email,
                     password: data.password ?? "",
-                    callbackURL: callbackUrl,
+                    callbackUrl,
+                    redirect: true,
                 });
-                if (error) {
-                    toast.error(error.message ?? "Invalid credentials");
-                } else {
-                    router.push(callbackUrl);
-                }
             });
         }
     });
@@ -140,13 +154,10 @@ export function SigninComponent() {
                             ) : (
                                 <>
                                     <SubmitButton
-                                        isSubmitting={isPending}
+                                        isSubmitting={loginWithEmail?.isLoading}
                                         className="w-full"
-                                        disabled={magicLinkSent}
                                     >
-                                        {magicLinkSent
-                                            ? "Email sent — check your inbox"
-                                            : "Continue with Email"}
+                                        Continue with Email
                                     </SubmitButton>
                                     <Button
                                         type="button"

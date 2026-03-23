@@ -5,16 +5,18 @@ import { Form } from "@gnd/ui/form";
 import { z } from "zod";
 import FormInput from "./common/controls/form-input";
 import { SubmitButton } from "./submit-button";
+import { signIn, useSession } from "next-auth/react";
 import { useTransition } from "@/utils/use-safe-transistion";
 
 import Link from "@/components/link";
 import { Button } from "@gnd/ui/button";
+import { useTaskTrigger } from "@/hooks/use-task-trigger";
+import { SendLoginEmailPayload } from "@jobs/schema";
 
 import { parseAsString, useQueryStates } from "nuqs";
 
-import { useEffect, useState } from "react";
-import { authClient } from "@/auth/client";
-import { toast } from "sonner";
+import { useEffect } from "react";
+import { redirect } from "next/navigation";
 
 const loginSchema = z.object({
     email: z.string().email(),
@@ -39,35 +41,44 @@ export function LoginForm() {
         },
     });
     const withEmail = form.watch("withEmail");
-    const [magicLinkSent, setMagicLinkSent] = useState(false);
+    const loginEmail = useLoginEmail();
+    const token = loginEmail.params.token;
+    const { data: session } = useSession();
+
+    useEffect(() => {
+        if (session?.user?.id) redirect("/");
+    }, [session]);
+
+    useEffect(() => {
+        if (!token) return;
+
+        signIn("credentials", {
+            token,
+            callbackUrl: "/",
+            redirect: true,
+        });
+    }, [token]);
+
     const [isPending, startTransition] = useTransition();
+    const loginWithEmail = useTaskTrigger({
+        debug: true,
+    });
+
     const onSubmit = form.handleSubmit(async (data) => {
         if (data.withEmail) {
-            startTransition(async () => {
-                const { error } = await authClient.signIn.magicLink({
+            loginWithEmail.trigger({
+                taskName: "send-login-email",
+                payload: {
                     email: data.email,
-                    callbackURL: "/",
-                });
-                if (error) {
-                    toast.error(error.message ?? "Failed to send login email");
-                } else {
-                    setMagicLinkSent(true);
-                    toast.success("Check your email", {
-                        description:
-                            "We sent you a secure login link. Check your inbox.",
-                    });
-                }
+                } as SendLoginEmailPayload,
             });
         } else {
             startTransition(async () => {
-                const { error } = await authClient.signIn.email({
-                    email: data.email,
-                    password: data.password,
-                    callbackURL: "/",
+                await signIn("credentials", {
+                    ...data,
+                    callbackUrl: "/",
+                    redirect: true,
                 });
-                if (error) {
-                    toast.error(error.message ?? "Invalid credentials");
-                }
             });
         }
     });
@@ -115,13 +126,10 @@ export function LoginForm() {
                         ) : (
                             <>
                                 <SubmitButton
-                                    isSubmitting={isPending}
+                                    isSubmitting={loginWithEmail?.isLoading}
                                     className="w-full"
-                                    disabled={magicLinkSent}
                                 >
-                                    {magicLinkSent
-                                        ? "Email sent — check your inbox"
-                                        : "Continue with Email"}
+                                    Continue with Email
                                 </SubmitButton>
                                 <Button
                                     type="button"

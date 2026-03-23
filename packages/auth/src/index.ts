@@ -1,137 +1,96 @@
-import type { BetterAuthOptions } from "better-auth";
-import { betterAuth } from "better-auth";
-import { magicLink } from "better-auth/plugins";
-import { prismaAdapter } from "better-auth/adapters/prisma";
-import { db } from "@gnd/db";
+import { db, Roles, Users } from "@gnd/db";
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import { DefaultSession, NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
 
-import { compare, hash } from "bcrypt-ts";
-import { nextCookies } from "better-auth/next-js";
+import { ICan, loginAction } from "./utils";
 
-export interface AuthEmailHandlers {
-  sendMagicLink?: (params: {
-    email: string;
-    token: string;
-    url: string;
-  }) => Promise<void>;
-  sendResetPassword?: (params: {
-    user: { email: string; name: string };
-    url: string;
-    token: string;
-  }) => Promise<void>;
+declare module "next-auth" {
+  interface User {
+    user: Users;
+    can: ICan;
+    role: Roles;
+    sessionId?: string;
+  }
+
+  interface Session extends DefaultSession {
+    user: Users;
+    can: ICan;
+    role: Roles;
+  }
 }
 
-export function initAuth(options: {
-  baseUrl: string;
-  productionUrl: string;
-  secret: string | undefined;
-  trustedOrigins?: string[];
-  emailHandlers?: AuthEmailHandlers;
-  //   discordClientId: string;
-  //   discordClientSecret: string;
-}) {
-  const config = {
-    basePath: "/api/better-auth",
-    database: prismaAdapter(db, {
-      provider: "mysql",
-      // usePlural: true,
-    }),
-    baseURL: options.baseUrl,
-    secret: options.secret,
-    session: {
-      // modelName: "userSessions",
-      fields: {
-        userId: "userId2",
-      },
-    },
-    user: {
-      additionalFields: {
-        // type: {
-        //   type: "string",
-        //   required: true,
-        // },
-        userId: {
-          type: "number",
-          required: true,
-        },
-      },
-    },
-    advanced: {
-      // database: {
-      //   useNumberId: true,
-      // },
-      // cookies:
-    },
-    emailAndPassword: {
-      enabled: true,
+declare module "next-auth/jwt" {
+  interface JWT {
+    user: Users;
+    can: ICan;
+    role: Roles;
+    sessionId?: string;
+  }
+}
 
-      password: {
-        async hash(password) {
-          const h = await hash(password, 10);
-          return h;
-        },
-        async verify(data) {
-          const result = await compare(data.password, data.hash);
-          return result;
-        },
-      },
-      async sendResetPassword(data, _request) {
-        if (options.emailHandlers?.sendResetPassword) {
-          await options.emailHandlers.sendResetPassword({
-            user: { email: data.user.email, name: data.user.name },
-            url: data.url,
-            token: data.token,
-          });
+export function nextAuthOptions(options: {
+  secret: string | undefined;
+}): NextAuthOptions {
+  return {
+    session: {
+      strategy: "jwt",
+    },
+    pages: {
+      signIn: "/login",
+      error: "/login?error=login+failed",
+    },
+    jwt: {
+      secret: process.env.JWT_SECRET!,
+      maxAge: 15 * 24 * 30 * 60,
+    },
+    adapter: PrismaAdapter(db),
+    secret: options.secret,
+    callbacks: {
+      jwt: async ({ token, user: cred }) => {
+        if (cred) {
+          const { role, can, user, sessionId } = cred;
+          token.user = user;
+          token.can = can;
+          token.role = role;
+          token.sessionId = sessionId;
         }
+
+        if (!token.sessionId) return null as any;
+
+        return token;
+      },
+      session({ session, token }) {
+        if (session.user) {
+          session.user = token.user;
+          session.role = token.role;
+          session.can = token.can;
+        }
+
+        return session;
       },
     },
-    plugins: [
-      nextCookies(),
-      magicLink({
-        sendMagicLink: async ({ email, token, url }, _ctx) => {
-          if (options.emailHandlers?.sendMagicLink) {
-            await options.emailHandlers.sendMagicLink({ email, token, url });
+    providers: [
+      CredentialsProvider({
+        name: "Sign in",
+        credentials: {
+          token: {},
+          type: {},
+          email: {
+            label: "Email",
+            type: "email",
+            placeholder: "example@example.com",
+          },
+          password: { label: "Password", type: "password" },
+        },
+        async authorize(credentials) {
+          if (!credentials) {
+            return null;
           }
+
+          return (await loginAction(db, credentials as any)) as any;
         },
       }),
-      // organization({
-      //   schema: {
-      //   }
-      // })
-      //   username({}),
-      //   oAuthProxy({
-      //     /**
-      //      * Auto-inference blocked by https://github.com/better-auth/better-auth/pull/2891
-      //      */
-      //     currentURL: options.baseUrl,
-      //     productionURL: options.productionUrl,
-      //   }),
-      //   expo(),
     ],
-    socialProviders: {
-      //   discord: {
-      //     clientId: options.discordClientId,
-      //     clientSecret: options.discordClientSecret,
-      //     redirectURI: `${options.productionUrl}/api/auth/callback/discord`,
-      //   },
-      // google: {}
-    },
-    hooks: {},
-    trustedOrigins: [
-      "expo://",
-      "https://www.gndprodesk.com",
-      "https://gndprodesk.com",
-      "http://localhost:4100",
-      ...(options.trustedOrigins ?? []),
-      "*.example.com", // Trust all subdomains of example.com (any protocol)
-      "https://*.example.com", // Trust only HTTPS subdomains of example.com
-      "http://*.dev.example.com", // Trust all HTTP subdomains of dev.example.com
-    ],
-    databaseHooks: {},
-  } satisfies BetterAuthOptions;
-
-  return betterAuth(config);
+  };
 }
-
-export type Auth = ReturnType<typeof initAuth>;
-export type Session = Auth["$Infer"]["Session"];
-export type User = Omit<Session["user"], "id"> & { id: number };

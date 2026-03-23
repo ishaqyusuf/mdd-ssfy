@@ -1,5 +1,5 @@
 import { Icons } from "@/components/_v1/icons";
-import { PasswordResetForm } from "@/components/password-reset-form";
+import { ResetPasswordForm } from "@/components/_v1/forms/reset-password-form";
 import { Card, CardDescription, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Metadata } from "next";
 
@@ -27,9 +27,8 @@ export default async function Page() {
                         reset your password
                     </CardDescription>
                 </CardHeader>
-                <PasswordResetForm />
+                <ResetPasswordForm />
             </Card>
         </div>
     );
 }
-

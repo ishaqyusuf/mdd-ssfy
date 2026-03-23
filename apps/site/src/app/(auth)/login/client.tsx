@@ -45,23 +45,6 @@ export function Client() {
     }).catch((e) => {
       console.log(e);
     });
-    // await authClient.signIn.email(
-    //   {
-    //     email: formData.email,
-    //     password: formData.password,
-    //     callbackURL: "/",
-    //     type: "customer",
-    //   },
-    //   {
-    //     onError(context) {
-    //       console.log(context);
-    //     },
-    //     onSuccess(context) {
-    //       console.log(context);
-    //     },
-    //   }
-    // );
-
     // const result = await login(formData.email, formData.password);
 
     // if (result.success) {

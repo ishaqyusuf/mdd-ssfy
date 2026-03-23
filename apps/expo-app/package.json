@@ -12,7 +12,6 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "@better-auth/expo": "^1.4.9",
     "@expo/vector-icons": "^15.0.3",
     "@gnd/dev-logger": "workspace:*",
     "@gnd/utils": "workspace:*",
@@ -33,7 +32,6 @@
     "@trpc/client": "^11.6.0",
     "@trpc/tanstack-react-query": "^11.6.0",
     "aes-js": "^3.1.2",
-    "better-auth": "^1.4.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "expo": "~54.0.33",

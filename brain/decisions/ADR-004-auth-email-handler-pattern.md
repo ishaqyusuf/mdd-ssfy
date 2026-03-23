@@ -1,5 +1,7 @@
 # ADR-004: Auth Email Handler Pattern for better-auth Migration
 
+Status note on March 23, 2026: the Better Auth rollout was reverted and the web surfaces were moved back to the established NextAuth flow. This ADR remains as historical context for the abandoned migration work and should not be treated as current architecture.
+
 ## Status
 Accepted
 
