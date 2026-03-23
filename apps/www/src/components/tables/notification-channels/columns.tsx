@@ -103,6 +103,11 @@ export function ListItem({ item: event }: ItemProps) {
                 <span className="text-[9px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground font-bold uppercase tracking-tighter">
                     {event.category}
                 </span>
+                {event.deletable ? (
+                    <span className="text-[9px] bg-amber-500/10 px-1.5 py-0.5 rounded text-amber-700 font-bold uppercase tracking-tighter">
+                        Deletable
+                    </span>
+                ) : null}
                 {/* {event.assignments.roles.map((role) => (
                         <span
                             key={role}

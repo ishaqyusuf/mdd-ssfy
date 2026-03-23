@@ -86,13 +86,15 @@ function ActivityTreeItem({
       </p>
       <p className="text-sm font-semibold text-foreground">{activityHeadline(node)}</p>
       {activityDescription(node) ? (
-        <p className="mt-0.5 text-xs text-muted-foreground">{activityDescription(node)}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{activityDescription(node)}</p>
       ) : null}
-      <p className="mt-0.5 text-xs text-muted-foreground">
+      <p className="mt-1 text-sm text-muted-foreground">
         By <span className="font-semibold text-foreground">{activityAuthor(node)}</span>
       </p>
       {node.note ? (
-        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{node.note}</p>
+        <div className="mt-3 rounded-lg border border-border bg-muted/40 p-3">
+          <p className="text-sm leading-6 text-foreground/90">{node.note}</p>
+        </div>
       ) : null}
 
       {node.children?.length ? (

@@ -61,13 +61,29 @@ function mapActivity(row: {
 	subject: string | null;
 	headline: string | null;
 	note: string | null;
-	senderContact: { id: number; name: string | null } | null;
+	senderContact: {
+		id: number;
+		name: string | null;
+		role: "employee" | "customer" | null;
+		profileId: number | null;
+	} | null;
 	recipients: { status: NoteStatus | null; notePadContactId: number }[];
 	tags: { tagName: string; tagValue: string }[];
+	senderContactName?: string | null;
 }): ActivityTreeNode {
 	const tags = mergeTagRows(row.tags);
 	const descriptionFromTag =
 		typeof tags.description === "string" ? tags.description : null;
+	const tagAuthorName =
+		typeof tags.authorContactName === "string"
+			? tags.authorContactName
+			: typeof tags.authorName === "string"
+				? tags.authorName
+				: typeof tags.author === "string"
+					? tags.author
+					: typeof tags.requestedByName === "string"
+						? tags.requestedByName
+						: null;
 
 	return {
 		id: row.id,
@@ -77,11 +93,101 @@ function mapActivity(row: {
 		description: descriptionFromTag,
 		note: row.note ?? null,
 		senderContactId: row.senderContact?.id ?? null,
-		senderContactName: row.senderContact?.name ?? null,
+		senderContactName:
+			row.senderContactName ?? row.senderContact?.name ?? tagAuthorName,
 		receipt: row.recipients?.[0] ?? null,
 		tags,
 		children: [],
 	};
+}
+
+type ActivityRow = {
+	id: number;
+	createdAt: Date | null;
+	subject: string | null;
+	headline: string | null;
+	note: string | null;
+	senderContact: {
+		id: number;
+		name: string | null;
+		role: "employee" | "customer" | null;
+		profileId: number | null;
+	} | null;
+	recipients: { status: NoteStatus | null; notePadContactId: number }[];
+	tags: { tagName: string; tagValue: string }[];
+};
+
+async function attachSenderNames(db: Db, rows: ActivityRow[]) {
+	const employeeIds = Array.from(
+		new Set(
+			rows
+				.map((row) =>
+					row.senderContact?.role === "employee"
+						? row.senderContact.profileId
+						: null,
+				)
+				.filter((id): id is number => typeof id === "number"),
+		),
+	);
+	const customerIds = Array.from(
+		new Set(
+			rows
+				.map((row) =>
+					row.senderContact?.role === "customer"
+						? row.senderContact.profileId
+						: null,
+				)
+				.filter((id): id is number => typeof id === "number"),
+		),
+	);
+
+	const [employees, customers] = await Promise.all([
+		employeeIds.length
+			? db.users.findMany({
+					where: { id: { in: employeeIds }, deletedAt: null },
+					select: { id: true, name: true },
+				})
+			: Promise.resolve([]),
+		customerIds.length
+			? db.customers.findMany({
+					where: { id: { in: customerIds }, deletedAt: null },
+					select: { id: true, name: true, businessName: true },
+				})
+			: Promise.resolve([]),
+	]);
+
+	const employeeNameMap = new Map<number, string | null>(
+		employees.map(
+			(employee): [number, string | null] => [employee.id, employee.name],
+		),
+	);
+	const customerNameMap = new Map<number, string | null>(
+		customers.map(
+			(customer): [number, string | null] => [
+				customer.id,
+				customer.businessName || customer.name,
+			],
+		),
+	);
+
+	return rows.map((row) => {
+		const sender = row.senderContact;
+		let senderContactName = sender?.name ?? null;
+
+		if (sender?.role === "employee" && sender.profileId) {
+			senderContactName =
+				employeeNameMap.get(sender.profileId) || senderContactName;
+		}
+		if (sender?.role === "customer" && sender.profileId) {
+			senderContactName =
+				customerNameMap.get(sender.profileId) || senderContactName;
+		}
+
+		return {
+			...row,
+			senderContactName,
+		};
+	});
 }
 
 function buildTagWhereClause(
@@ -153,7 +259,7 @@ async function fetchActivitiesByIds(
 				...(query.status?.length ? { status: { in: query.status } } : {}),
 			};
 
-	return db.notePad.findMany({
+	const rows = await db.notePad.findMany({
 		where: {
 			id: { in: ids },
 		},
@@ -167,6 +273,8 @@ async function fetchActivitiesByIds(
 				select: {
 					id: true,
 					name: true,
+					role: true,
+					profileId: true,
 				},
 			},
 			tags: {
@@ -184,6 +292,8 @@ async function fetchActivitiesByIds(
 			},
 		},
 	});
+
+	return attachSenderNames(db, rows);
 }
 
 export async function getActivityTree(db: Db, query: GetActivityTreeQuery) {
@@ -216,6 +326,8 @@ export async function getActivityTree(db: Db, query: GetActivityTreeQuery) {
 				select: {
 					id: true,
 					name: true,
+					role: true,
+					profileId: true,
 				},
 			},
 			tags: {
@@ -246,10 +358,11 @@ export async function getActivityTree(db: Db, query: GetActivityTreeQuery) {
 			},
 		},
 	});
+	const rootRowsWithNames = await attachSenderNames(db, rootRows);
 
-	const rootIds = rootRows.map((row) => row.id);
+	const rootIds = rootRowsWithNames.map((row) => row.id);
 	const nodes = new Map<number, ActivityTreeNode>(
-		rootRows.map((row) => [row.id, mapActivity(row)]),
+		rootRowsWithNames.map((row) => [row.id, mapActivity(row)]),
 	);
 
 	if (!includeChildren || !rootIds.length) {

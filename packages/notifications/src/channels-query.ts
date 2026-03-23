@@ -103,6 +103,7 @@ export async function getChannels(
       id: c.id,
       priority: priorityStrings[(c.priority || 1) - 1] || "Low",
       name: c.channelName,
+      deletable: !channelNames.includes(c.channelName as any),
       title: config?.name || c.channelName.split("_").join(" ").toLocaleUpperCase(),
       description: config?.description,
       category: config?.category,

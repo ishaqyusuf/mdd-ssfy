@@ -4,6 +4,7 @@
 
 ## 2026-03-23
 
+- Improved notification activity note readability across web and Expo timelines, resolved note author display to fall back to authoritative employee/customer names when note contact rows are stale, and added a `deletable` marker to notification channel list items.
 - Added an HRM insurance document approval queue at `/hrm/document-approvals`.
 - Registered a new `reviewEmployeeDocument` permission in the shared auth constants, role-form permission sync, and super-admin default permission grant.
 - Added a Super Admin HRM sidebar link for `Document Approvals`.

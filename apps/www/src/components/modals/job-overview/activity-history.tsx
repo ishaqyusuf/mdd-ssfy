@@ -69,17 +69,19 @@ function TimelineItem({
                 {activityHeadline(node)}
             </p>
             {activitySubject(node) ? (
-                <p className="mt-0.5 text-xs text-muted-foreground">
+                <p className="mt-1 text-sm text-muted-foreground">
                     {activitySubject(node)}
                 </p>
             ) : null}
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="mt-1 text-sm text-muted-foreground">
                 By {activityAuthor(node)}
             </p>
             {node.note ? (
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                    {node.note}
-                </p>
+                <div className="mt-3 rounded-lg border border-border bg-muted/40 p-3">
+                    <p className="text-sm leading-6 text-foreground/90">
+                        {node.note}
+                    </p>
+                </div>
             ) : null}
 
             {node.children?.length ? (

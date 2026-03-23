@@ -91,12 +91,12 @@ function TimelineItem({
           </Text>
         </View>
         {activityDescription(node) ? (
-          <Text className="mt-0.5 text-xs text-muted-foreground">
+          <Text className="mt-1 text-sm text-muted-foreground">
             {activityDescription(node)}
           </Text>
         ) : null}
 
-        <Text className="mt-0.5 text-xs text-muted-foreground">
+        <Text className="mt-1 text-sm text-muted-foreground">
           by{" "}
           <Text className="text-xs font-semibold text-success">
             {activityAuthor(node)}
@@ -105,7 +105,7 @@ function TimelineItem({
 
         {node.note ? (
           <View className="mt-3 rounded-lg border border-muted-foreground/20 bg-muted p-3">
-            <Text className="text-xs italic leading-relaxed text-muted-foreground">
+            <Text className="text-sm leading-6 text-foreground">
               {node.note}
             </Text>
           </View>

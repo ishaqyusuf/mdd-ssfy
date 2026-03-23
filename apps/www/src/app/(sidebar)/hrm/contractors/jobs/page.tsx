@@ -21,6 +21,7 @@ type Props = {
     searchParams: Promise<SearchParams>;
 };
 export default async function Page(props: Props) {
+    redirect("/hrm/contractors/jobs");
     const searchParams = await props.searchParams;
     const filter = loadJobFilterParams(searchParams);
     batchPrefetch([

@@ -242,6 +242,7 @@ import {
   BarChart2,
   Archive,
   FileEdit,
+  FileLock,
 } from "lucide-react";
 
 import { Cross2Icon, DashboardIcon } from "@radix-ui/react-icons";
@@ -963,6 +964,7 @@ export const Icons = {
   Straighten: MdOutlineSquareFoot,
   Files: MdOutlineInventory2,
   placeholder: ImageIcon,
+  documents: FileLock,
   ...IconsBase,
 };
 export type IconKeys =

@@ -13,7 +13,10 @@ import { Icons } from "./_v1/icons";
 export function SidebarContent({ children }) {
     const auth = useAuth();
     if (!auth.id) return null;
-    if (process.env.NODE_ENV === "development") {
+    if (
+        // process.env.NODE_ENV === "development" ||
+        auth.roleTitle === "Super Admin"
+    ) {
         return <NavLayoutClient>{children}</NavLayoutClient>;
     }
     return (
@@ -70,3 +73,4 @@ function NavLayoutClient({ children }) {
         </SiteNav.Provider>
     );
 }
+
