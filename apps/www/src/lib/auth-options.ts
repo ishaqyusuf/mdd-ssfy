@@ -6,6 +6,9 @@ import type { DefaultSession, NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
 const prisma = new PrismaClient();
+function normalizeCan(can?: ICan | null): ICan {
+    return (can ?? {}) as ICan;
+}
 declare module "next-auth" {
     interface User {
         user: Users;
@@ -26,6 +29,7 @@ declare module "next-auth/jwt" {
         user: Users;
         can: ICan;
         role: Roles;
+        sessionId?: string;
     }
 }
 export const authOptions: NextAuthOptions = {
@@ -49,18 +53,19 @@ export const authOptions: NextAuthOptions = {
             if (cred) {
                 const { role, can, user, sessionId } = cred;
                 token.user = user;
-                token.can = can;
+                token.can = normalizeCan(can);
                 token.role = role;
                 token.sessionId = sessionId;
             }
             if (!token.sessionId) return null;
+            token.can = normalizeCan(token.can);
             return token;
         },
         session({ session, user, token }) {
             if (session.user) {
                 session.user = token.user;
                 session.role = token.role;
-                session.can = token.can;
+                session.can = normalizeCan(token.can);
             }
             return session;
         },
@@ -83,6 +88,9 @@ export const authOptions: NextAuthOptions = {
                     return null;
                 }
                 const login = await loginAction(credentials);
+                if (!login) {
+                    return null;
+                }
                 return login;
             },
         }),

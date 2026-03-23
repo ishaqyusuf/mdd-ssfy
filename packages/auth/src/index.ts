@@ -5,6 +5,10 @@ import CredentialsProvider from "next-auth/providers/credentials";
 
 import { ICan, loginAction } from "./utils";
 
+function normalizeCan(can?: ICan | null): ICan {
+  return (can ?? {}) as ICan;
+}
+
 declare module "next-auth" {
   interface User {
     user: Users;
@@ -51,12 +55,14 @@ export function nextAuthOptions(options: {
         if (cred) {
           const { role, can, user, sessionId } = cred;
           token.user = user;
-          token.can = can;
+          token.can = normalizeCan(can);
           token.role = role;
           token.sessionId = sessionId;
         }
 
         if (!token.sessionId) return null as any;
+
+        token.can = normalizeCan(token.can);
 
         return token;
       },
@@ -64,7 +70,7 @@ export function nextAuthOptions(options: {
         if (session.user) {
           session.user = token.user;
           session.role = token.role;
-          session.can = token.can;
+          session.can = normalizeCan(token.can);
         }
 
         return session;
@@ -88,7 +94,12 @@ export function nextAuthOptions(options: {
             return null;
           }
 
-          return (await loginAction(db, credentials as any)) as any;
+          const login = await loginAction(db, credentials as any);
+          if (!login) {
+            return null;
+          }
+
+          return login as any;
         },
       }),
     ],

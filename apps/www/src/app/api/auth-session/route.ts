@@ -1,8 +1,10 @@
-import { getLoggedInProfile } from "@/actions/cache/get-loggedin-profile";
-import { NextRequest } from "next/server";
+import { authOptions } from "@/lib/auth-options";
+import { toAuthSnapshot } from "@/lib/auth/auth-snapshot";
+import { getServerSession } from "next-auth";
 
 export const dynamic = "force-dynamic";
-export async function POST(req: NextRequest) {
-    const response = await getLoggedInProfile();
-    return Response.json(response);
+export async function POST() {
+	const session = await getServerSession(authOptions);
+	const response = toAuthSnapshot(session);
+	return Response.json(response);
 }
