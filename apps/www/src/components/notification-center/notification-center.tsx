@@ -53,6 +53,29 @@ export function NotificationCenter() {
 			context.close();
 			salesOverview.openSalesAdminPage(String(firstOrderNo));
 		},
+		sales_payment_recorded: (data, _notification, context) => {
+			context.close();
+			salesOverview.openSalesAdminPage(String(data.orderNo));
+		},
+		sales_marked_as_production_completed: (data, _notification, context) => {
+			context.close();
+			salesOverview.openSalesAdminPage(
+				String(data.orderNo ?? data.salesId),
+			);
+		},
+		sales_dispatch_assigned: (data, _notification, context) => {
+			context.close();
+			if (data.orderNo) {
+				salesOverview.openDispatchPage(
+					String(data.orderNo),
+					String(data.dispatchId),
+				);
+				return;
+			}
+			router.push(
+				`/sales-book/dispatch?q=${encodeURIComponent(String(data.dispatchId))}`,
+			);
+		},
 		job_task_configure_request: (data, _notification, context) => {
 			context.close();
 			const useSidebarView = pathname.includes(

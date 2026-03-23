@@ -95,6 +95,39 @@ export function NotificationCenterScreen() {
         },
       });
     },
+    sales_payment_recorded: (data) => {
+      router.push({
+        pathname: "/(sales)/orders/[orderNo]",
+        params: {
+          orderNo: String(data.orderNo),
+        },
+      });
+    },
+    sales_marked_as_production_completed: (data) => {
+      router.push({
+        pathname: "/(sales)/orders/[orderNo]",
+        params: {
+          orderNo: String(data.orderNo ?? data.salesId),
+        },
+      });
+    },
+    sales_dispatch_assigned: (data) => {
+      if (auth.isAdmin && auth.currentSectionKey === "sales") {
+        router.push({
+          pathname: "/(sales)/dispatch/[dispatchId]",
+          params: {
+            dispatchId: String(data.dispatchId),
+          },
+        });
+        return;
+      }
+      router.push({
+        pathname: "/(drivers)/dispatch/[dispatchId]",
+        params: {
+          dispatchId: String(data.dispatchId),
+        },
+      });
+    },
     job_task_configure_request: (data) => {
       router.push({
         pathname: "/(job)/install-cost/[modelId]/form",

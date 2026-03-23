@@ -2,15 +2,21 @@ import {
 	type DispatchPackingDelayTags,
 	type EmployeeDocumentReviewTags,
 	type JobSubmittedTags,
+	type SalesDispatchAssignedTags,
 	type JobTaskConfigureRequestTags,
 	type SalesCheckoutSuccessTags,
 	type SalesDispatchDuplicateAlertTags,
+	type SalesMarkedAsProductionCompletedTags,
+	type SalesPaymentRecordedTags,
 	dispatchPackingDelayTags,
 	employeeDocumentReviewTags,
 	jobSubmittedTags,
 	jobTaskConfigureRequestTags,
+	salesDispatchAssignedTags,
 	salesCheckoutSuccessTags,
 	salesDispatchDuplicateAlertTags,
+	salesMarkedAsProductionCompletedTags,
+	salesPaymentRecordedTags,
 } from "./schemas";
 
 export type RawNotificationItem = {
@@ -32,6 +38,12 @@ type NotificationActionPayloadMap = {
 	dispatch_packing_delay: Omit<DispatchPackingDelayTags, "type">;
 	sales_dispatch_duplicate_alert: Omit<SalesDispatchDuplicateAlertTags, "type">;
 	sales_checkout_success: Omit<SalesCheckoutSuccessTags, "type">;
+	sales_payment_recorded: Omit<SalesPaymentRecordedTags, "type">;
+	sales_marked_as_production_completed: Omit<
+		SalesMarkedAsProductionCompletedTags,
+		"type"
+	>;
+	sales_dispatch_assigned: Omit<SalesDispatchAssignedTags, "type">;
 };
 
 export type NotificationActionType = keyof NotificationActionPayloadMap;
@@ -149,6 +161,36 @@ function parseAction(
 		return {
 			type: "sales_checkout_success",
 			label: "Open Sale",
+			data: parsed.data,
+		};
+	}
+
+	if (type === "sales_payment_recorded") {
+		const parsed = salesPaymentRecordedTags.safeParse(tags);
+		if (!parsed.success) return undefined;
+		return {
+			type: "sales_payment_recorded",
+			label: "Open Sale",
+			data: parsed.data,
+		};
+	}
+
+	if (type === "sales_marked_as_production_completed") {
+		const parsed = salesMarkedAsProductionCompletedTags.safeParse(tags);
+		if (!parsed.success) return undefined;
+		return {
+			type: "sales_marked_as_production_completed",
+			label: "Open Sale",
+			data: parsed.data,
+		};
+	}
+
+	if (type === "sales_dispatch_assigned") {
+		const parsed = salesDispatchAssignedTags.safeParse(tags);
+		if (!parsed.success) return undefined;
+		return {
+			type: "sales_dispatch_assigned",
+			label: "Open Dispatch",
 			data: parsed.data,
 		};
 	}

@@ -8,6 +8,7 @@ import { useQueryStates } from "nuqs";
 export function OrderSearchFilter() {
     const [filters, setFilters] = useQueryStates(salesFilterParamsSchema);
     const auth = useAuth();
+    console.log(auth?.can);
     return (
         <SearchFilter
             filterSchema={salesFilterParamsSchema}
