@@ -10,11 +10,12 @@ import TabbedLayout from "@/components/_v1/tab-layouts/tabbed-layout";
 import SubmitJobBtn from "@/app-deps/(v2)/(loggedIn)/contractors/_components/submit-job-btn";
 import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 import JobTableShell from "./job-table-shell";
-
+import { redirect } from "next/navigation";
 export const metadata: Metadata = {
     title: "Jobs",
 };
 export default async function ContractorJobsPage(props) {
+    redirect("/hrm/contractors/jobs");
     const searchParams = await props.searchParams;
     const response = await getJobs(queryParams(searchParams));
 
@@ -35,3 +36,4 @@ export default async function ContractorJobsPage(props) {
         </TabbedLayout>
     );
 }
+
