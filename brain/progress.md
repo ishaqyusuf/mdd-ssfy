@@ -4,6 +4,10 @@
 
 ## 2026-03-23
 
+- Added an HRM insurance document approval queue at `/hrm/document-approvals`.
+- Registered a new `reviewEmployeeDocument` permission in the shared auth constants, role-form permission sync, and super-admin default permission grant.
+- Added a Super Admin HRM sidebar link for `Document Approvals`.
+
 - Switched the main browser-facing local `dev` scripts to `portless` with fixed child ports in the `4000-4999` range:
   - `apps/www` -> `4000`
   - `apps/site` -> `4100`

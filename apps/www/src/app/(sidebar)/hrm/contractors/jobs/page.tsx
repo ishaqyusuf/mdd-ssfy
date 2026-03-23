@@ -10,6 +10,7 @@ import { loadJobFilterParams } from "@/hooks/use-contractor-jobs-filter-params";
 import { SearchParams } from "nuqs";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import { JobsKpiWidget } from "@/components/widgets/jobs-kpi-widget";
+import { redirect } from "next/navigation";
 
 export async function generateMetadata(props) {
     return constructMetadata({

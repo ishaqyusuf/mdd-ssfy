@@ -38,7 +38,7 @@ export default async function proxy(req: NextRequest) {
     const isLogin = pathName === "/login";
     if (pathName === "/" || isLogin) {
         const auth = await getAuth(req);
-
+        console.log(auth);
         if (auth) {
             const link = getDefaultLink(auth);
             const url = new URL(link, req.url);

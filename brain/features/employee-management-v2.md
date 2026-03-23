@@ -215,6 +215,12 @@ Gate implemented in:
 - Web job form shows inline warning if contractor selected has no valid insurance
 - Expo app job form shows same warning
 
+Current bridge implementation in legacy contractor flows:
+- Insurance uploads save into `Users.documents` with approval metadata in `meta.status`.
+- Super admins review those uploads from `/hrm/document-approvals`.
+- Access to the approval queue is protected by the `reviewEmployeeDocument` permission.
+- Web contractor job submission blocks when insurance is missing, pending, rejected, or expired.
+
 ---
 
 ## UI: Employee List Page (enhanced)
