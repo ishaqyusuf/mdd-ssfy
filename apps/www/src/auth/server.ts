@@ -7,19 +7,34 @@ import { initAuth } from "@gnd/auth";
 import { db } from "@gnd/db";
 import { EmailService } from "@gnd/notifications/services/email-service";
 
+function normalizeUrl(url: string | undefined, fallback: string) {
+    if (!url) return fallback;
+    return /^https?:\/\//i.test(url) ? url : `https://${url}`;
+}
+
 const baseUrl =
     process.env.NODE_ENV === "production"
-        ? `https://${process.env.NEXT_PUBLIC_APP_URL}`
-        : // : env.VERCEL_ENV === "preview"
-          //   ? `https://${env.VERCEL_URL}`
-          "http://daarulhadith.localhost:2200";
+        ? normalizeUrl(
+              process.env.NEXT_PUBLIC_APP_URL,
+              "https://www.gndprodesk.com",
+          )
+        : normalizeUrl(
+              process.env.NEXT_PUBLIC_APP_URL,
+              "http://localhost:4000",
+          );
+
+const productionUrl = normalizeUrl(
+    process.env.NEXT_PUBLIC_ROOT_DOMAIN,
+    "https://www.gndprodesk.com",
+);
 
 const emailService = new EmailService(db);
 
 export const auth = initAuth({
     baseUrl,
-    productionUrl: `https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`,
+    productionUrl,
     secret: process.env.BETTER_AUTH_SECRET,
+    trustedOrigins: [baseUrl, productionUrl, "http://localhost:4000"],
     emailHandlers: {
         async sendMagicLink({ email, url }) {
             await emailService.sendTransactional({

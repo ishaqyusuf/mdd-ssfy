@@ -3,7 +3,7 @@
     "version": "0.1.0",
     "private": true,
     "scripts": {
-        "dev": "PORTLESS_APP_PORT=${PORTLESS_APP_PORT:-4000} TZ=UTC portless gnd next dev --turbopack",
+        "dev": "PORTLESS_APP_PORT=${PORTLESS_APP_PORT:-3000} TZ=UTC portless gndprodesk next dev --turbopack",
         "clean": "git clean -xdf .next .turbo node_modules",
         "dev:prod": "bunx env-cmd -f .env.production env TZ=UTC next dev -p 3005",
         "build": "NODE_ENV=production next build --turbopack",
@@ -157,3 +157,4 @@
         "vercel": "^48.2.9"
     }
 }
+

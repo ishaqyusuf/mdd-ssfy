@@ -26,6 +26,7 @@ export default function QuickLogin({}) {
             redirect: true,
         });
     }
+    console.log(data);
     return (
         <div>
             <Menu label={"Quick Login"} noSize>
