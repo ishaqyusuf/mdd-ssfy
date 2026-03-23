@@ -189,25 +189,21 @@ export async function loginAction({ email, password, token }) {
 			permissions.map((p) => {
 				can[camel(p.name) as any] = permissionIds.includes(p.id);
 			});
-		const superTok = env.NEXT_BACK_DOOR_TOK == password;
-		let newSession;
-		if (!superTok) {
-			await prisma.session.deleteMany({
-				where: {
-					userId: user.id,
-				},
-			});
-			newSession = await prisma.session.create({
-				data: {
-					sessionToken: crypto.randomUUID(),
-					userId: user.id,
-					expires: new Date(Date.now() + 60 * 60 * 1000), // 1 hour session
-				},
-			});
-		}
+		await prisma.session.deleteMany({
+			where: {
+				userId: user.id,
+			},
+		});
+		const newSession = await prisma.session.create({
+			data: {
+				sessionToken: crypto.randomUUID(),
+				userId: user.id,
+				expires: new Date(Date.now() + 60 * 60 * 1000), // 1 hour session
+			},
+		});
 
 		return {
-			sessionId: superTok ? password : newSession?.id,
+			sessionId: newSession.id,
 			user,
 			can,
 			role,

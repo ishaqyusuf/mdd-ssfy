@@ -1,7 +1,7 @@
 import { getToken } from "next-auth/jwt";
 import { type NextRequest, NextResponse } from "next/server";
 import { getLinkModules, validateLinks } from "./components/sidebar/links";
-import { toAuthSnapshot } from "./lib/auth/auth-snapshot";
+import { type AuthSnapshot, toAuthSnapshot } from "./lib/auth/auth-snapshot";
 
 export const config = {
 	matcher: [
@@ -34,15 +34,21 @@ export default async function proxy(req: NextRequest) {
 		loginUrl.searchParams.append("return_to", encodedSearchParams);
 	}
 	const isLogin = pathName === "/login";
-	if (pathName === "/" || isLogin) {
-		const auth = await getAuth(req);
-		if (auth) {
-			const link = getDefaultLink(auth);
-			if (link && link !== pathName) {
-				const url = new URL(link, req.url);
+	const auth = await getAuth(req);
+	if (auth) {
+		const defaultLink = getDefaultLink(auth);
+		if (pathName === "/" || isLogin) {
+			if (defaultLink && defaultLink !== pathName) {
+				const url = new URL(defaultLink, req.url);
 				return NextResponse.redirect(url);
 			}
+		} else if (!canAccessPath(auth, pathName)) {
+			if (defaultLink && defaultLink !== pathName) {
+				return NextResponse.redirect(new URL(defaultLink, req.url));
+			}
 		}
+	}
+	if (pathName === "/" || isLogin) {
 		if (!isLogin) return NextResponse.redirect(loginUrl);
 	}
 	return NextResponse.next();
@@ -67,12 +73,34 @@ async function getAuth(req: NextRequest) {
 }
 
 function getDefaultLink(auth) {
-	const validLinks = getLinkModules(
+	const validLinks = getAuthorizedLinks(auth);
+	return validLinks.defaultLink;
+}
+
+function canAccessPath(auth: AuthSnapshot, pathName: string) {
+	const { linksNameMap } = getAuthorizedLinks(auth);
+	const exactMatch = linksNameMap[pathName];
+	if (exactMatch) {
+		return exactMatch.hasAccess !== false;
+	}
+
+	const partialMatches = Object.entries(linksNameMap)
+		.filter(([, value]) => value?.match === "part")
+		.filter(([href]) => pathName.startsWith(href));
+
+	if (!partialMatches.length) {
+		return true;
+	}
+
+	return partialMatches.some(([, value]) => value?.hasAccess !== false);
+}
+
+function getAuthorizedLinks(auth: AuthSnapshot) {
+	return getLinkModules(
 		validateLinks({
 			role: auth.role,
 			can: auth.can,
 			userId: auth?.userId,
 		}),
 	);
-	return validLinks.defaultLink;
 }
