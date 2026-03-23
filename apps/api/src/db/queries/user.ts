@@ -4,8 +4,10 @@ import type {
 } from "@api/schemas/hrm";
 import type { TRPCContext } from "@api/trpc/init";
 import { checkPassword, loginAction } from "@gnd/auth/utils";
+import { Notifications } from "@gnd/notifications";
 import { camel } from "@gnd/utils";
 import { type ICan, allPermissions } from "@gnd/utils/constants";
+import { noteTag, saveNote } from "@gnd/utils/note";
 import { hashPassword } from "@gnd/utils/crypto";
 import {
 	isInsuranceDocumentTitle,
@@ -186,7 +188,7 @@ export async function saveUserDocument(
 		expiresAt?: string | null;
 	},
 ) {
-  const docMeta: Record<string, unknown> = {};
+	const docMeta: Record<string, unknown> = {};
 	if (data.expiresAt) {
 		docMeta.expiresAt = data.expiresAt;
 	}
@@ -212,23 +214,151 @@ export async function saveUserDocument(
 		});
 	}
 
-  if (!ctx.userId) {
-    throw new TRPCError({
-      code: "UNAUTHORIZED",
-      message: "You must be signed in to upload documents.",
-    });
-  }
+	if (!ctx.userId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You must be signed in to upload documents.",
+		});
+	}
+	const authUser = await getAuthUser(ctx);
 
-  return ctx.db.userDocuments.create({
-    data: {
-      title: data.title,
-      description: data.description,
-      url: data.url,
-      userId: ctx.userId,
+	const createdDocument = await ctx.db.userDocuments.create({
+		data: {
+			title: data.title,
+			description: data.description,
+			url: data.url,
+			userId: ctx.userId,
 			meta: docMeta,
 		},
-		select: { id: true, title: true, url: true, meta: true },
+		select: {
+			id: true,
+			title: true,
+			url: true,
+			description: true,
+			meta: true,
+		},
 	});
+
+	if (isInsuranceDocumentTitle(data.title)) {
+		const notifications = new Notifications(ctx.db);
+		await notifications.create(
+			"employee_document_review",
+			{
+				documentId: createdDocument.id,
+				userId: ctx.userId,
+				userName: authUser.name ?? "Employee",
+				documentTitle: createdDocument.title || data.title,
+				documentUrl: createdDocument.url,
+				description: createdDocument.description,
+				expiresAt:
+					(typeof createdDocument.meta === "object" &&
+					createdDocument.meta &&
+					!Array.isArray(createdDocument.meta)
+						? ((createdDocument.meta as Record<string, unknown>).expiresAt as
+								| string
+								| null
+								| undefined)
+						: null) ?? null,
+			},
+			{
+				author: {
+					id: ctx.userId,
+					role: "employee",
+				},
+			},
+		);
+	}
+
+	return {
+		id: createdDocument.id,
+		title: createdDocument.title,
+		url: createdDocument.url,
+		meta: createdDocument.meta,
+	};
+}
+
+export async function getDocumentReview(ctx: TRPCContext, id: number) {
+	if (!ctx.userId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You must be signed in to review documents.",
+		});
+	}
+
+	const document = await ctx.db.userDocuments.findFirstOrThrow({
+		where: { id, deletedAt: null },
+		select: {
+			id: true,
+			title: true,
+			description: true,
+			url: true,
+			createdAt: true,
+			meta: true,
+			user: {
+				select: {
+					id: true,
+					name: true,
+					email: true,
+					meta: true,
+				},
+			},
+		},
+	});
+	const meta = parseInsuranceDocumentMeta(document.meta);
+	const userMeta = parseMeta(document.user?.meta);
+
+	return {
+		id: document.id,
+		title: document.title,
+		description: document.description,
+		url: meta.url || document.url,
+		expiresAt: meta.expiresAt ?? null,
+		status: meta.status ?? "pending",
+		approvedAt: meta.approvedAt ?? null,
+		rejectedAt: meta.rejectedAt ?? null,
+		createdAt: document.createdAt,
+		user: {
+			id: document.user?.id ?? 0,
+			name: document.user?.name ?? "Unknown employee",
+			email: document.user?.email ?? "",
+			avatarUrl:
+				typeof userMeta.avatarUrl === "string" ? userMeta.avatarUrl : null,
+		},
+	};
+}
+
+export async function saveDocumentReviewNote(
+	ctx: TRPCContext,
+	data: {
+		documentId: number;
+		userId: number;
+		title: string;
+		note: string;
+	},
+) {
+	if (!ctx.userId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You must be signed in to add notes.",
+		});
+	}
+
+	return saveNote(
+		ctx.db,
+		{
+			headline: data.title,
+			subject: "Document review note",
+			note: data.note,
+			type: "activity",
+			status: "public",
+			tags: [
+				noteTag("channel", "employee_document_review"),
+				noteTag("documentId", data.documentId),
+				noteTag("userId", data.userId),
+			],
+		},
+		ctx.userId,
+	);
 }
 
 export async function deleteUserDocument(ctx: TRPCContext, id: number) {

@@ -686,3 +686,9 @@
   - Replaced broken commented-out mobileColumn in sales-production with proper implementation using correct production Item type properties
   - Added `interface ItemProps { item: Item }` where not already present
   - Each ItemCard renders key data in a mobile-friendly card layout using existing imported components
+
+## 2026-03-23
+
+- Updated the sales orders mark-fulfilled flow so the modal now lets users choose `pickup` or `delivery` before completion.
+- The selected method now syncs into the sales order delivery option, new dispatch creation, and existing dispatch mode updates while preserving driver assignment and pack-all behavior.
+- Validation note: `bun x tsc -p apps/www/tsconfig.json --noEmit --pretty false` still fails because of broad pre-existing repository type errors; a targeted grep of that output reported no `sales-orders/columns.tsx` or `sales-orders/fulfillment-complete-modal.tsx` errors from this change.

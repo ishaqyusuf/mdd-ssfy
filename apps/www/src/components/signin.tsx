@@ -7,12 +7,9 @@ import { z } from "zod";
 
 import { SubmitButton } from "@/components/submit-button";
 import { useZodForm } from "@/hooks/use-zod-form";
-import { Button } from "@gnd/ui/button";
 import { Form } from "@gnd/ui/form";
 import { signIn } from "next-auth/react";
 import { useTransition } from "@/utils/use-safe-transistion";
-import { useTaskTrigger } from "@/hooks/use-task-trigger";
-import { SendLoginEmailPayload } from "@jobs/schema";
 import { Icons } from "@/components/_v1/icons";
 import { useEffect } from "react";
 import { InputField } from "@gnd/ui/controls-2/input-field";
@@ -23,19 +20,17 @@ import { Key } from "lucide-react";
 const loginSchema = z.object({
     email: z.string().email({ message: "Please enter a valid email address." }),
     password: z.string().optional(),
-    withEmail: z.boolean().default(true),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
 
 function useLoginEmail() {
-    const [params, setParams] = useQueryStates({
+    const [params] = useQueryStates({
         token: parseAsString,
     });
 
     return {
         params,
-        setParams,
     };
 }
 
@@ -48,10 +43,8 @@ export function SigninComponent() {
         defaultValues: {
             email: "",
             password: "",
-            withEmail: true,
         },
     });
-    const withEmail = form.watch("withEmail");
     const loginEmail = useLoginEmail();
     const token = loginEmail.params.token;
 
@@ -65,28 +58,15 @@ export function SigninComponent() {
         });
     }, [callbackUrl, token]);
 
-    const loginWithEmail = useTaskTrigger({
-        debug: true,
-    });
-
     const onSubmit = form.handleSubmit(async (data: LoginForm) => {
-        if (data.withEmail) {
-            loginWithEmail.trigger({
-                taskName: "send-login-email",
-                payload: {
-                    email: data.email,
-                } as SendLoginEmailPayload,
+        startTransition(async () => {
+            await signIn("credentials", {
+                email: data.email,
+                password: data.password ?? "",
+                callbackUrl,
+                redirect: true,
             });
-        } else {
-            startTransition(async () => {
-                await signIn("credentials", {
-                    email: data.email,
-                    password: data.password ?? "",
-                    callbackUrl,
-                    redirect: true,
-                });
-            });
-        }
+        });
     });
 
     return (
@@ -110,7 +90,7 @@ export function SigninComponent() {
                             Sign In
                         </h1>
                         <p className="text-balance text-muted-foreground">
-                            Enter your email to get started.
+                            Enter your email and password to sign in.
                         </p>
                     </div>
                     <Form {...form}>
@@ -123,54 +103,29 @@ export function SigninComponent() {
                                 control={form.control}
                                 placeholder="m@example.com"
                             />
-                            {withEmail || (
-                                <>
-                                    <InputField
-                                        name="password"
-                                        type="password"
-                                        label="Password"
-                                        placeholder="Password"
-                                        prefix={<Key className="size-4" />}
-                                        control={form.control}
-                                    />
-                                    <div className="text-sm">
-                                        <Link
-                                            href="/login/password-reset"
-                                            className="font-medium text-primary hover:text-primary/80"
-                                        >
-                                            Forgot your password?
-                                        </Link>
-                                    </div>
-                                </>
-                            )}
-
-                            {!withEmail ? (
-                                <SubmitButton
-                                    className="w-full"
-                                    isSubmitting={isPending}
+                            <InputField
+                                name="password"
+                                type="password"
+                                label="Password"
+                                placeholder="Password"
+                                prefix={<Key className="size-4" />}
+                                control={form.control}
+                            />
+                            <div className="text-sm">
+                                <Link
+                                    href="/login/password-reset"
+                                    className="font-medium text-primary hover:text-primary/80"
                                 >
-                                    Sign In
-                                </SubmitButton>
-                            ) : (
-                                <>
-                                    <SubmitButton
-                                        isSubmitting={loginWithEmail?.isLoading}
-                                        className="w-full"
-                                    >
-                                        Continue with Email
-                                    </SubmitButton>
-                                    <Button
-                                        type="button"
-                                        onClick={() =>
-                                            form.setValue("withEmail", false)
-                                        }
-                                        variant="secondary"
-                                        className="w-full"
-                                    >
-                                        Enter Password
-                                    </Button>
-                                </>
-                            )}
+                                    Forgot your password?
+                                </Link>
+                            </div>
+
+                            <SubmitButton
+                                className="w-full"
+                                isSubmitting={isPending}
+                            >
+                                Sign In
+                            </SubmitButton>
                         </form>
                     </Form>
                 </div>

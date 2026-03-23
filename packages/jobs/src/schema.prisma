@@ -2653,6 +2653,197 @@ enum FeaturedSection {
     best_sellers
 }
 
+// ---- documents.prisma ----
+model StoredDocument {
+    id          String   @id @default(cuid())
+    kind        String   @db.VarChar(100)
+    ownerType   String   @db.VarChar(100)
+    ownerId     String   @db.VarChar(191)
+    ownerKey    String?  @db.VarChar(191)
+    provider    String   @db.VarChar(100)
+    pathname    String   @db.VarChar(512)
+    url         String?  @db.VarChar(512)
+    filename    String?  @db.VarChar(255)
+    mimeType    String?  @db.VarChar(255)
+    extension   String?  @db.VarChar(50)
+    size        Int?
+    checksum    String?  @db.VarChar(191)
+    visibility  String   @default("private") @db.VarChar(50)
+    status      String   @default("ready") @db.VarChar(50)
+    isCurrent   Boolean  @default(true)
+    generated   Boolean  @default(false)
+    sourceType  String?  @db.VarChar(100)
+    sourceId    String?  @db.VarChar(191)
+    uploadedBy  Int?
+    title       String?  @db.VarChar(255)
+    description String?  @db.Text
+    meta        Json?    @db.Json
+    createdAt   DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt   DateTime? @updatedAt
+    deletedAt   DateTime? @db.Timestamp(0)
+
+    @@index([ownerType, ownerId, kind, status])
+    @@index([ownerType, ownerId, kind, isCurrent])
+    @@index([kind, status, updatedAt])
+    @@index([provider, pathname])
+    @@index([sourceType, sourceId])
+    @@index([uploadedBy])
+}
+
+model SalesDocumentSnapshot {
+    id               String   @id @default(cuid())
+    salesOrderId     Int
+    storedDocumentId String?  @db.VarChar(191)
+    documentType     String   @db.VarChar(100)
+    version          Int      @default(1)
+    generationStatus String   @default("pending") @db.VarChar(50)
+    reason           String?  @db.VarChar(100)
+    isCurrent        Boolean  @default(true)
+    sourceUpdatedAt  DateTime? @db.Timestamp(0)
+    generatedAt      DateTime? @db.Timestamp(0)
+    invalidatedAt    DateTime? @db.Timestamp(0)
+    failedAt         DateTime? @db.Timestamp(0)
+    errorMessage     String?  @db.Text
+    meta             Json?    @db.Json
+    createdAt        DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime? @updatedAt
+    deletedAt        DateTime? @db.Timestamp(0)
+
+    @@unique([salesOrderId, documentType, version])
+    @@index([salesOrderId, documentType, isCurrent])
+    @@index([storedDocumentId])
+    @@index([generationStatus, updatedAt])
+}
+
+// ---- sales.payment-system.prisma ----
+model PaymentLedgerEntry {
+    id              String    @id @default(cuid())
+    entryType       String    @db.VarChar(100)
+    status          String    @db.VarChar(100)
+    amount          Float
+    currency        String    @default("USD") @db.VarChar(10)
+    idempotencyKey  String?   @unique @db.VarChar(191)
+    occurredAt      DateTime  @default(now()) @db.Timestamp(0)
+    salesOrderId    Int?
+    walletId        Int?
+    customerTxId    Int?
+    salesPaymentId  Int?
+    squarePaymentId String?   @db.VarChar(191)
+    checkoutId      String?   @db.VarChar(191)
+    refundId        String?   @db.VarChar(191)
+    authorId        Int?
+    meta            Json?     @db.Json
+    createdAt       DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime? @updatedAt
+    deletedAt       DateTime? @db.Timestamp(0)
+
+    @@index([entryType, status, occurredAt])
+    @@index([salesOrderId, occurredAt])
+    @@index([walletId, occurredAt])
+    @@index([customerTxId])
+    @@index([salesPaymentId])
+    @@index([squarePaymentId])
+    @@index([checkoutId])
+    @@index([refundId])
+    @@index([authorId])
+}
+
+model PaymentAllocation {
+    id            String    @id @default(cuid())
+    ledgerEntryId String    @db.VarChar(191)
+    salesOrderId  Int
+    amount        Float
+    allocationType String   @db.VarChar(100)
+    meta          Json?     @db.Json
+    createdAt     DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt     DateTime? @updatedAt
+    deletedAt     DateTime? @db.Timestamp(0)
+
+    @@index([ledgerEntryId])
+    @@index([salesOrderId])
+    @@index([allocationType, createdAt])
+}
+
+model PaymentProjection {
+    salesOrderId    Int       @id
+    totalRecorded   Float     @default(0)
+    totalAllocated  Float     @default(0)
+    totalRefunded   Float     @default(0)
+    totalVoided     Float     @default(0)
+    amountDue       Float     @default(0)
+    projectionState String    @default("active") @db.VarChar(50)
+    version         Int       @default(0)
+    lastSyncedAt    DateTime? @db.Timestamp(0)
+    meta            Json?     @db.Json
+    createdAt       DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime? @updatedAt
+
+    @@index([projectionState, updatedAt])
+    @@index([lastSyncedAt])
+}
+
+model ResolutionCase {
+    id          String    @id @default(cuid())
+    scopeType   String    @db.VarChar(100)
+    scopeId     String    @db.VarChar(191)
+    status      String    @default("open") @db.VarChar(50)
+    summary     String?   @db.LongText
+    meta        Json?     @db.Json
+    createdAt   DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt   DateTime? @updatedAt
+    deletedAt   DateTime? @db.Timestamp(0)
+
+    @@index([scopeType, scopeId, status])
+    @@index([status, createdAt])
+}
+
+model ResolutionFinding {
+    id               String    @id @default(cuid())
+    resolutionCaseId String    @db.VarChar(191)
+    findingType      String    @db.VarChar(100)
+    severity         String    @db.VarChar(50)
+    status           String    @default("open") @db.VarChar(50)
+    snapshot         Json?     @db.Json
+    createdAt        DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime? @updatedAt
+    deletedAt        DateTime? @db.Timestamp(0)
+
+    @@index([resolutionCaseId])
+    @@index([findingType, severity, status])
+}
+
+model ResolutionAction {
+    id               String    @id @default(cuid())
+    resolutionCaseId String    @db.VarChar(191)
+    actionType       String    @db.VarChar(100)
+    status           String    @default("pending") @db.VarChar(50)
+    actorId          Int?
+    beforeState      Json?     @db.Json
+    afterState       Json?     @db.Json
+    meta             Json?     @db.Json
+    createdAt        DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt        DateTime? @updatedAt
+    deletedAt        DateTime? @db.Timestamp(0)
+
+    @@index([resolutionCaseId])
+    @@index([actionType, status, createdAt])
+    @@index([actorId])
+}
+
+model ResolutionRun {
+    id          String    @id @default(cuid())
+    runType     String    @db.VarChar(100)
+    status      String    @default("pending") @db.VarChar(50)
+    startedAt   DateTime? @default(now()) @db.Timestamp(0)
+    completedAt DateTime? @db.Timestamp(0)
+    summary     String?   @db.LongText
+    meta        Json?     @db.Json
+    createdAt   DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt   DateTime? @updatedAt
+
+    @@index([runType, status, startedAt])
+}
+
 // ---- site-action.prisma ----
 model SiteActionTicket {
     id                       Int                     @unique @default(autoincrement())

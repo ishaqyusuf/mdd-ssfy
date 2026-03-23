@@ -8,6 +8,7 @@ export const channelNames = [
 	"job_install_tasks_qty_request",
 	"job_task_configure_request",
 	"job_task_configured",
+	"employee_document_review",
 	"sales_checkout_success",
 	"sales_payment_recorded",
 	"sales_payment_refunded",
@@ -89,6 +90,13 @@ export const channelsConfig: Partial<{
 	job_task_configured: {
 		name: "Task Configuration Completed",
 		description: "Send when requested job task configuration is completed.",
+		priority: 5,
+		category: "Community",
+	},
+	employee_document_review: {
+		name: "Employee Document Review",
+		description:
+			"Send when an employee uploads an insurance document for review.",
 		priority: 5,
 		category: "Community",
 	},

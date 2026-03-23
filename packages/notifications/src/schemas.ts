@@ -261,6 +261,30 @@ export const jobTaskConfiguredTags = actityTagsSchema.extend({
 	jobId: z.coerce.number(),
 });
 export type JobTaskConfiguredTags = z.infer<typeof jobTaskConfiguredTags>;
+export const employeeDocumentReviewSchema = z.object({
+	documentId: z.number(),
+	userId: z.number(),
+	userName: z.string(),
+	documentTitle: z.string(),
+	documentUrl: z.string().url(),
+	description: z.string().optional().nullable(),
+	expiresAt: z.string().optional().nullable(),
+});
+export type EmployeeDocumentReviewInput = z.infer<
+	typeof employeeDocumentReviewSchema
+>;
+export const employeeDocumentReviewTags = actityTagsSchema.extend({
+	documentId: z.coerce.number(),
+	userId: z.coerce.number(),
+	userName: z.string(),
+	documentTitle: z.string(),
+	documentUrl: z.string().url(),
+	description: z.string().optional().nullable(),
+	expiresAt: z.string().optional().nullable(),
+});
+export type EmployeeDocumentReviewTags = z.infer<
+	typeof employeeDocumentReviewTags
+>;
 // Notification types map - all available notification types with their data structures
 
 export type NotificationTypes = {
@@ -276,6 +300,7 @@ export type NotificationTypes = {
 	job_deleted: JobDeletedInput;
 	job_task_configure_request: JobTaskConfigureRequestInput;
 	job_task_configured: JobTaskConfiguredInput;
+	employee_document_review: EmployeeDocumentReviewInput;
 	sales_dispatch_assigned: SalesDispatchAssignedInput;
 	sales_dispatch_queued: SalesDispatchQueuedInput;
 	sales_dispatch_cancelled: SalesDispatchCancelledInput;
@@ -828,6 +853,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("job_task_configured"),
 		payload: jobTaskConfiguredSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("employee_document_review"),
+		payload: employeeDocumentReviewSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_dispatch_assigned"),

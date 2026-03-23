@@ -10,6 +10,7 @@ export const inboundFilterStatus = [
 ] as const;
 export type InboundFilterStatus = (typeof inboundFilterStatus)[number];
 export const noteTagNames = [
+	"channel",
 	"itemControlUID",
 	"deliveryId",
 	"dispatchRecipient",
@@ -23,8 +24,10 @@ export const noteTagNames = [
 	"attachment",
 	"signature",
 	"activity",
+	"userId",
 	"jobControlId",
 	"jobId",
+	"documentId",
 ] as const;
 export type NoteTagNames = (typeof noteTagNames)[number];
 export const noteTypes = [

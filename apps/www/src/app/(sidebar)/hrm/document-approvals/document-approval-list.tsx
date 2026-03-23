@@ -1,6 +1,7 @@
 "use client";
 
 import { Avatar } from "@/components/avatar";
+import { useDocumentReviewParams } from "@/hooks/use-document-review-params";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
@@ -52,6 +53,7 @@ export function DocumentApprovalList({
 	documents: ApprovalDocument[];
 }) {
 	const router = useRouter();
+	const { setParams } = useDocumentReviewParams();
 	const [isPending, startTransition] = useTransition();
 
 	const review = (id: number, status: "approved" | "rejected") => {
@@ -139,6 +141,12 @@ export function DocumentApprovalList({
 							</div>
 						</div>
 						<div className="flex flex-wrap items-center gap-2">
+							<Button
+								variant="outline"
+								onClick={() => setParams({ openDocumentReviewId: document.id })}
+							>
+								Open Review
+							</Button>
 							<Button
 								variant="outline"
 								disabled={isPending || document.status === "approved"}
