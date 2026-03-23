@@ -1,6 +1,8 @@
 "use client";
 
-import * as React from "react";
+import { cn } from "@/lib/utils";
+import type { DeliveryOption } from "@/types/sales";
+import { Button } from "@gnd/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -9,10 +11,8 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@gnd/ui/dialog";
-import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
-import { cn } from "@/lib/utils";
-import { DeliveryOption } from "@/types/sales";
+import * as React from "react";
 
 type DriverOption = {
 	id: number;
@@ -126,6 +126,7 @@ export function FulfillmentCompleteModal({
 		toDateInputValue(new Date()),
 	);
 	const [driverId, setDriverId] = React.useState<number | null>(null);
+	const isPickupMode = deliveryMode === "pickup";
 
 	React.useEffect(() => {
 		if (!open) return;
@@ -158,6 +159,12 @@ export function FulfillmentCompleteModal({
 			(selected?.deliveryMode as DeliveryOption | null) || defaultDeliveryMode,
 		);
 	}, [selectedDispatchKey, sortedDispatches, defaultDeliveryMode]);
+
+	React.useEffect(() => {
+		if (isPickupMode && driverId !== null) {
+			setDriverId(null);
+		}
+	}, [isPickupMode, driverId]);
 
 	const selectedDispatch =
 		selectedDispatchKey === "new"
@@ -299,10 +306,14 @@ export function FulfillmentCompleteModal({
 
 					<div className="grid grid-cols-1 md:grid-cols-4 gap-3">
 						<div className="space-y-1">
-							<label className="text-xs text-muted-foreground">
+							<label
+								htmlFor="fulfillment-delivery-mode"
+								className="text-xs text-muted-foreground"
+							>
 								Fulfillment Method
 							</label>
 							<select
+								id="fulfillment-delivery-mode"
 								className="w-full h-9 border rounded-md px-2 text-sm bg-background"
 								value={deliveryMode}
 								onChange={(event) =>
@@ -315,15 +326,21 @@ export function FulfillmentCompleteModal({
 							</select>
 						</div>
 						<div className="space-y-1">
-							<label className="text-xs text-muted-foreground">Driver</label>
+							<label
+								htmlFor="fulfillment-driver"
+								className="text-xs text-muted-foreground"
+							>
+								Driver
+							</label>
 							<select
+								id="fulfillment-driver"
 								className="w-full h-9 border rounded-md px-2 text-sm bg-background"
 								value={driverId == null ? "" : String(driverId)}
 								onChange={(event) => {
 									const value = event.target.value;
 									setDriverId(value ? Number(value) : null);
 								}}
-								disabled={isSubmitting}
+								disabled={isSubmitting || isPickupMode}
 							>
 								<option value="">Unassigned</option>
 								{drivers.map((driver) => (
@@ -334,8 +351,14 @@ export function FulfillmentCompleteModal({
 							</select>
 						</div>
 						<div className="space-y-1">
-							<label className="text-xs text-muted-foreground">Recipient</label>
+							<label
+								htmlFor="fulfillment-recipient"
+								className="text-xs text-muted-foreground"
+							>
+								Recipient
+							</label>
 							<Input
+								id="fulfillment-recipient"
 								value={recipient}
 								onChange={(event) => setRecipient(event.target.value)}
 								placeholder="Customer/Shipping recipient"
@@ -343,10 +366,14 @@ export function FulfillmentCompleteModal({
 							/>
 						</div>
 						<div className="space-y-1">
-							<label className="text-xs text-muted-foreground">
+							<label
+								htmlFor="fulfillment-completed-date"
+								className="text-xs text-muted-foreground"
+							>
 								Completed Date
 							</label>
 							<Input
+								id="fulfillment-completed-date"
 								type="date"
 								value={completedDateValue}
 								onChange={(event) => setCompletedDateValue(event.target.value)}
@@ -377,7 +404,7 @@ export function FulfillmentCompleteModal({
 								deliveryMode,
 								recipient,
 								completedDate: parseDateInputValue(completedDateValue),
-								driverId,
+								driverId: isPickupMode ? null : driverId,
 							})
 						}
 					>

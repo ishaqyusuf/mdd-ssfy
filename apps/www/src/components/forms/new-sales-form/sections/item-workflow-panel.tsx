@@ -6,6 +6,7 @@ import { Menu } from "@gnd/ui/custom/menu";
 import { Input } from "@gnd/ui/input";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { Skeleton } from "@gnd/ui/skeleton";
+import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import {
     Combobox,
     ComboboxAnchor,
@@ -39,6 +40,7 @@ import {
     Layers3,
     LucideVariable,
     Package2,
+    Search,
     Ruler,
     Trash2,
     WalletCards,
@@ -997,6 +999,20 @@ export function ItemWorkflowPanel() {
         sectionUid: string;
         scope: "category" | "section";
     } | null>(null);
+    const [componentSearch, setComponentSearch] = useState("");
+    const [mouldingSelectionPopover, setMouldingSelectionPopover] = useState<{
+        open: boolean;
+        lineUid: string | null;
+        stepIndex: number;
+        component: any | null;
+        qty: string;
+    }>({
+        open: false,
+        lineUid: null,
+        stepIndex: -1,
+        component: null,
+        qty: "1",
+    });
     const shelfParentCategories = useMemo(
         () =>
             shelfCategories.filter(
@@ -1436,6 +1452,9 @@ export function ItemWorkflowPanel() {
     const activeDoorSupplier = getDoorSupplierMeta(
         activeDoorStep || activeStep,
     );
+    useEffect(() => {
+        setComponentSearch("");
+    }, [activeLine?.uid, activeStep?.stepId, activeStep?.step?.title]);
     if (!record) return null;
 
     function saveSelectedComponent({
@@ -1557,6 +1576,92 @@ export function ItemWorkflowPanel() {
             ...prev,
             [line.uid]: autoNext,
         }));
+    }
+    function openMouldingSelectionQtyPopover(
+        line: (typeof record.lineItems)[number],
+        stepIndex: number,
+        component: any,
+    ) {
+        const existingRows = Array.isArray((line.meta as any)?.mouldingRows)
+            ? ((line.meta as any)?.mouldingRows as any[])
+            : [];
+        const existingRow = existingRows.find(
+            (row: any) =>
+                String(row?.uid || "") === String(component?.uid || ""),
+        );
+        const existingQty = Number(existingRow?.qty || 0);
+        setMouldingSelectionPopover({
+            open: true,
+            lineUid: line.uid,
+            stepIndex,
+            component,
+            qty:
+                Number.isFinite(existingQty) && existingQty > 0
+                    ? String(existingQty)
+                    : "1",
+        });
+    }
+    function saveMouldingSelectionWithQty(
+        line: (typeof record.lineItems)[number],
+        steps: any[],
+        currentStepIndex: number,
+        component: any,
+        qtyInput: string,
+    ) {
+        const nextQty = Math.max(1, Number(qtyInput || 0) || 1);
+        const nextSteps = [...steps];
+        const multiMutation = applyMultiSelectStepMutation({
+            steps: nextSteps,
+            currentStepIndex,
+            component,
+            visibleComponents,
+            selectedOverride: true,
+            activeStepTitle: activeStep?.step?.title || "",
+        });
+        const selectedComponents = Array.isArray(
+            multiMutation.steps[currentStepIndex]?.meta?.selectedComponents,
+        )
+            ? multiMutation.steps[currentStepIndex].meta.selectedComponents
+            : [];
+        const existingRows = Array.isArray((line.meta as any)?.mouldingRows)
+            ? ((line.meta as any)?.mouldingRows as any[])
+            : [];
+        const sharedComponentPrice = sharedMouldingComponentPrice(
+            multiMutation.steps || [],
+        );
+        const derivedRows = deriveMouldingRows({
+            selectedMouldings: selectedComponents,
+            existingRows,
+            sharedComponentPrice,
+        }).map((row: any) =>
+            String(row?.uid || "") === String(component?.uid || "")
+                ? {
+                      ...row,
+                      qty: nextQty,
+                  }
+                : row,
+        );
+        const summary = summarizeMouldingPersistRows(
+            derivedRows,
+            sharedComponentPrice,
+        );
+        updateLineItem(line.uid, {
+            formSteps: multiMutation.steps,
+            meta: {
+                ...(line.meta || {}),
+                mouldingRows: summary.storedRows,
+            } as any,
+            qty: summary.qtyTotal,
+            lineTotal: summary.total,
+            unitPrice: summary.unitPrice,
+        } as any);
+        setMouldingSelectionPopover({
+            open: false,
+            lineUid: null,
+            stepIndex: -1,
+            component: null,
+            qty: "1",
+        });
     }
     function proceedMultiSelectStep(
         line: (typeof record.lineItems)[number],
@@ -2148,6 +2253,95 @@ export function ItemWorkflowPanel() {
             formSteps: steps,
         });
     }
+    function removeDoorOptionFromHpt(
+        line: (typeof record.lineItems)[number],
+        stepIndex: number,
+        component: any,
+    ) {
+        const componentUid = String(component?.uid || "");
+        const componentId = Number(component?.id || 0);
+        if (!componentUid) return;
+
+        const steps = [...(line.formSteps || [])];
+        const step = steps[stepIndex];
+        if (!step) return;
+
+        const selectedUids = getSelectedProdUids(step).filter(
+            (uid) => uid !== componentUid,
+        );
+        const selectedComponents = (
+            Array.isArray(step?.meta?.selectedComponents)
+                ? step.meta.selectedComponents
+                : []
+        ).filter((entry: any) => String(entry?.uid || "") !== componentUid);
+        const totalSales = selectedComponents.reduce(
+            (sum: number, entry: any) => sum + Number(entry?.salesPrice || 0),
+            0,
+        );
+        const totalBase = selectedComponents.reduce(
+            (sum: number, entry: any) => sum + Number(entry?.basePrice || 0),
+            0,
+        );
+        steps[stepIndex] = {
+            ...step,
+            prodUid: selectedUids[0] || "",
+            componentId: selectedComponents[0]?.id || null,
+            value: compactStepValue(selectedComponents),
+            price: totalSales,
+            basePrice: totalBase,
+            meta: {
+                ...(step?.meta || {}),
+                selectedProdUids: selectedUids,
+                selectedComponents,
+            },
+        };
+
+        const existingRows = Array.isArray(line.housePackageTool?.doors)
+            ? line.housePackageTool.doors
+            : [];
+        const nextRows = existingRows.filter(
+            (row: any) =>
+                Number(row?.stepProductId || 0) !== componentId,
+        );
+        const nextActiveDoor =
+            selectedComponents.find(
+                (entry: any) => String(entry?.uid || "") !== componentUid,
+            ) || null;
+        const nextRouteConfig = resolveRouteConfigForLine({
+            routeData,
+            line: {
+                ...line,
+                formSteps: steps,
+            },
+            step: steps[stepIndex],
+            component: nextActiveDoor,
+        });
+        const nextSummary = summarizeDoors(nextRows, {
+            noHandle: !!nextRouteConfig?.noHandle,
+            hasSwing: !!nextRouteConfig?.hasSwing,
+        });
+
+        updateLineItem(line.uid, {
+            formSteps: steps,
+            housePackageTool: {
+                ...(line.housePackageTool || { id: null }),
+                doors: nextSummary.rows,
+                totalDoors: nextSummary.totalDoors,
+                totalPrice: nextSummary.totalPrice,
+            } as any,
+            qty: nextSummary.totalDoors,
+            lineTotal: nextSummary.totalPrice,
+        } as any);
+        setActiveHptDoorUidByLine((prev) => {
+            const next = { ...prev };
+            if (nextActiveDoor?.uid) {
+                next[line.uid] = String(nextActiveDoor.uid);
+            } else {
+                delete next[line.uid];
+            }
+            return next;
+        });
+    }
     function renderHousePackageToolPanel(
         line: (typeof record.lineItems)[number],
         activeItemStep: any,
@@ -2360,6 +2554,19 @@ export function ItemWorkflowPanel() {
                                     disabled={!swapDoorCandidates.length}
                                 >
                                     Swap Door
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() =>
+                                        removeDoorOptionFromHpt(
+                                            line,
+                                            doorStepIndex,
+                                            activeDoorComponent,
+                                        )
+                                    }
+                                >
+                                    Delete Door
                                 </Button>
                             </>
                         ) : null}
@@ -3623,6 +3830,20 @@ export function ItemWorkflowPanel() {
         );
         const isRedirectDisabled = isRedirectDisabledStep(activeItemStep);
         const selectedUids = new Set(getSelectedProdUids(activeItemStep));
+        const normalizedComponentSearch = componentSearch.trim().toLowerCase();
+        const filteredVisibleComponents = !normalizedComponentSearch
+            ? visibleComponents
+            : visibleComponents.filter((component: any) => {
+                  const haystack = [
+                      component?.title,
+                      component?.uid,
+                      component?.value,
+                  ]
+                      .filter(Boolean)
+                      .join(" ")
+                      .toLowerCase();
+                  return haystack.includes(normalizedComponentSearch);
+              });
         if (!steps.length) {
             return (
                 <div className="space-y-3">
@@ -4898,10 +5119,28 @@ export function ItemWorkflowPanel() {
                     </p>
                 ) : (
                     <>
-                        <div className="sticky bottom-3 z-10 mb-3 flex items-center gap-2 rounded-lg border bg-background/95 p-2 backdrop-blur">
-                            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                {visibleComponents.length} components
-                            </span>
+                        <div className="sticky bottom-3 z-10 mb-3 flex flex-col gap-2 rounded-xl border border-slate-200 bg-background/95 p-2 shadow-sm backdrop-blur md:flex-row md:items-center">
+                            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                <Search className="size-3.5" />
+                                <span>
+                                    {filteredVisibleComponents.length}
+                                    {filteredVisibleComponents.length !==
+                                    visibleComponents.length
+                                        ? ` of ${visibleComponents.length}`
+                                        : ""}{" "}
+                                    components
+                                </span>
+                            </div>
+                            <div className="flex-1 md:max-w-sm">
+                                <Input
+                                    value={componentSearch}
+                                    onChange={(event) =>
+                                        setComponentSearch(event.target.value)
+                                    }
+                                    placeholder="Search components..."
+                                    className="h-9 border-slate-200 bg-white"
+                                />
+                            </div>
                             <div className="ml-auto">
                                 <Menu
                                     Trigger={
@@ -5080,7 +5319,7 @@ export function ItemWorkflowPanel() {
                             </div>
                         </div>
                         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-                            {visibleComponents.map((component) => {
+                            {filteredVisibleComponents.map((component) => {
                                 const isSelected = selectedUids.has(
                                     component.uid,
                                 );
@@ -5210,65 +5449,236 @@ export function ItemWorkflowPanel() {
                                                 </Menu.Item>
                                             </Menu>
                                         </div>
-                                        <button
-                                            type="button"
-                                            className="w-full text-left"
-                                            onClick={() =>
-                                                isDoorStepTitle(
-                                                    activeItemStep?.step?.title,
-                                                )
-                                                    ? setDoorStepModal({
-                                                          open: true,
-                                                          component,
-                                                      })
-                                                    : saveSelectedComponent({
-                                                          line,
-                                                          steps,
-                                                          currentStepIndex:
-                                                              activeIndex,
-                                                          component,
-                                                      })
-                                            }
-                                        >
-                                            <div className="h-32 bg-muted">
-                                                {resolveComponentImageSrc(
-                                                    component.img,
-                                                ) ? (
-                                                    <img
-                                                        src={
-                                                            resolveComponentImageSrc(
+                                        {isMouldingItem(line) ? (
+                                            <Popover
+                                                open={
+                                                    mouldingSelectionPopover.open &&
+                                                    mouldingSelectionPopover.lineUid ===
+                                                        line.uid &&
+                                                    mouldingSelectionPopover.stepIndex ===
+                                                        activeIndex &&
+                                                    String(
+                                                        mouldingSelectionPopover
+                                                            .component?.uid || "",
+                                                    ) === String(component?.uid || "")
+                                                }
+                                                onOpenChange={(open) => {
+                                                    if (!open) {
+                                                        setMouldingSelectionPopover({
+                                                            open: false,
+                                                            lineUid: null,
+                                                            stepIndex: -1,
+                                                            component: null,
+                                                            qty: "1",
+                                                        });
+                                                        return;
+                                                    }
+                                                    openMouldingSelectionQtyPopover(
+                                                        line,
+                                                        activeIndex,
+                                                        component,
+                                                    );
+                                                }}
+                                            >
+                                                <PopoverTrigger asChild>
+                                                    <button
+                                                        type="button"
+                                                        className="w-full text-left"
+                                                    >
+                                                        <div className="h-32 bg-muted">
+                                                            {resolveComponentImageSrc(
                                                                 component.img,
-                                                            ) || ""
-                                                        }
-                                                        alt={
-                                                            component.title ||
-                                                            component.uid
-                                                        }
-                                                        className="h-full w-full object-contain p-2"
-                                                    />
-                                                ) : (
-                                                    <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                                                        No image
+                                                            ) ? (
+                                                                <img
+                                                                    src={
+                                                                        resolveComponentImageSrc(
+                                                                            component.img,
+                                                                        ) || ""
+                                                                    }
+                                                                    alt={
+                                                                        component.title ||
+                                                                        component.uid
+                                                                    }
+                                                                    className="h-full w-full object-contain p-2"
+                                                                />
+                                                            ) : (
+                                                                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                                                                    No image
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="space-y-1 p-3">
+                                                            <p className="font-semibold leading-tight">
+                                                                {componentLabel(
+                                                                    component.title,
+                                                                )}
+                                                            </p>
+                                                            {moneyIfPositive(component.salesPrice) ? (
+                                                                <p className="text-xs font-medium text-primary">
+                                                                    {moneyIfPositive(component.salesPrice)}
+                                                                </p>
+                                                            ) : null}
+                                                        </div>
+                                                    </button>
+                                                </PopoverTrigger>
+                                                <PopoverContent
+                                                    align="center"
+                                                    side="bottom"
+                                                    className="w-72 space-y-3 p-4"
+                                                >
+                                                    <div className="space-y-1">
+                                                        <p className="text-sm font-semibold">
+                                                            {componentLabel(
+                                                                component.title,
+                                                            )}
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Enter moulding qty or use the calculator.
+                                                        </p>
                                                     </div>
-                                                )}
-                                            </div>
-                                            <div className="space-y-1 p-3">
-                                                <p className="font-semibold leading-tight">
-                                                    {componentLabel(
-                                                        component.title,
+                                                    <div className="flex items-center gap-2">
+                                                        <Input
+                                                            type="number"
+                                                            min="1"
+                                                            value={
+                                                                mouldingSelectionPopover.qty
+                                                            }
+                                                            onChange={(e) =>
+                                                                setMouldingSelectionPopover(
+                                                                    (prev) => ({
+                                                                        ...prev,
+                                                                        qty: e.target.value,
+                                                                    }),
+                                                                )
+                                                            }
+                                                            className="h-9 text-right"
+                                                        />
+                                                        <MouldingCalculator
+                                                            title={String(
+                                                                component?.title || "",
+                                                            )}
+                                                            unitPrice={Number(
+                                                                component?.salesPrice || 0,
+                                                            )}
+                                                            qty={Number(
+                                                                mouldingSelectionPopover.qty ||
+                                                                    0,
+                                                            )}
+                                                            onCalculate={(qty) =>
+                                                                setMouldingSelectionPopover(
+                                                                    (prev) => ({
+                                                                        ...prev,
+                                                                        qty: String(
+                                                                            Math.max(
+                                                                                1,
+                                                                                Number(qty || 0) ||
+                                                                                    1,
+                                                                            ),
+                                                                        ),
+                                                                    }),
+                                                                )
+                                                            }
+                                                        />
+                                                    </div>
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() =>
+                                                                setMouldingSelectionPopover({
+                                                                    open: false,
+                                                                    lineUid: null,
+                                                                    stepIndex: -1,
+                                                                    component: null,
+                                                                    qty: "1",
+                                                                })
+                                                            }
+                                                        >
+                                                            Cancel
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                saveMouldingSelectionWithQty(
+                                                                    line,
+                                                                    steps,
+                                                                    activeIndex,
+                                                                    component,
+                                                                    mouldingSelectionPopover.qty,
+                                                                )
+                                                            }
+                                                        >
+                                                            Add
+                                                        </Button>
+                                                    </div>
+                                                </PopoverContent>
+                                            </Popover>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                className="w-full text-left"
+                                                onClick={() =>
+                                                    isDoorStepTitle(
+                                                        activeItemStep?.step?.title,
+                                                    )
+                                                        ? setDoorStepModal({
+                                                              open: true,
+                                                              component,
+                                                          })
+                                                        : saveSelectedComponent({
+                                                              line,
+                                                              steps,
+                                                              currentStepIndex:
+                                                                  activeIndex,
+                                                              component,
+                                                          })
+                                                }
+                                            >
+                                                <div className="h-32 bg-muted">
+                                                    {resolveComponentImageSrc(
+                                                        component.img,
+                                                    ) ? (
+                                                        <img
+                                                            src={
+                                                                resolveComponentImageSrc(
+                                                                    component.img,
+                                                                ) || ""
+                                                            }
+                                                            alt={
+                                                                component.title ||
+                                                                component.uid
+                                                            }
+                                                            className="h-full w-full object-contain p-2"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                                                            No image
+                                                        </div>
                                                     )}
-                                                </p>
-                                                {moneyIfPositive(component.salesPrice) ? (
-                                                    <p className="text-xs font-medium text-primary">
-                                                        {moneyIfPositive(component.salesPrice)}
+                                                </div>
+                                                <div className="space-y-1 p-3">
+                                                    <p className="font-semibold leading-tight">
+                                                        {componentLabel(
+                                                            component.title,
+                                                        )}
                                                     </p>
-                                                ) : null}
-                                            </div>
-                                        </button>
+                                                    {moneyIfPositive(component.salesPrice) ? (
+                                                        <p className="text-xs font-medium text-primary">
+                                                            {moneyIfPositive(component.salesPrice)}
+                                                        </p>
+                                                    ) : null}
+                                                </div>
+                                            </button>
+                                        )}
                                     </div>
                                 );
                             })}
                         </div>
+                        {!filteredVisibleComponents.length ? (
+                            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-600">
+                                No components match "{componentSearch.trim()}".
+                            </div>
+                        ) : null}
                         {isMultiSelectStepTitle(activeItemStep?.step?.title) ? (
                             <div className="sticky bottom-3 mt-4 flex justify-end">
                                 <Button

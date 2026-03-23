@@ -126,8 +126,11 @@ export function LineItemBlock({ section }: LineItemBlockProps) {
                 >
                   <Text
                     style={{
-                      fontSize: 7.5,
-                      fontWeight: cell.bold || (row.isGroupHeader && isDescription) ? 700 : 400,
+                      fontSize: 8.5,
+                      fontWeight:
+                        cell.bold || (row.isGroupHeader && isDescription)
+                          ? 700
+                          : 500,
                       color: row.isGroupHeader && isDescription ? ACCENT : "#1e293b",
                       textAlign:
                         row.isGroupHeader && isDescription

@@ -13,11 +13,9 @@ import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { Icons } from "@gnd/ui/icons";
 import Link from "next/link";
 
+import { TableSkeleton } from "../skeleton";
 import { BatchActions } from "./batch-actions";
 import { columns, mobileColumn } from "./columns";
-import { useSalesOverviewV2SheetQuery } from "@/hooks/use-sales-overview-v2-sheet-query";
-import { useSalesOverviewOpen } from "@/hooks/use-sales-overview-open";
-import { TableSkeleton } from "../skeleton";
 
 interface Props {
 	defaultFilters?: RouterInputs["sales"]["getOrders"];
@@ -60,7 +58,6 @@ export function DataTable(props: Props) {
 	//         overviewSheetTab: "overview",
 	//     });
 	// };
-	const { openSalesAdminSheet } = useSalesOverviewOpen();
 	if (isFilterPending) {
 		return <TableSkeleton />;
 	}

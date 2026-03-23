@@ -171,8 +171,8 @@ function TableCell({
       ) : (
         <Text
           style={{
-            fontSize: 7.5,
-            fontWeight: bold ? 700 : 400,
+            fontSize: 8.5,
+            fontWeight: bold ? 700 : 500,
             color: "#1e293b",
             textAlign,
           }}

@@ -15,6 +15,7 @@ import { Icons } from "@gnd/ui/icons";
 import { Check, ExternalLink, StickyNote } from "lucide-react";
 import { InvoiceColumn } from "./column.invoice";
 import { cells } from "@gnd/ui/custom/data-table/cells";
+import { Item } from "@gnd/ui/namespace";
 
 import Link from "next/link";
 import { SalesMenu } from "@/components/sales-menu";
@@ -36,63 +37,63 @@ import {
 	FulfillmentCompleteModal,
 	FulfillmentDispatch,
 } from "./fulfillment-complete-modal";
-export type Item = RouterOutputs["sales"]["index"]["data"][number];
+export type SalesOrderItem = RouterOutputs["sales"]["index"]["data"][number];
 interface ItemProps {
-	item: Item;
+	item: SalesOrderItem;
 }
 
-function getProductionStatusLabel(item: Item) {
+function getProductionStatusLabel(item: SalesOrderItem) {
 	const status = (item as any)?.control?.productionStatus;
 	if (status && status !== "unknown") return status;
 	return item.status.production?.scoreStatus || item.status.production?.status;
 }
 
-function getFulfillmentStatusLabel(item: Item) {
+function getFulfillmentStatusLabel(item: SalesOrderItem) {
 	const status = (item as any)?.control?.dispatchStatus;
 	if (status && status !== "unknown") return status;
 	return item?.deliveryStatus || "-";
 }
 
-export const columns2: ColumnDef<Item>[] = [
-	cells.selectColumn,
-	{
-		header: "Date",
-		accessorKey: "salesDate",
-		meta: {},
-		cell: ({ row: { original: item } }) => (
-			<TCell.Secondary className="font-mono$">
-				{item?.salesDate}
-			</TCell.Secondary>
-		),
-	},
-	{
-		header: "Order #",
-		accessorKey: "orderNo",
-		cell: ({ row: { original: item } }) => (
-			<TCell.Secondary className="whitespace-nowrap inline-flex items-center gap-1">
-				<span>{item.orderId}</span>
-				{!item.orderId?.toUpperCase().endsWith(item.salesRepInitial) && (
-					<Badge className="font-mono$" variant="secondary">
-						{item.salesRepInitial}
-					</Badge>
+function CompactCustomerCell({ item }: { item: SalesOrderItem }) {
+	return (
+		<div className="max-w-[220px] xl:max-w-[300px]">
+			<Item.Title
+				className={cn(
+					"flex max-w-[220px] items-center gap-1 xl:max-w-[300px]",
+					item.isBusiness && "text-blue-700",
 				)}
-				{!item.noteCount || (
-					<Badge className="p-1 h-5" variant="secondary">
-						<StickyNote className="w-3 mr-1" />
-						<span className="">{item.noteCount}</span>
-					</Badge>
-				)}
-			</TCell.Secondary>
-		),
-	},
+			>
+				<TextWithTooltip
+					className="max-w-[120px] truncate xl:max-w-[160px]"
+					text={item.displayName || "-"}
+				/>
+				<span className="font-normal text-muted-foreground">
+					{" - "}
+					{item.customerPhone || "-"}
+				</span>
+			</Item.Title>
+			<Item.Description>
+				<TextWithTooltip
+					className="max-w-[220px] truncate xl:max-w-[300px]"
+					text={item.address || "-"}
+				/>
+			</Item.Description>
+		</div>
+	);
+}
+
+const compactCustomerV2 = true;
+const compactCustomer = true;
+
+const compactCustomerColumnV2: ColumnDef<SalesOrderItem>[] = [
 	{
-		header: "P.O",
-		accessorKey: "po",
-		meta: {
-			className: "",
-		},
-		cell: ({ row: { original: item } }) => <div>{item?.poNo}</div>,
+		header: "Customer",
+		accessorKey: "customer",
+		cell: ({ row: { original: item } }) => <CompactCustomerCell item={item} />,
 	},
+];
+
+const legacyCustomerColumnsV2: ColumnDef<SalesOrderItem>[] = [
 	{
 		header: "Customer",
 		accessorKey: "customer",
@@ -134,6 +135,61 @@ export const columns2: ColumnDef<Item>[] = [
 			</TCell.Secondary>
 		),
 	},
+];
+
+const compactCustomerColumn: ColumnDef<SalesOrderItem>[] = [
+	{
+		header: "Customer",
+		accessorKey: "customer",
+		cell: ({ row: { original: item } }) => <CompactCustomerCell item={item} />,
+	},
+];
+
+const legacyCustomerColumns: ColumnDef<SalesOrderItem>[] =
+	legacyCustomerColumnsV2;
+
+export const columns2: ColumnDef<SalesOrderItem>[] = [
+	cells.selectColumn,
+	{
+		header: "Date",
+		accessorKey: "salesDate",
+		meta: {},
+		cell: ({ row: { original: item } }) => (
+			<TCell.Secondary className="font-mono$">
+				{item?.salesDate}
+			</TCell.Secondary>
+		),
+	},
+	{
+		header: "Order #",
+		accessorKey: "orderNo",
+		cell: ({ row: { original: item } }) => (
+			<TCell.Secondary className="whitespace-nowrap inline-flex items-center gap-1">
+				<span>{item.orderId}</span>
+				{!item.orderId?.toUpperCase().endsWith(item.salesRepInitial) && (
+					<Badge className="font-mono$" variant="secondary">
+						{item.salesRepInitial}
+					</Badge>
+				)}
+				{!item.noteCount || (
+					<Badge className="p-1 h-5" variant="secondary">
+						<StickyNote className="w-3 mr-1" />
+						<span className="">{item.noteCount}</span>
+					</Badge>
+				)}
+			</TCell.Secondary>
+		),
+	},
+	{
+		header: "P.O",
+		accessorKey: "po",
+		meta: {
+			className: "",
+		},
+		cell: ({ row: { original: item } }) => <div>{item?.poNo}</div>,
+	},
+	// Toggle this switch to restore the legacy separate Customer / Phone / Address columns.
+	...(compactCustomerV2 ? compactCustomerColumnV2 : legacyCustomerColumnsV2),
 	{
 		header: "Invoice",
 		accessorKey: "invoice",
@@ -182,7 +238,7 @@ export const columns2: ColumnDef<Item>[] = [
 		),
 	},
 ];
-export const columns: ColumnDef<Item>[] = [
+export const columns: ColumnDef<SalesOrderItem>[] = [
 	cells.selectColumn,
 	{
 		header: "Date",
@@ -222,47 +278,8 @@ export const columns: ColumnDef<Item>[] = [
 		},
 		cell: ({ row: { original: item } }) => <div>{item?.poNo}</div>,
 	},
-	{
-		header: "Customer",
-		accessorKey: "customer",
-		cell: ({ row: { original: item } }) => (
-			<TCell.Primary
-				className={cn(
-					item.isBusiness && "text-blue-700",
-					"whitespace-nowrap uppercase",
-				)}
-			>
-				<TextWithTooltip
-					className="max-w-[100px] xl:max-w-[200px]"
-					text={item.displayName || "-"}
-				/>
-			</TCell.Primary>
-		),
-	},
-	{
-		header: "Phone",
-		accessorKey: "phone",
-		cell: ({ row: { original: item } }) => (
-			<TCell.Secondary className="whitespace-nowrap">
-				<TextWithTooltip
-					className="max-w-[85px] xl:max-w-[120px]"
-					text={item?.customerPhone || "-"}
-				/>
-			</TCell.Secondary>
-		),
-	},
-	{
-		header: "Address",
-		accessorKey: "address",
-		cell: ({ row: { original: item } }) => (
-			<TCell.Secondary>
-				<TextWithTooltip
-					className="max-w-[100px] xl:max-w-[200px]"
-					text={item?.address}
-				/>
-			</TCell.Secondary>
-		),
-	},
+	// Toggle this switch to restore the legacy separate Customer / Phone / Address columns.
+	...(compactCustomer ? compactCustomerColumn : legacyCustomerColumns),
 	// {
 	//     header: "Invoice",
 	//     accessorKey: "invoice",
@@ -329,7 +346,7 @@ export const columns: ColumnDef<Item>[] = [
 	},
 ];
 
-function Actions({ item }: { item: Item }) {
+function Actions({ item }: { item: SalesOrderItem }) {
 	const overviewOpen = useSalesOverviewOpen();
 	const produceable = !!item.stats?.prodCompleted?.total;
 	const productionStatus = String(
@@ -497,6 +514,8 @@ function Actions({ item }: { item: Item }) {
 			);
 			const selectedDeliveryMode =
 				payload.deliveryMode || item.deliveryOption || "delivery";
+			const driverId =
+				selectedDeliveryMode === "pickup" ? null : payload.driverId;
 
 			if (selectedDeliveryMode !== item.deliveryOption) {
 				await updateSalesDeliveryOption({
@@ -510,7 +529,7 @@ function Actions({ item }: { item: Item }) {
 					salesId: item.id,
 					deliveryMode: selectedDeliveryMode,
 					dueDate: payload.completedDate || new Date(),
-					driverId: payload.driverId || undefined,
+					driverId: driverId || undefined,
 					status: "queue",
 				});
 				dispatchId = createdDispatch.id;
@@ -527,12 +546,12 @@ function Actions({ item }: { item: Item }) {
 
 			if (
 				selectedDispatch &&
-				payload.driverId !== (selectedDispatch.driverId ?? null)
+				driverId !== (selectedDispatch.driverId ?? null)
 			) {
 				await updateDispatchDriver({
 					dispatchId: selectedDispatch.id,
 					oldDriverId: selectedDispatch.driverId ?? null,
-					newDriverId: payload.driverId ?? null,
+					newDriverId: driverId ?? null,
 				});
 			}
 
@@ -743,7 +762,7 @@ function Actions({ item }: { item: Item }) {
 		</div>
 	);
 }
-export const mobileColumn: ColumnDef<Item>[] = [
+export const mobileColumn: ColumnDef<SalesOrderItem>[] = [
 	{
 		header: "",
 		accessorKey: "row",
