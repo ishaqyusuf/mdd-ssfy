@@ -18,6 +18,8 @@ import { useRouter } from "next/navigation";
 import { _modal } from "@/components/common/modal/provider";
 import NewSalesFormSettingsModal from "@/components/modals/new-sales-form-settings-modal";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
+import { resetSalesStatAction } from "@/actions/reset-sales-stat";
+import { triggerEvent } from "@/actions/events";
 import {
     clearRecoverySnapshot,
     createPayloadFingerprint,
@@ -171,6 +173,51 @@ export function NewSalesForm(props: Props) {
         silent: true,
     });
 
+    const handlePostSaveSuccess = useCallback(
+        async (resp: {
+            salesId?: number | null;
+            slug?: string | null;
+            orderId?: string | null;
+            status?: string | null;
+            version?: string | null;
+            updatedAt?: string | null;
+            type?: "order" | "quote" | null;
+            isNew?: boolean | null;
+        }) => {
+            patchRecord({
+                salesId: resp?.salesId,
+                slug: resp?.slug,
+                orderId: resp?.orderId,
+                status: resp?.status,
+            });
+            markSaved({
+                version: resp?.version,
+                updatedAt: resp?.updatedAt || new Date().toISOString(),
+            });
+            clearRecoveryKeys({
+                slug: resp?.slug,
+                salesId: resp?.salesId,
+            });
+
+            if (resp?.orderId && resp?.type) {
+                taskTrigger.triggerWithAuth("create-sales-history", {
+                    salesNo: resp.orderId,
+                    salesType: resp.type,
+                } as any);
+            }
+            if (resp?.type === "order" && resp?.salesId && resp?.orderId) {
+                await resetSalesStatAction(resp.salesId, resp.orderId);
+            }
+            if (resp?.salesId) {
+                await triggerEvent(
+                    resp?.isNew ? "salesCreated" : "salesUpdated",
+                    resp.salesId,
+                );
+            }
+        },
+        [clearRecoveryKeys, markSaved, patchRecord, taskTrigger],
+    );
+
     useEffect(() => {
         if (!loadData) return;
         const serverPayload = toSaveDraftInput(loadData, true);
@@ -247,20 +294,11 @@ export function NewSalesForm(props: Props) {
             markError("Unable to save draft.");
             return;
         }
+        await handlePostSaveSuccess(resp);
         toast({
             title: "Draft saved",
             variant: "success",
         });
-        clearRecoveryKeys({
-            slug: resp?.slug,
-            salesId: resp?.salesId,
-        });
-        if (resp?.orderId && resp?.type) {
-            taskTrigger.triggerWithAuth("create-sales-history", {
-                salesNo: resp.orderId,
-                salesType: resp.type,
-            } as any);
-        }
     }
 
     async function saveFinal() {
@@ -273,31 +311,12 @@ export function NewSalesForm(props: Props) {
                 ...payload,
                 autosave: false,
             });
-            patchRecord({
-                salesId: resp?.salesId,
-                slug: resp?.slug,
-                orderId: resp?.orderId,
-                status: resp?.status,
-            });
-            markSaved({
-                version: resp?.version,
-                updatedAt: resp?.updatedAt || new Date().toISOString(),
-            });
-            clearRecoveryKeys({
-                slug: resp?.slug,
-                salesId: resp?.salesId,
-            });
+            await handlePostSaveSuccess(resp);
             toast({
                 title: "Saved",
                 description: `${props.type} ${resp?.orderId} has been finalized.`,
                 variant: "success",
             });
-            if (resp?.orderId && resp?.type) {
-                taskTrigger.triggerWithAuth("create-sales-history", {
-                    salesNo: resp.orderId,
-                    salesType: resp.type,
-                } as any);
-            }
         } catch (error) {
             const err = error as any;
             if (String(err?.message || "").toLowerCase().includes("out of date")) {
@@ -316,6 +335,7 @@ export function NewSalesForm(props: Props) {
         if (dirty) {
             const resp = await autosave.flush("manual-flush");
             if (!resp) return;
+            await handlePostSaveSuccess(resp);
         }
         router.push(`/sales-book/${props.type === "order" ? "orders" : "quotes"}`);
     }
@@ -325,6 +345,7 @@ export function NewSalesForm(props: Props) {
         if (dirty) {
             const resp = await autosave.flush("manual-flush");
             if (!resp) return;
+            await handlePostSaveSuccess(resp);
         }
         router.push(
             `/sales-form/${props.type === "order" ? "create-order" : "create-quote"}`,

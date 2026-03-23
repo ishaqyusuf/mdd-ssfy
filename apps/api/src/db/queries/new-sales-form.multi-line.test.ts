@@ -14,6 +14,23 @@ function createMockContext() {
     hpts: [] as any[],
     doors: [] as any[],
     extraCosts: [] as any[],
+    salesTaxes: [] as any[],
+    users: [
+      {
+        id: 77,
+        name: "Ada Lovelace",
+      },
+    ],
+    settings: [
+      {
+        id: 1,
+        type: "sales-settings",
+        meta: {
+          ccc: 3.5,
+          taxCode: "GST",
+        },
+      },
+    ],
     customers: [
       {
         id: 100,
@@ -268,6 +285,21 @@ function createMockContext() {
         return row;
       },
     },
+    salesTaxes: {
+      deleteMany: async ({ where }: any) => {
+        state.salesTaxes = state.salesTaxes.filter(
+          (row) => row.salesId !== where.salesId,
+        );
+      },
+      create: async ({ data }: any) => {
+        const row = {
+          id: `tax-${state.salesTaxes.length + 1}`,
+          ...data,
+        };
+        state.salesTaxes.push(row);
+        return row;
+      },
+    },
   };
 
   const db = {
@@ -291,10 +323,33 @@ function createMockContext() {
     customers: {
       findMany: async () => state.customers,
     },
+    users: {
+      findFirst: async ({ where, select }: any) => {
+        const user = state.users.find((row) => row.id === where?.id) || null;
+        if (!user || !select) return user;
+        return Object.fromEntries(
+          Object.keys(select)
+            .filter((key) => select[key])
+            .map((key) => [key, (user as any)[key]]),
+        );
+      },
+    },
+    settings: {
+      findFirst: async ({ where, select }: any) => {
+        const setting =
+          state.settings.find((row) => row.type === where?.type) || null;
+        if (!setting || !select) return setting;
+        return Object.fromEntries(
+          Object.keys(select)
+            .filter((key) => select[key])
+            .map((key) => [key, (setting as any)[key]]),
+        );
+      },
+    },
   };
 
   return {
-    ctx: { db } as any,
+    ctx: { db, userId: 77 } as any,
   };
 }
 

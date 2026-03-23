@@ -16,6 +16,23 @@ function createMockContext() {
     hpts: [] as any[],
     doors: [] as any[],
     extraCosts: [] as any[],
+    salesTaxes: [] as any[],
+    users: [
+      {
+        id: 77,
+        name: "Ada Lovelace",
+      },
+    ],
+    settings: [
+      {
+        id: 1,
+        type: "sales-settings",
+        meta: {
+          ccc: 3.5,
+          taxCode: "GST",
+        },
+      },
+    ],
     customers: [
       {
         id: 100,
@@ -322,6 +339,21 @@ function createMockContext() {
         return row;
       },
     },
+    salesTaxes: {
+      deleteMany: async ({ where }: any) => {
+        state.salesTaxes = state.salesTaxes.filter(
+          (row) => row.salesId !== where.salesId,
+        );
+      },
+      create: async ({ data }: any) => {
+        const row = {
+          id: `tax-${state.salesTaxes.length + 1}`,
+          ...data,
+        };
+        state.salesTaxes.push(row);
+        return row;
+      },
+    },
   };
 
   const db = {
@@ -344,6 +376,29 @@ function createMockContext() {
     },
     customers: {
       findMany: async () => state.customers,
+    },
+    users: {
+      findFirst: async ({ where, select }: any) => {
+        const user = state.users.find((row) => row.id === where?.id) || null;
+        if (!user || !select) return user;
+        return Object.fromEntries(
+          Object.keys(select)
+            .filter((key) => select[key])
+            .map((key) => [key, (user as any)[key]]),
+        );
+      },
+    },
+    settings: {
+      findFirst: async ({ where, select }: any) => {
+        const setting =
+          state.settings.find((row) => row.type === where?.type) || null;
+        if (!setting || !select) return setting;
+        return Object.fromEntries(
+          Object.keys(select)
+            .filter((key) => select[key])
+            .map((key) => [key, (setting as any)[key]]),
+        );
+      },
     },
     dykeShelfCategories: {
       findMany: async ({ where, select, orderBy }: any) => {
@@ -408,7 +463,7 @@ function createMockContext() {
   };
 
   return {
-    ctx: { db } as any,
+    ctx: { db, userId: 77 } as any,
     state,
   };
 }
@@ -643,5 +698,57 @@ describe("new-sales-form relational parity", () => {
     expect(line).toBeTruthy();
     expect(line!.title).toBe("Line B");
     expect(line!.formSteps[0]?.stepId).toBe(2);
+  });
+
+  it("uses legacy-style order id generation and persists relational sales tax rows", async () => {
+    const { ctx, state } = createMockContext();
+
+    const saved = await saveDraftNewSalesForm(ctx, {
+      type: "order",
+      slug: null,
+      salesId: null,
+      version: null,
+      autosave: false,
+      meta: {
+        customerId: 100,
+        customerProfileId: null,
+        billingAddressId: null,
+        shippingAddressId: null,
+        paymentTerm: "None",
+        goodUntil: null,
+        po: null,
+        notes: null,
+        deliveryOption: "pickup",
+        paymentMethod: "Credit Card",
+        taxCode: "GST",
+      },
+      summary: { subTotal: 0, taxRate: 7.5, taxTotal: 0, grandTotal: 0 },
+      extraCosts: [],
+      lineItems: [
+        {
+          id: null,
+          uid: "line-taxed",
+          title: "Taxed Line",
+          description: "",
+          qty: 1,
+          unitPrice: 100,
+          lineTotal: 100,
+          meta: {},
+          formSteps: [],
+          shelfItems: [],
+          housePackageTool: null,
+        } as any,
+      ],
+    });
+
+    expect(saved.orderId).toBe("00000AL");
+    expect(saved.slug).toBe("order-00000al");
+    expect(state.salesTaxes).toHaveLength(1);
+    expect(state.salesTaxes[0]).toMatchObject({
+      salesId: saved.salesId,
+      taxCode: "GST",
+      taxxable: 100,
+      tax: 7.5,
+    });
   });
 });

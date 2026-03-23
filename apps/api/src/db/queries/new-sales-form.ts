@@ -31,6 +31,7 @@ import { getSalesCustomer } from "@api/db/queries/customer";
 import { TRPCError } from "@trpc/server";
 import { generateRandomString } from "@gnd/utils";
 import { calculateSalesFormSummary } from "@gnd/sales/sales-form";
+import { generateSalesSlug } from "@gnd/sales/utils";
 
 const DEFAULT_DELIVERY_OPTION = "pickup";
 const DEFAULT_PAYMENT_TERM = "None";
@@ -121,6 +122,7 @@ function recalculateSummary(
     labor: summary.labor,
     delivery: summary.delivery,
     otherCosts: summary.otherCosts,
+    taxableSubTotal: summary.taxableSubTotal,
     ccc: summary.ccc,
   };
 }
@@ -149,31 +151,22 @@ async function generateSalesIdentity(
   ctx: TRPCContext,
   type: "order" | "quote",
 ): Promise<{ orderId: string; slug: string }> {
-  let orderId = "";
-  let slug = "";
-  while (!orderId || !slug) {
-    const token = generateRandomString(8).toUpperCase();
-    const candidateOrderId = `${type === "order" ? "SO" : "SQ"}-${token}`;
-    const candidateSlug = `${type}-${token.toLowerCase()}`;
-    const existing = await ctx.db.salesOrders.count({
-      where: {
-        OR: [
-          {
-            type,
-            orderId: candidateOrderId,
-          },
-          {
-            slug: candidateSlug,
-          },
-        ],
-      },
-    });
-    if (existing === 0) {
-      orderId = candidateOrderId;
-      slug = candidateSlug;
-    }
-  }
-  return { orderId, slug };
+  const salesRep =
+    ctx.userId != null
+      ? await ctx.db.users.findFirst({
+          where: { id: ctx.userId },
+          select: { name: true },
+        })
+      : null;
+  const orderId = await generateSalesSlug(
+    type as any,
+    ctx.db.salesOrders,
+    salesRep?.name || "",
+  );
+  return {
+    orderId,
+    slug: `${type}-${orderId.toLowerCase()}`,
+  };
 }
 
 function toBootstrapPayload(order: {
@@ -1069,6 +1062,7 @@ async function saveNewSalesFormInternal(
   });
 
   return ctx.db.$transaction(async (tx) => {
+    const isNew = !(payload.salesId || payload.slug);
     let currentId = payload.salesId || null;
     let order = null as null | {
       id: number;
@@ -1423,11 +1417,29 @@ async function saveNewSalesFormInternal(
       }
     }
 
+    await tx.salesTaxes.deleteMany({
+      where: {
+        salesId: currentId,
+      },
+    });
+
+    if (payload.meta.taxCode) {
+      await tx.salesTaxes.create({
+        data: {
+          salesId: currentId,
+          taxCode: payload.meta.taxCode,
+          taxxable: summary.taxableSubTotal,
+          tax: summary.taxTotal,
+        },
+      });
+    }
+
     return {
       salesId: currentId,
       slug: order.slug,
       orderId: order.orderId,
       type: payload.type,
+      isNew,
       version: nextVersion,
       updatedAt: nextMeta.newSalesForm?.updatedAt,
       summary,
