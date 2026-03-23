@@ -19,8 +19,15 @@ interface Props {
   email?;
   password?;
   token?;
+  sessionMeta?: {
+    ipAddress?: string | null;
+    userAgent?: string | null;
+  };
 }
-export async function loginAction(db: Db, { email, password, token }: Props) {
+export async function loginAction(
+  db: Db,
+  { email, password, token, sessionMeta }: Props,
+) {
   if (token) {
     const { email: _email, status } = await validateAuthToken(db, token);
     if (_email) {
@@ -90,13 +97,20 @@ export async function loginAction(db: Db, { email, password, token }: Props) {
       data: {
         sessionToken: crypto.randomUUID(),
         userId: user.id,
+        ipAddress: sessionMeta?.ipAddress ?? null,
+        userAgent: sessionMeta?.userAgent ?? null,
         expires: new Date(Date.now() + 60 * 60 * 1000), // 1 hour session
       },
     });
 
     return {
       sessionId: newSession.id,
-      // token: newSession?.sessionToken,
+      activeSession: {
+        id: newSession.id,
+        ipAddress: newSession.ipAddress ?? null,
+        userAgent: newSession.userAgent ?? null,
+        expires: newSession.expires ?? null,
+      },
       user,
       can,
       role,

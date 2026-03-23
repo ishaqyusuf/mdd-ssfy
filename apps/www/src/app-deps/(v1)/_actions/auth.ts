@@ -132,7 +132,20 @@ export async function checkPassword(hash, password, allowMaster = false) {
 	}
 }
 
-export async function loginAction({ email, password, token }) {
+export async function loginAction({
+	email,
+	password,
+	token,
+	sessionMeta,
+}: {
+	email?;
+	password?;
+	token?;
+	sessionMeta?: {
+		ipAddress?: string | null;
+		userAgent?: string | null;
+	};
+}) {
 	if (token) {
 		const { email: _email, status } = await validateAuthToken(token);
 		if (_email) {
@@ -198,12 +211,20 @@ export async function loginAction({ email, password, token }) {
 			data: {
 				sessionToken: crypto.randomUUID(),
 				userId: user.id,
+				ipAddress: sessionMeta?.ipAddress ?? null,
+				userAgent: sessionMeta?.userAgent ?? null,
 				expires: new Date(Date.now() + 60 * 60 * 1000), // 1 hour session
 			},
 		});
 
 		return {
 			sessionId: newSession.id,
+			activeSession: {
+				id: newSession.id,
+				ipAddress: newSession.ipAddress ?? null,
+				userAgent: newSession.userAgent ?? null,
+				expires: newSession.expires ?? null,
+			},
 			user,
 			can,
 			role,

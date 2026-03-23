@@ -6,6 +6,7 @@ import { uploadFile } from "@/lib/upload-file";
 import { useTRPC } from "@/trpc/client";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
+import { useSession } from "next-auth/react";
 import { Suspense, useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -388,6 +389,7 @@ function ProfileTab({
 
 function SecurityTab() {
 	const trpc = useTRPC();
+	const { data: session } = useSession();
 	const form = useZodForm(passwordSchema, {
 		defaultValues: {
 			currentPassword: "",
@@ -416,49 +418,101 @@ function SecurityTab() {
 	});
 
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle>Change Password</CardTitle>
-				<CardDescription>
-					Keep your account secure by using a strong password.
-				</CardDescription>
-			</CardHeader>
-			<CardContent>
-				<Form {...form}>
-					<form onSubmit={onSubmit} className="space-y-4 max-w-md">
-						<FormInput
-							label="Current Password"
-							control={form.control}
-							name="currentPassword"
-							type="password"
-							placeholder="Enter current password"
+		<div className="space-y-6">
+			{session?.activeSession && (
+				<Card>
+					<CardHeader>
+						<CardTitle>Active Session</CardTitle>
+						<CardDescription>
+							Details for the session currently signed in on this device.
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="grid gap-4 sm:grid-cols-2">
+						<SessionDetail
+							label="Session ID"
+							value={session.activeSession.id}
 						/>
-						<FormInput
-							label="New Password"
-							control={form.control}
-							name="newPassword"
-							type="password"
-							placeholder="At least 6 characters"
+						<SessionDetail
+							label="Expires"
+							value={
+								session.activeSession.expires
+									? new Date(session.activeSession.expires).toLocaleString()
+									: "No expiry"
+							}
 						/>
-						<FormInput
-							label="Confirm New Password"
-							control={form.control}
-							name="confirmPassword"
-							type="password"
-							placeholder="Re-enter new password"
+						<SessionDetail
+							label="IP Address"
+							value={session.activeSession.ipAddress ?? "Unavailable"}
 						/>
-						<div className="flex justify-end">
-							<SubmitButton
-								isSubmitting={change.isPending}
-								disabled={change.isPending}
-							>
-								Update Password
-							</SubmitButton>
-						</div>
-					</form>
-				</Form>
-			</CardContent>
-		</Card>
+						<SessionDetail
+							label="User Agent"
+							value={session.activeSession.userAgent ?? "Unavailable"}
+							className="sm:col-span-2"
+						/>
+					</CardContent>
+				</Card>
+			)}
+			<Card>
+				<CardHeader>
+					<CardTitle>Change Password</CardTitle>
+					<CardDescription>
+						Keep your account secure by using a strong password.
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<Form {...form}>
+						<form onSubmit={onSubmit} className="space-y-4 max-w-md">
+							<FormInput
+								label="Current Password"
+								control={form.control}
+								name="currentPassword"
+								type="password"
+								placeholder="Enter current password"
+							/>
+							<FormInput
+								label="New Password"
+								control={form.control}
+								name="newPassword"
+								type="password"
+								placeholder="At least 6 characters"
+							/>
+							<FormInput
+								label="Confirm New Password"
+								control={form.control}
+								name="confirmPassword"
+								type="password"
+								placeholder="Re-enter new password"
+							/>
+							<div className="flex justify-end">
+								<SubmitButton
+									isSubmitting={change.isPending}
+									disabled={change.isPending}
+								>
+									Update Password
+								</SubmitButton>
+							</div>
+						</form>
+					</Form>
+				</CardContent>
+			</Card>
+		</div>
+	);
+}
+
+function SessionDetail({
+	label,
+	value,
+	className,
+}: {
+	label: string;
+	value: string;
+	className?: string;
+}) {
+	return (
+		<div className={className}>
+			<p className="text-sm font-medium">{label}</p>
+			<p className="mt-1 break-all text-sm text-muted-foreground">{value}</p>
+		</div>
 	);
 }
 

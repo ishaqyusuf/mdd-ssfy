@@ -5,16 +5,54 @@ import CredentialsProvider from "next-auth/providers/credentials";
 
 import { type ICan, loginAction } from "./utils";
 
+type ActiveSessionInfo = {
+	id: string;
+	ipAddress: string | null;
+	userAgent: string | null;
+	expires: Date | null;
+};
+
 function normalizeCan(can?: ICan | null): ICan {
 	return (can ?? {}) as ICan;
 }
 
-async function isValidSessionRecord(
+function getRequestIpAddress(
+	headers: Headers | Record<string, string | string[] | undefined>,
+) {
+	const forwardedFor =
+		headers instanceof Headers
+			? headers.get("x-forwarded-for")
+			: headers["x-forwarded-for"];
+	const realIp =
+		headers instanceof Headers
+			? headers.get("x-real-ip")
+			: headers["x-real-ip"];
+	const value = Array.isArray(forwardedFor)
+		? forwardedFor[0]
+		: (forwardedFor ?? realIp);
+
+	return value?.split(",")[0]?.trim() || null;
+}
+
+function getRequestUserAgent(
+	headers: Headers | Record<string, string | string[] | undefined>,
+) {
+	const userAgent =
+		headers instanceof Headers
+			? headers.get("user-agent")
+			: headers["user-agent"];
+
+	return Array.isArray(userAgent)
+		? (userAgent[0] ?? null)
+		: (userAgent ?? null);
+}
+
+async function getValidSessionRecord(
 	sessionId?: string,
 	userId?: Users["id"] | null,
 ) {
 	if (!sessionId || !userId) {
-		return false;
+		return null;
 	}
 
 	const session = await db.session.findFirst({
@@ -26,10 +64,22 @@ async function isValidSessionRecord(
 		},
 		select: {
 			id: true,
+			ipAddress: true,
+			userAgent: true,
+			expires: true,
 		},
 	});
 
-	return Boolean(session);
+	if (!session) {
+		return null;
+	}
+
+	return {
+		id: session.id,
+		ipAddress: session.ipAddress ?? null,
+		userAgent: session.userAgent ?? null,
+		expires: session.expires ?? null,
+	} satisfies ActiveSessionInfo;
 }
 
 declare module "next-auth" {
@@ -38,12 +88,14 @@ declare module "next-auth" {
 		can: ICan;
 		role: Roles;
 		sessionId?: string;
+		activeSession?: ActiveSessionInfo | null;
 	}
 
 	interface Session extends DefaultSession {
 		user: Users;
 		can: ICan;
 		role: Roles;
+		activeSession?: ActiveSessionInfo | null;
 	}
 }
 
@@ -53,6 +105,7 @@ declare module "next-auth/jwt" {
 		can: ICan;
 		role: Roles;
 		sessionId?: string;
+		activeSession?: ActiveSessionInfo | null;
 	}
 }
 
@@ -76,23 +129,25 @@ export function nextAuthOptions(options: {
 		callbacks: {
 			jwt: async ({ token, user: cred }) => {
 				if (cred) {
-					const { role, can, user, sessionId } = cred;
+					const { role, can, user, sessionId, activeSession } = cred;
 					token.user = user;
 					token.can = normalizeCan(can);
 					token.role = role;
 					token.sessionId = sessionId;
+					token.activeSession = activeSession ?? null;
 				}
 
 				if (!token.sessionId) return null;
-				const hasValidSession = await isValidSessionRecord(
+				const activeSession = await getValidSessionRecord(
 					token.sessionId,
 					token.user?.id,
 				);
-				if (!hasValidSession) {
+				if (!activeSession) {
 					return null;
 				}
 
 				token.can = normalizeCan(token.can);
+				token.activeSession = activeSession;
 
 				return token;
 			},
@@ -101,6 +156,7 @@ export function nextAuthOptions(options: {
 					session.user = token.user;
 					session.role = token.role;
 					session.can = normalizeCan(token.can);
+					session.activeSession = token.activeSession ?? null;
 				}
 
 				return session;
@@ -119,7 +175,7 @@ export function nextAuthOptions(options: {
 					},
 					password: { label: "Password", type: "password" },
 				},
-				async authorize(credentials) {
+				async authorize(credentials, req) {
 					if (!credentials) {
 						return null;
 					}
@@ -128,6 +184,10 @@ export function nextAuthOptions(options: {
 						email: credentials.email,
 						password: credentials.password,
 						token: credentials.token,
+						sessionMeta: {
+							ipAddress: getRequestIpAddress(req.headers),
+							userAgent: getRequestUserAgent(req.headers),
+						},
 					});
 					if (!login) {
 						return null;
