@@ -3844,6 +3844,19 @@ export function ItemWorkflowPanel() {
                       .toLowerCase();
                   return haystack.includes(normalizedComponentSearch);
               });
+        const filteredRootComponents = !normalizedComponentSearch
+            ? activeRootComponents
+            : activeRootComponents.filter((component: any) => {
+                  const haystack = [
+                      component?.title,
+                      component?.uid,
+                      component?.value,
+                  ]
+                      .filter(Boolean)
+                      .join(" ")
+                      .toLowerCase();
+                  return haystack.includes(normalizedComponentSearch);
+              });
         if (!steps.length) {
             return (
                 <div className="space-y-3">
@@ -3858,54 +3871,115 @@ export function ItemWorkflowPanel() {
                             No root components found in sales settings route.
                         </p>
                     ) : (
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-                            {activeRootComponents.map((component: any) => (
-                                <button
-                                    key={component.uid}
-                                    type="button"
-                                    className="overflow-hidden rounded-xl border bg-card text-left transition hover:border-primary"
-                                    onClick={() =>
-                                        selectRootComponent(line, component)
-                                    }
-                                >
-                                    <div className="h-32 bg-muted">
-                                        {resolveComponentImageSrc(
-                                            component.img,
-                                        ) ? (
-                                            <img
-                                                src={
-                                                    resolveComponentImageSrc(
-                                                        component.img,
-                                                    ) || ""
-                                                }
-                                                alt={
-                                                    component.title ||
-                                                    component.uid
-                                                }
-                                                className="h-full w-full object-contain p-2"
-                                            />
-                                        ) : (
-                                            <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                                                No image
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="p-3">
-                                        <p className="font-semibold">
-                                            {componentLabel(
-                                                component.title ||
-                                                    component.uid,
+                        <>
+                            <div className="grid gap-3 pb-24 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+                                {filteredRootComponents.map((component: any) => (
+                                    <button
+                                        key={component.uid}
+                                        type="button"
+                                        className="overflow-hidden rounded-xl border bg-card text-left transition hover:border-primary"
+                                        onClick={() =>
+                                            selectRootComponent(line, component)
+                                        }
+                                    >
+                                        <div className="h-32 bg-muted">
+                                            {resolveComponentImageSrc(
+                                                component.img,
+                                            ) ? (
+                                                <img
+                                                    src={
+                                                        resolveComponentImageSrc(
+                                                            component.img,
+                                                        ) || ""
+                                                    }
+                                                    alt={
+                                                        component.title ||
+                                                        component.uid
+                                                    }
+                                                    className="h-full w-full object-contain p-2"
+                                                />
+                                            ) : (
+                                                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                                                    No image
+                                                </div>
                                             )}
-                                        </p>
-                                        {moneyIfPositive(component.salesPrice) ? (
-                                            <p className="text-xs font-medium text-primary">
-                                                {moneyIfPositive(component.salesPrice)}
+                                        </div>
+                                        <div className="p-3">
+                                            <p className="font-semibold">
+                                                {componentLabel(
+                                                    component.title ||
+                                                        component.uid,
+                                                )}
                                             </p>
-                                        ) : null}
+                                            {moneyIfPositive(component.salesPrice) ? (
+                                                <p className="text-xs font-medium text-primary">
+                                                    {moneyIfPositive(component.salesPrice)}
+                                                </p>
+                                            ) : null}
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                            {!filteredRootComponents.length ? (
+                                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-600">
+                                    No components match "{componentSearch.trim()}".
+                                </div>
+                            ) : null}
+                            <div className="sticky bottom-4 z-10 flex justify-center">
+                                <div className="flex w-full max-w-2xl flex-col gap-2 rounded-2xl border border-slate-200 bg-background/95 p-3 shadow-lg backdrop-blur md:flex-row md:items-center">
+                                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                        <span>
+                                            {filteredRootComponents.length}
+                                            {filteredRootComponents.length !==
+                                            activeRootComponents.length
+                                                ? ` of ${activeRootComponents.length}`
+                                                : ""}{" "}
+                                            components
+                                        </span>
                                     </div>
-                                </button>
-                            ))}
-                        </div>
+                                    <div className="flex-1">
+                                        <Input
+                                            value={componentSearch}
+                                            onChange={(event) =>
+                                                setComponentSearch(event.target.value)
+                                            }
+                                            placeholder="Search components..."
+                                            className="h-9 border-slate-200 bg-white"
+                                        />
+                                    </div>
+                                    <Menu
+                                        Trigger={
+                                            <Button
+                                                size="icon"
+                                                variant="outline"
+                                                className="size-9"
+                                            >
+                                                <Filter className="size-4" />
+                                            </Button>
+                                        }
+                                    >
+                                        <Menu.Item
+                                            onClick={() => {
+                                                void stepComponentsQuery.refetch();
+                                                void rootComponentsQuery.refetch();
+                                            }}
+                                        >
+                                            Refresh
+                                        </Menu.Item>
+                                        <Menu.Item
+                                            onClick={() =>
+                                                setIncludeCustomComponents(
+                                                    (prev) => !prev,
+                                                )
+                                            }
+                                        >
+                                            Enable Custom:{" "}
+                                            {includeCustomComponents ? "On" : "Off"}
+                                        </Menu.Item>
+                                    </Menu>
+                                </div>
+                            </div>
+                        </>
                     )}
                 </div>
             );
@@ -5119,206 +5193,7 @@ export function ItemWorkflowPanel() {
                     </p>
                 ) : (
                     <>
-                        <div className="sticky bottom-3 z-10 mb-3 flex flex-col gap-2 rounded-xl border border-slate-200 bg-background/95 p-2 shadow-sm backdrop-blur md:flex-row md:items-center">
-                            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                <Search className="size-3.5" />
-                                <span>
-                                    {filteredVisibleComponents.length}
-                                    {filteredVisibleComponents.length !==
-                                    visibleComponents.length
-                                        ? ` of ${visibleComponents.length}`
-                                        : ""}{" "}
-                                    components
-                                </span>
-                            </div>
-                            <div className="flex-1 md:max-w-sm">
-                                <Input
-                                    value={componentSearch}
-                                    onChange={(event) =>
-                                        setComponentSearch(event.target.value)
-                                    }
-                                    placeholder="Search components..."
-                                    className="h-9 border-slate-200 bg-white"
-                                />
-                            </div>
-                            <div className="ml-auto">
-                                <Menu
-                                    Trigger={
-                                        <Button size="sm" variant="outline">
-                                            Controls
-                                        </Button>
-                                    }
-                                >
-                                    <Menu.Item
-                                        SubMenu={(steps || []).map(
-                                            (step, idx) => (
-                                                <Menu.Item
-                                                    key={`jump-step-${idx}`}
-                                                    onClick={() =>
-                                                        setActiveStepByLine(
-                                                            (prev) => ({
-                                                                ...prev,
-                                                                [line.uid]: idx,
-                                                            }),
-                                                        )
-                                                    }
-                                                >
-                                                    {step?.step?.title ||
-                                                        `Step ${idx + 1}`}
-                                                </Menu.Item>
-                                            ),
-                                        )}
-                                    >
-                                        Tabs
-                                    </Menu.Item>
-                                    <Menu.Item
-                                        onClick={() => {
-                                            if (
-                                                !isMultiSelectStepTitle(
-                                                    activeItemStep?.step?.title,
-                                                )
-                                            )
-                                                return;
-                                            const nextSteps = [
-                                                ...(line.formSteps || []),
-                                            ];
-                                            const step = nextSteps[activeIndex];
-                                            if (!step) return;
-                                            const selectedComponents =
-                                                visibleComponents.map(
-                                                    (component: any) =>
-                                                        snapshotSelectedComponent(
-                                                            component,
-                                                        ),
-                                                );
-                                            const selectedProdUids =
-                                                selectedComponents
-                                                    .map(
-                                                        (component) =>
-                                                            component.uid,
-                                                    )
-                                                    .filter(Boolean);
-                                            const totalSales =
-                                                selectedComponents.reduce(
-                                                    (sum, component) =>
-                                                        sum +
-                                                        Number(
-                                                            component.salesPrice ||
-                                                                0,
-                                                        ),
-                                                    0,
-                                                );
-                                            const totalBase =
-                                                selectedComponents.reduce(
-                                                    (sum, component) =>
-                                                        sum +
-                                                        Number(
-                                                            component.basePrice ||
-                                                                0,
-                                                        ),
-                                                    0,
-                                                );
-                                            nextSteps[activeIndex] = {
-                                                ...step,
-                                                componentId:
-                                                    selectedComponents[0]?.id ||
-                                                    null,
-                                                prodUid:
-                                                    selectedComponents[0]
-                                                        ?.uid || "",
-                                                value: compactStepValue(
-                                                    selectedComponents,
-                                                ),
-                                                price: totalSales,
-                                                basePrice: totalBase,
-                                                meta: {
-                                                    ...(step?.meta || {}),
-                                                    selectedProdUids,
-                                                    selectedComponents,
-                                                },
-                                            };
-                                            updateLineItem(line.uid, {
-                                                formSteps: nextSteps,
-                                            });
-                                        }}
-                                    >
-                                        Select All
-                                    </Menu.Item>
-                                    <Menu.Item
-                                        onClick={() => {
-                                            const selectedComponent =
-                                                visibleComponents.find(
-                                                    (component: any) =>
-                                                        selectedUids.has(
-                                                            component.uid,
-                                                        ),
-                                                ) || visibleComponents[0];
-                                            if (!selectedComponent) return;
-                                            if (
-                                                isDoorStepTitle(
-                                                    activeItemStep?.step?.title,
-                                                )
-                                            ) {
-                                                setDoorStepModal({
-                                                    open: true,
-                                                    component:
-                                                        selectedComponent,
-                                                });
-                                                return;
-                                            }
-                                            quickEditComponentPrice(
-                                                line,
-                                                activeIndex,
-                                                selectedComponent,
-                                            );
-                                        }}
-                                    >
-                                        Pricing
-                                    </Menu.Item>
-                                    {isDoorStepTitle(
-                                        activeItemStep?.step?.title,
-                                    ) ? (
-                                        <Menu.Item
-                                            onClick={() =>
-                                                setDoorSizeVariantModal({
-                                                    open: true,
-                                                    lineUid: line.uid,
-                                                    stepIndex: activeIndex,
-                                                })
-                                            }
-                                        >
-                                            Door Size Variant
-                                        </Menu.Item>
-                                    ) : null}
-                                    <Menu.Item
-                                        onClick={() => {
-                                            setIncludeCustomComponents(true);
-                                        }}
-                                    >
-                                        Component
-                                    </Menu.Item>
-                                    <Menu.Item
-                                        onClick={() => {
-                                            void stepComponentsQuery.refetch();
-                                            void rootComponentsQuery.refetch();
-                                        }}
-                                    >
-                                        Refresh
-                                    </Menu.Item>
-                                    <Menu.Item
-                                        onClick={() =>
-                                            setIncludeCustomComponents(
-                                                (prev) => !prev,
-                                            )
-                                        }
-                                    >
-                                        Enable Custom:{" "}
-                                        {includeCustomComponents ? "On" : "Off"}
-                                    </Menu.Item>
-                                </Menu>
-                            </div>
-                        </div>
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+                        <div className="grid gap-3 pb-24 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
                             {filteredVisibleComponents.map((component) => {
                                 const isSelected = selectedUids.has(
                                     component.uid,
@@ -5679,21 +5554,221 @@ export function ItemWorkflowPanel() {
                                 No components match "{componentSearch.trim()}".
                             </div>
                         ) : null}
-                        {isMultiSelectStepTitle(activeItemStep?.step?.title) ? (
-                            <div className="sticky bottom-3 mt-4 flex justify-end">
-                                <Button
-                                    onClick={() =>
-                                        proceedMultiSelectStep(
-                                            line,
-                                            activeIndex,
-                                        )
+                        <div className="sticky bottom-4 z-10 flex justify-center">
+                            <div className="flex w-full max-w-3xl flex-col gap-2 rounded-2xl border border-slate-200 bg-background/95 p-3 shadow-lg backdrop-blur md:flex-row md:items-center">
+                                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                    <span>
+                                        {filteredVisibleComponents.length}
+                                        {filteredVisibleComponents.length !==
+                                        visibleComponents.length
+                                            ? ` of ${visibleComponents.length}`
+                                            : ""}{" "}
+                                        components
+                                    </span>
+                                </div>
+                                <div className="flex-1">
+                                    <Input
+                                        value={componentSearch}
+                                        onChange={(event) =>
+                                            setComponentSearch(event.target.value)
+                                        }
+                                        placeholder="Search components..."
+                                        className="h-9 border-slate-200 bg-white"
+                                    />
+                                </div>
+                                <Menu
+                                    Trigger={
+                                        <Button
+                                            size="icon"
+                                            variant="outline"
+                                            className="size-9"
+                                        >
+                                            <Filter className="size-4" />
+                                        </Button>
                                     }
-                                    disabled={!selectedUids.size}
                                 >
-                                    Next Step
-                                </Button>
+                                    <Menu.Item
+                                        SubMenu={(steps || []).map(
+                                            (step, idx) => (
+                                                <Menu.Item
+                                                    key={`jump-step-${idx}`}
+                                                    onClick={() =>
+                                                        setActiveStepByLine(
+                                                            (prev) => ({
+                                                                ...prev,
+                                                                [line.uid]: idx,
+                                                            }),
+                                                        )
+                                                    }
+                                                >
+                                                    {step?.step?.title ||
+                                                        `Step ${idx + 1}`}
+                                                </Menu.Item>
+                                            ),
+                                        )}
+                                    >
+                                        Tabs
+                                    </Menu.Item>
+                                    <Menu.Item
+                                        onClick={() => {
+                                            if (
+                                                !isMultiSelectStepTitle(
+                                                    activeItemStep?.step?.title,
+                                                )
+                                            )
+                                                return;
+                                            const nextSteps = [
+                                                ...(line.formSteps || []),
+                                            ];
+                                            const step = nextSteps[activeIndex];
+                                            if (!step) return;
+                                            const selectedComponents =
+                                                visibleComponents.map(
+                                                    (component: any) =>
+                                                        snapshotSelectedComponent(
+                                                            component,
+                                                        ),
+                                                );
+                                            const selectedProdUids =
+                                                selectedComponents
+                                                    .map(
+                                                        (component) =>
+                                                            component.uid,
+                                                    )
+                                                    .filter(Boolean);
+                                            const totalSales =
+                                                selectedComponents.reduce(
+                                                    (sum, component) =>
+                                                        sum +
+                                                        Number(
+                                                            component.salesPrice ||
+                                                                0,
+                                                        ),
+                                                    0,
+                                                );
+                                            const totalBase =
+                                                selectedComponents.reduce(
+                                                    (sum, component) =>
+                                                        sum +
+                                                        Number(
+                                                            component.basePrice ||
+                                                                0,
+                                                        ),
+                                                    0,
+                                                );
+                                            nextSteps[activeIndex] = {
+                                                ...step,
+                                                componentId:
+                                                    selectedComponents[0]?.id ||
+                                                    null,
+                                                prodUid:
+                                                    selectedComponents[0]
+                                                        ?.uid || "",
+                                                value: compactStepValue(
+                                                    selectedComponents,
+                                                ),
+                                                price: totalSales,
+                                                basePrice: totalBase,
+                                                meta: {
+                                                    ...(step?.meta || {}),
+                                                    selectedProdUids,
+                                                    selectedComponents,
+                                                },
+                                            };
+                                            updateLineItem(line.uid, {
+                                                formSteps: nextSteps,
+                                            });
+                                        }}
+                                    >
+                                        Select All
+                                    </Menu.Item>
+                                    <Menu.Item
+                                        onClick={() => {
+                                            const selectedComponent =
+                                                visibleComponents.find(
+                                                    (component: any) =>
+                                                        selectedUids.has(
+                                                            component.uid,
+                                                        ),
+                                                ) || visibleComponents[0];
+                                            if (!selectedComponent) return;
+                                            if (
+                                                isDoorStepTitle(
+                                                    activeItemStep?.step?.title,
+                                                )
+                                            ) {
+                                                setDoorStepModal({
+                                                    open: true,
+                                                    component:
+                                                        selectedComponent,
+                                                });
+                                                return;
+                                            }
+                                            quickEditComponentPrice(
+                                                line,
+                                                activeIndex,
+                                                selectedComponent,
+                                            );
+                                        }}
+                                    >
+                                        Pricing
+                                    </Menu.Item>
+                                    {isDoorStepTitle(
+                                        activeItemStep?.step?.title,
+                                    ) ? (
+                                        <Menu.Item
+                                            onClick={() =>
+                                                setDoorSizeVariantModal({
+                                                    open: true,
+                                                    lineUid: line.uid,
+                                                    stepIndex: activeIndex,
+                                                })
+                                            }
+                                        >
+                                            Door Size Variant
+                                        </Menu.Item>
+                                    ) : null}
+                                    <Menu.Item
+                                        onClick={() => {
+                                            setIncludeCustomComponents(true);
+                                        }}
+                                    >
+                                        Component
+                                    </Menu.Item>
+                                    <Menu.Item
+                                        onClick={() => {
+                                            void stepComponentsQuery.refetch();
+                                            void rootComponentsQuery.refetch();
+                                        }}
+                                    >
+                                        Refresh
+                                    </Menu.Item>
+                                    <Menu.Item
+                                        onClick={() =>
+                                            setIncludeCustomComponents(
+                                                (prev) => !prev,
+                                            )
+                                        }
+                                    >
+                                        Enable Custom:{" "}
+                                        {includeCustomComponents ? "On" : "Off"}
+                                    </Menu.Item>
+                                </Menu>
+                                {isMultiSelectStepTitle(activeItemStep?.step?.title) ? (
+                                    <Button
+                                        onClick={() =>
+                                            proceedMultiSelectStep(
+                                                line,
+                                                activeIndex,
+                                            )
+                                        }
+                                        disabled={!selectedUids.size}
+                                    >
+                                        Next Step
+                                    </Button>
+                                ) : null}
                             </div>
-                        ) : null}
+                        </div>
                     </>
                 )}
             </div>
