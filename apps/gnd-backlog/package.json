@@ -5,7 +5,7 @@
   "scripts": {
     "build": "contentlayer2 build && bun with-env next build",
     "clean": "git clean -xdf .next .turbo node_modules",
-    "dev": "bun with-env next dev --turbopack -p 3400",
+    "dev": "PORTLESS_APP_PORT=${PORTLESS_APP_PORT:-4200} bun with-env portless gnd-backlog next dev --turbopack",
     "lint": " bun with-env next lint --quiet",
     "format": "prettier --write '**/*.{js,cjs,mjs,ts,tsx,md,json}'  --ignore-path .prettierignore",
     "start": "bun with-env next start",

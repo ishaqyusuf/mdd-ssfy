@@ -222,7 +222,15 @@ export const validateLinks = ({
 };
 type NavType = z.infer<typeof schema>;
 const profileSection = _section("settings", null, [
-    _link("Profile Settings", "settings2", "/settings/profile").data,
+    _link("Profile Settings", "settings2", "/settings/profile")
+        .access(
+            _role.some(
+                "Admin",
+                "Production",
+                "1099 Contractor",
+                "Super Admin",
+            ),
+        ).data,
     _link("Task Events", "tasks", "/task-events")
         .access(_role.is("Super Admin"))
         .childPaths("/task-events/").data,

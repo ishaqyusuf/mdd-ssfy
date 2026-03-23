@@ -18,6 +18,33 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
 
+## Local MySQL With Docker
+
+The local Prisma datasource is MySQL. To replace the old XAMPP database with Docker:
+
+```bash
+bun run db:docker:up
+bash ./scripts/mysql-xampp-to-docker.sh full
+```
+
+This starts MySQL on `127.0.0.1:3307` and imports the default XAMPP database `gnd-prisma2` from `127.0.0.1:3306`.
+
+Useful commands:
+
+```bash
+bash ./scripts/mysql-xampp-to-docker.sh dump
+bash ./scripts/mysql-xampp-to-docker.sh import /path/to/gnd-prisma2.sql
+bun run db:migrate
+```
+
+Open Adminer at [http://localhost:8080](http://localhost:8080) with:
+
+- System: `MySQL`
+- Server: `mysql`
+- Username: `root`
+- Password: leave blank
+- Database: `gnd-prisma2`
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

@@ -11,7 +11,7 @@ const baseUrl =
     ? `https://${env.NEXT_PUBLIC_APP_URL}`
     : // : env.VERCEL_ENV === "preview"
       //   ? `https://${env.VERCEL_URL}`
-      "http://localhost:3500";
+      env.NEXT_PUBLIC_APP_URL;
 
 export const auth = initAuth({
   baseUrl,
