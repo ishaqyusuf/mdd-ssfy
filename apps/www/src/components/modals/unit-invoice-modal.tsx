@@ -41,7 +41,7 @@ export function UnitInvoiceModal() {
           : "Invoice details"
       }
     >
-      <CustomModal.Content className="lg:max-h-[70vh]">
+      <CustomModal.Content className="max-h-[60vh] sm:max-h-[70vh]">
         {isPending || !data ? (
           <div className="grid gap-3">
             <Skeleton className="h-24 rounded-2xl" />
