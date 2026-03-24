@@ -29,7 +29,7 @@ export function UnitInvoiceModal() {
           setParams(null);
         }
       }}
-      size="4xl"
+      size="5xl"
       title={
         data
           ? `${data.project?.title} • ${data.lotBlock}`
