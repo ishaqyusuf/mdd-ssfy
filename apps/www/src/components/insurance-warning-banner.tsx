@@ -53,7 +53,7 @@ export function InsuranceWarningBanner({
 	status,
 	className,
 	showWhenValid = false,
-	ctaHref = "/settings/profile",
+	ctaHref = "/settings/profile?tab=documents",
 	ctaLabel = "Manage documents",
 }: Props) {
 	if (status.state === "valid" && !showWhenValid) {

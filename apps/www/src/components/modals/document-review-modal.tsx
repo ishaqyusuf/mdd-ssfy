@@ -102,8 +102,8 @@ export function DocumentReviewModal() {
 
 	return (
 		<Dialog open={opened} onOpenChange={() => setParams(null)}>
-			<DialogContent className="max-w-6xl p-0 overflow-hidden">
-				<div className="grid min-h-[75vh] grid-cols-1 lg:grid-cols-[1.4fr_1fr]">
+			<DialogContent className="max-h-[90vh] max-w-6xl overflow-hidden p-0">
+				<div className="grid h-[90vh] max-h-[90vh] grid-cols-1 lg:grid-cols-[1.4fr_1fr]">
 					<div className="flex min-h-0 flex-col border-r">
 						<DialogHeader className="px-6 py-5">
 							<DialogTitle>Document Review</DialogTitle>
@@ -131,7 +131,7 @@ export function DocumentReviewModal() {
 								</Button>
 							) : null}
 						</div>
-						<div className="flex-1 bg-muted/20 p-6">
+						<div className="min-h-0 flex-1 overflow-y-auto bg-muted/20 p-6">
 							<div className="flex h-full min-h-[420px] items-center justify-center overflow-hidden rounded-xl border bg-background">
 								{data?.url && mimeType ? (
 									<FileViewer

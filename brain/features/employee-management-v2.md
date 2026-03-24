@@ -228,6 +228,7 @@ Current bridge implementation in legacy contractor flows:
 Adds above the existing table:
 - **Stat bar**: Total employees | Active contractors | Expiring records (next 30 days) | Missing insurance
 - Quick filter badges: All | Sales Reps | Contractors | Production
+- Text search via `q` on employee name, email, username, phone number, and assigned profile
 - Row click → navigates to `[employeeId]` overview
 
 ---

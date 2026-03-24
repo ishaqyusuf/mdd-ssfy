@@ -192,6 +192,22 @@ export function parseSearchparams(_params) {
 export function whereEmployees(params: EmployeesQueryParams) {
   const wheres: Prisma.UsersWhereInput[] = [];
   const { can, cannot, roles } = params;
+  if (params.q) {
+    const contains = { contains: params.q };
+    wheres.push({
+      OR: [
+        { name: contains },
+        { email: contains },
+        { username: contains },
+        { phoneNo: contains },
+        {
+          employeeProfile: {
+            name: contains,
+          },
+        },
+      ],
+    });
+  }
   if (can?.length) {
     const wherePermissions: Prisma.PermissionsWhereInput[] = [];
     can.map((permission) => {

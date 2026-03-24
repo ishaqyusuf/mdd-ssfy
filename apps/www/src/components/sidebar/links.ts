@@ -276,7 +276,8 @@ export const linkModules = [
                 .access(_perm.every("viewProject", "viewInvoice", "viewJobs"))
                 .subLinks(
                     _subLink("Jobs - v2", "/hrm/contractors/jobs").access(
-                        _role.is("Super Admin"),
+                        // _role.is("Super Admin"),
+                        _perm.every("viewProject", "viewInvoice", "viewJobs"),
                     ).data,
                 ).data,
             _link(

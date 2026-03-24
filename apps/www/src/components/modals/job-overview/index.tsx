@@ -1,4 +1,5 @@
 import { Avatar } from "@/components/avatar";
+import { SearchInput } from "@/components/search-input";
 import {
 	JobOverviewProvider,
 	useCreateJobOverviewContext,
@@ -11,10 +12,12 @@ import { useJobRole } from "@/hooks/use-job-role";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { Progress } from "@gnd/ui/custom/progress";
+import { useSearch } from "@gnd/ui/hooks/use-search";
 import { Card } from "@gnd/ui/namespace";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
+import { getInitials } from "@gnd/utils";
 import { formatDate } from "@gnd/utils/dayjs";
 import { Building2, CreditCard, MapPin, MessageSquare } from "lucide-react";
 import {
@@ -48,9 +51,12 @@ export function JobOverviewModal() {
 					setParams({ openJobId: null });
 				}
 			}}
-			// title="..."
-			title={<span />}
-			description={<span />}
+			title={
+				<span className="sr-only">
+					{openJobId ? `Job ${openJobId} overview` : "Job overview"}
+				</span>
+			}
+			description={<span className="sr-only">Job details and actions.</span>}
 			titleAsChild
 			descriptionAsChild
 			// title={`Job #${openJobId} Overview`}
@@ -260,6 +266,20 @@ function JobOverviewActionsCard({
 		useCommunityInstallCostParams();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const [showReassignPicker, setShowReassignPicker] = React.useState(false);
+	const { data: employeesData, isPending: isEmployeesPending } = useQuery(
+		trpc.hrm.getEmployees.queryOptions({
+			roles: ["1099 Contractor", "Punchout"],
+		}),
+	);
+	const employees = employeesData?.data || [];
+	const {
+		query: employeeQuery,
+		results: employeeResults,
+		setQuery: setEmployeeQuery,
+	} = useSearch({
+		items: employees,
+	});
 
 	const normalizedStatus = String(job?.status || "")
 		.toLowerCase()
@@ -299,6 +319,33 @@ function JobOverviewActionsCard({
 			onError: () => {
 				toast({
 					title: "Unable to delete job",
+					variant: "destructive",
+				});
+			},
+		}),
+	);
+	const { mutate: reAssignJob, isPending: isReAssigning } = useMutation(
+		trpc.jobs.reAssignJob.mutationOptions({
+			onSuccess: async (_, variables) => {
+				await Promise.all([
+					queryClient.invalidateQueries({
+						queryKey: trpc.jobs.getJobs.pathKey(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.jobs.overview.queryKey({
+							jobId: variables.jobId,
+						}),
+					}),
+				]);
+				setOverviewParams({ openJobId: null });
+				toast({
+					title: "Job reassigned",
+					variant: "success",
+				});
+			},
+			onError: () => {
+				toast({
+					title: "Unable to re-assign job right now.",
 					variant: "destructive",
 				});
 			},
@@ -356,15 +403,87 @@ function JobOverviewActionsCard({
 					</Button>
 				)}
 
-				{isAdmin && isAssigned && (
+				{isAdmin && isAssigned && !showReassignPicker && (
 					<Button
 						className="w-full"
 						variant="secondary"
-						onClick={() => openJobForm(5)}
+						onClick={() => setShowReassignPicker(true)}
 					>
 						<UserPlus className="mr-2 h-4 w-4" />
 						Re-Assign Job
 					</Button>
+				)}
+
+				{isAdmin && isAssigned && showReassignPicker && (
+					<div className="space-y-3 rounded-xl border border-border bg-muted/20 p-3">
+						<div className="flex items-center justify-between gap-3">
+							<p className="text-sm font-semibold text-foreground">
+								Select contractor
+							</p>
+							<Button
+								type="button"
+								size="sm"
+								variant="ghost"
+								onClick={() => setShowReassignPicker(false)}
+							>
+								Cancel
+							</Button>
+						</div>
+						<SearchInput
+							value={employeeQuery}
+							onChangeText={setEmployeeQuery}
+							placeholder="Search contractor..."
+						/>
+						<div className="max-h-72 space-y-2 overflow-y-auto">
+							{isEmployeesPending ? (
+								<div className="space-y-2">
+									<Skeleton className="h-12 w-full rounded-lg" />
+									<Skeleton className="h-12 w-full rounded-lg" />
+								</div>
+							) : (
+								employeeResults.map((employee) => (
+									<button
+										key={employee.id}
+										type="button"
+										disabled={
+											isReAssigning || employee.id === Number(job?.user?.id)
+										}
+										onClick={() => {
+											if (!job?.id || !job?.user?.id) return;
+											reAssignJob({
+												jobId: job.id,
+												oldUserId: Number(job.user.id),
+												newUserId: employee.id,
+											});
+										}}
+										className="flex w-full items-center gap-3 rounded-lg border border-border bg-card p-3 text-left transition-all hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-60"
+									>
+										<div className="flex size-10 items-center justify-center rounded-full border border-primary/20 bg-primary/10 font-bold text-primary">
+											{getInitials(employee.name) || employee.name.charAt(0)}
+										</div>
+										<div className="flex-1">
+											<p className="text-sm font-semibold text-foreground">
+												{employee.name}
+											</p>
+											<p className="text-xs text-muted-foreground">
+												{employee.role}
+											</p>
+										</div>
+										{employee.id === Number(job?.user?.id) ? (
+											<span className="text-xs font-medium text-muted-foreground">
+												Current
+											</span>
+										) : null}
+									</button>
+								))
+							)}
+							{!isEmployeesPending && employeeResults.length === 0 ? (
+								<div className="rounded-lg border border-dashed border-border p-3 text-sm text-muted-foreground">
+									No contractors found.
+								</div>
+							) : null}
+						</div>
+					</div>
 				)}
 
 				{!isAdmin && isWorkerSubmittable && (

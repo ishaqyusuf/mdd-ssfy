@@ -2,7 +2,7 @@
 
 import { prisma } from "@/db";
 import {
-	INSURANCE_DOCUMENT_TITLE,
+	INSURANCE_DOCUMENT_TITLES,
 	parseInsuranceDocumentMeta,
 } from "@gnd/utils/insurance-documents";
 
@@ -23,7 +23,9 @@ export async function getEmployeeDocumentApprovals() {
 	const documents = await prisma.userDocuments.findMany({
 		where: {
 			deletedAt: null,
-			title: INSURANCE_DOCUMENT_TITLE,
+			title: {
+				in: [...INSURANCE_DOCUMENT_TITLES],
+			},
 		},
 		include: {
 			user: {

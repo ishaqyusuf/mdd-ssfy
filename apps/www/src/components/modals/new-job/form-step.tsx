@@ -102,9 +102,12 @@ function FormContent() {
 			},
 			{} as Record<number, number>,
 		) || 0;
-	const addonPercentage = defaultValues.job?.meta?.addonPercent || 0;
+	const addonPercentage =
+		Number(form.watch("job.meta.addonPercent")) ||
+		Number(defaultValues.job?.meta?.addonPercent) ||
+		0;
 	const addonValue = percentageValue(
-		defaultValues.unit?.projectAddon,
+		Number(defaultValues.unit?.projectAddon) || 0,
 		addonPercentage,
 	);
 	const isAdminMode = formType === "assign";
@@ -346,7 +349,7 @@ function FormContent() {
 					</Item>
 				</div>
 			</div>
-			<Portal nodeId={"jobActionButton"}>
+			<Portal nodeId={"jobActionButton"} noDelay>
 				{/* @ts-ignore */}
 				<JobSubmitButton form={form} />
 			</Portal>

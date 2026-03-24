@@ -4,6 +4,7 @@ import { paginationSchema } from "./common";
 
 export const employeesQueryParamsSchema = z
   .object({
+    q: z.string().optional().nullable(),
     can: z.array(z.custom<PermissionScope>()).optional().nullable(),
     cannot: z.array(z.custom<PermissionScope>()).optional().nullable(),
     roles: z.array(z.custom<Roles>()).optional().nullable(),

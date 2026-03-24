@@ -1,4 +1,9 @@
 export const INSURANCE_DOCUMENT_TITLE = "Insurance";
+export const WORKERS_COMP_EXEMPTION_DOCUMENT_TITLE = "Workers comp exemption";
+export const INSURANCE_DOCUMENT_TITLES = [
+	INSURANCE_DOCUMENT_TITLE,
+	WORKERS_COMP_EXEMPTION_DOCUMENT_TITLE,
+] as const;
 
 export type InsuranceDocumentApprovalStatus =
 	| "pending"
@@ -62,7 +67,12 @@ export function parseInsuranceDocumentMeta(
 }
 
 export function isInsuranceDocumentTitle(title?: string | null) {
-	return title?.trim().toLowerCase() === INSURANCE_DOCUMENT_TITLE.toLowerCase();
+	const normalizedTitle = title?.trim().toLowerCase();
+	if (!normalizedTitle) return false;
+
+	return INSURANCE_DOCUMENT_TITLES.some(
+		(documentTitle) => documentTitle.toLowerCase() === normalizedTitle,
+	);
 }
 
 export function getInsuranceDocuments<T extends InsuranceDocumentLike>(

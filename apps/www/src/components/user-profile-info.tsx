@@ -7,6 +7,7 @@ import { useTRPC } from "@/trpc/client";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -53,6 +54,7 @@ import {
 
 import {
 	INSURANCE_DOCUMENT_TITLE,
+	INSURANCE_DOCUMENT_TITLES,
 	type InsuranceDocumentApprovalStatus,
 } from "@gnd/utils/insurance-documents";
 import FormInput from "./common/controls/form-input";
@@ -138,7 +140,16 @@ export function UserProfileInfo() {
 function ProfileContent() {
 	const trpc = useTRPC();
 	const qc = useQueryClient();
+	const searchParams = useSearchParams();
 	const { data: profile } = useQuery(trpc.user.getProfile.queryOptions());
+	const requestedTab = searchParams.get("tab");
+	const initialTab =
+		requestedTab === "profile" ||
+		requestedTab === "security" ||
+		requestedTab === "documents" ||
+		requestedTab === "notifications"
+			? requestedTab
+			: "profile";
 
 	const invalidate = () => {
 		qc.invalidateQueries({ queryKey: trpc.user.getProfile.queryKey() });
@@ -152,7 +163,7 @@ function ProfileContent() {
 			<AvatarBanner profile={profile} onUpdate={invalidate} />
 
 			{/* Tabs */}
-			<Tabs defaultValue="profile" className="w-full">
+			<Tabs defaultValue={initialTab} className="w-full">
 				<TabsList className="grid w-full grid-cols-4">
 					<TabsTrigger value="profile" className="gap-2">
 						<User className="h-4 w-4" />
@@ -599,8 +610,8 @@ function DocumentsTab({
 				<CardHeader>
 					<CardTitle>Upload Document</CardTitle>
 					<CardDescription>
-						Upload your insurance document. New uploads stay pending until
-						approved.
+						Upload your insurance or workers comp exemption document. New
+						uploads stay pending until approved.
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -648,7 +659,6 @@ function DocumentsTab({
 										<FormItem>
 											<FormLabel>Document Title</FormLabel>
 											<Select
-												disabled
 												value={field.value}
 												onValueChange={field.onChange}
 											>
@@ -660,9 +670,14 @@ function DocumentsTab({
 													</SelectTrigger>
 												</FormControl>
 												<SelectContent>
-													<SelectItem value={CONTRACTOR_JOB_DOCUMENT_TITLE}>
-														{CONTRACTOR_JOB_DOCUMENT_TITLE}
-													</SelectItem>
+													{INSURANCE_DOCUMENT_TITLES.map((documentTitle) => (
+														<SelectItem
+															key={documentTitle}
+															value={documentTitle}
+														>
+															{documentTitle}
+														</SelectItem>
+													))}
 												</SelectContent>
 											</Select>
 											<FormMessage />
