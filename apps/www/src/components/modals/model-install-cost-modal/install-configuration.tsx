@@ -1,6 +1,7 @@
 import { _trpc } from "@/components/static-trpc";
 import { useBuilderModelInstallsContext } from "@/hooks/use-model-install-config";
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
+import { useJobParams } from "@/hooks/use-contractor-jobs-params";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { RouterOutputs } from "@api/trpc/routers/_app";
@@ -20,12 +21,14 @@ import z from "zod";
 export function InstallConfiguration() {
     const { tasks, installCosts, params } = useBuilderModelInstallsContext();
     const { setParams } = useCommunityInstallCostParams();
+    const { setParams: setJobParams } = useJobParams();
     const notification = useNotificationTrigger();
     const matchesRequestTask =
         !!params.requestBuilderTaskId &&
         params.selectedBuilderTaskId === params.requestBuilderTaskId;
     const canNotifyContractor =
         matchesRequestTask && !!params.contractorId && !!params.jobId;
+    const hasConfiguredQty = tasks?.some((task) => Number(task.qty || 0) > 0);
 
     const handleNotifyContractor = async () => {
         if (!params.contractorId || !params.jobId) return;
@@ -44,7 +47,21 @@ export function InstallConfiguration() {
     return (
         <>
             {canNotifyContractor ? (
-                <div className="mb-3 flex justify-end">
+                <div className="mb-3 flex justify-end gap-2">
+                    {hasConfiguredQty ? (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                if (!params.jobId) return;
+                                setJobParams({
+                                    openJobId: params.jobId,
+                                });
+                            }}
+                        >
+                            Open Job
+                        </Button>
+                    ) : null}
                     <Button
                         onClick={handleNotifyContractor}
                         disabled={notification.isActionPending}

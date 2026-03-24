@@ -27,6 +27,7 @@
 
 ## 2026-03-19
 
+- Added an `Open Job` action beside `Notify Contractor` in the v2 install-cost request flow when the matching job-task request has configured qty, reusing the existing job-overview modal entry via `openJobId`.
 - Fixed missing community tabs by moving `CommunityTabs` to the parent `/community` layout so it appears on non-`(main)` pages too, while keeping the final tab set aligned to the original seven sections: Projects, Units, Productions, Invoices, Templates, Builders, and Install Cost Rate.
 - Redesigned the community section tabs in `apps/www`:
   - replaced the plain tab strip with a gradient card-style navigator on desktop
