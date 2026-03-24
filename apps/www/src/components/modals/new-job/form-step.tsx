@@ -66,7 +66,7 @@ export function FormStep() {
 function FormContent() {
 	const { defaultValues, markAsComplete, setMarkAsComplete } =
 		useJobFormContext();
-	const { ...params } = useJobFormParams();
+	const { setParams: setJobFormParams, ...params } = useJobFormParams();
 	const { formType } = useJobStepInfo();
 	const { setParams: setBuilderParams } = useBuilderParams();
 	const { data: projects } = useQuery(
@@ -131,20 +131,22 @@ function FormContent() {
 		addonValue,
 		isCustom ? additionalCost || 0 : 0,
 	]);
-	const openBuilderForm = () => {
+	const openBuilderForm = async () => {
 		if (!builderId) return;
+		const jobPayload = {
+			step: params.step ?? null,
+			redirectStep: params.redirectStep ?? null,
+			projectId: params.projectId ?? null,
+			jobId: params.jobId ?? null,
+			unitId: params.unitId ?? null,
+			builderTaskId: params.builderTaskId ?? null,
+			userId: params.userId ?? null,
+			modelId: params.modelId ?? null,
+		};
+		await setJobFormParams(null);
 		setBuilderParams({
 			openBuilderId: builderId,
-			jobPayload: {
-				step: params.step ?? null,
-				redirectStep: params.redirectStep ?? null,
-				projectId: params.projectId ?? null,
-				jobId: params.jobId ?? null,
-				unitId: params.unitId ?? null,
-				builderTaskId: params.builderTaskId ?? null,
-				userId: params.userId ?? null,
-				modelId: params.modelId ?? null,
-			},
+			jobPayload,
 		});
 	};
 

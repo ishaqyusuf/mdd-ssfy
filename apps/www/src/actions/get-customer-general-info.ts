@@ -1,5 +1,6 @@
 "use server";
 
+import { getSalesOrdersDta, getSalesQuotesDta } from "@/app-deps/(clean-code)/(sales)/_common/data-access/sales-dta";
 import { prisma, Prisma } from "@/db";
 import { sum } from "@/lib/utils";
 import { AsyncFnType } from "@/types";
@@ -14,11 +15,17 @@ export type CustomerGeneralInfo = AsyncFnType<
 >;
 export async function getCustomerGeneralInfoAction(accountNo) {
     const [pref, id] = accountNo?.split("-");
+    const salesQuery: Record<string, string | number> = {
+        start: 0,
+        size: 200,
+    };
 
     let where: Prisma.CustomersWhereInput = {
         phoneNo: pref == "cust" ? undefined : accountNo,
         id: pref == "cust" ? id : undefined,
     };
+    if (pref == "cust") salesQuery["customer.id"] = Number(id);
+    else salesQuery["phone"] = accountNo;
     const wallet = await getCustomerWallet(prisma, accountNo);
     const customer = await prisma.customers.findFirst({
         where,
@@ -37,7 +44,21 @@ export async function getCustomerGeneralInfoAction(accountNo) {
     const recentTx = await getRecentCustomerSalesTx(accountNo);
     const pendingSales = await getCustomerPendingSales(accountNo);
     const recentSales = await getCustomerRecentSales(accountNo);
+    const [orders, quotes] = await Promise.all([
+        getSalesOrdersDta({
+            ...salesQuery,
+            "sales.type": "order",
+        }),
+        getSalesQuotesDta({
+            ...salesQuery,
+            "sales.type": "quote",
+        }),
+    ]);
     const pendingPayment = sum(pendingSales, "amountDue");
+    const pendingDeliveryOrders = orders.data.filter(
+        (order) => order.status?.delivery?.status !== "completed"
+    );
+
     return {
         customers: [],
         avatarUrl: null,
@@ -47,6 +68,12 @@ export async function getCustomerGeneralInfoAction(accountNo) {
         accountNo,
         walletBalance: wallet?.balance,
         pendingPayment,
+        pendingPaymentOrders: pendingSales,
+        pendingDeliveryOrders,
+        totalSalesCount: orders.data.length,
+        totalQuotesCount: quotes.data.length,
+        totalSalesValue: sum(orders.data, "invoice.total"),
+        totalQuotesValue: sum(quotes.data, "invoice.total"),
         recentTx,
         recentSales,
     };

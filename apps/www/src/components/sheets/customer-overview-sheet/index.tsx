@@ -36,7 +36,7 @@ function Modal() {
             sales: _title(`Sales`),
             quotes: _title(`Quotes`),
             transactions: _title(`Transactions`),
-            "pay-portal": _title(`Pay Portal`),
+            "pay-portal": _title(`Payments`),
         }[currenTab];
     }, [currenTab, ctx.opened, customerName]);
     return (
@@ -69,9 +69,6 @@ function Modal() {
                             <TabsTrigger value="quotes">Quotes</TabsTrigger>
                             <TabsTrigger value="transactions">
                                 Transactions
-                            </TabsTrigger>
-                            <TabsTrigger value="pay-portal">
-                                Pay Portal
                             </TabsTrigger>
                         </TabsList>
                     </SheetDescription>

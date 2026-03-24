@@ -1,21 +1,23 @@
 "use client";
 
 import { getCustomerGeneralInfoAction } from "@/actions/get-customer-general-info";
-import ConfirmBtn from "@/components/_v1/confirm-btn";
 import Money from "@/components/_v1/money";
-import ProgressStatus from "@/components/_v1/progress-status";
 import { Avatar } from "@/components/avatar";
 import { DataSkeleton } from "@/components/data-skeleton";
-import { useEffect } from "react";
+import Link from "@/components/link";
+import { SendSalesReminder } from "@/components/send-sales-reminder";
+import { useEffect, type ReactNode } from "react";
 
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import {
 	DataSkeletonProvider,
 	useCreateDataSkeletonCtx,
 } from "@/hooks/use-data-skeleton";
-import { Wallet } from "lucide-react";
+import { useSalesOverviewOpen } from "@/hooks/use-sales-overview-open";
+import { Clock3, Plus, Truck, Wallet } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
+import { Badge } from "@gnd/ui/badge";
 import {
 	Card,
 	CardContent,
@@ -31,6 +33,7 @@ import { CustomerTxDataTable } from "@/components/tables/sales-accounting/table.
 
 export function GeneralTab({ setCustomerName }) {
 	const query = useCustomerOverviewQuery();
+	const overviewOpen = useSalesOverviewOpen();
 
 	const loader = async () =>
 		await getCustomerGeneralInfoAction(query.accountNo);
@@ -109,20 +112,128 @@ export function GeneralTab({ setCustomerName }) {
 						</div>
 					</div>
 				</Card>
-				{!data?.pendingPayment || (
-					<div>
-						<Button
-							className="w-full"
-							onClick={(e) => {
-								query.setParams({
-									tab: "pay-portal",
-								});
-							}}
+				<Card>
+					<CardHeader className="pb-2">
+						<CardTitle className="text-base">Analytics</CardTitle>
+						<CardDescription>
+							Sales and delivery status for this customer
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						<div className="grid gap-3 md:grid-cols-4">
+							<AnalyticsCard
+								title="Pending payment orders"
+								value={data?.pendingPaymentOrders?.length || 0}
+								icon={<Wallet className="size-4 text-amber-600" />}
+								description={`$${Number(
+									data?.pendingPayment || 0
+								).toLocaleString()}`}
+							/>
+							<AnalyticsCard
+								title="Pending delivery orders"
+								value={data?.pendingDeliveryOrders?.length || 0}
+								icon={<Truck className="size-4 text-sky-600" />}
+								description="Open delivery work"
+							/>
+							<AnalyticsCard
+								title="Sales orders"
+								value={data?.totalSalesCount || 0}
+								icon={<Clock3 className="size-4 text-emerald-600" />}
+								description={`$${Number(
+									data?.totalSalesValue || 0
+								).toLocaleString()}`}
+							/>
+							<AnalyticsCard
+								title="Quotes"
+								value={data?.totalQuotesCount || 0}
+								icon={<Clock3 className="size-4 text-violet-600" />}
+								description={`$${Number(
+									data?.totalQuotesValue || 0
+								).toLocaleString()}`}
+							/>
+						</div>
+						<div className="grid gap-4 lg:grid-cols-2">
+							<AnalyticsListCard
+								title="Pending payment"
+								description="Orders that still have a balance due"
+								emptyText="No pending payment orders."
+								items={data?.pendingPaymentOrders || []}
+								renderAction={(item) => (
+									<Button
+										size="sm"
+										variant="ghost"
+										onClick={() =>
+											overviewOpen.openSalesAdminSheet(item.orderId)
+										}
+									>
+										Open
+									</Button>
+								)}
+								renderMeta={(item) => (
+									<Badge variant="outline">
+										${Number(item.amountDue || 0).toLocaleString()}
+									</Badge>
+								)}
+							/>
+							<AnalyticsListCard
+								title="Pending delivery"
+								description="Orders not yet marked as completed for delivery"
+								emptyText="No pending delivery orders."
+								items={data?.pendingDeliveryOrders || []}
+								renderAction={(item) => (
+									<Button
+										size="sm"
+										variant="ghost"
+										onClick={() =>
+											overviewOpen.openSalesAdminSheet(item.uuid)
+										}
+									>
+										Open
+									</Button>
+								)}
+								renderMeta={(item) => (
+									<Badge variant="outline">
+										{item.status?.delivery?.status || "Pending"}
+									</Badge>
+								)}
+							/>
+						</div>
+					</CardContent>
+				</Card>
+				<Card>
+					<CardHeader className="pb-2">
+						<CardTitle className="text-base">Quick actions</CardTitle>
+						<CardDescription>
+							Common customer actions from one place
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="grid gap-2 md:grid-cols-3">
+						<SendSalesReminder
+							salesIds={(data?.pendingPaymentOrders || []).map((sale) => sale.id)}
 						>
-							Apply Payment
+							<Button
+								className="w-full justify-start"
+								disabled={!data?.pendingPaymentOrders?.length}
+								variant="outline"
+							>
+								<Wallet className="mr-2 size-4" />
+								Send payment reminder
+							</Button>
+						</SendSalesReminder>
+						<Button asChild className="w-full justify-start" variant="outline">
+							<Link href="/sales-book/create-quote">
+								<Plus className="mr-2 size-4" />
+								Create new quote
+							</Link>
 						</Button>
-					</div>
-				)}
+						<Button asChild className="w-full justify-start">
+							<Link href="/sales-book/create-order">
+								<Plus className="mr-2 size-4" />
+								Create new sales
+							</Link>
+						</Button>
+					</CardContent>
+				</Card>
 				<Card>
 					<CardHeader className="pb-2">
 						<CardTitle className="text-base">Recent Transactions</CardTitle>
@@ -155,6 +266,77 @@ export function GeneralTab({ setCustomerName }) {
 				</Card>
 				<Footer />
 			</DataSkeletonProvider>
+		</div>
+	);
+}
+
+function AnalyticsCard({
+	description,
+	icon,
+	title,
+	value,
+}: {
+	title: string;
+	value: number;
+	description: string;
+	icon: ReactNode;
+}) {
+	return (
+		<div className="rounded-lg border bg-muted/20 p-3">
+			<div className="mb-2 flex items-center justify-between">
+				<div className="text-sm text-muted-foreground">{title}</div>
+				{icon}
+			</div>
+			<div className="text-2xl font-semibold">{value}</div>
+			<div className="text-xs text-muted-foreground">{description}</div>
+		</div>
+	);
+}
+
+function AnalyticsListCard({
+	description,
+	emptyText,
+	items,
+	renderAction,
+	renderMeta,
+	title,
+}: {
+	title: string;
+	description: string;
+	emptyText: string;
+	items: any[];
+	renderMeta: (item: any) => ReactNode;
+	renderAction: (item: any) => ReactNode;
+}) {
+	return (
+		<div className="rounded-lg border">
+			<div className="border-b p-3">
+				<div className="font-medium">{title}</div>
+				<div className="text-xs text-muted-foreground">{description}</div>
+			</div>
+			<div className="divide-y">
+				{items.length ? (
+					items.slice(0, 5).map((item) => (
+						<div
+							key={`${item.orderId}-${item.id || item.uuid}`}
+							className="flex items-center justify-between gap-3 p-3"
+						>
+							<div>
+								<div className="font-medium">{item.orderId}</div>
+								<div className="text-xs text-muted-foreground">
+									{item.customerName || item.displayName || "-"}
+								</div>
+							</div>
+							<div className="flex items-center gap-2">
+								{renderMeta(item)}
+								{renderAction(item)}
+							</div>
+						</div>
+					))
+				) : (
+					<div className="p-6 text-sm text-muted-foreground">{emptyText}</div>
+				)}
+			</div>
 		</div>
 	);
 }

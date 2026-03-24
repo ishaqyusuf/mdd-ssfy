@@ -1,60 +1,57 @@
+import { useBuilderParams } from "@/hooks/use-builder-params";
 import { useTRPC } from "@/trpc/client";
-import { BuilderFormSchema } from "@community/schema";
+import type { BuilderFormSchema } from "@community/schema";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { useMutation } from "@tanstack/react-query";
 import { useFormContext } from "react-hook-form";
 import { _qc } from "./static-trpc";
-import { useBuilderParams } from "@/hooks/use-builder-params";
 
 export function BuilderFormAction() {
-    const form = useFormContext<BuilderFormSchema>();
-    const { setParams, openBuilderId } = useBuilderParams();
-    const { mutate: saveBuilder, isPending } = useMutation(
-        useTRPC().community.saveBuilder.mutationOptions({
-            onSuccess(data, variables, onMutateResult, context) {
-                if (variables) {
-                    _qc.invalidateQueries({
-                        queryKey: useTRPC().community.getBuilderForm.queryKey({
-                            builderId: variables.id!,
-                        }),
-                    });
-                    if (openBuilderId < 0 || !openBuilderId)
-                        setParams({ builderId: data.id });
-                }
-            },
-            meta: {
-                toastTitle: {
-                    error: "Unable to complete",
-                    loading: "Processing...",
-                    success: "Done!.",
-                },
-            },
-        }),
-    );
-    return (
-        <div>
-            <form
-                onSubmit={form.handleSubmit(
-                    (data) => {
-                        // console.log("Form submitted with data:", data);
-                        saveBuilder(data);
-                    },
-                    (e) => {
-                        console.log("Form errors:", e);
-                    },
-                )}
-            >
-                <SubmitButton
-                    isSubmitting={isPending}
-                    type="submit"
-                    // disabled={
-                    //     !form.formState.isDirty || !form.formState.isValid
-                    // }
-                >
-                    Save Builder
-                </SubmitButton>
-            </form>
-        </div>
-    );
+	const form = useFormContext<BuilderFormSchema>();
+	const { setParams, openBuilderId, onClose } = useBuilderParams();
+	const trpc = useTRPC();
+	const { mutate: saveBuilder, isPending } = useMutation(
+		trpc.community.saveBuilder.mutationOptions({
+			onSuccess(data, variables, onMutateResult, context) {
+				if (variables) {
+					const builderId = Number(variables.id || data.id || 0);
+					_qc.invalidateQueries({
+						queryKey: trpc.community.getBuilderForm.queryKey({
+							builderId,
+						}),
+					});
+					if (openBuilderId < 0 || !openBuilderId) {
+						setParams({ openBuilderId: data.id });
+						return;
+					}
+				}
+				onClose();
+			},
+			meta: {
+				toastTitle: {
+					error: "Unable to complete",
+					loading: "Processing...",
+					success: "Done!.",
+				},
+			},
+		}),
+	);
+	return (
+		<div>
+			<SubmitButton
+				isSubmitting={isPending}
+				type="button"
+				onClick={form.handleSubmit(
+					(data) => {
+						saveBuilder(data);
+					},
+					(e) => {
+						console.log("Form errors:", e);
+					},
+				)}
+			>
+				Save Form
+			</SubmitButton>
+		</div>
+	);
 }
-
