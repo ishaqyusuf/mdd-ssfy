@@ -113,7 +113,15 @@ export const __access = (
     ...values
 ) => ({ type, equator, values }) as Access;
 
-type Role = "Admin" | "Production" | "1099 Contractor" | "Super Admin";
+// type Role = "Admin" | "Production" | "1099 Contractor" | "Super Admin";
+type Role =
+    | "Production"
+    | "Admin"
+    | "1099 Contractor"
+    | "Production"
+    | "Deco Shutters"
+    | "Super Admin"
+    | "Punchout";
 export const _role = {
     is: (role: Role) => __access("role", "is", role),
     isNot: (role: Role) => __access("role", "isNot", role),
@@ -411,7 +419,10 @@ export const linkModules = [
                 .access(
                     _role.in("1099 Contractor", "Punchout", "Deco Shutters"),
                 )
-                .childPaths("/jobs-dashboard/payments").data,
+                .childPaths(
+                    "/jobs-dashboard/payments",
+                    "/jobs-dashboard/jobs-list",
+                ).data,
             _link("Sales Commission", "percent", "/sales/commissions").access(
                 _perm.is("viewCommission"),
             ).data,

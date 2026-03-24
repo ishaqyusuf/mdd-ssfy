@@ -1,29 +1,23 @@
 import { Avatar } from "@/components/avatar";
 import { DeleteButton } from "@/components/delete-button";
 import { EditButton } from "@/components/edit-button";
-import { TableMenuTrigger } from "@/components/table-menu-trigger";
 import { useJobParams } from "@/hooks/use-contractor-jobs-params";
 import { invalidateInfiniteQueries } from "@/hooks/use-invalidate-query";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { useJobRole } from "@/hooks/use-job-role";
 import { formatDate } from "@/utils/format";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
-import { Button } from "@gnd/ui/button";
-import { cn } from "@gnd/ui/cn";
-import { Menu } from "@gnd/ui/custom/menu";
 import { Progress } from "@gnd/ui/custom/progress";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
-import { useIsMobile } from "@gnd/ui/hooks/use-mobile";
-import { Icons } from "@gnd/ui/icons";
 import { Item } from "@gnd/ui/namespace";
 import { padStart } from "@gnd/utils";
 import type { ColumnDef } from "@tanstack/react-table";
 
-export type Item = RouterOutputs["jobs"]["getJobs"]["data"][number];
+export type JobItem = RouterOutputs["jobs"]["getJobs"]["data"][number];
 interface ItemProps {
-	item: Item;
+	item: JobItem;
 }
-type Column = ColumnDef<Item>;
+type Column = ColumnDef<JobItem>;
 const column1: Column = {
 	header: "Job",
 	accessorKey: "header",
@@ -92,31 +86,39 @@ const statusColumn: Column = {
 		</Progress.Status>
 	),
 };
-export const columns: Column[] = [
-	// cells.selectColumn,
+const actionColumn: Column = {
+	header: "",
+	accessorKey: "action",
+	meta: {
+		actionCell: true,
+		preventDefault: true,
+		className: "w-[100px] dt-action-cell",
+	},
+	cell: ({ row: { original: item } }) => (
+		<>
+			<Actions item={item} />
+		</>
+	),
+};
+
+export const adminColumns: Column[] = [
 	column1,
 	descriptionColumn,
 	contractorColumn,
 	statusColumn,
 	amountColumn,
-	{
-		header: "",
-		accessorKey: "action",
-		meta: {
-			actionCell: true,
-			preventDefault: true,
-			className: "w-[100px] dt-action-cell",
-		},
-		cell: ({ row: { original: item } }) => (
-			<>
-				<Actions item={item} />
-			</>
-		),
-	},
+	actionColumn,
+];
+
+export const workersColumn: Column[] = [
+	column1,
+	descriptionColumn,
+	statusColumn,
+	amountColumn,
+	actionColumn,
 ];
 
 function Actions({ item }: ItemProps) {
-	const isMobile = useIsMobile();
 	const { setParams } = useJobFormParams();
 	const isAdmin = useJobRole().isAdmin;
 	return (
@@ -148,7 +150,7 @@ function Actions({ item }: ItemProps) {
 		</div>
 	);
 }
-export const mobileColumn: ColumnDef<Item>[] = [
+export const mobileColumn: ColumnDef<JobItem>[] = [
 	{
 		header: "",
 		accessorKey: "row",

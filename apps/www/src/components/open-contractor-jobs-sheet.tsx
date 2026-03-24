@@ -1,24 +1,39 @@
-import { useJobParams } from "@/hooks/use-contractor-jobs-params";
+"use client";
+
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { Button } from "@gnd/ui/button";
+import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
+import type { ComponentProps } from "react";
 
-export function OpenJobSheet() {
-    const { setParams } = useJobFormParams();
-    return (
-        <div>
-            <Button
-                variant="outline"
-                size="icon"
-                onClick={() =>
-                    setParams({
-                        step: 1,
-                    })
-                }
-            >
-                <Icons.Add />
-            </Button>
-        </div>
-    );
+type Props = {
+	label?: string;
+	className?: string;
+	variant?: ComponentProps<typeof Button>["variant"];
+	size?: ComponentProps<typeof Button>["size"];
+};
+
+export function OpenJobSheet({
+	label,
+	className,
+	variant = "outline",
+	size = label ? "default" : "icon",
+}: Props) {
+	const { setParams } = useJobFormParams();
+
+	return (
+		<Button
+			variant={variant}
+			size={size}
+			className={cn(className)}
+			onClick={() =>
+				setParams({
+					step: 1,
+				})
+			}
+		>
+			<Icons.Add />
+			{label ? <span>{label}</span> : null}
+		</Button>
+	);
 }
-
