@@ -783,6 +783,29 @@ export const communityRouters = createTRPCRouter({
 				return result;
 			}
 		}),
+	deleteCommunityModelInstallCost: publicProcedure
+		.input(
+			z.object({
+				builderTaskInstallCostId: z.number(),
+			}),
+		)
+		.mutation(async (props) => {
+			const { db } = props.ctx;
+			const { builderTaskInstallCostId } = props.input;
+			await db.$transaction(async (tx) => {
+				await tx.communityModelInstallTask.deleteMany({
+					where: {
+						builderTaskInstallCostId,
+					},
+				});
+				await tx.builderTaskInstallCost.delete({
+					where: {
+						id: builderTaskInstallCostId,
+					},
+				});
+			});
+			return { success: true };
+		}),
 	updateInstallCostRate: publicProcedure
 		.input(communityInstallCostRateSchema)
 		.mutation(async (props) => {

@@ -1,10 +1,20 @@
-import { _trpc } from "@/components/static-trpc";
+import { _qc, _trpc } from "@/components/static-trpc";
 import { useBuilderModelInstallsContext } from "@/hooks/use-model-install-config";
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { useJobParams } from "@/hooks/use-contractor-jobs-params";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { RouterOutputs } from "@api/trpc/routers/_app";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@gnd/ui/alert-dialog";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 import { InputGroup, Item, Table } from "@gnd/ui/namespace";
@@ -12,7 +22,7 @@ import { Icons } from "@gnd/ui/icons";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import NumberFlow from "@number-flow/react";
 import { useMutation } from "@tanstack/react-query";
-import { ArrowRight, DollarSign, RefreshCcw } from "lucide-react";
+import { ArrowRight, DollarSign, RefreshCcw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Controller } from "react-hook-form";
 import { toast } from "sonner";
@@ -80,6 +90,7 @@ export function InstallConfiguration() {
                             <Table.Head>Status</Table.Head>
                             <Table.Head>Max Qty</Table.Head>
                             <Table.Head>Est.</Table.Head>
+                            <Table.Head></Table.Head>
                         </Table.Row>
                     </Table.Header>
                     <Table.Body>
@@ -100,15 +111,12 @@ function Line({
 }) {
     const [status, setStatus] = useState(task.status);
     const [maxQty, setMaxQty] = useState(task?.qty || "");
-    const { modelId, setBuilderTaskInstallCosts } =
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const { modelId, setBuilderTaskInstallCosts, selectedBuilderTask, data } =
         useBuilderModelInstallsContext();
-    // const values = form.watch();
     const { mutate, isPending, isError } = useMutation(
         _trpc.community.updateCommunityModelInstallTask.mutationOptions({
             onSuccess(data, variables, onMutateResult, context) {
-                // console.log({
-                //     data,
-                // });
                 setBuilderTaskInstallCosts((prev) => ({
                     ...prev,
                     [String(data.id)]: {
@@ -126,6 +134,30 @@ function Line({
                     error: "Unable to complete",
                     loading: "Processing...",
                     success: "Done!.",
+                },
+            },
+        }),
+    );
+    const { mutate: deleteCost, isPending: isDeleting } = useMutation(
+        _trpc.community.deleteCommunityModelInstallCost.mutationOptions({
+            onSuccess() {
+                _qc.invalidateQueries({
+                    queryKey:
+                        _trpc.community.getModelInstallTasksByBuilderTask.queryKey(
+                            {
+                                builderTaskId: task.builderTaskId,
+                                modelId: modelId!,
+                            },
+                        ),
+                });
+                setShowDeleteDialog(false);
+                toast.success("Install cost removed.");
+            },
+            meta: {
+                toastTitle: {
+                    error: "Unable to delete",
+                    loading: "Deleting...",
+                    success: "Deleted!",
                 },
             },
         }),
@@ -243,11 +275,56 @@ function Line({
                 >
                     <RefreshCcw className="size-3" />
                 </SubmitButton>
-                {/* $
-                {task.installCostModel?.unitCost &&
-                    (
-                        (Number(maxQty) || 0) * task.installCostModel.unitCost
-                    ).toFixed(2)} */}
+            </Table.Cell>
+            <Table.Cell>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 text-muted-foreground hover:text-destructive"
+                    onClick={() => setShowDeleteDialog(true)}
+                >
+                    <Trash2 className="size-4" />
+                </Button>
+                <AlertDialog
+                    open={showDeleteDialog}
+                    onOpenChange={setShowDeleteDialog}
+                >
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>
+                                Delete Install Cost
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Deleting this cost will remove{" "}
+                                <strong>
+                                    {task.installCostModel?.title}
+                                </strong>{" "}
+                                from all{" "}
+                                <strong>
+                                    {selectedBuilderTask?.taskName}
+                                </strong>{" "}
+                                across{" "}
+                                <strong>{data?.builderName}</strong>.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                disabled={isDeleting}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    deleteCost({
+                                        builderTaskInstallCostId:
+                                            task.builderTaskInstallCostId,
+                                    });
+                                }}
+                                className="bg-red-600 hover:bg-red-700"
+                            >
+                                {isDeleting ? "Deleting..." : "Delete"}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </Table.Cell>
         </Table.Row>
     );
