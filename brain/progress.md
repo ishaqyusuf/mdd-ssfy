@@ -2,6 +2,15 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-03-24
+
+- Reduced frequent auth auto-logouts across shared and web auth flows:
+  - stopped deleting all existing `Session` rows during login
+  - increased backing session expiry from 1 hour to 7 days
+  - added rolling session-expiry refresh when an active session is close to expiring
+  - aligned NextAuth JWT/session max-age to the same 7-day window
+- Recorded the auth-session logout failure mode in `brain/bugs/auth-session-auto-logout.md`.
+
 ## 2026-03-23
 
 - Improved notification activity note readability across web and Expo timelines, resolved note author display to fall back to authoritative employee/customer names when note contact rows are stale, and added a `deletable` marker to notification channel list items.

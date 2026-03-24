@@ -12,6 +12,7 @@ import { compare, hash } from "bcrypt-ts";
 import dayjs from "dayjs";
 
 import { validateAuthToken } from "@/actions/validate-auth-token";
+import { buildSessionExpiry } from "@gnd/auth/utils";
 import { PERMISSIONS } from "@gnd/utils/constants";
 // import PasswordResetRequestEmail from "@/components/_v1/emails/password-reset-request-email";
 import { _email } from "./_email";
@@ -202,18 +203,13 @@ export async function loginAction({
 			permissions.map((p) => {
 				can[camel(p.name) as any] = permissionIds.includes(p.id);
 			});
-		await prisma.session.deleteMany({
-			where: {
-				userId: user.id,
-			},
-		});
 		const newSession = await prisma.session.create({
 			data: {
 				sessionToken: crypto.randomUUID(),
 				userId: user.id,
 				ipAddress: sessionMeta?.ipAddress ?? null,
 				userAgent: sessionMeta?.userAgent ?? null,
-				expires: new Date(Date.now() + 60 * 60 * 1000), // 1 hour session
+				expires: buildSessionExpiry(),
 			},
 		});
 

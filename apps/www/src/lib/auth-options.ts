@@ -1,11 +1,16 @@
 import { loginAction } from "@/app-deps/(v1)/_actions/auth";
 import { PrismaClient, type Roles, type Users } from "@/db";
 import type { ICan } from "@/types/auth";
+import {
+	AUTH_SESSION_MAX_AGE_SECONDS,
+	buildSessionExpiry,
+} from "@gnd/auth/utils";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import type { DefaultSession, NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
 const prisma = new PrismaClient();
+const AUTH_SESSION_REFRESH_WINDOW_MS = 1000 * 60 * 60 * 24;
 
 type ActiveSessionInfo = {
 	id: string;
@@ -32,8 +37,9 @@ function getRequestIpAddress(
 	const value = Array.isArray(forwardedFor)
 		? forwardedFor[0]
 		: (forwardedFor ?? realIp);
+	const normalizedValue = Array.isArray(value) ? value[0] : value;
 
-	return value?.split(",")[0]?.trim() || null;
+	return normalizedValue?.split(",")[0]?.trim() || null;
 }
 
 function getRequestUserAgent(
@@ -76,11 +82,24 @@ async function getValidSessionRecord(
 		return null;
 	}
 
+	const nextExpiry =
+		session.expires &&
+		session.expires.getTime() - Date.now() <= AUTH_SESSION_REFRESH_WINDOW_MS
+			? buildSessionExpiry()
+			: session.expires;
+
+	if (nextExpiry && session.expires?.getTime() !== nextExpiry.getTime()) {
+		await prisma.session.update({
+			where: { id: session.id },
+			data: { expires: nextExpiry },
+		});
+	}
+
 	return {
 		id: session.id,
 		ipAddress: session.ipAddress ?? null,
 		userAgent: session.userAgent ?? null,
-		expires: session.expires ?? null,
+		expires: nextExpiry ?? null,
 	} satisfies ActiveSessionInfo;
 }
 
@@ -113,7 +132,7 @@ declare module "next-auth/jwt" {
 export const authOptions: NextAuthOptions = {
 	session: {
 		strategy: "jwt",
-		// strategy: "database",
+		maxAge: AUTH_SESSION_MAX_AGE_SECONDS,
 	},
 
 	pages: {
@@ -122,7 +141,7 @@ export const authOptions: NextAuthOptions = {
 	},
 	jwt: {
 		secret: process.env.JWT_SECRET,
-		maxAge: 15 * 24 * 30 * 60,
+		maxAge: AUTH_SESSION_MAX_AGE_SECONDS,
 	},
 	adapter: PrismaAdapter(prisma),
 	secret: process.env.NEXTAUTH_SECRET,

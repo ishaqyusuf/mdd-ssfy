@@ -14,6 +14,12 @@ type Action = "edit" | "view";
 // type PermissionScopeDot = `${Action}.${Resource}`;
 export type PermissionScope = `${Action}${PascalResource}`;
 export type ICan = { [permission in PermissionScope]: boolean };
+export const AUTH_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
+export const AUTH_SESSION_MAX_AGE_MS = AUTH_SESSION_MAX_AGE_SECONDS * 1000;
+
+export function buildSessionExpiry(from = Date.now()) {
+  return new Date(from + AUTH_SESSION_MAX_AGE_MS);
+}
 
 interface Props {
   email?;
@@ -88,18 +94,13 @@ export async function loginAction(
       permissions.map((p) => {
         can[camel(p.name) as any] = permissionIds.includes(p.id);
       });
-    await db.session.deleteMany({
-      where: {
-        userId: user.id,
-      },
-    });
     const newSession = await db.session.create({
       data: {
         sessionToken: crypto.randomUUID(),
         userId: user.id,
         ipAddress: sessionMeta?.ipAddress ?? null,
         userAgent: sessionMeta?.userAgent ?? null,
-        expires: new Date(Date.now() + 60 * 60 * 1000), // 1 hour session
+        expires: buildSessionExpiry(),
       },
     });
 

@@ -1,7 +1,7 @@
 "use client";
 
+import { GuardedOpenJobSheet } from "@/components/guarded-open-job-sheet";
 import { InsuranceWarningBanner } from "@/components/insurance-warning-banner";
-import { OpenJobSheet } from "@/components/open-contractor-jobs-sheet";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
@@ -103,7 +103,7 @@ export function WorkerOverview() {
 									ahead of any document requirements.
 								</p>
 							</div>
-							<OpenJobSheet label="Submit Job" size="lg" />
+							<GuardedOpenJobSheet label="Submit Job" size="lg" />
 						</div>
 					</CardHeader>
 					<CardContent className="grid gap-4 md:grid-cols-3">

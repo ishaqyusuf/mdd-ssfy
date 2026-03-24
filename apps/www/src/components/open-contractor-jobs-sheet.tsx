@@ -11,6 +11,8 @@ type Props = {
 	className?: string;
 	variant?: ComponentProps<typeof Button>["variant"];
 	size?: ComponentProps<typeof Button>["size"];
+	disabled?: boolean;
+	disabledReason?: string;
 };
 
 export function OpenJobSheet({
@@ -18,6 +20,8 @@ export function OpenJobSheet({
 	className,
 	variant = "outline",
 	size = label ? "default" : "icon",
+	disabled,
+	disabledReason,
 }: Props) {
 	const { setParams } = useJobFormParams();
 
@@ -26,6 +30,8 @@ export function OpenJobSheet({
 			variant={variant}
 			size={size}
 			className={cn(className)}
+			disabled={disabled}
+			title={disabled ? disabledReason : undefined}
 			onClick={() =>
 				setParams({
 					step: 1,

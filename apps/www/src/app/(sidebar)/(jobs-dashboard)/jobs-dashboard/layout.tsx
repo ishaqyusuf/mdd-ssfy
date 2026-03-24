@@ -1,5 +1,5 @@
+import { GuardedOpenJobSheet } from "@/components/guarded-open-job-sheet";
 import { JobsDashboardNav } from "@/components/jobs-dashboard-nav";
-import { OpenJobSheet } from "@/components/open-contractor-jobs-sheet";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import type { ReactNode } from "react";
 
@@ -18,7 +18,7 @@ export default function JobsDashboardLayout({
 						workspace.
 					</p>
 				</div>
-				<OpenJobSheet label="Submit Job" />
+				<GuardedOpenJobSheet label="Submit Job" />
 			</div>
 			<JobsDashboardNav />
 			{children}

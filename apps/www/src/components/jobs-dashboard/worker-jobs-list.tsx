@@ -1,6 +1,6 @@
 "use client";
 
-import { OpenJobSheet } from "@/components/open-contractor-jobs-sheet";
+import { GuardedOpenJobSheet } from "@/components/guarded-open-job-sheet";
 import { DataTable } from "@/components/tables/contractor-jobs/data-table";
 import { TableSkeleton } from "@/components/tables/skeleton";
 import { useSession } from "next-auth/react";
@@ -18,7 +18,7 @@ export function WorkerJobsList() {
 			columnSet="worker"
 			defaultFilters={userId ? { userId } : undefined}
 			emptyStateLabel="jobs"
-			CreateButton={<OpenJobSheet label="Submit Job" size="sm" />}
+			CreateButton={<GuardedOpenJobSheet label="Submit Job" size="sm" />}
 		/>
 	);
 }

@@ -3,7 +3,12 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import type { DefaultSession, NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
-import { type ICan, loginAction } from "./utils";
+import {
+	AUTH_SESSION_MAX_AGE_SECONDS,
+	buildSessionExpiry,
+	type ICan,
+	loginAction,
+} from "./utils";
 
 type ActiveSessionInfo = {
 	id: string;
@@ -11,6 +16,8 @@ type ActiveSessionInfo = {
 	userAgent: string | null;
 	expires: Date | null;
 };
+
+const AUTH_SESSION_REFRESH_WINDOW_MS = 1000 * 60 * 60 * 24;
 
 function normalizeCan(can?: ICan | null): ICan {
 	return (can ?? {}) as ICan;
@@ -30,8 +37,9 @@ function getRequestIpAddress(
 	const value = Array.isArray(forwardedFor)
 		? forwardedFor[0]
 		: (forwardedFor ?? realIp);
+	const normalizedValue = Array.isArray(value) ? value[0] : value;
 
-	return value?.split(",")[0]?.trim() || null;
+	return normalizedValue?.split(",")[0]?.trim() || null;
 }
 
 function getRequestUserAgent(
@@ -74,11 +82,24 @@ async function getValidSessionRecord(
 		return null;
 	}
 
+	const nextExpiry =
+		session.expires &&
+		session.expires.getTime() - Date.now() <= AUTH_SESSION_REFRESH_WINDOW_MS
+			? buildSessionExpiry()
+			: session.expires;
+
+	if (nextExpiry && session.expires?.getTime() !== nextExpiry.getTime()) {
+		await db.session.update({
+			where: { id: session.id },
+			data: { expires: nextExpiry },
+		});
+	}
+
 	return {
 		id: session.id,
 		ipAddress: session.ipAddress ?? null,
 		userAgent: session.userAgent ?? null,
-		expires: session.expires ?? null,
+		expires: nextExpiry ?? null,
 	} satisfies ActiveSessionInfo;
 }
 
@@ -115,6 +136,7 @@ export function nextAuthOptions(options: {
 	return {
 		session: {
 			strategy: "jwt",
+			maxAge: AUTH_SESSION_MAX_AGE_SECONDS,
 		},
 		pages: {
 			signIn: "/login",
@@ -122,7 +144,7 @@ export function nextAuthOptions(options: {
 		},
 		jwt: {
 			secret: process.env.JWT_SECRET,
-			maxAge: 15 * 24 * 30 * 60,
+			maxAge: AUTH_SESSION_MAX_AGE_SECONDS,
 		},
 		adapter: PrismaAdapter(db),
 		secret: options.secret,
