@@ -148,16 +148,16 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-slate-200">
+        <div className="overflow-x-auto rounded-2xl border border-slate-200">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[240px]">Task</TableHead>
-                <TableHead className="w-[140px]">Due</TableHead>
-                <TableHead className="w-[140px]">Paid</TableHead>
-                <TableHead className="w-[140px]">Check</TableHead>
-                <TableHead className="w-[170px]">Check Date</TableHead>
-                <TableHead className="w-[170px]">Created</TableHead>
+                <TableHead className="min-w-[200px]">Task</TableHead>
+                <TableHead className="min-w-[140px]">Due</TableHead>
+                <TableHead className="min-w-[140px]">Paid</TableHead>
+                <TableHead className="min-w-[140px]">Check</TableHead>
+                <TableHead className="min-w-[150px]">Check Date</TableHead>
+                <TableHead className="min-w-[150px]">Created</TableHead>
                 <TableHead className="w-[72px]"></TableHead>
               </TableRow>
             </TableHeader>
