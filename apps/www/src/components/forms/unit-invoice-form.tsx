@@ -172,7 +172,7 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
                     type="button"
                     size="icon"
                     variant="ghost"
-                    className="mt-5 shrink-0"
+                    className="shrink-0 self-end"
                     disabled={!!taskUid || deleteTask.isPending}
                     onClick={async () => {
                       const taskId = form.getValues(`tasks.${index}.id`);
