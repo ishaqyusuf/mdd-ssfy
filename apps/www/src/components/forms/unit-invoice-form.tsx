@@ -148,7 +148,104 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-2xl border border-slate-200">
+        {/* Mobile card layout */}
+        <div className="space-y-3 md:hidden">
+          {fields.map((field, index) => {
+            const taskUid = form.watch(`tasks.${index}.taskUid`);
+            return (
+              <div
+                key={field.id}
+                className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <FormInput
+                      className="mx-0"
+                      control={control}
+                      disabled={!!taskUid}
+                      name={`tasks.${index}.taskName` as const}
+                      placeholder="Task name"
+                      label="Task"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="mt-5 shrink-0"
+                    disabled={!!taskUid || deleteTask.isPending}
+                    onClick={async () => {
+                      const taskId = form.getValues(`tasks.${index}.id`);
+                      if (taskId) {
+                        await deleteTask.mutateAsync({
+                          taskIds: [taskId],
+                        });
+                      }
+                      remove(index);
+                    }}
+                  >
+                    <Icons.trash className="size-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <FormInput
+                    className="mx-0"
+                    control={control}
+                    disabled={!!taskUid}
+                    name={`tasks.${index}.amountDue` as const}
+                    label="Due"
+                    numericProps={{
+                      className: "h-9",
+                      prefix: "$",
+                      placeholder: "$0.00",
+                      type: "tel",
+                    }}
+                  />
+                  <FormInput
+                    className="mx-0"
+                    control={control}
+                    name={`tasks.${index}.amountPaid` as const}
+                    label="Paid"
+                    numericProps={{
+                      className: "h-9",
+                      prefix: "$",
+                      placeholder: "$0.00",
+                      type: "tel",
+                    }}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <FormInput
+                    className="mx-0"
+                    control={control}
+                    name={`tasks.${index}.checkNo` as const}
+                    label="Check"
+                    placeholder="Check no."
+                  />
+                  <FormDate
+                    className="mx-0"
+                    control={control}
+                    name={`tasks.${index}.checkDate` as const}
+                    label="Check Date"
+                    placeholder="Set date"
+                    size="sm"
+                  />
+                </div>
+                <FormDate
+                  className="mx-0"
+                  control={control}
+                  name={`tasks.${index}.createdAt` as const}
+                  label="Created"
+                  placeholder="Created"
+                  size="sm"
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop table layout */}
+        <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 md:block">
           <Table>
             <TableHeader>
               <TableRow>
