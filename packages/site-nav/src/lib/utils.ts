@@ -12,4 +12,10 @@ export {
   initPermAccess,
   validateRules,
 } from "./access";
-export { validateLinks, getLinkModules } from "./links";
+export {
+  validateLinks,
+  getLinkModules,
+  getActiveLinkFromMap,
+  isPathInLink,
+  normalizeNavPath,
+} from "./links";

@@ -16,15 +16,16 @@ import { type NotificationTypes, createActivitySchema } from "./schemas";
 import { EmailService } from "./services/email-service";
 import { WhatsAppService } from "./services/whatsapp-service";
 import { dispatchPackingDelay } from "./types/dispatch-packing-delay";
+import { employeeDocumentReview } from "./types/employee-document-review";
 import { jobApproved } from "./types/job-approved";
 import { jobAssigned } from "./types/job-assigned";
 import { jobDeleted } from "./types/job-deleted";
+import { jobPaymentSent } from "./types/job-payment-sent";
 import { jobRejected } from "./types/job-rejected";
 import { jobReviewRequested } from "./types/job-review-requested";
 import { jobSubmitted } from "./types/job-submitted";
 import { jobTaskConfigured } from "./types/job-task-configured";
 import { jobTaskConfigureRequest } from "./types/job-tasks-configure-request";
-import { employeeDocumentReview } from "./types/employee-document-review";
 import { salesCheckoutSuccess } from "./types/sales-checkout-success";
 import { salesDispatchAssigned } from "./types/sales-dispatch-assigned";
 import { salesDispatchCancelled } from "./types/sales-dispatch-cancelled";
@@ -63,6 +64,7 @@ const handlers = {
 	job_approved: jobApproved,
 	job_rejected: jobRejected,
 	job_deleted: jobDeleted,
+	job_payment_sent: jobPaymentSent,
 	job_review_requested: jobReviewRequested,
 	job_task_configure_request: jobTaskConfigureRequest,
 	job_task_configured: jobTaskConfigured,

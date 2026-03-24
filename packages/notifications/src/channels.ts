@@ -5,6 +5,7 @@ export const channelNames = [
 	"job_rejected",
 	"job_review_requested",
 	"job_deleted",
+	"job_payment_sent",
 	"job_install_tasks_qty_request",
 	"job_task_configure_request",
 	"job_task_configured",
@@ -127,6 +128,12 @@ export const channelsConfig: Partial<{
 	job_deleted: {
 		name: "Job Deleted",
 		description: "Send when a job is deleted.",
+		priority: 5,
+		category: "Community",
+	},
+	job_payment_sent: {
+		name: "Job Payment Sent",
+		description: "Send when a contractor payout has been created.",
 		priority: 5,
 		category: "Community",
 	},

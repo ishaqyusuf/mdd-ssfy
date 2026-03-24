@@ -3,6 +3,7 @@ import { Icons } from "@gnd/ui/icons";
 import { Icon } from "@gnd/ui/icons";
 import { useRef, useState } from "react";
 import type { NavLink as NavLinkType, NavModule } from "../lib/types";
+import { isPathInLink, normalizeNavPath } from "../lib/utils";
 import { NavLink } from "./nav-link";
 import { NavChildItem } from "./nav-child-item";
 import { useSiteNav } from "./use-site-nav";
@@ -27,12 +28,13 @@ export const NavItem = ({
   const {
     props: { pathName },
   } = useSiteNav();
+  const normalizedPathName = normalizeNavPath(pathName?.toLocaleLowerCase() || "");
   const hasChildren = item.subLinks && item.subLinks.length > 0;
   const [isHovered, setIsHovered] = useState(false);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const hasActiveChild = hasChildren
-    ? item.subLinks!.some((child) => pathName === child.href)
+    ? item.subLinks!.some((child) => isPathInLink(normalizedPathName, child))
     : false;
   const shouldShowChildren =
     isExpanded && (isHovered || hasActiveChild || isActive);
@@ -129,7 +131,7 @@ export const NavItem = ({
           )}
         >
           {item.subLinks!.map((child, index) => {
-            const isChildActive = pathName === child.href;
+            const isChildActive = isPathInLink(normalizedPathName, child);
             return (
               <NavChildItem
                 key={index}

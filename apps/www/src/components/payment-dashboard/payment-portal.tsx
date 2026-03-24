@@ -307,7 +307,7 @@ export function PaymentPortal() {
 
 	return (
 		<div className="flex flex-col gap-6 py-6 pb-8">
-			<div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)_340px] xl:items-start">
+			<div className="grid min-w-0 gap-6 xl:grid-cols-[320px_minmax(0,1fr)_340px] xl:items-start">
 				<Card className="overflow-hidden xl:sticky xl:top-6 xl:flex xl:h-[calc(100vh-7rem)] xl:flex-col">
 					<CardHeader className="gap-4 border-b bg-muted/30">
 						<div>
@@ -359,13 +359,13 @@ export function PaymentPortal() {
 													setSelectedContractorId(contractor.id);
 												}}
 												className={cn(
-													"flex flex-col gap-2 rounded-xl border px-3 py-3 text-left transition hover:border-primary/40 hover:bg-muted/40",
+													"flex w-full min-w-0 max-w-full overflow-hidden flex-col gap-2 rounded-xl border px-3 py-3 text-left transition hover:border-primary/40 hover:bg-muted/40",
 													isActive &&
 														"border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20",
 												)}
 											>
 												<div className="flex items-start justify-between gap-2">
-													<div className="min-w-0">
+													<div className="min-w-0 flex-1">
 														<p className="truncate text-sm font-medium text-foreground">
 															{contractor.name}
 														</p>
@@ -382,15 +382,15 @@ export function PaymentPortal() {
 														{contractor.insurance.state.replace("_", " ")}
 													</Badge>
 												</div>
-												<div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+												<div className="flex min-w-0 flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
 													<span>
 														{contractor.pendingReviewCount} pending review
 													</span>
 													<span className="text-border">•</span>
 													<span>{contractor.readyToPayCount} ready to pay</span>
 												</div>
-												<div className="flex items-center justify-between gap-3">
-													<p className="truncate text-[11px] text-muted-foreground">
+												<div className="flex min-w-0 items-center justify-between gap-3">
+													<p className="min-w-0 truncate text-[11px] text-muted-foreground">
 														{contractor.lastProjectTitle
 															? `Recent project: ${contractor.lastProjectTitle}`
 															: contractor.insurance.message}
@@ -408,7 +408,7 @@ export function PaymentPortal() {
 					</CardContent>
 				</Card>
 
-				<Card className="overflow-hidden xl:flex xl:h-[calc(100vh-7rem)] xl:flex-col">
+				<Card className="min-w-0 overflow-hidden xl:flex xl:h-[calc(100vh-7rem)] xl:flex-col">
 					<CardHeader className="gap-4 border-b bg-muted/20">
 						{portal ? (
 							<div className="flex flex-col gap-4">
@@ -605,7 +605,7 @@ export function PaymentPortal() {
 											>
 												<div
 													ref={tableScroll.containerRef}
-													className="overflow-x-auto rounded-2xl border"
+													className="w-full min-w-0 max-w-full overflow-x-auto rounded-2xl border"
 												>
 													<Table>
 														<Table.TableHeader />
@@ -632,7 +632,7 @@ export function PaymentPortal() {
 																openJobId: job.id,
 															});
 														}}
-														className="rounded-2xl border p-4 text-left"
+														className="w-full min-w-0 rounded-2xl border p-4 text-left"
 													>
 														<div className="flex items-start gap-3">
 															<Checkbox
@@ -650,14 +650,14 @@ export function PaymentPortal() {
 																	}))
 																}
 															/>
-															<div className="flex-1">
+															<div className="min-w-0 flex-1">
 																<div className="flex items-start justify-between gap-3">
-																	<div>
-																		<p className="font-medium text-foreground">
+																	<div className="min-w-0 flex-1">
+																		<p className="truncate font-medium text-foreground">
 																			{job.title}
 																			{job.subtitle ? ` - ${job.subtitle}` : ""}
 																		</p>
-																		<p className="text-sm text-muted-foreground">
+																		<p className="truncate text-sm text-muted-foreground">
 																			{job.project?.title || "Unknown project"}
 																		</p>
 																	</div>
@@ -665,8 +665,8 @@ export function PaymentPortal() {
 																		{job.status}
 																	</Badge>
 																</div>
-																<div className="mt-3 flex items-center justify-between text-sm">
-																	<p className="text-muted-foreground">
+																<div className="mt-3 flex min-w-0 items-center justify-between gap-3 text-sm">
+																	<p className="min-w-0 truncate text-muted-foreground">
 																		{job.home?.lotBlock || "No lot"} •{" "}
 																		{job.home?.modelName || "No model"}
 																	</p>

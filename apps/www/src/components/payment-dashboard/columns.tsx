@@ -78,12 +78,12 @@ export function getPaymentPortalColumns({
 			header: "Job",
 			accessorKey: "title",
 			cell: ({ row: { original: item } }) => (
-				<div className="flex min-w-[240px] flex-col gap-1">
-					<p className="font-medium text-foreground">
+				<div className="flex min-w-0 max-w-[240px] flex-col gap-1">
+					<p className="truncate font-medium text-foreground">
 						{item.title}
 						{item.subtitle ? ` - ${item.subtitle}` : ""}
 					</p>
-					<p className="text-sm text-muted-foreground">
+					<p className="truncate text-sm text-muted-foreground">
 						#{item.id} • {formatDate(item.createdAt)}
 					</p>
 				</div>
@@ -93,11 +93,11 @@ export function getPaymentPortalColumns({
 			header: "Location",
 			accessorKey: "location",
 			cell: ({ row: { original: item } }) => (
-				<div className="flex min-w-[220px] flex-col gap-1">
-					<p className="font-medium text-foreground">
+				<div className="flex min-w-0 max-w-[220px] flex-col gap-1">
+					<p className="truncate font-medium text-foreground">
 						{item.home?.lotBlock || "No lot assigned"}
 					</p>
-					<p className="text-sm text-muted-foreground">
+					<p className="truncate text-sm text-muted-foreground">
 						{item.project?.title || "Unknown project"}
 						{item.home?.modelName ? ` • ${item.home.modelName}` : ""}
 					</p>
@@ -136,10 +136,11 @@ export function getPaymentPortalColumns({
 						header: "Review",
 						enableSorting: false,
 						cell: ({ row: { original: item } }) => (
-							<div className="flex min-w-[190px] items-center justify-end gap-2">
+							<div className="flex min-w-0 items-center justify-end gap-1.5">
 								<Button
 									size="sm"
 									variant="outline"
+									className="h-8 px-2.5"
 									onClick={(event) => {
 										event.stopPropagation();
 										onReject(item.id);
@@ -152,6 +153,7 @@ export function getPaymentPortalColumns({
 								</Button>
 								<Button
 									size="sm"
+									className="h-8 px-2.5"
 									onClick={(event) => {
 										event.stopPropagation();
 										onApprove(item.id);

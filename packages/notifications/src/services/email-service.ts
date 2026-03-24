@@ -1,21 +1,22 @@
 // import type { Database } from "@gnd/db/client";
 import { shouldSendNotification } from "@gnd/db/queries";
 
+import type { Db } from "@gnd/db";
+import { JobApprovedEmail } from "@gnd/email/emails/job-approved";
+import { JobAssignedEmail } from "@gnd/email/emails/job-assigned";
+import { JobPaymentSentEmail } from "@gnd/email/emails/job-payment-sent";
+import { JobRejectedEmail } from "@gnd/email/emails/job-rejected";
+import { JobTaskConfigureRequestEmail } from "@gnd/email/emails/job-task-configure-request";
+import LoginEmail from "@gnd/email/emails/login-link-email";
+import SalesEmail from "@gnd/email/emails/sales-email";
+import SalesReminderScheduleAdminNotificationEmail from "@gnd/email/emails/sales-reminder-schedule-admin-notification";
+import { SalesRepOnlinePaymentReceived } from "@gnd/email/emails/sales-rep-online-payment-received";
+import StorefrontPasswordResetRequest from "@gnd/email/emails/storefront-password-reset-request";
 import { render } from "@gnd/email/render";
 import { getRecipient, getTestEmail } from "@gnd/utils/envs";
 import { nanoid } from "nanoid";
 import { type CreateEmailOptions, Resend } from "resend";
 import type { EmailInput } from "../base";
-import { Db } from "@gnd/db";
-import { SalesRepOnlinePaymentReceived } from "@gnd/email/emails/sales-rep-online-payment-received";
-import { JobAssignedEmail } from "@gnd/email/emails/job-assigned";
-import { JobApprovedEmail } from "@gnd/email/emails/job-approved";
-import { JobRejectedEmail } from "@gnd/email/emails/job-rejected";
-import { JobTaskConfigureRequestEmail } from "@gnd/email/emails/job-task-configure-request";
-import SalesEmail from "@gnd/email/emails/sales-email";
-import SalesReminderScheduleAdminNotificationEmail from "@gnd/email/emails/sales-reminder-schedule-admin-notification";
-import LoginEmail from "@gnd/email/emails/login-link-email";
-import StorefrontPasswordResetRequest from "@gnd/email/emails/storefront-password-reset-request";
 
 export class EmailService {
 	private client: Resend;
@@ -44,9 +45,8 @@ export class EmailService {
 
 		const testEmail = getTestEmail();
 		const isTestEnv = process.env.NODE_ENV === "test";
-		const recipients = isTestEnv && testEmail
-			? [testEmail]
-			: getRecipient([to]) as string[];
+		const recipients =
+			isTestEnv && testEmail ? [testEmail] : (getRecipient([to]) as string[]);
 
 		const response = await this.client.emails.send({
 			from: from || "GND Millwork <noreply@gndprodesk.com>",
@@ -215,6 +215,7 @@ export class EmailService {
 			"sales-rep-online-payment-received": SalesRepOnlinePaymentReceived,
 			"job-assigned": JobAssignedEmail,
 			"job-approved": JobApprovedEmail,
+			"job-payment-sent": JobPaymentSentEmail,
 			"job-rejected": JobRejectedEmail,
 			"job-task-configure-request": JobTaskConfigureRequestEmail,
 			"sales-email-reminder": SalesEmail,

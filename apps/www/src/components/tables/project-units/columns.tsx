@@ -286,9 +286,140 @@ export const mobileColumn: ColumnDef<Item>[] = [
         },
     },
 ];
-function ItemCard({ item }: ItemProps) {
-    // design a mobile version of the columns here
-    const { setParams } = useProjectUnitParams();
-    return <></>;
+
+function getProductionStatusClass(status?: string | null) {
+    switch ((status || "").toLowerCase()) {
+        case "completed":
+            return "bg-emerald-100 text-emerald-700";
+        case "started":
+            return "bg-amber-100 text-amber-700";
+        case "queued":
+            return "bg-sky-100 text-sky-700";
+        default:
+            return "bg-slate-100 text-slate-600";
+    }
 }
 
+function ItemCard({ item }: ItemProps) {
+    const { setParams } = useProjectUnitParams();
+    const ctx = useHomeModal();
+    const path =
+        item.template?.version === "v2" ? "model-template" : "community-template";
+
+    return (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+                <button
+                    type="button"
+                    onClick={() => {
+                        ctx.open(item);
+                        setParams({
+                            openProjectUnitId: item.id,
+                        });
+                    }}
+                    className="min-w-0 flex-1 text-left"
+                >
+                    <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-base font-semibold text-slate-900">
+                            {item.lotBlock}
+                        </p>
+                        <Badge
+                            variant={
+                                item?.template?.version === "v1"
+                                    ? "secondary"
+                                    : "success"
+                            }
+                            className="rounded-full px-2 py-0 text-[10px] font-semibold uppercase"
+                        >
+                            {item?.template?.version}
+                        </Badge>
+                    </div>
+                    <p className="mt-1 text-sm font-medium text-slate-700">
+                        {item.modelName}
+                    </p>
+                </button>
+                <div className="shrink-0">
+                    <Actions item={item} />
+                </div>
+            </div>
+
+            <div className="mt-4 rounded-2xl bg-slate-50 px-3 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Project
+                </p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">
+                    {item.project?.title}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                    {item.project?.builder?.name}
+                </p>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="rounded-2xl border border-slate-200 px-3 py-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Production
+                    </p>
+                    <span
+                        className={cn(
+                            "mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
+                            getProductionStatusClass(item.production?.status),
+                        )}
+                    >
+                        {item.production?.status || "Idle"}
+                    </span>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                        {item.production?.date || "No date"}
+                    </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 px-3 py-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Installation
+                    </p>
+                    <Badge
+                        variant="secondary"
+                        style={{
+                            backgroundColor:
+                                item.jobCount > 0
+                                    ? colorsObject.limeGreen
+                                    : colorsObject.dimGray,
+                        }}
+                        className="mt-2 h-6 whitespace-nowrap px-2 text-xs text-slate-100"
+                    >
+                        {item.jobCount} submitted
+                    </Badge>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                        {formatDate(item.createdAt)}
+                    </p>
+                </div>
+            </div>
+
+            <div className="mt-4 flex items-center gap-2">
+                {item.template ? (
+                    <Link
+                        href={`/community/${path}/${item.template.slug?.toLowerCase()}`}
+                        className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-center text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                    >
+                        Open Template
+                    </Link>
+                ) : (
+                    <div className="flex-1" />
+                )}
+                <Button
+                    type="button"
+                    variant="secondary"
+                    className="flex-1"
+                    onClick={() => {
+                        ctx.open(item);
+                        setParams({
+                            openProjectUnitId: item.id,
+                        });
+                    }}
+                >
+                    Open Unit
+                </Button>
+            </div>
+        </div>
+    );
+}

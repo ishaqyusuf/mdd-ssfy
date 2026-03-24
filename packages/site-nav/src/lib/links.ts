@@ -1,6 +1,9 @@
 import { sum } from "@gnd/utils";
-import type { NavModule } from "./types";
+import type { LinkItem, NavModule } from "./types";
 import { validateRules } from "./access";
+
+export const normalizeNavPath = (path = "") =>
+  path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
 
 export const validateLinks = ({
   linkModules,
@@ -114,6 +117,14 @@ export function getLinkModules(linkModules: NavModule[]) {
               module: m.name,
               hasAccess: sl.show,
             };
+            sl?.paths?.map((p) => {
+              linksNameMap[p] = {
+                name: sl.name ?? l.name,
+                module: m.name,
+                match: "part",
+                hasAccess: sl.show,
+              };
+            });
             return sl;
           });
         return l;
@@ -146,4 +157,52 @@ export function getLinkModules(linkModules: NavModule[]) {
     totalLinks,
     noSidebar,
   };
+}
+
+export function getActiveLinkFromMap(
+  pathName: string | null | undefined,
+  linksNameMap: ReturnType<typeof getLinkModules>["linksNameMap"],
+) {
+  const normalizedPath = normalizeNavPath(pathName?.toLocaleLowerCase() || "");
+  if (!normalizedPath) return undefined;
+
+  const exactMatch = Object.entries(linksNameMap || {})
+    .map(([href, data]) => ({
+      href: normalizeNavPath(href?.toLocaleLowerCase() || ""),
+      data,
+    }))
+    .find(
+      (entry) => entry.href === normalizedPath && entry.data?.hasAccess !== false,
+    )?.data;
+  if (exactMatch) return exactMatch;
+
+  return Object.entries(linksNameMap || {})
+    .map(([href, data]) => ({
+      href: normalizeNavPath(href?.toLocaleLowerCase() || ""),
+      data,
+    }))
+    .filter(
+      (entry) =>
+        entry.data?.match === "part" &&
+        entry.data?.hasAccess !== false &&
+        entry.href &&
+        normalizedPath.startsWith(entry.href),
+    )
+    .sort((a, b) => b.href.length - a.href.length)[0]?.data;
+}
+
+export function isPathInLink(
+  pathName: string | null | undefined,
+  link?: LinkItem | null,
+) {
+  const normalizedPath = normalizeNavPath(pathName?.toLocaleLowerCase() || "");
+  if (!normalizedPath || !link) return false;
+
+  const href = normalizeNavPath(link?.href?.toLocaleLowerCase() || "");
+  if (href && href === normalizedPath) return true;
+
+  return (link?.paths || []).some((partPath) => {
+    const normalizedPart = normalizeNavPath(partPath?.toLocaleLowerCase() || "");
+    return normalizedPart && normalizedPath.startsWith(normalizedPart);
+  });
 }

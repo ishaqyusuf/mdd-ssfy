@@ -20,6 +20,8 @@ import { getInsuranceRequirement } from "@gnd/utils/insurance-documents";
 import { saveNote } from "@gnd/utils/note";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
+import { NotificationService } from "@notifications/services/triggers";
+import { tasks } from "@trigger.dev/sdk/v3";
 import {
 	eachDayOfInterval,
 	endOfMonth,
@@ -279,7 +281,11 @@ const contractorPaymentSelect = {
 	id: true,
 	name: true,
 	email: true,
-	discount: true,
+	employeeProfile: {
+		select: {
+			discount: true,
+		},
+	},
 	documents: {
 		where: { deletedAt: null },
 		orderBy: { createdAt: "desc" },
@@ -328,7 +334,7 @@ function mapContractorPaymentSummary(
 	const subTotal = Number(
 		sum(readyToPayJobs.map((job) => Number(job.amount || 0))) || 0,
 	);
-	const chargePercentage = Number(user.discount || 0);
+	const chargePercentage = Number(user.employeeProfile?.discount || 0);
 	const charge = Number(
 		(subTotal * ((chargePercentage || 0) / 100)).toFixed(2),
 	);
@@ -626,7 +632,11 @@ export async function createPaymentPortal(
 		},
 		select: {
 			id: true,
-			discount: true,
+			employeeProfile: {
+				select: {
+					discount: true,
+				},
+			},
 		},
 	});
 
@@ -636,7 +646,7 @@ export async function createPaymentPortal(
 
 	const subTotal = Number(sum(jobs.map((job) => Number(job.amount || 0))) || 0);
 	const adjustment = 0;
-	const chargePercentage = Number(contractor.discount || 0);
+	const chargePercentage = Number(contractor.employeeProfile?.discount || 0);
 	const discount = Number(
 		(subTotal * ((chargePercentage || 0) / 100)).toFixed(2),
 	);
@@ -726,6 +736,16 @@ export async function createPaymentPortal(
 		},
 		payerId,
 	);
+
+	await new NotificationService(tasks, ctx)
+		.setEmployeeRecipients(input.userId)
+		.channel.jobPaymentSent({
+			paymentId: payment.id,
+			contractorId: input.userId,
+			jobCount: input.jobIds.length,
+			amount: totalPayout,
+			paymentMethod: input.paymentMethod,
+		});
 
 	return {
 		id: payment.id,

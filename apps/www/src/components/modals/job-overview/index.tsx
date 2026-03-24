@@ -18,11 +18,11 @@ import { Skeleton } from "@gnd/ui/skeleton";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import { getInitials } from "@gnd/utils";
-import {
-	getInsuranceRequirement,
-	type InsuranceRequirement,
-} from "@gnd/utils/insurance-documents";
 import { formatDate } from "@gnd/utils/dayjs";
+import {
+	type InsuranceRequirement,
+	getInsuranceRequirement,
+} from "@gnd/utils/insurance-documents";
 import { Building2, CreditCard, MapPin, MessageSquare } from "lucide-react";
 import {
 	CheckCircle2,
@@ -90,12 +90,8 @@ export function JobOverviewModal() {
 					setParams({ openJobId: null });
 				}
 			}}
-			title={
-				<span className="sr-only">
-					{openJobId ? `Job ${openJobId} overview` : "Job overview"}
-				</span>
-			}
-			description={<span className="sr-only">Job details and actions.</span>}
+			title={openJobId ? `Job ${openJobId} overview` : "Job overview"}
+			description="Job details and actions."
 			titleAsChild
 			descriptionAsChild
 			// title={`Job #${openJobId} Overview`}

@@ -15,6 +15,7 @@ import ProjectModal from "@/app-deps/(v1)/(loggedIn)/community/projects/project-
 import ConfirmBtn from "@/components/_v1/confirm-btn";
 import { useModal } from "@/components/common/modal/provider";
 import AddonCell from "./addon-cell";
+import Link from "next/link";
 export type Item =
     RouterOutputs["community"]["getCommunityProjects"]["data"][number];
 interface ItemProps {
@@ -160,8 +161,83 @@ export const mobileColumn: ColumnDef<Item>[] = [
     },
 ];
 function ItemCard({ item }: ItemProps) {
-    // design a mobile version of the columns here
     const { setParams } = useCommunityProjectParams();
-    return <></>;
-}
+    return (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+                <button
+                    type="button"
+                    onClick={() => {
+                        setParams({
+                            openCommunityProjectId: item.id,
+                        });
+                    }}
+                    className="min-w-0 flex-1 text-left"
+                >
+                    <p className="text-base font-semibold text-slate-900">
+                        {item.title}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        {item.builder?.name}
+                    </p>
+                </button>
+                <div className="shrink-0">
+                    <Actions item={item} />
+                </div>
+            </div>
 
+            <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="rounded-2xl border border-slate-200 px-3 py-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Ref No
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">
+                        {item.refNo}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                        {formatDate(item.createdAt)}
+                    </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 px-3 py-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Units
+                    </p>
+                    <p className="mt-1 text-lg font-semibold text-slate-900">
+                        {item._count.homes}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                        Total homes
+                    </p>
+                </div>
+            </div>
+
+            <div className="mt-3 rounded-2xl bg-slate-50 px-3 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Supervisor
+                </p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">
+                    {item.meta?.supervisor?.name || "Not assigned"}
+                </p>
+            </div>
+
+            <div className="mt-3 rounded-2xl border border-slate-200 px-3 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Addon
+                </p>
+                <div className="mt-2">
+                    <AddonCell project={item} />
+                </div>
+            </div>
+
+            <div className="mt-4 flex items-center gap-2">
+                <Link
+                    href={`/community/project-units?projectSlug=${item.slug}`}
+                    className="flex-1 rounded-xl bg-emerald-600 px-3 py-2 text-center text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+                >
+                    Open Units
+                </Link>
+            </div>
+        </div>
+    );
+}

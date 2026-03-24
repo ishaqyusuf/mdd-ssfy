@@ -4,6 +4,7 @@ import { useSiteNav } from "./use-site-nav";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { Icons } from "@gnd/ui/icons";
 import type { NavLink } from "../lib/types";
+import { getActiveLinkFromMap, isPathInLink, normalizeNavPath } from "../lib/utils";
 import { NavItem } from "./nav-item";
 
 const sectionLabel = cva("", {
@@ -35,85 +36,23 @@ export function NavsList({ mobile = false }) {
       ? linkModules
       : stableLinkModules || linkModules;
   const normalizedPathName = useMemo(() => {
-    const normalizePath = (path = "") =>
-      path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
-    return normalizePath(rawPathName?.toLocaleLowerCase() || "");
+    return normalizeNavPath(rawPathName?.toLocaleLowerCase() || "");
   }, [rawPathName]);
   const currentModuleName = useMemo(() => {
-    const normalizePath = (path = "") =>
-      path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
     const pathName = normalizedPathName;
     if (!pathName) return null;
-    const candidates: Array<{
-      moduleName?: string;
-      score: number;
-      pathLength: number;
-    }> = [];
-    (renderedLinkModules?.modules || []).forEach((module) => {
-      const moduleName = module?.name;
-      const hasModuleName =
-        typeof moduleName === "string" && moduleName.trim() !== "";
-      const moduleBoost = hasModuleName ? 1 : 0;
-      module?.sections?.forEach((section) => {
-        section?.links?.forEach((link) => {
-          if (!link?.show) return;
-          const href = normalizePath(link?.href?.toLocaleLowerCase() || "");
-          if (href && href === pathName) {
-            candidates.push({
-              moduleName,
-              score: 4 + moduleBoost,
-              pathLength: href.length,
-            });
-          }
-          (link?.paths || []).forEach((partPath) => {
-            const normalizedPart = normalizePath(
-              partPath?.toLocaleLowerCase() || "",
-            );
-            if (!normalizedPart || !pathName.startsWith(normalizedPart)) return;
-            candidates.push({
-              moduleName,
-              score: 2 + moduleBoost,
-              pathLength: normalizedPart.length,
-            });
-          });
-          (link?.subLinks || []).forEach((subLink) => {
-            if (!subLink?.show) return;
-            const subHref = normalizePath(
-              subLink?.href?.toLocaleLowerCase() || "",
-            );
-            if (subHref && subHref === pathName) {
-              candidates.push({
-                moduleName,
-                score: 4 + moduleBoost,
-                pathLength: subHref.length,
-              });
-            }
-            (subLink?.paths || []).forEach((partPath) => {
-              const normalizedPart = normalizePath(
-                partPath?.toLocaleLowerCase() || "",
-              );
-              if (!normalizedPart || !pathName.startsWith(normalizedPart)) return;
-              candidates.push({
-                moduleName,
-                score: 2 + moduleBoost,
-                pathLength: normalizedPart.length,
-              });
-            });
-          });
-        });
-      });
-    });
-    const winner = candidates.sort((a, b) => {
-      const byScore = b.score - a.score;
-      if (byScore !== 0) return byScore;
-      return b.pathLength - a.pathLength;
-    })[0];
+
+    const activeFromMap = getActiveLinkFromMap(
+      pathName,
+      renderedLinkModules?.linksNameMap || {},
+    );
     if (
-      typeof winner?.moduleName === "string" &&
-      winner.moduleName.trim() !== ""
+      typeof activeFromMap?.module === "string" &&
+      activeFromMap.module.trim() !== ""
     ) {
-      return winner.moduleName;
+      return activeFromMap.module;
     }
+
     const firstSegment = pathName.split("/").filter(Boolean)[0]?.toLowerCase();
     if (firstSegment) {
       const moduleFromSegment = (renderedLinkModules?.modules || []).find((module) => {
@@ -148,23 +87,10 @@ export function NavsList({ mobile = false }) {
   const visibleModuleName = effectiveModuleName || stableModuleName;
   const isLinkActive = (link: NavLink) => {
     if (!link || !normalizedPathName) return false;
-    const normalizePath = (path = "") =>
-      path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
-    const href = normalizePath(link?.href?.toLocaleLowerCase() || "");
-    if (href && href === normalizedPathName) return true;
-    const hasPartPath = (link?.paths || []).some((partPath) => {
-      const normalizedPart = normalizePath(partPath?.toLocaleLowerCase() || "");
-      return normalizedPart && normalizedPathName.startsWith(normalizedPart);
-    });
-    if (hasPartPath) return true;
-    return (link?.subLinks || []).some((subLink) => {
-      const subHref = normalizePath(subLink?.href?.toLocaleLowerCase() || "");
-      if (subHref && subHref === normalizedPathName) return true;
-      return (subLink?.paths || []).some((partPath) => {
-        const normalizedPart = normalizePath(partPath?.toLocaleLowerCase() || "");
-        return normalizedPart && normalizedPathName.startsWith(normalizedPart);
-      });
-    });
+    if (isPathInLink(normalizedPathName, link)) return true;
+    return (link?.subLinks || []).some((subLink) =>
+      isPathInLink(normalizedPathName, subLink),
+    );
   };
   useEffect(() => {
     if (!effectiveModuleName) return;

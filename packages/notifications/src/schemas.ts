@@ -225,6 +225,22 @@ export const jobDeletedTags = actityTagsSchema.extend({
 	jobId: z.number(),
 });
 export type JobDeletedTags = z.infer<typeof jobDeletedTags>;
+export const jobPaymentSentSchema = z.object({
+	paymentId: z.number(),
+	contractorId: z.number(),
+	jobCount: z.number(),
+	amount: z.number(),
+	paymentMethod: z.string(),
+});
+export type JobPaymentSentInput = z.infer<typeof jobPaymentSentSchema>;
+export const jobPaymentSentTags = actityTagsSchema.extend({
+	paymentId: z.number(),
+	contractorId: z.number(),
+	jobCount: z.number(),
+	amount: z.number(),
+	paymentMethod: z.string(),
+});
+export type JobPaymentSentTags = z.infer<typeof jobPaymentSentTags>;
 export const jobTaskConfigureRequestSchema = z.object({
 	contractorId: z.number(),
 	jobId: z.number(),
@@ -298,6 +314,7 @@ export type NotificationTypes = {
 	job_approved: JobApprovedInput;
 	job_rejected: JobRejectedInput;
 	job_deleted: JobDeletedInput;
+	job_payment_sent: JobPaymentSentInput;
 	job_task_configure_request: JobTaskConfigureRequestInput;
 	job_task_configured: JobTaskConfiguredInput;
 	employee_document_review: EmployeeDocumentReviewInput;
@@ -845,6 +862,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("job_deleted"),
 		payload: jobDeletedSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("job_payment_sent"),
+		payload: jobPaymentSentSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("job_task_configure_request"),
