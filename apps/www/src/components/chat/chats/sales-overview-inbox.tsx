@@ -1,5 +1,6 @@
 "use client";
 
+import { activityOr, activityTag } from "@notifications/activity-tree";
 import { Chat, useChat } from "../chat";
 import { Inbox } from "../inbox";
 
@@ -82,12 +83,20 @@ export function SalesOverviewInbox({ saleData }: SalesOverviewInboxProps) {
         <Inbox
             activityHistoryProps={{
                 emptyText: null,
-                tags: [
-                    {
-                        tagName: "salesId",
-                        tagValue: saleData.id,
-                    },
-                ],
+                filter: activityOr([
+                    activityTag("salesId", String(saleData.id)),
+                    activityTag("salesNo", String(saleData.orderId)),
+                ]),
+                // tags: [
+                //     {
+                //         OR: [
+                //             {
+                //                 tagName: "salesId",
+                //                 tagValue: String(saleData.id),
+                //             },
+                //         ],
+                //     },
+                // ],
             }}
             chatProps={{
                 channel: "sales_info",

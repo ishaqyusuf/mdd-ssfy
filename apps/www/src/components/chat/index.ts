@@ -9,7 +9,14 @@ export type {
 } from "./chat";
 
 export { ActivityHistory } from "./activity-history";
-export type { ActivityHistoryProps, ActivityTagFilter } from "./activity-history";
+export type {
+  ActivityHistoryProps,
+  ActivityTagFilter,
+} from "./activity-history";
+export type {
+  ActivityTagFilterNode,
+  ActivityTagName,
+} from "@notifications/activity-tree";
 
 export { Inbox } from "./inbox";
 export type { InboxProps, InboxChatProps } from "./inbox";

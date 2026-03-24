@@ -5,13 +5,16 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
+import {
+  activityAnd,
+  activityTag,
+  type ActivityTagFilter as SharedActivityTagFilter,
+  type ActivityTagFilterNode,
+} from "@notifications/activity-tree";
 import { type ReactNode, useEffect, useMemo } from "react";
 import { View } from "react-native";
 
-export type ActivityTagFilter = {
-  tagName: string;
-  tagValue: unknown;
-};
+export type ActivityTagFilter = SharedActivityTagFilter;
 
 type ActivityNode = {
   id: number;
@@ -28,6 +31,7 @@ type ActivityNode = {
 export type ActivityHistoryProps = {
   channel?: string;
   tags?: ActivityTagFilter[];
+  filter?: ActivityTagFilterNode;
   contactId?: number;
   pageSize?: number;
   maxDepth?: number;
@@ -132,6 +136,7 @@ function TimelineItem({
 export function ActivityHistory({
   channel,
   tags = [],
+  filter,
   contactId,
   pageSize = 40,
   maxDepth = 4,
@@ -142,20 +147,26 @@ export function ActivityHistory({
 }: ActivityHistoryProps) {
   const trpc = useTRPC();
 
-  const tagFilters = useMemo(
-    () => [
-      ...(tags || []),
-      ...(channel
-        ? ([{ tagName: "channel", tagValue: channel }] as ActivityTagFilter[])
-        : []),
-    ],
-    [channel, tags],
-  );
+  const activityFilter = useMemo(() => {
+    const baseFilters: ActivityTagFilterNode[] = [
+      ...tags,
+      ...(channel ? [activityTag("channel", channel)] : []),
+    ];
+
+    if (filter && baseFilters.length) {
+      return activityAnd([filter, ...baseFilters]);
+    }
+
+    if (filter) return filter;
+    if (!baseFilters.length) return undefined;
+    if (baseFilters.length === 1) return baseFilters[0];
+    return activityAnd(baseFilters);
+  }, [channel, filter, tags]);
 
   const { data, isPending, isError, refetch } = useQuery(
     trpc.notes.activityTree.queryOptions({
       ...(contactId ? { contactIds: [contactId] } : {}),
-      ...(tagFilters.length ? { tagFilters } : {}),
+      ...(activityFilter ? { filter: activityFilter } : {}),
       tagFilterMode: "all",
       includeChildren: true,
       pageSize,

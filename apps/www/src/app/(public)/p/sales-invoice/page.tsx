@@ -1,6 +1,6 @@
 import { ErrorFallback } from "@/components/error-fallback";
 import { PrintLoading } from "@/components/print-loading";
-import { PrintSales } from "@/components/print-sales";
+import { PrintSalesV2 } from "@/components/print-sales-v2";
 
 import { loadSalesPrintFilterParams } from "@/hooks/use-sales-print-filter";
 import { batchPrefetch, trpc } from "@/trpc/server";
@@ -9,27 +9,27 @@ import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { Suspense } from "react";
 
 export async function generateMetadata(props) {
-    return constructMetadata({
-        title: "Model Template Preview | GND",
-    });
+	return constructMetadata({
+		title: "Model Template Preview | GND",
+	});
 }
 export default async function Page(props) {
-    const searchParams = await props.searchParams;
-    const filter = loadSalesPrintFilterParams(searchParams);
-    batchPrefetch([
-        trpc.print.sales.queryOptions({
-            ...(filter as any),
-        }),
-    ]);
+	const searchParams = await props.searchParams;
+	const filter = loadSalesPrintFilterParams(searchParams);
+	batchPrefetch([
+		trpc.print.salesV2.queryOptions({
+			token: filter.token ?? "",
+			preview: filter.preview ?? false,
+		}),
+	]);
 
-    return (
-        <>
-            <ErrorBoundary errorComponent={ErrorFallback}>
-                <Suspense fallback={<PrintLoading />}>
-                    <PrintSales />
-                </Suspense>
-            </ErrorBoundary>
-        </>
-    );
+	return (
+		<>
+			<ErrorBoundary errorComponent={ErrorFallback}>
+				<Suspense fallback={<PrintLoading />}>
+					<PrintSalesV2 />
+				</Suspense>
+			</ErrorBoundary>
+		</>
+	);
 }
-

@@ -36,6 +36,16 @@ import {
 	getProjectUnitsSchema,
 } from "@api/db/queries/project-units";
 import {
+	deleteUnitInvoiceTasks,
+	deleteUnitInvoiceTasksSchema,
+	getUnitInvoiceForm,
+	getUnitInvoices,
+	getUnitInvoicesSchema,
+	saveUnitInvoiceForm,
+	saveUnitInvoiceFormSchema,
+	unitInvoiceFormSchema,
+} from "@api/db/queries/unit-invoices";
+import {
 	getWorkOrderForm,
 	saveWorkOrderForm,
 	workOrderFormSchema,
@@ -147,6 +157,26 @@ export const communityRouters = createTRPCRouter({
 	getBuilders: publicProcedure.input(getBuildersSchema).query(async (q) => {
 		return getBuilders(q.ctx.db, q.input);
 	}),
+	getUnitInvoices: publicProcedure
+		.input(getUnitInvoicesSchema)
+		.query(async (props) => {
+			return getUnitInvoices(props.ctx, props.input);
+		}),
+	getUnitInvoiceForm: publicProcedure
+		.input(unitInvoiceFormSchema)
+		.query(async (props) => {
+			return getUnitInvoiceForm(props.ctx, props.input);
+		}),
+	saveUnitInvoiceForm: publicProcedure
+		.input(saveUnitInvoiceFormSchema)
+		.mutation(async (props) => {
+			return saveUnitInvoiceForm(props.ctx, props.input);
+		}),
+	deleteUnitInvoiceTasks: publicProcedure
+		.input(deleteUnitInvoiceTasksSchema)
+		.mutation(async (props) => {
+			return deleteUnitInvoiceTasks(props.ctx, props.input);
+		}),
 	getBuilderForm: publicProcedure
 		.input(z.object({ builderId: z.number() }))
 		.query(async (props) => {

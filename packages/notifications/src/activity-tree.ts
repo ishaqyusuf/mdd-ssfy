@@ -1,21 +1,119 @@
 import type { Db, NoteStatus } from "@gnd/db";
+import type { NoteTagNames } from "@gnd/utils/constants";
 import { channelNames } from "./channels";
+import type {
+	DispatchPackingDelayTags,
+	EmployeeDocumentReviewTags,
+	JobApprovedTags,
+	JobAssignedTags,
+	JobDeletedTags,
+	JobPaymentSentTags,
+	JobRejectedTags,
+	JobReviewRequestedTags,
+	JobSubmittedTags,
+	JobTaskConfiguredTags,
+	JobTaskConfigureRequestTags,
+	SalesCheckoutSuccessTags,
+	SalesDispatchAssignedTags,
+	SalesDispatchCancelledTags,
+	SalesDispatchCompletedTags,
+	SalesDispatchDateUpdatedTags,
+	SalesDispatchDuplicateAlertTags,
+	SalesDispatchInProgressTags,
+	SalesDispatchInfoTags,
+	SalesDispatchPackedTags,
+	SalesDispatchPackingResetTags,
+	SalesDispatchQueuedTags,
+	SalesDispatchTripCanceledTags,
+	SalesDispatchUnassignedTags,
+	SalesEmailReminderTags,
+	SalesInfoTags,
+	SalesItemInfoTags,
+	SalesMarkedAsProductionCompletedTags,
+	SalesPaymentRecordedTags,
+	SalesPaymentRefundedTags,
+	SalesReminderScheduleAdminNotificationTags,
+	SalesRequestPackingTags,
+	SimpleSalesEmailReminderTags,
+} from "./schemas";
 import {
 	deserializeTagValue,
 	mergeTagRows,
 	serializeTagValue,
 } from "./tag-values";
 
-export type ActivityTagFilter = {
-	tagName: string;
-	tagValue: unknown;
-};
+type KeysOfUnion<T> = T extends T ? keyof T : never;
+
+type KnownNotificationActivityTags =
+	| DispatchPackingDelayTags
+	| EmployeeDocumentReviewTags
+	| JobApprovedTags
+	| JobAssignedTags
+	| JobDeletedTags
+	| JobPaymentSentTags
+	| JobRejectedTags
+	| JobReviewRequestedTags
+	| JobSubmittedTags
+	| JobTaskConfiguredTags
+	| JobTaskConfigureRequestTags
+	| SalesCheckoutSuccessTags
+	| SalesDispatchAssignedTags
+	| SalesDispatchCancelledTags
+	| SalesDispatchCompletedTags
+	| SalesDispatchDateUpdatedTags
+	| SalesDispatchDuplicateAlertTags
+	| SalesDispatchInProgressTags
+	| SalesDispatchInfoTags
+	| SalesDispatchPackedTags
+	| SalesDispatchPackingResetTags
+	| SalesDispatchQueuedTags
+	| SalesDispatchTripCanceledTags
+	| SalesDispatchUnassignedTags
+	| SalesEmailReminderTags
+	| SalesInfoTags
+	| SalesItemInfoTags
+	| SalesMarkedAsProductionCompletedTags
+	| SalesPaymentRecordedTags
+	| SalesPaymentRefundedTags
+	| SalesReminderScheduleAdminNotificationTags
+	| SalesRequestPackingTags
+	| SimpleSalesEmailReminderTags;
+
+export type ActivityTagName =
+	| NoteTagNames
+	| Extract<KeysOfUnion<KnownNotificationActivityTags>, string>;
+
+export type ActivityTagFilter =
+	| {
+			tagName: ActivityTagName;
+			tagValue: unknown;
+	  }
+	| {
+			tagName: ActivityTagName;
+			tagValues: unknown[];
+	  }
+	| {
+			tagNames: ActivityTagName[];
+			tagValue: unknown;
+	  }
+	| {
+			tagNames: ActivityTagName[];
+			tagValues: unknown[];
+	  };
+
+export type ActivityTagFilterNode =
+	| ActivityTagFilter
+	| {
+			op: "and" | "or";
+			filters: ActivityTagFilterNode[];
+	  };
 
 export type GetActivityTreeQuery = {
 	contactIds?: number[];
 	status?: NoteStatus[];
 	tagFilters?: ActivityTagFilter[];
 	tagFilterMode?: "all" | "any";
+	filter?: ActivityTagFilterNode;
 	pageSize?: number;
 	includeChildren?: boolean;
 	maxDepth?: number;
@@ -48,12 +146,43 @@ export type GetActivityTagSuggestionsQuery = {
 	status?: NoteStatus[];
 	tagFilters?: ActivityTagFilter[];
 	tagFilterMode?: "all" | "any";
+	filter?: ActivityTagFilterNode;
 	channels?: string[];
 	tagName?: string;
 	q?: string;
 	limitPerTag?: number;
 	maxRows?: number;
 };
+
+export function activityTag(tagName: ActivityTagName, tagValue: unknown) {
+	return { tagName, tagValue } as const;
+}
+
+export function activityTagIn(tagName: ActivityTagName, tagValues: unknown[]) {
+	return { tagName, tagValues } as const;
+}
+
+export function activityAnyTag(
+	tagNames: ActivityTagName[],
+	tagValue: unknown,
+) {
+	return { tagNames, tagValue } as const;
+}
+
+export function activityAnyTagIn(
+	tagNames: ActivityTagName[],
+	tagValues: unknown[],
+) {
+	return { tagNames, tagValues } as const;
+}
+
+export function activityAnd(filters: ActivityTagFilterNode[]) {
+	return { op: "and", filters } as const;
+}
+
+export function activityOr(filters: ActivityTagFilterNode[]) {
+	return { op: "or", filters } as const;
+}
 
 function mapActivity(row: {
 	id: number;
@@ -190,22 +319,90 @@ async function attachSenderNames(db: Db, rows: ActivityRow[]) {
 	});
 }
 
-function buildTagWhereClause(
-	tagFilters: ActivityTagFilter[] | undefined,
-	tagFilterMode: "all" | "any",
-) {
-	if (!tagFilters?.length) return undefined;
+function isGroupFilter(
+	filter: ActivityTagFilterNode,
+): filter is Extract<ActivityTagFilterNode, { op: "and" | "or" }> {
+	return "op" in filter;
+}
 
-	const clauses = tagFilters.map((filter) => ({
+function buildSingleTagClause(tagName: ActivityTagName, tagValue: unknown) {
+	return {
 		tags: {
 			some: {
-				tagName: filter.tagName,
-				tagValue: serializeTagValue(filter.tagValue),
+				tagName,
+				tagValue: serializeTagValue(tagValue),
 			},
 		},
-	}));
+	};
+}
 
-	return tagFilterMode === "any" ? { OR: clauses } : { AND: clauses };
+function buildSingleTagInClause(
+	tagName: ActivityTagName,
+	tagValues: unknown[],
+) {
+	return {
+		tags: {
+			some: {
+				tagName,
+				tagValue: {
+					in: tagValues.map((value) => serializeTagValue(value)),
+				},
+			},
+		},
+	};
+}
+
+function buildLeafTagWhereClause(filter: ActivityTagFilter) {
+	if ("tagName" in filter && "tagValue" in filter) {
+		return buildSingleTagClause(filter.tagName, filter.tagValue);
+	}
+
+	if ("tagName" in filter && "tagValues" in filter) {
+		return buildSingleTagInClause(filter.tagName, filter.tagValues);
+	}
+
+	if ("tagNames" in filter && "tagValue" in filter) {
+		return {
+			OR: filter.tagNames.map((tagName) =>
+				buildSingleTagClause(tagName, filter.tagValue),
+			),
+		};
+	}
+
+	return {
+		OR: filter.tagNames.map((tagName) =>
+			buildSingleTagInClause(tagName, filter.tagValues),
+		),
+	};
+}
+
+function buildTagWhereClause(
+	filter?: ActivityTagFilterNode,
+	tagFilters?: ActivityTagFilter[],
+	tagFilterMode: "all" | "any" = "all",
+) {
+	const normalizedFilter =
+		filter ??
+		(tagFilters?.length
+			? {
+					op: tagFilterMode === "any" ? "or" : "and",
+					filters: tagFilters,
+				}
+			: undefined);
+
+	if (!normalizedFilter) return undefined;
+
+	if (!isGroupFilter(normalizedFilter)) {
+		return buildLeafTagWhereClause(normalizedFilter);
+	}
+
+	const clauses = normalizedFilter.filters
+		.map((child) => buildTagWhereClause(child))
+		.filter(Boolean);
+
+	if (!clauses.length) return undefined;
+
+	return normalizedFilter.op === "or" ? { OR: clauses } : { AND: clauses };
 }
 
 function buildChannelTagWhere(channels?: string[]) {
@@ -303,7 +500,11 @@ export async function getActivityTree(db: Db, query: GetActivityTreeQuery) {
 	const maxDepth = query.maxDepth ?? 4;
 
 	const recipientsWhere = createRecipientsWhere(query);
-	const tagWhere = buildTagWhereClause(query.tagFilters, tagFilterMode);
+	const tagWhere = buildTagWhereClause(
+		query.filter,
+		query.tagFilters,
+		tagFilterMode,
+	);
 	const channelWhere = buildChannelTagWhere();
 
 	const rootRows = await db.notePad.findMany({
@@ -442,7 +643,11 @@ export async function getActivityTagSuggestions(
 	const q = query.q?.trim();
 
 	const recipientsWhere = createRecipientsWhere(query);
-	const tagWhere = buildTagWhereClause(query.tagFilters, tagFilterMode);
+	const tagWhere = buildTagWhereClause(
+		query.filter,
+		query.tagFilters,
+		tagFilterMode,
+	);
 	const channelWhere = buildChannelTagWhere(query.channels);
 
 	const rows = await db.noteTags.findMany({

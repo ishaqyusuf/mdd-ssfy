@@ -1,38 +1,52 @@
-import { queryParams } from "@/app-deps/(v1)/_actions/action-utils";
-import { Metadata } from "next";
-import PageHeader from "@/components/_v1/page-header";
-
-import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
-import { BreadLink } from "@/components/_v1/breadcrumbs/links";
-
-import CommunityInvoiceTableShell from "@/components/_v1/shells/community-invoice-table-shell";
-import { getHomeInvoices } from "@/app-deps/(v1)/_actions/community-invoice/get-invoices";
-import EditInvoiceModal from "@/components/_v1/modals/edit-invoice-modal";
 import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
+import { ErrorFallback } from "@/components/error-fallback";
+import { UnitInvoicesHeader } from "@/components/unit-invoices-header";
+import { UnitInvoiceModal } from "@/components/modals/unit-invoice-modal";
+import { TableSkeleton } from "@/components/tables/skeleton";
+import { DataTable } from "@/components/tables/unit-invoices/data-table";
+import { loadSortParams } from "@/hooks/use-sort-params";
+import { loadUnitInvoiceFilterParams } from "@/hooks/use-unit-invoices-filter-params";
+import { batchPrefetch, trpc } from "@/trpc/server";
 import { PageTitle } from "@gnd/ui/custom/page-title";
+import { constructMetadata } from "@gnd/utils/construct-metadata";
+import { SearchParams } from "nuqs";
+import { ErrorBoundary } from "next/dist/client/components/error-boundary";
+import { Suspense } from "react";
 
-export const metadata: Metadata = {
-    title: "All Unit Invoices",
-};
-interface Props {}
-export default async function InvoicesPage(props) {
-    const searchParams = await props.searchParams;
-    const response = await getHomeInvoices(queryParams({ ...searchParams }));
-    // metadata.title = `${project.title} | Homes`;
-
-    return (
-        <AuthGuard can={["viewInvoice"]}>
-            <div className="space-y-4 px-8">
-                <PageTitle>Unit Invoices</PageTitle>
-                <CommunityInvoiceTableShell
-                    projectView={false}
-                    searchParams={searchParams}
-                    data={response.data as any}
-                    pageInfo={response.pageInfo}
-                />
-                <EditInvoiceModal />
-            </div>
-        </AuthGuard>
-    );
+export async function generateMetadata() {
+  return constructMetadata({
+    title: "Unit Invoices | GND",
+  });
 }
 
+type Props = {
+  searchParams: Promise<SearchParams>;
+};
+
+export default async function Page(props: Props) {
+  const searchParams = await props.searchParams;
+  const filter = loadUnitInvoiceFilterParams(searchParams);
+  const { sort } = loadSortParams(searchParams);
+
+  batchPrefetch([
+    trpc.community.getUnitInvoices.infiniteQueryOptions({
+      ...(filter as any),
+      sort,
+    }),
+  ]);
+
+  return (
+    <AuthGuard can={["viewInvoice"]}>
+      <div className="flex flex-col gap-6">
+        <PageTitle>Unit Invoices</PageTitle>
+        <UnitInvoicesHeader />
+        <ErrorBoundary errorComponent={ErrorFallback}>
+          <Suspense fallback={<TableSkeleton />}>
+            <DataTable />
+          </Suspense>
+        </ErrorBoundary>
+        <UnitInvoiceModal />
+      </div>
+    </AuthGuard>
+  );
+}

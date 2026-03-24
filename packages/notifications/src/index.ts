@@ -49,11 +49,19 @@ import { salesReminderScheduleAdminNotification } from "./types/sales-reminder-s
 import { salesRequestPacking } from "./types/sales-request-packing";
 import { simpleSalesEmailReminder } from "./types/simple-sales-email-reminder";
 export {
+	activityAnd,
+	activityAnyTag,
+	activityAnyTagIn,
+	activityOr,
+	activityTag,
+	activityTagIn,
 	getActivityTree,
 	getActivityTagSuggestions,
+	type ActivityTagFilterNode,
 	type ActivityTreeNode,
 	type ActivityTagSuggestion,
 	type ActivityTagFilter,
+	type ActivityTagName,
 	type GetActivityTreeQuery,
 	type GetActivityTagSuggestionsQuery,
 } from "./activity-tree";

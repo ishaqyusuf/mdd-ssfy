@@ -12,6 +12,35 @@ import {
 import { channelNames } from "@notifications/channels";
 import { Notifications } from "@notifications/index";
 
+const activityTagFilterLeafSchema = z.union([
+  z.object({
+    tagName: z.string().min(1),
+    tagValue: z.any(),
+  }),
+  z.object({
+    tagName: z.string().min(1),
+    tagValues: z.array(z.any()),
+  }),
+  z.object({
+    tagNames: z.array(z.string().min(1)).min(1),
+    tagValue: z.any(),
+  }),
+  z.object({
+    tagNames: z.array(z.string().min(1)).min(1),
+    tagValues: z.array(z.any()),
+  }),
+]);
+
+const activityTagFilterNodeSchema: z.ZodTypeAny = z.lazy(() =>
+  z.union([
+    activityTagFilterLeafSchema,
+    z.object({
+      op: z.enum(["and", "or"]),
+      filters: z.array(activityTagFilterNodeSchema).min(1),
+    }),
+  ]),
+);
+
 export const notesRouter = createTRPCRouter({
   getNotificationChannels: publicProcedure
     .input(getNotificationChannelsSchema)
@@ -210,15 +239,9 @@ export const notesRouter = createTRPCRouter({
       z.object({
         contactIds: z.array(z.number()).optional(),
         status: z.array(z.enum(["unread", "read", "archived"])).optional(),
-        tagFilters: z
-          .array(
-            z.object({
-              tagName: z.string().min(1),
-              tagValue: z.any(),
-            }),
-          )
-          .optional(),
+        tagFilters: z.array(activityTagFilterLeafSchema).optional(),
         tagFilterMode: z.enum(["all", "any"]).optional(),
+        filter: activityTagFilterNodeSchema.optional(),
         pageSize: z.number().int().min(1).max(200).optional(),
         includeChildren: z.boolean().optional(),
         maxDepth: z.number().int().min(1).max(10).optional(),
@@ -232,15 +255,9 @@ export const notesRouter = createTRPCRouter({
       z.object({
         contactIds: z.array(z.number()).optional(),
         status: z.array(z.enum(["unread", "read", "archived"])).optional(),
-        tagFilters: z
-          .array(
-            z.object({
-              tagName: z.string().min(1),
-              tagValue: z.any(),
-            }),
-          )
-          .optional(),
+        tagFilters: z.array(activityTagFilterLeafSchema).optional(),
         tagFilterMode: z.enum(["all", "any"]).optional(),
+        filter: activityTagFilterNodeSchema.optional(),
         channels: z.array(z.string()).optional(),
         tagName: z.string().optional(),
         q: z.string().optional(),
