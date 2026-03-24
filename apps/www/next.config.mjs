@@ -1,7 +1,12 @@
 import { withSentryConfig } from "@sentry/nextjs";
 /** @type {import('next').NextConfig} */
 const config = {
-    allowedDevOrigins: ["gndprodesk.test", "localhost", "127.0.0.1"],
+    allowedDevOrigins: [
+        "gndprodesk.test",
+        "gndprodesk.localhost",
+        "localhost",
+        "127.0.0.1",
+    ],
     transpilePackages: [
         "@gnd/ui",
         "@gnd/printer",
