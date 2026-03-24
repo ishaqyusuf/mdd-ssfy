@@ -88,7 +88,7 @@ export function InstallConfiguration() {
                         <Table.Row>
                             <Table.Head>Install Cost Item</Table.Head>
                             <Table.Head>Status</Table.Head>
-                            <Table.Head>Max Qty</Table.Head>
+                            <Table.Head className="w-28">Max Qty</Table.Head>
                             <Table.Head>Est.</Table.Head>
                             <Table.Head></Table.Head>
                         </Table.Row>
@@ -223,7 +223,7 @@ function Line({
                 <InputGroup>
                     <InputGroup.Input
                         value={maxQty}
-                        className="w-12"
+                        className="w-20"
                         // {...field}
                         onChange={(e) => {
                             const value = Number(e.target.value) || "";

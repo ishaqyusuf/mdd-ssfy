@@ -8,7 +8,6 @@ import { Metadata } from "next";
 import ModelForm from "@/app-deps/(v1)/(loggedIn)/settings/community/_components/model-form/model-form";
 import { getCommunityTemplate } from "@/app-deps/(v1)/(loggedIn)/settings/community/_components/home-template";
 import { PageTitle } from "@gnd/ui/custom/page-title";
-import { SidebarInset, SidebarProvider } from "@gnd/ui/sidebar";
 import { InstallCostSidebar } from "@/components/install-cost-sidebar";
 
 export const metadata: Metadata = {
@@ -23,28 +22,24 @@ export default async function Page(props) {
     }
     return (
         <AuthGuard can={["editProject"]}>
-            <SidebarProvider>
-                <SidebarInset>
-                    <DataPageShell
-                        data={{
-                            community: true,
-                        }}
-                        className="space-y-4 p-8"
-                    >
-                        <PageTitle>{response?.modelName}</PageTitle>
+            <DataPageShell
+                data={{
+                    community: true,
+                }}
+                className="space-y-4 p-8"
+            >
+                <PageTitle>{response?.modelName}</PageTitle>
 
-                        <ModelForm
-                            title={
-                                <div className="">
-                                    <span>Edit Community Model</span>
-                                </div>
-                            }
-                            data={response as any}
-                        />
-                    </DataPageShell>
-                </SidebarInset>
-                <InstallCostSidebar />
-            </SidebarProvider>
+                <ModelForm
+                    title={
+                        <div className="">
+                            <span>Edit Community Model</span>
+                        </div>
+                    }
+                    data={response as any}
+                />
+            </DataPageShell>
+            <InstallCostSidebar />
         </AuthGuard>
     );
 }
