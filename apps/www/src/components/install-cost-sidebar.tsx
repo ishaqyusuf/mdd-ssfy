@@ -8,37 +8,27 @@ import {
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { useBuilderParams } from "@/hooks/use-builder-params";
 import { Button } from "@gnd/ui/button";
-import { Sidebar } from "@gnd/ui/namespace";
 import { Icons } from "@gnd/ui/icons";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useEffect, useRef } from "react";
 import { BuilderTaskItem } from "./modals/model-install-cost-modal/builder-task-item";
 import { AddNewInstallCost } from "./modals/model-install-cost-modal/add-new-install-cost";
 import { InstallConfiguration } from "./modals/model-install-cost-modal/install-configuration";
-import { useSidebar } from "@gnd/ui/sidebar";
 import { Sheet, SheetContent } from "@gnd/ui/sheet";
 import { useMediaQuery } from "@gnd/ui/hooks";
 import { AlertTriangle } from "lucide-react";
+import { cn } from "@gnd/ui/cn";
 
 export function InstallCostSidebar() {
     const { editCommunityModelInstallCostId, openToSide, setParams } =
         useCommunityInstallCostParams();
     const { setParams: setBuilderParams } = useBuilderParams();
-    const { setOpen } = useSidebar();
     const isMdOrBelow = useMediaQuery("(max-width: 1023px)");
     const modelInstallCtx = useCreateModelInstallConfigContext();
     const builderModelInstallsCtx =
         useCreateBuilderModelInstallsContext(modelInstallCtx);
     const initializedModelIdRef = useRef<number | null>(null);
     const isPanelOpen = Boolean(openToSide && editCommunityModelInstallCostId);
-
-    useEffect(() => {
-        if (isMdOrBelow) {
-            setOpen(false);
-            return;
-        }
-        setOpen(isPanelOpen);
-    }, [isMdOrBelow, isPanelOpen, setOpen]);
 
     useEffect(() => {
         if (!openToSide || !editCommunityModelInstallCostId) {
@@ -221,14 +211,17 @@ export function InstallCostSidebar() {
     }
 
     return (
-        <Sidebar
-            side="right"
-            collapsible="offcanvas"
-            className="top-[var(--header-height)] h-[calc(100svh-var(--header-height))] border-l bg-background"
+        <div
+            className={cn(
+                "fixed right-0 z-30 border-l bg-background transition-transform duration-200 ease-in-out",
+                "top-[var(--header-height)] h-[calc(100svh-var(--header-height))]",
+                "w-[28rem]",
+                isPanelOpen ? "translate-x-0" : "translate-x-full",
+            )}
         >
-            <Sidebar.Content className="flex min-h-0 w-full max-w-sm flex-col overflow-hidden">
+            <div className="flex min-h-0 h-full w-full flex-col overflow-hidden">
                 {panelContent}
-            </Sidebar.Content>
-        </Sidebar>
+            </div>
+        </div>
     );
 }
