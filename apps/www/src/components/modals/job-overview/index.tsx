@@ -18,6 +18,10 @@ import { Skeleton } from "@gnd/ui/skeleton";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import { getInitials } from "@gnd/utils";
+import {
+	getInsuranceRequirement,
+	type InsuranceRequirement,
+} from "@gnd/utils/insurance-documents";
 import { formatDate } from "@gnd/utils/dayjs";
 import { Building2, CreditCard, MapPin, MessageSquare } from "lucide-react";
 import {
@@ -38,6 +42,41 @@ import { JobActivities } from "./job-activities";
 import { JobScope } from "./job-scope";
 import { PaymentOverviewModal } from "./payment-overview-modal";
 import { RejectedForm } from "./rejected-form";
+
+function getInsuranceMeta(status: InsuranceRequirement) {
+	switch (status.state) {
+		case "valid":
+			return {
+				label: "Insurance approved",
+				className: "text-emerald-600",
+			};
+		case "expiring_soon":
+			return {
+				label: "Insurance expiring soon",
+				className: "text-amber-600",
+			};
+		case "pending":
+			return {
+				label: "Insurance pending review",
+				className: "text-amber-600",
+			};
+		case "expired":
+			return {
+				label: "Insurance expired",
+				className: "text-red-600",
+			};
+		case "rejected":
+			return {
+				label: "Insurance rejected",
+				className: "text-red-600",
+			};
+		default:
+			return {
+				label: "Insurance missing",
+				className: "text-red-600",
+			};
+	}
+}
 
 export function JobOverviewModal() {
 	const { setParams, openJobId, opened } = useJobParams();
@@ -441,41 +480,56 @@ function JobOverviewActionsCard({
 									<Skeleton className="h-12 w-full rounded-lg" />
 								</div>
 							) : (
-								employeeResults.map((employee) => (
-									<button
-										key={employee.id}
-										type="button"
-										disabled={
-											isReAssigning || employee.id === Number(job?.user?.id)
-										}
-										onClick={() => {
-											if (!job?.id || !job?.user?.id) return;
-											reAssignJob({
-												jobId: job.id,
-												oldUserId: Number(job.user.id),
-												newUserId: employee.id,
-											});
-										}}
-										className="flex w-full items-center gap-3 rounded-lg border border-border bg-card p-3 text-left transition-all hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-60"
-									>
-										<div className="flex size-10 items-center justify-center rounded-full border border-primary/20 bg-primary/10 font-bold text-primary">
-											{getInitials(employee.name) || employee.name.charAt(0)}
-										</div>
-										<div className="flex-1">
-											<p className="text-sm font-semibold text-foreground">
-												{employee.name}
-											</p>
-											<p className="text-xs text-muted-foreground">
-												{employee.role}
-											</p>
-										</div>
-										{employee.id === Number(job?.user?.id) ? (
-											<span className="text-xs font-medium text-muted-foreground">
-												Current
-											</span>
-										) : null}
-									</button>
-								))
+								employeeResults.map((employee) => {
+									const insuranceStatus = getInsuranceRequirement(
+										employee.documents || [],
+									);
+									const insuranceMeta = getInsuranceMeta(insuranceStatus);
+
+									return (
+										<button
+											key={employee.id}
+											type="button"
+											disabled={
+												isReAssigning || employee.id === Number(job?.user?.id)
+											}
+											onClick={() => {
+												if (!job?.id || !job?.user?.id) return;
+												reAssignJob({
+													jobId: job.id,
+													oldUserId: Number(job.user.id),
+													newUserId: employee.id,
+												});
+											}}
+											className="flex w-full items-center gap-3 rounded-lg border border-border bg-card p-3 text-left transition-all hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-60"
+										>
+											<div className="flex size-10 items-center justify-center rounded-full border border-primary/20 bg-primary/10 font-bold text-primary">
+												{getInitials(employee.name) || employee.name.charAt(0)}
+											</div>
+											<div className="flex-1">
+												<p className="text-sm font-semibold text-foreground">
+													{employee.name}
+												</p>
+												<p className="text-xs text-muted-foreground">
+													{employee.role}
+												</p>
+												<p
+													className={`mt-1 text-xs font-medium ${insuranceMeta.className}`}
+												>
+													{insuranceMeta.label}
+												</p>
+												<p className="mt-1 text-xs text-muted-foreground">
+													{insuranceStatus.message}
+												</p>
+											</div>
+											{employee.id === Number(job?.user?.id) ? (
+												<span className="text-xs font-medium text-muted-foreground">
+													Current
+												</span>
+											) : null}
+										</button>
+									);
+								})
 							)}
 							{!isEmployeesPending && employeeResults.length === 0 ? (
 								<div className="rounded-lg border border-dashed border-border p-3 text-sm text-muted-foreground">

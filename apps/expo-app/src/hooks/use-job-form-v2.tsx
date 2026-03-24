@@ -11,6 +11,10 @@ import { isAdminUser } from "@/lib/job";
 import { getSessionProfile } from "@/lib/session-store";
 import { useTRPC } from "@/trpc/client";
 import { consoleLog, percentageValue, sum } from "@gnd/utils";
+import {
+  getInsuranceRequirement,
+  type InsuranceRequirement,
+} from "@gnd/utils/insurance-documents";
 import { skipToken, useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import {
@@ -23,6 +27,7 @@ import {
 } from "react";
 import { useWatch } from "react-hook-form";
 import { JobFormSchema, jobFormSchema } from "@community/schema";
+import { getFallbackInsuranceStatus } from "@/components/insurance/insurance-status-alert";
 
 export interface JobFormV2Props {
   admin?: boolean;
@@ -201,9 +206,19 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
       size: 100,
     }),
   );
+  const { data: profileData, isPending: isInsuranceStatusPending } = useQuery(
+    trpc.user.getProfile.queryOptions(undefined, {
+      enabled: !admin,
+    }),
+  );
   const { data: jobSettings } = useQuery(
     trpc.settings.getJobSettings.queryOptions(),
   );
+  const insuranceStatus: InsuranceRequirement | null = useMemo(() => {
+    if (admin) return null;
+    if (!profileData) return getFallbackInsuranceStatus();
+    return getInsuranceRequirement(profileData.documents || []);
+  }, [admin, profileData]);
 
   const { data: projectList, isPending: isProjectsPending } = useQuery(
     _trpc.community.projectsList.queryOptions(),
@@ -705,6 +720,20 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
   const handleSubmit = useCallback(() => {
     form.handleSubmit(
       () => {
+        if (!admin) {
+          if (isInsuranceStatusPending) {
+            Toast.show("Checking insurance status...", {
+              type: "info",
+            });
+            return;
+          }
+          if (insuranceStatus?.blocking) {
+            Toast.show(insuranceStatus.message, {
+              type: "error",
+            });
+            return;
+          }
+        }
         const payload = buildSaveJobFormPayload();
         if (!payload) {
           Toast.show("Unable to save job right now.", {
@@ -726,7 +755,14 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
         });
       },
     )();
-  }, [buildSaveJobFormPayload, form, saveJobForm]);
+  }, [
+    admin,
+    buildSaveJobFormPayload,
+    form,
+    insuranceStatus,
+    isInsuranceStatusPending,
+    saveJobForm,
+  ]);
 
   const requestTaskConfiguration = useCallback(() => {
     // setSavedData(null);
@@ -878,6 +914,8 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
     handleSubmit,
     isSaving,
     isReAssigning,
+    insuranceStatus,
+    isInsuranceStatusPending,
     isConfigRequestedStatus,
     // savedData,
     isRequestingTaskConfiguration: isSaving,

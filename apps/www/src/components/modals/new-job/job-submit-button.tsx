@@ -47,7 +47,7 @@ export function JobSubmitButton({
 						queryKey: trpc.jobs.overview.pathKey(),
 					}),
 				]);
-				setParams(null);
+				await setParams(null);
 				if (args?.requestTaskConfig) {
 					toast.success("Configuration requested and job saved.", {
 						description:
