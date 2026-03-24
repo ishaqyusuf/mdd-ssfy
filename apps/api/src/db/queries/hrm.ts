@@ -9,6 +9,11 @@ import type { TRPCContext } from "@api/trpc/init";
 import { hash } from "bcrypt-ts";
 import { padStart, formatMoney } from "@gnd/utils";
 import { formatDate } from "@gnd/utils/dayjs";
+import {
+	getInsuranceRequirement,
+	isInsuranceDocumentTitle,
+	parseInsuranceDocumentMeta,
+} from "@gnd/utils/insurance-documents";
 export async function getEmployees(
 	ctx: TRPCContext,
 	query: EmployeesQueryParams,
@@ -217,6 +222,8 @@ export async function getEmployeeOverview(ctx: TRPCContext, id: number) {
 					description: true,
 					url: true,
 					userId: true,
+					meta: true,
+					createdAt: true,
 				},
 				orderBy: { id: "desc" },
 			},
@@ -277,6 +284,7 @@ export async function getEmployeeOverview(ctx: TRPCContext, id: number) {
 	});
 
 	const roles = user.roles.map((r) => r.role.name);
+	const insuranceRequirement = getInsuranceRequirement(user.documents);
 
 	// Sales analytics — only if user has sales orders
 	const salesAnalytics =
@@ -356,6 +364,31 @@ export async function getEmployeeOverview(ctx: TRPCContext, id: number) {
 				}
 			: undefined;
 
+	const records = user.documents.map((doc) => {
+		const meta = parseInsuranceDocumentMeta(doc.meta);
+		const isInsuranceDocument = isInsuranceDocumentTitle(doc.title);
+
+		return {
+			id: doc.id,
+			type: isInsuranceDocument ? ("insurance" as const) : ("other" as const),
+			title: doc.title || "Document",
+			document: {
+				id: String(doc.id),
+				url: (meta.url as string | null | undefined) || doc.url,
+				filename: doc.title || undefined,
+			},
+			expiresAt: meta.expiresAt ?? undefined,
+			status: (meta.status ??
+				(isInsuranceDocument ? "pending" : "approved")) as
+				| "pending"
+				| "approved"
+				| "rejected",
+			approvedAt: meta.approvedAt ?? undefined,
+			notes: doc.description || undefined,
+			createdAt: doc.createdAt?.toISOString() || new Date().toISOString(),
+		};
+	});
+
 	return {
 		user: {
 			id: user.id,
@@ -371,18 +404,7 @@ export async function getEmployeeOverview(ctx: TRPCContext, id: number) {
 			contractor: contractorAnalytics,
 			production: productionAnalytics,
 		},
-		records: user.documents.map((doc) => ({
-			id: doc.id,
-			type: "other" as const,
-			title: doc.title || "Document",
-			document: {
-				id: String(doc.id),
-				url: doc.url,
-				filename: doc.title || undefined,
-			},
-			status: "approved" as const,
-			createdAt: new Date().toISOString(),
-		})),
-		insuranceStatus: "missing" as const,
+		records,
+		insuranceStatus: insuranceRequirement.state,
 	};
 }

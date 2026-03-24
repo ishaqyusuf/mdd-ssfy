@@ -1,6 +1,10 @@
 import createContextFactory from "@/utils/context-factory";
 import { useAuth } from "./use-auth";
-import { getLinkModules, validateLinks } from "@/components/sidebar/links";
+import {
+    getActiveLinkFromMap,
+    getLinkModules,
+    validateLinks,
+} from "@/components/sidebar/links";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -19,14 +23,10 @@ export const { Provider: SidebarProvider, useContext: useSidebar } =
 
         const pathName = usePathname();
         const { activeLink, modules, currentModule } = useMemo(() => {
-            const activeLink = Object.entries(
-                linkModules.linksNameMap || {}
-            ).find(([href, data]) =>
-                data.match == "part"
-                    ? pathName?.toLocaleLowerCase()?.startsWith(href)
-                    : href?.toLocaleLowerCase() ===
-                      pathName?.toLocaleLowerCase()
-            )?.["1"];
+            const activeLink = getActiveLinkFromMap(
+                pathName,
+                linkModules.linksNameMap
+            );
             const modules = linkModules?.modules
                 ?.filter((a) => a.activeLinkCount && a?.name)
                 .map((module) => {
@@ -77,4 +77,3 @@ export function useLinks() {
     );
     return linkModules;
 }
-

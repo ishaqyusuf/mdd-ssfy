@@ -5,7 +5,7 @@ import z from "zod";
 import { SidebarProvider, useSidebar as useBaseSidebar } from "@gnd/ui/sidebar";
 
 import { useSidebarStore } from "./store";
-import { getLinkModules } from "./links";
+import { getActiveLinkFromMap, getLinkModules } from "./links";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
@@ -67,13 +67,10 @@ const { useContext: useSidebar, Provider: SidebarContext } =
         const pathName = usePathname();
         const [activeLink, setActiveLink] = useState<{ name?; module? }>({});
         useEffect(() => {
-            const active = Object.entries(linkModules.linksNameMap || {}).find(
-                ([href, data]) =>
-                    data.match == "part"
-                        ? pathName?.toLocaleLowerCase()?.startsWith(href)
-                        : href?.toLocaleLowerCase() ===
-                          pathName?.toLocaleLowerCase()
-            )?.["1"];
+            const active = getActiveLinkFromMap(
+                pathName,
+                linkModules.linksNameMap
+            );
             setActiveLink(active || {});
         }, [pathName, linkModules]);
 

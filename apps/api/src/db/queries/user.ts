@@ -182,12 +182,50 @@ export async function saveUserDocument(
 	ctx: TRPCContext,
 	data: {
 		id?: number | null;
+		userId?: number | null;
 		title: string;
 		url: string;
 		description?: string | null;
 		expiresAt?: string | null;
 	},
 ) {
+	if (!ctx.userId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "You must be signed in to upload documents.",
+		});
+	}
+
+	const targetUserId = data.userId ?? ctx.userId;
+	const actingOnAnotherUser = targetUserId !== ctx.userId;
+	const authUser = await getAuthUser(ctx);
+
+	if (actingOnAnotherUser) {
+		const session = await auth(ctx);
+		const roleName = session.role?.name ?? "";
+		const canManageEmployeeDocuments =
+			session.can?.reviewEmployeeDocument ||
+			roleName === "Admin" ||
+			roleName === "Super Admin";
+
+		if (!canManageEmployeeDocuments) {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "You do not have permission to upload documents for employees.",
+			});
+		}
+	}
+
+	const targetUser = actingOnAnotherUser
+		? await ctx.db.users.findFirstOrThrow({
+				where: { id: targetUserId },
+				select: {
+					id: true,
+					name: true,
+				},
+			})
+		: authUser;
+
 	const docMeta: Record<string, unknown> = {};
 	if (data.expiresAt) {
 		docMeta.expiresAt = data.expiresAt;
@@ -214,20 +252,12 @@ export async function saveUserDocument(
 		});
 	}
 
-	if (!ctx.userId) {
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "You must be signed in to upload documents.",
-		});
-	}
-	const authUser = await getAuthUser(ctx);
-
 	const createdDocument = await ctx.db.userDocuments.create({
 		data: {
 			title: data.title,
 			description: data.description,
 			url: data.url,
-			userId: ctx.userId,
+			userId: targetUserId,
 			meta: docMeta,
 		},
 		select: {
@@ -245,8 +275,8 @@ export async function saveUserDocument(
 			"employee_document_review",
 			{
 				documentId: createdDocument.id,
-				userId: ctx.userId,
-				userName: authUser.name ?? "Employee",
+				userId: targetUserId,
+				userName: targetUser.name ?? "Employee",
 				documentTitle: createdDocument.title || data.title,
 				documentUrl: createdDocument.url,
 				description: createdDocument.description,
@@ -260,13 +290,13 @@ export async function saveUserDocument(
 								| undefined)
 						: null) ?? null,
 			},
-			{
-				author: {
-					id: ctx.userId,
-					role: "employee",
+				{
+					author: {
+						id: ctx.userId,
+						role: "employee",
+					},
 				},
-			},
-		);
+			);
 	}
 
 	return {

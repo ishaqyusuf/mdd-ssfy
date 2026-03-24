@@ -3,6 +3,8 @@ import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cos
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { useJobRole } from "@/hooks/use-job-role";
 import { Button } from "@gnd/ui/button";
+import { Label } from "@gnd/ui/label";
+import { Textarea } from "@gnd/ui/textarea";
 import { AlertTriangle, Clock, Wrench } from "lucide-react";
 import { JobSubmitButton } from "./job-submit-button";
 
@@ -11,6 +13,7 @@ export function MissingTasksConfig({ form }) {
 	const { isAdmin } = useJobRole();
 	const { setParams: setInstallCostParams } = useCommunityInstallCostParams();
 	const { setParams: setJobFormParams, ...jobFormParams } = useJobFormParams();
+	const jobDetails = form.watch("job.description");
 
 	const jobPayload = {
 		step: jobFormParams.step ?? null,
@@ -68,13 +71,34 @@ export function MissingTasksConfig({ form }) {
 						Configure Task
 					</Button>
 				) : (
-					<JobSubmitButton
-						Trigger="Request Configuration & Save Draft"
-						size="lg"
-						className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-base shadow-lg shadow-amber-200 dark:shadow-none transition-all flex items-center justify-center gap-2"
-						form={form}
-						submitAsTaskRequest
-					/>
+					<div className="space-y-4">
+						<div className="space-y-2 text-left">
+							<Label
+								htmlFor="request-task-config-details"
+								className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-200"
+							>
+								Add Job Details
+							</Label>
+							<Textarea
+								id="request-task-config-details"
+								placeholder="Describe the work needed, measurements, special instructions, or anything admin should know before configuring this install task."
+								className="min-h-28 border-amber-200 bg-white/90 text-sm text-foreground placeholder:text-muted-foreground dark:border-amber-800 dark:bg-background"
+								{...form.register("job.description")}
+							/>
+							<p className="text-[11px] text-amber-800 dark:text-amber-300">
+								Add a quick job summary so the install task can be configured
+								correctly.
+							</p>
+						</div>
+						<JobSubmitButton
+							Trigger="Request Configuration & Save Draft"
+							size="lg"
+							className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-base shadow-lg shadow-amber-200 dark:shadow-none transition-all flex items-center justify-center gap-2"
+							form={form}
+							submitAsTaskRequest
+							disabled={!jobDetails?.trim()}
+						/>
+					</div>
 				)}
 				<div className="flex items-start gap-2 text-left p-3 bg-white/50 dark:bg-black/20 rounded-lg border border-amber-100 dark:border-amber-900/30">
 					<Clock className="text-amber-500 shrink-0 size-4 mt-0.5" />

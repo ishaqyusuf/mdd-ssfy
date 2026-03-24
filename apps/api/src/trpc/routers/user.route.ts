@@ -59,6 +59,7 @@ export const userRoutes = createTRPCRouter({
 		.input(
 			z.object({
 				id: z.number().optional().nullable(),
+				userId: z.number().optional().nullable(),
 				title: z.string().min(1),
 				url: z.string().min(1),
 				description: z.string().optional().nullable(),

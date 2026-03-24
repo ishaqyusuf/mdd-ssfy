@@ -11,15 +11,23 @@ interface EmployeeInfoHeaderProps {
 	email?: string;
 	phone?: string;
 	roles: string[];
-	insuranceStatus: "valid" | "expired" | "missing" | "pending";
+	insuranceStatus:
+		| "valid"
+		| "expiring_soon"
+		| "expired"
+		| "missing"
+		| "pending"
+		| "rejected";
 	profile?: string;
 }
 
 const insuranceIcons = {
 	valid: ShieldCheck,
+	expiring_soon: ShieldAlert,
 	expired: ShieldAlert,
 	missing: ShieldQuestion,
 	pending: ShieldQuestion,
+	rejected: ShieldAlert,
 };
 
 const insuranceVariants: Record<
@@ -27,9 +35,11 @@ const insuranceVariants: Record<
 	"default" | "destructive" | "secondary" | "outline"
 > = {
 	valid: "default",
+	expiring_soon: "secondary",
 	expired: "destructive",
 	missing: "secondary",
 	pending: "outline",
+	rejected: "destructive",
 };
 
 export function EmployeeInfoHeader({
@@ -58,7 +68,7 @@ export function EmployeeInfoHeader({
 						className="flex items-center gap-1 text-xs"
 					>
 						<InsuranceIcon className="h-3 w-3" />
-						Insurance: {insuranceStatus}
+						Insurance: {insuranceStatus.replace("_", " ")}
 					</Badge>
 				</div>
 				{email && <p className="text-sm text-muted-foreground">{email}</p>}

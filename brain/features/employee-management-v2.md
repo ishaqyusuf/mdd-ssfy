@@ -219,6 +219,7 @@ Current bridge implementation in legacy contractor flows:
 - Insurance uploads save into `Users.documents` with approval metadata in `meta.status`.
 - Super admins review those uploads from `/hrm/document-approvals`.
 - Access to the approval queue is protected by the `reviewEmployeeDocument` permission.
+- Admin and Super Admin users can upload a document directly from employee overview on behalf of the employee.
 - Web contractor job submission blocks when insurance is missing, pending, rejected, or expired.
 
 ---
@@ -248,6 +249,10 @@ Adds above the existing table:
 │  (role-specific analytics chart + recent items) │
 └─────────────────────────────────────────────────┘
 ```
+
+Admin affordances:
+- Records tab includes an upload action for Admin and Super Admin users.
+- Upload-on-behalf saves to the viewed employee, refreshes the overview query, and pushes insurance documents into the normal pending-review workflow.
 
 ---
 
