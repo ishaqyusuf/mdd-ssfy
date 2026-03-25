@@ -1,7 +1,6 @@
 "use client";
 
 import { JobOverviewModal } from "@/components/modals/job-overview";
-import { getPaymentPortalColumns } from "@/components/payment-dashboard/columns";
 import { useJobParams } from "@/hooks/use-contractor-jobs-params";
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
@@ -15,8 +14,6 @@ import {
 	CardTitle,
 } from "@gnd/ui/card";
 import { Checkbox } from "@gnd/ui/checkbox";
-import { Table } from "@gnd/ui/data-table";
-import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 import { ScrollArea } from "@gnd/ui/scroll-area";
@@ -170,11 +167,6 @@ export function PaymentPortal() {
 		(selectedTotal * (chargePercentage / 100)).toFixed(2),
 	);
 	const totalPayout = Number((selectedTotal - discountValue).toFixed(2));
-	const tableScroll = useTableScroll({
-		useColumnWidths: true,
-		startFromColumn: 2,
-	});
-
 	const createPaymentMutation = useMutation(
 		trpc.jobs.createPaymentPortal.mutationOptions({
 			onSuccess: async (data) => {
@@ -252,27 +244,6 @@ export function PaymentPortal() {
 		}),
 	);
 
-	const reviewColumns = useMemo(
-		() =>
-			getPaymentPortalColumns({
-				mode: isPendingReviewMode ? "review" : "payment",
-				onApprove: (jobId) =>
-					reviewMutation.mutate({
-						action: "approve",
-						jobId,
-						note: "Approved from payment portal.",
-					}),
-				onReject: (jobId) =>
-					reviewMutation.mutate({
-						action: "reject",
-						jobId,
-						note: "Rejected from payment portal.",
-					}),
-				isReviewPending: reviewMutation.isPending,
-			}),
-		[isPendingReviewMode, reviewMutation, reviewMutation.isPending],
-	);
-
 	const canSubmitPayment =
 		!!selectedContractorId &&
 		selectedJobIds.length > 0 &&
@@ -303,6 +274,17 @@ export function PaymentPortal() {
 						: "Rejected from payment portal.",
 			});
 		}
+	};
+
+	const handleRowReview = (jobId: number, action: "approve" | "reject") => {
+		reviewMutation.mutate({
+			action,
+			jobId,
+			note:
+				action === "approve"
+					? "Approved from payment portal."
+					: "Rejected from payment portal.",
+		});
 	};
 
 	return (
@@ -366,7 +348,7 @@ export function PaymentPortal() {
 											>
 												<div className="flex items-start justify-between gap-2">
 													<div className="min-w-0 flex-1">
-														<p className="truncate text-sm font-medium text-foreground">
+														<p className="max-w-full truncate text-sm font-medium text-foreground">
 															{contractor.name}
 														</p>
 														<p className="truncate text-xs text-muted-foreground">
@@ -393,7 +375,7 @@ export function PaymentPortal() {
 													<p className="min-w-0 truncate text-[11px] text-muted-foreground">
 														{contractor.lastProjectTitle
 															? `Recent project: ${contractor.lastProjectTitle}`
-															: contractor.insurance.message}
+															: "No recent project yet"}
 													</p>
 													<p className="shrink-0 text-sm font-semibold text-foreground">
 														{formatCurrency(contractor.totalPay)}
@@ -612,154 +594,30 @@ export function PaymentPortal() {
 								) : !jobs.length ? (
 									<EmptyPortalState text="No payable jobs match the current filters." />
 								) : (
-									<>
-										<div className="hidden md:block">
-											<Table.Provider
-												args={[
-													{
-														columns: reviewColumns,
-														data: jobs,
-														checkbox: true,
-														rowSelection,
-														setRowSelection,
-														tableScroll,
-														tableMeta: {
-															rowClick: (_id, rowData) => {
-																setParams({
-																	openJobId: rowData.id,
-																});
-															},
-														},
-													},
-												]}
-											>
-												<div
-													ref={tableScroll.containerRef}
-													className="w-full min-w-0 max-w-full overflow-x-auto rounded-2xl border"
-												>
-													<Table>
-														<Table.TableHeader />
-														<Table.Body>
-															<Table.TableRow />
-														</Table.Body>
-													</Table>
-												</div>
-											</Table.Provider>
-										</div>
-
-										<div className="flex flex-col gap-3 md:hidden">
-											{jobs.map((job) => {
-												const checked = !!rowSelection[String(job.id)];
-												const canReviewThisJob = canSelectForReview(job);
-												const canPayThisJob = canSelectJob(job);
-
-												return (
-													<button
-														type="button"
-														key={job.id}
-														onClick={() => {
-															setParams({
-																openJobId: job.id,
-															});
-														}}
-														className="w-full min-w-0 rounded-2xl border p-4 text-left"
-													>
-														<div className="flex items-start gap-3">
-															<Checkbox
-																checked={checked}
-																disabled={
-																	isPendingReviewMode
-																		? !canReviewThisJob
-																		: !canPayThisJob
-																}
-																onClick={(event) => event.stopPropagation()}
-																onCheckedChange={(value) =>
-																	setRowSelection((current) => ({
-																		...current,
-																		[String(job.id)]: !!value,
-																	}))
-																}
-															/>
-															<div className="min-w-0 flex-1">
-																<div className="flex items-start justify-between gap-3">
-																	<div className="min-w-0 flex-1">
-																		<p className="truncate font-medium text-foreground">
-																			{job.title}
-																			{job.subtitle ? ` - ${job.subtitle}` : ""}
-																		</p>
-																		<p className="truncate text-sm text-muted-foreground">
-																			{job.project?.title || "Unknown project"}
-																		</p>
-																	</div>
-																	<Badge variant="secondary">
-																		{job.status}
-																	</Badge>
-																</div>
-																<div className="mt-3 flex min-w-0 items-center justify-between gap-3 text-sm">
-																	<p className="min-w-0 truncate text-muted-foreground">
-																		{job.home?.lotBlock || "No lot"} •{" "}
-																		{job.home?.modelName || "No model"}
-																	</p>
-																	<p className="font-semibold">
-																		{formatCurrency(job.amount)}
-																	</p>
-																</div>
-																<p className="mt-2 text-xs text-muted-foreground">
-																	{job.paymentStage === "pending-review"
-																		? "Open this job to review and approve it before payment."
-																		: job.paymentStage === "ready-to-pay"
-																			? "Ready to include in the next payout batch."
-																			: "This job is not payable yet."}
-																</p>
-																{isPendingReviewMode && canReviewThisJob ? (
-																	<div className="mt-3 flex items-center gap-2">
-																		<Button
-																			size="sm"
-																			variant="outline"
-																			onClick={(event) => {
-																				event.stopPropagation();
-																				reviewMutation.mutate({
-																					action: "reject",
-																					jobId: job.id,
-																					note: "Rejected from payment portal.",
-																				});
-																			}}
-																			disabled={reviewMutation.isPending}
-																		>
-																			Reject
-																		</Button>
-																		<Button
-																			size="sm"
-																			onClick={(event) => {
-																				event.stopPropagation();
-																				reviewMutation.mutate({
-																					action: "approve",
-																					jobId: job.id,
-																					note: "Approved from payment portal.",
-																				});
-																			}}
-																			disabled={reviewMutation.isPending}
-																		>
-																			Approve
-																		</Button>
-																	</div>
-																) : null}
-																<p className="mt-2 text-xs text-muted-foreground">
-																	Created{" "}
-																	{job.createdAt
-																		? format(
-																				new Date(job.createdAt),
-																				"MMM d, yyyy",
-																			)
-																		: "N/A"}
-																</p>
-															</div>
-														</div>
-													</button>
-												);
-											})}
-										</div>
-									</>
+									<div className="flex flex-col gap-3">
+										{jobs.map((job) => (
+											<JobListItem
+												key={job.id}
+												job={job}
+												checked={!!rowSelection[String(job.id)]}
+												isPendingReviewMode={isPendingReviewMode}
+												isReviewPending={reviewMutation.isPending}
+												onOpen={() => {
+													setParams({
+														openJobId: job.id,
+													});
+												}}
+												onCheckedChange={(value) =>
+													setRowSelection((current) => ({
+														...current,
+														[String(job.id)]: value,
+													}))
+												}
+												onApprove={() => handleRowReview(job.id, "approve")}
+												onReject={() => handleRowReview(job.id, "reject")}
+											/>
+										))}
+									</div>
 								)}
 							</div>
 						</ScrollArea>
@@ -834,6 +692,125 @@ function InlineMetric({
 				{value}
 			</p>
 		</div>
+	);
+}
+
+function JobListItem({
+	job,
+	checked,
+	isPendingReviewMode,
+	isReviewPending,
+	onOpen,
+	onCheckedChange,
+	onApprove,
+	onReject,
+}: {
+	job: {
+		id: number;
+		title?: string | null;
+		subtitle?: string | null;
+		project?: { title?: string | null } | null;
+		home?: { lotBlock?: string | null; modelName?: string | null } | null;
+		status?: string | null;
+		amount?: number | null;
+		createdAt?: Date | string | null;
+		paymentStage?: string | null;
+	};
+	checked: boolean;
+	isPendingReviewMode: boolean;
+	isReviewPending: boolean;
+	onOpen: () => void;
+	onCheckedChange: (value: boolean) => void;
+	onApprove: () => void;
+	onReject: () => void;
+}) {
+	const canReviewThisJob = canSelectForReview(job);
+	const canPayThisJob = canSelectJob(job);
+
+	return (
+		<button
+			type="button"
+			onClick={onOpen}
+			className="w-full min-w-0 rounded-2xl border bg-background p-4 text-left transition hover:border-primary/30 hover:bg-muted/20"
+		>
+			<div className="flex items-start gap-3">
+				<Checkbox
+					checked={checked}
+					disabled={isPendingReviewMode ? !canReviewThisJob : !canPayThisJob}
+					onClick={(event) => event.stopPropagation()}
+					onCheckedChange={(value) => onCheckedChange(!!value)}
+				/>
+				<div className="min-w-0 flex-1">
+					<div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+						<div className="min-w-0 flex-1">
+							<div className="flex min-w-0 flex-col gap-1 md:flex-row md:items-center md:gap-2">
+								<p className="truncate font-medium text-foreground">
+									{job.title}
+									{job.subtitle ? ` - ${job.subtitle}` : ""}
+								</p>
+								<Badge variant="secondary" className="w-fit shrink-0">
+									{job.status}
+								</Badge>
+							</div>
+							<p className="truncate text-sm text-muted-foreground">
+								{job.project?.title || "Unknown project"}
+							</p>
+						</div>
+						<p className="shrink-0 text-base font-semibold text-foreground">
+							{formatCurrency(job.amount)}
+						</p>
+					</div>
+
+					<div className="mt-3 grid gap-2 text-sm text-muted-foreground md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+						<p className="min-w-0 truncate">
+							{job.home?.lotBlock || "No lot"} •{" "}
+							{job.home?.modelName || "No model"}
+						</p>
+						<p className="text-xs">
+							Created{" "}
+							{job.createdAt
+								? format(new Date(job.createdAt), "MMM d, yyyy")
+								: "N/A"}
+						</p>
+					</div>
+
+					<div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+						<p className="text-xs text-muted-foreground">
+							{job.paymentStage === "pending-review"
+								? "Open this job to review and approve it before payment."
+								: job.paymentStage === "ready-to-pay"
+									? "Ready to include in the next payout batch."
+									: "This job is not payable yet."}
+						</p>
+						{isPendingReviewMode && canReviewThisJob ? (
+							<div className="flex items-center gap-2">
+								<Button
+									size="sm"
+									variant="outline"
+									onClick={(event) => {
+										event.stopPropagation();
+										onReject();
+									}}
+									disabled={isReviewPending}
+								>
+									Reject
+								</Button>
+								<Button
+									size="sm"
+									onClick={(event) => {
+										event.stopPropagation();
+										onApprove();
+									}}
+									disabled={isReviewPending}
+								>
+									Approve
+								</Button>
+							</div>
+						) : null}
+					</div>
+				</div>
+			</div>
+		</button>
 	);
 }
 
