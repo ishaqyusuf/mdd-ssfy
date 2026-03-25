@@ -43,30 +43,20 @@ function BulkReview({
 	const Icon = isApprove ? CheckCircle2 : XCircle;
 
 	function handleClick() {
-		let completed = 0;
 		for (const jobId of selectedIds) {
-			reviewMutation.mutate(
-				{
-					action,
-					jobId,
-					note: isApprove
-						? "Approved from contractor jobs list."
-						: "Rejected from contractor jobs list.",
-				},
-				{
-					onSuccess() {
-						completed++;
-						if (completed === selectedIds.length) {
-							toast({
-								variant: isApprove ? "success" : "destructive",
-								title: `${label}d ${selectedIds.length} job${selectedIds.length !== 1 ? "s" : ""}`,
-							});
-							onDone();
-						}
-					},
-				},
-			);
+			reviewMutation.mutate({
+				action,
+				jobId,
+				note: isApprove
+					? "Approved from contractor jobs list."
+					: "Rejected from contractor jobs list.",
+			});
 		}
+		toast({
+			variant: isApprove ? "success" : "destructive",
+			title: `${label} requested for ${selectedIds.length} job${selectedIds.length !== 1 ? "s" : ""}`,
+		});
+		onDone();
 	}
 
 	return (
