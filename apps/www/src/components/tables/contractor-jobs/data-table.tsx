@@ -12,6 +12,7 @@ import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { Icons } from "@gnd/ui/icons";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { BatchActions } from "./batch-actions";
 import { adminColumns, mobileColumn, workersColumn } from "./columns";
 interface Props {
 	defaultFilters?: GetJobsSchema;
@@ -69,13 +70,12 @@ export function DataTable(props: Props) {
 					columns,
 					mobileColumn,
 					data,
+					checkbox: true,
 					props: {
 						loadMoreRef,
 						hasNextPage,
 					},
 					tableScroll,
-					// rowSelection,
-					// setRowSelection,
 					tableMeta: {
 						rowClick(id, rowData) {
 							setParams({
@@ -99,7 +99,7 @@ export function DataTable(props: Props) {
 					</Table>
 				</div>
 				<Table.LoadMore />
-				{/* <BatchActions /> */}
+				<BatchActions />
 			</div>
 		</Table.Provider>
 	);
