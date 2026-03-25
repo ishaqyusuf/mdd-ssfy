@@ -271,8 +271,13 @@ export async function saveUnitInvoiceForm(
             id: task.id!,
           },
           data: {
-            taskName: task.taskName || null,
-            amountDue: Number(task.amountDue || 0),
+            taskName:
+              task.taskUid && !task.taskName ? undefined : task.taskName || null,
+            amountDue:
+              task.taskUid &&
+              (task.amountDue === null || task.amountDue === undefined)
+                ? undefined
+                : Number(task.amountDue || 0),
             amountPaid: Number(task.amountPaid || 0),
             checkNo: task.checkNo || null,
             checkDate: task.checkDate || null,

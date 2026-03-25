@@ -120,6 +120,10 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
   const onSubmit = form.handleSubmit((data) => {
     saveInvoice.mutate(data as unknown as UnitInvoiceFormValues);
   });
+  const lockedInputProps = {
+    readOnly: true,
+    className: "bg-slate-50 text-slate-600",
+  } as const;
 
   return (
     <Form {...form}>
@@ -162,7 +166,7 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
                     <FormInput
                       className="mx-0"
                       control={control}
-                      disabled={!!taskUid}
+                      inputProps={taskUid ? lockedInputProps : undefined}
                       name={`tasks.${index}.taskName` as const}
                       placeholder="Task name"
                       label="Task"
@@ -191,13 +195,14 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
                   <FormInput
                     className="mx-0"
                     control={control}
-                    disabled={!!taskUid}
+                    inputProps={taskUid ? lockedInputProps : undefined}
                     name={`tasks.${index}.amountDue` as const}
                     label="Due"
                     numericProps={{
-                      className: "h-9",
+                      className: taskUid ? "h-9 bg-slate-50 text-slate-600" : "h-9",
                       prefix: "$",
                       placeholder: "$0.00",
+                      readOnly: !!taskUid,
                       type: "tel",
                     }}
                   />
@@ -267,7 +272,7 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
                         <FormInput
                           className="mx-0"
                         control={control}
-                        disabled={!!taskUid}
+                        inputProps={taskUid ? lockedInputProps : undefined}
                         name={`tasks.${index}.taskName` as const}
                         placeholder="Task name"
                       />
@@ -276,12 +281,13 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
                         <FormInput
                           className="mx-0"
                         control={control}
-                        disabled={!!taskUid}
+                        inputProps={taskUid ? lockedInputProps : undefined}
                         name={`tasks.${index}.amountDue` as const}
                         numericProps={{
-                          className: "h-9",
+                          className: taskUid ? "h-9 bg-slate-50 text-slate-600" : "h-9",
                           prefix: "$",
                           placeholder: "$0.00",
+                          readOnly: !!taskUid,
                           type: "tel",
                         }}
                       />
