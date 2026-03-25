@@ -13,18 +13,18 @@ import { Icons } from "./_v1/icons";
 export function SidebarContent({ children }) {
     const auth = useAuth();
     if (!auth.id) return null;
-    if (
-        process.env.NODE_ENV === "development" ||
-        // auth.roleTitle === "Super Admin"
-    ) {
-        return <NavLayoutClient>{children}</NavLayoutClient>;
-    }
-    return (
-        <SidebarProvider args={[{}]}>
-            <Sidebar />
-            <Content>{children}</Content>
-        </SidebarProvider>
-    );
+    // if (
+    // process.env.NODE_ENV === "development" ||
+    // auth.roleTitle === "Super Admin"
+    // ) {
+    return <NavLayoutClient>{children}</NavLayoutClient>;
+    // }
+    // return (
+    //     <SidebarProvider args={[{}]}>
+    //         <Sidebar />
+    //         <Content>{children}</Content>
+    //     </SidebarProvider>
+    // );
 }
 
 function Content({ children }) {
