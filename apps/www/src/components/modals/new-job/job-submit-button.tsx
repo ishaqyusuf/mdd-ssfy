@@ -92,8 +92,12 @@ export function JobSubmitButton({
 						id: normalizedValues.unit?.id ?? unitId ?? 0,
 						projectId: normalizedValues.unit?.projectId ?? projectId ?? 0,
 					};
-					normalizedValues.builderTaskId =
+					const resolvedBuilderTaskId =
 						normalizedValues.builderTaskId ?? builderTaskId ?? undefined;
+					normalizedValues.builderTaskId =
+						resolvedBuilderTaskId && resolvedBuilderTaskId > 0
+							? resolvedBuilderTaskId
+							: undefined;
 					normalizedValues.modelId = normalizedValues.modelId ?? modelId ?? 0;
 					const defaultMeta = defaultValues?.job?.meta || {};
 					const addonPercent =
