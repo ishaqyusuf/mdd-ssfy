@@ -5,13 +5,18 @@ import { useJobParams } from "@/hooks/use-contractor-jobs-params";
 import { invalidateInfiniteQueries } from "@/hooks/use-invalidate-query";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { useJobRole } from "@/hooks/use-job-role";
+import { useTRPC } from "@/trpc/client";
 import { formatDate } from "@/utils/format";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
+import { Button } from "@gnd/ui/button";
 import { Progress } from "@gnd/ui/custom/progress";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { Item } from "@gnd/ui/namespace";
+import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
+import { toast } from "@gnd/ui/use-toast";
 import { padStart } from "@gnd/utils";
 import type { ColumnDef } from "@tanstack/react-table";
+import { CheckCircle2, XCircle } from "lucide-react";
 
 export type JobItem = RouterOutputs["jobs"]["getJobs"]["data"][number];
 interface ItemProps {
@@ -92,7 +97,7 @@ const actionColumn: Column = {
 	meta: {
 		actionCell: true,
 		preventDefault: true,
-		className: "w-[100px] dt-action-cell",
+		className: "w-[250px] dt-action-cell",
 	},
 	cell: ({ row: { original: item } }) => (
 		<>
@@ -118,11 +123,81 @@ export const workersColumn: Column[] = [
 	actionColumn,
 ];
 
+function ReviewButtons({ item }: ItemProps) {
+	const trpc = useTRPC();
+	const queryClient = useQueryClient();
+	const canReview = item.status === "Submitted" && !item.payment?.id;
+
+	const reviewMutation = useMutation(
+		trpc.jobs.jobReview.mutationOptions({
+			onSuccess(_, variables) {
+				queryClient.invalidateQueries({
+					queryKey: trpc.jobs.getJobs.pathKey(),
+				});
+				toast({
+					title:
+						variables.action === "approve"
+							? "Job approved"
+							: "Job rejected",
+					variant: variables.action === "approve" ? "success" : "destructive",
+				});
+			},
+			onError() {
+				toast({
+					title: "Failed to update job review.",
+					variant: "destructive",
+				});
+			},
+		}),
+	);
+
+	if (!canReview) return null;
+
+	return (
+		<>
+			<Button
+				size="sm"
+				variant="outline"
+				className="h-7 px-2"
+				disabled={reviewMutation.isPending}
+				onClick={(e) => {
+					e.stopPropagation();
+					reviewMutation.mutate({
+						action: "reject",
+						jobId: item.id,
+						note: "Rejected from contractor jobs list.",
+					});
+				}}
+			>
+				<XCircle className="size-3.5 mr-1" />
+				Reject
+			</Button>
+			<Button
+				size="sm"
+				className="h-7 px-2"
+				disabled={reviewMutation.isPending}
+				onClick={(e) => {
+					e.stopPropagation();
+					reviewMutation.mutate({
+						action: "approve",
+						jobId: item.id,
+						note: "Approved from contractor jobs list.",
+					});
+				}}
+			>
+				<CheckCircle2 className="size-3.5 mr-1" />
+				Approve
+			</Button>
+		</>
+	);
+}
+
 function Actions({ item }: ItemProps) {
 	const { setParams } = useJobFormParams();
 	const isAdmin = useJobRole().isAdmin;
 	return (
 		<div className="relative flex items-center justify-end gap-2 z-10">
+			<ReviewButtons item={item} />
 			<EditButton
 				onClick={(e) => {
 					setParams({
@@ -144,9 +219,6 @@ function Actions({ item }: ItemProps) {
 					invalidateInfiniteQueries("jobs.getJobs");
 				}}
 			/>
-			{/* <Menu Trigger={<TableMenuTrigger />}>
-                <Menu.Item SubMenu={<></>}>Mark as</Menu.Item>
-            </Menu> */}
 		</div>
 	);
 }
