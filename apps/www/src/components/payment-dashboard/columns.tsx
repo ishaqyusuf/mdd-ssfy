@@ -114,7 +114,9 @@ export function getPaymentPortalColumns({
 						<p className="text-xs text-muted-foreground">
 							{item.paymentStage === "pending-review"
 								? "Pending review"
-								: "Ready to pay"}
+								: item.paymentStage === "ready-to-pay"
+									? "Ready to pay"
+									: "Not payable yet"}
 						</p>
 					</div>
 				);

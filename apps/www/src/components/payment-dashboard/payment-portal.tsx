@@ -308,7 +308,7 @@ export function PaymentPortal() {
 	return (
 		<div className="flex flex-col gap-6 py-6 pb-8">
 			<div className="grid min-w-0 gap-6 xl:grid-cols-[320px_minmax(0,1fr)_340px] xl:items-start">
-				<Card className="overflow-hidden xl:sticky xl:top-6 xl:flex xl:h-[calc(100vh-7rem)] xl:flex-col">
+				<Card className="hidden overflow-hidden xl:sticky xl:top-6 xl:flex xl:h-[calc(100vh-7rem)] xl:flex-col">
 					<CardHeader className="gap-4 border-b bg-muted/30">
 						<div>
 							<CardTitle>Contractors</CardTitle>
@@ -460,6 +460,36 @@ export function PaymentPortal() {
 					<CardContent className="p-0 xl:flex-1 xl:min-h-0">
 						<ScrollArea className="h-full">
 							<div className="flex flex-col gap-4 p-4 md:p-6">
+								<div className="xl:hidden">
+									<FieldBlock label="Contractor">
+										<Select
+											value={
+												selectedContractorId ? String(selectedContractorId) : ""
+											}
+											onValueChange={(value) => {
+												setRowSelection({});
+												setSelectedContractorId(Number(value));
+											}}
+											disabled={!contractors.length}
+										>
+											<SelectTrigger>
+												<SelectValue placeholder="Select contractor" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectGroup>
+													{contractors.map((contractor) => (
+														<SelectItem
+															key={contractor.id}
+															value={String(contractor.id)}
+														>
+															{contractor.name}
+														</SelectItem>
+													))}
+												</SelectGroup>
+											</SelectContent>
+										</Select>
+									</FieldBlock>
+								</div>
 								<div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
 									<div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_200px]">
 										<div className="relative">
@@ -677,7 +707,9 @@ export function PaymentPortal() {
 																<p className="mt-2 text-xs text-muted-foreground">
 																	{job.paymentStage === "pending-review"
 																		? "Open this job to review and approve it before payment."
-																		: "Ready to include in the next payout batch."}
+																		: job.paymentStage === "ready-to-pay"
+																			? "Ready to include in the next payout batch."
+																			: "This job is not payable yet."}
 																</p>
 																{isPendingReviewMode && canReviewThisJob ? (
 																	<div className="mt-3 flex items-center gap-2">

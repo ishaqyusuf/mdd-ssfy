@@ -237,6 +237,8 @@ const PAYMENT_PORTAL_FILTERS = [
 	"payment-cancelled",
 ] as const;
 
+const READY_TO_PAY_JOB_STATUSES = ["Approved", "Completed"] as const;
+
 function roundPaymentAmount(value: number) {
 	return Math.round(Number(value || 0));
 }
@@ -249,11 +251,9 @@ function buildPaymentPortalStatusWhere(
 			return { status: "Submitted" };
 		case "ready-to-pay":
 			return {
-				NOT: [
-					{ status: "Assigned" },
-					{ status: "Submitted" },
-					{ status: "Paid" },
-				],
+				status: {
+					in: [...READY_TO_PAY_JOB_STATUSES],
+				},
 			};
 		case "approved":
 			return { status: "Approved" };
@@ -301,9 +301,7 @@ const contractorPaymentSelect = {
 		where: {
 			deletedAt: null,
 			paymentId: null,
-			status: {
-				not: "Assigned",
-			},
+			NOT: [{ status: "Assigned" }, { status: "Paid" }],
 		},
 		select: {
 			id: true,
@@ -329,7 +327,9 @@ function mapContractorPaymentSummary(
 	).length;
 	const readyToPayJobs = user.jobs.filter((job) => {
 		const status = String(job.status || "");
-		return status !== "Assigned" && status !== "Submitted" && status !== "Paid";
+		return READY_TO_PAY_JOB_STATUSES.includes(
+			status as (typeof READY_TO_PAY_JOB_STATUSES)[number],
+		);
 	});
 	const subTotal = Number(
 		sum(readyToPayJobs.map((job) => Number(job.amount || 0))) || 0,
@@ -575,7 +575,11 @@ export async function getPaymentPortal(
 			paymentStage:
 				String(job.status || "") === "Submitted"
 					? "pending-review"
-					: "ready-to-pay",
+					: READY_TO_PAY_JOB_STATUSES.includes(
+								String(job.status || "") as (typeof READY_TO_PAY_JOB_STATUSES)[number],
+							)
+						? "ready-to-pay"
+						: "not-payable",
 		})),
 	};
 }
@@ -609,11 +613,9 @@ export async function createPaymentPortal(
 			userId: input.userId,
 			deletedAt: null,
 			paymentId: null,
-			NOT: [
-				{ status: "Assigned" },
-				{ status: "Submitted" },
-				{ status: "Paid" },
-			],
+			status: {
+				in: [...READY_TO_PAY_JOB_STATUSES],
+			},
 		},
 		select: {
 			id: true,
