@@ -44,7 +44,7 @@ function Modal() {
             sheetName="customer-overview-sheet"
             open={ctx.opened}
             rounded
-            size="xl"
+            size="3xl"
             floating
             onOpenChange={(e) => {
                 ctx.close();
@@ -61,7 +61,7 @@ function Modal() {
                 className=""
             >
                 <SheetHeader>
-                    <SheetTitle>Customer Overview</SheetTitle>
+                    <SheetTitle>Customer Overview!</SheetTitle>
                     <SheetDescription asChild>
                         <TabsList className="flex w-full justify-start">
                             <TabsTrigger value="general">General</TabsTrigger>

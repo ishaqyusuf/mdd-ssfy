@@ -13,6 +13,7 @@ import {
 } from "@gnd/ui/card";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useQuery } from "@gnd/ui/tanstack";
+import { format } from "date-fns";
 import {
 	ArrowRight,
 	BadgeCheck,
@@ -48,6 +49,7 @@ export function PaymentDashboard() {
 	);
 
 	const contractors = data?.contractors || [];
+	const recentPayments = data?.recentPayments || [];
 
 	return (
 		<div className="flex flex-col gap-6 pb-8">
@@ -209,13 +211,52 @@ export function PaymentDashboard() {
 
 					<Card>
 						<CardHeader>
-							<CardTitle>Next step</CardTitle>
+							<CardTitle>Recent payments</CardTitle>
 							<CardDescription>
-								Open the pay portal to build a live payment batch.
+								The latest contractor payout batches recorded in the system.
 							</CardDescription>
 						</CardHeader>
-						<CardContent>
-							<Button asChild className="w-full" size="lg">
+						<CardContent className="grid gap-3">
+							{isPending ? (
+								<>
+									<Skeleton className="h-16 rounded-2xl" />
+									<Skeleton className="h-16 rounded-2xl" />
+									<Skeleton className="h-16 rounded-2xl" />
+								</>
+							) : !recentPayments.length ? (
+								<p className="text-sm text-muted-foreground">
+									No payments have been recorded yet.
+								</p>
+							) : (
+								recentPayments.map((payment) => (
+									<div
+										key={payment.id}
+										className="flex items-start justify-between gap-3 rounded-2xl border p-4"
+									>
+										<div className="min-w-0 space-y-1">
+											<p className="truncate font-medium text-foreground">
+												{payment.contractor}
+											</p>
+											<p className="text-sm text-muted-foreground">
+												#{payment.id} • {payment.jobCount} job
+												{payment.jobCount === 1 ? "" : "s"} •{" "}
+												{payment.paymentMethod}
+												{payment.checkNo ? ` • Check ${payment.checkNo}` : ""}
+											</p>
+											<p className="text-xs text-muted-foreground">
+												{payment.createdAt
+													? `Sent ${format(new Date(payment.createdAt), "MMM d, yyyy")}`
+													: "Date unavailable"}{" "}
+												• Paid by {payment.paidBy}
+											</p>
+										</div>
+										<p className="shrink-0 text-base font-semibold text-foreground">
+											{formatCurrency(payment.amount)}
+										</p>
+									</div>
+								))
+							)}
+							<Button asChild variant="outline" className="w-full" size="lg">
 								<Link href="/contractors/jobs/payment-portal">
 									<CreditCard data-icon="inline-start" />
 									Go to payment portal

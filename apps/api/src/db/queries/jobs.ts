@@ -409,7 +409,8 @@ export async function getPaymentDashboard(
 		.map(mapContractorPaymentSummary)
 		.sort((left, right) => right.pendingBill - left.pendingBill);
 
-	const [currentMonthPayments, currentMonthAmount] = await Promise.all([
+	const [currentMonthPayments, currentMonthAmount, recentPayments] =
+		await Promise.all([
 		ctx.db.jobPayments.count({
 			where: {
 				deletedAt: null,
@@ -431,7 +432,38 @@ export async function getPaymentDashboard(
 				},
 			},
 		}),
-	]);
+			ctx.db.jobPayments.findMany({
+				where: {
+					deletedAt: null,
+				},
+				orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+				take: 6,
+				select: {
+					id: true,
+					amount: true,
+					paymentMethod: true,
+					checkNo: true,
+					createdAt: true,
+					user: {
+						select: {
+							id: true,
+							name: true,
+						},
+					},
+					payer: {
+						select: {
+							id: true,
+							name: true,
+						},
+					},
+					_count: {
+						select: {
+							jobs: true,
+						},
+					},
+				},
+			}),
+		]);
 
 	return {
 		summary: {
@@ -461,6 +493,16 @@ export async function getPaymentDashboard(
 			currentMonthAmount: Number(currentMonthAmount._sum.amount || 0),
 		},
 		contractors: contractorItems,
+		recentPayments: recentPayments.map((item) => ({
+			id: item.id,
+			amount: Number(item.amount || 0),
+			paymentMethod: item.paymentMethod || "Unknown",
+			checkNo: item.checkNo || null,
+			createdAt: item.createdAt,
+			jobCount: item._count.jobs,
+			contractor: item.user?.name || "Unknown contractor",
+			paidBy: item.payer?.name || "Unknown payer",
+		})),
 	};
 }
 

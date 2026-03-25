@@ -231,13 +231,17 @@ export function PaymentPortal() {
 
 				toast({
 					title:
-						variables.action === "approve" ? "Job approved" : "Job rejected",
-					variant: variables.action === "approve" ? "success" : "destructive",
+						variables.action === "submit"
+							? "Job marked as submitted"
+							: variables.action === "approve"
+								? "Job approved"
+								: "Job rejected",
+					variant: variables.action === "reject" ? "destructive" : "success",
 				});
 			},
 			onError: () => {
 				toast({
-					title: "Failed to update job review. Please try again.",
+					title: "Failed to update job status. Please try again.",
 					variant: "destructive",
 				});
 			},
@@ -284,6 +288,14 @@ export function PaymentPortal() {
 				action === "approve"
 					? "Approved from payment portal."
 					: "Rejected from payment portal.",
+		});
+	};
+
+	const handleMarkSubmitted = (jobId: number) => {
+		reviewMutation.mutate({
+			action: "submit",
+			jobId,
+			note: "Marked as submitted from payment portal.",
 		});
 	};
 
@@ -613,6 +625,7 @@ export function PaymentPortal() {
 														[String(job.id)]: value,
 													}))
 												}
+												onMarkSubmitted={() => handleMarkSubmitted(job.id)}
 												onApprove={() => handleRowReview(job.id, "approve")}
 												onReject={() => handleRowReview(job.id, "reject")}
 											/>
@@ -702,6 +715,7 @@ function JobListItem({
 	isReviewPending,
 	onOpen,
 	onCheckedChange,
+	onMarkSubmitted,
 	onApprove,
 	onReject,
 }: {
@@ -721,11 +735,13 @@ function JobListItem({
 	isReviewPending: boolean;
 	onOpen: () => void;
 	onCheckedChange: (value: boolean) => void;
+	onMarkSubmitted: () => void;
 	onApprove: () => void;
 	onReject: () => void;
 }) {
 	const canReviewThisJob = canSelectForReview(job);
 	const canPayThisJob = canSelectJob(job);
+	const canMarkSubmitted = job.status !== "Submitted" && job.status !== "Paid";
 
 	return (
 		<button
@@ -786,6 +802,17 @@ function JobListItem({
 							<div className="flex items-center gap-2">
 								<Button
 									size="sm"
+									variant="secondary"
+									onClick={(event) => {
+										event.stopPropagation();
+										onMarkSubmitted();
+									}}
+									disabled={isReviewPending || !canMarkSubmitted}
+								>
+									Mark submitted
+								</Button>
+								<Button
+									size="sm"
 									variant="outline"
 									onClick={(event) => {
 										event.stopPropagation();
@@ -804,6 +831,20 @@ function JobListItem({
 									disabled={isReviewPending}
 								>
 									Approve
+								</Button>
+							</div>
+						) : canMarkSubmitted ? (
+							<div className="flex items-center gap-2">
+								<Button
+									size="sm"
+									variant="secondary"
+									onClick={(event) => {
+										event.stopPropagation();
+										onMarkSubmitted();
+									}}
+									disabled={isReviewPending}
+								>
+									Mark submitted
 								</Button>
 							</div>
 						) : null}

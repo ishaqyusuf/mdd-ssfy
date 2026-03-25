@@ -184,7 +184,7 @@ export const jobRoutes = createTRPCRouter({
 	jobReview: publicProcedure
 		.input(
 			z.object({
-				action: z.enum(["approve", "reject"]),
+				action: z.enum(["submit", "approve", "reject"]),
 				note: z.string().optional(),
 				jobId: z.number(),
 			}),
@@ -199,14 +199,24 @@ export const jobRoutes = createTRPCRouter({
 					id: input.jobId,
 				},
 				data: {
-					status: input.action == "approve" ? "Approved" : "Rejected",
+					status:
+						input.action === "submit"
+							? "Submitted"
+							: input.action === "approve"
+								? "Approved"
+								: "Rejected",
 					statusDate: new Date(),
 				},
 			});
 			await saveNote(
 				ctx.db,
 				{
-					headline: input.action == "approve" ? "Job Approved" : "Job Rejected",
+					headline:
+						input.action === "submit"
+							? "Job Submitted"
+							: input.action === "approve"
+								? "Job Approved"
+								: "Job Rejected",
 					note: generateJobId(input.jobId),
 					subject: input?.action == "approve" ? `` : ``,
 					tags: [
@@ -227,7 +237,11 @@ export const jobRoutes = createTRPCRouter({
 					job.userId,
 				);
 
-				if (input.action === "approve") {
+				if (input.action === "submit") {
+					await s.channel.jobSubmitted({
+						jobId: input.jobId,
+					});
+				} else if (input.action === "approve") {
 					await s.channel.jobApproved({
 						jobId: input.jobId,
 						contractorId: job.userId,

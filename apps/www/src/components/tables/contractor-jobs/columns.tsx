@@ -11,12 +11,18 @@ import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
 import { Progress } from "@gnd/ui/custom/progress";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@gnd/ui/dropdown-menu";
 import { Item } from "@gnd/ui/namespace";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import { padStart } from "@gnd/utils";
 import type { ColumnDef } from "@tanstack/react-table";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronDown, Send, XCircle } from "lucide-react";
 
 export type JobItem = RouterOutputs["jobs"]["getJobs"]["data"][number];
 interface ItemProps {
@@ -123,10 +129,10 @@ export const workersColumn: Column[] = [
 	actionColumn,
 ];
 
-function ReviewButtons({ item }: ItemProps) {
+function StatusActionsDropdown({ item }: ItemProps) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
-	const canReview = item.status === "Submitted" && !item.payment?.id;
+	const isPaid = item.status === "Paid" || !!item.payment?.id;
 
 	const reviewMutation = useMutation(
 		trpc.jobs.jobReview.mutationOptions({
@@ -136,59 +142,81 @@ function ReviewButtons({ item }: ItemProps) {
 				});
 				toast({
 					title:
-						variables.action === "approve"
-							? "Job approved"
-							: "Job rejected",
-					variant: variables.action === "approve" ? "success" : "destructive",
+						variables.action === "submit"
+							? "Job marked as submitted"
+							: variables.action === "approve"
+								? "Job approved"
+								: "Job rejected",
+					variant: variables.action === "reject" ? "destructive" : "success",
 				});
 			},
 			onError() {
 				toast({
-					title: "Failed to update job review.",
+					title: "Failed to update job status.",
 					variant: "destructive",
 				});
 			},
 		}),
 	);
 
-	if (!canReview) return null;
+	if (isPaid) return null;
+
+	const runAction = (action: "submit" | "approve" | "reject", note: string) => {
+		reviewMutation.mutate({
+			action,
+			jobId: item.id,
+			note,
+		});
+	};
 
 	return (
-		<>
-			<Button
-				size="sm"
-				variant="outline"
-				className="h-7 px-2"
-				disabled={reviewMutation.isPending}
-				onClick={(e) => {
-					e.stopPropagation();
-					reviewMutation.mutate({
-						action: "reject",
-						jobId: item.id,
-						note: "Rejected from contractor jobs list.",
-					});
-				}}
-			>
-				<XCircle className="size-3.5 mr-1" />
-				Reject
-			</Button>
-			<Button
-				size="sm"
-				className="h-7 px-2"
-				disabled={reviewMutation.isPending}
-				onClick={(e) => {
-					e.stopPropagation();
-					reviewMutation.mutate({
-						action: "approve",
-						jobId: item.id,
-						note: "Approved from contractor jobs list.",
-					});
-				}}
-			>
-				<CheckCircle2 className="size-3.5 mr-1" />
-				Approve
-			</Button>
-		</>
+		<DropdownMenu>
+			<DropdownMenuTrigger asChild>
+				<Button
+					size="sm"
+					variant="outline"
+					className="h-8 px-2"
+					disabled={reviewMutation.isPending}
+					onClick={(e) => e.stopPropagation()}
+				>
+					Status
+					<ChevronDown className="ml-1 size-3.5" />
+				</Button>
+			</DropdownMenuTrigger>
+			<DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+				<DropdownMenuItem
+					disabled={reviewMutation.isPending || item.status === "Submitted"}
+					onClick={() =>
+						runAction(
+							"submit",
+							"Marked as submitted from contractor jobs list.",
+						)
+					}
+				>
+					<Send className="mr-2 size-4" />
+					Mark as submitted
+				</DropdownMenuItem>
+				<DropdownMenuItem
+					disabled={reviewMutation.isPending || item.status === "Approved"}
+					onClick={() =>
+						runAction("approve", "Approved from contractor jobs list.")
+					}
+				>
+					<CheckCircle2 className="mr-2 size-4" />
+					Approve
+				</DropdownMenuItem>
+				<DropdownMenuItem
+					disabled={reviewMutation.isPending || item.status === "Rejected"}
+					onClick={() =>
+						runAction("reject", "Rejected from contractor jobs list.")
+					}
+					className="text-destructive focus:text-destructive"
+				>
+					<XCircle className="mr-2 size-4" />
+					Reject
+				</DropdownMenuItem>
+			</DropdownMenuContent>
+		</DropdownMenu>
 	);
 }
 
@@ -197,7 +225,7 @@ function Actions({ item }: ItemProps) {
 	const isAdmin = useJobRole().isAdmin;
 	return (
 		<div className="relative flex items-center justify-end gap-2 z-10">
-			<ReviewButtons item={item} />
+			{isAdmin ? <StatusActionsDropdown item={item} /> : null}
 			<EditButton
 				onClick={(e) => {
 					setParams({
