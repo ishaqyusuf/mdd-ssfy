@@ -551,7 +551,8 @@ export const communityRouters = createTRPCRouter({
 							: undefined,
 						meta: jobInput.meta as any,
 						status: (resolvedStatus || "Submitted") as JobStatus,
-						builderTask: input?.builderTaskId
+						builderTask:
+						input?.builderTaskId && input.builderTaskId > 0
 							? { connect: { id: input.builderTaskId } }
 							: undefined,
 					},
