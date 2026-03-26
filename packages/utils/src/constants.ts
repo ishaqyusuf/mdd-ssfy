@@ -227,6 +227,7 @@ export const PRODUCTION_STATUS = [
 	"not assigned",
 	"part assigned",
 	"due today",
+	"due tomorrow",
 	"past due",
 	"completed",
 	"not completed",

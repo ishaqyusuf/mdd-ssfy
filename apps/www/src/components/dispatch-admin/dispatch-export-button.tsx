@@ -53,9 +53,16 @@ export function DispatchExportButton() {
             a.download = `dispatches-${new Date().toISOString().slice(0, 10)}.csv`;
             a.click();
             URL.revokeObjectURL(url);
-            toast({ variant: "success", title: `Exported ${data.length} dispatches` });
+            toast({
+                variant: "success",
+                title: `Exported ${data.length} dispatches`,
+            });
         } catch (e: any) {
-            toast({ variant: "error", title: "Export failed", description: e?.message });
+            toast({
+                variant: "error",
+                title: "Export failed",
+                description: e?.message,
+            });
         } finally {
             setExporting(false);
         }
@@ -66,11 +73,17 @@ export function DispatchExportButton() {
             variant="outline"
             size="sm"
             onClick={handleExport}
-            disabled={exporting}
+            // disabled={exporting}
+            disabled
             className="gap-1.5"
         >
-            {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+            {exporting ? (
+                <Loader2 size={14} className="animate-spin" />
+            ) : (
+                <Download size={14} />
+            )}
             Export CSV
         </Button>
     );
 }
+

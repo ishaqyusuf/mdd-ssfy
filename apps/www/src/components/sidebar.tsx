@@ -21,7 +21,7 @@ export function Sidebar({}) {
         >
             <div
                 className={cn(
-                    "absolute top-0 left-0 h-[70px] flex items-center justify-center bg-background border-b border-border transition-all  duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] z-[999]",
+                    "absolute top-0 left-0 h-[70px] flex items-center justify-center bg-background border-b border-border transition-all  duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] z-[999] border-b",
                     isExpanded ? "w-full justify-starts" : "w-[69px]",
                 )}
             >

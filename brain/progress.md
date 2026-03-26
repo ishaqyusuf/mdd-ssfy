@@ -2,6 +2,23 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-03-26
+
+- Rebuilt the sales production workspace across admin and worker entry points:
+  - `sales-book/productions`
+  - `sales-book/production-tasks`
+  - `/production/dashboard`
+- Added a shared `ProductionWorkspace` UI shell with:
+  - summary cards for active queue, past due, due today, and due tomorrow
+  - due-today and due-tomorrow alert sections
+  - compact due-date calendar strip for exact-date queue filtering
+  - shared table/list reuse instead of maintaining separate production shells
+- Extended the sales production query contract with:
+  - `show = due-today | due-tomorrow | past-due`
+  - `productionDueDate` for exact due-date filtering
+- Added `sales.productionDashboard` in the sales tRPC router to support production summary counts, alert buckets, and compact calendar data for the new workspace.
+- Updated production-role sidebar navigation to point to the dedicated worker dashboard route instead of the older sales-book task page label.
+
 ## 2026-03-24
 
 - Reduced frequent auth auto-logouts across shared and web auth flows:

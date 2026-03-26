@@ -14,6 +14,7 @@ import { isControlFilterV2Enabled } from "../control/application/feature-flags";
 export function whereSales(query: SalesQueryParamsSchema) {
 	const where: Prisma.SalesOrdersWhereInput[] = [];
 	const useControlFilterV2 = isControlFilterV2Enabled();
+	const assignedToId = query["production.assignedToId"];
 	const qtyControlSome = (
 		type: QtyControlType,
 		qtyWhere: Prisma.QtyControlWhereInput = {},
@@ -106,6 +107,28 @@ export function whereSales(query: SalesQueryParamsSchema) {
 							lte: 0,
 						},
 					});
+				break;
+			case "productionDueDate":
+				where.push({
+					assignments: {
+						some: {
+							deletedAt: null,
+							assignedToId: assignedToId || undefined,
+							dueDate: dateEquals(v as string),
+							itemControl: {
+								qtyControls: {
+									some: {
+										type: "prodCompleted" as QtyControlType,
+										deletedAt: null,
+										percentage: {
+											not: 100,
+										},
+									},
+								},
+							},
+						},
+					},
+				});
 				break;
 		}
 	});
@@ -377,7 +400,6 @@ export function whereSales(query: SalesQueryParamsSchema) {
 			);
 			break;
 	}
-	const assignedToId = query["production.assignedToId"];
 	switch (prodStatus) {
 		case "completed":
 			where.push({
@@ -449,6 +471,31 @@ export function whereSales(query: SalesQueryParamsSchema) {
 						assignedToId: assignedToId || undefined,
 						deletedAt: null,
 						dueDate: dateEquals(dayjs().format("YYYY-MM-DD")),
+					},
+				},
+			});
+			break;
+		case "due tomorrow":
+			where.push({
+				itemControls: {
+					some: {
+						deletedAt: null,
+						qtyControls: {
+							some: {
+								deletedAt: null,
+								type: "prodCompleted" as QtyControlType,
+								percentage: {
+									not: 100,
+								},
+							},
+						},
+					},
+				},
+				assignments: {
+					some: {
+						assignedToId: assignedToId || undefined,
+						deletedAt: null,
+						dueDate: dateEquals(dayjs().add(1, "day").format("YYYY-MM-DD")),
 					},
 				},
 			});
