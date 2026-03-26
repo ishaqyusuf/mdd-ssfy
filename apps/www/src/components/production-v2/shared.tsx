@@ -1,11 +1,14 @@
 "use client";
 
 import Img from "@/components/(clean-code)/img";
+import { batchAssignProductionOrdersAction } from "@/actions/batch-assign-production-orders";
 import { useBatchSales } from "@/hooks/use-batch-sales";
+import { useLoadingToast } from "@/hooks/use-loading-toast";
+import { printProduction } from "@/lib/quick-print";
 import Note from "@/modules/notes";
 import { noteTagFilter } from "@/modules/notes/utils";
 import { useTRPC } from "@/trpc/client";
-import { useQuery } from "@gnd/ui/tanstack";
+import { useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import {
 	Accordion,
 	AccordionContent,
@@ -48,12 +51,14 @@ import {
 	Clock3,
 	Package,
 	PanelTop,
+	Printer,
 	Search,
 	SquareCheckBig,
 	UserRoundPlus,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useAction } from "next-safe-action/hooks";
 import { useInView } from "react-intersection-observer";
 import { useInfiniteQuery } from "@tanstack/react-query";
 
@@ -205,11 +210,15 @@ function ProductionV2Board({
 	const [selectedDate, setSelectedDate] = useState<string | null>(null);
 	const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 	const [selectedIds, setSelectedIds] = useState<number[]>([]);
+	const [batchAssignedToId, setBatchAssignedToId] = useState("");
+	const [batchDueDate, setBatchDueDate] = useState("");
 	const deferredSearch = useDeferredValue(search);
 	const { ref: loadMoreRef, inView } = useInView({
 		rootMargin: "320px 0px",
 	});
 	const batchSales = useBatchSales();
+	const loadingToast = useLoadingToast();
+	const queryClient = useQueryClient();
 
 	const dashboardQuery = useQuery(
 		trpc.sales.productionDashboardV2.queryOptions({
@@ -268,6 +277,31 @@ function ProductionV2Board({
 		() => items.filter((item) => selectedIds.includes(item.id)),
 		[items, selectedIds],
 	);
+	const batchAssign = useAction(batchAssignProductionOrdersAction, {
+		onExecute: () => {
+			loadingToast.loading("Assigning selected production orders...");
+		},
+		onSuccess: async ({ data }) => {
+			loadingToast.success("Selected production orders assigned");
+			setSelectedIds([]);
+			await Promise.all([
+				queryClient.invalidateQueries({
+					queryKey: trpc.sales.productionsV2.pathKey(),
+				}),
+				queryClient.invalidateQueries({
+					queryKey: trpc.sales.productionDashboardV2.pathKey(),
+				}),
+				queryClient.invalidateQueries({
+					queryKey: trpc.sales.productionOrderDetailV2.pathKey(),
+				}),
+			]);
+		},
+		onError: ({ error }) => {
+			loadingToast.error(
+				error.serverError || "Unable to assign selected orders",
+			);
+		},
+	});
 
 	useEffect(() => {
 		if (!inView || !boardQuery.hasNextPage || boardQuery.isFetchingNextPage) {
@@ -537,6 +571,52 @@ function ProductionV2Board({
 							{selectedItems.length} selected
 						</p>
 						<div className="flex flex-wrap items-center gap-2">
+							{scope === "admin" ? (
+								<>
+									<Select
+										value={batchAssignedToId}
+										onValueChange={setBatchAssignedToId}
+									>
+										<SelectTrigger className="h-9 w-[190px] rounded-xl bg-background">
+											<SelectValue placeholder="Assign worker (optional)" />
+										</SelectTrigger>
+										<SelectContent>
+											{assignOptions.map((option) => (
+												<SelectItem
+													key={String(option.value)}
+													value={String(option.value)}
+												>
+													{option.label}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+									<Input
+										type="date"
+										value={batchDueDate}
+										onChange={(event) => setBatchDueDate(event.target.value)}
+										className="h-9 w-[160px] rounded-xl bg-background"
+									/>
+									<Button
+										size="sm"
+										variant="secondary"
+										disabled={batchAssign.isExecuting}
+										onClick={() =>
+											batchAssign.execute({
+												salesIds: selectedItems.map((item) => item.id),
+												assignedToId: batchAssignedToId
+													? Number(batchAssignedToId)
+													: null,
+												dueDate: batchDueDate
+													? new Date(`${batchDueDate}T00:00:00`)
+													: null,
+											})
+										}
+									>
+										Assign Selected
+									</Button>
+								</>
+							) : null}
 							<Button
 								size="sm"
 								onClick={() =>
@@ -588,6 +668,8 @@ function ProductionOrderCard({
 	onSelectionChange: (checked: boolean) => void;
 	assignOptions: { label?: string; value?: string }[];
 }) {
+	const orderStatus = getOrderStatusPresentation(item);
+
 	return (
 		<Collapsible open={isExpanded} onOpenChange={() => onToggle()}>
 			<Card className="overflow-hidden rounded-2xl border border-slate-200/80">
@@ -612,10 +694,13 @@ function ProductionOrderCard({
 										{item.orderId}
 									</p>
 									<Badge
-										variant={item.completed ? "secondary" : "outline"}
-										className="rounded-full"
+										variant="outline"
+										className={cn(
+											"rounded-full border font-medium",
+											orderStatus.className,
+										)}
 									>
-										{item.completed ? "Completed" : item.alert?.text || "Open"}
+										{orderStatus.label}
 									</Badge>
 								</div>
 								<p className="text-sm text-muted-foreground">
@@ -632,6 +717,21 @@ function ProductionOrderCard({
 							</div>
 						</div>
 						<div className="flex items-center gap-3 self-end md:self-center">
+							<Button
+								size="sm"
+								variant="outline"
+								className="rounded-xl"
+								onClick={(event) => {
+									event.preventDefault();
+									event.stopPropagation();
+									void printProduction({
+										salesIds: [item.id],
+									});
+								}}
+							>
+								<Printer className="h-4 w-4" />
+								Print
+							</Button>
 							<div className="text-right">
 								<p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
 									Due
@@ -769,7 +869,7 @@ function ProductionOrderDetailInline({
 										<AccordionItem
 											key={productionItem.controlUid}
 											value={productionItem.controlUid}
-											className="overflow-hidden rounded-2xl border bg-background"
+											className="overflow-hidden rounded-2xl border bg-background transition-colors hover:bg-muted/30"
 										>
 											<div className="px-4 pb-3 pt-4">
 												<div className="flex items-start gap-4">
@@ -790,42 +890,44 @@ function ProductionOrderDetailInline({
 															</div>
 														</a>
 													) : null}
-													<div className="min-w-0 flex-1">
-														<p className="font-semibold uppercase tracking-[0.08em]">
-															{productionItem.title}
-														</p>
-														<p className="mt-1 text-sm uppercase tracking-[0.08em] text-muted-foreground">
-															{productionItem.subtitle || "NO SUBTITLE"}
-														</p>
-													</div>
-													<div className="shrink-0">
-														<AccordionTrigger className="w-auto p-0 hover:no-underline" />
-													</div>
-												</div>
-												<div className="mt-4 grid gap-3 md:grid-cols-3">
-													<ProductionStatProgress
-														label="Assigned"
-														completed={
-															productionItem.analytics?.stats?.prodAssigned?.qty
-														}
-														total={productionItem.qty?.qty}
-													/>
-													<ProductionStatProgress
-														label="Production"
-														completed={
-															productionItem.analytics?.stats?.prodCompleted
-																?.qty
-														}
-														total={productionItem.qty?.qty}
-													/>
-													<ProductionStatProgress
-														label="Fulfilled"
-														completed={
-															productionItem.analytics?.stats?.dispatchCompleted
-																?.qty
-														}
-														total={productionItem.qty?.qty}
-													/>
+													<AccordionTrigger className="group flex flex-1 cursor-pointer flex-col items-stretch px-2 py-2 text-left transition-colors hover:no-underline">
+														<div className="flex items-start gap-3">
+															<div className="min-w-0 flex-1">
+																<p className="font-semibold uppercase tracking-[0.08em] transition-colors group-hover:text-foreground">
+																	{productionItem.title}
+																</p>
+																<p className="mt-1 text-sm uppercase tracking-[0.08em] text-muted-foreground transition-colors group-hover:text-foreground/80">
+																	{productionItem.subtitle || "NO SUBTITLE"}
+																</p>
+															</div>
+														</div>
+														<div className="mt-4 grid gap-3 md:grid-cols-3">
+															<ProductionStatProgress
+																label="Assigned"
+																completed={
+																	productionItem.analytics?.stats?.prodAssigned
+																		?.qty
+																}
+																total={productionItem.qty?.qty}
+															/>
+															<ProductionStatProgress
+																label="Production"
+																completed={
+																	productionItem.analytics?.stats?.prodCompleted
+																		?.qty
+																}
+																total={productionItem.qty?.qty}
+															/>
+															<ProductionStatProgress
+																label="Fulfilled"
+																completed={
+																	productionItem.analytics?.stats
+																		?.dispatchCompleted?.qty
+																}
+																total={productionItem.qty?.qty}
+															/>
+														</div>
+													</AccordionTrigger>
 												</div>
 											</div>
 											<AccordionContent className="border-t bg-muted/20 px-4 py-4">
@@ -1054,6 +1156,64 @@ function SummaryCard({
 	);
 }
 
+function getOrderStatusPresentation(item: ProductionListItem) {
+	if (item.completed) {
+		return {
+			label: "Completed",
+			className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+		};
+	}
+
+	const status = String(
+		item.status?.production?.scoreStatus ||
+			item.status?.production?.status ||
+			item.alert?.text ||
+			"Open",
+	).toLowerCase();
+
+	if (status.includes("past due") || status.includes("overdue")) {
+		return {
+			label:
+				item.status?.production?.scoreStatus || item.alert?.text || "Past Due",
+			className: "border-rose-200 bg-rose-50 text-rose-700",
+		};
+	}
+
+	if (status.includes("due today")) {
+		return {
+			label:
+				item.status?.production?.scoreStatus || item.alert?.text || "Due Today",
+			className: "border-amber-200 bg-amber-50 text-amber-700",
+		};
+	}
+
+	if (status.includes("due tomorrow")) {
+		return {
+			label:
+				item.status?.production?.scoreStatus ||
+				item.alert?.text ||
+				"Due Tomorrow",
+			className: "border-sky-200 bg-sky-50 text-sky-700",
+		};
+	}
+
+	if (status.includes("progress")) {
+		return {
+			label: item.status?.production?.scoreStatus || "In Progress",
+			className: "border-blue-200 bg-blue-50 text-blue-700",
+		};
+	}
+
+	return {
+		label:
+			item.status?.production?.scoreStatus ||
+			item.status?.production?.status ||
+			item.alert?.text ||
+			"Open",
+		className: "border-slate-200 bg-slate-50 text-slate-700",
+	};
+}
+
 function ProductionStatProgress({
 	label,
 	completed,
@@ -1069,19 +1229,59 @@ function ProductionStatProgress({
 		resolvedTotal > 0
 			? Math.min((resolvedCompleted / resolvedTotal) * 100, 100)
 			: 0;
+	const tone =
+		percentage >= 100
+			? {
+					text: "text-emerald-700",
+					muted: "text-emerald-700/80",
+					bar: "bg-emerald-500",
+				}
+			: percentage > 0
+				? label === "Production"
+					? {
+							text: "text-amber-700",
+							muted: "text-amber-700/80",
+							bar: "bg-amber-500",
+						}
+					: label === "Fulfilled"
+						? {
+								text: "text-sky-700",
+								muted: "text-sky-700/80",
+								bar: "bg-sky-500",
+							}
+						: {
+								text: "text-blue-700",
+								muted: "text-blue-700/80",
+								bar: "bg-blue-500",
+							}
+				: {
+						text: "text-slate-600",
+						muted: "text-slate-500",
+						bar: "bg-slate-300",
+					};
 
 	return (
 		<div className="space-y-1.5">
 			<div className="flex items-center justify-between gap-3">
-				<span className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+				<span
+					className={cn(
+						"text-[11px] font-medium uppercase tracking-[0.16em]",
+						tone.text,
+					)}
+				>
 					{label}
 				</span>
-				<span className="text-xs text-muted-foreground">
+				<span className={cn("text-xs", tone.muted)}>
 					{resolvedCompleted}/{resolvedTotal} ({percentage.toFixed(0)}
 					%)
 				</span>
 			</div>
-			<Progress value={percentage} className="h-2" />
+			<div className="h-2 overflow-hidden rounded-full bg-muted">
+				<div
+					className={cn("h-full rounded-full transition-all", tone.bar)}
+					style={{ width: `${percentage}%` }}
+				/>
+			</div>
 		</div>
 	);
 }
