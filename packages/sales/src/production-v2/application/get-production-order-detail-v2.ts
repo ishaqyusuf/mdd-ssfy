@@ -1,7 +1,7 @@
 import type { Db } from "@gnd/db";
 
-import type { ProductionV2DetailQuery } from "../contracts";
 import { getSaleInformation } from "../../sales-control/get-sale-information";
+import type { ProductionV2DetailQuery } from "../contracts";
 
 export async function getProductionOrderDetailV2(
 	db: Db,
@@ -23,6 +23,16 @@ export async function getProductionOrderDetailV2(
 			controlUid: item.controlUid,
 			salesId: item.salesId,
 			itemId: item.itemId,
+			isProduction: !!item.itemConfig?.production,
+			noteContext: {
+				salesId: item.salesId,
+				salesNo: data.order.orderId,
+				itemId: item.itemId,
+				// Production items are still keyed by controlUid in sales-control.
+				// Until a numeric item control id is exposed, keep a stable item-level
+				// notification identity by falling back to the sales item id here.
+				itemControlId: item.itemId,
+			},
 			img: item.img,
 			title: item.title,
 			subtitle: item.subtitle,

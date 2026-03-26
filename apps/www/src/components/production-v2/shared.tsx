@@ -1,14 +1,16 @@
 "use client";
 
-import Img from "@/components/(clean-code)/img";
 import { batchAssignProductionOrdersAction } from "@/actions/batch-assign-production-orders";
+import Img from "@/components/(clean-code)/img";
+import {
+	ProductionItemNotes,
+	ProductionOrderNotes,
+} from "@/components/production-v2/production-notes";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { printProduction } from "@/lib/quick-print";
-import Note from "@/modules/notes";
-import { noteTagFilter } from "@/modules/notes/utils";
+import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
-import { useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import {
 	Accordion,
 	AccordionContent,
@@ -25,12 +27,12 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@gnd/ui/card";
+import { Checkbox } from "@gnd/ui/checkbox";
 import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@gnd/ui/collapsible";
-import { Checkbox } from "@gnd/ui/checkbox";
 import { Input } from "@gnd/ui/input";
 import { Progress } from "@gnd/ui/progress";
 import {
@@ -42,7 +44,8 @@ import {
 } from "@gnd/ui/select";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
-import { cn } from "@/lib/utils";
+import { useQuery, useQueryClient } from "@gnd/ui/tanstack";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import {
 	AlertTriangle,
 	CalendarDays,
@@ -56,11 +59,10 @@ import {
 	SquareCheckBig,
 	UserRoundPlus,
 } from "lucide-react";
+import { useAction } from "next-safe-action/hooks";
 import type { ReactNode } from "react";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { useAction } from "next-safe-action/hooks";
 import { useInView } from "react-intersection-observer";
-import { useInfiniteQuery } from "@tanstack/react-query";
 
 type Scope = "worker" | "admin";
 
@@ -120,6 +122,13 @@ type ProductionDetail = {
 		controlUid: string;
 		salesId: number;
 		itemId: number;
+		isProduction: boolean;
+		noteContext: {
+			salesId: number;
+			salesNo: string;
+			itemId: number;
+			itemControlId: number;
+		};
 		img?: string | null;
 		title: string;
 		subtitle?: string | null;
@@ -862,14 +871,21 @@ function ProductionOrderDetailInline({
 								<Accordion
 									type="single"
 									collapsible
-									defaultValue={detail.items[0]?.controlUid}
+									defaultValue={
+										detail.items.find((item) => item.isProduction)?.controlUid
+									}
 									className="space-y-3"
 								>
 									{detail.items.map((productionItem) => (
 										<AccordionItem
 											key={productionItem.controlUid}
 											value={productionItem.controlUid}
-											className="overflow-hidden rounded-2xl border bg-background transition-colors hover:bg-muted/30"
+											className={cn(
+												"overflow-hidden rounded-2xl border bg-background transition-colors",
+												productionItem.isProduction
+													? "hover:bg-muted/30"
+													: "bg-muted/10",
+											)}
 										>
 											<div className="px-4 pb-3 pt-4">
 												<div className="flex items-start gap-4">
@@ -890,47 +906,97 @@ function ProductionOrderDetailInline({
 															</div>
 														</a>
 													) : null}
-													<AccordionTrigger className="group flex flex-1 cursor-pointer flex-col items-stretch px-2 py-2 text-left transition-colors hover:no-underline">
-														<div className="flex items-start gap-3">
-															<div className="min-w-0 flex-1">
-																<p className="font-semibold uppercase tracking-[0.08em] transition-colors group-hover:text-foreground">
-																	{productionItem.title}
-																</p>
-																<p className="mt-1 text-sm uppercase tracking-[0.08em] text-muted-foreground transition-colors group-hover:text-foreground/80">
-																	{productionItem.subtitle || "NO SUBTITLE"}
-																</p>
+													{productionItem.isProduction ? (
+														<AccordionTrigger className="group flex flex-1 cursor-pointer flex-col items-stretch px-2 py-2 text-left transition-colors hover:no-underline">
+															<div className="flex items-start gap-3">
+																<div className="min-w-0 flex-1">
+																	<p className="font-semibold uppercase tracking-[0.08em] transition-colors group-hover:text-foreground">
+																		{productionItem.title}
+																	</p>
+																	<p className="mt-1 text-sm uppercase tracking-[0.08em] text-muted-foreground transition-colors group-hover:text-foreground/80">
+																		{productionItem.subtitle || "NO SUBTITLE"}
+																	</p>
+																</div>
+															</div>
+															<div className="mt-4 grid gap-3 md:grid-cols-3">
+																<ProductionStatProgress
+																	label="Assigned"
+																	completed={
+																		productionItem.analytics?.stats
+																			?.prodAssigned?.qty
+																	}
+																	total={productionItem.qty?.qty}
+																/>
+																<ProductionStatProgress
+																	label="Production"
+																	completed={
+																		productionItem.analytics?.stats
+																			?.prodCompleted?.qty
+																	}
+																	total={productionItem.qty?.qty}
+																/>
+																<ProductionStatProgress
+																	label="Fulfilled"
+																	completed={
+																		productionItem.analytics?.stats
+																			?.dispatchCompleted?.qty
+																	}
+																	total={productionItem.qty?.qty}
+																/>
+															</div>
+														</AccordionTrigger>
+													) : (
+														<div className="flex flex-1 flex-col items-stretch px-2 py-2 text-left opacity-70">
+															<div className="flex items-start gap-3">
+																<div className="min-w-0 flex-1">
+																	<div className="flex flex-wrap items-center gap-2">
+																		<p className="font-semibold uppercase tracking-[0.08em]">
+																			{productionItem.title}
+																		</p>
+																		<Badge
+																			variant="outline"
+																			className="rounded-full text-[10px] uppercase tracking-[0.16em]"
+																		>
+																			Not Production
+																		</Badge>
+																	</div>
+																	<p className="mt-1 text-sm uppercase tracking-[0.08em] text-muted-foreground">
+																		{productionItem.subtitle || "NO SUBTITLE"}
+																	</p>
+																</div>
+															</div>
+															<div className="mt-4 grid gap-3 md:grid-cols-3">
+																<ProductionStatProgress
+																	label="Assigned"
+																	completed={
+																		productionItem.analytics?.stats
+																			?.prodAssigned?.qty
+																	}
+																	total={productionItem.qty?.qty}
+																/>
+																<ProductionStatProgress
+																	label="Production"
+																	completed={
+																		productionItem.analytics?.stats
+																			?.prodCompleted?.qty
+																	}
+																	total={productionItem.qty?.qty}
+																/>
+																<ProductionStatProgress
+																	label="Fulfilled"
+																	completed={
+																		productionItem.analytics?.stats
+																			?.dispatchCompleted?.qty
+																	}
+																	total={productionItem.qty?.qty}
+																/>
 															</div>
 														</div>
-														<div className="mt-4 grid gap-3 md:grid-cols-3">
-															<ProductionStatProgress
-																label="Assigned"
-																completed={
-																	productionItem.analytics?.stats?.prodAssigned
-																		?.qty
-																}
-																total={productionItem.qty?.qty}
-															/>
-															<ProductionStatProgress
-																label="Production"
-																completed={
-																	productionItem.analytics?.stats?.prodCompleted
-																		?.qty
-																}
-																total={productionItem.qty?.qty}
-															/>
-															<ProductionStatProgress
-																label="Fulfilled"
-																completed={
-																	productionItem.analytics?.stats
-																		?.dispatchCompleted?.qty
-																}
-																total={productionItem.qty?.qty}
-															/>
-														</div>
-													</AccordionTrigger>
+													)}
 												</div>
 											</div>
-											<AccordionContent className="border-t bg-muted/20 px-4 py-4">
+											{productionItem.isProduction ? (
+												<AccordionContent className="border-t bg-muted/20 px-4 py-4">
 												<div className="space-y-4">
 													<div className="grid gap-3 sm:grid-cols-2">
 														{productionItem.configs?.map((config, index) => (
@@ -1071,31 +1137,15 @@ function ProductionOrderDetailInline({
 																Related Notes
 															</p>
 															<div className="rounded-xl border bg-background p-3">
-																<Note
-																	subject="Production Note"
-																	headline=""
-																	statusFilters={["public"]}
-																	typeFilters={["production", "general"]}
-																	tagFilters={[
-																		noteTagFilter(
-																			"itemControlUID",
-																			productionItem.controlUid,
-																		),
-																		noteTagFilter(
-																			"salesItemId",
-																			productionItem.itemId,
-																		),
-																		noteTagFilter(
-																			"salesId",
-																			productionItem.salesId,
-																		),
-																	]}
+																<ProductionItemNotes
+																	context={productionItem.noteContext}
 																/>
 															</div>
 														</div>
+														</div>
 													</div>
-												</div>
-											</AccordionContent>
+												</AccordionContent>
+											) : null}
 										</AccordionItem>
 									))}
 								</Accordion>
@@ -1117,12 +1167,9 @@ function ProductionOrderDetailInline({
 							</CardDescription>
 						</CardHeader>
 						<CardContent>
-							<Note
-								subject="Production Note"
-								headline=""
-								statusFilters={["public"]}
-								typeFilters={["production", "general"]}
-								tagFilters={[noteTagFilter("salesNo", salesNo)]}
+							<ProductionOrderNotes
+								salesId={detail.salesId}
+								salesNo={salesNo}
 							/>
 						</CardContent>
 					</Card>

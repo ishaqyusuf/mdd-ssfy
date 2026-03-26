@@ -5,7 +5,10 @@ import { useEffect } from "react";
 
 export default function SignoutPage() {
     useEffect(() => {
-        signOut();
+        signOut({
+            redirect: true,
+            callbackUrl: "/login",
+        });
     }, []);
 
     return <></>;

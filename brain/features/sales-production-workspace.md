@@ -38,7 +38,7 @@ Provide a cleaner production operations surface for both admins and production w
   - clickable month calendar
   - worker-only queue
   - inline expandable order detail
-  - note activity stream in the expanded section
+  - notification-channel-backed note activity in the expanded section
 - Admin productions v2 is a dedicated admin board with:
   - completed label visibility
   - expandable order detail
@@ -56,7 +56,18 @@ Provide a cleaner production operations surface for both admins and production w
 - `sales.productionsV2`: v2 list query for worker/admin boards
 - `sales.productionDashboardV2`: v2 summary counts plus label metadata including `completed`
 - `sales.productionOrderDetailV2`: lazy inline detail payload for expanded order sections
+- `sales.productionOrderDetailV2.items[].noteContext`: normalized note identity used by the new inbox/chat note system
 - Worker scoping remains server-enforced in v2 through authenticated `workerId` injection at the router layer.
+
+## V2 Notes
+- Order-level notes now use the newer inbox/chat note flow on the `sales_info` notification channel.
+- Production item notes now use the newer inbox/chat note flow on the `sales_item_info` notification channel.
+- Production item note identity is normalized from v2 detail data via:
+  - `salesId`
+  - `salesNo`
+  - `itemId`
+  - `itemControlId`
+- Current caveat: production items are still keyed by string `controlUid` in sales-control, so `itemControlId` currently falls back to the numeric sales item id until the sales domain exposes a dedicated numeric item-control identifier.
 
 ## Notes
 - The rebuild intentionally reuses the existing production list infrastructure instead of creating a second list system.

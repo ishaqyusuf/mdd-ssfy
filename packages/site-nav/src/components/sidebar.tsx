@@ -17,7 +17,6 @@ export function Sidebar({ children }: { children?: React.ReactNode }) {
       }
     };
   }, []);
-
   if (linkModules?.noSidebar) return null;
   return (
     <aside

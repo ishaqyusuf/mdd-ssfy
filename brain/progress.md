@@ -24,6 +24,10 @@
   - inline collapsible production order detail replacing the modal interaction in v2
   - inline note activity panel per expanded order
 - Added `v2` sidebar sublinks for both worker and admin production destinations.
+- Switched v2 production notes to the newer inbox/chat note system:
+  - order notes use the `sales_info` notification channel
+  - production item notes use the `sales_item_info` notification channel
+  - added normalized `noteContext` to the v2 order-detail payload so the UI no longer rebuilds note identity inline
 - Left submission and quick-assign mutations as the next implementation slice; the current `v2` build establishes the page architecture and inline interaction model first.
 
 - Rebuilt the sales production workspace across admin and worker entry points:
