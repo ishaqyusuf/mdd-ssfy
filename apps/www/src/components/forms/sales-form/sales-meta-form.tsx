@@ -118,7 +118,7 @@ function SummaryTab({}) {
                                 <DatePicker
                                     className="midday h-8 w-auto border-none p-0 px-1 uppercase whitespace-nowrap"
                                     hideIcon
-                                    value={md.prodDueDate as any}
+                                    value={md.prodDueDate}
                                     setValue={(e) => {
                                         zus.dotUpdate(
                                             "metaData.prodDueDate",
