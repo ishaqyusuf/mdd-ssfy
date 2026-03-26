@@ -80,7 +80,7 @@ function composePage(
     ...lineItems,
   ].sort((a, b) => a.index - b.index);
 
-  const footer = config.showFooter ? composeFooter(sale) : null;
+  const footer = config.showFooter ? composeFooter(sale, mode) : null;
 
   return {
     meta,

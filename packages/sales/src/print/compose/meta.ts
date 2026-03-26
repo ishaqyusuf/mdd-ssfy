@@ -24,6 +24,7 @@ const modeTitles: Record<PrintMode, string> = {
 
 export function composeMeta(sale: PrintSalesData, mode: PrintMode): PageMeta {
   const isQuote = mode === "quote";
+  const hideBalanceDue = mode === "production" || mode === "packing-slip";
   const salesNo = sale.orderId
     ?.toUpperCase()
     .replace(/(\d+)([A-Za-z]+)/, "$1-$2");
@@ -58,8 +59,11 @@ export function composeMeta(sale: PrintSalesData, mode: PrintMode): PageMeta {
     rep: sale.salesRep?.name ?? undefined,
     po: meta?.po ?? undefined,
     status,
-    balanceDue: !isPaid ? `$${formatCurrency(sale.amountDue)}` : undefined,
-    dueDate,
+    balanceDue:
+      !hideBalanceDue && !isPaid
+        ? `$${formatCurrency(sale.amountDue)}`
+        : undefined,
+    dueDate: hideBalanceDue ? undefined : dueDate,
     total: `$${formatCurrency(sale.grandTotal)}`,
     paymentDate,
     goodUntil:

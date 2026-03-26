@@ -1,9 +1,13 @@
-import type { FooterData, FooterLine } from "../types";
+import type { FooterData, FooterLine, PrintMode } from "../types";
 import type { PrintSalesData } from "../query";
 import { formatCurrency, sum } from "@gnd/utils";
 import { salesTaxByCode, type SalesTaxCode } from "../constants";
 
-export function composeFooter(sale: PrintSalesData): FooterData | null {
+export function composeFooter(
+  sale: PrintSalesData,
+  mode?: PrintMode,
+): FooterData | null {
+  const hideBalanceDue = mode === "production" || mode === "packing-slip";
   const meta: any = sale.meta;
   const totalPaid = sum(
     sale.payments
@@ -94,13 +98,14 @@ export function composeFooter(sale: PrintSalesData): FooterData | null {
     });
   }
 
-  // Total Due
-  lines.push({
-    label: "Total Due",
-    value: `$${formatCurrency(sale.amountDue || 0)}`,
-    bold: true,
-    large: true,
-  });
+  if (!hideBalanceDue) {
+    lines.push({
+      label: "Total Due",
+      value: `$${formatCurrency(sale.amountDue || 0)}`,
+      bold: true,
+      large: true,
+    });
+  }
 
   return { lines, notes };
 }

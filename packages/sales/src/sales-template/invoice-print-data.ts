@@ -72,6 +72,8 @@ export async function loadInvoiceData(db: Db, query: PrintInvoice) {
 type DataItem = Data["items"][number];
 function metaData(data: Data): PrintData["meta"] {
   const isQuote = query.mode == "quote";
+  const hideBalanceDue =
+    query.mode == "packing slip" || query.mode == "production";
   function detail(label, value, style?: CSSProperties) {
     const _ctx = {
       data: {
@@ -89,13 +91,15 @@ function metaData(data: Data): PrintData["meta"] {
     }),
     detail(isQuote ? "Quote Date" : "Invoice Date", formatDate(data.createdAt)),
     detail("P.O No.", (data.meta as any as SalesMeta)?.po!),
-    detail("Invoice Status", data.amountDue! > 0 ? "Pending" : "Paid"),
-    detail("Invoice Total", formatCurrency(data?.grandTotal), {
-      fontWeight: "bold",
-      fontSize: "20px",
-    }),
+    !hideBalanceDue &&
+      detail("Invoice Status", data.amountDue! > 0 ? "Pending" : "Paid"),
+    !hideBalanceDue &&
+      detail("Invoice Total", formatCurrency(data?.grandTotal), {
+        fontWeight: "bold",
+        fontSize: "20px",
+      }),
   ];
-  if (data.amountDue! > 0) {
+  if (!hideBalanceDue && data.amountDue! > 0) {
     let { goodUntil, paymentTerm, createdAt } = data;
     if (paymentTerm) goodUntil = calculatePaymentTerm(paymentTerm, createdAt);
     details.push(detail("Due Date", goodUntil ? formatDate(goodUntil) : " - "));
@@ -109,7 +113,7 @@ function metaData(data: Data): PrintData["meta"] {
         quote: "Quote",
       } as { [k in typeof query.mode]: string }
     )[query.mode],
-    details,
+    details: details.filter(Boolean),
   };
 }
 function transformSalesPrint(data: Data) {
@@ -126,7 +130,12 @@ function transformSalesPrint(data: Data) {
     salesRep: data?.salesRep?.name!,
     poNo: (data.meta as any as SalesMeta)?.po!,
     total: `${formatMoney(data.grandTotal)}`,
-    due: data.amountDue ? `$${formatMoney(data.amountDue)}` : undefined,
+    due:
+      query.mode == "packing slip" || query.mode == "production"
+        ? undefined
+        : data.amountDue
+          ? `$${formatMoney(data.amountDue)}`
+          : undefined,
     type: query.type,
     linesSection: [],
     salesNo: data.orderId,
