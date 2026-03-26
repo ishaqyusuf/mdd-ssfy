@@ -36,7 +36,7 @@ interface Props {
 }
 export function SummaryCard(props: Props) {
 	const [activeIndex, setActiveIndex] = useState(0);
-	const [isMasked, setIsMasked] = useState(Boolean(props.masked));
+	const [isHovered, setIsHovered] = useState(false);
 
 	//   const dataWithDefaultCurrency = data.length
 	//     ? data
@@ -58,14 +58,15 @@ export function SummaryCard(props: Props) {
 				<CardTitle className="font-mono$ text-2xl font-medium">
 					<button
 						type="button"
-						onClick={() => props.masked && setIsMasked((prev) => !prev)}
+						onMouseEnter={() => props.masked && setIsHovered(true)}
+						onMouseLeave={() => props.masked && setIsHovered(false)}
 						className={cn(
 							"text-left",
-							props.masked && "cursor-pointer",
-							props.masked && isMasked && "tracking-wider",
+							props.masked && "cursor-default",
+							props.masked && !isHovered && "tracking-wider",
 						)}
 					>
-						{props.masked && isMasked ? (
+						{props.masked && !isHovered ? (
 							maskedValue
 						) : (
 							<AnimatedNumber

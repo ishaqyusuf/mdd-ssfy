@@ -6,9 +6,9 @@ export default async function Layout({ children }) {
     return (
         <div className="flex w-full flex-col bg-muted/40">
             <main className="flex-1 space-y-6 p-4 sm:p-6">
-                <ProductioDashboardHeader />
-                <ProductionAlertWidget />
-                <ProductionDashboardTabs />
+                {/* <ProductioDashboardHeader /> */}
+                {/* <ProductionAlertWidget /> */}
+                {/* <ProductionDashboardTabs /> */}
                 {children}
             </main>
         </div>

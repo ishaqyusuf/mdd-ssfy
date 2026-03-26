@@ -23,14 +23,57 @@ export async function getProductionOrderDetailV2(
 			controlUid: item.controlUid,
 			salesId: item.salesId,
 			itemId: item.itemId,
+			img: item.img,
 			title: item.title,
 			subtitle: item.subtitle,
+			qty: item.qty,
 			sectionTitle: item.sectionTitle,
 			configs: item.configs?.filter((config) => !config.hidden) || [],
 			hands: item.hands,
 			analytics: item.analytics,
 			itemConfig: item.itemConfig,
 			deliverables: item.deliverables,
+			assignments: data.order.assignments
+				.filter(
+					(assignment) => assignment.salesItemControlUid === item.controlUid,
+				)
+				.map((assignment) => ({
+					id: assignment.id,
+					assignedTo: assignment.assignedTo?.name || null,
+					assignedToId: assignment.assignedTo?.id || null,
+					dueDate: assignment.dueDate,
+					createdAt: assignment.createdAt,
+					qty: {
+						qty: assignment.qtyAssigned,
+						lh: assignment.lhQty,
+						rh: assignment.rhQty,
+					},
+					submissions: assignment.submissions.map((submission) => ({
+						id: submission.id,
+						createdAt: submission.createdAt,
+						note: submission.note,
+						qty: {
+							qty: submission.qty,
+							lh: submission.lhQty,
+							rh: submission.rhQty,
+						},
+						deliveredQty: data.order.deliveries
+							.flatMap((delivery) => delivery.items)
+							.filter(
+								(deliveryItem) =>
+									deliveryItem.orderProductionSubmissionId === submission.id,
+							)
+							.reduce(
+								(total, deliveryItem) =>
+									total +
+									Number(
+										deliveryItem.qty ||
+											(deliveryItem.lhQty || 0) + (deliveryItem.rhQty || 0),
+									),
+								0,
+							),
+					})),
+				})),
 		})),
 		actions: {
 			canQuickAssign: query.scope === "admin",
