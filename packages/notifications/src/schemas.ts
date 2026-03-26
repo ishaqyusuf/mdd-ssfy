@@ -722,6 +722,7 @@ export const salesInfoTags = actityTagsSchema.extend({
 export type SalesInfoTags = z.infer<typeof salesInfoTags>;
 export const salesItemInfoSchema = z.object({
 	headline: z.string(),
+	note: z.string().optional(),
 	color: z.string().optional(),
 	salesId: z.number(),
 	salesNo: z.string(),

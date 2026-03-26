@@ -243,6 +243,7 @@ import {
   Archive,
   FileEdit,
   FileLock,
+  UserRoundPlus,
 } from "lucide-react";
 
 import { Cross2Icon, DashboardIcon } from "@radix-ui/react-icons";
@@ -965,6 +966,7 @@ export const Icons = {
   Files: MdOutlineInventory2,
   placeholder: ImageIcon,
   documents: FileLock,
+  UserRoundPlus,
   ...IconsBase,
 };
 export type IconKeys =

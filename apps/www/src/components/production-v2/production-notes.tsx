@@ -1,7 +1,11 @@
 "use client";
 
 import { Inbox } from "@/components/chat/inbox";
-import { activityAnd, activityTag } from "@notifications/activity-tree";
+import {
+	activityAnd,
+	activityOr,
+	activityTag,
+} from "@notifications/activity-tree";
 
 const orderChannelNames = ["sales_info"] as const;
 const itemChannelNames = ["sales_item_info"] as const;
@@ -9,6 +13,7 @@ const itemChannelNames = ["sales_item_info"] as const;
 type ProductionOrderNotesProps = {
 	salesId: number;
 	salesNo: string;
+	scope: "worker" | "admin";
 };
 
 type ProductionItemNoteContext = {
@@ -20,22 +25,44 @@ type ProductionItemNoteContext = {
 
 type ProductionItemNotesProps = {
 	context: ProductionItemNoteContext;
+	title: string;
+	description?: string | null;
 };
 
 export function ProductionOrderNotes({
 	salesId,
 	salesNo,
+	scope,
 }: ProductionOrderNotesProps) {
+	const filter =
+		scope === "worker"
+			? activityOr([
+					activityAnd([
+						activityTag("channel", "sales_info"),
+						activityOr([
+							activityTag("salesId", salesId),
+							activityTag("salesNo", salesNo),
+						]),
+					]),
+					activityAnd([
+						activityTag("channel", "sales_item_info"),
+						activityOr([
+							activityTag("salesId", salesId),
+							activityTag("salesNo", salesNo),
+						]),
+					]),
+				])
+			: activityOr([
+					activityTag("salesId", salesId),
+					activityTag("salesNo", salesNo),
+				]);
+
 	return (
 		<Inbox
 			className="gap-1"
 			activityHistoryProps={{
-				channel: "sales_info",
 				emptyText: "No order activity yet",
-				filter: activityAnd([
-					activityTag("salesId", salesId),
-					activityTag("salesNo", salesNo),
-				]),
+				filter,
 			}}
 			chatProps={{
 				channel: "sales_info",
@@ -50,7 +77,13 @@ export function ProductionOrderNotes({
 	);
 }
 
-export function ProductionItemNotes({ context }: ProductionItemNotesProps) {
+export function ProductionItemNotes({
+	context,
+	title,
+	description,
+}: ProductionItemNotesProps) {
+	const headline = [title, description].filter(Boolean).join(" | ");
+
 	return (
 		<Inbox
 			className="gap-1"
@@ -68,6 +101,7 @@ export function ProductionItemNotes({ context }: ProductionItemNotesProps) {
 				channel: "sales_item_info",
 				names: itemChannelNames,
 				payload: {
+					headline,
 					salesId: context.salesId,
 					salesNo: context.salesNo,
 					itemId: context.itemId,
