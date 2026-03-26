@@ -5,11 +5,15 @@ export * from "./sales-control/get-sale-information";
 export * from "./sales-control/settings";
 export * from "./sales-control/tasks";
 export * from "./control";
-export { withDispatchControl, withSalesControl } from "./utils/with-sales-control";
+export {
+	withDispatchControl,
+	withSalesControl,
+} from "./utils/with-sales-control";
 export * from "./new-sales-form-costing";
 export * from "./pdf-system";
 export * from "./payment-system/contracts";
 export * from "./payment-system/projections";
+export * from "./production-v2";
 export * from "./resolution-system/contracts";
 export * from "./resolution-system/domain";
 export * from "./sales-form";

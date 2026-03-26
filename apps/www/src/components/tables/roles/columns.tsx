@@ -1,6 +1,5 @@
 "use client";
 
-import { ActionCell } from "../action-cell";
 import { ColumnDef, PageItemData } from "@/types/type";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 
@@ -57,10 +56,10 @@ function Action({ item }: { item: Item }) {
     const r = useRolesParams();
 
     return (
-        <ActionCell
-            trash
-            disableTrash={!!item?._count?.ModelHasRoles}
-            itemId={item.id}
+        <div
+        // trash
+        // disableTrash={!!item?._count?.ModelHasRoles}
+        // itemId={item.id}
         >
             <Button
                 onClick={(e) => {
@@ -74,7 +73,7 @@ function Action({ item }: { item: Item }) {
             >
                 <Icons.Edit className="size-4" />
             </Button>
-        </ActionCell>
+        </div>
     );
 }
 export const mobileColumn: ColumnDef<Item>[] = [

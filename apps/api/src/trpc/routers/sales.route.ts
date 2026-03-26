@@ -23,6 +23,8 @@ import { resolvePayment, resolvePaymentSchema } from "@api/db/queries/wallet";
 import {
 	getInvoicePrintData,
 	printInvoiceSchema,
+	productionV2DetailQuerySchema,
+	productionV2ListQuerySchema,
 	salesProductionQueryParamsSchema,
 } from "@sales/exports";
 import { salesPayWithWallet, salesPayWithWalletSchema } from "@sales/wallet";
@@ -30,6 +32,11 @@ import {
 	getSalesProductionDashboard,
 	getSalesProductions,
 } from "@sales/sales-production";
+import {
+	getProductionDashboardV2,
+	getProductionListV2,
+	getProductionOrderDetailV2,
+} from "@sales/production-v2";
 import { z } from "zod";
 import { generateRandomString, timeLog } from "@gnd/utils";
 import { getCustomers } from "@api/db/queries/customer";
@@ -111,6 +118,42 @@ export const salesRouter = createTRPCRouter({
 			return getSalesProductionDashboard(props.ctx.db, {
 				...(props.input || {}),
 			});
+		}),
+	productionsV2: publicProcedure
+		.input(productionV2ListQuerySchema)
+		.query(async (props) => {
+			const input =
+				props.input.scope === "worker"
+					? {
+							...props.input,
+							workerId: props.ctx.userId,
+						}
+					: props.input;
+			return getProductionListV2(props.ctx.db, input);
+		}),
+	productionDashboardV2: publicProcedure
+		.input(productionV2ListQuerySchema)
+		.query(async (props) => {
+			const input =
+				props.input.scope === "worker"
+					? {
+							...props.input,
+							workerId: props.ctx.userId,
+						}
+					: props.input;
+			return getProductionDashboardV2(props.ctx.db, input);
+		}),
+	productionOrderDetailV2: publicProcedure
+		.input(productionV2DetailQuerySchema)
+		.query(async (props) => {
+			const input =
+				props.input.scope === "worker"
+					? {
+							...props.input,
+							workerId: props.ctx.userId,
+						}
+					: props.input;
+			return getProductionOrderDetailV2(props.ctx.db, input);
 		}),
 	getSalesHx: publicProcedure.input(getSalesHxSchema).query(async (props) => {
 		return getSalesHx(props.ctx, props.input);

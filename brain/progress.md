@@ -4,6 +4,28 @@
 
 ## 2026-03-26
 
+- Started the production `v2` rebuild in parallel with the earlier shared-shell production workspace:
+  - new worker route: `/production/dashboard/v2`
+  - new admin route: `/sales-book/productions/v2`
+- Added a dedicated `packages/sales/src/production-v2/*` module boundary for the new production experience:
+  - `contracts.ts`
+  - `application/get-production-list-v2.ts`
+  - `application/get-production-dashboard-v2.ts`
+  - `application/get-production-order-detail-v2.ts`
+- Added new sales tRPC entry points that delegate into the package-layer v2 services:
+  - `sales.productionsV2`
+  - `sales.productionDashboardV2`
+  - `sales.productionOrderDetailV2`
+- Built the first web `v2` UI slice in `apps/www/src/components/production-v2/shared.tsx`:
+  - dedicated worker/admin page shells
+  - local-state filtering instead of shared production filter-param hooks
+  - clickable due-date calendar
+  - `Completed` label support
+  - inline collapsible production order detail replacing the modal interaction in v2
+  - inline note activity panel per expanded order
+- Added `v2` sidebar sublinks for both worker and admin production destinations.
+- Left submission and quick-assign mutations as the next implementation slice; the current `v2` build establishes the page architecture and inline interaction model first.
+
 - Rebuilt the sales production workspace across admin and worker entry points:
   - `sales-book/productions`
   - `sales-book/production-tasks`
