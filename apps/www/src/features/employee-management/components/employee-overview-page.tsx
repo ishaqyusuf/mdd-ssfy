@@ -14,95 +14,97 @@ import { EmployeeInfoHeader } from "./shared/employee-info-header";
 import { OverviewStatCard } from "./shared/overview-stat-card";
 
 interface Props {
-	data: EmployeeOverview;
+    data: EmployeeOverview;
 }
 
 export function EmployeeOverviewPage({ data }: Props) {
-	const { session } = useSessionZusStore();
-	const [isUploadOpen, setIsUploadOpen] = useState(false);
-	const hasAnalytics =
-		data.analytics.sales ||
-		data.analytics.contractor ||
-		data.analytics.production;
-	const canUploadEmployeeDocuments = Boolean(
-		session?.can?.reviewEmployeeDocument ||
-			["Admin", "Super Admin"].includes(session?.role?.name ?? ""),
-	);
+    const { session } = useSessionZusStore();
+    const [isUploadOpen, setIsUploadOpen] = useState(false);
+    const hasAnalytics =
+        data.analytics.sales ||
+        data.analytics.contractor ||
+        data.analytics.production;
+    const canUploadEmployeeDocuments = Boolean(
+        session?.can?.reviewEmployeeDocument ||
+        ["Admin", "Super Admin"].includes(session?.role?.name ?? ""),
+    );
 
-	return (
-		<div className="flex flex-col gap-6">
-			<EmployeeInfoHeader
-				name={data.user.name}
-				email={data.user.email}
-				phone={data.user.phone}
-				roles={data.user.roles}
-				insuranceStatus={data.insuranceStatus}
-				profile={data.user.profile}
-			/>
+    return (
+        <div className="flex flex-col gap-6">
+            <EmployeeInfoHeader
+                name={data.user.name}
+                email={data.user.email}
+                phone={data.user.phone}
+                roles={data.user.roles}
+                insuranceStatus={data.insuranceStatus}
+                profile={data.user.profile}
+            />
 
-			<div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-				<OverviewStatCard
-					label="Roles"
-					value={data.user.roles.length}
-					icon={Users}
-				/>
-				<OverviewStatCard
-					label="Records"
-					value={data.records.length}
-					icon={Briefcase}
-				/>
-				<OverviewStatCard
-					label="Insurance"
-					value={data.insuranceStatus.replace("_", " ")}
-					icon={Package}
-				/>
-				<OverviewStatCard
-					label="Member Since"
-					value={new Date(data.user.createdAt).toLocaleDateString()}
-					icon={CalendarDays}
-				/>
-			</div>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                <OverviewStatCard
+                    label="Roles"
+                    value={data.user.roles.length}
+                    icon={Users}
+                />
+                <OverviewStatCard
+                    label="Records"
+                    value={data.records.length}
+                    icon={Briefcase}
+                />
+                <OverviewStatCard
+                    label="Insurance"
+                    value={data.insuranceStatus.replace("_", " ")}
+                    icon={Package}
+                />
+                <OverviewStatCard
+                    label="Member Since"
+                    value={new Date(data.user.createdAt).toLocaleDateString()}
+                    icon={CalendarDays}
+                />
+            </div>
 
-			<Tabs defaultValue="analytics">
-				<TabsList>
-					<TabsTrigger value="analytics">Analytics</TabsTrigger>
-					<TabsTrigger value="records">Records</TabsTrigger>
-				</TabsList>
+            <Tabs defaultValue="analytics">
+                <TabsList>
+                    <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                    <TabsTrigger value="records">Records</TabsTrigger>
+                </TabsList>
 
-				<TabsContent value="analytics" className="mt-4">
-					{!hasAnalytics && (
-						<p className="text-sm text-muted-foreground">
-							No analytics available for this employee.
-						</p>
-					)}
-					{data.analytics.sales && (
-						<SalesAnalytics data={data.analytics.sales} />
-					)}
-					{data.analytics.contractor && (
-						<ContractorAnalytics data={data.analytics.contractor} />
-					)}
-					{data.analytics.production && (
-						<ProductionAnalytics data={data.analytics.production} />
-					)}
-				</TabsContent>
+                <TabsContent value="analytics" className="mt-4">
+                    {!hasAnalytics && (
+                        <p className="text-sm text-muted-foreground">
+                            No analytics available for this employee.
+                        </p>
+                    )}
+                    {data.analytics.sales && (
+                        <SalesAnalytics data={data.analytics.sales} />
+                    )}
+                    {data.analytics.contractor && (
+                        <ContractorAnalytics data={data.analytics.contractor} />
+                    )}
+                    {data.analytics.production && (
+                        <ProductionAnalytics data={data.analytics.production} />
+                    )}
+                </TabsContent>
 
-				<TabsContent value="records" className="mt-4">
-					<EmployeeRecordsTab
-						records={data.records}
-						onUpload={
-							canUploadEmployeeDocuments
-								? () => setIsUploadOpen(true)
-								: undefined
-						}
-					/>
-				</TabsContent>
-			</Tabs>
+                <TabsContent value="records" className="mt-4">
+                    <EmployeeRecordsTab
+                        records={data.records}
+                        onUpload={
+                            () => setIsUploadOpen(true)
+                            // canUploadEmployeeDocuments
+                            // 	? () => setIsUploadOpen(true)
+                            // 	: undefined
+                        }
+                    />
+                </TabsContent>
+            </Tabs>
 
-			<RecordUploadForm
-				open={isUploadOpen}
-				employeeId={data.user.id}
-				onClose={() => setIsUploadOpen(false)}
-			/>
-		</div>
-	);
+            <RecordUploadForm
+                open={isUploadOpen}
+                employeeId={data.user.id}
+                onClose={() => setIsUploadOpen(false)}
+            />
+        </div>
+    );
 }
+
