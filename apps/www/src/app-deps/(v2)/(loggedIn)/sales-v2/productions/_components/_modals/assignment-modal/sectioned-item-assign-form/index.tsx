@@ -68,6 +68,9 @@ export function SectionedItemAssignForm({ index, salesDoorIndex = -1 }: Props) {
         defaultValues: {
             doors: {},
             assignToId: -1,
+            prodDueDate: data.data?.prodDueDate
+                ? new Date(data.data.prodDueDate)
+                : undefined,
         },
     });
 
@@ -94,6 +97,9 @@ export function SectionedItemAssignForm({ index, salesDoorIndex = -1 }: Props) {
             form.reset({
                 doors,
                 assignToId: -1,
+                prodDueDate: data.data?.prodDueDate
+                    ? new Date(data.data.prodDueDate)
+                    : undefined,
             });
         }
     }, [open]);

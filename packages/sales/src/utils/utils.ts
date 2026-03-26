@@ -324,6 +324,7 @@ export const FullSalesSelect = {
   orderId: true,
   isDyke: true,
   id: true,
+  prodDueDate: true,
   customer: true,
   createdAt: true,
   shippingAddress: {

@@ -69,6 +69,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
             createdAt: data.order?.createdAt,
             paymentTerm: data.order?.paymentTerm as any,
             paymentDueDate: data.order?.paymentDueDate,
+            prodDueDate: data.order?.prodDueDate,
             goodUntil: data.order?.goodUntil,
             paymentMethod: data.order?.meta?.payment_option,
             pricing: {

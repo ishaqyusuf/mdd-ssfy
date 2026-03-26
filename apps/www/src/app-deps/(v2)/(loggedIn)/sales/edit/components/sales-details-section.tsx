@@ -76,6 +76,12 @@ export default function SalesDetailsSection() {
                             options={salesData.paymentTerms}
                         />
                     </InfoLine>
+                    <InfoLine label="Production Due Date">
+                        <DateControl
+                            className="h-8 min-w-[150px]"
+                            name="prodDueDate"
+                        />
+                    </InfoLine>
                 </>
             )}
             {/* Good Until */}

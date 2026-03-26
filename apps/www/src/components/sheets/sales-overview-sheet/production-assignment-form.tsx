@@ -19,12 +19,17 @@ import { Button } from "@gnd/ui/button";
 import { Form } from "@gnd/ui/form";
 import { Label } from "@gnd/ui/label";
 
+import { useProduction } from "./context";
 import { useProductionItem } from "./production-tab";
 
 export function ProductionAssignmentForm({ closeForm }) {
     const ctx = useProductionItem();
+    const { data: prodData } = useProduction();
     const { queryCtx, item } = ctx;
     const pending = item?.analytics?.assignment?.pending;
+    const orderProdDueDate = prodData?.order?.prodDueDate
+        ? new Date(prodData.order.prodDueDate)
+        : null;
     const form = useForm<z.infer<typeof createAssignmentSchema>>({
         resolver: zodResolver(createAssignmentSchema),
         defaultValues: {
@@ -40,7 +45,7 @@ export function ProductionAssignmentForm({ closeForm }) {
                 // qty: !item.pending?.assignment?.noHandle
             },
             assignedToId: null,
-            dueDate: null,
+            dueDate: orderProdDueDate,
             salesItemId: item?.itemId,
             salesDoorId: item.doorId,
             salesId: item.salesId,

@@ -86,6 +86,7 @@ export class SaveSalesHelper {
                     md.paymentTerm,
                     md.createdAt,
                 );
+            (updateData as any).prodDueDate = this.convertDate(md.prodDueDate) || null;
         }
         if (md.id) {
             return {

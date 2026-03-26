@@ -588,7 +588,7 @@ export function InvoiceOverviewPanel() {
                             </Select>
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                         <div className="flex flex-col gap-1.5">
                             <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                                 Due Date
@@ -599,6 +599,23 @@ export function InvoiceOverviewPanel() {
                                 onChange={(e) =>
                                     setMeta({
                                         goodUntil: e.target.value
+                                            ? new Date(e.target.value).toISOString()
+                                            : null,
+                                    })
+                                }
+                                className="h-9 rounded-lg bg-card text-xs font-bold"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                Production Due Date
+                            </label>
+                            <Input
+                                type="date"
+                                value={record.form.prodDueDate?.slice(0, 10) || ""}
+                                onChange={(e) =>
+                                    setMeta({
+                                        prodDueDate: e.target.value
                                             ? new Date(e.target.value).toISOString()
                                             : null,
                                     })
