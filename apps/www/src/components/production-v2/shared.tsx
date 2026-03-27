@@ -51,7 +51,11 @@ import { Separator } from "@gnd/ui/separator";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { useQuery, useQueryClient } from "@gnd/ui/tanstack";
-import { activityAnd, activityTag } from "@notifications/activity-tree";
+import {
+	activityAnd,
+	activityOr,
+	activityTag,
+} from "@notifications/activity-tree";
 import type { UpdateSalesControl } from "@sales/schema";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import {
@@ -68,6 +72,7 @@ import {
 	UserRoundPlus,
 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
+import { parseAsString, useQueryStates } from "nuqs";
 import type { ReactNode } from "react";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useInView } from "react-intersection-observer";
@@ -196,6 +201,13 @@ type ProductionDetail = {
 	};
 };
 
+const productionV2FilterParams = {
+	q: parseAsString,
+	label: parseAsString,
+	date: parseAsString,
+	order: parseAsString,
+};
+
 export function ProductionWorkerDashboardV2() {
 	return (
 		<ProductionV2Board
@@ -226,13 +238,14 @@ function ProductionV2Board({
 	description: string;
 }) {
 	const trpc = useTRPC();
-	const [search, setSearch] = useState("");
-	const [label, setLabel] = useState("pending");
-	const [selectedDate, setSelectedDate] = useState<string | null>(null);
-	const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+	const [filters, setFilters] = useQueryStates(productionV2FilterParams);
 	const [selectedIds, setSelectedIds] = useState<number[]>([]);
 	const [batchAssignedToId, setBatchAssignedToId] = useState("");
 	const [batchDueDate, setBatchDueDate] = useState("");
+	const search = filters.q ?? "";
+	const activeLabel = filters.label ?? "pending";
+	const selectedDate = filters.date ?? null;
+	const expandedOrderId = filters.order ?? null;
 	const deferredSearch = useDeferredValue(search);
 	const { ref: loadMoreRef, inView } = useInView({
 		rootMargin: "320px 0px",
@@ -244,19 +257,21 @@ function ProductionV2Board({
 	const dashboardQuery = useQuery(
 		trpc.sales.productionDashboardV2.queryOptions({
 			scope,
-			production: label === "completed" ? "completed" : "pending",
+			production: activeLabel === "completed" ? "completed" : "pending",
+			productionDueDate: selectedDate,
+			q: deferredSearch || null,
 		}),
 	);
 	const boardQuery = useInfiniteQuery(
 		trpc.sales.productionsV2.infiniteQueryOptions(
 			{
 				scope,
-				production: label === "completed" ? "completed" : "pending",
+				production: activeLabel === "completed" ? "completed" : "pending",
 				show:
-					label === "due-today" ||
-					label === "due-tomorrow" ||
-					label === "past-due"
-						? (label as "due-today" | "due-tomorrow" | "past-due")
+					activeLabel === "due-today" ||
+					activeLabel === "due-tomorrow" ||
+					activeLabel === "past-due"
+						? (activeLabel as "due-today" | "due-tomorrow" | "past-due")
 						: null,
 				productionDueDate: selectedDate,
 				q: deferredSearch || null,
@@ -396,6 +411,13 @@ function ProductionV2Board({
 		setSelectedIds([]);
 	}
 
+	function setActiveLabel(nextLabel: string) {
+		void setFilters({
+			label: nextLabel === "pending" ? null : nextLabel,
+			date: null,
+		});
+	}
+
 	return (
 		<div className="grid gap-6">
 			<section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
@@ -420,12 +442,16 @@ function ProductionV2Board({
 									<Search className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
 									<Input
 										value={search}
-										onChange={(event) => setSearch(event.target.value)}
+										onChange={(event) =>
+											void setFilters({
+												q: event.target.value || null,
+											})
+										}
 										placeholder="Search production order or customer"
 										className="h-11 rounded-2xl border-white/10 bg-white/10 pl-10 text-white placeholder:text-slate-300"
 									/>
 								</div>
-								<Select value={label} onValueChange={setLabel}>
+								<Select value={activeLabel} onValueChange={setActiveLabel}>
 									<SelectTrigger className="h-11 rounded-2xl border-white/10 bg-white/10 text-white">
 										<SelectValue placeholder="Choose label" />
 									</SelectTrigger>
@@ -446,51 +472,36 @@ function ProductionV2Board({
 							label={scope === "worker" ? "Assigned Queue" : "Open Queue"}
 							value={dashboard?.summary.queueCount}
 							icon={<Package className="h-4 w-4" />}
-							active={label === "pending" && !selectedDate}
-							onClick={() => {
-								setLabel("pending");
-								setSelectedDate(null);
-							}}
+							active={activeLabel === "pending" && !selectedDate}
+							onClick={() => setActiveLabel("pending")}
 						/>
 						<SummaryCard
 							label="Past Due"
 							value={dashboard?.summary.pastDueCount}
 							icon={<AlertTriangle className="h-4 w-4" />}
-							active={label === "past-due" && !selectedDate}
-							onClick={() => {
-								setLabel("past-due");
-								setSelectedDate(null);
-							}}
+							active={activeLabel === "past-due" && !selectedDate}
+							onClick={() => setActiveLabel("past-due")}
 						/>
 						<SummaryCard
 							label="Due Today"
 							value={dashboard?.summary.dueTodayCount}
 							icon={<Clock3 className="h-4 w-4" />}
-							active={label === "due-today" && !selectedDate}
-							onClick={() => {
-								setLabel("due-today");
-								setSelectedDate(null);
-							}}
+							active={activeLabel === "due-today" && !selectedDate}
+							onClick={() => setActiveLabel("due-today")}
 						/>
 						<SummaryCard
 							label="Due Tomorrow"
 							value={dashboard?.summary.dueTomorrowCount}
 							icon={<CalendarDays className="h-4 w-4" />}
-							active={label === "due-tomorrow" && !selectedDate}
-							onClick={() => {
-								setLabel("due-tomorrow");
-								setSelectedDate(null);
-							}}
+							active={activeLabel === "due-tomorrow" && !selectedDate}
+							onClick={() => setActiveLabel("due-tomorrow")}
 						/>
 						<SummaryCard
 							label="Completed"
 							value={dashboard?.summary.completedCount}
 							icon={<CheckCircle2 className="h-4 w-4" />}
-							active={label === "completed" && !selectedDate}
-							onClick={() => {
-								setLabel("completed");
-								setSelectedDate(null);
-							}}
+							active={activeLabel === "completed" && !selectedDate}
+							onClick={() => setActiveLabel("completed")}
 						/>
 					</section>
 				</div>
@@ -515,7 +526,9 @@ function ProductionV2Board({
 										: undefined
 								}
 								onSelect={(date) =>
-									setSelectedDate(date ? formatCalendarDate(date) : null)
+									void setFilters({
+										date: date ? formatCalendarDate(date) : null,
+									})
 								}
 								modifiers={{
 									hasDue: dueDatesWithLoad,
@@ -613,7 +626,7 @@ function ProductionV2Board({
 								<Button
 									variant="ghost"
 									size="sm"
-									onClick={() => setSelectedDate(null)}
+									onClick={() => void setFilters({ date: null })}
 								>
 									Clear date
 								</Button>
@@ -641,9 +654,12 @@ function ProductionV2Board({
 										item={item}
 										isExpanded={expandedOrderId === item.orderId}
 										onToggle={() =>
-											setExpandedOrderId((current) =>
-												current === item.orderId ? null : item.orderId,
-											)
+											void setFilters({
+												order:
+													expandedOrderId === item.orderId
+														? null
+														: item.orderId,
+											})
 										}
 										isSelected={selectedIds.includes(item.id)}
 										onSelectionChange={(checked) =>
@@ -916,6 +932,41 @@ function ProductionOrderDetailInline({
 			]);
 		},
 	});
+	const resolvedSalesId = detail?.salesId ?? null;
+	const orderNotesFilter =
+		scope === "worker"
+			? activityOr([
+					activityAnd([
+						activityTag("channel", "sales_info"),
+						activityOr([
+							activityTag("salesId", resolvedSalesId),
+							activityTag("salesNo", salesNo),
+						]),
+					]),
+					activityAnd([
+						activityTag("channel", "sales_item_info"),
+						activityOr([
+							activityTag("salesId", resolvedSalesId),
+							activityTag("salesNo", salesNo),
+						]),
+					]),
+				])
+			: activityOr([
+					activityTag("salesId", resolvedSalesId),
+					activityTag("salesNo", salesNo),
+				]);
+	const orderNotesQuery = useQuery(
+		trpc.notes.activityTree.queryOptions({
+			filter: orderNotesFilter,
+			includeChildren: true,
+			pageSize: 100,
+			maxDepth: 4,
+			enabled: !!resolvedSalesId,
+		}),
+	);
+	const orderNotesCount = countActivityNodes(
+		(orderNotesQuery.data?.data as ActivityCountNode[] | undefined) || [],
+	);
 
 	if (detailQuery.isPending) {
 		return (
@@ -986,8 +1037,10 @@ function ProductionOrderDetailInline({
 					</div>
 					<div className="flex w-full items-center justify-end gap-2 md:w-auto">
 						<TabsList className="grid w-full grid-cols-2 rounded-xl md:w-[260px]">
-							<TabsTrigger value="productions">Productions</TabsTrigger>
-							<TabsTrigger value="notes">Notes</TabsTrigger>
+							<TabsTrigger value="productions">
+								Productions ({productionItems.length})
+							</TabsTrigger>
+							<TabsTrigger value="notes">Notes ({orderNotesCount})</TabsTrigger>
 						</TabsList>
 						<ProductionOrderActionsMenu
 							scope={scope}
@@ -1173,14 +1226,14 @@ function ProductionOrderDetailInline({
 								Notes and activity for the full production order.
 							</CardDescription>
 						</CardHeader>
-							<CardContent>
-								<ProductionOrderNotes
-									salesId={detail.salesId}
-									salesNo={salesNo}
-									scope={scope}
-								/>
-							</CardContent>
-						</Card>
+						<CardContent>
+							<ProductionOrderNotes
+								salesId={detail.salesId}
+								salesNo={salesNo}
+								scope={scope}
+							/>
+						</CardContent>
+					</Card>
 				</TabsContent>
 			</div>
 		</Tabs>

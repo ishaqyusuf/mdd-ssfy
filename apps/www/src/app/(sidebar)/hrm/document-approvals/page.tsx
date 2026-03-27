@@ -15,7 +15,7 @@ export default async function DocumentApprovalsPage() {
 	const documents = await getEmployeeDocumentApprovals();
 
 	return (
-		<AuthGuard can={["reviewEmployeeDocument"]} roles={["Super Admin"]}>
+		<AuthGuard can={["editEmployeeDocument"]} roles={["Super Admin"]}>
 			<div className="flex flex-col gap-6 pt-6">
 				<PageTitle>Document Approvals</PageTitle>
 				<DocumentApprovalList documents={documents} />

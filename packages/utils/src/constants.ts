@@ -1,3 +1,5 @@
+import { camel, consoleLog } from ".";
+
 export const blobPaths = ["inbound-documents", "dispatch-documents"] as const;
 export type BlobPath = (typeof blobPaths)[number];
 
@@ -86,7 +88,8 @@ export const PERMISSIONS = [
 	"editRole",
 	"viewEmployee",
 	"editEmployee",
-	"reviewEmployeeDocument",
+	"viewEmployeeDocument",
+	"editEmployeeDocument",
 	"viewProduction",
 	"editProduction",
 	"viewPrehungProduction",
@@ -213,11 +216,39 @@ export const PERMISSION_NAMES = [
 	"tech",
 ] as const;
 export type PascalResource = (typeof PERMISSION_NAMES_PASCAL)[number];
-type Action = "edit" | "view" | "review";
+type Action = "edit" | "view";
 export type PermissionScope = `${Action}${PascalResource}`;
 
 export type ICan = { [permission in PermissionScope]: boolean };
 export const allPermissions = () => [...PERMISSIONS];
+function normalizePermissionName(permission: string) {
+	const normalized = camel(permission);
+	if (normalized === "reviewEmployeeDocument") {
+		return ["viewEmployeeDocument", "editEmployeeDocument"];
+	}
+	return [normalized];
+}
+export const generatePermissions = (role, permissions?) => {
+	const can: ICan = {} as ICan;
+	const isSuperAdmin = role?.toLocaleLowerCase() === "super admin";
+	const permissionNames = Array.isArray(permissions)
+		? permissions.map((permission) =>
+				typeof permission === "string" ? permission : permission.name,
+			)
+		: [];
+	const normalizedPermissions = permissionNames.flatMap((permission) =>
+		normalizePermissionName(permission),
+	);
+	for (const resource of PERMISSION_NAMES_PASCAL) {
+		const viewPermission = `view${resource}` as PermissionScope;
+		const editPermission = `edit${resource}` as PermissionScope;
+		can[viewPermission] =
+			isSuperAdmin || normalizedPermissions.includes(viewPermission);
+		can[editPermission] =
+			isSuperAdmin || normalizedPermissions.includes(editPermission);
+	}
+	return can;
+};
 export const PRODUCTION_ASSIGNMENT_FILTER_OPTIONS = [
 	"not assigned",
 	"part assigned",

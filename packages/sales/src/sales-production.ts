@@ -25,27 +25,38 @@ export async function getSalesProductions(
 	);
 	const queryCount = q?.length;
 	const assignedToId = query.workerId || query.assignedToId;
+	const normalizedQuery = {
+		...query,
+		"production.assignedToId":
+			query["production.assignedToId"] || assignedToId || undefined,
+	};
 	const getDueToday = async () =>
-		await getProductionListAction(db, {
-			salesType: "order",
-			"production.assignedToId": assignedToId,
-			"production.status": "due today",
-			size: 99,
-		});
+		filterCompletedProductions(
+			await getProductionListAction(db, {
+				salesType: "order",
+				"production.assignedToId": assignedToId,
+				"production.status": "due today",
+				size: 99,
+			}),
+		);
 	const getPastDue = async () =>
-		await getProductionListAction(db, {
-			salesType: "order",
-			"production.assignedToId": assignedToId,
-			"production.status": "past due",
-			size: 99,
-		});
+		filterCompletedProductions(
+			await getProductionListAction(db, {
+				salesType: "order",
+				"production.assignedToId": assignedToId,
+				"production.status": "past due",
+				size: 99,
+			}),
+		);
 	const getDueTomorrow = async () =>
-		await getProductionListAction(db, {
-			salesType: "order",
-			"production.assignedToId": assignedToId,
-			"production.status": "due tomorrow",
-			size: 99,
-		});
+		filterCompletedProductions(
+			await getProductionListAction(db, {
+				salesType: "order",
+				"production.assignedToId": assignedToId,
+				"production.status": "due tomorrow",
+				size: 99,
+			}),
+		);
 	switch (query.show) {
 		case "due-today":
 			return await getDueToday();
@@ -67,11 +78,14 @@ export async function getSalesProductions(
 				count: customs.length,
 			} as PageDataMeta,
 		};
-	return await getProductionListAction(db, {
-		...query,
+	const response = await getProductionListAction(db, {
+		...normalizedQuery,
 		salesType: "order",
 		//   "production.status": "part assigned",
 	});
+	return query.production === "pending"
+		? filterCompletedProductions(response)
+		: response;
 	//   const others = prodList.filter((p) => !excludesIds?.includes(p.id));
 }
 
@@ -81,24 +95,26 @@ export async function getSalesProductionDashboard(
 ) {
 	const assignedToId = query.workerId || query.assignedToId;
 	const baseQuery: SalesProductionQueryParams = {
+		...query,
 		assignedToId,
+		"production.assignedToId":
+			query["production.assignedToId"] || assignedToId || undefined,
 		workerId: query.workerId,
 		production: "pending",
 		size: 500,
 	};
 
-	const [queue, dueToday, dueTomorrow, pastDue] = await Promise.all([
+	const [queueResponse, dueToday, dueTomorrow, pastDue] = await Promise.all([
 		getProductionListAction(db, {
+			...baseQuery,
 			salesType: "order",
-			"production.assignedToId": assignedToId,
-			production: "pending",
-			size: 500,
 		} as SalesQueryParamsSchema),
 		getSalesProductions(db, { ...baseQuery, show: "due-today" }),
 		getSalesProductions(db, { ...baseQuery, show: "due-tomorrow" }),
 		getSalesProductions(db, { ...baseQuery, show: "past-due" }),
 	]);
 
+	const queue = filterCompletedProductions(queueResponse);
 	const queueData = queue.data || [];
 	const calendarMap = new Map<
 		string,
@@ -126,10 +142,10 @@ export async function getSalesProductionDashboard(
 	}
 
 	for (const item of queueData) {
-		if (!item.dueDate) return;
+		if (!item.dueDate) continue;
 		const key = dayjs(item.dueDate).format("YYYY-MM-DD");
 		const current = calendarMap.get(key);
-		if (!current) return;
+		if (!current) continue;
 		current.count += 1;
 	}
 
@@ -265,5 +281,24 @@ function transformProductionList(
 		id: item.id,
 		stats,
 		status: overallStatus(item.stat),
+	};
+}
+
+function filterCompletedProductions<
+	T extends { completed?: boolean },
+>(response: {
+	data: T[];
+	meta?: PageDataMeta;
+	filter?: unknown;
+	query?: unknown;
+}) {
+	const data = (response.data || []).filter((item) => !item.completed);
+	return {
+		...response,
+		data,
+		meta: {
+			...response.meta,
+			count: data.length,
+		},
 	};
 }

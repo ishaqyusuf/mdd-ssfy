@@ -1,6 +1,7 @@
 import { Db, Prisma } from "@gnd/db";
 import { camel } from "@gnd/utils";
 import {
+  generatePermissions,
   PERMISSION_NAMES,
   PERMISSION_NAMES_PASCAL,
 } from "@gnd/utils/constants";
@@ -81,19 +82,19 @@ export async function loginAction(
         name: true,
       },
     });
-    let can: ICan = {} as any;
-    if (role.name?.toLocaleLowerCase() == "super admin") {
-      // can = Object.fromEntries(PERMISSIONS?.map((p) => [p as any, true]));
-      can = Object.fromEntries(
-        [...PERMISSION_NAMES_PASCAL]
-          .map((a) => ["view", "edit"].map((b) => `${b}${a}`))
-          ?.flat()
-          ?.map((p) => [p as any, true])
-      );
-    } else
-      permissions.map((p) => {
-        can[camel(p.name) as any] = permissionIds.includes(p.id);
-      });
+    let can = generatePermissions(role?.name, permissions);
+    // if (role.name?.toLocaleLowerCase() == "super admin") {
+    //   // can = Object.fromEntries(PERMISSIONS?.map((p) => [p as any, true]));
+    //   can = Object.fromEntries(
+    //     [...PERMISSION_NAMES_PASCAL]
+    //       .map((a) => ["view", "edit"].map((b) => `${b}${a}`))
+    //       ?.flat()
+    //       ?.map((p) => [p as any, true])
+    //   );
+    // } else
+    //   permissions.map((p) => {
+    //     can[camel(p.name) as any] = permissionIds.includes(p.id);
+    //   });
     const newSession = await db.session.create({
       data: {
         sessionToken: crypto.randomUUID(),

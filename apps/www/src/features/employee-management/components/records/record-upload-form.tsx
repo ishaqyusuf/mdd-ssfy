@@ -91,19 +91,37 @@ export function RecordUploadForm({ open, employeeId, onClose }: Props) {
 
 	function handleFileSelect(file: File) {
 		startUpload(async () => {
-			const formData = new FormData();
-			formData.append("file", file);
-			const data = await uploadFile(formData, "contractor-document");
+			try {
+				const formData = new FormData();
+				formData.append("file", file);
+				const data = await uploadFile(formData, "contractor-document");
 
-			if (data?.error) {
-				toast.error(data.error.message || "Unable to upload file");
-				return;
-			}
+				if (data?.error) {
+					toast.error(data.error.message || "Unable to upload file");
+					return;
+				}
 
-			setUrl(data.secure_url ?? data.public_id ?? "");
-			setFileName(file.name);
-			if (!title.trim()) {
-				setTitle(file.name.replace(/\.[^.]+$/, ""));
+				const uploadedUrl = data?.secure_url ?? data?.public_id ?? "";
+				if (!uploadedUrl) {
+					toast.error("Upload finished without a usable document URL.");
+					return;
+				}
+
+				setUrl(uploadedUrl);
+				setFileName(file.name);
+				if (!title.trim()) {
+					setTitle(file.name.replace(/\.[^.]+$/, ""));
+				}
+			} catch (error) {
+				toast.error(
+					error instanceof Error
+						? error.message
+						: "Unable to upload employee document",
+				);
+			} finally {
+				if (fileInputRef.current) {
+					fileInputRef.current.value = "";
+				}
 			}
 		});
 	}

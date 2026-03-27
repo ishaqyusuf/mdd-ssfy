@@ -196,6 +196,12 @@ interface EmployeeRecord {
 }
 ```
 
+## Permissions
+
+- The employee overview page only shows the admin upload modal to users with `auth.can.editEmployeeDocument`.
+- The document approvals page is also guarded by `editEmployeeDocument`; the legacy `reviewEmployeeDocument` permission is no longer used.
+- Regular employees continue to manage their own insurance uploads from their profile document flow.
+
 ---
 
 ## Insurance Gate Logic
