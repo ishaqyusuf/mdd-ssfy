@@ -288,7 +288,100 @@ export const mobileColumn: ColumnDef<Item>[] = [
     },
 ];
 function ItemCard({ item }: ItemProps) {
-    // design a mobile version of the columns here
-    const { setParams } = useCommunityTemplateParams();
-    return <></>;
+    const { setParams: setModelCostParams } = useCommunityModelCostParams();
+    const { setParams: setInstallCostParams } = useCommunityInstallCostParams();
+    const cost = item.costs?.find((c) => c.current);
+    const modelCostMoney = cost?.meta?.grandTotal;
+    const installSummary = item.installCostV2Summary;
+    const totalEstimate = installSummary?.totalEstimate ?? 0;
+    const configuredTasks = installSummary?.configuredBuilderTasks ?? 0;
+    const totalTasks = installSummary?.totalBuilderTasks ?? 0;
+
+    return (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+                <Link
+                    href={`/community/community-template/${item?.slug}`}
+                    className="min-w-0 flex-1 text-left"
+                >
+                    <p className="text-base font-semibold text-slate-900">
+                        {item.modelName}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                        {formatDate(item.createdAt)}
+                    </p>
+                </Link>
+                <div className="shrink-0">
+                    <Actions item={item} />
+                </div>
+            </div>
+
+            <div className="mt-4 rounded-2xl bg-slate-50 px-3 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Project
+                </p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">
+                    {item.project?.title}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                    {item.project?.builder?.name}
+                </p>
+            </div>
+
+            <div className="mt-3 grid grid-cols-3 gap-2">
+                <div className="rounded-2xl border border-slate-200 px-3 py-3 text-center">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Units
+                    </p>
+                    <p className="mt-2 text-lg font-semibold text-slate-900">
+                        {item._count.homes}
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    className="rounded-2xl border border-slate-200 px-3 py-3 text-left hover:bg-slate-50"
+                    onClick={() => {
+                        setModelCostParams({
+                            editModelCostTemplateId: item.id,
+                            editModelCostId:
+                                item?.pivot?.modelCosts?.[0]?.id || -1,
+                        });
+                    }}
+                >
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Model Cost
+                    </p>
+                    {!cost ? (
+                        <Badge className="mt-2 bg-slate-200 text-slate-700 hover:bg-slate-200">
+                            Set Cost
+                        </Badge>
+                    ) : (
+                        <p className="mt-2 text-sm font-semibold text-slate-900">
+                            <Money value={modelCostMoney} />
+                        </p>
+                    )}
+                </button>
+                <button
+                    type="button"
+                    className="rounded-2xl border border-slate-200 px-3 py-3 text-left hover:bg-slate-50"
+                    onClick={() => {
+                        setInstallCostParams({
+                            editCommunityModelInstallCostId: item.id,
+                            mode: "v2",
+                        });
+                    }}
+                >
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Install Cost
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-emerald-700">
+                        {formatCurrency.format(totalEstimate)}
+                    </p>
+                    <p className="mt-1 text-[10px] text-muted-foreground">
+                        {configuredTasks}/{totalTasks} tasks
+                    </p>
+                </button>
+            </div>
+        </div>
+    );
 }
