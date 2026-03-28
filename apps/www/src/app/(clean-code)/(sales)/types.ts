@@ -561,6 +561,7 @@ export interface SalesFormFields {
         paymentTerm?: PaymentTerms;
         paymentDueDate?;
         goodUntil?;
+        prodDueDate?;
         profileChangedToken?;
         dataRefreshToken?;
         extraCosts: Partial<Prisma.SalesExtraCostsGetPayload<{}>>[];

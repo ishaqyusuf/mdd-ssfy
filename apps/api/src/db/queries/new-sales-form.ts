@@ -181,6 +181,7 @@ function toBootstrapPayload(order: {
   shippingAddressId: number | null;
   paymentTerm: string | null;
   goodUntil: Date | null;
+  prodDueDate: Date | null;
   deliveryOption: string | null;
   extraCosts: Array<{
     id: number;
@@ -447,6 +448,7 @@ function toBootstrapPayload(order: {
       paymentTerm: order.paymentTerm || DEFAULT_PAYMENT_TERM,
       paymentMethod: (persisted?.form?.paymentMethod as string | null | undefined) || null,
       goodUntil: order.goodUntil?.toISOString() || null,
+      prodDueDate: order.prodDueDate?.toISOString() || null,
       po: null,
       notes: null,
       deliveryOption: order.deliveryOption || DEFAULT_DELIVERY_OPTION,
@@ -513,6 +515,7 @@ export async function bootstrapNewSalesForm(
       paymentTerm: DEFAULT_PAYMENT_TERM,
       paymentMethod: null,
       goodUntil: null,
+      prodDueDate: null,
       po: null,
       notes: null,
       deliveryOption: DEFAULT_DELIVERY_OPTION,
@@ -569,6 +572,7 @@ export async function getNewSalesForm(
       shippingAddressId: true,
       paymentTerm: true,
       goodUntil: true,
+      prodDueDate: true,
       deliveryOption: true,
       extraCosts: {
         select: {
@@ -1072,6 +1076,7 @@ async function saveNewSalesFormInternal(
       updatedAt: Date | null;
       paymentTerm: string | null;
       goodUntil: Date | null;
+      prodDueDate: Date | null;
     };
 
     if (payload.salesId || payload.slug) {
@@ -1090,6 +1095,7 @@ async function saveNewSalesFormInternal(
           updatedAt: true,
           paymentTerm: true,
           goodUntil: true,
+          prodDueDate: true,
         },
       });
       if (!order) {
@@ -1140,6 +1146,7 @@ async function saveNewSalesFormInternal(
           shippingAddressId: payload.meta.shippingAddressId || null,
           paymentTerm: payload.meta.paymentTerm || DEFAULT_PAYMENT_TERM,
           goodUntil: safeDate(payload.meta.goodUntil),
+          prodDueDate: safeDate(payload.meta.prodDueDate),
           deliveryOption: payload.meta.deliveryOption || DEFAULT_DELIVERY_OPTION,
           taxPercentage: summary.taxRate,
           subTotal: summary.subTotal,
@@ -1160,6 +1167,7 @@ async function saveNewSalesFormInternal(
         updatedAt: new Date(),
         paymentTerm: payload.meta.paymentTerm || DEFAULT_PAYMENT_TERM,
         goodUntil: safeDate(payload.meta.goodUntil),
+        prodDueDate: safeDate(payload.meta.prodDueDate),
       };
     } else {
       await tx.salesOrders.update({
@@ -1175,6 +1183,7 @@ async function saveNewSalesFormInternal(
           paymentTerm:
             payload.meta.paymentTerm || order.paymentTerm || DEFAULT_PAYMENT_TERM,
           goodUntil: safeDate(payload.meta.goodUntil) || order.goodUntil,
+          prodDueDate: safeDate(payload.meta.prodDueDate) || order.prodDueDate,
           deliveryOption: payload.meta.deliveryOption || DEFAULT_DELIVERY_OPTION,
           taxPercentage: summary.taxRate,
           subTotal: summary.subTotal,

@@ -114,6 +114,19 @@ function SummaryTab({}) {
                                     />
                                 </CompactField>
                             )}
+                            <CompactField label="Production Due Date">
+                                <DatePicker
+                                    className="midday h-8 w-auto border-none p-0 px-1 uppercase whitespace-nowrap"
+                                    hideIcon
+                                    value={md.prodDueDate}
+                                    setValue={(e) => {
+                                        zus.dotUpdate(
+                                            "metaData.prodDueDate",
+                                            e,
+                                        );
+                                    }}
+                                />
+                            </CompactField>
                         </>
                     ) : (
                         <CompactField label="Good Until">

@@ -73,6 +73,7 @@ export function normalizeMeta(meta: Partial<NewSalesFormMeta>): NewSalesFormMeta
         shippingAddressId: meta.shippingAddressId ?? null,
         paymentTerm: meta.paymentTerm ?? "None",
         goodUntil: meta.goodUntil ?? null,
+        prodDueDate: meta.prodDueDate ?? null,
         po: meta.po ?? "",
         notes: meta.notes ?? "",
         deliveryOption: meta.deliveryOption ?? "pickup",

@@ -50,6 +50,7 @@ export class SaveSalesHelper {
             meta: meta as any,
             amountDue: formatMoney(md.pricing.grandTotal - md.pricing.paid),
             paymentDueDate: null,
+            prodDueDate: null as Date | null,
             goodUntil: this.convertDate(md.goodUntil),
             tax: md.pricing.taxValue,
             isDyke: true,
@@ -86,6 +87,7 @@ export class SaveSalesHelper {
                     md.paymentTerm,
                     md.createdAt,
                 );
+            updateData.prodDueDate = this.convertDate(md.prodDueDate) || null;
         }
         if (md.id) {
             return {
