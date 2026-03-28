@@ -12,7 +12,7 @@ import Link from "@/components/link";
 import { parseAsString, useQueryStates } from "nuqs";
 
 import { useEffect } from "react";
-import { redirect } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const loginSchema = z.object({
     email: z.string().email(),
@@ -27,6 +27,8 @@ function useLoginEmail() {
     };
 }
 export function LoginForm() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
     const form = useZodForm(loginSchema, {
         defaultValues: {
             email: "",
@@ -36,20 +38,23 @@ export function LoginForm() {
     const loginEmail = useLoginEmail();
     const token = loginEmail.params.token;
     const { data: session } = useSession();
+    const callbackUrl = getLoginCallbackUrl(searchParams);
 
     useEffect(() => {
-        if (session?.user?.id) redirect("/");
-    }, [session]);
+        if (session?.user?.id) {
+            router.replace(callbackUrl);
+        }
+    }, [callbackUrl, router, session]);
 
     useEffect(() => {
         if (!token) return;
 
         signIn("credentials", {
             token,
-            callbackUrl: "/",
+            callbackUrl,
             redirect: true,
         });
-    }, [token]);
+    }, [callbackUrl, token]);
 
     const [isPending, startTransition] = useTransition();
 
@@ -57,7 +62,7 @@ export function LoginForm() {
         startTransition(async () => {
             await signIn("credentials", {
                 ...data,
-                callbackUrl: "/",
+                callbackUrl,
                 redirect: true,
             });
         });
@@ -101,4 +106,13 @@ export function LoginForm() {
             </Form>
         </>
     );
+}
+
+function getLoginCallbackUrl(searchParams: URLSearchParams) {
+    const returnTo = searchParams.get("return_to");
+    if (returnTo?.startsWith("/")) {
+        return returnTo;
+    }
+
+    return "/";
 }

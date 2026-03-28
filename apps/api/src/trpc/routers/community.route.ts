@@ -341,6 +341,9 @@ export const communityRouters = createTRPCRouter({
 					addonPercentage: true,
 					builderTaskInstallCosts: {
 						select: {
+							id: true,
+							orderIndex: true,
+							createdAt: true,
 							modelInstallTasks: {
 								where: {
 									communityModelId: modelId,
@@ -403,10 +406,10 @@ export const communityRouters = createTRPCRouter({
 				? sortInstallCosts(
 						builderTask.builderTaskInstallCosts.map((cost) => ({
 							...cost,
-							builderTask: {
-								id: builderTask.id,
-								taskIndex: builderTask.taskIndex,
-								createdAt: builderTask.createdAt,
+							builderTaskInstallCost: {
+								id: cost.id,
+								orderIndex: cost.orderIndex ?? null,
+								createdAt: cost.createdAt ?? null,
 							},
 						})),
 					)
@@ -818,10 +821,23 @@ export const communityRouters = createTRPCRouter({
 		)
 		.mutation(async (props) => {
 			if (!props.input.builderTaskInstallCostId) {
+				const lastInstallCost =
+					await props.ctx.db.builderTaskInstallCost.findFirst({
+						where: {
+							builderTaskId: props.input.builderTaskId,
+						},
+						orderBy: {
+							orderIndex: "desc",
+						},
+						select: {
+							orderIndex: true,
+						},
+					});
 				const r = await props.ctx.db.builderTaskInstallCost.create({
 					data: {
 						builderTaskId: props.input.builderTaskId,
 						installCostModelId: props.input.installCostModelId,
+						orderIndex: (lastInstallCost?.orderIndex ?? -1) + 1,
 						// communityModelId: props.input.communityModelId,
 					},
 				});
@@ -887,6 +903,17 @@ export const communityRouters = createTRPCRouter({
 			const { db } = props.ctx;
 			const { builderTaskInstallCostId } = props.input;
 			await db.$transaction(async (tx) => {
+				const installCost = await tx.builderTaskInstallCost.findUnique({
+					where: {
+						id: builderTaskInstallCostId,
+					},
+					select: {
+						builderTaskId: true,
+					},
+				});
+				if (!installCost) {
+					throw new Error("Install cost row could not be found.");
+				}
 				await tx.communityModelInstallTask.deleteMany({
 					where: {
 						builderTaskInstallCostId,
@@ -897,8 +924,74 @@ export const communityRouters = createTRPCRouter({
 						id: builderTaskInstallCostId,
 					},
 				});
+				const remainingRows = await tx.builderTaskInstallCost.findMany({
+					where: {
+						builderTaskId: installCost.builderTaskId,
+					},
+					orderBy: [{ orderIndex: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+					select: {
+						id: true,
+					},
+				});
+				await Promise.all(
+					remainingRows.map((row, index) =>
+						tx.builderTaskInstallCost.update({
+							where: { id: row.id },
+							data: {
+								orderIndex: index,
+							},
+						}),
+					),
+				);
 			});
 			return { success: true };
+		}),
+	reorderBuilderTaskInstallCosts: publicProcedure
+		.input(
+			z.object({
+				builderTaskId: z.number(),
+				builderTaskInstallCostIds: z.array(z.number()).min(1),
+			}),
+		)
+		.mutation(async (props) => {
+			const { db } = props.ctx;
+			const { builderTaskId, builderTaskInstallCostIds } = props.input;
+			const existingRows = await db.builderTaskInstallCost.findMany({
+				where: {
+					builderTaskId,
+					id: {
+						in: builderTaskInstallCostIds,
+					},
+				},
+				select: {
+					id: true,
+				},
+			});
+			const totalRowCount = await db.builderTaskInstallCost.count({
+				where: {
+					builderTaskId,
+				},
+			});
+
+			if (
+				existingRows.length !== builderTaskInstallCostIds.length ||
+				existingRows.length !== totalRowCount
+			) {
+				throw new Error("Some install cost rows could not be found.");
+			}
+
+			await db.$transaction(
+				builderTaskInstallCostIds.map((id, index) =>
+					db.builderTaskInstallCost.update({
+						where: { id },
+						data: {
+							orderIndex: index,
+						},
+					}),
+				),
+			);
+
+			return { ok: true };
 		}),
 	updateInstallCostRate: publicProcedure
 		.input(communityInstallCostRateSchema)
@@ -1574,13 +1667,8 @@ export const communityRouters = createTRPCRouter({
 				},
 				select: {
 					id: true,
-					builderTask: {
-						select: {
-							id: true,
-							taskIndex: true,
-							createdAt: true,
-						},
-					},
+					orderIndex: true,
+					createdAt: true,
 					installCostModel: {
 						select: {
 							id: true,

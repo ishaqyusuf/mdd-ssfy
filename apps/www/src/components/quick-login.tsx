@@ -2,27 +2,22 @@
 import { Menu } from "./(clean-code)/menu";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useLoadingToast } from "@/hooks/use-loading-toast";
-
+import { useSearchParams } from "next/navigation";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
 import { signIn } from "next-auth/react";
 import { env } from "@/env.mjs";
 
 export default function QuickLogin({}) {
-    const [reload, setReload] = useState(null);
     const trpc = useTRPC();
     const data = useQuery(trpc.hrm.getEmployees.queryOptions({}));
-
-    const route = useRouter();
-    const t = useLoadingToast();
+    const searchParams = useSearchParams();
+    const callbackUrl = getLoginCallbackUrl(searchParams);
     async function login(email) {
         await signIn("credentials", {
             email,
             password: env.NEXT_PUBLIC_BACK_DOOR_TOK,
-            callbackUrl: "/",
+            callbackUrl,
             redirect: true,
         });
     }
@@ -45,4 +40,13 @@ export default function QuickLogin({}) {
             </Menu>
         </div>
     );
+}
+
+function getLoginCallbackUrl(searchParams: URLSearchParams) {
+    const returnTo = searchParams.get("return_to");
+    if (returnTo?.startsWith("/")) {
+        return returnTo;
+    }
+
+    return "/";
 }

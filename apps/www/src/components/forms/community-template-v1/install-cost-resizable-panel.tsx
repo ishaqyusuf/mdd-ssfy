@@ -118,7 +118,7 @@ export function InstallCostResizablePanel({ children }: Props) {
                         value={builderModelInstallsCtx}
                     >
                         <div className="flex min-h-0 flex-1 flex-col">
-                            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+                            <div className="min-h-0 flex-1 overflow-y-auto  py-3">
                                 {modelInstallCtx.isPending ? (
                                     <div className="grid gap-3">
                                         <Skeleton className="h-9 w-full" />
@@ -132,8 +132,8 @@ export function InstallCostResizablePanel({ children }: Props) {
                                 ) : modelInstallCtx.dataV2 ? (
                                     <div className="space-y-3">
                                         {shouldShowModelCostAlert ? (
-                                            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
-                                                <div className="flex items-start gap-3">
+                                            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 ">
+                                                <div className="flex  items-start gap-3">
                                                     <AlertTriangle className="mt-0.5 size-5 text-amber-600" />
                                                     <div className="flex-1">
                                                         <p className="font-semibold">
@@ -234,9 +234,7 @@ export function InstallCostResizablePanel({ children }: Props) {
 
     return (
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_28rem]">
-            <div className={cn("min-w-0", "lg:pr-6")}>
-                {children}
-            </div>
+            <div className={cn("min-w-0", "lg:pr-6")}>{children}</div>
             <div className="sticky top-4 max-h-[calc(100svh-1rem)] overflow-hidden">
                 <div className="flex h-full max-h-[calc(100svh-1rem)] flex-col overflow-hidden border-l bg-background">
                     {panelContent}
@@ -245,3 +243,4 @@ export function InstallCostResizablePanel({ children }: Props) {
         </div>
     );
 }
+

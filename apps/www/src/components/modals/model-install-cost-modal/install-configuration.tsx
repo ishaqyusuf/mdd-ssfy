@@ -17,18 +17,24 @@ import {
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 import { InputGroup, Item } from "@gnd/ui/namespace";
+import { Sortable, SortableDragHandle, SortableItem } from "@gnd/ui/sortable";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import NumberFlow from "@number-flow/react";
 import { useMutation } from "@tanstack/react-query";
-import { DollarSign, RefreshCcw, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { DollarSign, GripVertical, RefreshCcw, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useDebouncedCallback } from "use-debounce";
+
+type InstallTaskRow =
+    RouterOutputs["community"]["getModelInstallTasksByBuilderTask"]["tasks"][number];
+
 export function InstallConfiguration() {
     const { tasks, params } = useBuilderModelInstallsContext();
     const { setParams } = useCommunityInstallCostParams();
     const { setParams: setJobParams } = useJobParams();
     const notification = useNotificationTrigger();
+    const [orderedTasks, setOrderedTasks] = useState<InstallTaskRow[]>(tasks);
     const matchesRequestTask =
         !!params.requestBuilderTaskId &&
         params.selectedBuilderTaskId === params.requestBuilderTaskId;
@@ -49,7 +55,35 @@ export function InstallConfiguration() {
         toast.success("Contractor notified: job task is ready.");
     };
 
-    if (tasks?.length === 0) return <EmptyState />;
+    useEffect(() => {
+        setOrderedTasks(tasks);
+    }, [tasks]);
+
+    const { mutate: reorderInstallCosts, isPending: isReordering } =
+        useMutation(
+            _trpc.community.reorderBuilderTaskInstallCosts.mutationOptions({
+                onSuccess() {
+                    _qc.invalidateQueries({
+                        queryKey:
+                            _trpc.community.getModelInstallTasksByBuilderTask.queryKey(
+                                {
+                                    builderTaskId: params.selectedBuilderTaskId!,
+                                    modelId: params.editCommunityModelInstallCostId!,
+                                },
+                            ),
+                    });
+                },
+                meta: {
+                    toastTitle: {
+                        error: "Unable to save install cost order",
+                        loading: "Saving order...",
+                        success: "Install cost order updated",
+                    },
+                },
+            }),
+        );
+
+    if (orderedTasks?.length === 0) return <EmptyState />;
     return (
         <>
             {canNotifyContractor ? (
@@ -78,17 +112,51 @@ export function InstallConfiguration() {
                     </Button>
                 </div>
             ) : null}
-            <Item.Group className="gap-3">
-                {tasks?.map((task, tid) => <Line task={task} key={tid} />)}
-            </Item.Group>
+            <Sortable
+                value={orderedTasks.map((task) => ({
+                    ...task,
+                    id: task.builderTaskInstallCostId!,
+                }))}
+                onValueChange={(nextTasks) => {
+                    setOrderedTasks(
+                        nextTasks.map(({ id: _id, ...task }) => task),
+                    );
+                    if (!params.selectedBuilderTaskId) return;
+                    reorderInstallCosts({
+                        builderTaskId: params.selectedBuilderTaskId,
+                        builderTaskInstallCostIds: nextTasks.map(
+                            (task) => task.builderTaskInstallCostId!,
+                        ),
+                    });
+                }}
+            >
+                <Item.Group className="gap-3">
+                    {orderedTasks?.map((task) => (
+                        <SortableItem
+                            key={task.builderTaskInstallCostId}
+                            value={task.builderTaskInstallCostId!}
+                            asChild
+                        >
+                            <div>
+                                <Line
+                                    task={task}
+                                    isReordering={isReordering}
+                                />
+                            </div>
+                        </SortableItem>
+                    ))}
+                </Item.Group>
+            </Sortable>
         </>
     );
 }
 
 function Line({
     task,
+    isReordering,
 }: {
-    task: RouterOutputs["community"]["getModelInstallTasksByBuilderTask"]["tasks"][number];
+    task: InstallTaskRow;
+    isReordering?: boolean;
 }) {
     const [status, setStatus] = useState(task.status);
     const [maxQty, setMaxQty] = useState(task?.qty || "");
@@ -180,6 +248,17 @@ function Line({
         >
             <Item.Content className="min-w-0 gap-3">
                 <Item.Header className="items-start gap-3">
+                    <SortableDragHandle
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 shrink-0 text-muted-foreground"
+                        disabled={isReordering}
+                        onClick={(event) => {
+                            event.stopPropagation();
+                        }}
+                    >
+                        <GripVertical className="size-4" />
+                    </SortableDragHandle>
                     <div className="min-w-0 flex-1">
                         <Item.Title className="w-full truncate">
                             {task.installCostModel?.title}

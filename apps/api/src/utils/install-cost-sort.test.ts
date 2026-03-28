@@ -8,17 +8,17 @@ import {
 
 function makeItem(
 	opts: Partial<{
-		btId: number;
-		taskIndex: number | null;
+		bticId: number;
+		orderIndex: number | null;
 		createdAt: Date | null;
 		icmId: number;
 		title: string;
 	}> = {},
 ): InstallCostSortKey {
 	return {
-		builderTask: {
-			id: opts.btId ?? 1,
-			taskIndex: opts.taskIndex ?? null,
+		builderTaskInstallCost: {
+			id: opts.bticId ?? 1,
+			orderIndex: opts.orderIndex ?? null,
 			createdAt: opts.createdAt ?? null,
 		},
 		installCostModel: {
@@ -36,27 +36,27 @@ function d(iso: string) {
 // compareInstallCosts
 // ---------------------------------------------------------------------------
 describe("compareInstallCosts", () => {
-	it("sorts by taskIndex ascending when both present", () => {
-		const a = makeItem({ taskIndex: 2 });
-		const b = makeItem({ taskIndex: 1 });
+	it("sorts by orderIndex ascending when both present", () => {
+		const a = makeItem({ orderIndex: 2 });
+		const b = makeItem({ orderIndex: 1 });
 		expect(compareInstallCosts(a, b)).toBeGreaterThan(0);
 		expect(compareInstallCosts(b, a)).toBeLessThan(0);
 	});
 
-	it("puts null taskIndex items after items with a taskIndex", () => {
-		const withIndex = makeItem({ taskIndex: 5 });
-		const withNull = makeItem({ taskIndex: null });
+	it("puts null orderIndex items after items with an orderIndex", () => {
+		const withIndex = makeItem({ orderIndex: 5 });
+		const withNull = makeItem({ orderIndex: null });
 		expect(compareInstallCosts(withIndex, withNull)).toBeLessThan(0);
 		expect(compareInstallCosts(withNull, withIndex)).toBeGreaterThan(0);
 	});
 
-	it("falls back to createdAt when taskIndex values are equal", () => {
+	it("falls back to createdAt when orderIndex values are equal", () => {
 		const earlier = makeItem({
-			taskIndex: 1,
+			orderIndex: 1,
 			createdAt: d("2024-01-01T00:00:00Z"),
 		});
 		const later = makeItem({
-			taskIndex: 1,
+			orderIndex: 1,
 			createdAt: d("2024-06-01T00:00:00Z"),
 		});
 		expect(compareInstallCosts(earlier, later)).toBeLessThan(0);
@@ -64,22 +64,22 @@ describe("compareInstallCosts", () => {
 	});
 
 	it("treats null createdAt as epoch 0 (sorts first)", () => {
-		const withNull = makeItem({ taskIndex: 1, createdAt: null });
+		const withNull = makeItem({ orderIndex: 1, createdAt: null });
 		const withDate = makeItem({
-			taskIndex: 1,
+			orderIndex: 1,
 			createdAt: d("2024-01-01T00:00:00Z"),
 		});
 		expect(compareInstallCosts(withNull, withDate)).toBeLessThan(0);
 	});
 
-	it("falls back to builderTask.id when taskIndex and createdAt are equal", () => {
-		const a = makeItem({ btId: 2, taskIndex: 1, createdAt: null });
-		const b = makeItem({ btId: 1, taskIndex: 1, createdAt: null });
+	it("falls back to builderTaskInstallCost.id when orderIndex and createdAt are equal", () => {
+		const a = makeItem({ bticId: 2, orderIndex: 1, createdAt: null });
+		const b = makeItem({ bticId: 1, orderIndex: 1, createdAt: null });
 		expect(compareInstallCosts(a, b)).toBeGreaterThan(0);
 	});
 
 	it("falls back to installCostModel.title when first 3 keys are identical", () => {
-		const base = { btId: 1, taskIndex: 1, createdAt: null };
+		const base = { bticId: 1, orderIndex: 1, createdAt: null };
 		const a = makeItem({ ...base, title: "Zinc", icmId: 1 });
 		const b = makeItem({ ...base, title: "Alpha", icmId: 2 });
 		expect(compareInstallCosts(a, b)).toBeGreaterThan(0);
@@ -87,15 +87,15 @@ describe("compareInstallCosts", () => {
 	});
 
 	it("falls back to installCostModel.id when all other keys are identical", () => {
-		const base = { btId: 1, taskIndex: 1, createdAt: null, title: "Flooring" };
+		const base = { bticId: 1, orderIndex: 1, createdAt: null, title: "Flooring" };
 		const a = makeItem({ ...base, icmId: 2 });
 		const b = makeItem({ ...base, icmId: 1 });
 		expect(compareInstallCosts(a, b)).toBeGreaterThan(0);
 	});
 
 	it("returns 0 for truly identical items", () => {
-		const a = makeItem({ btId: 1, taskIndex: 1, createdAt: null, icmId: 1, title: "X" });
-		const b = makeItem({ btId: 1, taskIndex: 1, createdAt: null, icmId: 1, title: "X" });
+		const a = makeItem({ bticId: 1, orderIndex: 1, createdAt: null, icmId: 1, title: "X" });
+		const b = makeItem({ bticId: 1, orderIndex: 1, createdAt: null, icmId: 1, title: "X" });
 		expect(compareInstallCosts(a, b)).toBe(0);
 	});
 });
@@ -105,49 +105,49 @@ describe("compareInstallCosts", () => {
 // ---------------------------------------------------------------------------
 describe("sortInstallCosts", () => {
 	it("returns a new array and does not mutate the original", () => {
-		const items = [makeItem({ taskIndex: 2 }), makeItem({ taskIndex: 1 })];
+		const items = [makeItem({ orderIndex: 2 }), makeItem({ orderIndex: 1 })];
 		const original = [...items];
 		const sorted = sortInstallCosts(items);
 		expect(items).toEqual(original);
 		expect(sorted).not.toBe(items);
 	});
 
-	it("all tasks have taskIndex — sorted ascending", () => {
+	it("all tasks have orderIndex — sorted ascending", () => {
 		const items = [
-			makeItem({ taskIndex: 3, icmId: 3 }),
-			makeItem({ taskIndex: 1, icmId: 1 }),
-			makeItem({ taskIndex: 2, icmId: 2 }),
+			makeItem({ orderIndex: 3, icmId: 3 }),
+			makeItem({ orderIndex: 1, icmId: 1 }),
+			makeItem({ orderIndex: 2, icmId: 2 }),
 		];
 		const sorted = sortInstallCosts(items);
-		expect(sorted.map((i) => i.builderTask.taskIndex)).toEqual([1, 2, 3]);
+		expect(sorted.map((i) => i.builderTaskInstallCost.orderIndex)).toEqual([1, 2, 3]);
 	});
 
-	it("mixed taskIndex and null — nulls sorted last", () => {
+	it("mixed orderIndex and null — nulls sorted last", () => {
 		const items = [
-			makeItem({ taskIndex: null, icmId: 99 }),
-			makeItem({ taskIndex: 2, icmId: 2 }),
-			makeItem({ taskIndex: 1, icmId: 1 }),
+			makeItem({ orderIndex: null, icmId: 99 }),
+			makeItem({ orderIndex: 2, icmId: 2 }),
+			makeItem({ orderIndex: 1, icmId: 1 }),
 		];
 		const sorted = sortInstallCosts(items);
-		expect(sorted[0]!.builderTask.taskIndex).toBe(1);
-		expect(sorted[1]!.builderTask.taskIndex).toBe(2);
-		expect(sorted[2]!.builderTask.taskIndex).toBeNull();
+		expect(sorted[0]!.builderTaskInstallCost.orderIndex).toBe(1);
+		expect(sorted[1]!.builderTaskInstallCost.orderIndex).toBe(2);
+		expect(sorted[2]!.builderTaskInstallCost.orderIndex).toBeNull();
 	});
 
-	it("all rows fall back to createdAt when taskIndex is null for all", () => {
+	it("all rows fall back to createdAt when orderIndex is null for all", () => {
 		const items = [
-			makeItem({ taskIndex: null, createdAt: d("2024-03-01T00:00:00Z"), icmId: 3 }),
-			makeItem({ taskIndex: null, createdAt: d("2024-01-01T00:00:00Z"), icmId: 1 }),
-			makeItem({ taskIndex: null, createdAt: d("2024-02-01T00:00:00Z"), icmId: 2 }),
+			makeItem({ orderIndex: null, createdAt: d("2024-03-01T00:00:00Z"), icmId: 3 }),
+			makeItem({ orderIndex: null, createdAt: d("2024-01-01T00:00:00Z"), icmId: 1 }),
+			makeItem({ orderIndex: null, createdAt: d("2024-02-01T00:00:00Z"), icmId: 2 }),
 		];
 		const sorted = sortInstallCosts(items);
 		expect(sorted.map((i) => i.installCostModel.id)).toEqual([1, 2, 3]);
 	});
 
-	it("stable output when same taskIndex and createdAt — resolves via title then id", () => {
+	it("stable output when same orderIndex and createdAt — resolves via title then id", () => {
 		const common = {
-			btId: 1,
-			taskIndex: 0,
+			bticId: 1,
+			orderIndex: 0,
 			createdAt: d("2024-01-01T00:00:00Z"),
 		};
 		const items = [

@@ -21,25 +21,31 @@ export const config = {
 // }
 export default async function proxy(req: NextRequest) {
     const newUrl = req.nextUrl;
-    const encodedSearchParams = `${newUrl?.pathname?.substring(1)}${
-        newUrl.search
-    }`;
     const searchParams = req.nextUrl.searchParams.toString();
     const path = `${newUrl.pathname}${
         searchParams.length > 0 ? `?${searchParams}` : ""
     }`;
     const pathName = req.nextUrl.pathname;
     const loginUrl = new URL("/login", req.url);
-    if (encodedSearchParams) {
-        loginUrl.searchParams.append("return_to", encodedSearchParams);
+    const returnTo = getReturnToPath(newUrl);
+    const safeReturnTo = getSafeReturnTo(req);
+    if (returnTo) {
+        loginUrl.searchParams.append("return_to", returnTo);
     }
     const isLogin = pathName === "/login";
     const auth = await getAuth(req);
     if (auth) {
         const defaultLink = getDefaultLink(auth);
+        const returnToPathName = safeReturnTo
+            ? new URL(safeReturnTo, req.url).pathname
+            : null;
+        const preferredRedirect =
+            returnToPathName && canAccessPath(auth, returnToPathName)
+                ? safeReturnTo
+                : defaultLink;
         if (pathName === "/" || isLogin) {
-            if (defaultLink && defaultLink !== pathName) {
-                const url = new URL(defaultLink, req.url);
+            if (preferredRedirect && preferredRedirect !== path) {
+                const url = new URL(preferredRedirect, req.url);
                 return NextResponse.redirect(url);
             }
         } else if (!canAccessPath(auth, pathName)) {
@@ -105,3 +111,19 @@ function getAuthorizedLinks(auth: AuthSnapshot) {
     );
 }
 
+function getSafeReturnTo(req: NextRequest) {
+    const returnTo = req.nextUrl.searchParams.get("return_to");
+    if (!returnTo || !returnTo.startsWith("/")) {
+        return null;
+    }
+
+    return returnTo;
+}
+
+function getReturnToPath(url: NextRequest["nextUrl"]) {
+    if (url.pathname === "/") {
+        return null;
+    }
+
+    return `${url.pathname}${url.search}`;
+}

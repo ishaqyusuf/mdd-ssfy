@@ -36,7 +36,10 @@ function useLoginEmail() {
 
 export function SigninComponent() {
     const searchParams = useSearchParams();
-    const callbackUrl = searchParams.get("callbackUrl") || "/";
+    const callbackUrl =
+        getSafeCallbackUrl(searchParams.get("return_to")) ||
+        getSafeCallbackUrl(searchParams.get("callbackUrl")) ||
+        "/";
     const [isPending, startTransition] = useTransition();
 
     const form = useZodForm(loginSchema, {
@@ -132,4 +135,12 @@ export function SigninComponent() {
             </div>
         </div>
     );
+}
+
+function getSafeCallbackUrl(value: string | null) {
+    if (!value?.startsWith("/")) {
+        return null;
+    }
+
+    return value;
 }

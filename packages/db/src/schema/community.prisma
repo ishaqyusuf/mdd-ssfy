@@ -233,6 +233,7 @@ model BuilderTaskInstallCost {
     id                 Int                          @unique @default(autoincrement())
     builderTaskId      Int
     installCostModelId Int
+    orderIndex         Int?
     defaultQty         Float?
     totalCost          Float?
     createdAt          DateTime?                    @default(now()) @db.Timestamp(0)
@@ -245,6 +246,7 @@ model BuilderTaskInstallCost {
 
     @@index([builderTaskId])
     @@index([installCostModelId])
+    @@index([orderIndex])
 }
 
 model InstallCostModel {
