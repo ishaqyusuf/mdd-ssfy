@@ -24,7 +24,7 @@ export default async function Page(props: Props) {
     batchPrefetch([]);
     return (
         <HydrateClient>
-            <div className="flex flex-col gap-6 p-4">
+            <div className="flex flex-col gap-6">
                 <ErrorBoundary errorComponent={ErrorFallback}>
                     <Suspense fallback={<Skeletons.Dashboard />}>
                         <CommunityTemplateV1Form slug={slug} />
@@ -34,3 +34,4 @@ export default async function Page(props: Props) {
         </HydrateClient>
     );
 }
+

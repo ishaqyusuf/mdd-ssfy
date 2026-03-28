@@ -19,6 +19,7 @@ import {
 	getPaymentPortal,
 	getPaymentPortalSchema,
 } from "@api/db/queries/jobs";
+import { sortInstallCosts } from "@api/utils/install-cost-sort";
 import { createJobSchema } from "@community/create-job-schema";
 import type { JobStatus } from "@community/types";
 import { generateJobId } from "@community/utils/job";
@@ -520,7 +521,30 @@ export const jobRoutes = createTRPCRouter({
 							};
 						});
 					}
-					return job.jobInstallTasks.map((t) => {
+					return sortInstallCosts(
+						job.jobInstallTasks.map((taskInstall) => ({
+							...taskInstall,
+							builderTaskInstallCost: {
+								id:
+									taskInstall.communityModelInstallTask?.builderTaskInstallCost
+										?.id ?? taskInstall.id,
+								orderIndex:
+									taskInstall.communityModelInstallTask?.builderTaskInstallCost
+										?.orderIndex ?? null,
+								createdAt:
+									taskInstall.communityModelInstallTask?.builderTaskInstallCost
+										?.createdAt ?? null,
+							},
+							installCostModel: {
+								id:
+									taskInstall.communityModelInstallTask?.installCostModel?.id ??
+									taskInstall.id,
+								title:
+									taskInstall.communityModelInstallTask?.installCostModel
+										?.title || "",
+							},
+						})),
+					).map((t) => {
 						return {
 							title: t.communityModelInstallTask?.installCostModel?.title!,
 							qty: t.qty || 0,

@@ -116,8 +116,16 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
 					total: true,
 					communityModelInstallTask: {
 						select: {
+							builderTaskInstallCost: {
+								select: {
+									id: true,
+									orderIndex: true,
+									createdAt: true,
+								},
+							},
 							installCostModel: {
 								select: {
+									id: true,
 									title: true,
 								},
 							},

@@ -32,7 +32,7 @@ function Content({ children }) {
     return (
         <div className={cn("pb-8", links?.noSidebar || "md:ml-[70px]")}>
             <Header />
-            <div className="px-6 flex flex-col">{children}</div>
+            <div className="flex flex-col">{children}</div>
         </div>
     );
 }
@@ -68,7 +68,7 @@ function NavLayoutClient({ children }) {
                 </SiteNav.Sidebar>
                 <SiteNav.Shell className="pb-8">
                     <Header />
-                    <div className="px-6">{children}</div>
+                    <div className="">{children}</div>
                 </SiteNav.Shell>
             </div>
         </SiteNav.Provider>

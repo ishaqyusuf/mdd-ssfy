@@ -117,7 +117,7 @@ export function InstallCostResizablePanel({ children }: Props) {
                     <BuilderModelInstallsProvider
                         value={builderModelInstallsCtx}
                     >
-                        <div className="flex min-h-0 flex-1 flex-col">
+                        <div className="flex min-h-0 flex-1 flex-col pl-4">
                             <div className="min-h-0 flex-1 overflow-y-auto  py-3">
                                 {modelInstallCtx.isPending ? (
                                     <div className="grid gap-3">
