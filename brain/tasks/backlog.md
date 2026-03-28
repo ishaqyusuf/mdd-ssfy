@@ -4,6 +4,7 @@
 Tracks queued work that is important but not currently in the top execution slice.
 
 ## Next Up
+- [ ] Install cost sorting rollout: sort relational install-cost rows by `builderTask.taskIndex` with `builderTask.createdAt` fallback in API responses, then align web admin, web jobs form, and Expo/mobile jobs form rendering to the same canonical order (`brain/features/install-cost-sorting.md`) (API + UI + Validation)
 - [ ] Table sorting and arrangement pass: standardize sortable header behavior, query-param sync, and column arrangement UX across shared table surfaces before rolling fixes into feature-specific tables (UI + Validation)
 - [ ] Sales overview v2 Phase 6 verification + lock-in: validate role-based tab visibility (production-only, dispatch-only users), validate deep-link tab behavior, validate sheet/page parity, then deprecate legacy sheet entry as a compatibility adapter (Validation + Architecture)
 - [ ] Build the shared document platform migration path: back `Gallery`, `dispatch` uploads, `signature` capture, and `sales PDFs` with the new `StoredDocument`/`SalesDocumentSnapshot` foundation and cut callers over incrementally (Schema + API + UI + Validation + Architecture)
