@@ -28,6 +28,10 @@ import {
 	updateInstallCostSchema,
 } from "@api/db/queries/community";
 import {
+	sortBuilderTasks,
+	sortInstallCosts,
+} from "@api/utils/install-cost-sort";
+import {
 	getCommunityTemplates,
 	getCommunityTemplatesSchema,
 } from "@api/db/queries/community-template";
@@ -330,6 +334,9 @@ export const communityRouters = createTRPCRouter({
 					// installable: true,
 				},
 				select: {
+					id: true,
+					taskIndex: true,
+					createdAt: true,
 					taskName: true,
 					addonPercentage: true,
 					builderTaskInstallCosts: {
@@ -392,7 +399,19 @@ export const communityRouters = createTRPCRouter({
 					},
 				},
 			});
-			const jobTasks = builderTask?.builderTaskInstallCosts
+			const sortedBuilderTaskInstallCosts = builderTask
+				? sortInstallCosts(
+						builderTask.builderTaskInstallCosts.map((cost) => ({
+							...cost,
+							builderTask: {
+								id: builderTask.id,
+								taskIndex: builderTask.taskIndex,
+								createdAt: builderTask.createdAt,
+							},
+						})),
+					)
+				: [];
+			const jobTasks = sortedBuilderTaskInstallCosts
 				?.map((taskInstallCost) => {
 					const modelInstallTask = taskInstallCost.modelInstallTasks?.find(
 						(mit) =>
@@ -1481,6 +1500,8 @@ export const communityRouters = createTRPCRouter({
 											productionable: true,
 											addonPercentage: true,
 											installable: true,
+											taskIndex: true,
+											createdAt: true,
 										},
 									},
 								},
@@ -1496,18 +1517,20 @@ export const communityRouters = createTRPCRouter({
 				},
 			});
 			return {
-				builderTasks: (model?.project?.builder?.tasks || [])?.map((task) => {
-					const installTasks = model?.communityModelInstallTasks?.filter(
-						(t) => t.builderTaskId === task.id,
-					);
-					const installTask = installTasks?.[0];
-					const installTaskCount = installTasks?.length || 0;
-					return {
-						...task,
-						installTaskId: installTask?.id,
-						installTaskCount,
-					};
-				}),
+				builderTasks: sortBuilderTasks(
+					(model?.project?.builder?.tasks || [])?.map((task) => {
+						const installTasks = model?.communityModelInstallTasks?.filter(
+							(t) => t.builderTaskId === task.id,
+						);
+						const installTask = installTasks?.[0];
+						const installTaskCount = installTasks?.length || 0;
+						return {
+							...task,
+							installTaskId: installTask?.id,
+							installTaskCount,
+						};
+					}),
+				),
 				projectName: model?.project?.title || "",
 				builderId: model?.project?.builder?.id || null,
 				builderName: model?.project?.builder?.name || "",
@@ -1551,6 +1574,13 @@ export const communityRouters = createTRPCRouter({
 				},
 				select: {
 					id: true,
+					builderTask: {
+						select: {
+							id: true,
+							taskIndex: true,
+							createdAt: true,
+						},
+					},
 					installCostModel: {
 						select: {
 							id: true,
@@ -1568,8 +1598,9 @@ export const communityRouters = createTRPCRouter({
 					},
 				},
 			});
+			const sortedCosts = sortInstallCosts(builderTaskInstallCosts);
 			return {
-				tasks: builderTaskInstallCosts.map((b) => {
+				tasks: sortedCosts.map((b) => {
 					const modelInstallTask = b.modelInstallTasks[0];
 					return {
 						id: modelInstallTask?.id || null,

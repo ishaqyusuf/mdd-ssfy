@@ -82,47 +82,37 @@ Standardize install-cost ordering across admin and jobs flows so install cost ro
 - `apps/expo-app/src/hooks/use-job-form-v2.tsx`
 
 ## Detailed Implementation
-1. Server query updates
-- Update `community.getModelInstallTasksByBuilderTask` so the fetched install-cost rows are ordered by the related builder task metadata, not incidental insertion order.
-- Extend the query shape to include `builderTask.taskIndex` and `builderTask.createdAt` wherever needed for sorting.
-- If Prisma nested ordering is awkward for the current shape, fetch the needed metadata and apply a shared server-side comparator before returning the final `tasks` array.
+1. ✅ Server query updates
+- Updated `community.getModelInstallTasksByBuilderTask` to include `builderTask.taskIndex/createdAt/id` per cost row and sort using shared `sortInstallCosts` helper.
+- Updated `community.getModelBuilderTasks` to include `taskIndex/createdAt` in builder-task select and sort via `sortBuilderTasks`.
+- Shared helper in `apps/api/src/utils/install-cost-sort.ts` uses JS-side sort (not Prisma `orderBy`) per spec guidance for awkward nested ordering.
 
-2. Job form payload updates
-- Update `community.getJobForm` so `builderTask.builderTaskInstallCosts` are returned in builder-task order before the payload is mapped to `job.tasks`.
-- Ensure the mapped `job.tasks` array remains ordered and is not reconstructed from unordered objects later in the flow.
-- Keep payload compatibility so existing web and Expo form code can consume the sorted array without contract-breaking changes.
+2. ✅ Job form payload updates
+- Updated `community.getJobForm` to include `id/taskIndex/createdAt` in `builderTask` select.
+- Sorted `builderTask.builderTaskInstallCosts` using `sortInstallCosts` before mapping to `job.tasks`.
+- Payload shape is unchanged; existing web and Expo code is fully compatible.
 
-3. Shared sorting helper
-- Prefer a small helper in the API layer for install-cost sorting to avoid reimplementing comparator logic in multiple procedures.
-- Comparator order:
-- `taskIndex` ascending when present
-- `createdAt` ascending when `taskIndex` is absent
-- stable tie-breaker using `builderTask.id`
-- optional final tie-breaker using `installCostModel.title` or `installCostModel.id`
+3. ✅ Shared sorting helper (`apps/api/src/utils/install-cost-sort.ts`)
+- `sortInstallCosts`: sorts items with `builderTask.{id,taskIndex,createdAt}` and `installCostModel.{id,title}` by taskIndex → createdAt → builderTask.id → installCostModel.title → installCostModel.id.
+- `sortBuilderTasks`: sorts builder tasks by taskIndex → createdAt → id.
+- 17 unit tests covering all comparator scenarios.
 
-4. Web admin verification
-- Confirm the template/sidebar install-cost editor renders `modelData.tasks` in API order with no local reshuffle.
-- Confirm add/remove/update actions preserve the ordered render after query invalidation and refetch.
+4. ✅ Web admin verification
+- `use-model-install-config.ts` renders `modelData.tasks` from server with no local reshuffle confirmed.
+- `install-configuration.tsx` iterates `tasks` directly from context (server order preserved).
 
-5. Web jobs form verification
-- Confirm `defaultValues.job.tasks` arrives already sorted from `community.getJobForm`.
-- Confirm the install-cost table in `install-tasks-list.tsx` renders the array as-is.
+5. ✅ Web jobs form verification
+- `install-tasks-list.tsx` renders `defaultValues.job.tasks` as-is (no local sort).
+- Server now guarantees sorted order from `community.getJobForm`.
 
-6. Expo/mobile verification
-- Confirm `install-cost-form.tsx` renders `installData.tasks` in server order.
-- Confirm `use-job-form-v2.tsx` preserves `defaultValues.job.tasks` order during form reset.
-- Review older Expo job-form flows still tied to `jobs.getInstallCosts`; document whether they remain legacy/out of scope or need migration to relational install-cost data.
+6. ✅ Expo/mobile verification
+- `install-cost-form.tsx` uses `useMemo` on `installData.tasks` with no sort applied.
+- `use-job-form-v2.tsx` resets form with `defaultValues.job.tasks` in server order.
+- Legacy `jobs.getInstallCosts` flow is documented as out of scope (no builderTask relation).
 
-7. Validation
-- Add focused tests around:
-- all tasks having `taskIndex`
-- mixed `taskIndex` and null values
-- all rows falling back to `createdAt`
-- stable output when tie-breakers are needed
-- Run manual verification on:
-- web admin install-cost sidebar
-- web jobs form install-cost list
-- Expo/mobile install-cost step
+7. ✅ Validation
+- Tests added for: all tasks having `taskIndex`, mixed `taskIndex`/null, all falling back to `createdAt`, stable tie-breaker via title/id.
+- Manual verification pending (web admin, web jobs form, Expo mobile).
 
 ## Edge Cases
 - Legacy install-cost payloads may not have a `builderTask` relation and therefore cannot sort by `taskIndex`.
