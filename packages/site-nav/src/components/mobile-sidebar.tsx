@@ -4,6 +4,7 @@ import { Icons } from "@gnd/ui/icons";
 import { useState } from "react";
 import { NavsList } from "./navs-list";
 import { useSiteNav } from "./use-site-nav";
+import { LogoSm } from "./logo";
 
 export function MobileSidebar() {
   const [isOpen, setOpen] = useState(false);
@@ -22,13 +23,16 @@ export function MobileSidebar() {
             <Icons.Menu size={16} />
           </Button>
         </div>
-        <Sheet.Content side="left" className="border-none rounded-none -ml-4">
+        <Sheet.Content
+          side="left"
+          className="border-none max-sm:w-full rounded-none -ml-4"
+        >
           <Sheet.Header>
             <Sheet.Title></Sheet.Title>
             <Sheet.Description></Sheet.Description>
           </Sheet.Header>
           <div className="ml-2 mb-8">
-            <Icons.Logo />
+            <LogoSm />
           </div>
 
           <div className="-ml-2 h-[85vh] overflow-auto scrollbar-hide pb-16">
