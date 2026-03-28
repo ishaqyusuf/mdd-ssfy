@@ -1,37 +1,49 @@
-import { constructMetadata } from "@gnd/utils/construct-metadata";
-import { batchPrefetch, HydrateClient } from "@/trpc/server";
-import { SearchParams } from "nuqs";
-import { ErrorFallback } from "@/components/error-fallback";
-import { Skeletons } from "@gnd/ui/custom/skeletons";
-import { ErrorBoundary } from "next/dist/client/components/error-boundary";
-import { Suspense } from "react";
-import { CommunityTemplateV1Form } from "@/components/forms/community-template-v1";
+import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
+import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
+import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 
-export const metadata = constructMetadata({
-    title: "Edit Community Template | GND",
-});
+import { DataPageShell } from "@/components/_v1/shells/data-page-shell";
+import { transformCommunityTemplate } from "@/lib/community/community-template";
+import { Metadata } from "next";
 
-type Props = {
-    searchParams: Promise<SearchParams>;
-    params: Promise<SearchParams>;
+import { getCommunityTemplate } from "@/app-deps/(v1)/(loggedIn)/settings/community/_components/home-template";
+import { PageTitle } from "@gnd/ui/custom/page-title";
+import { InstallCostSidebar } from "@/components/install-cost-sidebar";
+import ModelForm from "@/app-deps/(v1)/(loggedIn)/settings/community/_components/model-form/model-form";
+import { redirect } from "next/navigation";
+
+export const metadata: Metadata = {
+    title: "Edit Community Template",
 };
 
-export default async function Page(props: Props) {
+export default async function Page(props) {
     const params = await props.params;
-
-    batchPrefetch([]);
+    // redirect(`/community/community-template/${params.slug}/v1`);
+    const response: any = await getCommunityTemplate(params.slug);
+    if (response.meta?.design) {
+        response.meta.design = transformCommunityTemplate(response.meta.design);
+    }
     return (
-        <HydrateClient>
-            <div className="flex flex-col p-4 gap-6">
-                <ErrorBoundary errorComponent={ErrorFallback}>
-                    <Suspense fallback={<Skeletons.Dashboard />}>
-                        <CommunityTemplateV1Form
-                            slug={params.slug as string}
-                        />
-                    </Suspense>
-                </ErrorBoundary>
-            </div>
-        </HydrateClient>
+        <AuthGuard can={["editProject"]}>
+            <DataPageShell
+                data={{
+                    community: true,
+                }}
+                className="space-y-4 p-8"
+            >
+                <PageTitle>{response?.modelName}</PageTitle>
+
+                <ModelForm
+                    title={
+                        <div className="">
+                            <span>Edit Community Model</span>
+                        </div>
+                    }
+                    data={response as any}
+                />
+            </DataPageShell>
+            <InstallCostSidebar />
+        </AuthGuard>
     );
 }
 

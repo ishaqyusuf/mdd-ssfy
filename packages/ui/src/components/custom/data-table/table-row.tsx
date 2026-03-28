@@ -25,7 +25,8 @@ export function TableRow() {
         <BaseTableRow
           className={cn(
             "group h-10 md:h-11.25 cursor-pointer select-text hover:bg-[#F2F1EF] hover:dark:bg-secondary",
-            mobileMode?.borderless && "border-b-0   hover:bg-transparent",
+            mobileMode?.borderless &&
+              "max-sm:border-b-0   max-sm:hover:bg-transparent",
             tableMeta?.rowClassName,
           )}
           key={row.id}
