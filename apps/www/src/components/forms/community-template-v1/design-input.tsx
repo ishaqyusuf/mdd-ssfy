@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { ComboboxDropdown, ComboboxItem } from "@gnd/ui/combobox-dropdown";
 import { Label } from "@gnd/ui/label";
 import { cn } from "@gnd/ui/cn";
 import { useCommunityTemplateV1 } from "./context";
-import { addSpacesToCamelCase } from "@/lib/utils";
 
 interface DesignInputProps {
     formKey: string;
@@ -22,8 +21,6 @@ export function DesignInput({
 }: DesignInputProps) {
     const { form, suggestions } = useCommunityTemplateV1();
     const currentValue = form.watch(formKey as any) || "";
-    const [searchEnabled, setSearchEnabled] = useState(false);
-
     const items: ComboboxItem[] = useMemo(() => {
         const suggestionKey = formKey.replace(".", "");
         const values = suggestions[suggestionKey] || [];
@@ -61,9 +58,6 @@ export function DesignInput({
                     selectedItem={selectedItem}
                     onSelect={(item) => {
                         form.setValue(formKey as any, item.label);
-                    }}
-                    openChanged={(e) => {
-                        if (e) setSearchEnabled(true);
                     }}
                     className="uppercase"
                     onCreate={(value) => {
