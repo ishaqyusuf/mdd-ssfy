@@ -17,7 +17,7 @@ const tableHeaderVariants = cva("", {
   defaultVariants: {},
 });
 export function TableHeader({}) {
-  const { table, tableScroll, setParams, params: { sort } = {} } = useTable();
+  const { table, tableScroll, setParams, params: { sort } = {}, isMobileMode } = useTable();
   const { getStickyStyle, isVisible } = useStickyColumns({
     table,
     loading: false,
@@ -63,7 +63,7 @@ export function TableHeader({}) {
     return dir as "asc" | "desc" | null;
   };
   return (
-    <BaseTableHeader className={cn("border-l-0 border-r-0 bg-muted")}>
+    <BaseTableHeader className={cn("border-l-0 border-r-0 bg-muted", isMobileMode && "border-0 [&_tr]:border-0")}>
       {table.getHeaderGroups().map((headerGroup) => (
         <TableRow
           key={headerGroup.id}

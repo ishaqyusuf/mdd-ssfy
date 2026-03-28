@@ -14,7 +14,7 @@ type Props = {
 };
 
 export function TableRow({}: Props) {
-  const { table, tableMeta } = useTable();
+  const { table, tableMeta, isMobileMode } = useTable();
   const { getStickyStyle, isVisible } = useStickyColumns({
     table,
     loading: false,
@@ -25,7 +25,8 @@ export function TableRow({}: Props) {
         <BaseTableRow
           className={cn(
             "group h-[40px] md:h-[45px] cursor-pointer select-text hover:bg-[#F2F1EF] hover:dark:bg-secondary",
-            tableMeta?.rowClassName
+            tableMeta?.rowClassName,
+            isMobileMode && "border-0"
           )}
           key={id}
         >

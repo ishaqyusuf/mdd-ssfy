@@ -1,5 +1,5 @@
 "use client";
-import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
+import React, { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import createContextFactory from "@/utils/context-factory";
 import {
   getCoreRowModel,
@@ -27,6 +27,7 @@ import {
   TableHeader as _Header,
   TableHead as _Head,
 } from "../../table";
+import { cn } from "../../../utils";
 import { LoadMoreTRPC } from "./load-more";
 import Portal from "../portal";
 export type DataTableProps = {
@@ -136,6 +137,7 @@ export function createTableContext({
       .getCoreRowModel()
       .flatRows.find((row) => row.id === selectedRowKey);
   }, [rowSelection, table]);
+  const isMobileMode = !!(isMobile && mobileColumn);
   return {
     table,
     setParams,
@@ -151,6 +153,7 @@ export function createTableContext({
     addons,
     tableScroll,
     props,
+    isMobileMode,
   };
 }
 export const {
@@ -218,12 +221,24 @@ function SummaryHeader() {
     </Portal>
   );
 }
+function MobileAwareBody(
+  props: React.HTMLAttributes<HTMLTableSectionElement> & { ref?: React.Ref<HTMLTableSectionElement> }
+) {
+  const { isMobileMode } = useTable();
+  const { className, ...rest } = props;
+  return (
+    <_Body
+      className={cn(isMobileMode && "border-0 [&_tr]:border-0", className)}
+      {...rest}
+    />
+  );
+}
 export const Table = Object.assign(BaseTable, {
   Provider: TableProvider,
   ContextProvider: Context?.Provider,
   TableRow,
   TableHeader,
-  Body: _Body,
+  Body: MobileAwareBody,
   Row: _Row,
   Head: _Head,
   Header: _Header,
