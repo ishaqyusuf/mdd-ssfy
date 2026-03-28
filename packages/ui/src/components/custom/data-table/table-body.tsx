@@ -10,7 +10,8 @@ export const TableBody = React.forwardRef<
 	HTMLTableSectionElement,
 	React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => {
-	const { mobileMode } = useTable();
+	const ctx = useTable();
+	const mobileMode = ctx?.mobileMode;
 
 	return (
 		<BaseTableBody

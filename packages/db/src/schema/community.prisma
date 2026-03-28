@@ -212,6 +212,7 @@ model BuilderTask {
     builderId                  Int
     taskName                   String                      @db.VarChar(255)
     taskUid                    String                      @db.VarChar(255)
+    taskIndex                  Float?                      @default(0)
     billable                   Boolean?
     productionable             Boolean?
     installable                Boolean?

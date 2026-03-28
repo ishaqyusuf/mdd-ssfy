@@ -4,6 +4,7 @@ import { useBuilderModelInstallsContext } from "@/hooks/use-model-install-config
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
+import { Item } from "@gnd/ui/namespace";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -125,15 +126,22 @@ export function AddNewInstallCost() {
                             className="uppercase"
                             placeholder="Search global costs..."
                             renderListItem={({ item }) => (
-                                <div className="flex justify-between items-center w-full">
-                                    <span>{item.label}</span>
-                                    <span className="text-xs font-bold text-muted-foreground">
-                                        ${item.data.unitCost}
-                                        {item.data.unit
-                                            ? `/${item.data.unit}`
-                                            : ""}
-                                    </span>
-                                </div>
+                                <Item
+                                    size="sm"
+                                    className="w-full border-0 px-0 py-0"
+                                >
+                                    <Item.Content className="min-w-0">
+                                        <Item.Title className="w-full truncate">
+                                            {item.label}
+                                        </Item.Title>
+                                        <Item.Description>
+                                            ${item.data.unitCost}
+                                            {item.data.unit
+                                                ? ` / ${item.data.unit}`
+                                                : ""}
+                                        </Item.Description>
+                                    </Item.Content>
+                                </Item>
                             )}
                             items={[...(suggesstions || [])]
                                 .filter(Boolean)
@@ -233,4 +241,3 @@ export function AddNewInstallCost() {
         </div>
     );
 }
-

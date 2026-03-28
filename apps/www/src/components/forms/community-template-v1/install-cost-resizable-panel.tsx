@@ -19,11 +19,6 @@ import { Sheet, SheetContent } from "@gnd/ui/sheet";
 import { useMediaQuery } from "@gnd/ui/hooks";
 import { AlertTriangle } from "lucide-react";
 import { cn } from "@gnd/ui/cn";
-import {
-    ResizablePanelGroup,
-    ResizablePanel,
-    ResizableHandle,
-} from "@gnd/ui/resizable";
 
 interface Props {
     children: React.ReactNode;
@@ -221,7 +216,7 @@ export function InstallCostResizablePanel({ children }: Props) {
                     <SheetContent
                         side="right"
                         hideClose
-                        className="w-screen max-w-none p-0"
+                        className="max-md:w-screen sm:max-w-none max-sm:w-screen p-0"
                     >
                         <div className="flex h-full flex-col">
                             {panelContent}
@@ -232,24 +227,26 @@ export function InstallCostResizablePanel({ children }: Props) {
         );
     }
 
-    // Desktop lg+: use resizable panels
+    // Desktop lg+: keep install cost fixed to the viewport with its own scroll
     if (!isPanelOpen) {
         return <>{children}</>;
     }
 
     return (
-        <ResizablePanelGroup direction="horizontal" className="min-h-[calc(100svh-var(--header-height))]">
-            <ResizablePanel defaultSize={67} minSize={40}>
-                <div className="h-full overflow-y-auto">
-                    {children}
-                </div>
-            </ResizablePanel>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={33} minSize={20} maxSize={50}>
-                <div className="flex h-full flex-col border-l bg-background overflow-hidden">
+        <div className="relative min-h-[calc(100svh-var(--header-height)-2rem)] pr-[29rem]">
+            <div
+                className={cn(
+                    "h-[calc(100svh-var(--header-height)-2rem)] min-h-0 overflow-hidden",
+                    "lg:pr-6",
+                )}
+            >
+                {children}
+            </div>
+            <div className="fixed right-4 top-[calc(var(--header-height)+1rem)] z-30 h-[calc(100svh-var(--header-height)-2rem)] w-[28rem]">
+                <div className="flex h-full flex-col overflow-hidden border-l bg-background">
                     {panelContent}
                 </div>
-            </ResizablePanel>
-        </ResizablePanelGroup>
+            </div>
+        </div>
     );
 }

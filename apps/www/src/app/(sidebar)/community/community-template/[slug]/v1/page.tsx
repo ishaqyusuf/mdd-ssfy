@@ -13,23 +13,24 @@ export const metadata = constructMetadata({
 
 type Props = {
     searchParams: Promise<SearchParams>;
-    params: Promise<SearchParams>;
+    params: Promise<{
+        slug: string;
+    }>;
 };
 
 export default async function Page(props: Props) {
-    const params = await props.params;
+    const { slug } = await props.params;
 
     batchPrefetch([]);
     return (
         <HydrateClient>
-            <div className="flex flex-col p-4 gap-6">
+            <div className="flex flex-col gap-6 p-4">
                 <ErrorBoundary errorComponent={ErrorFallback}>
                     <Suspense fallback={<Skeletons.Dashboard />}>
-                        <CommunityTemplateV1Form slug={params.slug as string} />
+                        <CommunityTemplateV1Form slug={slug} />
                     </Suspense>
                 </ErrorBoundary>
             </div>
         </HydrateClient>
     );
 }
-

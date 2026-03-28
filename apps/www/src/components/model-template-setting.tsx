@@ -1,11 +1,14 @@
+"use client";
+
 import { updateCommunityVersion } from "@/actions/community/update-community-version";
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-params";
 import { useZodForm } from "@/hooks/use-zod-form";
+import { useCommunityTemplateV1 } from "@/components/forms/community-template-v1/context";
 import { Button } from "@gnd/ui/button";
-import { DropdownMenu, Field, Popover, Select } from "@gnd/ui/namespace";
-import { Menu } from "@gnd/ui/custom/menu";
+import { DropdownMenu, Field, Select } from "@gnd/ui/namespace";
 import { Icons } from "@gnd/ui/icons";
+import { Switch } from "@gnd/ui/switch";
 import { Eye, Settings, Tag } from "lucide-react";
 import z from "zod";
 
@@ -18,6 +21,8 @@ interface Props {
     };
 }
 export function ModelTemplateSetting(props: Props) {
+    const { autocompleteEnabled, setAutocompleteEnabled } =
+        useCommunityTemplateV1();
     const form = useZodForm(
         z.object({
             version: z.string(),
@@ -68,6 +73,21 @@ export function ModelTemplateSetting(props: Props) {
                             </Select.Content>
                         </Select.Root>
                     </Field>
+                    <Field>
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="space-y-1">
+                                <Field.Label>Auto-complete</Field.Label>
+                                <p className="text-muted-foreground text-xs">
+                                    Use suggestions while filling template fields.
+                                </p>
+                            </div>
+                            <Switch
+                                checked={autocompleteEnabled}
+                                onCheckedChange={setAutocompleteEnabled}
+                                aria-label="Toggle auto-complete mode"
+                            />
+                        </div>
+                    </Field>
                 </div>
                 <DropdownMenu.Separator />
                 <DropdownMenu.Item
@@ -101,4 +121,3 @@ export function ModelTemplateSetting(props: Props) {
         </DropdownMenu.Root>
     );
 }
-

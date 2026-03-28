@@ -1,6 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@gnd/ui/select";
+import { useMediaQuery } from "@gnd/ui/hooks";
 import {
     ExteriorFrame,
     GarageDoorForm,
@@ -12,14 +21,40 @@ import {
 } from "./form-sections";
 
 export function TemplateFormTabs() {
+    const isSmallScreen = useMediaQuery("(max-width: 767px)");
+    const [activeTab, setActiveTab] = useState("interior");
+
+    const tabOptions = [
+        { value: "exterior", label: "Exterior Door" },
+        { value: "interior", label: "Interior Trim" },
+        { value: "lock", label: "Lock & Hardware" },
+        { value: "deco", label: "Deco Shutters" },
+    ];
+
     return (
-        <Tabs defaultValue="interior" className="space-y-4">
-            <TabsList className="flex-wrap h-auto">
-                <TabsTrigger value="exterior">Exterior Door</TabsTrigger>
-                <TabsTrigger value="interior">Interior Trim</TabsTrigger>
-                <TabsTrigger value="lock">Lock & Hardware</TabsTrigger>
-                <TabsTrigger value="deco">Deco Shutters</TabsTrigger>
-            </TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+            {isSmallScreen ? (
+                <Select value={activeTab} onValueChange={setActiveTab}>
+                    <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Choose section" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {tabOptions.map((tab) => (
+                            <SelectItem key={tab.value} value={tab.value}>
+                                {tab.label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            ) : (
+                <TabsList className="h-auto flex-wrap">
+                    {tabOptions.map((tab) => (
+                        <TabsTrigger key={tab.value} value={tab.value}>
+                            {tab.label}
+                        </TabsTrigger>
+                    ))}
+                </TabsList>
+            )}
             <TabsContent value="exterior" className="space-y-4">
                 <ExteriorFrame />
             </TabsContent>

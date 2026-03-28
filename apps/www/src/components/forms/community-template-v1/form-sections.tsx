@@ -75,7 +75,6 @@ export function FormSection({ section, title, node, rows }: FormSectionProps) {
                                         row.length === 2 && "grid-cols-2",
                                         row.length === 3 && "grid-cols-3",
                                         row.length === 4 && "grid-cols-4",
-                                        "max-md:grid-cols-1",
                                     )}
                                 >
                                     {row.map((cell) => (

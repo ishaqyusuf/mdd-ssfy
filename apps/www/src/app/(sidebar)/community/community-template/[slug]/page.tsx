@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 
 export default async function Page(props) {
     const params = await props.params;
-    // redirect(`/community/community-template/${params.slug}/v1`);
+    return redirect(`/community/community-template/${params.slug}/v1`);
     const response: any = await getCommunityTemplate(params.slug);
     if (response.meta?.design) {
         response.meta.design = transformCommunityTemplate(response.meta.design);
