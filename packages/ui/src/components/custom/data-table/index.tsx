@@ -19,9 +19,9 @@ import { screens } from "@gnd/utils/responsive";
 import { useTableScroll } from "../../../hooks/use-table-scroll";
 import { TableRow } from "./table-row";
 import { TableHeader } from "./table-header";
+import { TableBody } from "./table-body";
 import {
   Table as BaseTable,
-  TableBody as _Body,
   TableRow as _Row,
   TableCell as _Cell,
   TableHeader as _Header,
@@ -71,6 +71,10 @@ type TableProps = WithTable & {
     loadMore?;
     filterData?: PageFilterData[];
     rowClassName?: string;
+    mobileMode?: {
+      hideHeader?: boolean;
+      borderless?: boolean;
+    };
   };
   rowSelection?;
   setRowSelection?;
@@ -151,6 +155,10 @@ export function createTableContext({
     addons,
     tableScroll,
     props,
+    mobileMode: {
+      hideHeader: isMobile && !!tableMeta?.mobileMode?.hideHeader,
+      borderless: isMobile && !!tableMeta?.mobileMode?.borderless,
+    },
   };
 }
 export const {
@@ -223,7 +231,7 @@ export const Table = Object.assign(BaseTable, {
   ContextProvider: Context?.Provider,
   TableRow,
   TableHeader,
-  Body: _Body,
+  Body: TableBody,
   Row: _Row,
   Head: _Head,
   Header: _Header,

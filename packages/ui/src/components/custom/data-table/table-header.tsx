@@ -17,12 +17,20 @@ const tableHeaderVariants = cva("", {
   defaultVariants: {},
 });
 export function TableHeader({}) {
-  const { table, tableScroll, setParams, params: { sort } = {} } = useTable();
+  const {
+    table,
+    tableScroll,
+    setParams,
+    params: { sort } = {},
+    mobileMode,
+  } = useTable();
   const { getStickyStyle, isVisible } = useStickyColumns({
     table,
     loading: false,
   });
   const [column, value] = sort || [];
+
+  if (mobileMode?.hideHeader) return null;
 
   const createSortQuery = (name: string) => {
     // const [currentColumn, currentValue] = sort?.[0]?.split(".") || [];
@@ -63,7 +71,12 @@ export function TableHeader({}) {
     return dir as "asc" | "desc" | null;
   };
   return (
-    <BaseTableHeader className={cn("border-l-0 border-r-0 bg-muted")}>
+    <BaseTableHeader
+      className={cn(
+        "border-l-0 border-r-0 bg-muted",
+        mobileMode?.borderless && "border-0 bg-transparent"
+      )}
+    >
       {table.getHeaderGroups().map((headerGroup) => (
         <TableRow
           key={headerGroup.id}
@@ -133,7 +146,9 @@ function CheckboxHeader({ style = undefined }) {
     <TableHead
       style={style}
       className={cn(
-        "w-[50px] min-w-[50px] px-3 md:px-4 py-2 md:sticky md:left-0 bg-background z-20 border-r border-border before:absolute before:right-0 before:top-0 before:bottom-0 before:w-px before:bg-border after:absolute after:right-[-24px] after:top-0 after:bottom-0 after:w-6 after:bg-gradient-to-l after:from-transparent after:to-background after:z-[-1]"
+        "w-[50px] min-w-[50px] px-3 md:px-4 py-2 md:sticky md:left-0 bg-background z-20 border-r border-border before:absolute before:right-0 before:top-0 before:bottom-0 before:w-px before:bg-border after:absolute after:right-[-24px] after:top-0 after:bottom-0 after:w-6 after:bg-gradient-to-l after:from-transparent after:to-background after:z-[-1]",
+        ctx.mobileMode?.borderless &&
+          "border-r-0 before:hidden after:hidden"
       )}
     >
       <Checkbox

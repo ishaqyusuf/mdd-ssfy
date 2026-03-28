@@ -776,7 +776,7 @@ export const mobileColumn: ColumnDef<SalesOrderItem>[] = [
 ];
 function ItemCard({ item }: ItemProps) {
 	return (
-		<div className="flex flex-col space-y-2 p-3 border-b">
+		<div className="flex flex-col space-y-2 p-3">
 			<div className="flex justify-between items-start">
 				<div className="flex flex-col">
 					<div className="flex items-center gap-2">
@@ -822,7 +822,7 @@ function ItemCard({ item }: ItemProps) {
 				<div>{item?.customerPhone}</div>
 			</div>
 
-			<div className="flex justify-between items-center border-t pt-2 mt-2">
+			<div className="flex justify-between items-center pt-2 mt-2">
 				<div>
 					<div className="text-xs text-muted-foreground">Invoice</div>
 					<TCell.Money

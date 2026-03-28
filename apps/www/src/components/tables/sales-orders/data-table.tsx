@@ -96,6 +96,10 @@ export function DataTable(props: Props) {
 					},
 					setRowSelection,
 					tableMeta: {
+						mobileMode: {
+							hideHeader: true,
+							borderless: true,
+						},
 						rowClick(id, rowData) {
 							overviewQuery.open2(rowData.uuid, "sales");
 							// openSalesAdminSheet(rowData.uuid)

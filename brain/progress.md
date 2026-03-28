@@ -2,6 +2,15 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-03-28
+
+- Updated the shared web data-table mobile presentation path to support headerless and borderless mobile rendering.
+- Applied the new mobile presentation mode to the sales orders table so mobile cards:
+  - hide the table header
+  - remove table/body/row borders from the shared table shell
+  - remove local divider borders inside the sales-order mobile item card
+- Preserved existing desktop table behavior by scoping the new presentation options to mobile mode and opting in from the sales-orders table only.
+
 ## 2026-03-26
 
 - Started the production `v2` rebuild in parallel with the earlier shared-shell production workspace:
