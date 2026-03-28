@@ -156,8 +156,8 @@ export function createTableContext({
     tableScroll,
     props,
     mobileMode: {
-      hideHeader: isMobile && !!tableMeta?.mobileMode?.hideHeader,
-      borderless: isMobile && !!tableMeta?.mobileMode?.borderless,
+      hideHeader: true, //isMobile && !!tableMeta?.mobileMode?.hideHeader,
+      borderless: true, // isMobile && !!tableMeta?.mobileMode?.borderless,
     },
   };
 }
@@ -182,7 +182,7 @@ export const useTableData = ({ filter, route }) => {
       getNextPageParam: ({ meta }) => {
         return meta?.cursor;
       },
-    }
+    },
   );
   const { data, fetchNextPage, hasNextPage, isFetching } =
     useSuspenseInfiniteQuery(infiniteQueryOptions);
