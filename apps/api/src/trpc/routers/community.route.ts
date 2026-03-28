@@ -112,6 +112,50 @@ import slugify from "slugify";
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../init";
 export const communityRouters = createTRPCRouter({
+	getDesignKeySuggestions: publicProcedure.query(async (props) => {
+		const records = await props.ctx.db.autoCompletes.findMany({
+			where: { type: "unit-template" },
+			select: { fieldName: true, value: true },
+		});
+		const suggestions: Record<string, string[]> = {};
+		for (const r of records) {
+			const key = r.fieldName
+				.split("_")
+				.map((s, i) => (i === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1)))
+				.join("");
+			if (!suggestions[key]) {
+				suggestions[key] = [];
+			}
+			if (!suggestions[key].includes(r.value)) {
+				suggestions[key].push(r.value);
+			}
+		}
+		return suggestions;
+	}),
+	getCommunityTemplateLegacy: publicProcedure
+		.input(z.object({ slug: z.string() }))
+		.query(async (props) => {
+			const data = await props.ctx.db.communityModels.findUnique({
+				where: { slug: props.input.slug },
+				include: {
+					history: true,
+					pivot: {
+						select: {
+							modelCosts: {
+								take: 1,
+								select: { id: true },
+							},
+						},
+					},
+				},
+			});
+			if (!data) throw new Error("Community template not found");
+			return {
+				...data,
+				meta: data.meta as any,
+				pivotModelCostId: data.pivot?.modelCosts?.[0]?.id,
+			};
+		}),
 	buildersList: publicProcedure.query(async (q) => {
 		return buildersList(q.ctx);
 	}),
