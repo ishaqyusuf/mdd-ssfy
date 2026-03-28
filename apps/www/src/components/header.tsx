@@ -1,5 +1,5 @@
 "use client";
-import { MobileMenu } from "./mobile-menu";
+import { SiteNav } from "@gnd/site-nav";
 import { NotificationCenter } from "./notification-center";
 import { OpenSearchButton } from "./search/open-search-button";
 import { UserNav } from "./user-nav";
@@ -16,9 +16,7 @@ export function Header() {
                     willChange: "transform",
                 }}
             >
-                <div className="md:hidden">
-                    <MobileMenu />
-                </div>
+                <SiteNav.MobileSidebar />
                 <div id="goBackSlot" />
                 <div className="flex items-center space-x-4 lg:space-x-0">
                     <h1 className="font-bold" id="pageTitle"></h1>
@@ -56,9 +54,7 @@ export function Header() {
     return (
         <header className="md:border-b">
             <div className="md:m-0 z-50 px-6 border-b  h-(--header-height) flex gap-4 items-center desktop:sticky desktop:top-0 desktop:bg-background sticky md:statics top-0 backdrop-filter backdrop-blur-xl md:backdrop-filter md:backdrop-blur-none dark:bg-[#121212] bg-[#fff] bg-opacity-70 desktop:rounded-t-[10px]">
-                <div className="md:hidden">
-                    <MobileMenu />
-                </div>
+                <SiteNav.MobileSidebar />
                 <div id="goBackSlot" />
                 <div className="flex items-center space-x-4 lg:space-x-0">
                     <h1 className="font-bold" id="pageTitle"></h1>
