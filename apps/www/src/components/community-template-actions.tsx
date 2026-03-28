@@ -20,7 +20,7 @@ export function CommunityTemplateActions(props: Props) {
                 templateEditMode={props.templateEditMode}
                 id={id!}
             />
-            <SubmitButton size="sm" isLoading={isSaving} onClick={save}>
+            <SubmitButton size="sm" isSubmitting={isSaving} onClick={save}>
                 Save
             </SubmitButton>
             <ModelTemplateSetting

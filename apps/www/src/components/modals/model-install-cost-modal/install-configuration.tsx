@@ -18,7 +18,6 @@ import {
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 import { InputGroup, Item, Table } from "@gnd/ui/namespace";
-import { Icons } from "@gnd/ui/icons";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import NumberFlow from "@number-flow/react";
 import { useMutation } from "@tanstack/react-query";
@@ -296,15 +295,10 @@ function Line({
                             </AlertDialogTitle>
                             <AlertDialogDescription>
                                 Deleting this cost will remove{" "}
-                                <strong>
-                                    {task.installCostModel?.title}
-                                </strong>{" "}
+                                <strong>{task.installCostModel?.title}</strong>{" "}
                                 from all{" "}
-                                <strong>
-                                    {selectedBuilderTask?.taskName}
-                                </strong>{" "}
-                                across{" "}
-                                <strong>{data?.builderName}</strong>.
+                                <strong>{selectedBuilderTask?.taskName}</strong>{" "}
+                                across <strong>{data?.builderName}</strong>.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -349,3 +343,4 @@ function EmptyState() {
         </div>
     );
 }
+
