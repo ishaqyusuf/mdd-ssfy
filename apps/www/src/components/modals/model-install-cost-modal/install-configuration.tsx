@@ -3,7 +3,6 @@ import { useBuilderModelInstallsContext } from "@/hooks/use-model-install-config
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { useJobParams } from "@/hooks/use-contractor-jobs-params";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
-import { useZodForm } from "@/hooks/use-zod-form";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import {
     AlertDialog,
@@ -17,18 +16,16 @@ import {
 } from "@gnd/ui/alert-dialog";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
-import { InputGroup, Item, Table } from "@gnd/ui/namespace";
+import { InputGroup, Item } from "@gnd/ui/namespace";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import NumberFlow from "@number-flow/react";
 import { useMutation } from "@tanstack/react-query";
-import { ArrowRight, DollarSign, RefreshCcw, Trash2 } from "lucide-react";
+import { DollarSign, RefreshCcw, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { Controller } from "react-hook-form";
 import { toast } from "sonner";
 import { useDebouncedCallback } from "use-debounce";
-import z from "zod";
 export function InstallConfiguration() {
-    const { tasks, installCosts, params } = useBuilderModelInstallsContext();
+    const { tasks, params } = useBuilderModelInstallsContext();
     const { setParams } = useCommunityInstallCostParams();
     const { setParams: setJobParams } = useJobParams();
     const notification = useNotificationTrigger();
@@ -81,24 +78,9 @@ export function InstallConfiguration() {
                     </Button>
                 </div>
             ) : null}
-            <div className="">
-                <Table>
-                    <Table.Header className="bg-muted hover:bg-muted uppercase">
-                        <Table.Row>
-                            <Table.Head>Install Cost Item</Table.Head>
-                            <Table.Head>Status</Table.Head>
-                            <Table.Head className="w-28">Max Qty</Table.Head>
-                            <Table.Head>Est.</Table.Head>
-                            <Table.Head></Table.Head>
-                        </Table.Row>
-                    </Table.Header>
-                    <Table.Body>
-                        {tasks?.map((task, tid) => (
-                            <Line task={task} key={tid} />
-                        ))}
-                    </Table.Body>
-                </Table>
-            </div>
+            <Item.Group className="gap-3">
+                {tasks?.map((task, tid) => <Line task={task} key={tid} />)}
+            </Item.Group>
         </>
     );
 }
@@ -188,139 +170,159 @@ function Line({
         // });
     }, 800);
     return (
-        <Table.Row className={cn("hover:bg-transparent")} key={task.id}>
-            <Table.Cell
-                className={cn("border-l-2", isError && "border-destructive")}
-            >
-                <Item.Title>{task.installCostModel?.title}</Item.Title>
-                <Item.Description>
-                    ${task.installCostModel?.unitCost}
-                    {task.installCostModel?.unit
-                        ? ` / ${task.installCostModel?.unit}`
-                        : ""}
-                </Item.Description>
-            </Table.Cell>
-            <Table.Cell>
-                <Button
-                    onClick={(e) => {
-                        const newStatus =
-                            status === "active" ? "inactive" : "active";
-                        setStatus(newStatus);
-                        handleUpdate({
-                            maxQty,
-                            status: newStatus,
-                        });
-                    }}
-                    variant={status === "active" ? "default" : "secondary"}
-                    size="sm"
-                    className="w-16"
-                >
-                    {status}
-                </Button>
-            </Table.Cell>
-            <Table.Cell>
-                <InputGroup>
-                    <InputGroup.Input
-                        value={maxQty}
-                        className="w-20"
-                        // {...field}
-                        onChange={(e) => {
-                            const value = Number(e.target.value) || "";
-                            setMaxQty(value);
-                            handleUpdate({
-                                maxQty: value,
-                                status,
-                            });
-                        }}
-                        type="number"
-                    />
-                    {/* <InputGroup.Addon>$</InputGroup.Addon> */}
-                </InputGroup>
-                {/* {installCosts?.find(
-                                        (cost) =>
-                                            cost.builderTaskId === task.id,
-                                    )?.qty || 0} */}
-            </Table.Cell>
-            <Table.Cell className={cn("flex justify-end")}>
-                <NumberFlow
-                    prefix="$"
-                    className={cn(
-                        !!task.installCostModel?.unitCost && "font-medium",
-                    )}
-                    value={
-                        task.installCostModel?.unitCost
-                            ? +(
-                                  (Number(maxQty) || 0) *
-                                  task.installCostModel.unitCost
-                              ).toFixed(2)
-                            : 0
-                    }
-                />
-                <SubmitButton
-                    className={cn(
-                        "opacity-0",
-                        (isError || isPending) && "opacity-100",
-                    )}
-                    isSubmitting={isPending}
-                    onClick={(e) => {
-                        handleUpdate({
-                            maxQty,
-                            status,
-                        });
-                    }}
-                    type="button"
-                    size="xs"
-                    variant={!isError ? "default" : "destructive"}
-                >
-                    <RefreshCcw className="size-3" />
-                </SubmitButton>
-            </Table.Cell>
-            <Table.Cell>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-8 text-muted-foreground hover:text-destructive"
-                    onClick={() => setShowDeleteDialog(true)}
-                >
-                    <Trash2 className="size-4" />
-                </Button>
-                <AlertDialog
-                    open={showDeleteDialog}
-                    onOpenChange={setShowDeleteDialog}
-                >
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>
-                                Delete Install Cost
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Deleting this cost will remove{" "}
-                                <strong>{task.installCostModel?.title}</strong>{" "}
-                                from all{" "}
-                                <strong>{selectedBuilderTask?.taskName}</strong>{" "}
-                                across <strong>{data?.builderName}</strong>.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                                disabled={isDeleting}
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    deleteCost({
-                                        builderTaskInstallCostId:
-                                            task.builderTaskInstallCostId,
+        <Item
+            key={task.id}
+            variant="outline"
+            className={cn(
+                "gap-3 border-l-2 bg-background p-4",
+                isError ? "border-l-destructive" : "border-l-primary/30",
+            )}
+        >
+            <Item.Content className="min-w-0 gap-3">
+                <Item.Header className="items-start gap-3">
+                    <div className="min-w-0 flex-1">
+                        <Item.Title className="w-full truncate">
+                            {task.installCostModel?.title}
+                        </Item.Title>
+                        <Item.Description>
+                            ${task.installCostModel?.unitCost}
+                            {task.installCostModel?.unit
+                                ? ` / ${task.installCostModel?.unit}`
+                                : ""}
+                        </Item.Description>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            onClick={() => {
+                                const newStatus =
+                                    status === "active"
+                                        ? "inactive"
+                                        : "active";
+                                setStatus(newStatus);
+                                handleUpdate({
+                                    maxQty,
+                                    status: newStatus,
+                                });
+                            }}
+                            variant={
+                                status === "active" ? "default" : "secondary"
+                            }
+                            size="sm"
+                            className="min-w-20"
+                        >
+                            {status}
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 text-muted-foreground hover:text-destructive"
+                            onClick={() => setShowDeleteDialog(true)}
+                        >
+                            <Trash2 className="size-4" />
+                        </Button>
+                    </div>
+                </Item.Header>
+
+                <Item.Footer className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+                    <div className="grid gap-1">
+                        <span className="text-muted-foreground text-[11px] uppercase tracking-wide">
+                            Max Qty
+                        </span>
+                        <InputGroup>
+                            <InputGroup.Input
+                                value={maxQty}
+                                className="w-full sm:w-24"
+                                onChange={(e) => {
+                                    const value = Number(e.target.value) || "";
+                                    setMaxQty(value);
+                                    handleUpdate({
+                                        maxQty: value,
+                                        status,
                                     });
                                 }}
-                                className="bg-red-600 hover:bg-red-700"
-                            >
-                                {isDeleting ? "Deleting..." : "Delete"}
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            </Table.Cell>
-        </Table.Row>
+                                type="number"
+                            />
+                        </InputGroup>
+                    </div>
+                    <div className="flex items-end justify-between gap-3 sm:justify-end">
+                        <div className="grid gap-1 text-left sm:text-right">
+                            <span className="text-muted-foreground text-[11px] uppercase tracking-wide">
+                                Est.
+                            </span>
+                            <NumberFlow
+                                prefix="$"
+                                className={cn(
+                                    "text-sm font-semibold",
+                                    !!task.installCostModel?.unitCost &&
+                                        "font-medium",
+                                )}
+                                value={
+                                    task.installCostModel?.unitCost
+                                        ? +(
+                                              (Number(maxQty) || 0) *
+                                              task.installCostModel.unitCost
+                                          ).toFixed(2)
+                                        : 0
+                                }
+                            />
+                        </div>
+                        <SubmitButton
+                            className={cn(
+                                "opacity-0",
+                                (isError || isPending) && "opacity-100",
+                            )}
+                            isSubmitting={isPending}
+                            onClick={() => {
+                                handleUpdate({
+                                    maxQty,
+                                    status,
+                                });
+                            }}
+                            type="button"
+                            size="xs"
+                            variant={!isError ? "default" : "destructive"}
+                        >
+                            <RefreshCcw className="size-3" />
+                        </SubmitButton>
+                    </div>
+                </Item.Footer>
+            </Item.Content>
+            <AlertDialog
+                open={showDeleteDialog}
+                onOpenChange={setShowDeleteDialog}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            Delete Install Cost
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Deleting this cost will remove{" "}
+                            <strong>{task.installCostModel?.title}</strong>{" "}
+                            from all{" "}
+                            <strong>{selectedBuilderTask?.taskName}</strong>{" "}
+                            across <strong>{data?.builderName}</strong>.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            disabled={isDeleting}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                deleteCost({
+                                    builderTaskInstallCostId:
+                                        task.builderTaskInstallCostId,
+                                });
+                            }}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            {isDeleting ? "Deleting..." : "Delete"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </Item>
     );
 }
 
@@ -343,4 +345,3 @@ function EmptyState() {
         </div>
     );
 }
-

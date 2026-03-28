@@ -519,7 +519,7 @@ async function userPermissions(ctx: TRPCContext, roleId) {
   });
   const permissions = role.RoleHasPermissions.flatMap((a) => a.permission);
   const can = generatePermissions(role?.name, permissions);
-  console.log({ can });
+
   return can;
 }
 export const loginSchema = z.object({

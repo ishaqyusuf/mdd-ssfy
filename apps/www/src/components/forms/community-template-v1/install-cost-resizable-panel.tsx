@@ -233,17 +233,12 @@ export function InstallCostResizablePanel({ children }: Props) {
     }
 
     return (
-        <div className="relative min-h-[calc(100svh-var(--header-height)-2rem)] pr-[29rem]">
-            <div
-                className={cn(
-                    "h-[calc(100svh-var(--header-height)-2rem)] min-h-0 overflow-hidden",
-                    "lg:pr-6",
-                )}
-            >
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_28rem]">
+            <div className={cn("min-w-0", "lg:pr-6")}>
                 {children}
             </div>
-            <div className="fixed right-4 top-[calc(var(--header-height)+1rem)] z-30 h-[calc(100svh-var(--header-height)-2rem)] w-[28rem]">
-                <div className="flex h-full flex-col overflow-hidden border-l bg-background">
+            <div className="sticky top-4 max-h-[calc(100svh-1rem)] overflow-hidden">
+                <div className="flex h-full max-h-[calc(100svh-1rem)] flex-col overflow-hidden border-l bg-background">
                     {panelContent}
                 </div>
             </div>
