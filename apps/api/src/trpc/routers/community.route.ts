@@ -115,26 +115,87 @@ import { tasks } from "@trigger.dev/sdk/v3";
 import slugify from "slugify";
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../init";
+
+function toSuggestionKey(parts: string[]) {
+  return parts
+    .filter(Boolean)
+    .map((part, index) =>
+      index === 0 ? part : part.charAt(0).toUpperCase() + part.slice(1),
+    )
+    .join("");
+}
+
+function addSuggestionValue(
+  suggestions: Record<string, Set<string>>,
+  keyParts: string[],
+  value: unknown,
+) {
+  if (typeof value !== "string" && typeof value !== "number") return;
+  const normalizedValue = String(value).trim().toUpperCase();
+  if (!normalizedValue) return;
+  const suggestionKey = toSuggestionKey(keyParts);
+  if (!suggestionKey) return;
+  if (!suggestions[suggestionKey]) {
+    suggestions[suggestionKey] = new Set();
+  }
+  suggestions[suggestionKey].add(normalizedValue);
+}
+
+function collectDesignSuggestions(
+  suggestions: Record<string, Set<string>>,
+  value: unknown,
+  keyParts: string[] = [],
+) {
+  if (value === null || value === undefined) return;
+
+  if (typeof value === "string" || typeof value === "number") {
+    addSuggestionValue(suggestions, keyParts, value);
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item) =>
+      collectDesignSuggestions(suggestions, item, keyParts),
+    );
+    return;
+  }
+
+  if (typeof value !== "object") return;
+
+  const objectValue = value as Record<string, unknown>;
+  if ("v" in objectValue && keyParts.length > 0) {
+    addSuggestionValue(suggestions, keyParts, objectValue.v);
+    return;
+  }
+
+  Object.entries(objectValue).forEach(([key, nestedValue]) => {
+    collectDesignSuggestions(suggestions, nestedValue, [...keyParts, key]);
+  });
+}
+
 export const communityRouters = createTRPCRouter({
   getDesignKeySuggestions: publicProcedure.query(async (props) => {
-    const records = await props.ctx.db.autoCompletes.findMany({
-      where: { type: "unit-template" },
-      select: { fieldName: true, value: true },
+    const models = await props.ctx.db.communityModels.findMany({
+      where: {
+        deletedAt: null,
+      },
+      select: {
+        meta: true,
+      },
     });
-    const suggestions: Record<string, string[]> = {};
-    for (const r of records) {
-      const key = r.fieldName
-        .split("_")
-        .map((s, i) => (i === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1)))
-        .join("");
-      if (!suggestions[key]) {
-        suggestions[key] = [];
-      }
-      if (!suggestions[key].includes(r.value)) {
-        suggestions[key].push(r.value);
-      }
-    }
-    return suggestions;
+    const suggestions: Record<string, Set<string>> = {};
+
+    models.forEach((model) => {
+      const design = (model.meta as any)?.design;
+      collectDesignSuggestions(suggestions, design);
+    });
+
+    return Object.fromEntries(
+      Object.entries(suggestions).map(([key, values]) => [
+        key,
+        Array.from(values).sort((a, b) => a.localeCompare(b)),
+      ]),
+    );
   }),
   getCommunityTemplateLegacy: publicProcedure
     .input(z.object({ slug: z.string() }))

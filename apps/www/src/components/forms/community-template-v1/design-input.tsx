@@ -30,7 +30,14 @@ export function DesignInput({
     const shouldStackLabel =
         Boolean(openToSide && editCommunityModelInstallCostId) && isMdToLg;
     const items: ComboboxItem[] = useMemo(() => {
-        const suggestionKey = formKey.replace(".", "");
+        const suggestionKey = formKey
+            .split(".")
+            .map((part, index) =>
+                index === 0
+                    ? part
+                    : part.charAt(0).toUpperCase() + part.slice(1),
+            )
+            .join("");
         const values = suggestions[suggestionKey] || [];
         return values.map((v) => ({
             id: v,

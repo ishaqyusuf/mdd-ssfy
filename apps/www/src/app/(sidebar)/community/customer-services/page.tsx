@@ -33,7 +33,7 @@ export default async function Page(props: Props) {
         trpc.workOrder.getWorkOrderAnalytic.queryOptions({ type: "avg" }),
     ]);
     return (
-        <div className="flex flex-col gap-6 pt-6">
+        <div className="flex flex-col gap-6 pt-6 px-6">
             <PageTitle>Customer Service</PageTitle>
             <CustomerServiceHeader />
             <WorkOrderSummaryWidgets />

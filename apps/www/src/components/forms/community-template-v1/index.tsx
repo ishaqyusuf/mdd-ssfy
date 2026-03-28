@@ -13,7 +13,7 @@ export function CommunityTemplateV1Form({ slug }: Props) {
     return (
         <CommunityTemplateV1Provider slug={slug}>
             <InstallCostResizablePanel>
-                <div className="flex min-h-0 flex-col gap-4">
+                <div className="flex min-h-0 flex-col px-6 gap-4">
                     <V1FormHeader />
                     <TemplateFormTabs />
                 </div>
@@ -21,3 +21,4 @@ export function CommunityTemplateV1Form({ slug }: Props) {
         </CommunityTemplateV1Provider>
     );
 }
+
