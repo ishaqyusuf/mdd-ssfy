@@ -1,16 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { formatDate } from "@gnd/utils/dayjs";
 import {
-    ArrowRight,
     BriefcaseBusiness,
-    Building2,
     Hammer,
     Home,
     Receipt,
-    Settings2,
-    Wrench,
 } from "lucide-react";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -21,6 +16,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@gnd/ui/card";
+import { Item } from "@gnd/ui/namespace";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { formatCurrency } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
@@ -29,11 +25,11 @@ import CommunitySummaryWidgets from "./widgets/community-summary-widgets";
 
 function StatPill({ label, value }: { label: string; value: string | number }) {
     return (
-        <div className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white/80 px-3 py-2.5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                 {label}
             </p>
-            <p className="mt-2 text-lg font-semibold text-slate-950">{value}</p>
+            <p className="mt-1.5 text-lg font-semibold text-slate-950">{value}</p>
         </div>
     );
 }
@@ -49,7 +45,7 @@ function SectionCard({
 }) {
     return (
         <Card className="border-slate-200 bg-white/90 shadow-sm">
-            <CardHeader className="space-y-2">
+            <CardHeader className="space-y-1.5 px-4 pt-4 pb-3">
                 <CardTitle className="text-base text-slate-950">
                     {title}
                 </CardTitle>
@@ -57,7 +53,7 @@ function SectionCard({
                     {description}
                 </CardDescription>
             </CardHeader>
-            <CardContent>{children}</CardContent>
+            <CardContent className="px-4 pb-4">{children}</CardContent>
         </Card>
     );
 }
@@ -232,37 +228,40 @@ function RecentActivityList({
     return (
         <div className="space-y-3">
             {items.map((item) => (
-                <div
+                <Item
                     key={item.id}
-                    className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-4 md:flex-row md:items-center md:justify-between"
+                    variant="outline"
+                    className="rounded-2xl border-slate-100 bg-slate-50/80 px-3 py-3"
                 >
-                    <div className="space-y-1">
-                        <p className="font-semibold text-slate-900">
-                            {item.title}
-                        </p>
-                        <p className="text-sm text-slate-500">
-                            {item.subtitle}
-                        </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                        {item.status ? (
-                            <Badge
-                                variant="secondary"
-                                className="rounded-full px-3 py-1 text-xs"
-                            >
-                                {item.status}
-                            </Badge>
-                        ) : null}
-                        {amountLabel && typeof item.amount === "number" ? (
-                            <span className="text-sm font-semibold text-slate-900">
-                                {formatCurrency.format(item.amount)}
+                    <Item.Content className="flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <div className="space-y-1">
+                            <Item.Title className="font-semibold text-slate-900">
+                                {item.title}
+                            </Item.Title>
+                            <Item.Description className="text-sm text-slate-500">
+                                {item.subtitle}
+                            </Item.Description>
+                        </div>
+                        <Item.Actions className="flex flex-wrap items-center gap-3 md:justify-end">
+                            {item.status ? (
+                                <Badge
+                                    variant="secondary"
+                                    className="rounded-full px-3 py-1 text-xs"
+                                >
+                                    {item.status}
+                                </Badge>
+                            ) : null}
+                            {amountLabel && typeof item.amount === "number" ? (
+                                <span className="text-sm font-semibold text-slate-900">
+                                    {formatCurrency.format(item.amount)}
+                                </span>
+                            ) : null}
+                            <span className="text-xs font-medium uppercase tracking-[0.14em] text-slate-400">
+                                {item.date ? formatDate(item.date) : "No date"}
                             </span>
-                        ) : null}
-                        <span className="text-xs font-medium uppercase tracking-[0.14em] text-slate-400">
-                            {item.date ? formatDate(item.date) : "No date"}
-                        </span>
-                    </div>
-                </div>
+                        </Item.Actions>
+                    </Item.Content>
+                </Item>
             ))}
         </div>
     );
@@ -312,28 +311,28 @@ export function CommunityDashboard() {
                     <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-[24px] bg-white p-2 md:grid-cols-4">
                         <TabsTrigger
                             value="productions"
-                            className="gap-2 rounded-2xl py-3"
+                            className="gap-2 rounded-2xl py-3 text-slate-600 transition-all data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-900/10"
                         >
                             <Hammer className="size-4" />
                             Productions
                         </TabsTrigger>
                         <TabsTrigger
                             value="units"
-                            className="gap-2 rounded-2xl py-3"
+                            className="gap-2 rounded-2xl py-3 text-slate-600 transition-all data-[state=active]:bg-sky-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-sky-900/10"
                         >
                             <Home className="size-4" />
                             Units
                         </TabsTrigger>
                         <TabsTrigger
                             value="jobs"
-                            className="gap-2 rounded-2xl py-3"
+                            className="gap-2 rounded-2xl py-3 text-slate-600 transition-all data-[state=active]:bg-amber-500 data-[state=active]:text-slate-950 data-[state=active]:shadow-md data-[state=active]:shadow-amber-900/10"
                         >
                             <BriefcaseBusiness className="size-4" />
                             Jobs
                         </TabsTrigger>
                         <TabsTrigger
                             value="invoices"
-                            className="gap-2 rounded-2xl py-3"
+                            className="gap-2 rounded-2xl py-3 text-slate-600 transition-all data-[state=active]:bg-rose-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-rose-900/10"
                         >
                             <Receipt className="size-4" />
                             Invoices
@@ -363,7 +362,7 @@ export function CommunityDashboard() {
                                 }
                             />
                         </div>
-                        <div className="grid gap-6 xl:grid-cols-[1.35fr,0.95fr]">
+                        <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr),minmax(0,1fr)]">
                             <SectionCard
                                 title="Production progress graph"
                                 description="Monthly view of production submissions with completed work overlaid inside each bar."
@@ -411,7 +410,7 @@ export function CommunityDashboard() {
                                 value={data.units.status[0]?.label || "Idle"}
                             />
                         </div>
-                        <div className="grid gap-6 xl:grid-cols-[1.35fr,0.95fr]">
+                        <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr),minmax(0,1fr)]">
                             <SectionCard
                                 title="Unit activity graph"
                                 description="Monthly unit additions with a secondary overlay showing units that already have jobs submitted."
@@ -463,7 +462,7 @@ export function CommunityDashboard() {
                                 )}
                             />
                         </div>
-                        <div className="grid gap-6 xl:grid-cols-[1.35fr,0.95fr]">
+                        <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr),minmax(0,1fr)]">
                             <SectionCard
                                 title="Job submission graph"
                                 description="Monthly volume of community jobs to help spot intake changes and surges."
@@ -520,7 +519,7 @@ export function CommunityDashboard() {
                                 )}
                             />
                         </div>
-                        <div className="grid gap-6 xl:grid-cols-[1.35fr,0.95fr]">
+                        <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr),minmax(0,1fr)]">
                             <SectionCard
                                 title="Invoice graph"
                                 description="Monthly invoice task volume with amount due tracked in the same dashboard context."
@@ -561,4 +560,3 @@ export function CommunityDashboard() {
         </div>
     );
 }
-

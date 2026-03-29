@@ -1,4 +1,3 @@
-import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 import { ErrorFallback } from "@/components/error-fallback";
 import { UnitProductionsHeader } from "@/components/unit-productions-header";
 import { UnitProductionSummaryWidgets } from "@/components/unit-production-summary-widgets";
@@ -37,17 +36,15 @@ export default async function CommunityProductionsPage(props: Props) {
   ]);
 
   return (
-    <AuthGuard can={["viewProduction"]}>
-      <div className="flex flex-col gap-6">
-        <PageTitle>Unit Productions</PageTitle>
-        <UnitProductionSummaryWidgets />
-        <UnitProductionsHeader />
-        <ErrorBoundary errorComponent={ErrorFallback}>
-          <Suspense fallback={<TableSkeleton />}>
-            <DataTable />
-          </Suspense>
-        </ErrorBoundary>
-      </div>
-    </AuthGuard>
+    <div className="flex flex-col gap-6">
+      <PageTitle>Unit Productions</PageTitle>
+      <UnitProductionSummaryWidgets />
+      <UnitProductionsHeader />
+      <ErrorBoundary errorComponent={ErrorFallback}>
+        <Suspense fallback={<TableSkeleton />}>
+          <DataTable />
+        </Suspense>
+      </ErrorBoundary>
+    </div>
   );
 }

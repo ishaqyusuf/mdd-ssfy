@@ -62,13 +62,13 @@ export function UnitProductionSummaryWidgets() {
 
   if (summaryQuery.isPending || !summaryQuery.data) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
         {Array.from({ length: cards.length }).map((_, index) => (
           <Card key={index.toString()} className="rounded-3xl">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2 px-4 pt-4">
               <Skeleton className="h-4 w-24 rounded-full" />
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-2 px-4 pb-4 pt-0">
               <Skeleton className="h-8 w-16 rounded-md" />
               <Skeleton className="h-4 w-full rounded-md" />
             </CardContent>
@@ -79,7 +79,7 @@ export function UnitProductionSummaryWidgets() {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
       {cards.map((card) => {
         const Icon = card.icon;
         const value = summaryQuery.data[card.key];
@@ -89,7 +89,7 @@ export function UnitProductionSummaryWidgets() {
             key={card.key}
             className="rounded-3xl border-slate-200 bg-white/90 shadow-sm"
           >
-            <CardHeader className="flex flex-row items-start justify-between gap-3 pb-3">
+            <CardHeader className="flex flex-row items-start justify-between gap-3 px-4 pt-4 pb-2">
               <div className="space-y-1">
                 <CardTitle className="text-sm font-semibold text-slate-700">
                   {card.title}
@@ -99,7 +99,7 @@ export function UnitProductionSummaryWidgets() {
                 <Icon className="size-4" />
               </div>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-1.5 px-4 pb-4 pt-0">
               <p className="text-3xl font-semibold tracking-tight text-slate-950">
                 {value}
               </p>
