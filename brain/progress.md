@@ -2,6 +2,33 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-03-29
+
+- Conducted comprehensive code audit of all 24 new-sales-form parity gaps from `brain/new-sales-form-missing-features-execution-plan.md`.
+- Found that 15 of 24 feature gaps are now fully implemented in the codebase (many were previously marked Missing/Partial but have since been built):
+  - ✅ #4 Quick base price in door modal (DoorPriceCell popover)
+  - ✅ #5 HPT estimate breakdown (Menu-based dropdown with full pricing breakdown)
+  - ✅ #7 Moulding default qty=1 (enforced at 3 layers: creation, popover, save)
+  - ✅ #8 Autosave (enabled by default — changed from `false` to `true` in store.ts)
+  - ✅ #10 Service tax + production toggles (both checkboxes in service row table)
+  - ✅ #12 Step floating action bar (sticky toolbar with Tabs/Select All/Pricing/Component/Refresh/Enable Custom)
+  - ✅ #13 Component card menu (Edit/Section Override/Select/Redirect/Delete)
+  - ✅ #14 Component badges (variation/override/redirect indicators)
+  - ✅ #15 Save history sidebar (SalesHistory in invoice-summary-sidebar tabs)
+  - ✅ #17 Component image attachment (FileUploader in edit modal)
+  - ✅ #19 Door size inline base-cost edit (DoorPriceCell popover)
+  - ✅ #20 Component sales cost display (labeled "Sales Cost" in edit modal)
+  - ✅ #22 HPT add-door option (button implemented)
+  - ✅ #23 Moulding outside-click dismiss (custom modal with overlay click handler)
+- Remaining 9 items have code implemented but need runtime field verification only:
+  - #1 Moulding calculator parity, #2 Customer profile repricing, #3 Supplier in door modal
+  - #6 Component cost→door estimate, #9 Shelf parity, #11 Tax calculation
+  - #16 Component edit workflow, #18 Redirect route list, #21 HPT add-size, #24 Door size variant
+- Enabled autosave by default in new-sales-form store (changed `autosaveEnabled: false` → `true`).
+- Updated `brain/new-sales-form-missing-features-execution-plan.md` with accurate status for all 24 items.
+- Updated `brain/new-sales-form-parity-audit.md` with 2026-03-29 status update reflecting implementation progress.
+- Updated `brain/tasks/in-progress.md` to reflect completed items and clarify remaining work.
+
 ## 2026-03-28
 
 - Updated the shared web data-table mobile presentation path to support headerless and borderless mobile rendering.

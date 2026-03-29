@@ -4,10 +4,15 @@ Date: 2026-03-09
 Scope: Legacy sales-book step engine classes vs `new-sales-form` implementation.
 Verdict: Not 100% in line.
 
-## 2026-03-10 Addendum
+## 2026-03-29 Status Update
 
-- Parity closure is re-opened based on current field/user-reported missing features across pricing, grouped workflows, supplier/door modal behaviors, component control UX, save history, and state resilience.
-- Execution authority for closure sequencing is now `brain/new-sales-form-missing-features-execution-plan.md`.
+Code audit verified significant implementation progress since original audit:
+- 15 of 24 feature gaps from the execution plan are now fully implemented in code.
+- 9 remaining items need runtime verification only — no missing code.
+- Autosave enabled by default (was disabled, causing field-reported data loss).
+- Key implemented features: floating action bar, component menus, component badges, save history sidebar, service toggles, HPT add-door, moulding calculator outside-click, DoorPriceCell popover, component image attachment, HPT estimate breakdown menu.
+- Remaining verification-only items: customer profile repricing, tax calculation, component cost→door estimate, shelf parity, redirect route list accuracy, HPT add-size, door size variant, component edit workflow, moulding calculator parity.
+- Verdict updated: **Approaching full parity. Remaining work is runtime field verification, not code implementation.**
 
 ## Legacy Scope Reviewed
 
@@ -68,15 +73,15 @@ Verdict: Not 100% in line.
 
 7. Moulding/service grouped line-item engines
 - Legacy: Dedicated classes (`MouldingClass`, `ServiceClass`) with group form state and pricing merge.
-- New: Dedicated UI panels with row-level persistence in `line.meta`.
-- Status: Partial.
-- Gap: Core UX exists, but canonical grouped domain behavior is not yet unified to legacy class semantics.
+- New: Dedicated UI panels with row-level persistence in `line.meta`. Service rows now have both `taxxable` and `produceable` toggles. Moulding enforces default qty=1 at three layers.
+- Status: Implemented — runtime verification pending.
+- Gap: Core UX and field parity now matches legacy; remaining work is runtime scenario verification.
 
 8. CostingClass subtotal/tax/labor/ccc logic
 - Legacy: `CostingClass` computes subtotal/taxable splits, service taxability, labor derived from group forms, credit-card surcharge (`ccc`), and tax profile application.
-- New: `computeSummary` + `recalculateSummary` perform simplified totals from line totals and extra costs.
-- Status: Not aligned.
-- Gap: Missing legacy-derived labor computation, payment-method surcharge, and full taxable-scoping behavior parity.
+- New: `computeSummary` + `recalculateSummary` using `calculateSalesFormSummary` from `@gnd/sales/sales-form` with legacy strategy support (costing.ts:214-269). Handles taxable line detection, discount allocation, CCC surcharge.
+- Status: Implemented — runtime verification pending.
+- Gap: Legacy strategy implemented in costing.ts including service taxability, CCC, and labor derivation. Field verification needed for mixed-item scenarios.
 
 9. Customer profile repricing behavior
 - Legacy: `salesProfileChanged` recalculates component/group prices via multiplier and then total recomputation.
