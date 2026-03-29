@@ -9,6 +9,7 @@ import {
   type CommunityBuilderMeta,
   type ICostChartMeta,
 } from "@gnd/utils/community";
+import { getUnitProductionStatus } from "@community/utils";
 import { z } from "zod";
 import {
   getCommunityPivotId,
@@ -576,6 +577,403 @@ export async function communitySummary(
         // subtitle: `Total community units`,
       };
   }
+}
+
+export const communityDashboardOverviewSchema = z.object({});
+
+function toMonthKey(date?: Date | null) {
+  if (!date) return null;
+  return `${date.getFullYear()}-${date.getMonth()}`;
+}
+
+function createMonthlyBuckets(count = 6) {
+  const now = new Date();
+
+  return Array.from({ length: count }, (_, index) => {
+    const date = new Date(
+      now.getFullYear(),
+      now.getMonth() - (count - 1 - index),
+      1,
+    );
+
+    return {
+      key: toMonthKey(date)!,
+      label: date.toLocaleString("en-US", {
+        month: "short",
+      }),
+    };
+  });
+}
+
+function toTitleCase(value?: string | null) {
+  if (!value) return "Unknown";
+
+  return value
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function getProductionState(task: {
+  producedAt?: Date | null;
+  prodStartedAt?: Date | null;
+  sentToProductionAt?: Date | null;
+  productionStatus?: string | null;
+}) {
+  if (task.producedAt) return "Completed";
+  if (
+    task.prodStartedAt ||
+    task.productionStatus?.toLowerCase().includes("start") ||
+    task.productionStatus?.toLowerCase().includes("progress")
+  ) {
+    return "Started";
+  }
+  if (task.sentToProductionAt) return "Queued";
+  return "Idle";
+}
+
+function buildStatusBreakdown(statusMap: Record<string, number>) {
+  return Object.entries(statusMap)
+    .map(([label, value]) => ({
+      label,
+      value,
+    }))
+    .sort((left, right) => right.value - left.value);
+}
+
+export async function communityDashboardOverview(ctx: TRPCContext) {
+  const { db } = ctx;
+  const unitSelect = {
+    id: true,
+    createdAt: true,
+    lotBlock: true,
+    modelName: true,
+    status: true,
+    tasks: {
+      where: {
+        deletedAt: null,
+      },
+      select: {
+        produceable: true,
+        sentToProductionAt: true,
+        producedAt: true,
+        productionDueDate: true,
+      },
+    },
+    _count: {
+      select: {
+        jobs: true,
+      },
+    },
+    project: {
+      select: {
+        title: true,
+        builder: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    },
+  } satisfies Prisma.HomesSelect;
+
+  const productionTaskSelect = {
+    id: true,
+    createdAt: true,
+    taskName: true,
+    productionStatus: true,
+    sentToProductionAt: true,
+    producedAt: true,
+    prodStartedAt: true,
+    productionDueDate: true,
+    home: {
+      select: {
+        lotBlock: true,
+        modelName: true,
+      },
+    },
+    project: {
+      select: {
+        title: true,
+      },
+    },
+  } satisfies Prisma.HomeTasksSelect;
+
+  const invoiceTaskSelect = {
+    id: true,
+    createdAt: true,
+    taskName: true,
+    amountDue: true,
+    amountPaid: true,
+    checkDate: true,
+    home: {
+      select: {
+        lotBlock: true,
+        modelName: true,
+      },
+    },
+    project: {
+      select: {
+        title: true,
+      },
+    },
+  } satisfies Prisma.HomeTasksSelect;
+
+  const jobSelect = {
+    id: true,
+    createdAt: true,
+    title: true,
+    type: true,
+    status: true,
+    amount: true,
+    home: {
+      select: {
+        lotBlock: true,
+        modelName: true,
+      },
+    },
+    project: {
+      select: {
+        title: true,
+      },
+    },
+  } satisfies Prisma.JobsSelect;
+
+  const invoiceWhere: Prisma.HomeTasksWhereInput = {
+    deletedAt: null,
+    OR: [
+      {
+        taskUid: {
+          not: null,
+        },
+      },
+      {
+        amountDue: {
+          not: null,
+        },
+      },
+      {
+        amountPaid: {
+          not: null,
+        },
+      },
+    ],
+  };
+
+  const [projectsCount, templatesCount, buildersCount, units, productionTasks, invoiceTasks, jobs] =
+    await Promise.all([
+      db.projects.count({
+        where: {
+          deletedAt: null,
+        },
+      }),
+      db.communityModels.count({
+        where: {
+          deletedAt: null,
+        },
+      }),
+      db.builders.count(),
+      db.homes.findMany({
+        where: {
+          deletedAt: null,
+        },
+        select: unitSelect,
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
+      db.homeTasks.findMany({
+        where: {
+          deletedAt: null,
+          produceable: true,
+        },
+        select: productionTaskSelect,
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
+      db.homeTasks.findMany({
+        where: invoiceWhere,
+        select: invoiceTaskSelect,
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
+      db.jobs.findMany({
+        where: {
+          deletedAt: null,
+        },
+        select: jobSelect,
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
+    ]);
+
+  const buckets = createMonthlyBuckets();
+  const productionTrendMap = new Map(
+    buckets.map((bucket) => [
+      bucket.key,
+      { label: bucket.label, total: 0, completed: 0 },
+    ]),
+  );
+  const unitsTrendMap = new Map(
+    buckets.map((bucket) => [
+      bucket.key,
+      { label: bucket.label, total: 0, withJobs: 0 },
+    ]),
+  );
+  const jobsTrendMap = new Map(
+    buckets.map((bucket) => [
+      bucket.key,
+      { label: bucket.label, total: 0, amount: 0 },
+    ]),
+  );
+  const invoiceTrendMap = new Map(
+    buckets.map((bucket) => [
+      bucket.key,
+      { label: bucket.label, total: 0, amount: 0 },
+    ]),
+  );
+
+  const unitStatusMap: Record<string, number> = {};
+  const productionStatusMap: Record<string, number> = {};
+  const jobStatusMap: Record<string, number> = {};
+  const invoiceStatusMap: Record<string, number> = {};
+
+  for (const unit of units) {
+    const production = getUnitProductionStatus(unit as any);
+    unitStatusMap[production.status] = (unitStatusMap[production.status] || 0) + 1;
+
+    const unitMonth = unitsTrendMap.get(toMonthKey(unit.createdAt) || "");
+    if (unitMonth) {
+      unitMonth.total += 1;
+      if (unit._count.jobs > 0) {
+        unitMonth.withJobs += 1;
+      }
+    }
+  }
+
+  for (const task of productionTasks) {
+    const state = getProductionState(task);
+    productionStatusMap[state] = (productionStatusMap[state] || 0) + 1;
+
+    const productionMonth = productionTrendMap.get(
+      toMonthKey(task.sentToProductionAt || task.createdAt) || "",
+    );
+    if (productionMonth) {
+      productionMonth.total += 1;
+      if (state === "Completed") {
+        productionMonth.completed += 1;
+      }
+    }
+  }
+
+  let totalInvoiceAmount = 0;
+  let totalInvoicePaid = 0;
+
+  for (const task of invoiceTasks) {
+    const due = Number(task.amountDue || 0);
+    const paid = Number(task.amountPaid || 0);
+    totalInvoiceAmount += due;
+    totalInvoicePaid += paid;
+
+    let invoiceState = "Unpaid";
+    if (paid > 0 && paid < due) {
+      invoiceState = "Partial";
+    } else if (due > 0 && paid >= due) {
+      invoiceState = "Paid";
+    }
+    invoiceStatusMap[invoiceState] = (invoiceStatusMap[invoiceState] || 0) + 1;
+
+    const invoiceMonth = invoiceTrendMap.get(toMonthKey(task.createdAt) || "");
+    if (invoiceMonth) {
+      invoiceMonth.total += 1;
+      invoiceMonth.amount += due;
+    }
+  }
+
+  for (const job of jobs) {
+    const label = toTitleCase(job.status);
+    jobStatusMap[label] = (jobStatusMap[label] || 0) + 1;
+
+    const jobMonth = jobsTrendMap.get(toMonthKey(job.createdAt) || "");
+    if (jobMonth) {
+      jobMonth.total += 1;
+      jobMonth.amount += Number(job.amount || 0);
+    }
+  }
+
+  return {
+    generatedAt: new Date().toISOString(),
+    summary: {
+      projects: projectsCount,
+      units: units.length,
+      unitsWithJobs: units.filter((unit) => unit._count.jobs > 0).length,
+      productions: productionTasks.length,
+      jobs: jobs.length,
+      invoices: invoiceTasks.length,
+      invoiceAmount: totalInvoiceAmount,
+      builders: buildersCount,
+      templates: templatesCount,
+    },
+    productions: {
+      status: buildStatusBreakdown(productionStatusMap),
+      trend: Array.from(productionTrendMap.values()),
+      recent: productionTasks.slice(0, 6).map((task) => ({
+        id: task.id,
+        title: task.taskName || "Production task",
+        unit: task.home?.lotBlock || task.home?.modelName || "Unknown unit",
+        project: task.project?.title || "Unknown project",
+        status: getProductionState(task),
+        submittedAt: task.sentToProductionAt || task.createdAt,
+        dueDate: task.productionDueDate,
+      })),
+    },
+    units: {
+      status: buildStatusBreakdown(unitStatusMap),
+      trend: Array.from(unitsTrendMap.values()),
+      recent: units.slice(0, 6).map((unit) => {
+        const production = getUnitProductionStatus(unit as any);
+        return {
+          id: unit.id,
+          title: unit.lotBlock || unit.modelName || "Unit",
+          subtitle: `${unit.project?.title || "Unknown project"}${unit.project?.builder?.name ? ` • ${unit.project.builder.name}` : ""}`,
+          status: production.status,
+          date: unit.createdAt,
+          jobs: unit._count.jobs,
+        };
+      }),
+    },
+    jobs: {
+      status: buildStatusBreakdown(jobStatusMap),
+      trend: Array.from(jobsTrendMap.values()),
+      recent: jobs.slice(0, 6).map((job) => ({
+        id: job.id,
+        title: job.title || job.type || "Job submission",
+        subtitle: `${job.project?.title || "Unknown project"}${job.home?.lotBlock ? ` • ${job.home.lotBlock}` : ""}`,
+        status: toTitleCase(job.status),
+        amount: Number(job.amount || 0),
+        date: job.createdAt,
+      })),
+    },
+    invoices: {
+      totalAmount: totalInvoiceAmount,
+      totalPaid: totalInvoicePaid,
+      outstanding: totalInvoiceAmount - totalInvoicePaid,
+      status: buildStatusBreakdown(invoiceStatusMap),
+      trend: Array.from(invoiceTrendMap.values()),
+      recent: invoiceTasks.slice(0, 6).map((task) => ({
+        id: task.id,
+        title: task.taskName || "Invoice task",
+        subtitle: `${task.project?.title || "Unknown project"}${task.home?.lotBlock ? ` • ${task.home.lotBlock}` : ""}`,
+        amountDue: Number(task.amountDue || 0),
+        amountPaid: Number(task.amountPaid || 0),
+        date: task.checkDate || task.createdAt,
+      })),
+    },
+  };
 }
 export const getCommunityProjectsSchema = z
   .object({

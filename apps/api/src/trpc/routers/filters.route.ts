@@ -19,6 +19,7 @@ import {
   productReportFilters,
   projectUnitFilters,
   salesAccountingFilters,
+  unitProductionFilters,
 } from "@api/db/queries/filters";
 import { createTRPCRouter, publicProcedure } from "../init";
 import { z } from "zod";
@@ -102,5 +103,8 @@ export const filterRouters = createTRPCRouter({
   }),
   projectUnit: publicProcedure.query(async (props) => {
     return projectUnitFilters(props.ctx);
+  }),
+  unitProduction: publicProcedure.query(async (props) => {
+    return unitProductionFilters(props.ctx);
   }),
 });

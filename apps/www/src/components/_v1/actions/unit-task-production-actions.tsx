@@ -13,6 +13,7 @@ import {} from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function UnitTaskProductionAction({
     task,
@@ -47,6 +48,7 @@ export default function UnitTaskProductionAction({
 }
 function ActionButton({ itemId, disabled, Icon, color, _action }) {
     const [loading, startTransition] = useTransition();
+    const router = useRouter();
 
     return (
         <Btn
@@ -56,6 +58,7 @@ function ActionButton({ itemId, disabled, Icon, color, _action }) {
                 startTransition(async () => {
                     await _action(itemId);
                     toast.success("Action Successful");
+                    router.refresh();
                 })
             }
             className={cn(

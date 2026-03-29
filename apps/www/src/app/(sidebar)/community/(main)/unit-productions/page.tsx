@@ -1,46 +1,53 @@
-import { queryParams } from "@/app-deps/(v1)/_actions/action-utils";
-import { Metadata } from "next";
-import PageHeader from "@/components/_v1/page-header";
-
-import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
-import { BreadLink } from "@/components/_v1/breadcrumbs/links";
-
-import CommunityProductionsTableShell from "@/components/_v1/shells/community-productions-table-shell";
-import { getProductions } from "@/app-deps/(v1)/_actions/community-production/get-productions";
-import { _taskNames } from "@/app-deps/(v1)/_actions/community/_task-names";
 import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
+import { ErrorFallback } from "@/components/error-fallback";
+import { UnitProductionsHeader } from "@/components/unit-productions-header";
+import { UnitProductionSummaryWidgets } from "@/components/unit-production-summary-widgets";
+import { TableSkeleton } from "@/components/tables/skeleton";
+import { DataTable } from "@/components/tables/unit-productions/data-table";
+import { loadSortParams } from "@/hooks/use-sort-params";
+import { loadUnitProductionFilterParams } from "@/hooks/use-unit-productions-filter-params";
+import { batchPrefetch, trpc } from "@/trpc/server";
+import { PageTitle } from "@gnd/ui/custom/page-title";
+import { constructMetadata } from "@gnd/utils/construct-metadata";
+import { SearchParams } from "nuqs";
+import { ErrorBoundary } from "next/dist/client/components/error-boundary";
+import { Suspense } from "react";
 
-export const metadata: Metadata = {
-    title: "Unit Productions",
-};
-interface Props {}
-export default async function CommunityProductionsPage(props) {
-    const searchParams = await props.searchParams;
-    const taskNames = await _taskNames({
-        produceable: true,
-    } as any);
-
-    const response = await getProductions(
-        queryParams({ _task: taskNames, ...searchParams })
-    );
-    // metadata.title = `${project.title} | Homes`;
-
-    return (
-        <AuthGuard can={["viewProduction"]}>
-            <div className="space-y-4 px-8">
-                <Breadcrumbs>
-                    <BreadLink isFirst title="Community" />
-                    <BreadLink link="/community/projects" title="Projects" />
-                    <BreadLink title="Productions" isLast />
-                </Breadcrumbs>
-                <PageHeader title={"Unit Productions"} subtitle={``} />
-                <CommunityProductionsTableShell
-                    searchParams={searchParams}
-                    data={response.data as any}
-                    pageInfo={response.pageInfo}
-                />
-            </div>
-        </AuthGuard>
-    );
+export async function generateMetadata() {
+  return constructMetadata({
+    title: "Unit Productions | GND",
+  });
 }
 
+type Props = {
+  searchParams: Promise<SearchParams>;
+};
+
+export default async function CommunityProductionsPage(props: Props) {
+  const searchParams = await props.searchParams;
+  const filter = loadUnitProductionFilterParams(searchParams);
+  const { sort } = loadSortParams(searchParams);
+
+  batchPrefetch([
+    trpc.community.getUnitProductions.infiniteQueryOptions({
+      ...(filter as any),
+      sort,
+    }),
+    trpc.community.getUnitProductionSummary.queryOptions(filter),
+  ]);
+
+  return (
+    <AuthGuard can={["viewProduction"]}>
+      <div className="flex flex-col gap-6">
+        <PageTitle>Unit Productions</PageTitle>
+        <UnitProductionSummaryWidgets />
+        <UnitProductionsHeader />
+        <ErrorBoundary errorComponent={ErrorFallback}>
+          <Suspense fallback={<TableSkeleton />}>
+            <DataTable />
+          </Suspense>
+        </ErrorBoundary>
+      </div>
+    </AuthGuard>
+  );
+}

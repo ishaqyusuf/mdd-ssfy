@@ -2,6 +2,20 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-03-29
+
+- Rebuilt `/community/unit-productions` off the legacy v1 server-action shell and onto the newer community table architecture:
+  - added a real `community.getUnitProductions` tRPC query in `apps/api`
+  - added `community.getUnitProductionSummary` for top-of-page production summary widgets
+  - added `filters.unitProduction` for builder, project, task, status, and due-date filtering
+- Replaced the old route page with a hydrated App Router implementation using:
+  - `PageTitle`
+  - `UnitProductionsHeader`
+  - `UnitProductionSummaryWidgets`
+  - `components/tables/unit-productions/*`
+- Added a dedicated mobile card renderer for unit productions so the route now has a modern mobile presentation instead of relying on the older v1 shell.
+- Kept the existing unit production action flow available in the rebuilt table and updated the action path to refresh `/community/unit-productions` after production status changes.
+
 ## 2026-03-28
 
 - Updated the shared web data-table mobile presentation path to support headerless and borderless mobile rendering.

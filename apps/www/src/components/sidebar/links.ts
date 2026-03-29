@@ -332,51 +332,37 @@ export const linkModules = [
             _link(
                 "Dashboard",
                 "dashbord2",
-                //  "/community"
-                null,
-                [
-                    _subLink("Projects", "/community").access(
-                        // canEditProject,
-                        canEditProject,
-                    ).data,
-                    _subLink("Units", "/community/project-units").access(
-                        // canEditProject,
-                        canEditProject,
-                    ).data,
-                    _subLink(
-                        "Productions",
-                        "/community/unit-productions",
-                    ).access(
-                        // canEditProject,
-                        _perm.in("editCommunity", "editProduction"),
-                    ).data,
-                    _subLink("Templates", "/community/templates")
-                        .access(canEditProject)
-                        .childPaths(
-                            "/settings/community/community-template/slug",
-                            "/community/community-template/slug",
-                            "/community/model-template/slug",
-                            "/community/template-schema",
-                            // "/community",
-                            // "/community/template-schema",
-                        ).data,
-                    _subLink("Invoices", "/community/unit-invoices").access(
-                        // canEditProject,
-                        _perm.in("viewInvoice"),
-                    ).data,
-                    _subLink("Builders", "/community/builders").access(
-                        // canEditProject,
-                        _perm.in("editCommunity", "viewBuilders"),
-                    ).data,
-                ],
+                "/community",
             )
-                // .access(_role.is("Super Admin"))
-                // .level(7)
+                .access(canEditProject)
+                .data,
+            _link("Projects", "communityInvoice", "/community/projects")
+                .access(canEditProject)
+                .data,
+            _link("Units", "home", "/community/project-units")
+                .access(canEditProject)
+                .data,
+            _link("Productions", "production", "/community/unit-productions")
+                .access(_perm.in("editCommunity", "editProduction"))
+                .data,
+            _link("Invoices", "billing", "/community/unit-invoices")
+                .access(_perm.in("viewInvoice"))
+                .data,
+            _link("Templates", "template", "/community/templates")
+                .access(canEditProject)
                 .childPaths(
-                    "community/model-template",
-                    "community/template-schema",
-                    "/community",
-                ).data,
+                    "/settings/community/community-template/slug",
+                    "/community/community-template/slug",
+                    "/community/model-template/slug",
+                    "/community/template-schema",
+                )
+                .data,
+            _link("Builders", "builder", "/community/builders")
+                .access(_perm.in("editCommunity", "viewBuilders"))
+                .data,
+            _link("Install Costs", "payment", "/community/install-costs")
+                .access(canEditProject)
+                .data,
         ]),
         _section("main", null, [
             _link(
@@ -756,4 +742,3 @@ export function getActiveLinkFromMap(
         )
         .sort(([hrefA], [hrefB]) => hrefB.length - hrefA.length)?.[0]?.[1];
 }
-

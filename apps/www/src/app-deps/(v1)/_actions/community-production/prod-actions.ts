@@ -13,6 +13,7 @@ export async function _startUnitTaskProduction(id) {
         }
     });
     revalidatePath("/community/productions");
+    revalidatePath("/community/unit-productions");
 }
 export async function _stopUnitTaskProduction(id) {
     await prisma.homeTasks.update({
@@ -25,6 +26,7 @@ export async function _stopUnitTaskProduction(id) {
         }
     });
     revalidatePath("/community/productions");
+    revalidatePath("/community/unit-productions");
 }
 export async function _completeUnitTaskProduction(id) {
     await prisma.homeTasks.update({
@@ -36,4 +38,5 @@ export async function _completeUnitTaskProduction(id) {
         }
     });
     revalidatePath("/community/productions");
+    revalidatePath("/community/unit-productions");
 }

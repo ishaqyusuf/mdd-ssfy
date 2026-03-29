@@ -2,6 +2,8 @@ import {
   buildersList,
   communityInstallCostForm,
   communityInstallCostFormSchema,
+  communityDashboardOverview,
+  communityDashboardOverviewSchema,
   communityModelCostForm,
   communityModelCostFormSchema,
   communityModelCostHistory,
@@ -39,6 +41,11 @@ import {
   getProjectUnits,
   getProjectUnitsSchema,
 } from "@api/db/queries/project-units";
+import {
+  getUnitProductions,
+  getUnitProductionsSchema,
+  getUnitProductionSummary,
+} from "@api/db/queries/unit-productions";
 import {
   deleteUnitInvoiceTasks,
   deleteUnitInvoiceTasksSchema,
@@ -257,6 +264,11 @@ export const communityRouters = createTRPCRouter({
     .query(async (props) => {
       const result = await communitySummary(props.ctx.db, props.input);
       return result;
+    }),
+  communityDashboardOverview: publicProcedure
+    .input(communityDashboardOverviewSchema)
+    .query(async (props) => {
+      return communityDashboardOverview(props.ctx);
     }),
   createCommunityModelCost: publicProcedure
     .input(createCommunityModelCostSchema)
@@ -1170,6 +1182,22 @@ export const communityRouters = createTRPCRouter({
     .input(getProjectUnitsSchema)
     .query(async (props) => {
       return getProjectUnits(props.ctx, props.input);
+    }),
+  getUnitProductions: publicProcedure
+    .input(getUnitProductionsSchema)
+    .query(async (props) => {
+      return getUnitProductions(props.ctx, props.input);
+    }),
+  getUnitProductionSummary: publicProcedure
+    .input(
+      getUnitProductionsSchema.omit({
+        cursor: true,
+        size: true,
+        sort: true,
+      }),
+    )
+    .query(async (props) => {
+      return getUnitProductionSummary(props.ctx, props.input);
     }),
   getTemplateInputListings: publicProcedure
     .input(getTemplateInputListingsSchema)

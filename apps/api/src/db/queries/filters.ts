@@ -38,6 +38,10 @@ import {
   invoiceFilter,
   type GetProjectUnitsSchema,
 } from "./project-units";
+import {
+  unitProductionStatusFilter,
+  type GetUnitProductionsSchema,
+} from "./unit-productions";
 import type { GetCustomerServicesSchema } from "./customer-service";
 import type { GetBuildersSchema } from "@community/builder";
 import type { GetJobsSchema } from "./jobs";
@@ -310,6 +314,78 @@ export async function projectUnitFilters(ctx: TRPCContext) {
       "Production",
       labelValueOptions([...communityProductionFilter]),
     ),
+  ] satisfies FilterData[];
+
+  return resp;
+}
+
+export async function unitProductionFilters(ctx: TRPCContext) {
+  type T = keyof GetUnitProductionsSchema;
+  type FilterData = PageFilterData<T>;
+
+  const [builders, projects, tasks] = await Promise.all([
+    ctx.db.builders.findMany({
+      select: {
+        name: true,
+        slug: true,
+      },
+    }),
+    ctx.db.projects.findMany({
+      select: {
+        title: true,
+        slug: true,
+      },
+    }),
+    ctx.db.homeTasks.findMany({
+      where: {
+        deletedAt: null,
+        produceable: true,
+        taskName: {
+          not: null,
+        },
+      },
+      distinct: ["taskName"],
+      select: {
+        taskName: true,
+      },
+      orderBy: {
+        taskName: "asc",
+      },
+    }),
+  ]);
+
+  const resp = [
+    searchFilter,
+    optionFilter<T>(
+      "builderSlug",
+      "Builder",
+      labelValueOptions(builders, "name", "slug"),
+    ),
+    optionFilter<T>(
+      "projectSlug",
+      "Project",
+      labelValueOptions(projects, "title", "slug"),
+    ),
+    optionFilter<T>(
+      "taskNames",
+      "Task",
+      tasks
+        .map((task) => task.taskName)
+        .filter(Boolean)
+        .map((taskName) => ({
+          label: taskName,
+          value: taskName,
+        })),
+    ),
+    optionFilter<T>(
+      "production",
+      "Status",
+      unitProductionStatusFilter.map((status) => ({
+        label: status.charAt(0).toUpperCase() + status.slice(1),
+        value: status,
+      })),
+    ),
+    dateRangeFilter<T>("dateRange", "Due date"),
   ] satisfies FilterData[];
 
   return resp;
