@@ -1,46 +1,41 @@
 import { queryParams } from "@/app-deps/(v1)/_actions/action-utils";
-import { Metadata } from "next";
 import PageHeader from "@/components/_v1/page-header";
+import type { Metadata } from "next";
 
 import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 
-import CommunityInvoiceTableShell from "@/components/_v1/shells/community-invoice-table-shell";
 import { getHomeInvoices } from "@/app-deps/(v1)/_actions/community-invoice/get-invoices";
 import EditInvoiceModal from "@/components/_v1/modals/edit-invoice-modal";
-import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
+import CommunityInvoiceTableShell from "@/components/_v1/shells/community-invoice-table-shell";
 
+import PageShell from "@/components/page-shell";
 export const metadata: Metadata = {
-    title: "All Unit Invoices",
+	title: "All Unit Invoices",
 };
-interface Props {}
+type Props = {};
 export default async function InvoicesPage(props) {
-    const searchParams = await props.searchParams;
-    const response = await getHomeInvoices(queryParams({ ...searchParams }));
-    // metadata.title = `${project.title} | Homes`;
+	const searchParams = await props.searchParams;
+	const response = await getHomeInvoices(queryParams({ ...searchParams }));
+	// metadata.title = `${project.title} | Homes`;
 
-    return (
-        <AuthGuard can={["viewInvoice"]}>
-            <div className="space-y-4 px-8">
-                <Breadcrumbs>
-                    <BreadLink isFirst title="Community" />
-                    <BreadLink link="/community/projects" title="Projects" />
-                    <BreadLink
-                        link="/community/invoices"
-                        title="All Invoices"
-                        isLast
-                    />
-                </Breadcrumbs>
-                <PageHeader title={"Unit Invoices"} subtitle={``} />
-                <CommunityInvoiceTableShell
-                    projectView={false}
-                    searchParams={searchParams}
-                    data={response.data as any}
-                    pageInfo={response.pageInfo}
-                />
-                <EditInvoiceModal />
-            </div>
-        </AuthGuard>
-    );
+	return (
+		<PageShell>
+			<div className="space-y-4 px-8">
+				<Breadcrumbs>
+					<BreadLink isFirst title="Community" />
+					<BreadLink link="/community/projects" title="Projects" />
+					<BreadLink link="/community/invoices" title="All Invoices" isLast />
+				</Breadcrumbs>
+				<PageHeader title={"Unit Invoices"} subtitle={``} />
+				<CommunityInvoiceTableShell
+					projectView={false}
+					searchParams={searchParams}
+					data={response.data as any}
+					pageInfo={response.pageInfo}
+				/>
+				<EditInvoiceModal />
+			</div>
+		</PageShell>
+	);
 }
-

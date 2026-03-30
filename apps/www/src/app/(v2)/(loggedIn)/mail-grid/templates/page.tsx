@@ -1,13 +1,15 @@
-import FPage from "@/components/(clean-code)/fikr-ui/f-page";
-import ClientPage from "./client-page";
 import { getMailGridAction } from "./actions";
+import ClientPage from "./client-page";
 
+import PageShell from "@/components/page-shell";
+import { PageTitle } from "@gnd/ui/custom/page-title";
 export default async function MailGridPage() {
-    const p = getMailGridAction();
+	const p = getMailGridAction();
 
-    return (
-        <FPage title="Mail Templates" roles={["Admin"]}>
-            <ClientPage response={p} />
-        </FPage>
-    );
+	return (
+		<PageShell>
+			<PageTitle>Mail Templates</PageTitle>
+			<ClientPage response={p} />
+		</PageShell>
+	);
 }

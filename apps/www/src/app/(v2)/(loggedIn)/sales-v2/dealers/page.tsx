@@ -1,16 +1,18 @@
-import FPage from "@/components/(clean-code)/fikr-ui/f-page";
-import PageClient from "./page-client";
 import { getDealersAction } from "./action";
+import PageClient from "./page-client";
 import PageTabsServer from "./page-tabs-server";
 
+import PageShell from "@/components/page-shell";
+import { PageTitle } from "@gnd/ui/custom/page-title";
 export default async function DealersPage(props) {
-    const searchParams = await props.searchParams;
-    const resp = getDealersAction(searchParams);
+	const searchParams = await props.searchParams;
+	const resp = getDealersAction(searchParams);
 
-    return (
-        <FPage title="Dealers">
-            <PageTabsServer />
-            <PageClient response={resp} />
-        </FPage>
-    );
+	return (
+		<PageShell>
+			<PageTitle>Dealers</PageTitle>
+			<PageTabsServer />
+			<PageClient response={resp} />
+		</PageShell>
+	);
 }

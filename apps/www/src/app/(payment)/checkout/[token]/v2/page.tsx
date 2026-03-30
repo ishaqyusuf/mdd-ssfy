@@ -3,6 +3,7 @@ import { SquareTokenCheckoutV2Skeleton } from "@/components/square-token-checkou
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { Suspense } from "react";
 
+import PageShell from "@/components/page-shell";
 export async function generateMetadata() {
 	return constructMetadata({
 		title: "Checkout - gndprodesk.com",
@@ -19,8 +20,10 @@ export default async function Page(props: Props) {
 	const params = await props.params;
 
 	return (
-		<Suspense fallback={<SquareTokenCheckoutV2Skeleton />}>
-			<SquareTokenCheckoutV2 token={params.token} />
-		</Suspense>
+		<PageShell>
+			<Suspense fallback={<SquareTokenCheckoutV2Skeleton />}>
+				<SquareTokenCheckoutV2 token={params.token} />
+			</Suspense>
+		</PageShell>
 	);
 }

@@ -7,27 +7,30 @@ import { constructMetadata } from "@gnd/utils/construct-metadata";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { Suspense } from "react";
 
+import PageShell from "@/components/page-shell";
 export async function generateMetadata() {
-    return constructMetadata({
-        title: "Sales Invoice | GND",
-    });
+	return constructMetadata({
+		title: "Sales Invoice | GND",
+	});
 }
 
 export default async function Page(props) {
-    const searchParams = await props.searchParams;
-    const filter = loadSalesPrintFilterParams(searchParams);
-    batchPrefetch([
-        trpc.print.salesV2.queryOptions({
-            token: filter.token ?? "",
-            preview: filter.preview ?? false,
-        }),
-    ]);
+	const searchParams = await props.searchParams;
+	const filter = loadSalesPrintFilterParams(searchParams);
+	batchPrefetch([
+		trpc.print.salesV2.queryOptions({
+			token: filter.token ?? "",
+			preview: filter.preview ?? false,
+		}),
+	]);
 
-    return (
-        <ErrorBoundary errorComponent={ErrorFallback}>
-            <Suspense fallback={<PrintLoading />}>
-                <PrintSalesV2 />
-            </Suspense>
-        </ErrorBoundary>
-    );
+	return (
+		<PageShell>
+			<ErrorBoundary errorComponent={ErrorFallback}>
+				<Suspense fallback={<PrintLoading />}>
+					<PrintSalesV2 />
+				</Suspense>
+			</ErrorBoundary>
+		</PageShell>
+	);
 }

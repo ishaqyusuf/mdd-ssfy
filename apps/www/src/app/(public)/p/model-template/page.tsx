@@ -7,28 +7,30 @@ import { constructMetadata } from "@gnd/utils/construct-metadata";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { Suspense } from "react";
 
+import PageShell from "@/components/page-shell";
 export async function generateMetadata(props) {
-    return constructMetadata({
-        title: "Model Template Preview | GND",
-    });
+	return constructMetadata({
+		title: "Model Template Preview | GND",
+	});
 }
 export default async function Page(props) {
-    const searchParams = await props.searchParams;
-    const filter = loadModelTemplatePrintFilterParams(searchParams);
-    batchPrefetch([
-        trpc.print.modelTemplate.queryOptions({
-            ...(filter as any),
-        }),
-    ]);
+	const searchParams = await props.searchParams;
+	const filter = loadModelTemplatePrintFilterParams(searchParams);
+	batchPrefetch([
+		trpc.print.modelTemplate.queryOptions({
+			...(filter as any),
+		}),
+	]);
 
-    return (
-        <>
-            <ErrorBoundary errorComponent={ErrorFallback}>
-                <Suspense fallback={<PrintLoading />}>
-                    <PrintModelTemplate />
-                </Suspense>
-            </ErrorBoundary>
-        </>
-    );
+	return (
+		<PageShell>
+			<>
+				<ErrorBoundary errorComponent={ErrorFallback}>
+					<Suspense fallback={<PrintLoading />}>
+						<PrintModelTemplate />
+					</Suspense>
+				</ErrorBoundary>
+			</>
+		</PageShell>
+	);
 }
-

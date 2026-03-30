@@ -1,47 +1,46 @@
 import { queryParams } from "@/app-deps/(v1)/_actions/action-utils";
-import { Metadata } from "next";
 import PageHeader from "@/components/_v1/page-header";
+import type { Metadata } from "next";
 
 import { Breadcrumbs } from "@/components/_v1/breadcrumbs";
 import { BreadLink } from "@/components/_v1/breadcrumbs/links";
 
-import CommunityProductionsTableShell from "@/components/_v1/shells/community-productions-table-shell";
 import { getProductions } from "@/app-deps/(v1)/_actions/community-production/get-productions";
 import { _taskNames } from "@/app-deps/(v1)/_actions/community/_task-names";
+import CommunityProductionsTableShell from "@/components/_v1/shells/community-productions-table-shell";
 import { prisma } from "@/db";
-import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 
+import PageShell from "@/components/page-shell";
 export const metadata: Metadata = {
-    title: "Unit Productions",
+	title: "Unit Productions",
 };
-interface Props {}
+type Props = {};
 export default async function CommunityProductionsPage(props) {
-    const searchParams = await props.searchParams;
-    const taskNames = await _taskNames({
-        produceable: true,
-    } as any);
+	const searchParams = await props.searchParams;
+	const taskNames = await _taskNames({
+		produceable: true,
+	} as any);
 
-    const response = await getProductions(
-        queryParams({ _task: taskNames, ...searchParams })
-    );
-    // metadata.title = `${project.title} | Homes`;
+	const response = await getProductions(
+		queryParams({ _task: taskNames, ...searchParams }),
+	);
+	// metadata.title = `${project.title} | Homes`;
 
-    return (
-        <AuthGuard can={["viewProduction"]}>
-            <div className="space-y-4 px-8">
-                <Breadcrumbs>
-                    <BreadLink isFirst title="Community" />
-                    <BreadLink link="/community/projects" title="Projects" />
-                    <BreadLink title="Productions" isLast />
-                </Breadcrumbs>
-                <PageHeader title={"Unit Productions"} subtitle={``} />
-                <CommunityProductionsTableShell
-                    searchParams={searchParams}
-                    data={response.data as any}
-                    pageInfo={response.pageInfo}
-                />
-            </div>
-        </AuthGuard>
-    );
+	return (
+		<PageShell>
+			<div className="space-y-4 px-8">
+				<Breadcrumbs>
+					<BreadLink isFirst title="Community" />
+					<BreadLink link="/community/projects" title="Projects" />
+					<BreadLink title="Productions" isLast />
+				</Breadcrumbs>
+				<PageHeader title={"Unit Productions"} subtitle={``} />
+				<CommunityProductionsTableShell
+					searchParams={searchParams}
+					data={response.data as any}
+					pageInfo={response.pageInfo}
+				/>
+			</div>
+		</PageShell>
+	);
 }
-

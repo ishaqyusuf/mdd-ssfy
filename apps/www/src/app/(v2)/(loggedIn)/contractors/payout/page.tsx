@@ -1,3 +1,9 @@
+import PageShell from "@/components/page-shell";
 export default function Page({}) {
-    return <div>s </div>;
+	return (
+		<PageShell>
+			{" "}
+			<div>s </div>
+		</PageShell>
+	);
 }

@@ -1,3 +1,9 @@
+import PageShell from "@/components/page-shell";
 export default async function Page({ params }) {
-    return <></>;
+	return (
+		<PageShell>
+			{" "}
+			<></>
+		</PageShell>
+	);
 }

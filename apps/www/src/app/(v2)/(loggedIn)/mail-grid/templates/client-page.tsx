@@ -1,8 +1,15 @@
 "use client";
 
+import PageShell from "@/components/page-shell";
+
 interface Props {
-    response;
+	response;
 }
 export default function ClientPage({}: Props) {
-    return <></>;
+	return (
+		<PageShell>
+			{" "}
+			<></>
+		</PageShell>
+	);
 }

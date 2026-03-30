@@ -1,3 +1,9 @@
+import PageShell from "@/components/page-shell";
 export default async function HomePage({}) {
-    return <div>HELLO</div>;
+	return (
+		<PageShell>
+			{" "}
+			<div>HELLO</div>
+		</PageShell>
+	);
 }

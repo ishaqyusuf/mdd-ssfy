@@ -1,3 +1,9 @@
+import PageShell from "@/components/page-shell";
 export default function BuildersPage() {
-    return <></>;
+	return (
+		<PageShell>
+			{" "}
+			<></>
+		</PageShell>
+	);
 }

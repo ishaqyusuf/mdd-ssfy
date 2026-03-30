@@ -16,6 +16,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@gnd/ui/card";
+import { cn } from "@gnd/ui/cn";
 import { Item } from "@gnd/ui/namespace";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { formatCurrency } from "@/lib/utils";
@@ -38,13 +39,15 @@ function SectionCard({
     title,
     description,
     children,
+    className,
 }: {
     title: string;
     description: string;
     children: React.ReactNode;
+    className?: string;
 }) {
     return (
-        <Card className="border-slate-200 bg-white/90 shadow-sm">
+        <Card className={cn("border-slate-200 bg-white/90 shadow-sm", className)}>
             <CardHeader className="space-y-1.5 px-4 pt-4 pb-3">
                 <CardTitle className="text-base text-slate-950">
                     {title}
@@ -183,11 +186,11 @@ function StatusPie({ items }: { items: { label: string; value: number }[] }) {
                     </div>
                 </div>
             </div>
-            <div className="space-y-3">
+            <div className="grid gap-1 lg:grid-cols-2">
                 {items.map((item, index) => (
                     <div
                         key={item.label}
-                        className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3"
+                        className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/80 px-2.5 py-2"
                     >
                         <div className="flex items-center gap-3">
                             <span
@@ -197,7 +200,7 @@ function StatusPie({ items }: { items: { label: string; value: number }[] }) {
                                         palette[index % palette.length],
                                 }}
                             />
-                            <span className="font-medium text-slate-700">
+                            <span className="text-sm font-medium text-slate-700">
                                 {item.label}
                             </span>
                         </div>
@@ -362,8 +365,9 @@ export function CommunityDashboard() {
                                 }
                             />
                         </div>
-                        <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr),minmax(0,1fr)]">
+                        <div className="grid gap-6 lg:grid-cols-4">
                             <SectionCard
+                                className="lg:col-span-3"
                                 title="Production progress graph"
                                 description="Monthly view of production submissions with completed work overlaid inside each bar."
                             >
@@ -373,8 +377,9 @@ export function CommunityDashboard() {
                                 />
                             </SectionCard>
                             <SectionCard
+                                className="lg:col-span-1"
                                 title="Pie chart by status"
-                                description="Current production mix across queued, started, completed, and idle tasks."
+                                description="Production status mix."
                             >
                                 <StatusPie items={data.productions.status} />
                             </SectionCard>
@@ -410,8 +415,9 @@ export function CommunityDashboard() {
                                 value={data.units.status[0]?.label || "Idle"}
                             />
                         </div>
-                        <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr),minmax(0,1fr)]">
+                        <div className="grid gap-6 lg:grid-cols-4">
                             <SectionCard
+                                className="lg:col-span-3"
                                 title="Unit activity graph"
                                 description="Monthly unit additions with a secondary overlay showing units that already have jobs submitted."
                             >
@@ -421,6 +427,7 @@ export function CommunityDashboard() {
                                 />
                             </SectionCard>
                             <SectionCard
+                                className="lg:col-span-1"
                                 title="Unit state mix"
                                 description="Status distribution derived from production state across all community units."
                             >
@@ -462,14 +469,16 @@ export function CommunityDashboard() {
                                 )}
                             />
                         </div>
-                        <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr),minmax(0,1fr)]">
+                        <div className="grid gap-6 lg:grid-cols-4">
                             <SectionCard
+                                className="lg:col-span-3"
                                 title="Job submission graph"
                                 description="Monthly volume of community jobs to help spot intake changes and surges."
                             >
                                 <TrendBars items={data.jobs.trend} />
                             </SectionCard>
                             <SectionCard
+                                className="lg:col-span-1"
                                 title="Job status distribution"
                                 description="Current mix of submitted, approved, paid, rejected, and other job states."
                             >
@@ -519,14 +528,16 @@ export function CommunityDashboard() {
                                 )}
                             />
                         </div>
-                        <div className="grid gap-6 xl:grid-cols-[minmax(0,3fr),minmax(0,1fr)]">
+                        <div className="grid gap-6 lg:grid-cols-4">
                             <SectionCard
+                                className="lg:col-span-3"
                                 title="Invoice graph"
                                 description="Monthly invoice task volume with amount due tracked in the same dashboard context."
                             >
                                 <TrendBars items={data.invoices.trend} />
                             </SectionCard>
                             <SectionCard
+                                className="lg:col-span-1"
                                 title="Invoice state mix"
                                 description="Current spread of paid, partial, and unpaid invoice items."
                             >

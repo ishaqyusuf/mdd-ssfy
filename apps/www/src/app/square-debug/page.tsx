@@ -1,48 +1,48 @@
-import { Label } from "@gnd/ui/label";
-import { getSquareDevicesAction } from "./action";
-import { Item } from "@gnd/ui/namespace";
-import { Action } from "./client";
 import { squareClient } from "@gnd/square";
+import { Label } from "@gnd/ui/label";
+import { Item } from "@gnd/ui/namespace";
+import { Separator } from "@gnd/ui/separator";
 import { consoleLog } from "@gnd/utils";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
-import { Separator } from "@gnd/ui/separator";
+import { getSquareDevicesAction } from "./action";
+import { Action } from "./client";
 import { DeviceCodes } from "./device-codes";
 
+import PageShell from "@/components/page-shell";
 export async function generateMetadata(props) {
-    return constructMetadata({
-        title: "Square Debug | GND",
-    });
+	return constructMetadata({
+		title: "Square Debug | GND",
+	});
 }
 export default async function Page({}) {
-    const devices = await getSquareDevicesAction();
-    // const merchants = await squareClient.merchants.list({});
-    const deviceCodes = await squareClient.devices.codes.list({});
+	const devices = await getSquareDevicesAction();
+	// const merchants = await squareClient.merchants.list({});
+	const deviceCodes = await squareClient.devices.codes.list({});
 
-    return (
-        <div>
-            <Label>Devices</Label>
+	return (
+		<PageShell>
+			<div>
+				<Label>Devices</Label>
 
-            <div>
-                {devices?.terminals?.map((term, tid) => (
-                    <Item
-                        key={tid}
-                        variant={
-                            term.status === "AVAILABLE" ? "default" : "outline"
-                        }
-                    >
-                        <Item.Content className="flex gap-2 flex-row">
-                            <Item.Title>{term?.label}</Item.Title>
-                            <Item.Description>{term?.status}</Item.Description>
-                            <Item.Actions>
-                                <Action deviceId={term.value} />
-                            </Item.Actions>
-                        </Item.Content>
-                    </Item>
-                ))}
-            </div>
-            <Separator />
-            <DeviceCodes />
-        </div>
-    );
+				<div>
+					{devices?.terminals?.map((term, tid) => (
+						<Item
+							key={tid}
+							variant={term.status === "AVAILABLE" ? "default" : "outline"}
+						>
+							<Item.Content className="flex gap-2 flex-row">
+								<Item.Title>{term?.label}</Item.Title>
+								<Item.Description>{term?.status}</Item.Description>
+								<Item.Actions>
+									<Action deviceId={term.value} />
+								</Item.Actions>
+							</Item.Content>
+						</Item>
+					))}
+				</div>
+				<Separator />
+				<DeviceCodes />
+			</div>
+		</PageShell>
+	);
 }
-

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { ProductionWorkerDashboardV2 } from "@/components/production-v2/shared";
 
+import PageShell from "@/components/page-shell";
 export const metadata: Metadata = {
 	title: "Production Dashboard v2",
 	description:
@@ -9,5 +10,10 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-	return <ProductionWorkerDashboardV2 />;
+	return (
+		<PageShell>
+			{" "}
+			<ProductionWorkerDashboardV2 />
+		</PageShell>
+	);
 }

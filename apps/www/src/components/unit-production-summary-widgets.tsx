@@ -17,38 +17,38 @@ import {
 const cards = [
   {
     key: "total",
-    title: "Production tasks",
-    subtitle: "All produceable tasks in the current view.",
+    title: "Tasks",
+    subtitle: "All production work.",
     icon: Package2,
   },
   {
     key: "units",
-    title: "Units covered",
-    subtitle: "Distinct homes represented by these tasks.",
+    title: "Units",
+    subtitle: "Distinct homes.",
     icon: Layers3,
   },
   {
     key: "queued",
     title: "Queued",
-    subtitle: "Already sent to production and waiting to move.",
+    subtitle: "Waiting to move.",
     icon: Clock3,
   },
   {
     key: "started",
     title: "Started",
-    subtitle: "Production has begun and still needs follow-through.",
+    subtitle: "In progress.",
     icon: TimerReset,
   },
   {
     key: "completed",
     title: "Completed",
-    subtitle: "Finished production tasks, including installed units.",
+    subtitle: "Finished work.",
     icon: CheckCircle2,
   },
   {
     key: "pastDue",
-    title: "Past due",
-    subtitle: "Open work with due dates already behind us.",
+    title: "Overdue",
+    subtitle: "Past due work.",
     icon: AlertTriangle,
   },
 ] as const;

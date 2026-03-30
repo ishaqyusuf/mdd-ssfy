@@ -1,4 +1,3 @@
-import FPage from "@/components/(clean-code)/fikr-ui/f-page";
 import { CustomerHeader } from "@/components/customer-header";
 import { ErrorFallback } from "@/components/error-fallback";
 import { DataTable } from "@/components/tables/customers/data-table";
@@ -7,6 +6,8 @@ import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { Suspense } from "react";
 
+import PageShell from "@/components/page-shell";
+import { PageTitle } from "@gnd/ui/custom/page-title";
 export async function generateMetadata() {
 	return constructMetadata({
 		title: "Sales Customers | GND",
@@ -15,11 +16,8 @@ export async function generateMetadata() {
 
 export default async function Page() {
 	return (
-		<FPage
-			can={["editSalesCustomers"]}
-			title="Sales Customers"
-			description="Review customer records, search by account details, and open a full sales overview for each customer."
-		>
+		<PageShell>
+			<PageTitle>Sales Customers</PageTitle>
 			<div className="flex flex-col gap-6">
 				<CustomerHeader />
 				<ErrorBoundary errorComponent={ErrorFallback}>
@@ -28,6 +26,6 @@ export default async function Page() {
 					</Suspense>
 				</ErrorBoundary>
 			</div>
-		</FPage>
+		</PageShell>
 	);
 }

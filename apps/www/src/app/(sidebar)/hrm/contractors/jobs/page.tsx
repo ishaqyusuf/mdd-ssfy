@@ -11,6 +11,7 @@ import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import type { SearchParams } from "nuqs";
 import { Suspense } from "react";
 
+import PageShell from "@/components/page-shell";
 export async function generateMetadata(props) {
 	return constructMetadata({
 		title: "Job | GND",
@@ -31,15 +32,17 @@ export default async function Page(props: Props) {
 		}),
 	]);
 	return (
-		<div className="flex flex-col gap-6 pt-6">
-			<PageTitle>Job</PageTitle>
-			<JobsKpiWidget />
-			<JobHeader />
-			<ErrorBoundary errorComponent={ErrorFallback}>
-				<Suspense fallback={<TableSkeleton />}>
-					<DataTable columnSet="admin" />
-				</Suspense>
-			</ErrorBoundary>
-		</div>
+		<PageShell>
+			<div className="flex flex-col gap-6 pt-6">
+				<PageTitle>Job</PageTitle>
+				<JobsKpiWidget />
+				<JobHeader />
+				<ErrorBoundary errorComponent={ErrorFallback}>
+					<Suspense fallback={<TableSkeleton />}>
+						<DataTable columnSet="admin" />
+					</Suspense>
+				</ErrorBoundary>
+			</div>
+		</PageShell>
 	);
 }

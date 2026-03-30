@@ -1,40 +1,41 @@
-import { Suspense } from "react";
-import { ErrorBoundary } from "next/dist/client/components/error-boundary";
-import { TableSkeleton } from "@/components/tables/skeleton";
-import FPage from "@/components/(clean-code)/fikr-ui/f-page";
-import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
+import { ErrorFallbackSales } from "@/components/error-fallback-sales";
 import { OrderHeader } from "@/components/sales-order-header";
 import { DataTable } from "@/components/tables/sales-orders/data-table";
-import { batchPrefetch, trpc } from "@/trpc/server";
+import { TableSkeleton } from "@/components/tables/skeleton";
 import { loadOrderFilterParams } from "@/hooks/use-sales-filter-params";
-import { ErrorFallbackSales } from "@/components/error-fallback-sales";
-import { consoleLog } from "@gnd/utils";
+import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
+import { batchPrefetch, trpc } from "@/trpc/server";
 import { db } from "@gnd/db";
+import { consoleLog } from "@gnd/utils";
+import { ErrorBoundary } from "next/dist/client/components/error-boundary";
+import { Suspense } from "react";
 
+import PageShell from "@/components/page-shell";
+import { PageTitle } from "@gnd/ui/custom/page-title";
 export async function generateMetadata(props) {
-    return constructMetadata({
-        title: "Sales | GND",
-    });
+	return constructMetadata({
+		title: "Sales | GND",
+	});
 }
 
 export default async function Page(props) {
-    const searchParams = await props.searchParams;
+	const searchParams = await props.searchParams;
 
-    const filter = loadOrderFilterParams(searchParams);
-    batchPrefetch([
-        trpc.sales.getOrders.infiniteQueryOptions({
-            ...(filter as any),
-        }),
-    ]);
-    return (
-        <FPage can={["viewOrders"]} title="Sales">
-            <OrderHeader />
-            <ErrorBoundary errorComponent={ErrorFallbackSales}>
-                <Suspense fallback={<TableSkeleton />}>
-                    <DataTable />
-                </Suspense>
-            </ErrorBoundary>
-        </FPage>
-    );
+	const filter = loadOrderFilterParams(searchParams);
+	batchPrefetch([
+		trpc.sales.getOrders.infiniteQueryOptions({
+			...(filter as any),
+		}),
+	]);
+	return (
+		<PageShell>
+			<PageTitle>Sales</PageTitle>
+			<OrderHeader />
+			<ErrorBoundary errorComponent={ErrorFallbackSales}>
+				<Suspense fallback={<TableSkeleton />}>
+					<DataTable />
+				</Suspense>
+			</ErrorBoundary>
+		</PageShell>
+	);
 }
-
