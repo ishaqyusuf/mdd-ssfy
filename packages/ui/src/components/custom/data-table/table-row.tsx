@@ -31,7 +31,7 @@ export function TableRow() {
           )}
           key={row.id}
         >
-          {/* <CheckboxRow style={getStickyStyle('checkbox')} row={row} /> */}
+          <CheckboxRow style={getStickyStyle("select")} row={row} />
           {row.getVisibleCells().map((cell) => (
             <TableCell
               key={cell.id}
@@ -61,12 +61,19 @@ export function TableRow() {
     </>
   );
 }
-function CheckboxRow({ row }) {
+function CheckboxRow({ row, style = undefined }) {
   const ctx = useTable();
   const { table } = ctx;
   if (!ctx.checkbox) return null;
   return (
-    <TableCell align="center" className="py-0">
+    <TableCell
+      align="center"
+      style={style}
+      className={cn(
+        "py-0 md:sticky md:left-0 bg-background z-20 border-r border-border",
+        ctx.mobileMode?.borderless && "border-r-0",
+      )}
+    >
       <Checkbox
         checked={row.getIsSelected()}
         onCheckedChange={(value) => {
