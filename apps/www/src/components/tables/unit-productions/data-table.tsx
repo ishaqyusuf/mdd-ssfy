@@ -9,6 +9,7 @@ import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { NoResults } from "@gnd/ui/custom/no-results";
 import { Table, useTableData } from "@gnd/ui/data-table";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
+import { BatchActions } from "./batch-actions";
 import { columns, mobileColumn } from "./columns";
 
 interface Props {
@@ -55,6 +56,7 @@ export function DataTable(props: Props) {
             hasNextPage,
           },
           tableScroll,
+          checkbox: true,
           tableMeta: {
             rowClick(id, rowData) {
               setUnitProductionParams({
@@ -78,6 +80,7 @@ export function DataTable(props: Props) {
           </Table>
         </div>
         <Table.LoadMore />
+        <BatchActions />
       </div>
     </Table.Provider>
   );

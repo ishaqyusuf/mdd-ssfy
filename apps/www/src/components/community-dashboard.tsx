@@ -23,6 +23,7 @@ import { formatCurrency } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import CommunitySummaryWidgets from "./widgets/community-summary-widgets";
+import { CommunityProjectsDashboardTab } from "./community/project-analytics";
 
 function StatPill({ label, value }: { label: string; value: string | number }) {
     return (
@@ -310,8 +311,15 @@ export function CommunityDashboard() {
             <CommunitySummaryWidgets />
 
             <div className="rounded-[32px] border border-slate-200/90 bg-gradient-to-br from-white via-slate-50/70 to-emerald-50/50 p-4 shadow-sm md:p-6">
-                <Tabs defaultValue="productions" className="space-y-6">
-                    <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-[24px] bg-white p-2 md:grid-cols-4">
+                <Tabs defaultValue="projects" className="space-y-6">
+                    <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-[24px] bg-white p-2 md:grid-cols-5">
+                        <TabsTrigger
+                            value="projects"
+                            className="gap-2 rounded-2xl py-3 text-slate-600 transition-all data-[state=active]:bg-emerald-700 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-900/10"
+                        >
+                            <Home className="size-4" />
+                            Projects
+                        </TabsTrigger>
                         <TabsTrigger
                             value="productions"
                             className="gap-2 rounded-2xl py-3 text-slate-600 transition-all data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-900/10"
@@ -341,6 +349,10 @@ export function CommunityDashboard() {
                             Invoices
                         </TabsTrigger>
                     </TabsList>
+
+                    <TabsContent value="projects" className="space-y-6">
+                        <CommunityProjectsDashboardTab />
+                    </TabsContent>
 
                     <TabsContent value="productions" className="space-y-6">
                         <div className="grid gap-4 md:grid-cols-3">

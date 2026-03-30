@@ -1,4 +1,5 @@
 import { ErrorFallback } from "@/components/error-fallback";
+import { CommunityProjectUnitsAnalytics } from "@/components/community/project-analytics";
 import { ProjectUnitHeader } from "@/components/project-units-header";
 import { DataTable } from "@/components/tables/project-units/data-table";
 import { TableSkeleton } from "@/components/tables/skeleton";
@@ -29,12 +30,23 @@ export default async function Page(props: Props) {
 			...(filter as any),
 			sort,
 		}),
+		trpc.community.communityProjectUnitsOverview.queryOptions({
+			builderSlug: filter.builderSlug ?? undefined,
+			projectSlug: filter.projectSlug ?? undefined,
+			production: (filter as any).production ?? undefined,
+			installation: (filter as any).installation ?? undefined,
+		}),
 	]);
 	return (
 		<PageShell>
 			<div className="flex flex-col gap-6">
 				<PageTitle>Project Unit</PageTitle>
 				<ProjectUnitHeader />
+				<ErrorBoundary errorComponent={ErrorFallback}>
+					<Suspense fallback={<TableSkeleton />}>
+						<CommunityProjectUnitsAnalytics />
+					</Suspense>
+				</ErrorBoundary>
 				<ErrorBoundary errorComponent={ErrorFallback}>
 					<Suspense fallback={<TableSkeleton />}>
 						<DataTable />

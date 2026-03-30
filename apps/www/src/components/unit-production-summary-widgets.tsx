@@ -9,7 +9,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock3,
-  Layers3,
   Package2,
   TimerReset,
 } from "lucide-react";
@@ -20,12 +19,6 @@ const cards = [
     title: "Tasks",
     subtitle: "All production work.",
     icon: Package2,
-  },
-  {
-    key: "units",
-    title: "Units",
-    subtitle: "Distinct homes.",
-    icon: Layers3,
   },
   {
     key: "queued",
@@ -62,7 +55,7 @@ export function UnitProductionSummaryWidgets() {
 
   if (summaryQuery.isPending || !summaryQuery.data) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         {Array.from({ length: cards.length }).map((_, index) => (
           <Card key={index.toString()} className="rounded-3xl">
             <CardHeader className="pb-2 px-4 pt-4">
@@ -79,7 +72,7 @@ export function UnitProductionSummaryWidgets() {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
       {cards.map((card) => {
         const Icon = card.icon;
         const value = summaryQuery.data[card.key];

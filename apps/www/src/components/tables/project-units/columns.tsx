@@ -5,7 +5,6 @@ import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { ColumnDef } from "@tanstack/react-table";
 import { cn } from "@gnd/ui/cn";
-import { useProjectUnitParams } from "@/hooks/use-project-units-params";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { formatDate } from "@gnd/utils/dayjs";
 import { Progress } from "@gnd/ui/custom/progress";
@@ -301,7 +300,6 @@ function getProductionStatusClass(status?: string | null) {
 }
 
 function ItemCard({ item }: ItemProps) {
-    const { setParams } = useProjectUnitParams();
     const ctx = useHomeModal();
     const path =
         item.template?.version === "v2" ? "model-template" : "community-template";
@@ -312,10 +310,7 @@ function ItemCard({ item }: ItemProps) {
                 <button
                     type="button"
                     onClick={() => {
-                        ctx.open(item);
-                        setParams({
-                            openProjectUnitId: item.id,
-                        });
+                        window.location.href = `/community/project-units/${item.slug}`;
                     }}
                     className="min-w-0 flex-1 text-left"
                 >
@@ -407,17 +402,14 @@ function ItemCard({ item }: ItemProps) {
                     <div className="flex-1" />
                 )}
                 <Button
+                    asChild
                     type="button"
                     variant="secondary"
                     className="flex-1"
-                    onClick={() => {
-                        ctx.open(item);
-                        setParams({
-                            openProjectUnitId: item.id,
-                        });
-                    }}
                 >
-                    Open Unit
+                    <Link href={`/community/project-units/${item.slug}`}>
+                        Open Unit
+                    </Link>
                 </Button>
             </div>
         </div>

@@ -151,6 +151,62 @@ export function createNotificationChannelTriggers(
 				recipients: resolvedRecipients,
 			});
 		},
+		communityUnitProductionStarted(
+			input: Input<"community_unit_production_started">,
+		) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("community_unit_production_started", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
+		communityUnitProductionStopped(
+			input: Input<"community_unit_production_stopped">,
+		) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("community_unit_production_stopped", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
+		communityUnitProductionCompleted(
+			input: Input<"community_unit_production_completed">,
+		) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("community_unit_production_completed", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
+		communityUnitProductionBatchUpdated(
+			input: Input<"community_unit_production_batch_updated">,
+		) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("community_unit_production_batch_updated", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
 		salesCheckoutSuccess(input: Input<"sales_checkout_success">) {
 			const { recipients, author, ...payload } = input;
 			const resolvedRecipients = resolveRecipients(

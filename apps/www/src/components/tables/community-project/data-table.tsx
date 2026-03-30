@@ -1,25 +1,18 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
-import {
-    // createTableContext,
-    Table,
-    useTableData,
-} from "@gnd/ui/data-table";
+import { Table, useTableData } from "@gnd/ui/data-table";
 import { columns, mobileColumn } from "./columns";
-import { TableHeader } from "@gnd/ui/data-table/table-header";
 import { useCommunityProjectFilterParams } from "@/hooks/use-community-project-filter-params";
-import { useCommunityProjectParams } from "@/hooks/use-community-project-params";
 import { NoResults } from "@gnd/ui/custom/no-results";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { Button } from "@gnd/ui/button";
-import Link from "next/link";
-import { Icons } from "@gnd/ui/icons";
 import { useRouter } from "next/navigation";
+import { BatchActions } from "./batch-actions";
 export function DataTable() {
     const trpc = useTRPC();
-    // const { rowSelection, setRowSelection } = useCommunityProjectStore();
+    const router = useRouter();
     const { filters, hasFilters, setFilters } =
         useCommunityProjectFilterParams();
     const { data, ref, isFetching, hasNextPage } = useTableData({
@@ -33,7 +26,6 @@ export function DataTable() {
         useColumnWidths: true,
         startFromColumn: 2,
     });
-    const { setParams } = useCommunityProjectParams();
     if (hasFilters && !data?.length) {
         return <NoResults setFilter={setFilters} />;
     }
@@ -42,20 +34,15 @@ export function DataTable() {
         return (
             <EmptyState
                 CreateButton={
-                    <Button asChild size="sm">
-                        <Link href="/sales-book/create-order">
-                            <Icons.add className="mr-2 size-4" />
-                            <span>New</span>
-                        </Link>
+                    <Button size="sm" onClick={() => router.push("/community/projects")}>
+                        <span>Projects</span>
                     </Button>
                 }
             />
         );
     }
-    const router = useRouter();
     return (
         <Table.Provider
-            // value={createTableContext({
             args={[
                 {
                     columns,
@@ -66,19 +53,12 @@ export function DataTable() {
                         hasNextPage,
                     },
                     tableScroll,
-                    // rowSelection,
-                    // setRowSelection,
+                    checkbox: true,
                     tableMeta: {
                         rowClick(id, rowData) {
-                            // setParams({
-                            //     openCommunityProjectId: rowData.id,
-                            // });
-                            router.push(
-                                `/community/project-units?projectSlug=${rowData?.slug}`,
-                            );
+                            router.push(`/community/projects/${rowData?.slug}`);
                         },
                     },
-                    // })}
                 },
             ]}
         >
@@ -95,9 +75,8 @@ export function DataTable() {
                     </Table>
                 </div>
                 <Table.LoadMore />
-                {/* <BatchActions /> */}
+                <BatchActions />
             </div>
         </Table.Provider>
     );
 }
-

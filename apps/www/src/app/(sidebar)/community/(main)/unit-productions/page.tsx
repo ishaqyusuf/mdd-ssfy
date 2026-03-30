@@ -1,4 +1,5 @@
 import { ErrorFallback } from "@/components/error-fallback";
+import { OpenUnitProductionSheet } from "@/components/open-unit-production-sheet";
 import { TableSkeleton } from "@/components/tables/skeleton";
 import { DataTable } from "@/components/tables/unit-productions/data-table";
 import { UnitProductionSummaryWidgets } from "@/components/unit-production-summary-widgets";
@@ -42,6 +43,7 @@ export default async function CommunityProductionsPage(props: Props) {
 				<PageTitle>Unit Productions</PageTitle>
 				<UnitProductionSummaryWidgets />
 				<UnitProductionsHeader />
+				<OpenUnitProductionSheet />
 				<ErrorBoundary errorComponent={ErrorFallback}>
 					<Suspense fallback={<TableSkeleton />}>
 						<DataTable />

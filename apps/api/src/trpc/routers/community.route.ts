@@ -4,6 +4,14 @@ import {
   communityInstallCostFormSchema,
   communityDashboardOverview,
   communityDashboardOverviewSchema,
+  communityProjectOverview,
+  communityProjectOverviewSchema,
+  communityProjectUnitOverview,
+  communityProjectUnitOverviewSchema,
+  communityProjectsOverview,
+  communityProjectsOverviewSchema,
+  communityProjectUnitsOverview,
+  communityProjectUnitsOverviewSchema,
   communityModelCostForm,
   communityModelCostFormSchema,
   communityModelCostHistory,
@@ -42,6 +50,8 @@ import {
   getProjectUnitsSchema,
 } from "@api/db/queries/project-units";
 import {
+  getUnitProductionOverview,
+  getUnitProductionOverviewSchema,
   getUnitProductions,
   getUnitProductionsSchema,
   getUnitProductionSummary,
@@ -269,6 +279,26 @@ export const communityRouters = createTRPCRouter({
     .input(communityDashboardOverviewSchema)
     .query(async (props) => {
       return communityDashboardOverview(props.ctx);
+    }),
+  communityProjectsOverview: publicProcedure
+    .input(communityProjectsOverviewSchema)
+    .query(async (props) => {
+      return communityProjectsOverview(props.ctx, props.input);
+    }),
+  communityProjectUnitsOverview: publicProcedure
+    .input(communityProjectUnitsOverviewSchema)
+    .query(async (props) => {
+      return communityProjectUnitsOverview(props.ctx, props.input);
+    }),
+  communityProjectOverview: publicProcedure
+    .input(communityProjectOverviewSchema)
+    .query(async (props) => {
+      return communityProjectOverview(props.ctx, props.input);
+    }),
+  communityProjectUnitOverview: publicProcedure
+    .input(communityProjectUnitOverviewSchema)
+    .query(async (props) => {
+      return communityProjectUnitOverview(props.ctx, props.input);
     }),
   createCommunityModelCost: publicProcedure
     .input(createCommunityModelCostSchema)
@@ -1187,6 +1217,11 @@ export const communityRouters = createTRPCRouter({
     .input(getUnitProductionsSchema)
     .query(async (props) => {
       return getUnitProductions(props.ctx, props.input);
+    }),
+  getUnitProductionOverview: publicProcedure
+    .input(getUnitProductionOverviewSchema)
+    .query(async (props) => {
+      return getUnitProductionOverview(props.ctx, props.input);
     }),
   getUnitProductionSummary: publicProcedure
     .input(

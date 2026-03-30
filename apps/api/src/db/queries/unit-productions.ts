@@ -14,6 +14,7 @@ export const unitProductionStatusFilter = [
 
 export const getUnitProductionsSchema = z
   .object({
+    ids: z.array(z.number()).optional().nullable(),
     builderSlug: z.string().optional().nullable(),
     projectSlug: z.string().optional().nullable(),
     taskNames: z.array(z.string()).optional().nullable(),
@@ -23,6 +24,14 @@ export const getUnitProductionsSchema = z
   .extend(paginationSchema.shape);
 
 export type GetUnitProductionsSchema = z.infer<typeof getUnitProductionsSchema>;
+
+export const getUnitProductionOverviewSchema = z.object({
+  id: z.number(),
+});
+
+export type GetUnitProductionOverviewSchema = z.infer<
+  typeof getUnitProductionOverviewSchema
+>;
 
 const unitProductionSelect = {
   id: true,
@@ -71,7 +80,31 @@ type UnitProductionRow = Prisma.HomeTasksGetPayload<{
   select: typeof unitProductionSelect;
 }>;
 
-function getUnitTaskProductionState(task: UnitProductionRow) {
+type UnitProductionStateInput = Pick<
+  UnitProductionRow,
+  | "producedAt"
+  | "prodStartedAt"
+  | "productionStatus"
+  | "sentToProductionAt"
+  | "home"
+>;
+
+type UnitProductionMappedInput = Pick<
+  UnitProductionRow,
+  | "id"
+  | "createdAt"
+  | "taskName"
+  | "taskUid"
+  | "productionStatus"
+  | "prodStartedAt"
+  | "producedAt"
+  | "sentToProductionAt"
+  | "productionDueDate"
+  | "home"
+  | "project"
+>;
+
+function getUnitTaskProductionState(task: UnitProductionStateInput) {
   if (task.home?._count?.jobs) return "Completed";
   if (task.producedAt) return "Completed";
   if (
@@ -95,7 +128,7 @@ function isPastDue(task: Pick<UnitProductionRow, "productionDueDate" | "produced
   return task.productionDueDate < today;
 }
 
-function mapUnitProduction(task: UnitProductionRow) {
+function mapUnitProduction(task: UnitProductionMappedInput) {
   const status = getUnitTaskProductionState(task);
   const overdue = isPastDue(task);
 
@@ -212,6 +245,105 @@ export async function getUnitProductionSummary(
   };
 }
 
+export async function getUnitProductionOverview(
+  ctx: TRPCContext,
+  query: GetUnitProductionOverviewSchema,
+) {
+  const task = await ctx.db.homeTasks.findFirstOrThrow({
+    where: {
+      id: query.id,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      createdAt: true,
+      taskName: true,
+      taskUid: true,
+      productionStatus: true,
+      prodStartedAt: true,
+      producedAt: true,
+      sentToProductionAt: true,
+      productionDueDate: true,
+      checkDate: true,
+      amountDue: true,
+      amountPaid: true,
+      homeId: true,
+      projectId: true,
+      home: {
+        select: {
+          id: true,
+          slug: true,
+          lotBlock: true,
+          modelName: true,
+          address: true,
+          jobs: {
+            where: {
+              deletedAt: null,
+            },
+            orderBy: {
+              createdAt: "desc",
+            },
+            take: 8,
+            select: {
+              id: true,
+              createdAt: true,
+              status: true,
+              user: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+          _count: {
+            select: {
+              jobs: true,
+            },
+          },
+        },
+      },
+      project: {
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          refNo: true,
+          builder: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const overview = mapUnitProduction(task);
+
+  return {
+    ...overview,
+    taskUid: task.taskUid,
+    checkDate: task.checkDate,
+    amountDue: task.amountDue,
+    amountPaid: task.amountPaid,
+    home: task.home,
+    project: task.project,
+    timeline: [
+      { label: "Created", value: task.createdAt },
+      { label: "Queued", value: task.sentToProductionAt },
+      { label: "Started", value: task.prodStartedAt },
+      { label: "Completed", value: task.producedAt },
+    ],
+    jobs:
+      task.home?.jobs.map((job) => ({
+        id: job.id,
+        createdAt: job.createdAt,
+        status: job.status,
+        assignee: job.user?.name || "Unassigned",
+      })) ?? [],
+  };
+}
+
 function sortFn(
   sort: string,
   sortOrder: string,
@@ -315,6 +447,13 @@ function whereUnitProductions(query: Partial<GetUnitProductionsSchema>) {
             builder: {
               slug: String(rawValue),
             },
+          },
+        });
+        break;
+      case "ids":
+        where.push({
+          id: {
+            in: (rawValue as number[]).map((value) => Number(value)),
           },
         });
         break;

@@ -14,41 +14,60 @@ import { useTransition } from "@/utils/use-safe-transistion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useTRPC } from "@/trpc/client";
+import { useQueryClient } from "@gnd/ui/tanstack";
 
 export default function UnitTaskProductionAction({
     task,
 }: {
     task: IHomeTask;
 }) {
+    const isCompleted = !!task.producedAt;
+    const isStarted = !!task.prodStartedAt && !isCompleted;
+
     return (
         <>
-            <ActionButton
-                itemId={task.id}
-                disabled={task.prodStartedAt != null}
-                _action={_startUnitTaskProduction}
-                color="blue"
-                Icon={Play}
-            ></ActionButton>
-            <ActionButton
-                itemId={task.id}
-                disabled={task.prodStartedAt == null}
-                _action={_stopUnitTaskProduction}
-                color="red"
-                Icon={StopCircle}
-            ></ActionButton>
-            <ActionButton
-                disabled={task.prodStartedAt == null}
-                itemId={task.id}
-                _action={_completeUnitTaskProduction}
-                color="green"
-                Icon={Check}
-            ></ActionButton>
+            {!isStarted && !isCompleted ? (
+                <ActionButton
+                    itemId={task.id}
+                    _action={_startUnitTaskProduction}
+                    color="blue"
+                    Icon={Play}
+                />
+            ) : null}
+            {isStarted || isCompleted ? (
+                <ActionButton
+                    itemId={task.id}
+                    _action={_stopUnitTaskProduction}
+                    color="red"
+                    Icon={StopCircle}
+                />
+            ) : null}
+            {!isCompleted ? (
+                <ActionButton
+                    itemId={task.id}
+                    _action={async (id) => {
+                        if (!isStarted) {
+                            await _startUnitTaskProduction(id, {
+                                suppressNotification: true,
+                            });
+                        }
+                        await _completeUnitTaskProduction(id, {
+                            completedFromIdle: !isStarted,
+                        });
+                    }}
+                    color="green"
+                    Icon={Check}
+                />
+            ) : null}
         </>
     );
 }
 function ActionButton({ itemId, disabled, Icon, color, _action }) {
     const [loading, startTransition] = useTransition();
     const router = useRouter();
+    const trpc = useTRPC();
+    const queryClient = useQueryClient();
 
     return (
         <Btn
@@ -57,6 +76,16 @@ function ActionButton({ itemId, disabled, Icon, color, _action }) {
             onClick={() =>
                 startTransition(async () => {
                     await _action(itemId);
+                    await Promise.all([
+                        queryClient.invalidateQueries({
+                            queryKey:
+                                trpc.community.getUnitProductions.infiniteQueryKey(),
+                        }),
+                        queryClient.invalidateQueries({
+                            queryKey:
+                                trpc.community.getUnitProductionSummary.queryKey(),
+                        }),
+                    ]);
                     toast.success("Action Successful");
                     router.refresh();
                 })

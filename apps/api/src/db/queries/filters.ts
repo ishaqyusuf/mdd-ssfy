@@ -225,21 +225,28 @@ export async function jobFilters(ctx: TRPCContext) {
 export async function communityProjectFilters(ctx: TRPCContext) {
   type T = keyof GetCommunityProjectsSchema;
   type FilterData = PageFilterData<T>;
-  // const steps = labelValueOptions(
-  //   await ctx.db.Projects.findMany({
-  //     where: {},
-  //     select: {
-  //       id: true,
-  //       title: true,
-  //     },
-  //   }),
-  //   "title",
-  //   "id"
-  // );
+  const builders = await buildersList(ctx);
   const resp = [
     searchFilter,
-    // optionFilter<T>("categoryId", "Category", steps),
-    // dateRangeFilter<T>("dateRange", "Filter by date"),
+    optionFilter<T>(
+      "builderId",
+      "Builder",
+      builders.map((builder) => ({
+        label: builder.name,
+        value: builder.id,
+      })),
+    ),
+    inputFilter<T>("refNo", "Ref no"),
+    optionFilter<T>("status", "Status", [
+      {
+        label: "Active",
+        value: "active",
+      },
+      {
+        label: "Archived",
+        value: "archived",
+      },
+    ]),
   ] satisfies FilterData[];
 
   return resp;

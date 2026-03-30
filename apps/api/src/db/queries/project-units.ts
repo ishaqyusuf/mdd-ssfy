@@ -110,7 +110,7 @@ function sortFn(
 
   return undefined;
 }
-function whereProjectUnits(query: GetProjectUnitsSchema) {
+export function whereProjectUnits(query: Partial<GetProjectUnitsSchema>) {
   const where: Prisma.HomesWhereInput[] = [];
   for (const [k, v] of Object.entries(query)) {
     if (!v) continue;

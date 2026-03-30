@@ -301,6 +301,103 @@ export const employeeDocumentReviewTags = actityTagsSchema.extend({
 export type EmployeeDocumentReviewTags = z.infer<
 	typeof employeeDocumentReviewTags
 >;
+
+export const communityUnitProductionStartedSchema = z.object({
+	taskId: z.number(),
+	taskName: z.string(),
+	unitId: z.number().nullable().optional(),
+	unitLotBlock: z.string().nullable().optional(),
+	projectId: z.number().nullable().optional(),
+	projectName: z.string().nullable().optional(),
+	actorUserId: z.number(),
+	actorName: z.string(),
+	status: z.literal("started"),
+	timestamp: z.string(),
+});
+export type CommunityUnitProductionStartedInput = z.infer<
+	typeof communityUnitProductionStartedSchema
+>;
+export const communityUnitProductionStartedTags = actityTagsSchema.extend({
+	taskId: z.coerce.number(),
+	unitId: z.coerce.number().optional(),
+	projectId: z.coerce.number().optional(),
+});
+export type CommunityUnitProductionStartedTags = z.infer<
+	typeof communityUnitProductionStartedTags
+>;
+
+export const communityUnitProductionStoppedSchema = z.object({
+	taskId: z.number(),
+	taskName: z.string(),
+	unitId: z.number().nullable().optional(),
+	unitLotBlock: z.string().nullable().optional(),
+	projectId: z.number().nullable().optional(),
+	projectName: z.string().nullable().optional(),
+	actorUserId: z.number(),
+	actorName: z.string(),
+	status: z.literal("stopped"),
+	timestamp: z.string(),
+});
+export type CommunityUnitProductionStoppedInput = z.infer<
+	typeof communityUnitProductionStoppedSchema
+>;
+export const communityUnitProductionStoppedTags = actityTagsSchema.extend({
+	taskId: z.coerce.number(),
+	unitId: z.coerce.number().optional(),
+	projectId: z.coerce.number().optional(),
+});
+export type CommunityUnitProductionStoppedTags = z.infer<
+	typeof communityUnitProductionStoppedTags
+>;
+
+export const communityUnitProductionCompletedSchema = z.object({
+	taskId: z.number(),
+	taskName: z.string(),
+	unitId: z.number().nullable().optional(),
+	unitLotBlock: z.string().nullable().optional(),
+	projectId: z.number().nullable().optional(),
+	projectName: z.string().nullable().optional(),
+	actorUserId: z.number(),
+	actorName: z.string(),
+	status: z.literal("completed"),
+	completedFromIdle: z.boolean().default(false),
+	timestamp: z.string(),
+});
+export type CommunityUnitProductionCompletedInput = z.infer<
+	typeof communityUnitProductionCompletedSchema
+>;
+export const communityUnitProductionCompletedTags = actityTagsSchema.extend({
+	taskId: z.coerce.number(),
+	unitId: z.coerce.number().optional(),
+	projectId: z.coerce.number().optional(),
+});
+export type CommunityUnitProductionCompletedTags = z.infer<
+	typeof communityUnitProductionCompletedTags
+>;
+
+export const communityUnitProductionBatchUpdatedSchema = z.object({
+	action: z.enum(["start", "stop", "complete"]),
+	taskIds: z.array(z.number()).min(1),
+	unitIds: z.array(z.number()),
+	projectIds: z.array(z.number()),
+	count: z.number().int().min(1),
+	projectId: z.number().nullable().optional(),
+	projectName: z.string().nullable().optional(),
+	actorUserId: z.number(),
+	actorName: z.string(),
+	timestamp: z.string(),
+});
+export type CommunityUnitProductionBatchUpdatedInput = z.infer<
+	typeof communityUnitProductionBatchUpdatedSchema
+>;
+export const communityUnitProductionBatchUpdatedTags = actityTagsSchema.extend({
+	taskId: z.array(z.coerce.number()),
+	unitId: z.array(z.coerce.number()),
+	projectId: z.array(z.coerce.number()),
+});
+export type CommunityUnitProductionBatchUpdatedTags = z.infer<
+	typeof communityUnitProductionBatchUpdatedTags
+>;
 // Notification types map - all available notification types with their data structures
 
 export type NotificationTypes = {
@@ -318,6 +415,10 @@ export type NotificationTypes = {
 	job_task_configure_request: JobTaskConfigureRequestInput;
 	job_task_configured: JobTaskConfiguredInput;
 	employee_document_review: EmployeeDocumentReviewInput;
+	community_unit_production_started: CommunityUnitProductionStartedInput;
+	community_unit_production_stopped: CommunityUnitProductionStoppedInput;
+	community_unit_production_completed: CommunityUnitProductionCompletedInput;
+	community_unit_production_batch_updated: CommunityUnitProductionBatchUpdatedInput;
 	sales_dispatch_assigned: SalesDispatchAssignedInput;
 	sales_dispatch_queued: SalesDispatchQueuedInput;
 	sales_dispatch_cancelled: SalesDispatchCancelledInput;
@@ -879,6 +980,22 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("employee_document_review"),
 		payload: employeeDocumentReviewSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("community_unit_production_started"),
+		payload: communityUnitProductionStartedSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("community_unit_production_stopped"),
+		payload: communityUnitProductionStoppedSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("community_unit_production_completed"),
+		payload: communityUnitProductionCompletedSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("community_unit_production_batch_updated"),
+		payload: communityUnitProductionBatchUpdatedSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_dispatch_assigned"),

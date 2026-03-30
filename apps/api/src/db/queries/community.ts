@@ -28,6 +28,12 @@ import type {
   JobType,
   ProjectMeta,
 } from "@community/types";
+import {
+  communityInstllationFilters,
+  communityProductionFilter,
+  invoiceFilter,
+  whereProjectUnits,
+} from "./project-units";
 
 export async function projectList(ctx: TRPCContext) {
   const list = await ctx.db.projects.findMany({
@@ -978,6 +984,8 @@ export async function communityDashboardOverview(ctx: TRPCContext) {
 export const getCommunityProjectsSchema = z
   .object({
     builderId: z.number().optional().nullable(),
+    refNo: z.string().optional().nullable(),
+    status: z.enum(["active", "archived"]).optional().nullable(),
   })
   .extend(paginationSchema.shape);
 export type GetCommunityProjectsSchema = z.infer<
@@ -1000,8 +1008,10 @@ export async function getCommunityProjects(
     ...searchMeta,
     select: {
       id: true,
+      archived: true,
       refNo: true,
       createdAt: true,
+      updatedAt: true,
       title: true,
       meta: true,
       slug: true,
@@ -1012,6 +1022,34 @@ export async function getCommunityProjects(
               deletedAt: null,
             },
           },
+          jobs: {
+            where: {
+              deletedAt: null,
+            },
+          },
+          invoices: {
+            where: {
+              deletedAt: null,
+            },
+          },
+          homeTasks: {
+            where: {
+              deletedAt: null,
+              produceable: true,
+            },
+          },
+        },
+      },
+      homeTasks: {
+        where: {
+          deletedAt: null,
+          produceable: true,
+        },
+        select: {
+          id: true,
+          producedAt: true,
+          prodStartedAt: true,
+          sentToProductionAt: true,
         },
       },
       builder: {
@@ -1049,9 +1087,801 @@ function whereCommunityProjects(query: GetCommunityProjectsSchema) {
           },
         });
         break;
+      case "refNo":
+        where.push({
+          refNo: {
+            contains: String(v),
+          },
+        });
+        break;
+      case "status":
+        where.push({
+          archived: {
+            equals: v === "archived",
+          },
+        });
+        break;
     }
   }
   return composeQuery(where);
+}
+
+export const communityProjectsOverviewSchema = z.object({
+  builderId: z.number().optional().nullable(),
+  refNo: z.string().optional().nullable(),
+  status: z.enum(["active", "archived"]).optional().nullable(),
+});
+
+function createRecentMonthBuckets(count = 6) {
+  const now = new Date();
+
+  return Array.from({ length: count }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - (count - 1 - index), 1);
+    const key = `${date.getFullYear()}-${date.getMonth()}`;
+
+    return {
+      key,
+      label: date.toLocaleString("en-US", {
+        month: "short",
+      }),
+      value: 0,
+    };
+  });
+}
+
+function withPercent<T extends { value: number }>(items: T[]) {
+  const total = items.reduce((acc, item) => acc + item.value, 0);
+
+  return items.map((item) => ({
+    ...item,
+    percent: total ? Math.round((item.value / total) * 100) : 0,
+  }));
+}
+
+function mapProjectProductionStatus(tasks: { producedAt?: Date | null; prodStartedAt?: Date | null; sentToProductionAt?: Date | null }[]) {
+  let completed = 0;
+  let started = 0;
+  let queued = 0;
+
+  for (const task of tasks) {
+    if (task.producedAt) {
+      completed += 1;
+      continue;
+    }
+    if (task.prodStartedAt) {
+      started += 1;
+      continue;
+    }
+    if (task.sentToProductionAt) {
+      queued += 1;
+    }
+  }
+
+  const total = tasks.length;
+  const idle = Math.max(total - completed - started - queued, 0);
+
+  if (!total) {
+    return {
+      label: "No tasks",
+      completed,
+      started,
+      queued,
+      idle,
+      total,
+    };
+  }
+
+  if (completed === total) {
+    return {
+      label: "Completed",
+      completed,
+      started,
+      queued,
+      idle,
+      total,
+    };
+  }
+
+  if (started > 0 || completed > 0) {
+    return {
+      label: "Started",
+      completed,
+      started,
+      queued,
+      idle,
+      total,
+    };
+  }
+
+  if (queued > 0) {
+    return {
+      label: "Queued",
+      completed,
+      started,
+      queued,
+      idle,
+      total,
+    };
+  }
+
+  return {
+    label: "Idle",
+    completed,
+    started,
+    queued,
+    idle,
+    total,
+  };
+}
+
+export async function communityProjectsOverview(
+  ctx: TRPCContext,
+  query: z.infer<typeof communityProjectsOverviewSchema>,
+) {
+  const { db } = ctx;
+  const where = whereCommunityProjects({
+    ...query,
+    page: undefined,
+    size: undefined,
+    cursor: undefined,
+  } as GetCommunityProjectsSchema);
+
+  const projects = await db.projects.findMany({
+    where,
+    orderBy: {
+      createdAt: "desc",
+    },
+    select: {
+      id: true,
+      archived: true,
+      slug: true,
+      title: true,
+      refNo: true,
+      createdAt: true,
+      updatedAt: true,
+      meta: true,
+      builder: {
+        select: {
+          name: true,
+        },
+      },
+      _count: {
+        select: {
+          homes: {
+            where: {
+              deletedAt: null,
+            },
+          },
+          jobs: {
+            where: {
+              deletedAt: null,
+            },
+          },
+          invoices: {
+            where: {
+              deletedAt: null,
+            },
+          },
+        },
+      },
+      homeTasks: {
+        where: {
+          deletedAt: null,
+          produceable: true,
+        },
+        select: {
+          producedAt: true,
+          prodStartedAt: true,
+          sentToProductionAt: true,
+        },
+      },
+    },
+  });
+
+  const monthBuckets = createRecentMonthBuckets(6);
+  const bucketMap = new Map(monthBuckets.map((bucket) => [bucket.key, bucket]));
+  const statusMap = {
+    active: 0,
+    archived: 0,
+  };
+  const builderMap = new Map<string, number>();
+  let units = 0;
+  let jobs = 0;
+  let invoices = 0;
+  let productionTasks = 0;
+  let completedProductionTasks = 0;
+
+  for (const project of projects) {
+    const bucket = bucketMap.get(toMonthKey(project.createdAt) || "");
+    if (bucket) {
+      bucket.value += 1;
+    }
+
+    if (project.archived) statusMap.archived += 1;
+    else statusMap.active += 1;
+
+    const builderName = project.builder?.name || "Unassigned";
+    builderMap.set(builderName, (builderMap.get(builderName) || 0) + 1);
+
+    units += project._count.homes;
+    jobs += project._count.jobs;
+    invoices += project._count.invoices;
+    productionTasks += project.homeTasks.length;
+    completedProductionTasks += project.homeTasks.filter((task) => task.producedAt).length;
+  }
+
+  const activeProjects = projects.filter((project) => !project.archived).length;
+  const archivedProjects = projects.length - activeProjects;
+
+  return {
+    summary: {
+      total: projects.length,
+      active: activeProjects,
+      archived: archivedProjects,
+      units,
+      jobs,
+      invoices,
+      productionTasks,
+      completedProductionTasks,
+    },
+    trend: monthBuckets,
+    status: withPercent([
+      {
+        label: "Active",
+        value: statusMap.active,
+      },
+      {
+        label: "Archived",
+        value: statusMap.archived,
+      },
+    ]),
+    builders: withPercent(
+      Array.from(builderMap.entries())
+        .map(([label, value]) => ({
+          label,
+          value,
+        }))
+        .sort((left, right) => right.value - left.value)
+        .slice(0, 6),
+    ),
+    recent: projects.slice(0, 6).map((project) => {
+      const production = mapProjectProductionStatus(project.homeTasks);
+
+      return {
+        id: project.id,
+        slug: project.slug,
+        title: project.title || "Untitled project",
+        refNo: project.refNo || "No ref",
+        builder: project.builder?.name || "No builder",
+        createdAt: project.createdAt,
+        updatedAt: project.updatedAt,
+        archived: Boolean(project.archived),
+        supervisor: (project.meta as ProjectMeta | null)?.supervisor || null,
+        units: project._count.homes,
+        jobs: project._count.jobs,
+        invoices: project._count.invoices,
+        production,
+      };
+    }),
+  };
+}
+
+export const communityProjectUnitsOverviewSchema = z.object({
+  builderSlug: z.string().optional().nullable(),
+  projectSlug: z.string().optional().nullable(),
+  production: z.enum(communityProductionFilter).optional().nullable(),
+  invoice: z.enum(invoiceFilter).optional().nullable(),
+  installation: z.enum(communityInstllationFilters).optional().nullable(),
+});
+
+export async function communityProjectUnitsOverview(
+  ctx: TRPCContext,
+  query: z.infer<typeof communityProjectUnitsOverviewSchema>,
+) {
+  const { db } = ctx;
+  const units = await db.homes.findMany({
+    where: whereProjectUnits({
+      ...query,
+      page: undefined,
+      size: undefined,
+      cursor: undefined,
+      dateRange: undefined,
+    }),
+    orderBy: {
+      createdAt: "desc",
+    },
+    select: {
+      id: true,
+      slug: true,
+      createdAt: true,
+      lotBlock: true,
+      modelName: true,
+      tasks: {
+        where: {
+          deletedAt: null,
+          produceable: true,
+        },
+        select: {
+          producedAt: true,
+          prodStartedAt: true,
+          sentToProductionAt: true,
+        },
+      },
+      _count: {
+        select: {
+          jobs: true,
+        },
+      },
+      project: {
+        select: {
+          title: true,
+          slug: true,
+          builder: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const trend = createRecentMonthBuckets(6);
+  const trendMap = new Map(trend.map((bucket) => [bucket.key, bucket]));
+  const productionStatusMap = new Map<string, number>();
+  let activeJobs = 0;
+  let completedUnits = 0;
+
+  for (const unit of units) {
+    const bucket = trendMap.get(toMonthKey(unit.createdAt) || "");
+    if (bucket) {
+      bucket.value += 1;
+    }
+
+    const status = getUnitProductionStatus({
+      ...unit,
+      communityTemplate: null,
+      projectId: 0,
+      homeTemplateId: null,
+    } as any).status;
+    productionStatusMap.set(status, (productionStatusMap.get(status) || 0) + 1);
+    if (status === "Completed") completedUnits += 1;
+    activeJobs += unit._count.jobs;
+  }
+
+  return {
+    summary: {
+      total: units.length,
+      completed: completedUnits,
+      active: Math.max(units.length - completedUnits, 0),
+      jobs: activeJobs,
+    },
+    trend,
+    status: withPercent(
+      Array.from(productionStatusMap.entries())
+        .map(([label, value]) => ({
+          label,
+          value,
+        }))
+        .sort((left, right) => right.value - left.value),
+    ),
+    recent: units.slice(0, 6).map((unit) => ({
+      id: unit.id,
+      slug: unit.slug,
+      createdAt: unit.createdAt,
+      lotBlock: unit.lotBlock,
+      modelName: unit.modelName,
+      jobs: unit._count.jobs,
+      projectTitle: unit.project?.title,
+      builderName: unit.project?.builder?.name,
+      production: getUnitProductionStatus({
+        ...unit,
+        communityTemplate: null,
+        projectId: 0,
+        homeTemplateId: null,
+      } as any),
+    })),
+  };
+}
+
+export const communityProjectOverviewSchema = z.object({
+  slug: z.string(),
+});
+
+export async function communityProjectOverview(
+  ctx: TRPCContext,
+  query: z.infer<typeof communityProjectOverviewSchema>,
+) {
+  const project = await ctx.db.projects.findFirstOrThrow({
+    where: {
+      slug: query.slug,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      slug: true,
+      archived: true,
+      title: true,
+      refNo: true,
+      address: true,
+      createdAt: true,
+      updatedAt: true,
+      meta: true,
+      builder: {
+        select: {
+          name: true,
+          slug: true,
+        },
+      },
+      homes: {
+        where: {
+          deletedAt: null,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 8,
+        select: {
+          id: true,
+          slug: true,
+          createdAt: true,
+          lotBlock: true,
+          modelName: true,
+          tasks: {
+            where: {
+              deletedAt: null,
+            },
+            select: {
+              produceable: true,
+              sentToProductionAt: true,
+              producedAt: true,
+              productionDueDate: true,
+            },
+          },
+          _count: {
+            select: {
+              jobs: true,
+            },
+          },
+        },
+      },
+      jobs: {
+        where: {
+          deletedAt: null,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 8,
+        select: {
+          id: true,
+          createdAt: true,
+          title: true,
+          status: true,
+          type: true,
+          amount: true,
+          home: {
+            select: {
+              slug: true,
+              lotBlock: true,
+              modelName: true,
+            },
+          },
+        },
+      },
+      homeTasks: {
+        where: {
+          deletedAt: null,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 12,
+        select: {
+          id: true,
+          createdAt: true,
+          taskName: true,
+          produceable: true,
+          amountDue: true,
+          amountPaid: true,
+          producedAt: true,
+          prodStartedAt: true,
+          sentToProductionAt: true,
+          checkDate: true,
+          home: {
+            select: {
+              slug: true,
+              lotBlock: true,
+              modelName: true,
+            },
+          },
+        },
+      },
+      _count: {
+        select: {
+          homes: {
+            where: {
+              deletedAt: null,
+            },
+          },
+          jobs: {
+            where: {
+              deletedAt: null,
+            },
+          },
+          invoices: {
+            where: {
+              deletedAt: null,
+            },
+          },
+          homeTasks: {
+            where: {
+              deletedAt: null,
+              produceable: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const meta = (project.meta as ProjectMeta | null) || null;
+  const productionTasks = project.homeTasks.filter((task) => task.produceable);
+  const productionStatusMap = {
+    queued: 0,
+    started: 0,
+    completed: 0,
+    idle: 0,
+  };
+
+  for (const task of productionTasks) {
+    const status = getProductionState(task).toLowerCase() as keyof typeof productionStatusMap;
+    productionStatusMap[status] += 1;
+  }
+
+  const invoiceTasks = project.homeTasks.filter(
+    (task) =>
+      task.amountDue != null ||
+      task.amountPaid != null ||
+      task.checkDate != null,
+  );
+  const invoiceTotals = invoiceTasks.reduce(
+    (acc, task) => {
+      acc.due += Number(task.amountDue || 0);
+      acc.paid += Number(task.amountPaid || 0);
+      return acc;
+    },
+    { due: 0, paid: 0 },
+  );
+
+  return {
+    project: {
+      ...project,
+      meta,
+    },
+    summary: {
+      units: project._count.homes,
+      jobs: project._count.jobs,
+      invoices: project._count.invoices,
+      productionTasks: project._count.homeTasks,
+      completedProductionTasks: productionTasks.filter((task) => task.producedAt).length,
+      outstandingInvoiceAmount: invoiceTotals.due - invoiceTotals.paid,
+      invoiceDueAmount: invoiceTotals.due,
+      invoicePaidAmount: invoiceTotals.paid,
+    },
+    productionStatus: withPercent([
+      {
+        label: "Queued",
+        value: productionStatusMap.queued,
+      },
+      {
+        label: "Started",
+        value: productionStatusMap.started,
+      },
+      {
+        label: "Completed",
+        value: productionStatusMap.completed,
+      },
+      {
+        label: "Idle",
+        value: productionStatusMap.idle,
+      },
+    ]),
+    recentUnits: project.homes.map((unit) => ({
+      id: unit.id,
+      slug: unit.slug,
+      createdAt: unit.createdAt,
+      lotBlock: unit.lotBlock,
+      modelName: unit.modelName,
+      jobs: unit._count.jobs,
+      production: getUnitProductionStatus({
+        ...unit,
+        communityTemplate: null,
+        projectId: project.id,
+        homeTemplateId: null,
+        project: {
+          title: project.title,
+          builder: {
+            name: project.builder?.name,
+          },
+        },
+      } as any),
+    })),
+    recentJobs: project.jobs.map((job) => ({
+      id: job.id,
+      createdAt: job.createdAt,
+      title: job.title,
+      status: job.status,
+      type: job.type,
+      amount: Number(job.amount || 0),
+      home: job.home,
+    })),
+    recentInvoices: invoiceTasks.slice(0, 8).map((task) => ({
+      id: task.id,
+      createdAt: task.checkDate || task.createdAt,
+      title: task.taskName || "Invoice task",
+      amountDue: Number(task.amountDue || 0),
+      amountPaid: Number(task.amountPaid || 0),
+      home: task.home,
+    })),
+    recentProduction: productionTasks.slice(0, 8).map((task) => ({
+      id: task.id,
+      createdAt: task.createdAt,
+      taskName: task.taskName,
+      status: getProductionState(task),
+      home: task.home,
+    })),
+  };
+}
+
+export const communityProjectUnitOverviewSchema = z.object({
+  slug: z.string(),
+});
+
+export async function communityProjectUnitOverview(
+  ctx: TRPCContext,
+  query: z.infer<typeof communityProjectUnitOverviewSchema>,
+) {
+  const unit = await ctx.db.homes.findFirstOrThrow({
+    where: {
+      slug: query.slug,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      slug: true,
+      createdAt: true,
+      updatedAt: true,
+      lotBlock: true,
+      lot: true,
+      block: true,
+      modelName: true,
+      address: true,
+      status: true,
+      projectId: true,
+      communityTemplate: {
+        select: {
+          id: true,
+          slug: true,
+          modelName: true,
+          version: true,
+        },
+      },
+      project: {
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          refNo: true,
+          builder: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+      tasks: {
+        where: {
+          deletedAt: null,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        select: {
+          id: true,
+          createdAt: true,
+          taskName: true,
+          taskUid: true,
+          produceable: true,
+          productionDueDate: true,
+          sentToProductionAt: true,
+          prodStartedAt: true,
+          producedAt: true,
+          amountDue: true,
+          amountPaid: true,
+          checkDate: true,
+        },
+      },
+      jobs: {
+        where: {
+          deletedAt: null,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 10,
+        select: {
+          id: true,
+          createdAt: true,
+          title: true,
+          status: true,
+          type: true,
+          amount: true,
+        },
+      },
+      _count: {
+        select: {
+          jobs: true,
+        },
+      },
+    },
+  });
+
+  const productionTasks = unit.tasks.filter((task) => task.produceable);
+  const invoiceTasks = unit.tasks.filter(
+    (task) =>
+      task.amountDue != null ||
+      task.amountPaid != null ||
+      task.checkDate != null,
+  );
+  const invoiceTotals = invoiceTasks.reduce(
+    (acc, task) => {
+      acc.due += Number(task.amountDue || 0);
+      acc.paid += Number(task.amountPaid || 0);
+      return acc;
+    },
+    { due: 0, paid: 0 },
+  );
+
+  return {
+    unit: {
+      ...unit,
+      production: getUnitProductionStatus({
+        ...unit,
+        communityTemplate: unit.communityTemplate,
+      } as any),
+    },
+    summary: {
+      jobs: unit._count.jobs,
+      productionTasks: productionTasks.length,
+      completedProductionTasks: productionTasks.filter((task) => task.producedAt).length,
+      invoiceDueAmount: invoiceTotals.due,
+      invoicePaidAmount: invoiceTotals.paid,
+      outstandingInvoiceAmount: invoiceTotals.due - invoiceTotals.paid,
+    },
+    recentProduction: productionTasks.slice(0, 8).map((task) => ({
+      id: task.id,
+      createdAt: task.createdAt,
+      taskName: task.taskName,
+      status: getProductionState(task),
+      dueDate: task.productionDueDate,
+    })),
+    recentInvoices: invoiceTasks.slice(0, 8).map((task) => ({
+      id: task.id,
+      createdAt: task.checkDate || task.createdAt,
+      taskName: task.taskName,
+      amountDue: Number(task.amountDue || 0),
+      amountPaid: Number(task.amountPaid || 0),
+    })),
+    recentJobs: unit.jobs.map((job) => ({
+      id: job.id,
+      createdAt: job.createdAt,
+      title: job.title,
+      status: job.status,
+      type: job.type,
+      amount: Number(job.amount || 0),
+    })),
+  };
 }
 
 /*

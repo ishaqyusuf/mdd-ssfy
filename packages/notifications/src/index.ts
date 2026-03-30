@@ -16,6 +16,10 @@ import { type NotificationTypes, createActivitySchema } from "./schemas";
 import { EmailService } from "./services/email-service";
 import { WhatsAppService } from "./services/whatsapp-service";
 import { dispatchPackingDelay } from "./types/dispatch-packing-delay";
+import { communityUnitProductionBatchUpdated } from "./types/community-unit-production-batch-updated";
+import { communityUnitProductionCompleted } from "./types/community-unit-production-completed";
+import { communityUnitProductionStarted } from "./types/community-unit-production-started";
+import { communityUnitProductionStopped } from "./types/community-unit-production-stopped";
 import { employeeDocumentReview } from "./types/employee-document-review";
 import { jobApproved } from "./types/job-approved";
 import { jobAssigned } from "./types/job-assigned";
@@ -77,6 +81,10 @@ const handlers = {
 	job_task_configure_request: jobTaskConfigureRequest,
 	job_task_configured: jobTaskConfigured,
 	employee_document_review: employeeDocumentReview,
+	community_unit_production_started: communityUnitProductionStarted,
+	community_unit_production_stopped: communityUnitProductionStopped,
+	community_unit_production_completed: communityUnitProductionCompleted,
+	community_unit_production_batch_updated: communityUnitProductionBatchUpdated,
 	sales_dispatch_assigned: salesDispatchAssigned,
 	sales_dispatch_queued: salesDispatchQueued,
 	sales_dispatch_cancelled: salesDispatchCancelled,

@@ -77,7 +77,7 @@ function CompactCustomerCell({ item }: { item: SalesOrderItem }) {
             <Item.Description>
                 <TextWithTooltip
                     className="max-w-[220px] truncate xl:max-w-[300px]"
-                    text={item.address || "-"}
+                    text={item.address || "no address"}
                 />
             </Item.Description>
         </div>

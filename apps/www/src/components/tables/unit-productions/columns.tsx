@@ -7,6 +7,7 @@ import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
 import { Progress } from "@gnd/ui/custom/progress";
 import { cn } from "@gnd/ui/cn";
+import { Item as ListItem } from "@gnd/ui/namespace";
 import { formatDate } from "@gnd/utils/dayjs";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Factory, FolderKanban } from "lucide-react";
@@ -32,62 +33,40 @@ function getStatusTone(item: Item) {
 }
 
 const dueDateColumn: Column = {
-  header: "Due Date",
+  header: "# / Due Date",
   accessorKey: "dueDate",
   meta: {
     sortable: true,
   },
   cell: ({ row: { original: item } }) => (
     <>
-      <TCell.Primary>
-        {item.productionDueDate ? formatDate(item.productionDueDate) : "No due date"}
-      </TCell.Primary>
+      <TCell.Primary>#{item.id}</TCell.Primary>
       <TCell.Secondary>
-        {item.overdue ? "Past due" : formatDate(item.createdAt)}
+        {item.productionDueDate ? formatDate(item.productionDueDate) : "No due date"}
       </TCell.Secondary>
     </>
   ),
 };
 
-const projectColumn: Column = {
-  header: "Project",
-  accessorKey: "project",
+const taskDetailsColumn: Column = {
+  header: "Task Details",
+  accessorKey: "taskDetails",
   meta: {
     sortable: true,
   },
   cell: ({ row: { original: item } }) => (
-    <>
-      <TCell.Primary>{item.project?.title}</TCell.Primary>
-      <TCell.Secondary>{item.project?.builder?.name}</TCell.Secondary>
-    </>
-  ),
-};
-
-const unitColumn: Column = {
-  header: "Unit",
-  accessorKey: "unit",
-  meta: {
-    sortable: true,
-  },
-  cell: ({ row: { original: item } }) => (
-    <>
-      <TCell.Primary>{item.home?.lotBlock}</TCell.Primary>
-      <TCell.Secondary>{item.home?.modelName}</TCell.Secondary>
-    </>
-  ),
-};
-
-const taskColumn: Column = {
-  header: "Task",
-  accessorKey: "task",
-  meta: {
-    sortable: true,
-  },
-  cell: ({ row: { original: item } }) => (
-    <>
-      <TCell.Primary>{item.taskName || "Untitled task"}</TCell.Primary>
-      <TCell.Secondary>#{item.id}</TCell.Secondary>
-    </>
+    <ListItem className="py-0">
+      <ListItem.Title>{item.taskName || "Untitled task"}</ListItem.Title>
+      <ListItem.Description>
+        {item.home?.lotBlock || "No lot/block"}
+      </ListItem.Description>
+      <ListItem.Description>
+        {item.home?.modelName || "No model"}
+      </ListItem.Description>
+      <ListItem.Description>
+        {item.project?.title || "No project"}
+      </ListItem.Description>
+    </ListItem>
   ),
 };
 
@@ -110,9 +89,7 @@ const statusColumn: Column = {
 
 export const columns: Column[] = [
   dueDateColumn,
-  projectColumn,
-  unitColumn,
-  taskColumn,
+  taskDetailsColumn,
   statusColumn,
   {
     header: "",
@@ -165,7 +142,10 @@ function ItemCard({ item }: { item: Item }) {
                 {item.taskName || "Untitled task"}
               </p>
               <p className="truncate text-sm text-slate-600">
-                {item.home?.lotBlock} · {item.home?.modelName}
+                {item.home?.lotBlock || "No lot/block"} · {item.home?.modelName || "No model"}
+              </p>
+              <p className="truncate text-xs text-slate-500">
+                {item.project?.title || "No project"}
               </p>
             </div>
           </div>
@@ -175,29 +155,30 @@ function ItemCard({ item }: { item: Item }) {
         </div>
       </div>
 
-      <div className="mt-4 rounded-2xl bg-slate-50 px-3 py-3">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-          Project
-        </p>
-        <p className="mt-1 text-sm font-semibold text-slate-900">
-          {item.project?.title}
-        </p>
-        <p className="text-xs text-muted-foreground">{item.project?.builder?.name}</p>
-      </div>
-
       <div className="mt-3 grid grid-cols-2 gap-2">
         <div className="rounded-2xl border border-slate-200 px-3 py-3">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Due date
+            # / Due date
           </p>
-          <p className="mt-2 text-sm font-semibold text-slate-900">
+          <p className="mt-2 text-sm font-semibold text-slate-900">#{item.id}</p>
+          <p className="mt-1 text-sm text-slate-700">
             {item.productionDueDate ? formatDate(item.productionDueDate) : "Not set"}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Created {formatDate(item.createdAt)}
           </p>
         </div>
         <div className="rounded-2xl border border-slate-200 px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Project
+          </p>
+          <p className="mt-2 text-sm font-semibold text-slate-900">
+            {item.project?.title || "No project"}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {item.home?.lotBlock || "No lot/block"} · {item.home?.modelName || "No model"}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-2xl border border-slate-200 px-3 py-3">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             Status
           </p>
@@ -214,7 +195,6 @@ function ItemCard({ item }: { item: Item }) {
               ? `${item.jobCount} installation submission${item.jobCount > 1 ? "s" : ""}`
               : item.productionStatus || "Awaiting production activity"}
           </p>
-        </div>
       </div>
 
       <div className="mt-3 rounded-2xl border border-slate-200 px-3 py-3">

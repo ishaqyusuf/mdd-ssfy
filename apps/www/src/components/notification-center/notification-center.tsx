@@ -101,6 +101,32 @@ export function NotificationCenter() {
 				openDocumentReviewId: Number(data.documentId),
 			});
 		},
+		community_unit_production_started: (data, _notification, context) => {
+			context.close();
+			router.push(
+				`/community/unit-productions?ids=${encodeURIComponent(String(data.taskId))}&openUnitProductionId=${encodeURIComponent(String(data.taskId))}`,
+			);
+		},
+		community_unit_production_stopped: (data, _notification, context) => {
+			context.close();
+			router.push(
+				`/community/unit-productions?ids=${encodeURIComponent(String(data.taskId))}&openUnitProductionId=${encodeURIComponent(String(data.taskId))}`,
+			);
+		},
+		community_unit_production_completed: (data, _notification, context) => {
+			context.close();
+			router.push(
+				`/community/unit-productions?ids=${encodeURIComponent(String(data.taskId))}&openUnitProductionId=${encodeURIComponent(String(data.taskId))}`,
+			);
+		},
+		community_unit_production_batch_updated: (data, _notification, context) => {
+			context.close();
+			const ids = Array.isArray(data.taskId) ? data.taskId.join(",") : "";
+			if (!ids) return;
+			router.push(
+				`/community/unit-productions?ids=${encodeURIComponent(ids)}`,
+			);
+		},
 		dispatch_packing_delay: (data, _notification, context) => {
 			context.close();
 			router.push("/sales-book/dispatch");

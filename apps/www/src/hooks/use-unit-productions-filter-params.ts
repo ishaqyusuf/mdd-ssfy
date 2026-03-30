@@ -1,5 +1,5 @@
 import { RouterInputs } from "@api/trpc/routers/_app";
-import { useQueryStates } from "nuqs";
+import { parseAsInteger, useQueryStates } from "nuqs";
 import { createLoader, parseAsArrayOf, parseAsString } from "nuqs/server";
 
 type FilterKeys = keyof Exclude<
@@ -8,6 +8,7 @@ type FilterKeys = keyof Exclude<
 >;
 
 export const unitProductionFilterParams = {
+  ids: parseAsArrayOf(parseAsInteger),
   q: parseAsString,
   builderSlug: parseAsString,
   projectSlug: parseAsString,

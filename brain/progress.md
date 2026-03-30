@@ -16,6 +16,14 @@
 - Added a dedicated mobile card renderer for unit productions so the route now has a modern mobile presentation instead of relying on the older v1 shell.
 - Kept the existing unit production action flow available in the rebuilt table and updated the action path to refresh `/community/unit-productions` after production status changes.
 
+## 2026-03-30
+
+- Added notification delivery for unit-production action flows:
+  - introduced `community_unit_production_started`, `community_unit_production_stopped`, `community_unit_production_completed`, and `community_unit_production_batch_updated`
+  - wired single-row and batch production server actions to emit notifications after successful mutations
+  - added notification-center click handlers that deep-link back into `/community/unit-productions`
+  - extended `community.getUnitProductions` with `ids` filtering so notification clicks can open one or many attributed tasks directly
+
 ## 2026-03-28
 
 - Updated the shared web data-table mobile presentation path to support headerless and borderless mobile rendering.

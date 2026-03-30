@@ -9,6 +9,8 @@ type FilterKeys = keyof Exclude<
 export const communityProjectFilterParams = {
   q: parseAsString,
   builderId: parseAsInteger,
+  refNo: parseAsString,
+  status: parseAsString,
 } satisfies Partial<Record<FilterKeys, any>>;
 
 export function useCommunityProjectFilterParams() {

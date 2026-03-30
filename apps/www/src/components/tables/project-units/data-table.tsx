@@ -1,10 +1,9 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
-import { createTableContext, Table, useTableData } from "@gnd/ui/data-table";
+import { Table, useTableData } from "@gnd/ui/data-table";
 import { columns, mobileColumn } from "./columns";
 import { useProjectUnitFilterParams } from "@/hooks/use-project-units-filter-params";
-import { useProjectUnitParams } from "@/hooks/use-project-units-params";
 import { NoResults } from "@gnd/ui/custom/no-results";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
@@ -14,6 +13,7 @@ import { Icons } from "@gnd/ui/icons";
 import { GetProjectUnitsSchema } from "@api/db/queries/project-units";
 import { BatchActions } from "./batch-actions";
 import { useSortParams } from "@/hooks/use-sort-params";
+import { useRouter } from "next/navigation";
 interface Props {
     defaultFilters?: GetProjectUnitsSchema;
 }
@@ -22,6 +22,7 @@ export function DataTable(props: Props) {
     // const { rowSelection, setRowSelection } = useProjectUnitStore();
     const { filters, hasFilters, setFilters } = useProjectUnitFilterParams();
     const { params, setParams } = useSortParams();
+    const router = useRouter();
     const {
         data,
         ref: loadMoreRef,
@@ -39,7 +40,6 @@ export function DataTable(props: Props) {
         useColumnWidths: true,
         startFromColumn: 2,
     });
-    const { setParams: setProjectUnitParams } = useProjectUnitParams();
     if (hasFilters && !data?.length) {
         return <NoResults setFilter={setFilters} />;
     }
@@ -73,13 +73,10 @@ export function DataTable(props: Props) {
                         hasNextPage,
                     },
                     tableScroll,
-                    // rowSelection,
-                    // setRowSelection,
+                    checkbox: true,
                     tableMeta: {
                         rowClick(id, rowData) {
-                            setProjectUnitParams({
-                                openProjectUnitId: rowData.id,
-                            });
+                            router.push(`/community/project-units/${rowData.slug}`);
                         },
                     },
                 },
@@ -103,4 +100,3 @@ export function DataTable(props: Props) {
         </Table.Provider>
     );
 }
-

@@ -1,4 +1,5 @@
 import { CommunityProjectHeader } from "@/components/community-project-header";
+import { CommunityProjectsAnalyticsCards } from "@/components/community/project-analytics";
 import { ErrorFallback } from "@/components/error-fallback";
 import { DataTable } from "@/components/tables/community-project/data-table";
 import { TableSkeleton } from "@/components/tables/skeleton";
@@ -29,6 +30,11 @@ export default async function Page(props: Props) {
 		trpc.community.getCommunityProjects.infiniteQueryOptions({
 			...filter,
 		}),
+		trpc.community.communityProjectsOverview.queryOptions({
+			builderId: filter.builderId ?? undefined,
+			refNo: (filter as any).refNo ?? undefined,
+			status: (filter as any).status ?? undefined,
+		}),
 	]);
 
 	return (
@@ -37,6 +43,11 @@ export default async function Page(props: Props) {
 			<HydrateClient>
 				<div className="flex flex-col gap-6">
 					<CommunityProjectHeader />
+					<ErrorBoundary errorComponent={ErrorFallback}>
+						<Suspense fallback={<TableSkeleton />}>
+							<CommunityProjectsAnalyticsCards />
+						</Suspense>
+					</ErrorBoundary>
 					<ErrorBoundary errorComponent={ErrorFallback}>
 						<Suspense fallback={<TableSkeleton />}>
 							<DataTable />

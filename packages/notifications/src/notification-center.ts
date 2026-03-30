@@ -1,4 +1,8 @@
 import {
+	type CommunityUnitProductionBatchUpdatedTags,
+	type CommunityUnitProductionCompletedTags,
+	type CommunityUnitProductionStartedTags,
+	type CommunityUnitProductionStoppedTags,
 	type DispatchPackingDelayTags,
 	type EmployeeDocumentReviewTags,
 	type JobSubmittedTags,
@@ -8,6 +12,10 @@ import {
 	type SalesDispatchDuplicateAlertTags,
 	type SalesMarkedAsProductionCompletedTags,
 	type SalesPaymentRecordedTags,
+	communityUnitProductionBatchUpdatedTags,
+	communityUnitProductionCompletedTags,
+	communityUnitProductionStartedTags,
+	communityUnitProductionStoppedTags,
 	dispatchPackingDelayTags,
 	employeeDocumentReviewTags,
 	jobSubmittedTags,
@@ -44,6 +52,22 @@ type NotificationActionPayloadMap = {
 		"type"
 	>;
 	sales_dispatch_assigned: Omit<SalesDispatchAssignedTags, "type">;
+	community_unit_production_started: Omit<
+		CommunityUnitProductionStartedTags,
+		"type"
+	>;
+	community_unit_production_stopped: Omit<
+		CommunityUnitProductionStoppedTags,
+		"type"
+	>;
+	community_unit_production_completed: Omit<
+		CommunityUnitProductionCompletedTags,
+		"type"
+	>;
+	community_unit_production_batch_updated: Omit<
+		CommunityUnitProductionBatchUpdatedTags,
+		"type"
+	>;
 };
 
 export type NotificationActionType = keyof NotificationActionPayloadMap;
@@ -131,6 +155,46 @@ function parseAction(
 		return {
 			type: "employee_document_review",
 			label: "Review",
+			data: parsed.data,
+		};
+	}
+
+	if (type === "community_unit_production_started") {
+		const parsed = communityUnitProductionStartedTags.safeParse(tags);
+		if (!parsed.success) return undefined;
+		return {
+			type: "community_unit_production_started",
+			label: "Open Task",
+			data: parsed.data,
+		};
+	}
+
+	if (type === "community_unit_production_stopped") {
+		const parsed = communityUnitProductionStoppedTags.safeParse(tags);
+		if (!parsed.success) return undefined;
+		return {
+			type: "community_unit_production_stopped",
+			label: "Open Task",
+			data: parsed.data,
+		};
+	}
+
+	if (type === "community_unit_production_completed") {
+		const parsed = communityUnitProductionCompletedTags.safeParse(tags);
+		if (!parsed.success) return undefined;
+		return {
+			type: "community_unit_production_completed",
+			label: "Open Task",
+			data: parsed.data,
+		};
+	}
+
+	if (type === "community_unit_production_batch_updated") {
+		const parsed = communityUnitProductionBatchUpdatedTags.safeParse(tags);
+		if (!parsed.success) return undefined;
+		return {
+			type: "community_unit_production_batch_updated",
+			label: "Open Tasks",
 			data: parsed.data,
 		};
 	}
