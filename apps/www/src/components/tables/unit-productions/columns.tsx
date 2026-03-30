@@ -5,6 +5,7 @@ import UnitTaskProductionAction from "@/components/_v1/actions/unit-task-product
 import { useUnitProductionParams } from "@/hooks/use-unit-productions-params";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
+import { cells } from "@gnd/ui/custom/data-table/cells";
 import { Progress } from "@gnd/ui/custom/progress";
 import { cn } from "@gnd/ui/cn";
 import { Item as ListItem } from "@gnd/ui/namespace";
@@ -88,6 +89,7 @@ const statusColumn: Column = {
 };
 
 export const columns: Column[] = [
+  cells.selectColumn,
   dueDateColumn,
   taskDetailsColumn,
   statusColumn,

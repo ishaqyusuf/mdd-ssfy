@@ -1,7 +1,7 @@
 import { ArchiveIcon } from "@radix-ui/react-icons";
 import { FaFacebook, FaInstagram, FaXTwitter } from "react-icons/fa6";
 import { FiGithub } from "react-icons/fi";
-import { DynamicIcon } from "lucide-react/dynamic";
+// import { DynamicIcon } from "lucide-react/dynamic";
 import {
   MdAdd,
   MdAddLink,
@@ -969,9 +969,7 @@ export const Icons = {
   UserRoundPlus,
   ...IconsBase,
 };
-export type IconKeys =
-  | keyof typeof Icons
-  | ComponentProps<typeof DynamicIcon>["name"];
+export type IconKeys = keyof typeof Icons;
 const iconVariants = cva("", {
   variants: {
     variant: {
@@ -1000,9 +998,9 @@ export function Icon({
   Icon?;
 } & VariantProps<typeof iconVariants>) {
   let RenderIcon = Icons[name] || Icon;
-  if (!RenderIcon && name)
-    RenderIcon = (props) => <DynamicIcon name={name} {...props} />;
-  if (!RenderIcon) return null;
+  // if (!RenderIcon && name)
+  // RenderIcon = (props) => <DynamicIcon name={name} {...props} />;
+  if (!RenderIcon) return <>{name}</>;
   return <RenderIcon className={cn("", iconVariants(props), className)} />;
 }
 export const StatusIcon = ({ status }: { status: string }) => {
