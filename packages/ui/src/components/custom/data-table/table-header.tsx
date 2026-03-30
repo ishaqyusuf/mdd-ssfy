@@ -30,7 +30,7 @@ export function TableHeader({}) {
   });
   const [column, value] = sort || [];
 
-  if (mobileMode?.hideHeader) return null;
+  // if (mobileMode?.hideHeader) return null;
 
   const createSortQuery = (name: string) => {
     // const [currentColumn, currentValue] = sort?.[0]?.split(".") || [];
@@ -56,7 +56,7 @@ export function TableHeader({}) {
       ? null
       : newSort.filter(
           (a, i) =>
-            revSort.find((b) => b.startsWith(a.split(".")[0] + ".")) === a
+            revSort.find((b) => b.startsWith(a.split(".")[0] + ".")) === a,
         );
     setParams({
       sort: ns,
@@ -73,15 +73,12 @@ export function TableHeader({}) {
   return (
     <BaseTableHeader
       className={cn(
-        "border-l-0 border-r-0 bg-muted",
-        mobileMode?.borderless && "border-0 bg-transparent"
+        "border-l-0 border-r-0 bg-muted max-md:hidden",
+        // mobileMode?.borderless && "border-0 bg-transparent",
       )}
     >
       {table.getHeaderGroups().map((headerGroup) => (
-        <TableRow
-          key={headerGroup.id}
-          className="h-[45px] hover:bg-transparent"
-        >
+        <TableRow key={headerGroup.id} className="h-11.25 hover:bg-transparent">
           {headerGroup.headers.map((header, index) => {
             const sortDir = sortedDir(header.id);
 
@@ -97,9 +94,9 @@ export function TableHeader({}) {
                     (header.column.columnDef.meta as any)?.className,
                     (header.column.columnDef.meta as any)?.className,
                     (header.column.columnDef.meta as any)?.actionCell &&
-                      "w-[100px] md:sticky md:right-0 z-30",
+                      "w-25 md:sticky md:right-0 z-30",
                     "h-10 uppercase",
-                    index == 0 && ""
+                    index == 0 && "",
                   )}
                   key={`${header.id}_${index}`}
                 >
@@ -110,7 +107,7 @@ export function TableHeader({}) {
                           className={cn(
                             "p-0 hover:bg-transparent space-x-2",
                             !header?.column?.columnDef?.meta?.sortable &&
-                              "cursor-default"
+                              "cursor-default",
                           )}
                           variant="ghost"
                           onClick={
@@ -147,8 +144,7 @@ function CheckboxHeader({ style = undefined }) {
       style={style}
       className={cn(
         "w-[50px] min-w-[50px] px-3 md:px-4 py-2 md:sticky md:left-0 bg-background z-20 border-r border-border before:absolute before:right-0 before:top-0 before:bottom-0 before:w-px before:bg-border after:absolute after:right-[-24px] after:top-0 after:bottom-0 after:w-6 after:bg-gradient-to-l after:from-transparent after:to-background after:z-[-1]",
-        ctx.mobileMode?.borderless &&
-          "border-r-0 before:hidden after:hidden"
+        ctx.mobileMode?.borderless && "border-r-0 before:hidden after:hidden",
       )}
     >
       <Checkbox
