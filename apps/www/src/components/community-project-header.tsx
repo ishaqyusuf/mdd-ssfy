@@ -3,14 +3,15 @@
 import ProjectModal from "@/app-deps/(v1)/(loggedIn)/community/projects/project-modal";
 import { useModal } from "@/components/common/modal/provider";
 import { communityProjectFilterParams } from "@/hooks/use-community-project-filter-params";
-import { useQueryStates } from "nuqs";
+import { useTRPC } from "@/trpc/client";
 import { SearchFilter } from "@gnd/ui/search-filter";
-import { _trpc } from "./static-trpc";
 import { Button } from "@gnd/ui/button";
 import { Plus } from "lucide-react";
+import { useQueryStates } from "nuqs";
 
 export function CommunityProjectHeader() {
   const modal = useModal();
+  const trpc = useTRPC();
   const [filters, setFilters] = useQueryStates(communityProjectFilterParams);
 
   return (
@@ -18,7 +19,7 @@ export function CommunityProjectHeader() {
       <SearchFilter
         filterSchema={communityProjectFilterParams}
         placeholder="Search Projects..."
-        trpcRoute={_trpc.filters.communityProject}
+        trpcRoute={trpc.filters.communityProject}
         {...{ filters, setFilters }}
       />
       <div className="flex-1" />

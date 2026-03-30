@@ -3,7 +3,8 @@ import { ErrorFallback } from "@/components/error-fallback";
 import PageShell from "@/components/page-shell";
 import { TableSkeleton } from "@/components/tables/skeleton";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
-import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
+import { HydrateClient, batchPrefetch, getQueryClient, trpc } from "@/trpc/server";
+import { PageTitle } from "@gnd/ui/custom/page-title";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { Suspense } from "react";
 
@@ -15,14 +16,24 @@ type Props = {
 
 export async function generateMetadata(props: Props) {
   const { slug } = await props.params;
+  const overview = await getQueryClient().fetchQuery(
+    trpc.community.communityProjectOverview.queryOptions({
+      slug,
+    }),
+  );
 
   return constructMetadata({
-    title: `${slug} | Community Project | GND`,
+    title: `${overview.title} | Community Project | GND`,
   });
 }
 
 export default async function Page(props: Props) {
   const { slug } = await props.params;
+  const overview = await getQueryClient().fetchQuery(
+    trpc.community.communityProjectOverview.queryOptions({
+      slug,
+    }),
+  );
 
   batchPrefetch([
     trpc.community.communityProjectOverview.queryOptions({
@@ -33,11 +44,14 @@ export default async function Page(props: Props) {
   return (
     <PageShell>
       <HydrateClient>
-        <ErrorBoundary errorComponent={ErrorFallback}>
-          <Suspense fallback={<TableSkeleton />}>
-            <CommunityProjectOverviewPage slug={slug} />
-          </Suspense>
-        </ErrorBoundary>
+        <div className="flex flex-col gap-6">
+          <PageTitle>{overview.title}</PageTitle>
+          <ErrorBoundary errorComponent={ErrorFallback}>
+            <Suspense fallback={<TableSkeleton />}>
+              <CommunityProjectOverviewPage slug={slug} />
+            </Suspense>
+          </ErrorBoundary>
+        </div>
       </HydrateClient>
     </PageShell>
   );

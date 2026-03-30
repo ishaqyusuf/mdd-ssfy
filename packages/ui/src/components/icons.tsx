@@ -244,6 +244,7 @@ import {
   FileEdit,
   FileLock,
   UserRoundPlus,
+  BookTemplate,
 } from "lucide-react";
 
 import { Cross2Icon, DashboardIcon } from "@radix-ui/react-icons";
@@ -320,7 +321,7 @@ export const IconsBase = {
   TrendingUp: TrendingUp,
   TrendingDown: TrendingDown,
   Notification: AlertCircle,
-
+  template: BookTemplate,
   time: Timer,
   cart: ShoppingBag,
 
@@ -335,6 +336,7 @@ export const IconsBase = {
   phone: Phone,
   address: MapPin,
   units: Home,
+  home: Home,
   tasks: Pin,
   payment: CreditCard,
   pendingPayment: TimerIcon,

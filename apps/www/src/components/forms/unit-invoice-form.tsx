@@ -60,7 +60,7 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
         taskUid: task.taskUid,
         taskName: task.taskName || "",
         amountDue: task.amountDue || 0,
-        amountPaid: task.amountPaid || 0,
+        amountPaid: task.amountPaid ?? "",
         checkNo: task.checkNo || "",
         checkDate: task.checkDate ? new Date(task.checkDate) : null,
         createdAt: task.createdAt ? new Date(task.createdAt) : null,
@@ -250,17 +250,17 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
         </div>
 
         {/* Desktop table layout */}
-        <div className="hidden overflow-x-auto rounded-2xl border border-slate-200 md:block">
-          <Table>
+        <div className="hidden max-w-full overflow-hidden rounded-2xl border border-slate-200 md:block">
+          <Table className="table-sm w-full table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[200px]">Task</TableHead>
-                <TableHead className="min-w-[140px]">Due</TableHead>
-                <TableHead className="min-w-[140px]">Paid</TableHead>
-                <TableHead className="min-w-[140px]">Check</TableHead>
-                <TableHead className="min-w-[150px]">Check Date</TableHead>
-                <TableHead className="min-w-[150px]">Created</TableHead>
-                <TableHead className="w-[72px]"></TableHead>
+                <TableHead className="w-[34%] px-2 py-2">Task</TableHead>
+                <TableHead className="w-[88px] px-2 py-2">Due</TableHead>
+                <TableHead className="w-[88px] px-2 py-2">Paid</TableHead>
+                <TableHead className="w-[120px] px-2 py-2">Check</TableHead>
+                <TableHead className="w-[132px] px-2 py-2">Check Date</TableHead>
+                <TableHead className="w-[132px] px-2 py-2">Created</TableHead>
+                <TableHead className="w-[52px] px-2 py-2"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -268,23 +268,23 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
                 const taskUid = form.watch(`tasks.${index}.taskUid`);
                 return (
                   <TableRow key={field.id}>
-                    <TableCell>
+                    <TableCell className="px-2 py-1.5">
                         <FormInput
-                          className="mx-0"
+                          className="mx-0 w-full"
                         control={control}
                         inputProps={taskUid ? lockedInputProps : undefined}
                         name={`tasks.${index}.taskName` as const}
                         placeholder="Task name"
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="w-[88px] px-2 py-1.5">
                         <FormInput
-                          className="mx-0"
+                          className="mx-0 w-full"
                         control={control}
                         inputProps={taskUid ? lockedInputProps : undefined}
                         name={`tasks.${index}.amountDue` as const}
                         numericProps={{
-                          className: taskUid ? "h-9 bg-slate-50 text-slate-600" : "h-9",
+                          className: taskUid ? "h-8 px-2 bg-slate-50 text-slate-600" : "h-8 px-2",
                           prefix: "$",
                           placeholder: "$0.00",
                           readOnly: !!taskUid,
@@ -292,50 +292,54 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
                         }}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="w-[88px] px-2 py-1.5">
                         <FormInput
-                          className="mx-0"
+                          className="mx-0 w-full"
                         control={control}
                         name={`tasks.${index}.amountPaid` as const}
                         numericProps={{
-                          className: "h-9",
+                          className: "h-8 px-2",
                           prefix: "$",
                           placeholder: "$0.00",
                           type: "tel",
                         }}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="w-[120px] px-2 py-1.5">
                         <FormInput
-                          className="mx-0"
+                          className="mx-0 w-full"
                         control={control}
+                        inputProps={{
+                          className: "h-8 px-2",
+                        }}
                         name={`tasks.${index}.checkNo` as const}
                         placeholder="Check no."
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="w-[132px] px-2 py-1.5">
                       <FormDate
-                        className="mx-0"
+                        className="mx-0 w-full"
                         control={control}
                         name={`tasks.${index}.checkDate` as const}
                         placeholder="Set date"
                         size="sm"
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="w-[132px] px-2 py-1.5">
                       <FormDate
-                        className="mx-0"
+                        className="mx-0 w-full"
                         control={control}
                         name={`tasks.${index}.createdAt` as const}
                         placeholder="Created"
                         size="sm"
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="w-[52px] px-2 py-1.5">
                       <Button
                         type="button"
                         size="icon"
                         variant="ghost"
+                        className="size-8"
                         disabled={!!taskUid || deleteTask.isPending}
                         onClick={async () => {
                           const taskId = form.getValues(`tasks.${index}.id`);
@@ -365,7 +369,7 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
             append({
               taskName: "",
               amountDue: 0,
-              amountPaid: 0,
+              amountPaid: "",
               checkNo: "",
               checkDate: null,
               createdAt: new Date(),
