@@ -69,12 +69,20 @@ export function PaymentDashboard() {
 								jump into the pay portal when finance is ready to batch jobs.
 							</p>
 						</div>
-						<Button asChild size="lg" className="min-w-[220px]">
-							<Link href="/contractors/jobs/payment-portal">
-								<CreditCard data-icon="inline-start" />
-								Open payment portal
-							</Link>
-						</Button>
+						<div className="flex flex-col gap-3 sm:flex-row">
+							<Button asChild size="lg" variant="outline" className="min-w-[180px]">
+								<Link href="/contractors/jobs/payments">
+									<ReceiptText data-icon="inline-start" />
+									View payouts
+								</Link>
+							</Button>
+							<Button asChild size="lg" className="min-w-[220px]">
+								<Link href="/contractors/jobs/payment-portal">
+									<CreditCard data-icon="inline-start" />
+									Open payment portal
+								</Link>
+							</Button>
+						</div>
 					</div>
 
 					<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -229,9 +237,10 @@ export function PaymentDashboard() {
 								</p>
 							) : (
 								recentPayments.map((payment) => (
-									<div
+									<Link
 										key={payment.id}
-										className="flex items-start justify-between gap-3 rounded-2xl border p-4"
+										href={`/contractors/jobs/payments?openContractorPayoutId=${payment.id}`}
+										className="flex items-start justify-between gap-3 rounded-2xl border p-4 transition-colors hover:bg-muted/30"
 									>
 										<div className="min-w-0 space-y-1">
 											<p className="truncate font-medium text-foreground">
@@ -253,13 +262,13 @@ export function PaymentDashboard() {
 										<p className="shrink-0 text-base font-semibold text-foreground">
 											{formatCurrency(payment.amount)}
 										</p>
-									</div>
+									</Link>
 								))
 							)}
 							<Button asChild variant="outline" className="w-full" size="lg">
-								<Link href="/contractors/jobs/payment-portal">
-									<CreditCard data-icon="inline-start" />
-									Go to payment portal
+								<Link href="/contractors/jobs/payments">
+									<ReceiptText data-icon="inline-start" />
+									View all payouts
 								</Link>
 							</Button>
 						</CardContent>

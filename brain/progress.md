@@ -791,3 +791,10 @@
 - Replaced the legacy invoice editor with a query-param-driven `CustomModal` flow (`use-unit-invoice-params`, `unit-invoice-modal.tsx`, `unit-invoice-form.tsx`) modeled after the newer model-cost/install-cost modal architecture, including summary cards, editable invoice rows, add-task support, and footer actions.
 - Validation note: full app/API typechecks still report broad pre-existing repository errors, but targeted greps of `bunx tsc -p apps/api/tsconfig.json --noEmit --pretty false` and `bunx tsc -p apps/www/tsconfig.json --noEmit --pretty false` reported no `unit-invoices` or `unit-invoice` file errors after the migration fixes.
 - Fixed a save regression in the new unit invoice modal where configured task dues were being zeroed on submit. Root cause was disabled form fields dropping out of the payload; the form now keeps those values as read-only inputs and the save mutation now preserves configured due/task values if a sparse payload reaches the API.
+
+## 2026-03-30
+
+- Added a new contractor payments page at `/contractors/jobs/payments` backed by `jobs.contractorPayouts`, showing payout amount, date, authorized by, paid to, and number of jobs in a modern desktop/mobile data table.
+- Added payout overview support through `jobs.contractorPayoutOverview` and a `CustomModal` detail view so finance can inspect a payout batch, included jobs, adjustments, and payout metadata without leaving the page.
+- Extended the existing payment dashboard with new CTAs to `View payouts`, made recent payment cards deep-link into the payout overview modal, and added the new payments page to the HRM payment sidebar submenu.
+- Validation note: targeted greps of `bunx tsc -p apps/api/tsconfig.json --noEmit --pretty false` and `bunx tsc -p apps/www/tsconfig.json --noEmit --pretty false` reported no matching errors for the new contractor payout files or touched payment dashboard files.

@@ -309,10 +309,21 @@ export const linkModules = [
                             "viewJobPayment",
                         ),
                     ).data,
+                    _subLink(
+                        "Payments",
+                        "/contractors/jobs/payments",
+                    ).access(
+                        _perm.every(
+                            "viewProject",
+                            "viewInvoice",
+                            "viewJobPayment",
+                        ),
+                    ).data,
                 )
                 .childPaths(
                     "/contractors/jobs/payment-dashboard",
                     "/contractors/jobs/payment-portal",
+                    "/contractors/jobs/payments",
                 ).data,
         ]),
         // profileSection,
@@ -741,4 +752,3 @@ export function getActiveLinkFromMap(
         )
         .sort(([hrefA], [hrefB]) => hrefB.length - hrefA.length)?.[0]?.[1];
 }
-

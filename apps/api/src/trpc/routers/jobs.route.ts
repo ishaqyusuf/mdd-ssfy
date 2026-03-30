@@ -4,6 +4,10 @@ import {
 	createJob,
 	createPaymentPortal,
 	createPaymentPortalSchema,
+	getContractorPayoutOverview,
+	getContractorPayoutOverviewSchema,
+	getContractorPayouts,
+	getContractorPayoutsSchema,
 	earningAnalytics,
 	earningAnalyticsSchema,
 	getInstallCosts,
@@ -352,6 +356,16 @@ export const jobRoutes = createTRPCRouter({
 		.input(getPaymentPortalSchema)
 		.query(async (props) => {
 			return getPaymentPortal(props.ctx, props.input);
+		}),
+	contractorPayouts: publicProcedure
+		.input(getContractorPayoutsSchema)
+		.query(async (props) => {
+			return getContractorPayouts(props.ctx, props.input);
+		}),
+	contractorPayoutOverview: publicProcedure
+		.input(getContractorPayoutOverviewSchema)
+		.query(async (props) => {
+			return getContractorPayoutOverview(props.ctx, props.input);
 		}),
 	createPaymentPortal: publicProcedure
 		.input(createPaymentPortalSchema)

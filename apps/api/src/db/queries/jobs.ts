@@ -514,6 +514,269 @@ export async function getPaymentDashboard(
 	};
 }
 
+export const getContractorPayoutsSchema = z
+	.object({
+		q: z.string().optional().nullable(),
+	})
+	.extend(paginationSchema.shape);
+export type GetContractorPayoutsSchema = z.infer<
+	typeof getContractorPayoutsSchema
+>;
+
+function whereContractorPayouts(query: GetContractorPayoutsSchema) {
+	const where: Prisma.JobPaymentsWhereInput[] = [
+		{
+			deletedAt: null,
+		},
+	];
+
+	if (query.q?.trim()) {
+		const q = query.q.trim();
+		where.push({
+			OR: [
+				{
+					user: {
+						name: {
+							contains: q,
+						},
+					},
+				},
+				{
+					payer: {
+						name: {
+							contains: q,
+						},
+					},
+				},
+				{
+					paymentMethod: {
+						contains: q,
+					},
+				},
+				{
+					checkNo: {
+						contains: q,
+					},
+				},
+			],
+		});
+	}
+
+	return composeQuery(where);
+}
+
+function sortPayouts(
+	sort,
+	sortOrder,
+): Prisma.JobPaymentsOrderByWithRelationInput | undefined {
+	switch (sort) {
+		case "amount":
+			return {
+				amount: sortOrder || "desc",
+			};
+		case "paidTo":
+			return {
+				user: {
+					name: sortOrder || "asc",
+				},
+			};
+		case "authorizedBy":
+			return {
+				payer: {
+					name: sortOrder || "asc",
+				},
+			};
+		case "date":
+		default:
+			return {
+				createdAt: sortOrder || "desc",
+			};
+	}
+}
+
+export async function getContractorPayouts(
+	ctx: TRPCContext,
+	query: GetContractorPayoutsSchema,
+) {
+	const model = ctx.db.jobPayments;
+	const { response, searchMeta, where } = await composeQueryData(
+		query,
+		whereContractorPayouts(query),
+		model,
+		{
+			sortFn: sortPayouts,
+		},
+	);
+
+	const payouts = await model.findMany({
+		where,
+		...searchMeta,
+		select: {
+			id: true,
+			amount: true,
+			subTotal: true,
+			charges: true,
+			paymentMethod: true,
+			checkNo: true,
+			createdAt: true,
+			user: {
+				select: {
+					id: true,
+					name: true,
+				},
+			},
+			payer: {
+				select: {
+					id: true,
+					name: true,
+				},
+			},
+			_count: {
+				select: {
+					jobs: true,
+				},
+			},
+		},
+	});
+
+	return response(
+		payouts.map((item) => ({
+			id: item.id,
+			amount: Number(item.amount || 0),
+			subTotal: Number(item.subTotal || 0),
+			charges: Number(item.charges || 0),
+			paymentMethod: item.paymentMethod || "Unknown",
+			checkNo: item.checkNo || null,
+			createdAt: item.createdAt,
+			paidTo: item.user?.name || "Unknown contractor",
+			authorizedBy: item.payer?.name || "Unknown payer",
+			jobCount: item._count.jobs,
+		})),
+	);
+}
+
+export const getContractorPayoutOverviewSchema = z.object({
+	paymentId: z.number(),
+});
+export type GetContractorPayoutOverviewSchema = z.infer<
+	typeof getContractorPayoutOverviewSchema
+>;
+
+export async function getContractorPayoutOverview(
+	ctx: TRPCContext,
+	input: GetContractorPayoutOverviewSchema,
+) {
+	const payout = await ctx.db.jobPayments.findFirstOrThrow({
+		where: {
+			id: input.paymentId,
+			deletedAt: null,
+		},
+		select: {
+			id: true,
+			amount: true,
+			subTotal: true,
+			charges: true,
+			paymentMethod: true,
+			checkNo: true,
+			meta: true,
+			createdAt: true,
+			user: {
+				select: {
+					id: true,
+					name: true,
+					email: true,
+				},
+			},
+			payer: {
+				select: {
+					id: true,
+					name: true,
+				},
+			},
+			adjustments: {
+				where: {
+					deletedAt: null,
+				},
+				orderBy: {
+					createdAt: "asc",
+				},
+				select: {
+					id: true,
+					amount: true,
+					type: true,
+					description: true,
+					createdAt: true,
+				},
+			},
+			jobs: {
+				orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+				select: {
+					id: true,
+					title: true,
+					subtitle: true,
+					amount: true,
+					status: true,
+					createdAt: true,
+					project: {
+						select: {
+							title: true,
+						},
+					},
+					home: {
+						select: {
+							lotBlock: true,
+							modelName: true,
+						},
+					},
+				},
+			},
+		},
+	});
+
+	return {
+		id: payout.id,
+		amount: Number(payout.amount || 0),
+		subTotal: Number(payout.subTotal || 0),
+		charges: Number(payout.charges || 0),
+		paymentMethod: payout.paymentMethod || "Unknown",
+		checkNo: payout.checkNo || null,
+		createdAt: payout.createdAt,
+		paidTo: payout.user
+			? {
+					id: payout.user.id,
+					name: payout.user.name || "Unknown contractor",
+					email: payout.user.email || null,
+				}
+			: null,
+		authorizedBy: payout.payer
+			? {
+					id: payout.payer.id,
+					name: payout.payer.name || "Unknown payer",
+				}
+			: null,
+		meta: (payout.meta as Record<string, unknown> | null) || null,
+		jobCount: payout.jobs.length,
+		adjustments: payout.adjustments.map((item) => ({
+			id: item.id,
+			type: item.type,
+			description: item.description || null,
+			amount: Number(item.amount || 0),
+			createdAt: item.createdAt,
+		})),
+		jobs: payout.jobs.map((job) => ({
+			id: job.id,
+			title: job.title,
+			subtitle: job.subtitle,
+			amount: Number(job.amount || 0),
+			status: job.status,
+			createdAt: job.createdAt,
+			projectTitle: job.project?.title || null,
+			lotBlock: job.home?.lotBlock || null,
+			modelName: job.home?.modelName || null,
+		})),
+	};
+}
+
 export const getPaymentPortalSchema = z.object({
 	userId: z.number(),
 	q: z.string().optional().nullable(),
