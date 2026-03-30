@@ -49,9 +49,9 @@ export default async function proxy(req: NextRequest) {
                 return NextResponse.redirect(url);
             }
         } else if (!canAccessPath(auth, pathName)) {
-            // if (defaultLink && defaultLink !== pathName) {
-            //     return NextResponse.redirect(new URL(defaultLink, req.url));
-            // }
+            if (defaultLink && defaultLink !== pathName) {
+                return NextResponse.redirect(new URL(defaultLink, req.url));
+            }
         }
     }
     if (pathName === "/" || isLogin) {

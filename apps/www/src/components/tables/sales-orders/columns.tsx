@@ -211,6 +211,7 @@ export const columns2: ColumnDef<SalesOrderItem>[] = [
     },
     {
         header: "Method",
+        id: "deliveryMethod",
         accessorKey: "dispatch",
         cell: ({ row: { original: item } }) => (
             <Progress.Status>
@@ -231,6 +232,7 @@ export const columns2: ColumnDef<SalesOrderItem>[] = [
     },
     {
         header: "Fulfillment",
+        id: "fulfillmentStatus",
         accessorKey: "dispatch",
         cell: ({ row: { original: item } }) => (
             <Progress.Status>{getFulfillmentStatusLabel(item)}</Progress.Status>
@@ -323,6 +325,7 @@ export const columns: ColumnDef<SalesOrderItem>[] = [
 
     {
         header: "Method",
+        id: "deliveryMethod",
         accessorKey: "dispatch",
         cell: ({ row: { original: item } }) => (
             <Progress.Status>
@@ -343,6 +346,7 @@ export const columns: ColumnDef<SalesOrderItem>[] = [
     },
     {
         header: "Fulfillment",
+        id: "fulfillmentStatus",
         accessorKey: "dispatch",
         cell: ({ row: { original: item } }) => (
             <Progress.Status>{getFulfillmentStatusLabel(item)}</Progress.Status>
@@ -920,4 +924,3 @@ function ItemCard({ item }: ItemProps) {
         </div>
     );
 }
-
