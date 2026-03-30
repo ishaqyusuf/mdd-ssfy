@@ -654,7 +654,7 @@ export function GeneralTab({}) {
                         </CardContent>
                     </Card>
                 </div>
-                <SalesOverviewInbox saleData={saleData} />
+                {/* <SalesOverviewInbox saleData={saleData} /> */}
                 <GeneralFooter />
             </div>
         </DataSkeletonProvider>

@@ -46,7 +46,7 @@ const model: Column = {
     },
     cell: ({ row: { original: item } }) => (
         <>
-            <Link href={`/community/community-template/${item?.slug}`}>
+            <Link href={`/community/community-template/${item?.slug}/v1`}>
                 {/* <Link href={`/community/model-template/${item?.slug}`}> */}
                 <TCell.Primary>{item.modelName}</TCell.Primary>
             </Link>
@@ -301,7 +301,7 @@ function ItemCard({ item }: ItemProps) {
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-start gap-3">
                 <Link
-                    href={`/community/community-template/${item?.slug}`}
+                    href={`/community/community-template/${item?.slug}/v1`}
                     className="min-w-0 flex-1 text-left"
                 >
                     <p className="text-base font-semibold text-slate-900">
@@ -385,3 +385,4 @@ function ItemCard({ item }: ItemProps) {
         </div>
     );
 }
+

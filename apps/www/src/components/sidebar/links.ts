@@ -329,40 +329,39 @@ export const linkModules = [
     ]),
     _module("Community", "communityInvoice", "GND Community", [
         _section("main", null, [
+            _link("Dashboard", "dashbord2", "/community").access(canEditProject)
+                .data,
+            _link("Projects", "communityInvoice", "/community/projects").access(
+                canEditProject,
+            ).data,
+            _link("Units", "home", "/community/project-units").access(
+                canEditProject,
+            ).data,
             _link(
-                "Dashboard",
-                "dashbord2",
-                "/community",
-            )
-                .access(canEditProject)
-                .data,
-            _link("Projects", "communityInvoice", "/community/projects")
-                .access(canEditProject)
-                .data,
-            _link("Units", "home", "/community/project-units")
-                .access(canEditProject)
-                .data,
-            _link("Productions", "production", "/community/unit-productions")
-                .access(_perm.in("editCommunity", "editProduction"))
-                .data,
-            _link("Invoices", "billing", "/community/unit-invoices")
-                .access(_perm.in("viewInvoice"))
-                .data,
+                "Productions",
+                "production",
+                "/community/unit-productions",
+            ).access(_perm.in("editCommunity", "editProduction")).data,
+            _link("Invoices", "billing", "/community/unit-invoices").access(
+                _perm.in("viewInvoice"),
+            ).data,
             _link("Templates", "template", "/community/templates")
                 .access(canEditProject)
                 .childPaths(
                     "/settings/community/community-template/slug",
                     "/community/community-template/slug",
+                    "/community/community-template/slug/v1",
                     "/community/model-template/slug",
                     "/community/template-schema",
-                )
-                .data,
-            _link("Builders", "builder", "/community/builders")
-                .access(_perm.in("editCommunity", "viewBuilders"))
-                .data,
-            _link("Install Costs", "payment", "/community/install-costs")
-                .access(canEditProject)
-                .data,
+                ).data,
+            _link("Builders", "builder", "/community/builders").access(
+                _perm.in("editCommunity", "viewBuilders"),
+            ).data,
+            _link(
+                "Install Costs",
+                "payment",
+                "/community/install-costs",
+            ).access(canEditProject).data,
         ]),
         _section("main", null, [
             _link(
@@ -742,3 +741,4 @@ export function getActiveLinkFromMap(
         )
         .sort(([hrefA], [hrefB]) => hrefB.length - hrefA.length)?.[0]?.[1];
 }
+
