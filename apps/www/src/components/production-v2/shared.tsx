@@ -6,6 +6,7 @@ import {
 	ProductionItemNotes,
 	ProductionOrderNotes,
 } from "@/components/production-v2/production-notes";
+import { useAuth } from "@/hooks/use-auth";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
@@ -39,7 +40,6 @@ import { Menu } from "@gnd/ui/custom/menu";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
-import { Progress } from "@gnd/ui/progress";
 import {
 	Select,
 	SelectContent,
@@ -212,7 +212,7 @@ export function ProductionWorkerDashboardV2() {
 	return (
 		<ProductionV2Board
 			scope="worker"
-			title="Production Dashboard v2"
+			title="Production Dashboard"
 			description="A worker-first production screen with inline order detail, activity, and action zones."
 		/>
 	);
@@ -278,7 +278,9 @@ function ProductionV2Board({
 				size: 20,
 			},
 			{
-				getNextPageParam: (lastPage) => lastPage.meta?.cursor || undefined,
+				getNextPageParam: (lastPage) =>
+					(lastPage as { meta?: { cursor?: string | null } })?.meta?.cursor ||
+					undefined,
 			},
 		),
 	);
@@ -956,13 +958,17 @@ function ProductionOrderDetailInline({
 					activityTag("salesNo", salesNo),
 				]);
 	const orderNotesQuery = useQuery(
-		trpc.notes.activityTree.queryOptions({
-			filter: orderNotesFilter,
-			includeChildren: true,
-			pageSize: 100,
-			maxDepth: 4,
-			enabled: !!resolvedSalesId,
-		}),
+		trpc.notes.activityTree.queryOptions(
+			{
+				filter: orderNotesFilter,
+				includeChildren: true,
+				pageSize: 100,
+				maxDepth: 4,
+			},
+			{
+				enabled: !!resolvedSalesId,
+			},
+		),
 	);
 	const orderNotesCount = countActivityNodes(
 		(orderNotesQuery.data?.data as ActivityCountNode[] | undefined) || [],
@@ -1022,6 +1028,11 @@ function ProductionOrderDetailInline({
 		deliveredSubmissionCount === 0;
 	const canDeleteSubmissions =
 		submittedItems.length > 0 && deliveredSubmissionCount === 0;
+	const submissionIds = productionItems.flatMap((item) =>
+		(item.assignments || []).flatMap((assignment) =>
+			(assignment.submissions || []).map((submission) => submission.id),
+		),
+	);
 
 	return (
 		<Tabs defaultValue="productions" className="p-5">
@@ -1050,6 +1061,7 @@ function ProductionOrderDetailInline({
 							canDeleteAssignments={canDeleteAssignments}
 							canDeleteSubmissions={canDeleteSubmissions}
 							productionItemIds={productionItems.map((item) => item.itemId)}
+							submissionIds={submissionIds}
 							submittedItemIds={submittedItems.map((item) => item.itemId)}
 							onAction={(payload) =>
 								actionTrigger.triggerWithAuth("update-sales-control", payload)
@@ -1121,7 +1133,7 @@ function ProductionOrderDetailInline({
 																	</p>
 																</div>
 															</div>
-															<div className="mt-4 grid gap-3 md:grid-cols-3">
+															<div className="mt-4 grid gap-3 md:grid-cols-2">
 																<ProductionStatProgress
 																	label="Assigned"
 																	completed={
@@ -1135,14 +1147,6 @@ function ProductionOrderDetailInline({
 																	completed={
 																		productionItem.analytics?.stats
 																			?.prodCompleted?.qty
-																	}
-																	total={productionItem.qty?.qty}
-																/>
-																<ProductionStatProgress
-																	label="Fulfilled"
-																	completed={
-																		productionItem.analytics?.stats
-																			?.dispatchCompleted?.qty
 																	}
 																	total={productionItem.qty?.qty}
 																/>
@@ -1168,7 +1172,7 @@ function ProductionOrderDetailInline({
 																	</p>
 																</div>
 															</div>
-															<div className="mt-4 grid gap-3 md:grid-cols-3">
+															<div className="mt-4 grid gap-3 md:grid-cols-2">
 																<ProductionStatProgress
 																	label="Assigned"
 																	completed={
@@ -1182,14 +1186,6 @@ function ProductionOrderDetailInline({
 																	completed={
 																		productionItem.analytics?.stats
 																			?.prodCompleted?.qty
-																	}
-																	total={productionItem.qty?.qty}
-																/>
-																<ProductionStatProgress
-																	label="Fulfilled"
-																	completed={
-																		productionItem.analytics?.stats
-																			?.dispatchCompleted?.qty
 																	}
 																	total={productionItem.qty?.qty}
 																/>
@@ -1297,6 +1293,24 @@ function ProductionItemDetailTabs({
 	productionItem: ProductionDetail["items"][number];
 }) {
 	const trpc = useTRPC();
+	const queryClient = useQueryClient();
+	const auth = useAuth();
+	const actionTrigger = useTaskTrigger({
+		successToast: "Production action completed",
+		onSuccess: async () => {
+			await Promise.all([
+				queryClient.invalidateQueries({
+					queryKey: trpc.sales.productionsV2.pathKey(),
+				}),
+				queryClient.invalidateQueries({
+					queryKey: trpc.sales.productionDashboardV2.pathKey(),
+				}),
+				queryClient.invalidateQueries({
+					queryKey: trpc.sales.productionOrderDetailV2.pathKey(),
+				}),
+			]);
+		},
+	});
 	const notesQuery = useQuery(
 		trpc.notes.activityTree.queryOptions({
 			filter: activityAnd([
@@ -1315,6 +1329,27 @@ function ProductionItemDetailTabs({
 		(notesQuery.data?.data as ActivityCountNode[] | undefined) || [],
 	);
 	const assignmentsCount = productionItem.assignments?.length || 0;
+	const submissionIds = (productionItem.assignments || []).flatMap(
+		(assignment) =>
+			(assignment.submissions || []).map((submission) => submission.id),
+	);
+	const deliveredSubmissionCount = (productionItem.assignments || []).reduce(
+		(total, assignment) =>
+			total +
+			(assignment.submissions?.reduce(
+				(submissionTotal, submission) =>
+					submissionTotal + (submission.deliveredQty || 0),
+				0,
+			) || 0),
+		0,
+	);
+	const workerId = auth.id ? Number(auth.id) : null;
+	const canSubmitThisItem =
+		scope === "worker" && assignmentsCount > 0 && !!workerId;
+	const canDeleteThisItem =
+		scope === "worker" &&
+		submissionIds.length > 0 &&
+		deliveredSubmissionCount === 0;
 
 	return (
 		<Tabs defaultValue="information" className="space-y-4">
@@ -1362,10 +1397,38 @@ function ProductionItemDetailTabs({
 								</>
 							) : (
 								<>
-									<Button size="sm" disabled>
+									<Button
+										size="sm"
+										disabled={!canSubmitThisItem}
+										onClick={() =>
+											actionTrigger.triggerWithAuth("update-sales-control", {
+												meta: {
+													salesId: productionItem.salesId,
+												},
+												submitAll: {
+													assignedToId: workerId,
+													itemUids: [productionItem.controlUid],
+												},
+											} as UpdateSalesControl)
+										}
+									>
 										Submit Assignment
 									</Button>
-									<Button size="sm" variant="outline" disabled>
+									<Button
+										size="sm"
+										variant="outline"
+										disabled={!canDeleteThisItem}
+										onClick={() =>
+											actionTrigger.triggerWithAuth("update-sales-control", {
+												meta: {
+													salesId: productionItem.salesId,
+												},
+												deleteSubmissions: {
+													submissionIds,
+												},
+											} as UpdateSalesControl)
+										}
+									>
 										Delete Submission
 									</Button>
 								</>
@@ -1462,6 +1525,7 @@ function ProductionOrderActionsMenu({
 	assignableSelections,
 	submittableItemUids,
 	productionItemIds,
+	submissionIds,
 	submittedItemIds,
 	canDeleteAssignments,
 	canDeleteSubmissions,
@@ -1473,11 +1537,13 @@ function ProductionOrderActionsMenu({
 	assignableSelections: { uid: string; qty: { qty: number } }[];
 	submittableItemUids: string[];
 	productionItemIds: number[];
+	submissionIds: number[];
 	submittedItemIds: number[];
 	canDeleteAssignments: boolean;
 	canDeleteSubmissions: boolean;
 	onAction: (payload: UpdateSalesControl) => void;
 }) {
+	const auth = useAuth();
 	const [open, setOpen] = useState(false);
 	const [step, setStep] = useState<"main" | "worker" | "due-date">("main");
 	const [assignedToId, setAssignedToId] = useState("");
@@ -1541,6 +1607,8 @@ function ProductionOrderActionsMenu({
 									salesId,
 								},
 								submitAll: {
+									assignedToId:
+										scope === "worker" && auth.id ? Number(auth.id) : null,
 									itemUids: submittableItemUids,
 								},
 							} as UpdateSalesControl);
@@ -1560,7 +1628,8 @@ function ProductionOrderActionsMenu({
 									salesId,
 								},
 								deleteSubmissions: {
-									itemIds: submittedItemIds,
+									submissionIds: scope === "worker" ? submissionIds : undefined,
+									itemIds: scope === "worker" ? undefined : submittedItemIds,
 								},
 							} as UpdateSalesControl);
 							closeMenu();

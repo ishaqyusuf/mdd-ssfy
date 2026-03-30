@@ -463,6 +463,9 @@ export const linkModules = [
                     _perm.is("viewBuilders"),
                 ).data,
             ]).data,
+            _link("Mobile App", "monitor", "/settings/mobile-app")
+                .access(_role.is("Super Admin"))
+                .data,
         ]),
     ]),
     _module("Sales", "orders", "GND Sales", [

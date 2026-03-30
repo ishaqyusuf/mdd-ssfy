@@ -1,34 +1,52 @@
-// app/api/download/route.ts
 import { NextResponse } from "next/server";
+import { prisma } from "@/db";
 
-export const runtime = "nodejs"; // 👈 REQUIRED
+export const runtime = "nodejs";
 
-export async function GET(req: Request) {
-    const { searchParams } = new URL(req.url);
-    const appId = "wzndhMn6VCH7sv11V7KJ4Q";
-    const versionNumber = "1.0.305";
-    const fileUrl =
-        searchParams.get("url") ??
-        `https://expo.dev/artifacts/eas/${appId}.apk`;
+export async function GET() {
+    const setting = await prisma.settings.findFirst({
+        where: {
+            type: "app-download-apk",
+        },
+        select: {
+            meta: true,
+        },
+    });
+
+    const meta = (setting?.meta || {}) as {
+        downloadUrl?: string | null;
+        fileName?: string | null;
+        version?: string | null;
+    };
+    const fileUrl = meta.downloadUrl?.trim();
+
+    if (!fileUrl) {
+        return NextResponse.json(
+            { error: "No APK has been uploaded yet." },
+            { status: 404 },
+        );
+    }
 
     const filename =
-        searchParams.get("name") ?? `GND-Millwork ${versionNumber}.apk`;
+        meta.fileName?.trim() ||
+        `GND-Millwork${meta.version ? `-${meta.version}` : ""}.apk`;
 
     const res = await fetch(fileUrl);
 
     if (!res.ok || !res.body) {
         return NextResponse.json(
-            { error: "Failed to fetch file" },
+            { error: "Failed to fetch the uploaded APK file." },
             { status: 400 },
         );
     }
 
     return new NextResponse(res.body, {
         headers: {
-            "Content-Type": "application/vnd.android.package-archive",
+            "Content-Type":
+                res.headers.get("content-type") ||
+                "application/vnd.android.package-archive",
             "Content-Disposition": `attachment; filename="${filename}"`,
             "Cache-Control": "no-store",
         },
     });
 }
-

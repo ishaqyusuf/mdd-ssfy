@@ -14,16 +14,6 @@ export async function getSalesProductions(
 	db: Db,
 	query: SalesProductionQueryParams,
 ) {
-	const excludes: (keyof SalesProductionQueryParams)[] = [
-		"sort",
-		"size",
-		"cursor",
-		"workerId",
-	];
-	const q = Object.entries(query)?.filter(
-		([a, b]) => b && !excludes.includes(a as keyof SalesProductionQueryParams),
-	);
-	const queryCount = q?.length;
 	const assignedToId = query.workerId || query.assignedToId;
 	const normalizedQuery = {
 		...query,
@@ -65,19 +55,6 @@ export async function getSalesProductions(
 		case "past-due":
 			return await getPastDue();
 	}
-
-	const dueToday =
-		!query.cursor && !queryCount ? (await getDueToday())?.data : [];
-
-	const pastDue = !query.cursor && !queryCount ? (await getPastDue()).data : [];
-	const customs = [...dueToday, ...pastDue].filter((a) => !a.completed);
-	if (!queryCount)
-		return {
-			data: customs,
-			meta: {
-				count: customs.length,
-			} as PageDataMeta,
-		};
 	const response = await getProductionListAction(db, {
 		...normalizedQuery,
 		salesType: "order",
@@ -97,8 +74,6 @@ export async function getSalesProductionDashboard(
 	const baseQuery: SalesProductionQueryParams = {
 		...query,
 		assignedToId,
-		"production.assignedToId":
-			query["production.assignedToId"] || assignedToId || undefined,
 		workerId: query.workerId,
 		production: "pending",
 		size: 500,
@@ -107,6 +82,8 @@ export async function getSalesProductionDashboard(
 	const [queueResponse, dueToday, dueTomorrow, pastDue] = await Promise.all([
 		getProductionListAction(db, {
 			...baseQuery,
+			"production.assignedToId":
+				query["production.assignedToId"] || assignedToId || undefined,
 			salesType: "order",
 		} as SalesQueryParamsSchema),
 		getSalesProductions(db, { ...baseQuery, show: "due-today" }),

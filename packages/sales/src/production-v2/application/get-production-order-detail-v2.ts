@@ -14,12 +14,8 @@ export async function getProductionOrderDetailV2(
 		assignedToId: resolvedAssignedToId,
 	});
 
-	return {
-		orderId: data.order.orderId,
-		salesId: data.order.id,
-		customer:
-			data.order.customer?.name || data.order.customer?.businessName || null,
-		items: data.items.map((item) => ({
+	const items = data.items
+		.map((item) => ({
 			controlUid: item.controlUid,
 			salesId: item.salesId,
 			itemId: item.itemId,
@@ -84,7 +80,17 @@ export async function getProductionOrderDetailV2(
 							),
 					})),
 				})),
-		})),
+		}))
+		.filter((item) =>
+			query.scope === "worker" ? (item.assignments?.length || 0) > 0 : true,
+		);
+
+	return {
+		orderId: data.order.orderId,
+		salesId: data.order.id,
+		customer:
+			data.order.customer?.name || data.order.customer?.businessName || null,
+		items,
 		actions: {
 			canQuickAssign: query.scope === "admin",
 			canSubmitProduction: query.scope === "worker",

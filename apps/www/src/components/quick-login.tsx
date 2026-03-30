@@ -10,7 +10,11 @@ import { env } from "@/env.mjs";
 
 export default function QuickLogin({}) {
     const trpc = useTRPC();
-    const data = useQuery(trpc.hrm.getEmployees.queryOptions({}));
+    const data = useQuery(
+        trpc.hrm.getEmployees.queryOptions({
+            size: 999,
+        }),
+    );
     const searchParams = useSearchParams();
     const callbackUrl = getLoginCallbackUrl(searchParams);
     async function login(email) {
@@ -50,3 +54,4 @@ function getLoginCallbackUrl(searchParams: URLSearchParams) {
 
     return "/";
 }
+
