@@ -6,6 +6,8 @@ import {
   communityDashboardOverviewSchema,
   communityProjectOverview,
   communityProjectOverviewSchema,
+  uploadCommunityProjectDocuments,
+  uploadCommunityProjectDocumentsSchema,
   communityProjectUnitOverview,
   communityProjectUnitOverviewSchema,
   communityProjectsOverview,
@@ -294,6 +296,11 @@ export const communityRouters = createTRPCRouter({
     .input(communityProjectOverviewSchema)
     .query(async (props) => {
       return communityProjectOverview(props.ctx, props.input);
+    }),
+  uploadCommunityProjectDocuments: publicProcedure
+    .input(uploadCommunityProjectDocumentsSchema)
+    .mutation(async (props) => {
+      return uploadCommunityProjectDocuments(props.ctx, props.input);
     }),
   communityProjectUnitOverview: publicProcedure
     .input(communityProjectUnitOverviewSchema)

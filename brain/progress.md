@@ -800,3 +800,12 @@
 - Validation note: targeted greps of `bunx tsc -p apps/api/tsconfig.json --noEmit --pretty false` and `bunx tsc -p apps/www/tsconfig.json --noEmit --pretty false` reported no matching errors for the new contractor payout files or touched payment dashboard files.
 - Fixed production dashboard v2 worker/admin queue filtering so the assigned queue now uses the full pending assigned set instead of only `due today` and `past due`, worker scope only shows orders/items assigned to the logged-in worker, and the inline item cards now show only assigned and production progress without fulfillment progress.
 - Fixed production dashboard v2 worker actions so `Submit Assignment` and worker submission deletes are no longer hard-disabled in the inline detail view, and worker-triggered submission payloads now scope to the current worker’s assignments to avoid crossing into other workers’ pending work.
+
+## 2026-03-31
+
+- Added project-overview document uploads on `/community/projects/[slug]` using a new reusable `DocumentUploader` component that supports multi-file selection, configurable accepted types/description text, optional upload notes, and an `onUploaded` callback flow.
+- Added `community.uploadCommunityProjectDocuments` on the API side to upload multiple files through the shared document service, register canonical `StoredDocument` rows for `community_project` owners, and keep multiple uploaded files under one batch by storing `documentIds` arrays instead of a single `documentId`.
+- Added the `community_documents` notification channel and activity type so project document uploads can fan out through the shared notification system, including project context, uploader name, note text, and linked `documentIds`.
+- Updated notification activity fetching to batch-collect both legacy `documentId` tags and new `documentIds` arrays, fetch matching `StoredDocument` rows once, and append normalized document payloads back onto each activity for rendering.
+- Extended the project overview query/widget to show a project document upload area, recent uploaded documents, and recent document activity with linked attachments, and updated notification-center items so document-linked notifications now render note text plus attached document chips.
+- Validation note: a repo-wide `bunx tsc --noEmit` still exits with unrelated pre-existing workspace errors, but targeted greps of that output reported no matching errors for the touched community/project-overview and notifications files.

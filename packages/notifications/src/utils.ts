@@ -76,6 +76,9 @@ export const noteTagNames = [
   "jobId",
   "jobControlId",
   "documentId",
+  "documentIds",
+  "projectId",
+  "projectSlug",
 ] as const;
 export type NoteTagNames = (typeof noteTagNames)[number];
 export const noteTypes = [

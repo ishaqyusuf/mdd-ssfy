@@ -302,6 +302,32 @@ export type EmployeeDocumentReviewTags = z.infer<
 	typeof employeeDocumentReviewTags
 >;
 
+const documentIdsTagSchema = z
+	.union([z.string(), z.array(z.string())])
+	.transform((value) => (Array.isArray(value) ? value : [value]));
+const documentNamesTagSchema = z
+	.union([z.string(), z.array(z.string())])
+	.transform((value) => (Array.isArray(value) ? value : [value]));
+
+export const communityDocumentsSchema = z.object({
+	projectId: z.number(),
+	projectSlug: z.string(),
+	projectTitle: z.string(),
+	uploadedByName: z.string(),
+	documentIds: z.array(z.string()).min(1),
+	documentNames: z.array(z.string()).optional(),
+	note: z.string().optional().nullable(),
+});
+export type CommunityDocumentsInput = z.infer<typeof communityDocumentsSchema>;
+export const communityDocumentsTags = actityTagsSchema.extend({
+	projectId: z.coerce.number(),
+	projectSlug: z.string(),
+	projectTitle: z.string(),
+	documentIds: documentIdsTagSchema,
+	documentNames: documentNamesTagSchema.optional(),
+});
+export type CommunityDocumentsTags = z.infer<typeof communityDocumentsTags>;
+
 export const communityUnitProductionStartedSchema = z.object({
 	taskId: z.number(),
 	taskName: z.string(),
@@ -415,6 +441,7 @@ export type NotificationTypes = {
 	job_task_configure_request: JobTaskConfigureRequestInput;
 	job_task_configured: JobTaskConfiguredInput;
 	employee_document_review: EmployeeDocumentReviewInput;
+	community_documents: CommunityDocumentsInput;
 	community_unit_production_started: CommunityUnitProductionStartedInput;
 	community_unit_production_stopped: CommunityUnitProductionStoppedInput;
 	community_unit_production_completed: CommunityUnitProductionCompletedInput;
@@ -980,6 +1007,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("employee_document_review"),
 		payload: employeeDocumentReviewSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("community_documents"),
+		payload: communityDocumentsSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("community_unit_production_started"),

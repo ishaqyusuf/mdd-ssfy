@@ -4,6 +4,7 @@ import {
 	type CommunityUnitProductionStartedTags,
 	type CommunityUnitProductionStoppedTags,
 	type DispatchPackingDelayTags,
+	type CommunityDocumentsTags,
 	type EmployeeDocumentReviewTags,
 	type JobSubmittedTags,
 	type SalesDispatchAssignedTags,
@@ -14,6 +15,7 @@ import {
 	type SalesPaymentRecordedTags,
 	communityUnitProductionBatchUpdatedTags,
 	communityUnitProductionCompletedTags,
+	communityDocumentsTags,
 	communityUnitProductionStartedTags,
 	communityUnitProductionStoppedTags,
 	dispatchPackingDelayTags,
@@ -31,18 +33,32 @@ export type RawNotificationItem = {
 	id: string | number;
 	subject?: string | null;
 	headline?: string | null;
+	note?: string | null;
 	createdAt?: string | Date | null;
 	created_at?: string | Date | null;
 	receipt?: {
 		status?: "unread" | "read" | "archived" | null;
 	} | null;
 	tags?: Record<string, unknown> | null;
+	documents?: Array<{
+		id: string;
+		title: string;
+		description?: string | null;
+		filename?: string | null;
+		url?: string | null;
+		pathname: string;
+		mimeType?: string | null;
+		extension?: string | null;
+		size?: number | null;
+		createdAt?: string | Date | null;
+	}>;
 };
 
 type NotificationActionPayloadMap = {
 	job_submitted: Omit<JobSubmittedTags, "type">;
 	job_task_configure_request: Omit<JobTaskConfigureRequestTags, "type">;
 	employee_document_review: Omit<EmployeeDocumentReviewTags, "type">;
+	community_documents: Omit<CommunityDocumentsTags, "type">;
 	dispatch_packing_delay: Omit<DispatchPackingDelayTags, "type">;
 	sales_dispatch_duplicate_alert: Omit<SalesDispatchDuplicateAlertTags, "type">;
 	sales_checkout_success: Omit<SalesCheckoutSuccessTags, "type">;
@@ -93,6 +109,8 @@ export type TransformedNotification<
 	isClickable: boolean;
 	action?: NotificationAction<TType>;
 	tags: Record<string, unknown>;
+	note?: string | null;
+	documents?: RawNotificationItem["documents"];
 };
 
 export type NotificationActionHandlers<TContext = void> = {
@@ -155,6 +173,16 @@ function parseAction(
 		return {
 			type: "employee_document_review",
 			label: "Review",
+			data: parsed.data,
+		};
+	}
+
+	if (type === "community_documents") {
+		const parsed = communityDocumentsTags.safeParse(tags);
+		if (!parsed.success) return undefined;
+		return {
+			type: "community_documents",
+			label: "Open Project",
 			data: parsed.data,
 		};
 	}
@@ -297,6 +325,8 @@ export function transformNotifications(
 			isClickable: Boolean(action),
 			action,
 			tags,
+			note: item.note ?? null,
+			documents: item.documents,
 		};
 	});
 }

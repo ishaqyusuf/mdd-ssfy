@@ -2,7 +2,14 @@ import type {
   CommunityTemplateForm,
   CreateCommunityModelCost,
 } from "@api/schemas/community";
+import { createApiVercelBlobDocumentService } from "@api/utils/documents";
+import {
+  createStoredDocumentRegistry,
+  normalizeStoredDocument,
+} from "@api/utils/stored-documents";
 import { publicProcedure, type TRPCContext } from "@api/trpc/init";
+import { put } from "@vercel/blob";
+import { buildOwnerDocumentFolder } from "@gnd/documents";
 import slugify from "slugify";
 import {
   getPivotModel,
@@ -17,10 +24,14 @@ import {
   synchronizeModelCost,
 } from "@community/db-utils";
 import dayjs, { formatDate } from "@gnd/utils/dayjs";
-import { sum } from "@gnd/utils";
+import { stripSpecialCharacters, sum } from "@gnd/utils";
 import type { Db, Prisma } from "@gnd/db";
 import { paginationSchema } from "@gnd/utils/schema";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
+import { Notifications } from "@gnd/notifications";
+import { createActivity } from "@notifications/activities";
+import { getSubscribersAccount } from "@notifications/channel-subscribers";
+import { mergeTagRows } from "@notifications/tag-values";
 import type {
   CommunityPivotMeta,
   CommunityTemplateMeta,
@@ -34,6 +45,135 @@ import {
   invoiceFilter,
   whereProjectUnits,
 } from "./project-units";
+
+function getTagStringArray(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item || "").trim()).filter(Boolean);
+  }
+  if (value === undefined || value === null) {
+    return [];
+  }
+  const normalized = String(value).trim();
+  return normalized ? [normalized] : [];
+}
+
+async function getStoredDocumentsByIds(db: Db, ids: string[]) {
+  if (!ids.length) return [];
+  const documents = await db.storedDocument.findMany({
+    where: {
+      id: {
+        in: ids,
+      },
+      deletedAt: null,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+  return documents.map((document) => normalizeStoredDocument(document));
+}
+
+async function getProjectDocumentActivities(db: Db, projectId: number) {
+  const activities = await db.notePad.findMany({
+    where: {
+      tags: {
+        some: {
+          tagName: "channel",
+          tagValue: "community_documents",
+        },
+      },
+      AND: [
+        {
+          tags: {
+            some: {
+              tagName: "projectId",
+              tagValue: String(projectId),
+            },
+          },
+        },
+      ],
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 8,
+    select: {
+      id: true,
+      subject: true,
+      headline: true,
+      note: true,
+      createdAt: true,
+      tags: {
+        select: {
+          tagName: true,
+          tagValue: true,
+        },
+      },
+      senderContact: {
+        select: {
+          name: true,
+          profileId: true,
+        },
+      },
+    },
+  });
+
+  const mergedActivities = activities.map(({ tags, ...activity }) => ({
+    ...activity,
+    tags: mergeTagRows(tags),
+  }));
+  const uniqueActivities = Array.from(
+    new Map(
+      mergedActivities.map((activity) => {
+        const activityDocumentIds = [
+          ...getTagStringArray(activity.tags.documentIds),
+          ...getTagStringArray(activity.tags.documentId),
+        ].sort();
+        const dedupeKey = [
+          activity.subject || "",
+          activity.headline || "",
+          activity.note || "",
+          activity.createdAt?.toISOString?.() || "",
+          activityDocumentIds.join(","),
+        ].join("::");
+        return [dedupeKey, activity] as const;
+      }),
+    ).values(),
+  );
+
+  const documentIds = Array.from(
+    new Set(
+      uniqueActivities.flatMap((activity) => [
+        ...getTagStringArray(activity.tags.documentIds),
+        ...getTagStringArray(activity.tags.documentId),
+      ]),
+    ),
+  );
+
+  const documents = await getStoredDocumentsByIds(db, documentIds);
+  const documentsById = new Map(
+    documents.map((document) => [document.id, document]),
+  );
+
+  return uniqueActivities.map((activity) => {
+    const activityDocumentIds = [
+      ...getTagStringArray(activity.tags.documentIds),
+      ...getTagStringArray(activity.tags.documentId),
+    ];
+
+    return {
+      id: activity.id,
+      subject: activity.subject || "Project documents uploaded",
+      headline: activity.headline || null,
+      note: activity.note || null,
+      createdAt: activity.createdAt,
+      authorName: activity.senderContact?.name || "Unknown",
+      documents: activityDocumentIds
+        .map((id) => documentsById.get(id))
+        .filter(Boolean),
+    };
+  });
+}
 
 export async function projectList(ctx: TRPCContext) {
   const list = await ctx.db.projects.findMany({
@@ -767,55 +907,62 @@ export async function communityDashboardOverview(ctx: TRPCContext) {
     ],
   };
 
-  const [projectsCount, templatesCount, buildersCount, units, productionTasks, invoiceTasks, jobs] =
-    await Promise.all([
-      db.projects.count({
-        where: {
-          deletedAt: null,
-        },
-      }),
-      db.communityModels.count({
-        where: {
-          deletedAt: null,
-        },
-      }),
-      db.builders.count(),
-      db.homes.findMany({
-        where: {
-          deletedAt: null,
-        },
-        select: unitSelect,
-        orderBy: {
-          createdAt: "desc",
-        },
-      }),
-      db.homeTasks.findMany({
-        where: {
-          deletedAt: null,
-          produceable: true,
-        },
-        select: productionTaskSelect,
-        orderBy: {
-          createdAt: "desc",
-        },
-      }),
-      db.homeTasks.findMany({
-        where: invoiceWhere,
-        select: invoiceTaskSelect,
-        orderBy: {
-          createdAt: "desc",
-        },
-      }),
-      db.jobs.findMany({
-        where: {
-          deletedAt: null,
-        },
-        select: jobSelect,
-        orderBy: {
-          createdAt: "desc",
-        },
-      }),
-    ]);
+  const [
+    projectsCount,
+    templatesCount,
+    buildersCount,
+    units,
+    productionTasks,
+    invoiceTasks,
+    jobs,
+  ] = await Promise.all([
+    db.projects.count({
+      where: {
+        deletedAt: null,
+      },
+    }),
+    db.communityModels.count({
+      where: {
+        deletedAt: null,
+      },
+    }),
+    db.builders.count(),
+    db.homes.findMany({
+      where: {
+        deletedAt: null,
+      },
+      select: unitSelect,
+      orderBy: {
+        createdAt: "desc",
+      },
+    }),
+    db.homeTasks.findMany({
+      where: {
+        deletedAt: null,
+        produceable: true,
+      },
+      select: productionTaskSelect,
+      orderBy: {
+        createdAt: "desc",
+      },
+    }),
+    db.homeTasks.findMany({
+      where: invoiceWhere,
+      select: invoiceTaskSelect,
+      orderBy: {
+        createdAt: "desc",
+      },
+    }),
+    db.jobs.findMany({
+      where: {
+        deletedAt: null,
+      },
+      select: jobSelect,
+      orderBy: {
+        createdAt: "desc",
+      },
+    }),
+  ]);
 
   const buckets = createMonthlyBuckets();
   const productionTrendMap = new Map(
@@ -850,7 +997,8 @@ export async function communityDashboardOverview(ctx: TRPCContext) {
 
   for (const unit of units) {
     const production = getUnitProductionStatus(unit as any);
-    unitStatusMap[production.status] = (unitStatusMap[production.status] || 0) + 1;
+    unitStatusMap[production.status] =
+      (unitStatusMap[production.status] || 0) + 1;
 
     const unitMonth = unitsTrendMap.get(toMonthKey(unit.createdAt) || "");
     if (unitMonth) {
@@ -1116,7 +1264,11 @@ function createRecentMonthBuckets(count = 6) {
   const now = new Date();
 
   return Array.from({ length: count }, (_, index) => {
-    const date = new Date(now.getFullYear(), now.getMonth() - (count - 1 - index), 1);
+    const date = new Date(
+      now.getFullYear(),
+      now.getMonth() - (count - 1 - index),
+      1,
+    );
     const key = `${date.getFullYear()}-${date.getMonth()}`;
 
     return {
@@ -1138,7 +1290,13 @@ function withPercent<T extends { value: number }>(items: T[]) {
   }));
 }
 
-function mapProjectProductionStatus(tasks: { producedAt?: Date | null; prodStartedAt?: Date | null; sentToProductionAt?: Date | null }[]) {
+function mapProjectProductionStatus(
+  tasks: {
+    producedAt?: Date | null;
+    prodStartedAt?: Date | null;
+    sentToProductionAt?: Date | null;
+  }[],
+) {
   let completed = 0;
   let started = 0;
   let queued = 0;
@@ -1307,7 +1465,9 @@ export async function communityProjectsOverview(
     jobs += project._count.jobs;
     invoices += project._count.invoices;
     productionTasks += project.homeTasks.length;
-    completedProductionTasks += project.homeTasks.filter((task) => task.producedAt).length;
+    completedProductionTasks += project.homeTasks.filter(
+      (task) => task.producedAt,
+    ).length;
   }
 
   const activeProjects = projects.filter((project) => !project.archived).length;
@@ -1484,6 +1644,171 @@ export async function communityProjectUnitsOverview(
   };
 }
 
+const uploadCommunityProjectDocumentFileSchema = z.object({
+  filename: z.string().min(1),
+  contentType: z.string().optional().nullable(),
+  contentBase64: z.string().min(1),
+  size: z.number().int().min(0).optional().nullable(),
+});
+
+export const uploadCommunityProjectDocumentsSchema = z.object({
+  slug: z.string(),
+  note: z.string().trim().max(2000).optional().nullable(),
+  files: z.array(uploadCommunityProjectDocumentFileSchema).min(1).max(10),
+});
+
+export async function uploadCommunityProjectDocuments(
+  ctx: TRPCContext,
+  input: z.infer<typeof uploadCommunityProjectDocumentsSchema>,
+) {
+  if (!ctx.userId) {
+    throw new Error("You must be signed in to upload documents.");
+  }
+
+  const project = await ctx.db.projects.findFirstOrThrow({
+    where: {
+      slug: input.slug,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+    },
+  });
+
+  const actor = await ctx.db.users.findFirstOrThrow({
+    where: {
+      id: ctx.userId,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+
+  const ownerType = "community_project";
+  const ownerId = String(project.id);
+  const kind = "community_document";
+  const folder = buildOwnerDocumentFolder({
+    ownerType,
+    ownerId,
+    kind,
+  });
+
+  const documentService = createApiVercelBlobDocumentService({
+    put,
+  });
+  const documentRegistry = createStoredDocumentRegistry(ctx.db);
+  const uploadedFiles = await documentService.uploadMany(
+    input.files.map((file) => ({
+      filename: stripSpecialCharacters(file.filename) || file.filename,
+      folder,
+      contentType: file.contentType || undefined,
+      body: Buffer.from(file.contentBase64, "base64"),
+    })),
+  );
+
+  const createdDocuments = await Promise.all(
+    uploadedFiles.map((upload, index) =>
+      documentRegistry.registerUploaded({
+        ownerType,
+        ownerId,
+        kind,
+        upload,
+        uploadedBy: ctx.userId,
+        isCurrent: false,
+        visibility: "public",
+        title: input.files[index]?.filename || upload.filename || null,
+        description: input.note?.trim() || null,
+        meta: {
+          projectSlug: project.slug,
+          projectTitle: project.title,
+          uploadedAt: new Date().toISOString(),
+          originalContentType: input.files[index]?.contentType || null,
+          originalSize: input.files[index]?.size ?? null,
+        },
+      }),
+    ),
+  );
+
+  const activityInput = {
+    type: "community_documents" as const,
+    source: "user" as const,
+    subject: "Project documents uploaded",
+    headline: input.note?.trim()
+      ? `${actor.name || "Unknown"} uploaded ${createdDocuments.length} document${createdDocuments.length === 1 ? "" : "s"} to ${project.title}. Note: ${input.note.trim()}`
+      : `${actor.name || "Unknown"} uploaded ${createdDocuments.length} document${createdDocuments.length === 1 ? "" : "s"} to ${project.title}.`,
+    note: input.note?.trim() || undefined,
+    tags: {
+      projectId: project.id,
+      projectSlug: project.slug,
+      projectTitle: project.title,
+      documentIds: createdDocuments.map((document) => document.id),
+      documentNames: createdDocuments.map(
+        (document) => document.title || document.filename || "Document",
+      ),
+    },
+  };
+
+  try {
+    const notifications = new Notifications(ctx.db);
+    const result = await notifications.create(
+      "community_documents",
+      {
+        projectId: project.id,
+        projectSlug: project.slug,
+        projectTitle: project.title,
+        uploadedByName: actor.name || "Unknown",
+        documentIds: createdDocuments.map((document) => document.id),
+        documentNames: createdDocuments.map(
+          (document) => document.title || document.filename || "Document",
+        ),
+        note: input.note?.trim() || null,
+      },
+      {
+        author: {
+          id: ctx.userId,
+          role: "employee",
+        },
+        includeChannelSubscribers: true,
+        allowFallbackRecipient: false,
+      },
+    );
+
+    if (result.activities === 0) {
+      const authorContact = (
+        await getSubscribersAccount(ctx.db, [ctx.userId], {
+          role: "employee",
+          channelName: "community_documents",
+        })
+      )?.[0];
+      if (authorContact?.id) {
+        await createActivity(ctx.db, activityInput, authorContact.id);
+      }
+    }
+  } catch (error) {
+    console.error("Unable to emit community document notification", error);
+    const authorContact = (
+      await getSubscribersAccount(ctx.db, [ctx.userId], {
+        role: "employee",
+        channelName: "community_documents",
+      })
+    )?.[0];
+    if (authorContact?.id) {
+      await createActivity(ctx.db, activityInput, authorContact.id);
+    }
+  }
+
+  return {
+    documents: createdDocuments.map((document) => ({
+      ...normalizeStoredDocument(document),
+      uploadedByName: actor.name || "Unknown",
+    })),
+  };
+}
+
 export const communityProjectOverviewSchema = z.object({
   slug: z.string(),
 });
@@ -1635,7 +1960,9 @@ export async function communityProjectOverview(
   };
 
   for (const task of productionTasks) {
-    const status = getProductionState(task).toLowerCase() as keyof typeof productionStatusMap;
+    const status = getProductionState(
+      task,
+    ).toLowerCase() as keyof typeof productionStatusMap;
     productionStatusMap[status] += 1;
   }
 
@@ -1654,6 +1981,47 @@ export async function communityProjectOverview(
     { due: 0, paid: 0 },
   );
 
+  const [projectDocuments, recentDocumentActivity] = await Promise.all([
+    ctx.db.storedDocument.findMany({
+      where: {
+        ownerType: "community_project",
+        ownerId: String(project.id),
+        deletedAt: null,
+        status: "ready",
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 8,
+    }),
+    getProjectDocumentActivities(ctx.db, project.id),
+  ]);
+
+  const uploaderIds = Array.from(
+    new Set(
+      projectDocuments
+        .map((document) => document.uploadedBy)
+        .filter((value): value is number => Number.isInteger(value)),
+    ),
+  );
+  const uploaders = uploaderIds.length
+    ? await ctx.db.users.findMany({
+        where: {
+          id: {
+            in: uploaderIds,
+          },
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      })
+    : [];
+  const uploaderNames = new Map(
+    uploaders.map((uploader) => [uploader.id, uploader.name || "Unknown"]),
+  );
+
   return {
     project: {
       ...project,
@@ -1664,7 +2032,9 @@ export async function communityProjectOverview(
       jobs: project._count.jobs,
       invoices: project._count.invoices,
       productionTasks: project._count.homeTasks,
-      completedProductionTasks: productionTasks.filter((task) => task.producedAt).length,
+      completedProductionTasks: productionTasks.filter(
+        (task) => task.producedAt,
+      ).length,
       outstandingInvoiceAmount: invoiceTotals.due - invoiceTotals.paid,
       invoiceDueAmount: invoiceTotals.due,
       invoicePaidAmount: invoiceTotals.paid,
@@ -1731,6 +2101,12 @@ export async function communityProjectOverview(
       status: getProductionState(task),
       home: task.home,
     })),
+    recentDocuments: projectDocuments.map((document) => ({
+      ...normalizeStoredDocument(document),
+      uploadedByName:
+        (document.uploadedBy && uploaderNames.get(document.uploadedBy)) || null,
+    })),
+    recentDocumentActivity,
   };
 }
 
@@ -1854,7 +2230,9 @@ export async function communityProjectUnitOverview(
     summary: {
       jobs: unit._count.jobs,
       productionTasks: productionTasks.length,
-      completedProductionTasks: productionTasks.filter((task) => task.producedAt).length,
+      completedProductionTasks: productionTasks.filter(
+        (task) => task.producedAt,
+      ).length,
       invoiceDueAmount: invoiceTotals.due,
       invoicePaidAmount: invoiceTotals.paid,
       outstandingInvoiceAmount: invoiceTotals.due - invoiceTotals.paid,

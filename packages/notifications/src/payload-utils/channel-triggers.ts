@@ -151,6 +151,18 @@ export function createNotificationChannelTriggers(
 				recipients: resolvedRecipients,
 			});
 		},
+		communityDocuments(input: Input<"community_documents">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("community_documents", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
 		communityUnitProductionStarted(
 			input: Input<"community_unit_production_started">,
 		) {

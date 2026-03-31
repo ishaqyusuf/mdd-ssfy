@@ -10,6 +10,7 @@ export const channelNames = [
 	"job_task_configure_request",
 	"job_task_configured",
 	"employee_document_review",
+	"community_documents",
 	"community_unit_production_started",
 	"community_unit_production_stopped",
 	"community_unit_production_completed",
@@ -102,6 +103,13 @@ export const channelsConfig: Partial<{
 		name: "Employee Document Review",
 		description:
 			"Send when an employee uploads an insurance document for review.",
+		priority: 5,
+		category: "Community",
+	},
+	community_documents: {
+		name: "Community Documents",
+		description:
+			"Send when documents are uploaded to a community project overview.",
 		priority: 5,
 		category: "Community",
 	},

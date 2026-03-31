@@ -101,6 +101,10 @@ export function NotificationCenter() {
 				openDocumentReviewId: Number(data.documentId),
 			});
 		},
+		community_documents: (data, _notification, context) => {
+			context.close();
+			router.push(`/community/projects/${encodeURIComponent(data.projectSlug)}`);
+		},
 		community_unit_production_started: (data, _notification, context) => {
 			context.close();
 			router.push(

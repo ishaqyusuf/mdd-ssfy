@@ -50,6 +50,36 @@ export function NotificationItem({ setOpen, activity, onAction }: Props) {
                 <span className="text-xs text-[#606060]">
                     {activity.description}
                 </span>
+                {activity.note ? (
+                    <p className="mt-1 text-xs text-slate-600 line-clamp-2">
+                        {activity.note}
+                    </p>
+                ) : null}
+                {activity.documents?.length ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                        {activity.documents.map((document) =>
+                            document?.url ? (
+                                <a
+                                    key={document.id}
+                                    href={document.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    onClick={(event) => event.stopPropagation()}
+                                    className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-700 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
+                                >
+                                    {document.title}
+                                </a>
+                            ) : (
+                                <span
+                                    key={document.id}
+                                    className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-700"
+                                >
+                                    {document.title}
+                                </span>
+                            ),
+                        )}
+                    </div>
+                ) : null}
                 <p className="mt-1 text-[11px] text-[#8a8a8a]">
                     {notificationDate}
                 </p>

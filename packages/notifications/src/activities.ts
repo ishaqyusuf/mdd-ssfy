@@ -7,6 +7,45 @@ import {
 import type { CreateActivityInput } from "./schemas";
 import { explodeTagEntries, mergeTagRows } from "./tag-values";
 
+function collectDocumentIds(tags: Record<string, unknown>) {
+  const values = [tags.documentId, tags.documentIds].flatMap((value) =>
+    Array.isArray(value) ? value : value === undefined ? [] : [value],
+  );
+  return Array.from(
+    new Set(
+      values
+        .map((value) => String(value || "").trim())
+        .filter(Boolean),
+    ),
+  );
+}
+
+function normalizeDocument(document: {
+  id: string;
+  title: string | null;
+  description: string | null;
+  filename: string | null;
+  url: string | null;
+  pathname: string;
+  mimeType: string | null;
+  extension: string | null;
+  size: number | null;
+  createdAt: Date | null;
+}) {
+  return {
+    id: document.id,
+    title: document.title || document.filename || "Untitled document",
+    description: document.description,
+    filename: document.filename,
+    url: document.url,
+    pathname: document.pathname,
+    mimeType: document.mimeType,
+    extension: document.extension,
+    size: document.size,
+    createdAt: document.createdAt,
+  };
+}
+
 // const activityTypes = ["sales_checkout_success"] as const;
 const activityStatus = [] as const;
 // type CreateActivityParams = {
@@ -133,12 +172,55 @@ export async function getActivties(db: Db, params: GetActivitiesParams) {
       },
     },
   });
+
+  const mergedActivities = activities.map(({ tags, recipients, ...activity }) => ({
+    ...activity,
+    receipt: recipients[0],
+    tags: mergeTagRows(tags),
+  }));
+
+  const allDocumentIds = Array.from(
+    new Set(
+      mergedActivities.flatMap((activity) => collectDocumentIds(activity.tags)),
+    ),
+  );
+
+  const documents =
+    allDocumentIds.length === 0
+      ? []
+      : await db.storedDocument.findMany({
+          where: {
+            id: {
+              in: allDocumentIds,
+            },
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            filename: true,
+            url: true,
+            pathname: true,
+            mimeType: true,
+            extension: true,
+            size: true,
+            createdAt: true,
+          },
+        });
+
+  const documentsById = new Map(
+    documents.map((document) => [document.id, normalizeDocument(document)]),
+  );
+
   return {
-    data: activities.map(({ tags, recipients, ...activity }) => {
+    data: mergedActivities.map((activity) => {
+      const documentIds = collectDocumentIds(activity.tags);
       return {
         ...activity,
-        receipt: recipients[0],
-        tags: mergeTagRows(tags),
+        documents: documentIds
+          .map((id) => documentsById.get(id))
+          .filter(Boolean),
       };
     }),
   };
