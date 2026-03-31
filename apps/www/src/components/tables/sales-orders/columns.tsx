@@ -85,7 +85,7 @@ function CompactCustomerCell({ item }: { item: SalesOrderItem }) {
 }
 
 const compactCustomerV2 = true;
-const compactCustomer = true;
+const compactCustomer = false;
 
 const compactCustomerColumnV2: ColumnDef<SalesOrderItem>[] = [
     {
@@ -924,3 +924,4 @@ function ItemCard({ item }: ItemProps) {
         </div>
     );
 }
+

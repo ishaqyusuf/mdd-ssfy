@@ -242,6 +242,129 @@ const profileSection = _section("settings", null, [
 
 const canEditProject = _perm.in("editProject", "editCommunity");
 export const linkModules = [
+    _module("Sales", "orders", "GND Sales", [
+        _section(null, null, [
+            _link("Sales Dashboard", "dashboard", "/sales-dashboard").access(
+                _role.is("Super Admin"),
+            ).data,
+        ]),
+        _section(null, null, [
+            _link("My Dashboard", "dashboard", "/sales-rep")
+                .access(
+                    _perm.is("editOrders"),
+                    // _role.in("Admin", "Super Admin"),
+                )
+                .level(1).data,
+            _link("Accounting", "billing", "/sales-book/accounting").access(
+                _perm.is("editSales"),
+            ).data,
+            _link("Product Report", "report", "/product-report").access(
+                _role.in("Super Admin"),
+            ).data,
+            // .childPaths("sales-book/accounting/resolution-center").data,
+            _link(
+                "Accounting Resolution",
+                "resolutionCenter",
+                "/sales-book/accounting/resolution-center",
+            ).access(_perm.is("editSalesResolution")).data,
+            // .childPaths("sales-book/accounting/resolution-center").data,
+        ]),
+        _section("", null, [
+            // _link("HOME", "project", "/sales-book/home-page").access(
+            //     _perm.in("editOrders"),
+            // ).data,
+
+            _link("Sales", "orders", "/sales-book/orders", [
+                _subLink("Bin", "/sales-book/orders/bin").access(
+                    _role.is("Super Admin"),
+                ).data,
+                _subLink(
+                    "Create Order (Experimental)",
+                    "/sales-form/create-order",
+                ).access(_role.is("Super Admin")).data,
+                _subLink(
+                    "Create Quote  (Experimental)",
+                    "/sales-form/create-quote",
+                ).access(_role.is("Super Admin")).data,
+            ])
+                .access(_perm.is("editOrders"))
+                .childPaths(
+                    "sales-book/create-order",
+                    "sales-book/edit-order",
+                    "sales-book/edit-order/slug",
+                    "sales-form/create-order",
+                    "sales-form/edit-order",
+                    "sales-form/edit-order/slug",
+                    // "sales-book/orders/sales-statistics",
+                ).data,
+            _link("Quotes", "estimates", "/sales-book/quotes")
+                .access(_perm.is("viewEstimates"))
+                .childPaths(
+                    "sales-book/create-quote",
+                    "sales-book/edit-quote",
+                    "sales-book/edit-quote/slug",
+                    "sales-form/create-quote",
+                    "sales-form/edit-quote",
+                    "sales-form/edit-quote/slug",
+                ).data,
+            // .childPaths("sales-book/create-quote", "sales-book/edit-quote")
+            // _link("Inventory", "inbound", "/inventory", [
+            //     _subLink("Inventory", "/inventory").data,
+            //     _subLink("Inbounds", "/inventory/inbounds").data,
+            //     _subLink("Stock Movements", "/inventory/stocks").data,
+            //     _subLink("Categories", "/inventory/categories").data,
+            //     _subLink("Imports", "/inventory/imports").data,
+            //     _subLink("Inbound Management", "/sales-book/inbound-management")
+            //         .data,
+            // ]).access(_role.is("Super Admin")).data,
+            _link(
+                "Inbounds Managment",
+                "inbound",
+                "/sales-book/inbound-management",
+            ).access(_perm.is("viewInboundOrder")).data,
+            // _link("Dispatch", "estimates", "/sales-books/quotes").access(
+            //     _perm.is("editOrders"),
+            // ).data,
+        ]),
+        _section("", "", [
+            _link("Productions", "production", "/sales-book/productions", [
+                _subLink("Productions v2", "/sales-book/productions/v2").access(
+                    _perm.is("editOrders"),
+                ).data,
+            ])
+                .access(_perm.is("editOrders"))
+                .childPaths("/sales-book/productions/v2").data,
+            _link("Dispatch", "delivery2", "/sales-book/dispatch-admin", [
+                _subLink("Dispatch Task", "/sales-book/dispatch-task").access(
+                    _perm.is("editDelivery"),
+                    _perm.isNot("viewOrders"),
+                    _role.isNot("Super Admin"),
+                ).data,
+                // _subLink("Delivery", "/sales-book/dispatch").access(
+                //     _perm.is("editDelivery"),
+                //     _perm.is("editOrders"),
+                // ).data,
+                // _subLink("Pickup", "/sales-book/pickups").access(
+                //     _perm.is("editPickup"),
+                // ).data,
+                _subLink("Delivery V2", "/sales-book/dispatch/v2").access(
+                    _role.is("Super Admin"),
+                ).data,
+                _subLink(
+                    "Admin Dashboard",
+                    "/sales-book/dispatch-admin",
+                ).access(_role.is("Super Admin")).data,
+            ]).access(_perm.is("editOrders")).data,
+        ]),
+        _section("", "", [
+            _link("Customers", "user", "/sales-book/customers").access(
+                _perm.in("editSalesCustomers", "viewOrders"),
+            ).data,
+            _link("Dealers", "user", "/sales-book/dealers").access(
+                _role.is("Super Admin"),
+            ).data,
+        ]),
+    ]),
     _module("HRM", "hrm", "GND HRM", [
         _section("", null, [
             // _link("HRM", "hrm", "/").access(_perm.in("viewHrm")).data,
@@ -430,156 +553,8 @@ export const linkModules = [
                 _perm.is("viewCommission"),
             ).data,
         ]),
-        _section("settings", "Settings", [
-            _link("Community Setting", "settings", null, [
-                _subLink(
-                    "Install Costs",
-                    "/settings/community/install-costs",
-                ).access(canEditProject).data,
-                _subLink(
-                    "Model Costs",
-                    "/settings/community/model-costs",
-                ).access(canEditProject).data,
-                _subLink(
-                    "Community Cost",
-                    "/settings/community/community-costs",
-                ).access(canEditProject).data,
-                _subLink(
-                    "Community Templates",
-                    "/settings/community/community-templates",
-                ).access(canEditProject).data,
-                _subLink("Builders", "/settings/community/builders").access(
-                    _perm.is("viewBuilders"),
-                ).data,
-            ]).data,
-            _link("Mobile App", "monitor", "/settings/mobile-app").access(
-                _role.is("Super Admin"),
-            ).data,
-        ]),
     ]),
-    _module("Sales", "orders", "GND Sales", [
-        _section(null, null, [
-            _link("Sales Dashboard", "dashboard", "/sales-dashboard").access(
-                _role.is("Super Admin"),
-            ).data,
-        ]),
-        _section(null, null, [
-            _link("My Dashboard", "dashboard", "/sales-rep")
-                .access(
-                    _perm.is("editOrders"),
-                    // _role.in("Admin", "Super Admin"),
-                )
-                .level(1).data,
-            _link("Accounting", "billing", "/sales-book/accounting").access(
-                _perm.is("editSales"),
-            ).data,
-            _link("Product Report", "report", "/product-report").access(
-                _role.in("Super Admin"),
-            ).data,
-            // .childPaths("sales-book/accounting/resolution-center").data,
-            _link(
-                "Accounting Resolution",
-                "resolutionCenter",
-                "/sales-book/accounting/resolution-center",
-            ).access(_perm.is("editSalesResolution")).data,
-            // .childPaths("sales-book/accounting/resolution-center").data,
-        ]),
-        _section("", null, [
-            // _link("HOME", "project", "/sales-book/home-page").access(
-            //     _perm.in("editOrders"),
-            // ).data,
 
-            _link("Sales", "orders", "/sales-book/orders", [
-                _subLink("Bin", "/sales-book/orders/bin").access(
-                    _role.is("Super Admin"),
-                ).data,
-                _subLink(
-                    "Create Order (Experimental)",
-                    "/sales-form/create-order",
-                ).access(_role.is("Super Admin")).data,
-                _subLink(
-                    "Create Quote  (Experimental)",
-                    "/sales-form/create-quote",
-                ).access(_role.is("Super Admin")).data,
-            ])
-                .access(_perm.is("editOrders"))
-                .childPaths(
-                    "sales-book/create-order",
-                    "sales-book/edit-order",
-                    "sales-book/edit-order/slug",
-                    "sales-form/create-order",
-                    "sales-form/edit-order",
-                    "sales-form/edit-order/slug",
-                    // "sales-book/orders/sales-statistics",
-                ).data,
-            _link("Quotes", "estimates", "/sales-book/quotes")
-                .access(_perm.is("viewEstimates"))
-                .childPaths(
-                    "sales-book/create-quote",
-                    "sales-book/edit-quote",
-                    "sales-book/edit-quote/slug",
-                    "sales-form/create-quote",
-                    "sales-form/edit-quote",
-                    "sales-form/edit-quote/slug",
-                ).data,
-            // .childPaths("sales-book/create-quote", "sales-book/edit-quote")
-            // _link("Inventory", "inbound", "/inventory", [
-            //     _subLink("Inventory", "/inventory").data,
-            //     _subLink("Inbounds", "/inventory/inbounds").data,
-            //     _subLink("Stock Movements", "/inventory/stocks").data,
-            //     _subLink("Categories", "/inventory/categories").data,
-            //     _subLink("Imports", "/inventory/imports").data,
-            //     _subLink("Inbound Management", "/sales-book/inbound-management")
-            //         .data,
-            // ]).access(_role.is("Super Admin")).data,
-            _link(
-                "Inbounds Managment",
-                "inbound",
-                "/sales-book/inbound-management",
-            ).access(_perm.is("viewInboundOrder")).data,
-            // _link("Dispatch", "estimates", "/sales-books/quotes").access(
-            //     _perm.is("editOrders"),
-            // ).data,
-        ]),
-        _section("", "", [
-            _link("Productions", "production", "/sales-book/productions", [
-                _subLink("Productions v2", "/sales-book/productions/v2").access(
-                    _perm.is("editOrders"),
-                ).data,
-            ])
-                .access(_perm.is("editOrders"))
-                .childPaths("/sales-book/productions/v2").data,
-            _link("Dispatch", "delivery2", "/sales-book/dispatch-admin", [
-                _subLink("Dispatch Task", "/sales-book/dispatch-task").access(
-                    _perm.is("editDelivery"),
-                    _perm.isNot("viewOrders"),
-                    _role.isNot("Super Admin"),
-                ).data,
-                // _subLink("Delivery", "/sales-book/dispatch").access(
-                //     _perm.is("editDelivery"),
-                //     _perm.is("editOrders"),
-                // ).data,
-                // _subLink("Pickup", "/sales-book/pickups").access(
-                //     _perm.is("editPickup"),
-                // ).data,
-                _subLink("Delivery V2", "/sales-book/dispatch/v2").access(
-                    _role.is("Super Admin"),
-                ).data,
-                _subLink(
-                    "Admin Dashboard",
-                    "/sales-book/dispatch-admin",
-                ).access(_role.is("Super Admin")).data,
-            ]).access(_perm.is("editOrders")).data,
-        ]),
-        _section("", "", [
-            _link("Customers", "user", "/sales-book/customers").access(
-                _perm.in("editSalesCustomers", "viewOrders"),
-            ).data,
-            _link("Dealers", "user", "/sales-book/dealers").access(
-                _role.is("Super Admin"),
-            ).data,
-        ]),
-    ]),
     _module("Inventory", "packingList", "GND Inventory", [
         _section("", null, [
             _link("Inventory", "inbound", "/inventory", [
@@ -601,7 +576,14 @@ export const linkModules = [
             // ).data,
         ]),
     ]),
-    _module("", null, "", [profileSection]),
+    _module("", null, "", [
+        profileSection,
+        _section("Support", null, [
+            _link("Mobile App", "monitor", "/settings/mobile-app").access(
+                _role.is("Super Admin"),
+            ).data,
+        ]),
+    ]),
 ];
 export function getLinkModules(_linkModules = linkModules) {
     const i = {
