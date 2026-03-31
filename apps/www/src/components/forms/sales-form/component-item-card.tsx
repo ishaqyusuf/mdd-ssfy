@@ -20,6 +20,7 @@ import { closestCorners } from "@dnd-kit/core";
 import {
     BoxSelect,
     CheckCircle,
+    EyeOff,
     ExternalLink,
     Filter,
     Folder,
@@ -78,6 +79,7 @@ export function ComponentItemCard({
     sortMode,
     itemIndex,
     onSelect,
+    outOfConfig,
 }: {
     component: ZusComponent;
     ctx: UseStepContext;
@@ -85,6 +87,7 @@ export function ComponentItemCard({
     sortMode?;
     itemIndex?;
     onSelect?;
+    outOfConfig?;
 }) {
     const { stepUid } = ctx;
     const zus = useFormDataStore();
@@ -337,6 +340,16 @@ export function ComponentItemCard({
                     </Menu>
                 </div>
             </div>
+            {outOfConfig ? (
+                <div className="absolute right-3 top-3 z-10">
+                    <Badge
+                        variant="secondary"
+                        className="border bg-background/90 px-1.5 py-1 text-muted-foreground"
+                    >
+                        <EyeOff className="size-4" />
+                    </Badge>
+                </div>
+            ) : null}
         </div>
     );
 }

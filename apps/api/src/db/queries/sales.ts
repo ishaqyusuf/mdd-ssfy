@@ -163,6 +163,7 @@ export async function getOrders(
       query.salesRepId = ctx.userId!;
   }
   const { db } = ctx;
+
   const { response, searchMeta, where } = await composeQueryData(
     query,
     whereSales(query),

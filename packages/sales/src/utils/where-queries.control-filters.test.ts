@@ -6,22 +6,21 @@ function toClauses(where: any) {
 	return Array.isArray(where.AND) ? where.AND : [where];
 }
 
-describe("whereSales qtyControl filters", () => {
-	it("builds production completed filter from qtyControl predicates", () => {
+describe("whereSales stat filters", () => {
+	it("builds production completed filter from sales stat predicates", () => {
 		const where = whereSales({
 			production: "completed",
 		} as any);
 		const clauses = toClauses(where);
 		const json = JSON.stringify(clauses);
 
-		expect(json).toContain('"itemControls"');
-		expect(json).toContain('"qtyControls"');
+		expect(json).toContain('"stat"');
 		expect(json).toContain('"type":"prodCompleted"');
 		expect(json).toContain('"percentage":100');
-		expect(json).not.toContain("salesStat");
+		expect(json).not.toContain('"qtyControls"');
 	});
 
-	it("builds dispatch backorder filter from dispatchCompleted percentage range", () => {
+	it("builds dispatch backorder filter from dispatchCompleted stat percentage range", () => {
 		const where = whereSales({
 			"dispatch.status": "backorder",
 		} as any);
@@ -31,7 +30,8 @@ describe("whereSales qtyControl filters", () => {
 		expect(json).toContain('"type":"dispatchCompleted"');
 		expect(json).toContain('"percentage":{"gt":0}');
 		expect(json).toContain('"percentage":{"lt":100}');
-		expect(json).not.toContain("salesStat");
+		expect(json).toContain('"stat"');
+		expect(json).not.toContain('"qtyControls"');
 	});
 
 	it("default search composes pending dispatch, production, and payment due branches", () => {
@@ -47,20 +47,34 @@ describe("whereSales qtyControl filters", () => {
 		expect(json).toContain('"type":"prodCompleted"');
 	});
 
-	it("switches to salesStat predicates when control filter v2 flag is disabled", () => {
-		const prev = process.env.CONTROL_FILTER_V2;
-		process.env.CONTROL_FILTER_V2 = "0";
-		try {
-			const where = whereSales({
-				"dispatch.status": "completed",
-			} as any);
-			const json = JSON.stringify(toClauses(where));
+	it("invoice paid only matches fully paid orders", () => {
+		const where = whereSales({
+			invoice: "paid",
+		} as any);
+		const json = JSON.stringify(toClauses(where));
 
-			expect(json).toContain('"stat"');
-			expect(json).toContain('"type":"dispatchCompleted"');
-			expect(json).not.toContain('"qtyControls"');
-		} finally {
-			process.env.CONTROL_FILTER_V2 = prev;
-		}
+		expect(json).toContain('"amountDue":0');
+		expect(json).not.toContain('"amountDue":{"lte":0}');
+	});
+
+	it("dispatch pending stays on stat/control predicates instead of delivery rows", () => {
+		const where = whereSales({
+			"dispatch.status": "pending",
+		} as any);
+		const json = JSON.stringify(toClauses(where));
+
+		expect(json).toContain('"type":"dispatchCompleted"');
+		expect(json).not.toContain('"deliveries"');
+	});
+
+	it("keeps dispatch completed on stat predicates even when control filter v2 flag is enabled", () => {
+		const where = whereSales({
+			"dispatch.status": "completed",
+		} as any);
+		const json = JSON.stringify(toClauses(where));
+
+		expect(json).toContain('"stat"');
+		expect(json).toContain('"type":"dispatchCompleted"');
+		expect(json).not.toContain('"qtyControls"');
 	});
 });

@@ -1,5 +1,4 @@
 import { format } from "date-fns";
-import { motion } from "framer-motion";
 import { formatDateRange } from "little-date";
 
 import { Button } from "@gnd/ui/button";
@@ -8,29 +7,20 @@ import { Skeleton } from "@gnd/ui/skeleton";
 import { isSearchKey } from "./search-utils";
 import { PageFilterData } from "@gnd/utils/types";
 
-const listVariant = {
-  hidden: { y: 10, opacity: 0 },
-  show: {
-    y: 0,
-    opacity: 1,
-    transition: {
-      duration: 0.05,
-      staggerChildren: 0.06,
-    },
-  },
-};
-
-const itemVariant = {
-  hidden: { y: 10, opacity: 0 },
-  show: { y: 0, opacity: 1 },
-};
 interface Props {
   loading?: boolean;
   filterList: PageFilterData[];
   filters;
   onRemove?;
+  onClearAll?;
 }
-export function FilterList({ loading, filterList, filters, onRemove }: Props) {
+export function FilterList({
+  loading,
+  filterList,
+  filters,
+  onRemove,
+  onClearAll,
+}: Props) {
   const handleOnRemove = (key: string) => {
     if (key === "start" || key === "end") {
       onRemove({ start: null, end: null });
@@ -39,6 +29,11 @@ export function FilterList({ loading, filterList, filters, onRemove }: Props) {
 
     onRemove({ [key]: null });
   };
+  const activeEntries = Object.entries(filters || {}).filter(([key, value]) => {
+    if (value === null || value === undefined || value === "") return false;
+    if (Array.isArray(value)) return value.length > 0;
+    return true;
+  });
   const renderFilter = ({ key, value }) => {
     switch (key) {
       case "start": {
@@ -145,11 +140,11 @@ export function FilterList({ loading, filterList, filters, onRemove }: Props) {
 
       default:
         if (isSearchKey(key)) return value;
-        //  return null;
-        const opts = filterList?.find((f) => f?.value === key)?.options;
-        if (!opts) return null;
+        const filter = filterList?.find((f) => f?.value === key);
+        const opts = filter?.options;
+        if (!opts) return String(value);
         if (!Array.isArray(value)) {
-          return value;
+          return opts?.find((a) => a?.value == value)?.label || String(value);
         }
         return (value || [])
           ?.map((v) => opts?.find((a) => a?.value == v)?.label || v)
@@ -159,36 +154,31 @@ export function FilterList({ loading, filterList, filters, onRemove }: Props) {
   return (
     <div className="flex items-center">
       <div className="" id="filterSlot"></div>
-      <motion.ul
-        variants={listVariant}
-        initial="hidden"
-        animate="show" //@ts-ignore
-        className="flex space-x-2 items-center"
-      >
+      <ul className="flex space-x-2 items-center">
         {loading && (
           <div className="flex space-x-2">
-            <motion.li key="1" variants={itemVariant}>
+            <li key="1">
               <Skeleton className="h-8 w-[100px] rounded-full" />
-            </motion.li>
-            <motion.li key="2" variants={itemVariant}>
+            </li>
+            <li key="2">
               <Skeleton className="h-8 w-[100px] rounded-full" />
-            </motion.li>
+            </li>
           </div>
         )}
         {/* {!loading && filterList.map(f => )} */}
 
         {!loading &&
-          Object.entries(filters)
-            .filter(([key, value]) => value !== null && key !== "end")
+          activeEntries
+            .filter(([key]) => key !== "end")
             .map(([key, value]) => {
               const f = filterList.find((f) => f.value === key);
               return (
-                <motion.li key={key} variants={itemVariant}>
+                <li key={key}>
                   <Button
-                    className="group flex h-8 items-center space-x-1 rounded-full bg-secondary px-3 font-normal text-[#878787] hover:bg-secondary"
+                    className="h-9 px-2 bg-secondary hover:bg-secondary font-normal text-[#878787] flex space-x-1 items-center group rounded-none"
                     onClick={() => handleOnRemove(key)}
                   >
-                    <Icons.Clear className="w-0 scale-0 transition-all group-hover:w-4 group-hover:scale-100" />
+                    <Icons.Clear className="scale-0 group-hover:scale-100 transition-all w-0 group-hover:w-4" />
                     <span>
                       {f?.type == "date-range" ? (
                         <div className="inline-flex gap-1">
@@ -209,10 +199,20 @@ export function FilterList({ loading, filterList, filters, onRemove }: Props) {
                       )}
                     </span>
                   </Button>
-                </motion.li>
+                </li>
               );
             })}
-      </motion.ul>
+        {!loading && activeEntries.length > 0 && (
+          <li key="clear-all">
+            <Button
+              className="h-9 px-2 bg-secondary hover:bg-secondary font-normal text-[#878787] flex items-center group rounded-none"
+              onClick={onClearAll}
+            >
+              Clear filters
+            </Button>
+          </li>
+        )}
+      </ul>
     </div>
   );
 }

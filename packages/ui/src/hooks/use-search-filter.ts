@@ -28,7 +28,7 @@ export const {
         )
       );
     });
-  }, []);
+  }, [filters]);
   const shouldFetch = isOpen || isFocused || hasFilter;
   function optionSelected(qk, { label, value }) {
     const isArray = isArrayParser(filterSchema?.[qk]);

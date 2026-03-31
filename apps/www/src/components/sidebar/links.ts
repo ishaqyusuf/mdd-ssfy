@@ -278,6 +278,8 @@ export const linkModules = [
                 _subLink("Bin", "/sales-book/orders/bin").access(
                     _role.is("Super Admin"),
                 ).data,
+                _subLink("Create Order", "/sales-book/create-order").data, //.access(_role.is("Super Admin")).data,
+                _subLink("Create Quote", "/sales-book/create-quote").data, //.access(_role.is("Super Admin")).data,
                 _subLink(
                     "Create Order (Experimental)",
                     "/sales-form/create-order",

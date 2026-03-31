@@ -155,9 +155,12 @@ export function SearchFilterTRPC({
       });
   };
   const hasValidFilters =
-    Object.entries(filters).filter(
-      ([key, value]) => value !== null && !isSearchKey(key),
-    ).length > 0;
+    Object.entries(filters).filter(([key, value]) => {
+      if (isSearchKey(key)) return false;
+      if (value === null || value === undefined || value === "") return false;
+      if (Array.isArray(value)) return value.length > 0;
+      return true;
+    }).length > 0;
 
   const __filters = (filterList || [])?.filter((a) => !isSearchKey(a.value));
 
@@ -209,6 +212,10 @@ export function SearchFilterTRPC({
               isSearchKey(k),
             )?.[0];
             if (clearPrompt) setPrompt("");
+          }}
+          onClearAll={() => {
+            setFilters(null);
+            setPrompt("");
           }}
           filters={filters}
           filterList={__filters}
