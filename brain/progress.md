@@ -820,6 +820,9 @@
 - Tightened the old-form swap flow after runtime feedback:
   - removed the force-select restore path that was incorrectly selecting every generated size on the swapped door
   - added a settings-driven sequence tree-shake pass after visibility changes and swap completion so root/item-type changes trim the invoice item steps back to the configured route shape before totals are recalculated
+- Added two old-form HPT swap refinements:
+  - out-of-configuration door picks now skip the visibility-resolution view entirely when there is only one configuration set and every rule has at most one possible option, auto-applying those selections before the swap
+  - HPT door side panel now exposes `Swap Item Type (n)` when the selected door is valid under multiple item types, and the action rebuilds the item through the selected item-type route while restoring only the previously selected door sizes and qty rows
 
 - Added project-overview document uploads on `/community/projects/[slug]` using a new reusable `DocumentUploader` component that supports multi-file selection, configurable accepted types/description text, optional upload notes, and an `onUploaded` callback flow.
 - Added `community.uploadCommunityProjectDocuments` on the API side to upload multiple files through the shared document service, register canonical `StoredDocument` rows for `community_project` owners, and keep multiple uploaded files under one batch by storing `documentIds` arrays instead of a single `documentId`.

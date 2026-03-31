@@ -15,6 +15,7 @@ import SearchBar from "../../components-section/search-bar";
 import { HptContext } from "@/components/forms/sales-form/context";
 import { ComponentItemCard } from "../../../../../../../../components/forms/sales-form/component-item-card";
 import { ComponentHelperClass } from "../../../_utils/helpers/zus/step-component-class";
+import { StepHelperClass } from "../../../_utils/helpers/zus/step-component-class";
 import { composeDoor } from "@/lib/sales/compose-door";
 import { updateDoorGroupForm } from "@/lib/sales/update-door-form";
 
@@ -37,6 +38,18 @@ export const openDoorSwapModal = (door: Door, itemUid) => {
         );
     else toast.error("Door step not found");
 };
+
+function getDoorStepItemStepUid(itemUid: string, zus = getFormState()) {
+    return Object.entries(zus.kvStepForm)?.find(
+        ([k, v]) => v.title == "Door" && k?.startsWith(itemUid),
+    )?.[0];
+}
+
+function getItemTypeStepItemStepUid(itemUid: string, zus = getFormState()) {
+    return Object.entries(zus.kvStepForm)?.find(
+        ([k, v]) => v.title == "Item Type" && k?.startsWith(itemUid),
+    )?.[0];
+}
 
 function dedupeOptions(options) {
     return options.filter((option, index) => {
@@ -85,6 +98,43 @@ function resolveVariationOptions(
             options,
         };
     });
+}
+
+function captureDoorSelectionSnapshot(cls: ComponentHelperClass, door: Door) {
+    const form = cls.getItemForm()?.groupItem?.form || {};
+    const prefix = `${door.uid}-`;
+    const snapshot = {};
+    (door?.sizeList || []).forEach((size) => {
+        const sizeKey = size.path?.startsWith(prefix)
+            ? size.path.slice(prefix.length)
+            : size.path?.split("-").slice(1).join("-");
+        const formData = form[size.path];
+        if (!formData?.selected) return;
+        snapshot[sizeKey] = {
+            qty: formData.qty || {},
+            swing: formData.swing || "",
+        };
+    });
+    return snapshot;
+}
+
+function applyDoorSelectionSnapshot(selections, snapshot = {}) {
+    Object.entries(snapshot).forEach(([sizeKey, data]: [string, any]) => {
+        const path = Object.keys(selections).find((selectionPath) =>
+            selectionPath.endsWith(`-${sizeKey}`),
+        );
+        if (!path) return;
+        selections[path] = {
+            ...selections[path],
+            swing: data.swing || "",
+            qty: {
+                lh: data?.qty?.lh || "",
+                rh: data?.qty?.rh || "",
+                total: data?.qty?.total || "",
+            },
+        };
+    });
+    return selections;
 }
 
 function sortSequenceBySettings(cls: ComponentHelperClass, itemStepUids: string[]) {
@@ -190,6 +240,61 @@ function treeShakeSequence(cls: ComponentHelperClass) {
     cls.zus.dotUpdate(`sequence.stepComponent.${cls.itemUid}`, nextSequence);
 }
 
+function routeContainsDoorStep(zus, rootComponentUid: string, targetStepUid: string) {
+    const routeMap = zus.setting.composedRouter?.[rootComponentUid]?.route || {};
+    const seen = new Set<string>();
+    let current = routeMap[rootComponentUid];
+    while (current && !seen.has(current)) {
+        if (current == targetStepUid) return true;
+        seen.add(current);
+        current = routeMap[current];
+    }
+    return false;
+}
+
+export function getDoorItemTypeOptions(itemUid: string, doorUid: string, zus = getFormState()) {
+    const itemTypeStepItemStepUid = getItemTypeStepItemStepUid(itemUid, zus);
+    const doorStepItemStepUid = getDoorStepItemStepUid(itemUid, zus);
+    if (!itemTypeStepItemStepUid || !doorStepItemStepUid) return [];
+
+    const itemTypeHelper = new StepHelperClass(itemTypeStepItemStepUid, zus as any);
+    const itemTypeComponents =
+        itemTypeHelper.getStepComponents ||
+        zus.setting.stepsByKey?.[itemTypeHelper.stepUid]?.components ||
+        [];
+    const doorStepForm = zus.kvStepForm[doorStepItemStepUid];
+    const doorComponent =
+        itemTypeHelper.getComponentFromSettingsByStepId(doorStepForm?.stepId, doorUid) ||
+        zus.setting.stepsByKey?.[doorStepForm?.stepId]?.components?.find(
+            (component) => component.uid == doorUid,
+        );
+
+    if (!doorComponent) return [];
+
+    return itemTypeComponents.filter((itemTypeComponent) => {
+        if (!routeContainsDoorStep(zus, itemTypeComponent.uid, doorStepForm.stepId ? doorStepItemStepUid.split("-")[1] : doorStepItemStepUid.split("-")[1])) {
+            return false;
+        }
+        const clonedZus = JSON.parse(JSON.stringify(zus));
+        clonedZus.kvStepForm[itemTypeStepItemStepUid] = {
+            ...clonedZus.kvStepForm[itemTypeStepItemStepUid],
+            componentUid: itemTypeComponent.uid,
+            value: itemTypeComponent.title,
+            stepId:
+                clonedZus.kvStepForm[itemTypeStepItemStepUid]?.stepId ||
+                itemTypeComponent.stepId,
+        };
+        const simulatedDoorHelper = new StepHelperClass(
+            doorStepItemStepUid,
+            clonedZus as any,
+        );
+        return !!simulatedDoorHelper.isComponentVisible({
+            ...doorComponent,
+            _metaData: { ...(doorComponent._metaData || {}) },
+        } as any);
+    });
+}
+
 function selectConfiguredStepComponent(
     cls: ComponentHelperClass,
     stepUid: string,
@@ -214,6 +319,7 @@ function swapDoorWithPreservedRows(
     cls: ComponentHelperClass,
     component,
     swapDoor: Door,
+    preservedSnapshot = {},
 ) {
     const doorItemStepUid = ensureStepInSequence(cls, cls.stepUid);
     const doorHelper = new ComponentHelperClass(
@@ -224,6 +330,7 @@ function swapDoorWithPreservedRows(
 
     doorHelper.selectComponent(true);
     const composed = composeDoor(doorHelper, swapDoor);
+    applyDoorSelectionSnapshot(composed.selections, preservedSnapshot);
     updateDoorGroupForm(
         doorHelper,
         composed.selections,
@@ -236,6 +343,58 @@ function swapDoorWithPreservedRows(
     doorHelper.calculateTotalPrice();
     return doorHelper;
 }
+
+function applyVisibilitySelectionsAndSwap(
+    cls: ComponentHelperClass,
+    nextDoor,
+    currentDoor,
+    visibilitySelections,
+    preservedSnapshot,
+) {
+    const selectedSteps = Object.entries(visibilitySelections)
+        .filter(([, componentUid]) => !!componentUid)
+        .map(([stepUid, componentUid]) => ({ stepUid, componentUid }))
+        .sort((left, right) => {
+            const order = new Map(
+                (cls.zus.setting.steps || []).map((step, index) => [
+                    step.uid,
+                    index,
+                ]),
+            );
+            return (
+                (order.get(left.stepUid) ?? 999) -
+                (order.get(right.stepUid) ?? 999)
+            );
+        });
+
+    if (selectedSteps.length) {
+        const [first, ...rest] = selectedSteps;
+        selectConfiguredStepComponent(cls, first.stepUid, first.componentUid, false);
+        rest.forEach((stepSelection) => {
+            selectConfiguredStepComponent(
+                cls,
+                stepSelection.stepUid,
+                stepSelection.componentUid,
+                true,
+            );
+        });
+    }
+
+    treeShakeSequence(cls);
+    swapDoorWithPreservedRows(cls, nextDoor, currentDoor, preservedSnapshot);
+}
+
+export const openDoorItemTypeSwapModal = (door: Door, itemUid) => {
+    const zus = getFormState();
+    const itemStepUid = getDoorStepItemStepUid(itemUid, zus);
+    if (!itemStepUid) {
+        toast.error("Door step not found");
+        return;
+    }
+    _modal.openModal(
+        <DoorItemTypeSwapModal itemStepUid={itemStepUid} door={door} />,
+    );
+};
 
 export function DoorSwapModal({ door, itemStepUid }) {
     const ctx = useStepContext(itemStepUid);
@@ -282,11 +441,39 @@ export function DoorSwapModal({ door, itemStepUid }) {
         setVisibilitySelections(nextSelections);
     }, [selectedDoor, variationIndex, variationOptions]);
 
+    const preservedSnapshot = useMemo(
+        () => captureDoorSelectionSnapshot(cls, door),
+        [cls, door],
+    );
+
     function closeModal() {
         _modal.close();
     }
 
     function handleDoorPick(component) {
+        const autoVariationOptions = resolveVariationOptions(cls, component, 0);
+        const canAutoProceed =
+            !component?._metaData?.visible &&
+            component?.variations?.length == 1 &&
+            autoVariationOptions.length > 0 &&
+            autoVariationOptions.every((rule) => rule.options.length <= 1);
+
+        if (canAutoProceed) {
+            const autoSelections = {};
+            autoVariationOptions.forEach((rule) => {
+                autoSelections[rule.stepUid] = rule.options?.[0]?.uid || "";
+            });
+            applyVisibilitySelectionsAndSwap(
+                cls,
+                component,
+                door,
+                autoSelections,
+                preservedSnapshot,
+            );
+            closeModal();
+            return;
+        }
+
         if (!component?._metaData?.visible && component?.variations?.length) {
             setSelectedDoor(component);
             setVariationIndex(0);
@@ -294,49 +481,19 @@ export function DoorSwapModal({ door, itemStepUid }) {
             return;
         }
 
-        swapDoorWithPreservedRows(cls, component, door);
+        swapDoorWithPreservedRows(cls, component, door, preservedSnapshot);
         closeModal();
     }
 
     function handleProceed() {
         if (!selectedDoor) return;
-
-        const selectedSteps = Object.entries(visibilitySelections)
-            .filter(([, componentUid]) => !!componentUid)
-            .map(([stepUid, componentUid]) => ({ stepUid, componentUid }))
-            .sort((left, right) => {
-                const order = new Map(
-                    (cls.zus.setting.steps || []).map((step, index) => [
-                        step.uid,
-                        index,
-                    ]),
-                );
-                return (
-                    (order.get(left.stepUid) ?? 999) -
-                    (order.get(right.stepUid) ?? 999)
-                );
-            });
-
-        if (selectedSteps.length) {
-            const [first, ...rest] = selectedSteps;
-            selectConfiguredStepComponent(
-                cls,
-                first.stepUid,
-                first.componentUid,
-                false,
-            );
-            rest.forEach((stepSelection) => {
-                selectConfiguredStepComponent(
-                    cls,
-                    stepSelection.stepUid,
-                    stepSelection.componentUid,
-                    true,
-                );
-            });
-        }
-
-        treeShakeSequence(cls);
-        swapDoorWithPreservedRows(cls, selectedDoor, door);
+        applyVisibilitySelectionsAndSwap(
+            cls,
+            selectedDoor,
+            door,
+            visibilitySelections,
+            preservedSnapshot,
+        );
         closeModal();
     }
 
@@ -473,6 +630,64 @@ export function DoorSwapModal({ door, itemStepUid }) {
                     </Modal.Footer>
                 </>
             )}
+        </Modal.Content>
+    );
+}
+
+function DoorItemTypeSwapModal({
+    door,
+    itemStepUid,
+}: {
+    door: Door;
+    itemStepUid: string;
+}) {
+    const ctx = useStepContext(itemStepUid);
+    const { cls } = ctx;
+    const itemTypeOptions = useMemo(
+        () => getDoorItemTypeOptions(cls.itemUid, door.uid),
+        [cls.itemUid, door.uid],
+    );
+    const preservedSnapshot = useMemo(
+        () => captureDoorSelectionSnapshot(cls, door),
+        [cls, door],
+    );
+
+    function handleSelect(itemTypeComponent) {
+        const itemTypeStepItemStepUid = getItemTypeStepItemStepUid(cls.itemUid);
+        if (!itemTypeStepItemStepUid) return;
+        const itemTypeHelper = new ComponentHelperClass(
+            itemTypeStepItemStepUid,
+            itemTypeComponent.uid,
+            itemTypeComponent,
+        );
+        itemTypeHelper.selectComponent(false);
+        treeShakeSequence(itemTypeHelper);
+        swapDoorWithPreservedRows(itemTypeHelper, door, door, preservedSnapshot);
+        _modal.close();
+    }
+
+    return (
+        <Modal.Content size="lg">
+            <Modal.Header
+                title="Swap Item Type"
+                subtitle="Choose a compatible item type for the selected door. The step list will be rebuilt to match the new item type."
+            />
+            <ScrollArea className="h-[60vh]">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {itemTypeOptions.map((itemTypeComponent) => (
+                        <button
+                            key={itemTypeComponent.uid}
+                            type="button"
+                            onClick={() => handleSelect(itemTypeComponent)}
+                            className="rounded-lg border p-4 text-left transition hover:border-muted-foreground hover:bg-muted/40"
+                        >
+                            <div className="font-semibold uppercase">
+                                {itemTypeComponent.title}
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            </ScrollArea>
         </Modal.Content>
     );
 }
