@@ -9,7 +9,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatDate } from "@gnd/utils/dayjs";
 import {
     BriefcaseBusiness,
-    ExternalLink,
+    FileImage,
     FileText,
     Hammer,
     Home,
@@ -67,7 +67,113 @@ function TabFallback({ label }: { label: string }) {
     );
 }
 
-function DocumentsPanel({ data }: { data: ProjectOverviewData }) {
+function isImageDocument(document: {
+    mimeType?: string | null;
+    extension?: string | null;
+}) {
+    if (document.mimeType?.startsWith("image/")) return true;
+    return ["jpg", "jpeg", "png", "gif", "webp", "avif"].includes(
+        String(document.extension || "").toLowerCase(),
+    );
+}
+
+function DocumentAttachment({
+    document,
+}: {
+    document: ProjectOverviewData["recentDocuments"][number];
+}) {
+    const imageDocument = isImageDocument(document);
+
+    const content = (
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white transition-colors hover:border-emerald-300">
+            <div className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-slate-50">
+                {imageDocument && document.url ? (
+                    <img
+                        src={document.url}
+                        alt={document.title}
+                        className="h-full w-full object-cover"
+                    />
+                ) : (
+                    <div className="flex flex-col items-center gap-2 text-slate-500">
+                        {imageDocument ? (
+                            <FileImage className="size-7" />
+                        ) : (
+                            <FileText className="size-7" />
+                        )}
+                    </div>
+                )}
+            </div>
+            <div className="space-y-1 px-3 py-2">
+                <p className="truncate text-sm font-medium text-slate-900">
+                    {document.title}
+                </p>
+                <p className="text-[11px] text-slate-500">
+                    {document.uploadedByName || "Unknown"} •{" "}
+                    {formatDate(document.createdAt)}
+                </p>
+            </div>
+        </div>
+    );
+
+    if (!document.url) return content;
+
+    return (
+        <a href={document.url} target="_blank" rel="noreferrer">
+            {content}
+        </a>
+    );
+}
+
+function ActivityHistory({ data }: { data: ProjectOverviewData }) {
+    if (!data.recentDocumentActivity.length) {
+        return <EmptyState label="Activity history" />;
+    }
+
+    return (
+        <div className="space-y-3">
+            {data.recentDocumentActivity.map((activity) => (
+                <div
+                    key={activity.id}
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"
+                >
+                    <div className="flex items-start gap-3">
+                        <span className="mt-0.5 flex size-8 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+                            <FileText className="size-4" />
+                        </span>
+                        <div className="min-w-0 flex-1 space-y-2">
+                            <div>
+                                <p className="text-sm font-medium text-slate-900">
+                                    {activity.headline || activity.subject}
+                                </p>
+                                <p className="text-[11px] text-slate-400">
+                                    {activity.authorName} •{" "}
+                                    {formatDate(activity.createdAt)}
+                                </p>
+                            </div>
+                            {activity.note ? (
+                                <p className="text-sm text-slate-600">
+                                    {activity.note}
+                                </p>
+                            ) : null}
+                            {activity.documents.length ? (
+                                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                    {activity.documents.map((document) => (
+                                        <DocumentAttachment
+                                            key={document.id}
+                                            document={document}
+                                        />
+                                    ))}
+                                </div>
+                            ) : null}
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function ProjectTimelinePanel({ data }: { data: ProjectOverviewData }) {
     const trpc = useTRPC();
     const queryClient = useQueryClient();
     const uploadDocuments = useMutation(
@@ -83,11 +189,11 @@ function DocumentsPanel({ data }: { data: ProjectOverviewData }) {
     );
 
     return (
-        <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
             <Card className="border-slate-200 shadow-sm">
                 <CardHeader className="pb-3">
                     <CardTitle className="text-base font-semibold text-slate-900">
-                        Project documents
+                        Add project update
                     </CardTitle>
                     <p className="text-sm text-slate-500">
                         Upload one or more files, add context, and send the
@@ -107,139 +213,37 @@ function DocumentsPanel({ data }: { data: ProjectOverviewData }) {
                         }
                     />
                 </CardContent>
+                {data.recentDocuments.length ? (
+                    <CardContent className="space-y-3 pt-0">
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                                Recent documents
+                            </p>
+                            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                {data.recentDocuments.map((document) => (
+                                    <DocumentAttachment
+                                        key={document.id}
+                                        document={document}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    </CardContent>
+                ) : null}
             </Card>
 
             <Card className="border-slate-200 shadow-sm">
                 <CardHeader className="pb-3">
                     <CardTitle className="text-base font-semibold text-slate-900">
-                        Recent uploads
+                        Activity history
                     </CardTitle>
                     <p className="text-sm text-slate-500">
-                        Latest project documents and the related activity notes.
+                        Timeline of project updates, notes, and attached
+                        documents.
                     </p>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                            Documents
-                        </p>
-                        {data.recentDocuments.length ? (
-                            <div className="space-y-2">
-                                {data.recentDocuments.map((document) => (
-                                    <div
-                                        key={document.id}
-                                        className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-3 py-2"
-                                    >
-                                        <div className="min-w-0">
-                                            <p className="truncate text-sm font-medium text-slate-900">
-                                                {document.title}
-                                            </p>
-                                            <p className="text-xs text-slate-500">
-                                                {document.uploadedByName ||
-                                                    "Unknown"}{" "}
-                                                •{" "}
-                                                {formatDate(document.createdAt)}
-                                            </p>
-                                        </div>
-                                        {document.url ? (
-                                            <Button
-                                                asChild
-                                                variant="ghost"
-                                                size="icon"
-                                                className="size-8 rounded-full"
-                                            >
-                                                <a
-                                                    href={document.url}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                >
-                                                    <ExternalLink className="size-4" />
-                                                </a>
-                                            </Button>
-                                        ) : null}
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <EmptyState label="Documents" />
-                        )}
-                    </div>
-
-                    <div className="space-y-2">
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                            Activity
-                        </p>
-                        {data.recentDocumentActivity.length ? (
-                            <div className="space-y-2">
-                                {data.recentDocumentActivity.map((activity) => (
-                                    <div
-                                        key={activity.id}
-                                        className="rounded-xl border border-slate-200 px-3 py-3"
-                                    >
-                                        <div className="flex items-start gap-3">
-                                            <span className="mt-0.5 flex size-8 items-center justify-center rounded-full bg-slate-100 text-slate-600">
-                                                <FileText className="size-4" />
-                                            </span>
-                                            <div className="min-w-0 flex-1 space-y-1">
-                                                <p className="text-sm font-medium text-slate-900">
-                                                    {activity.headline ||
-                                                        activity.subject}
-                                                </p>
-                                                {activity.note ? (
-                                                    <p className="text-xs text-slate-600">
-                                                        {activity.note}
-                                                    </p>
-                                                ) : null}
-                                                <p className="text-[11px] text-slate-400">
-                                                    {activity.authorName} •{" "}
-                                                    {formatDate(
-                                                        activity.createdAt,
-                                                    )}
-                                                </p>
-                                                {activity.documents.length ? (
-                                                    <div className="flex flex-wrap gap-2 pt-1">
-                                                        {activity.documents.map(
-                                                            (document) =>
-                                                                document?.url ? (
-                                                                    <a
-                                                                        key={
-                                                                            document.id
-                                                                        }
-                                                                        href={
-                                                                            document.url
-                                                                        }
-                                                                        target="_blank"
-                                                                        rel="noreferrer"
-                                                                        className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-700 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
-                                                                    >
-                                                                        {
-                                                                            document.title
-                                                                        }
-                                                                    </a>
-                                                                ) : (
-                                                                    <span
-                                                                        key={
-                                                                            document.id
-                                                                        }
-                                                                        className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-700"
-                                                                    >
-                                                                        {
-                                                                            document.title
-                                                                        }
-                                                                    </span>
-                                                                ),
-                                                        )}
-                                                    </div>
-                                                ) : null}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <EmptyState label="Document activity" />
-                        )}
-                    </div>
+                <CardContent>
+                    <ActivityHistory data={data} />
                 </CardContent>
             </Card>
         </div>
@@ -250,7 +254,7 @@ export function ProjectOverviewWidget({ data }: { data: ProjectOverviewData }) {
     return (
         <WidgetShell
             title="Project activity"
-            description="A tabbed operational widget for units, production activity, invoice activity, jobs, and documents on this project."
+            description="A tabbed operational widget for units, production activity, invoice activity, jobs, and timeline updates on this project."
         >
             <Tabs defaultValue="units" className="space-y-4">
                 <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1.5 md:grid-cols-5">
@@ -287,7 +291,7 @@ export function ProjectOverviewWidget({ data }: { data: ProjectOverviewData }) {
                         className="gap-2 rounded-xl py-2.5"
                     >
                         <FileText className="size-4" />
-                        Documents
+                        Project Timeline
                     </TabsTrigger>
                 </TabsList>
 
@@ -337,7 +341,7 @@ export function ProjectOverviewWidget({ data }: { data: ProjectOverviewData }) {
                     </Suspense>
                 </TabsContent>
                 <TabsContent value="documents" className="mt-0">
-                    <DocumentsPanel data={data} />
+                    <ProjectTimelinePanel data={data} />
                 </TabsContent>
             </Tabs>
         </WidgetShell>

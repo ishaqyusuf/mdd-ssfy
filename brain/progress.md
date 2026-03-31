@@ -814,3 +814,4 @@
 - Extended the shared jobs query contract with `projectId` / `projectSlug` filtering so the project overview can scope the main contractor jobs table directly to the active project using the same query path as the jobs page.
 - Added explicit `projectTabColumns` exports to the shared Units, Production, Invoices, and Jobs column modules so the project overview tabs can use purpose-built embedded columns without changing the main standalone page layouts.
 - Moved the project documents area into the same overview tab system as the operational data tabs, and wrapped each embedded data-table tab in `Suspense` with a lightweight per-tab fallback shell.
+- Renamed the overview documents tab to `Project Timeline` and redesigned it around an activity-history feed that renders attached documents in a compact grid, including image thumbnails for image files and document cards with file names for non-image uploads.
