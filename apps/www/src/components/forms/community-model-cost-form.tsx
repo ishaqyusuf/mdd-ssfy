@@ -4,7 +4,7 @@ import { useTRPC } from "@/trpc/client";
 import {
     communityModelCostFormSchema,
     saveCommunityModelCostSchema,
-} from "@api/db/queries/community";
+} from "@api/schemas/community";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { Form } from "@gnd/ui/form";
 import {
@@ -286,4 +286,3 @@ export function CommunityModelCostForm({ model }: Props) {
         </Form>
     );
 }
-

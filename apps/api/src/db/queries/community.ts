@@ -1,6 +1,14 @@
 import type {
   CommunityTemplateForm,
+  CommunityModelCostForm,
   CreateCommunityModelCost,
+  SaveCommunityModelCost,
+  UpdateInstallCostSchema,
+} from "@api/schemas/community";
+import {
+  communityModelCostFormSchema,
+  saveCommunityModelCostSchema,
+  updateInstallCostSchema,
 } from "@api/schemas/community";
 import { createApiVercelBlobDocumentService } from "@api/utils/documents";
 import {
@@ -416,18 +424,6 @@ export async function communityInstallCostForm(
     // modelName:
   };
 }
-export const updateInstallCostSchema = z.object({
-  communityModelId: z.number(),
-  pivotId: z.number().optional().nullable(),
-  // costIndex: z.number(),
-  // installCosts: z.array(z.any()),
-  meta: z.object({
-    pivot: z.any().optional().nullable(),
-    communityModel: z.any().optional().nullable(),
-  }),
-});
-export type UpdateInstallCostSchema = z.infer<typeof updateInstallCostSchema>;
-
 export async function updateInstallCost(
   ctx: TRPCContext,
   query: UpdateInstallCostSchema,
@@ -457,13 +453,6 @@ export async function getInstallPriceConfiguration(ctx: TRPCContext) {
   });
   return (s?.meta || {}) as any as IntallCostMeta;
 }
-export const communityModelCostFormSchema = z.object({
-  id: z.number(),
-});
-export type CommunityModelCostForm = z.infer<
-  typeof communityModelCostFormSchema
->;
-
 export async function communityModelCostForm(
   ctx: TRPCContext,
   data: CommunityModelCostForm,
@@ -489,20 +478,6 @@ export async function communityModelCostForm(
   };
 }
 
-export const saveCommunityModelCostSchema = z.object({
-  startDate: z.date().optional().nullable(),
-  endDate: z.date().optional().nullable(),
-  id: z.number().optional().nullable(),
-  communityModelId: z.number(),
-  pivotId: z.number().optional().nullable(),
-  costs: z.record(z.string(), z.any().optional().nullable()),
-  tax: z.record(z.string(), z.any().optional().nullable()),
-  meta: z.any().optional().nullable(),
-  model: z.string(),
-});
-export type SaveCommunityModelCost = z.infer<
-  typeof saveCommunityModelCostSchema
->;
 export async function saveCommunityModelCost(
   ctx: TRPCContext,
   data: SaveCommunityModelCost,

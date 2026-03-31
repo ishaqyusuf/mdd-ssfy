@@ -15,7 +15,6 @@ import {
   communityProjectUnitsOverview,
   communityProjectUnitsOverviewSchema,
   communityModelCostForm,
-  communityModelCostFormSchema,
   communityModelCostHistory,
   communityModelCostHistorySchema,
   communitySummary,
@@ -34,10 +33,8 @@ import {
   getUnitJobsSchema,
   projectList,
   saveCommunityModelCost,
-  saveCommunityModelCostSchema,
   saveCommunityTemplateForm,
   updateInstallCost,
-  updateInstallCostSchema,
 } from "@api/db/queries/community";
 import {
   sortBuilderTasks,
@@ -74,8 +71,11 @@ import {
   workOrderFormSchema,
 } from "@api/db/queries/work-order";
 import {
+  communityModelCostFormSchema,
+  saveCommunityModelCostSchema,
   communityTemplateFormSchema,
   createCommunityModelCostSchema,
+  updateInstallCostSchema,
 } from "@api/schemas/community";
 import { getBuilders, getBuildersSchema } from "@community/builder";
 import {

@@ -19,6 +19,38 @@ export type CreateCommunityModelCost = z.infer<
   typeof createCommunityModelCostSchema
 >;
 
+export const updateInstallCostSchema = z.object({
+  communityModelId: z.number(),
+  pivotId: z.number().optional().nullable(),
+  meta: z.object({
+    pivot: z.any().optional().nullable(),
+    communityModel: z.any().optional().nullable(),
+  }),
+});
+export type UpdateInstallCostSchema = z.infer<typeof updateInstallCostSchema>;
+
+export const communityModelCostFormSchema = z.object({
+  id: z.number(),
+});
+export type CommunityModelCostForm = z.infer<
+  typeof communityModelCostFormSchema
+>;
+
+export const saveCommunityModelCostSchema = z.object({
+  startDate: z.date().optional().nullable(),
+  endDate: z.date().optional().nullable(),
+  id: z.number().optional().nullable(),
+  communityModelId: z.number(),
+  pivotId: z.number().optional().nullable(),
+  costs: z.record(z.string(), z.any().optional().nullable()),
+  tax: z.record(z.string(), z.any().optional().nullable()),
+  meta: z.any().optional().nullable(),
+  model: z.string(),
+});
+export type SaveCommunityModelCost = z.infer<
+  typeof saveCommunityModelCostSchema
+>;
+
 export const communityTemplateQueryParamsSchema = z
   .object({
     // example: z.string(),

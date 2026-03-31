@@ -1,6 +1,6 @@
 import { useZodForm } from "@/hooks/use-zod-form";
 import { useTRPC } from "@/trpc/client";
-import { updateInstallCostSchema } from "@api/db/queries/community";
+import { updateInstallCostSchema } from "@api/schemas/community";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { Form } from "@gnd/ui/form";
 import {
@@ -215,4 +215,3 @@ export function CommunityInstallCostForm({ model }: Props) {
         </Form>
     );
 }
-
