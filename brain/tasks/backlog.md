@@ -3,6 +3,13 @@
 ## Purpose
 Tracks queued work that is important but not currently in the top execution slice.
 
+### PlanetScale to Supabase Migration
+- Priority: High
+- Description: Migrate the primary application database from PlanetScale MySQL to Supabase Postgres with Prisma retained for phase 1, following the execution checklist in `brain/planetscale-to-supabase-migration-checklist.md`.
+- Related Feature: Platform / Database Migration
+- Status: Backlog
+- Created Date: 2026-03-31
+
 ## Next Up
 - [ ] Install cost sorting rollout: sort relational install-cost rows by `builderTask.taskIndex` with `builderTask.createdAt` fallback in API responses, then align web admin, web jobs form, and Expo/mobile jobs form rendering to the same canonical order (`brain/features/install-cost-sorting.md`) (API + UI + Validation)
 - [ ] Table sorting and arrangement pass: standardize sortable header behavior, query-param sync, and column arrangement UX across shared table surfaces before rolling fixes into feature-specific tables (UI + Validation)

@@ -24,7 +24,7 @@ const _module = (
     activeSubLinkCount: 0,
     defaultLink: null,
 });
-// type sectionNames = "main" | "sales";
+// type sectionNames = "" | "sales";
 export type LinkItem = {
     name;
     title;
@@ -213,15 +213,7 @@ export const validateLinks = ({
                 //     lnk?.subLinks?.filter((a) => !a.meta)?.every((s) => !s.show)
                 // )
                 //     lnk.show = false;
-                if (lnk.href === "/community") {
-                    console.log([
-                        lnk?.show,
-                        lnk.subLinks
-                            .filter((a) => !a.meta)
-                            ?.some((a) => a.show),
-                        lnk.href,
-                    ]);
-                }
+
                 return lnk;
             });
 
@@ -309,10 +301,7 @@ export const linkModules = [
                             "viewJobPayment",
                         ),
                     ).data,
-                    _subLink(
-                        "Payments",
-                        "/contractors/jobs/payments",
-                    ).access(
+                    _subLink("Payments", "/contractors/jobs/payments").access(
                         _perm.every(
                             "viewProject",
                             "viewInvoice",
@@ -339,9 +328,9 @@ export const linkModules = [
         ]),
     ]),
     _module("Community", "communityInvoice", "GND Community", [
-        _section("main", null, [
-            _link("Dashboard", "dashbord2", "/community").access(canEditProject)
-                .data,
+        _section("", null, [
+            // _link("Dashboard", "dashbord2", "/community").access(canEditProject)
+            // .data,
             _link("Projects", "communityInvoice", "/community/projects").access(
                 canEditProject,
             ).data,
@@ -374,7 +363,7 @@ export const linkModules = [
                 "/community/install-costs",
             ).access(canEditProject).data,
         ]),
-        _section("main", null, [
+        _section("", null, [
             _link(
                 "Customer Service",
                 "customerService",
@@ -385,7 +374,7 @@ export const linkModules = [
                 .level(7).data,
         ]),
 
-        _section("main", null, [
+        _section("", null, [
             _link(
                 "Production Dashboard",
                 "production",
@@ -463,9 +452,9 @@ export const linkModules = [
                     _perm.is("viewBuilders"),
                 ).data,
             ]).data,
-            _link("Mobile App", "monitor", "/settings/mobile-app")
-                .access(_role.is("Super Admin"))
-                .data,
+            _link("Mobile App", "monitor", "/settings/mobile-app").access(
+                _role.is("Super Admin"),
+            ).data,
         ]),
     ]),
     _module("Sales", "orders", "GND Sales", [
@@ -495,7 +484,7 @@ export const linkModules = [
             ).access(_perm.is("editSalesResolution")).data,
             // .childPaths("sales-book/accounting/resolution-center").data,
         ]),
-        _section("main", null, [
+        _section("", null, [
             // _link("HOME", "project", "/sales-book/home-page").access(
             //     _perm.in("editOrders"),
             // ).data,
@@ -592,7 +581,7 @@ export const linkModules = [
         ]),
     ]),
     _module("Inventory", "packingList", "GND Inventory", [
-        _section("main", null, [
+        _section("", null, [
             _link("Inventory", "inbound", "/inventory", [
                 _subLink("Inventory", "/inventory").data,
                 _subLink("Inbounds", "/inventory/inbounds").data,
@@ -755,3 +744,4 @@ export function getActiveLinkFromMap(
         )
         .sort(([hrefA], [hrefB]) => hrefB.length - hrefA.length)?.[0]?.[1];
 }
+
