@@ -36,6 +36,8 @@ export const getJobsSchema = z
 	.object({
 		userId: z.number().optional().nullable(),
 		jobId: z.number().optional().nullable(),
+		projectId: z.number().optional().nullable(),
+		projectSlug: z.string().optional().nullable(),
 		show: z.enum(JOBS_SHOW_OPTIONS).optional().nullable(),
 		contractor: z.string().optional().nullable(),
 		project: z.string().optional().nullable(),
@@ -212,6 +214,18 @@ function whereJobs(query: GetJobsSchema) {
 			case "jobId":
 				where.push({
 					id: value,
+				});
+				break;
+			case "projectId":
+				where.push({
+					projectId: value,
+				});
+				break;
+			case "projectSlug":
+				where.push({
+					project: {
+						slug: value,
+					},
 				});
 				break;
 			case "unitId":

@@ -142,26 +142,36 @@ const installation: Column = {
         </>
     ),
 };
+const actionColumn: Column = {
+    header: "",
+    accessorKey: "action",
+    meta: {
+        actionCell: true,
+        preventDefault: true,
+        className: "w-[100px]",
+    },
+    cell: ({ row: { original: item } }) => (
+        <>
+            <Actions item={item} />
+        </>
+    ),
+};
+
 export const columns: Column[] = [
     column1,
     projectColumn,
     lotBlock,
     production,
     installation,
-    {
-        header: "",
-        accessorKey: "action",
-        meta: {
-            actionCell: true,
-            preventDefault: true,
-            className: "w-[100px]",
-        },
-        cell: ({ row: { original: item } }) => (
-            <>
-                <Actions item={item} />
-            </>
-        ),
-    },
+    actionColumn,
+];
+
+export const projectTabColumns: Column[] = [
+    column1,
+    lotBlock,
+    production,
+    installation,
+    actionColumn,
 ];
 
 function Actions({ item }: ItemProps) {

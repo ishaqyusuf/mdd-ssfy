@@ -121,6 +121,15 @@ export const adminColumns: Column[] = [
 	actionColumn,
 ];
 
+export const projectTabColumns: Column[] = [
+	column1,
+	descriptionColumn,
+	contractorColumn,
+	statusColumn,
+	amountColumn,
+	actionColumn,
+];
+
 export const workersColumn: Column[] = [
 	column1,
 	descriptionColumn,

@@ -88,25 +88,34 @@ const statusColumn: Column = {
   ),
 };
 
+const actionColumn: Column = {
+  header: "",
+  accessorKey: "action",
+  meta: {
+    actionCell: true,
+    preventDefault: true,
+    className: "w-[124px]",
+  },
+  cell: ({ row: { original: item } }) => (
+    <div className="relative z-10 flex items-center justify-end gap-2">
+      <UnitTaskProductionAction task={item as any} />
+    </div>
+  ),
+};
+
 export const columns: Column[] = [
   cells.selectColumn,
   dueDateColumn,
   taskDetailsColumn,
   statusColumn,
-  {
-    header: "",
-    accessorKey: "action",
-    meta: {
-      actionCell: true,
-      preventDefault: true,
-      className: "w-[124px]",
-    },
-    cell: ({ row: { original: item } }) => (
-      <div className="relative z-10 flex items-center justify-end gap-2">
-        <UnitTaskProductionAction task={item as any} />
-      </div>
-    ),
-  },
+  actionColumn,
+];
+
+export const projectTabColumns: Column[] = [
+  dueDateColumn,
+  taskDetailsColumn,
+  statusColumn,
+  actionColumn,
 ];
 
 export const mobileColumn: ColumnDef<Item>[] = [

@@ -99,22 +99,32 @@ const invoiceColumn: Column = {
   ),
 };
 
+const actionColumn: Column = {
+  header: "",
+  accessorKey: "action",
+  meta: {
+    actionCell: true,
+    preventDefault: true,
+    className: "w-[88px]",
+  },
+  cell: ({ row: { original: item } }) => <Actions item={item} />,
+};
+
 export const columns: Column[] = [
   dateColumn,
   projectColumn,
   unitColumn,
   statusColumn,
   invoiceColumn,
-  {
-    header: "",
-    accessorKey: "action",
-    meta: {
-      actionCell: true,
-      preventDefault: true,
-      className: "w-[88px]",
-    },
-    cell: ({ row: { original: item } }) => <Actions item={item} />,
-  },
+  actionColumn,
+];
+
+export const projectTabColumns: Column[] = [
+  dateColumn,
+  unitColumn,
+  statusColumn,
+  invoiceColumn,
+  actionColumn,
 ];
 
 function Actions({ item }: { item: Item }) {

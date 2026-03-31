@@ -13,12 +13,15 @@ import { Icons } from "@gnd/ui/icons";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { BatchActions } from "./batch-actions";
-import { adminColumns, mobileColumn, workersColumn } from "./columns";
+import type { ColumnDef } from "@tanstack/react-table";
+import { adminColumns, mobileColumn, type JobItem, workersColumn } from "./columns";
 interface Props {
 	defaultFilters?: GetJobsSchema;
 	columnSet?: "admin" | "worker";
 	emptyStateLabel?: string;
 	CreateButton?: ReactNode;
+	embedded?: boolean;
+	columns?: ColumnDef<JobItem>[];
 }
 export function DataTable(props: Props) {
 	// const { rowSelection, setRowSelection } = useJobStore();
@@ -40,12 +43,17 @@ export function DataTable(props: Props) {
 		startFromColumn: 2,
 	});
 	const { setParams } = useJobParams();
-	const columns = props.columnSet === "worker" ? workersColumn : adminColumns;
+	const columns =
+		props.columns ||
+		(props.columnSet === "worker" ? workersColumn : adminColumns);
 	if (hasFilters && !data?.length) {
 		return <NoResults setFilter={setFilters} />;
 	}
 
 	if (!data?.length && !isFetching) {
+		if (props.embedded) {
+			return <EmptyState label={props.emptyStateLabel || "Jobs"} />;
+		}
 		return (
 			<EmptyState
 				label={props.emptyStateLabel}
@@ -99,7 +107,7 @@ export function DataTable(props: Props) {
 					</Table>
 				</div>
 				<Table.LoadMore />
-				<BatchActions />
+				{!props.embedded ? <BatchActions /> : null}
 			</div>
 		</Table.Provider>
 	);

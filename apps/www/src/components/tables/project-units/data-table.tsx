@@ -2,7 +2,8 @@
 
 import { useTRPC } from "@/trpc/client";
 import { Table, useTableData } from "@gnd/ui/data-table";
-import { columns, mobileColumn } from "./columns";
+import type { ColumnDef } from "@tanstack/react-table";
+import { columns, mobileColumn, type Item } from "./columns";
 import { useProjectUnitFilterParams } from "@/hooks/use-project-units-filter-params";
 import { NoResults } from "@gnd/ui/custom/no-results";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
@@ -16,6 +17,8 @@ import { useSortParams } from "@/hooks/use-sort-params";
 import { useRouter } from "next/navigation";
 interface Props {
     defaultFilters?: GetProjectUnitsSchema;
+    embedded?: boolean;
+    columns?: ColumnDef<Item>[];
 }
 export function DataTable(props: Props) {
     const trpc = useTRPC();
@@ -45,6 +48,9 @@ export function DataTable(props: Props) {
     }
 
     if (!data?.length && !isFetching) {
+        if (props.embedded) {
+            return <EmptyState label="Units" />;
+        }
         return (
             <EmptyState
                 CreateButton={
@@ -63,7 +69,7 @@ export function DataTable(props: Props) {
         <Table.Provider
             args={[
                 {
-                    columns,
+                    columns: props.columns || columns,
                     mobileColumn,
                     data,
                     params,
@@ -95,7 +101,7 @@ export function DataTable(props: Props) {
                     </Table>
                 </div>
                 <Table.LoadMore />
-                <BatchActions />
+                {!props.embedded ? <BatchActions /> : null}
             </div>
         </Table.Provider>
     );

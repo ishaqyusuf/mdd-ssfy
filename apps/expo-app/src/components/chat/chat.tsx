@@ -13,6 +13,7 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -650,7 +651,7 @@ function ChatRoot({
     return fallback ? [fallback, ...options] : options;
   }, [channel, names]);
 
-  async function submit() {
+  const submit = useCallback(async () => {
     const errors: Record<string, string> = {};
 
     if (!state.channel) {
@@ -757,56 +758,111 @@ function ChatRoot({
     } finally {
       setState((prev) => ({ ...prev, isSubmitting: false }));
     }
-  }
+  }, [
+    defaultPayloads,
+    fallbackMutation,
+    messageRequired,
+    metaFieldConfigs,
+    normalizedContacts,
+    onSent,
+    onSubmitData,
+    payload,
+    payloadFieldConfigs,
+    state,
+    transformSubmitData,
+  ]);
+
+  const setChannel = useCallback(
+    (value: string) => {
+      setState((prev) => ({
+        ...prev,
+        channel: value,
+        payload: resolveDefaultPayloadValues(defaultPayloads, value),
+        errors: { ...prev.errors, channel: "" },
+      }));
+    },
+    [defaultPayloads],
+  );
+
+  const setMessage = useCallback((value: string) => {
+    setState((prev) => ({
+      ...prev,
+      message: value,
+      errors: { ...prev.errors, message: "" },
+    }));
+  }, []);
+
+  const setMetaValue = useCallback((name: string, value: string) => {
+    setState((prev) => ({
+      ...prev,
+      meta: { ...prev.meta, [name]: value },
+      errors: { ...prev.errors, [createErrorKey("meta", name)]: "" },
+    }));
+  }, []);
+
+  const setPayloadValue = useCallback((name: string, value: string) => {
+    setState((prev) => ({
+      ...prev,
+      payload: { ...prev.payload, [name]: value },
+      errors: { ...prev.errors, [createErrorKey("payload", name)]: "" },
+    }));
+  }, []);
+
+  const setMetaFieldConfig = useCallback((name: string, config: OptionFieldConfig) => {
+    setMetaFieldConfigs((prev) => {
+      const current = prev[name];
+      if (current?.required === config.required && current?.show === config.show) {
+        return prev;
+      }
+      return { ...prev, [name]: config };
+    });
+  }, []);
+
+  const setPayloadFieldConfig = useCallback((name: string, config: OptionFieldConfig) => {
+    setPayloadFieldConfigs((prev) => {
+      const current = prev[name];
+      if (current?.required === config.required && current?.show === config.show) {
+        return prev;
+      }
+      return { ...prev, [name]: config };
+    });
+  }, []);
+
+  const setNoteColor = useCallback((value: string) => {
+    setState((prev) => ({ ...prev, noteColor: value }));
+  }, []);
+
+  const setComposerFocused = useCallback((value: boolean) => {
+    setState((prev) => ({ ...prev, isComposerFocused: value }));
+  }, []);
 
   const contextValue = useMemo<ChatContextValue>(
     () => ({
       state,
-      setChannel: (value) => {
-        setState((prev) => ({
-          ...prev,
-          channel: value,
-          payload: resolveDefaultPayloadValues(defaultPayloads, value),
-          errors: { ...prev.errors, channel: "" },
-        }));
-      },
-      setMessage: (value) => {
-        setState((prev) => ({
-          ...prev,
-          message: value,
-          errors: { ...prev.errors, message: "" },
-        }));
-      },
-      setMetaValue: (name, value) => {
-        setState((prev) => ({
-          ...prev,
-          meta: { ...prev.meta, [name]: value },
-          errors: { ...prev.errors, [createErrorKey("meta", name)]: "" },
-        }));
-      },
-      setPayloadValue: (name, value) => {
-        setState((prev) => ({
-          ...prev,
-          payload: { ...prev.payload, [name]: value },
-          errors: { ...prev.errors, [createErrorKey("payload", name)]: "" },
-        }));
-      },
-      setMetaFieldConfig: (name, config) => {
-        setMetaFieldConfigs((prev) => ({ ...prev, [name]: config }));
-      },
-      setPayloadFieldConfig: (name, config) => {
-        setPayloadFieldConfigs((prev) => ({ ...prev, [name]: config }));
-      },
-      setNoteColor: (value) => {
-        setState((prev) => ({ ...prev, noteColor: value }));
-      },
-      setComposerFocused: (value) => {
-        setState((prev) => ({ ...prev, isComposerFocused: value }));
-      },
+      setChannel,
+      setMessage,
+      setMetaValue,
+      setPayloadValue,
+      setMetaFieldConfig,
+      setPayloadFieldConfig,
+      setNoteColor,
+      setComposerFocused,
       submit,
       channelOptions,
     }),
-    [channelOptions, defaultPayloads, state],
+    [
+      channelOptions,
+      setChannel,
+      setComposerFocused,
+      setMessage,
+      setMetaFieldConfig,
+      setMetaValue,
+      setNoteColor,
+      setPayloadFieldConfig,
+      setPayloadValue,
+      state,
+      submit,
+    ],
   );
 
   return (

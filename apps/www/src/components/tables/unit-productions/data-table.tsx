@@ -9,11 +9,14 @@ import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { NoResults } from "@gnd/ui/custom/no-results";
 import { Table, useTableData } from "@gnd/ui/data-table";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
+import type { ColumnDef } from "@tanstack/react-table";
 import { BatchActions } from "./batch-actions";
-import { columns, mobileColumn } from "./columns";
+import { columns, mobileColumn, type Item } from "./columns";
 
 interface Props {
   defaultFilters?: GetUnitProductionsSchema;
+  embedded?: boolean;
+  columns?: ColumnDef<Item>[];
 }
 
 export function DataTable(props: Props) {
@@ -39,14 +42,14 @@ export function DataTable(props: Props) {
   }
 
   if (!data?.length && !isFetching) {
-    return <EmptyState />;
+    return <EmptyState label={props.embedded ? "Production tasks" : undefined} />;
   }
 
   return (
     <Table.Provider
       args={[
         {
-          columns,
+          columns: props.columns || columns,
           mobileColumn,
           data,
           params,
@@ -80,7 +83,7 @@ export function DataTable(props: Props) {
           </Table>
         </div>
         <Table.LoadMore />
-        <BatchActions />
+        {!props.embedded ? <BatchActions /> : null}
       </div>
     </Table.Provider>
   );

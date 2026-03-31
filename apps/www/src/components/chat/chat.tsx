@@ -829,51 +829,103 @@ function ChatRoot({
 		transformSubmitData,
 	]);
 
+	const setChannel = useCallback(
+		(value: string) => {
+			setState((prev) => ({
+				...prev,
+				channel: value,
+				payload: resolveDefaultPayloadValues(defaultPayloads, value),
+				errors: { ...prev.errors, channel: "" },
+			}));
+		},
+		[defaultPayloads],
+	);
+
+	const setMessage = useCallback((value: string) => {
+		setState((prev) => ({
+			...prev,
+			message: value,
+			errors: { ...prev.errors, message: "" },
+		}));
+	}, []);
+
+	const setMetaValue = useCallback((name: string, value: string) => {
+		setState((prev) => ({
+			...prev,
+			meta: { ...prev.meta, [name]: value },
+			errors: { ...prev.errors, [createErrorKey("meta", name)]: "" },
+		}));
+	}, []);
+
+	const setPayloadValue = useCallback((name: string, value: string) => {
+		setState((prev) => ({
+			...prev,
+			payload: { ...prev.payload, [name]: value },
+			errors: { ...prev.errors, [createErrorKey("payload", name)]: "" },
+		}));
+	}, []);
+
+	const setMetaFieldConfig = useCallback(
+		(name: string, config: OptionFieldConfig) => {
+			setMetaFieldConfigs((prev) => {
+				const current = prev[name];
+				if (
+					current?.required === config.required &&
+					current?.show === config.show
+				) {
+					return prev;
+				}
+				return { ...prev, [name]: config };
+			});
+		},
+		[],
+	);
+
+	const setPayloadFieldConfig = useCallback(
+		(name: string, config: OptionFieldConfig) => {
+			setPayloadFieldConfigs((prev) => {
+				const current = prev[name];
+				if (
+					current?.required === config.required &&
+					current?.show === config.show
+				) {
+					return prev;
+				}
+				return { ...prev, [name]: config };
+			});
+		},
+		[],
+	);
+
+	const setNoteColor = useCallback((value: string) => {
+		setState((prev) => ({ ...prev, noteColor: value }));
+	}, []);
+
 	const contextValue = useMemo<ChatContextValue>(
 		() => ({
 			state,
-			setChannel: (value) => {
-				setState((prev) => ({
-					...prev,
-					channel: value,
-					payload: resolveDefaultPayloadValues(defaultPayloads, value),
-					errors: { ...prev.errors, channel: "" },
-				}));
-			},
-			setMessage: (value) => {
-				setState((prev) => ({
-					...prev,
-					message: value,
-					errors: { ...prev.errors, message: "" },
-				}));
-			},
-			setMetaValue: (name, value) => {
-				setState((prev) => ({
-					...prev,
-					meta: { ...prev.meta, [name]: value },
-					errors: { ...prev.errors, [createErrorKey("meta", name)]: "" },
-				}));
-			},
-			setPayloadValue: (name, value) => {
-				setState((prev) => ({
-					...prev,
-					payload: { ...prev.payload, [name]: value },
-					errors: { ...prev.errors, [createErrorKey("payload", name)]: "" },
-				}));
-			},
-			setMetaFieldConfig: (name, config) => {
-				setMetaFieldConfigs((prev) => ({ ...prev, [name]: config }));
-			},
-			setPayloadFieldConfig: (name, config) => {
-				setPayloadFieldConfigs((prev) => ({ ...prev, [name]: config }));
-			},
-			setNoteColor: (value) => {
-				setState((prev) => ({ ...prev, noteColor: value }));
-			},
+			setChannel,
+			setMessage,
+			setMetaValue,
+			setPayloadValue,
+			setMetaFieldConfig,
+			setPayloadFieldConfig,
+			setNoteColor,
 			submit,
 			channelOptions,
 		}),
-		[channelOptions, defaultPayloads, state, submit],
+		[
+			channelOptions,
+			setChannel,
+			setMessage,
+			setMetaFieldConfig,
+			setMetaValue,
+			setNoteColor,
+			setPayloadFieldConfig,
+			setPayloadValue,
+			state,
+			submit,
+		],
 	);
 
 	async function handleSubmit(event: FormEvent<HTMLFormElement>) {

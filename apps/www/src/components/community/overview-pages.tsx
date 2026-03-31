@@ -12,6 +12,7 @@ import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Item } from "@gnd/ui/namespace";
+import { PageTitle } from "@gnd/ui/custom/page-title";
 import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import { formatDate } from "@gnd/utils/dayjs";
 import Link from "next/link";
@@ -153,6 +154,7 @@ export function CommunityProjectOverviewPage({ slug }: { slug: string }) {
                             </Badge>
                         </div>
                         <div>
+                            <PageTitle>{data.project.title}</PageTitle>
                             <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
                                 {data.project.title}
                             </h1>
@@ -637,4 +639,3 @@ export function CommunityProjectUnitOverviewPage({ slug }: { slug: string }) {
         </div>
     );
 }
-

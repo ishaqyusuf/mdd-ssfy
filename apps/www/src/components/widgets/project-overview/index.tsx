@@ -1,10 +1,9 @@
 "use client";
 
+import { Suspense } from "react";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
-import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
-import { Item } from "@gnd/ui/namespace";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatDate } from "@gnd/utils/dayjs";
@@ -16,31 +15,19 @@ import {
     Home,
     Receipt,
 } from "lucide-react";
-import Link from "next/link";
 import { DocumentUploader } from "@/components/common/document-uploader";
+import { DataTable as ContractorJobsDataTable } from "@/components/tables/contractor-jobs/data-table";
+import { projectTabColumns as projectJobsColumns } from "@/components/tables/contractor-jobs/columns";
+import { DataTable as ProjectUnitsDataTable } from "@/components/tables/project-units/data-table";
+import { projectTabColumns as projectUnitsColumns } from "@/components/tables/project-units/columns";
+import { DataTable as UnitInvoicesDataTable } from "@/components/tables/unit-invoices/data-table";
+import { projectTabColumns as projectInvoicesColumns } from "@/components/tables/unit-invoices/columns";
+import { DataTable as UnitProductionsDataTable } from "@/components/tables/unit-productions/data-table";
+import { projectTabColumns as projectProductionColumns } from "@/components/tables/unit-productions/columns";
 import { useTRPC } from "@/trpc/client";
-import { formatCurrency } from "@/lib/utils";
 
 type ProjectOverviewData =
     RouterOutputs["community"]["communityProjectOverview"];
-
-function StatusBadge({ value }: { value?: string | null }) {
-    const normalized = (value || "").toLowerCase();
-    const classes =
-        normalized === "completed"
-            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-            : normalized === "started"
-              ? "border-amber-200 bg-amber-50 text-amber-700"
-              : normalized === "queued"
-                ? "border-sky-200 bg-sky-50 text-sky-700"
-                : "border-slate-200 bg-slate-50 text-slate-700";
-
-    return (
-        <Badge variant="outline" className={classes}>
-            {value || "Idle"}
-        </Badge>
-    );
-}
 
 function EmptyState({ label }: { label: string }) {
     return (
@@ -72,124 +59,10 @@ function WidgetShell({
     );
 }
 
-function UnitsTab({ items }: { items: ProjectOverviewData["recentUnits"] }) {
-    if (!items.length) return <EmptyState label="Units" />;
-
+function TabFallback({ label }: { label: string }) {
     return (
-        <div className="space-y-2">
-            {items.map((item) => (
-                <Link
-                    key={item.id}
-                    href={`/community/project-units/${item.slug}`}
-                    className="block rounded-xl border border-slate-200 px-3 py-2 transition-colors hover:border-emerald-300 hover:bg-emerald-50/50"
-                >
-                    <Item>
-                        <Item.Title className="flex items-center justify-between gap-3">
-                            <span>{item.lotBlock || "No lot/block"}</span>
-                            <StatusBadge value={item.production?.status} />
-                        </Item.Title>
-                        <Item.Description className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
-                            <span>{item.modelName || "No model"}</span>
-                            <span>{item.jobs} jobs</span>
-                            <span>{formatDate(item.createdAt)}</span>
-                        </Item.Description>
-                    </Item>
-                </Link>
-            ))}
-        </div>
-    );
-}
-
-function ProductionTab({
-    items,
-}: {
-    items: ProjectOverviewData["recentProduction"];
-}) {
-    if (!items.length) return <EmptyState label="Production activities" />;
-
-    return (
-        <div className="space-y-2">
-            {items.map((item) => (
-                <div
-                    key={item.id}
-                    className="rounded-xl border border-slate-200 px-3 py-2"
-                >
-                    <Item>
-                        <Item.Title className="flex items-center justify-between gap-3">
-                            <span>{item.taskName || "Production task"}</span>
-                            <StatusBadge value={item.status} />
-                        </Item.Title>
-                        <Item.Description className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
-                            <span>{item.home?.lotBlock || "No lot/block"}</span>
-                            <span>{item.home?.modelName || "No model"}</span>
-                            <span>{formatDate(item.createdAt)}</span>
-                        </Item.Description>
-                    </Item>
-                </div>
-            ))}
-        </div>
-    );
-}
-
-function InvoicesTab({
-    items,
-}: {
-    items: ProjectOverviewData["recentInvoices"];
-}) {
-    if (!items.length) return <EmptyState label="Invoice activity" />;
-
-    return (
-        <div className="space-y-2">
-            {items.map((item) => (
-                <div
-                    key={item.id}
-                    className="rounded-xl border border-slate-200 px-3 py-2"
-                >
-                    <Item>
-                        <Item.Title className="flex items-center justify-between gap-3">
-                            <span>{item.title}</span>
-                            <span className="text-sm font-semibold text-slate-950">
-                                {formatCurrency.format(item.amountDue)}
-                            </span>
-                        </Item.Title>
-                        <Item.Description className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
-                            <span>{item.home?.lotBlock || "No lot/block"}</span>
-                            <span>
-                                Paid {formatCurrency.format(item.amountPaid)}
-                            </span>
-                            <span>{formatDate(item.createdAt)}</span>
-                        </Item.Description>
-                    </Item>
-                </div>
-            ))}
-        </div>
-    );
-}
-
-function JobsTab({ items }: { items: ProjectOverviewData["recentJobs"] }) {
-    if (!items.length) return <EmptyState label="Jobs" />;
-
-    return (
-        <div className="space-y-2">
-            {items.map((item) => (
-                <div
-                    key={item.id}
-                    className="rounded-xl border border-slate-200 px-3 py-2"
-                >
-                    <Item>
-                        <Item.Title className="flex items-center justify-between gap-3">
-                            <span>{item.title || "Untitled job"}</span>
-                            <StatusBadge value={item.status} />
-                        </Item.Title>
-                        <Item.Description className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
-                            <span>{item.type || "No type"}</span>
-                            <span>{item.home?.lotBlock || "No lot/block"}</span>
-                            <span>{formatCurrency.format(item.amount)}</span>
-                            <span>{formatDate(item.createdAt)}</span>
-                        </Item.Description>
-                    </Item>
-                </div>
-            ))}
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-10 text-sm text-slate-500 shadow-sm">
+            Loading {label.toLowerCase()}...
         </div>
     );
 }
@@ -377,10 +250,10 @@ export function ProjectOverviewWidget({ data }: { data: ProjectOverviewData }) {
     return (
         <WidgetShell
             title="Project activity"
-            description="A tabbed operational widget for the latest units, production activity, invoice activity, and recent jobs on this project."
+            description="A tabbed operational widget for units, production activity, invoice activity, jobs, and documents on this project."
         >
             <Tabs defaultValue="units" className="space-y-4">
-                <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1.5 md:grid-cols-4">
+                <TabsList className="grid h-auto w-full grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1.5 md:grid-cols-5">
                     <TabsTrigger
                         value="units"
                         className="gap-2 rounded-xl py-2.5"
@@ -409,24 +282,64 @@ export function ProjectOverviewWidget({ data }: { data: ProjectOverviewData }) {
                         <BriefcaseBusiness className="size-4" />
                         Jobs
                     </TabsTrigger>
+                    <TabsTrigger
+                        value="documents"
+                        className="gap-2 rounded-xl py-2.5"
+                    >
+                        <FileText className="size-4" />
+                        Documents
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="units" className="mt-0">
-                    <UnitsTab items={data.recentUnits} />
+                    <Suspense fallback={<TabFallback label="Units" />}>
+                        <ProjectUnitsDataTable
+                            embedded
+                            columns={projectUnitsColumns}
+                            defaultFilters={{
+                                projectSlug: data.project.slug,
+                            }}
+                        />
+                    </Suspense>
                 </TabsContent>
                 <TabsContent value="production" className="mt-0">
-                    <ProductionTab items={data.recentProduction} />
+                    <Suspense fallback={<TabFallback label="Production" />}>
+                        <UnitProductionsDataTable
+                            embedded
+                            columns={projectProductionColumns}
+                            defaultFilters={{
+                                projectSlug: data.project.slug,
+                            }}
+                        />
+                    </Suspense>
                 </TabsContent>
                 <TabsContent value="invoices" className="mt-0">
-                    <InvoicesTab items={data.recentInvoices} />
+                    <Suspense fallback={<TabFallback label="Invoices" />}>
+                        <UnitInvoicesDataTable
+                            embedded
+                            columns={projectInvoicesColumns}
+                            defaultFilters={{
+                                projectSlug: data.project.slug,
+                            }}
+                        />
+                    </Suspense>
                 </TabsContent>
                 <TabsContent value="jobs" className="mt-0">
-                    <JobsTab items={data.recentJobs} />
+                    <Suspense fallback={<TabFallback label="Jobs" />}>
+                        <ContractorJobsDataTable
+                            embedded
+                            columns={projectJobsColumns}
+                            emptyStateLabel="Jobs"
+                            defaultFilters={{
+                                projectId: data.project.id,
+                            }}
+                        />
+                    </Suspense>
+                </TabsContent>
+                <TabsContent value="documents" className="mt-0">
+                    <DocumentsPanel data={data} />
                 </TabsContent>
             </Tabs>
-
-            <DocumentsPanel data={data} />
         </WidgetShell>
     );
 }
-

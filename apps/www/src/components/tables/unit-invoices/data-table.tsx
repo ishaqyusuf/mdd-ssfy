@@ -9,10 +9,13 @@ import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { NoResults } from "@gnd/ui/custom/no-results";
 import { Table, useTableData } from "@gnd/ui/data-table";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
-import { columns, mobileColumn } from "./columns";
+import type { ColumnDef } from "@tanstack/react-table";
+import { columns, mobileColumn, type Item } from "./columns";
 
 interface Props {
   defaultFilters?: GetUnitInvoicesSchema;
+  embedded?: boolean;
+  columns?: ColumnDef<Item>[];
 }
 
 export function DataTable(props: Props) {
@@ -38,14 +41,14 @@ export function DataTable(props: Props) {
   }
 
   if (!data?.length && !isFetching) {
-    return <EmptyState />;
+    return <EmptyState label={props.embedded ? "Invoices" : undefined} />;
   }
 
   return (
     <Table.Provider
       args={[
         {
-          columns,
+          columns: props.columns || columns,
           mobileColumn,
           data,
           params,
