@@ -76,6 +76,7 @@ Grouped route reference for the `apps/www` Next.js App Router surface.
 - `/sales-book/inbound-management`
 - `/sales-book/orders`
 - `/sales-book/orders/bin`
+- `/sales-book/orders/v2`
 - `/sales-book/orders/overview-v2`
 - `/sales-book/productions`
 - `/sales-book/productions/v2`

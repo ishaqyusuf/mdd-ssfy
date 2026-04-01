@@ -23,7 +23,10 @@ export const validateLinks = ({
         const valid = validateAccess(lnk.access);
         if (lnk.subLinks?.length)
           lnk.subLinks = lnk.subLinks.map((sl) => {
-            sl.show = validateAccess(sl.access);
+            sl.show = validateAccess([
+              ...(lnk.access ?? []),
+              ...(sl.access ?? []),
+            ]);
             return sl;
           });
         lnk.show =
@@ -172,7 +175,8 @@ export function getActiveLinkFromMap(
       data,
     }))
     .find(
-      (entry) => entry.href === normalizedPath && entry.data?.hasAccess !== false,
+      (entry) =>
+        entry.href === normalizedPath && entry.data?.hasAccess !== false,
     )?.data;
   if (exactMatch) return exactMatch;
 
@@ -202,7 +206,9 @@ export function isPathInLink(
   if (href && href === normalizedPath) return true;
 
   return (link?.paths || []).some((partPath) => {
-    const normalizedPart = normalizeNavPath(partPath?.toLocaleLowerCase() || "");
+    const normalizedPart = normalizeNavPath(
+      partPath?.toLocaleLowerCase() || "",
+    );
     return normalizedPart && normalizedPath.startsWith(normalizedPart);
   });
 }

@@ -6,6 +6,21 @@
 
 ## 2026-04-01
 
+- Started the Sales Orders V2 rebuild under `/sales-book/orders/v2`.
+  - Added dedicated backend contracts in `apps/api`:
+    - `sales.getOrdersV2`
+    - `sales.getOrdersV2Summary`
+    - `filters.salesOrdersV2`
+  - Added the supporting feature doc at `brain/features/sales-orders-v2.md`.
+  - Built the first web v2 slice in `apps/www` with:
+    - `use-sales-orders-v2-filter-params`
+    - `sales-orders-v2-header`
+    - `sales-orders-v2-summary-widgets`
+    - `components/tables/sales-orders-v2/*`
+    - route `apps/www/src/app/(sidebar)/(sales)/sales-book/orders/v2/page.tsx`
+  - Added a sidebar sub-link for `Orders V2` under the Sales module.
+  - Kept the v2 route intentionally separate from the legacy `/sales-book/orders` page so we can harden the new contract and UI before any cutover.
+
 - Switched the new sales customer v2 experience off app-local server actions and onto customer tRPC queries.
   - Added `customer.getCustomerDirectoryV2Summary` and `customer.getCustomerOverviewV2` in `apps/api`.
   - Added the supporting Zod schemas in `apps/api/src/schemas/customer.ts`.

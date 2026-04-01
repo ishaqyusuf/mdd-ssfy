@@ -70,6 +70,12 @@ import {
 	getSalesAccountingsSchema,
 } from "@api/db/queries/sales-accounting";
 import { createNoteAction } from "@notifications/note";
+import {
+	getOrdersV2,
+	getOrdersV2Schema,
+	getOrdersV2Summary,
+	getOrdersV2SummarySchema,
+} from "@api/db/queries/sales-orders-v2";
 export const salesRouter = createTRPCRouter({
 	createStep: publicProcedure
 		.input(
@@ -210,6 +216,16 @@ export const salesRouter = createTRPCRouter({
 		.input(salesQueryParamsSchema)
 		.query(async (props) => {
 			return getOrders(props.ctx, transformSalesFilterQuery(props.input));
+		}),
+	getOrdersV2: publicProcedure
+		.input(getOrdersV2Schema)
+		.query(async (props) => {
+			return getOrdersV2(props.ctx, props.input);
+		}),
+	getOrdersV2Summary: publicProcedure
+		.input(getOrdersV2SummarySchema)
+		.query(async (props) => {
+			return getOrdersV2Summary(props.ctx, props.input);
 		}),
 	quotes: publicProcedure.input(salesQueryParamsSchema).query(async (props) => {
 		return getQuotes(props.ctx, transformSalesFilterQuery(props.input));

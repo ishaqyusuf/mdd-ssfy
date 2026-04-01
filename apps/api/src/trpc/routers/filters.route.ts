@@ -12,6 +12,7 @@ import {
   getInventoryFilters,
   getResolutionFilters,
   getSalesOrderFilters,
+  getSalesOrderFiltersV2,
   getSalesProductionFilters,
   getSalesQuoteFilter,
   jobFilters,
@@ -86,6 +87,9 @@ export const filterRouters = createTRPCRouter({
     .query(async (props) =>
       getSalesOrderFilters(props.ctx, !!props.input!?.salesManager),
     ),
+  salesOrdersV2: publicProcedure.query(async (props) =>
+    getSalesOrderFiltersV2(props.ctx),
+  ),
   salesQuotes: publicProcedure
     .input(
       z

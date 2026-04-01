@@ -198,7 +198,10 @@ export const validateLinks = ({
                 // if(!valid)return
                 if (lnk.subLinks?.length)
                     lnk.subLinks = lnk.subLinks.map((sl) => {
-                        sl.show = validateAccess(sl.access);
+                        sl.show = validateAccess([
+                            ...(lnk.access ?? []),
+                            ...(sl.access ?? []),
+                        ]);
                         return sl;
                     });
                 lnk.show =
@@ -276,6 +279,9 @@ export const linkModules = [
 
             _link("Sales", "orders", "/sales-book/orders", [
                 _subLink("Bin", "/sales-book/orders/bin").access(
+                    _role.is("Super Admin"),
+                ).data,
+                _subLink("Orders V2", "/sales-book/orders/v2").access(
                     _role.is("Super Admin"),
                 ).data,
                 _subLink("Create Order", "/sales-book/create-order").data, //.access(_role.is("Super Admin")).data,
