@@ -6,6 +6,7 @@ import { useQuery } from "@gnd/ui/tanstack";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
+import { MaskedRevealValue } from "@/components/masked-reveal-value";
 import {
   CircleDollarSign,
   ClipboardList,
@@ -28,6 +29,7 @@ const cards = [
     subtitle: "Total invoice amount.",
     icon: CircleDollarSign,
     money: true,
+    masked: true,
   },
   {
     key: "outstandingBalance",
@@ -35,6 +37,7 @@ const cards = [
     subtitle: "Open balance remaining.",
     icon: Receipt,
     money: true,
+    masked: true,
   },
   {
     key: "paidOrders",
@@ -99,9 +102,16 @@ export function SalesOrdersV2SummaryWidgets() {
               </div>
             </CardHeader>
             <CardContent className="space-y-1.5 px-4 pb-4 pt-0">
-              <p className="text-3xl font-semibold tracking-tight text-slate-950">
-                {card.money ? formatCurrency.format(Number(value || 0)) : value}
-              </p>
+              {card.money && card.masked ? (
+                <MaskedRevealValue
+                  value={formatCurrency.format(Number(value || 0))}
+                  className="text-3xl font-semibold tracking-tight text-slate-950"
+                />
+              ) : (
+                <p className="text-3xl font-semibold tracking-tight text-slate-950">
+                  {card.money ? formatCurrency.format(Number(value || 0)) : value}
+                </p>
+              )}
               <p className="text-sm leading-6 text-muted-foreground">
                 {card.subtitle}
               </p>
