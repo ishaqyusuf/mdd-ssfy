@@ -36,10 +36,12 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@gnd/ui/collapsible";
+import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
+import { AlertDialog } from "@gnd/ui/namespace";
 import {
 	Select,
 	SelectContent,
@@ -185,6 +187,7 @@ type ProductionDetail = {
 				id: number;
 				createdAt?: string | Date | null;
 				note?: string | null;
+				submittedBy?: string | null;
 				deliveredQty?: number | null;
 				qty?: {
 					qty?: number | null;
@@ -1028,11 +1031,6 @@ function ProductionOrderDetailInline({
 		deliveredSubmissionCount === 0;
 	const canDeleteSubmissions =
 		submittedItems.length > 0 && deliveredSubmissionCount === 0;
-	const submissionIds = productionItems.flatMap((item) =>
-		(item.assignments || []).flatMap((assignment) =>
-			(assignment.submissions || []).map((submission) => submission.id),
-		),
-	);
 
 	return (
 		<Tabs defaultValue="productions" className="p-5">
@@ -1061,7 +1059,6 @@ function ProductionOrderDetailInline({
 							canDeleteAssignments={canDeleteAssignments}
 							canDeleteSubmissions={canDeleteSubmissions}
 							productionItemIds={productionItems.map((item) => item.itemId)}
-							submissionIds={submissionIds}
 							submittedItemIds={submittedItems.map((item) => item.itemId)}
 							onAction={(payload) =>
 								actionTrigger.triggerWithAuth("update-sales-control", payload)
@@ -1329,35 +1326,73 @@ function ProductionItemDetailTabs({
 		(notesQuery.data?.data as ActivityCountNode[] | undefined) || [],
 	);
 	const assignmentsCount = productionItem.assignments?.length || 0;
-	const submissionIds = (productionItem.assignments || []).flatMap(
-		(assignment) =>
-			(assignment.submissions || []).map((submission) => submission.id),
+	const workerId = auth.id ? Number(auth.id) : null;
+	const assignmentProgress = (productionItem.assignments || []).map(
+		(assignment) => buildAssignmentSubmissionProgress(assignment),
 	);
-	const deliveredSubmissionCount = (productionItem.assignments || []).reduce(
+	const totalAssignedQty = assignmentProgress.reduce(
+		(total, assignment) => total + assignment.assignmentQty.qty,
+		0,
+	);
+	const totalSubmittedQty = assignmentProgress.reduce(
+		(total, assignment) => total + assignment.submittedQty.qty,
+		0,
+	);
+	const completedAssignmentsCount = assignmentProgress.filter(
+		(assignment) => assignment.isCompleted,
+	).length;
+	const allAssignmentsSubmitted =
+		assignmentProgress.length > 0 &&
+		assignmentProgress.every((assignment) => assignment.isCompleted);
+	const deliveredSubmissionCount = assignmentProgress.reduce(
 		(total, assignment) =>
 			total +
-			(assignment.submissions?.reduce(
+			(assignment.assignment.submissions?.reduce(
 				(submissionTotal, submission) =>
 					submissionTotal + (submission.deliveredQty || 0),
 				0,
 			) || 0),
 		0,
 	);
-	const workerId = auth.id ? Number(auth.id) : null;
 	const canSubmitThisItem =
-		scope === "worker" && assignmentsCount > 0 && !!workerId;
-	const canDeleteThisItem =
 		scope === "worker" &&
-		submissionIds.length > 0 &&
+		assignmentProgress.some((assignment) => assignment.canSubmitMore) &&
+		!!workerId;
+	const canDeleteThisItem =
+		scope === "admin" &&
+		productionItem.assignments?.some(
+			(assignment) =>
+				(assignment.submissions?.length || 0) > 0 &&
+				(assignment.submissions || []).every(
+					(submission) => (submission.deliveredQty || 0) === 0,
+				),
+		) &&
 		deliveredSubmissionCount === 0;
+	const submissionsTabLabel =
+		scope === "worker"
+			? `Submission ${totalSubmittedQty}/${totalAssignedQty}`
+			: assignmentProgress.length === 1 &&
+					assignmentProgress[0]?.submissionLimit
+				? `Submissions ${assignmentProgress[0].submissionCount}/${assignmentProgress[0].submissionLimit}`
+				: `Submissions (${completedAssignmentsCount}/${assignmentsCount})`;
 
 	return (
 		<Tabs defaultValue="information" className="space-y-4">
-			<TabsList className="grid w-full grid-cols-3 rounded-xl md:w-[420px]">
+			<TabsList
+				className={cn(
+					"grid w-full rounded-xl",
+					scope === "worker"
+						? "grid-cols-3 md:w-[420px]"
+						: "grid-cols-4 md:w-[560px]",
+				)}
+			>
 				<TabsTrigger value="information">Information</TabsTrigger>
-				<TabsTrigger value="assignments">
-					Assignments ({assignmentsCount})
-				</TabsTrigger>
+				{scope === "admin" ? (
+					<TabsTrigger value="assignments">
+						Assignments ({assignmentsCount})
+					</TabsTrigger>
+				) : null}
+				<TabsTrigger value="submissions">{submissionsTabLabel}</TabsTrigger>
 				<TabsTrigger value="notes">Notes ({notesCount})</TabsTrigger>
 			</TabsList>
 
@@ -1379,122 +1414,137 @@ function ProductionItemDetailTabs({
 				</div>
 			</TabsContent>
 
-			<TabsContent value="assignments" className="mt-0">
+			{scope === "admin" ? (
+				<TabsContent value="assignments" className="mt-0">
+					<div className="space-y-4">
+						<div className="flex items-center justify-between gap-3">
+							<p className="text-sm font-semibold uppercase tracking-[0.16em]">
+								Assignments
+							</p>
+							<Badge variant="outline" className="rounded-full px-3 py-1">
+								{completedAssignmentsCount}/{assignmentsCount} ready
+							</Badge>
+						</div>
+
+						{productionItem.assignments?.length ? (
+							<div className="space-y-3">
+								{assignmentProgress.map(
+									({
+										assignment,
+										assignmentLabel,
+										submittedLabel,
+										pendingLabel,
+										isCompleted,
+									}) => (
+										<div
+											key={assignment.id}
+											className="space-y-3 rounded-xl border bg-background p-3"
+										>
+											<div className="flex flex-wrap items-center justify-between gap-2">
+												<div>
+													<p className="text-sm font-medium">
+														{assignment.assignedTo || "Unassigned"}
+													</p>
+													<p className="text-xs text-muted-foreground">
+														Due:{" "}
+														{assignment.dueDate
+															? formatDateValue(assignment.dueDate)
+															: "No due date"}
+													</p>
+												</div>
+												<div className="flex flex-wrap items-center gap-2">
+													<Badge variant="outline" className="rounded-full">
+														{assignmentLabel}
+													</Badge>
+													<Badge
+														variant="outline"
+														className={cn(
+															"rounded-full",
+															isCompleted &&
+																"border-emerald-200 bg-emerald-50 text-emerald-700",
+														)}
+													>
+														{submittedLabel}
+													</Badge>
+													{!isCompleted ? (
+														<Badge variant="secondary" className="rounded-full">
+															Pending {pendingLabel}
+														</Badge>
+													) : null}
+												</div>
+											</div>
+											<p className="text-xs text-muted-foreground">
+												{submittedLabel}
+												{isCompleted ? " | All submissions completed" : ""}
+											</p>
+										</div>
+									),
+								)}
+							</div>
+						) : (
+							<div className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
+								No assignments available for this item.
+							</div>
+						)}
+					</div>
+				</TabsContent>
+			) : null}
+
+			<TabsContent value="submissions" className="mt-0">
 				<div className="space-y-4">
 					<div className="flex items-center justify-between gap-3">
 						<p className="text-sm font-semibold uppercase tracking-[0.16em]">
-							Assignments
+							Submissions
 						</p>
-						<div className="flex flex-wrap gap-2">
-							{scope === "admin" ? (
-								<>
-									<Button size="sm" disabled>
-										Assign
-									</Button>
-									<Button size="sm" variant="outline" disabled>
-										Delete Assignment
-									</Button>
-								</>
-							) : (
-								<>
-									<Button
-										size="sm"
-										disabled={!canSubmitThisItem}
-										onClick={() =>
-											actionTrigger.triggerWithAuth("update-sales-control", {
-												meta: {
-													salesId: productionItem.salesId,
-												},
-												submitAll: {
-													assignedToId: workerId,
-													itemUids: [productionItem.controlUid],
-												},
-											} as UpdateSalesControl)
-										}
-									>
-										Submit Assignment
-									</Button>
-									<Button
-										size="sm"
-										variant="outline"
-										disabled={!canDeleteThisItem}
-										onClick={() =>
-											actionTrigger.triggerWithAuth("update-sales-control", {
-												meta: {
-													salesId: productionItem.salesId,
-												},
-												deleteSubmissions: {
-													submissionIds,
-												},
-											} as UpdateSalesControl)
-										}
-									>
-										Delete Submission
-									</Button>
-								</>
-							)}
+						<div className="flex items-center gap-2">
+							{allAssignmentsSubmitted ? (
+								<Badge className="rounded-full bg-emerald-600 text-white hover:bg-emerald-600">
+									All submissions completed
+								</Badge>
+							) : null}
+							{scope === "worker" && !canSubmitThisItem ? (
+								<Badge variant="outline" className="rounded-full">
+									No pending submissions
+								</Badge>
+							) : null}
+							{scope === "admin" && canDeleteThisItem ? (
+								<Badge variant="outline" className="rounded-full">
+									Delete enabled
+								</Badge>
+							) : null}
 						</div>
 					</div>
 
 					{productionItem.assignments?.length ? (
 						<div className="space-y-3">
-							{productionItem.assignments.map((assignment) => (
-								<div
-									key={assignment.id}
-									className="space-y-3 rounded-xl border bg-background p-3"
-								>
-									<div className="flex flex-wrap items-center justify-between gap-2">
-										<div>
-											<p className="text-sm font-medium">
-												{assignment.assignedTo || "Unassigned"}
-											</p>
-											<p className="text-xs text-muted-foreground">
-												Due:{" "}
-												{assignment.dueDate
-													? formatDateValue(assignment.dueDate)
-													: "No due date"}
-											</p>
-										</div>
-										<p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-											QTY {assignment.qty?.qty || 0}
-										</p>
-									</div>
-
-									{assignment.submissions?.length ? (
-										<div className="space-y-2">
-											{assignment.submissions.map((submission) => (
-												<div
-													key={submission.id}
-													className="rounded-lg border bg-muted/20 p-3"
-												>
-													<div className="flex flex-wrap items-center justify-between gap-2">
-														<p className="text-xs font-medium uppercase tracking-[0.16em]">
-															Submission #{submission.id}
-														</p>
-														<p className="text-xs text-muted-foreground">
-															{submission.createdAt
-																? formatDateValue(submission.createdAt)
-																: "No date"}
-														</p>
-													</div>
-													<p className="mt-2 text-xs text-muted-foreground">
-														QTY {submission.qty?.qty || 0}
-														{submission.deliveredQty
-															? ` | Delivered ${submission.deliveredQty}`
-															: ""}
-													</p>
-													{submission.note ? (
-														<p className="mt-2 text-sm">{submission.note}</p>
-													) : null}
-												</div>
-											))}
-										</div>
-									) : (
-										<div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
-											No submissions yet.
-										</div>
-									)}
-								</div>
+							{assignmentProgress.map((assignmentProgressItem) => (
+								<AssignmentSubmissionCard
+									key={assignmentProgressItem.assignment.id}
+									scope={scope}
+									workerId={workerId}
+									authorId={workerId}
+									authorName={auth.name || "System"}
+									salesId={productionItem.salesId}
+									progress={assignmentProgressItem}
+									onSubmit={(payload) =>
+										actionTrigger.triggerWithAuth(
+											"update-sales-control",
+											payload,
+										)
+									}
+									onDeleteSubmission={(submissionId) =>
+										actionTrigger.triggerWithAuth("update-sales-control", {
+											meta: {
+												salesId: productionItem.salesId,
+												authorId: Number(auth.id || 0),
+												authorName: auth.name || "System",
+											},
+											deleteSubmissions: {
+												submissionIds: [submissionId],
+											},
+										} as UpdateSalesControl)
+									}
+								/>
 							))}
 						</div>
 					) : (
@@ -1525,7 +1575,6 @@ function ProductionOrderActionsMenu({
 	assignableSelections,
 	submittableItemUids,
 	productionItemIds,
-	submissionIds,
 	submittedItemIds,
 	canDeleteAssignments,
 	canDeleteSubmissions,
@@ -1537,7 +1586,6 @@ function ProductionOrderActionsMenu({
 	assignableSelections: { uid: string; qty: { qty: number } }[];
 	submittableItemUids: string[];
 	productionItemIds: number[];
-	submissionIds: number[];
 	submittedItemIds: number[];
 	canDeleteAssignments: boolean;
 	canDeleteSubmissions: boolean;
@@ -1555,6 +1603,11 @@ function ProductionOrderActionsMenu({
 		setOpen(false);
 		setStep("main");
 	}
+	const taskMeta = {
+		salesId,
+		authorId: Number(auth.id || 0),
+		authorName: auth.name || "System",
+	};
 
 	return (
 		<Menu
@@ -1603,9 +1656,7 @@ function ProductionOrderActionsMenu({
 						onClick={(event) => {
 							event.preventDefault();
 							onAction({
-								meta: {
-									salesId,
-								},
+								meta: taskMeta,
 								submitAll: {
 									assignedToId:
 										scope === "worker" && auth.id ? Number(auth.id) : null,
@@ -1617,45 +1668,44 @@ function ProductionOrderActionsMenu({
 					>
 						Submit All
 					</Menu.Item>
-					<Menu.Item
-						Icon={Icons.Delete}
-						shortCut={`${submittedItemIds.length} items`}
-						disabled={!canDeleteSubmissions}
-						onClick={(event) => {
-							event.preventDefault();
-							onAction({
-								meta: {
-									salesId,
-								},
-								deleteSubmissions: {
-									submissionIds: scope === "worker" ? submissionIds : undefined,
-									itemIds: scope === "worker" ? undefined : submittedItemIds,
-								},
-							} as UpdateSalesControl);
-							closeMenu();
-						}}
-					>
-						Delete Submissions
-					</Menu.Item>
-					<Menu.Item
-						Icon={Icons.Delete}
-						shortCut={`${productionItemIds.length} items`}
-						disabled={!canDeleteAssignments}
-						onClick={(event) => {
-							event.preventDefault();
-							onAction({
-								meta: {
-									salesId,
-								},
-								deleteAssignments: {
-									itemIds: productionItemIds,
-								},
-							} as UpdateSalesControl);
-							closeMenu();
-						}}
-					>
-						Delete Assignments
-					</Menu.Item>
+					{scope === "admin" ? (
+						<>
+							<Menu.Item
+								Icon={Icons.Delete}
+								shortCut={`${submittedItemIds.length} items`}
+								disabled={!canDeleteSubmissions}
+								onClick={(event) => {
+									event.preventDefault();
+									onAction({
+										meta: taskMeta,
+										deleteSubmissions: {
+											itemIds: submittedItemIds,
+										},
+									} as UpdateSalesControl);
+									closeMenu();
+								}}
+							>
+								Delete Submissions
+							</Menu.Item>
+							<Menu.Item
+								Icon={Icons.Delete}
+								shortCut={`${productionItemIds.length} items`}
+								disabled={!canDeleteAssignments}
+								onClick={(event) => {
+									event.preventDefault();
+									onAction({
+										meta: taskMeta,
+										deleteAssignments: {
+											itemIds: productionItemIds,
+										},
+									} as UpdateSalesControl);
+									closeMenu();
+								}}
+							>
+								Delete Assignments
+							</Menu.Item>
+						</>
+					) : null}
 				</>
 			) : null}
 
@@ -1723,9 +1773,7 @@ function ProductionOrderActionsMenu({
 							disabled={!assignedToId || !assignableSelections.length}
 							onClick={() => {
 								onAction({
-									meta: {
-										salesId,
-									},
+									meta: taskMeta,
 									createAssignments: {
 										retries: 0,
 										assignedToId: assignedToId ? Number(assignedToId) : null,
@@ -1744,6 +1792,576 @@ function ProductionOrderActionsMenu({
 			) : null}
 		</Menu>
 	);
+}
+
+type AssignmentProgress = {
+	assignment: NonNullable<
+		ProductionDetail["items"][number]["assignments"]
+	>[number];
+	assignmentQty: { qty: number; lh: number; rh: number };
+	submittedQty: { qty: number; lh: number; rh: number };
+	pendingQty: { qty: number; lh: number; rh: number };
+	assignmentLabel: string;
+	submittedLabel: string;
+	pendingLabel: string;
+	isHandled: boolean;
+	isCompleted: boolean;
+	canSubmitMore: boolean;
+	submissionLimit: number | null;
+	submissionCount: number;
+};
+
+function AssignmentSubmissionCard({
+	scope,
+	workerId,
+	authorId,
+	authorName,
+	salesId,
+	progress,
+	onSubmit,
+	onDeleteSubmission,
+}: {
+	scope: Scope;
+	workerId: number | null;
+	authorId: number | null;
+	authorName: string;
+	salesId: number;
+	progress: AssignmentProgress;
+	onSubmit: (payload: UpdateSalesControl) => void;
+	onDeleteSubmission: (submissionId: number) => void;
+}) {
+	const [selectedQty, setSelectedQty] = useState("1");
+	const [selectedLh, setSelectedLh] = useState("1");
+	const [selectedRh, setSelectedRh] = useState("1");
+	const [deleteSubmissionId, setDeleteSubmissionId] = useState<number | null>(
+		null,
+	);
+	const canSubmitLh = progress.pendingQty.lh > 0;
+	const canSubmitRh = progress.pendingQty.rh > 0;
+	const canDeleteSubmission =
+		scope === "admin" &&
+		(progress.assignment.submissions || []).some(
+			(submission) => (submission.deliveredQty || 0) === 0,
+		);
+	function resetForm() {
+		setSelectedQty("1");
+		setSelectedLh("1");
+		setSelectedRh("1");
+	}
+
+	function submitSelection(selection: {
+		qty?: number;
+		lh?: number;
+		rh?: number;
+	}) {
+		if (!workerId) return;
+		const normalized = normalizeQtyMatrix(selection);
+		const hasQty = normalized.qty > 0 || normalized.lh > 0 || normalized.rh > 0;
+		const exceedsPending = progress.isHandled
+			? normalized.lh > progress.pendingQty.lh ||
+				normalized.rh > progress.pendingQty.rh
+			: normalized.qty > progress.pendingQty.qty;
+		if (!hasQty || exceedsPending) return;
+		onSubmit({
+			meta: {
+				salesId,
+				authorId: Number(authorId || 0),
+				authorName,
+			},
+			submitAll: {
+				assignedToId: workerId,
+				selections: [
+					{
+						assignmentId: progress.assignment.id,
+						qty: normalized,
+					},
+				],
+			},
+		} as UpdateSalesControl);
+		resetForm();
+	}
+
+	const pickedQty = toPositiveNumber(selectedQty);
+	const pickedLh = canSubmitLh ? toPositiveNumber(selectedLh) : 0;
+	const pickedRh = canSubmitRh ? toPositiveNumber(selectedRh) : 0;
+	const pickedSingleQty = {
+		qty: pickedQty,
+	};
+	const canSubmitSingleQty =
+		scope === "worker" &&
+		!!workerId &&
+		progress.canSubmitMore &&
+		pickedQty > 0 &&
+		pickedQty <= progress.pendingQty.qty;
+	const canSubmitSelectedLh =
+		scope === "worker" &&
+		!!workerId &&
+		progress.canSubmitMore &&
+		pickedLh > 0 &&
+		pickedLh <= progress.pendingQty.lh;
+	const canSubmitSelectedRh =
+		scope === "worker" &&
+		!!workerId &&
+		progress.canSubmitMore &&
+		pickedRh > 0 &&
+		pickedRh <= progress.pendingQty.rh;
+
+	return (
+		<>
+			<div className="space-y-3 rounded-xl border bg-background p-3">
+				<div className="flex flex-wrap items-center justify-between gap-3">
+					<div>
+						<p className="text-sm font-medium">
+							{progress.assignment.assignedTo || "Unassigned"}
+						</p>
+						<p className="text-xs text-muted-foreground">
+							Due:{" "}
+							{progress.assignment.dueDate
+								? formatDateValue(progress.assignment.dueDate)
+								: "No due date"}
+						</p>
+					</div>
+					<div className="flex flex-wrap items-center gap-2">
+						<Badge variant="outline" className="rounded-full">
+							{progress.assignmentLabel}
+						</Badge>
+						<Badge variant="outline" className="rounded-full">
+							{progress.submittedLabel}
+						</Badge>
+						{!progress.isCompleted ? (
+							<Badge variant="secondary" className="rounded-full">
+								Pending {progress.pendingLabel}
+							</Badge>
+						) : null}
+					</div>
+				</div>
+
+				{progress.assignment.submissions?.length ? (
+					<div className="space-y-2">
+						{progress.assignment.submissions.map((submission) => {
+							const submissionIsDelivered = (submission.deliveredQty || 0) > 0;
+							return (
+								<div
+									key={submission.id}
+									className="rounded-lg border bg-muted/20 p-3"
+								>
+									<div className="flex flex-wrap items-start justify-between gap-2">
+										<div>
+											<p className="text-xs font-medium uppercase tracking-[0.16em]">
+												Submission #{submission.id}
+											</p>
+											<div className="mt-1 space-y-1 text-xs text-muted-foreground">
+												<p>
+													Date submitted:{" "}
+													{submission.createdAt
+														? formatDateValue(submission.createdAt)
+														: "No date"}
+												</p>
+												{scope === "admin" ? (
+													<p>
+														Submitted by:{" "}
+														{submission.submittedBy || "Unknown"}
+													</p>
+												) : null}
+											</div>
+										</div>
+										{canDeleteSubmission && !submissionIsDelivered ? (
+											<Button
+												type="button"
+												size="sm"
+												variant="outline"
+												onClick={() => setDeleteSubmissionId(submission.id)}
+											>
+												Delete
+											</Button>
+										) : null}
+									</div>
+									<p className="mt-2 text-xs text-muted-foreground">
+										{formatQtyLabel({
+											qty: submission.qty?.qty || 0,
+											lh: submission.qty?.lh || 0,
+											rh: submission.qty?.rh || 0,
+										})}
+										{submission.deliveredQty
+											? ` | Delivered ${submission.deliveredQty}`
+											: ""}
+									</p>
+									{submission.note ? (
+										<p className="mt-2 text-sm">{submission.note}</p>
+									) : null}
+								</div>
+							);
+						})}
+					</div>
+				) : (
+					<div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+						No submissions yet.
+					</div>
+				)}
+
+				{progress.isCompleted ? (
+					<div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+						All submissions completed
+					</div>
+				) : scope === "worker" ? (
+					<div className="space-y-2 rounded-lg border border-dashed p-3">
+						{progress.isHandled ? (
+							<div className="grid gap-3 lg:grid-cols-2">
+								<SubmissionLane
+									label="LH"
+									availableQty={progress.pendingQty.lh}
+									value={selectedLh}
+									onValueChange={setSelectedLh}
+									submitLabel="Submit x1LH"
+									onSubmit={() =>
+										submitSelection({
+											lh: pickedLh,
+											qty: pickedLh,
+										})
+									}
+									onSubmitAll={() =>
+										submitSelection({
+											lh: progress.pendingQty.lh,
+											qty: progress.pendingQty.lh,
+										})
+									}
+									disabled={!canSubmitLh}
+									canSubmit={canSubmitSelectedLh}
+								/>
+								<SubmissionLane
+									label="RH"
+									availableQty={progress.pendingQty.rh}
+									value={selectedRh}
+									onValueChange={setSelectedRh}
+									submitLabel="Submit x1RH"
+									onSubmit={() =>
+										submitSelection({
+											rh: pickedRh,
+											qty: pickedRh,
+										})
+									}
+									onSubmitAll={() =>
+										submitSelection({
+											rh: progress.pendingQty.rh,
+											qty: progress.pendingQty.rh,
+										})
+									}
+									disabled={!canSubmitRh}
+									canSubmit={canSubmitSelectedRh}
+								/>
+							</div>
+						) : (
+							<SubmissionLane
+								label="Qty"
+								availableQty={progress.pendingQty.qty}
+								value={selectedQty}
+								onValueChange={setSelectedQty}
+								submitLabel="Submit x1"
+								onSubmit={() => submitSelection(pickedSingleQty)}
+								onSubmitAll={() =>
+									submitSelection({
+										qty: progress.pendingQty.qty,
+									})
+								}
+								disabled={!progress.canSubmitMore}
+								canSubmit={canSubmitSingleQty}
+							/>
+						)}
+						<p className="text-xs text-muted-foreground">
+							Pending {progress.pendingLabel}
+						</p>
+					</div>
+				) : (
+					<div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+						Submission entry is available in worker mode.
+					</div>
+				)}
+			</div>
+
+			<AlertDialog
+				open={deleteSubmissionId !== null}
+				onOpenChange={(open) => {
+					if (!open) setDeleteSubmissionId(null);
+				}}
+			>
+				<AlertDialog.Content>
+					<AlertDialog.Header>
+						<AlertDialog.Title>Delete submission</AlertDialog.Title>
+						<AlertDialog.Description>
+							This will remove the selected submission from the production log.
+						</AlertDialog.Description>
+					</AlertDialog.Header>
+					<AlertDialog.Footer>
+						<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+						<AlertDialog.Action
+							onClick={() => {
+								if (!deleteSubmissionId) return;
+								onDeleteSubmission(deleteSubmissionId);
+								setDeleteSubmissionId(null);
+							}}
+						>
+							Delete submission
+						</AlertDialog.Action>
+					</AlertDialog.Footer>
+				</AlertDialog.Content>
+			</AlertDialog>
+		</>
+	);
+}
+
+function SubmissionLane({
+	label,
+	availableQty,
+	value,
+	onValueChange,
+	submitLabel,
+	onSubmit,
+	onSubmitAll,
+	disabled,
+	canSubmit,
+}: {
+	label: string;
+	availableQty: number;
+	value: string;
+	onValueChange: (value: string) => void;
+	submitLabel: string;
+	onSubmit: () => void;
+	onSubmitAll: () => void;
+	disabled?: boolean;
+	canSubmit: boolean;
+}) {
+	const selectedNumber = toPositiveNumber(value);
+	const quantityItems = buildQuantityComboboxItems(availableQty);
+	const selectedItem = quantityItems.find((item) => item.id === value);
+	const hasMultipleQty = availableQty > 1;
+	const shouldShowCombobox = availableQty > 10;
+	const presetValues = Array.from(
+		{ length: Math.min(availableQty, 10) },
+		(_, index) => String(index + 1),
+	);
+
+	return (
+		<div
+			className={cn(
+				"space-y-3 rounded-xl border bg-muted/20 p-3",
+				disabled && "opacity-60",
+			)}
+		>
+			<div className="flex items-start justify-between gap-3">
+				<div className="flex items-center gap-1">
+					<p className="text-xs font-semibold uppercase tracking-[0.16em]">
+						{label}
+					</p>
+					<Badge variant="outline" className="rounded-full">
+						{availableQty} available
+					</Badge>
+				</div>
+				{disabled || availableQty <= 0 ? null : hasMultipleQty ? (
+					<div className="flex items-center">
+						<Button
+							type="button"
+							className="rounded-r-none"
+							disabled={!canSubmit || selectedNumber < 1}
+							onClick={onSubmit}
+						>
+							{`Submit x${selectedNumber}${label === "Qty" ? "" : label}`}
+						</Button>
+						<Menu
+							noSize
+							Trigger={
+								<Button
+									type="button"
+									variant="default"
+									size="icon"
+									className="rounded-l-none border-l border-background/20"
+									disabled={disabled}
+								>
+									<ChevronDown className="h-4 w-4" />
+								</Button>
+							}
+						>
+							<Menu.Item
+								Icon={CheckCircle2}
+								shortCut={`x${availableQty}`}
+								onClick={(event) => {
+									event.preventDefault();
+									onSubmitAll();
+								}}
+							>
+								Submit All
+							</Menu.Item>
+						</Menu>
+					</div>
+				) : (
+					<Button type="button" disabled={!canSubmit} onClick={onSubmit}>
+						{submitLabel}
+					</Button>
+				)}
+			</div>
+			{disabled || availableQty <= 0 ? (
+				<div className="rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground">
+					{label} not available
+				</div>
+			) : (
+				<>
+					<div className="flex flex-row flex-wrap gap-2">
+						{presetValues.map((qtyValue) => (
+							<Button
+								key={`${label}-${qtyValue}`}
+								type="button"
+								size="icon"
+								variant={value === qtyValue ? "default" : "outline"}
+								className="h-8 w-8 rounded-lg"
+								onClick={() => onValueChange(qtyValue)}
+							>
+								{qtyValue}
+							</Button>
+						))}
+					</div>
+					{shouldShowCombobox ? (
+						<ComboboxDropdown
+							items={quantityItems}
+							selectedItem={selectedItem}
+							onSelect={(item) => onValueChange(item.id)}
+							onCreate={(inputValue) => {
+								const sanitized = inputValue.replace(/\D/g, "");
+								const numeric = Number(sanitized);
+								if (
+									!sanitized ||
+									!Number.isFinite(numeric) ||
+									numeric < 1 ||
+									numeric > availableQty
+								) {
+									return;
+								}
+								onValueChange(String(numeric));
+							}}
+							renderOnCreate={(inputValue) => {
+								const sanitized = inputValue.replace(/\D/g, "");
+								if (!sanitized) return <span>Enter number only</span>;
+								const numeric = Number(sanitized);
+								if (numeric < 1 || numeric > availableQty) {
+									return <span>{`Enter 1-${availableQty}`}</span>;
+								}
+								return <span>{`Use ${numeric}`}</span>;
+							}}
+							placeholder={`Select ${label} quantity`}
+							searchPlaceholder={`Type ${label} quantity`}
+							emptyResults="No quantity found"
+							className="rounded-lg"
+						/>
+					) : null}
+				</>
+			)}
+		</div>
+	);
+}
+
+function buildAssignmentSubmissionProgress(
+	assignment: NonNullable<
+		ProductionDetail["items"][number]["assignments"]
+	>[number],
+): AssignmentProgress {
+	const assignmentQty = normalizeQtyMatrix(assignment.qty);
+	const submittedQty = normalizeQtyMatrix(
+		(assignment.submissions || []).reduce(
+			(total, submission) => ({
+				qty: total.qty + Number(submission.qty?.qty || 0),
+				lh: total.lh + Number(submission.qty?.lh || 0),
+				rh: total.rh + Number(submission.qty?.rh || 0),
+			}),
+			{ qty: 0, lh: 0, rh: 0 },
+		),
+	);
+	const isHandled = assignmentQty.lh > 0 || assignmentQty.rh > 0;
+	const pendingQty = isHandled
+		? {
+				lh: Math.max(assignmentQty.lh - submittedQty.lh, 0),
+				rh: Math.max(assignmentQty.rh - submittedQty.rh, 0),
+				qty:
+					Math.max(assignmentQty.lh - submittedQty.lh, 0) +
+					Math.max(assignmentQty.rh - submittedQty.rh, 0),
+			}
+		: {
+				qty: Math.max(assignmentQty.qty - submittedQty.qty, 0),
+				lh: 0,
+				rh: 0,
+			};
+	const submissionLimit = isHandled
+		? [assignmentQty.lh, assignmentQty.rh].filter((value) => value > 0).length
+		: assignmentQty.qty > 0 && assignmentQty.qty <= 1
+			? assignmentQty.qty
+			: null;
+	const submissionCount = isHandled
+		? [
+				pendingQty.lh === 0 && assignmentQty.lh > 0,
+				pendingQty.rh === 0 && assignmentQty.rh > 0,
+			].filter(Boolean).length
+		: submissionLimit
+			? Math.min(submittedQty.qty, submissionLimit)
+			: assignment.submissions?.length || 0;
+
+	return {
+		assignment,
+		assignmentQty,
+		submittedQty,
+		pendingQty,
+		assignmentLabel: formatQtyLabel(assignmentQty),
+		submittedLabel: `Submitted ${formatQtyLabel(submittedQty)}`,
+		pendingLabel: formatQtyLabel(pendingQty),
+		isHandled,
+		isCompleted: pendingQty.qty === 0,
+		canSubmitMore: pendingQty.qty > 0,
+		submissionLimit,
+		submissionCount,
+	};
+}
+
+function normalizeQtyMatrix(
+	qty?: {
+		qty?: number | null;
+		lh?: number | null;
+		rh?: number | null;
+	} | null,
+) {
+	return {
+		qty: Number(qty?.qty || 0),
+		lh: Number(qty?.lh || 0),
+		rh: Number(qty?.rh || 0),
+	};
+}
+
+function formatQtyLabel(qty?: {
+	qty?: number | null;
+	lh?: number | null;
+	rh?: number | null;
+}) {
+	const normalized = normalizeQtyMatrix(qty);
+	if (normalized.lh > 0 || normalized.rh > 0) {
+		return [
+			normalized.lh ? `${normalized.lh} LH` : null,
+			normalized.rh ? `${normalized.rh} RH` : null,
+		]
+			.filter(Boolean)
+			.join(" / ");
+	}
+	return `QTY ${normalized.qty}`;
+}
+
+function buildQuantityComboboxItems(maxQty: number) {
+	return Array.from({ length: Math.max(maxQty, 0) }, (_, index) => {
+		const value = String(index + 1);
+		return {
+			id: value,
+			label: value,
+		};
+	});
+}
+
+function toPositiveNumber(value: string) {
+	const number = Number(value);
+	if (!Number.isFinite(number) || number <= 0) return 0;
+	return number;
 }
 
 function getOrderStatusPresentation(item: ProductionListItem) {

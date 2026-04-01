@@ -20,6 +20,11 @@
     - route `apps/www/src/app/(sidebar)/(sales)/sales-book/orders/v2/page.tsx`
   - Added a sidebar sub-link for `Orders V2` under the Sales module.
   - Kept the v2 route intentionally separate from the legacy `/sales-book/orders` page so we can harden the new contract and UI before any cutover.
+  - Simplified the Orders V2 table into an invoice-style list:
+    - columns now focus on invoice id, customer, date, amount, status, and actions
+    - added a reusable unified `smartStatus` derived from sales, production, and fulfillment state
+    - row click now opens the existing sales sheet like the legacy table
+    - row hover now reveals a detail hover card for richer order context without widening the table
 
 - Switched the new sales customer v2 experience off app-local server actions and onto customer tRPC queries.
   - Added `customer.getCustomerDirectoryV2Summary` and `customer.getCustomerOverviewV2` in `apps/api`.
@@ -38,6 +43,14 @@
   - `components/tables/unit-productions/*`
 - Added a dedicated mobile card renderer for unit productions so the route now has a modern mobile presentation instead of relying on the older v1 shell.
 - Kept the existing unit production action flow available in the rebuilt table and updated the action path to refresh `/community/unit-productions` after production status changes.
+
+- Updated production dashboard v2 submission handling for worker and admin detail views:
+  - worker item detail no longer shows or exposes delete-submission actions
+  - split item detail into `Assignments` and `Submissions` tabs
+  - submission tab now renders assignment-grouped submission history with confirm-delete actions for admin
+  - worker submission entry now uses inline qty inputs, including handle-aware `LH` / `RH` entry when assignments are sided
+  - assignments/submissions status copy now shows progress like `Submissions 0/1` when the assignment has a bounded submission limit
+  - when an assignment is fully submitted, the inline form is hidden and replaced with `All submissions completed`
 
 ## 2026-03-30
 
@@ -846,6 +859,13 @@
 - Added two old-form HPT swap refinements:
   - out-of-configuration door picks now skip the visibility-resolution view entirely when there is only one configuration set and every rule has at most one possible option, auto-applying those selections before the swap
   - HPT door side panel now exposes `Swap Item Type (n)` when the selected door is valid under multiple item types, and the action rebuilds the item through the selected item-type route while restoring only the previously selected door sizes and qty rows
+- Fixed a critical old-form item-type swap regression:
+  - the preserved-door restore path now always resolves and writes through the real `Door` step for the invoice item instead of accidentally writing the swapped door component onto the `Item Type` step when the caller originated from item-type swap
+- Improved old-form item-type swap continuity:
+  - common downstream steps now snapshot their selected component before item-type change and restore that selection after the rebuilt route is applied whenever the same step still exists and the prior component is still valid for that step
+- Added an old-form post-swap missing-step completion flow:
+  - after route-changing swaps or item updates, the form now checks for unresolved non-door steps and opens a guided modal instead of leaving the item in a half-configured state
+  - the modal copies the current item step selections, shows segmented clickable progress for every non-door step, provides searchable component selection for the active step, and applies the staged selections back to the item only when `Done` is clicked
 
 - Added project-overview document uploads on `/community/projects/[slug]` using a new reusable `DocumentUploader` component that supports multi-file selection, configurable accepted types/description text, optional upload notes, and an `onUploaded` callback flow.
 - Added `community.uploadCommunityProjectDocuments` on the API side to upload multiple files through the shared document service, register canonical `StoredDocument` rows for `community_project` owners, and keep multiple uploaded files under one batch by storing `documentIds` arrays instead of a single `documentId`.

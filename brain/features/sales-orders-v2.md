@@ -13,7 +13,7 @@
   - new orders workspace with:
     - summary widgets
     - `SearchFilter`-driven URL filters
-    - paginated/infinite table
+    - paginated/infinite invoice-style table
     - mobile card presentation
     - row open action into the existing sales overview flow
 
@@ -52,6 +52,31 @@
 - Summary metrics render as separate page-level cards instead of piggybacking on table-only state.
 - The table payload omits legacy note-count and extra enrichment work that is not required for first paint.
 - The page keeps existing sales overview integration by opening rows through `useSalesOverviewQuery`.
+- The table now uses a unified sales funnel status contract so UI surfaces do not have to reason separately about invoice, production, and fulfillment state for list presentation.
+
+## Current Table Shape
+- Columns
+  - invoice id
+  - customer name
+  - smart date
+  - payment amount
+  - status
+  - actions
+- Row interaction
+  - clicking a row opens the existing sales sheet
+  - the actions column exposes a compact overview icon with a hover preview
+  - the hover preview is intentionally compact and composed as a single overview panel instead of multiple cards
+- Smart funnel status
+  - `pending`
+    - no active production or fulfillment progress
+  - `queued`
+    - assigned or started in production
+  - `ready`
+    - production completed and ready for fulfillment
+  - `transit`
+    - dispatch or fulfillment is in progress
+  - `completed`
+    - order has been delivered or fully completed
 
 ## Follow-up Ideas
 - Add dedicated batch actions for the v2 table once the row model is stable.

@@ -35,7 +35,9 @@ export default function MobileAppSettingsForm({ data }: Props) {
             const formData = new FormData();
             formData.append("file", file);
 
-            const uploaded = await uploadFile(formData, "contractor-document");
+            const uploaded = await uploadFile(formData, "app-download", {
+                resourceType: "raw",
+            });
             if (uploaded?.error) {
                 toast.error(uploaded.error.message || "APK upload failed.");
                 return;

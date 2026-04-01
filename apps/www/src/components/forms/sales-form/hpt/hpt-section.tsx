@@ -135,7 +135,7 @@ function DoorSizeTable({ door, sn }: DoorSizeTable) {
                     <TableHeader className="text-xs">
                         <TableRow className="uppercase">
                             <TableHead className="font-mono$ w-8">#</TableHead>
-                            <TableHead className="w-36">Size</TableHead>
+                            <TableHead className="w-30">Size</TableHead>
                             {ctx.config.hasSwing && (
                                 <TableHead className="w-28">Swing</TableHead>
                             )}
@@ -155,10 +155,10 @@ function DoorSizeTable({ door, sn }: DoorSizeTable) {
                                     <TableHead className="w-24">Rh</TableHead>
                                 </>
                             )}
-                            <TableHead className="w-28">Estimate</TableHead>
-                            <TableHead className="w-28 whitespace-nowrap">
+                            <TableHead className="w-28 ">Estimate</TableHead>
+                            {/* <TableHead className="w-28 whitespace-nowrap">
                                 Labor/Qty
-                            </TableHead>
+                            </TableHead> */}
 
                             <TableHead className="w-28">Line Total</TableHead>
                             <TableHead className=""></TableHead>
@@ -302,9 +302,9 @@ function DoorSizeRowContent({ doorIndex, sizeIndex }) {
                 <TableCell className="">
                     <PriceEstimateCell />
                 </TableCell>
-                <TableCell>
+                {/* <TableCell>
                     <WageInput />
-                </TableCell>
+                </TableCell> */}
                 <TableCell>
                     <AnimatedNumber value={zDoor?.pricing?.totalPrice || 0} />
                 </TableCell>

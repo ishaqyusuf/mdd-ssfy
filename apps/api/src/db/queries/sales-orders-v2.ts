@@ -13,6 +13,13 @@ const ordersV2ProductionStatus = [
   "in progress",
   "completed",
 ] as const;
+const ordersV2SmartStatuses = [
+  "pending",
+  "queued",
+  "ready",
+  "transit",
+  "completed",
+] as const;
 
 export const getOrdersV2Schema = z
   .object({
@@ -36,6 +43,8 @@ export const getOrdersV2SummarySchema = getOrdersV2Schema.omit({
 });
 
 export type GetOrdersV2SummarySchema = z.infer<typeof getOrdersV2SummarySchema>;
+
+type OrdersV2SmartStatus = (typeof ordersV2SmartStatuses)[number];
 
 function toLegacyOrdersQuery(query: GetOrdersV2SummarySchema, userId?: number | null) {
   const legacyQuery: any = {
@@ -87,10 +96,80 @@ function toFulfillmentLabel(status?: string | null) {
     .join(" ");
 }
 
+function normalizeStatusValue(status?: string | null) {
+  return (status || "").trim().toLowerCase();
+}
+
+function toSmartStatus(params: {
+  orderStatus?: string | null;
+  prodStatus?: string | null;
+  productionState?: string | null;
+  fulfillmentState?: string | null;
+}) {
+  const orderStatus = normalizeStatusValue(params.orderStatus);
+  const prodStatus = normalizeStatusValue(params.prodStatus);
+  const productionState = normalizeStatusValue(params.productionState);
+  const fulfillmentState = normalizeStatusValue(params.fulfillmentState);
+
+  if (
+    ["delivered", "completed"].includes(orderStatus) ||
+    fulfillmentState === "completed"
+  ) {
+    return "completed" satisfies OrdersV2SmartStatus;
+  }
+
+  if (
+    ["in transit", "dispatching", "dispatched"].includes(orderStatus) ||
+    fulfillmentState === "in progress"
+  ) {
+    return "transit" satisfies OrdersV2SmartStatus;
+  }
+
+  if (
+    orderStatus === "ready" ||
+    prodStatus === "completed" ||
+    productionState === "completed"
+  ) {
+    return "ready" satisfies OrdersV2SmartStatus;
+  }
+
+  if (
+    ["queued", "started"].includes(prodStatus) ||
+    productionState === "in progress"
+  ) {
+    return "queued" satisfies OrdersV2SmartStatus;
+  }
+
+  return "pending" satisfies OrdersV2SmartStatus;
+}
+
+function toSmartStatusLabel(status: OrdersV2SmartStatus) {
+  switch (status) {
+    case "queued":
+      return "Queued";
+    case "ready":
+      return "Ready";
+    case "transit":
+      return "Transit";
+    case "completed":
+      return "Completed";
+    default:
+      return "Pending";
+  }
+}
+
 function normalizeOrderRow(
   row: Parameters<typeof salesOrderDto>[0],
 ) {
   const dto = salesOrderDto(row, false);
+  const productionState = dto.status?.production?.status || "pending";
+  const fulfillmentState = dto.deliveryStatus || "pending";
+  const smartStatus = toSmartStatus({
+    orderStatus: row.status,
+    prodStatus: row.prodStatus,
+    productionState,
+    fulfillmentState,
+  });
 
   return {
     id: dto.id,
@@ -109,13 +188,17 @@ function normalizeOrderRow(
     amountDue: dto.invoice.pending || 0,
     paymentDueDate: dto.dueDate,
     invoiceStatus: toInvoiceStatus(dto.invoice.pending),
-    productionState: dto.status?.production?.status || "pending",
+    orderStatus: row.status || null,
+    prodStatus: row.prodStatus || null,
+    productionState,
     productionLabel: toProductionLabel(
-      dto.status?.production?.status,
+      productionState,
       dto.status?.production?.scoreStatus,
     ),
-    fulfillmentState: dto.deliveryStatus || "pending",
-    fulfillmentLabel: toFulfillmentLabel(dto.deliveryStatus),
+    fulfillmentState,
+    fulfillmentLabel: toFulfillmentLabel(fulfillmentState),
+    smartStatus,
+    smartStatusLabel: toSmartStatusLabel(smartStatus),
   };
 }
 

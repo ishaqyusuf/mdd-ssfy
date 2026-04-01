@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, EyeOff } from "lucide-react";
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, EyeOff, Search } from "lucide-react";
 import Modal from "@/components/common/modal";
 import { _modal } from "@/components/common/modal/provider";
 import { toast } from "sonner";
@@ -8,6 +8,7 @@ import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Label } from "@gnd/ui/label";
 import { ScrollArea } from "@gnd/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 import { getFormState } from "../../../_common/_stores/form-data-store";
 import { useStepContext } from "../../components-section/ctx";
@@ -137,6 +138,61 @@ function applyDoorSelectionSnapshot(selections, snapshot = {}) {
     return selections;
 }
 
+function captureCommonStepSelectionSnapshot(cls: ComponentHelperClass) {
+    const snapshot = {};
+    (cls.getItemStepSequence() || []).forEach((itemStepUid) => {
+        const stepForm = cls.zus.kvStepForm[itemStepUid];
+        const [, stepUid] = itemStepUid.split("-");
+        if (!stepForm?.componentUid) return;
+        if (stepForm.title == "Item Type" || stepForm.title == "Door") return;
+        snapshot[stepUid] = {
+            itemStepUid,
+            componentUid: stepForm.componentUid,
+        };
+    });
+    return snapshot;
+}
+
+function getSelectableItemSteps(itemUid: string, zus = getFormState()) {
+    const sequence = zus.sequence.stepComponent?.[itemUid] || [];
+    return sequence
+        .map((itemStepUid) => {
+            const stepForm = zus.kvStepForm[itemStepUid];
+            const [, stepUid] = itemStepUid.split("-");
+            return {
+                itemStepUid,
+                stepUid,
+                title: stepForm?.title || zus.setting.stepsByKey?.[stepUid]?.title,
+                componentUid: stepForm?.componentUid || "",
+                stepId: stepForm?.stepId,
+            };
+        })
+        .filter((step) => step.title && step.title != "Door");
+}
+
+function getMissingSelectableItemSteps(itemUid: string, zus = getFormState()) {
+    return getSelectableItemSteps(itemUid, zus).filter((step) => !step.componentUid);
+}
+
+function restoreCommonStepSelections(
+    cls: ComponentHelperClass,
+    snapshot: Record<string, { itemStepUid: string; componentUid: string }>,
+) {
+    Object.entries(snapshot).forEach(([stepUid, data]) => {
+        const itemStepUid = `${cls.itemUid}-${stepUid}`;
+        const stepForm = cls.zus.kvStepForm[itemStepUid];
+        if (!stepForm) return;
+        const component =
+            cls.getComponentFromSettingsByStepId(stepForm.stepId, data.componentUid) ||
+            cls.zus.setting.stepsByKey?.[stepUid]?.components?.find(
+                (candidate) => candidate.uid == data.componentUid,
+            );
+        if (!component) return;
+        const helper = new ComponentHelperClass(itemStepUid, component.uid, component);
+        helper.selectComponent(true);
+    });
+}
+
 function sortSequenceBySettings(cls: ComponentHelperClass, itemStepUids: string[]) {
     const order = new Map(
         (cls.zus.setting.steps || []).map((step, index) => [step.uid, index]),
@@ -240,6 +296,64 @@ function treeShakeSequence(cls: ComponentHelperClass) {
     cls.zus.dotUpdate(`sequence.stepComponent.${cls.itemUid}`, nextSequence);
 }
 
+function buildDraftZus(itemUid: string, draftSelections, zus = getFormState()) {
+    const cloned = JSON.parse(JSON.stringify(zus));
+    Object.entries(draftSelections || {}).forEach(([stepUid, componentUid]) => {
+        const itemStepUid = `${itemUid}-${stepUid}`;
+        if (!cloned.kvStepForm[itemStepUid] || !componentUid) return;
+        cloned.kvStepForm[itemStepUid].componentUid = componentUid;
+    });
+    return cloned;
+}
+
+function getDraftStepComponents(itemUid: string, itemStepUid: string, draftSelections) {
+    const draftZus = buildDraftZus(itemUid, draftSelections);
+    const helper = new StepHelperClass(itemStepUid, draftZus as any);
+    const [, stepUid] = itemStepUid.split("-");
+    const settingsStep = draftZus.setting.stepsByKey?.[stepUid];
+    const components = helper.filterStepComponents(settingsStep?.components || []);
+    return components.filter((component) => component?._metaData?.visible);
+}
+
+function applyMissingStepSelections(itemUid: string, draftSelections) {
+    const doorStepItemStepUid = getDoorStepItemStepUid(itemUid);
+    if (!doorStepItemStepUid) return;
+    const baseCls = new ComponentHelperClass(doorStepItemStepUid, null as any);
+    const preservedCurrentStepUid = baseCls.getItemForm()?.currentStepUid;
+    const preservedTabUid = baseCls.getItemForm()?.groupItem?._?.tabUid;
+    const steps = getSelectableItemSteps(itemUid);
+    steps.forEach((step) => {
+        const selectedUid = draftSelections[step.stepUid];
+        if (!selectedUid) return;
+        const currentStepForm = getFormState().kvStepForm[step.itemStepUid];
+        if (currentStepForm?.componentUid == selectedUid) return;
+        selectConfiguredStepComponent(baseCls, step.stepUid, selectedUid, false);
+        if (preservedCurrentStepUid) {
+            baseCls.dotUpdateItemForm("currentStepUid", preservedCurrentStepUid);
+        }
+        if (preservedTabUid) {
+            baseCls.dotUpdateItemForm("groupItem._.tabUid", preservedTabUid);
+        }
+    });
+    treeShakeSequence(baseCls);
+    baseCls.dotUpdateItemForm("currentStepUid", preservedCurrentStepUid || null);
+    if (preservedTabUid) {
+        baseCls.dotUpdateItemForm("groupItem._.tabUid", preservedTabUid);
+    }
+    baseCls.updateComponentCost();
+    baseCls.updateGroupedCost();
+    baseCls.calculateTotalPrice();
+}
+
+function openMissingStepSelectionsModalIfNeeded(itemUid: string) {
+    const missingSteps = getMissingSelectableItemSteps(itemUid);
+    if (!missingSteps.length) return false;
+    setTimeout(() => {
+        _modal.openModal(<MissingStepSelectionsModal itemUid={itemUid} />);
+    }, 0);
+    return true;
+}
+
 function routeContainsDoorStep(zus, rootComponentUid: string, targetStepUid: string) {
     const routeMap = zus.setting.composedRouter?.[rootComponentUid]?.route || {};
     const seen = new Set<string>();
@@ -271,8 +385,10 @@ export function getDoorItemTypeOptions(itemUid: string, doorUid: string, zus = g
 
     if (!doorComponent) return [];
 
+    const targetDoorStepUid = doorStepItemStepUid.split("-")[1];
+
     return itemTypeComponents.filter((itemTypeComponent) => {
-        if (!routeContainsDoorStep(zus, itemTypeComponent.uid, doorStepForm.stepId ? doorStepItemStepUid.split("-")[1] : doorStepItemStepUid.split("-")[1])) {
+        if (!routeContainsDoorStep(zus, itemTypeComponent.uid, targetDoorStepUid)) {
             return false;
         }
         const clonedZus = JSON.parse(JSON.stringify(zus));
@@ -321,7 +437,9 @@ function swapDoorWithPreservedRows(
     swapDoor: Door,
     preservedSnapshot = {},
 ) {
-    const doorItemStepUid = ensureStepInSequence(cls, cls.stepUid);
+    const doorItemStepUid =
+        getDoorStepItemStepUid(cls.itemUid, cls.zus as any) ||
+        ensureStepInSequence(cls, cls.stepUid);
     const doorHelper = new ComponentHelperClass(
         doorItemStepUid,
         component.uid,
@@ -445,7 +563,6 @@ export function DoorSwapModal({ door, itemStepUid }) {
         () => captureDoorSelectionSnapshot(cls, door),
         [cls, door],
     );
-
     function closeModal() {
         _modal.close();
     }
@@ -471,6 +588,7 @@ export function DoorSwapModal({ door, itemStepUid }) {
                 preservedSnapshot,
             );
             closeModal();
+            openMissingStepSelectionsModalIfNeeded(cls.itemUid);
             return;
         }
 
@@ -483,6 +601,7 @@ export function DoorSwapModal({ door, itemStepUid }) {
 
         swapDoorWithPreservedRows(cls, component, door, preservedSnapshot);
         closeModal();
+        openMissingStepSelectionsModalIfNeeded(cls.itemUid);
     }
 
     function handleProceed() {
@@ -495,6 +614,7 @@ export function DoorSwapModal({ door, itemStepUid }) {
             preservedSnapshot,
         );
         closeModal();
+        openMissingStepSelectionsModalIfNeeded(cls.itemUid);
     }
 
     return (
@@ -651,6 +771,10 @@ function DoorItemTypeSwapModal({
         () => captureDoorSelectionSnapshot(cls, door),
         [cls, door],
     );
+    const preservedCommonSteps = useMemo(
+        () => captureCommonStepSelectionSnapshot(cls),
+        [cls],
+    );
 
     function handleSelect(itemTypeComponent) {
         const itemTypeStepItemStepUid = getItemTypeStepItemStepUid(cls.itemUid);
@@ -662,8 +786,10 @@ function DoorItemTypeSwapModal({
         );
         itemTypeHelper.selectComponent(false);
         treeShakeSequence(itemTypeHelper);
+        restoreCommonStepSelections(itemTypeHelper, preservedCommonSteps);
         swapDoorWithPreservedRows(itemTypeHelper, door, door, preservedSnapshot);
         _modal.close();
+        openMissingStepSelectionsModalIfNeeded(cls.itemUid);
     }
 
     return (
@@ -689,5 +815,181 @@ function DoorItemTypeSwapModal({
                 </div>
             </ScrollArea>
         </Modal.Content>
+    );
+}
+
+function MissingStepSelectionsModal({ itemUid }: { itemUid: string }) {
+    const [draftSelections, setDraftSelections] = useState<Record<string, string>>(() => {
+        const selections = {};
+        getSelectableItemSteps(itemUid).forEach((step) => {
+            selections[step.stepUid] = step.componentUid || "";
+        });
+        return selections;
+    });
+    const [query, setQuery] = useState("");
+    const steps = useMemo(() => getSelectableItemSteps(itemUid), [itemUid]);
+    const missingSteps = useMemo(
+        () => steps.filter((step) => !draftSelections[step.stepUid]),
+        [steps, draftSelections],
+    );
+    const [activeIndex, setActiveIndex] = useState(() => {
+        const firstMissingIndex = steps.findIndex((step) => !step.componentUid);
+        return firstMissingIndex >= 0 ? firstMissingIndex : 0;
+    });
+    const activeStep = steps[activeIndex];
+    const activeComponents = useMemo(() => {
+        if (!activeStep) return [];
+        const components = getDraftStepComponents(
+            itemUid,
+            activeStep.itemStepUid,
+            draftSelections,
+        );
+        if (!query.trim()) return components;
+        const q = query.trim().toLowerCase();
+        return components.filter((component) =>
+            [component.title, component.productCode, component.uid]
+                .filter(Boolean)
+                .some((value) => value.toLowerCase().includes(q)),
+        );
+    }, [activeStep, draftSelections, itemUid, query]);
+
+    function goToNext() {
+        setActiveIndex((current) => Math.min(current + 1, steps.length - 1));
+    }
+
+    function goToPrev() {
+        setActiveIndex((current) => Math.max(current - 1, 0));
+    }
+
+    function skipCurrent() {
+        goToNext();
+    }
+
+    function handleDone() {
+        applyMissingStepSelections(itemUid, draftSelections);
+        _modal.close();
+        if (openMissingStepSelectionsModalIfNeeded(itemUid)) return;
+    }
+
+    useEffect(() => {
+        setQuery("");
+    }, [activeIndex]);
+
+    return (
+        <Modal.Content size="xl">
+            <Modal.Header
+                title="Complete Item Steps"
+                subtitle="Fill the missing step selections for this updated item before continuing."
+            />
+            <div className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                    {steps.map((step, index) => {
+                        const selected = !!draftSelections[step.stepUid];
+                        return (
+                            <button
+                                key={step.itemStepUid}
+                                type="button"
+                                onClick={() => setActiveIndex(index)}
+                                className={cn(
+                                    "rounded-full px-3 py-2 text-xs font-semibold uppercase transition",
+                                    index == activeIndex
+                                        ? "ring-2 ring-primary"
+                                        : "",
+                                    selected
+                                        ? "bg-blue-600 text-white"
+                                        : "bg-muted text-muted-foreground",
+                                )}
+                            >
+                                {step.title}
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {activeStep ? (
+                    <>
+                        <div className="space-y-2">
+                            <Label className="text-base font-semibold uppercase">
+                                {activeStep.title}
+                            </Label>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <input
+                                    value={query}
+                                    onChange={(event) => setQuery(event.target.value)}
+                                    placeholder={`Search ${activeStep.title}`}
+                                    className="h-10 w-full rounded-md border bg-background pl-10 pr-3 text-sm"
+                                />
+                            </div>
+                        </div>
+
+                        <ScrollArea className="h-[55vh]">
+                            <MissingStepComponentGrid
+                                itemStepUid={activeStep.itemStepUid}
+                                components={activeComponents}
+                                onSelect={(componentUid) => {
+                                    setDraftSelections((current) => ({
+                                        ...current,
+                                        [activeStep.stepUid]: componentUid,
+                                    }));
+                                }}
+                            />
+                        </ScrollArea>
+                    </>
+                ) : null}
+            </div>
+            <Modal.Footer>
+                <div className="flex w-full items-center gap-2">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={goToPrev}
+                        disabled={activeIndex <= 0}
+                    >
+                        <ChevronLeft className="mr-2 size-4" />
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={goToNext}
+                        disabled={activeIndex >= steps.length - 1}
+                    >
+                        <ChevronRight className="mr-2 size-4" />
+                    </Button>
+                    <div className="flex-1" />
+                    <Button type="button" variant="ghost" onClick={skipCurrent}>
+                        Skip
+                    </Button>
+                    <Button type="button" onClick={handleDone}>
+                        <Check className="mr-2 size-4" />
+                        Done
+                    </Button>
+                </div>
+            </Modal.Footer>
+        </Modal.Content>
+    );
+}
+
+function MissingStepComponentGrid({
+    itemStepUid,
+    components,
+    onSelect,
+}: {
+    itemStepUid: string;
+    components: any[];
+    onSelect: (componentUid: string) => void;
+}) {
+    const ctx = useStepContext(itemStepUid);
+    return (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3">
+            {components.map((component) => (
+                <ComponentItemCard
+                    key={component.uid}
+                    ctx={ctx}
+                    component={component}
+                    onSelect={() => onSelect(component.uid)}
+                />
+            ))}
+        </div>
     );
 }

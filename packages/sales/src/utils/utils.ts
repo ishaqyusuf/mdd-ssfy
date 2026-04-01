@@ -407,6 +407,12 @@ export const FullSalesSelect = {
           qty: true,
           rhQty: true,
           lhQty: true,
+          submittedBy: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         },
       },
     },

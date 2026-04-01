@@ -2,127 +2,121 @@
 
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-import type { RouterOutputs } from "@api/trpc/routers/_app";
-import { Button } from "@gnd/ui/button";
-import { Badge } from "@gnd/ui/badge";
-import { cells } from "@gnd/ui/custom/data-table/cells";
-import { Item as ListItem } from "@gnd/ui/namespace";
-import { cn } from "@gnd/ui/cn";
 import { formatCurrency } from "@/lib/utils";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
+import { Badge } from "@gnd/ui/badge";
+import { Button } from "@gnd/ui/button";
+import { cn } from "@gnd/ui/cn";
+import { cells } from "@gnd/ui/custom/data-table/cells";
+import { HoverCard } from "@gnd/ui/namespace";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpRight, ClipboardList, Truck } from "lucide-react";
+import { Eye, ArrowUpRight } from "lucide-react";
 
 export type Item = RouterOutputs["sales"]["getOrdersV2"]["data"][number];
 
 type Column = ColumnDef<Item>;
 
-function toneForInvoice(status: Item["invoiceStatus"]) {
-  return status === "paid"
-    ? "bg-emerald-100 text-emerald-700"
-    : "bg-amber-100 text-amber-700";
-}
-
-function toneForProduction(status: Item["productionState"]) {
-  switch ((status || "").toLowerCase()) {
+function smartStatusTone(status: Item["smartStatus"]) {
+  switch (status) {
     case "completed":
       return "bg-emerald-100 text-emerald-700";
-    case "in progress":
+    case "transit":
       return "bg-sky-100 text-sky-700";
+    case "ready":
+      return "bg-violet-100 text-violet-700";
+    case "queued":
+      return "bg-amber-100 text-amber-700";
     default:
       return "bg-slate-100 text-slate-700";
   }
 }
 
-const orderColumn: Column = {
-  header: "Order",
-  accessorKey: "order",
+function amountTone(item: Item) {
+  if (item.amountDue === item.invoiceTotal) return "text-red-600";
+  if (item.amountDue > 0) return "text-violet-600";
+  return "text-emerald-600";
+}
+
+function paymentHint(item: Item) {
+  if (item.amountDue === item.invoiceTotal) return "Unpaid";
+  if (item.amountDue > 0) return `Due ${formatCurrency.format(item.amountDue)}`;
+  return "Paid";
+}
+
+const invoiceIdColumn: Column = {
+  header: "Invoice ID",
+  accessorKey: "orderId",
   cell: ({ row: { original: item } }) => (
-    <>
-      <TCell.Primary>{item.orderId}</TCell.Primary>
-      <TCell.Secondary>{item.salesDate}</TCell.Secondary>
-    </>
+    <TCell.Primary className="font-medium">{item.orderId}</TCell.Primary>
   ),
 };
 
 const customerColumn: Column = {
   header: "Customer",
-  accessorKey: "customer",
+  accessorKey: "customerName",
   cell: ({ row: { original: item } }) => (
-    <ListItem className="py-0">
-      <ListItem.Title>{item.customerName}</ListItem.Title>
-      <ListItem.Description>{item.customerPhone}</ListItem.Description>
-      <ListItem.Description>{item.address}</ListItem.Description>
-    </ListItem>
+    <TCell.Primary className="truncate">{item.customerName}</TCell.Primary>
   ),
 };
 
-const commercialColumn: Column = {
-  header: "Commercial",
-  accessorKey: "commercial",
+const refColumn: Column = {
+  header: "Ref",
+  accessorKey: "poNo",
   cell: ({ row: { original: item } }) => (
-    <>
-      <TCell.Primary>{formatCurrency.format(item.invoiceTotal)}</TCell.Primary>
-      <TCell.Secondary className="flex items-center gap-2">
-        <span>Due {formatCurrency.format(item.amountDue)}</span>
-        <span>·</span>
-        <span>{item.salesRepName}</span>
-      </TCell.Secondary>
-    </>
+    <TCell.Secondary>{item.poNo === "-" ? "-" : item.poNo}</TCell.Secondary>
+  ),
+};
+
+const dateColumn: Column = {
+  header: "Date",
+  accessorKey: "salesDate",
+  cell: ({ row: { original: item } }) => (
+    <TCell.Secondary>{item.salesDate}</TCell.Secondary>
+  ),
+};
+
+const amountColumn: Column = {
+  header: "Payment",
+  accessorKey: "invoiceTotal",
+  cell: ({ row: { original: item } }) => (
+    <div className="text-right">
+      <TCell.Primary className={cn("font-medium", amountTone(item))}>
+        {formatCurrency.format(item.invoiceTotal)}
+      </TCell.Primary>
+    </div>
   ),
 };
 
 const statusColumn: Column = {
   header: "Status",
-  accessorKey: "status",
+  accessorKey: "smartStatus",
   cell: ({ row: { original: item } }) => (
-    <div className="flex flex-col gap-2">
-      <Badge className={cn("w-fit border-0", toneForInvoice(item.invoiceStatus))}>
-        {item.invoiceStatus === "paid" ? "Paid" : "Outstanding"}
+    <div className="flex items-center">
+      <Badge className={cn("border-0", smartStatusTone(item.smartStatus))}>
+        {item.smartStatusLabel}
       </Badge>
-      <Badge
-        variant="secondary"
-        className={cn("w-fit border-0", toneForProduction(item.productionState))}
-      >
-        {item.productionLabel}
-      </Badge>
-      <p className="text-xs text-muted-foreground">{item.fulfillmentLabel}</p>
     </div>
   ),
 };
 
 const actionColumn: Column = {
-  header: "",
+  header: "Actions",
   accessorKey: "action",
   meta: {
     actionCell: true,
     preventDefault: true,
-    className: "w-[110px]",
+    className: "w-[86px]",
   },
-  cell: ({ row: { original: item } }) => <OpenButton item={item} />,
+  cell: ({ row: { original: item } }) => <ActionCell item={item} />,
 };
-
-function OpenButton({ item }: { item: Item }) {
-  const overviewQuery = useSalesOverviewQuery();
-
-  return (
-    <div className="relative z-10 flex items-center justify-end">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => overviewQuery.open2(item.uuid, "sales")}
-      >
-        <ArrowUpRight className="mr-2 size-4" />
-        Open
-      </Button>
-    </div>
-  );
-}
 
 export const columns: Column[] = [
   cells.selectColumn,
-  orderColumn,
+  invoiceIdColumn,
   customerColumn,
-  commercialColumn,
+  refColumn,
+  dateColumn,
+  amountColumn,
   statusColumn,
   actionColumn,
 ];
@@ -138,86 +132,125 @@ export const mobileColumn: ColumnDef<Item>[] = [
   },
 ];
 
-function ItemCard({ item }: { item: Item }) {
+function ActionCell({ item }: { item: Item }) {
   const overviewQuery = useSalesOverviewQuery();
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <button
-        type="button"
-        className="flex w-full items-start gap-3 text-left"
-        onClick={() => overviewQuery.open2(item.uuid, "sales")}
-      >
-        <div className="rounded-xl bg-slate-100 p-2 text-slate-700">
-          <ClipboardList className="size-4" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-base font-semibold text-slate-900">
-            {item.orderId}
-          </p>
-          <p className="truncate text-sm text-slate-600">{item.customerName}</p>
-          <p className="truncate text-xs text-slate-500">{item.address}</p>
-        </div>
-      </button>
-
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <div className="rounded-2xl border border-slate-200 px-3 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Invoice
-          </p>
-          <p className="mt-2 text-sm font-semibold text-slate-900">
-            {formatCurrency.format(item.invoiceTotal)}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Due {formatCurrency.format(item.amountDue)}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 px-3 py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Sales rep
-          </p>
-          <p className="mt-2 text-sm font-semibold text-slate-900">
-            {item.salesRepName}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">{item.salesDate}</p>
-        </div>
-      </div>
-
-      <div className="mt-3 rounded-2xl border border-slate-200 px-3 py-3">
-        <div className="flex items-center gap-2">
-          <div className="rounded-xl bg-slate-100 p-2 text-slate-700">
-            <Truck className="size-4" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Status
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <Badge className={cn("border-0", toneForInvoice(item.invoiceStatus))}>
-                {item.invoiceStatus === "paid" ? "Paid" : "Outstanding"}
-              </Badge>
-              <Badge
-                variant="secondary"
-                className={cn("border-0", toneForProduction(item.productionState))}
-              >
-                {item.productionLabel}
+    <div className="relative z-10 flex items-center justify-end gap-2">
+      <HoverCard.Root openDelay={120} closeDelay={80}>
+        <HoverCard.Trigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <Eye className="size-4" />
+            <span className="sr-only">Preview order</span>
+          </Button>
+        </HoverCard.Trigger>
+        <HoverCard.Content
+          align="end"
+          side="left"
+          sideOffset={10}
+          className="w-[300px] rounded-2xl border border-slate-200 bg-white p-4 shadow-xl"
+        >
+          <div className="space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-slate-900">
+                  {item.customerName}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">{item.orderId}</p>
+              </div>
+              <Badge className={cn("border-0", smartStatusTone(item.smartStatus))}>
+                {item.smartStatusLabel}
               </Badge>
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              {item.fulfillmentLabel}
-            </p>
+
+            <div className="space-y-2.5 text-sm">
+              <OverviewLine
+                label="Amount"
+                value={formatCurrency.format(item.invoiceTotal)}
+                valueClassName={amountTone(item)}
+              />
+              <OverviewLine label="Payment" value={paymentHint(item)} />
+              <OverviewLine label="Customer" value={item.customerPhone || "-"} />
+              <OverviewLine label="Sales Rep" value={item.salesRepName} />
+              <OverviewLine label="Production" value={item.productionLabel} />
+              <OverviewLine label="Fulfillment" value={item.fulfillmentLabel} />
+            </div>
+
+            <div className="border-t border-slate-100 pt-3">
+              <p className="line-clamp-2 text-xs leading-5 text-slate-500">
+                {item.address}
+              </p>
+            </div>
           </div>
-        </div>
-      </div>
+        </HoverCard.Content>
+      </HoverCard.Root>
 
       <Button
-        type="button"
-        className="mt-4 w-full"
-        variant="outline"
-        onClick={() => overviewQuery.open2(item.uuid, "sales")}
+        variant="ghost"
+        size="icon"
+        className="size-8 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+        onClick={(event) => {
+          event.stopPropagation();
+          overviewQuery.open2(item.uuid, "sales");
+        }}
       >
-        Open Order
+        <ArrowUpRight className="size-4" />
+        <span className="sr-only">Open order</span>
       </Button>
+    </div>
+  );
+}
+
+function OverviewLine({
+  label,
+  value,
+  valueClassName,
+}: {
+  label: string;
+  value: string;
+  valueClassName?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-xs font-medium uppercase tracking-[0.12em] text-slate-400">
+        {label}
+      </span>
+      <span className={cn("truncate text-right font-medium text-slate-700", valueClassName)}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function ItemCard({ item }: { item: Item }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-slate-900">{item.orderId}</p>
+          <p className="truncate text-sm text-slate-600">{item.customerName}</p>
+          <p className="mt-1 text-xs text-slate-500">{item.salesDate}</p>
+        </div>
+        <Badge className={cn("border-0", smartStatusTone(item.smartStatus))}>
+          {item.smartStatusLabel}
+        </Badge>
+      </div>
+
+      <div className="mt-4 flex items-end justify-between gap-3">
+        <div>
+          <p className={cn("text-base font-semibold", amountTone(item))}>
+            {formatCurrency.format(item.invoiceTotal)}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <ActionCell item={item} />
+        </div>
+      </div>
     </div>
   );
 }

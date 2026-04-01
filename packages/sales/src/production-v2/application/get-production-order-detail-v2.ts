@@ -58,6 +58,7 @@ export async function getProductionOrderDetailV2(
 						id: submission.id,
 						createdAt: submission.createdAt,
 						note: submission.note,
+						submittedBy: submission.submittedBy?.name || null,
 						qty: {
 							qty: submission.qty,
 							lh: submission.lhQty,
@@ -94,7 +95,7 @@ export async function getProductionOrderDetailV2(
 		actions: {
 			canQuickAssign: query.scope === "admin",
 			canSubmitProduction: query.scope === "worker",
-			canDeleteSubmission: query.scope === "worker",
+			canDeleteSubmission: query.scope === "admin",
 		},
 	};
 }
