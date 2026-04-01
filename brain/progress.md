@@ -52,6 +52,11 @@
   - assignments/submissions status copy now shows progress like `Submissions 0/1` when the assignment has a bounded submission limit
   - when an assignment is fully submitted, the inline form is hidden and replaced with `All submissions completed`
 
+- Fixed a Sales PDF v2 generic line-item print collapse:
+  - replaced the sparse legacy-uid row reconstruction in `composeLineItemSections` with a stable sorted row list
+  - generic line items now print all rows even when legacy metadata reuses the same `uid`
+  - added a focused regression test covering multiple generic line items with colliding legacy uid metadata
+
 ## 2026-03-30
 
 - Added notification delivery for unit-production action flows:
