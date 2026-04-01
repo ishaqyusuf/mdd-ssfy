@@ -1,21 +1,21 @@
 "use client";
 
 import { useContractorPayoutFilterParams } from "@/hooks/use-contractor-payout-filter-params";
-import { useContractorPayoutParams } from "@/hooks/use-contractor-payout-params";
 import { useSortParams } from "@/hooks/use-sort-params";
 import { useTRPC } from "@/trpc/client";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { NoResults } from "@gnd/ui/custom/no-results";
 import { Table, useTableData } from "@gnd/ui/data-table";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
+import { useRouter } from "next/navigation";
 
 import { columns, mobileColumn } from "./columns";
 
 export function DataTable() {
+	const router = useRouter();
 	const trpc = useTRPC();
 	const { filters, hasFilters, setFilters } = useContractorPayoutFilterParams();
 	const { params, setParams } = useSortParams();
-	const { setParams: setPayoutParams } = useContractorPayoutParams();
 	const { data, ref, isFetching, hasNextPage } = useTableData({
 		filter: {
 			...filters,
@@ -51,10 +51,8 @@ export function DataTable() {
 					},
 					tableScroll,
 					tableMeta: {
-						rowClick(id, rowData) {
-							setPayoutParams({
-								openContractorPayoutId: rowData.id,
-							});
+						rowClick(_, rowData) {
+							router.push(`/contractors/jobs/payments/${rowData.id}`);
 						},
 					},
 				},

@@ -1,16 +1,9 @@
-import { ContractorPayoutsHeader } from "@/components/contractor-payouts-header";
-import { ErrorFallback } from "@/components/error-fallback";
-import { ContractorPayoutOverviewModal } from "@/components/modals/contractor-payout-overview-modal";
-import { DataTable } from "@/components/tables/contractor-payouts/data-table";
-import { TableSkeleton } from "@/components/tables/skeleton";
+import { PaymentsHistoryView } from "@/components/payment-dashboard/payments-history-view";
 import { loadContractorPayoutFilterParams } from "@/hooks/use-contractor-payout-filter-params";
 import { loadSortParams } from "@/hooks/use-sort-params";
 import { batchPrefetch, trpc } from "@/trpc/server";
-import { PageTitle } from "@gnd/ui/custom/page-title";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
-import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import type { SearchParams } from "nuqs";
-import { Suspense } from "react";
 
 import PageShell from "@/components/page-shell";
 
@@ -31,22 +24,16 @@ export default async function ContractorsPaymentsPage(props: Props) {
 
 	batchPrefetch([
 		trpc.jobs.contractorPayouts.infiniteQueryOptions({
-			...(filter as any),
+			...filter,
 			sort,
 		}),
+		trpc.jobs.paymentDashboard.queryOptions({}),
 	]);
 
 	return (
 		<PageShell>
-			<div className="flex flex-col gap-6 pt-6">
-				<PageTitle>Contractor Payments</PageTitle>
-				<ContractorPayoutsHeader />
-				<ErrorBoundary errorComponent={ErrorFallback}>
-					<Suspense fallback={<TableSkeleton />}>
-						<DataTable />
-					</Suspense>
-				</ErrorBoundary>
-				<ContractorPayoutOverviewModal />
+			<div className="pt-2">
+				<PaymentsHistoryView />
 			</div>
 		</PageShell>
 	);

@@ -359,9 +359,13 @@ export const linkModules = [
             ]).access(_perm.is("editOrders")).data,
         ]),
         _section("", "", [
-            _link("Customers", "user", "/sales-book/customers").access(
-                _perm.in("editSalesCustomers", "viewOrders"),
-            ).data,
+            _link("Customers", "user", "/sales-book/customers", [
+                _subLink("Customers v2", "/sales-book/customers/v2").access(
+                    _role.is("Super Admin"),
+                ).data,
+            ])
+                .access(_perm.in("editSalesCustomers", "viewOrders"))
+                .childPaths("/sales-book/customers/v2").data,
             _link("Dealers", "user", "/sales-book/dealers").access(
                 _role.is("Super Admin"),
             ).data,
@@ -728,4 +732,3 @@ export function getActiveLinkFromMap(
         )
         .sort(([hrefA], [hrefB]) => hrefB.length - hrefA.length)?.[0]?.[1];
 }
-

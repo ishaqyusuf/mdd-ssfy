@@ -1,9 +1,12 @@
 import type { TRPCContext } from "@api/trpc/init";
 import type {
   GetCustomers,
+  GetCustomerDirectoryV2SummarySchema,
+  GetCustomerOverviewV2Schema,
   SearchCustomersSchema,
   UpsertCustomerSchema,
 } from "@api/schemas/customer";
+import type { Prisma } from "@gnd/db";
 import { z } from "zod";
 import type { AddressBookMeta, CustomerMeta } from "@sales/types";
 import { composeQueryData } from "@gnd/utils/query-response";
@@ -14,6 +17,86 @@ import { getCustomerWallet } from "@sales/wallet";
 import { nextId, sum } from "@gnd/utils";
 import { fetchDevicesByLocations, getSquareDevices } from "@gnd/square";
 import { TRPCError } from "@trpc/server";
+
+function buildCustomerLookupWhere(accountNo: string): Prisma.CustomersWhereInput {
+  const [prefix, rawId] = accountNo.split("-");
+  return {
+    phoneNo: prefix === "cust" ? undefined : accountNo,
+    id: prefix === "cust" ? Number(rawId) : undefined,
+  };
+}
+
+function buildCustomerSalesFilter(accountNo: string, salesType?: "order" | "quote") {
+  const [prefix, rawId] = accountNo.split("-");
+  const query: Partial<SalesQueryParamsSchema> = {
+    salesType,
+  };
+  if (prefix === "cust") query.customerId = Number(rawId);
+  else query.phone = accountNo;
+  return whereSales(query as SalesQueryParamsSchema);
+}
+
+function mapCustomerWorkspaceItem(
+  item: Awaited<ReturnType<typeof getCustomerWorkspaceSales>>[number],
+) {
+  return {
+    id: item.id,
+    orderId: item.orderId,
+    uuid: item.slug || item.orderId,
+    displayName:
+      item.billingAddress?.name ||
+      item.customer?.businessName ||
+      item.customer?.name ||
+      null,
+    salesDate: item.createdAt?.toISOString?.() || null,
+    due: Number(item.amountDue || 0),
+    invoice: {
+      total: Number(item.grandTotal || 0),
+    },
+    status: item.status as
+      | {
+          delivery?: {
+            status?: string | null;
+          };
+        }
+      | null
+      | undefined,
+  };
+}
+
+async function getCustomerWorkspaceSales(
+  ctx: TRPCContext,
+  accountNo: string,
+  salesType: "order" | "quote",
+) {
+  return ctx.db.salesOrders.findMany({
+    where: buildCustomerSalesFilter(accountNo, salesType),
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 200,
+    select: {
+      id: true,
+      orderId: true,
+      slug: true,
+      amountDue: true,
+      grandTotal: true,
+      createdAt: true,
+      status: true,
+      customer: {
+        select: {
+          name: true,
+          businessName: true,
+        },
+      },
+      billingAddress: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+}
 
 export async function getCustomers(ctx: TRPCContext, query: GetCustomers) {
   const { db } = ctx;
@@ -220,7 +303,7 @@ export async function createOrUpdateCustomerAddress(
           ],
         },
       });
-      if (ordersOnAddress > 0) addressId = null;
+      if (ordersOnAddress > 0) addressId = undefined;
     }
     if (addressId) {
       const updated = await tx.addressBooks.update({
@@ -294,6 +377,169 @@ export async function searchCustomers(
   });
 
   return customers;
+}
+
+export async function getCustomerDirectoryV2Summary(
+  ctx: TRPCContext,
+  _query: GetCustomerDirectoryV2SummarySchema,
+) {
+  const { db } = ctx;
+
+  const [totalCustomers, businessCustomers, customersWithEmail, openQuotes] =
+    await Promise.all([
+      db.customers.count(),
+      db.customers.count({
+        where: {
+          businessName: {
+            not: null,
+          },
+        },
+      }),
+      db.customers.count({
+        where: {
+          email: {
+            not: null,
+          },
+        },
+      }),
+      db.salesOrders.count({
+        where: {
+          deletedAt: null,
+          type: "quote",
+        },
+      }),
+    ]);
+
+  return {
+    totalCustomers,
+    businessCustomers,
+    customersWithEmail,
+    openQuotes,
+  };
+}
+
+export async function getCustomerOverviewV2(
+  ctx: TRPCContext,
+  query: GetCustomerOverviewV2Schema,
+) {
+  const { db } = ctx;
+  const accountNo = query.accountNo;
+  const customer = await db.customers.findFirst({
+    where: buildCustomerLookupWhere(accountNo),
+    orderBy: {
+      createdAt: "desc",
+    },
+    select: {
+      id: true,
+      name: true,
+      businessName: true,
+      phoneNo: true,
+      phoneNo2: true,
+      email: true,
+      address: true,
+      meta: true,
+      profile: {
+        select: {
+          id: true,
+          title: true,
+        },
+      },
+      addressBooks: {
+        where: {
+          deletedAt: null,
+        },
+        orderBy: [
+          {
+            isPrimary: "desc",
+          },
+          {
+            createdAt: "desc",
+          },
+        ],
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phoneNo: true,
+          phoneNo2: true,
+          address1: true,
+          address2: true,
+          city: true,
+          state: true,
+          country: true,
+          isPrimary: true,
+          meta: true,
+        },
+      },
+    },
+  });
+
+  const [pendingPaymentOrders, wallet, orderRecords, quoteRecords] =
+    await Promise.all([
+      getCustomerPendingSales(ctx, accountNo),
+      getCustomerWallet(db, accountNo),
+      getCustomerWorkspaceSales(ctx, accountNo, "order"),
+      getCustomerWorkspaceSales(ctx, accountNo, "quote"),
+    ]);
+
+  const orders = orderRecords.map(mapCustomerWorkspaceItem);
+  const quotes = quoteRecords.map(mapCustomerWorkspaceItem);
+  const pendingPayment = sum(pendingPaymentOrders, "amountDue");
+  const pendingDeliveryOrders = orders.filter(
+    (order) => order.status?.delivery?.status !== "completed",
+  );
+  const customerMeta = (customer?.meta || {}) as CustomerMeta;
+  const primaryAddress =
+    customer?.addressBooks.find((address) => address.isPrimary) ||
+    customer?.addressBooks[0] ||
+    null;
+  const secondaryAddresses =
+    customer?.addressBooks.filter((address) => address.id !== primaryAddress?.id) ||
+    [];
+  const displayName =
+    customer?.businessName || customer?.name || pendingPaymentOrders[0]?.customerName || accountNo;
+
+  return {
+    accountNo,
+    customer: {
+      id: customer?.id || null,
+      name: customer?.name || null,
+      businessName: customer?.businessName || null,
+      displayName,
+      email: customer?.email || pendingPaymentOrders[0]?.customerEmail || null,
+      phoneNo: customer?.phoneNo || null,
+      phoneNo2: customer?.phoneNo2 || null,
+      address: customer?.address || null,
+      profileName: customer?.profile?.title || null,
+      profileId: customer?.profile?.id || null,
+      netTerm: customerMeta?.netTerm || null,
+      isBusiness: !!customer?.businessName,
+    },
+    addresses: {
+      primary: primaryAddress,
+      secondary: secondaryAddresses,
+    },
+    walletBalance: wallet?.balance || 0,
+    general: {
+      pendingPayment,
+      pendingPaymentOrders,
+      pendingDeliveryOrders,
+      totalSalesCount: orders.length,
+      totalQuotesCount: quotes.length,
+      totalSalesValue: orders.reduce(
+        (acc, order) => acc + Number(order.invoice.total || 0),
+        0,
+      ),
+      totalQuotesValue: quotes.reduce(
+        (acc, quote) => acc + Number(quote.invoice.total || 0),
+        0,
+      ),
+    },
+    salesWorkspace: {
+      orders,
+      quotes,
+    },
+  };
 }
 
 export const customerInfoSearchSchema = z.object({

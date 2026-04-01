@@ -22,7 +22,7 @@ export async function getCustomerGeneralInfoAction(accountNo) {
 
     let where: Prisma.CustomersWhereInput = {
         phoneNo: pref == "cust" ? undefined : accountNo,
-        id: pref == "cust" ? id : undefined,
+        id: pref == "cust" ? Number(id) : undefined,
     };
     if (pref == "cust") salesQuery["customer.id"] = Number(id);
     else salesQuery["phone"] = accountNo;

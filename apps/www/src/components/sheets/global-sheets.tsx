@@ -6,6 +6,7 @@ import { _perm } from "../sidebar/links";
 import { CommunityInventoryOverviewSheet } from "./community-inventory-overview";
 import { CustomerCreateSheet } from "./customer-create-sheet";
 import { CustomerOverviewSheet } from "./customer-overview-sheet";
+import { CustomerOverviewV2Sheet } from "../customer-v2/customer-overview-v2-sheet";
 import { FileViewSheet } from "./file-view-sheet";
 import { InboundOverviewSheet } from "./inbound-overview-sheet";
 import { InventoryCategorySheet } from "./inventory-category-sheet";
@@ -26,6 +27,7 @@ export function GlobalSheets() {
 			<SalesOverviewSheet />
 			<SalesOverviewSystemSheet />
 			<CustomerOverviewSheet />
+			<CustomerOverviewV2Sheet />
 			<CustomerCreateSheet />
 			<InventoryProductSheet />
 			<InventoryInboundSheet />

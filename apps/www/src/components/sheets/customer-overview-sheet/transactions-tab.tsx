@@ -19,7 +19,7 @@ export function TransactionsTab({ accountNo, salesId }: Props) {
     const loader = async () => {
         const resp = await getCustomerTransactionsAction({
             orderNo: salesId,
-            // "account.no": accountNo,
+            "account.no": salesId ? undefined : accountNo,
         });
         return {
             status: "Loaded",

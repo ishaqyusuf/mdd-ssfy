@@ -10,6 +10,18 @@ export type SearchCustomersSchema = z.infer<typeof searchCustomersSchema>;
 export const getCustomersSchema = z.object({}).extend(paginationSchema.shape);
 export type GetCustomers = z.infer<typeof getCustomersSchema>;
 
+export const getCustomerDirectoryV2SummarySchema = z.object({});
+export type GetCustomerDirectoryV2SummarySchema = z.infer<
+  typeof getCustomerDirectoryV2SummarySchema
+>;
+
+export const getCustomerOverviewV2Schema = z.object({
+  accountNo: z.string(),
+});
+export type GetCustomerOverviewV2Schema = z.infer<
+  typeof getCustomerOverviewV2Schema
+>;
+
 export const upsertCustomerSchema = z
   .object({
     profileId: z.string().optional().nullable(),

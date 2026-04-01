@@ -4,6 +4,14 @@
 
 ## 2026-03-29
 
+## 2026-04-01
+
+- Switched the new sales customer v2 experience off app-local server actions and onto customer tRPC queries.
+  - Added `customer.getCustomerDirectoryV2Summary` and `customer.getCustomerOverviewV2` in `apps/api`.
+  - Added the supporting Zod schemas in `apps/api/src/schemas/customer.ts`.
+  - Moved the customer-v2 directory page and overview content in `apps/www` to consume those route contracts directly with TanStack query hooks.
+  - Kept the UI payload normalized around `customer`, `addresses`, `walletBalance`, `general`, and `salesWorkspace` so the page and side sheet can share one reusable content tree.
+
 - Rebuilt `/community/unit-productions` off the legacy v1 server-action shell and onto the newer community table architecture:
   - added a real `community.getUnitProductions` tRPC query in `apps/api`
   - added `community.getUnitProductionSummary` for top-of-page production summary widgets

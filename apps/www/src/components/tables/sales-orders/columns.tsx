@@ -76,7 +76,7 @@ function CompactCustomerCell({ item }: { item: SalesOrderItem }) {
             </Item.Title>
             <Item.Description>
                 <TextWithTooltip
-                    className="max-w-[220px] truncate xl:max-w-[300px]"
+                    className="min-w-max max-w-[220px] truncate"
                     text={item.address || "no address"}
                 />
             </Item.Description>
@@ -109,7 +109,7 @@ const legacyCustomerColumnsV2: ColumnDef<SalesOrderItem>[] = [
                 )}
             >
                 <TextWithTooltip
-                    className="max-w-[100px] xl:max-w-[200px]"
+                    className="w-[100px] xl:w-[150px] max-w-none"
                     text={item.displayName || "-"}
                 />
             </TCell.Primary>
@@ -121,8 +121,8 @@ const legacyCustomerColumnsV2: ColumnDef<SalesOrderItem>[] = [
         cell: ({ row: { original: item } }) => (
             <TCell.Secondary className="whitespace-nowrap">
                 <TextWithTooltip
-                    className="max-w-[85px] xl:max-w-[120px]"
-                    text={item?.customerPhone || "-"}
+                    className="w-[110px]"
+                    text={item?.customerPhone?.trim() || "-"}
                 />
             </TCell.Secondary>
         ),
@@ -133,7 +133,7 @@ const legacyCustomerColumnsV2: ColumnDef<SalesOrderItem>[] = [
         cell: ({ row: { original: item } }) => (
             <TCell.Secondary>
                 <TextWithTooltip
-                    className="max-w-[100px] xl:max-w-[200px]"
+                    className="w-[100px] xl:w-[120px] 2xl:w-[160px] max-w-none"
                     text={item?.address}
                 />
             </TCell.Secondary>

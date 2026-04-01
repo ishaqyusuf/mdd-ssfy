@@ -1,17 +1,23 @@
 "use client";
 
-import Money from "@/components/_v1/money";
-import { useContractorPayoutParams } from "@/hooks/use-contractor-payout-params";
-import type { RouterOutputs } from "@api/trpc/routers/_app";
-import { Button } from "@gnd/ui/button";
-import { Badge } from "@gnd/ui/badge";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
+import { Badge } from "@gnd/ui/badge";
+import { Button } from "@gnd/ui/button";
 import { formatDate } from "@gnd/utils/dayjs";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ReceiptText } from "lucide-react";
+import Link from "next/link";
 
 export type Item = RouterOutputs["jobs"]["contractorPayouts"]["data"][number];
 type Column = ColumnDef<Item>;
+
+function formatCurrency(value?: number | null) {
+	return new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: "USD",
+	}).format(Number(value || 0));
+}
 
 export const columns: Column[] = [
 	{
@@ -62,7 +68,9 @@ export const columns: Column[] = [
 		},
 		cell: ({ row: { original: item } }) => (
 			<div className="text-right">
-				<Money className="font-semibold" value={item.amount} />
+				<p className="font-semibold text-foreground">
+					{formatCurrency(item.amount)}
+				</p>
 			</div>
 		),
 	},
@@ -79,20 +87,10 @@ export const columns: Column[] = [
 ];
 
 function Actions({ item }: { item: Item }) {
-	const { setParams } = useContractorPayoutParams();
-
 	return (
 		<div className="relative z-10 flex justify-end">
-			<Button
-				size="sm"
-				variant="outline"
-				onClick={() => {
-					setParams({
-						openContractorPayoutId: item.id,
-					});
-				}}
-			>
-				View
+			<Button size="sm" variant="outline" asChild>
+				<Link href={`/contractors/jobs/payments/${item.id}`}>View</Link>
 			</Button>
 		</div>
 	);
@@ -110,28 +108,20 @@ export const mobileColumn: ColumnDef<Item>[] = [
 ];
 
 function ItemCard({ item }: { item: Item }) {
-	const { setParams } = useContractorPayoutParams();
-
 	return (
-		<div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+		<div className="rounded-2xl border bg-card p-4 shadow-sm">
 			<div className="flex items-start gap-3">
-				<div className="rounded-xl bg-emerald-50 p-2 text-emerald-700">
+				<div className="rounded-xl bg-primary/10 p-2 text-primary">
 					<ReceiptText className="size-4" />
 				</div>
 				<div className="min-w-0 flex-1">
-					<p className="text-base font-semibold text-slate-900">#{item.id}</p>
-					<p className="text-sm text-slate-600">{formatDate(item.createdAt)}</p>
+					<p className="text-base font-semibold text-foreground">#{item.id}</p>
+					<p className="text-sm text-muted-foreground">
+						{formatDate(item.createdAt)}
+					</p>
 				</div>
-				<Button
-					size="sm"
-					variant="outline"
-					onClick={() => {
-						setParams({
-							openContractorPayoutId: item.id,
-						});
-					}}
-				>
-					View
+				<Button size="sm" variant="outline" asChild>
+					<Link href={`/contractors/jobs/payments/${item.id}`}>View</Link>
 				</Button>
 			</div>
 
@@ -141,19 +131,21 @@ function ItemCard({ item }: { item: Item }) {
 			</div>
 
 			<div className="mt-3 grid grid-cols-2 gap-2">
-				<div className="rounded-2xl border border-slate-200 px-3 py-3">
+				<div className="rounded-2xl border px-3 py-3">
 					<p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
 						Jobs
 					</p>
-					<p className="mt-1 text-sm font-semibold text-slate-900">
+					<p className="mt-1 text-sm font-semibold text-foreground">
 						{item.jobCount}
 					</p>
 				</div>
-				<div className="rounded-2xl bg-emerald-50 px-3 py-3">
-					<p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700/80">
+				<div className="rounded-2xl bg-primary/10 px-3 py-3">
+					<p className="text-[11px] font-semibold uppercase tracking-wide text-primary/80">
 						Payout
 					</p>
-					<Money className="mt-1 text-lg font-semibold text-emerald-700" value={item.amount} />
+					<p className="mt-1 text-lg font-semibold text-primary">
+						{formatCurrency(item.amount)}
+					</p>
 				</div>
 			</div>
 		</div>
@@ -168,11 +160,11 @@ function InfoCard({
 	value: string;
 }) {
 	return (
-		<div className="rounded-2xl border border-slate-200 px-3 py-3">
+		<div className="rounded-2xl border px-3 py-3">
 			<p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
 				{label}
 			</p>
-			<p className="mt-1 text-sm font-semibold text-slate-900">{value}</p>
+			<p className="mt-1 text-sm font-semibold text-foreground">{value}</p>
 		</div>
 	);
 }

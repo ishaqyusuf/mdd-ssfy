@@ -19,6 +19,15 @@ Tracks the current technical topology and major module boundaries.
   - `packages/sales/src/payment-system/*` for canonical payment and accounting logic
   - `packages/sales/src/resolution-system/*` for inconsistency detection and audited repair workflows
   - `packages/sales/src/pdf-system/*` for sales-specific PDF invalidation and current-document resolution
+- Prefer Midday-style frontend architecture wherever the product surface allows it:
+  - render route shells quickly and avoid blocking navigation on heavyweight page-level server work
+  - prefer dashboard/widget-first composition with independent loading boundaries over monolithic page payloads
+  - prefer aggregate, count, summary, and paginated query shapes for first paint instead of loading complete working sets
+  - stream or defer secondary data, enrichment, and non-critical controls until after the primary view is visible
+  - keep UI data dependencies small, composable, and easy to hydrate incrementally
+  - reference local Midday-inspired implementations when choosing patterns:
+    - `apps/www/src/(midday)` for shared in-repo Midday-style UI patterns
+    - `ai/midday-example` for focused example snippets and interaction patterns
 
 ## Data and Execution Flow
 1. Schema and data models live in `packages/db` and related shared packages.

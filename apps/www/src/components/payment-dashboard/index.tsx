@@ -70,7 +70,12 @@ export function PaymentDashboard() {
 							</p>
 						</div>
 						<div className="flex flex-col gap-3 sm:flex-row">
-							<Button asChild size="lg" variant="outline" className="min-w-[180px]">
+							<Button
+								asChild
+								size="lg"
+								variant="outline"
+								className="min-w-[180px]"
+							>
 								<Link href="/contractors/jobs/payments">
 									<ReceiptText data-icon="inline-start" />
 									View payouts
@@ -239,7 +244,7 @@ export function PaymentDashboard() {
 								recentPayments.map((payment) => (
 									<Link
 										key={payment.id}
-										href={`/contractors/jobs/payments?openContractorPayoutId=${payment.id}`}
+										href={`/contractors/jobs/payments/${payment.id}`}
 										className="flex items-start justify-between gap-3 rounded-2xl border p-4 transition-colors hover:bg-muted/30"
 									>
 										<div className="min-w-0 space-y-1">

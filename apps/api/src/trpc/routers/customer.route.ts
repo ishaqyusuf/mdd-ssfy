@@ -1,5 +1,7 @@
 import { createTRPCRouter, publicProcedure } from "../init";
 import {
+  getCustomerDirectoryV2SummarySchema,
+  getCustomerOverviewV2Schema,
   searchCustomersSchema,
   upsertCustomerSchema,
 } from "@api/schemas/customer";
@@ -8,8 +10,10 @@ import {
   createOrUpdateCustomerAddress,
   customerInfoSearch,
   customerInfoSearchSchema,
+  getCustomerDirectoryV2Summary,
   getCustomerPayPortal,
   getCustomerPayPortalSchema,
+  getCustomerOverviewV2,
   getSalesCustomer,
   getSalesCustomerSchema,
   searchCustomers,
@@ -37,6 +41,16 @@ export const customerRouter = createTRPCRouter({
     .input(getCustomerPayPortalSchema)
     .query(async (props) => {
       return getCustomerPayPortal(props.ctx, props.input);
+    }),
+  getCustomerDirectoryV2Summary: publicProcedure
+    .input(getCustomerDirectoryV2SummarySchema)
+    .query(async (props) => {
+      return getCustomerDirectoryV2Summary(props.ctx, props.input);
+    }),
+  getCustomerOverviewV2: publicProcedure
+    .input(getCustomerOverviewV2Schema)
+    .query(async (props) => {
+      return getCustomerOverviewV2(props.ctx, props.input);
     }),
   getTaxProfiles: publicProcedure.query(async (props) => {
     const taxProfiles = await props.ctx.db.taxes.findMany({

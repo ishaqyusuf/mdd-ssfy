@@ -19,6 +19,9 @@ Tracks notable API surfaces and where they are implemented.
   - `community_unit_production_stopped`
   - `community_unit_production_completed`
   - `community_unit_production_batch_updated`
+- Customer routes now include:
+  - `customer.getCustomerDirectoryV2Summary`: lightweight stats for the `sales-book/customers/v2` directory header cards
+  - `customer.getCustomerOverviewV2`: shared customer overview payload used by both the v2 full page and the 3xl side-sheet surface
 
 ## TODO
 - Summarize the highest-value API surfaces by domain.
