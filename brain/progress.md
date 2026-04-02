@@ -2,6 +2,15 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-04-02
+
+- Refined the production worker dashboard v2 interaction model in `apps/www/src/components/production-v2/shared.tsx`.
+  - worker order cards now replace admin-style assignment/status emphasis with a simple completion summary badge such as `2/5 completed`
+  - item-card chevrons are now aligned at the top-right of the card header area
+  - production items now render in a row-aware grid, switching to `lg:grid-cols-2` when there are more than 2 items
+  - clicking a production item now opens the full detail panel immediately after that card row instead of nesting the details inside the card itself
+  - worker submission entry now uses compact button groups with handle toggles, quantity presets, and combobox fallback for larger available quantities
+
 ## 2026-03-29
 
 ## 2026-04-01

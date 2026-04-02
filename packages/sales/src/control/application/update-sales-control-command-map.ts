@@ -1,87 +1,90 @@
 import type { UpdateSalesControl } from "../../schema";
 
 export type LegacyUpdateSalesControlAction =
-  | "submitAll"
-  | "packItems"
-  | "clearPackings"
-  | "cancelDispatch"
-  | "startDispatch"
-  | "submitDispatch"
-  | "createAssignments"
-  | "deleteSubmissions"
-  | "deleteAssignments"
-  | "markAsCompleted";
+	| "submitAll"
+	| "packItems"
+	| "clearPackings"
+	| "cancelDispatch"
+	| "startDispatch"
+	| "submitDispatch"
+	| "createAssignments"
+	| "updateSubmissions"
+	| "deleteSubmissions"
+	| "deleteAssignments"
+	| "markAsCompleted";
 
 export type ControlMutationCommand =
-  | "applySubmissionBatch"
-  | "applyPack"
-  | "applyUnpackBulk"
-  | "applyDispatchStatusTransition"
-  | "applyAssignmentDelta"
-  | "applySubmissionDelta";
+	| "applySubmissionBatch"
+	| "applyPack"
+	| "applyUnpackBulk"
+	| "applyDispatchStatusTransition"
+	| "applyAssignmentDelta"
+	| "applySubmissionDelta";
 
 export type ControlRepairCommand = "rebuildFromSource";
 
 export type LegacyActionMapping = {
-  action: LegacyUpdateSalesControlAction;
-  commandPlan: ControlMutationCommand[];
+	action: LegacyUpdateSalesControlAction;
+	commandPlan: ControlMutationCommand[];
 };
 
 export const UPDATE_SALES_CONTROL_COMMAND_MAP: Record<
-  LegacyUpdateSalesControlAction,
-  ControlMutationCommand[]
+	LegacyUpdateSalesControlAction,
+	ControlMutationCommand[]
 > = {
-  submitAll: ["applySubmissionBatch"],
-  packItems: ["applyPack"],
-  clearPackings: ["applyUnpackBulk"],
-  cancelDispatch: ["applyDispatchStatusTransition"],
-  startDispatch: ["applyDispatchStatusTransition"],
-  submitDispatch: ["applyDispatchStatusTransition"],
-  createAssignments: ["applyAssignmentDelta"],
-  deleteSubmissions: ["applySubmissionDelta"],
-  deleteAssignments: ["applyAssignmentDelta"],
-  markAsCompleted: [
-    "applySubmissionBatch",
-    "applyPack",
-    "applyDispatchStatusTransition",
-  ],
+	submitAll: ["applySubmissionBatch"],
+	packItems: ["applyPack"],
+	clearPackings: ["applyUnpackBulk"],
+	cancelDispatch: ["applyDispatchStatusTransition"],
+	startDispatch: ["applyDispatchStatusTransition"],
+	submitDispatch: ["applyDispatchStatusTransition"],
+	createAssignments: ["applyAssignmentDelta"],
+	updateSubmissions: ["applySubmissionDelta"],
+	deleteSubmissions: ["applySubmissionDelta"],
+	deleteAssignments: ["applyAssignmentDelta"],
+	markAsCompleted: [
+		"applySubmissionBatch",
+		"applyPack",
+		"applyDispatchStatusTransition",
+	],
 };
 
 const ORDERED_ACTION_KEYS: LegacyUpdateSalesControlAction[] = [
-  "submitAll",
-  "packItems",
-  "clearPackings",
-  "cancelDispatch",
-  "startDispatch",
-  "submitDispatch",
-  "createAssignments",
-  "deleteSubmissions",
-  "deleteAssignments",
-  "markAsCompleted",
+	"submitAll",
+	"packItems",
+	"clearPackings",
+	"cancelDispatch",
+	"startDispatch",
+	"submitDispatch",
+	"createAssignments",
+	"updateSubmissions",
+	"deleteSubmissions",
+	"deleteAssignments",
+	"markAsCompleted",
 ];
 
 export function resolveLegacyUpdateSalesControlAction(
-  input: UpdateSalesControl,
+	input: UpdateSalesControl,
 ): LegacyActionMapping | null {
-  const activeActions = ORDERED_ACTION_KEYS.filter((action) => !!input[action]);
-  if (activeActions.length > 1) {
-    throw new Error(
-      `Multiple actions are not allowed: ${activeActions.join(", ")}`,
-    );
-  }
-  for (const action of ORDERED_ACTION_KEYS) {
-    if (!input[action]) continue;
-    return {
-      action,
-      commandPlan: UPDATE_SALES_CONTROL_COMMAND_MAP[action],
-    };
-  }
-  return null;
+	const activeActions = ORDERED_ACTION_KEYS.filter((action) => !!input[action]);
+	if (activeActions.length > 1) {
+		throw new Error(
+			`Multiple actions are not allowed: ${activeActions.join(", ")}`,
+		);
+	}
+	for (const action of ORDERED_ACTION_KEYS) {
+		if (!input[action]) continue;
+		return {
+			action,
+			commandPlan: UPDATE_SALES_CONTROL_COMMAND_MAP[action],
+		};
+	}
+	return null;
 }
 
 export const RESET_SALES_CONTROL_COMMAND: ControlRepairCommand =
-  "rebuildFromSource";
+	"rebuildFromSource";
 
 export function resolveResetSalesControlCommand(): ControlRepairCommand {
-  return RESET_SALES_CONTROL_COMMAND;
+	return RESET_SALES_CONTROL_COMMAND;
 }

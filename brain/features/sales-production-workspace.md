@@ -38,12 +38,22 @@ Provide a cleaner production operations surface for both admins and production w
   - clickable month calendar
   - worker-only queue
   - inline expandable order detail
+  - simplified worker queue status that favors per-order completion progress over admin assignment/status badges
   - notification-channel-backed note activity in the expanded section
 - Admin productions v2 is a dedicated admin board with:
   - completed label visibility
   - expandable order detail
   - quick-assign panel scaffolded inline
 - Inline detail sections are the new home for production information, notes/activity, and production actions such as submission and submission removal.
+- Production items inside the expanded order now render as a responsive card grid:
+  - single-column when there are 2 items or fewer
+  - `lg:grid-cols-2` when there are more than 2 items
+  - clicking an item injects its full detail panel directly after that visual row instead of nesting inside the card
+- Worker submission entry now uses compact button-group controls:
+  - quantity presets remain the primary input
+  - handled assignments use LH/RH toggle selection plus quantity presets
+  - large quantities still expose the combobox fallback
+  - single-handle assignments auto-select the only valid handle
 
 ## Data Contract
 - `sales.productions`: full/admin production queue
@@ -72,8 +82,7 @@ Provide a cleaner production operations surface for both admins and production w
 ## Notes
 - The rebuild intentionally reuses the existing production list infrastructure instead of creating a second list system.
 - The current dashboard summary is optimized around open production queue visibility and near-term due dates.
-- The current v2 slice is an architecture-first foundation:
-  - new routes and sidebar discovery are in place
-  - inline expand/collapse detail is live
-  - note activity is visible inline
-  - worker/admin action buttons are scaffolded, with mutation wiring planned as the next slice
+- The current v2 slice now includes a worker-focused interaction pass:
+  - item-card chevrons are pinned to the top-right of each card
+  - worker submission UX is optimized for fast repetitive entry
+  - row-level detail expansion replaces the older nested accordion feel for production items

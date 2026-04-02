@@ -13,14 +13,15 @@ export type ResolvedRedirect = {
 };
 
 const exactRedirectMaps = {
+    "/contractor/jobs": "/hrm/contractors/jobs",
+    "/contractor/jobs/payments": "/hrm/contractors/jobs/payments",
     "/community/invoices": "/community/unit-invoices",
-    "/community/units": "/community/project-units",
     "/community/productions": "/community/unit-productions",
+    "/community/units": "/community/project-units",
+    "community-settings/builders": "/community/builders",
+    "/payments": "/jobs-dashboard/payments",
     "/sales-book/production-tasks": "/production/dashboard",
     "/settings/community/builders": "/community/builders",
-    "community-settings/builders": "/community/builders",
-    "/contractor/jobs": "/hrm/contractors/jobs",
-    "/payments": "/jobs-dashboard/payments",
 } as const;
 const dynamicRedirectMaps = {
     "/community/project/:slug": "/community/projects/:slug",

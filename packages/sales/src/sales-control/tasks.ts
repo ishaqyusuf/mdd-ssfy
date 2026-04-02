@@ -486,6 +486,156 @@ export async function deleteSubmissionsTask(db: Db, data: UpdateSalesControl) {
 		await resetSalesAction(tx as any, data.meta.salesId);
 	});
 }
+export async function updateSubmissionsTask(db: Db, data: UpdateSalesControl) {
+	const updates = data.updateSubmissions?.submissions || [];
+	if (!updates.length) {
+		throw new Error("Unable to update, no submissions selected.");
+	}
+
+	await db.$transaction(async (tx) => {
+		for (const update of updates) {
+			const submission = await tx.orderProductionSubmissions.findFirst({
+				where: {
+					id: update.submissionId,
+					deletedAt: null,
+				},
+				select: {
+					id: true,
+					note: true,
+					qty: true,
+					lhQty: true,
+					rhQty: true,
+					assignment: {
+						select: {
+							id: true,
+							qtyAssigned: true,
+							lhQty: true,
+							rhQty: true,
+							submissions: {
+								where: {
+									deletedAt: null,
+									id: {
+										not: update.submissionId,
+									},
+								},
+								select: {
+									qty: true,
+									lhQty: true,
+									rhQty: true,
+								},
+							},
+						},
+					},
+					itemDeliveries: {
+						where: {
+							deletedAt: null,
+							packingStatus: {
+								not: "unpacked" as DispatchItemPackingStatus,
+							},
+						},
+						select: {
+							qty: true,
+							lhQty: true,
+							rhQty: true,
+						},
+					},
+				},
+			});
+
+			if (!submission) {
+				throw new Error(`Submission #${update.submissionId} not found.`);
+			}
+
+			const assignmentQty = normalizeSubmissionQty({
+				qty: submission.assignment?.qtyAssigned,
+				lh: submission.assignment?.lhQty,
+				rh: submission.assignment?.rhQty,
+			});
+			const siblingQty = normalizeSubmissionQty(
+				(submission.assignment?.submissions || []).reduce(
+					(total, sibling) => ({
+						qty: total.qty + Number(sibling.qty || 0),
+						lh: total.lh + Number(sibling.lhQty || 0),
+						rh: total.rh + Number(sibling.rhQty || 0),
+					}),
+					{ qty: 0, lh: 0, rh: 0 },
+				),
+			);
+			const packedQty = normalizeSubmissionQty(
+				(submission.itemDeliveries || []).reduce(
+					(total, item) => ({
+						qty: total.qty + Number(item.qty || 0),
+						lh: total.lh + Number(item.lhQty || 0),
+						rh: total.rh + Number(item.rhQty || 0),
+					}),
+					{ qty: 0, lh: 0, rh: 0 },
+				),
+			);
+			const currentQty = normalizeSubmissionQty({
+				qty: submission.qty,
+				lh: submission.lhQty,
+				rh: submission.rhQty,
+			});
+			const isHandled = assignmentQty.lh > 0 || assignmentQty.rh > 0;
+			const requestedQty = normalizeSubmissionQty(update.qty || currentQty);
+			const nextQty = isHandled
+				? {
+						lh: requestedQty.lh,
+						rh: requestedQty.rh,
+						qty: requestedQty.lh + requestedQty.rh,
+					}
+				: {
+						qty: requestedQty.qty,
+						lh: 0,
+						rh: 0,
+					};
+
+			if (isHandled) {
+				const maxLh = Math.max(assignmentQty.lh - siblingQty.lh, 0);
+				const maxRh = Math.max(assignmentQty.rh - siblingQty.rh, 0);
+				if (nextQty.lh < packedQty.lh || nextQty.rh < packedQty.rh) {
+					throw new Error(
+						`Submission #${update.submissionId} cannot be reduced below packed quantity.`,
+					);
+				}
+				if (nextQty.lh > maxLh || nextQty.rh > maxRh) {
+					throw new Error(
+						`Submission #${update.submissionId} exceeds assignment quantity.`,
+					);
+				}
+			} else {
+				const maxQty = Math.max(assignmentQty.qty - siblingQty.qty, 0);
+				if (nextQty.qty < packedQty.qty) {
+					throw new Error(
+						`Submission #${update.submissionId} cannot be reduced below packed quantity.`,
+					);
+				}
+				if (nextQty.qty > maxQty) {
+					throw new Error(
+						`Submission #${update.submissionId} exceeds assignment quantity.`,
+					);
+				}
+			}
+
+			await tx.orderProductionSubmissions.update({
+				where: {
+					id: update.submissionId,
+				},
+				data: {
+					qty: nextQty.qty,
+					lhQty: nextQty.lh || 0,
+					rhQty: nextQty.rh || 0,
+					note:
+						update.note === undefined
+							? submission.note || null
+							: update.note || null,
+				},
+			});
+		}
+
+		await resetSalesAction(tx as any, data.meta.salesId);
+	});
+}
 export async function deleteAssignmentsTasks(db: Db, data: UpdateSalesControl) {
 	await db.$transaction(async (tx) => {
 		const args = data.deleteAssignments!;
@@ -533,6 +683,18 @@ export async function deleteAssignmentsTasks(db: Db, data: UpdateSalesControl) {
 			});
 		await resetSalesAction(tx as any, data.meta.salesId);
 	});
+}
+
+function normalizeSubmissionQty(qty?: {
+	qty?: number | null;
+	lh?: number | null;
+	rh?: number | null;
+}) {
+	return {
+		qty: Number(qty?.qty || 0),
+		lh: Number(qty?.lh || 0),
+		rh: Number(qty?.rh || 0),
+	};
 }
 
 export async function markAsCompletedTask(db: Db, args: UpdateSalesControl) {

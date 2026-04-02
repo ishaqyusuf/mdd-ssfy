@@ -91,6 +91,21 @@ export const updateSalesControlSchema = z.object({
 		})
 		.optional()
 		.nullable(),
+	updateSubmissions: z
+		.object({
+			submissions: z
+				.array(
+					z.object({
+						submissionId: z.number(),
+						note: z.string().optional().nullable(),
+						qty: qty.optional().nullable(),
+					}),
+				)
+				.optional()
+				.nullable(),
+		})
+		.optional()
+		.nullable(),
 	deleteAssignments: z
 		.object({
 			assignmentIds: z.array(z.number()).optional().nullable(),

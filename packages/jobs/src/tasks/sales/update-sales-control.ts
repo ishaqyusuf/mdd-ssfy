@@ -14,13 +14,19 @@ import {
 	startDispatchTask,
 	submitAllTask,
 	submitDispatchTask,
+	updateSubmissionsTask,
 	updateSalesControlSchema,
 } from "@gnd/sales";
 import type { TaskName } from "@jobs/schema";
 import { NotificationService } from "@notifications/services/triggers";
 import { schemaTask, tasks } from "@trigger.dev/sdk/v3";
 
-const actionMaps: Record<LegacyUpdateSalesControlAction, any> = {
+type SalesControlActionHandler = (
+	db: typeof db,
+	input: UpdateSalesControl,
+) => Promise<unknown>;
+
+const actionMaps: Record<LegacyUpdateSalesControlAction, SalesControlActionHandler> = {
 	submitAll: submitAllTask,
 	packItems: packDispatchItemTask,
 	clearPackings: clearPackingTask,
@@ -28,6 +34,7 @@ const actionMaps: Record<LegacyUpdateSalesControlAction, any> = {
 	startDispatch: startDispatchTask,
 	submitDispatch: submitDispatchTask,
 	createAssignments: createAssignmentsTask,
+	updateSubmissions: updateSubmissionsTask,
 	deleteSubmissions: deleteSubmissionsTask,
 	deleteAssignments: deleteAssignmentsTasks,
 	markAsCompleted: markAsCompletedTask,
@@ -44,6 +51,7 @@ function resolveLegacyActionCompat(
 		"startDispatch",
 		"submitDispatch",
 		"createAssignments",
+		"updateSubmissions",
 		"deleteSubmissions",
 		"deleteAssignments",
 		"markAsCompleted",

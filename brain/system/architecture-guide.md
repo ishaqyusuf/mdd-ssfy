@@ -1,425 +1,815 @@
 # Architecture Guide
 
 ## Purpose
-This is the canonical engineering guide for how GND is structured and how new work should be placed, designed, and hardened.
+This is the canonical engineering handbook for GND.
 
-It blends two sources:
-- the current GND monorepo reality
-- the Midday architecture style already adopted in this repo and reinforced by the local Midday reference project at `/Users/M1PRO/Documents/code/_kitchen_sink/midday`
+It exists to answer the questions that come up repeatedly during implementation:
+- where should this code live?
+- how thin should routes be?
+- when should logic move into a package?
+- how should API contracts be shaped?
+- how should we structure `v2` rebuilds?
+- what performance rules matter in this repo?
+- what documentation and tests are required before a feature is considered stable?
 
-Use this guide when creating new features, refactoring old ones, deciding where code belongs, or reviewing whether a change matches the repo's architecture direction.
+This guide is intentionally deeper than `brain/system/architecture.md`. That file tracks topology. This file explains how to work inside that topology.
+
+## What This Guide Is Based On
+This guide combines:
+- the actual GND repository structure
+- the current Brain decisions and engineering rules
+- the real local Midday repo at `/Users/M1PRO/Documents/code/_kitchen_sink/midday`
+- the smaller Midday-inspired references already present in this repo:
+  - `apps/www/src/(midday)`
+  - `ai/midday-example`
+
+The goal is not to make GND look exactly like Midday. The goal is to borrow the useful parts of Midday's app architecture and pair them with stricter domain authority for GND's operations-heavy workflows.
+
+## Scope
+This guide applies to:
+- `apps/www`
+- `apps/api`
+- `apps/expo-app`
+- `apps/site`
+- `packages/*`
+- `brain/*` when architecture, delivery patterns, or domain ownership change
+
+It is especially important for work touching:
+- sales
+- production
+- dispatch
+- payments
+- documents
+- reporting and control dashboards
+
+## Architecture Goals
+
+### Fast product surfaces
+Pages should become usable quickly. Users should see shell, summary, and next actions before the system loads every possible detail.
+
+### Strong domain authority
+High-risk workflows should have one clear home for business rules, mutation orchestration, and truth derivation.
+
+### Reuse across surfaces
+The same business rule should not be reimplemented separately in web, API, mobile, and jobs unless the divergence is explicit and documented.
+
+### Safe incremental modernization
+Legacy and replacement paths can coexist. We prefer explicit `v2` migration streams over risky in-place rewrites for unstable flows.
+
+### Durable team memory
+Architecture is not only in code. It is also in `brain/`, ADRs, feature docs, and progress logs.
 
 ## Core Principles
 
-### 1. Thin app surfaces, thick shared domain modules
-- App routes, screens, and handlers should stay focused on composition, access control, query orchestration, and user flow wiring.
-- Reusable business logic belongs in `packages/*`, not in route files or UI components.
-- Correctness-critical behavior must live behind explicit domain boundaries so web, API, jobs, and mobile can share one truth.
+### 1. Thin app surfaces, thick domain modules
+Routes, screens, and handlers should mostly assemble capabilities rather than define them.
 
-### 2. Summary-first user experience
-- Favor a fast shell render with the primary workspace visible quickly.
-- First paint should prioritize summary cards, key counts, active actions, and paginated tables.
-- Defer heavy enrichment, secondary panels, full-detail datasets, and non-critical controls until after the page is usable.
+App-layer code should mainly do:
+- access control
+- route composition
+- data fetching orchestration
+- view state wiring
+- UI composition
+- navigation and presentation concerns
 
-This is the main Midday pattern worth borrowing into GND. We want the responsiveness and composability, not a copy of Midday's folder names.
+App-layer code should not become the long-term home for:
+- pricing engines
+- accounting truth
+- quantity truth
+- cross-surface state transitions
+- document lifecycle rules
+- permission rules used across multiple surfaces
 
-### 3. Single-authority domain logic
-- Sales, dispatch, payments, production, documents, and other sensitive workflows should not have competing implementations across apps.
-- If a workflow affects revenue, quantity truth, state progression, or auditability, centralize it in a package boundary and let apps consume it.
-- Repair utilities may exist, but normal runtime correctness must not depend on repair flows.
+### 2. Summary first, detail second
+This is the most important Midday-derived product pattern to preserve.
 
-### 4. Explicit incremental migration
-- When rebuilding unstable or legacy flows, prefer a parallel `v2` path instead of rewriting the production path in place.
-- Keep cutovers explicit, reversible, and documented in Brain.
-- Preserve current production behavior until replacement behavior is validated.
+For dashboard and workspace pages:
+- first render should expose orientation
+- orientation usually means summary metrics, the active filter state, and the first useful table or list
+- secondary detail should arrive after the primary workflow becomes usable
 
-### 5. Build in the repository's execution order
-Follow this order for cross-layer work:
+Good:
+- summary widgets plus paginated list
+- compact workspace header plus lazy side sheet
+- top-of-page alerts plus collapsible detail panels
+
+Bad:
+- giant route payload with every nested relation
+- page blocked until secondary modals or drawers are hydrated
+- shipping full working sets for a user who only needs the first 20 rows
+
+### 3. Single-authority truth for risky workflows
+If a workflow impacts money, quantity, fulfillment, dispatch, production status, or audit confidence, it needs one clear authority boundary.
+
+That boundary may live in:
+- `packages/sales`
+- `packages/documents`
+- `packages/db` for persistence primitives
+- another focused package if the domain has earned it
+
+But it should not drift across:
+- route handlers
+- UI helpers
+- table components
+- app-local action files in multiple apps
+
+### 4. Replace in parallel when risk is high
+When a system is brittle or hard to reason about:
+- keep the legacy path stable
+- build a separate `v2` path
+- document missing parity or behavior differences
+- make cutover explicit and reversible
+
+This is already the dominant safe modernization pattern in GND and should continue.
+
+### 5. Follow the repository implementation order
+For cross-layer features and fixes:
 1. Schema
 2. API
 3. UI
 4. Validation
 5. Polish
 
-This order reduces contract drift and avoids polishing a UI whose upstream model is still unstable.
+This order is not ceremony. It keeps contracts from drifting and prevents UI-first rework.
+
+### 6. Brain is part of the architecture
+In this repo, architecture is partly encoded in code and partly encoded in `brain/`.
+
+If a change affects:
+- package ownership
+- dependency direction
+- domain authority
+- rollout strategy
+- performance strategy
+- system topology
+
+then Brain should be updated as part of the same change stream.
 
 ## Monorepo Topology
 
-### Workspace model
-- Package manager: Bun
-- Monorepo orchestrator: Turborepo
-- Primary language: TypeScript
-- Formatting and linting baseline: Biome plus repo-specific scripts
+### Tooling baseline
+- package manager: Bun
+- orchestration: Turborepo
+- language: TypeScript
+- formatting/linting baseline: Biome and workspace scripts
 
-### Top-level layout
-- `apps/`: deployable or directly runnable product surfaces
-- `packages/`: shared domain, infrastructure, platform, and UI modules
-- `brain/`: durable project memory, architecture, plans, tasks, and decisions
-- `ai/`: evidence, experiments, example snippets, designs, and ad hoc research material
-- `scripts/`: operational scripts and utilities
+### Top-level folders
+- `apps/`: runtime or deployable surfaces
+- `packages/`: shared business, infrastructure, and UI modules
+- `brain/`: durable memory and technical documentation
+- `ai/`: examples, evidence, and design/support artifacts
+- `scripts/`: operational scripts
 - `types/`: shared declarations that do not belong to a single package
 
-### Why this shape
-This is aligned with both GND's current operating model and the real Midday repo pattern:
-- multiple app surfaces
-- a growing set of focused shared packages
-- technical documentation separate from runtime code
+### Why this structure exists
+This mirrors a healthy multi-surface product repo:
+- apps remain focused on delivery surfaces
+- packages become the place for long-lived logic
+- architecture docs stay outside app code
 
-The goal is not "apps do everything." The goal is to keep app folders thin and move reusable capability downward into packages.
+This is also aligned with the real Midday repo, which separates:
+- app surfaces like dashboard, API, website, worker, desktop
+- focused packages for domain and platform capabilities
+- technical docs under a dedicated docs area
 
-## Application Boundaries
+## Current GND Surface Map
 
 ### `apps/www`
-Main web application for business workflows.
+Primary business web surface. This is where most workspace complexity lives.
 
-Owns:
-- route trees
-- page composition
-- workspace shells
-- local interaction state
-- feature-level UI orchestration
-- user-facing table, sheet, modal, and dashboard composition
+Current responsibilities already include:
+- sales workspaces
+- production and dispatch views
+- HRM/community/settings surfaces
+- tables, sheets, filters, modals, and page shells
 
-Should not own:
-- durable domain truth
-- pricing engines
-- dispatch quantity truth
-- payment allocation logic
-- production state machines
-- cross-surface business rules that mobile or API also need
+The risk in `apps/www` is not lack of capability. The risk is that domain rules can accidentally remain trapped in the web layer because the UI is so feature-rich.
 
 ### `apps/api`
-Owns exposed contracts and server orchestration.
+Server-facing contract layer.
 
-Owns:
-- tRPC and REST entry points
-- request/auth middleware
-- route-level schema validation
-- mapping from transport requests to package services
-- server-side composition of read models when it is API-specific
+Current structure confirms this split:
+- `src/trpc/routers`
+- `src/trpc/middleware`
+- `src/rest`
+- `src/schemas`
+- `src/db/queries`
 
-Should not own:
-- domain rules duplicated from `packages/*`
-- UI formatting concerns
-- route-local business logic that should be reused elsewhere
+This is the correct kind of surface for:
+- transport contracts
+- auth and permission middleware
+- request normalization
+- delegating into domain or data services
 
 ### `apps/expo-app`
-Owns the mobile shell and mobile-specific interaction design.
+Mobile surface for platform-specific experiences.
 
-Owns:
-- Expo routing and screens
-- mobile navigation
-- mobile query hooks and presentation
-- device/platform-specific UX
-- offline/local-store concerns that are truly mobile-specific
-
-Should not own:
-- separate business rules when the web/API already have a shared package implementation
-- alternative domain calculations unless intentionally documented and isolated
+This should remain:
+- mobile-first in UX
+- shared in business truth
 
 ### `apps/site`
-Treat as a separate web surface with narrower product concerns than `apps/www`.
-
-Good fit for:
-- storefront or public web flows
-- lighter product experiences
-- app-adjacent but lower-complexity pages
+Separate web surface with narrower product needs. Keep it lighter than `apps/www`.
 
 ### `apps/gnd-backlog`
-Use for supporting or backlog-oriented surfaces without letting it become a duplicate home for core domain logic.
+Support surface. Useful, but not a second home for core business truth.
 
-## Shared Package Boundaries
+## Package Strategy
 
-### General package rule
-If logic is shared, high-risk, or likely to outlive one screen, it belongs in `packages/`.
+### Why packages matter in GND
+GND is not just a UI-heavy repo. It has correctness-heavy operational logic:
+- sales state
+- payment resolution
+- production control
+- dispatch packing and submission flows
+- print/document generation
 
-### Existing package roles in GND
-- `packages/db`: database schema, relationships, queries, and low-level persistence building blocks
-- `packages/sales`: sales-domain logic and the emerging home of control, payment, resolution, and PDF sub-systems
-- `packages/documents`: shared document lifecycle and provider-agnostic document infrastructure
-- `packages/notifications`: notification primitives and cross-surface notification behavior
-- `packages/jobs`: background or scheduled job support
-- `packages/ui`: reusable UI primitives shared across surfaces
-- `packages/utils`, `packages/logger`, `packages/dev-logger`: low-level helpers and diagnostics
+Those workflows need stronger boundaries than a typical CRUD dashboard.
 
-### Boundary expectations
-- `packages/*` should expose stable contracts, not app-specific hacks.
-- Package internals may have layers such as `domain`, `application`, `infrastructure`, `contracts`, and `projections` where complexity justifies it.
-- New package boundaries should be created when a domain has enough complexity, reuse, and correctness risk to deserve ownership.
+### Existing high-value package boundaries
 
-### Good reasons to create or deepen a package boundary
-- the logic is reused by web and mobile
-- the logic is reused by API and jobs
-- the workflow is business-critical
-- the workflow has repair/audit requirements
-- the workflow currently drifts across screens or routes
+#### `packages/db`
+Owns:
+- schema-adjacent query primitives
+- low-level persistence access
+- migration-adjacent truth
+- reusable query building blocks
+
+Should not own:
+- transport formatting
+- UI-oriented naming
+- page-specific shaping unless there is a strong reason
+
+#### `packages/sales`
+This is the most important domain package and the clearest expression of the repo's architecture direction.
+
+Current structure already shows the intended layering:
+- `control/*`
+- `payment-system/*`
+- `resolution-system/*`
+- `production-v2/*`
+- `sales-form/*`
+- `pdf-system/*`
+- `print/*`
+
+This is good. It means GND has already chosen modular domain boundaries instead of one giant sales folder.
+
+Use this package for:
+- canonical sales state logic
+- mutation orchestration
+- projections/read models when domain-owned
+- sales-specific print/PDF/domain contracts
+
+#### `packages/documents`
+Use for:
+- document lifecycle logic
+- provider-agnostic storage patterns
+- metadata handling
+- reusable document rules
+
+#### `packages/notifications`
+Use for:
+- notification primitives
+- routing patterns shared by multiple surfaces
+- reusable notification payload and behavior rules
+
+#### `packages/jobs`
+Use for:
+- background workflows
+- scheduled processes
+- reusable job support
+
+#### `packages/ui`
+Use for:
+- shared presentational primitives
+- common interaction primitives
+- reusable UI atoms and infrastructure
+
+Do not hide business logic here.
 
 ## Dependency Direction
 
-### Allowed direction
-- `apps/*` may depend on `packages/*`
-- `apps/www` may depend on shared UI and domain packages
-- `apps/api` may depend on shared domain and persistence packages
-- `apps/expo-app` may depend on shared domain packages and mobile-safe shared utilities
-- `packages/*` may depend on lower-level packages
+### Allowed directions
+- `apps/*` -> `packages/*`
+- `apps/api` -> `packages/db`, `packages/sales`, and other shared packages
+- `apps/www` -> shared UI and domain packages
+- `apps/expo-app` -> shared domain packages and mobile-safe shared utilities
+- higher-level packages -> lower-level packages
 
-### Avoid
-- package internals depending on app route files
+### Forbidden or strongly discouraged directions
 - app-to-app imports
-- business logic hidden in component trees
-- cross-feature helpers in random `lib/` folders when the logic should be promoted into a package
+- package internals importing route files
+- UI components importing deep domain mutation logic from unrelated app folders
+- random cross-feature helpers in app-local `lib/` folders when the logic should live in a package
 
-### Rule of thumb
-If changing a workflow requires editing the same rule in multiple apps, the boundary is wrong.
+### Boundary smell checklist
+You likely need to promote code into a package when:
+- web and mobile both need it
+- API and web both need the same derivation
+- a mutation updates several related state dimensions
+- the logic is hard to test while trapped in UI
+- fixing a bug requires touching the same rule in multiple surfaces
 
-## Midday-Derived Patterns to Keep
+## How to Decide Where Code Goes
 
-### Workspace and page architecture
-Borrow these patterns from Midday and the local in-repo references:
-- fast route shell render
-- dashboard/widget-first composition
-- progressive data loading
-- independent loading boundaries
-- composable page sections instead of one monolithic payload
-- reusable table/sheet/modal infrastructure
+### Put it in `apps/www` when it is:
+- route composition
+- table column definitions
+- local filter-param wiring
+- modal/sheet state orchestration
+- page-specific formatting
+- a one-surface presentation concern
 
-### What to adapt for GND
-GND is more operations-heavy and sales/process-control-heavy than Midday. That means:
-- deeper workflow orchestration is normal
-- production, dispatch, and sales truth need stronger authority boundaries
-- replacement systems often need side-by-side `v2` rollout paths
-- auditability and regression coverage matter more than elegant UI structure alone
+### Put it in `apps/api` when it is:
+- transport schema validation
+- auth-aware route entry
+- request/response normalization
+- API-specific orchestration of lower layers
 
-So we should adopt Midday's delivery shape, but pair it with stricter domain authority than a typical dashboard app needs.
+### Put it in `packages/db` when it is:
+- schema-aware queries
+- persistence helpers
+- reusable SQL/data access logic
+
+### Put it in a domain package like `packages/sales` when it is:
+- business rules shared across surfaces
+- mutation orchestration
+- state transitions
+- derived truth used in multiple screens
+- correctness-sensitive calculations
+
+### Put it in `packages/ui` when it is:
+- reusable visual primitives
+- generic controls
+- design-system-level interaction pieces
+
+### Put it in `brain/` when it is:
+- architecture direction
+- durable implementation rule
+- ADR-worthy decision
+- rollout plan
+- feature design or parity strategy
+
+## Application Boundary Rules
+
+### `apps/www` rules
+
+#### Routes should be thin
+Route/page files should mainly:
+- parse route state
+- gather auth or permission context
+- call summary/detail hooks or loaders
+- assemble sections
+- hand off to feature components
+
+A route file should not become:
+- the only place a business rule exists
+- a giant transform pipeline
+- a mutation engine
+
+#### Prefer feature-local composition
+For medium or large features, group code around the feature rather than scattering it everywhere.
+
+Good homes include:
+- `apps/www/src/components/<feature>`
+- `apps/www/src/features/<feature>`
+- `apps/www/src/components/tables/<feature>`
+- `apps/www/src/components/sheets/<feature>`
+
+#### Use reusable workspace primitives
+Where possible, use:
+- shared page headers
+- summary widget patterns
+- table wrappers
+- sheet/modal systems
+- query-param helpers
+
+The goal is consistent interaction shape, not identical visuals.
+
+#### Keep app-local data shaping narrow
+App-local shaping is acceptable when it is clearly view-oriented:
+- display labels
+- grouped sections for a page
+- table row mapping
+- page-only sorting/view models
+
+App-local shaping is not acceptable when it becomes the canonical truth for:
+- status
+- money
+- quantity
+- permission meaning
+- state transitions
+
+### `apps/api` rules
+
+#### API owns contracts, not all logic
+The API layer should expose good contracts and orchestrate good services. It should not become the permanent home for domain truth that belongs in a shared package.
+
+#### Routers should match domain boundaries
+Route organization should align to business areas, not just transport style.
+
+Good:
+- sales routes around sales capabilities
+- filter routes around filter capabilities
+- customer routes around customer capabilities
+
+#### Schemas belong at boundaries
+Use request and response schemas to:
+- guard transport boundaries
+- normalize payloads
+- preserve cross-surface consistency
+
+### `apps/expo-app` rules
+
+#### Mobile owns mobile UX
+The Expo app should own:
+- navigation
+- mobile-friendly state flow
+- gesture/platform-specific interactions
+- mobile render optimization
+
+#### Mobile should not fork domain truth lightly
+If the mobile app needs a different UX, that is fine.
+If the mobile app needs a different business rule, that needs explicit documentation and a strong reason.
 
 ## File and Folder Structure Rules
 
-### Top-level placement rules
-- Put durable business logic in `packages/`
-- Put route and screen composition in `apps/`
-- Put architecture and planning memory in `brain/`
-- Put evidence and design artifacts in `ai/`
+## `apps/www`
 
-### `apps/www` structure guidance
-- Keep route files thin.
-- Put reusable feature UI under dedicated feature folders or component folders when the surface is broad enough to justify it.
-- Prefer route segments that reflect user workflow boundaries.
-- Put table implementations in reusable table modules when the pattern is shared.
-- Keep query-param parsing, filter wiring, and sheet/modal orchestration near the feature, but move domain logic out.
+### Recommended route pattern
+Use route files as shell entry points, not as the whole feature.
 
-Good candidates for app-local code:
-- page shells
-- column definitions
-- modal/sheet open-state handling
-- route-specific filter state
-- view formatting
+Preferred shape for larger features:
+```text
+apps/www/src/app/(sidebar)/(sales)/sales-book/orders/v2/page.tsx
+apps/www/src/components/tables/sales-orders-v2/
+apps/www/src/components/sales-orders-v2-header.tsx
+apps/www/src/hooks/use-sales-orders-v2-filter-params.ts
+```
 
-Bad candidates for app-local code:
-- pricing calculations
-- dispatch state derivation
-- multi-step mutation correctness
-- permission truth reused by multiple surfaces
+Alternative shape when the feature is more self-contained:
+```text
+apps/www/src/features/<feature>/
+  api/
+  components/
+  hooks/
+  types.ts
+  utils.ts
+```
 
-### `apps/api` structure guidance
-- Group route handlers by domain.
-- Keep transport schemas and route contracts explicit.
-- Route files should orchestrate package services and return normalized payloads.
-- Shared read-model builders are acceptable when they are transport-oriented and not domain-authority logic.
+### Folder intent
+- `app/`: route entry points and app-router concerns
+- `components/`: reusable presentation and feature composition
+- `features/`: cohesive feature-local modules when a feature deserves a dedicated boundary
+- `hooks/`: client hooks and interaction helpers
+- `lib/`: low-level app utilities, not random business-rule dumping grounds
+- `data-access/`: app-level data composition where it is still truly app-specific
 
-### `apps/expo-app` structure guidance
-- Prefer feature folders for coherent mobile workflows.
-- Keep screen composition separate from query/data helpers when the screen grows.
-- Reuse package-layer contracts and logic whenever possible.
-- Only fork logic locally when mobile UX requires different presentation or caching behavior.
+### Anti-patterns in `apps/www`
+- giant page files that both fetch and transform and render everything
+- putting domain calculations into table column files
+- copy-pasting similar queries into many route surfaces
+- mixing v1 and v2 behavior in a way that hides rollout boundaries
 
-### `packages/*` structure guidance
-For simple packages:
-- `src/index.ts`
-- `src/<feature>.ts`
+## `apps/api`
 
-For medium to large domains:
-- `src/domain/*`
-- `src/application/*`
-- `src/infrastructure/*`
-- `src/contracts/*`
-- `src/projections/*`
-- `src/index.ts`
+### Recommended structure
+Current shape is already good:
+```text
+apps/api/src/
+  trpc/
+    routers/
+    middleware/
+  rest/
+  schemas/
+  db/
+    queries/
+  dto/
+  utils/
+```
 
-Use deeper layering when the domain is correctness-critical or has both read and write complexity.
+### Ownership rule
+- `trpc/routers`: route contracts and orchestration
+- `schemas`: transport validation and shared payload contracts
+- `db/queries`: local reusable query support when not yet promoted to a shared package
+- `middleware`: auth, permission, request context, caching/consistency middleware
 
-### `brain/` structure guidance
-Use the existing structured folders:
-- `brain/system`: architecture and stack
-- `brain/engineering`: implementation rules and repo conventions
-- `brain/api`: endpoint, contract, and permission references
-- `brain/database`: schema, relationships, and migrations
-- `brain/features`: feature-level design and execution notes
-- `brain/decisions`: ADRs and durable technical decisions
-- `brain/tasks`: backlog and execution state
+### When to move code out of `apps/api`
+Promote code out when:
+- the logic is used by another surface
+- the logic becomes a domain authority concern
+- the route file starts carrying too much business branching
 
-Prefer extending these structured locations over creating new flat one-off docs.
+## `packages/*`
+
+### Simple package shape
+Use for low-complexity shared modules:
+```text
+packages/<name>/src/
+  index.ts
+  <feature>.ts
+```
+
+### Deep domain package shape
+Use for correctness-heavy or growing domains:
+```text
+packages/<name>/src/
+  domain/
+  application/
+  infrastructure/
+  contracts/
+  projections/
+  index.ts
+```
+
+### Layer intent
+- `domain/`: business vocabulary, rules, invariants
+- `application/`: use-case orchestration and mutation/query flows
+- `infrastructure/`: persistence, providers, transport adapters
+- `contracts/`: exported payload and boundary contracts
+- `projections/`: reusable derived read models
+
+### Rule
+Do not create deep layering for vanity. Create it when the domain is complex enough that responsibilities need separation.
 
 ## Coding Standards
 
-### Shared logic first
-- Prefer shared package/domain logic over app-local duplication.
-- Promote logic early when multiple surfaces need the same rule.
+### Naming
+- name by domain meaning, not implementation accident
+- prefer explicit names like `getProductionDashboardV2` over vague names like `fetchDashboard`
+- use `v2` only when it represents a real migration boundary, not just "new code"
 
-### Name by business meaning
-- Use names that describe business intent, not implementation trivia.
-- Prefer `getSalesOrdersV2Summary` over vague names like `fetchData`.
+### Function design
+- prefer small, composable functions with one domain responsibility
+- keep UI mapping code separate from business derivation code
+- avoid giant "do everything" helpers
 
-### Normalize transport contracts
-- API responses should be shaped for clear UI consumption.
-- Avoid leaking raw persistence shapes when the UI only needs a normalized contract.
+### Mutations
+- mutations should have a clear authority path
+- multi-step write flows should live in one application service or orchestration boundary
+- mutation side effects should be deliberate and reviewable
 
-### Keep route code boring
-- Route/page files should read like assembly, not like business engines.
-- Expensive transforms and rule-heavy branching should move into helpers or packages.
+### Read models
+- separate summary contracts from detail contracts
+- avoid detail payloads on pages that only need widgets or list rows
+- keep read models stable enough that multiple views can depend on them confidently
 
-### Preserve production behavior during parallel rebuilds
-- A `v2` path should not silently alter current production semantics.
-- Behavior changes need explicit rollout and documentation.
+### Reuse
+- prefer reuse by composition and shared contracts
+- do not over-abstract prematurely
+- extract when the same logic repeats or when risk justifies a dedicated owner
 
-### Add focused tests for risky domains
-Regression coverage is required when changes touch:
-- pricing
-- persistence
-- payments
-- dispatch
-- production control
-- documents
-- query truth used for operational decisions
+## Midday Patterns Worth Borrowing
+
+### From the real Midday repo
+The local Midday repo shows strong patterns we should continue borrowing:
+- multi-surface monorepo with separated app responsibilities
+- focused packages for shared capabilities
+- thin dashboard route composition
+- reusable table and component systems
+- technical docs kept outside runtime code
+
+### What not to copy blindly
+Do not copy:
+- folder names just because Midday has them
+- abstractions that solve Midday-specific product problems but not GND problems
+- public-product assumptions when GND has more operations-heavy internal workflows
+
+### Correct adaptation for GND
+Borrow:
+- shell-first rendering
+- independent loading boundaries
+- workspace composition
+- clean app/package separation
+
+Add for GND:
+- stronger mutation authority
+- explicit parity documentation
+- stricter handling of quantity, payment, and state truth
+- more regression coverage around operational workflows
 
 ## Performance Guide
 
-### First render budget
-- Do not block the first render on the full working set when summary data is enough to orient the user.
-- Load primary widgets, summary cards, and the first useful list/table state first.
-- Make full detail an opt-in expansion, side sheet, tab, or follow-up query where possible.
+### Performance priorities in this repo
+The most important performance failures in GND are usually not animation polish problems. They are:
+- slow first paint from oversized payloads
+- server-heavy pages blocked on non-critical data
+- duplicated derivation work across surfaces
+- list/table views trying to render too much at once
+- business transforms happening inside render paths
 
-### Query shaping
-- Prefer aggregate, count, summary, and paginated query shapes for initial load.
-- Avoid sending large relational payloads to routes that only render a dashboard shell.
-- Build dedicated summary queries when the page needs top-of-screen metrics.
+### First render rules
+For any large workspace page:
+- ship the shell first
+- ship the top summary next
+- ship the first actionable list/table state next
+- defer secondary detail
 
-### Hydration and loading boundaries
-- Prefer multiple composable loading boundaries over one giant server wait.
-- Keep interactions available even when secondary panels are still loading.
-- Separate "must see now" data from "nice to see after render" data.
+The user should be able to orient themselves before the entire page model is complete.
 
-### Table-heavy workflows
-- Use summary headers plus paginated or filtered table bodies.
-- Add mobile-specific renderers when desktop tables degrade badly on mobile.
-- Avoid coupling action flows to full-table reloads when narrower refreshes are possible.
+### Query shaping rules
+Prefer:
+- counts
+- aggregates
+- summaries
+- paginated collections
+- focused detail endpoints
 
-### API performance
-- Do not make API handlers rebuild the same heavy derivations repeatedly if a shared projection or query helper can own the shape.
-- Normalize and cache carefully where consistency rules allow it.
-- Treat transport-layer logging and timing instrumentation as support tools, not core architecture.
+Avoid:
+- "everything about this entity and all related children" payloads for first paint
+- sending full nested trees to pages that only render five visible values
 
-### Mobile performance
-- Keep list payloads small.
-- Reuse shaped contracts from API/package layers instead of pushing transformation work into the render path.
-- Prefer screen-level summaries and drill-down navigation over giant all-in-one mobile payloads.
+### Table and list rules
+- tables should have summary context above them when the workflow is operational
+- mobile renderers should be first-class when desktop tables collapse badly on mobile
+- batch actions should not require naïve global re-fetching if a smaller refresh can keep the UI correct
 
-### Build and workspace performance
-- Respect package boundaries so Turbo caching remains useful.
-- Keep dependencies focused so a small feature change does not fan out across the whole monorepo.
-- Avoid unnecessary duplication that increases typecheck, lint, and build surface area.
+### Render-path rules
+- do not perform heavy domain calculations in React render if the result can be shaped earlier
+- do not compute canonical truth in presentation components
+- move expensive transforms to API, package projections, or memoized view-model boundaries only when justified
 
-## API and Validation Rules
+### API performance rules
+- do not turn routers into giant orchestration blobs
+- isolate reusable heavy derivations
+- shape contracts for the page actually being loaded
+- introduce summary queries when a screen needs summary widgets
 
-### API contracts
-- API surfaces should expose contracts that match product use cases, not database convenience.
-- Summary queries and detail queries should be separate when the UI needs different costs and shapes.
+### Mobile performance rules
+- keep payloads compact
+- favor drill-down navigation over giant all-in-one screens
+- keep list rows lightweight
+- prefer server/package shaping over client render-time transformation
 
-### Validation
-- Validate at transport boundaries and at critical domain boundaries.
-- Use shared schemas where multiple surfaces consume the same contract.
-- UI form validation should improve UX, but server validation remains authoritative.
+### Build performance rules
+- preserve clean package boundaries so Turbo caching remains effective
+- avoid needless cross-workspace coupling
+- avoid duplicating low-level utilities in multiple workspaces
 
-### Permissions
-- Keep permission checks close to API/service entry points.
-- Do not bury permission truth in client conditionals alone.
+## API and Contract Design
 
-## Database and Mutation Authority
+### Summary vs detail contracts
+This repo should default to separate contracts for:
+- page summary
+- list/table data
+- single-item detail
+- mutation result/update state
 
-### Database ownership
-- Persistence primitives and schema-aware query helpers belong near `packages/db`.
-- Feature-specific read models may compose those primitives, but schema truth should not drift into app code.
+This is already visible in successful `v2` workstreams and should become the norm.
 
-### Mutation authority
-- Multi-step mutations must route through a clear authority path.
-- Ad hoc mutations scattered across route handlers are not acceptable for correctness-critical workflows.
-- If a workflow updates multiple state dimensions, centralize it under one application service.
+### Contract design rules
+- contracts should be shaped for the consumer
+- contracts should be stable enough to reuse
+- contracts should not expose accidental persistence structure unless necessary
+- detail endpoints should not be forced onto summary pages
 
-### Read truth
-- Queries used for operations dashboards, production control, or accounting decisions should come from explicit, reviewable read models.
-- Do not recompute core truth differently in separate screens.
+### Validation rules
+- validate at transport boundaries
+- validate again inside sensitive domain boundaries when invariants matter
+- UI validation improves UX but server validation remains authoritative
+
+### Permission rules
+- permissions belong close to server authority
+- client checks are a UX enhancement, not the source of truth
+
+## Database and Data Access Rules
+
+### Data access ownership
+Use `packages/db` and related shared query layers for:
+- schema-aware queries
+- reusable joins and data access helpers
+- normalized low-level persistence logic
+
+### App-local queries
+App-local query helpers are acceptable when they are temporary or page-specific, but they should be promoted when:
+- reused elsewhere
+- carrying domain semantics
+- becoming hard to maintain
+
+### Projection rule
+If multiple screens need the same derived truth, create a reusable projection instead of recomputing it in each screen.
+
+## Mutation and Workflow Authority
+
+### Gold rule
+One workflow, one authority path.
+
+If a workflow:
+- changes several related records
+- updates state machines or status truth
+- affects accounting, production, or dispatch
+- emits side effects or notifications
+
+then it should have one explicit orchestration path.
+
+### Avoid
+- scattered mutations across several app actions
+- patching status in UI after the fact to "look right"
+- mixing repair logic into the normal runtime path
+
+### Repair/admin flows
+Repair tools can exist, but they must be clearly separate from the happy path.
+
+## Versioning and `v2` Rules
+
+### When to create a `v2`
+Use a `v2` stream when:
+- legacy behavior is too risky to rewrite in place
+- parity must be measured
+- contract shape needs to change significantly
+- a safer rollout path is needed
+
+### What a `v2` must include
+- explicit route or module boundary
+- explicit docs for what is migrated and what is not
+- focused contract design
+- clear cutover criteria
+
+### What to avoid
+- silent partial rewrites inside the old path
+- mixing legacy and `v2` semantics without naming the boundary
 
 ## Testing and Hardening Rules
 
-### Required when risk is high
-Add focused tests when changes affect:
-- totals or costing
-- state transitions
-- production or dispatch quantities
-- invoice/document output
-- cross-surface contract shape
+### High-risk change areas
+Focused regression coverage is required for:
+- pricing
+- payments
+- persistence
+- production control
+- dispatch quantities
+- print/document generation
+- status derivation used by operations
 
-### Preferred testing style
-- narrow regression tests for the bug or contract being changed
-- package-level tests for core domain rules
-- API-level tests for exposed contracts when route behavior is the risk
+### Preferred test placement
+- package tests for core business rules
+- API tests for exposed contracts and middleware-sensitive behavior
+- focused feature tests for regressions in specific critical workflows
 
-### Parallel rebuild hardening
-For `v2` work:
-- keep legacy and `v2` behavior intentionally separate
-- track parity or replacement scope in Brain
-- document what is still missing before cutover
+### Good test style
+- one bug, one regression test where possible
+- contract tests for summary/detail payload shape
+- mutation tests for multi-step state correctness
 
-## Documentation Rules
+### `v2` hardening
+Before cutover:
+- document missing parity
+- capture decision points in Brain
+- verify the new path on the scenarios that matter operationally
 
-### Brain is part of the architecture
-`brain/` is not optional project decoration. It is part of how this repo preserves continuity.
+## Documentation and Brain Rules
 
-Update Brain when you change:
-- package boundaries
-- system topology
-- API contracts in a durable way
-- data ownership or mutation authority
-- feature rollout plans
-- major performance strategy
+### Update Brain when architecture changes
+Update `brain/` when you:
+- add or split a package boundary
+- change dependency direction
+- introduce a new `v2` rollout stream
+- change API ownership or data ownership
+- add a durable performance pattern
+- change mutation authority for a critical workflow
 
-### Where to write what
-- use `brain/system/*` for cross-repo technical architecture
-- use `brain/engineering/*` for coding and implementation rules
-- use `brain/features/*` for feature-specific design and execution
-- use `brain/decisions/*` for durable architecture decisions
+### Where changes go
+- `brain/system/*`: system-wide architecture and topology
+- `brain/engineering/*`: repo conventions and implementation rules
+- `brain/api/*`: contract, endpoint, and permission references
+- `brain/database/*`: schema, relationship, and migration context
+- `brain/features/*`: feature-level design and rollout notes
+- `brain/decisions/*`: ADRs and durable technical decisions
+- `brain/progress.md`: historical execution log
 
-## Feature Delivery Checklist
-Before shipping a non-trivial feature, confirm:
-- the schema/data model is clear
-- the API contract is explicit
-- business logic is in the right package or feature boundary
-- the route/screen stays mostly compositional
-- validation exists at the right boundaries
-- high-risk behavior has regression coverage
-- Brain docs were updated if the architecture changed
+### ADR trigger checklist
+Create or update an ADR when:
+- a new domain module boundary is introduced
+- a shared authority is reassigned
+- a major rollout strategy changes
+- a design tradeoff will matter for future contributors
 
-## GND-Specific Guidance Summary
-- Favor Midday-style page composition, but do not force Midday's exact structure onto GND.
-- Keep GND's sales, dispatch, production, and document flows under stronger authority boundaries than a typical dashboard app.
-- Continue moving business rules from app-local code into shared packages.
-- Use `v2` rebuilds deliberately when replacing unstable or legacy workflows.
-- Optimize first render around actionable summaries, not maximum payload completeness.
+## Review Checklist for Engineers and AI Agents
 
-## Canonical References
-- Runtime overview: `brain/system/overview.md`
-- Architecture details: `brain/system/architecture.md`
-- Tech stack: `brain/system/tech-stack.md`
-- Repo structure rules: `brain/engineering/repo-structure.md`
-- Coding standards: `brain/engineering/coding-standards.md`
-- AI contribution rules: `brain/engineering/ai-rules.md`
-- ADR index: `brain/decisions.md`
+Before calling a feature or refactor complete, ask:
+- Is the domain logic in the right layer?
+- Did we keep the route or screen mostly compositional?
+- Is the API contract shaped for the page instead of dumping raw structure?
+- Did we split summary and detail if the screen needs both?
+- Did we preserve one authority path for risky mutations?
+- Did we avoid trapping business truth in a component tree?
+- Did we keep first render focused on orientation and action?
+- Did we add focused regression coverage for risky flows?
+- Did we update Brain if architecture or rollout strategy changed?
+
+## Concrete GND Standards Summary
+- Prefer package-owned business logic over app-local helpers.
+- Prefer Midday-style shell-first workspaces over monolithic page payloads.
+- Prefer explicit summary/detail contracts over one oversized endpoint.
+- Prefer one mutation authority path for risky workflows.
+- Prefer `v2` rebuilds over hidden in-place rewrites when risk is high.
+- Prefer Brain-backed rollout and architecture decisions over tribal knowledge.
+
+## Related References
+- `brain/system/overview.md`
+- `brain/system/architecture.md`
+- `brain/system/tech-stack.md`
+- `brain/engineering/repo-structure.md`
+- `brain/engineering/coding-standards.md`
+- `brain/engineering/ai-rules.md`
+- `brain/decisions.md`

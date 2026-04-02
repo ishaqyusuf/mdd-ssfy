@@ -13,14 +13,9 @@ import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { printProduction } from "@/lib/quick-print";
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
-import {
-	Accordion,
-	AccordionContent,
-	AccordionItem,
-	AccordionTrigger,
-} from "@gnd/ui/accordion";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import { ButtonGroup } from "@gnd/ui/button-group";
 import { Calendar } from "@gnd/ui/calendar";
 import { CalendarDayButton } from "@gnd/ui/calendar";
 import {
@@ -814,6 +809,13 @@ function ProductionOrderCard({
 	assignOptions: { label?: string; value?: string }[];
 }) {
 	const orderStatus = getOrderStatusPresentation(item);
+	const workerStatus =
+		scope === "worker" ? (
+			<WorkerOrderStatus
+				orderId={item.orderId}
+				fallbackCompleted={!!item.completed}
+			/>
+		) : null;
 
 	return (
 		<Collapsible open={isExpanded} onOpenChange={() => onToggle()}>
@@ -828,22 +830,26 @@ function ProductionOrderCard({
 					<CollapsibleTrigger asChild>
 						<button
 							type="button"
-							className="flex min-w-0 flex-1 flex-col gap-4 text-left md:flex-row md:items-center md:justify-between"
+							className="flex min-w-0 flex-1 flex-col gap-4 text-left md:flex-row md:items-start md:justify-between"
 						>
 							<div className="space-y-1">
-								<div className="flex items-center gap-2">
+								<div className="flex flex-wrap items-center gap-2">
 									<p className="text-lg font-semibold tracking-tight">
 										{item.orderId}
 									</p>
-									<Badge
-										variant="outline"
-										className={cn(
-											"rounded-full border font-medium",
-											orderStatus.className,
-										)}
-									>
-										{orderStatus.label}
-									</Badge>
+									{scope === "admin" ? (
+										<Badge
+											variant="outline"
+											className={cn(
+												"rounded-full border font-medium",
+												orderStatus.className,
+											)}
+										>
+											{orderStatus.label}
+										</Badge>
+									) : (
+										workerStatus
+									)}
 								</div>
 								<p className="text-sm text-muted-foreground">
 									{item.customer || "Customer unavailable"}
@@ -852,12 +858,9 @@ function ProductionOrderCard({
 									{item.salesRep
 										? `Sales Rep: ${item.salesRep}`
 										: "Sales rep unavailable"}
-									{scope === "admin" && item.assignedTo
-										? ` | Assigned: ${item.assignedTo}`
-										: ""}
 								</p>
 							</div>
-							<div className="flex items-center gap-3 self-end md:self-center">
+							<div className="flex items-start gap-3 self-end md:self-start">
 								<div className="text-right">
 									<p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
 										Due
@@ -868,7 +871,7 @@ function ProductionOrderCard({
 								</div>
 								<ChevronDown
 									className={cn(
-										"h-4 w-4 text-muted-foreground transition-transform",
+										"mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform",
 										isExpanded && "rotate-180",
 									)}
 								/>
@@ -900,6 +903,51 @@ function ProductionOrderCard({
 				</CollapsibleContent>
 			</Card>
 		</Collapsible>
+	);
+}
+
+function WorkerOrderStatus({
+	orderId,
+	fallbackCompleted,
+}: {
+	orderId: string;
+	fallbackCompleted: boolean;
+}) {
+	const trpc = useTRPC();
+	const detailQuery = useQuery(
+		trpc.sales.productionOrderDetailV2.queryOptions(
+			{
+				salesNo: orderId,
+				scope: "worker",
+			},
+			{
+				staleTime: 60_000,
+			},
+		),
+	);
+	const detail = detailQuery.data as ProductionDetail | undefined;
+
+	if (!detail) {
+		return (
+			<Badge variant="outline" className="rounded-full border-dashed">
+				{fallbackCompleted ? "Completed" : "Worker queue"}
+			</Badge>
+		);
+	}
+
+	const summary = getWorkerItemCompletionSummary(detail.items);
+	return (
+		<Badge
+			variant="outline"
+			className={cn(
+				"rounded-full border font-medium",
+				summary.completed === summary.total && summary.total > 0
+					? "border-emerald-200 bg-emerald-50 text-emerald-700"
+					: "border-slate-200 bg-slate-50 text-slate-700",
+			)}
+		>
+			{summary.label}
+		</Badge>
 	);
 }
 
@@ -1069,146 +1117,13 @@ function ProductionOrderDetailInline({
 				</div>
 
 				<TabsContent value="productions" className="mt-0 space-y-4">
-					<Card className="rounded-2xl">
-						<CardHeader>
-							<CardTitle className="text-base">
-								Production Information
-							</CardTitle>
-							<CardDescription>
-								Expandable production items for this order.
-							</CardDescription>
-						</CardHeader>
-						<CardContent className="space-y-4">
-							{detail?.items?.length ? (
-								<Accordion
-									type="single"
-									collapsible
-									defaultValue={
-										detail.items.find((item) => item.isProduction)?.controlUid
-									}
-									className="space-y-3"
-								>
-									{detail.items.map((productionItem) => (
-										<AccordionItem
-											key={productionItem.controlUid}
-											value={productionItem.controlUid}
-											className={cn(
-												"overflow-hidden rounded-2xl border bg-background transition-colors",
-												productionItem.isProduction
-													? "hover:bg-muted/30"
-													: "bg-muted/10",
-											)}
-										>
-											<div className="px-4 pb-3 pt-4">
-												<div className="flex items-start gap-4">
-													{productionItem.img ? (
-														<a
-															href={buildCloudinaryDykeUrl(productionItem.img)}
-															target="_blank"
-															rel="noreferrer"
-															className="block w-20 shrink-0"
-															onClick={(event) => event.stopPropagation()}
-														>
-															<div className="overflow-hidden rounded-xl border bg-muted/30">
-																<Img
-																	src={productionItem.img}
-																	aspectRatio={1}
-																	alt={productionItem.title}
-																/>
-															</div>
-														</a>
-													) : null}
-													{productionItem.isProduction ? (
-														<AccordionTrigger className="group flex flex-1 cursor-pointer flex-col items-stretch px-2 py-2 text-left transition-colors hover:no-underline">
-															<div className="flex items-start gap-3">
-																<div className="min-w-0 flex-1">
-																	<p className="font-semibold uppercase tracking-[0.08em] transition-colors group-hover:text-foreground">
-																		{productionItem.title}
-																	</p>
-																	<p className="mt-1 text-sm uppercase tracking-[0.08em] text-muted-foreground transition-colors group-hover:text-foreground/80">
-																		{productionItem.subtitle || "NO SUBTITLE"}
-																	</p>
-																</div>
-															</div>
-															<div className="mt-4 grid gap-3 md:grid-cols-2">
-																<ProductionStatProgress
-																	label="Assigned"
-																	completed={
-																		productionItem.analytics?.stats
-																			?.prodAssigned?.qty
-																	}
-																	total={productionItem.qty?.qty}
-																/>
-																<ProductionStatProgress
-																	label="Production"
-																	completed={
-																		productionItem.analytics?.stats
-																			?.prodCompleted?.qty
-																	}
-																	total={productionItem.qty?.qty}
-																/>
-															</div>
-														</AccordionTrigger>
-													) : (
-														<div className="flex flex-1 flex-col items-stretch px-2 py-2 text-left opacity-70">
-															<div className="flex items-start gap-3">
-																<div className="min-w-0 flex-1">
-																	<div className="flex flex-wrap items-center gap-2">
-																		<p className="font-semibold uppercase tracking-[0.08em]">
-																			{productionItem.title}
-																		</p>
-																		<Badge
-																			variant="outline"
-																			className="rounded-full text-[10px] uppercase tracking-[0.16em]"
-																		>
-																			Not Production
-																		</Badge>
-																	</div>
-																	<p className="mt-1 text-sm uppercase tracking-[0.08em] text-muted-foreground">
-																		{productionItem.subtitle || "NO SUBTITLE"}
-																	</p>
-																</div>
-															</div>
-															<div className="mt-4 grid gap-3 md:grid-cols-2">
-																<ProductionStatProgress
-																	label="Assigned"
-																	completed={
-																		productionItem.analytics?.stats
-																			?.prodAssigned?.qty
-																	}
-																	total={productionItem.qty?.qty}
-																/>
-																<ProductionStatProgress
-																	label="Production"
-																	completed={
-																		productionItem.analytics?.stats
-																			?.prodCompleted?.qty
-																	}
-																	total={productionItem.qty?.qty}
-																/>
-															</div>
-														</div>
-													)}
-												</div>
-											</div>
-											{productionItem.isProduction ? (
-												<AccordionContent className="border-t bg-muted/20 px-4 py-4">
-													<ProductionItemDetailTabs
-														scope={scope}
-														productionItem={productionItem}
-													/>
-												</AccordionContent>
-											) : null}
-										</AccordionItem>
-									))}
-								</Accordion>
-							) : (
-								<div className="rounded-2xl border border-dashed p-6 text-sm text-muted-foreground">
-									No production items available for this order.
-								</div>
-							)}
-						</CardContent>
-					</Card>
+					{detail?.items?.length ? (
+						<ProductionItemsGrid scope={scope} items={detail.items} />
+					) : (
+						<div className="rounded-2xl border border-dashed p-6 text-sm text-muted-foreground">
+							No production items available for this order.
+						</div>
+					)}
 				</TabsContent>
 
 				<TabsContent value="notes" className="mt-0">
@@ -1230,6 +1145,241 @@ function ProductionOrderDetailInline({
 				</TabsContent>
 			</div>
 		</Tabs>
+	);
+}
+
+function ProductionItemsGrid({
+	scope,
+	items,
+}: {
+	scope: Scope;
+	items: ProductionDetail["items"];
+}) {
+	const productionItems = items.filter((item) => item.isProduction);
+	const defaultExpandedUid = productionItems[0]?.controlUid ?? null;
+	const [expandedItemUid, setExpandedItemUid] = useState<string | null>(
+		defaultExpandedUid,
+	);
+	const rows = chunkProductionItems(items, 2);
+
+	useEffect(() => {
+		if (
+			!expandedItemUid ||
+			items.some((item) => item.controlUid === expandedItemUid)
+		) {
+			return;
+		}
+		setExpandedItemUid(defaultExpandedUid);
+	}, [defaultExpandedUid, expandedItemUid, items]);
+
+	return (
+		<div className="space-y-3">
+			{rows.map((row, rowIndex) => {
+				const expandedRowItem =
+					row.find((item) => item.controlUid === expandedItemUid) ?? null;
+				const expandedColumnIndex = expandedRowItem
+					? row.findIndex(
+							(item) => item.controlUid === expandedRowItem.controlUid,
+						)
+					: -1;
+
+				return (
+					<div
+						key={`production-row-${rowIndex.toString()}`}
+						className="space-y-0"
+					>
+						<div className="grid gap-3 lg:grid-cols-2">
+							{row.map((productionItem) => (
+								<ProductionItemCard
+									key={productionItem.controlUid}
+									scope={scope}
+									item={productionItem}
+									isExpanded={expandedItemUid === productionItem.controlUid}
+									onToggle={() =>
+										setExpandedItemUid((current) =>
+											current === productionItem.controlUid
+												? null
+												: productionItem.controlUid,
+										)
+									}
+								/>
+							))}
+						</div>
+						{expandedRowItem?.isProduction ? (
+							<ExpandedItemOverview
+								scope={scope}
+								productionItem={expandedRowItem}
+								rowLength={row.length}
+								expandedColumnIndex={expandedColumnIndex}
+							/>
+						) : null}
+					</div>
+				);
+			})}
+		</div>
+	);
+}
+
+function ExpandedItemOverview({
+	scope,
+	productionItem,
+	rowLength,
+	expandedColumnIndex,
+}: {
+	scope: Scope;
+	productionItem: ProductionDetail["items"][number];
+	rowLength: number;
+	expandedColumnIndex: number;
+}) {
+	const showSteppedJoin = rowLength > 1 && expandedColumnIndex > -1;
+
+	return (
+		<div
+			className={cn(
+				"overflow-hidden pt-0 transition-all duration-300 ease-out",
+				showSteppedJoin ? "animate-in fade-in-0 slide-in-from-top-1" : "",
+			)}
+		>
+			{showSteppedJoin ? (
+				<div className="hidden lg:grid lg:grid-cols-2 lg:gap-3">
+					<div
+						className={cn(
+							"-mt-px h-5 transition-all duration-300 ease-out",
+							expandedColumnIndex === 0
+								? "relative border-x border-border bg-muted/50 after:absolute after:-right-1.5 after:bottom-0 after:h-px after:w-1.5 after:bg-border"
+								: "border-b border-border bg-transparent",
+						)}
+					/>
+					<div
+						className={cn(
+							"-mt-px h-5 transition-all duration-300 ease-out",
+							expandedColumnIndex === 1
+								? "relative border-x border-border bg-muted/50 after:absolute after:-left-1.5 after:bottom-0 after:h-px after:w-1.5 after:bg-border"
+								: "border-b border-border bg-transparent",
+						)}
+					/>
+				</div>
+			) : null}
+			<div
+				className={cn(
+					"rounded-b-2xl border border-border bg-muted/50 px-4 pb-4 pt-4 shadow-none transition-all duration-300 ease-out",
+					showSteppedJoin ? "mt-0 border-t-0" : "-mt-4 border-t-0 pt-6",
+				)}
+			>
+				<ProductionItemDetailTabs
+					scope={scope}
+					productionItem={productionItem}
+				/>
+			</div>
+		</div>
+	);
+}
+
+function ProductionItemCard({
+	scope,
+	item,
+	isExpanded,
+	onToggle,
+}: {
+	scope: Scope;
+	item: ProductionDetail["items"][number];
+	isExpanded: boolean;
+	onToggle: () => void;
+}) {
+	return (
+		<button
+			type="button"
+			onClick={item.isProduction ? onToggle : undefined}
+			disabled={!item.isProduction}
+			className={cn(
+				"relative overflow-hidden rounded-2xl border border-border bg-background px-4 pb-4 pt-4 text-left transition-[background-color,border-color,border-radius,transform,box-shadow] duration-300 ease-out",
+				isExpanded && "rounded-b-none border-b-0 bg-muted/50 shadow-sm",
+				item.isProduction ? "hover:bg-muted/30" : "cursor-default bg-muted/10",
+			)}
+		>
+			<div
+				className={cn(
+					"flex items-start gap-4 transition-transform duration-300 ease-out",
+					isExpanded && "translate-y-[-1px]",
+				)}
+			>
+				{item.img ? (
+					<a
+						href={buildCloudinaryDykeUrl(item.img)}
+						target="_blank"
+						rel="noreferrer"
+						className="block w-20 shrink-0"
+						onClick={(event) => event.stopPropagation()}
+					>
+						<div className="overflow-hidden rounded-xl border bg-muted/30">
+							<Img src={item.img} aspectRatio={1} alt={item.title} />
+						</div>
+					</a>
+				) : null}
+				<div className="min-w-0 flex-1 pr-10">
+					<div className="flex min-w-0 items-start gap-2">
+						<div className="min-w-0 flex-1">
+							{scope === "worker"
+								? (() => {
+										const workerItemStatus = getWorkerAssignmentStatus(item);
+										return (
+											<Badge
+												variant="outline"
+												className={cn(
+													"mb-2 rounded-full",
+													workerItemStatus.isCompleted
+														? "border-emerald-200 bg-emerald-50 text-emerald-700"
+														: "border-slate-200 bg-slate-50 text-slate-700",
+												)}
+											>
+												{workerItemStatus.label}
+											</Badge>
+										);
+									})()
+								: null}
+							<div className="flex flex-wrap items-center gap-2">
+								<p className="font-semibold uppercase tracking-[0.08em]">
+									{item.title}
+								</p>
+								{!item.isProduction ? (
+									<Badge
+										variant="outline"
+										className="rounded-full text-[10px] uppercase tracking-[0.16em]"
+									>
+										Not Production
+									</Badge>
+								) : null}
+							</div>
+							<p className="mt-1 text-sm uppercase tracking-[0.08em] text-muted-foreground">
+								{item.subtitle || "NO SUBTITLE"}
+							</p>
+						</div>
+					</div>
+					{scope === "admin" ? (
+						<div className="mt-4 grid gap-3 md:grid-cols-2">
+							<ProductionStatProgress
+								label="Assigned"
+								completed={item.analytics?.stats?.prodAssigned?.qty}
+								total={item.qty?.qty}
+							/>
+							<ProductionStatProgress
+								label="Production"
+								completed={item.analytics?.stats?.prodCompleted?.qty}
+								total={item.qty?.qty}
+							/>
+						</div>
+					) : null}
+				</div>
+				{item.isProduction ? (
+					<ChevronDown
+						className={cn(
+							"absolute right-4 top-4 h-4 w-4 text-muted-foreground transition-transform duration-300 ease-out",
+							isExpanded && "rotate-180",
+						)}
+					/>
+				) : null}
+			</div>
+		</button>
 	);
 }
 
@@ -1359,18 +1509,16 @@ function ProductionItemDetailTabs({
 		assignmentProgress.some((assignment) => assignment.canSubmitMore) &&
 		!!workerId;
 	const canDeleteThisItem =
-		scope === "admin" &&
 		productionItem.assignments?.some(
 			(assignment) =>
 				(assignment.submissions?.length || 0) > 0 &&
 				(assignment.submissions || []).every(
 					(submission) => (submission.deliveredQty || 0) === 0,
 				),
-		) &&
-		deliveredSubmissionCount === 0;
+		) && deliveredSubmissionCount === 0;
 	const submissionsTabLabel =
 		scope === "worker"
-			? `Submission ${totalSubmittedQty}/${totalAssignedQty}`
+			? `My Progress ${totalSubmittedQty}/${totalAssignedQty}`
 			: assignmentProgress.length === 1 &&
 					assignmentProgress[0]?.submissionLimit
 				? `Submissions ${assignmentProgress[0].submissionCount}/${assignmentProgress[0].submissionLimit}`
@@ -1386,7 +1534,7 @@ function ProductionItemDetailTabs({
 						: "grid-cols-4 md:w-[560px]",
 				)}
 			>
-				<TabsTrigger value="information">Information</TabsTrigger>
+				<TabsTrigger value="information">Overview</TabsTrigger>
 				{scope === "admin" ? (
 					<TabsTrigger value="assignments">
 						Assignments ({assignmentsCount})
@@ -1397,21 +1545,13 @@ function ProductionItemDetailTabs({
 			</TabsList>
 
 			<TabsContent value="information" className="mt-0">
-				<div className="grid gap-3 sm:grid-cols-2">
-					{productionItem.configs?.map((config, index) => (
-						<div
-							key={`${productionItem.controlUid}-${index}`}
-							className="space-y-1 rounded-xl border bg-background p-3"
-						>
-							<p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-								{config.label}
-							</p>
-							<p className="text-sm font-medium uppercase tracking-[0.08em]">
-								{config.value}
-							</p>
-						</div>
-					))}
-				</div>
+				<ProductionItemOverviewTab
+					scope={scope}
+					productionItem={productionItem}
+					assignmentsCount={assignmentsCount}
+					totalAssignedQty={totalAssignedQty}
+					totalSubmittedQty={totalSubmittedQty}
+				/>
 			</TabsContent>
 
 			{scope === "admin" ? (
@@ -1507,7 +1647,7 @@ function ProductionItemDetailTabs({
 									No pending submissions
 								</Badge>
 							) : null}
-							{scope === "admin" && canDeleteThisItem ? (
+							{canDeleteThisItem ? (
 								<Badge variant="outline" className="rounded-full">
 									Delete enabled
 								</Badge>
@@ -1544,6 +1684,23 @@ function ProductionItemDetailTabs({
 											},
 										} as UpdateSalesControl)
 									}
+									onUpdateSubmission={(submissionId, qty) =>
+										actionTrigger.triggerWithAuth("update-sales-control", {
+											meta: {
+												salesId: productionItem.salesId,
+												authorId: Number(auth.id || 0),
+												authorName: auth.name || "System",
+											},
+											updateSubmissions: {
+												submissions: [
+													{
+														submissionId,
+														qty,
+													},
+												],
+											},
+										} as UpdateSalesControl)
+									}
 								/>
 							))}
 						</div>
@@ -1565,6 +1722,140 @@ function ProductionItemDetailTabs({
 				</div>
 			</TabsContent>
 		</Tabs>
+	);
+}
+
+function ProductionItemOverviewTab({
+	scope,
+	productionItem,
+	assignmentsCount,
+	totalAssignedQty,
+	totalSubmittedQty,
+}: {
+	scope: Scope;
+	productionItem: ProductionDetail["items"][number];
+	assignmentsCount: number;
+	totalAssignedQty: number;
+	totalSubmittedQty: number;
+}) {
+	const configRows = (productionItem.configs || []).filter(
+		(config) => config.label || config.value,
+	);
+	const workerStatus = getWorkerAssignmentStatus(productionItem);
+
+	return (
+		<div className="space-y-3">
+			<div className="rounded-xl border bg-background/80 p-4">
+				<div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+					<div className="space-y-1">
+						<p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+							Item overview
+						</p>
+						<h4 className="text-sm font-semibold uppercase tracking-[0.08em]">
+							{productionItem.title}
+						</h4>
+						<p className="text-sm text-muted-foreground">
+							{productionItem.subtitle || "No extra description"}
+						</p>
+					</div>
+					<div className="flex flex-wrap gap-2">
+						<OverviewChip
+							label="Item Qty"
+							value={formatQtyLabel({
+								qty: productionItem.qty?.qty || 0,
+							})}
+						/>
+						<OverviewChip
+							label={scope === "worker" ? "My progress" : "Submitted"}
+							value={
+								scope === "worker"
+									? workerStatus.label
+									: `${totalSubmittedQty}/${Math.max(totalAssignedQty, 0)}`
+							}
+						/>
+						<OverviewChip
+							label="Assignments"
+							value={String(assignmentsCount)}
+						/>
+					</div>
+				</div>
+			</div>
+
+			<div className="grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
+				<div className="rounded-xl border bg-background/80">
+					<div className="border-b px-4 py-3">
+						<p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+							Configuration
+						</p>
+					</div>
+					{configRows.length ? (
+						<div className="grid sm:grid-cols-2">
+							{configRows.map((config, index) => (
+								<div
+									key={`${productionItem.controlUid}-${index}`}
+									className="border-b px-4 py-3 even:sm:border-l last:border-b-0 [&:nth-last-child(2):nth-child(odd)]:sm:border-b-0"
+								>
+									<p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+										{config.label || "Detail"}
+									</p>
+									<p className="mt-1 text-sm font-medium">
+										{config.value || "-"}
+									</p>
+								</div>
+							))}
+						</div>
+					) : (
+						<div className="px-4 py-5 text-sm text-muted-foreground">
+							No configuration details available for this item.
+						</div>
+					)}
+				</div>
+
+				<div className="rounded-xl border bg-background/80 p-4">
+					<p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+						Quick summary
+					</p>
+					<div className="mt-3 space-y-3">
+						<OverviewRow
+							label="Production item"
+							value={productionItem.isProduction ? "Yes" : "No"}
+						/>
+						<OverviewRow label="Assignments" value={String(assignmentsCount)} />
+						<OverviewRow
+							label="Assigned qty"
+							value={String(totalAssignedQty)}
+						/>
+						<OverviewRow
+							label="Completed qty"
+							value={String(totalSubmittedQty)}
+						/>
+						{scope === "worker" ? (
+							<OverviewRow label="My status" value={workerStatus.label} />
+						) : null}
+					</div>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+function OverviewChip({ label, value }: { label: string; value: string }) {
+	return (
+		<div className="rounded-full border bg-muted/40 px-3 py-1.5">
+			<p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+				{label}
+			</p>
+			<p className="text-sm font-medium">{value}</p>
+		</div>
+	);
+}
+
+function OverviewRow({ label, value }: { label: string; value: string }) {
+	return (
+		<div className="flex items-start justify-between gap-4 border-b pb-3 last:border-b-0 last:pb-0">
+			<p className="text-sm text-muted-foreground">{label}</p>
+			<p className="text-right text-sm font-medium">{value}</p>
+		</div>
 	);
 }
 
@@ -1820,6 +2111,7 @@ function AssignmentSubmissionCard({
 	progress,
 	onSubmit,
 	onDeleteSubmission,
+	onUpdateSubmission,
 }: {
 	scope: Scope;
 	workerId: number | null;
@@ -1829,24 +2121,27 @@ function AssignmentSubmissionCard({
 	progress: AssignmentProgress;
 	onSubmit: (payload: UpdateSalesControl) => void;
 	onDeleteSubmission: (submissionId: number) => void;
+	onUpdateSubmission: (
+		submissionId: number,
+		qty: { qty?: number; lh?: number; rh?: number },
+	) => void;
 }) {
 	const [selectedQty, setSelectedQty] = useState("1");
-	const [selectedLh, setSelectedLh] = useState("1");
-	const [selectedRh, setSelectedRh] = useState("1");
+	const [selectedHandle, setSelectedHandle] = useState<"lh" | "rh">("lh");
 	const [deleteSubmissionId, setDeleteSubmissionId] = useState<number | null>(
+		null,
+	);
+	const [editingSubmissionId, setEditingSubmissionId] = useState<number | null>(
 		null,
 	);
 	const canSubmitLh = progress.pendingQty.lh > 0;
 	const canSubmitRh = progress.pendingQty.rh > 0;
-	const canDeleteSubmission =
-		scope === "admin" &&
-		(progress.assignment.submissions || []).some(
-			(submission) => (submission.deliveredQty || 0) === 0,
-		);
+	const canDeleteSubmission = (progress.assignment.submissions || []).some(
+		(submission) => (submission.deliveredQty || 0) === 0,
+	);
 	function resetForm() {
 		setSelectedQty("1");
-		setSelectedLh("1");
-		setSelectedRh("1");
+		setSelectedHandle(canSubmitLh ? "lh" : "rh");
 	}
 
 	function submitSelection(selection: {
@@ -1882,8 +2177,9 @@ function AssignmentSubmissionCard({
 	}
 
 	const pickedQty = toPositiveNumber(selectedQty);
-	const pickedLh = canSubmitLh ? toPositiveNumber(selectedLh) : 0;
-	const pickedRh = canSubmitRh ? toPositiveNumber(selectedRh) : 0;
+	const activeHandle = selectedHandleValue(progress, selectedHandle);
+	const pickedLh = activeHandle === "lh" ? pickedQty : 0;
+	const pickedRh = activeHandle === "rh" ? pickedQty : 0;
 	const pickedSingleQty = {
 		qty: pickedQty,
 	};
@@ -1908,11 +2204,13 @@ function AssignmentSubmissionCard({
 
 	return (
 		<>
-			<div className="space-y-3 rounded-xl border bg-background p-3">
+			<div className="space-y-3 border-b pb-3 last:border-b-0 last:pb-0">
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
 						<p className="text-sm font-medium">
-							{progress.assignment.assignedTo || "Unassigned"}
+							{scope === "worker"
+								? "My submission"
+								: progress.assignment.assignedTo || "Unassigned"}
 						</p>
 						<p className="text-xs text-muted-foreground">
 							Due:{" "}
@@ -1921,7 +2219,7 @@ function AssignmentSubmissionCard({
 								: "No due date"}
 						</p>
 					</div>
-					<div className="flex flex-wrap items-center gap-2">
+					<div className="flex flex-wrap items-center justify-end gap-4">
 						<Badge variant="outline" className="rounded-full">
 							{progress.assignmentLabel}
 						</Badge>
@@ -1940,6 +2238,7 @@ function AssignmentSubmissionCard({
 					<div className="space-y-2">
 						{progress.assignment.submissions.map((submission) => {
 							const submissionIsDelivered = (submission.deliveredQty || 0) > 0;
+							const isEditing = editingSubmissionId === submission.id;
 							return (
 								<div
 									key={submission.id}
@@ -1959,21 +2258,34 @@ function AssignmentSubmissionCard({
 												</p>
 												{scope === "admin" ? (
 													<p>
-														Submitted by:{" "}
-														{submission.submittedBy || "Unknown"}
+														Submitted by: {submission.submittedBy || "Unknown"}
 													</p>
 												) : null}
 											</div>
 										</div>
 										{canDeleteSubmission && !submissionIsDelivered ? (
-											<Button
-												type="button"
-												size="sm"
-												variant="outline"
-												onClick={() => setDeleteSubmissionId(submission.id)}
-											>
-												Delete
-											</Button>
+											<div className="flex items-center gap-2">
+												<Button
+													type="button"
+													size="sm"
+													variant="outline"
+													onClick={() =>
+														setEditingSubmissionId(
+															isEditing ? null : submission.id,
+														)
+													}
+												>
+													{isEditing ? "Close" : "Edit"}
+												</Button>
+												<Button
+													type="button"
+													size="sm"
+													variant="outline"
+													onClick={() => setDeleteSubmissionId(submission.id)}
+												>
+													Delete
+												</Button>
+											</div>
 										) : null}
 									</div>
 									<p className="mt-2 text-xs text-muted-foreground">
@@ -1988,6 +2300,17 @@ function AssignmentSubmissionCard({
 									</p>
 									{submission.note ? (
 										<p className="mt-2 text-sm">{submission.note}</p>
+									) : null}
+									{isEditing ? (
+										<SubmissionEditForm
+											progress={progress}
+											submission={submission}
+											onCancel={() => setEditingSubmissionId(null)}
+											onSave={(qty) => {
+												onUpdateSubmission(submission.id, qty);
+												setEditingSubmissionId(null);
+											}}
+										/>
 									) : null}
 								</div>
 							);
@@ -2004,72 +2327,72 @@ function AssignmentSubmissionCard({
 						All submissions completed
 					</div>
 				) : scope === "worker" ? (
-					<div className="space-y-2 rounded-lg border border-dashed p-3">
-						{progress.isHandled ? (
-							<div className="grid gap-3 lg:grid-cols-2">
-								<SubmissionLane
-									label="LH"
-									availableQty={progress.pendingQty.lh}
-									value={selectedLh}
-									onValueChange={setSelectedLh}
-									submitLabel="Submit x1LH"
-									onSubmit={() =>
-										submitSelection({
-											lh: pickedLh,
-											qty: pickedLh,
-										})
-									}
-									onSubmitAll={() =>
-										submitSelection({
-											lh: progress.pendingQty.lh,
-											qty: progress.pendingQty.lh,
-										})
-									}
-									disabled={!canSubmitLh}
-									canSubmit={canSubmitSelectedLh}
-								/>
-								<SubmissionLane
-									label="RH"
-									availableQty={progress.pendingQty.rh}
-									value={selectedRh}
-									onValueChange={setSelectedRh}
-									submitLabel="Submit x1RH"
-									onSubmit={() =>
-										submitSelection({
-											rh: pickedRh,
-											qty: pickedRh,
-										})
-									}
-									onSubmitAll={() =>
-										submitSelection({
-											rh: progress.pendingQty.rh,
-											qty: progress.pendingQty.rh,
-										})
-									}
-									disabled={!canSubmitRh}
-									canSubmit={canSubmitSelectedRh}
-								/>
-							</div>
-						) : (
-							<SubmissionLane
-								label="Qty"
-								availableQty={progress.pendingQty.qty}
-								value={selectedQty}
-								onValueChange={setSelectedQty}
-								submitLabel="Submit x1"
-								onSubmit={() => submitSelection(pickedSingleQty)}
-								onSubmitAll={() =>
+					<div className="space-y-2 rounded-lg border border-dashed bg-muted/10 p-3">
+						<SimpleSubmissionForm
+							progress={progress}
+							selectedQty={selectedQty}
+							selectedHandle={
+								canSubmitLh && canSubmitRh
+									? selectedHandle
+									: canSubmitLh
+										? "lh"
+										: "rh"
+							}
+							onQtyChange={setSelectedQty}
+							onHandleChange={setSelectedHandle}
+							onSubmit={() => {
+								if (progress.isHandled) {
+									const quantity = toPositiveNumber(selectedQty);
+									submitSelection({
+										qty: quantity,
+										lh: activeHandle === "lh" ? quantity : 0,
+										rh: activeHandle === "rh" ? quantity : 0,
+									});
+									return;
+								}
+								submitSelection(pickedSingleQty);
+							}}
+							onSubmitAll={() => {
+								if (progress.isHandled) {
 									submitSelection({
 										qty: progress.pendingQty.qty,
-									})
+										lh: progress.pendingQty.lh,
+										rh: progress.pendingQty.rh,
+									});
+									return;
 								}
-								disabled={!progress.canSubmitMore}
-								canSubmit={canSubmitSingleQty}
-							/>
-						)}
-						<p className="text-xs text-muted-foreground">
-							Pending {progress.pendingLabel}
-						</p>
+								submitSelection({
+									qty: progress.pendingQty.qty,
+								});
+							}}
+							onSubmitAllLh={() =>
+								submitSelection({
+									qty: progress.pendingQty.lh,
+									lh: progress.pendingQty.lh,
+									rh: 0,
+								})
+							}
+							onSubmitAllRh={() =>
+								submitSelection({
+									qty: progress.pendingQty.rh,
+									lh: 0,
+									rh: progress.pendingQty.rh,
+								})
+							}
+							canSubmit={
+								progress.isHandled
+									? (canSubmitLh || canSubmitRh) &&
+										(canSubmitLh && canSubmitRh
+											? selectedHandle === "lh"
+												? canSubmitSelectedLh
+												: canSubmitSelectedRh
+											: canSubmitLh
+												? canSubmitSelectedLh
+												: canSubmitSelectedRh)
+									: canSubmitSingleQty
+							}
+							canSubmitAll={progress.canSubmitMore}
+						/>
 					</div>
 				) : (
 					<div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
@@ -2109,120 +2432,182 @@ function AssignmentSubmissionCard({
 	);
 }
 
-function SubmissionLane({
-	label,
-	availableQty,
-	value,
-	onValueChange,
-	submitLabel,
+function SimpleSubmissionForm({
+	progress,
+	selectedQty,
+	selectedHandle,
+	onQtyChange,
+	onHandleChange,
 	onSubmit,
 	onSubmitAll,
-	disabled,
+	onSubmitAllLh,
+	onSubmitAllRh,
 	canSubmit,
+	canSubmitAll,
 }: {
-	label: string;
-	availableQty: number;
-	value: string;
-	onValueChange: (value: string) => void;
-	submitLabel: string;
+	progress: AssignmentProgress;
+	selectedQty: string;
+	selectedHandle: "lh" | "rh" | string;
+	onQtyChange: (value: string) => void;
+	onHandleChange: (value: "lh" | "rh") => void;
 	onSubmit: () => void;
 	onSubmitAll: () => void;
-	disabled?: boolean;
+	onSubmitAllLh: () => void;
+	onSubmitAllRh: () => void;
 	canSubmit: boolean;
+	canSubmitAll: boolean;
 }) {
-	const selectedNumber = toPositiveNumber(value);
+	const availableQty = progress.isHandled
+		? selectedHandle === "rh"
+			? progress.pendingQty.rh
+			: progress.pendingQty.lh
+		: progress.pendingQty.qty;
+	const maxPresetQty = progress.isHandled
+		? Math.max(progress.pendingQty.lh, progress.pendingQty.rh)
+		: progress.pendingQty.qty;
 	const quantityItems = buildQuantityComboboxItems(availableQty);
-	const selectedItem = quantityItems.find((item) => item.id === value);
-	const hasMultipleQty = availableQty > 1;
+	const selectedItem = quantityItems.find((item) => item.id === selectedQty);
 	const shouldShowCombobox = availableQty > 10;
 	const presetValues = Array.from(
-		{ length: Math.min(availableQty, 10) },
+		{ length: Math.min(maxPresetQty, 10) },
 		(_, index) => String(index + 1),
 	);
+	const canSelectLh = progress.pendingQty.lh > 0;
+	const canSelectRh = progress.pendingQty.rh > 0;
+	const hasHandleToggle = progress.isHandled;
 
 	return (
-		<div
-			className={cn(
-				"space-y-3 rounded-xl border bg-muted/20 p-3",
-				disabled && "opacity-60",
-			)}
-		>
-			<div className="flex items-start justify-between gap-3">
-				<div className="flex items-center gap-1">
-					<p className="text-xs font-semibold uppercase tracking-[0.16em]">
-						{label}
-					</p>
-					<Badge variant="outline" className="rounded-full">
-						{availableQty} available
-					</Badge>
-				</div>
-				{disabled || availableQty <= 0 ? null : hasMultipleQty ? (
-					<div className="flex items-center">
-						<Button
-							type="button"
-							className="rounded-r-none"
-							disabled={!canSubmit || selectedNumber < 1}
-							onClick={onSubmit}
-						>
-							{`Submit x${selectedNumber}${label === "Qty" ? "" : label}`}
-						</Button>
-						<Menu
-							noSize
-							Trigger={
-								<Button
-									type="button"
-									variant="default"
-									size="icon"
-									className="rounded-l-none border-l border-background/20"
-									disabled={disabled}
-								>
-									<ChevronDown className="h-4 w-4" />
-								</Button>
-							}
-						>
-							<Menu.Item
-								Icon={CheckCircle2}
-								shortCut={`x${availableQty}`}
-								onClick={(event) => {
-									event.preventDefault();
-									onSubmitAll();
-								}}
-							>
-								Submit All
-							</Menu.Item>
-						</Menu>
-					</div>
-				) : (
-					<Button type="button" disabled={!canSubmit} onClick={onSubmit}>
-						{submitLabel}
-					</Button>
-				)}
-			</div>
-			{disabled || availableQty <= 0 ? (
+		<div className="space-y-3 rounded-xl bg-muted/20 p-3">
+			{availableQty <= 0 ? (
 				<div className="rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground">
-					{label} not available
+					No quantity available
 				</div>
 			) : (
 				<>
-					<div className="flex flex-row flex-wrap gap-2">
-						{presetValues.map((qtyValue) => (
+					<div className="flex flex-wrap items-end justify-end gap-4">
+						{hasHandleToggle ? (
+							<div className="space-y-1">
+								<div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+									Select Handle
+								</div>
+								<ButtonGroup className="w-full sm:w-auto">
+									<Button
+										type="button"
+										size="sm"
+										variant={selectedHandle === "lh" ? "default" : "outline"}
+										disabled={!canSelectLh}
+										className="min-w-[64px]"
+										onClick={() => onHandleChange("lh")}
+									>
+										{`LH (${progress.pendingQty.lh})`}
+									</Button>
+									<Button
+										type="button"
+										size="sm"
+										variant={selectedHandle === "rh" ? "default" : "outline"}
+										disabled={!canSelectRh}
+										className="min-w-[64px]"
+										onClick={() => onHandleChange("rh")}
+									>
+										{`RH (${progress.pendingQty.rh})`}
+									</Button>
+								</ButtonGroup>
+							</div>
+						) : null}
+						<div className="space-y-1">
+							<div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+								Select Qty
+							</div>
+							<ButtonGroup className="flex-wrap">
+								{presetValues.map((qtyValue) => (
+									<Button
+										key={`qty-${qtyValue}`}
+										type="button"
+										size="sm"
+										variant={
+											Number(qtyValue) <=
+											Math.min(Number(selectedQty), availableQty)
+												? "default"
+												: "outline"
+										}
+										className="min-w-9"
+										disabled={Number(qtyValue) > availableQty}
+										onClick={() => onQtyChange(qtyValue)}
+									>
+										{qtyValue}
+									</Button>
+								))}
+							</ButtonGroup>
+						</div>
+						<ButtonGroup>
 							<Button
-								key={`${label}-${qtyValue}`}
 								type="button"
-								size="icon"
-								variant={value === qtyValue ? "default" : "outline"}
-								className="h-8 w-8 rounded-lg"
-								onClick={() => onValueChange(qtyValue)}
+								size="sm"
+								disabled={!canSubmit}
+								onClick={onSubmit}
+								className="px-4"
 							>
-								{qtyValue}
+								Submit
 							</Button>
-						))}
+							<Menu
+								noSize
+								Trigger={
+									<Button
+										type="button"
+										size="icon"
+										variant="outline"
+										disabled={!canSubmitAll}
+									>
+										<ChevronDown className="h-4 w-4" />
+									</Button>
+								}
+							>
+								<Menu.Item
+									Icon={CheckCircle2}
+									shortCut={formatSubmitAllLabel(progress.pendingQty)}
+									onClick={(event) => {
+										event.preventDefault();
+										onSubmitAll();
+									}}
+								>
+									Submit All
+								</Menu.Item>
+								{progress.isHandled &&
+								progress.pendingQty.lh > 0 &&
+								progress.pendingQty.rh > 0 ? (
+									<Menu.Item
+										Icon={CheckCircle2}
+										shortCut={`${progress.pendingQty.rh}`}
+										onClick={(event) => {
+											event.preventDefault();
+											onSubmitAllRh();
+										}}
+									>
+										Submit All RH
+									</Menu.Item>
+								) : null}
+								{progress.isHandled &&
+								progress.pendingQty.lh > 0 &&
+								progress.pendingQty.rh > 0 ? (
+									<Menu.Item
+										Icon={CheckCircle2}
+										shortCut={`${progress.pendingQty.lh}`}
+										onClick={(event) => {
+											event.preventDefault();
+											onSubmitAllLh();
+										}}
+									>
+										Submit All LH
+									</Menu.Item>
+								) : null}
+							</Menu>
+						</ButtonGroup>
 					</div>
 					{shouldShowCombobox ? (
 						<ComboboxDropdown
 							items={quantityItems}
 							selectedItem={selectedItem}
-							onSelect={(item) => onValueChange(item.id)}
+							onSelect={(item) => onQtyChange(item.id)}
 							onCreate={(inputValue) => {
 								const sanitized = inputValue.replace(/\D/g, "");
 								const numeric = Number(sanitized);
@@ -2234,7 +2619,7 @@ function SubmissionLane({
 								) {
 									return;
 								}
-								onValueChange(String(numeric));
+								onQtyChange(String(numeric));
 							}}
 							renderOnCreate={(inputValue) => {
 								const sanitized = inputValue.replace(/\D/g, "");
@@ -2245,8 +2630,8 @@ function SubmissionLane({
 								}
 								return <span>{`Use ${numeric}`}</span>;
 							}}
-							placeholder={`Select ${label} quantity`}
-							searchPlaceholder={`Type ${label} quantity`}
+							placeholder="Select quantity"
+							searchPlaceholder="Type quantity"
 							emptyResults="No quantity found"
 							className="rounded-lg"
 						/>
@@ -2255,6 +2640,178 @@ function SubmissionLane({
 			)}
 		</div>
 	);
+}
+
+function SubmissionEditForm({
+	progress,
+	submission,
+	onCancel,
+	onSave,
+}: {
+	progress: AssignmentProgress;
+	submission: NonNullable<
+		NonNullable<AssignmentProgress["assignment"]["submissions"]>[number]
+	>;
+	onCancel: () => void;
+	onSave: (qty: { qty?: number; lh?: number; rh?: number }) => void;
+}) {
+	const [qty, setQty] = useState(String(submission.qty?.qty || 0));
+	const [lh, setLh] = useState(String(submission.qty?.lh || 0));
+	const [rh, setRh] = useState(String(submission.qty?.rh || 0));
+	const currentQty = normalizeQtyMatrix(submission.qty);
+	const isHandled = progress.isHandled;
+	const maxQty = currentQty.qty + progress.pendingQty.qty;
+	const maxLh = currentQty.lh + progress.pendingQty.lh;
+	const maxRh = currentQty.rh + progress.pendingQty.rh;
+
+	return (
+		<div className="mt-3 rounded-lg bg-background/80 p-3">
+			<div className="grid gap-3 sm:grid-cols-2">
+				{isHandled ? (
+					<>
+						<div className="space-y-2">
+							<Label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+								LH
+							</Label>
+							<Input
+								type="number"
+								min={0}
+								max={maxLh}
+								value={lh}
+								onChange={(event) => setLh(event.target.value)}
+							/>
+						</div>
+						<div className="space-y-2">
+							<Label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+								RH
+							</Label>
+							<Input
+								type="number"
+								min={0}
+								max={maxRh}
+								value={rh}
+								onChange={(event) => setRh(event.target.value)}
+							/>
+						</div>
+					</>
+				) : (
+					<div className="space-y-2 sm:col-span-2">
+						<Label className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+							Qty
+						</Label>
+						<Input
+							type="number"
+							min={0}
+							max={maxQty}
+							value={qty}
+							onChange={(event) => setQty(event.target.value)}
+						/>
+					</div>
+				)}
+			</div>
+			<div className="mt-3 flex justify-end gap-2">
+				<Button type="button" size="sm" variant="outline" onClick={onCancel}>
+					Cancel
+				</Button>
+				<Button
+					type="button"
+					size="sm"
+					onClick={() =>
+						onSave(
+							isHandled
+								? {
+										qty: toPositiveNumber(lh) + toPositiveNumber(rh),
+										lh: toPositiveNumber(lh),
+										rh: toPositiveNumber(rh),
+									}
+								: {
+										qty: toPositiveNumber(qty),
+									},
+						)
+					}
+				>
+					Save
+				</Button>
+			</div>
+		</div>
+	);
+}
+
+function selectedHandleValue(
+	progress: AssignmentProgress,
+	selectedHandle: string,
+) {
+	if (!progress.isHandled) return "qty";
+	if (selectedHandle === "lh" && progress.pendingQty.lh > 0) return "lh";
+	if (selectedHandle === "rh" && progress.pendingQty.rh > 0) return "rh";
+	if (progress.pendingQty.lh > 0) return "lh";
+	if (progress.pendingQty.rh > 0) return "rh";
+	return "qty";
+}
+
+function formatSubmitAllLabel(qty: { qty?: number; lh?: number; rh?: number }) {
+	const normalized = normalizeQtyMatrix(qty);
+	if (normalized.lh > 0 || normalized.rh > 0) {
+		return [
+			normalized.lh ? `${normalized.lh} LH` : null,
+			normalized.rh ? `${normalized.rh} RH` : null,
+		]
+			.filter(Boolean)
+			.join(" & ");
+	}
+	return `${normalized.qty}`;
+}
+
+function getWorkerItemCompletionSummary(items: ProductionDetail["items"]) {
+	const productionItems = items.filter((item) => item.isProduction);
+	const total = productionItems.length;
+	const completed = productionItems.filter((item) => {
+		const assignmentProgress = (item.assignments || []).map((assignment) =>
+			buildAssignmentSubmissionProgress(assignment),
+		);
+		return (
+			assignmentProgress.length > 0 &&
+			assignmentProgress.every((entry) => entry.isCompleted)
+		);
+	}).length;
+
+	return {
+		completed,
+		total,
+		label: total ? `${completed}/${total} completed` : "No assigned items",
+	};
+}
+
+function getWorkerAssignmentStatus(item: ProductionDetail["items"][number]) {
+	const assignmentProgress = (item.assignments || []).map((assignment) =>
+		buildAssignmentSubmissionProgress(assignment),
+	);
+	const assignedTotal = assignmentProgress.reduce(
+		(total, assignment) => total + assignment.assignmentQty.qty,
+		0,
+	);
+	const completedTotal = assignmentProgress.reduce(
+		(total, assignment) => total + assignment.submittedQty.qty,
+		0,
+	);
+	const normalizedCompleted = Math.min(completedTotal, assignedTotal);
+
+	return {
+		isCompleted: assignedTotal > 0 && normalizedCompleted >= assignedTotal,
+		label:
+			assignedTotal > 0
+				? `${normalizedCompleted}/${assignedTotal} completed`
+				: "No assigned qty",
+	};
+}
+
+function chunkProductionItems<T>(items: T[], size: number) {
+	const chunkSize = Math.max(size, 1);
+	const rows: T[][] = [];
+	for (let index = 0; index < items.length; index += chunkSize) {
+		rows.push(items.slice(index, index + chunkSize));
+	}
+	return rows;
 }
 
 function buildAssignmentSubmissionProgress(
