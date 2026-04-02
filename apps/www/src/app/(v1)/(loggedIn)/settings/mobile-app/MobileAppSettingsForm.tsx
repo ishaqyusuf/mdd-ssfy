@@ -4,8 +4,10 @@ import { useMemo, useRef, useState } from "react";
 
 import { saveAppDownloadSettingAction } from "@/app-deps/(v1)/_actions/settings";
 import Btn from "@/components/_v1/btn";
-import { uploadFile } from "@/lib/upload-file";
+import { env } from "@/env.mjs";
+import { generateRandomString } from "@/lib/utils";
 import type { AppDownloadMeta, AppDownloadSettings } from "@/types/settings";
+import { put } from "@vercel/blob";
 import { toast } from "sonner";
 
 import { Button } from "@gnd/ui/button";
@@ -20,6 +22,7 @@ type Props = {
 export default function MobileAppSettingsForm({ data }: Props) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploading, setUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
     const [saving, setSaving] = useState(false);
     const [meta, setMeta] = useState<AppDownloadMeta>(() => ({
         ...(data?.meta || {}),
@@ -31,29 +34,39 @@ export default function MobileAppSettingsForm({ data }: Props) {
         if (!file) return;
 
         setUploading(true);
+        setUploadProgress(0);
         try {
-            const formData = new FormData();
-            formData.append("file", file);
-
-            const uploaded = await uploadFile(formData, "app-download", {
-                resourceType: "raw",
+            const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+            const blobPath = [
+                "mobile-apps",
+                `${Date.now()}-${generateRandomString(6)}-${sanitizedFileName}`,
+            ].join("/");
+            const uploaded = await put(blobPath, file, {
+                access: "public",
+                token: env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
+                contentType:
+                    file.type || "application/vnd.android.package-archive",
+                onUploadProgress(event) {
+                    setUploadProgress(Math.round(event.percentage));
+                },
             });
-            if (uploaded?.error) {
-                toast.error(uploaded.error.message || "APK upload failed.");
-                return;
-            }
 
             setMeta((prev) => ({
                 ...prev,
                 fileName: file.name,
-                downloadUrl: uploaded.secure_url ?? uploaded.public_id ?? "",
-                publicId: uploaded.public_id ?? null,
-                assetId: uploaded.asset_id ?? null,
+                downloadUrl: uploaded.url ?? "",
+                publicId: uploaded.pathname ?? null,
+                assetId: null,
                 uploadedAt: new Date().toISOString(),
             }));
             toast.success("APK uploaded. Save to activate this build.");
+        } catch (error) {
+            const message =
+                error instanceof Error ? error.message : "APK upload failed.";
+            toast.error(message);
         } finally {
             setUploading(false);
+            setUploadProgress(0);
             if (fileInputRef.current) {
                 fileInputRef.current.value = "";
             }
@@ -116,6 +129,22 @@ export default function MobileAppSettingsForm({ data }: Props) {
                                 Upload a new Android APK to replace the current
                                 download.
                             </p>
+                            {(uploading || uploadProgress > 0) && (
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                        <span>Uploading APK...</span>
+                                        <span>{uploadProgress}%</span>
+                                    </div>
+                                    <div className="h-2 overflow-hidden rounded-full bg-muted">
+                                        <div
+                                            className="h-full bg-primary transition-[width] duration-200"
+                                            style={{
+                                                width: `${uploadProgress}%`,
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="grid gap-4 md:grid-cols-2">

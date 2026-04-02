@@ -10,6 +10,8 @@
   - production items now render in a row-aware grid, switching to `lg:grid-cols-2` when there are more than 2 items
   - clicking a production item now opens the full detail panel immediately after that card row instead of nesting the details inside the card itself
   - worker submission entry now uses compact button groups with handle toggles, quantity presets, and combobox fallback for larger available quantities
+  - worker expanded orders now render only production items assigned to the logged-in worker, with an extra client-side visibility guard in the shared grid
+  - v2 production list completion now uses scope-aware semantics: worker mode uses only that worker's related assignments, while admin mode requires submitted production qty to cover the full production qty before an order is treated as completed or excluded from past-due/pending queues
 
 ## 2026-03-29
 

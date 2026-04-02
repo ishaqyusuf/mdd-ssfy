@@ -260,6 +260,10 @@ Admin affordances:
 - Records tab includes an upload action for Admin and Super Admin users.
 - Upload-on-behalf saves to the viewed employee, refreshes the overview query, and pushes insurance documents into the normal pending-review workflow.
 
+Record interactions:
+- Each employee record can be previewed directly from the overview tab.
+- Preview opens an in-app document viewer for PDFs and images, with an external-open fallback for unsupported file types.
+
 ---
 
 ## Execution Phases

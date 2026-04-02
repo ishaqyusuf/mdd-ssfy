@@ -162,7 +162,13 @@ async function getProductionListAction(db: Db, query: SalesQueryParamsSchema) {
 		...queryProps,
 		select: select(whereAssignments),
 	});
-	return response(data.map(transformProductionList));
+	return response(
+		data.map((item) =>
+			transformProductionList(item, {
+				useAssignmentCompletion: !!query.workerId,
+			}),
+		),
+	);
 }
 const select = (whereAssignments?) =>
 	({
@@ -217,7 +223,9 @@ function transformProductionList(
 	item: Prisma.SalesOrdersGetPayload<{
 		select: ReturnType<typeof select>;
 	}>,
-
+	options?: {
+		useAssignmentCompletion?: boolean;
+	},
 	//RenturnTypeAsync<typeof getProductionListAction>[number]
 ) {
 	// item.assignments;
@@ -235,7 +243,24 @@ function transformProductionList(
 			sum(a.submissions.map((s) => s.qty || sum([s.lhQty, s.rhQty]))),
 		),
 	);
-	const completed = totalAssigned == totalCompleted;
+	const totalProductionQty = sum(
+		item.itemControls
+			.filter((control) =>
+				control.qtyControls.some((qty) => qty.type === "prodCompleted"),
+			)
+			.map((control) => {
+				const productionQty = control.qtyControls.find(
+					(qty) => qty.type === "prodCompleted",
+				);
+				const fallbackQty = control.qtyControls.find(
+					(qty) => qty.type === "prodAssigned",
+				);
+				return productionQty?.itemTotal || fallbackQty?.itemTotal || 0;
+			}),
+	);
+	const completed = options?.useAssignmentCompletion
+		? totalAssigned === totalCompleted
+		: totalProductionQty > 0 && totalCompleted >= totalProductionQty;
 	// if (completed) alert.date = null;
 
 	return {

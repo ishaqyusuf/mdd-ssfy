@@ -68,6 +68,10 @@ Provide a cleaner production operations surface for both admins and production w
 - `sales.productionOrderDetailV2`: lazy inline detail payload for expanded order sections
 - `sales.productionOrderDetailV2.items[].noteContext`: normalized note identity used by the new inbox/chat note system
 - Worker scoping remains server-enforced in v2 through authenticated `workerId` injection at the router layer.
+- Worker expanded-order item grids now apply a client-side safety filter too, so only production items assigned to the logged-in worker render in worker mode.
+- `completed` semantics now differ by scope in the shared production list pipeline:
+  - worker mode treats an order as completed only when that worker's related assignments are fully submitted
+  - admin mode treats an order as completed only when total submitted production qty meets the full production qty for the order
 
 ## V2 Notes
 - Order-level notes now use the newer inbox/chat note flow on the `sales_info` notification channel.

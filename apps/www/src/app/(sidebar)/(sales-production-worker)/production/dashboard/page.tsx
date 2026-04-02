@@ -14,10 +14,9 @@ export default function Page() {
     // redirect("/production/dashboard/v2"); // Temporary redirect to the new production page while we transition
     return (
         <PageShell>
-            {/* <div className="relative">
-				<ProductionWorkspace mode="worker" />
-			</div> */}
-            <ProductionWorkerDashboardV2 />
+            <div className="relative">
+                <ProductionWorkspace mode="worker" />
+            </div>
         </PageShell>
     );
 }

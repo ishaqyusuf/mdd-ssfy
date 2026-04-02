@@ -962,6 +962,7 @@ function ProductionOrderDetailInline({
 }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const auth = useAuth();
 	const detailQuery = useQuery(
 		trpc.sales.productionOrderDetailV2.queryOptions({
 			salesNo,
@@ -1034,8 +1035,11 @@ function ProductionOrderDetailInline({
 		);
 	}
 
+	const workerId = auth.id ? Number(auth.id) : null;
 	const productionItems =
-		detail?.items?.filter((item) => item.isProduction) || [];
+		detail?.items?.filter((item) =>
+			isVisibleProductionItemForScope(item, scope, workerId),
+		) || [];
 	const assignableSelections = productionItems
 		.map((item) => {
 			const totalQty = item.qty?.qty || 0;
@@ -1117,8 +1121,8 @@ function ProductionOrderDetailInline({
 				</div>
 
 				<TabsContent value="productions" className="mt-0 space-y-4">
-					{detail?.items?.length ? (
-						<ProductionItemsGrid scope={scope} items={detail.items} />
+					{productionItems.length ? (
+						<ProductionItemsGrid scope={scope} items={productionItems} />
 					) : (
 						<div className="rounded-2xl border border-dashed p-6 text-sm text-muted-foreground">
 							No production items available for this order.
@@ -1160,7 +1164,7 @@ function ProductionItemsGrid({
 	const [expandedItemUid, setExpandedItemUid] = useState<string | null>(
 		defaultExpandedUid,
 	);
-	const rows = chunkProductionItems(items, 2);
+	const rows = chunkProductionItems(productionItems, 2);
 
 	useEffect(() => {
 		if (
@@ -1798,7 +1802,7 @@ function ProductionItemOverviewTab({
 									<p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
 										{config.label || "Detail"}
 									</p>
-									<p className="mt-1 text-sm font-medium">
+									<p className="mt-1 text-sm font-medium uppercase">
 										{config.value || "-"}
 									</p>
 								</div>
@@ -2814,6 +2818,21 @@ function chunkProductionItems<T>(items: T[], size: number) {
 	return rows;
 }
 
+function isVisibleProductionItemForScope(
+	item: ProductionDetail["items"][number],
+	scope: Scope,
+	workerId: number | null,
+) {
+	if (!item.isProduction) return false;
+	if (scope !== "worker") return true;
+	if (!workerId) return false;
+	return (
+		item.assignments?.some(
+			(assignment) => assignment.assignedToId === workerId,
+		) || false
+	);
+}
+
 function buildAssignmentSubmissionProgress(
 	assignment: NonNullable<
 		ProductionDetail["items"][number]["assignments"]
@@ -2922,13 +2941,6 @@ function toPositiveNumber(value: string) {
 }
 
 function getOrderStatusPresentation(item: ProductionListItem) {
-	if (item.completed) {
-		return {
-			label: "Completed",
-			className: "border-emerald-200 bg-emerald-50 text-emerald-700",
-		};
-	}
-
 	const status = String(
 		item.status?.production?.scoreStatus ||
 			item.status?.production?.status ||
@@ -2966,6 +2978,13 @@ function getOrderStatusPresentation(item: ProductionListItem) {
 		return {
 			label: item.status?.production?.scoreStatus || "In Progress",
 			className: "border-blue-200 bg-blue-50 text-blue-700",
+		};
+	}
+
+	if (item.completed) {
+		return {
+			label: "Completed",
+			className: "border-emerald-200 bg-emerald-50 text-emerald-700",
 		};
 	}
 

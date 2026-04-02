@@ -19,7 +19,9 @@ const exactRedirectMaps = {
     "/community/productions": "/community/unit-productions",
     "/community/units": "/community/project-units",
     "community-settings/builders": "/community/builders",
+    "/hrm/employees": "/hrm/employees/v2",
     "/payments": "/jobs-dashboard/payments",
+    "/production/dashboard": "/production/dashboard/v2",
     "/sales-book/production-tasks": "/production/dashboard",
     "/settings/community/builders": "/community/builders",
 } as const;
