@@ -7,6 +7,11 @@ import { toast } from "sonner";
 
 import { Button } from "@gnd/ui/button";
 import {
+    Card,
+    CardContent,
+    CardHeader,
+} from "@gnd/ui/card";
+import {
     Collapsible,
     CollapsibleContent,
     CollapsibleTrigger,
@@ -27,33 +32,39 @@ export default function ItemSection({ uid }: Props) {
 
     const sequence = zus.sequence?.stepComponent?.[uid];
     return (
-        <div className="mb-2 sm:rounded-lg bg-background sm:mb-4">
+        <Card className="mb-3 overflow-hidden rounded-2xl border-slate-200/80 bg-white/95 shadow-sm ring-1 ring-slate-900/5 sm:mb-4">
             <Collapsible
                 open
                 onOpenChange={(e) => {
                     zus.toggleItem(uid);
                 }}
             >
-                <ItemSectionHeader
-                    ignoreCollapse={sequence?.length <= 3}
-                    uid={uid}
-                />
-                <CollapsibleContent className="flex border">
-                    <div className="flex flex-1 flex-col ">
-                        {sequence?.map((stepUid, index) => (
-                            <StepSection
-                                isFirst={index == 0}
-                                isLast={sequence?.length - 1 == index}
-                                key={index}
-                                stepUid={stepUid}
-                                ignoreCollapse={sequence?.length <= 3}
-                            />
-                        ))}
-                    </div>
-                    <ItemSideView itemUid={uid} />
+                <CardHeader className="border-b border-slate-200/80 bg-slate-50/70 p-0">
+                    <ItemSectionHeader
+                        ignoreCollapse={sequence?.length <= 3}
+                        uid={uid}
+                    />
+                </CardHeader>
+                <CollapsibleContent asChild>
+                    <CardContent className="p-0">
+                        <div className="flex">
+                            <div className="flex flex-1 flex-col">
+                                {sequence?.map((stepUid, index) => (
+                                    <StepSection
+                                        isFirst={index == 0}
+                                        isLast={sequence?.length - 1 == index}
+                                        key={index}
+                                        stepUid={stepUid}
+                                        ignoreCollapse={sequence?.length <= 3}
+                                    />
+                                ))}
+                            </div>
+                            <ItemSideView itemUid={uid} />
+                        </div>
+                    </CardContent>
                 </CollapsibleContent>
             </Collapsible>
-        </div>
+        </Card>
     );
 }
 function ItemSectionHeader({ uid, ignoreCollapse = false }) {
@@ -79,7 +90,7 @@ function ItemSectionHeader({ uid, ignoreCollapse = false }) {
         }
     };
     return (
-        <div className="flex items-center gap-4 border p-2 px-4">
+        <div className="flex items-center gap-3 p-3 sm:px-4">
             <CollapsibleTrigger asChild className="flex-1">
                 <div
                     className="flex "
@@ -92,7 +103,7 @@ function ItemSectionHeader({ uid, ignoreCollapse = false }) {
                         onChange={(e) => {
                             zus.updateFormItem(uid, "title", e.target.value);
                         }}
-                        className="h-8 uppercase"
+                        className="h-9 border-slate-200 bg-white uppercase"
                         placeholder={placeholder}
                     />
                 </div>

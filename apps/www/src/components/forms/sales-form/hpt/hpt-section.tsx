@@ -311,28 +311,32 @@ function DoorSizeRowContent({
                             />
                         </div>
                     )}
-                    {ctx.config.noHandle ? (
-                        <div className="space-y-1">
-                            <div className="text-xs uppercase text-muted-foreground">
-                                Qty
-                            </div>
+                </div>
+
+                <div className="grid gap-2 grid-cols-3 items-end">
+                    <div className="space-y-1">
+                        <div className="text-xs uppercase text-muted-foreground">
+                            Estimate
+                        </div>
+                        <PriceEstimateCell />
+                    </div>
+                    <div className="space-y-1">
+                        <div className="text-xs uppercase text-muted-foreground">
+                            {ctx.config.noHandle ? "Qty" : "Qty"}
+                        </div>
+                        {ctx.config.noHandle ? (
                             <LineInput
                                 cls={ctx.hpt}
                                 name="qty.total"
                                 lineUid={lineUid}
-                                className="w-20 text-center"
+                                className="w-full text-center"
                                 type="number"
                                 valueChanged={valueChanged}
                                 mask
                                 qtyInputProps={{ min: 0 }}
                             />
-                        </div>
-                    ) : (
-                        <>
-                            <div className="space-y-1">
-                                <div className="text-xs uppercase text-muted-foreground">
-                                    LH
-                                </div>
+                        ) : (
+                            <div className="grid grid-cols-2 gap-2">
                                 <LineInput
                                     cls={ctx.hpt}
                                     name="qty.lh"
@@ -342,11 +346,6 @@ function DoorSizeRowContent({
                                     mask
                                     qtyInputProps={{ min: 0 }}
                                 />
-                            </div>
-                            <div className="space-y-1">
-                                <div className="text-xs uppercase text-muted-foreground">
-                                    RH
-                                </div>
                                 <LineInput
                                     cls={ctx.hpt}
                                     name="qty.rh"
@@ -357,16 +356,7 @@ function DoorSizeRowContent({
                                     qtyInputProps={{ min: 1 }}
                                 />
                             </div>
-                        </>
-                    )}
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1">
-                        <div className="text-xs uppercase text-muted-foreground">
-                            Estimate
-                        </div>
-                        <PriceEstimateCell />
+                        )}
                     </div>
                     <div className="space-y-1">
                         <div className="text-xs uppercase text-muted-foreground">

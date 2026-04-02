@@ -29,6 +29,10 @@ export default function MobileAppSettingsForm({ data }: Props) {
     }));
 
     const downloadRoute = useMemo(() => "/api/download-app", []);
+    const downloadUrl = useMemo(() => {
+        const baseUrl = env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+        return `${baseUrl}${downloadRoute}`;
+    }, [downloadRoute]);
 
     async function handleFileSelect(file?: File | null) {
         if (!file) return;
@@ -91,6 +95,15 @@ export default function MobileAppSettingsForm({ data }: Props) {
             toast.error(message);
         } finally {
             setSaving(false);
+        }
+    }
+
+    async function handleCopyDownloadLink() {
+        try {
+            await navigator.clipboard.writeText(downloadUrl);
+            toast.success("Download link copied.");
+        } catch (error) {
+            toast.error("Unable to copy download link.");
         }
     }
 
@@ -201,6 +214,12 @@ export default function MobileAppSettingsForm({ data }: Props) {
                             >
                                 Save Active APK
                             </Btn>
+                            <Button
+                                variant="secondary"
+                                onClick={handleCopyDownloadLink}
+                            >
+                                Copy Download Link
+                            </Button>
                             <Button asChild variant="outline">
                                 <a href={downloadRoute} target="_blank">
                                     Test Download Route
@@ -233,6 +252,12 @@ export default function MobileAppSettingsForm({ data }: Props) {
                                 <div className="break-all">
                                     {meta.fileName || "Not set"}
                                 </div>
+                            </div>
+                            <div>
+                                <div className="text-muted-foreground">
+                                    Stable Download Link
+                                </div>
+                                <div className="break-all">{downloadUrl}</div>
                             </div>
                             <div>
                                 <div className="text-muted-foreground">

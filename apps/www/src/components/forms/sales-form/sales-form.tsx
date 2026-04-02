@@ -14,6 +14,8 @@ import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { Button } from "@gnd/ui/button";
 import { useSidebar } from "@gnd/ui/sidebar";
 import { Sidebar } from "@gnd/ui/namespace";
+import { useMediaQuery } from "@gnd/ui/hooks/use-media-query";
+import { useEffect } from "react";
 
 export function SalesFormClient({ data }) {
     const zus = useFormDataStore();
@@ -41,9 +43,15 @@ function Content({ data }) {
     }
     const sidebar = useSidebar();
     const hidden = !sidebar?.open;
+    const isLgOrBelow = useMediaQuery("(max-width: 1023px)");
     const zus = useFormDataStore();
     const [takeOff, takeOffChanged] = useLocalStorage("take-off", false);
     const itemCount = zus.sequence?.formItem?.length || 0;
+
+    useEffect(() => {
+        if (!isLgOrBelow) return;
+        sidebar?.setOpen(false);
+    }, [isLgOrBelow]);
 
     return (
         <>
@@ -81,12 +89,15 @@ function Content({ data }) {
                         <Button
                             size="sm"
                             variant="outline"
-                            className="hidden xl:inline-flex"
+                            className={cn(
+                                "hidden",
+                                isLgOrBelow ? "inline-flex" : "xl:inline-flex",
+                            )}
                             onClick={() => sidebar.toggleSidebar()}
                         >
                             {hidden ? "Show Sales Panel" : "Hide Sales Panel"}
                         </Button>
-                        <Sidebar.Trigger />
+                        {!isLgOrBelow ? <Sidebar.Trigger /> : null}
                     </div>
                 </div>
                 <div className="min-h-0 flex-1">
@@ -150,7 +161,15 @@ function Content({ data }) {
                 </div>
             </Sidebar.Inset>
 
-            <SalesFormSidebar className="hidden xl:flex" />
+            {isLgOrBelow ? (
+                <SalesFormSidebar
+                    sheetMode
+                    mobileOpen={!hidden}
+                    onMobileOpenChange={(open) => sidebar.setOpen(open)}
+                />
+            ) : (
+                <SalesFormSidebar className="hidden xl:flex" />
+            )}
             <FormWatcher />
             <TakeoffSwitch {...{ takeOff, takeOffChanged }} />
         </>
