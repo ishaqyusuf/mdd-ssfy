@@ -40,8 +40,11 @@ describe("composeLineItemSections", () => {
 		);
 
 		expect(sections).toHaveLength(1);
+		expect(sections[0]?.title).toBe("");
 		expect(sections[0]?.rows).toHaveLength(2);
-		expect(sections[0]?.rows[0]?.cells[1]?.value).toBe("First line item");
-		expect(sections[0]?.rows[1]?.cells[1]?.value).toBe("Second line item");
+		expect(sections[0]?.rows[0]?.cells[1]?.value).toBe("FIRST LINE ITEM");
+		expect(sections[0]?.rows[0]?.cells[2]?.value).toBe("LH");
+		expect(sections[0]?.rows[1]?.cells[1]?.value).toBe("SECOND LINE ITEM");
+		expect(sections[0]?.rows[1]?.cells[2]?.value).toBe("RH");
 	});
 });

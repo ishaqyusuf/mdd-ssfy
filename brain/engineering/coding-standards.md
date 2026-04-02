@@ -3,6 +3,9 @@
 ## Purpose
 Repository-level implementation rules that recur across active workstreams.
 
+## Canonical Guide
+- See `brain/system/architecture-guide.md` for the full repository architecture handbook, including placement, Midday-style page architecture, and performance expectations.
+
 ## Standards
 - Prefer shared package/domain logic over app-local duplication.
 - Follow the implementation order `Schema -> API -> UI -> Validation -> Polish` for cross-layer features and fixes.

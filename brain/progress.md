@@ -6,6 +6,11 @@
 
 ## 2026-04-01
 
+- Added a canonical architecture handbook at `brain/system/architecture-guide.md`.
+  - grounded the guide in the current GND monorepo structure and the local Midday reference project at `/Users/M1PRO/Documents/code/_kitchen_sink/midday`
+  - documented repository principles for package boundaries, thin app surfaces, Midday-style page composition, performance expectations, and feature delivery rules
+  - updated compatibility/index docs so `brain/architecture.md`, `brain/system/architecture.md`, `brain/engineering/repo-structure.md`, and `brain/engineering/coding-standards.md` now point to the new canonical guide
+
 - Started the Sales Orders V2 rebuild under `/sales-book/orders/v2`.
   - Added dedicated backend contracts in `apps/api`:
     - `sales.getOrdersV2`
@@ -884,3 +889,6 @@
 - Added explicit `projectTabColumns` exports to the shared Units, Production, Invoices, and Jobs column modules so the project overview tabs can use purpose-built embedded columns without changing the main standalone page layouts.
 - Moved the project documents area into the same overview tab system as the operational data tabs, and wrapped each embedded data-table tab in `Suspense` with a lightweight per-tab fallback shell.
 - Renamed the overview documents tab to `Project Timeline` and redesigned it around an activity-history feed that renders attached documents in a compact grid, including image thumbnails for image files and document cards with file names for non-image uploads.
+- Added a proxy-level redirect engine for page migrations in `apps/www`, with a dedicated routing registry under `src/lib/routing/redirect-engine.ts` instead of embedding redirect semantics in sidebar links.
+- The redirect engine now supports exact, dynamic `:param`, and prefix rules with deterministic precedence, preserves query strings by default, and normalizes login `return_to` paths through the same canonicalization flow used by the proxy.
+- Wired the active `apps/www/src/proxy.ts` to resolve legacy paths before auth/access checks, starting with `/sales-book/production-tasks -> /production/dashboard`, and added focused tests for exact, pattern, prefix, and canonical-path behavior.

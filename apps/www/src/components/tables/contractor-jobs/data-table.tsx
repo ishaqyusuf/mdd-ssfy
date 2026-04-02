@@ -10,11 +10,16 @@ import { NoResults } from "@gnd/ui/custom/no-results";
 import { Table, useTableData } from "@gnd/ui/data-table";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { Icons } from "@gnd/ui/icons";
+import type { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { BatchActions } from "./batch-actions";
-import type { ColumnDef } from "@tanstack/react-table";
-import { adminColumns, mobileColumn, type JobItem, workersColumn } from "./columns";
+import {
+	type JobItem,
+	adminColumns,
+	mobileColumn,
+	workersColumn,
+} from "./columns";
 interface Props {
 	defaultFilters?: GetJobsSchema;
 	columnSet?: "admin" | "worker";

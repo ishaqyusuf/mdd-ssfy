@@ -138,6 +138,12 @@ export const workersColumn: Column[] = [
 	actionColumn,
 ];
 
+function isLockedWorkerJob(item: JobItem) {
+	return (
+		item.status === "Approved" || item.status === "Paid" || !!item.payment?.id
+	);
+}
+
 function StatusActionsDropdown({ item }: ItemProps) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -232,10 +238,12 @@ function StatusActionsDropdown({ item }: ItemProps) {
 function Actions({ item }: ItemProps) {
 	const { setParams } = useJobFormParams();
 	const isAdmin = useJobRole().isAdmin;
+	const isLocked = !isAdmin && isLockedWorkerJob(item);
 	return (
 		<div className="relative flex items-center justify-end gap-2 z-10">
 			{isAdmin ? <StatusActionsDropdown item={item} /> : null}
 			<EditButton
+				disabled={isLocked}
 				onClick={(e) => {
 					setParams({
 						jobId: item.id,
@@ -250,6 +258,7 @@ function Actions({ item }: ItemProps) {
 			<DeleteButton
 				// size="xs"
 				size="sm"
+				disabled={isLocked}
 				route="jobs.deleteJob"
 				input={{ id: item.id }}
 				onDelete={() => {
@@ -273,7 +282,65 @@ export const mobileColumn: ColumnDef<JobItem>[] = [
 	},
 ];
 function ItemCard({ item }: ItemProps) {
-	// design a mobile version of the columns here
 	const { setParams } = useJobParams();
-	return <></>;
+	const isAdmin = useJobRole().isAdmin;
+
+	return (
+		<div className="flex w-full flex-col gap-4 rounded-2xl border bg-card p-4 text-left shadow-sm">
+			<div className="flex items-start justify-between gap-3">
+				<div className="min-w-0">
+					<p className="truncate text-sm font-semibold text-foreground">
+						#{padStart(item.id, 5, "0")}
+					</p>
+					<p className="mt-1 text-xs text-muted-foreground">
+						{formatDate(item.createdAt)}
+					</p>
+				</div>
+				<Progress.Status badge noDot>
+					{item.status}
+				</Progress.Status>
+			</div>
+
+			<div className="min-w-0">
+				<p className="line-clamp-1 text-sm font-medium text-foreground">
+					{item.title}
+					{item.subtitle ? ` - ${item.subtitle}` : ""}
+				</p>
+				<p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+					{item.description || "No description"}
+				</p>
+			</div>
+
+			<div className="flex items-center justify-between gap-3">
+				<div className="min-w-0">
+					{isAdmin && item.user?.name ? (
+						<p className="truncate text-xs text-muted-foreground">
+							Contractor: {item.user.name}
+						</p>
+					) : null}
+				</div>
+				<p className="shrink-0 text-base font-semibold text-foreground">
+					${item.amount?.toFixed(2)}
+				</p>
+			</div>
+
+			<div className="flex items-center justify-between gap-3">
+				<Button
+					size="sm"
+					variant="outline"
+					onClick={() => {
+						setParams({
+							openJobId: item.id,
+						});
+					}}
+				>
+					Open
+				</Button>
+			</div>
+
+			<div>
+				<Actions item={item} />
+			</div>
+		</div>
+	);
 }

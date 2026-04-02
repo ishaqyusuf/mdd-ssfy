@@ -3,6 +3,9 @@
 ## Purpose
 Tracks the current technical topology and major module boundaries.
 
+## Canonical Guide
+- Use `brain/system/architecture-guide.md` for repository-wide architecture rules, placement guidance, Midday-inspired page patterns, performance guidance, and coding standards alignment.
+
 ## Current Topology
 - Monorepo: Turborepo + Bun workspaces
 - Apps:

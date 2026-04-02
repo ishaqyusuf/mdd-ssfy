@@ -51,6 +51,14 @@ function getSectionIndex(items: PrintSalesItem[]): number {
 	);
 }
 
+function formatLineItemDescription(value: string | null | undefined) {
+	return String(value || "").toUpperCase();
+}
+
+function formatLineItemSwing(value: string | null | undefined) {
+	return String(value || "").toUpperCase();
+}
+
 export function composeLineItemSections(
 	sale: PrintSalesData,
 	config: PrintModeConfig,
@@ -107,13 +115,13 @@ export function composeLineItemSections(
 				bold: true,
 			},
 			{
-				value: item.description ?? "",
+				value: formatLineItemDescription(item.description),
 				colSpan: 5,
 				align: isGroupHeader ? "center" : "left",
 				bold: true,
 			},
 			{
-				value: item.swing ?? "",
+				value: formatLineItemSwing(item.swing),
 				colSpan: 2,
 				align: "center",
 				bold: true,
@@ -161,7 +169,7 @@ export function composeLineItemSections(
 		{
 			kind: "line-item",
 			index: getSectionIndex(items.map(({ item }) => item)),
-			title: "Invoice Lines",
+			title: "",
 			headers,
 			rows,
 		},

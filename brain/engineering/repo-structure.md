@@ -3,6 +3,9 @@
 ## Purpose
 Describes how the monorepo is organized so contributors can place code and docs consistently.
 
+## Canonical Guide
+- See `brain/system/architecture-guide.md` for the full architectural placement model and boundary rules.
+
 ## Layout
 - `apps/`: deployable application surfaces
 - `packages/`: shared business logic, infrastructure, and UI modules
