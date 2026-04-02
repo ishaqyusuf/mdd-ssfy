@@ -7,6 +7,9 @@ import { AnimatedNumber } from "@/components/animated-number";
 import { WageInput } from "@/components/forms/sales-form/hpt/wage-input";
 import { cn } from "@/lib/utils";
 import { Notebook, Repeat } from "lucide-react";
+import Note from "@/modules/notes";
+import { noteTagFilter } from "@/modules/notes/utils";
+import { doorItemControlUid } from "@/app-deps/(clean-code)/(sales)/_common/utils/item-control-utils";
 
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -130,7 +133,25 @@ function DoorSizeTable({ door, sn }: DoorSizeTable) {
     const isSlab = itemType === "Door Slabs Only";
     return (
         <div className="grid w-full grid-cols-1 gap-4 xl:grid-cols-4">
-            <div className="xl:col-span-3">
+            <div className="space-y-4 xl:col-span-3">
+                <div className="lg:hidden">
+                    <Door door={door} />
+                </div>
+                <div className="lg:hidden space-y-3">
+                    {door.sizeList.map((sl, i) => (
+                        <DoorSizeRow
+                            doorIndex={sn - 1}
+                            sn={i + 1}
+                            lineUid={sl.path}
+                            key={`mobile-${sl.path}`}
+                            mode="mobile"
+                        />
+                    ))}
+                    <div className="rounded-xl border bg-accent/40 p-3">
+                        <HptAddDoorSize doorIndex={sn - 1} />
+                    </div>
+                </div>
+                <div className="hidden lg:block">
                 <Table className="table-fixed   p-4 font-medium">
                     <TableHeader className="text-xs">
                         <TableRow className="uppercase">
@@ -182,6 +203,7 @@ function DoorSizeTable({ door, sn }: DoorSizeTable) {
                         </TableRow>
                     </TableFooter>
                 </Table>
+                </div>
             </div>
             <div className="hidden xl:block">
                 <Door door={door} />
@@ -189,7 +211,17 @@ function DoorSizeTable({ door, sn }: DoorSizeTable) {
         </div>
     );
 }
-function DoorSizeRow({ lineUid, sn, doorIndex }: { lineUid; sn; doorIndex }) {
+function DoorSizeRow({
+    lineUid,
+    sn,
+    doorIndex,
+    mode = "desktop",
+}: {
+    lineUid;
+    sn;
+    doorIndex;
+    mode?: "desktop" | "mobile";
+}) {
     return (
         <HptLineContextProvider
             args={[
@@ -199,30 +231,156 @@ function DoorSizeRow({ lineUid, sn, doorIndex }: { lineUid; sn; doorIndex }) {
                 },
             ]}
         >
-            <DoorSizeRowContent doorIndex={doorIndex} sizeIndex={sn - 1} />
+            <DoorSizeRowContent
+                doorIndex={doorIndex}
+                sizeIndex={sn - 1}
+                mode={mode}
+            />
         </HptLineContextProvider>
     );
 }
-function DoorSizeRowContent({ doorIndex, sizeIndex }) {
+function DoorSizeRowContent({
+    doorIndex,
+    sizeIndex,
+    mode = "desktop",
+}: {
+    doorIndex;
+    sizeIndex;
+    mode?: "desktop" | "mobile";
+}) {
     const ctx = useHpt();
     const line = useHptLine();
     const { lineUid, zDoor, sizeForm, size, sn, valueChanged } = line;
     const { isSlab, showNote, setShowNote } = ctx;
 
     if (!zDoor?.selected) return <></>;
-    // return (
-    //     <tr>
-    //         <td colSpan={7}>
-    //             {JSON.stringify({
-    //                 zDoor,
-    //                 sizeForm,
-    //                 lineUid,
-    //                 size,
-    //                 priceList: ctx?.door?.sizePrice?.[0]?.path,
-    //             })}
-    //         </td>
-    //     </tr>
-    // );
+
+    if (mode == "mobile") {
+        return (
+            <div className="space-y-3 rounded-xl border bg-background p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                    <div>
+                        <div className="text-xs uppercase text-muted-foreground">
+                            Size
+                        </div>
+                        <div className="text-base font-semibold">{size.size}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant={showNote ? "default" : "outline"}
+                            size="xs"
+                            onClick={() => {
+                                setShowNote(!showNote);
+                            }}
+                        >
+                            <Notebook className="size-4" />
+                        </Button>
+                        <ConfirmBtn
+                            disabled={ctx.hpt.selectCount == 1}
+                            onClick={() => {
+                                ctx.hpt.removeGroupItem(size.path);
+                            }}
+                            trash
+                            size="icon"
+                        />
+                    </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                    {!isSlab || (
+                        <div className="space-y-1">
+                            <div className="text-xs uppercase text-muted-foreground">
+                                Prod
+                            </div>
+                            <LineSwitch
+                                cls={ctx.hpt}
+                                name="prodOverride.production"
+                                lineUid={lineUid}
+                            />
+                        </div>
+                    )}
+                    {ctx.config.hasSwing && (
+                        <div className="space-y-1">
+                            <div className="text-xs uppercase text-muted-foreground">
+                                Swing
+                            </div>
+                            <LineInput
+                                cls={ctx.hpt}
+                                name="swing"
+                                lineUid={lineUid}
+                            />
+                        </div>
+                    )}
+                    {ctx.config.noHandle ? (
+                        <div className="space-y-1">
+                            <div className="text-xs uppercase text-muted-foreground">
+                                Qty
+                            </div>
+                            <LineInput
+                                cls={ctx.hpt}
+                                name="qty.total"
+                                lineUid={lineUid}
+                                className="w-20 text-center"
+                                type="number"
+                                valueChanged={valueChanged}
+                                mask
+                                qtyInputProps={{ min: 0 }}
+                            />
+                        </div>
+                    ) : (
+                        <>
+                            <div className="space-y-1">
+                                <div className="text-xs uppercase text-muted-foreground">
+                                    LH
+                                </div>
+                                <LineInput
+                                    cls={ctx.hpt}
+                                    name="qty.lh"
+                                    lineUid={lineUid}
+                                    type="number"
+                                    valueChanged={valueChanged}
+                                    mask
+                                    qtyInputProps={{ min: 0 }}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <div className="text-xs uppercase text-muted-foreground">
+                                    RH
+                                </div>
+                                <LineInput
+                                    cls={ctx.hpt}
+                                    name="qty.rh"
+                                    lineUid={lineUid}
+                                    type="number"
+                                    valueChanged={valueChanged}
+                                    mask
+                                    qtyInputProps={{ min: 1 }}
+                                />
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1">
+                        <div className="text-xs uppercase text-muted-foreground">
+                            Estimate
+                        </div>
+                        <PriceEstimateCell />
+                    </div>
+                    <div className="space-y-1">
+                        <div className="text-xs uppercase text-muted-foreground">
+                            Line Total
+                        </div>
+                        <div className="text-base font-semibold">
+                            <AnimatedNumber value={zDoor?.pricing?.totalPrice || 0} />
+                        </div>
+                    </div>
+                </div>
+                <HptNotePanel />
+            </div>
+        );
+    }
 
     return (
         <>
@@ -334,5 +492,43 @@ function DoorSizeRowContent({ doorIndex, sizeIndex }) {
             </TableRow>
             <HptNote />
         </>
+    );
+}
+
+function HptNotePanel() {
+    const line = useHptLine();
+    const { hpt, itemForm, isSlab, showNote, config } = useHpt();
+    const { size, sizeForm } = line;
+    const salesId = hpt?.zus?.metaData?.id;
+    const itemId = itemForm?.id;
+    const controlUid = doorItemControlUid(sizeForm?.doorId, size.size);
+    const tagFilters =
+        salesId && itemId && sizeForm?.doorId
+            ? [
+                  noteTagFilter("itemControlUID", controlUid),
+                  noteTagFilter("salesItemId", itemId),
+                  noteTagFilter("salesId", salesId),
+              ]
+            : null;
+
+    if (!showNote) return null;
+
+    return (
+        <div className="rounded-lg border bg-muted/20 p-3">
+            {tagFilters ? (
+                <Note
+                    admin
+                    subject={"Production Note"}
+                    headline=""
+                    statusFilters={["public"]}
+                    typeFilters={["production", "general"]}
+                    tagFilters={tagFilters}
+                />
+            ) : (
+                <div className="flex items-center text-center font-mono$ text-red-600">
+                    <span>To access item note, you need to first save your invoice</span>
+                </div>
+            )}
+        </div>
     );
 }

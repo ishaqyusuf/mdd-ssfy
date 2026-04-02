@@ -27,63 +27,124 @@ export function MouldingContent({}) {
     const groupItem = itemCtx?.itemForm?.groupItem;
     return (
         <>
-            <Table className="table-fixed p-4 text-xs font-medium">
-                <TableHeader>
-                    <TableRow className="uppercase">
-                        <TableHead className="w-10">Sn.</TableHead>
-                        <TableHead className="w-full">Moulding</TableHead>
-                        <TableHead className="w-20">Qty</TableHead>
-                        <TableHead className="w-28">Estimate</TableHead>
-                        <TableHead className="w-28">Addon/Qty</TableHead>
-                        <TableHead className="w-28">Line Total</TableHead>
-                        <TableHead className="w-16"></TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {groupItem?.itemIds?.map((itemId, sn) => (
-                        <LineItemProvider
-                            key={sn}
-                            args={[
-                                {
-                                    uid: itemId,
-                                    index: sn,
-                                },
-                            ]}
-                        >
-                            <TableRow>
-                                <TableCell className="font-mono$">
-                                    {sn + 1}.
-                                </TableCell>
-                                <TableCell className="uppercase">
+            <div className="space-y-3 lg:hidden">
+                {groupItem?.itemIds?.map((itemId, sn) => (
+                    <LineItemProvider
+                        key={`mobile-${sn}`}
+                        args={[
+                            {
+                                uid: itemId,
+                                index: sn,
+                            },
+                        ]}
+                    >
+                        <MouldingMobileCard index={sn} />
+                    </LineItemProvider>
+                ))}
+            </div>
+            <div className="hidden lg:block">
+                <Table className="table-fixed p-4 text-xs font-medium">
+                    <TableHeader>
+                        <TableRow className="uppercase">
+                            <TableHead className="w-10">Sn.</TableHead>
+                            <TableHead className="w-full">Moulding</TableHead>
+                            <TableHead className="w-20">Qty</TableHead>
+                            <TableHead className="w-28">Estimate</TableHead>
+                            <TableHead className="w-28">Addon/Qty</TableHead>
+                            <TableHead className="w-28">Line Total</TableHead>
+                            <TableHead className="w-16"></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {groupItem?.itemIds?.map((itemId, sn) => (
+                            <LineItemProvider
+                                key={sn}
+                                args={[
                                     {
-                                        groupItem?.form?.[itemId]?.meta
-                                            ?.description
-                                    }
-                                </TableCell>
-                                <TableCell>
-                                    <QtyInput />
-                                </TableCell>
-                                <TableCell>
-                                    <PriceEstimateCell />
-                                </TableCell>
-                                <TableCell>
-                                    <AddonCell />
-                                </TableCell>
-                                <TableCell>
-                                    <TotalCell />
-                                </TableCell>
-                                <TableCell>
-                                    <Action />
-                                </TableCell>
-                            </TableRow>
-                        </LineItemProvider>
-                    ))}
-                </TableBody>
-            </Table>
+                                        uid: itemId,
+                                        index: sn,
+                                    },
+                                ]}
+                            >
+                                <TableRow>
+                                    <TableCell className="font-mono$">
+                                        {sn + 1}.
+                                    </TableCell>
+                                    <TableCell className="uppercase">
+                                        {
+                                            groupItem?.form?.[itemId]?.meta
+                                                ?.description
+                                        }
+                                    </TableCell>
+                                    <TableCell>
+                                        <QtyInput />
+                                    </TableCell>
+                                    <TableCell>
+                                        <PriceEstimateCell />
+                                    </TableCell>
+                                    <TableCell>
+                                        <AddonCell />
+                                    </TableCell>
+                                    <TableCell>
+                                        <TotalCell />
+                                    </TableCell>
+                                    <TableCell>
+                                        <Action />
+                                    </TableCell>
+                                </TableRow>
+                            </LineItemProvider>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
             <div>
                 <SelectMoulding />
             </div>
         </>
+    );
+}
+function MouldingMobileCard({ index }: { index: number }) {
+    const line = useLineItem();
+    return (
+        <div className="rounded-xl border bg-background p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+                <div>
+                    <div className="text-xs uppercase text-muted-foreground">
+                        Moulding #{index + 1}
+                    </div>
+                    <div className="font-semibold uppercase">
+                        {line?.lineForm?.meta?.description}
+                    </div>
+                </div>
+                <Action />
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                    <div className="text-xs uppercase text-muted-foreground">Qty</div>
+                    <QtyInput />
+                </div>
+                <div className="space-y-1">
+                    <div className="text-xs uppercase text-muted-foreground">
+                        Estimate
+                    </div>
+                    <PriceEstimateCell />
+                </div>
+                <div className="space-y-1">
+                    <div className="text-xs uppercase text-muted-foreground">
+                        Addon/Qty
+                    </div>
+                    <AddonCell />
+                </div>
+                <div className="space-y-1">
+                    <div className="text-xs uppercase text-muted-foreground">
+                        Line Total
+                    </div>
+                    <div className="text-base font-semibold">
+                        <TotalCell />
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 }
 function TotalCell() {

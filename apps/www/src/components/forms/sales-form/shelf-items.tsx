@@ -43,18 +43,31 @@ export function ShelfItems({ itemStepUid }) {
         <ShelfContext.Provider value={ctx}>
             {/*  */}
             <div className="">
-                <Table className="size-sm">
-                    <TableBody>
-                        {ctx.shelfItemUids?.map((uid, index) => (
-                            <ShelfItemLine
-                                index={index}
-                                key={uid}
-                                shelfUid={uid}
-                                isLast={ctx.shelfItemUids?.length - 1 == index}
-                            />
-                        ))}
-                    </TableBody>
-                </Table>
+                <div className="space-y-4 lg:hidden">
+                    {ctx.shelfItemUids?.map((uid, index) => (
+                        <ShelfItemLine
+                            index={index}
+                            key={`mobile-${uid}`}
+                            shelfUid={uid}
+                            isLast={ctx.shelfItemUids?.length - 1 == index}
+                            mode="mobile"
+                        />
+                    ))}
+                </div>
+                <div className="hidden lg:block">
+                    <Table className="size-sm">
+                        <TableBody>
+                            {ctx.shelfItemUids?.map((uid, index) => (
+                                <ShelfItemLine
+                                    index={index}
+                                    key={uid}
+                                    shelfUid={uid}
+                                    isLast={ctx.shelfItemUids?.length - 1 == index}
+                                />
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
                 <div className="w-full border-t  p-4">
                     <Button
                         onClick={() => {
@@ -71,7 +84,17 @@ export function ShelfItems({ itemStepUid }) {
         </ShelfContext.Provider>
     );
 }
-export function ShelfItemLine({ shelfUid, index, isLast }) {
+export function ShelfItemLine({
+    shelfUid,
+    index,
+    isLast,
+    mode = "desktop",
+}: {
+    shelfUid;
+    index;
+    isLast;
+    mode?: "desktop" | "mobile";
+}) {
     const zus = useFormDataStore();
     const { itemUid, categories } = useShelf();
     const ctx = useShelfItemContext({ shelfUid });
@@ -79,6 +102,47 @@ export function ShelfItemLine({ shelfUid, index, isLast }) {
     // const [categoryIds, setCategoryIds] = React.useState<string[]>([]);
     const [open, onOpenChange] = useState(false);
     const [openClearCat, setOpenClearCat] = useState(false);
+
+    if (mode == "mobile") {
+        return (
+            <ShelfItemContext.Provider value={ctx}>
+                <div className="rounded-xl border bg-background p-4 shadow-sm">
+                    <div className="space-y-3">
+                        <div>
+                            <div className="text-xs uppercase text-muted-foreground">
+                                Item Section #{index + 1}
+                            </div>
+                            <div className="mt-1">
+                                <ShelfItemCategoryInput />
+                            </div>
+                        </div>
+                        <div className="space-y-3">
+                            {ctx.productUids?.map((puid, puidIndex) => (
+                                <ShelfItemProduct
+                                    isLast={
+                                        isLast &&
+                                        ctx.productUids?.length - 1 == puidIndex
+                                    }
+                                    prodUid={puid}
+                                    key={`mobile-${puid}`}
+                                    mode="mobile"
+                                />
+                            ))}
+                            <Button
+                                onClick={() => {
+                                    ctx.addProduct();
+                                }}
+                                className="w-full"
+                            >
+                                <Icons.add className="size-4" />
+                                Add Product
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </ShelfItemContext.Provider>
+        );
+    }
 
     return (
         <ShelfItemContext.Provider value={ctx}>
@@ -151,7 +215,15 @@ export function ShelfItemLine({ shelfUid, index, isLast }) {
         </ShelfItemContext.Provider>
     );
 }
-function ShelfItemProduct({ prodUid, isLast }) {
+function ShelfItemProduct({
+    prodUid,
+    isLast,
+    mode = "desktop",
+}: {
+    prodUid;
+    isLast;
+    mode?: "desktop" | "mobile";
+}) {
     const itemCtx = useShelfItem();
     const shelf = useShelf();
     const { productsList: products } = itemCtx;
@@ -190,6 +262,111 @@ function ShelfItemProduct({ prodUid, isLast }) {
         },
         [content]
     );
+
+    if (mode == "mobile") {
+        return (
+            <div className="rounded-lg border bg-muted/20 p-3">
+                <div className="space-y-3">
+                    <div className="space-y-1">
+                        <div className="text-xs uppercase text-muted-foreground">
+                            Product
+                        </div>
+                        <Combobox
+                            open={open}
+                            onOpenChange={onOpenChange}
+                            value={String(product?.productId)}
+                            onValueChange={(e) => {
+                                itemCtx.productChanged(prodUid, e);
+                                setTimeout(() => {
+                                    if (e) onOpenChange(false);
+                                }, 100);
+                            }}
+                            inputValue={inputValue}
+                            onInputValueChange={onInputValueChange}
+                            manualFiltering
+                            className="w-full"
+                            autoHighlight
+                        >
+                            <ComboboxAnchor className="relative h-full min-h-10 flex-wrap px-3 py-2">
+                                <ComboboxInput
+                                    className="h-auto min-w-20 flex-1 "
+                                    onFocus={() => {
+                                        onOpenChange(true);
+                                        setIsTyping(false);
+                                    }}
+                                    onBlur={() => {
+                                        setIsTyping(false);
+                                    }}
+                                    onKeyDown={() => {
+                                        setIsTyping(true);
+                                    }}
+                                    placeholder="Select product..."
+                                />
+                                {!product?.productId || (
+                                    <ComboboxTrigger
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setInputValue("");
+                                            itemCtx.clearProduct(prodUid);
+                                        }}
+                                        className="absolute right-2 top-3"
+                                    >
+                                        <Icons.X className="h-4 w-4" />
+                                    </ComboboxTrigger>
+                                )}
+                            </ComboboxAnchor>
+
+                            <ComboboxContent
+                                ref={(node) => setContent(node as any)}
+                                className="relative max-h-[300px] overflow-y-auto overflow-x-hidden"
+                            >
+                                <ComboboxEmpty>No product found</ComboboxEmpty>
+                                {filteredProducts?.map((trick) => (
+                                    <ComboboxItem
+                                        key={String(trick.id)}
+                                        value={String(trick.id)}
+                                        outset
+                                    >
+                                        {trick.title}
+                                    </ComboboxItem>
+                                ))}
+                            </ComboboxContent>
+                        </Combobox>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-1">
+                            <div className="text-xs uppercase text-muted-foreground">
+                                Price
+                            </div>
+                            <ShelfPriceCell prodUid={prodUid} product={product} />
+                        </div>
+                        <div className="space-y-1">
+                            <div className="text-xs uppercase text-muted-foreground">
+                                Qty
+                            </div>
+                            <ShelfQtyInput prodUid={prodUid} value={product?.qty} />
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                        <div>
+                            <div className="text-xs uppercase text-muted-foreground">
+                                Total
+                            </div>
+                            <div className="text-base font-semibold">
+                                <AnimatedNumber value={product?.totalPrice || 0} />
+                            </div>
+                        </div>
+                        <ConfirmBtn
+                            trash
+                            onClick={() => {
+                                itemCtx.deleteProductLine(prodUid);
+                            }}
+                        />
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <TableRow className="w-2/3 hover:bg-transparent">
