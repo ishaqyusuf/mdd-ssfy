@@ -18,6 +18,7 @@ import {
 	updateSalesControlSchema,
 } from "@gnd/sales";
 import type { TaskName } from "@jobs/schema";
+import type { NotificationJobInput } from "@notifications/schemas";
 import { NotificationService } from "@notifications/services/triggers";
 import { schemaTask, tasks } from "@trigger.dev/sdk/v3";
 
@@ -215,6 +216,62 @@ async function sendDispatchCompletedNotification(input: UpdateSalesControl) {
 	} as any);
 }
 
+async function sendProductionAssignedNotification(input: UpdateSalesControl) {
+	const assignedToId = input.createAssignments?.assignedToId;
+	if (!assignedToId) return;
+
+	const order = await db.salesOrders.findFirst({
+		where: {
+			id: input.meta.salesId,
+			deletedAt: null,
+		},
+		select: {
+			id: true,
+			orderId: true,
+		},
+	});
+	if (!order) return;
+
+	const assignedQty = (input.createAssignments?.selections || []).reduce(
+		(total, selection) =>
+			total +
+			Number(
+				selection.qty?.qty ||
+					(selection.qty?.lh || 0) + (selection.qty?.rh || 0),
+			),
+		0,
+	);
+
+	const notification = new NotificationService(tasks, {
+		db,
+		userId: input.meta.authorId,
+	});
+	const payload = {
+		author: {
+			id: input.meta.authorId,
+			role: "employee",
+		},
+		recipients: [
+			{
+				ids: [assignedToId],
+				role: "employee",
+			},
+		],
+		payload: {
+			salesId: order.id,
+			orderNo: order.orderId || undefined,
+			assignedToId,
+			assignedQty: assignedQty || undefined,
+			itemCount: input.createAssignments?.selections?.length || undefined,
+			dueDate: input.createAssignments?.dueDate || undefined,
+		},
+	} satisfies Omit<
+		Extract<NotificationJobInput, { channel: "sales_production_assigned" }>,
+		"channel"
+	>;
+	await notification.send("sales_production_assigned", payload);
+}
+
 export const updateSalesControl = schemaTask({
 	id: "update-sales-control" as TaskName,
 	schema: updateSalesControlSchema,
@@ -234,6 +291,11 @@ export const updateSalesControl = schemaTask({
 			}
 			if (input.submitDispatch) {
 				await sendDispatchCompletedNotification(input as UpdateSalesControl);
+			}
+			if (input.createAssignments) {
+				await sendProductionAssignedNotification(
+					input as UpdateSalesControl,
+				);
 			}
 			return response;
 		}

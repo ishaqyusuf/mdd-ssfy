@@ -47,54 +47,64 @@ export async function getChannels(
   });
   const activeChannels = channels.filter((c) => !c.deletedAt);
   if (!query.id && !query.name) {
-    const deletedChannels = activeChannels
-      .filter((c) => !channelNames.includes(c.channelName as any))
+    const deletedBuiltInChannels = channels
+      .filter(
+        (c) => !!c.deletedAt && channelNames.includes(c.channelName as any),
+      )
       .map((c) => c.channelName);
     const newChannels = channelNames.filter(
       (cn) => !activeChannels.some((c) => c.channelName === cn),
     );
-    if (deletedChannels.length) {
+    const channelsToCreate = newChannels.filter(
+      (cn) => !channels.some((c) => c.channelName === cn),
+    );
+    const channelsToRestore = newChannels.filter((cn) =>
+      channels.some((c) => c.channelName === cn && !!c.deletedAt),
+    );
+
+    if (deletedBuiltInChannels.length) {
       await db.noteChannels.updateMany({
         where: {
           channelName: {
-            in: deletedChannels,
+            in: deletedBuiltInChannels,
           },
         },
         data: {
-          deletedAt: new Date(),
+          deletedAt: null,
         },
       });
     }
-    if (newChannels.length) {
-      await Promise.all([
-        ...newChannels.map(async (c) => {
-          const previouslyDeleted = channels.find(
-            (ch) => ch.channelName === c && ch.deletedAt,
-          );
-          if (previouslyDeleted) {
-            return db.noteChannels.update({
-              where: {
-                id: previouslyDeleted!.id,
-              },
-              data: {
-                deletedAt: null,
-              },
-            });
-          }
-        }),
-        db.noteChannels.createMany({
-          data: newChannels
-            .filter((cn) => !channels.some((c) => c.channelName === cn))
-            .map((cn) => ({
-              channelName: cn,
-              priority: channelsConfig[cn]?.priority || 5,
-            })),
-          skipDuplicates: true,
-        }),
-      ]);
+
+    if (channelsToRestore.length) {
+      await db.noteChannels.updateMany({
+        where: {
+          channelName: {
+            in: channelsToRestore,
+          },
+        },
+        data: {
+          deletedAt: null,
+        },
+      });
     }
-    if (deletedChannels.length || newChannels.length)
-      return getChannels(db, query); // if there are deleted or new channels, refetch to get the updated list after prisma triggers have added/deleted the channels in the db.
+
+    if (channelsToCreate.length) {
+      await db.noteChannels.createMany({
+        data: channelsToCreate.map((cn) => ({
+          channelName: cn,
+          priority: channelsConfig[cn]?.priority || 5,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    if (
+      deletedBuiltInChannels.length ||
+      channelsToRestore.length ||
+      channelsToCreate.length
+    ) {
+      return getChannels(db, query);
+    }
     // five level priorities
     //   const priorityStrings = ["Low", "Medium", "High", "Critical", "Urgent"];
   }
@@ -130,10 +140,11 @@ function whereNotificationChannels(query: GetNotificationChannelsSchema) {
     if (!v) continue;
     const value = v as any;
     switch (k as keyof GetNotificationChannelsSchema) {
-      case "q":
-        const q = { contains: v as string };
+      case "name":
         where.push({
-          OR: [],
+          channelName: {
+            contains: value,
+          },
         });
         break;
       case "id":

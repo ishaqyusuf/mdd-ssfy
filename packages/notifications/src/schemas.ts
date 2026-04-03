@@ -466,6 +466,7 @@ export type NotificationTypes = {
 	sales_request_packing: SalesRequestPackingInput;
 	dispatch_packing_delay: DispatchPackingDelayInput;
 	sales_dispatch_duplicate_alert: SalesDispatchDuplicateAlertInput;
+	sales_production_assigned: SalesProductionAssignedInput;
 };
 
 export const getNotificationChannelsSchema = z
@@ -498,6 +499,28 @@ export const salesDispatchAssignedTags = actityTagsSchema.extend({
 });
 export type SalesDispatchAssignedTags = z.infer<
 	typeof salesDispatchAssignedTags
+>;
+export const salesProductionAssignedSchema = z.object({
+	salesId: z.number(),
+	orderNo: z.string().optional(),
+	assignedToId: z.number(),
+	assignedQty: z.number().optional(),
+	itemCount: z.number().optional(),
+	dueDate: z.date().optional(),
+});
+export type SalesProductionAssignedInput = z.infer<
+	typeof salesProductionAssignedSchema
+>;
+export const salesProductionAssignedTags = actityTagsSchema.extend({
+	salesId: z.number(),
+	orderNo: z.string().optional(),
+	assignedToId: z.number(),
+	assignedQty: z.number().optional(),
+	itemCount: z.number().optional(),
+	dueDate: z.date().optional(),
+});
+export type SalesProductionAssignedTags = z.infer<
+	typeof salesProductionAssignedTags
 >;
 export const salesDispatchQueuedSchema = z.object({
 	orderNo: z.string().optional(),
@@ -1031,6 +1054,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_dispatch_assigned"),
 		payload: salesDispatchAssignedSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("sales_production_assigned"),
+		payload: salesProductionAssignedSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_dispatch_queued"),

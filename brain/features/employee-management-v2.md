@@ -226,6 +226,7 @@ Current bridge implementation in legacy contractor flows:
 - Super admins review those uploads from `/hrm/document-approvals`.
 - Access to the approval queue is protected by the `reviewEmployeeDocument` permission.
 - Admin and Super Admin users can upload a document directly from employee overview on behalf of the employee.
+- Expo Documents screen supports employee self-upload for image-based insurance/workers comp documents using the mobile gallery flow.
 - Web contractor job submission blocks when insurance is missing, pending, rejected, or expired.
 
 ---
@@ -263,6 +264,10 @@ Admin affordances:
 Record interactions:
 - Each employee record can be previewed directly from the overview tab.
 - Preview opens an in-app document viewer for PDFs and images, with an external-open fallback for unsupported file types.
+
+Mobile app notes:
+- `/documents` now includes a mobile upload CTA and inline upload form.
+- Current mobile upload scope is image-library based; PDF/document-picker support remains a follow-up enhancement.
 
 ---
 

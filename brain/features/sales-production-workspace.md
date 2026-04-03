@@ -72,6 +72,7 @@ Provide a cleaner production operations surface for both admins and production w
 - `completed` semantics now differ by scope in the shared production list pipeline:
   - worker mode treats an order as completed only when that worker's related assignments are fully submitted
   - admin mode treats an order as completed only when total submitted production qty meets the full production qty for the order
+- Production assignment mutations emitted through `update-sales-control` now trigger a targeted `sales_production_assigned` notification to the assigned worker from the Trigger jobs layer.
 
 ## V2 Notes
 - Order-level notes now use the newer inbox/chat note flow on the `sales_info` notification channel.

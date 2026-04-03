@@ -14,10 +14,12 @@ import {
 	updateProfile,
 } from "@api/db/queries/user";
 import { loginByTokenSchema } from "@api/schemas/hrm";
+import { createApiVercelBlobDocumentService } from "@api/utils/documents";
 import { consoleLog } from "@gnd/utils";
 import { getContact } from "@notifications/activities";
 import { sign } from "jsonwebtoken";
 import { getSubscriberAccount } from "@notifications/channel-subscribers";
+import { put } from "@vercel/blob";
 import { z } from "zod";
 
 export const userRoutes = createTRPCRouter({
@@ -68,6 +70,30 @@ export const userRoutes = createTRPCRouter({
 		)
 		.mutation(async (props) => {
 			return saveUserDocument(props.ctx, props.input);
+		}),
+	uploadDocumentAsset: publicProcedure
+		.input(
+			z.object({
+				filename: z.string().min(1),
+				contentType: z.string().optional(),
+				content: z.string().min(1),
+			}),
+		)
+		.mutation(async (props) => {
+			const documents = createApiVercelBlobDocumentService({
+				put,
+			});
+			const uploaded = await documents.upload({
+				filename: props.input.filename,
+				folder: "employee-documents",
+				contentType: props.input.contentType,
+				body: Buffer.from(props.input.content, "base64"),
+			});
+			return {
+				provider: uploaded.provider,
+				pathname: uploaded.pathname,
+				url: uploaded.url || uploaded.pathname,
+			};
 		}),
 	getDocumentReview: publicProcedure
 		.input(z.object({ id: z.number() }))

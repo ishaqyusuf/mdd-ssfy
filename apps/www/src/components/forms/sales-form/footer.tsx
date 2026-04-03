@@ -5,12 +5,11 @@ import { SalesFormSave } from "./sales-form-save";
 import { sum } from "@/lib/utils";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { AnimatedNumber } from "@/components/animated-number";
-import { useSalesPreview } from "@/hooks/use-sales-preview";
-import { Menu as MenuIcon } from "lucide-react";
+import { Printer } from "lucide-react";
+import { printOrder, printQuote } from "@/lib/quick-print";
 
 export function Footer({}) {
     const zus = useFormDataStore();
-    const sPreview = useSalesPreview();
     const previewId = zus?.metaData?.id || zus?.metaData?.salesId;
     const isSaved = !!previewId;
     const isOrder = zus?.metaData?.type == "order";
@@ -64,15 +63,17 @@ export function Footer({}) {
                         <Button
                             type="button"
                             size="sm"
-                            onClick={() => {
-                                sPreview.preview(
-                                    previewId,
-                                    zus?.metaData?.type,
-                                );
+                            onClick={async () => {
+                                if (!previewId) return;
+                                if (isOrder) {
+                                    await printOrder({ salesIds: [previewId] });
+                                    return;
+                                }
+                                await printQuote({ salesIds: [previewId] });
                             }}
                         >
-                            <MenuIcon className="mr-1 h-4 w-4" />
-                            Preview
+                            <Printer className="mr-1 h-4 w-4" />
+                            Print
                         </Button>
                         <Button
                             type="button"

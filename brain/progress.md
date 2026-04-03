@@ -25,6 +25,7 @@
   - worker submission entry now uses compact button groups with handle toggles, quantity presets, and combobox fallback for larger available quantities
   - worker expanded orders now render only production items assigned to the logged-in worker, with an extra client-side visibility guard in the shared grid
   - v2 production list completion now uses scope-aware semantics: worker mode uses only that worker's related assignments, while admin mode requires submitted production qty to cover the full production qty before an order is treated as completed or excluded from past-due/pending queues
+  - restored production assignment notifications in the v2 `update-sales-control` flow by emitting a targeted `sales_production_assigned` notification after assignment creation
 
 ## 2026-03-29
 

@@ -37,6 +37,7 @@ import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 import { AlertDialog } from "@gnd/ui/namespace";
+import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import {
 	Select,
 	SelectContent,
@@ -58,6 +59,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import {
 	AlertTriangle,
 	CalendarDays,
+	CalendarIcon,
 	CheckCircle2,
 	ChevronDown,
 	Clock3,
@@ -506,18 +508,56 @@ function ProductionV2Board({
 					</section>
 				</div>
 
-				<Card className="overflow-hidden rounded-[28px] xl:sticky xl:top-4">
-					<CardHeader className="px-5 pb-3 pt-5">
-						<CardTitle className="mb-1 flex items-center gap-2 text-lg">
-							<CalendarDays className="h-5 w-5 text-sky-600" />
-							Due Calendar
-						</CardTitle>
-						<CardDescription className="leading-6">
-							Tap a date to filter production orders inline.
-						</CardDescription>
+				<Card className="overflow-hidden rounded-[28px] border-slate-200/80 bg-gradient-to-br from-white via-slate-50 to-sky-50/60 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.22)] xl:sticky xl:top-4">
+					<CardHeader className="space-y-4 px-5 pb-4 pt-5">
+						<div className="flex items-start justify-between gap-4">
+							<div className="space-y-1">
+								<CardTitle className="mb-1 flex items-center gap-2 text-lg">
+									<CalendarDays className="h-5 w-5 text-sky-600" />
+									Due Calendar
+								</CardTitle>
+								<CardDescription className="leading-6">
+									Track production load by day and tap any date to filter
+									inline.
+								</CardDescription>
+							</div>
+							<div className="rounded-2xl border border-slate-200 bg-white/90 px-3 py-2 text-right shadow-sm">
+								<p className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">
+									Selected
+								</p>
+								<p className="mt-1 text-sm font-semibold text-slate-900">
+									{selectedDate
+										? formatDateValue(new Date(`${selectedDate}T00:00:00`))
+										: "All dates"}
+								</p>
+								<p className="mt-1 text-xs text-slate-500">
+									{selectedDate
+										? `${dueDateCalendarMap.get(selectedDate)?.count || 0} due`
+										: `${dashboard?.summary.queueCount || 0} open`}
+								</p>
+							</div>
+						</div>
+						<div className="flex flex-wrap gap-2">
+							<div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-xs text-slate-600">
+								<span className="h-2 w-2 rounded-full bg-rose-500" />
+								Past due
+							</div>
+							<div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-xs text-slate-600">
+								<span className="h-2 w-2 rounded-full bg-amber-500" />
+								Today
+							</div>
+							<div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-xs text-slate-600">
+								<span className="h-2 w-2 rounded-full bg-sky-500" />
+								Tomorrow
+							</div>
+							<div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-xs text-slate-600">
+								<span className="h-2 w-2 rounded-full bg-emerald-500" />
+								Upcoming
+							</div>
+						</div>
 					</CardHeader>
 					<CardContent className="px-5 pb-5 pt-0">
-						<div className="overflow-hidden rounded-[24px] border bg-slate-50/80 p-2">
+						<div className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white/90 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
 							<Calendar
 								mode="single"
 								selected={
@@ -539,20 +579,28 @@ function ProductionV2Board({
 								}}
 								modifiersClassNames={{
 									hasDue:
-										"rounded-full border border-sky-200 bg-sky-50 font-semibold text-sky-900",
+										"border-sky-200 bg-sky-50/90 font-semibold text-sky-950 shadow-[inset_0_0_0_1px_rgba(14,165,233,0.08)]",
 								}}
 								components={{
 									DayButton: (props) => {
 										const dateKey = formatCalendarDate(props.day.date);
 										const entry = dueDateCalendarMap.get(dateKey);
 										return (
-											<CalendarDayButton {...props}>
-												<span>{props.day.date.getDate()}</span>
+											<CalendarDayButton
+												{...props}
+												className={cn(
+													"relative flex h-full min-h-[74px] w-full flex-col items-start justify-between rounded-2xl px-2 py-2 text-left transition-all duration-200",
+													entry?.count && "shadow-sm",
+												)}
+											>
+												<span className="text-sm font-semibold">
+													{props.day.date.getDate()}
+												</span>
 												{entry?.count ? (
-													<span className="mt-0.5 flex items-center justify-center">
+													<span className="flex w-full items-end justify-between gap-2">
 														<span
 															className={cn(
-																"h-1.5 w-1.5 rounded-full",
+																"h-1.5 w-7 rounded-full",
 																entry.isToday
 																	? "bg-amber-500"
 																	: entry.isTomorrow
@@ -562,30 +610,33 @@ function ProductionV2Board({
 																			: "bg-emerald-500",
 															)}
 														/>
+														<span className="text-[11px] font-medium text-slate-500">
+															{entry.count}
+														</span>
 													</span>
 												) : null}
 											</CalendarDayButton>
 										);
 									},
 								}}
-								className="w-full bg-transparent p-1 [--cell-size:2.7rem]"
+								className="w-full bg-transparent p-1 [--cell-size:4.6rem]"
 								classNames={{
 									root: "w-full",
-									month: "w-full gap-3",
+									month: "w-full gap-4",
 									table: "w-full table-fixed border-collapse",
 									month_caption:
-										"mb-2 flex h-10 w-full items-center justify-center px-10",
+										"mb-3 flex h-10 w-full items-center justify-center px-10",
 									caption_label:
 										"text-sm font-semibold uppercase tracking-[0.16em] text-slate-700",
 									nav: "absolute inset-x-0 top-1 flex w-full items-center justify-between gap-1 px-1",
 									button_previous:
-										"h-8 w-8 rounded-full border border-slate-200 bg-white text-slate-600 shadow-none",
+										"h-8 w-8 rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm",
 									button_next:
-										"h-8 w-8 rounded-full border border-slate-200 bg-white text-slate-600 shadow-none",
-									weekdays: "grid w-full grid-cols-7 gap-1.5 px-1",
+										"h-8 w-8 rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm",
+									weekdays: "grid w-full grid-cols-7 gap-2 px-1",
 									weekday:
 										"flex h-8 items-center justify-center text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500",
-									week: "mt-1.5 grid w-full grid-cols-7 gap-1.5 px-1",
+									week: "mt-2 grid w-full grid-cols-7 gap-2 px-1",
 									day: "flex items-center justify-center p-0",
 								}}
 							/>
@@ -898,6 +949,7 @@ function ProductionOrderCard({
 					<ProductionOrderDetailInline
 						scope={scope}
 						salesNo={item.orderId}
+						defaultDueDate={item.dueDate}
 						assignOptions={assignOptions}
 					/>
 				</CollapsibleContent>
@@ -954,10 +1006,12 @@ function WorkerOrderStatus({
 function ProductionOrderDetailInline({
 	scope,
 	salesNo,
+	defaultDueDate,
 	assignOptions,
 }: {
 	scope: Scope;
 	salesNo: string;
+	defaultDueDate?: string | null;
 	assignOptions: { label?: string; value?: string }[];
 }) {
 	const trpc = useTRPC();
@@ -1122,7 +1176,12 @@ function ProductionOrderDetailInline({
 
 				<TabsContent value="productions" className="mt-0 space-y-4">
 					{productionItems.length ? (
-						<ProductionItemsGrid scope={scope} items={productionItems} />
+						<ProductionItemsGrid
+							scope={scope}
+							items={productionItems}
+							defaultDueDate={defaultDueDate}
+							assignOptions={assignOptions}
+						/>
 					) : (
 						<div className="rounded-2xl border border-dashed p-6 text-sm text-muted-foreground">
 							No production items available for this order.
@@ -1155,9 +1214,13 @@ function ProductionOrderDetailInline({
 function ProductionItemsGrid({
 	scope,
 	items,
+	defaultDueDate,
+	assignOptions,
 }: {
 	scope: Scope;
 	items: ProductionDetail["items"];
+	defaultDueDate?: string | null;
+	assignOptions: { label?: string; value?: string }[];
 }) {
 	const productionItems = items.filter((item) => item.isProduction);
 	const defaultExpandedUid = productionItems[0]?.controlUid ?? null;
@@ -1218,6 +1281,8 @@ function ProductionItemsGrid({
 											<ExpandedItemOverview
 												scope={scope}
 												productionItem={productionItem}
+												defaultDueDate={defaultDueDate}
+												assignOptions={assignOptions}
 												rowLength={1}
 												expandedColumnIndex={0}
 												className="lg:hidden"
@@ -1231,6 +1296,8 @@ function ProductionItemsGrid({
 							<ExpandedItemOverview
 								scope={scope}
 								productionItem={expandedRowItem}
+								defaultDueDate={defaultDueDate}
+								assignOptions={assignOptions}
 								rowLength={row.length}
 								expandedColumnIndex={expandedColumnIndex}
 								className="hidden lg:block"
@@ -1246,12 +1313,16 @@ function ProductionItemsGrid({
 function ExpandedItemOverview({
 	scope,
 	productionItem,
+	defaultDueDate,
+	assignOptions,
 	rowLength,
 	expandedColumnIndex,
 	className,
 }: {
 	scope: Scope;
 	productionItem: ProductionDetail["items"][number];
+	defaultDueDate?: string | null;
+	assignOptions: { label?: string; value?: string }[];
 	rowLength: number;
 	expandedColumnIndex: number;
 	className?: string;
@@ -1295,6 +1366,8 @@ function ExpandedItemOverview({
 				<ProductionItemDetailTabs
 					scope={scope}
 					productionItem={productionItem}
+					defaultDueDate={defaultDueDate}
+					assignOptions={assignOptions}
 				/>
 			</div>
 		</div>
@@ -1462,9 +1535,13 @@ function SummaryCard({
 function ProductionItemDetailTabs({
 	scope,
 	productionItem,
+	defaultDueDate,
+	assignOptions,
 }: {
 	scope: Scope;
 	productionItem: ProductionDetail["items"][number];
+	defaultDueDate?: string | null;
+	assignOptions: { label?: string; value?: string }[];
 }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -1513,6 +1590,10 @@ function ProductionItemDetailTabs({
 	);
 	const totalSubmittedQty = assignmentProgress.reduce(
 		(total, assignment) => total + assignment.submittedQty.qty,
+		0,
+	);
+	const remainingAssignableQty = Math.max(
+		(productionItem.qty?.qty || 0) - totalAssignedQty,
 		0,
 	);
 	const completedAssignmentsCount = assignmentProgress.filter(
@@ -1600,6 +1681,21 @@ function ProductionItemDetailTabs({
 								{completedAssignmentsCount}/{assignmentsCount} ready
 							</Badge>
 						</div>
+
+						{remainingAssignableQty > 0 ? (
+							<InlineAssignmentForm
+								assignOptions={assignOptions}
+								remainingQty={remainingAssignableQty}
+								defaultDueDate={defaultDueDate}
+								controlUid={productionItem.controlUid}
+								salesId={productionItem.salesId}
+								authorId={Number(auth.id || 0)}
+								authorName={auth.name || "System"}
+								onAssign={(payload) =>
+									actionTrigger.triggerWithAuth("update-sales-control", payload)
+								}
+							/>
+						) : null}
 
 						{productionItem.assignments?.length ? (
 							<div className="space-y-3">
@@ -2136,6 +2232,211 @@ type AssignmentProgress = {
 	submissionLimit: number | null;
 	submissionCount: number;
 };
+
+function InlineAssignmentForm({
+	assignOptions,
+	remainingQty,
+	defaultDueDate,
+	controlUid,
+	salesId,
+	authorId,
+	authorName,
+	onAssign,
+}: {
+	assignOptions: { label?: string; value?: string }[];
+	remainingQty: number;
+	defaultDueDate?: string | null;
+	controlUid: string;
+	salesId: number;
+	authorId: number;
+	authorName: string;
+	onAssign: (payload: UpdateSalesControl) => void;
+}) {
+	const [assignedToId, setAssignedToId] = useState("");
+	const [selectedQty, setSelectedQty] = useState("1");
+	const [dueDate, setDueDate] = useState<Date | null>(() =>
+		parseDateValue(defaultDueDate),
+	);
+	const workerItems = assignOptions.map((option) => ({
+		id: String(option.value || ""),
+		label: String(option.label || "Unknown"),
+	}));
+	const selectedWorker = workerItems.find((item) => item.id === assignedToId);
+	const quantityItems = buildQuantityComboboxItems(remainingQty);
+	const selectedQtyItem = quantityItems.find((item) => item.id === selectedQty);
+	const shouldShowCombobox = remainingQty > 10;
+	const presetValues = Array.from(
+		{ length: Math.min(remainingQty, 10) },
+		(_, index) => String(index + 1),
+	);
+	const canAssign =
+		!!assignedToId &&
+		toPositiveNumber(selectedQty) > 0 &&
+		toPositiveNumber(selectedQty) <= remainingQty;
+
+	useEffect(() => {
+		setSelectedQty((current) => {
+			const nextValue = toPositiveNumber(current);
+			if (!nextValue) return "1";
+			return String(Math.min(nextValue, remainingQty));
+		});
+	}, [remainingQty]);
+
+	useEffect(() => {
+		setDueDate(parseDateValue(defaultDueDate));
+	}, [defaultDueDate]);
+
+	return (
+		<div className="space-y-3 rounded-xl bg-muted/20 p-3">
+			<div className="flex flex-wrap items-end justify-end gap-4">
+				<div className="w-full space-y-1 sm:w-[220px]">
+					<div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+						Assign Worker
+					</div>
+					<ComboboxDropdown
+						items={workerItems}
+						selectedItem={selectedWorker}
+						onSelect={(item) => setAssignedToId(item.id)}
+						placeholder="Select worker"
+						searchPlaceholder="Search worker"
+						emptyResults="No worker found"
+						className="rounded-lg bg-background"
+					/>
+				</div>
+
+				<div className="space-y-1">
+					<div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+						Due Date
+					</div>
+					<div className="flex items-center gap-2">
+						<Popover>
+							<PopoverTrigger asChild>
+								<Button
+									type="button"
+									size="sm"
+									variant="outline"
+									className={cn(
+										"h-9 w-[190px] justify-start bg-background text-left font-normal",
+										!dueDate && "text-muted-foreground",
+									)}
+								>
+									{dueDate ? formatDateValue(dueDate) : "Pick a date"}
+									<CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+								</Button>
+							</PopoverTrigger>
+							<PopoverContent className="w-auto p-0" align="start">
+								<Calendar
+									mode="single"
+									selected={dueDate || undefined}
+									onSelect={(value) => setDueDate(value || null)}
+									initialFocus
+								/>
+							</PopoverContent>
+						</Popover>
+						<Button
+							type="button"
+							size="sm"
+							variant="outline"
+							onClick={() => setDueDate(null)}
+						>
+							Clear
+						</Button>
+					</div>
+				</div>
+
+				<div className="space-y-1">
+					<div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+						Assign Qty
+					</div>
+					<ButtonGroup className="flex-wrap">
+						{presetValues.map((qtyValue) => (
+							<Button
+								key={`assign-qty-${qtyValue}`}
+								type="button"
+								size="sm"
+								variant={
+									Number(qtyValue) <= Number(selectedQty)
+										? "default"
+										: "outline"
+								}
+								className="min-w-9"
+								onClick={() => setSelectedQty(qtyValue)}
+							>
+								{qtyValue}
+							</Button>
+						))}
+					</ButtonGroup>
+				</div>
+
+				<Button
+					type="button"
+					size="sm"
+					className="px-4"
+					disabled={!canAssign}
+					onClick={() => {
+						onAssign({
+							meta: {
+								salesId,
+								authorId,
+								authorName,
+							},
+							createAssignments: {
+								retries: 0,
+								assignedToId: Number(assignedToId),
+								dueDate,
+								selections: [
+									{
+										uid: controlUid,
+										qty: {
+											qty: toPositiveNumber(selectedQty),
+										},
+									},
+								],
+							},
+						} as UpdateSalesControl);
+						setSelectedQty("1");
+					}}
+				>
+					Assign
+				</Button>
+			</div>
+
+			{shouldShowCombobox ? (
+				<ComboboxDropdown
+					items={quantityItems}
+					selectedItem={selectedQtyItem}
+					onSelect={(item) => setSelectedQty(item.id)}
+					onCreate={(inputValue) => {
+						const sanitized = inputValue.replace(/\D/g, "");
+						const numeric = Number(sanitized);
+						if (
+							!sanitized ||
+							!Number.isFinite(numeric) ||
+							numeric < 1 ||
+							numeric > remainingQty
+						) {
+							return;
+						}
+						setSelectedQty(String(numeric));
+					}}
+					renderOnCreate={(inputValue) => {
+						const sanitized = inputValue.replace(/\D/g, "");
+						if (!sanitized) return <span>Enter number only</span>;
+						const numeric = Number(sanitized);
+						if (numeric < 1 || numeric > remainingQty) {
+							return <span>{`Enter 1-${remainingQty}`}</span>;
+						}
+						return <span>{`Use ${numeric}`}</span>;
+					}}
+					placeholder="Select quantity"
+					searchPlaceholder="Type quantity"
+					emptyResults="No quantity found"
+					className="rounded-lg bg-background"
+				/>
+			) : null}
+		</div>
+	);
+}
 
 function AssignmentSubmissionCard({
 	scope,
@@ -2963,6 +3264,15 @@ function buildQuantityComboboxItems(maxQty: number) {
 			label: value,
 		};
 	});
+}
+
+function parseDateValue(value?: string | Date | null) {
+	if (!value) return null;
+	if (value instanceof Date) {
+		return Number.isNaN(value.getTime()) ? null : value;
+	}
+	const parsed = new Date(value);
+	return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function toPositiveNumber(value: string) {

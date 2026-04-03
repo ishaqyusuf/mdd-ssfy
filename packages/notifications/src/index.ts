@@ -50,6 +50,7 @@ import { salesItemInfo } from "./types/sales-item-info";
 import { salesMarkedAsProductionCompleted } from "./types/sales-marked-as-production-completed";
 import { salesPaymentRecorded } from "./types/sales-payment-recorded";
 import { salesPaymentRefunded } from "./types/sales-payment-refunded";
+import { salesProductionAssigned } from "./types/sales-production-assigned";
 import { salesReminderScheduleAdminNotification } from "./types/sales-reminder-schedule-admin-notification";
 import { salesRequestPacking } from "./types/sales-request-packing";
 import { simpleSalesEmailReminder } from "./types/simple-sales-email-reminder";
@@ -110,6 +111,7 @@ const handlers = {
 	sales_dispatch_duplicate_alert: salesDispatchDuplicateAlert,
 	sales_payment_recorded: salesPaymentRecorded,
 	sales_payment_refunded: salesPaymentRefunded,
+	sales_production_assigned: salesProductionAssigned,
 } as const;
 import { generateEmailMeta } from "./utils";
 
