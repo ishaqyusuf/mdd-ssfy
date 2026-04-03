@@ -331,24 +331,45 @@ function useSalesPrintAction() {
 		options?: PrintActionProps,
 	) {
 		if (!state.salesIds.length) return;
-
-		const sp = newSalesHelper();
-		await sp.generateTokenSalesIds(
-			state.salesIds,
-			params?.mode || state.type || "order",
-		);
+		const mode = resolvePrintMode(params?.mode, state.type);
 
 		if (options?.share) {
+			const sp = newSalesHelper();
+			await sp.generateTokenSalesIds(
+				state.salesIds,
+				params?.mode || state.type || "order",
+			);
 			await sp.share(
 				`Hello! download your sales ${sp.shareUrl}`,
 				"+234 8186877306",
 			);
+			actions.closeMenu();
 			return;
 		}
 
-		sp.openPrintLink(options?.pdf);
+		await quickPrint({ salesIds: state.salesIds, mode });
 		actions.closeMenu();
 	};
+}
+
+function resolvePrintMode(
+	mode: SalesPrintProps["mode"] | undefined,
+	type: SalesType | undefined,
+): PrintMode {
+	switch (mode) {
+		case "quote":
+			return "quote";
+		case "production":
+			return "production";
+		case "packing list":
+			return "packing-slip";
+		case "order-packing":
+			return "order-packing";
+		case "order":
+			return "invoice";
+		default:
+			return type === "quote" ? "quote" : "invoice";
+	}
 }
 
 const ORDER_MODES: { label: string; mode: PrintMode }[] = [

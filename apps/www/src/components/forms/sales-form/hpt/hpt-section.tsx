@@ -70,46 +70,13 @@ function Content() {
                 }}
                 value={ctx.hpt.tabUid}
             >
-                <TabsList className="bg-transparent">
+                <TabsList>
                     {ctx.doors?.map((door) => (
-                        <TabsTrigger
-                            asChild
-                            key={door.uid}
-                            value={door.uid}
-                            className="bg-white p-0"
-                        >
-                            <div className="">
-                                <Button
-                                    size="xs"
-                                    className={cn(
-                                        "border-b-2 border-b-transparent uppercase",
-                                        ctx.hpt.tabUid == door.uid &&
-                                            "rounded-b-none border-muted-foreground",
-                                    )}
-                                    variant={
-                                        ctx.hpt.tabUid == door.uid
-                                            ? "secondary"
-                                            : "ghost"
-                                    }
-                                >
-                                    <TextWithTooltip
-                                        className="max-w-[260px]"
-                                        text={door.title}
-                                    />
-                                </Button>
-                                <div
-                                    className={cn(
-                                        // ctx.hpt.tabUid != door.uid &&
-                                        "hidden",
-                                    )}
-                                >
-                                    <Menu>
-                                        <Menu.Item Icon={Repeat}>
-                                            Swap Door
-                                        </Menu.Item>
-                                    </Menu>
-                                </div>
-                            </div>
+                        <TabsTrigger key={door.uid} value={door.uid}>
+                            <TextWithTooltip
+                                className="max-w-[260px]"
+                                text={door.title}
+                            />
                         </TabsTrigger>
                     ))}
                 </TabsList>

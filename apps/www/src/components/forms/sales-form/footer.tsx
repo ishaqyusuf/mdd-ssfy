@@ -5,9 +5,15 @@ import { SalesFormSave } from "./sales-form-save";
 import { sum } from "@/lib/utils";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { AnimatedNumber } from "@/components/animated-number";
+import { useSalesPreview } from "@/hooks/use-sales-preview";
+import { Menu as MenuIcon } from "lucide-react";
 
 export function Footer({}) {
     const zus = useFormDataStore();
+    const sPreview = useSalesPreview();
+    const previewId = zus?.metaData?.id || zus?.metaData?.salesId;
+    const isSaved = !!previewId;
+    const isOrder = zus?.metaData?.type == "order";
     const amount = sum([
         zus?.metaData?.pricing?.grandTotal,
         -1 * zus?.metaData?.pricing?.paid,
@@ -27,12 +33,15 @@ export function Footer({}) {
                 </p>
             </div>
             <div className="flex justify-end gap-3">
-                {zus?.metaData?.type == "order" && (
+                {isSaved && isOrder && (
                     <SalesPaymentProcessor
                         phoneNo={zus.metaData.primaryPhone}
                         selectedIds={[zus.metaData.id]}
                         customerId={zus.metaData.customer.id}
                         disabled={!amount || !zus.metaData.salesId}
+                        buttonProps={{
+                            size: "sm",
+                        }}
                     />
                 )}
                 {/* <Button
@@ -50,25 +59,40 @@ export function Footer({}) {
                     <Money value={amount}></Money>
                 </Button> */}
 
-                <Button
-                    disabled={!zus.metaData.id}
-                    onClick={() => {
-                        overviewQuery.open2(
-                            zus.metaData?.salesId,
-                            zus.metaData.type == "order" ? "sales" : "quote",
-                        );
-                        // openSalesOverview({
-                        //     salesId: zus.metaData.id,
-                        // });
-                    }}
-                    // size="xs"
-                    variant="secondary"
-                >
-                    <span>Overview</span>
-                </Button>
+                {!isSaved || (
+                    <>
+                        <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => {
+                                sPreview.preview(
+                                    previewId,
+                                    zus?.metaData?.type,
+                                );
+                            }}
+                        >
+                            <MenuIcon className="mr-1 h-4 w-4" />
+                            Preview
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={() => {
+                                overviewQuery.open2(
+                                    zus.metaData?.salesId,
+                                    zus.metaData.type == "order"
+                                        ? "sales"
+                                        : "quote",
+                                );
+                            }}
+                            size="sm"
+                            variant="secondary"
+                        >
+                            <span>Overview</span>
+                        </Button>
+                    </>
+                )}
                 <SalesFormSave type="button" />
             </div>
         </div>
     );
 }
-

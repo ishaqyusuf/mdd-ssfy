@@ -38,13 +38,16 @@ export function SalesFormClient({ data }) {
 }
 function Content({ data }) {
 	const sPreview = useSalesPreview();
+	const zus = useFormDataStore();
 	function preview() {
-		void sPreview.preview(zus.metaData?.salesId, zus?.metaData?.type);
+		void sPreview.preview(
+			zus.metaData?.id || zus.metaData?.salesId,
+			zus?.metaData?.type,
+		);
 	}
 	const sidebar = useSidebar();
 	const hidden = !sidebar?.open;
 	const isLgOrBelow = useMediaQuery("(max-width: 1023px)");
-	const zus = useFormDataStore();
 	const [takeOff, takeOffChanged] = useLocalStorage("take-off", false);
 	const itemCount = zus.sequence?.formItem?.length || 0;
 
