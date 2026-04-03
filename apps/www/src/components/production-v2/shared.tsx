@@ -1553,22 +1553,30 @@ function ProductionItemDetailTabs({
 
 	return (
 		<Tabs defaultValue="information" className="space-y-4">
-			<TabsList
-				className={cn(
-					"grid w-full rounded-xl",
-					scope === "worker"
-						? "grid-cols-3 md:w-[420px]"
-						: "grid-cols-4 md:w-[560px]",
-				)}
-			>
-				<TabsTrigger value="information">Overview</TabsTrigger>
+			<TabsList className="flex w-full flex-wrap justify-start rounded-xl">
+				<TabsTrigger
+					value="information"
+					className="uppercase tracking-[0.12em]"
+				>
+					Overview
+				</TabsTrigger>
 				{scope === "admin" ? (
-					<TabsTrigger value="assignments">
+					<TabsTrigger
+						value="assignments"
+						className="uppercase tracking-[0.12em]"
+					>
 						Assignments ({assignmentsCount})
 					</TabsTrigger>
 				) : null}
-				<TabsTrigger value="submissions">{submissionsTabLabel}</TabsTrigger>
-				<TabsTrigger value="notes">Notes ({notesCount})</TabsTrigger>
+				<TabsTrigger
+					value="submissions"
+					className="uppercase tracking-[0.12em]"
+				>
+					{submissionsTabLabel}
+				</TabsTrigger>
+				<TabsTrigger value="notes" className="uppercase tracking-[0.12em]">
+					Notes ({notesCount})
+				</TabsTrigger>
 			</TabsList>
 
 			<TabsContent value="information" className="mt-0">
