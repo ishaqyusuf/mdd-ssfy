@@ -16,127 +16,122 @@ import { toast } from "sonner";
 import { SendSalesReminder } from "@/components/send-sales-reminder";
 import { SalesMenu } from "@/components/sales-menu";
 export function GeneralActionBar({ type, salesNo, salesId }) {
-    const { data } = useSaleOverview() as { data?: any };
-    const isQuote = data?.type == "quote";
-    const batchSales = useBatchSales();
-    const sPreview = useSalesPreview();
-    function preview() {
-        sPreview.preview(data?.orderId, data?.type);
-    }
-    const [loading, startTransition] = useTransition();
-    const qs = useSalesOverviewQuery();
+	const { data } = useSaleOverview() as { data?: any };
+	const isQuote = data?.type == "quote";
+	const batchSales = useBatchSales();
+	const sPreview = useSalesPreview();
+	function preview() {
+		void sPreview.preview(data?.id, data?.type);
+	}
+	const [loading, startTransition] = useTransition();
+	const qs = useSalesOverviewQuery();
 
-    async function reset() {
-        startTransition(async () => {
-            try {
-                await resetSalesStatAction(
-                    data?.id,
-                    data?.orderId
-                );
-                toast.success("Reset complete");
-                qs.salesQuery.salesStatReset();
-                // qs.setParams({
-                //     refreshTok: generateRandomString(),
-                // });
-            } catch (error) {
-                toast.error("Unable to complete");
-            }
-        });
-    }
-    return (
-        <div className="flex gap-2">
-            <SendSalesReminder salesIds={[salesId]} />
-            <Button
-                onClick={(e) => {
-                    preview();
-                }}
-                size="sm"
-                variant="default"
-                className="flex items-center space-x-2 hover:bg-secondary flex-1"
-            >
-                <FileSearch className="size-3.5" />
-                <span>Preview</span>
-            </Button>
-            <Button
-                size="sm"
-                variant="secondary"
-                className="flex-1 items-center space-x-2 hover:bg-secondary"
-                onClick={() => {
-                    openLink(salesFormUrl(type, salesNo, true), {}, true);
-                    // setParams({ invoiceId: id, type: "edit" });
-                }}
-            >
-                <Icons.Edit className="size-3.5" />
-                <span>Edit</span>
-            </Button>
-            <SalesMenu
-                triggerVariant="secondary"
-                id={data?.id}
-                slug={data?.uuid}
-                type={data?.type}
-            >
-                {isQuote ? (
-                    <SalesMenu.QuoteEmailMenuItems />
-                ) : (
-                    <>
-                        <SalesMenu.SalesEmailMenuItems />
-                        <SalesMenu.Sub>
-                            <SalesMenu.SubTrigger>
-                                <CheckCheck className="mr-2 size-4 text-muted-foreground/70" />
-                                Mark as
-                            </SalesMenu.SubTrigger>
-                            <SalesMenu.SubContent>
-                                <SalesMenu.Item
-                                    onSelect={(e) => {
-                                        e.preventDefault();
-                                        batchSales.markAsProductionCompleted(
-                                            salesId,
-                                        );
-                                    }}
-                                >
-                                    Production Complete
-                                </SalesMenu.Item>
-                                <SalesMenu.Item
-                                    onSelect={(e) => {
-                                        e.preventDefault();
-                                        batchSales.markAsFulfilled(salesId);
-                                    }}
-                                >
-                                    Fulfillment Complete
-                                </SalesMenu.Item>
-                            </SalesMenu.SubContent>
-                        </SalesMenu.Sub>
-                        <SalesMenu.Separator />
-                        <SalesMenu.Share />
-                        <SalesMenu.SalesPrintMenuItems />
-                        <SalesMenu.Copy />
-                        <SalesMenu.Move />
-                        <SalesMenu.Separator />
-                        <SalesMenu.Item onSelect={reset} disabled={loading}>
-                            <RefreshCcw className="mr-2 size-4 text-muted-foreground/70" />
-                            Reset Stats
-                        </SalesMenu.Item>
-                        <AuthGuard rules={[_perm.is("viewSalesResolution")]}>
-                            <SalesMenu.Item
-                                onSelect={(e) => {
-                                    e.preventDefault();
-                                    openLink(
-                                        `/sales-book/accounting/resolution-center`,
-                                        {
-                                            salesNo: data.orderId,
-                                        },
-                                        true,
-                                    );
-                                }}
-                                disabled={loading}
-                            >
-                                <RefreshCcw className="mr-2 size-4 text-muted-foreground/70" />
-                                Resolution Center
-                            </SalesMenu.Item>
-                        </AuthGuard>
-                    </>
-                )}
-            </SalesMenu>
-        </div>
-    );
+	async function reset() {
+		startTransition(async () => {
+			try {
+				await resetSalesStatAction(data?.id, data?.orderId);
+				toast.success("Reset complete");
+				qs.salesQuery.salesStatReset();
+				// qs.setParams({
+				//     refreshTok: generateRandomString(),
+				// });
+			} catch (error) {
+				toast.error("Unable to complete");
+			}
+		});
+	}
+	return (
+		<div className="flex gap-2">
+			<SendSalesReminder salesIds={[salesId]} />
+			<Button
+				onClick={(e) => {
+					preview();
+				}}
+				size="sm"
+				variant="default"
+				className="flex items-center space-x-2 hover:bg-secondary flex-1"
+			>
+				<FileSearch className="size-3.5" />
+				<span>Preview</span>
+			</Button>
+			<Button
+				size="sm"
+				variant="secondary"
+				className="flex-1 items-center space-x-2 hover:bg-secondary"
+				onClick={() => {
+					openLink(salesFormUrl(type, salesNo, true), {}, true);
+					// setParams({ invoiceId: id, type: "edit" });
+				}}
+			>
+				<Icons.Edit className="size-3.5" />
+				<span>Edit</span>
+			</Button>
+			<SalesMenu
+				triggerVariant="secondary"
+				id={data?.id}
+				slug={data?.uuid}
+				type={data?.type}
+			>
+				{isQuote ? (
+					<SalesMenu.QuoteEmailMenuItems />
+				) : (
+					<>
+						<SalesMenu.SalesEmailMenuItems />
+						<SalesMenu.Sub>
+							<SalesMenu.SubTrigger>
+								<CheckCheck className="mr-2 size-4 text-muted-foreground/70" />
+								Mark as
+							</SalesMenu.SubTrigger>
+							<SalesMenu.SubContent>
+								<SalesMenu.Item
+									onSelect={(e) => {
+										e.preventDefault();
+										batchSales.markAsProductionCompleted(salesId);
+									}}
+								>
+									Production Complete
+								</SalesMenu.Item>
+								<SalesMenu.Item
+									onSelect={(e) => {
+										e.preventDefault();
+										batchSales.markAsFulfilled(salesId);
+									}}
+								>
+									Fulfillment Complete
+								</SalesMenu.Item>
+							</SalesMenu.SubContent>
+						</SalesMenu.Sub>
+						<SalesMenu.Separator />
+						<SalesMenu.Share />
+						<SalesMenu.SalesPrintMenuItems />
+						<SalesMenu.Copy />
+						<SalesMenu.Move />
+						<SalesMenu.Separator />
+						<SalesMenu.Item onSelect={reset} disabled={loading}>
+							<RefreshCcw className="mr-2 size-4 text-muted-foreground/70" />
+							Reset Stats
+						</SalesMenu.Item>
+						<AuthGuard rules={[_perm.is("viewSalesResolution")]}>
+							<SalesMenu.Item
+								onSelect={(e) => {
+									e.preventDefault();
+									openLink(
+										`/sales-book/accounting/resolution-center`,
+										{
+											salesNo: data.orderId,
+										},
+										true,
+									);
+								}}
+								disabled={loading}
+							>
+								<RefreshCcw className="mr-2 size-4 text-muted-foreground/70" />
+								Resolution Center
+							</SalesMenu.Item>
+						</AuthGuard>
+					</>
+				)}
+			</SalesMenu>
+		</div>
+	);
 }

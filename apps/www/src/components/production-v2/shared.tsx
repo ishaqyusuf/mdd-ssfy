@@ -1198,7 +1198,10 @@ function ProductionItemsGrid({
 									expandedItemUid === productionItem.controlUid;
 
 								return (
-									<div key={productionItem.controlUid} className="space-y-0">
+									<div
+										key={productionItem.controlUid}
+										className="min-w-0 space-y-0"
+									>
 										<ProductionItemCard
 											scope={scope}
 											item={productionItem}
@@ -1315,7 +1318,7 @@ function ProductionItemCard({
 			onClick={item.isProduction ? onToggle : undefined}
 			disabled={!item.isProduction}
 			className={cn(
-				"relative overflow-hidden rounded-2xl border border-border bg-background px-4 pb-4 pt-4 text-left transition-[background-color,border-color,border-radius,transform,box-shadow] duration-300 ease-out",
+				"relative block w-full overflow-hidden rounded-2xl border border-border bg-background px-4 pb-4 pt-4 text-left transition-[background-color,border-color,border-radius,transform,box-shadow] duration-300 ease-out",
 				isExpanded && "rounded-b-none border-b-0 bg-muted/50 shadow-sm",
 				item.isProduction ? "hover:bg-muted/30" : "cursor-default bg-muted/10",
 			)}
@@ -1360,20 +1363,20 @@ function ProductionItemCard({
 										);
 									})()
 								: null}
-							<div className="flex flex-wrap items-center gap-2">
-								<p className="font-semibold uppercase tracking-[0.08em]">
+							<div className="flex min-w-0 items-center gap-2">
+								<p className="min-w-0 flex-1 truncate font-semibold uppercase tracking-[0.08em]">
 									{item.title}
 								</p>
 								{!item.isProduction ? (
 									<Badge
 										variant="outline"
-										className="rounded-full text-[10px] uppercase tracking-[0.16em]"
+										className="shrink-0 rounded-full text-[10px] uppercase tracking-[0.16em]"
 									>
 										Not Production
 									</Badge>
 								) : null}
 							</div>
-							<p className="mt-1 text-sm uppercase tracking-[0.08em] text-muted-foreground">
+							<p className="mt-1 truncate text-sm uppercase tracking-[0.08em] text-muted-foreground">
 								{item.subtitle || "NO SUBTITLE"}
 							</p>
 						</div>

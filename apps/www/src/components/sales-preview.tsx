@@ -1,43 +1,24 @@
-import { Env } from "@/components/env";
-import { getSalesPrintData } from "@/app-deps/(v2)/printer/sales/get-sales-print-data";
-import { OrderBasePrinter } from "@/app-deps/(v2)/printer/sales/order-base-printer";
-import SalesPrintDisplay from "@/app-deps/(v2)/printer/sales/sales-print-display";
+"use client";
+
 import { useSalesPreview } from "@/hooks/use-sales-preview";
-import { rndTimeout } from "@/lib/timeout";
+import { Suspense } from "react";
+import { PrintLoading } from "./print-loading";
+import { PrintSalesV2 } from "./print-sales-v2";
 
-import { useAsyncMemo } from "use-async-memo";
+export function SalesPreview() {
+	const { params, opened } = useSalesPreview();
 
-export function SalesPreview({}) {
-    const { params, opened, setParams } = useSalesPreview();
-    const response = useAsyncMemo(async () => {
-        if (opened) {
-            await rndTimeout();
-            const {} = params;
-            const resp = await getSalesPrintData(params.salesPreviewSlug, {
-                mode: params.previewMode,
-                preview: true,
-                dispatchId: params?.dispatchId,
-            });
-            return { data: resp };
-        }
-        return {} as any;
-    }, [opened, params]);
-    if (!response?.data) return null;
-    const { data } = response;
-    return (
-        <div className="">
-            <OrderBasePrinter mode={params?.previewMode as any}>
-                {/* <Env isDev>
-                    <SalesInvoicePdfTemplate
-                        printData={{
-                            sale: data,
-                            mode: params?.previewMode,
-                        }}
-                    />
-                </Env> */}
-                <SalesPrintDisplay data={data} slug={params.salesPreviewSlug} />
-            </OrderBasePrinter>
-        </div>
-    );
+	if (!opened || !params.salesPreviewToken) return null;
+
+	return (
+		<div className="overflow-hidden rounded-lg border bg-background">
+			<Suspense fallback={<PrintLoading />}>
+				<PrintSalesV2
+					token={params.salesPreviewToken}
+					preview
+					className="h-[80vh] min-h-[720px] w-full"
+				/>
+			</Suspense>
+		</div>
+	);
 }
-

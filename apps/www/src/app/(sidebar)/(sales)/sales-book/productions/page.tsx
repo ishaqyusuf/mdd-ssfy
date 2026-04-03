@@ -6,17 +6,18 @@ import { redirect } from "next/navigation";
 
 import PageShell from "@/components/page-shell";
 export async function generateMetadata() {
-	return constructMetadata({
-		title: "Sales Production - gndprodesk.com",
-	});
+    return constructMetadata({
+        title: "Sales Production - gndprodesk.com",
+    });
 }
 export default async function Page() {
-	redirect("/sales-book/productions/v2"); // Temporary redirect to the new production page while we transition
-	return (
-		<PageShell className="">
-			<ErrorBoundary errorComponent={ErrorFallback}>
-				<ProductionWorkspace mode="admin" />
-			</ErrorBoundary>
-		</PageShell>
-	);
+    // redirect("/sales-book/productions/v2"); // Temporary redirect to the new production page while we transition
+    return (
+        <PageShell className="">
+            <ErrorBoundary errorComponent={ErrorFallback}>
+                <ProductionWorkspace mode="admin" />
+            </ErrorBoundary>
+        </PageShell>
+    );
 }
+

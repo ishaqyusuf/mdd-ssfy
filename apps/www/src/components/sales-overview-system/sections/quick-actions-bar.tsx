@@ -28,7 +28,7 @@ export function QuickActionsBar() {
 	if (!data?.id) return null;
 
 	function preview() {
-		sPreview.preview(data?.orderId, data?.type);
+		void sPreview.preview(data?.id, data?.type);
 	}
 
 	function reset() {
@@ -59,7 +59,11 @@ export function QuickActionsBar() {
 				variant="secondary"
 				className="flex items-center gap-2"
 				onClick={() => {
-					openLink(salesFormUrl(data.type, data.orderId, data.isDyke), {}, true);
+					openLink(
+						salesFormUrl(data.type, data.orderId, data.isDyke),
+						{},
+						true,
+					);
 				}}
 			>
 				<Icons.Edit className="size-3.5" />

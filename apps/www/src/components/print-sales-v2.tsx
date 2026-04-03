@@ -1,43 +1,61 @@
 "use client";
 
-import { _trpc } from "./static-trpc";
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
 import { useSalesPrintFilter } from "@/hooks/use-sales-print-filter";
 import { getBaseUrl } from "@/lib/base-url";
+import { cn } from "@/lib/utils";
 import { PDFViewer } from "@gnd/pdf";
 import { SalesPdfDocument } from "@gnd/pdf/sales-v2";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
+import { _trpc } from "./static-trpc";
 
-export function PrintSalesV2() {
-    const { filters } = useSalesPrintFilter();
-    const { data } = useSuspenseQuery(
-        _trpc.print.salesV2.queryOptions({
-            token: filters.token ?? "",
-            preview: filters.preview ?? false,
-        }),
-    );
-    const viewerRef = useRef<any>(null);
-
-    useEffect(() => {
-        if (filters.preview) return;
-        setTimeout(() => {
-            viewerRef.current?.contentWindow?.print();
-        }, 3000);
-    }, [filters.preview]);
-
-    if (!data) return null;
-
-    return (
-        <PDFViewer ref={viewerRef} className="flex flex-col w-full h-screen">
-            <SalesPdfDocument
-                pages={data.pages}
-                templateId={data.templateId}
-                title={data.title}
-                companyAddress={data.companyAddress}
-                watermark={data.watermark ?? undefined}
-                baseUrl={getBaseUrl()}
-            />
-        </PDFViewer>
-    );
+interface PrintSalesV2Props {
+	token?: string;
+	preview?: boolean;
+	templateId?: string;
+	className?: string;
 }
 
+export function PrintSalesV2({
+	token,
+	preview,
+	templateId,
+	className,
+}: PrintSalesV2Props = {}) {
+	const { filters } = useSalesPrintFilter();
+	const resolvedToken = token ?? filters.token ?? "";
+	const resolvedPreview = preview ?? filters.preview ?? false;
+	const { data } = useSuspenseQuery(
+		_trpc.print.salesV2.queryOptions({
+			token: resolvedToken,
+			preview: resolvedPreview,
+			templateId,
+		}),
+	);
+	const viewerRef = useRef<{ contentWindow?: Window | null } | null>(null);
+
+	useEffect(() => {
+		if (resolvedPreview) return;
+		setTimeout(() => {
+			viewerRef.current?.contentWindow?.print();
+		}, 3000);
+	}, [resolvedPreview]);
+
+	if (!data) return null;
+
+	return (
+		<PDFViewer
+			ref={viewerRef}
+			className={cn("flex h-screen w-full flex-col", className)}
+		>
+			<SalesPdfDocument
+				pages={data.pages}
+				templateId={data.templateId}
+				title={data.title}
+				companyAddress={data.companyAddress}
+				watermark={data.watermark ?? undefined}
+				baseUrl={getBaseUrl()}
+			/>
+		</PDFViewer>
+	);
+}

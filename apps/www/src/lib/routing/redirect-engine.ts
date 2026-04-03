@@ -22,7 +22,8 @@ const exactRedirectMaps = {
     "/hrm/employees": "/hrm/employees/v2",
     "/payments": "/jobs-dashboard/payments",
     "/production/dashboard": "/production/dashboard/v2",
-    "/sales-book/production-tasks": "/production/dashboard",
+    "/sales-book/production-tasks": "/production/dashboard/v2",
+    "/sales-book/productions": "/sales-book/productions/v2",
     "/settings/community/builders": "/community/builders",
 } as const;
 const dynamicRedirectMaps = {
