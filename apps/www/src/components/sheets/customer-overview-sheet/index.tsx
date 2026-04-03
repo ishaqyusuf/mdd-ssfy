@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { usePageTitle } from "@/hooks/use-page-title";
 
-import { Button } from "@gnd/ui/button";
 import { SheetDescription, SheetHeader, SheetTitle } from "@gnd/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
@@ -85,10 +84,14 @@ function Modal() {
                             <TransactionsTab accountNo={ctx.params.accountNo} />
                         ) : null}
                         {currenTab === "quotes" ? (
-                            <CustomerQuotesTab accountNo={ctx.params.accountNo} />
+                            <CustomerQuotesTab
+                                accountNo={ctx.params.accountNo}
+                            />
                         ) : null}
                         {currenTab === "sales" ? (
-                            <CustomerSalesTab accountNo={ctx.params.accountNo} />
+                            <CustomerSalesTab
+                                accountNo={ctx.params.accountNo}
+                            />
                         ) : null}
                     </TabsContent>
                 </Tabs>

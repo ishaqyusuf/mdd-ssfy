@@ -195,6 +195,24 @@ Once the v2 print system is stable:
 5. Async job renders PDF → uploads via shared document platform → links to snapshot.
 6. Download/email flows resolve stored document instead of rendering on demand.
 
+## Immediate follow-up scope
+
+The next execution slice extends the shipped v2 renderer into the day-to-day sales workflow.
+
+1. Add quick-print buttons in the sales form and in sales overview next to the preview action so printing does not depend on opening legacy paths.
+2. Move sales preview onto the new template renderer so preview, quick-print, and download all share one render contract.
+3. Treat current print latency as a first-class performance problem; the preferred fix path is stored-document reuse before any expensive on-demand render.
+
+## Cache and merge rules to implement
+
+The stored-document phase should answer these operational rules explicitly:
+
+1. When a payment is recorded successfully, invalidate sales print cache entries that could now have stale balance, status, or payment metadata.
+2. When the sales form mutates saved order data, invalidate cached print snapshots for that sales record before the next download.
+3. On download/quick-print, first check whether the sales record already has a stored download link for the requested print type/template pair; if yes, reuse it instead of regenerating.
+4. If no matching stored document exists, generate the PDF, upload/register it, and persist the new snapshot for future reuse.
+5. Support grouped print requests where a single sales record may emit multiple print documents; each document should preserve the intended per-sales order and the final response should merge them into one PDF when the caller requested a combined print.
+
 ## Notes
 
 - Templates never touch the database — they receive typed `PrintPage` props only.

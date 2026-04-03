@@ -21,3 +21,20 @@
 3. ✅ Audit web admin, web jobs form, and Expo/mobile jobs form consumers to preserve server order without local reshuffling.
 4. ✅ Add focused validation for mixed `taskIndex` and fallback scenarios.
 5. ✅ Update Brain progress/tasks as implementation lands.
+
+## Sales PDF Follow-up Rollout
+- Status: Planned
+- Objective: Finish the next sales print slice by moving preview/download UX onto the new Sales PDF renderer, reducing print latency, and defining cache reuse/invalidation rules around stored downloads.
+- Current Phase: Scope captured in Brain, pending implementation kickoff
+- Next Step: Trace current preview/print entry points in the sales form and sales overview, then map them onto the v2 template renderer and stored-document lifecycle.
+- Blockers: None
+- Related Files: brain/features/sales-pdf-system.md, brain/tasks/in-progress.md, apps/www/src/components/print-sales-v2.tsx, apps/www/src/components/sales-menu-print.tsx, apps/www/src/components/sales-preview.tsx
+- Last Updated: 2026-04-03
+
+### Planned Steps
+1. Add quick-print CTA entry points in the sales form and beside preview inside the sales overview surface.
+2. Switch sales preview flows to the new template render path so preview and download stay visually aligned.
+3. Profile the current print/download path and remove the main latency source before broadening usage.
+4. Define stored-PDF cache invalidation so sales updates and successful payments clear stale cached documents.
+5. Reuse an existing stored download link when its print type matches the requested output; otherwise render and persist a fresh file.
+6. Evaluate grouped print requests where one sales record may contribute multiple print documents, then merge them into a single PDF in sales order when needed.

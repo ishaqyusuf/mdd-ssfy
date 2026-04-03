@@ -1193,21 +1193,36 @@ function ProductionItemsGrid({
 						className="space-y-0"
 					>
 						<div className="grid gap-3 lg:grid-cols-2">
-							{row.map((productionItem) => (
-								<ProductionItemCard
-									key={productionItem.controlUid}
-									scope={scope}
-									item={productionItem}
-									isExpanded={expandedItemUid === productionItem.controlUid}
-									onToggle={() =>
-										setExpandedItemUid((current) =>
-											current === productionItem.controlUid
-												? null
-												: productionItem.controlUid,
-										)
-									}
-								/>
-							))}
+							{row.map((productionItem) => {
+								const isExpanded =
+									expandedItemUid === productionItem.controlUid;
+
+								return (
+									<div key={productionItem.controlUid} className="space-y-0">
+										<ProductionItemCard
+											scope={scope}
+											item={productionItem}
+											isExpanded={isExpanded}
+											onToggle={() =>
+												setExpandedItemUid((current) =>
+													current === productionItem.controlUid
+														? null
+														: productionItem.controlUid,
+												)
+											}
+										/>
+										{isExpanded && productionItem.isProduction ? (
+											<ExpandedItemOverview
+												scope={scope}
+												productionItem={productionItem}
+												rowLength={1}
+												expandedColumnIndex={0}
+												className="lg:hidden"
+											/>
+										) : null}
+									</div>
+								);
+							})}
 						</div>
 						{expandedRowItem?.isProduction ? (
 							<ExpandedItemOverview
@@ -1215,6 +1230,7 @@ function ProductionItemsGrid({
 								productionItem={expandedRowItem}
 								rowLength={row.length}
 								expandedColumnIndex={expandedColumnIndex}
+								className="hidden lg:block"
 							/>
 						) : null}
 					</div>
@@ -1229,17 +1245,20 @@ function ExpandedItemOverview({
 	productionItem,
 	rowLength,
 	expandedColumnIndex,
+	className,
 }: {
 	scope: Scope;
 	productionItem: ProductionDetail["items"][number];
 	rowLength: number;
 	expandedColumnIndex: number;
+	className?: string;
 }) {
 	const showSteppedJoin = rowLength > 1 && expandedColumnIndex > -1;
 
 	return (
 		<div
 			className={cn(
+				className,
 				"overflow-hidden pt-0 transition-all duration-300 ease-out",
 				showSteppedJoin ? "animate-in fade-in-0 slide-in-from-top-1" : "",
 			)}
