@@ -1272,23 +1272,23 @@ function ExpandedItemOverview({
 						className={cn(
 							"-mt-px h-5 transition-all duration-300 ease-out",
 							expandedColumnIndex === 0
-								? "relative border-x border-border bg-muted/50 after:absolute after:-right-1.5 after:bottom-0 after:h-px after:w-1.5 after:bg-border"
-								: "border-b border-border bg-transparent",
+								? "relative border-x border-slate-400 bg-muted/50 after:absolute after:-right-1.5 after:bottom-0 after:h-px after:w-1.5 after:bg-slate-400"
+								: "border-b border-slate-400 bg-transparent",
 						)}
 					/>
 					<div
 						className={cn(
 							"-mt-px h-5 transition-all duration-300 ease-out",
 							expandedColumnIndex === 1
-								? "relative border-x border-border bg-muted/50 after:absolute after:-left-1.5 after:bottom-0 after:h-px after:w-1.5 after:bg-border"
-								: "border-b border-border bg-transparent",
+								? "relative border-x border-slate-400 bg-muted/50 after:absolute after:-left-1.5 after:bottom-0 after:h-px after:w-1.5 after:bg-slate-400"
+								: "border-b border-slate-400 bg-transparent",
 						)}
 					/>
 				</div>
 			) : null}
 			<div
 				className={cn(
-					"rounded-b-2xl border border-border bg-muted/50 px-4 pb-4 pt-4 shadow-none transition-all duration-300 ease-out",
+					"rounded-b-2xl border border-slate-400 bg-muted/50 px-4 pb-4 pt-4 shadow-[0_18px_40px_-18px_rgba(15,23,42,0.42)] transition-all duration-300 ease-out",
 					showSteppedJoin ? "mt-0 border-t-0" : "-mt-4 border-t-0 pt-6",
 				)}
 			>
@@ -1319,7 +1319,8 @@ function ProductionItemCard({
 			disabled={!item.isProduction}
 			className={cn(
 				"relative block w-full overflow-hidden rounded-2xl border border-border bg-background px-4 pb-4 pt-4 text-left transition-[background-color,border-color,border-radius,transform,box-shadow] duration-300 ease-out",
-				isExpanded && "rounded-b-none border-b-0 bg-muted/50 shadow-sm",
+				isExpanded &&
+					"rounded-b-none border-b-0 border-slate-400 bg-muted/50 shadow-none",
 				item.isProduction ? "hover:bg-muted/30" : "cursor-default bg-muted/10",
 			)}
 		>
@@ -3078,8 +3079,7 @@ function ProductionStatProgress({
 					{label}
 				</span>
 				<span className={cn("text-xs", tone.muted)}>
-					{resolvedCompleted}/{resolvedTotal} ({percentage.toFixed(0)}
-					%)
+					{resolvedCompleted}/{resolvedTotal}
 				</span>
 			</div>
 			<div className="h-2 overflow-hidden rounded-full bg-muted">

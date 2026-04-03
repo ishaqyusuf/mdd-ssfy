@@ -82,13 +82,14 @@ export async function getChannels(
             });
           }
         }),
-        await db.noteChannels.createMany({
+        db.noteChannels.createMany({
           data: newChannels
             .filter((cn) => !channels.some((c) => c.channelName === cn))
             .map((cn) => ({
               channelName: cn,
               priority: channelsConfig[cn]?.priority || 5,
             })),
+          skipDuplicates: true,
         }),
       ]);
     }

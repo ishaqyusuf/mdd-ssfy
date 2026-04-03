@@ -85,7 +85,7 @@ function SalesPanelInner({
     setTab: (tab: SalesMetaTab) => void;
 }) {
     return (
-        <Sidebar.Content className="flex w-[22rem] min-h-0 flex-col overflow-hidden">
+        <Sidebar.Content className="flex min-h-0 w-full flex-col overflow-hidden">
             <div className="space-y-3 border-b border-slate-200/80 px-4 py-3">
                 <div className="flex items-center gap-2">
                     <p className="text-[11px] uppercase tracking-wide text-slate-500">
