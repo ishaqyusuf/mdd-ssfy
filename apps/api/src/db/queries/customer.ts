@@ -43,6 +43,7 @@ function mapCustomerWorkspaceItem(
     id: item.id,
     orderId: item.orderId,
     uuid: item.slug || item.orderId,
+    poNo: (((item.meta || {}) as Record<string, unknown>)?.po as string | undefined) || null,
     displayName:
       item.billingAddress?.name ||
       item.customer?.businessName ||
@@ -79,6 +80,7 @@ async function getCustomerWorkspaceSales(
       id: true,
       orderId: true,
       slug: true,
+      meta: true,
       amountDue: true,
       grandTotal: true,
       createdAt: true,

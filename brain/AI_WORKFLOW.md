@@ -18,6 +18,8 @@ Defines the expected read-before-write and update-after-change workflow for AI c
   - let shells, widgets, and loading boundaries appear before non-critical data finishes loading
   - prefer smaller independent queries over one large route-blocking payload
   - avoid full-dataset fetches when aggregates, summaries, or paginated slices are enough
+  - in sheets and tabbed UIs, load the opening tab only and let secondary tabs fetch on demand
+  - treat transactions, audit history, and long tables as secondary data unless the user is explicitly opening that workspace
   - check local references first:
     - `apps/www/src/(midday)`
     - `ai/midday-example`

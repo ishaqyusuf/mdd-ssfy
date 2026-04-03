@@ -23,7 +23,7 @@ function Modal() {
     const ctx = useCustomerOverviewQuery();
     usePageTitle();
 
-    const currenTab = ctx.params?.tab;
+    const currenTab = ctx.params?.tab || "general";
     const [customerName, setCustomerName] = useState(null);
 
     useEffect(() => {
@@ -76,20 +76,20 @@ function Modal() {
             </Tabs>
             <CustomSheetContent className="-mt-4">
                 <Tabs value={currenTab}>
-                    <TabsContent value="general">
-                        <GeneralTab setCustomerName={setCustomerName} />
-                    </TabsContent>
-                    <TabsContent value="pay-portal">
-                        <PayPortalTab />
-                    </TabsContent>
-                    <TabsContent value="transactions">
-                        <TransactionsTab accountNo={ctx.params.accountNo} />
-                    </TabsContent>
-                    <TabsContent value="quotes">
-                        <CustomerQuotesTab accountNo={ctx.params.accountNo} />
-                    </TabsContent>
-                    <TabsContent value="sales">
-                        <CustomerSalesTab accountNo={ctx.params.accountNo} />
+                    <TabsContent value={currenTab}>
+                        {currenTab === "general" ? (
+                            <GeneralTab setCustomerName={setCustomerName} />
+                        ) : null}
+                        {currenTab === "pay-portal" ? <PayPortalTab /> : null}
+                        {currenTab === "transactions" ? (
+                            <TransactionsTab accountNo={ctx.params.accountNo} />
+                        ) : null}
+                        {currenTab === "quotes" ? (
+                            <CustomerQuotesTab accountNo={ctx.params.accountNo} />
+                        ) : null}
+                        {currenTab === "sales" ? (
+                            <CustomerSalesTab accountNo={ctx.params.accountNo} />
+                        ) : null}
                     </TabsContent>
                 </Tabs>
             </CustomSheetContent>

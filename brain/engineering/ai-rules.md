@@ -13,6 +13,8 @@ Operational rules for AI agents contributing to this repository.
   - favor quick shell render, progressive hydration, and clear loading states
   - favor composable page sections over single heavyweight page queries
   - favor summary-first and paginated data access over loading full collections up front
+  - for modals, drawers, and sheets, avoid eagerly mounting inactive tabs or preloading non-critical datasets
+  - prefer one lean overview query for open-state surfaces, then fetch detail tabs only when activated
   - use local reference paths when you need examples:
     - `apps/www/src/(midday)`
     - `ai/midday-example`

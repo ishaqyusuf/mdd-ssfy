@@ -2,6 +2,19 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-04-03
+
+- Optimized the legacy customer overview sheet open path in `apps/www`.
+  - stopped eagerly mounting every customer overview tab panel on sheet open
+  - switched the default `general` tab away from the broad `getCustomerGeneralInfoAction` fan-out and onto `customer.getCustomerOverviewV2`
+  - reduced first-open work to overview data only: wallet, summary counts, pending slices, and recent sales
+  - moved transactions out of the default open payload so they now load only when the transactions tab is opened
+  - extended the shared customer overview query payload with `poNo` so recent-sales previews can stay lean without falling back to older loaders
+- Updated Brain performance guidance to reinforce faster page and sheet loading patterns.
+  - mount only the active tab in tabbed workspaces
+  - prefer one slim overview query for first paint
+  - defer transactions, history, and full tables until the user opens that panel
+
 ## 2026-04-02
 
 - Refined the production worker dashboard v2 interaction model in `apps/www/src/components/production-v2/shared.tsx`.

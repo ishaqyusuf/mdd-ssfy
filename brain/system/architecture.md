@@ -28,6 +28,11 @@ Tracks the current technical topology and major module boundaries.
   - prefer aggregate, count, summary, and paginated query shapes for first paint instead of loading complete working sets
   - stream or defer secondary data, enrichment, and non-critical controls until after the primary view is visible
   - keep UI data dependencies small, composable, and easy to hydrate incrementally
+  - for sheets, drawers, and modal workspaces:
+    - load only the active tab or panel on open; do not eagerly mount every tab's data tree
+    - use one slim overview query for the opening surface and move transactions, full lists, and deep history into on-demand tab queries
+    - avoid server actions that fan out into many unrelated reads when a focused tRPC query can provide the first-paint payload
+    - keep first-open payloads bounded; prefer recent slices and summary counts over `size: 200` style catch-all fetches
   - reference local Midday-inspired implementations when choosing patterns:
     - `apps/www/src/(midday)` for shared in-repo Midday-style UI patterns
     - `ai/midday-example` for focused example snippets and interaction patterns
