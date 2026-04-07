@@ -88,6 +88,7 @@ export async function getRevenueOverTime(ctx: TRPCContext, filter: Filter) {
 
   const ret = interval.map((day) => ({
     date: format(day, "MMM d"),
+    rawDate: format(day, "yyyy-MM-dd"),
     revenue: dailyRevenue[format(day, "yyyy-MM-dd")] || 0,
   }));
   return ret.filter((d, i) =>
@@ -199,6 +200,7 @@ export async function getTopProducts(ctx: TRPCContext, filter: Filter) {
     const step = steps.find((s) => s.id == d.stepProductId);
     const name = step?.name || step?.door?.title;
     return {
+      id: d.stepProductId,
       name,
       count: d._sum.totalQty ?? 0,
     };

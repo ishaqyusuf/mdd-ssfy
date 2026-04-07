@@ -21,6 +21,8 @@ export const getSalesAccountingsSchema = z
     status: z.enum(["Success", "Cancelled"]).optional().nullable(),
     paymentType: z.enum(SALES_PAYMENT_METHODS).optional().nullable(),
     salesRepId: z.number().optional().nullable(),
+    from: z.string().optional().nullable(),
+    to: z.string().optional().nullable(),
     dateRange: z.array(z.string().optional().nullable()).optional().nullable(),
     payments: z.enum(salesHaving).optional().nullable(),
     d: z.boolean().optional().nullable(),
@@ -240,6 +242,15 @@ function whereSalesAccountings(query: GetSalesAccountingsSchema) {
           createdAt: transformFilterDateToQuery(query.dateRange),
         });
         break;
+      case "from":
+      case "to":
+        if (query.dateRange?.length) break;
+        if (query.from || query.to) {
+          where.push({
+            createdAt: transformFilterDateToQuery([query.from, query.to]),
+          });
+        }
+        break;
       case "paymentType":
         where.push({
           paymentMethod: v,
@@ -268,6 +279,17 @@ function whereSalesAccountings(query: GetSalesAccountingsSchema) {
                 orderId: {
                   in: v?.split(","),
                 },
+              },
+            },
+          },
+        });
+        break;
+      case "salesRepId":
+        where.push({
+          salesPayments: {
+            some: {
+              order: {
+                salesRepId: v,
               },
             },
           },

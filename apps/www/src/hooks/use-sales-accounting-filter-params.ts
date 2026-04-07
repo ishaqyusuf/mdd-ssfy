@@ -19,6 +19,8 @@ export const salesAccountingFilterParams = {
     status: parseAsString,
     paymentType: parseAsString,
     salesRepId: parseAsInteger,
+    from: parseAsString,
+    to: parseAsString,
     payments: parseAsString,
     dateRange: parseAsArrayOf(parseAsString),
     d: parseAsBoolean,
@@ -35,4 +37,3 @@ export function useSalesAccountingFilterParams() {
 export const loadSalesAccountingFilterParams = createLoader(
     salesAccountingFilterParams
 );
-

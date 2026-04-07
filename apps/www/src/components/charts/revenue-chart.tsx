@@ -1,6 +1,7 @@
 "use client";
 
 import { useSalesDashboardParams } from "@/hooks/use-sales-dashboard-params";
+import { openLink } from "@/lib/open-link";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
 import {
@@ -68,9 +69,22 @@ export function RevenueChart() {
                     dataKey="revenue"
                     fill="hsl(var(--primary))"
                     radius={[4, 4, 0, 0]}
+                    cursor="pointer"
+                    onClick={(payload) => {
+                        const rawDate =
+                            payload?.payload?.rawDate ||
+                            payload?.payload?.date;
+                        if (!rawDate) return;
+                        openLink(
+                            "/sales-book/reports",
+                            {
+                                from: rawDate,
+                                to: rawDate,
+                            }
+                        );
+                    }}
                 />
             </BarChart>
         </ResponsiveContainer>
     );
 }
-

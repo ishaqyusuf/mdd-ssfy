@@ -1,5 +1,6 @@
 "use client";
 import { useSalesDashboardParams } from "@/hooks/use-sales-dashboard-params";
+import { openLink } from "@/lib/open-link";
 import { useTRPC } from "@/trpc/client";
 import {
     Card,
@@ -43,7 +44,12 @@ export function TopProductsWidget() {
 
     return (
         <Card>
-            <CardHeader>
+                <CardHeader
+                className="cursor-pointer transition-colors hover:bg-muted/40"
+                onClick={() => {
+                    openLink("/sales-book/top-selling-products");
+                }}
+            >
                 <CardTitle>Top Selling Products</CardTitle>
                 <CardDescription>
                     Based on sales volume in the last 30 days.
@@ -54,9 +60,20 @@ export function TopProductsWidget() {
                     {data?.map((product) => {
                         return (
                             <li
-                                key={product.name}
+                                key={product.id ?? product.name}
                                 className="h-[57px] items-center flex w-full"
                             >
+                                <button
+                                    type="button"
+                                    className="flex h-full w-full items-center text-left transition-colors hover:bg-muted/50"
+                                    onClick={() => {
+                                        if (!product.id) return;
+                                        openLink(
+                                            `/sales-book/top-selling-products/${product.id}`,
+                                            {},
+                                        );
+                                    }}
+                                >
                                 <div className="w-3/5">
                                     <span className="text-sm font-medium uppercase">
                                         {product.name}
@@ -66,6 +83,7 @@ export function TopProductsWidget() {
                                 <span className="text-sm text-muted-foreground text-end">
                                     {product.count} units
                                 </span>
+                                </button>
                             </li>
                         );
                     })}
@@ -74,4 +92,3 @@ export function TopProductsWidget() {
         </Card>
     );
 }
-

@@ -23,6 +23,7 @@ salesStatistics: publicProcedure
 export const productReportSchema = z
   .object({
     q: z.string().optional().nullable(),
+    productId: z.number().optional().nullable(),
     dateRange: z.array(z.string().optional().nullable()).optional().nullable(),
     reportCategory: z.string().optional().nullable(),
   })
@@ -167,6 +168,7 @@ export async function getProductReport(
         ? formatMoney(sum(hpts.map((a) => a?.costPrice)) * units)
         : formatMoney(sum(d.stepForms, "basePrice"));
       return {
+        id: d.id,
         name: d.name || d.product?.title,
         category: d.step?.title,
         units,
@@ -254,6 +256,11 @@ function whereStat(query: ProductReportSchema) {
       step: {
         title: query.reportCategory,
       },
+    });
+  }
+  if (query.productId) {
+    where.push({
+      id: query.productId,
     });
   }
   if (query.dateRange) {

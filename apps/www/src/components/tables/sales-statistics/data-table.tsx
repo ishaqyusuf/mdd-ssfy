@@ -11,6 +11,7 @@ import { EyeIcon } from "lucide-react";
 import { Badge } from "@gnd/ui/badge";
 import { ProductImage } from "@/app-deps/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products/product";
 import { useProductReportFilters } from "@/hooks/use-product-report-filter-params";
+import { openLink } from "@/lib/open-link";
 import { FormatAmount } from "@gnd/ui/custom/format-amount";
 
 interface Props {}
@@ -28,8 +29,15 @@ export function DataTable(props: Props) {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {data?.map((product, pi) => (
                     <Card
-                        key={pi}
+                        key={product.id ?? pi}
                         className="overflow-hidden cursor-pointer transition-colors hover:bg-muted/50"
+                        onClick={() => {
+                            if (!product.id) return;
+                            openLink(
+                                `/sales-book/top-selling-products/${product.id}`,
+                                {},
+                            );
+                        }}
                     >
                         <CardContent className="p-4">
                             <div className="flex items-start gap-4">
@@ -138,4 +146,3 @@ export function DataTable(props: Props) {
         </div>
     );
 }
-

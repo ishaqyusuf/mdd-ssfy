@@ -14,7 +14,7 @@ type CellMeta = {
 };
 
 export function TableRow() {
-  const { table, tableMeta, mobileMode } = useTable();
+  const { table, tableMeta, mobileMode, usingMobileColumn } = useTable();
   const { getStickyStyle } = useStickyColumns({
     table,
     loading: false,
@@ -39,6 +39,7 @@ export function TableRow() {
               onClick={() => {
                 const meta = cell.column.columnDef.meta as CellMeta | undefined;
                 if (
+                  usingMobileColumn ||
                   cell.column.id === "actions" ||
                   cell.column.id === "select" ||
                   meta?.preventDefault
@@ -48,7 +49,9 @@ export function TableRow() {
               }}
               className={cn(
                 (cell.column.columnDef.meta as CellMeta | undefined)?.className,
-                tableMeta?.rowClick && "cursor-pointer hover:bg-transparent",
+                tableMeta?.rowClick &&
+                  !usingMobileColumn &&
+                  "cursor-pointer hover:bg-transparent",
                 mobileMode?.borderless && "border-0",
                 "",
               )}

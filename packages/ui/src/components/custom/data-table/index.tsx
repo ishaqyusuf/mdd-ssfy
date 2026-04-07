@@ -112,11 +112,12 @@ export function createTableContext({
     storeRowSelection || __rowSelection,
     storeSetRowSelection || __setRowSelection,
   ];
+  const usingMobileColumn = Boolean(isMobile && mobileColumn);
 
   const table = useReactTable({
     data,
     getRowId: ({ id }) => String(id),
-    columns: isMobile && mobileColumn ? mobileColumn : columns,
+    columns: usingMobileColumn ? mobileColumn : columns,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onRowSelectionChange: setRowSelection || undefined,
@@ -155,6 +156,7 @@ export function createTableContext({
     addons,
     tableScroll,
     props,
+    usingMobileColumn,
     mobileMode: {
       hideHeader: true, //isMobile && !!tableMeta?.mobileMode?.hideHeader,
       borderless: true, // isMobile && !!tableMeta?.mobileMode?.borderless,

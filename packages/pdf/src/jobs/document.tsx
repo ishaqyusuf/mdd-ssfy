@@ -101,9 +101,9 @@ export function JobsPdfDocument({
         baseUrl={baseUrl}
         size="LETTER"
         style={{
-          paddingTop: 22,
-          paddingBottom: 22,
-          paddingHorizontal: 24,
+          paddingTop: 16,
+          paddingBottom: 16,
+          paddingHorizontal: 18,
           backgroundColor: "#ffffff",
           color: "#0f172a",
           fontFamily: "Inter",
@@ -113,14 +113,14 @@ export function JobsPdfDocument({
           style={{
             borderWidth: 1,
             borderColor: "#d9d2c7",
-            marginBottom: 16,
+            marginBottom: 10,
           }}
         >
           <View
             style={{
               backgroundColor: "#17332c",
-              paddingVertical: 16,
-              paddingHorizontal: 18,
+              paddingVertical: 12,
+              paddingHorizontal: 14,
             }}
           >
             <View
@@ -128,31 +128,31 @@ export function JobsPdfDocument({
                 flexDirection: "row",
                 justifyContent: "space-between",
                 alignItems: "flex-start",
-                gap: 16,
+                gap: 12,
               }}
             >
               <View style={{ width: "62%" }}>
                 <Image
                   src={`${baseUrl}/logo.png`}
-                  style={{ width: 150, height: 58, objectFit: "contain" }}
+                  style={{ width: 128, height: 46, objectFit: "contain" }}
                 />
                 <Text
                   style={{
-                    fontSize: 10,
-                    letterSpacing: 2.2,
+                    fontSize: 8.5,
+                    letterSpacing: 1.8,
                     textTransform: "uppercase",
                     color: "rgba(255,255,255,0.68)",
-                    marginTop: 4,
+                    marginTop: 2,
                   }}
                 >
                   GND Contractor Jobs
                 </Text>
                 <Text
                   style={{
-                    fontSize: 22,
+                    fontSize: 18,
                     fontWeight: 700,
                     color: "#ffffff",
-                    marginTop: 6,
+                    marginTop: 4,
                   }}
                 >
                   {data.title}
@@ -160,9 +160,9 @@ export function JobsPdfDocument({
                 {hasSingleContractor ? (
                   <Text
                     style={{
-                      fontSize: 12,
+                      fontSize: 10,
                       color: "#ffffff",
-                      marginTop: 6,
+                      marginTop: 4,
                     }}
                   >
                     Contractor: {contractorLabel}
@@ -175,16 +175,16 @@ export function JobsPdfDocument({
                   width: "38%",
                   borderWidth: 1,
                   borderColor: "rgba(255,255,255,0.18)",
-                  padding: 10,
+                  padding: 8,
                 }}
               >
                 <Text
                   style={{
-                    fontSize: 10,
-                    letterSpacing: 1.8,
+                    fontSize: 8.5,
+                    letterSpacing: 1.4,
                     textTransform: "uppercase",
                     color: "rgba(255,255,255,0.68)",
-                    marginBottom: 8,
+                    marginBottom: 6,
                   }}
                 >
                   Document Info
@@ -204,9 +204,9 @@ export function JobsPdfDocument({
           <View
             style={{
               flexDirection: "row",
-              gap: 10,
-              paddingHorizontal: 18,
-              paddingVertical: 14,
+              gap: 8,
+              paddingHorizontal: 14,
+              paddingVertical: 10,
               borderTopWidth: 1,
               borderTopColor: "#d9d2c7",
               backgroundColor: "#f8f5ef",
@@ -231,8 +231,8 @@ export function JobsPdfDocument({
             style={{
               borderWidth: 1,
               borderColor: "#d9d2c7",
-              padding: 14,
-              marginBottom: 12,
+              padding: 10,
+              marginBottom: 8,
               backgroundColor: "#fffdfa",
             }}
           >
@@ -241,16 +241,16 @@ export function JobsPdfDocument({
                 flexDirection: "row",
                 justifyContent: "space-between",
                 alignItems: "flex-start",
-                gap: 12,
+                gap: 10,
               }}
             >
-              <View style={{ width: "74%" }}>
+              <View style={{ width: "76%" }}>
                 <View
                   style={{
                     flexDirection: "row",
-                    gap: 6,
+                    gap: 4,
                     alignItems: "center",
-                    marginBottom: 8,
+                    marginBottom: 5,
                     flexWrap: "wrap",
                   }}
                 >
@@ -260,7 +260,7 @@ export function JobsPdfDocument({
                 </View>
                 <Text
                   style={{
-                    fontSize: 15,
+                    fontSize: 12.5,
                     fontWeight: 700,
                     color: "#0f172a",
                   }}
@@ -271,8 +271,8 @@ export function JobsPdfDocument({
                 {job.builderTaskName ? (
                   <Text
                     style={{
-                      fontSize: 10.5,
-                      marginTop: 5,
+                      fontSize: 9.5,
+                      marginTop: 3,
                       color: "#334155",
                       fontWeight: 600,
                     }}
@@ -283,10 +283,10 @@ export function JobsPdfDocument({
                 {job.description ? (
                   <Text
                     style={{
-                      fontSize: 10.5,
-                      lineHeight: 1.45,
+                      fontSize: 9,
+                      lineHeight: 1.35,
                       color: "#64748b",
-                      marginTop: 6,
+                      marginTop: 4,
                     }}
                   >
                     {job.description}
@@ -296,18 +296,18 @@ export function JobsPdfDocument({
 
               <View
                 style={{
-                  width: "26%",
+                  width: "24%",
                   borderWidth: 1,
                   borderColor: "#d9d2c7",
-                  padding: 10,
+                  padding: 8,
                   backgroundColor: "#ffffff",
                 }}
               >
                 <Text
                   style={{
-                    fontSize: 9,
+                    fontSize: 8,
                     textTransform: "uppercase",
-                    letterSpacing: 1.4,
+                    letterSpacing: 1.1,
                     color: "#94a3b8",
                   }}
                 >
@@ -315,10 +315,10 @@ export function JobsPdfDocument({
                 </Text>
                 <Text
                   style={{
-                    fontSize: 18,
+                    fontSize: 15,
                     fontWeight: 700,
                     color: "#0f172a",
-                    marginTop: 6,
+                    marginTop: 4,
                   }}
                 >
                   {formatCurrency(job.amount)}
@@ -329,8 +329,8 @@ export function JobsPdfDocument({
             <View
               style={{
                 flexDirection: "row",
-                gap: 8,
-                marginTop: 12,
+                gap: 6,
+                marginTop: 8,
                 flexWrap: "wrap",
               }}
             >
@@ -352,12 +352,12 @@ export function JobsPdfDocument({
 
         <View
           style={{
-            marginTop: 4,
+            marginTop: 2,
             borderWidth: 1,
             borderColor: "#17332c",
             backgroundColor: "#17332c",
-            paddingHorizontal: 18,
-            paddingVertical: 14,
+            paddingHorizontal: 14,
+            paddingVertical: 10,
             flexDirection: "row",
             justifyContent: "space-between",
             alignItems: "flex-end",
@@ -366,9 +366,9 @@ export function JobsPdfDocument({
           <View>
             <Text
               style={{
-                fontSize: 9,
+                fontSize: 8,
                 textTransform: "uppercase",
-                letterSpacing: 1.7,
+                letterSpacing: 1.3,
                 color: "rgba(255,255,255,0.68)",
               }}
             >
@@ -376,25 +376,25 @@ export function JobsPdfDocument({
             </Text>
             <Text
               style={{
-                fontSize: 22,
+                fontSize: 17,
                 fontWeight: 700,
                 color: "#ffffff",
-                marginTop: 5,
+                marginTop: 3,
               }}
             >
               {formatCurrency(data.summary.totalAmount)}
             </Text>
           </View>
           <View>
-            <Text style={{ fontSize: 10.5, color: "#ffffff", textAlign: "right" }}>
+            <Text style={{ fontSize: 9, color: "#ffffff", textAlign: "right" }}>
               {data.summary.jobCount} jobs selected
             </Text>
             <Text
               style={{
-                fontSize: 10.5,
+                fontSize: 9,
                 color: "rgba(255,255,255,0.72)",
                 textAlign: "right",
-                marginTop: 2,
+                marginTop: 1,
               }}
             >
               {contractorLabel}
@@ -421,13 +421,13 @@ function MetaLine({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "flex-start",
-        marginBottom: 4,
-        gap: 8,
+        marginBottom: 3,
+        gap: 6,
       }}
     >
       <Text
         style={{
-          fontSize: 9.5,
+          fontSize: 8.5,
           fontWeight: 700,
           color: light ? "rgba(255,255,255,0.72)" : "#334155",
         }}
@@ -436,7 +436,7 @@ function MetaLine({
       </Text>
       <Text
         style={{
-          fontSize: 9.5,
+          fontSize: 8.5,
           color: light ? "#ffffff" : "#0f172a",
           textAlign: "right",
           maxWidth: "62%",
@@ -456,15 +456,15 @@ function MetricCard({ label, value }: { label: string; value: string }) {
         borderWidth: 1,
         borderColor: "#d9d2c7",
         backgroundColor: "#ffffff",
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        paddingHorizontal: 9,
+        paddingVertical: 8,
       }}
     >
       <Text
         style={{
-          fontSize: 9,
+          fontSize: 8,
           textTransform: "uppercase",
-          letterSpacing: 1.4,
+          letterSpacing: 1.1,
           color: "#94a3b8",
         }}
       >
@@ -472,10 +472,10 @@ function MetricCard({ label, value }: { label: string; value: string }) {
       </Text>
       <Text
         style={{
-          fontSize: 14,
+          fontSize: 11.5,
           fontWeight: 700,
           color: "#0f172a",
-          marginTop: 6,
+          marginTop: 4,
         }}
       >
         {value}
@@ -499,15 +499,15 @@ function Pill({
         borderWidth: 1,
         borderColor: dark ? "#17332c" : "#d9d2c7",
         backgroundColor: dark ? "#17332c" : subtle ? "#f8f5ef" : "#ffffff",
-        paddingHorizontal: 8,
-        paddingVertical: 3,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
       }}
     >
       <Text
         style={{
-          fontSize: 8.5,
+          fontSize: 7.5,
           fontWeight: 700,
-          letterSpacing: 1.1,
+          letterSpacing: 0.8,
           textTransform: "uppercase",
           color: dark ? "#ffffff" : "#475569",
         }}
@@ -528,15 +528,15 @@ function DetailCard({ label, value }: { label: string; value: string }) {
         borderWidth: 1,
         borderColor: "#e4ddd1",
         backgroundColor: "#ffffff",
-        paddingHorizontal: 10,
-        paddingVertical: 8,
+        paddingHorizontal: 8,
+        paddingVertical: 6,
       }}
     >
       <Text
         style={{
-          fontSize: 8.5,
+          fontSize: 7.5,
           textTransform: "uppercase",
-          letterSpacing: 1.2,
+          letterSpacing: 0.9,
           color: "#94a3b8",
         }}
       >
@@ -544,11 +544,11 @@ function DetailCard({ label, value }: { label: string; value: string }) {
       </Text>
       <Text
         style={{
-          fontSize: 10,
+          fontSize: 8.7,
           fontWeight: 500,
           color: "#334155",
-          marginTop: 5,
-          lineHeight: 1.35,
+          marginTop: 3,
+          lineHeight: 1.25,
         }}
       >
         {value}

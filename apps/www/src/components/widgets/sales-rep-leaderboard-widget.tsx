@@ -1,6 +1,6 @@
 "use client";
 import { Avatar } from "@/components/avatar";
-import { useSalesDashboardParams } from "@/hooks/use-sales-dashboard-params";
+import { openLink } from "@/lib/open-link";
 import { useTRPC } from "@/trpc/client";
 import {
 	Card,
@@ -11,15 +11,21 @@ import {
 } from "@gnd/ui/card";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useQuery } from "@gnd/ui/tanstack";
+import { endOfDay, formatISO, startOfDay, subDays } from "date-fns";
 import { WidgetListSkeleton } from "./widget-skeleton";
 
 export function SalesRepLeaderboardWidget() {
 	const trpc = useTRPC();
-	const { params } = useSalesDashboardParams();
+	const from = formatISO(startOfDay(subDays(new Date(), 29)), {
+		representation: "date",
+	});
+	const to = formatISO(endOfDay(new Date()), {
+		representation: "date",
+	});
 	const { data, isLoading } = useQuery(
 		trpc.salesDashboard.getSalesRepLeaderboard.queryOptions({
-			from: params.from,
-			to: params.to,
+			from,
+			to,
 		}),
 	);
 	if (isLoading)
@@ -49,7 +55,21 @@ export function SalesRepLeaderboardWidget() {
 			<CardContent className="space-y-4">
 				<ul className="bullet-none divide-y cursor-pointer overflow-auto scrollbar-hide aspect-square pb-32 mt-4">
 					{data?.map((rep) => (
-						<div className="flex items-center h-[57px]" key={rep.id}>
+						<button
+							type="button"
+							className="flex h-[57px] w-full items-center text-left transition-colors hover:bg-muted/50"
+							key={rep.id}
+							onClick={() => {
+								openLink(
+									"/sales-book/reports",
+									{
+										salesRepId: rep.id,
+										from,
+										to,
+									},
+								);
+							}}
+						>
 							<Avatar
 								name={rep.name}
 								className="h-9 w-9"
@@ -61,7 +81,7 @@ export function SalesRepLeaderboardWidget() {
 							<div className="ml-auto font-medium">
 								${rep.totalSales.toLocaleString()}
 							</div>
-						</div>
+						</button>
 					))}
 				</ul>
 			</CardContent>
