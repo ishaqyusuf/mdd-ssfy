@@ -32,6 +32,11 @@ import {
 } from "date-fns";
 import z from "zod";
 import { getSetting } from "./settings";
+
+function getJobType(meta?: JobMeta | null) {
+	return meta?.costData ? "v1" : "v2";
+}
+
 export const getJobsSchema = z
 	.object({
 		userId: z.number().optional().nullable(),
@@ -70,6 +75,11 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
 			controlId: true,
 			isCustom: true,
 			builderTaskId: true,
+			builderTask: {
+				select: {
+					taskName: true,
+				},
+			},
 			coWorker: {
 				select: {
 					name: true,
@@ -172,8 +182,10 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
 					jobId: `#J-${padStart(id, 5, "0")}`,
 					controlId,
 					isCustom,
+					jobType: getJobType(meta),
 					adminNote,
 					amount,
+					builderTask: rest.builderTask,
 					createdAt,
 					description,
 					home,

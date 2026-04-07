@@ -4,6 +4,11 @@
 
 ## 2026-04-03
 
+- Updated job overview and jobs list metadata/action visibility.
+  - added `jobType` (`V1` / `V2`) to the shared jobs payload and surfaced it in the jobs list and job overview header
+  - added builder-task name display to both the jobs list and the job overview details panel
+  - restored the overview submit action for submittable jobs, including `Started` and `Assigned` states, and let admin open the submit/edit flow from overview as well
+
 - Added a shared selected-jobs print flow for contractor operations.
   - created a tokenized public print page for selected jobs at `p/jobs`
   - added a shared jobs print data contract and reusable print helper so both the contractor jobs table and payment portal use the same print path

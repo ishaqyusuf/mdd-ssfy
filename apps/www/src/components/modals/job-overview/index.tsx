@@ -129,6 +129,9 @@ function Content() {
 					<span>
 						{job?.title} - {job?.subtitle}
 					</span>
+					<Progress.Status noDot badge>
+						{String(job?.jobType || "v2").toUpperCase()}
+					</Progress.Status>
 					{isPaymentCancelled ? (
 						<>
 							<Progress.Status noDot badge>
@@ -203,6 +206,28 @@ function Content() {
 										</p>
 										<p className="truncate text-sm text-muted-foreground">
 											{job.home?.lotBlock}
+										</p>
+									</div>
+								</Card.Content>
+							</Card>
+
+							<Card>
+								<Card.Header>
+									<div className="flex items-center gap-2 text-muted-foreground">
+										<Wrench className="h-4 w-4" />
+										<span className="text-xs font-bold uppercase tracking-wider">
+											Builder Task
+										</span>
+									</div>
+								</Card.Header>
+								<Card.Content className="flex flex-col gap-3">
+									<div>
+										<p className="font-bold text-foreground">
+											{job?.builderTask?.taskName ||
+												(job?.isCustom ? "Custom Task" : "Not linked")}
+										</p>
+										<p className="text-sm text-muted-foreground">
+											Job type {String(job?.jobType || "v2").toUpperCase()}
 										</p>
 									</div>
 								</Card.Content>
@@ -330,12 +355,14 @@ function JobOverviewActionsCard({
 		.toLowerCase()
 		.replace(/[_\s]+/g, " ");
 	const isAssigned = normalizedStatus === "assigned";
+	const isStarted = normalizedStatus === "started";
 	const isApproved = normalizedStatus === "approved";
 	const isRejected = normalizedStatus === "rejected";
 	const isSubmitted = normalizedStatus === "submitted";
 	const isConfigRequested = normalizedStatus === "config requested";
-	const isWorkerSubmittable = [
+	const isSubmittable = [
 		"assigned",
+		"started",
 		"in progress",
 		"config requested",
 		"submitted",
@@ -427,7 +454,7 @@ function JobOverviewActionsCard({
 		(isAdmin && canConfigure) ||
 			(isAdmin && isAssigned) ||
 			showReviewAction ||
-			(!isAdmin && isWorkerSubmittable),
+			isSubmittable,
 	);
 
 	if (!hasAnyAction) return null;
@@ -546,11 +573,11 @@ function JobOverviewActionsCard({
 					</div>
 				)}
 
-				{!isAdmin && isWorkerSubmittable && (
+				{isSubmittable && (
 					<div className="flex gap-3">
 						<Button
 							className="flex-1"
-							onClick={() => openJobForm(4)}
+							onClick={() => openJobForm(isAdmin ? 5 : 4)}
 							disabled={isConfigRequested}
 							title={
 								isConfigRequested
@@ -559,25 +586,27 @@ function JobOverviewActionsCard({
 							}
 						>
 							<CheckCircle2 className="mr-2 h-4 w-4" />
-							{isSubmitted ? "Update Submission" : "Submit"}
+							{isSubmitted ? "Update Submission" : "Submit Job"}
 						</Button>
-						<Button
-							type="button"
-							variant="destructive"
-							size="icon"
-							disabled={isDeleting}
-							onClick={() => {
-								if (!job?.id) return;
-								deleteJob({ id: job.id });
-							}}
-							title="Delete job"
-						>
-							<Trash2 className="h-4 w-4" />
-						</Button>
+						{!isAdmin ? (
+							<Button
+								type="button"
+								variant="destructive"
+								size="icon"
+								disabled={isDeleting}
+								onClick={() => {
+									if (!job?.id) return;
+									deleteJob({ id: job.id });
+								}}
+								title="Delete job"
+							>
+								<Trash2 className="h-4 w-4" />
+							</Button>
+						) : null}
 					</div>
 				)}
 
-				{isAdmin && isAssigned && (
+				{isAdmin && (isAssigned || isStarted) && (
 					<Button
 						type="button"
 						variant="destructive"

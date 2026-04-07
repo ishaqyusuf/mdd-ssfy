@@ -9,6 +9,7 @@ import { useTRPC } from "@/trpc/client";
 import { formatDate } from "@/utils/format";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
+import { cells } from "@gnd/ui/custom/data-table/cells";
 import { Progress } from "@gnd/ui/custom/progress";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import {
@@ -53,6 +54,9 @@ const descriptionColumn: Column = {
 						Custom
 					</Progress.Status>
 				)}
+				<Progress.Status badge noDot>
+					{String(item.jobType || "v2").toUpperCase()}
+				</Progress.Status>
 			</Item.Title>
 			<span>
 				<TextWithTooltip
@@ -64,6 +68,9 @@ const descriptionColumn: Column = {
 				/>
 				{/* {item.description || "no report"} */}
 			</span>
+			{item.builderTask?.taskName ? (
+				<Item.Description>{item.builderTask.taskName}</Item.Description>
+			) : null}
 		</>
 	),
 };
@@ -113,6 +120,7 @@ const actionColumn: Column = {
 };
 
 export const adminColumns: Column[] = [
+	cells.selectColumn,
 	column1,
 	descriptionColumn,
 	contractorColumn,
@@ -122,6 +130,7 @@ export const adminColumns: Column[] = [
 ];
 
 export const projectTabColumns: Column[] = [
+	cells.selectColumn,
 	column1,
 	descriptionColumn,
 	contractorColumn,
@@ -131,6 +140,7 @@ export const projectTabColumns: Column[] = [
 ];
 
 export const workersColumn: Column[] = [
+	cells.selectColumn,
 	column1,
 	descriptionColumn,
 	statusColumn,
@@ -306,9 +316,24 @@ function ItemCard({ item }: ItemProps) {
 					{item.title}
 					{item.subtitle ? ` - ${item.subtitle}` : ""}
 				</p>
+				<div className="mt-1 flex flex-wrap items-center gap-2">
+					<Progress.Status badge noDot>
+						{String(item.jobType || "v2").toUpperCase()}
+					</Progress.Status>
+					{item.isCustom ? (
+						<Progress.Status badge noDot>
+							Custom
+						</Progress.Status>
+					) : null}
+				</div>
 				<p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
 					{item.description || "No description"}
 				</p>
+				{item.builderTask?.taskName ? (
+					<p className="mt-1 truncate text-xs text-muted-foreground">
+						Task: {item.builderTask.taskName}
+					</p>
+				) : null}
 			</div>
 
 			<div className="flex items-center justify-between gap-3">
