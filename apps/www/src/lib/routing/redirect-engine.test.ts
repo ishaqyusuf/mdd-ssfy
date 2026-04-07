@@ -7,6 +7,14 @@ import {
 } from "./redirect-engine";
 
 describe("redirect engine", () => {
+	it("redirects the legacy login route to login v2", () => {
+		expect(resolveRedirectPath("/login?return_to=/sales-book/orders")).toEqual({
+			pathname: "/login/v2",
+			search: "?return_to=/sales-book/orders",
+			permanent: false,
+		});
+	});
+
 	it("resolves exact redirects and preserves query strings", () => {
 		expect(
 			resolveRedirectPath("/sales-book/production-tasks?tab=assigned"),
@@ -63,6 +71,7 @@ describe("redirect engine", () => {
 	});
 
 	it("returns null when no redirect is needed", () => {
+		expect(resolveRedirectPath("/login/v2")).toBeNull();
 		expect(resolveRedirectPath("/production/dashboard")).toBeNull();
 	});
 });

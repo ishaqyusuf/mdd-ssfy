@@ -27,8 +27,31 @@ interface Props {
 export function InstallCostResizablePanel({ children }: Props) {
     const { editCommunityModelInstallCostId, openToSide, setParams } =
         useCommunityInstallCostParams();
-    const { setParams: setBuilderParams } = useBuilderParams();
     const isMdOrBelow = useMediaQuery("(max-width: 1023px)");
+    const isPanelOpen = Boolean(openToSide && editCommunityModelInstallCostId);
+
+    if (!isPanelOpen) {
+        return <>{children}</>;
+    }
+
+    return (
+        <InstallCostPanelShell
+            isMdOrBelow={isMdOrBelow}
+        >
+            {children}
+        </InstallCostPanelShell>
+    );
+}
+
+function InstallCostPanelShell({
+    children,
+    isMdOrBelow,
+}: Props & {
+    isMdOrBelow: boolean;
+}) {
+    const { editCommunityModelInstallCostId, openToSide, setParams } =
+        useCommunityInstallCostParams();
+    const { setParams: setBuilderParams } = useBuilderParams();
     const modelInstallCtx = useCreateModelInstallConfigContext();
     const builderModelInstallsCtx =
         useCreateBuilderModelInstallsContext(modelInstallCtx);
@@ -227,11 +250,6 @@ export function InstallCostResizablePanel({ children }: Props) {
         );
     }
 
-    // Desktop lg+: keep install cost fixed to the viewport with its own scroll
-    if (!isPanelOpen) {
-        return <>{children}</>;
-    }
-
     return (
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_28rem]">
             <div className={cn("min-w-0", "lg:pr-6")}>{children}</div>
@@ -243,4 +261,3 @@ export function InstallCostResizablePanel({ children }: Props) {
         </div>
     );
 }
-

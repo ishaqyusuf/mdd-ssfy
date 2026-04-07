@@ -44,6 +44,7 @@ export interface ComboboxProps<T> {
   openChanged?;
   onSearch?: (value: string) => void;
   Trigger?: React.ReactNode;
+  showCreateWhenMatches?: boolean;
 }
 export function ComboboxDropdown<T extends ComboboxItem>({
   headless,
@@ -66,6 +67,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
   noSearch,
   openChanged,
   Trigger,
+  showCreateWhenMatches,
 }: ComboboxProps<T>) {
   const [open, setOpen] = React.useState(false);
   const [internalSelectedItem, setInternalSelectedItem] = React.useState<
@@ -93,7 +95,10 @@ export function ComboboxDropdown<T extends ComboboxItem>({
       hasMore: hasMoreItems,
     };
   }, [filteredItems, cursor, pageSize]);
-  const showCreate = onCreate && Boolean(inputValue) && !filteredItems.length;
+  const showCreate =
+    onCreate &&
+    Boolean(inputValue) &&
+    (showCreateWhenMatches || !filteredItems.length);
 
   const Component = (
     <Command loop shouldFilter={false}>

@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { UseFormReturn, useForm } from "react-hook-form";
 import { useTRPC } from "@/trpc/client";
-import { useSuspenseQuery, useMutation } from "@gnd/ui/tanstack";
+import { useSuspenseQuery, useMutation, useQuery } from "@gnd/ui/tanstack";
 import { _qc, _trpc } from "@/components/static-trpc";
 import { HomeTemplateDesign } from "@/types/community";
 import { useAuth } from "@/hooks/use-auth";
@@ -56,14 +56,33 @@ interface ProviderProps {
 export function CommunityTemplateV1Provider({ slug, children }: ProviderProps) {
     const trpc = useTRPC();
     const auth = useAuth();
-    const [autocompleteEnabled, setAutocompleteEnabledState] = useState(true);
+    const [autocompleteEnabled, setAutocompleteEnabledState] = useState(() => {
+        if (typeof document === "undefined") return true;
+        const cookieValue = document.cookie
+            .split("; ")
+            .find((cookie) =>
+                cookie.startsWith(`${TEMPLATE_V1_AUTOCOMPLETE_COOKIE}=`),
+            )
+            ?.split("=")[1];
+
+        return cookieValue === "false" ? false : true;
+    });
 
     const { data: templateData } = useSuspenseQuery(
-        trpc.community.getCommunityTemplateLegacy.queryOptions({ slug }),
+        trpc.community.getCommunityTemplateLegacy.queryOptions(
+            { slug },
+            {
+                staleTime: 1000 * 60 * 10,
+            },
+        ),
     );
 
-    const { data: suggestions } = useSuspenseQuery(
-        trpc.community.getDesignKeySuggestions.queryOptions(),
+    const { data: suggestions } = useQuery(
+        trpc.community.getDesignKeySuggestions.queryOptions(undefined, {
+            enabled: autocompleteEnabled,
+            staleTime: 1000 * 60 * 30,
+            gcTime: 1000 * 60 * 60,
+        }),
     );
 
     const design = useMemo(() => {
@@ -78,19 +97,6 @@ export function CommunityTemplateV1Provider({ slug, children }: ProviderProps) {
             ...(design || {}),
         },
     });
-
-    useEffect(() => {
-        const cookieValue = document.cookie
-            .split("; ")
-            .find((cookie) =>
-                cookie.startsWith(`${TEMPLATE_V1_AUTOCOMPLETE_COOKIE}=`),
-            )
-            ?.split("=")[1];
-
-        if (cookieValue === "false") {
-            setAutocompleteEnabledState(false);
-        }
-    }, []);
 
     const { mutate: saveTemplate, isPending: isSaving } = useMutation(
         _trpc.community.saveCommunityModelLegacy.mutationOptions({
@@ -131,15 +137,24 @@ export function CommunityTemplateV1Provider({ slug, children }: ProviderProps) {
         document.cookie = `${TEMPLATE_V1_AUTOCOMPLETE_COOKIE}=${enabled}; path=/; max-age=${TEMPLATE_V1_AUTOCOMPLETE_COOKIE_MAX_AGE}; SameSite=Lax`;
     };
 
-    const value: CommunityTemplateV1ContextValue = {
-        form,
-        suggestions: suggestions || {},
-        templateData: templateData as any,
-        isSaving,
-        autocompleteEnabled,
-        setAutocompleteEnabled,
-        save,
-    };
+    const value: CommunityTemplateV1ContextValue = useMemo(
+        () => ({
+            form,
+            suggestions: suggestions || {},
+            templateData: templateData as any,
+            isSaving,
+            autocompleteEnabled,
+            setAutocompleteEnabled,
+            save,
+        }),
+        [
+            form,
+            suggestions,
+            templateData,
+            isSaving,
+            autocompleteEnabled,
+        ],
+    );
 
     return (
         <CommunityTemplateV1Context.Provider value={value}>

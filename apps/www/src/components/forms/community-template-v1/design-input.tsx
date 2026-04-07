@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useWatch } from "react-hook-form";
 import { ComboboxDropdown, ComboboxItem } from "@gnd/ui/combobox-dropdown";
 import { Label } from "@gnd/ui/label";
 import { cn } from "@gnd/ui/cn";
@@ -26,7 +27,11 @@ export function DesignInput({
     const { editCommunityModelInstallCostId, openToSide } =
         useCommunityInstallCostParams();
     const isMdToLg = useMediaQuery("(min-width: 768px) and (max-width: 1279px)");
-    const currentValue = form.watch(formKey as any) || "";
+    const currentValue =
+        useWatch({
+            control: form.control,
+            name: formKey as any,
+        }) || "";
     const shouldStackLabel =
         Boolean(openToSide && editCommunityModelInstallCostId) && isMdToLg;
     const items: ComboboxItem[] = useMemo(() => {

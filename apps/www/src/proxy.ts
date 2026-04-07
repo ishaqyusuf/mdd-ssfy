@@ -1,6 +1,7 @@
 import { getToken } from "next-auth/jwt";
 import { type NextRequest, NextResponse } from "next/server";
 import { getLinkModules, validateLinks } from "./components/sidebar/links";
+import { createAuthLoginUrl, isAuthLoginPath } from "./lib/auth/auth-routes";
 import { type AuthSnapshot, toAuthSnapshot } from "./lib/auth/auth-snapshot";
 import {
 	resolveCanonicalPath,
@@ -41,13 +42,10 @@ export default async function proxy(req: NextRequest) {
 		searchParams.length > 0 ? `?${searchParams}` : ""
 	}`;
 	const pathName = req.nextUrl.pathname;
-	const loginUrl = new URL("/login", req.url);
 	const returnTo = getReturnToPath(newUrl);
 	const safeReturnTo = getSafeReturnTo(req);
-	if (returnTo) {
-		loginUrl.searchParams.append("return_to", returnTo);
-	}
-	const isLogin = pathName === "/login";
+	const loginUrl = createAuthLoginUrl(req, returnTo);
+	const isLogin = isAuthLoginPath(pathName);
 	const auth = await getAuth(req);
 	if (auth) {
 		const defaultLink = getDefaultLink(auth);

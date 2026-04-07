@@ -13,6 +13,7 @@ export type ResolvedRedirect = {
 };
 
 const exactRedirectMaps = {
+    "/login": "/login/v2",
     "/contractor/jobs": "/hrm/contractors/jobs",
     "/contractor/jobs/payments": "/hrm/contractors/jobs/payments",
     "/community/invoices": "/community/unit-invoices",
@@ -213,4 +214,3 @@ function normalizePath(path: string) {
     }
     return normalized;
 }
-

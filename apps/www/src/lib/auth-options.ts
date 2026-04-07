@@ -136,8 +136,8 @@ export const authOptions: NextAuthOptions = {
 	},
 
 	pages: {
-		signIn: "/login",
-		error: "/login?error=login+failed",
+		signIn: "/login/v2",
+		error: "/login/v2?error=login+failed",
 	},
 	jwt: {
 		secret: process.env.JWT_SECRET,

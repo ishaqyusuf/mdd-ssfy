@@ -12,6 +12,7 @@ Grouped route reference for the `apps/www` Next.js App Router surface.
 ## Public And Auth
 - `/forgot-password` 
 - `/login`
+- `/login/v2`
 - `/login/password-reset`
 - `/login/reset-password`
 - `/signin`

@@ -1,6 +1,6 @@
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 
 type CommunityInstallCostRateContextProps = ReturnType<
     typeof useCreateCommunityInstallCostRateContext
@@ -10,19 +10,24 @@ export const CommunityInstallCostRateContext =
 export const CommunityInstallCostRateProvider =
     CommunityInstallCostRateContext.Provider;
 export const useCreateCommunityInstallCostRateContext = () => {
+    const trpc = useTRPC();
     const { data } = useQuery(
-        useTRPC().community.getCommunityInstallCostRates.queryOptions(),
+        trpc.community.getCommunityInstallCostRates.queryOptions(undefined, {
+            staleTime: 1000 * 60 * 10,
+            gcTime: 1000 * 60 * 30,
+        }),
     );
     const [editIndex, setEditIndex] = useState<number | null>(null);
 
-    // useEffect(() => {}, [editIndex]);
-    return {
-        setEditIndex,
-        editIndex,
-
-        communityInstallCostRates: data?.communityInstallCostRates || [],
-        legacyCosts: data?.legacyCosts || [],
-    };
+    return useMemo(
+        () => ({
+            setEditIndex,
+            editIndex,
+            communityInstallCostRates: data?.communityInstallCostRates || [],
+            legacyCosts: data?.legacyCosts || [],
+        }),
+        [editIndex, data?.communityInstallCostRates, data?.legacyCosts],
+    );
 };
 export const useCommunityInstallCostRateContext = () => {
     const context = useContext(CommunityInstallCostRateContext);
@@ -33,4 +38,3 @@ export const useCommunityInstallCostRateContext = () => {
     }
     return context;
 };
-

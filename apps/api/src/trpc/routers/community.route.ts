@@ -221,8 +221,12 @@ export const communityRouters = createTRPCRouter({
     .query(async (props) => {
       const data = await props.ctx.db.communityModels.findUnique({
         where: { slug: props.input.slug },
-        include: {
-          history: true,
+        select: {
+          id: true,
+          slug: true,
+          modelName: true,
+          meta: true,
+          version: true,
           pivot: {
             select: {
               modelCosts: {
@@ -390,11 +394,17 @@ export const communityRouters = createTRPCRouter({
         unitCost: true,
       },
     });
-    const legacyCosts = await (async () => {
-      const ss = await getSettingAction("install-price-chart", props.ctx.db);
-      const s = ss?.meta?.list || [];
-      return s;
-    })();
+    const legacyCosts =
+      r.length > 0
+        ? []
+        : await (async () => {
+            const ss = await getSettingAction(
+              "install-price-chart",
+              props.ctx.db,
+            );
+            const s = ss?.meta?.list || [];
+            return s;
+          })();
 
     return {
       communityInstallCostRates: r,

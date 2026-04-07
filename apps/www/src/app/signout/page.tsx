@@ -8,7 +8,7 @@ export default function SignoutPage() {
 	useEffect(() => {
 		signOut({
 			redirect: true,
-			callbackUrl: "/login",
+			callbackUrl: "/login/v2",
 		});
 	}, []);
 

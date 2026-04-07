@@ -10,6 +10,7 @@ const publicRoutes = [
     "/api/pdf",
     "/checkout",
     "/login",
+    "/login/v2",
     "/signin",
     "/printer/sales",
     "/signout",
@@ -27,7 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return;
         }
         if (!auth?.id) {
-            router.replace(`/login?return_to=${pathname}`);
+            router.replace(`/login/v2?return_to=${pathname}`);
             return;
         }
         if (!isPublic && auth?.id) {
@@ -63,4 +64,3 @@ const validatePath = <T extends Record<string, any>>(
 
     return { href: k as any, ...(links[k] || {}) } as any;
 };
-

@@ -1,27 +1,31 @@
 import { _qc, _trpc } from "@/components/static-trpc";
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
+import { useAuth } from "@/hooks/use-auth";
 import { useBuilderModelInstallsContext } from "@/hooks/use-model-install-config";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
+import { Input } from "@gnd/ui/input";
 import { Item } from "@gnd/ui/namespace";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { X } from "lucide-react";
 import { toast } from "sonner";
 
 export function AddNewInstallCost() {
-    // const ctx = useBuilderModelInstallsContext();
     const [showCreateCost, setShowCreateCost] = useState(false);
-    const { setParams, ...params } = useCommunityInstallCostParams();
+    const auth = useAuth();
+    const trpc = useTRPC();
+    const { ...params } = useCommunityInstallCostParams();
     const { data, selectedBuilderTask } = useBuilderModelInstallsContext();
+    const isSuperAdmin = auth.roleTitle?.toLowerCase() === "super admin";
     const [newCostDetails, setNewCostDetails] = useState({
         name: "",
         rate: "",
-        unit: "",
     });
     const { tasks } = useBuilderModelInstallsContext();
     const { data: suggesstions } = useQuery(
-        useTRPC().community.getInstallCostRatesSuggestions.queryOptions(
+        trpc.community.getInstallCostRatesSuggestions.queryOptions(
             {
                 builderTaskId: params.selectedBuilderTaskId,
                 modelId: params.editCommunityModelInstallCostId,
@@ -33,7 +37,13 @@ export function AddNewInstallCost() {
             },
         ),
     );
-    const handleCreateAndAddCost = () => {};
+    const resetInlineCreate = () => {
+        setShowCreateCost(false);
+        setNewCostDetails({
+            name: "",
+            rate: "",
+        });
+    };
     const handleUpdateCommunityModelInstallTask = (suggesstionId) => {
         const selectedSuggestion = suggesstions?.find(
             (s) => s.id === suggesstionId,
@@ -45,7 +55,6 @@ export function AddNewInstallCost() {
             return;
         }
         updateCommunityModelInstallTask({
-            // id: params.editCommunityModelInstallCostId,
             builderTaskId: params.selectedBuilderTaskId,
             communityModelId: params.editCommunityModelInstallCostId,
             installCostModelId: selectedSuggestion.id,
@@ -76,6 +85,57 @@ export function AddNewInstallCost() {
                 },
             ),
         );
+    const { mutate: createInstallCostRate, isPending: isCreatingRate } =
+        useMutation(
+            trpc.community.updateInstallCostRate.mutationOptions({
+                onSuccess(createdRate) {
+                    _qc.invalidateQueries({
+                        queryKey:
+                            _trpc.community.getInstallCostRatesSuggestions.queryKey(
+                                {
+                                    builderTaskId: params.selectedBuilderTaskId!,
+                                    modelId:
+                                        params.editCommunityModelInstallCostId!,
+                                },
+                            ),
+                    });
+                    _qc.invalidateQueries({
+                        queryKey:
+                            _trpc.community.getCommunityInstallCostRates.queryKey(),
+                    });
+                    updateCommunityModelInstallTask({
+                        builderTaskId: params.selectedBuilderTaskId,
+                        communityModelId:
+                            params.editCommunityModelInstallCostId,
+                        installCostModelId: createdRate.id,
+                        qty: 0,
+                    });
+                    resetInlineCreate();
+                },
+                onError() {
+                    toast.error("Unable to create install cost.");
+                },
+            }),
+        );
+    const handleCreateAndAddCost = () => {
+        const title = newCostDetails.name.trim();
+        const unitCost = Number(newCostDetails.rate);
+        if (!title) {
+            toast.error("Title is required.");
+            return;
+        }
+        if (!Number.isFinite(unitCost) || unitCost < 0) {
+            toast.error("Enter a valid unit cost.");
+            return;
+        }
+        createInstallCostRate({
+            id: null,
+            title,
+            unit: "",
+            unitCost,
+            status: "active",
+        });
+    };
     return (
         <div className="py-6 border-dashed border-border flex flex-col mt-4 bg-muted/5">
             <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
@@ -150,31 +210,68 @@ export function AddNewInstallCost() {
                                     label: String(a.title),
                                     data: a,
                                 }))}
+                            showCreateWhenMatches={isSuperAdmin}
+                            onCreate={
+                                isSuperAdmin
+                                    ? (value) => {
+                                          setShowCreateCost(true);
+                                          setNewCostDetails({
+                                              name: value.toUpperCase(),
+                                              rate: "",
+                                          });
+                                      }
+                                    : undefined
+                            }
+                            renderOnCreate={
+                                isSuperAdmin
+                                    ? (value) => (
+                                          <div className="flex items-center space-x-2">
+                                              <span>{`Create "${value}"`}</span>
+                                          </div>
+                                      )
+                                    : undefined
+                            }
                             onSelect={(item) => {
-                                // console.log({ selected: item });
                                 handleUpdateCommunityModelInstallTask(
                                     item.data.id,
                                 );
                             }}
                         />
                     </div>
-                    <Button
-                        disabled
-                        onClick={() => setShowCreateCost(true)}
-                        className=""
-                    >
-                        Create New
-                    </Button>
+                    {isSuperAdmin ? (
+                        <Button
+                            onClick={() => setShowCreateCost(true)}
+                            className=""
+                        >
+                            Create New
+                        </Button>
+                    ) : null}
                 </div>
             ) : (
-                <div className="p-4 bg-background border border-border rounded-xl animate-in fade-in zoom-in-95 duration-200">
-                    <div className="grid grid-cols-12 gap-3 items-end">
-                        <div className="col-span-5">
-                            <label className="text-[10px] font-bold text-muted-foreground uppercase mb-1 block">
-                                Cost Name
+                <div className="animate-in fade-in zoom-in-95 duration-200 rounded-xl border border-border bg-background p-4">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                        <div>
+                            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                Create Global Cost
+                            </p>
+                        </div>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={resetInlineCreate}
+                            aria-label="Cancel create cost"
+                        >
+                            <X className="size-4" />
+                        </Button>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-12 md:items-end">
+                        <div className="md:col-span-7">
+                            <label className="mb-1 block text-[10px] font-bold uppercase text-muted-foreground">
+                                Title
                             </label>
-                            <input
-                                className="w-full h-9 px-3 rounded-lg border border-input bg-muted/30 text-sm focus:ring-2 focus:ring-primary outline-none"
+                            <Input
+                                className="h-9"
                                 value={newCostDetails.name}
                                 onChange={(e) =>
                                     setNewCostDetails({
@@ -185,13 +282,13 @@ export function AddNewInstallCost() {
                                 placeholder="e.g. SPECIAL INSTALL"
                             />
                         </div>
-                        <div className="col-span-3">
-                            <label className="text-[10px] font-bold text-muted-foreground uppercase mb-1 block">
-                                Rate ($)
+                        <div className="md:col-span-3">
+                            <label className="mb-1 block text-[10px] font-bold uppercase text-muted-foreground">
+                                Unit Cost
                             </label>
-                            <input
+                            <Input
                                 type="number"
-                                className="w-full h-9 px-3 rounded-lg border border-input bg-muted/30 text-sm focus:ring-2 focus:ring-primary outline-none"
+                                className="h-9"
                                 value={newCostDetails.rate}
                                 onChange={(e) =>
                                     setNewCostDetails({
@@ -202,38 +299,15 @@ export function AddNewInstallCost() {
                                 placeholder="0.00"
                             />
                         </div>
-                        {/* <div className="col-span-2">
-                            <label className="text-[10px] font-bold text-muted-foreground uppercase mb-1 block">
-                                Unit
-                            </label>
-                            <select
-                                className="w-full h-9 px-2 rounded-lg border border-input bg-muted/30 text-sm focus:ring-2 focus:ring-primary outline-none"
-                                value={newCostDetails.unit}
-                                onChange={(e) =>
-                                    setNewCostDetails({
-                                        ...newCostDetails,
-                                        unit: e.target.value,
-                                    })
-                                }
-                            >
-                                <option value="LF">LF</option>
-                                <option value="EA">EA</option>
-                                <option value="SET">SET</option>
-                            </select>
-                        </div> */}
-                        <div className="col-span-2 flex gap-1">
-                            <button
+                        <div className="flex gap-2 md:col-span-2">
+                            <Button
                                 onClick={handleCreateAndAddCost}
-                                className="flex-1 h-9 bg-primary text-primary-foreground rounded-lg text-xs font-bold hover:bg-primary/90"
+                                disabled={isCreatingRate || isUpdating}
+                                className="flex-1"
+                                size="sm"
                             >
-                                Add
-                            </button>
-                            <button
-                                onClick={() => setShowCreateCost(false)}
-                                className="flex-1 h-9 bg-muted text-muted-foreground rounded-lg text-xs font-bold hover:text-foreground"
-                            >
-                                Cancel
-                            </button>
+                                Save
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -241,4 +315,3 @@ export function AddNewInstallCost() {
         </div>
     );
 }
-

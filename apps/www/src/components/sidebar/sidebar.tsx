@@ -12,7 +12,7 @@ export function SideBar({ children, user, menuMode, validLinks }) {
     const { data: session } = useSession({
         required: true,
         onUnauthenticated() {
-            redirect("/login");
+            redirect("/login/v2");
         },
     });
 

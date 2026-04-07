@@ -56,19 +56,23 @@ export function TemplateFormTabs() {
                 </TabsList>
             )}
             <TabsContent value="exterior" className="space-y-4">
-                <ExteriorFrame />
+                {activeTab === "exterior" ? <ExteriorFrame /> : null}
             </TabsContent>
             <TabsContent value="interior" className="space-y-4">
-                <GarageDoorForm />
-                <InteriorDoorForm />
-                <DoubleDoorForm />
-                <BifoldDoorForm />
+                {activeTab === "interior" ? (
+                    <>
+                        <GarageDoorForm />
+                        <InteriorDoorForm />
+                        <DoubleDoorForm />
+                        <BifoldDoorForm />
+                    </>
+                ) : null}
             </TabsContent>
             <TabsContent value="lock">
-                <LockHardwareForm />
+                {activeTab === "lock" ? <LockHardwareForm /> : null}
             </TabsContent>
             <TabsContent value="deco">
-                <DecoForm />
+                {activeTab === "deco" ? <DecoForm /> : null}
             </TabsContent>
         </Tabs>
     );

@@ -1,6 +1,6 @@
 import { ErrorFallback } from "@/components/error-fallback";
 import { CommunityTemplateV1Form } from "@/components/forms/community-template-v1";
-import { HydrateClient, batchPrefetch } from "@/trpc/server";
+import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
@@ -22,7 +22,9 @@ type Props = {
 export default async function Page(props: Props) {
 	const { slug } = await props.params;
 
-	batchPrefetch([]);
+	batchPrefetch([
+		trpc.community.getCommunityTemplateLegacy.queryOptions({ slug }),
+	]);
 	return (
 		<PageShell>
 			<HydrateClient>

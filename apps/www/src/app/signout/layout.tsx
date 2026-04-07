@@ -6,7 +6,7 @@ export default function AccountLayout({ children }: any) {
     const { data: session } = useSession({
         required: true,
         onUnauthenticated() {
-            redirect("/login");
+            redirect("/login/v2");
         },
     });
 
