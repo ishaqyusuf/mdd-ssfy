@@ -227,21 +227,131 @@ export async function getUnitProductionSummary(
   ctx: TRPCContext,
   query: Omit<GetUnitProductionsSchema, "cursor" | "size" | "sort">,
 ) {
-  const rows = await ctx.db.homeTasks.findMany({
-    where: whereUnitProductions(query),
-    select: unitProductionSelect,
-  });
+  const baseWhere = whereUnitProductions(query);
+  const startedPredicate: Prisma.HomeTasksWhereInput = {
+    OR: [
+      {
+        prodStartedAt: {
+          not: null,
+        },
+      },
+      {
+        productionStatus: {
+          contains: "Start",
+        },
+      },
+      {
+        productionStatus: {
+          contains: "Progress",
+        },
+      },
+    ],
+  };
+  const completedWhere: Prisma.HomeTasksWhereInput = {
+    AND: [
+      baseWhere,
+      {
+        OR: [
+          {
+            producedAt: {
+              not: null,
+            },
+          },
+          {
+            home: {
+              jobs: {
+                some: {},
+              },
+            },
+          },
+        ],
+      },
+    ],
+  };
+  const startedWhere: Prisma.HomeTasksWhereInput = {
+    AND: [
+      baseWhere,
+      {
+        producedAt: null,
+        home: {
+          jobs: {
+            none: {},
+          },
+        },
+      },
+      startedPredicate,
+    ],
+  };
+  const queuedWhere: Prisma.HomeTasksWhereInput = {
+    AND: [
+      baseWhere,
+      {
+        producedAt: null,
+        prodStartedAt: null,
+        sentToProductionAt: {
+          not: null,
+        },
+        home: {
+          jobs: {
+            none: {},
+          },
+        },
+      },
+    ],
+  };
+  const pastDueWhere: Prisma.HomeTasksWhereInput = {
+    AND: [
+      baseWhere,
+      {
+        producedAt: null,
+        productionDueDate: {
+          lt: new Date(new Date().setHours(0, 0, 0, 0)),
+        },
+        home: {
+          jobs: {
+            none: {},
+          },
+        },
+      },
+    ],
+  };
 
-  const summary = buildSummary(rows.map(mapUnitProduction));
+  const [total, completed, started, queued, pastDue, unitRows] =
+    await ctx.db.$transaction([
+      ctx.db.homeTasks.count({
+        where: baseWhere,
+      }),
+      ctx.db.homeTasks.count({
+        where: completedWhere,
+      }),
+      ctx.db.homeTasks.count({
+        where: startedWhere,
+      }),
+      ctx.db.homeTasks.count({
+        where: queuedWhere,
+      }),
+      ctx.db.homeTasks.count({
+        where: pastDueWhere,
+      }),
+      ctx.db.homeTasks.findMany({
+        where: baseWhere,
+        select: {
+          homeId: true,
+        },
+        distinct: ["homeId"],
+      }),
+    ]);
+
+  const idle = Math.max(total - completed - started - queued, 0);
 
   return {
-    total: summary.total,
-    units: summary.homeIds.size,
-    idle: summary.idle,
-    queued: summary.queued,
-    started: summary.started,
-    completed: summary.completed,
-    pastDue: summary.pastDue,
+    total,
+    units: unitRows.length,
+    idle,
+    queued,
+    started,
+    completed,
+    pastDue,
   };
 }
 

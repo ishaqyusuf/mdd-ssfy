@@ -9,6 +9,7 @@ import { Table, useTableData } from "@gnd/ui/data-table";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { useRouter } from "next/navigation";
 
+import { BatchActions } from "./batch-actions";
 import { columns, mobileColumn } from "./columns";
 
 export function DataTable() {
@@ -49,6 +50,7 @@ export function DataTable() {
 						loadMoreRef: ref,
 						hasNextPage,
 					},
+					checkbox: true,
 					tableScroll,
 					tableMeta: {
 						rowClick(_, rowData) {
@@ -71,6 +73,7 @@ export function DataTable() {
 					</Table>
 				</div>
 				<Table.LoadMore />
+				<BatchActions />
 			</div>
 		</Table.Provider>
 	);

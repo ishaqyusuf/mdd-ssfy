@@ -4,6 +4,7 @@ import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import { cells } from "@gnd/ui/custom/data-table/cells";
 import { formatDate } from "@gnd/utils/dayjs";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ReceiptText } from "lucide-react";
@@ -20,6 +21,7 @@ function formatCurrency(value?: number | null) {
 }
 
 export const columns: Column[] = [
+	cells.selectColumn,
 	{
 		header: "Payout",
 		accessorKey: "date",

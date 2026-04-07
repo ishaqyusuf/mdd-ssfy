@@ -32,3 +32,18 @@ export async function generatePayrollReport() {
 
 	openLink("p/jobs", { token, preview: true }, true);
 }
+
+export async function printContractorPayoutReport({
+	paymentIds,
+}: {
+	paymentIds: number[];
+}) {
+	if (!paymentIds.length) return;
+
+	const token = await generateToken({
+		paymentIds,
+		expiry: addDays(new Date(), 7).toISOString(),
+	});
+
+	openLink("p/payouts", { token, preview: true }, true);
+}

@@ -598,6 +598,9 @@ export async function getPaymentDashboard(
 export const getContractorPayoutsSchema = z
 	.object({
 		q: z.string().optional().nullable(),
+		dateRange: z.array(z.string().optional().nullable()).optional().nullable(),
+		contractor: z.array(z.string()).optional().nullable(),
+		authorizedBy: z.array(z.string()).optional().nullable(),
 	})
 	.extend(paginationSchema.shape);
 export type GetContractorPayoutsSchema = z.infer<
@@ -640,6 +643,32 @@ function whereContractorPayouts(query: GetContractorPayoutsSchema) {
 					},
 				},
 			],
+		});
+	}
+
+	if (query.dateRange?.length) {
+		where.push({
+			createdAt: transformFilterDateToQuery(query.dateRange),
+		});
+	}
+
+	if (query.contractor?.length) {
+		where.push({
+			user: {
+				name: {
+					in: query.contractor,
+				},
+			},
+		});
+	}
+
+	if (query.authorizedBy?.length) {
+		where.push({
+			payer: {
+				name: {
+					in: query.authorizedBy,
+				},
+			},
 		});
 	}
 
@@ -854,6 +883,144 @@ export async function getContractorPayoutOverview(
 			projectTitle: job.project?.title || null,
 			lotBlock: job.home?.lotBlock || null,
 			modelName: job.home?.modelName || null,
+		})),
+	};
+}
+
+export const getContractorPayoutPrintSchema = z.object({
+	paymentIds: z.array(z.number()).min(1),
+});
+
+export async function getContractorPayoutPrintData(
+	ctx: TRPCContext,
+	input: z.infer<typeof getContractorPayoutPrintSchema>,
+) {
+	const payouts = await ctx.db.jobPayments.findMany({
+		where: {
+			id: {
+				in: input.paymentIds,
+			},
+			deletedAt: null,
+		},
+		orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+		select: {
+			id: true,
+			amount: true,
+			subTotal: true,
+			charges: true,
+			paymentMethod: true,
+			checkNo: true,
+			createdAt: true,
+			user: {
+				select: {
+					id: true,
+					name: true,
+					email: true,
+				},
+			},
+			payer: {
+				select: {
+					id: true,
+					name: true,
+				},
+			},
+			adjustments: {
+				where: {
+					deletedAt: null,
+				},
+				orderBy: {
+					createdAt: "asc",
+				},
+				select: {
+					id: true,
+					type: true,
+					description: true,
+					amount: true,
+					createdAt: true,
+				},
+			},
+			jobs: {
+				orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+				select: {
+					id: true,
+					title: true,
+					subtitle: true,
+					amount: true,
+					status: true,
+					createdAt: true,
+					project: {
+						select: {
+							title: true,
+						},
+					},
+					home: {
+						select: {
+							lotBlock: true,
+							modelName: true,
+						},
+					},
+				},
+			},
+		},
+	});
+
+	const totalAmount = payouts.reduce(
+		(sum, item) => sum + Number(item.amount || 0),
+		0,
+	);
+	const totalJobs = payouts.reduce((sum, item) => sum + item.jobs.length, 0);
+
+	return {
+		title:
+			payouts.length === 1
+				? `Payout_${payouts[0]?.id}`
+				: `Payouts_${payouts.map((item) => item.id).join("_")}`,
+		printedAt: new Date(),
+		summary: {
+			payoutCount: payouts.length,
+			totalAmount,
+			totalJobs,
+		},
+		payouts: payouts.map((payout) => ({
+			id: payout.id,
+			amount: Number(payout.amount || 0),
+			subTotal: Number(payout.subTotal || 0),
+			charges: Number(payout.charges || 0),
+			paymentMethod: payout.paymentMethod || "Unknown",
+			checkNo: payout.checkNo || null,
+			createdAt: payout.createdAt,
+			paidTo: payout.user
+				? {
+						id: payout.user.id,
+						name: payout.user.name || "Unknown contractor",
+						email: payout.user.email || null,
+					}
+				: null,
+			authorizedBy: payout.payer
+				? {
+						id: payout.payer.id,
+						name: payout.payer.name || "Unknown payer",
+					}
+				: null,
+			jobCount: payout.jobs.length,
+			adjustments: payout.adjustments.map((item) => ({
+				id: item.id,
+				type: item.type,
+				description: item.description || null,
+				amount: Number(item.amount || 0),
+				createdAt: item.createdAt,
+			})),
+			jobs: payout.jobs.map((job) => ({
+				id: job.id,
+				title: job.title,
+				subtitle: job.subtitle,
+				amount: Number(job.amount || 0),
+				status: job.status,
+				createdAt: job.createdAt,
+				projectTitle: job.project?.title || null,
+				lotBlock: job.home?.lotBlock || null,
+				modelName: job.home?.modelName || null,
+			})),
 		})),
 	};
 }

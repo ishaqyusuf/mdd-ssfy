@@ -25,6 +25,11 @@ export const jobsPdfToken = z.object({
 	scope: z.enum(["selection", "all-unpaid"]).optional().nullable(),
 });
 export type JobsPdfToken = z.infer<typeof jobsPdfToken>;
+export const payoutPdfToken = z.object({
+	paymentIds: z.array(z.number()).min(1),
+	expiry: z.string(),
+});
+export type PayoutPdfToken = z.infer<typeof payoutPdfToken>;
 export const salesPaymentTokenSchema = z.object({
 	salesIds: z.array(z.number()),
 	expiry: z.string(),
@@ -46,11 +51,16 @@ export const salesPaymentTokenSchema = z.object({
 export const tokenSchemas = {
 	salesPdfToken,
 	jobsPdfToken,
+	payoutPdfToken,
 	salesPaymentTokenSchema,
 } as const;
 export type TokenSchemaNames = keyof typeof tokenSchemas;
 export type SalesPaymentTokenSchema = z.infer<typeof salesPaymentTokenSchema>;
-type KnownToken = SalesPdfToken | JobsPdfToken | SalesPaymentTokenSchema;
+type KnownToken =
+	| SalesPdfToken
+	| JobsPdfToken
+	| PayoutPdfToken
+	| SalesPaymentTokenSchema;
 export function tokenize<T extends KnownToken>(data: T) {
 	return jwtEncrypt(data);
 }

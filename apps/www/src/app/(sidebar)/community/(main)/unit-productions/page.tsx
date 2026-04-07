@@ -34,7 +34,6 @@ export default async function CommunityProductionsPage(props: Props) {
 			...(filter as any),
 			sort,
 		}),
-		trpc.community.getUnitProductionSummary.queryOptions(filter),
 	]);
 
 	return (

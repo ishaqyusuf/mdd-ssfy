@@ -45,6 +45,7 @@ import {
 import type { GetCustomerServicesSchema } from "./customer-service";
 import type { GetBuildersSchema } from "@community/builder";
 import type { GetJobsSchema } from "./jobs";
+import type { GetContractorPayoutsSchema } from "./jobs";
 import type { GetEmployeesSchema } from "@api/schemas/hrm";
 import type { GetNotificationChannelsSchema } from "./note";
 import type { GetOrdersV2Schema } from "./sales-orders-v2";
@@ -250,6 +251,48 @@ export async function jobFilters(ctx: TRPCContext) {
   ] satisfies FilterData[];
 
   return resp;
+}
+export async function contractorPayoutFilters(ctx: TRPCContext) {
+  type T = keyof GetContractorPayoutsSchema;
+  type FilterData = PageFilterData<T>;
+  const payouts = await ctx.db.jobPayments.findMany({
+    where: {
+      deletedAt: null,
+    },
+    select: {
+      user: {
+        select: {
+          name: true,
+        },
+      },
+      payer: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
+  const contractors = uniqueList(
+    payouts
+      .map((item) => item.user?.name)
+      .filter(Boolean)
+      .map((name) => ({ label: name, value: name })),
+    "value",
+  );
+  const payers = uniqueList(
+    payouts
+      .map((item) => item.payer?.name)
+      .filter(Boolean)
+      .map((name) => ({ label: name, value: name })),
+    "value",
+  );
+
+  return [
+    searchFilter,
+    dateRangeFilter<T>("dateRange", "Date"),
+    optionFilter<T>("contractor", "Contractor", contractors),
+    optionFilter<T>("authorizedBy", "Approved By", payers),
+  ] satisfies FilterData[];
 }
 export async function communityProjectFilters(ctx: TRPCContext) {
   type T = keyof GetCommunityProjectsSchema;

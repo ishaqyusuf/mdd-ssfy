@@ -66,6 +66,10 @@ import {
   unitInvoiceFormSchema,
 } from "@api/db/queries/unit-invoices";
 import {
+  getUnitInvoiceAgingReport,
+  getUnitInvoiceAgingReportSchema,
+} from "@api/db/queries/unit-invoice-reports";
+import {
   getWorkOrderForm,
   saveWorkOrderForm,
   workOrderFormSchema,
@@ -323,6 +327,11 @@ export const communityRouters = createTRPCRouter({
     .input(getUnitInvoicesSchema)
     .query(async (props) => {
       return getUnitInvoices(props.ctx, props.input);
+    }),
+  getUnitInvoiceAgingReport: publicProcedure
+    .input(getUnitInvoiceAgingReportSchema)
+    .query(async (props) => {
+      return getUnitInvoiceAgingReport(props.ctx, props.input);
     }),
   getUnitInvoiceForm: publicProcedure
     .input(unitInvoiceFormSchema)

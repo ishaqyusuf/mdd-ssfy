@@ -1,7 +1,10 @@
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
-import { getJobsPrintData } from "@api/db/queries/jobs";
+import {
+	getContractorPayoutPrintData,
+	getJobsPrintData,
+} from "@api/db/queries/jobs";
 import {
 	generatePrintData,
 	modelPrintSchema,
@@ -139,6 +142,25 @@ export const printRouter = createTRPCRouter({
 				jobIds: payload.jobIds || undefined,
 				context: payload.context || "jobs-page",
 				scope: payload.scope || "selection",
+			});
+		}),
+	contractorPayouts: publicProcedure
+		.input(
+			z.object({
+				token: z.string(),
+				preview: z.boolean().optional().default(false),
+			}),
+		)
+		.query(async (props) => {
+			const payload = await validateToken(
+				props.input.token,
+				tokenSchemas.payoutPdfToken,
+			);
+
+			if (!payload) return null;
+
+			return getContractorPayoutPrintData(props.ctx, {
+				paymentIds: payload.paymentIds,
 			});
 		}),
 });

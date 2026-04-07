@@ -9,7 +9,6 @@ import {
   communityInstllationFilters,
   communityProductionFilter,
   invoiceFilter,
-  type GetProjectUnitsSchema,
 } from "./project-units";
 
 const invoiceTaskSelect = {
@@ -412,7 +411,7 @@ function sortFn(
   return undefined;
 }
 
-function whereUnitInvoices(query: GetProjectUnitsSchema) {
+export function whereUnitInvoices(query: Partial<GetUnitInvoicesSchema>) {
   const where: Prisma.HomesWhereInput[] = [];
 
   for (const [k, v] of Object.entries(query)) {

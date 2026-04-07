@@ -2,9 +2,12 @@
 
 import { PaymentOverviewContent } from "@/components/payment-dashboard/payment-overview-content";
 import { useContractorPayoutParams } from "@/hooks/use-contractor-payout-params";
+import { printContractorPayoutReport } from "@/lib/job-print";
 import { useTRPC } from "@/trpc/client";
+import { Button } from "@gnd/ui/button";
 import { useQuery } from "@gnd/ui/tanstack";
 import { formatDate } from "@gnd/utils/dayjs";
+import { Printer } from "lucide-react";
 import { CustomModal } from "./custom-modal";
 
 export function ContractorPayoutOverviewModal() {
@@ -40,6 +43,22 @@ export function ContractorPayoutOverviewModal() {
 			<CustomModal.Content className="lg:max-h-[70vh]">
 				<PaymentOverviewContent data={data} isPending={isPending} />
 			</CustomModal.Content>
+			<CustomModal.Footer className="flex items-center justify-end border-t pt-4">
+				<Button
+					type="button"
+					variant="outline"
+					className="gap-2"
+					disabled={!data?.id}
+					onClick={() =>
+						data?.id
+							? printContractorPayoutReport({ paymentIds: [data.id] })
+							: null
+					}
+				>
+					<Printer className="size-4" />
+					Print Report
+				</Button>
+			</CustomModal.Footer>
 		</CustomModal>
 	);
 }

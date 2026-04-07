@@ -1,5 +1,6 @@
 import { ErrorFallback } from "@/components/error-fallback";
 import { UnitInvoiceModal } from "@/components/modals/unit-invoice-modal";
+import { UnitInvoiceReportModal } from "@/components/modals/unit-invoice-report-modal";
 import { TableSkeleton } from "@/components/tables/skeleton";
 import { DataTable } from "@/components/tables/unit-invoices/data-table";
 import { UnitInvoicesHeader } from "@/components/unit-invoices-header";
@@ -46,6 +47,7 @@ export default async function Page(props: Props) {
 					</Suspense>
 				</ErrorBoundary>
 				<UnitInvoiceModal />
+				<UnitInvoiceReportModal />
 			</div>
 		</PageShell>
 	);

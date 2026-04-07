@@ -5,6 +5,7 @@ import { SuperAdminGuard } from "../auth-guard";
 import { BuilderFormModal } from "./builder-form-modal";
 import { CommunityModelCostModal } from "./community-model-cost-modal";
 import { CommunityTemplateModal } from "./community-template-modal";
+import { ContractorPayoutOverviewModal } from "./contractor-payout-overview-modal";
 import { CreateCommunityModelCostModal } from "./create-community-model-cost-modal";
 import { CreateCommunityProjectModal } from "./create-community-project-modal";
 import { DispatchStatusModal } from "./dispatch-status-modal";
@@ -38,6 +39,7 @@ export function GlobalModals() {
 			<SalesInvoicePreviewModal />
 			<SalesQuickPayModal />
 			<CommunityModelCostModal />
+			<ContractorPayoutOverviewModal />
 			{/* <Env isDev> */}
 			<WorkOrderFormModal />
 

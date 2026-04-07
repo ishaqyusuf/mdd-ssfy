@@ -3,6 +3,7 @@ import {
   builderFilters,
   communityProjectFilters,
   communityTemplateFilters,
+  contractorPayoutFilters,
   customerServiceFilters,
   employeeFilters,
   getCommunityTemplateFilters,
@@ -58,6 +59,9 @@ export const filterRouters = createTRPCRouter({
   }),
   job: publicProcedure.query(async (props) => {
     return jobFilters(props.ctx);
+  }),
+  contractorPayout: publicProcedure.query(async (props) => {
+    return contractorPayoutFilters(props.ctx);
   }),
   notificationChannel: publicProcedure.query(async (props) => {
     return notificationChannelFilters(props.ctx);
