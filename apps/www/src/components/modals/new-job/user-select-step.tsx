@@ -3,13 +3,13 @@ import { _trpc } from "@/components/static-trpc";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { getInitials } from "@gnd/utils";
 import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import {
 	getInsuranceRequirement,
 	type InsuranceRequirement,
 } from "@gnd/utils/insurance-documents";
 import { ChevronRight } from "lucide-react";
 
-import { useSearch } from "@gnd/ui/hooks/use-search";
 import { StepTitle } from "./step-title";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { SubHeader } from "./sub-header";
@@ -52,18 +52,29 @@ function getInsuranceMeta(status: InsuranceRequirement) {
 export function UserSelectStep() {
 	const { data, isPending } = useQuery(
 		_trpc.hrm.getEmployees.queryOptions({
-			// roles: props.admin
-			//     ? [role] //["1099 Contractor", "Punchout"]
-			//     : [profile?.role?.name!],
 			roles: ["1099 Contractor", "Punchout"],
-			// size: 100,
+			size: 500,
 		}),
 	);
 	const users = data?.data || [];
 	const { setParams, ...params } = useJobFormParams();
-	const { query, results, setQuery } = useSearch({
-		items: users,
-	});
+	const [query, setQuery] = useState("");
+	const results = useMemo(() => {
+		const normalizedQuery = query.trim().toLowerCase();
+		if (!normalizedQuery) return users;
+		return users.filter((user) => {
+			const haystack = [
+				user.name,
+				user.email,
+				user.role,
+				user.username,
+			]
+				.filter(Boolean)
+				.join(" ")
+				.toLowerCase();
+			return haystack.includes(normalizedQuery);
+		});
+	}, [users, query]);
 	return (
 		<div className="space-y-4">
 			<StepTitle title="Select Contractor" />

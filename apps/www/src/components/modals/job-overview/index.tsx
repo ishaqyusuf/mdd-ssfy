@@ -12,7 +12,6 @@ import { useJobRole } from "@/hooks/use-job-role";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { Progress } from "@gnd/ui/custom/progress";
-import { useSearch } from "@gnd/ui/hooks/use-search";
 import { Card } from "@gnd/ui/namespace";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
@@ -305,16 +304,27 @@ function JobOverviewActionsCard({
 	const { data: employeesData, isPending: isEmployeesPending } = useQuery(
 		trpc.hrm.getEmployees.queryOptions({
 			roles: ["1099 Contractor", "Punchout"],
+			size: 500,
 		}),
 	);
 	const employees = employeesData?.data || [];
-	const {
-		query: employeeQuery,
-		results: employeeResults,
-		setQuery: setEmployeeQuery,
-	} = useSearch({
-		items: employees,
-	});
+	const [employeeQuery, setEmployeeQuery] = React.useState("");
+	const employeeResults = React.useMemo(() => {
+		const normalizedQuery = employeeQuery.trim().toLowerCase();
+		if (!normalizedQuery) return employees;
+		return employees.filter((employee) => {
+			const haystack = [
+				employee.name,
+				employee.email,
+				employee.role,
+				employee.username,
+			]
+				.filter(Boolean)
+				.join(" ")
+				.toLowerCase();
+			return haystack.includes(normalizedQuery);
+		});
+	}, [employees, employeeQuery]);
 
 	const normalizedStatus = String(job?.status || "")
 		.toLowerCase()
