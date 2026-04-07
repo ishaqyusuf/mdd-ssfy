@@ -1,6 +1,8 @@
 import {
 	adminAnalytics,
 	adminAnalyticsSchema,
+	cancelContractorPayment,
+	cancelContractorPaymentSchema,
 	createJob,
 	createPaymentPortal,
 	createPaymentPortalSchema,
@@ -271,57 +273,27 @@ export const jobRoutes = createTRPCRouter({
 			}),
 		)
 		.mutation(async (props) => {
-			const { ctx, input } = props;
-			const db = ctx.db;
-			const job = await db.jobs.findFirst({
+			const job = await props.ctx.db.jobs.findFirst({
 				where: {
-					id: input.jobId,
+					id: props.input.jobId,
 					deletedAt: null,
 				},
 				select: {
-					id: true,
 					paymentId: true,
-					controlId: true,
 				},
 			});
 			if (!job) throw new Error("Job not found");
 			if (!job.paymentId) throw new Error("Job has no payment to cancel");
 
-			const paymentId = job.paymentId;
-			await db.jobs.update({
-				where: {
-					id: input.jobId,
-				},
-				data: {
-					status: "Payment Cancelled",
-					statusDate: new Date(),
-					paymentId: null,
-				},
+			return cancelContractorPayment(props.ctx, {
+				paymentId: job.paymentId,
+				note: props.input.note,
 			});
-			await db.jobPayments.delete({
-				where: {
-					id: paymentId,
-				},
-			});
-			await saveNote(
-				ctx.db,
-				{
-					headline: "Job Payment Cancelled",
-					note: input.note || generateJobId(input.jobId),
-					subject: "",
-					tags: [
-						{
-							tagName: "jobControlId",
-							tagValue: job.controlId!,
-						},
-						{
-							tagName: "jobId",
-							tagValue: String(input.jobId),
-						},
-					],
-				},
-				ctx.userId!,
-			);
+		}),
+	cancelContractorPayment: publicProcedure
+		.input(cancelContractorPaymentSchema)
+		.mutation(async (props) => {
+			return cancelContractorPayment(props.ctx, props.input);
 		}),
 	testActivity: publicProcedure.mutation(async (props) => {
 		// const notifications = new Notifications(props.ctx.db);

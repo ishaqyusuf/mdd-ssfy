@@ -180,6 +180,13 @@ type ContractorPayoutPrintData = {
 			id: number;
 			name: string;
 		} | null;
+		isCancelled?: boolean;
+		cancelledAt?: Date | string | null;
+		cancelledBy?: {
+			id: number | null;
+			name?: string | null;
+		} | null;
+		cancellationReason?: string | null;
 		jobCount: number;
 		adjustments: Array<{
 			id: number;
@@ -257,6 +264,15 @@ export function ContractorPayoutPdfDocument({
 									Authorized by{" "}
 									{` ${payout.authorizedBy?.name || "Unknown payer"}`}
 								</Text>
+								{payout.isCancelled ? (
+									<Text style={styles.muted}>
+										Cancelled {formatDate(payout.cancelledAt)} by{" "}
+										{payout.cancelledBy?.name || "Unknown user"}
+										{payout.cancellationReason
+											? ` • ${payout.cancellationReason}`
+											: ""}
+									</Text>
+								) : null}
 							</View>
 							<View style={styles.listRowRight}>
 								<Text style={styles.totalValue}>
@@ -284,6 +300,15 @@ export function ContractorPayoutPdfDocument({
 							{payout.paymentMethod}
 							{payout.checkNo ? ` • Check ${payout.checkNo}` : ""}
 						</Text>
+						{payout.isCancelled ? (
+							<Text style={styles.subtitle}>
+								Cancelled {formatDate(payout.cancelledAt)} by{" "}
+								{payout.cancelledBy?.name || "Unknown user"}
+								{payout.cancellationReason
+									? ` • ${payout.cancellationReason}`
+									: ""}
+							</Text>
+						) : null}
 					</View>
 
 					<View style={styles.metricRow}>

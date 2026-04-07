@@ -37,6 +37,63 @@ function getJobType(meta?: JobMeta | null) {
 	return meta?.costData ? "v1" : "v2";
 }
 
+type PaymentJobSnapshot = {
+	id: number;
+	title: string | null;
+	subtitle: string | null;
+	amount: number;
+	previousStatus: string | null;
+	restoredStatus?: string | null;
+	createdAt: Date | string | null;
+	projectTitle: string | null;
+	lotBlock: string | null;
+	modelName: string | null;
+};
+
+type PaymentMetaShape = {
+	discount?: number;
+	chargePercentage?: number;
+	jobIds?: number[];
+	subTotal?: number;
+	totalPayout?: number;
+	autoApprovedJobs?: { id: number; fromStatus: string }[];
+	jobSnapshots?: PaymentJobSnapshot[];
+	cancelledAt?: string | null;
+	cancelledBy?: {
+		id: number | null;
+		name?: string | null;
+	} | null;
+	cancellationReason?: string | null;
+};
+
+function getPaymentMeta(
+	meta: Prisma.JsonValue | null | undefined,
+): PaymentMetaShape {
+	if (!meta || typeof meta !== "object" || Array.isArray(meta)) {
+		return {};
+	}
+	return meta as PaymentMetaShape;
+}
+
+function getPaymentJobSnapshots(
+	meta: Prisma.JsonValue | null | undefined,
+): PaymentJobSnapshot[] {
+	const snapshots = getPaymentMeta(meta).jobSnapshots;
+	if (!Array.isArray(snapshots)) return [];
+	return snapshots.map((item) => ({
+		id: Number(item.id || 0),
+		title: item.title || null,
+		subtitle: item.subtitle || null,
+		amount: Number(item.amount || 0),
+		previousStatus: item.previousStatus || null,
+		restoredStatus: item.restoredStatus || null,
+		createdAt: item.createdAt || null,
+		projectTitle: item.projectTitle || null,
+		lotBlock: item.lotBlock || null,
+		modelName: item.modelName || null,
+	}));
+}
+
 export const getJobsSchema = z
 	.object({
 		userId: z.number().optional().nullable(),
@@ -728,6 +785,7 @@ export async function getContractorPayouts(
 			charges: true,
 			paymentMethod: true,
 			checkNo: true,
+			meta: true,
 			createdAt: true,
 			user: {
 				select: {
@@ -750,18 +808,24 @@ export async function getContractorPayouts(
 	});
 
 	return response(
-		payouts.map((item) => ({
-			id: item.id,
-			amount: Number(item.amount || 0),
-			subTotal: Number(item.subTotal || 0),
-			charges: Number(item.charges || 0),
-			paymentMethod: item.paymentMethod || "Unknown",
-			checkNo: item.checkNo || null,
-			createdAt: item.createdAt,
-			paidTo: item.user?.name || "Unknown contractor",
-			authorizedBy: item.payer?.name || "Unknown payer",
-			jobCount: item._count.jobs,
-		})),
+		payouts.map((item) => {
+			const meta = getPaymentMeta(item.meta);
+			const snapshots = getPaymentJobSnapshots(item.meta);
+			return {
+				id: item.id,
+				amount: Number(item.amount || 0),
+				subTotal: Number(item.subTotal || 0),
+				charges: Number(item.charges || 0),
+				paymentMethod: item.paymentMethod || "Unknown",
+				checkNo: item.checkNo || null,
+				createdAt: item.createdAt,
+				paidTo: item.user?.name || "Unknown contractor",
+				authorizedBy: item.payer?.name || "Unknown payer",
+				jobCount: snapshots.length || item._count.jobs,
+				isCancelled: !!meta.cancelledAt,
+				cancelledAt: meta.cancelledAt || null,
+			};
+		}),
 	);
 }
 
@@ -843,6 +907,45 @@ export async function getContractorPayoutOverview(
 		},
 	});
 
+	const meta = getPaymentMeta(payout.meta);
+	const snapshots = getPaymentJobSnapshots(payout.meta);
+	const isCancelled = !!meta.cancelledAt;
+	const jobs = (
+		isCancelled && snapshots.length
+			? snapshots.map((job) => ({
+					id: job.id,
+					title: job.title,
+					subtitle: job.subtitle,
+					amount: Number(job.amount || 0),
+					status: job.restoredStatus || job.previousStatus || "Unknown",
+					createdAt: job.createdAt,
+					projectTitle: job.projectTitle || null,
+					lotBlock: job.lotBlock || null,
+					modelName: job.modelName || null,
+				}))
+			: payout.jobs.map((job) => ({
+					id: job.id,
+					title: job.title,
+					subtitle: job.subtitle,
+					amount: Number(job.amount || 0),
+					status: job.status,
+					createdAt: job.createdAt,
+					projectTitle: job.project?.title || null,
+					lotBlock: job.home?.lotBlock || null,
+					modelName: job.home?.modelName || null,
+				}))
+	) as {
+		id: number;
+		title: string | null;
+		subtitle: string | null;
+		amount: number;
+		status: string | null;
+		createdAt: Date | string | null;
+		projectTitle: string | null;
+		lotBlock: string | null;
+		modelName: string | null;
+	}[];
+
 	return {
 		id: payout.id,
 		amount: Number(payout.amount || 0),
@@ -865,7 +968,11 @@ export async function getContractorPayoutOverview(
 				}
 			: null,
 		meta: (payout.meta as Record<string, unknown> | null) || null,
-		jobCount: payout.jobs.length,
+		jobCount: jobs.length,
+		isCancelled,
+		cancelledAt: meta.cancelledAt || null,
+		cancelledBy: meta.cancelledBy || null,
+		cancellationReason: meta.cancellationReason || null,
 		adjustments: payout.adjustments.map((item) => ({
 			id: item.id,
 			type: item.type,
@@ -873,17 +980,7 @@ export async function getContractorPayoutOverview(
 			amount: Number(item.amount || 0),
 			createdAt: item.createdAt,
 		})),
-		jobs: payout.jobs.map((job) => ({
-			id: job.id,
-			title: job.title,
-			subtitle: job.subtitle,
-			amount: Number(job.amount || 0),
-			status: job.status,
-			createdAt: job.createdAt,
-			projectTitle: job.project?.title || null,
-			lotBlock: job.home?.lotBlock || null,
-			modelName: job.home?.modelName || null,
-		})),
+		jobs,
 	};
 }
 
@@ -910,6 +1007,7 @@ export async function getContractorPayoutPrintData(
 			charges: true,
 			paymentMethod: true,
 			checkNo: true,
+			meta: true,
 			createdAt: true,
 			user: {
 				select: {
@@ -964,24 +1062,47 @@ export async function getContractorPayoutPrintData(
 		},
 	});
 
-	const totalAmount = payouts.reduce(
-		(sum, item) => sum + Number(item.amount || 0),
-		0,
-	);
-	const totalJobs = payouts.reduce((sum, item) => sum + item.jobs.length, 0);
+	const normalizedPayouts = payouts.map((payout) => {
+		const meta = getPaymentMeta(payout.meta);
+		const snapshots = getPaymentJobSnapshots(payout.meta);
+		const isCancelled = !!meta.cancelledAt;
+		const jobs = (
+			isCancelled && snapshots.length
+				? snapshots.map((job) => ({
+						id: job.id,
+						title: job.title,
+						subtitle: job.subtitle,
+						amount: Number(job.amount || 0),
+						status: job.restoredStatus || job.previousStatus || "Unknown",
+						createdAt: job.createdAt,
+						projectTitle: job.projectTitle || null,
+						lotBlock: job.lotBlock || null,
+						modelName: job.modelName || null,
+					}))
+				: payout.jobs.map((job) => ({
+						id: job.id,
+						title: job.title,
+						subtitle: job.subtitle,
+						amount: Number(job.amount || 0),
+						status: job.status,
+						createdAt: job.createdAt,
+						projectTitle: job.project?.title || null,
+						lotBlock: job.home?.lotBlock || null,
+						modelName: job.home?.modelName || null,
+					}))
+		) as {
+			id: number;
+			title: string | null;
+			subtitle: string | null;
+			amount: number;
+			status: string | null;
+			createdAt: Date | string | null;
+			projectTitle: string | null;
+			lotBlock: string | null;
+			modelName: string | null;
+		}[];
 
-	return {
-		title:
-			payouts.length === 1
-				? `Payout_${payouts[0]?.id}`
-				: `Payouts_${payouts.map((item) => item.id).join("_")}`,
-		printedAt: new Date(),
-		summary: {
-			payoutCount: payouts.length,
-			totalAmount,
-			totalJobs,
-		},
-		payouts: payouts.map((payout) => ({
+		return {
 			id: payout.id,
 			amount: Number(payout.amount || 0),
 			subTotal: Number(payout.subTotal || 0),
@@ -1002,7 +1123,11 @@ export async function getContractorPayoutPrintData(
 						name: payout.payer.name || "Unknown payer",
 					}
 				: null,
-			jobCount: payout.jobs.length,
+			jobCount: jobs.length,
+			isCancelled,
+			cancelledAt: meta.cancelledAt || null,
+			cancelledBy: meta.cancelledBy || null,
+			cancellationReason: meta.cancellationReason || null,
 			adjustments: payout.adjustments.map((item) => ({
 				id: item.id,
 				type: item.type,
@@ -1010,18 +1135,31 @@ export async function getContractorPayoutPrintData(
 				amount: Number(item.amount || 0),
 				createdAt: item.createdAt,
 			})),
-			jobs: payout.jobs.map((job) => ({
-				id: job.id,
-				title: job.title,
-				subtitle: job.subtitle,
-				amount: Number(job.amount || 0),
-				status: job.status,
-				createdAt: job.createdAt,
-				projectTitle: job.project?.title || null,
-				lotBlock: job.home?.lotBlock || null,
-				modelName: job.home?.modelName || null,
-			})),
-		})),
+			jobs,
+		};
+	});
+
+	const totalAmount = normalizedPayouts.reduce(
+		(sum, item) => sum + item.amount,
+		0,
+	);
+	const totalJobs = normalizedPayouts.reduce(
+		(sum, item) => sum + item.jobCount,
+		0,
+	);
+
+	return {
+		title:
+			payouts.length === 1
+				? `Payout_${payouts[0]?.id}`
+				: `Payouts_${payouts.map((item) => item.id).join("_")}`,
+		printedAt: new Date(),
+		summary: {
+			payoutCount: payouts.length,
+			totalAmount,
+			totalJobs,
+		},
+		payouts: normalizedPayouts,
 	};
 }
 
@@ -1509,6 +1647,20 @@ export async function createPaymentPortal(
 			amount: true,
 			controlId: true,
 			status: true,
+			title: true,
+			subtitle: true,
+			createdAt: true,
+			project: {
+				select: {
+					title: true,
+				},
+			},
+			home: {
+				select: {
+					lotBlock: true,
+					modelName: true,
+				},
+			},
 		},
 	});
 
@@ -1554,6 +1706,17 @@ export async function createPaymentPortal(
 		(subTotal * ((chargePercentage || 0) / 100)).toFixed(2),
 	);
 	const totalPayout = Number((subTotal + adjustment - discount).toFixed(2));
+	const jobSnapshots: PaymentJobSnapshot[] = jobs.map((job) => ({
+		id: job.id,
+		title: job.title,
+		subtitle: job.subtitle,
+		amount: Number(job.amount || 0),
+		previousStatus: job.status || null,
+		createdAt: job.createdAt,
+		projectTitle: job.project?.title || null,
+		lotBlock: job.home?.lotBlock || null,
+		modelName: job.home?.modelName || null,
+	}));
 
 	if (totalPayout < 0) {
 		throw new Error("Total payout cannot be negative");
@@ -1576,6 +1739,7 @@ export async function createPaymentPortal(
 					subTotal,
 					totalPayout,
 					autoApprovedJobs,
+					jobSnapshots,
 				},
 				adjustments: {
 					create: [
@@ -1654,6 +1818,183 @@ export async function createPaymentPortal(
 	return {
 		id: payment.id,
 		totalPayout,
+	};
+}
+
+export const cancelContractorPaymentSchema = z.object({
+	paymentId: z.number(),
+	note: z.string().optional(),
+});
+export type CancelContractorPaymentSchema = z.infer<
+	typeof cancelContractorPaymentSchema
+>;
+
+export async function cancelContractorPayment(
+	ctx: TRPCContext,
+	input: CancelContractorPaymentSchema,
+) {
+	const actorId = ctx.userId;
+	if (!actorId) {
+		throw new Error("Unauthorized");
+	}
+
+	const payment = await ctx.db.jobPayments.findFirst({
+		where: {
+			id: input.paymentId,
+			deletedAt: null,
+		},
+		select: {
+			id: true,
+			userId: true,
+			meta: true,
+			jobs: {
+				where: {
+					deletedAt: null,
+				},
+				select: {
+					id: true,
+					controlId: true,
+					status: true,
+					title: true,
+					subtitle: true,
+					amount: true,
+					createdAt: true,
+					project: {
+						select: {
+							title: true,
+						},
+					},
+					home: {
+						select: {
+							lotBlock: true,
+							modelName: true,
+						},
+					},
+				},
+			},
+		},
+	});
+
+	if (!payment) {
+		throw new Error("Payment not found");
+	}
+
+	const existingMeta = getPaymentMeta(payment.meta);
+	if (existingMeta.cancelledAt) {
+		throw new Error("Payment has already been cancelled");
+	}
+
+	const actor = await ctx.db.users.findFirst({
+		where: {
+			id: actorId,
+		},
+		select: {
+			id: true,
+			name: true,
+		},
+	});
+
+	const snapshotMap = new Map(
+		getPaymentJobSnapshots(payment.meta).map((job) => [job.id, job]),
+	);
+	const fallbackSnapshots = payment.jobs.map((job) => ({
+		id: job.id,
+		title: job.title,
+		subtitle: job.subtitle,
+		amount: Number(job.amount || 0),
+		previousStatus: job.status || null,
+		createdAt: job.createdAt,
+		projectTitle: job.project?.title || null,
+		lotBlock: job.home?.lotBlock || null,
+		modelName: job.home?.modelName || null,
+	}));
+	const mergedSnapshots =
+		snapshotMap.size > 0 ? Array.from(snapshotMap.values()) : fallbackSnapshots;
+	const cancellationDate = new Date();
+	const revertedJobs = payment.jobs.map((job) => {
+		const snapshot = snapshotMap.get(job.id);
+		const restoredStatus =
+			snapshot?.previousStatus ||
+			existingMeta.autoApprovedJobs?.find((item) => item.id === job.id)
+				?.fromStatus ||
+			"Approved";
+		return {
+			jobId: job.id,
+			controlId: job.controlId,
+			restoredStatus,
+		};
+	});
+
+	await ctx.db.$transaction(async (db) => {
+		for (const job of revertedJobs) {
+			await db.jobs.update({
+				where: {
+					id: job.jobId,
+				},
+				data: {
+					paymentId: null,
+					status: job.restoredStatus,
+					statusDate: cancellationDate,
+				},
+			});
+		}
+
+		await db.jobPayments.update({
+			where: {
+				id: payment.id,
+			},
+			data: {
+				meta: {
+					...existingMeta,
+					jobSnapshots: mergedSnapshots.map((job) => ({
+						...job,
+						restoredStatus:
+							revertedJobs.find((item) => item.jobId === job.id)
+								?.restoredStatus ||
+							job.restoredStatus ||
+							job.previousStatus ||
+							"Approved",
+					})),
+					cancelledAt: cancellationDate.toISOString(),
+					cancelledBy: {
+						id: actor?.id || actorId,
+						name: actor?.name || null,
+					},
+					cancellationReason: input.note?.trim() || null,
+				},
+			},
+		});
+	});
+
+	await saveNote(
+		ctx.db,
+		{
+			headline: "Contractor Payout Cancelled",
+			note:
+				input.note?.trim() ||
+				`Payment batch #${payment.id} cancelled and jobs reverted to unpaid`,
+			subject: "Contractor payout",
+			tags: [
+				{
+					tagName: "channel",
+					tagValue: "contractor_payment_portal",
+				},
+				{
+					tagName: "paymentId",
+					tagValue: String(payment.id),
+				},
+				{
+					tagName: "userId",
+					tagValue: String(payment.userId),
+				},
+			],
+		},
+		actorId,
+	);
+
+	return {
+		id: payment.id,
+		revertedJobs: revertedJobs.length,
 	};
 }
 

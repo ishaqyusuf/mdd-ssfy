@@ -1,5 +1,6 @@
 "use client";
 
+import { CancelContractorPayoutButton } from "@/components/payment-dashboard/cancel-contractor-payout-button";
 import { PaymentOverviewContent } from "@/components/payment-dashboard/payment-overview-content";
 import { useContractorPayoutParams } from "@/hooks/use-contractor-payout-params";
 import { printContractorPayoutReport } from "@/lib/job-print";
@@ -43,7 +44,14 @@ export function ContractorPayoutOverviewModal() {
 			<CustomModal.Content className="lg:max-h-[70vh]">
 				<PaymentOverviewContent data={data} isPending={isPending} />
 			</CustomModal.Content>
-			<CustomModal.Footer className="flex items-center justify-end border-t pt-4">
+			<CustomModal.Footer className="flex items-center justify-end gap-2 border-t pt-4">
+				{data?.id ? (
+					<CancelContractorPayoutButton
+						paymentId={data.id}
+						isCancelled={data.isCancelled}
+						variant="outline"
+					/>
+				) : null}
 				<Button
 					type="button"
 					variant="outline"

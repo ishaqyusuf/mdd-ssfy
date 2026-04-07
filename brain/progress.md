@@ -4,6 +4,12 @@
 
 ## 2026-04-07
 
+- Added retained contractor payout cancellation with job reversion.
+  - payout creation now stores per-job payment snapshots in `JobPayments.meta` so history and print views can survive later cancellation
+  - cancelling a payout now keeps the payment record, stamps cancellation metadata in `meta`, detaches linked jobs, and restores each job back to its pre-payment unpaid status
+  - contractor payout history, overview, and print views now continue to show cancelled payouts with original job details sourced from the stored snapshot
+  - added cancel actions to the payout overview page and modal, plus cancelled badges in the payout history list
+
 - Added contractor payroll PDF generation in the payment portal.
   - introduced a dedicated `payroll-report` jobs print context in the shared token and backend print-data contract
   - moved `Generate Payroll Report` to the top of the payment portal and changed it from a contractor-specific print to a full unpaid-jobs payroll report

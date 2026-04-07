@@ -37,6 +37,13 @@ type PaymentOverviewData = {
 		id: number;
 		name: string;
 	} | null;
+	isCancelled?: boolean;
+	cancelledAt?: Date | string | null;
+	cancelledBy?: {
+		id: number | null;
+		name?: string | null;
+	} | null;
+	cancellationReason?: string | null;
 	jobCount: number;
 	adjustments: {
 		id: number;
@@ -94,16 +101,39 @@ export function PaymentOverviewContent({
 				<div className="relative flex flex-col gap-6 p-6 md:p-8">
 					<div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
 						<div className="max-w-3xl">
-							<Badge variant="secondary" className="mb-3">
-								Payment overview
-							</Badge>
+							<div className="mb-3 flex flex-wrap items-center gap-2">
+								<Badge variant="secondary">Payment overview</Badge>
+								{data.isCancelled ? (
+									<Badge variant="outline">Cancelled</Badge>
+								) : null}
+							</div>
 							<h1 className="text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
 								Payout #{data.id}
 							</h1>
 							<p className="mt-2 text-sm text-muted-foreground md:text-base">
-								Recorded {format(new Date(data.createdAt), "MMMM d, yyyy")} for{" "}
+								{data.isCancelled ? "Originally recorded" : "Recorded"}{" "}
+								{format(new Date(data.createdAt), "MMMM d, yyyy")} for{" "}
 								{data.paidTo?.name || "Unknown contractor"}.
 							</p>
+							{data.isCancelled ? (
+								<div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+									<p className="font-medium">This payout has been cancelled.</p>
+									<p className="mt-1 text-amber-800">
+										{data.cancelledAt
+											? `Cancelled ${format(new Date(data.cancelledAt), "MMMM d, yyyy")}`
+											: "Cancelled"}{" "}
+										{data.cancelledBy?.name
+											? `by ${data.cancelledBy.name}`
+											: ""}
+										.
+									</p>
+									{data.cancellationReason ? (
+										<p className="mt-1 text-amber-800">
+											Reason: {data.cancellationReason}
+										</p>
+									) : null}
+								</div>
+							) : null}
 						</div>
 
 						<div className="grid gap-3 sm:grid-cols-2 xl:min-w-[360px]">
@@ -153,7 +183,9 @@ export function PaymentOverviewContent({
 					<CardHeader>
 						<CardTitle>Included jobs</CardTitle>
 						<CardDescription>
-							Every job bundled into this payout batch.
+							{data.isCancelled
+								? "Jobs originally bundled into this payout, now restored to unpaid status."
+								: "Every job bundled into this payout batch."}
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="grid gap-3">

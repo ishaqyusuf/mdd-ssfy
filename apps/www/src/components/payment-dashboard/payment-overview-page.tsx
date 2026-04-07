@@ -1,6 +1,7 @@
 "use client";
 
 import PageShell from "@/components/page-shell";
+import { CancelContractorPayoutButton } from "@/components/payment-dashboard/cancel-contractor-payout-button";
 import { printContractorPayoutReport } from "@/lib/job-print";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
@@ -30,19 +31,26 @@ export function PaymentOverviewPage({
 						Back to payments
 					</Link>
 				</Button>
-				<Button
-					variant="outline"
-					className="gap-2"
-					disabled={!paymentId}
-					onClick={() =>
-						printContractorPayoutReport({
-							paymentIds: [paymentId],
-						})
-					}
-				>
-					<Printer className="size-4" />
-					Print Report
-				</Button>
+				<div className="flex items-center gap-2">
+					<CancelContractorPayoutButton
+						paymentId={paymentId}
+						isCancelled={data?.isCancelled}
+						variant="outline"
+					/>
+					<Button
+						variant="outline"
+						className="gap-2"
+						disabled={!paymentId}
+						onClick={() =>
+							printContractorPayoutReport({
+								paymentIds: [paymentId],
+							})
+						}
+					>
+						<Printer className="size-4" />
+						Print Report
+					</Button>
+				</div>
 			</div>
 			<PaymentOverviewContent data={data} isPending={isPending} />
 		</PageShell>

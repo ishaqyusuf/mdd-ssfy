@@ -59,7 +59,10 @@ export const columns: Column[] = [
 		header: "Jobs",
 		accessorKey: "jobCount",
 		cell: ({ row: { original: item } }) => (
-			<Badge variant="secondary">{item.jobCount} jobs</Badge>
+			<div className="flex flex-wrap items-center gap-2">
+				<Badge variant="secondary">{item.jobCount} jobs</Badge>
+				{item.isCancelled ? <Badge variant="outline">Cancelled</Badge> : null}
+			</div>
 		),
 	},
 	{
@@ -150,6 +153,11 @@ function ItemCard({ item }: { item: Item }) {
 					</p>
 				</div>
 			</div>
+			{item.isCancelled ? (
+				<div className="mt-3">
+					<Badge variant="outline">Cancelled</Badge>
+				</div>
+			) : null}
 		</div>
 	);
 }
