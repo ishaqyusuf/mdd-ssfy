@@ -132,6 +132,27 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		justifyContent: "space-between",
 	},
+	sectionCard: {
+		borderWidth: 1,
+		borderColor: "#dbe3ee",
+		padding: 12,
+		marginBottom: 12,
+	},
+	listRow: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		gap: 12,
+		paddingVertical: 8,
+		borderBottomWidth: 1,
+		borderBottomColor: "#e2e8f0",
+	},
+	listRowLeft: {
+		flex: 1,
+	},
+	listRowRight: {
+		width: 132,
+		alignItems: "flex-end",
+	},
 });
 
 type ContractorPayoutPrintData = {
@@ -195,7 +216,8 @@ export function ContractorPayoutPdfDocument({
 				<View style={styles.header}>
 					<Text style={styles.title}>Contractor Payout Report</Text>
 					<Text style={styles.subtitle}>
-						Printed {formatDate(data.printedAt)} • {data.summary.payoutCount} payout
+						Printed {formatDate(data.printedAt)} • {data.summary.payoutCount}{" "}
+						payout
 						{data.summary.payoutCount === 1 ? "" : "s"}
 					</Text>
 				</View>
@@ -217,35 +239,85 @@ export function ContractorPayoutPdfDocument({
 					</View>
 				</View>
 
-				{data.payouts.map((payout) => (
-					<View key={payout.id} style={styles.payoutCard} wrap={false}>
-						<View style={styles.rowBetween}>
-							<View style={{ flex: 1 }}>
-								<Text style={styles.payoutTitle}>Payout #{payout.id}</Text>
-								<Text style={styles.muted}>
-									{payout.paidTo?.name || "Unknown contractor"} •{" "}
-									{formatDate(payout.createdAt)}
+				<View style={styles.sectionCard}>
+					<Text style={styles.sectionLabel}>Payout Summary</Text>
+					{data.payouts.map((payout) => (
+						<View key={payout.id} style={styles.listRow}>
+							<View style={styles.listRowLeft}>
+								<Text style={styles.payoutTitle}>
+									Payout #{payout.id} •{" "}
+									{payout.paidTo?.name || "Unknown contractor"}
 								</Text>
 								<Text style={styles.muted}>
-									Authorized by {payout.authorizedBy?.name || "Unknown payer"} •{" "}
-									{payout.paymentMethod}
+									{formatDate(payout.createdAt)} • {payout.paymentMethod}
 									{payout.checkNo ? ` • Check ${payout.checkNo}` : ""}
 								</Text>
+								<Text style={styles.muted}>
+									{payout.jobCount} job{payout.jobCount === 1 ? "" : "s"} •
+									Authorized by{" "}
+									{` ${payout.authorizedBy?.name || "Unknown payer"}`}
+								</Text>
 							</View>
-							<View>
+							<View style={styles.listRowRight}>
 								<Text style={styles.totalValue}>
 									{formatCurrency(payout.amount)}
 								</Text>
-								<Text style={[styles.muted, { textAlign: "right" }]}>
-									{payout.jobCount} job{payout.jobCount === 1 ? "" : "s"}
+								<Text style={styles.muted}>
+									Charges {formatCurrency(payout.charges)}
 								</Text>
 							</View>
 						</View>
+					))}
+				</View>
+			</Page>
 
+			{data.payouts.map((payout) => (
+				<Page key={payout.id} size="LETTER" style={styles.page}>
+					<View style={styles.header}>
+						<Text style={styles.title}>Payout #{payout.id}</Text>
+						<Text style={styles.subtitle}>
+							{payout.paidTo?.name || "Unknown contractor"} •{" "}
+							{formatDate(payout.createdAt)}
+						</Text>
+						<Text style={styles.subtitle}>
+							Authorized by {payout.authorizedBy?.name || "Unknown payer"} •{" "}
+							{payout.paymentMethod}
+							{payout.checkNo ? ` • Check ${payout.checkNo}` : ""}
+						</Text>
+					</View>
+
+					<View style={styles.metricRow}>
+						<View style={styles.metricCard}>
+							<Text style={styles.metricLabel}>Jobs</Text>
+							<Text style={styles.metricValue}>{payout.jobCount}</Text>
+						</View>
+						<View style={styles.metricCard}>
+							<Text style={styles.metricLabel}>Subtotal</Text>
+							<Text style={styles.metricValue}>
+								{formatCurrency(payout.subTotal)}
+							</Text>
+						</View>
+						<View style={styles.metricCard}>
+							<Text style={styles.metricLabel}>Charges</Text>
+							<Text style={styles.metricValue}>
+								{formatCurrency(payout.charges)}
+							</Text>
+						</View>
+						<View style={styles.metricCard}>
+							<Text style={styles.metricLabel}>Total Paid</Text>
+							<Text style={styles.metricValue}>
+								{formatCurrency(payout.amount)}
+							</Text>
+						</View>
+					</View>
+
+					<View style={styles.payoutCard}>
 						<Text style={styles.sectionLabel}>Included Jobs</Text>
 						<View style={styles.tableHeader}>
 							<Text style={[styles.cellStrong, styles.colWide]}>Job</Text>
-							<Text style={[styles.cellStrong, styles.colMid]}>Project / Unit</Text>
+							<Text style={[styles.cellStrong, styles.colMid]}>
+								Project / Unit
+							</Text>
 							<Text style={[styles.cellStrong, styles.colMid]}>Status</Text>
 							<Text style={[styles.cellStrong, styles.colAmt]}>Amount</Text>
 						</View>
@@ -263,8 +335,9 @@ export function ContractorPayoutPdfDocument({
 										{job.projectTitle || "No project"}
 									</Text>
 									<Text style={styles.muted}>
-										{[job.lotBlock, job.modelName].filter(Boolean).join(" • ") ||
-											"No unit"}
+										{[job.lotBlock, job.modelName]
+											.filter(Boolean)
+											.join(" • ") || "No unit"}
 									</Text>
 								</View>
 								<Text style={[styles.cellText, styles.colMid]}>
@@ -286,8 +359,8 @@ export function ContractorPayoutPdfDocument({
 							</Text>
 						</View>
 					</View>
-				))}
-			</Page>
+				</Page>
+			))}
 		</Document>
 	);
 }

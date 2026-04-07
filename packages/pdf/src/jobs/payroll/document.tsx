@@ -1,8 +1,10 @@
 import { Document, Text, View } from "@react-pdf/renderer";
 import { WatermarkPage } from "../../sales-v2/shared/watermark-page";
 import {
+	DetailCard,
 	FooterTotal,
 	MetricCard,
+	Pill,
 	ReportHeader,
 	SectionCard,
 } from "../shared/components";
@@ -13,13 +15,21 @@ import {
 	formatShortDate,
 } from "../shared/formatters";
 import {
+	amountCardStyle,
+	amountLabelStyle,
+	amountValueStyle,
+	detailRowStyle,
 	emptyTextStyle,
+	jobCardHeaderStyle,
+	jobCardStyle,
+	jobDescriptionStyle,
+	jobSecondaryStyle,
+	jobTitleStyle,
 	metricRowStyle,
 	pageStyle,
-	statusRowStyle,
+	pillRowStyle,
 	tableCellTextStyle,
 	tablePrimaryTextStyle,
-	tableRowStyle,
 	tableSecondaryTextStyle,
 } from "../shared/styles";
 import type { JobsPrintData, PayrollContractor } from "../shared/types";
@@ -38,15 +48,64 @@ export function JobsPayrollPdfDocument({
 	return (
 		<Document title={title || data.title}>
 			<PayrollSummaryPage data={data} baseUrl={baseUrl} />
-			{(data.payroll?.contractors || []).map((contractor, index) => (
-				<PayrollContractorPage
-					key={String(contractor.contractorId || contractor.contractorName)}
-					contractor={contractor}
-					index={index}
-					baseUrl={baseUrl}
-					printedAt={data.printedAt}
-				/>
-			))}
+			{chunk(data.summary.statusSummary || [], 2).map(
+				(statusChunk, chunkIndex) => (
+					<PayrollOverallStatusPage
+						key={`overall-status-${statusChunk.map((item) => item.status).join("-") || chunkIndex}`}
+						data={data}
+						statusItems={statusChunk}
+						chunkIndex={chunkIndex}
+						baseUrl={baseUrl}
+					/>
+				),
+			)}
+			{(data.payroll?.contractors || []).flatMap((contractor, index) => {
+				const pages = [
+					<PayrollContractorSummaryPage
+						key={`summary-${String(contractor.contractorId || contractor.contractorName)}`}
+						contractor={contractor}
+						index={index}
+						baseUrl={baseUrl}
+						printedAt={data.printedAt}
+					/>,
+				];
+
+				for (const [chunkIndex, statusChunk] of chunk(
+					contractor.statusSummary,
+					2,
+				).entries()) {
+					pages.push(
+						<PayrollContractorStatusPage
+							key={`status-${String(contractor.contractorId || contractor.contractorName)}-${chunkIndex}`}
+							contractor={contractor}
+							statusItems={statusChunk}
+							index={index}
+							chunkIndex={chunkIndex}
+							baseUrl={baseUrl}
+							printedAt={data.printedAt}
+						/>,
+					);
+				}
+
+				for (const [chunkIndex, jobsChunk] of chunk(
+					contractor.jobs,
+					1,
+				).entries()) {
+					pages.push(
+						<PayrollContractorJobsPage
+							key={`jobs-${String(contractor.contractorId || contractor.contractorName)}-${chunkIndex}`}
+							contractor={contractor}
+							jobs={jobsChunk}
+							index={index}
+							chunkIndex={chunkIndex}
+							baseUrl={baseUrl}
+							printedAt={data.printedAt}
+						/>,
+					);
+				}
+
+				return pages;
+			})}
 		</Document>
 	);
 }
@@ -58,10 +117,13 @@ function PayrollSummaryPage({
 	data: JobsPrintData;
 	baseUrl?: string;
 }) {
-	const statusSummary = data.summary.statusSummary || [];
-
 	return (
-		<WatermarkPage wrap baseUrl={baseUrl} size="LETTER" style={pageStyle}>
+		<WatermarkPage
+			baseUrl={baseUrl}
+			watermarkText="Payroll Report"
+			size="LETTER"
+			style={pageStyle}
+		>
 			<ReportHeader
 				baseUrl={baseUrl}
 				title={data.title}
@@ -93,46 +155,66 @@ function PayrollSummaryPage({
 				/>
 			</View>
 
-			<SectionCard title="Contractor Summary">
-				{(data.payroll?.contractors || []).map((contractor) => (
-					<View
-						key={String(contractor.contractorId || contractor.contractorName)}
-						style={tableRowStyle}
-					>
-						<View style={{ width: "37%" }}>
-							<Text style={tablePrimaryTextStyle}>
-								{contractor.contractorName}
-							</Text>
-							<Text style={tableSecondaryTextStyle}>
-								{contractor.contractorEmail || "No email on file"}
-							</Text>
-						</View>
-						<View style={{ width: "15%" }}>
-							<Text style={tableCellTextStyle}>{contractor.jobCount} jobs</Text>
-						</View>
-						<View style={{ width: "22%" }}>
-							<Text style={tableCellTextStyle}>
-								{formatCurrency(contractor.pendingBill)}
-							</Text>
-						</View>
-						<View style={{ width: "26%" }}>
-							<Text style={tableCellTextStyle}>
-								{formatCurrency(contractor.totalPayable)}
-							</Text>
-						</View>
-					</View>
-				))}
-			</SectionCard>
+			<FooterTotal
+				label="Total Payable"
+				value={formatCurrency(data.summary.totalPayable || 0)}
+				countLabel={`${data.summary.jobCount} unpaid jobs`}
+				trailingLabel={`${data.summary.contractorCount || 0} contractors`}
+			/>
+		</WatermarkPage>
+	);
+}
+
+function PayrollOverallStatusPage({
+	data,
+	statusItems,
+	chunkIndex,
+	baseUrl,
+}: {
+	data: JobsPrintData;
+	statusItems: NonNullable<JobsPrintData["summary"]["statusSummary"]>;
+	chunkIndex: number;
+	baseUrl?: string;
+}) {
+	return (
+		<WatermarkPage
+			baseUrl={baseUrl}
+			watermarkText="Payroll Report"
+			size="LETTER"
+			style={pageStyle}
+		>
+			<ReportHeader
+				baseUrl={baseUrl}
+				title={data.title}
+				subtitle={`Overall status totals ${chunkIndex + 1}`}
+				metaLines={[
+					{ label: "Context", value: "Payroll Report" },
+					{ label: "Printed", value: formatPrintDate(data.printedAt) },
+					{ label: "Statuses", value: String(statusItems.length) },
+					{ label: "Unpaid Jobs", value: String(data.summary.jobCount) },
+				]}
+			/>
 
 			<SectionCard title="Overall Status Totals">
-				{statusSummary.length ? (
-					statusSummary.map((item) => (
-						<View key={item.status} style={statusRowStyle}>
-							<Text style={tablePrimaryTextStyle}>{item.status}</Text>
-							<Text style={tableCellTextStyle}>{item.jobCount} jobs</Text>
-							<Text style={tableCellTextStyle}>
-								{formatCurrency(item.totalAmount)}
-							</Text>
+				{statusItems.length ? (
+					statusItems.map((item) => (
+						<View key={item.status} style={jobCardStyle}>
+							<View style={jobCardHeaderStyle}>
+								<View style={{ width: "76%" }}>
+									<View style={pillRowStyle}>
+										<Pill value="STATUS" dark />
+										<Pill value={`${item.jobCount} JOBS`} />
+									</View>
+									<Text style={jobTitleStyle}>{item.status}</Text>
+								</View>
+
+								<View style={amountCardStyle}>
+									<Text style={amountLabelStyle}>Amount</Text>
+									<Text style={amountValueStyle}>
+										{formatCurrency(item.totalAmount)}
+									</Text>
+								</View>
+							</View>
 						</View>
 					))
 				) : (
@@ -150,7 +232,7 @@ function PayrollSummaryPage({
 	);
 }
 
-function PayrollContractorPage({
+function PayrollContractorSummaryPage({
 	contractor,
 	index,
 	baseUrl,
@@ -162,7 +244,12 @@ function PayrollContractorPage({
 	printedAt: Date | string;
 }) {
 	return (
-		<WatermarkPage wrap baseUrl={baseUrl} size="LETTER" style={pageStyle}>
+		<WatermarkPage
+			baseUrl={baseUrl}
+			watermarkText="Payroll Report"
+			size="LETTER"
+			style={pageStyle}
+		>
 			<ReportHeader
 				baseUrl={baseUrl}
 				title={contractor.contractorName}
@@ -197,45 +284,163 @@ function PayrollContractorPage({
 				/>
 			</View>
 
+			<FooterTotal
+				label="Total Payable"
+				value={formatCurrency(contractor.totalPayable)}
+				countLabel="Status summary page"
+				trailingLabel={formatCurrency(contractor.pendingBill)}
+			/>
+		</WatermarkPage>
+	);
+}
+
+function PayrollContractorStatusPage({
+	contractor,
+	statusItems,
+	index,
+	chunkIndex,
+	baseUrl,
+	printedAt,
+}: {
+	contractor: PayrollContractor;
+	statusItems: PayrollContractor["statusSummary"];
+	index: number;
+	chunkIndex: number;
+	baseUrl?: string;
+	printedAt: Date | string;
+}) {
+	return (
+		<WatermarkPage
+			baseUrl={baseUrl}
+			watermarkText="Payroll Report"
+			size="LETTER"
+			style={pageStyle}
+		>
+			<ReportHeader
+				baseUrl={baseUrl}
+				title={contractor.contractorName}
+				subtitle={`Status summary ${index + 1}.${chunkIndex + 1}`}
+				metaLines={[
+					{ label: "Context", value: "Payroll Breakdown" },
+					{ label: "Printed", value: formatPrintDate(printedAt) },
+					{
+						label: "Email",
+						value: contractor.contractorEmail || "No email on file",
+					},
+					{ label: "Statuses", value: String(statusItems.length) },
+				]}
+			/>
+
 			<SectionCard title="Status Summary">
-				{contractor.statusSummary.map((item) => (
-					<View key={item.status} style={statusRowStyle}>
-						<Text style={tablePrimaryTextStyle}>{item.status}</Text>
-						<Text style={tableCellTextStyle}>{item.jobCount} jobs</Text>
-						<Text style={tableCellTextStyle}>
-							{formatCurrency(item.totalAmount)}
-						</Text>
+				{statusItems.map((item) => (
+					<View key={item.status} style={jobCardStyle}>
+						<View style={jobCardHeaderStyle}>
+							<View style={{ width: "76%" }}>
+								<View style={pillRowStyle}>
+									<Pill value="STATUS" dark />
+									<Pill value={`${item.jobCount} JOBS`} />
+								</View>
+								<Text style={jobTitleStyle}>{item.status}</Text>
+							</View>
+
+							<View style={amountCardStyle}>
+								<Text style={amountLabelStyle}>Amount</Text>
+								<Text style={amountValueStyle}>
+									{formatCurrency(item.totalAmount)}
+								</Text>
+							</View>
+						</View>
 					</View>
 				))}
 			</SectionCard>
 
+			<FooterTotal
+				label="Total Payable"
+				value={formatCurrency(contractor.totalPayable)}
+				countLabel="Status summary page"
+				trailingLabel={formatCurrency(contractor.pendingBill)}
+			/>
+		</WatermarkPage>
+	);
+}
+
+function PayrollContractorJobsPage({
+	contractor,
+	jobs,
+	index,
+	chunkIndex,
+	baseUrl,
+	printedAt,
+}: {
+	contractor: PayrollContractor;
+	jobs: PayrollContractor["jobs"];
+	index: number;
+	chunkIndex: number;
+	baseUrl?: string;
+	printedAt: Date | string;
+}) {
+	return (
+		<WatermarkPage
+			baseUrl={baseUrl}
+			watermarkText="Payroll Report"
+			size="LETTER"
+			style={pageStyle}
+		>
+			<ReportHeader
+				baseUrl={baseUrl}
+				title={contractor.contractorName}
+				subtitle={`Contractor jobs ${index + 1}.${chunkIndex + 1}`}
+				metaLines={[
+					{ label: "Context", value: "Payroll Breakdown" },
+					{ label: "Printed", value: formatPrintDate(printedAt) },
+					{
+						label: "Email",
+						value: contractor.contractorEmail || "No email on file",
+					},
+					{
+						label: "Page Jobs",
+						value: String(jobs.length),
+					},
+				]}
+			/>
+
 			<SectionCard title="Unpaid Jobs">
-				{contractor.jobs.map((job) => (
-					<View key={job.id} style={tableRowStyle}>
-						<View style={{ width: "42%" }}>
-							<Text style={tablePrimaryTextStyle}>
-								#{job.id} {job.title}
-								{job.subtitle ? ` - ${job.subtitle}` : ""}
-							</Text>
-							<Text style={tableSecondaryTextStyle}>
-								{job.projectTitle}
-								{[job.lotBlock, job.modelName].some(Boolean)
-									? ` • ${[job.lotBlock, job.modelName].filter(Boolean).join(" • ")}`
-									: ""}
-							</Text>
+				{jobs.map((job) => (
+					<View key={job.id} style={jobCardStyle}>
+						<View style={jobCardHeaderStyle}>
+							<View style={{ width: "76%" }}>
+								<View style={pillRowStyle}>
+									<Pill value="JOB" dark />
+									<Pill value={job.status || "Unknown"} subtle />
+								</View>
+								<Text style={jobTitleStyle}>
+									#{job.id} {job.title}
+									{job.subtitle ? ` - ${job.subtitle}` : ""}
+								</Text>
+								<Text style={jobSecondaryStyle}>{job.projectTitle}</Text>
+								<Text style={jobDescriptionStyle}>
+									Date: {formatShortDate(job.createdAt)}
+								</Text>
+							</View>
+
+							<View style={amountCardStyle}>
+								<Text style={amountLabelStyle}>Amount</Text>
+								<Text style={amountValueStyle}>
+									{formatCurrency(job.amount)}
+								</Text>
+							</View>
 						</View>
-						<View style={{ width: "18%" }}>
-							<Text style={tableCellTextStyle}>{job.status || "Unknown"}</Text>
-						</View>
-						<View style={{ width: "18%" }}>
-							<Text style={tableCellTextStyle}>
-								{formatCurrency(job.amount)}
-							</Text>
-						</View>
-						<View style={{ width: "22%" }}>
-							<Text style={tableCellTextStyle}>
-								{formatShortDate(job.createdAt)}
-							</Text>
+
+						<View style={detailRowStyle}>
+							<DetailCard label="Status" value={job.status || "Unknown"} />
+							<DetailCard label="Project" value={job.projectTitle} />
+							<DetailCard
+								label="Unit"
+								value={
+									[job.lotBlock, job.modelName].filter(Boolean).join(" • ") ||
+									"No unit details"
+								}
+							/>
 						</View>
 					</View>
 				))}
@@ -249,4 +454,12 @@ function PayrollContractorPage({
 			/>
 		</WatermarkPage>
 	);
+}
+
+function chunk<T>(items: T[], size: number) {
+	const chunks: T[][] = [];
+	for (let index = 0; index < items.length; index += size) {
+		chunks.push(items.slice(index, index + size));
+	}
+	return chunks;
 }
