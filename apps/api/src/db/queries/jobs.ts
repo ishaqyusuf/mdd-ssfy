@@ -354,7 +354,7 @@ function buildPaymentPortalStatusWhere(
 			return { status: "Payment Cancelled" };
 		default:
 			return {
-				NOT: [{ status: "Assigned" }, { status: "Paid" }],
+				NOT: [{ status: "Paid" }],
 			};
 	}
 }
@@ -364,7 +364,7 @@ function buildPayableJobsWhere(userId?: number) {
 		...(userId ? { userId } : {}),
 		deletedAt: null,
 		paymentId: null,
-		NOT: [{ status: "Assigned" }, { status: "Paid" }],
+		NOT: [{ status: "Paid" }],
 	} satisfies Prisma.JobsWhereInput;
 }
 
@@ -392,7 +392,7 @@ const contractorPaymentSelect = {
 		where: {
 			deletedAt: null,
 			paymentId: null,
-			NOT: [{ status: "Assigned" }, { status: "Paid" }],
+			NOT: [{ status: "Paid" }],
 		},
 		select: {
 			id: true,
@@ -469,9 +469,7 @@ export async function getPaymentDashboard(
 	const contractors = await ctx.db.users.findMany({
 		where: {
 			jobs: {
-				some: {
-					deletedAt: null,
-				},
+				some: buildPayableJobsWhere(),
 			},
 			...(contractorQuery
 				? {
@@ -502,27 +500,27 @@ export async function getPaymentDashboard(
 
 	const [currentMonthPayments, currentMonthAmount, recentPayments] =
 		await Promise.all([
-		ctx.db.jobPayments.count({
-			where: {
-				deletedAt: null,
-				createdAt: {
-					gte: startOfMonth(new Date()),
-					lte: endOfMonth(new Date()),
+			ctx.db.jobPayments.count({
+				where: {
+					deletedAt: null,
+					createdAt: {
+						gte: startOfMonth(new Date()),
+						lte: endOfMonth(new Date()),
+					},
 				},
-			},
-		}),
-		ctx.db.jobPayments.aggregate({
-			_sum: {
-				amount: true,
-			},
-			where: {
-				deletedAt: null,
-				createdAt: {
-					gte: startOfMonth(new Date()),
-					lte: endOfMonth(new Date()),
+			}),
+			ctx.db.jobPayments.aggregate({
+				_sum: {
+					amount: true,
 				},
-			},
-		}),
+				where: {
+					deletedAt: null,
+					createdAt: {
+						gte: startOfMonth(new Date()),
+						lte: endOfMonth(new Date()),
+					},
+				},
+			}),
 			ctx.db.jobPayments.findMany({
 				where: {
 					deletedAt: null,
@@ -972,7 +970,9 @@ export async function getPaymentPortal(
 				String(job.status || "") === "Submitted"
 					? "pending-review"
 					: READY_TO_PAY_JOB_STATUSES.includes(
-								String(job.status || "") as (typeof READY_TO_PAY_JOB_STATUSES)[number],
+								String(
+									job.status || "",
+								) as (typeof READY_TO_PAY_JOB_STATUSES)[number],
 							)
 						? "ready-to-pay"
 						: "not-payable",
@@ -993,11 +993,12 @@ export type CreatePaymentPortalSchema = z.infer<
 >;
 
 export const getJobsPrintDataSchema = z.object({
-	jobIds: z.array(z.number()).min(1),
+	jobIds: z.array(z.number()).min(1).optional().nullable(),
 	context: z
 		.enum(["jobs-page", "payment-portal", "payroll-report"])
 		.optional()
 		.nullable(),
+	scope: z.enum(["selection", "all-unpaid"]).optional().nullable(),
 });
 export type GetJobsPrintDataSchema = z.infer<typeof getJobsPrintDataSchema>;
 
@@ -1005,6 +1006,220 @@ export async function getJobsPrintData(
 	ctx: TRPCContext,
 	input: GetJobsPrintDataSchema,
 ) {
+	if (input.context === "payroll-report" && input.scope === "all-unpaid") {
+		const jobs = await ctx.db.jobs.findMany({
+			where: buildPayableJobsWhere(),
+			orderBy: [
+				{ user: { name: "asc" } },
+				{ createdAt: "desc" },
+				{ id: "desc" },
+			],
+			select: {
+				id: true,
+				title: true,
+				subtitle: true,
+				description: true,
+				amount: true,
+				status: true,
+				createdAt: true,
+				meta: true,
+				isCustom: true,
+				builderTask: {
+					select: {
+						taskName: true,
+					},
+				},
+				user: {
+					select: {
+						id: true,
+						name: true,
+						email: true,
+						employeeProfile: {
+							select: {
+								discount: true,
+							},
+						},
+					},
+				},
+				project: {
+					select: {
+						title: true,
+					},
+				},
+				home: {
+					select: {
+						lotBlock: true,
+						modelName: true,
+					},
+				},
+			},
+		});
+
+		const normalizedJobs = jobs.map((job) => ({
+			id: job.id,
+			title: job.title,
+			subtitle: job.subtitle,
+			description: job.description,
+			amount: Number(job.amount || 0),
+			status: job.status,
+			createdAt: job.createdAt,
+			jobType: getJobType(job.meta as JobMeta | null),
+			isCustom: job.isCustom,
+			builderTaskName: job.builderTask?.taskName || null,
+			contractorId: Number(job.user?.id || 0) || null,
+			contractorName: job.user?.name || "Unknown contractor",
+			contractorEmail: job.user?.email || null,
+			chargePercentage: Number(job.user?.employeeProfile?.discount || 0),
+			projectTitle: job.project?.title || "Unknown project",
+			lotBlock: job.home?.lotBlock || null,
+			modelName: job.home?.modelName || null,
+		}));
+
+		const statusSummaryMap = new Map<
+			string,
+			{ status: string; jobCount: number; totalAmount: number }
+		>();
+		for (const job of normalizedJobs) {
+			const key = String(job.status || "Unknown");
+			const current = statusSummaryMap.get(key) || {
+				status: key,
+				jobCount: 0,
+				totalAmount: 0,
+			};
+			current.jobCount += 1;
+			current.totalAmount = Number(
+				(current.totalAmount + Number(job.amount || 0)).toFixed(2),
+			);
+			statusSummaryMap.set(key, current);
+		}
+
+		const contractorMap = new Map<
+			string,
+			{
+				contractorId: number | null;
+				contractorName: string;
+				contractorEmail: string | null;
+				chargePercentage: number;
+				jobs: typeof normalizedJobs;
+			}
+		>();
+
+		for (const job of normalizedJobs) {
+			const key = String(job.contractorId || job.contractorName);
+			const current = contractorMap.get(key) || {
+				contractorId: job.contractorId,
+				contractorName: job.contractorName,
+				contractorEmail: job.contractorEmail,
+				chargePercentage: job.chargePercentage,
+				jobs: [],
+			};
+			current.jobs.push(job);
+			contractorMap.set(key, current);
+		}
+
+		const contractors = Array.from(contractorMap.values())
+			.map((contractor) => {
+				const contractorStatusMap = new Map<
+					string,
+					{ status: string; jobCount: number; totalAmount: number }
+				>();
+
+				for (const job of contractor.jobs) {
+					const key = String(job.status || "Unknown");
+					const current = contractorStatusMap.get(key) || {
+						status: key,
+						jobCount: 0,
+						totalAmount: 0,
+					};
+					current.jobCount += 1;
+					current.totalAmount = Number(
+						(current.totalAmount + Number(job.amount || 0)).toFixed(2),
+					);
+					contractorStatusMap.set(key, current);
+				}
+
+				const readyToPayAmount = Number(
+					contractor.jobs
+						.filter((job) =>
+							READY_TO_PAY_JOB_STATUSES.includes(
+								String(
+									job.status || "",
+								) as (typeof READY_TO_PAY_JOB_STATUSES)[number],
+							),
+						)
+						.reduce((sum, job) => sum + Number(job.amount || 0), 0)
+						.toFixed(2),
+				);
+				const charge = Number(
+					(
+						readyToPayAmount *
+						((Number(contractor.chargePercentage || 0) || 0) / 100)
+					).toFixed(2),
+				);
+				const totalPayable = Number((readyToPayAmount - charge).toFixed(2));
+				const pendingBill = Number(
+					contractor.jobs
+						.reduce((sum, job) => sum + Number(job.amount || 0), 0)
+						.toFixed(2),
+				);
+
+				return {
+					contractorId: contractor.contractorId,
+					contractorName: contractor.contractorName,
+					contractorEmail: contractor.contractorEmail,
+					jobCount: contractor.jobs.length,
+					pendingBill,
+					readyToPayAmount,
+					charge,
+					chargePercentage: Number(contractor.chargePercentage || 0),
+					totalPayable,
+					statusSummary: Array.from(contractorStatusMap.values()).sort((a, b) =>
+						a.status.localeCompare(b.status),
+					),
+					jobs: contractor.jobs,
+				};
+			})
+			.sort((left, right) => right.pendingBill - left.pendingBill);
+
+		const totalAmount = Number(
+			normalizedJobs
+				.reduce((total, job) => total + Number(job.amount || 0), 0)
+				.toFixed(2),
+		);
+		const totalPayable = Number(
+			contractors
+				.reduce(
+					(total, contractor) => total + Number(contractor.totalPayable || 0),
+					0,
+				)
+				.toFixed(2),
+		);
+
+		return {
+			title: "Contractor Payroll Report",
+			context: "payroll-report" as const,
+			printedAt: new Date(),
+			summary: {
+				jobCount: normalizedJobs.length,
+				totalAmount,
+				totalPayable,
+				contractorCount: contractors.length,
+				contractorName: "All contractors",
+				statusSummary: Array.from(statusSummaryMap.values()).sort((a, b) =>
+					a.status.localeCompare(b.status),
+				),
+			},
+			payroll: {
+				contractors,
+			},
+			jobs: [],
+		};
+	}
+
+	if (!input.jobIds?.length) {
+		throw new Error("Select at least one job to print");
+	}
+
 	const jobs = await ctx.db.jobs.findMany({
 		where: {
 			id: {
@@ -1077,9 +1292,13 @@ export async function getJobsPrintData(
 		summary: {
 			jobCount: orderedJobs.length,
 			totalAmount,
+			totalPayable: totalAmount,
+			contractorCount: contractors.length,
 			contractorName:
 				contractors.length === 1 ? contractors[0] : "Multiple contractors",
+			statusSummary: [],
 		},
+		payroll: null,
 		jobs: orderedJobs.map((job) => ({
 			id: job.id,
 			title: job.title,
@@ -1116,14 +1335,13 @@ export async function createPaymentPortal(
 			userId: input.userId,
 			deletedAt: null,
 			paymentId: null,
-			status: {
-				in: [...READY_TO_PAY_JOB_STATUSES],
-			},
+			NOT: [{ status: "Paid" }],
 		},
 		select: {
 			id: true,
 			amount: true,
 			controlId: true,
+			status: true,
 		},
 	});
 
@@ -1152,6 +1370,19 @@ export async function createPaymentPortal(
 	const subTotal = Number(sum(jobs.map((job) => Number(job.amount || 0))) || 0);
 	const adjustment = 0;
 	const chargePercentage = Number(contractor.employeeProfile?.discount || 0);
+	const autoApprovedJobs = jobs
+		.filter(
+			(job) =>
+				!READY_TO_PAY_JOB_STATUSES.includes(
+					String(
+						job.status || "",
+					) as (typeof READY_TO_PAY_JOB_STATUSES)[number],
+				),
+		)
+		.map((job) => ({
+			id: job.id,
+			fromStatus: String(job.status || "Unknown"),
+		}));
 	const discount = Number(
 		(subTotal * ((chargePercentage || 0) / 100)).toFixed(2),
 	);
@@ -1177,6 +1408,7 @@ export async function createPaymentPortal(
 					jobIds: input.jobIds,
 					subTotal,
 					totalPayout,
+					autoApprovedJobs,
 				},
 				adjustments: {
 					create: [

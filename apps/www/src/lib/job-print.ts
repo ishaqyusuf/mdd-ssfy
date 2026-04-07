@@ -16,15 +16,19 @@ export async function printSelectedJobs({
 	const token = await generateToken({
 		jobIds,
 		context,
+		scope: "selection",
 		expiry: addDays(new Date(), 7).toISOString(),
 	});
 
 	openLink("p/jobs", { token, preview: true }, true);
 }
 
-export async function generatePayrollReport(jobIds: number[]) {
-	return printSelectedJobs({
-		jobIds,
+export async function generatePayrollReport() {
+	const token = await generateToken({
 		context: "payroll-report",
+		scope: "all-unpaid",
+		expiry: addDays(new Date(), 7).toISOString(),
 	});
+
+	openLink("p/jobs", { token, preview: true }, true);
 }

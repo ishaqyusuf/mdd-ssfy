@@ -6,9 +6,20 @@
 
 - Added contractor payroll PDF generation in the payment portal.
   - introduced a dedicated `payroll-report` jobs print context in the shared token and backend print-data contract
-  - added a `Generate Payroll Report` action in the payment portal so finance/admin users can print the current contractor's unpaid jobs directly from the portal workspace
-  - reused the existing tokenized `p/jobs` print route so payroll reports stay server-authoritative and are rebuilt from job ids on the backend
-  - updated the shared jobs PDF template to render payroll-specific labels like `Payroll Report`, `Unpaid Jobs`, and `Total Payable`
+  - moved `Generate Payroll Report` to the top of the payment portal and changed it from a contractor-specific print to a full unpaid-jobs payroll report
+  - payroll reports now generate an overall first page for all unpaid jobs, followed by contractor breakdown pages with job rows and status-based totals
+  - reused the existing tokenized `p/jobs` print route while making payroll reports server-authoritative through an all-unpaid report scope on the backend
+  - updated the shared jobs PDF template to render a dedicated payroll layout instead of reusing the selected-jobs print framing
+
+- Expanded payment portal payouts to allow selected unpaid jobs even when they are not yet approved.
+  - payment portal lists now keep unpaid `Assigned` and `Started` jobs visible instead of hiding them from the default all-jobs view
+  - payout summary now shows warning rows grouped by status when selected jobs will be auto-approved during payment, with one-click removal per warning group
+  - payment creation now accepts all unpaid selected jobs, records which ones were auto-approved in payment metadata, and still marks the final paid jobs with updated payment linkage and paid status
+
+- Reorganized the jobs PDF package into a feature-based domain layout.
+  - split the old monolithic jobs PDF document into `jobs/shared`, `jobs/selection`, and `jobs/payroll`
+  - kept `JobsPdfDocument` as a thin dispatcher so callers still use one stable entry point while each feature owns its own PDF implementation
+  - moved shared job-pdf types, fonts, formatters, styles, and primitives into dedicated shared modules for cleaner future extension
 
 ## 2026-04-03
 

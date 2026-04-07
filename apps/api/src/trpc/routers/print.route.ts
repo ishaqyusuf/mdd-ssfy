@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
+import { getJobsPrintData } from "@api/db/queries/jobs";
 import {
 	generatePrintData,
 	modelPrintSchema,
 } from "@community/generate-print-data";
-import { getJobsPrintData } from "@api/db/queries/jobs";
 import { getPrintData } from "@gnd/sales/print";
 import type { PrintMode } from "@gnd/sales/print/types";
 import { tokenSchemas, validateToken } from "@gnd/utils/tokenizer";
@@ -136,8 +136,9 @@ export const printRouter = createTRPCRouter({
 			if (!payload) return null;
 
 			return getJobsPrintData(props.ctx, {
-				jobIds: payload.jobIds,
+				jobIds: payload.jobIds || undefined,
 				context: payload.context || "jobs-page",
+				scope: payload.scope || "selection",
 			});
 		}),
 });

@@ -16,12 +16,13 @@ export const salesPdfToken = z.object({
 });
 export type SalesPdfToken = z.infer<typeof salesPdfToken>;
 export const jobsPdfToken = z.object({
-	jobIds: z.array(z.number()).min(1),
+	jobIds: z.array(z.number()).min(1).optional().nullable(),
 	expiry: z.string(),
 	context: z
 		.enum(["jobs-page", "payment-portal", "payroll-report"])
 		.optional()
 		.nullable(),
+	scope: z.enum(["selection", "all-unpaid"]).optional().nullable(),
 });
 export type JobsPdfToken = z.infer<typeof jobsPdfToken>;
 export const salesPaymentTokenSchema = z.object({

@@ -60,12 +60,18 @@ function formatCurrency(value?: number | null) {
 }
 
 function canSelectJob(job: { paymentStage?: string | null }) {
-	return job.paymentStage === "ready-to-pay";
+	return !!job.paymentStage;
 }
 
 function canSelectForReview(job: { paymentStage?: string | null }) {
 	return job.paymentStage === "pending-review";
 }
+
+function requiresAutoApproval(job: { status?: string | null }) {
+	return !READY_TO_PAY_STATUSES.has(String(job.status || ""));
+}
+
+const READY_TO_PAY_STATUSES = new Set(["Approved", "Completed"]);
 
 function getInsuranceTone(state?: string | null) {
 	switch (state) {
@@ -251,10 +257,7 @@ export function PaymentPortal() {
 	);
 
 	const canSubmitPayment =
-		!!selectedContractorId &&
-		selectedJobIds.length > 0 &&
-		selectedJobs.every((job) => canSelectJob(job)) &&
-		totalPayout >= 0;
+		!!selectedContractorId && selectedJobIds.length > 0 && totalPayout >= 0;
 	const pendingReviewJobs =
 		portal?.jobs.filter((job) => job.paymentStage === "pending-review")
 			.length || 0;
@@ -264,6 +267,29 @@ export function PaymentPortal() {
 	const selectedPendingReviewJobs = selectedJobs.filter((job) =>
 		canSelectForReview(job),
 	);
+	const selectionWarnings = useMemo(() => {
+		const warningMap = new Map<
+			string,
+			{ status: string; count: number; jobIds: number[] }
+		>();
+
+		for (const job of selectedJobs) {
+			if (!requiresAutoApproval(job)) continue;
+			const status = String(job.status || "Unknown");
+			const current = warningMap.get(status) || {
+				status,
+				count: 0,
+				jobIds: [],
+			};
+			current.count += 1;
+			current.jobIds.push(job.id);
+			warningMap.set(status, current);
+		}
+
+		return Array.from(warningMap.values()).sort((left, right) =>
+			left.status.localeCompare(right.status),
+		);
+	}, [selectedJobs]);
 
 	const markableJobs = jobs.filter((job) =>
 		isPendingReviewMode ? canSelectForReview(job) : canSelectJob(job),
@@ -303,6 +329,46 @@ export function PaymentPortal() {
 
 	return (
 		<div className="flex flex-col gap-6 py-6 pb-8">
+			<Card className="border-dashed bg-muted/10">
+				<CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+					<div className="space-y-1">
+						<p className="text-sm font-semibold text-foreground">
+							Generate full payroll report
+						</p>
+						<p className="text-sm text-muted-foreground">
+							Create a PDF summary of all unpaid jobs across contractors,
+							starting with the overall totals before the
+							contractor-by-contractor breakdown.
+						</p>
+					</div>
+					<div className="flex flex-wrap items-center gap-3">
+						<div className="rounded-xl border bg-background px-4 py-2 text-sm">
+							<p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+								Unpaid Jobs
+							</p>
+							<p className="mt-1 font-semibold text-foreground">
+								{dashboardQuery.data?.summary.pendingJobs || 0}
+							</p>
+						</div>
+						<div className="rounded-xl border bg-background px-4 py-2 text-sm">
+							<p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+								Total Payable
+							</p>
+							<p className="mt-1 font-semibold text-foreground">
+								{formatCurrency(dashboardQuery.data?.summary.totalPay)}
+							</p>
+						</div>
+						<Button
+							onClick={() => generatePayrollReport()}
+							disabled={dashboardQuery.isPending || !contractors.length}
+						>
+							<Printer data-icon="inline-start" />
+							Generate Payroll Report
+						</Button>
+					</div>
+				</CardContent>
+			</Card>
+
 			<div className="grid min-w-0 gap-6 xl:grid-cols-[320px_minmax(0,1fr)_340px] xl:items-start">
 				<Card className="hidden overflow-hidden xl:sticky xl:top-6 xl:flex xl:h-[calc(100vh-7rem)] xl:flex-col">
 					<CardHeader className="gap-4 border-b bg-muted/30">
@@ -355,12 +421,12 @@ export function PaymentPortal() {
 													setSelectedContractorId(contractor.id);
 												}}
 												className={cn(
-													"flex w-full min-w-0 max-w-full overflow-hidden flex-col gap-2 rounded-xl border px-3 py-3 text-left transition hover:border-primary/40 hover:bg-muted/40",
+													"flex w-full min-w-0 max-w-full overflow-hidden box-border flex-col gap-2 rounded-xl border px-3 py-3 text-left transition hover:border-primary/40 hover:bg-muted/40",
 													isActive &&
 														"border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20",
 												)}
 											>
-												<div className="flex items-start justify-between gap-2">
+												<div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
 													<div className="min-w-0 flex-1">
 														<p className="max-w-full truncate text-sm font-medium text-foreground">
 															{contractor.name}
@@ -373,7 +439,7 @@ export function PaymentPortal() {
 														variant={getInsuranceTone(
 															contractor.insurance.state,
 														)}
-														className="shrink-0"
+														className="w-fit max-w-full shrink-0"
 													>
 														{contractor.insurance.state.replace("_", " ")}
 													</Badge>
@@ -385,8 +451,8 @@ export function PaymentPortal() {
 													<span className="text-border">•</span>
 													<span>{contractor.readyToPayCount} ready to pay</span>
 												</div>
-												<div className="flex min-w-0 items-center justify-between gap-3">
-													<p className="min-w-0 truncate text-[11px] text-muted-foreground">
+												<div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+													<p className="min-w-0 text-[11px] text-muted-foreground break-words">
 														{contractor.lastProjectTitle
 															? `Recent project: ${contractor.lastProjectTitle}`
 															: "No recent project yet"}
@@ -523,17 +589,6 @@ export function PaymentPortal() {
 									</div>
 
 									<div className="flex items-center gap-2">
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() =>
-												generatePayrollReport(jobs.map((job) => job.id))
-											}
-											disabled={!jobs.length}
-										>
-											<Printer data-icon="inline-start" />
-											Generate Payroll Report
-										</Button>
 										<Button
 											variant="outline"
 											size="sm"
@@ -678,7 +733,17 @@ export function PaymentPortal() {
 						canSubmitPayment={canSubmitPayment}
 						isPendingReviewMode={isPendingReviewMode}
 						selectedPendingReviewCount={selectedPendingReviewJobs.length}
+						selectionWarnings={selectionWarnings}
 						isSubmitting={createPaymentMutation.isPending}
+						onRemoveWarningJobs={(jobIds) =>
+							setRowSelection((current) => {
+								const next = { ...current };
+								for (const jobId of jobIds) {
+									delete next[String(jobId)];
+								}
+								return next;
+							})
+						}
 						onSubmit={() => {
 							if (!selectedContractorId) return;
 
@@ -820,10 +885,10 @@ function JobListItem({
 					<div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 						<p className="text-xs text-muted-foreground">
 							{job.paymentStage === "pending-review"
-								? "Open this job to review and approve it before payment."
+								? "This job is still pending review. Paying it will approve it automatically."
 								: job.paymentStage === "ready-to-pay"
 									? "Ready to include in the next payout batch."
-									: "This job is not payable yet."}
+									: "This job is unpaid. Paying it will approve it automatically."}
 						</p>
 						{isPendingReviewMode && canReviewThisJob ? (
 							<div className="flex items-center gap-2">
@@ -923,7 +988,9 @@ function PaymentSidebar({
 	canSubmitPayment,
 	isPendingReviewMode,
 	selectedPendingReviewCount,
+	selectionWarnings,
 	isSubmitting,
+	onRemoveWarningJobs,
 	onSubmit,
 }: {
 	selectedJobIds: number[];
@@ -938,7 +1005,13 @@ function PaymentSidebar({
 	canSubmitPayment: boolean;
 	isPendingReviewMode: boolean;
 	selectedPendingReviewCount: number;
+	selectionWarnings: {
+		status: string;
+		count: number;
+		jobIds: number[];
+	}[];
 	isSubmitting: boolean;
+	onRemoveWarningJobs: (jobIds: number[]) => void;
 	onSubmit: () => void;
 }) {
 	return (
@@ -947,8 +1020,8 @@ function PaymentSidebar({
 				<CardTitle>Payout Summary</CardTitle>
 				<CardDescription>
 					{isPendingReviewMode
-						? "Review mode is active. Approve submitted jobs before creating a payout batch."
-						: "Finalize payment details for the selected ready-to-pay jobs."}
+						? "Review mode is active. Selected jobs can still be paid, and any non-approved items will be approved automatically during payout."
+						: "Finalize payment details for the selected unpaid jobs."}
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="p-0 xl:flex-1 xl:min-h-0">
@@ -1022,11 +1095,39 @@ function PaymentSidebar({
 							</FieldBlock>
 						</div>
 
+						{selectionWarnings.length ? (
+							<div className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+								<p className="font-semibold">Warning</p>
+								<div className="mt-3 grid gap-2">
+									{selectionWarnings.map((warning) => (
+										<div
+											key={warning.status}
+											className="flex items-start justify-between gap-3 rounded-xl border border-amber-200 bg-white/70 px-3 py-2"
+										>
+											<p className="flex-1 leading-6">
+												{warning.count === 1
+													? `A job with status "${warning.status}" is part of selection, proceeding will mark this job as approved.`
+													: `${warning.count} jobs with status "${warning.status}" are part of selection, proceeding will mark these jobs as approved.`}
+											</p>
+											<Button
+												type="button"
+												size="sm"
+												variant="ghost"
+												onClick={() => onRemoveWarningJobs(warning.jobIds)}
+											>
+												Remove
+											</Button>
+										</div>
+									))}
+								</div>
+							</div>
+						) : null}
+
 						{isPendingReviewMode ? (
 							<div className="rounded-2xl border border-dashed bg-muted/20 p-3 text-sm text-muted-foreground">
 								{selectedPendingReviewCount > 0
-									? `${selectedPendingReviewCount} marked job${selectedPendingReviewCount === 1 ? "" : "s"} still need review before payout can be created.`
-									: "Pending review mode is for approval decisions only. Switch to ready to pay after approval to create the payout batch."}
+									? `${selectedPendingReviewCount} marked job${selectedPendingReviewCount === 1 ? "" : "s"} are pending review. You can still pay them, but they will be approved automatically as part of payout.`
+									: "Pending review mode is primarily for approval decisions, but selected jobs can still be included in payout."}
 							</div>
 						) : null}
 
