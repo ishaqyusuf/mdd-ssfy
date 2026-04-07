@@ -2,6 +2,14 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-04-07
+
+- Added contractor payroll PDF generation in the payment portal.
+  - introduced a dedicated `payroll-report` jobs print context in the shared token and backend print-data contract
+  - added a `Generate Payroll Report` action in the payment portal so finance/admin users can print the current contractor's unpaid jobs directly from the portal workspace
+  - reused the existing tokenized `p/jobs` print route so payroll reports stay server-authoritative and are rebuilt from job ids on the backend
+  - updated the shared jobs PDF template to render payroll-specific labels like `Payroll Report`, `Unpaid Jobs`, and `Total Payable`
+
 ## 2026-04-03
 
 - Updated job overview and jobs list metadata/action visibility.

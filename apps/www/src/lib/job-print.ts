@@ -9,7 +9,7 @@ export async function printSelectedJobs({
 	context = "jobs-page",
 }: {
 	jobIds: number[];
-	context?: "jobs-page" | "payment-portal";
+	context?: "jobs-page" | "payment-portal" | "payroll-report";
 }) {
 	if (!jobIds.length) return;
 
@@ -20,4 +20,11 @@ export async function printSelectedJobs({
 	});
 
 	openLink("p/jobs", { token, preview: true }, true);
+}
+
+export async function generatePayrollReport(jobIds: number[]) {
+	return printSelectedJobs({
+		jobIds,
+		context: "payroll-report",
+	});
 }

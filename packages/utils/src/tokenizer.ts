@@ -18,7 +18,10 @@ export type SalesPdfToken = z.infer<typeof salesPdfToken>;
 export const jobsPdfToken = z.object({
 	jobIds: z.array(z.number()).min(1),
 	expiry: z.string(),
-	context: z.enum(["jobs-page", "payment-portal"]).optional().nullable(),
+	context: z
+		.enum(["jobs-page", "payment-portal", "payroll-report"])
+		.optional()
+		.nullable(),
 });
 export type JobsPdfToken = z.infer<typeof jobsPdfToken>;
 export const salesPaymentTokenSchema = z.object({
@@ -47,9 +50,7 @@ export const tokenSchemas = {
 export type TokenSchemaNames = keyof typeof tokenSchemas;
 export type SalesPaymentTokenSchema = z.infer<typeof salesPaymentTokenSchema>;
 type KnownToken = SalesPdfToken | JobsPdfToken | SalesPaymentTokenSchema;
-export function tokenize<T extends KnownToken>(
-	data: T,
-) {
+export function tokenize<T extends KnownToken>(data: T) {
 	return jwtEncrypt(data);
 }
 export function validateToken<T>(

@@ -994,7 +994,10 @@ export type CreatePaymentPortalSchema = z.infer<
 
 export const getJobsPrintDataSchema = z.object({
 	jobIds: z.array(z.number()).min(1),
-	context: z.enum(["jobs-page", "payment-portal"]).optional().nullable(),
+	context: z
+		.enum(["jobs-page", "payment-portal", "payroll-report"])
+		.optional()
+		.nullable(),
 });
 export type GetJobsPrintDataSchema = z.infer<typeof getJobsPrintDataSchema>;
 
@@ -1066,7 +1069,9 @@ export async function getJobsPrintData(
 		title:
 			input.context === "payment-portal"
 				? "Contractor Payment Selection"
-				: "Selected Jobs List",
+				: input.context === "payroll-report"
+					? "Contractor Payroll Report"
+					: "Selected Jobs List",
 		context: input.context || "jobs-page",
 		printedAt: new Date(),
 		summary: {

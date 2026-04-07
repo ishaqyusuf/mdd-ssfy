@@ -574,35 +574,48 @@ function JobOverviewActionsCard({
 				)}
 
 				{isSubmittable && (
-					<div className="flex gap-3">
-						<Button
-							className="flex-1"
-							onClick={() => openJobForm(isAdmin ? 5 : 4)}
-							disabled={isConfigRequested}
-							title={
-								isConfigRequested
-									? "Configuration has already been requested for this job."
-									: undefined
-							}
-						>
-							<CheckCircle2 className="mr-2 h-4 w-4" />
-							{isSubmitted ? "Update Submission" : "Submit Job"}
-						</Button>
+					<div className="space-y-3">
 						{!isAdmin ? (
-							<Button
-								type="button"
-								variant="destructive"
-								size="icon"
-								disabled={isDeleting}
-								onClick={() => {
-									if (!job?.id) return;
-									deleteJob({ id: job.id });
-								}}
-								title="Delete job"
-							>
-								<Trash2 className="h-4 w-4" />
-							</Button>
+							<div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+								<p className="text-sm font-semibold text-foreground">
+									Contractor Submission Required
+								</p>
+								<p className="mt-1 text-sm text-muted-foreground">
+									Open the submit flow to confirm completed work, update task
+									qty, and send this job forward for review.
+								</p>
+							</div>
 						) : null}
+						<div className="flex gap-3">
+							<Button
+								className="flex-1"
+								onClick={() => openJobForm(isAdmin ? 5 : 4)}
+								disabled={isConfigRequested}
+								title={
+									isConfigRequested
+										? "Configuration has already been requested for this job."
+										: undefined
+								}
+							>
+								<CheckCircle2 className="mr-2 h-4 w-4" />
+								{isSubmitted ? "Update Submission" : "Submit Job"}
+							</Button>
+							{!isAdmin ? (
+								<Button
+									type="button"
+									variant="destructive"
+									size="icon"
+									disabled={isDeleting}
+									onClick={() => {
+										if (!job?.id) return;
+										deleteJob({ id: job.id });
+									}}
+									title="Delete job"
+								>
+									<Trash2 className="h-4 w-4" />
+								</Button>
+							) : null}
+						</div>
 					</div>
 				)}
 

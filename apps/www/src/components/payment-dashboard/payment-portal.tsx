@@ -2,7 +2,7 @@
 
 import { JobOverviewModal } from "@/components/modals/job-overview";
 import { useJobParams } from "@/hooks/use-contractor-jobs-params";
-import { printSelectedJobs } from "@/lib/job-print";
+import { generatePayrollReport, printSelectedJobs } from "@/lib/job-print";
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
@@ -523,6 +523,17 @@ export function PaymentPortal() {
 									</div>
 
 									<div className="flex items-center gap-2">
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={() =>
+												generatePayrollReport(jobs.map((job) => job.id))
+											}
+											disabled={!jobs.length}
+										>
+											<Printer data-icon="inline-start" />
+											Generate Payroll Report
+										</Button>
 										<Button
 											variant="outline"
 											size="sm"
