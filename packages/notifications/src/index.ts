@@ -31,6 +31,9 @@ import { jobReviewRequested } from "./types/job-review-requested";
 import { jobSubmitted } from "./types/job-submitted";
 import { jobTaskConfigured } from "./types/job-task-configured";
 import { jobTaskConfigureRequest } from "./types/job-tasks-configure-request";
+import { payoutCancelled } from "./types/payout-cancelled";
+import { payoutIssues } from "./types/payout-issues";
+import { payoutReversed } from "./types/payout-reversed";
 import { salesCheckoutSuccess } from "./types/sales-checkout-success";
 import { salesDispatchAssigned } from "./types/sales-dispatch-assigned";
 import { salesDispatchCancelled } from "./types/sales-dispatch-cancelled";
@@ -79,6 +82,9 @@ const handlers = {
 	job_rejected: jobRejected,
 	job_deleted: jobDeleted,
 	job_payment_sent: jobPaymentSent,
+	payout_cancelled: payoutCancelled,
+	payout_reversed: payoutReversed,
+	payout_issues: payoutIssues,
 	job_review_requested: jobReviewRequested,
 	job_task_configure_request: jobTaskConfigureRequest,
 	job_task_configured: jobTaskConfigured,

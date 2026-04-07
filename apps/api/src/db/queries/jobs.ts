@@ -64,6 +64,12 @@ type PaymentMetaShape = {
 		name?: string | null;
 	} | null;
 	cancellationReason?: string | null;
+	reversedAt?: string | null;
+	reversedBy?: {
+		id: number | null;
+		name?: string | null;
+	} | null;
+	reversalReason?: string | null;
 };
 
 function getPaymentMeta(
@@ -92,6 +98,23 @@ function getPaymentJobSnapshots(
 		lotBlock: item.lotBlock || null,
 		modelName: item.modelName || null,
 	}));
+}
+
+function roundCurrency(value: number) {
+	return Number(value.toFixed(2));
+}
+
+function expectedRestoredStatusForSnapshot(
+	snapshot: PaymentJobSnapshot | undefined,
+	meta: PaymentMetaShape,
+	jobId: number,
+) {
+	return (
+		snapshot?.restoredStatus ||
+		snapshot?.previousStatus ||
+		meta.autoApprovedJobs?.find((item) => item.id === jobId)?.fromStatus ||
+		"Approved"
+	);
 }
 
 export const getJobsSchema = z
@@ -910,14 +933,19 @@ export async function getContractorPayoutOverview(
 	const meta = getPaymentMeta(payout.meta);
 	const snapshots = getPaymentJobSnapshots(payout.meta);
 	const isCancelled = !!meta.cancelledAt;
+	const useSnapshotJobs =
+		snapshots.length > 0 &&
+		(isCancelled || (!!meta.reversedAt && payout.jobs.length === 0));
 	const jobs = (
-		isCancelled && snapshots.length
+		useSnapshotJobs
 			? snapshots.map((job) => ({
 					id: job.id,
 					title: job.title,
 					subtitle: job.subtitle,
 					amount: Number(job.amount || 0),
-					status: job.restoredStatus || job.previousStatus || "Unknown",
+					status: meta.reversedAt
+						? "Paid"
+						: job.restoredStatus || job.previousStatus || "Unknown",
 					createdAt: job.createdAt,
 					projectTitle: job.projectTitle || null,
 					lotBlock: job.lotBlock || null,
@@ -973,6 +1001,9 @@ export async function getContractorPayoutOverview(
 		cancelledAt: meta.cancelledAt || null,
 		cancelledBy: meta.cancelledBy || null,
 		cancellationReason: meta.cancellationReason || null,
+		reversedAt: meta.reversedAt || null,
+		reversedBy: meta.reversedBy || null,
+		reversalReason: meta.reversalReason || null,
 		adjustments: payout.adjustments.map((item) => ({
 			id: item.id,
 			type: item.type,
@@ -1066,14 +1097,19 @@ export async function getContractorPayoutPrintData(
 		const meta = getPaymentMeta(payout.meta);
 		const snapshots = getPaymentJobSnapshots(payout.meta);
 		const isCancelled = !!meta.cancelledAt;
+		const useSnapshotJobs =
+			snapshots.length > 0 &&
+			(isCancelled || (!!meta.reversedAt && payout.jobs.length === 0));
 		const jobs = (
-			isCancelled && snapshots.length
+			useSnapshotJobs
 				? snapshots.map((job) => ({
 						id: job.id,
 						title: job.title,
 						subtitle: job.subtitle,
 						amount: Number(job.amount || 0),
-						status: job.restoredStatus || job.previousStatus || "Unknown",
+						status: meta.reversedAt
+							? "Paid"
+							: job.restoredStatus || job.previousStatus || "Unknown",
 						createdAt: job.createdAt,
 						projectTitle: job.projectTitle || null,
 						lotBlock: job.lotBlock || null,
@@ -1800,14 +1836,19 @@ export async function createPaymentPortal(
 					tagName: "userId",
 					tagValue: String(input.userId),
 				},
+				{
+					tagName: "paymentId",
+					tagValue: String(payment.id),
+				},
 			],
 		},
 		payerId,
 	);
 
-	await new NotificationService(tasks, ctx)
-		.setEmployeeRecipients(input.userId)
-		.channel.jobPaymentSent({
+	const notificationService = new NotificationService(tasks, ctx).setEmployeeRecipients(
+		input.userId,
+	);
+	await notificationService.channel.jobPaymentSent({
 			paymentId: payment.id,
 			contractorId: input.userId,
 			jobCount: input.jobIds.length,
@@ -1827,6 +1868,14 @@ export const cancelContractorPaymentSchema = z.object({
 });
 export type CancelContractorPaymentSchema = z.infer<
 	typeof cancelContractorPaymentSchema
+>;
+
+export const reverseCancelledContractorPaymentSchema = z.object({
+	paymentId: z.number(),
+	note: z.string().optional(),
+});
+export type ReverseCancelledContractorPaymentSchema = z.infer<
+	typeof reverseCancelledContractorPaymentSchema
 >;
 
 export async function cancelContractorPayment(
@@ -1913,11 +1962,11 @@ export async function cancelContractorPayment(
 	const cancellationDate = new Date();
 	const revertedJobs = payment.jobs.map((job) => {
 		const snapshot = snapshotMap.get(job.id);
-		const restoredStatus =
-			snapshot?.previousStatus ||
-			existingMeta.autoApprovedJobs?.find((item) => item.id === job.id)
-				?.fromStatus ||
-			"Approved";
+		const restoredStatus = expectedRestoredStatusForSnapshot(
+			snapshot,
+			existingMeta,
+			job.id,
+		);
 		return {
 			jobId: job.id,
 			controlId: job.controlId,
@@ -1992,9 +2041,239 @@ export async function cancelContractorPayment(
 		actorId,
 	);
 
+	await new NotificationService(tasks, ctx)
+		.setEmployeeRecipients(payment.userId)
+		.channel.payoutCancelled({
+			paymentId: payment.id,
+			contractorId: payment.userId,
+			jobCount: revertedJobs.length,
+			amount: Number(existingMeta.totalPayout || 0),
+		});
+
 	return {
 		id: payment.id,
 		revertedJobs: revertedJobs.length,
+	};
+}
+
+export async function reverseCancelledContractorPayment(
+	ctx: TRPCContext,
+	input: ReverseCancelledContractorPaymentSchema,
+) {
+	const actorId = ctx.userId;
+	if (!actorId) {
+		throw new Error("Unauthorized");
+	}
+
+	const payment = await ctx.db.jobPayments.findFirst({
+		where: {
+			id: input.paymentId,
+			deletedAt: null,
+		},
+		select: {
+			id: true,
+			userId: true,
+			subTotal: true,
+			amount: true,
+			paymentMethod: true,
+			meta: true,
+		},
+	});
+
+	if (!payment) {
+		throw new Error("Payment not found");
+	}
+
+	const meta = getPaymentMeta(payment.meta);
+	if (!meta.cancelledAt) {
+		throw new Error("Only cancelled payouts can be reversed");
+	}
+
+	const snapshots = getPaymentJobSnapshots(payment.meta);
+	if (!snapshots.length) {
+		throw new Error("Payout can not be reversed.");
+	}
+
+	const actor = await ctx.db.users.findFirst({
+		where: {
+			id: actorId,
+		},
+		select: {
+			id: true,
+			name: true,
+		},
+	});
+
+	const snapshotIds = snapshots.map((item) => item.id);
+	const jobs = await ctx.db.jobs.findMany({
+		where: {
+			id: {
+				in: snapshotIds,
+			},
+		},
+		select: {
+			id: true,
+			userId: true,
+			amount: true,
+			status: true,
+			paymentId: true,
+			deletedAt: true,
+		},
+	});
+
+	const jobMap = new Map(jobs.map((job) => [job.id, job]));
+	const issues: string[] = [];
+
+	for (const snapshot of snapshots) {
+		const job = jobMap.get(snapshot.id);
+		if (!job || job.deletedAt) {
+			issues.push(`Job #${snapshot.id} is missing`);
+			continue;
+		}
+		if (job.userId !== payment.userId) {
+			issues.push(`Job #${snapshot.id} no longer belongs to this contractor`);
+		}
+		if (job.paymentId) {
+			issues.push(`Job #${snapshot.id} is already linked to another payout`);
+		}
+		if (roundCurrency(Number(job.amount || 0)) !== roundCurrency(snapshot.amount)) {
+			issues.push(`Job #${snapshot.id} amount has changed`);
+		}
+
+		const expectedStatus = expectedRestoredStatusForSnapshot(snapshot, meta, snapshot.id);
+		if (String(job.status || "") !== String(expectedStatus || "")) {
+			issues.push(`Job #${snapshot.id} status has changed`);
+		}
+	}
+
+	const snapshotSum = roundCurrency(
+		snapshots.reduce((sum, item) => sum + Number(item.amount || 0), 0),
+	);
+	const currentSum = roundCurrency(
+		snapshots.reduce(
+			(sum, item) => sum + Number(jobMap.get(item.id)?.amount || 0),
+			0,
+		),
+	);
+	const paymentSubTotal = roundCurrency(Number(payment.subTotal || 0));
+
+	if (snapshotSum !== paymentSubTotal || currentSum !== paymentSubTotal) {
+		issues.push("Cancelled payout totals no longer match the stored payout subtotal");
+	}
+
+	if (issues.length) {
+		await saveNote(
+			ctx.db,
+			{
+				headline: "Contractor Payout Reversal Blocked",
+				note: issues.join("; "),
+				subject: "Contractor payout",
+				tags: [
+					{
+						tagName: "channel",
+						tagValue: "contractor_payment_portal",
+					},
+					{
+						tagName: "paymentId",
+						tagValue: String(payment.id),
+					},
+					{
+						tagName: "userId",
+						tagValue: String(payment.userId),
+					},
+				],
+			},
+			actorId,
+		);
+
+		await new NotificationService(tasks, ctx)
+			.setEmployeeRecipients(payment.userId)
+			.channel.payoutIssues({
+				paymentId: payment.id,
+				contractorId: payment.userId,
+				jobCount: snapshots.length,
+				issueCount: issues.length,
+				amount: Number(meta.totalPayout || payment.amount || 0),
+				reason: issues.join("; "),
+			});
+
+		throw new Error("Payout can not be reversed.");
+	}
+
+	const reversalDate = new Date();
+	await ctx.db.$transaction(async (db) => {
+		await db.jobs.updateMany({
+			where: {
+				id: {
+					in: snapshotIds,
+				},
+			},
+			data: {
+				paymentId: payment.id,
+				status: "Paid",
+				statusDate: reversalDate,
+			},
+		});
+
+		await db.jobPayments.update({
+			where: {
+				id: payment.id,
+			},
+			data: {
+				meta: {
+					...meta,
+					cancelledAt: null,
+					cancelledBy: null,
+					cancellationReason: null,
+					reversedAt: reversalDate.toISOString(),
+					reversedBy: {
+						id: actor?.id || actorId,
+						name: actor?.name || null,
+					},
+					reversalReason: input.note?.trim() || null,
+				},
+			},
+		});
+	});
+
+	await saveNote(
+		ctx.db,
+		{
+			headline: "Contractor Payout Reversed",
+			note:
+				input.note?.trim() ||
+				`Payment batch #${payment.id} was restored and jobs linked back to the payout`,
+			subject: "Contractor payout",
+			tags: [
+				{
+					tagName: "channel",
+					tagValue: "contractor_payment_portal",
+				},
+				{
+					tagName: "paymentId",
+					tagValue: String(payment.id),
+				},
+				{
+					tagName: "userId",
+					tagValue: String(payment.userId),
+				},
+			],
+		},
+		actorId,
+	);
+
+	await new NotificationService(tasks, ctx)
+		.setEmployeeRecipients(payment.userId)
+		.channel.payoutReversed({
+			paymentId: payment.id,
+			contractorId: payment.userId,
+			jobCount: snapshots.length,
+			amount: Number(meta.totalPayout || payment.amount || 0),
+		});
+
+	return {
+		id: payment.id,
+		restoredJobs: snapshots.length,
 	};
 }
 

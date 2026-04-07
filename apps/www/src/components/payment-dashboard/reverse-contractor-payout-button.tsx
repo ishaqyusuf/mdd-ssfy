@@ -14,18 +14,18 @@ import { Label } from "@gnd/ui/label";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { Textarea } from "@gnd/ui/textarea";
 import { toast } from "@gnd/ui/use-toast";
-import { Ban } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { useState } from "react";
 
-export function CancelContractorPayoutButton({
+export function ReverseContractorPayoutButton({
 	paymentId,
 	isCancelled,
-	variant = "destructive",
+	variant = "outline",
 	onSuccess,
 }: {
 	paymentId: number;
 	isCancelled?: boolean;
-	variant?: "destructive" | "outline";
+	variant?: "outline" | "default";
 	onSuccess?: () => void;
 }) {
 	const trpc = useTRPC();
@@ -33,7 +33,7 @@ export function CancelContractorPayoutButton({
 	const [open, setOpen] = useState(false);
 	const [note, setNote] = useState("");
 	const mutation = useMutation(
-		trpc.jobs.cancelContractorPayment.mutationOptions({
+		trpc.jobs.reverseCancelledContractorPayment.mutationOptions({
 			onSuccess: async (data) => {
 				await Promise.all([
 					queryClient.invalidateQueries({
@@ -57,8 +57,8 @@ export function CancelContractorPayoutButton({
 				]);
 
 				toast({
-					title: "Payout cancelled",
-					description: `${data.revertedJobs} job${data.revertedJobs === 1 ? "" : "s"} moved back to unpaid.`,
+					title: "Payout restored",
+					description: `${data.restoredJobs} job${data.restoredJobs === 1 ? "" : "s"} linked back to the payout.`,
 					variant: "success",
 				});
 				setNote("");
@@ -67,7 +67,7 @@ export function CancelContractorPayoutButton({
 			},
 			onError: (error) => {
 				toast({
-					title: "Unable to cancel payout",
+					title: "Unable to reverse payout",
 					description: error.message,
 					variant: "destructive",
 				});
@@ -75,7 +75,7 @@ export function CancelContractorPayoutButton({
 		}),
 	);
 
-	if (!paymentId) return null;
+	if (!paymentId || !isCancelled) return null;
 
 	return (
 		<>
@@ -83,15 +83,11 @@ export function CancelContractorPayoutButton({
 				type="button"
 				variant={variant}
 				className="gap-2"
-				disabled={isCancelled || mutation.isPending}
+				disabled={mutation.isPending}
 				onClick={() => setOpen(true)}
 			>
-				<Ban className="size-4" />
-				{isCancelled
-					? "Cancelled"
-					: mutation.isPending
-						? "Cancelling..."
-						: "Cancel Payout"}
+				<RotateCcw className="size-4" />
+				{mutation.isPending ? "Reversing..." : "Reverse Cancel"}
 			</Button>
 
 			<Dialog
@@ -99,27 +95,25 @@ export function CancelContractorPayoutButton({
 				onOpenChange={(nextOpen) => {
 					if (mutation.isPending) return;
 					setOpen(nextOpen);
-					if (!nextOpen) {
-						setNote("");
-					}
+					if (!nextOpen) setNote("");
 				}}
 			>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>Cancel Payout</DialogTitle>
+						<DialogTitle>Reverse Payout Cancellation</DialogTitle>
 						<DialogDescription>
-							This keeps the payout record for history, detaches its jobs, and
-							moves them back to unpaid.
+							This restores the cancelled payout only if every cancelled job is
+							still intact, unpaid, and matches the stored payout totals.
 						</DialogDescription>
 					</DialogHeader>
 
 					<div className="grid gap-2">
-						<Label htmlFor={`cancel-payout-note-${paymentId}`}>
-							Cancellation note
+						<Label htmlFor={`reverse-payout-note-${paymentId}`}>
+							Reversal note
 						</Label>
 						<Textarea
-							id={`cancel-payout-note-${paymentId}`}
-							placeholder="Optional reason for cancelling this payout"
+							id={`reverse-payout-note-${paymentId}`}
+							placeholder="Optional reason for restoring this payout"
 							value={note}
 							onChange={(event) => setNote(event.target.value)}
 							rows={4}
@@ -136,11 +130,10 @@ export function CancelContractorPayoutButton({
 								setNote("");
 							}}
 						>
-							Keep Payout
+							Keep Cancelled
 						</Button>
 						<Button
 							type="button"
-							variant="destructive"
 							disabled={mutation.isPending}
 							onClick={() =>
 								mutation.mutate({
@@ -149,7 +142,7 @@ export function CancelContractorPayoutButton({
 								})
 							}
 						>
-							{mutation.isPending ? "Cancelling..." : "Confirm Cancellation"}
+							{mutation.isPending ? "Reversing..." : "Confirm Reversal"}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

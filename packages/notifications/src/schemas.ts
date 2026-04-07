@@ -241,6 +241,52 @@ export const jobPaymentSentTags = actityTagsSchema.extend({
 	paymentMethod: z.string(),
 });
 export type JobPaymentSentTags = z.infer<typeof jobPaymentSentTags>;
+export const payoutCancelledSchema = z.object({
+	paymentId: z.number(),
+	contractorId: z.number(),
+	jobCount: z.number(),
+	amount: z.number(),
+});
+export type PayoutCancelledInput = z.infer<typeof payoutCancelledSchema>;
+export const payoutCancelledTags = actityTagsSchema.extend({
+	paymentId: z.number(),
+	contractorId: z.number(),
+	jobCount: z.number(),
+	amount: z.number(),
+});
+export type PayoutCancelledTags = z.infer<typeof payoutCancelledTags>;
+export const payoutReversedSchema = z.object({
+	paymentId: z.number(),
+	contractorId: z.number(),
+	jobCount: z.number(),
+	amount: z.number(),
+});
+export type PayoutReversedInput = z.infer<typeof payoutReversedSchema>;
+export const payoutReversedTags = actityTagsSchema.extend({
+	paymentId: z.number(),
+	contractorId: z.number(),
+	jobCount: z.number(),
+	amount: z.number(),
+});
+export type PayoutReversedTags = z.infer<typeof payoutReversedTags>;
+export const payoutIssuesSchema = z.object({
+	paymentId: z.number(),
+	contractorId: z.number(),
+	jobCount: z.number(),
+	issueCount: z.number(),
+	amount: z.number(),
+	reason: z.string(),
+});
+export type PayoutIssuesInput = z.infer<typeof payoutIssuesSchema>;
+export const payoutIssuesTags = actityTagsSchema.extend({
+	paymentId: z.number(),
+	contractorId: z.number(),
+	jobCount: z.number(),
+	issueCount: z.number(),
+	amount: z.number(),
+	reason: z.string(),
+});
+export type PayoutIssuesTags = z.infer<typeof payoutIssuesTags>;
 export const jobTaskConfigureRequestSchema = z.object({
 	contractorId: z.number(),
 	jobId: z.number(),
@@ -438,6 +484,9 @@ export type NotificationTypes = {
 	job_rejected: JobRejectedInput;
 	job_deleted: JobDeletedInput;
 	job_payment_sent: JobPaymentSentInput;
+	payout_cancelled: PayoutCancelledInput;
+	payout_reversed: PayoutReversedInput;
+	payout_issues: PayoutIssuesInput;
 	job_task_configure_request: JobTaskConfigureRequestInput;
 	job_task_configured: JobTaskConfiguredInput;
 	employee_document_review: EmployeeDocumentReviewInput;
@@ -1018,6 +1067,18 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("job_payment_sent"),
 		payload: jobPaymentSentSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("payout_cancelled"),
+		payload: payoutCancelledSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("payout_reversed"),
+		payload: payoutReversedSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("payout_issues"),
+		payload: payoutIssuesSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("job_task_configure_request"),

@@ -455,6 +455,10 @@ export function transformFilterDateToQuery(dateParts) {
   let [fromStr, toStr] = dateParts;
   const today = dayjs();
   const lower = fromStr!.toLowerCase().trim();
+  const toSafeIso = (value) => {
+    const parsed = dayjs(value);
+    return parsed.isValid() ? parsed.toISOString() : null;
+  };
   if (toStr == "-") toStr = null as any;
   if (lower === "today") {
     return {
@@ -512,13 +516,13 @@ export function transformFilterDateToQuery(dateParts) {
       lte: today.subtract(1, "month").endOf("month").toISOString(),
     };
   }
-  if (lower === "last 2 month") {
+  if (lower === "last 2 month" || lower === "last 2 months") {
     return {
       gte: today.subtract(2, "month").startOf("month").toISOString(),
       lte: today.subtract(1, "month").endOf("month").toISOString(),
     };
   }
-  if (lower === "last 6 month") {
+  if (lower === "last 6 month" || lower === "last 6 months") {
     return {
       gte: today.subtract(6, "month").startOf("month").toISOString(),
       lte: today.subtract(1, "month").endOf("month").toISOString(),
@@ -542,18 +546,24 @@ export function transformFilterDateToQuery(dateParts) {
   // Handle specific date formats
 
   if (dateParts.length === 1 && fromStr) {
-    return { gte: dayjs(fromStr).toISOString() };
+    const fromIso = toSafeIso(fromStr);
+    return fromIso ? { gte: fromIso } : null;
   }
   if (fromStr && toStr) {
+    const fromIso = toSafeIso(fromStr);
+    const toIso = toSafeIso(toStr);
+    if (!fromIso || !toIso) return null;
     return {
-      gte: dayjs(fromStr).toISOString(),
-      lte: dayjs(toStr).toISOString(),
+      gte: fromIso,
+      lte: toIso,
     };
   }
 
   if (fromStr && (toStr === "null" || toStr == "-" || !toStr)) {
+    const fromIso = toSafeIso(fromStr);
+    if (!fromIso) return null;
     return {
-      gte: dayjs(fromStr).toISOString(),
+      gte: fromIso,
     };
   }
   return null;

@@ -9,6 +9,7 @@ import { useQuery } from "@gnd/ui/tanstack";
 import { ArrowLeft, Printer } from "lucide-react";
 import Link from "next/link";
 import { PaymentOverviewContent } from "./payment-overview-content";
+import { ReverseContractorPayoutButton } from "./reverse-contractor-payout-button";
 
 export function PaymentOverviewPage({
 	paymentId,
@@ -32,11 +33,19 @@ export function PaymentOverviewPage({
 					</Link>
 				</Button>
 				<div className="flex items-center gap-2">
-					<CancelContractorPayoutButton
-						paymentId={paymentId}
-						isCancelled={data?.isCancelled}
-						variant="outline"
-					/>
+					{data?.isCancelled ? (
+						<ReverseContractorPayoutButton
+							paymentId={paymentId}
+							isCancelled={data.isCancelled}
+							variant="outline"
+						/>
+					) : (
+						<CancelContractorPayoutButton
+							paymentId={paymentId}
+							isCancelled={data?.isCancelled}
+							variant="outline"
+						/>
+					)}
 					<Button
 						variant="outline"
 						className="gap-2"

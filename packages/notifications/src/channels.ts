@@ -6,6 +6,9 @@ export const channelNames = [
 	"job_review_requested",
 	"job_deleted",
 	"job_payment_sent",
+	"payout_cancelled",
+	"payout_reversed",
+	"payout_issues",
 	"job_install_tasks_qty_request",
 	"job_task_configure_request",
 	"job_task_configured",
@@ -133,7 +136,8 @@ export const channelsConfig: Partial<{
 	},
 	community_unit_production_batch_updated: {
 		name: "Unit Production Batch Updated",
-		description: "Send when multiple unit production tasks are updated together.",
+		description:
+			"Send when multiple unit production tasks are updated together.",
 		priority: 5,
 		category: "Community",
 	},
@@ -170,6 +174,25 @@ export const channelsConfig: Partial<{
 	job_payment_sent: {
 		name: "Job Payment Sent",
 		description: "Send when a contractor payout has been created.",
+		priority: 5,
+		category: "Community",
+	},
+	payout_cancelled: {
+		name: "Payout Cancelled",
+		description: "Send when a contractor payout has been cancelled.",
+		priority: 5,
+		category: "Community",
+	},
+	payout_reversed: {
+		name: "Payout Reversed",
+		description: "Send when a cancelled contractor payout is restored.",
+		priority: 5,
+		category: "Community",
+	},
+	payout_issues: {
+		name: "Payout Issues",
+		description:
+			"Send when a contractor payout has integrity issues and cannot be reversed.",
 		priority: 5,
 		category: "Community",
 	},

@@ -5,6 +5,7 @@ import {
 	getContractorPayoutPrintData,
 	getJobsPrintData,
 } from "@api/db/queries/jobs";
+import { getUnitInvoiceAgingReport } from "@api/db/queries/unit-invoice-reports";
 import {
 	generatePrintData,
 	modelPrintSchema,
@@ -162,5 +163,29 @@ export const printRouter = createTRPCRouter({
 			return getContractorPayoutPrintData(props.ctx, {
 				paymentIds: payload.paymentIds,
 			});
+		}),
+	communityInvoiceAgingReport: publicProcedure
+		.input(
+			z.object({
+				token: z.string(),
+				preview: z.boolean().optional().default(false),
+			}),
+		)
+		.query(async (props) => {
+			const payload = await validateToken(
+				props.input.token,
+				tokenSchemas.communityInvoiceAgingPdfToken,
+			);
+
+			if (!payload) return null;
+
+			const report = await getUnitInvoiceAgingReport(props.ctx, payload);
+
+			return {
+				title: "Community_Invoice_Aging_Report",
+				printedAt: new Date(),
+				filters: payload,
+				...report,
+			};
 		}),
 });

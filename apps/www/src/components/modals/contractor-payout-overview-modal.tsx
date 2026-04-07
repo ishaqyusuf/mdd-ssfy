@@ -2,6 +2,7 @@
 
 import { CancelContractorPayoutButton } from "@/components/payment-dashboard/cancel-contractor-payout-button";
 import { PaymentOverviewContent } from "@/components/payment-dashboard/payment-overview-content";
+import { ReverseContractorPayoutButton } from "@/components/payment-dashboard/reverse-contractor-payout-button";
 import { useContractorPayoutParams } from "@/hooks/use-contractor-payout-params";
 import { printContractorPayoutReport } from "@/lib/job-print";
 import { useTRPC } from "@/trpc/client";
@@ -45,7 +46,14 @@ export function ContractorPayoutOverviewModal() {
 				<PaymentOverviewContent data={data} isPending={isPending} />
 			</CustomModal.Content>
 			<CustomModal.Footer className="flex items-center justify-end gap-2 border-t pt-4">
-				{data?.id ? (
+				{data?.id && data.isCancelled ? (
+					<ReverseContractorPayoutButton
+						paymentId={data.id}
+						isCancelled={data.isCancelled}
+						variant="outline"
+					/>
+				) : null}
+				{data?.id && !data.isCancelled ? (
 					<CancelContractorPayoutButton
 						paymentId={data.id}
 						isCancelled={data.isCancelled}

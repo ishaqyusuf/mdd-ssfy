@@ -1,19 +1,34 @@
 "use client";
 
 import { unitInvoiceReportDefinitions } from "@/components/reports/unit-invoices/report-definitions";
-import { useUnitInvoiceReportParams } from "@/hooks/use-unit-invoice-report-params";
+import { printCommunityInvoiceAgingReport } from "@/lib/unit-invoice-report-print";
 import { unitInvoiceFilterParams } from "@/hooks/use-unit-invoices-filter-params";
 import { useTRPC } from "@/trpc/client";
+import { AlertDialog } from "@gnd/ui/namespace";
 import { Button } from "@gnd/ui/button";
 import { DropdownMenu } from "@gnd/ui/namespace";
 import { SearchFilter } from "@gnd/ui/search-filter";
 import { FileSpreadsheet } from "lucide-react";
+import { useState } from "react";
 import { useQueryStates } from "nuqs";
 
 export function UnitInvoicesHeader() {
   const trpc = useTRPC();
   const [filters, setFilters] = useQueryStates(unitInvoiceFilterParams);
-  const { setParams: setReportParams } = useUnitInvoiceReportParams();
+  const [showAllInvoicesAlert, setShowAllInvoicesAlert] = useState(false);
+  const hasActiveFilters = Object.values(filters).some((value) => {
+    if (Array.isArray(value)) return value.length > 0;
+    return value !== null && value !== undefined && value !== "";
+  });
+
+  const openAgingReport = async () => {
+    if (!hasActiveFilters) {
+      setShowAllInvoicesAlert(true);
+      return;
+    }
+
+    await printCommunityInvoiceAgingReport(filters);
+  };
 
   return (
     <div className="flex justify-between gap-4">
@@ -38,11 +53,7 @@ export function UnitInvoicesHeader() {
               <DropdownMenu.Item
                 key={item.id}
                 className="items-start gap-3 py-3"
-                onClick={() => {
-                  setReportParams({
-                    report: item.id,
-                  });
-                }}
+                onClick={openAgingReport}
               >
                 <div className="mt-0.5 rounded-xl bg-slate-100 p-2 text-slate-700">
                   <Icon className="size-4" />
@@ -58,6 +69,31 @@ export function UnitInvoicesHeader() {
           })}
         </DropdownMenu.Content>
       </DropdownMenu.Root>
+      <AlertDialog
+        open={showAllInvoicesAlert}
+        onOpenChange={setShowAllInvoicesAlert}
+      >
+        <AlertDialog.Content>
+          <AlertDialog.Header>
+            <AlertDialog.Title>Run Report Across All Invoices?</AlertDialog.Title>
+            <AlertDialog.Description>
+              No unit-invoice filters are currently selected. This report will run
+              through all system invoices. Use filters to make the report more
+              specific.
+            </AlertDialog.Description>
+          </AlertDialog.Header>
+          <AlertDialog.Footer>
+            <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+            <AlertDialog.Action
+              onClick={async () => {
+                await printCommunityInvoiceAgingReport(filters);
+              }}
+            >
+              Continue
+            </AlertDialog.Action>
+          </AlertDialog.Footer>
+        </AlertDialog.Content>
+      </AlertDialog>
     </div>
   );
 }

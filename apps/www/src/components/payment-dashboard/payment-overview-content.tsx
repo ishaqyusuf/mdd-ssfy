@@ -1,5 +1,6 @@
 "use client";
 
+import { ActivityHistory } from "@/components/chat/activity-history";
 import { Badge } from "@gnd/ui/badge";
 import {
 	Card,
@@ -44,6 +45,12 @@ type PaymentOverviewData = {
 		name?: string | null;
 	} | null;
 	cancellationReason?: string | null;
+	reversedAt?: Date | string | null;
+	reversedBy?: {
+		id: number | null;
+		name?: string | null;
+	} | null;
+	reversalReason?: string | null;
 	jobCount: number;
 	adjustments: {
 		id: number;
@@ -130,6 +137,23 @@ export function PaymentOverviewContent({
 									{data.cancellationReason ? (
 										<p className="mt-1 text-amber-800">
 											Reason: {data.cancellationReason}
+										</p>
+									) : null}
+								</div>
+							) : null}
+							{!data.isCancelled && data.reversedAt ? (
+								<div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+									<p className="font-medium">
+										This payout was reversed back to active.
+									</p>
+									<p className="mt-1 text-emerald-800">
+										Reversed {format(new Date(data.reversedAt), "MMMM d, yyyy")}
+										{data.reversedBy?.name ? ` by ${data.reversedBy.name}` : ""}
+										.
+									</p>
+									{data.reversalReason ? (
+										<p className="mt-1 text-emerald-800">
+											Reason: {data.reversalReason}
 										</p>
 									) : null}
 								</div>
@@ -294,6 +318,27 @@ export function PaymentOverviewContent({
 									No adjustments were recorded for this payout.
 								</p>
 							)}
+						</CardContent>
+					</Card>
+
+					<Card className="rounded-3xl">
+						<CardHeader>
+							<CardTitle>Activity history</CardTitle>
+							<CardDescription>
+								Cancellation, reversal, and payout issue events for this batch.
+							</CardDescription>
+						</CardHeader>
+						<CardContent>
+							<ActivityHistory
+								className="py-0"
+								tags={[
+									{
+										tagName: "paymentId",
+										tagValue: String(data.id),
+									},
+								]}
+								emptyText="No payout activity yet"
+							/>
 						</CardContent>
 					</Card>
 				</div>

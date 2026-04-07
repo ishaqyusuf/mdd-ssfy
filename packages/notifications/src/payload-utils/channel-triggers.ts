@@ -22,13 +22,13 @@ function resolveRecipients(
 	storedRecipients: NotificationRecipients | undefined,
 	fallback?: NotificationRecipients,
 ) {
-	if (explicitRecipients && explicitRecipients.length) {
+	if (explicitRecipients?.length) {
 		return normalizeRecipients(explicitRecipients);
 	}
-	if (storedRecipients && storedRecipients.length) {
+	if (storedRecipients?.length) {
 		return normalizeRecipients(storedRecipients);
 	}
-	if (fallback && fallback.length) {
+	if (fallback?.length) {
 		return normalizeRecipients(fallback);
 	}
 	return null;
@@ -116,6 +116,45 @@ export function createNotificationChannelTriggers(
 				makeRecipients("employee", payload.contractorId),
 			);
 			return options.send("job_payment_sent", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
+		payoutCancelled(input: Input<"payout_cancelled">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+				makeRecipients("employee", payload.contractorId),
+			);
+			return options.send("payout_cancelled", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
+		payoutReversed(input: Input<"payout_reversed">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+				makeRecipients("employee", payload.contractorId),
+			);
+			return options.send("payout_reversed", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
+		payoutIssues(input: Input<"payout_issues">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+				makeRecipients("employee", payload.contractorId),
+			);
+			return options.send("payout_issues", {
 				payload,
 				author,
 				recipients: resolvedRecipients,

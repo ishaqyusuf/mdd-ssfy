@@ -16,6 +16,27 @@ function formatDate(value?: Date | string | null) {
 	}).format(new Date(value));
 }
 
+function getPayoutStatusLabel(isCancelled?: boolean) {
+	return isCancelled ? "Cancelled" : "Paid";
+}
+
+function PayoutStatusBadge({ isCancelled }: { isCancelled?: boolean }) {
+	return (
+		<View
+			style={[
+				styles.statusBadge,
+				isCancelled ? styles.statusCancelled : styles.statusPaid,
+			]}
+		>
+			<Text
+				style={isCancelled ? styles.statusCancelledText : styles.statusPaidText}
+			>
+				{getPayoutStatusLabel(isCancelled)}
+			</Text>
+		</View>
+	);
+}
+
 const styles = StyleSheet.create({
 	page: {
 		padding: 28,
@@ -27,6 +48,12 @@ const styles = StyleSheet.create({
 		borderBottomWidth: 1,
 		borderBottomColor: "#cbd5e1",
 		paddingBottom: 12,
+	},
+	titleRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		gap: 12,
 	},
 	title: {
 		fontSize: 18,
@@ -81,6 +108,10 @@ const styles = StyleSheet.create({
 	totalValue: {
 		fontSize: 14,
 		fontWeight: 700,
+	},
+	cancelledAmount: {
+		textDecoration: "line-through",
+		color: "#94a3b8",
 	},
 	sectionLabel: {
 		marginTop: 10,
@@ -152,6 +183,32 @@ const styles = StyleSheet.create({
 	listRowRight: {
 		width: 132,
 		alignItems: "flex-end",
+	},
+	statusBadge: {
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+		borderWidth: 1,
+		borderRadius: 999,
+	},
+	statusPaid: {
+		backgroundColor: "#ecfdf3",
+		borderColor: "#86efac",
+	},
+	statusCancelled: {
+		backgroundColor: "#fff1f2",
+		borderColor: "#fda4af",
+	},
+	statusPaidText: {
+		fontSize: 8,
+		fontWeight: 700,
+		color: "#166534",
+		textTransform: "uppercase",
+	},
+	statusCancelledText: {
+		fontSize: 8,
+		fontWeight: 700,
+		color: "#be123c",
+		textTransform: "uppercase",
 	},
 });
 
@@ -251,10 +308,13 @@ export function ContractorPayoutPdfDocument({
 					{data.payouts.map((payout) => (
 						<View key={payout.id} style={styles.listRow}>
 							<View style={styles.listRowLeft}>
-								<Text style={styles.payoutTitle}>
-									Payout #{payout.id} •{" "}
-									{payout.paidTo?.name || "Unknown contractor"}
-								</Text>
+								<View style={styles.titleRow}>
+									<Text style={styles.payoutTitle}>
+										Payout #{payout.id} •{" "}
+										{payout.paidTo?.name || "Unknown contractor"}
+									</Text>
+									<PayoutStatusBadge isCancelled={payout.isCancelled} />
+								</View>
 								<Text style={styles.muted}>
 									{formatDate(payout.createdAt)} • {payout.paymentMethod}
 									{payout.checkNo ? ` • Check ${payout.checkNo}` : ""}
@@ -275,10 +335,20 @@ export function ContractorPayoutPdfDocument({
 								) : null}
 							</View>
 							<View style={styles.listRowRight}>
-								<Text style={styles.totalValue}>
+								<Text
+									style={[
+										styles.totalValue,
+										payout.isCancelled && styles.cancelledAmount,
+									]}
+								>
 									{formatCurrency(payout.amount)}
 								</Text>
-								<Text style={styles.muted}>
+								<Text
+									style={[
+										styles.muted,
+										payout.isCancelled && styles.cancelledAmount,
+									]}
+								>
 									Charges {formatCurrency(payout.charges)}
 								</Text>
 							</View>
@@ -290,7 +360,10 @@ export function ContractorPayoutPdfDocument({
 			{data.payouts.map((payout) => (
 				<Page key={payout.id} size="LETTER" style={styles.page}>
 					<View style={styles.header}>
-						<Text style={styles.title}>Payout #{payout.id}</Text>
+						<View style={styles.titleRow}>
+							<Text style={styles.title}>Payout #{payout.id}</Text>
+							<PayoutStatusBadge isCancelled={payout.isCancelled} />
+						</View>
 						<Text style={styles.subtitle}>
 							{payout.paidTo?.name || "Unknown contractor"} •{" "}
 							{formatDate(payout.createdAt)}
@@ -318,19 +391,40 @@ export function ContractorPayoutPdfDocument({
 						</View>
 						<View style={styles.metricCard}>
 							<Text style={styles.metricLabel}>Subtotal</Text>
-							<Text style={styles.metricValue}>
+							<Text
+								style={[
+									styles.metricValue,
+									payout.isCancelled && styles.cancelledAmount,
+								]}
+							>
 								{formatCurrency(payout.subTotal)}
 							</Text>
 						</View>
 						<View style={styles.metricCard}>
 							<Text style={styles.metricLabel}>Charges</Text>
-							<Text style={styles.metricValue}>
+							<Text
+								style={[
+									styles.metricValue,
+									payout.isCancelled && styles.cancelledAmount,
+								]}
+							>
 								{formatCurrency(payout.charges)}
 							</Text>
 						</View>
 						<View style={styles.metricCard}>
-							<Text style={styles.metricLabel}>Total Paid</Text>
+							<Text style={styles.metricLabel}>Status</Text>
 							<Text style={styles.metricValue}>
+								{getPayoutStatusLabel(payout.isCancelled)}
+							</Text>
+						</View>
+						<View style={styles.metricCard}>
+							<Text style={styles.metricLabel}>Total Paid</Text>
+							<Text
+								style={[
+									styles.metricValue,
+									payout.isCancelled && styles.cancelledAmount,
+								]}
+							>
 								{formatCurrency(payout.amount)}
 							</Text>
 						</View>
@@ -375,11 +469,21 @@ export function ContractorPayoutPdfDocument({
 						))}
 
 						<View style={styles.footer}>
-							<Text style={styles.cellStrong}>
+							<Text
+								style={[
+									styles.cellStrong,
+									payout.isCancelled && styles.cancelledAmount,
+								]}
+							>
 								Subtotal {formatCurrency(payout.subTotal)} • Charges{" "}
 								{formatCurrency(payout.charges)}
 							</Text>
-							<Text style={styles.cellStrong}>
+							<Text
+								style={[
+									styles.cellStrong,
+									payout.isCancelled && styles.cancelledAmount,
+								]}
+							>
 								Total {formatCurrency(payout.amount)}
 							</Text>
 						</View>

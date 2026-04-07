@@ -4,6 +4,12 @@
 
 ## 2026-04-07
 
+- Added contractor payout reversal validation, notifications, and activity history.
+  - cancelled payouts can now be reversed only when every stored payout job still exists, remains unpaid, matches the stored contractor, keeps the same amount, and sums back to the stored payout subtotal
+  - failed reversal attempts now stop with `Payout can not be reversed.` and emit a `payout_issues` activity/notification trail for the affected contractor payout
+  - successful cancellation and reversal actions now emit dedicated `payout_cancelled` and `payout_reversed` notification channels alongside tagged payout notes
+  - payout overview page and modal now swap between cancel and reverse actions based on current payout state and show an activity history timeline keyed by `paymentId`
+
 - Added retained contractor payout cancellation with job reversion.
   - payout creation now stores per-job payment snapshots in `JobPayments.meta` so history and print views can survive later cancellation
   - cancelling a payout now keeps the payment record, stamps cancellation metadata in `meta`, detaches linked jobs, and restores each job back to its pre-payment unpaid status
@@ -990,8 +996,10 @@
 - Removed the blocking server prefetch for `getUnitProductionSummary` from the unit-productions page so initial render no longer waits on a second production-wide aggregate query before showing the page shell and table.
 - Added a dedicated community unit-invoice reporting architecture with a separate API query module, shared report definitions, report query-state hook, and modal host so future invoice reports can plug into the same system cleanly instead of being embedded in the base invoice table flow.
 - Implemented the first report, `Invoice Aging Report`, exposed from the `Report` dropdown in the unit-invoices header and rendered in a reusable report modal with aging summary cards and a unit-level aging table based on invoice created dates and open balance.
+- Moved the invoice aging report onto a dedicated printable PDF route at `/p/community-invoice/ageing-report`, backed by a tokenized print query and a dedicated PDF document so invoice reports can follow the same durable print architecture as jobs and payout reports.
 - Upgraded contractor payout history onto the standard filter architecture with shared query params and a dedicated filter route, adding date-range, contractor, and approved-by filters instead of the old custom search-only header.
 - Added reusable contractor payout report printing across the payouts list and payout overview/detail screens using shared selection batch actions, a tokenized public print route, and a dedicated payout PDF document so future payout/payment reports can extend the same print stack.
+- Fixed the shared `transformFilterDateToQuery` utility to recognize plural presets like `last 6 months` and to return `null` safely for invalid free-form date strings instead of throwing `Invalid time value` during invoice/report filtering.
 - Added an `Edit Model Cost` CTA to the community unit-invoice modal, wired through the shared community model-cost modal params so invoice can hand off to model-cost editing and return when the user is done.
 - Extended the unit-invoice form payload with the template pivot's current model-cost id and added a shared `returnToUnitInvoice` modal payload path so saving or deleting from the model-cost editor can invalidate invoice queries and reopen the originating invoice modal.
 - Added data-driven "apply first row to all" checkboxes to the community unit-invoice desktop table headers for `Check` and `Check Date`, so users can propagate the first task's payment reference values across all tasks without manually repeating them.

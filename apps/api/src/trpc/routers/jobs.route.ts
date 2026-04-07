@@ -26,6 +26,8 @@ import {
 	getPaymentDashboardSchema,
 	getPaymentPortal,
 	getPaymentPortalSchema,
+	reverseCancelledContractorPayment,
+	reverseCancelledContractorPaymentSchema,
 } from "@api/db/queries/jobs";
 import { sortInstallCosts } from "@api/utils/install-cost-sort";
 import { createJobSchema } from "@community/create-job-schema";
@@ -294,6 +296,11 @@ export const jobRoutes = createTRPCRouter({
 		.input(cancelContractorPaymentSchema)
 		.mutation(async (props) => {
 			return cancelContractorPayment(props.ctx, props.input);
+		}),
+	reverseCancelledContractorPayment: publicProcedure
+		.input(reverseCancelledContractorPaymentSchema)
+		.mutation(async (props) => {
+			return reverseCancelledContractorPayment(props.ctx, props.input);
 		}),
 	testActivity: publicProcedure.mutation(async (props) => {
 		// const notifications = new Notifications(props.ctx.db);

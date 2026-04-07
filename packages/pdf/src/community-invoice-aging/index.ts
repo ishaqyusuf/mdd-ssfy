@@ -1,0 +1,1 @@
+export { CommunityInvoiceAgingPdfDocument } from "./document";

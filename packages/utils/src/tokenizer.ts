@@ -30,6 +30,18 @@ export const payoutPdfToken = z.object({
 	expiry: z.string(),
 });
 export type PayoutPdfToken = z.infer<typeof payoutPdfToken>;
+export const communityInvoiceAgingPdfToken = z.object({
+	expiry: z.string(),
+	builderSlug: z.string().optional().nullable(),
+	projectSlug: z.string().optional().nullable(),
+	production: z.string().optional().nullable(),
+	invoice: z.string().optional().nullable(),
+	installation: z.string().optional().nullable(),
+	dateRange: z.array(z.string().optional().nullable()).optional().nullable(),
+});
+export type CommunityInvoiceAgingPdfToken = z.infer<
+	typeof communityInvoiceAgingPdfToken
+>;
 export const salesPaymentTokenSchema = z.object({
 	salesIds: z.array(z.number()),
 	expiry: z.string(),
@@ -52,6 +64,7 @@ export const tokenSchemas = {
 	salesPdfToken,
 	jobsPdfToken,
 	payoutPdfToken,
+	communityInvoiceAgingPdfToken,
 	salesPaymentTokenSchema,
 } as const;
 export type TokenSchemaNames = keyof typeof tokenSchemas;
@@ -60,6 +73,7 @@ type KnownToken =
 	| SalesPdfToken
 	| JobsPdfToken
 	| PayoutPdfToken
+	| CommunityInvoiceAgingPdfToken
 	| SalesPaymentTokenSchema;
 export function tokenize<T extends KnownToken>(data: T) {
 	return jwtEncrypt(data);
