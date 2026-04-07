@@ -1018,6 +1018,13 @@ export async function getJobsPrintData(
 			amount: true,
 			status: true,
 			createdAt: true,
+			meta: true,
+			isCustom: true,
+			builderTask: {
+				select: {
+					taskName: true,
+				},
+			},
 			user: {
 				select: {
 					id: true,
@@ -1076,6 +1083,9 @@ export async function getJobsPrintData(
 			amount: Number(job.amount || 0),
 			status: job.status,
 			createdAt: job.createdAt,
+			jobType: getJobType(job.meta as JobMeta | null),
+			isCustom: job.isCustom,
+			builderTaskName: job.builderTask?.taskName || null,
 			contractorName: job.user?.name || "Unknown contractor",
 			projectTitle: job.project?.title || "Unknown project",
 			lotBlock: job.home?.lotBlock || null,

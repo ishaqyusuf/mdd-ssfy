@@ -15,6 +15,8 @@
   - added `Print Selected` to contractor-jobs batch actions
   - added `Print Selected` to the payment portal selection controls
   - kept the print payload server-authoritative by sending only selected job ids and rebuilding the printable list on the backend
+  - standardized the jobs print output onto the same PDF viewer flow used by sales print by adding a dedicated jobs PDF document under `packages/pdf`
+  - the jobs PDF now follows the sales-style document framing and promotes contractor identity into the header when all selected jobs belong to one contractor
 
 - Fixed slow loading in the new jobs modal project/unit flow.
   - stopped the modal from mounting every job-form step at once and now render only the active step panel
