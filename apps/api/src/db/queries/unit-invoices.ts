@@ -82,6 +82,51 @@ const unitInvoiceSelect = {
   },
 } satisfies Prisma.HomesSelect;
 
+const unitInvoiceFormSelect = {
+  id: true,
+  createdAt: true,
+  lotBlock: true,
+  lot: true,
+  block: true,
+  modelName: true,
+  slug: true,
+  search: true,
+  projectId: true,
+  homeTemplateId: true,
+  communityTemplateId: true,
+  tasks: {
+    where: {
+      deletedAt: null,
+    },
+    select: invoiceTaskSelect,
+  },
+  _count: {
+    select: {
+      jobs: true,
+      tasks: true,
+    },
+  },
+  project: {
+    select: {
+      slug: true,
+      title: true,
+      builder: {
+        select: {
+          slug: true,
+          name: true,
+        },
+      },
+    },
+  },
+  communityTemplate: {
+    select: {
+      slug: true,
+      version: true,
+      id: true,
+    },
+  },
+} satisfies Prisma.HomesSelect;
+
 export const getUnitInvoicesSchema = z
   .object({
     builderSlug: z.string().optional().nullable(),
@@ -186,7 +231,7 @@ export async function getUnitInvoiceForm(
     where: {
       id: input.homeId,
     },
-    select: unitInvoiceSelect,
+    select: unitInvoiceFormSelect,
   });
 
   const { tasks, duplicateTaskIds } = dedupeInvoiceTasks(unit.tasks);
