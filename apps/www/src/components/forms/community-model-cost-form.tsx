@@ -39,7 +39,12 @@ interface Props {
 }
 export function CommunityModelCostForm({ model }: Props) {
     const trpc = useTRPC();
-    const { editModelCostId, setParams } = useCommunityModelCostParams();
+    const {
+        editModelCostId,
+        onClose,
+        returnToUnitInvoice,
+        setParams,
+    } = useCommunityModelCostParams();
     const { data, isPending, error } = useQuery(
         trpc.community.communityModelCostForm.queryOptions(
             {
@@ -63,6 +68,20 @@ export function CommunityModelCostForm({ model }: Props) {
                 qc.invalidateQueries({
                     queryKey: trpc.community.communityModelCostForm.queryKey(),
                 });
+                qc.invalidateQueries({
+                    queryKey: trpc.community.communityModelCostHistory.queryKey(),
+                });
+                if (returnToUnitInvoice?.editUnitInvoiceId) {
+                    qc.invalidateQueries({
+                        queryKey: trpc.community.getUnitInvoices.infiniteQueryKey(),
+                    });
+                    qc.invalidateQueries({
+                        queryKey: trpc.community.getUnitInvoiceForm.queryKey({
+                            homeId: returnToUnitInvoice.editUnitInvoiceId,
+                        }),
+                    });
+                    onClose();
+                }
             },
             onError(error, variables, context) {
                 toast({
@@ -84,6 +103,18 @@ export function CommunityModelCostForm({ model }: Props) {
                 qc.invalidateQueries({
                     queryKey: trpc.community.communityModelCostForm.queryKey(),
                 });
+                if (returnToUnitInvoice?.editUnitInvoiceId) {
+                    qc.invalidateQueries({
+                        queryKey: trpc.community.getUnitInvoices.infiniteQueryKey(),
+                    });
+                    qc.invalidateQueries({
+                        queryKey: trpc.community.getUnitInvoiceForm.queryKey({
+                            homeId: returnToUnitInvoice.editUnitInvoiceId,
+                        }),
+                    });
+                    onClose();
+                    return;
+                }
                 setParams({
                     editModelCostId: -1,
                 });

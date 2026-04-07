@@ -78,6 +78,16 @@ const unitInvoiceSelect = {
       slug: true,
       version: true,
       id: true,
+      pivot: {
+        select: {
+          modelCosts: {
+            take: 1,
+            select: {
+              id: true,
+            },
+          },
+        },
+      },
     },
   },
 } satisfies Prisma.HomesSelect;

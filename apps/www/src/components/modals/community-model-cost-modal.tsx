@@ -19,6 +19,7 @@ export function CommunityModelCostModal() {
     const {
         editModelCostTemplateId,
         editModelCostId,
+        onClose,
         setParams,
     } =
         useCommunityModelCostParams();
@@ -38,7 +39,9 @@ export function CommunityModelCostModal() {
         <CustomModal
             open={!!editModelCostTemplateId}
             onOpenChange={(e) => {
-                setParams(null);
+                if (!e) {
+                    onClose();
+                }
             }}
             size="xl"
             title={`Model Cost (${data?.model?.modelName})`}

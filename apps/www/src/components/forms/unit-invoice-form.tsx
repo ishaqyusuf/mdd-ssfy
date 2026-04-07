@@ -5,12 +5,14 @@ import FormInput from "@/components/common/controls/form-input";
 import { FormDebugBtn } from "@/components/form-debug-btn";
 import { SubmitButton } from "@/components/submit-button";
 import Money from "@/components/_v1/money";
+import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-params";
 import { useUnitInvoiceParams } from "@/hooks/use-unit-invoice-params";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { useTRPC } from "@/trpc/client";
 import { saveUnitInvoiceFormSchema } from "@api/db/queries/unit-invoices";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
+import { Checkbox } from "@gnd/ui/checkbox";
 import { Form } from "@gnd/ui/form";
 import { Icons } from "@gnd/ui/icons";
 import {
@@ -38,6 +40,7 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const { setParams } = useUnitInvoiceParams();
+  const { setParams: setModelCostParams } = useCommunityModelCostParams();
   const form = useZodForm(saveUnitInvoiceFormSchema, {
     defaultValues: {
       homeId: unitInvoice.id,
@@ -116,6 +119,27 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
       paid: 0,
     },
   );
+  const firstTask = tasks[0];
+  const firstCheckNo = firstTask?.checkNo?.trim() || "";
+  const firstCheckDate = firstTask?.checkDate
+    ? new Date(firstTask.checkDate)
+    : null;
+  const syncCheckNo = Boolean(
+    tasks.length &&
+      firstCheckNo &&
+      tasks.every((task) => (task.checkNo?.trim() || "") === firstCheckNo),
+  );
+  const syncCheckDate = Boolean(
+    tasks.length &&
+      firstCheckDate &&
+      tasks.every((task) => {
+        if (!task.checkDate) return false;
+        return (
+          new Date(task.checkDate).toDateString() ===
+          firstCheckDate.toDateString()
+        );
+      }),
+  );
 
   const onSubmit = form.handleSubmit((data) => {
     saveInvoice.mutate(data as unknown as UnitInvoiceFormValues);
@@ -124,10 +148,58 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
     readOnly: true,
     className: "bg-slate-50 text-slate-600",
   } as const;
+  const modelCostId = unitInvoice.communityTemplate?.pivot?.modelCosts?.[0]?.id || -1;
+  const canEditModelCost = Number(unitInvoice.communityTemplateId || 0) > 0;
+
+  const openModelCostEditor = () => {
+    if (!canEditModelCost) return;
+
+    setParams(null).then(() => {
+      setModelCostParams({
+        editModelCostTemplateId: Number(unitInvoice.communityTemplateId),
+        editModelCostId: modelCostId,
+        returnToUnitInvoice: {
+          editUnitInvoiceId: unitInvoice.id,
+        },
+      });
+    });
+  };
+
+  const applyFirstCheckNoToAll = (checked: boolean | "indeterminate") => {
+    if (!checked || !firstCheckNo) return;
+    tasks.forEach((_, index) => {
+      form.setValue(`tasks.${index}.checkNo`, firstCheckNo, {
+        shouldDirty: true,
+      });
+    });
+  };
+
+  const applyFirstCheckDateToAll = (checked: boolean | "indeterminate") => {
+    if (!checked || !firstCheckDate) return;
+    tasks.forEach((_, index) => {
+      form.setValue(`tasks.${index}.checkDate`, new Date(firstCheckDate), {
+        shouldDirty: true,
+      });
+    });
+  };
 
   return (
     <Form {...form}>
       <form className="space-y-4" id="unit-invoice-form" onSubmit={onSubmit}>
+        {canEditModelCost ? (
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={openModelCostEditor}
+            >
+              <Icons.edit className="size-4" />
+              Edit Model Cost
+            </Button>
+          </div>
+        ) : null}
         <div className="grid gap-3 md:grid-cols-3">
           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -257,8 +329,28 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
                 <TableHead className="w-[34%] px-2 py-2">Task</TableHead>
                 <TableHead className="w-[88px] px-2 py-2">Due</TableHead>
                 <TableHead className="w-[88px] px-2 py-2">Paid</TableHead>
-                <TableHead className="w-[120px] px-2 py-2">Check</TableHead>
-                <TableHead className="w-[132px] px-2 py-2">Check Date</TableHead>
+                <TableHead className="w-[120px] px-2 py-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span>Check</span>
+                    <Checkbox
+                      checked={syncCheckNo}
+                      disabled={!firstCheckNo}
+                      onCheckedChange={applyFirstCheckNoToAll}
+                      aria-label="Apply first check number to all invoice tasks"
+                    />
+                  </div>
+                </TableHead>
+                <TableHead className="w-[132px] px-2 py-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span>Check Date</span>
+                    <Checkbox
+                      checked={syncCheckDate}
+                      disabled={!firstCheckDate}
+                      onCheckedChange={applyFirstCheckDateToAll}
+                      aria-label="Apply first check date to all invoice tasks"
+                    />
+                  </div>
+                </TableHead>
                 <TableHead className="w-[132px] px-2 py-2">Created</TableHead>
                 <TableHead className="w-[52px] px-2 py-2"></TableHead>
               </TableRow>
