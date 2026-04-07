@@ -39,6 +39,7 @@ export function JobsSelectionPdfDocument({
 	title?: string;
 }) {
 	ensureJobsPdfFonts();
+	const resolvedTitle = title || data.title || "Jobs Report";
 
 	const contractorNames = Array.from(
 		new Set(data.jobs.map((job) => job.contractorName).filter(Boolean)),
@@ -53,11 +54,11 @@ export function JobsSelectionPdfDocument({
 			: "Jobs List";
 
 	return (
-		<Document title={title || data.title}>
+		<Document title={resolvedTitle}>
 			<WatermarkPage wrap baseUrl={baseUrl} size="LETTER" style={pageStyle}>
 				<ReportHeader
 					baseUrl={baseUrl}
-					title={data.title}
+					title={resolvedTitle}
 					subtitle={
 						hasSingleContractor ? `Contractor: ${contractorLabel}` : undefined
 					}

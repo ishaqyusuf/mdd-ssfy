@@ -274,11 +274,13 @@ export function ContractorPayoutPdfDocument({
 	baseUrl?: string;
 	title?: string;
 }) {
+	const resolvedTitle = title || data.title || "Contractor Payout Report";
+
 	return (
-		<Document title={title || data.title}>
+		<Document title={resolvedTitle}>
 			<Page size="LETTER" style={styles.page}>
 				<View style={styles.header}>
-					<Text style={styles.title}>Contractor Payout Report</Text>
+					<Text style={styles.title}>{resolvedTitle}</Text>
 					<Text style={styles.subtitle}>
 						Printed {formatDate(data.printedAt)} • {data.summary.payoutCount}{" "}
 						payout

@@ -154,19 +154,24 @@ export function CommunityInvoiceAgingPdfDocument({
 	title?: string;
 	baseUrl?: string;
 }) {
+	const resolvedTitle = title || data.title || "Community Invoice Aging Report";
+
 	return (
-		<Document title={title || data.title}>
+		<Document title={resolvedTitle}>
 			<Page size="LETTER" style={styles.page}>
 				<View style={styles.header}>
-					<Text style={styles.title}>Community Invoice Aging Report</Text>
+					<Text style={styles.title}>{resolvedTitle}</Text>
 					<Text style={styles.subtitle}>
-						Printed {formatDate(data.printedAt)} • {data.summary.totalUnits} open
-						unit{data.summary.totalUnits === 1 ? "" : "s"}
+						Printed {formatDate(data.printedAt)} • {data.summary.totalUnits}{" "}
+						open unit{data.summary.totalUnits === 1 ? "" : "s"}
 					</Text>
 				</View>
 
 				<View style={styles.metricRow}>
-					<MetricCard title="Open Units" value={String(data.summary.totalUnits)} />
+					<MetricCard
+						title="Open Units"
+						value={String(data.summary.totalUnits)}
+					/>
 					<MetricCard
 						title="Total Due"
 						value={formatCurrency(data.summary.totalDue)}
@@ -201,7 +206,9 @@ export function CommunityInvoiceAgingPdfDocument({
 				</View>
 
 				<View style={styles.tableHeader}>
-					<Text style={[styles.cellStrong, styles.colProject]}>Project / Builder</Text>
+					<Text style={[styles.cellStrong, styles.colProject]}>
+						Project / Builder
+					</Text>
 					<Text style={[styles.cellStrong, styles.colUnit]}>Unit</Text>
 					<Text style={[styles.cellStrong, styles.colOpen]}>Opened</Text>
 					<Text style={[styles.cellStrong, styles.colAge]}>Age</Text>
@@ -221,7 +228,9 @@ export function CommunityInvoiceAgingPdfDocument({
 						<Text style={[styles.cellText, styles.colOpen]}>
 							{formatDate(item.createdAt)}
 						</Text>
-						<Text style={[styles.cellText, styles.colAge]}>{item.ageDays}d</Text>
+						<Text style={[styles.cellText, styles.colAge]}>
+							{item.ageDays}d
+						</Text>
 						<Text style={[styles.cellText, styles.colBucket]}>
 							{item.agingBucket}
 						</Text>

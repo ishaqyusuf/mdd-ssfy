@@ -34,10 +34,15 @@ export function JobsPayrollPdfDocument({
 	title?: string;
 }) {
 	ensureJobsPdfFonts();
+	const resolvedTitle = title || data.title || "Payroll Report";
 
 	return (
-		<Document title={title || data.title}>
-			<PayrollSummaryPage data={data} baseUrl={baseUrl} />
+		<Document title={resolvedTitle}>
+			<PayrollSummaryPage
+				data={data}
+				baseUrl={baseUrl}
+				reportTitle={resolvedTitle}
+			/>
 			{(data.payroll?.contractors || []).map((contractor, index) => (
 				<PayrollContractorPage
 					key={String(contractor.contractorId || contractor.contractorName)}
@@ -45,6 +50,7 @@ export function JobsPayrollPdfDocument({
 					index={index}
 					baseUrl={baseUrl}
 					printedAt={data.printedAt}
+					reportTitle={resolvedTitle}
 				/>
 			))}
 		</Document>
@@ -54,9 +60,11 @@ export function JobsPayrollPdfDocument({
 function PayrollSummaryPage({
 	data,
 	baseUrl,
+	reportTitle,
 }: {
 	data: JobsPrintData;
 	baseUrl?: string;
+	reportTitle: string;
 }) {
 	const statusSummary = data.summary.statusSummary || [];
 
@@ -64,7 +72,7 @@ function PayrollSummaryPage({
 		<WatermarkPage wrap baseUrl={baseUrl} size="LETTER" style={pageStyle}>
 			<ReportHeader
 				baseUrl={baseUrl}
-				title={data.title}
+				title={reportTitle}
 				subtitle="Overall unpaid jobs summary"
 				metaLines={[
 					{ label: "Context", value: "Payroll Report" },
@@ -155,18 +163,20 @@ function PayrollContractorPage({
 	index,
 	baseUrl,
 	printedAt,
+	reportTitle,
 }: {
 	contractor: PayrollContractor;
 	index: number;
 	baseUrl?: string;
 	printedAt: Date | string;
+	reportTitle: string;
 }) {
 	return (
 		<WatermarkPage wrap baseUrl={baseUrl} size="LETTER" style={pageStyle}>
 			<ReportHeader
 				baseUrl={baseUrl}
-				title={contractor.contractorName}
-				subtitle={`Contractor breakdown ${index + 1}`}
+				title={reportTitle}
+				subtitle={`${contractor.contractorName} • Contractor breakdown ${index + 1}`}
 				metaLines={[
 					{ label: "Context", value: "Payroll Breakdown" },
 					{ label: "Printed", value: formatPrintDate(printedAt) },
