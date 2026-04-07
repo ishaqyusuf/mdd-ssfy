@@ -237,7 +237,7 @@ function ItemCard({ item }: { item: Item }) {
             {formatDate(item.createdAt)}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            {item.tasks?.length || 0} invoice tasks
+            {item.invoiceTaskCount || 0} invoice tasks
           </p>
         </div>
       </div>

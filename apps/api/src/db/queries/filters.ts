@@ -204,21 +204,49 @@ export async function getCommunityTemplateFilters(ctx: TRPCContext) {
 export async function jobFilters(ctx: TRPCContext) {
   type T = keyof GetJobsSchema;
   type FilterData = PageFilterData<T>;
-  // const steps = labelValueOptions(
-  //   await ctx.db.Jobs.findMany({
-  //     where: {},
-  //     select: {
-  //       id: true,
-  //       title: true,
-  //     },
-  //   }),
-  //   "title",
-  //   "id"
-  // );
+  const jobs = await ctx.db.jobs.findMany({
+    where: {
+      deletedAt: null,
+    },
+    select: {
+      user: {
+        select: {
+          name: true,
+        },
+      },
+      project: {
+        select: {
+          title: true,
+        },
+      },
+    },
+  });
+  const contractors = uniqueList(
+    jobs
+      .map((job) => job.user?.name)
+      .filter(Boolean)
+      .map((name) => ({ label: name, value: name })),
+    "value",
+  );
+  const projects = uniqueList(
+    jobs
+      .map((job) => job.project?.title)
+      .filter(Boolean)
+      .map((title) => ({ label: title, value: title })),
+    "value",
+  );
   const resp = [
     searchFilter,
-    // optionFilter<T>("categoryId", "Category", steps),
-    // dateRangeFilter<T>("dateRange", "Filter by date"),
+    optionFilter<T>("contractor", "Contractor", contractors),
+    optionFilter<T>("project", "Project", projects),
+    optionFilter<T>(
+      "show",
+      "Show",
+      ["custom"].map((value) => ({
+        label: value === "custom" ? "Custom Jobs" : value,
+        value,
+      })),
+    ),
   ] satisfies FilterData[];
 
   return resp;

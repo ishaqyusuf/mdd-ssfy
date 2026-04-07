@@ -2,6 +2,7 @@
 
 import { JobOverviewModal } from "@/components/modals/job-overview";
 import { useJobParams } from "@/hooks/use-contractor-jobs-params";
+import { printSelectedJobs } from "@/lib/job-print";
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
@@ -33,6 +34,7 @@ import { format } from "date-fns";
 import {
 	BanknoteArrowDown,
 	CheckCircle2,
+	Printer,
 	Search,
 	ShieldAlert,
 	XCircle,
@@ -521,6 +523,20 @@ export function PaymentPortal() {
 									</div>
 
 									<div className="flex items-center gap-2">
+										<Button
+											variant="outline"
+											size="sm"
+											onClick={() =>
+												printSelectedJobs({
+													jobIds: selectedJobIds,
+													context: "payment-portal",
+												})
+											}
+											disabled={!selectedJobIds.length}
+										>
+											<Printer data-icon="inline-start" />
+											Print Selected
+										</Button>
 										<Button
 											variant="outline"
 											size="sm"

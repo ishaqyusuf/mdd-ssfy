@@ -28,6 +28,15 @@ const invoiceTaskSelect = {
   productionDueDate: true,
 } satisfies Prisma.HomeTasksSelect;
 
+const unitInvoiceListTaskSelect = {
+  amountDue: true,
+  amountPaid: true,
+  produceable: true,
+  sentToProductionAt: true,
+  producedAt: true,
+  productionDueDate: true,
+} satisfies Prisma.HomeTasksSelect;
+
 const unitInvoiceSelect = {
   id: true,
   createdAt: true,
@@ -44,11 +53,12 @@ const unitInvoiceSelect = {
     where: {
       deletedAt: null,
     },
-    select: invoiceTaskSelect,
+    select: unitInvoiceListTaskSelect,
   },
   _count: {
     select: {
       jobs: true,
+      tasks: true,
     },
   },
   project: {
@@ -131,6 +141,7 @@ export async function getUnitInvoices(
       return {
         ...item,
         jobCount: item._count.jobs,
+        invoiceTaskCount: item._count.tasks,
         production: getUnitProductionStatus(item),
         invoice,
       };

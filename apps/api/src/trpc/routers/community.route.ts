@@ -1305,9 +1305,7 @@ export const communityRouters = createTRPCRouter({
               deletedAt: null,
             },
             select: {
-              id: true,
               amount: true,
-              status: true,
             },
           },
         },

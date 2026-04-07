@@ -4,6 +4,20 @@
 
 ## 2026-04-03
 
+- Added a shared selected-jobs print flow for contractor operations.
+  - created a tokenized public print page for selected jobs at `p/jobs`
+  - added a shared jobs print data contract and reusable print helper so both the contractor jobs table and payment portal use the same print path
+  - added `Print Selected` to contractor-jobs batch actions
+  - added `Print Selected` to the payment portal selection controls
+  - kept the print payload server-authoritative by sending only selected job ids and rebuilding the printable list on the backend
+
+- Fixed slow loading in the new jobs modal project/unit flow.
+  - stopped the modal from mounting every job-form step at once and now render only the active step panel
+  - replaced generic fuzzy `useSearch()` usage in the project and unit steps with lightweight explicit field filtering
+  - added query cache time for project/unit selectors so reopening the steps reuses recent data
+  - trimmed the unit-step stats payload to fetch only what the selector card actually renders
+  - root cause was eager hidden-tab mounting plus heavier-than-needed search and unit stats work during modal open
+
 - Optimized the legacy customer overview sheet open path in `apps/www`.
   - stopped eagerly mounting every customer overview tab panel on sheet open
   - switched the default `general` tab away from the broad `getCustomerGeneralInfoAction` fan-out and onto `customer.getCustomerOverviewV2`
@@ -931,4 +945,10 @@
 - Reduced the legacy template query payload in `community.route.ts`, made install-costs fetch legacy v1 rates only when no modern rates exist, added query caching for install-cost rate reads, and memoized the install-cost rate context so the list page does less work on open/edit.
 - Optimized the v1 editor by prefetching only the legacy template record, lazy-loading/caching design suggestions, switching field subscriptions from `form.watch()` to `useWatch()`, rendering only the active tab section, and only mounting the install-cost side-panel providers when the panel is actually open.
 - Validation note: targeted `bunx tsc --noEmit` greps reported no matching errors for the touched community route, install-cost hook, and community-template-v1 files after the performance fixes.
+- Fixed `/hrm/contractors/jobs` search and filters by implementing real `q`, `contractor`, and `project` handling in `apps/api/src/db/queries/jobs.ts`. Root cause was a broken `q` branch that emitted `OR: []` plus frontend-exposed `contractor` / `project` params that had no backend where-clause support.
+- Expanded `jobFilters()` in `apps/api/src/db/queries/filters.ts` so the contractor jobs header now receives real filter options for contractor, project, and custom-job scope instead of only a bare search input.
+- Validation note: targeted `bunx tsc --noEmit` greps reported no matching errors for the touched jobs query, filters query, and contractor jobs page/header files.
+- Optimized `/community/unit-invoices` list loading by slimming the main invoice table payload in `apps/api/src/db/queries/unit-invoices.ts`. Root cause was the list query selecting full invoice task rows for every unit even though the page only needed invoice totals, production status, and task count.
+- The unit-invoice list now fetches only the task fields needed to derive production status and totals, plus an explicit task count via `_count.tasks`; the mobile card now reads that count directly instead of relying on full task arrays in the table response.
+- Validation note: targeted `bunx tsc --noEmit` greps reported no matching errors for the touched unit-invoice query and table files after the performance change.
 - Switched the canonical auth redirect target in `apps/www` to `/login/v2`: the proxy login redirect, NextAuth auth pages, client auth-provider guest redirects, signout callbacks, and the redirect engine now all route legacy `/login` traffic into the v2 login page while preserving `return_to` query strings.

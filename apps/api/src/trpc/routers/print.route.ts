@@ -5,6 +5,7 @@ import {
 	generatePrintData,
 	modelPrintSchema,
 } from "@community/generate-print-data";
+import { getJobsPrintData } from "@api/db/queries/jobs";
 import { getPrintData } from "@gnd/sales/print";
 import type { PrintMode } from "@gnd/sales/print/types";
 import { tokenSchemas, validateToken } from "@gnd/utils/tokenizer";
@@ -118,5 +119,25 @@ export const printRouter = createTRPCRouter({
 				companyAddress,
 				watermark: null,
 			};
+		}),
+	jobs: publicProcedure
+		.input(
+			z.object({
+				token: z.string(),
+				preview: z.boolean().optional().default(false),
+			}),
+		)
+		.query(async (props) => {
+			const payload = await validateToken(
+				props.input.token,
+				tokenSchemas.jobsPdfToken,
+			);
+
+			if (!payload) return null;
+
+			return getJobsPrintData(props.ctx, {
+				jobIds: payload.jobIds,
+				context: payload.context || "jobs-page",
+			});
 		}),
 });

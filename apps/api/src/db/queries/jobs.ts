@@ -194,18 +194,61 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
 		),
 	);
 }
+
+function containsInsensitive(value: string) {
+	return {
+		contains: value,
+		mode: "insensitive" as const,
+	};
+}
+
 function whereJobs(query: GetJobsSchema) {
 	const where: Prisma.JobsWhereInput[] = [];
 	for (const [k, v] of Object.entries(query)) {
 		if (!v) continue;
 		const value = v as any;
 		switch (k as keyof GetJobsSchema) {
-			case "q":
-				const q = { contains: v as string };
+			case "q": {
+				const q = containsInsensitive(v as string);
 				where.push({
-					OR: [],
+					OR: [
+						{ title: q },
+						{ subtitle: q },
+						{ description: q },
+						{ note: q },
+						{ adminNote: q },
+						{ controlId: q },
+						{
+							user: {
+								name: q,
+							},
+						},
+						{
+							project: {
+								title: q,
+							},
+						},
+						{
+							project: {
+								builder: {
+									name: q,
+								},
+							},
+						},
+						{
+							home: {
+								lotBlock: q,
+							},
+						},
+						{
+							home: {
+								modelName: q,
+							},
+						},
+					],
 				});
 				break;
+			}
 			case "userId":
 				where.push({
 					userId: value,
@@ -225,6 +268,20 @@ function whereJobs(query: GetJobsSchema) {
 				where.push({
 					project: {
 						slug: value,
+					},
+				});
+				break;
+			case "contractor":
+				where.push({
+					user: {
+						name: containsInsensitive(value),
+					},
+				});
+				break;
+			case "project":
+				where.push({
+					project: {
+						title: containsInsensitive(value),
 					},
 				});
 				break;
@@ -922,6 +979,98 @@ export const createPaymentPortalSchema = z.object({
 export type CreatePaymentPortalSchema = z.infer<
 	typeof createPaymentPortalSchema
 >;
+
+export const getJobsPrintDataSchema = z.object({
+	jobIds: z.array(z.number()).min(1),
+	context: z.enum(["jobs-page", "payment-portal"]).optional().nullable(),
+});
+export type GetJobsPrintDataSchema = z.infer<typeof getJobsPrintDataSchema>;
+
+export async function getJobsPrintData(
+	ctx: TRPCContext,
+	input: GetJobsPrintDataSchema,
+) {
+	const jobs = await ctx.db.jobs.findMany({
+		where: {
+			id: {
+				in: input.jobIds,
+			},
+			deletedAt: null,
+		},
+		orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+		select: {
+			id: true,
+			title: true,
+			subtitle: true,
+			description: true,
+			amount: true,
+			status: true,
+			createdAt: true,
+			user: {
+				select: {
+					id: true,
+					name: true,
+				},
+			},
+			project: {
+				select: {
+					title: true,
+				},
+			},
+			home: {
+				select: {
+					lotBlock: true,
+					modelName: true,
+				},
+			},
+		},
+	});
+
+	if (jobs.length !== input.jobIds.length) {
+		throw new Error("Some selected jobs are no longer available to print");
+	}
+
+	const orderedJobs = input.jobIds
+		.map((jobId) => jobs.find((job) => job.id === jobId))
+		.filter((job): job is NonNullable<typeof job> => !!job);
+
+	const contractors = Array.from(
+		new Set(orderedJobs.map((job) => job.user?.name).filter(Boolean)),
+	);
+	const totalAmount = Number(
+		orderedJobs
+			.reduce((total, job) => total + Number(job.amount || 0), 0)
+			.toFixed(2),
+	);
+
+	return {
+		title:
+			input.context === "payment-portal"
+				? "Contractor Payment Selection"
+				: "Selected Jobs List",
+		context: input.context || "jobs-page",
+		printedAt: new Date(),
+		summary: {
+			jobCount: orderedJobs.length,
+			totalAmount,
+			contractorName:
+				contractors.length === 1 ? contractors[0] : "Multiple contractors",
+		},
+		jobs: orderedJobs.map((job) => ({
+			id: job.id,
+			title: job.title,
+			subtitle: job.subtitle,
+			description: job.description,
+			amount: Number(job.amount || 0),
+			status: job.status,
+			createdAt: job.createdAt,
+			contractorName: job.user?.name || "Unknown contractor",
+			projectTitle: job.project?.title || "Unknown project",
+			lotBlock: job.home?.lotBlock || null,
+			modelName: job.home?.modelName || null,
+		})),
+	};
+}
 
 export async function createPaymentPortal(
 	ctx: TRPCContext,

@@ -28,6 +28,8 @@ export function NewJobModal() {
 					FormStep,
 				]
 			: [ProjectSelectStep, TaskSelectStep, UnitSelectStep, FormStep];
+	const ActiveStep =
+		stepTabs[Math.max(0, Math.min(stepTabs.length - 1, (params.step || 1) - 1))];
 	return (
 		<CustomModal
 			className=""
@@ -50,49 +52,9 @@ export function NewJobModal() {
 				<div className="" id="sub-header" />
 				<CustomModal.Content className="max-h-[60vh] min-h-[60vh]  relative -mx-0">
 					<Tabs value={String(params.step)}>
-						{stepTabs.map((StepComponent, index) => (
-							<Tabs.Content
-								key={StepComponent.name || `step-${index + 1}`}
-								value={String(index + 1)}
-							>
-								<StepComponent />
-							</Tabs.Content>
-						))}
-						{/* {formType === "assign" ? (
-                        <>
-                            <Tabs.Content value={"1"}>
-                                <UserSelectStep />
-                               
-                            </Tabs.Content>
-                            <Tabs.Content value={"2"}>
-                                <ProjectSelectStep />
-                            </Tabs.Content>
-                            <Tabs.Content value={"3"}>
-                                <UnitSelectStep />
-                            </Tabs.Content>
-                            <Tabs.Content value={"4"}>
-                                <TaskSelectStep />
-                            </Tabs.Content>
-                            <Tabs.Content value={"5"}>
-                                <FormStep />
-                            </Tabs.Content>
-                        </>
-                    ) : (
-                        <>
-                            <Tabs.Content value={"1"}>
-                                <ProjectSelectStep />
-                            </Tabs.Content>
-                            <Tabs.Content value={"2"}>
-                                <UnitSelectStep />
-                            </Tabs.Content>
-                            <Tabs.Content value={"3"}>
-                                <TaskSelectStep />
-                            </Tabs.Content>
-                            <Tabs.Content value={"4"}>
-                                <FormStep />
-                            </Tabs.Content>
-                        </>
-                    )} */}
+						<Tabs.Content value={String(params.step || 1)}>
+							<ActiveStep />
+						</Tabs.Content>
 					</Tabs>
 
 					<NewJobFooter />

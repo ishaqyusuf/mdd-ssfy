@@ -1,12 +1,13 @@
 "use client";
 
+import { printSelectedJobs } from "@/lib/job-print";
 import { BatchAction } from "@gnd/ui/custom/data-table/batch-action";
 import { useTable } from "@gnd/ui/data-table";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
-import { CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, Printer, XCircle } from "lucide-react";
 import type { JobItem } from "./columns";
 
 function BulkReview({
@@ -76,6 +77,24 @@ function BulkReview({
 	);
 }
 
+function PrintSelected({ selectedIds }: { selectedIds: number[] }) {
+	return (
+		<Button
+			variant="ghost"
+			className="rounded-none"
+			onClick={() =>
+				printSelectedJobs({
+					jobIds: selectedIds,
+					context: "jobs-page",
+				})
+			}
+		>
+			<Printer size={12} className="mr-1" />
+			Print Selected
+		</Button>
+	);
+}
+
 export function BatchActions() {
 	const ctx = useTable();
 	const selectedRows = ctx.selectedRows ?? [];
@@ -91,6 +110,7 @@ export function BatchActions() {
 
 	return (
 		<BatchAction>
+			<PrintSelected selectedIds={selectedIds} />
 			<BulkReview
 				selectedIds={selectedIds}
 				onDone={clearSelection}

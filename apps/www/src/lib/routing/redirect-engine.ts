@@ -29,6 +29,8 @@ const exactRedirectMaps = {
 } as const;
 const dynamicRedirectMaps = {
     "/community/project/:slug": "/community/projects/:slug",
+    "/community/community-template/:slug":
+        "/community/community-template/:slug/v1",
     "/jobs/:taskType": "/jobs-dashboard",
     // "/sales-book/orders/:salesNo": "/sales-book/orders/v2/:salesNo",
     // "/sales-book/productions/:salesNo": "/sales-book/productions/v2/:salesNo",
@@ -214,3 +216,4 @@ function normalizePath(path: string) {
     }
     return normalized;
 }
+

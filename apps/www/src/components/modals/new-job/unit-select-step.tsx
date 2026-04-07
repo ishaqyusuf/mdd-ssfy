@@ -2,11 +2,10 @@ import { SearchInput } from "@/components/search-input";
 import { _trpc } from "@/components/static-trpc";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { useTRPC } from "@/trpc/client";
-import { useSearch } from "@gnd/ui/hooks/use-search";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Briefcase, DollarSign, Home, Info } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { StepTitle } from "./step-title";
 import { SubHeader } from "./sub-header";
@@ -22,18 +21,29 @@ export function UnitSelectStep() {
 			},
 			{
 				enabled: safeProjectId > 0,
+				staleTime: 1000 * 60 * 5,
 			},
 		),
 	);
 	const [generatingUnitId, setGeneratingUnitId] = useState<number | null>(null);
+	const [query, setQuery] = useState("");
 	const { mutateAsync: generateModelForUnit } = useMutation(
 		trpc.community.generateModelForUnit.mutationOptions(),
 	);
 
 	const units = data || [];
-	const { query, results, setQuery } = useSearch({
-		items: units,
-	});
+	const normalizedQuery = query.trim().toLowerCase();
+	const results = useMemo(() => {
+		if (!normalizedQuery) return units;
+		return units.filter((item) => {
+			const lotBlock = `lot ${item.lot} blk ${item.block}`;
+			return [lotBlock, item.modelName, item.modelNo]
+				.filter(Boolean)
+				.some((value) =>
+					String(value).toLowerCase().includes(normalizedQuery),
+				);
+		});
+	}, [normalizedQuery, units]);
 	const hasProject = !!params.projectId;
 	const hasNoUnits = hasProject && !isPending && units.length === 0;
 	const hasNoMatches =
