@@ -2,6 +2,16 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-04-08
+
+- Added the Community Invoice Task Detail PDF report.
+  - introduced a second invoice report type, `Task-Level Invoice Detail Report`, in the shared unit-invoice report dropdown
+  - added a dedicated public print route at `/p/community-invoice/task-detail-report`
+  - built the backend report query on `HomeTasks` so the report is task-grain, grouped by project, and units sort by `lot` then `block`
+  - derived `Cost` and `Tax` from invoice task finance fields using `amountDue` and `taxCost`, while preserving negative paid values in open-balance math
+  - added compact summary grids for overall, project, and unit totals to reduce print whitespace and keep the PDF more corporate/space-efficient
+  - standardized community invoice report launching so aging and task-detail share the same tokenized print flow and no-filter confirmation pattern
+
 ## 2026-04-07
 
 - Added contractor payout reversal validation, notifications, and activity history.

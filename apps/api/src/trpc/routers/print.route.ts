@@ -5,7 +5,10 @@ import {
 	getContractorPayoutPrintData,
 	getJobsPrintData,
 } from "@api/db/queries/jobs";
-import { getUnitInvoiceAgingReport } from "@api/db/queries/unit-invoice-reports";
+import {
+	getUnitInvoiceAgingReport,
+	getUnitInvoiceTaskDetailReport,
+} from "@api/db/queries/unit-invoice-reports";
 import {
 	generatePrintData,
 	modelPrintSchema,
@@ -40,6 +43,51 @@ const LAKE_WALES_ADDRESS = {
 };
 
 const requireFromHere = createRequire(import.meta.url);
+
+function humanizeSlug(value?: string | null) {
+	if (!value) return null;
+	return value
+		.split("-")
+		.filter(Boolean)
+		.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+		.join(" ");
+}
+
+function formatCommunityInvoiceFilterSummary(payload: {
+	q?: string | null;
+	builderSlug?: string | null;
+	projectSlug?: string | null;
+	production?: string | null;
+	invoice?: string | null;
+	installation?: string | null;
+	dateRange?: Array<string | null | undefined> | null;
+}) {
+	const filters: string[] = [];
+
+	if (payload.q) filters.push(`Search: ${payload.q}`);
+	if (payload.builderSlug) {
+		filters.push(`Builder: ${humanizeSlug(payload.builderSlug)}`);
+	}
+	if (payload.projectSlug) {
+		filters.push(`Project: ${humanizeSlug(payload.projectSlug)}`);
+	}
+	if (payload.production) {
+		filters.push(`Production: ${humanizeSlug(payload.production)}`);
+	}
+	if (payload.invoice) {
+		filters.push(`Invoice: ${humanizeSlug(payload.invoice)}`);
+	}
+	if (payload.installation) {
+		filters.push(`Installation: ${humanizeSlug(payload.installation)}`);
+	}
+	if (payload.dateRange?.length) {
+		filters.push(
+			`Date Range: ${payload.dateRange.filter(Boolean).join(" to ")}`,
+		);
+	}
+
+	return filters;
+}
 
 export const printRouter = createTRPCRouter({
 	modelTemplate: publicProcedure
@@ -185,6 +233,32 @@ export const printRouter = createTRPCRouter({
 				title: "Community_Invoice_Aging_Report",
 				printedAt: new Date(),
 				filters: payload,
+				filterSummary: formatCommunityInvoiceFilterSummary(payload),
+				...report,
+			};
+		}),
+	communityInvoiceTaskDetailReport: publicProcedure
+		.input(
+			z.object({
+				token: z.string(),
+				preview: z.boolean().optional().default(false),
+			}),
+		)
+		.query(async (props) => {
+			const payload = await validateToken(
+				props.input.token,
+				tokenSchemas.communityInvoiceTaskDetailPdfToken,
+			);
+
+			if (!payload) return null;
+
+			const report = await getUnitInvoiceTaskDetailReport(props.ctx, payload);
+
+			return {
+				title: "Community_Invoice_Task_Detail_Report",
+				printedAt: new Date(),
+				filters: payload,
+				filterSummary: formatCommunityInvoiceFilterSummary(payload),
 				...report,
 			};
 		}),

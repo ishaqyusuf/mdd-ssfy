@@ -138,6 +138,7 @@ const unitInvoiceFormSelect = {
 
 export const getUnitInvoicesSchema = z
   .object({
+    q: z.string().optional().nullable(),
     builderSlug: z.string().optional().nullable(),
     projectSlug: z.string().optional().nullable(),
     production: z.enum(communityProductionFilter).optional().nullable(),

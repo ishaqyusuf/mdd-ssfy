@@ -1,7 +1,10 @@
 "use client";
 
 import { unitInvoiceReportDefinitions } from "@/components/reports/unit-invoices/report-definitions";
-import { printCommunityInvoiceAgingReport } from "@/lib/unit-invoice-report-print";
+import {
+  printCommunityInvoiceAgingReport,
+  printCommunityInvoiceTaskDetailReport,
+} from "@/lib/unit-invoice-report-print";
 import { unitInvoiceFilterParams } from "@/hooks/use-unit-invoices-filter-params";
 import { useTRPC } from "@/trpc/client";
 import { AlertDialog } from "@gnd/ui/namespace";
@@ -16,18 +19,29 @@ export function UnitInvoicesHeader() {
   const trpc = useTRPC();
   const [filters, setFilters] = useQueryStates(unitInvoiceFilterParams);
   const [showAllInvoicesAlert, setShowAllInvoicesAlert] = useState(false);
+  const [pendingReportId, setPendingReportId] = useState<string | null>(null);
   const hasActiveFilters = Object.values(filters).some((value) => {
     if (Array.isArray(value)) return value.length > 0;
     return value !== null && value !== undefined && value !== "";
   });
 
-  const openAgingReport = async () => {
-    if (!hasActiveFilters) {
-      setShowAllInvoicesAlert(true);
+  const launchReport = async (reportId: string) => {
+    if (reportId === "task-level-detail") {
+      await printCommunityInvoiceTaskDetailReport(filters);
       return;
     }
 
     await printCommunityInvoiceAgingReport(filters);
+  };
+
+  const openReport = async (reportId: string) => {
+    if (!hasActiveFilters) {
+      setPendingReportId(reportId);
+      setShowAllInvoicesAlert(true);
+      return;
+    }
+
+    await launchReport(reportId);
   };
 
   return (
@@ -53,7 +67,7 @@ export function UnitInvoicesHeader() {
               <DropdownMenu.Item
                 key={item.id}
                 className="items-start gap-3 py-3"
-                onClick={openAgingReport}
+                onClick={() => openReport(item.id)}
               >
                 <div className="mt-0.5 rounded-xl bg-slate-100 p-2 text-slate-700">
                   <Icon className="size-4" />
@@ -71,7 +85,10 @@ export function UnitInvoicesHeader() {
       </DropdownMenu.Root>
       <AlertDialog
         open={showAllInvoicesAlert}
-        onOpenChange={setShowAllInvoicesAlert}
+        onOpenChange={(open) => {
+          setShowAllInvoicesAlert(open);
+          if (!open) setPendingReportId(null);
+        }}
       >
         <AlertDialog.Content>
           <AlertDialog.Header>
@@ -86,7 +103,8 @@ export function UnitInvoicesHeader() {
             <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
             <AlertDialog.Action
               onClick={async () => {
-                await printCommunityInvoiceAgingReport(filters);
+                await launchReport(pendingReportId || "invoice-aging");
+                setPendingReportId(null);
               }}
             >
               Continue

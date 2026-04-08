@@ -1,0 +1,1 @@
+export { CommunityInvoiceTaskDetailPdfDocument } from "./document";
