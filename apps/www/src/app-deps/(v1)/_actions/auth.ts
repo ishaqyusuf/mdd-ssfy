@@ -12,7 +12,7 @@ import { compare, hash } from "bcrypt-ts";
 import dayjs from "dayjs";
 
 import { validateAuthToken } from "@/actions/validate-auth-token";
-import { buildSessionExpiry } from "@gnd/auth/utils";
+import { buildWebSessionExpiry } from "@/lib/auth-session-policy";
 import { PERMISSIONS } from "@gnd/utils/constants";
 // import PasswordResetRequestEmail from "@/components/_v1/emails/password-reset-request-email";
 import { _email } from "./_email";
@@ -137,11 +137,13 @@ export async function loginAction({
 	email,
 	password,
 	token,
+	rememberMe,
 	sessionMeta,
 }: {
 	email?;
 	password?;
 	token?;
+	rememberMe?: boolean;
 	sessionMeta?: {
 		ipAddress?: string | null;
 		userAgent?: string | null;
@@ -209,12 +211,13 @@ export async function loginAction({
 				userId: user.id,
 				ipAddress: sessionMeta?.ipAddress ?? null,
 				userAgent: sessionMeta?.userAgent ?? null,
-				expires: buildSessionExpiry(),
+				expires: buildWebSessionExpiry({ rememberMe }),
 			},
 		});
 
 		return {
 			sessionId: newSession.id,
+			rememberMe: !!rememberMe,
 			activeSession: {
 				id: newSession.id,
 				ipAddress: newSession.ipAddress ?? null,

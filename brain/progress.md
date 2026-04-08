@@ -4,6 +4,12 @@
 
 ## 2026-04-08
 
+- Reduced Trigger startup cost for the duplicated sales email tasks.
+  - extracted the sales email payload schema into a small task-local module and re-exported it from `@gnd/jobs/schema` so callers keep the same public import surface
+  - replaced the duplicated `send-sales-email` and `sales-rep-payment-received-notification` task bodies with one shared factory in `packages/jobs`
+  - moved DB, resend, email-template, `qs`, and env URL loading behind the task `run()` path so Trigger can register the tasks without eagerly loading the heavier runtime stack
+  - renamed the sales-rep task export to `salesRepPaymentReceivedNotification` so the file no longer exports a second misleading `sendSalesEmail` symbol
+
 - Added a background unit-invoice duplicate sweeper.
   - unit-invoice modal open now silently triggers a background task that checks invoice-task duplicates without blocking the modal load
   - the invoice form still dedupes tasks in-memory immediately, but duplicate cleanup now also happens server-side without waiting for a user save

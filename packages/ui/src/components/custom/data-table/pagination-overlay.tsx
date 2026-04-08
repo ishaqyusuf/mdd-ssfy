@@ -28,11 +28,6 @@ export function PaginationOverlay() {
     loadedCount,
     pagination.totalResults || loadedCount,
   );
-  const pageStart = (pagination.activePage - 1) * pagination.pageSize + 1;
-  const pageEnd = Math.min(
-    pagination.activePage * pagination.pageSize,
-    pagination.totalResults || loadedCount,
-  );
 
   return (
     <div className="pointer-events-none fixed bottom-10 left-1/2 z-[9] hidden -translate-x-1/2 md:block">
@@ -52,8 +47,14 @@ export function PaginationOverlay() {
       >
         <div className="flex min-w-0 items-center gap-3">
           <p className="whitespace-nowrap text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            Page {formatRange(pageStart, pageEnd)}
+            Page {pagination.activePage} of {pagination.pageCount}
           </p>
+          <span
+            aria-hidden="true"
+            className="text-muted-foreground/70"
+          >
+            •
+          </span>
           <p className="whitespace-nowrap text-sm font-medium text-foreground">
             Showing {formatRange(visibleStart, visibleEnd)} of{" "}
             {pagination.totalResults || loadedCount} results

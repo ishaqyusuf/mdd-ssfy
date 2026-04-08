@@ -1,16 +1,17 @@
 import { loginAction } from "@/app-deps/(v1)/_actions/auth";
 import { PrismaClient, type Roles, type Users } from "@/db";
-import type { ICan } from "@/types/auth";
 import {
-	AUTH_SESSION_MAX_AGE_SECONDS,
-	buildSessionExpiry,
-} from "@gnd/auth/utils";
+	buildWebSessionExpiry,
+	getWebSessionRefreshWindowMs,
+	normalizeRememberMe,
+	WEB_AUTH_SESSION_MAX_AGE_SECONDS,
+} from "@/lib/auth-session-policy";
+import type { ICan } from "@/types/auth";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import type { DefaultSession, NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
 const prisma = new PrismaClient();
-const AUTH_SESSION_REFRESH_WINDOW_MS = 1000 * 60 * 60 * 24;
 
 type ActiveSessionInfo = {
 	id: string;
@@ -58,6 +59,7 @@ function getRequestUserAgent(
 async function getValidSessionRecord(
 	sessionId?: string,
 	userId?: Users["id"] | null,
+	rememberMe?: boolean,
 ) {
 	if (!sessionId || !userId) {
 		return null;
@@ -84,8 +86,9 @@ async function getValidSessionRecord(
 
 	const nextExpiry =
 		session.expires &&
-		session.expires.getTime() - Date.now() <= AUTH_SESSION_REFRESH_WINDOW_MS
-			? buildSessionExpiry()
+		session.expires.getTime() - Date.now() <=
+			getWebSessionRefreshWindowMs(rememberMe)
+			? buildWebSessionExpiry({ rememberMe })
 			: session.expires;
 
 	if (nextExpiry && session.expires?.getTime() !== nextExpiry.getTime()) {
@@ -110,6 +113,7 @@ declare module "next-auth" {
 		role: Roles;
 		sessionId?: string;
 		activeSession?: ActiveSessionInfo | null;
+		rememberMe?: boolean;
 	}
 	interface Session extends DefaultSession {
 		// user: {
@@ -117,6 +121,7 @@ declare module "next-auth" {
 		can: ICan;
 		role: Roles;
 		activeSession?: ActiveSessionInfo | null;
+		rememberMe?: boolean;
 	}
 }
 declare module "next-auth/jwt" {
@@ -127,12 +132,13 @@ declare module "next-auth/jwt" {
 		role: Roles;
 		sessionId?: string;
 		activeSession?: ActiveSessionInfo | null;
+		rememberMe?: boolean;
 	}
 }
 export const authOptions: NextAuthOptions = {
 	session: {
 		strategy: "jwt",
-		maxAge: AUTH_SESSION_MAX_AGE_SECONDS,
+		maxAge: WEB_AUTH_SESSION_MAX_AGE_SECONDS,
 	},
 
 	pages: {
@@ -141,30 +147,33 @@ export const authOptions: NextAuthOptions = {
 	},
 	jwt: {
 		secret: process.env.JWT_SECRET,
-		maxAge: AUTH_SESSION_MAX_AGE_SECONDS,
+		maxAge: WEB_AUTH_SESSION_MAX_AGE_SECONDS,
 	},
 	adapter: PrismaAdapter(prisma),
 	secret: process.env.NEXTAUTH_SECRET,
 	callbacks: {
 		jwt: async ({ token, user: cred }) => {
 			if (cred) {
-				const { role, can, user, sessionId, activeSession } = cred;
+				const { role, can, user, sessionId, activeSession, rememberMe } = cred;
 				token.user = user;
 				token.can = normalizeCan(can);
 				token.role = role;
 				token.sessionId = sessionId;
 				token.activeSession = activeSession ?? null;
+				token.rememberMe = rememberMe ?? false;
 			}
 			if (!token.sessionId) return null;
 			const activeSession = await getValidSessionRecord(
 				token.sessionId,
 				token.user?.id,
+				token.rememberMe ?? false,
 			);
 			if (!activeSession) {
 				return null;
 			}
 			token.can = normalizeCan(token.can);
 			token.activeSession = activeSession;
+			token.rememberMe = token.rememberMe ?? false;
 			return token;
 		},
 		session({ session, token }) {
@@ -173,6 +182,7 @@ export const authOptions: NextAuthOptions = {
 				session.role = token.role;
 				session.can = normalizeCan(token.can);
 				session.activeSession = token.activeSession ?? null;
+				session.rememberMe = token.rememberMe ?? false;
 			}
 			return session;
 		},
@@ -182,6 +192,7 @@ export const authOptions: NextAuthOptions = {
 			name: "Sign in",
 			credentials: {
 				token: {},
+				rememberMe: {},
 
 				email: {
 					label: "Email",
@@ -196,6 +207,7 @@ export const authOptions: NextAuthOptions = {
 				}
 				const login = await loginAction({
 					...credentials,
+					rememberMe: normalizeRememberMe(credentials.rememberMe),
 					sessionMeta: {
 						ipAddress: getRequestIpAddress(req.headers),
 						userAgent: getRequestUserAgent(req.headers),

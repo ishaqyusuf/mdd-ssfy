@@ -6,6 +6,10 @@ import {
 import { salesType } from "@gnd/utils/constants";
 import { salesCheckoutSuccessSchema } from "@notifications/schemas";
 import { ChannelName } from "@notifications/channels";
+export {
+  sendSalesEmailSchema,
+  type SendSalesEmailPayload,
+} from "./tasks/sales/send-sales-email-schema";
 // import { salesQueryParamsSchema } from "@api/schemas/sales";
 
 export const taskNames = [
@@ -68,18 +72,6 @@ export const createSalesHistorySchemaTask = z.object({
 export type CreateSalesHistorySchemaTask = z.infer<
   typeof createSalesHistorySchemaTask
 >;
-export const sendSalesEmailSchema = z.object({
-  emailType: z
-    .enum(["with payment", "with part payment", "without payment"])
-    .default("without payment")
-    .optional()
-    .nullable(),
-  printType: z.enum(["order", "quote"]),
-  salesIds: z.array(z.number()).optional().nullable(),
-  salesNos: z.array(z.string()).optional().nullable(),
-});
-export type SendSalesEmailPayload = z.infer<typeof sendSalesEmailSchema>;
-
 export const sendSalesReminderSchema = z.object({
   salesRepId: z.number().optional().nullable(),
   sales: z.array(
