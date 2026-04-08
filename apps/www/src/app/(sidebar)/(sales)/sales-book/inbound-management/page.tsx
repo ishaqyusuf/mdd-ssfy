@@ -8,6 +8,7 @@ import { InboundSummarySkeleton } from "@/components/inbound-summary";
 import { InboundTotal } from "@/components/inbound-total";
 import { DataTable } from "@/components/tables/inbound-managment/data-table";
 import { TableSkeleton } from "@/components/tables/skeleton";
+import { loadInboundFilterParams } from "@/hooks/use-inbound-filter-params";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { batchPrefetch, trpc } from "@/trpc/server";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
@@ -16,6 +17,9 @@ import { Suspense } from "react";
 
 import PageShell from "@/components/page-shell";
 import { PageTitle } from "@gnd/ui/custom/page-title";
+
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(props) {
 	return constructMetadata({
 		title: "Inbound Management | GND",
@@ -26,7 +30,13 @@ type Props = {
 };
 
 export default async function Page(props: Props) {
+	const searchParams = await props.searchParams;
+	const filter = loadInboundFilterParams(searchParams);
+
 	batchPrefetch([
+		trpc.sales.inboundIndex.infiniteQueryOptions({
+			...(filter as any),
+		}),
 		trpc.sales.inboundSummary.queryOptions({
 			status: "total",
 		}),
