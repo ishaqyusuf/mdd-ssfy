@@ -7,7 +7,7 @@ import {
 	useRef,
 	useState,
 } from "react";
-import createContextFactory from "@/utils/context-factory";
+import createContextFactory from "@gnd/ui/utils/context-factory";
 import {
 	getCoreRowModel,
 	getFilteredRowModel,
@@ -18,7 +18,7 @@ import { useInView } from "react-intersection-observer";
 // import { PageDataMeta, PageFilterData } from "@/types/type";
 import type { PageFilterData } from "@gnd/utils/types";
 import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
-// import { useTableScroll } from "@/hooks/use-table-scroll";
+// import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 // import { screens } from "@/lib/responsive";
 import { useMediaQuery } from "react-responsive";
 import type { PageDataMeta } from "@gnd/utils/query-response";

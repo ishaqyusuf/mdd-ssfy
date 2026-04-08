@@ -1,63 +1,87 @@
-"use client";
+"use client"
 
-import { DashIcon } from "@radix-ui/react-icons";
-import { OTPInput, type SlotProps } from "input-otp";
-import * as React from "react";
-import { cn } from "../utils";
+import * as React from "react"
+import { OTPInput, OTPInputContext } from "input-otp"
 
-const InputOTP = React.forwardRef<
-  React.ElementRef<typeof OTPInput>,
-  React.ComponentPropsWithoutRef<typeof OTPInput>
->(({ className, ...props }, ref) => (
-  <OTPInput
-    ref={ref}
-    containerClassName={cn("flex items-center gap-2", className)}
-    {...props}
-  />
-));
-InputOTP.displayName = "InputOTP";
+import { cn } from "@gnd/ui/utils"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { MinusSignIcon } from "@hugeicons/core-free-icons"
 
-const InputOTPGroup = React.forwardRef<
-  React.ElementRef<"div">,
-  React.ComponentPropsWithoutRef<"div">
->(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("flex items-center", className)} {...props} />
-));
-InputOTPGroup.displayName = "InputOTPGroup";
+function InputOTP({
+  className,
+  containerClassName,
+  ...props
+}: React.ComponentProps<typeof OTPInput> & {
+  containerClassName?: string
+}) {
+  return (
+    <OTPInput
+      data-slot="input-otp"
+      containerClassName={cn(
+        "cn-input-otp flex items-center has-disabled:opacity-50",
+        containerClassName
+      )}
+      spellCheck={false}
+      className={cn("disabled:cursor-not-allowed", className)}
+      {...props}
+    />
+  )
+}
 
-const InputOTPSlot = React.forwardRef<
-  React.ElementRef<"div">,
-  SlotProps & React.ComponentPropsWithoutRef<"div">
->(({ char, hasFakeCaret, isActive, className, ...props }, ref) => {
+function InputOTPGroup({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      ref={ref}
+      data-slot="input-otp-group"
       className={cn(
-        "relative flex h-16 w-16 items-center justify-center border-y border-r border-input text-2xl transition-all first:rounded-l-md first:border-l last:rounded-r-md",
-        isActive && "z-10 ring-1 ring-ring",
-        className,
+        "flex items-center rounded-none has-aria-invalid:border-destructive has-aria-invalid:ring-1 has-aria-invalid:ring-destructive/20 dark:has-aria-invalid:ring-destructive/40",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function InputOTPSlot({
+  index,
+  className,
+  ...props
+}: React.ComponentProps<"div"> & {
+  index: number
+}) {
+  const inputOTPContext = React.useContext(OTPInputContext)
+  const { char, hasFakeCaret, isActive } = inputOTPContext?.slots[index] ?? {}
+
+  return (
+    <div
+      data-slot="input-otp-slot"
+      data-active={isActive}
+      className={cn(
+        "relative flex size-8 items-center justify-center border-y border-r border-input text-xs transition-all outline-none first:rounded-none first:border-l last:rounded-none aria-invalid:border-destructive data-[active=true]:z-10 data-[active=true]:border-ring data-[active=true]:ring-1 data-[active=true]:ring-ring/50 data-[active=true]:aria-invalid:border-destructive data-[active=true]:aria-invalid:ring-destructive/20 dark:bg-input/30 dark:data-[active=true]:aria-invalid:ring-destructive/40",
+        className
       )}
       {...props}
     >
       {char}
       {hasFakeCaret && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="animate-caret-blink h-4 w-px bg-foreground duration-1000" />
+          <div className="h-4 w-px animate-caret-blink bg-foreground duration-1000" />
         </div>
       )}
     </div>
-  );
-});
-InputOTPSlot.displayName = "InputOTPSlot";
+  )
+}
 
-const InputOTPSeparator = React.forwardRef<
-  React.ElementRef<"div">,
-  React.ComponentPropsWithoutRef<"div">
->(({ ...props }, ref) => (
-  <div ref={ref} {...props}>
-    <DashIcon />
-  </div>
-));
-InputOTPSeparator.displayName = "InputOTPSeparator";
+function InputOTPSeparator({ ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="input-otp-separator"
+      className="flex items-center [&_svg:not([class*='size-'])]:size-4"
+      role="separator"
+      {...props}
+    >
+      <HugeiconsIcon icon={MinusSignIcon} strokeWidth={2} />
+    </div>
+  )
+}
 
-export { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator };
+export { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator }

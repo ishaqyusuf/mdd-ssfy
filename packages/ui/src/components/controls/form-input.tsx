@@ -9,9 +9,9 @@ import { Skeleton } from "@gnd/ui/skeleton";
 import { Textarea } from "@gnd/ui/textarea";
 import { NumericFormat, NumericFormatProps } from "react-number-format";
 import { QuantityInput, type QtyInputProps } from "@gnd/ui/quantity-input";
-import { useDataSkeleton } from "@/hooks/use-data-skeleton";
+import { useDataSkeleton } from "@gnd/ui/hooks/use-data-skeleton";
 import { cn } from "../../utils";
-import { Eye, EyeOff } from "lucide-react";
+import { Icons } from "@gnd/ui/icons";
 interface Props<T> {
   label?: string;
   placeholder?: string;
@@ -196,9 +196,9 @@ export function FormInput<
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                     >
                       {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
+                        <Icons.EyeOff className="h-4 w-4" />
                       ) : (
-                        <Eye className="h-4 w-4" />
+                        <Icons.Eye className="h-4 w-4" />
                       )}
                     </button>
                   )}

@@ -1,5 +1,5 @@
 import { cn } from "../../utils";
-import createContextFactory from "@/utils/context-factory";
+import createContextFactory from "@gnd/ui/utils/context-factory";
 import { useEffect, useRef, useState } from "react";
 import Portal from "./portal";
 

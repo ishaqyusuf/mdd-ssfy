@@ -1,5 +1,5 @@
-import { useDataSkeleton } from "@/hooks/use-data-skeleton";
-import { cn } from "@/utils";
+import { useDataSkeleton } from "@gnd/ui/hooks/use-data-skeleton";
+import { cn } from "@gnd/ui/utils";
 import { ComboboxDropdown, ComboboxProps } from "@gnd/ui/combobox-dropdown";
 import { FormControl, FormField, FormItem, FormLabel } from "@gnd/ui/form";
 import { Skeleton } from "@gnd/ui/skeleton";

@@ -1,20 +1,11 @@
-const bars = Array(12).fill(0);
+import { cn } from "@gnd/ui/utils"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { Loading03Icon } from "@hugeicons/core-free-icons"
 
-export const Spinner = ({ size = 16 }) => {
+function Spinner({ className, ...props }: React.ComponentProps<"svg">) {
   return (
-    <div className="loading-parent">
-      <div
-        className="loading-wrapper"
-        data-visible
-        // @ts-ignore
-        style={{ "--spinner-size": `${size}px` }}
-      >
-        <div className="spinner">
-          {bars.map((_, i) => (
-            <div className="loading-bar" key={`spinner-bar-${i.toString()}`} />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
+    <HugeiconsIcon icon={Loading03Icon} strokeWidth={2} role="status" aria-label="Loading" className={cn("size-4 animate-spin", className)} {...props} />
+  )
+}
+
+export { Spinner }

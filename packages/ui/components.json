@@ -11,13 +11,13 @@
   },
   "iconLibrary": "hugeicons",
   "aliases": {
-    "components": "@/components",
-    "utils": "@/utils",
-    "hooks": "@/hooks",
-    "lib": "@/lib",
-    "ui": "@/components"
+    "components": "@gnd/ui",
+    "utils": "@gnd/ui/utils",
+    "hooks": "@gnd/ui/hooks",
+    "lib": "@gnd/ui/utils",
+    "ui": "@gnd/ui"
   },
   "rtl": false,
-  "menuColor": "default-translucent",
+  "menuColor": "default",
   "menuAccent": "subtle"
 }

@@ -1,4 +1,3 @@
-import { Minus, Plus } from "lucide-react";
 import * as React from "react";
 import { cn } from "../utils";
 import { InputGroup } from "./namespace";
@@ -116,9 +115,8 @@ export function QuantityInput({
         type="button"
         tabIndex={-1}
       >
-        <Minus
+        <Icons.Minus
           className="size-2"
-          absoluteStrokeWidth
           strokeWidth={3.5}
           tabIndex={-1}
         />
@@ -153,9 +151,8 @@ export function QuantityInput({
         type="button"
         tabIndex={-1}
       >
-        <Plus
+        <Icons.Plus
           className="size-2"
-          absoluteStrokeWidth
           strokeWidth={3.5}
           tabIndex={-1}
         />

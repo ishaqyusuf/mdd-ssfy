@@ -1,6 +1,6 @@
 import { InputHTMLAttributes, useState } from "react";
-import { useDataSkeleton } from "@/hooks/use-data-skeleton";
-import { cn } from "@/utils";
+import { useDataSkeleton } from "@gnd/ui/hooks/use-data-skeleton";
+import { cn } from "@gnd/ui/utils";
 import { ControllerProps, FieldPath, FieldValues } from "react-hook-form";
 
 import { Button } from "@gnd/ui/button";
@@ -12,8 +12,8 @@ import { Textarea } from "@gnd/ui/textarea";
 import { NumericFormat, NumericFormatProps } from "react-number-format";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { formatDate } from "@gnd/utils/dayjs";
-import { Calendar, CalendarProps } from "@gnd/ui/calendar";
-import { CalendarIcon } from "lucide-react";
+import { Calendar } from "@gnd/ui/calendar";
+import { Icons } from "@gnd/ui/icons";
 
 interface Props<T> {
   label?: string;
@@ -26,7 +26,7 @@ interface Props<T> {
   prefix?: string;
   tabIndex?;
   format?;
-  calendarProps?: CalendarProps;
+  calendarProps?: React.ComponentProps<typeof Calendar>;
 }
 export default function FormDate<
   TFieldValues extends FieldValues = FieldValues,
@@ -85,18 +85,18 @@ export default function FormDate<
                     ) : (
                       <span>{placeholder || "Pick a date"}</span>
                     )}
-                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    <Icons.CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                   </Button>
                 </FormControl>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
-                  selected={field.value}
+                  selected={field.value as Date | undefined}
                   disabled={(date) => date < new Date("1900-01-01")}
                   initialFocus
-                  {...calendarProps}
+                  {...(calendarProps as any)}
                   mode="single"
-                  onSelect={(e) => {
+                  onSelect={(e: Date | undefined) => {
                     field.onChange(e);
                     setOpen(false);
                   }}

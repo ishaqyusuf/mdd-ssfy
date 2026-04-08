@@ -1,7 +1,6 @@
 "use client";
 
 import { Command as CommandPrimitive } from "cmdk";
-import { Loader2 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { cn } from "../utils";
 import {
@@ -29,7 +28,7 @@ type ComboboxProps = {
   classNameList?: string;
   autoFocus?: boolean;
   showIcon?: boolean;
-  CreateComponent?: React.ReactElement<{ value: string }>;
+  CreateComponent?: React.ComponentType<{ value: string }>;
 };
 
 export const Combobox = ({
@@ -105,7 +104,7 @@ export const Combobox = ({
         )}
 
         <CommandInput
-          ref={inputRef}
+          ref={inputRef as any}
           value={inputValue}
           onValueChange={handleOnValueChange}
           onBlur={handleBlur}
@@ -117,7 +116,7 @@ export const Combobox = ({
         />
 
         {isLoading && (
-          <Loader2 className="w-[16px] h-[16px] absolute right-2 animate-spin text-dark-gray" />
+          <Icons.Loader2 className="absolute right-2 h-[16px] w-[16px] animate-spin text-dark-gray" />
         )}
 
         {!isLoading && selected && onRemove && (

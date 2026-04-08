@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { Check } from "lucide-react";
 
 import {
   Command,
@@ -16,6 +15,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 
 import { cn } from "../utils";
+import { Icons } from "./icons";
 
 const FacetedFilter = Popover;
 
@@ -77,7 +77,7 @@ const FacetedFilterItem = React.forwardRef<
             : "opacity-50 [&_svg]:invisible",
         )}
       >
-        <Check className="size-4" />
+        <Icons.Check className="size-4" />
       </span>
       {children}
     </CommandItem>
