@@ -4,6 +4,7 @@ import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { AuthGuard } from "@/components/auth-guard";
 import { _perm } from "@/components/sidebar/links";
 import { _qc, _trpc } from "@/components/static-trpc";
+import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { openLink } from "@/lib/open-link";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
@@ -96,9 +97,11 @@ const installCost: Column = {
 	accessorKey: "installCost",
 	meta: {
 		className: "w-[140px]",
+		preventDefault: true,
 	},
 	cell: ({ row: { original: item } }) => {
 		const summary = item.installCostSummary;
+		const { setParams } = useCommunityInstallCostParams();
 		const statusClass =
 			summary?.status === "ready"
 				? "bg-emerald-50 text-emerald-700"
@@ -109,9 +112,19 @@ const installCost: Column = {
 						: "bg-rose-50 text-rose-700";
 
 		return (
-			<div
+			<button
+				type="button"
+				disabled={!item.template?.id}
+				onClick={() => {
+					if (!item.template?.id) return;
+					setParams({
+						editCommunityModelInstallCostId: item.template.id,
+						mode: "v2",
+						view: "template-list",
+					});
+				}}
 				className={cn(
-					"inline-flex items-center gap-2 rounded-md px-2 py-1",
+					"inline-flex items-center gap-2 rounded-md px-2 py-1 text-left transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60",
 					statusClass,
 				)}
 			>
@@ -127,7 +140,7 @@ const installCost: Column = {
 						? `${summary.configuredTasks}/${summary.totalTasks} tasks`
 						: "No tasks"}
 				</TCell.Secondary>
-			</div>
+			</button>
 		);
 	},
 };
@@ -136,16 +149,28 @@ const templateConfig: Column = {
 	accessorKey: "templateConfig",
 	meta: {
 		className: "w-[180px]",
+		preventDefault: true,
 	},
 	cell: ({ row: { original: item } }) => {
 		const summary = item.templateSummary;
+		const path =
+			item.template?.version === "v2" ? "model-template" : "community-template";
+		const href = item.template?.slug
+			? `/community/${path}/${item.template.slug.toLowerCase()}`
+			: null;
 		const statusClass =
 			summary?.status === "ready"
 				? "bg-emerald-50 text-emerald-700"
 				: "bg-rose-50 text-rose-700";
 
 		return (
-			<div className="inline-flex items-center gap-2">
+			<Link
+				href={href || "#"}
+				className={cn(
+					"inline-flex items-center gap-2 hover:opacity-90",
+					!href && "pointer-events-none opacity-60",
+				)}
+			>
 				<Badge
 					variant={item?.template?.version === "v1" ? "secondary" : "success"}
 					className="px-1 rounded-full text-xs font-semibold font-mono"
@@ -165,7 +190,7 @@ const templateConfig: Column = {
 						{summary?.status === "ready" ? "Configured" : "Missing"}
 					</TCell.Secondary>
 				</div>
-			</div>
+			</Link>
 		);
 	},
 };

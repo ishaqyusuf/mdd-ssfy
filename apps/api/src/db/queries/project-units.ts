@@ -1,8 +1,5 @@
 import type { TRPCContext } from "@api/trpc/init";
-import type {
-	CommunityPivotMeta,
-	CommunityTemplateMeta,
-} from "@community/types";
+import type { CommunityTemplateMeta } from "@community/types";
 import { getUnitProductionStatus, projectUnitsSelect } from "@community/utils";
 import type { Prisma } from "@gnd/db";
 import { transformFilterDateToQuery } from "@gnd/utils";
@@ -48,31 +45,6 @@ type ProjectUnitTemplate = Prisma.CommunityTemplateGetPayload<{
 	select: typeof projectUnitsSelect.communityTemplate.select;
 }>;
 
-function hasLegacyInstallCosting(value: unknown) {
-	if (!value || typeof value !== "object") return false;
-	return (
-		Object.values(value as Record<string, unknown>).filter((entry) => {
-			if (entry === null || entry === undefined || entry === "") return false;
-			const numericValue = Number(entry);
-			return Number.isFinite(numericValue) ? numericValue > 0 : true;
-		}).length >= 3
-	);
-}
-
-function sumLegacyInstallCostEstimate(value: unknown) {
-	if (!value || typeof value !== "object") return 0;
-
-	return +Object.values(value as Record<string, unknown>)
-		.reduce((sum, entry) => {
-			if (entry === null || entry === undefined || entry === "") return sum;
-			const numericValue = Number(entry);
-			return Number.isFinite(numericValue) && numericValue > 0
-				? sum + numericValue
-				: sum;
-		}, 0)
-		.toFixed(2);
-}
-
 function isConfiguredTemplateValue(value: unknown) {
 	if (value === null || value === undefined) return false;
 	if (typeof value === "string") return value.trim().length > 0;
@@ -112,63 +84,41 @@ function getInstallCostSummary(
 		};
 	}
 
-	const version = template.version || "v1";
-	if (version === "v2") {
-		const installableTasks = (template.project?.builder?.tasks || []).filter(
-			(task) => !!task.installable,
+	const installableTasks = (template.project?.builder?.tasks || []).filter(
+		(task) => !!task.installable,
+	);
+	const taskMap = new Map<number, number>();
+
+	for (const installTask of template.communityModelInstallTasks || []) {
+		if (!installTask.builderTaskId) continue;
+		const qty = Number(installTask.qty || 0);
+		const unitCost = Number(installTask.installCostModel?.unitCost || 0);
+		if (qty <= 0 || unitCost <= 0) continue;
+		const current = taskMap.get(installTask.builderTaskId) || 0;
+		taskMap.set(
+			installTask.builderTaskId,
+			+(current + qty * unitCost).toFixed(2),
 		);
-		const taskMap = new Map<number, number>();
-
-		for (const installTask of template.communityModelInstallTasks || []) {
-			if (!installTask.builderTaskId) continue;
-			const qty = Number(installTask.qty || 0);
-			const unitCost = Number(installTask.installCostModel?.unitCost || 0);
-			if (qty <= 0 || unitCost <= 0) continue;
-			const current = taskMap.get(installTask.builderTaskId) || 0;
-			taskMap.set(
-				installTask.builderTaskId,
-				+(current + qty * unitCost).toFixed(2),
-			);
-		}
-
-		const configuredTasks = taskMap.size;
-		const totalTasks = installableTasks.length;
-		const totalEstimate = +Array.from(taskMap.values())
-			.reduce((sum, value) => sum + value, 0)
-			.toFixed(2);
-
-		return {
-			status:
-				totalTasks === 0
-					? ("not-required" as const)
-					: configuredTasks >= totalTasks
-						? ("ready" as const)
-						: configuredTasks > 0
-							? ("partial" as const)
-							: ("missing" as const),
-			totalEstimate,
-			configuredTasks,
-			totalTasks,
-		};
 	}
 
-	const pivotInstallCost = (template.pivot?.meta as CommunityPivotMeta | null)
-		?.installCost;
-	const templateInstallCost = (template.meta as CommunityTemplateMeta | null)
-		?.installCosts?.[0]?.costings;
-	const isReady =
-		hasLegacyInstallCosting(pivotInstallCost) ||
-		hasLegacyInstallCosting(templateInstallCost);
-	const totalEstimate = Math.max(
-		sumLegacyInstallCostEstimate(pivotInstallCost),
-		sumLegacyInstallCostEstimate(templateInstallCost),
-	);
+	const configuredTasks = taskMap.size;
+	const totalTasks = installableTasks.length;
+	const totalEstimate = +Array.from(taskMap.values())
+		.reduce((sum, value) => sum + value, 0)
+		.toFixed(2);
 
 	return {
-		status: isReady ? ("ready" as const) : ("missing" as const),
+		status:
+			totalTasks === 0
+				? ("not-required" as const)
+				: configuredTasks >= totalTasks
+					? ("ready" as const)
+					: configuredTasks > 0
+						? ("partial" as const)
+						: ("missing" as const),
 		totalEstimate,
-		configuredTasks: isReady ? 1 : 0,
-		totalTasks: 1,
+		configuredTasks,
+		totalTasks,
 	};
 }
 
