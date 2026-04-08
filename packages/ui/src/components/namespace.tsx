@@ -357,7 +357,6 @@ import {
   NavigationMenuTrigger,
   NavigationMenuLink,
   NavigationMenuIndicator,
-  NavigationMenuViewport,
 } from "./navigation-menu";
 
 const NavigationMenu = Object.assign(NavigationMenuBase, {
@@ -367,7 +366,6 @@ const NavigationMenu = Object.assign(NavigationMenuBase, {
   Trigger: NavigationMenuTrigger,
   Link: NavigationMenuLink,
   Indicator: NavigationMenuIndicator,
-  Viewport: NavigationMenuViewport,
 });
 
 import {
