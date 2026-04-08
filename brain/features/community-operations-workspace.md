@@ -30,6 +30,7 @@
 - Project rows expose action menus for overview, units, edit, and archive toggles.
 - Supervisor is editable inline from the table via a popover editor.
 - Project and unit pages use card-based analytics and activity sections built from Community-specific tRPC summaries.
+- The project-units table exposes lightweight readiness columns for install cost and template configuration so operators can spot missing setup before entering the print flow.
 - Project overview activity content is organized inside the `components/widgets/project-overview` tabbed widget with Units, Production, Invoices, and Jobs panes.
 
 ## Operational Actions

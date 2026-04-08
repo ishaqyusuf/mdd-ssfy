@@ -1,4 +1,8 @@
 import type { TRPCContext } from "@api/trpc/init";
+import type {
+	CommunityPivotMeta,
+	CommunityTemplateMeta,
+} from "@community/types";
 import { getUnitProductionStatus, projectUnitsSelect } from "@community/utils";
 import type { Prisma } from "@gnd/db";
 import { transformFilterDateToQuery } from "@gnd/utils";
@@ -6,194 +10,343 @@ import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
 import { z } from "zod";
 export const invoiceFilter = [
-  //   "part paid",
-  //   "full paid",
-  "no payment",
-  "has payment",
+	//   "part paid",
+	//   "full paid",
+	"no payment",
+	"has payment",
 ] as const;
 export type INVOICE_TYPES = (typeof invoiceFilter)[number];
 
 export const communityProductionFilter = [
-  "started",
-  "queued",
-  "idle",
-  "completed",
-  "sort",
+	"started",
+	"queued",
+	"idle",
+	"completed",
+	"sort",
 ] as const;
 export type CommunityProductionFilter =
-  (typeof communityProductionFilter)[number];
+	(typeof communityProductionFilter)[number];
 export const communityInstllationFilters = [
-  "Submitted",
-  "No Submission",
+	"Submitted",
+	"No Submission",
 ] as const;
 export type CommunityInstllationFilters =
-  (typeof communityInstllationFilters)[number];
+	(typeof communityInstllationFilters)[number];
 export const getProjectUnitsSchema = z
-  .object({
-    builderSlug: z.string().optional().nullable(),
-    projectSlug: z.string().optional().nullable(),
-    production: z.enum(communityProductionFilter).optional().nullable(),
-    invoice: z.enum(invoiceFilter).optional().nullable(),
-    installation: z.enum(communityInstllationFilters).optional().nullable(),
-    dateRange: z.array(z.string().optional().nullable()).optional().nullable(),
-  })
-  .extend(paginationSchema.shape);
+	.object({
+		builderSlug: z.string().optional().nullable(),
+		projectSlug: z.string().optional().nullable(),
+		production: z.enum(communityProductionFilter).optional().nullable(),
+		invoice: z.enum(invoiceFilter).optional().nullable(),
+		installation: z.enum(communityInstllationFilters).optional().nullable(),
+		dateRange: z.array(z.string().optional().nullable()).optional().nullable(),
+	})
+	.extend(paginationSchema.shape);
 export type GetProjectUnitsSchema = z.infer<typeof getProjectUnitsSchema>;
 
-export async function getProjectUnits(
-  ctx: TRPCContext,
-  query: GetProjectUnitsSchema
+type ProjectUnitTemplate = Prisma.CommunityTemplateGetPayload<{
+	select: typeof projectUnitsSelect.communityTemplate.select;
+}>;
+
+function hasLegacyInstallCosting(value: unknown) {
+	if (!value || typeof value !== "object") return false;
+	return (
+		Object.values(value as Record<string, unknown>).filter((entry) => {
+			if (entry === null || entry === undefined || entry === "") return false;
+			const numericValue = Number(entry);
+			return Number.isFinite(numericValue) ? numericValue > 0 : true;
+		}).length >= 3
+	);
+}
+
+function sumLegacyInstallCostEstimate(value: unknown) {
+	if (!value || typeof value !== "object") return 0;
+
+	return +Object.values(value as Record<string, unknown>)
+		.reduce((sum, entry) => {
+			if (entry === null || entry === undefined || entry === "") return sum;
+			const numericValue = Number(entry);
+			return Number.isFinite(numericValue) && numericValue > 0
+				? sum + numericValue
+				: sum;
+		}, 0)
+		.toFixed(2);
+}
+
+function isConfiguredTemplateValue(value: unknown) {
+	if (value === null || value === undefined) return false;
+	if (typeof value === "string") return value.trim().length > 0;
+	if (typeof value === "number") return value > 0;
+	if (typeof value === "boolean") return value;
+	if (Array.isArray(value)) return value.length > 0;
+	return true;
+}
+
+function countConfiguredDesignValues(value: unknown): number {
+	if (value === null || value === undefined) return 0;
+	if (Array.isArray(value)) {
+		return value.reduce(
+			(sum, entry) => sum + countConfiguredDesignValues(entry),
+			0,
+		);
+	}
+	if (typeof value === "object") {
+		return Object.values(value as Record<string, unknown>).reduce(
+			(sum, entry) => sum + countConfiguredDesignValues(entry),
+			0,
+		);
+	}
+
+	return isConfiguredTemplateValue(value) ? 1 : 0;
+}
+
+function getInstallCostSummary(
+	template: ProjectUnitTemplate | null | undefined,
 ) {
-  const { db } = ctx;
-  const model = db.homes;
-  const { response, searchMeta, where } = await composeQueryData(
-    query,
-    whereProjectUnits(query),
-    model,
-    {
-      sortFn,
-    }
-  );
+	if (!template?.id) {
+		return {
+			status: "missing" as const,
+			totalEstimate: 0,
+			configuredTasks: 0,
+			totalTasks: 0,
+		};
+	}
 
-  const data = await model.findMany({
-    where,
-    ...searchMeta,
+	const version = template.version || "v1";
+	if (version === "v2") {
+		const installableTasks = (template.project?.builder?.tasks || []).filter(
+			(task) => !!task.installable,
+		);
+		const taskMap = new Map<number, number>();
 
-    select: projectUnitsSelect,
-  });
+		for (const installTask of template.communityModelInstallTasks || []) {
+			if (!installTask.builderTaskId) continue;
+			const qty = Number(installTask.qty || 0);
+			const unitCost = Number(installTask.installCostModel?.unitCost || 0);
+			if (qty <= 0 || unitCost <= 0) continue;
+			const current = taskMap.get(installTask.builderTaskId) || 0;
+			taskMap.set(
+				installTask.builderTaskId,
+				+(current + qty * unitCost).toFixed(2),
+			);
+		}
 
-  return await response(
-    data.map((d) => {
-      const { tasks, _count, communityTemplate, ...unitData } = d;
-      const production = getUnitProductionStatus(d);
+		const configuredTasks = taskMap.size;
+		const totalTasks = installableTasks.length;
+		const totalEstimate = +Array.from(taskMap.values())
+			.reduce((sum, value) => sum + value, 0)
+			.toFixed(2);
 
-      return {
-        ...unitData,
-        jobCount: _count?.jobs,
-        production,
-        template: {
-          ...communityTemplate,
-          version: (communityTemplate?.version || "v1") as "v1" | "v2",
-        },
-      };
-    })
-  );
+		return {
+			status:
+				totalTasks === 0
+					? ("not-required" as const)
+					: configuredTasks >= totalTasks
+						? ("ready" as const)
+						: configuredTasks > 0
+							? ("partial" as const)
+							: ("missing" as const),
+			totalEstimate,
+			configuredTasks,
+			totalTasks,
+		};
+	}
+
+	const pivotInstallCost = (template.pivot?.meta as CommunityPivotMeta | null)
+		?.installCost;
+	const templateInstallCost = (template.meta as CommunityTemplateMeta | null)
+		?.installCosts?.[0]?.costings;
+	const isReady =
+		hasLegacyInstallCosting(pivotInstallCost) ||
+		hasLegacyInstallCosting(templateInstallCost);
+	const totalEstimate = Math.max(
+		sumLegacyInstallCostEstimate(pivotInstallCost),
+		sumLegacyInstallCostEstimate(templateInstallCost),
+	);
+
+	return {
+		status: isReady ? ("ready" as const) : ("missing" as const),
+		totalEstimate,
+		configuredTasks: isReady ? 1 : 0,
+		totalTasks: 1,
+	};
+}
+
+function getTemplateSummary(template: ProjectUnitTemplate | null | undefined) {
+	if (!template?.id) {
+		return {
+			status: "missing" as const,
+			configuredCount: 0,
+		};
+	}
+
+	const design = (template.meta as CommunityTemplateMeta | null)?.design;
+	const configuredCount = countConfiguredDesignValues(design);
+
+	return {
+		status: configuredCount > 0 ? ("ready" as const) : ("missing" as const),
+		configuredCount,
+	};
+}
+
+export async function getProjectUnits(
+	ctx: TRPCContext,
+	query: GetProjectUnitsSchema,
+) {
+	const { db } = ctx;
+	const model = db.homes;
+	const { response, searchMeta, where } = await composeQueryData(
+		query,
+		whereProjectUnits(query),
+		model,
+		{
+			sortFn,
+		},
+	);
+
+	const data = await model.findMany({
+		where,
+		...searchMeta,
+
+		select: projectUnitsSelect,
+	});
+
+	return await response(
+		data.map((d) => {
+			const { tasks, _count, communityTemplate, ...unitData } = d;
+			const production = getUnitProductionStatus(d);
+			const installCostSummary = getInstallCostSummary(communityTemplate);
+			const templateSummary = getTemplateSummary(communityTemplate);
+
+			return {
+				...unitData,
+				jobCount: _count?.jobs,
+				production,
+				installCostSummary,
+				templateSummary,
+				template: {
+					...communityTemplate,
+					version: (communityTemplate?.version || "v1") as "v1" | "v2",
+				},
+			};
+		}),
+	);
 }
 function sortFn(
-  sort,
-  sortOrder
+	sort,
+	sortOrder,
 ):
-  | Prisma.HomesOrderByWithRelationInput
-  | Prisma.HomesOrderByWithRelationInput[]
-  | undefined {
-  switch (sort) {
-    case "project":
-      return {
-        project: {
-          title: sortOrder || "asc",
-        },
-      };
-    case "date":
-      return {
-        createdAt: sortOrder || "desc",
-      };
-    case "lotBlock":
-      return [
-        {
-          lot: sortOrder || "asc",
-        },
-        {
-          block: sortOrder || "asc",
-        },
-      ];
-  }
+	| Prisma.HomesOrderByWithRelationInput
+	| Prisma.HomesOrderByWithRelationInput[]
+	| undefined {
+	switch (sort) {
+		case "project":
+			return {
+				project: {
+					title: sortOrder || "asc",
+				},
+			};
+		case "date":
+			return {
+				createdAt: sortOrder || "desc",
+			};
+		case "lotBlock":
+			return [
+				{
+					lot: sortOrder || "asc",
+				},
+				{
+					block: sortOrder || "asc",
+				},
+			];
+	}
 
-  return undefined;
+	return undefined;
 }
 export function whereProjectUnits(query: Partial<GetProjectUnitsSchema>) {
-  const where: Prisma.HomesWhereInput[] = [];
-  for (const [k, v] of Object.entries(query)) {
-    if (!v) continue;
+	const where: Prisma.HomesWhereInput[] = [];
+	for (const [k, v] of Object.entries(query)) {
+		if (!v) continue;
 
-    const value = v as any;
-    switch (k as keyof GetProjectUnitsSchema) {
-      case "q":
-        const q = { contains: v as string };
-        where.push({
-          OR: [
-            {
-              search: q,
-            },
-            {
-              modelName: q,
-            },
-          ],
-        });
-        break;
-      case "projectSlug":
-        where.push({
-          project: {
-            slug: value,
-          },
-        });
-        break;
-      case "builderSlug":
-        where.push({
-          project: {
-            builder: {
-              slug: value,
-            },
-          },
-        });
-        break;
-      case "invoice":
-        switch (query.invoice) {
-          case "has payment":
-            where.push({
-              tasks: {
-                some: {
-                  taskUid: {
-                    not: null,
-                  },
-                  amountPaid: {
-                    gt: 0,
-                  },
-                },
-              },
-            });
-            break;
-          case "no payment":
-            where.push({
-              tasks: {
-                every: {
-                  taskUid: {
-                    not: null,
-                  },
-                  OR: [
-                    {
-                      amountPaid: {
-                        equals: 0,
-                      },
-                    },
-                    {
-                      amountPaid: null,
-                    },
-                    {
-                      amountPaid: undefined,
-                    },
-                  ],
-                },
-              },
-            });
-            break;
-        }
-        break;
-      case "dateRange":
-        where.push({
-          createdAt: transformFilterDateToQuery(query.dateRange),
-        });
-        break;
-    }
-  }
-  return composeQuery(where);
+		switch (k as keyof GetProjectUnitsSchema) {
+			case "q": {
+				const q = { contains: v as string };
+				where.push({
+					OR: [
+						{
+							search: q,
+						},
+						{
+							modelName: q,
+						},
+					],
+				});
+				break;
+			}
+			case "projectSlug":
+				where.push({
+					project: {
+						slug: v as string,
+					},
+				});
+				break;
+			case "builderSlug":
+				where.push({
+					project: {
+						builder: {
+							slug: v as string,
+						},
+					},
+				});
+				break;
+			case "invoice":
+				switch (query.invoice) {
+					case "has payment":
+						where.push({
+							tasks: {
+								some: {
+									taskUid: {
+										not: null,
+									},
+									amountPaid: {
+										gt: 0,
+									},
+								},
+							},
+						});
+						break;
+					case "no payment":
+						where.push({
+							tasks: {
+								every: {
+									taskUid: {
+										not: null,
+									},
+									OR: [
+										{
+											amountPaid: {
+												equals: 0,
+											},
+										},
+										{
+											amountPaid: null,
+										},
+										{
+											amountPaid: undefined,
+										},
+									],
+								},
+							},
+						});
+						break;
+				}
+				break;
+			case "dateRange":
+				where.push({
+					createdAt: transformFilterDateToQuery(query.dateRange),
+				});
+				break;
+		}
+	}
+	return composeQuery(where);
 }

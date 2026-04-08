@@ -46,6 +46,48 @@ export const projectUnitsSelect = {
       slug: true,
       version: true,
       id: true,
+      meta: true,
+      pivot: {
+        select: {
+          meta: true,
+        },
+      },
+      project: {
+        select: {
+          builder: {
+            select: {
+              tasks: {
+                select: {
+                  id: true,
+                  taskName: true,
+                  installable: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      templateValues: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          value: true,
+          inventoryId: true,
+        },
+      },
+      communityModelInstallTasks: {
+        select: {
+          builderTaskId: true,
+          qty: true,
+          installCostModel: {
+            select: {
+              unitCost: true,
+            },
+          },
+        },
+      },
     },
   },
   project: {

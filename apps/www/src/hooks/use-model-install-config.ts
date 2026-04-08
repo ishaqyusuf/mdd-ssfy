@@ -4,6 +4,14 @@ import { useCommunityInstallCostParams } from "./use-community-install-cost-para
 import { useTRPC } from "@/trpc/client";
 import { _trpc } from "@/components/static-trpc";
 
+const zeroCacheQueryOptions = {
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always" as const,
+    refetchOnReconnect: "always" as const,
+    refetchOnWindowFocus: true,
+};
+
 type ModelInstallConfigContextProps = ReturnType<
     typeof useCreateModelInstallConfigContext
 >;
@@ -27,6 +35,7 @@ export const useCreateModelInstallConfigContext = () => {
             },
             {
                 enabled: !!editCommunityModelInstallCostId && !isV2,
+                ...zeroCacheQueryOptions,
             },
         ),
     );
@@ -41,6 +50,7 @@ export const useCreateModelInstallConfigContext = () => {
             },
             {
                 enabled: !!editCommunityModelInstallCostId && isV2,
+                ...zeroCacheQueryOptions,
             },
         ),
     );
@@ -108,6 +118,7 @@ export const useCreateBuilderModelInstallsContext = (
                 enabled:
                     !!params.selectedBuilderTaskId &&
                     !!params.editCommunityModelInstallCostId,
+                ...zeroCacheQueryOptions,
             },
         ),
     );
@@ -156,4 +167,3 @@ export const useBuilderModelInstallsContext = () => {
     }
     return context;
 };
-

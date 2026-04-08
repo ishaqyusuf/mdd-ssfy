@@ -2,6 +2,7 @@
 
 import { useProjectUnitFilterParams } from "@/hooks/use-project-units-filter-params";
 import { useSortParams } from "@/hooks/use-sort-params";
+import { useProjectUnitsStore } from "@/store/project-units";
 import { useTRPC } from "@/trpc/client";
 import type { GetProjectUnitsSchema } from "@api/db/queries/project-units";
 import { Button } from "@gnd/ui/button";
@@ -23,7 +24,7 @@ interface Props {
 }
 export function DataTable(props: Props) {
 	const trpc = useTRPC();
-	// const { rowSelection, setRowSelection } = useProjectUnitStore();
+	const { rowSelection, setRowSelection } = useProjectUnitsStore();
 	const { filters, hasFilters, setFilters } = useProjectUnitFilterParams();
 	const { params, setParams } = useSortParams();
 	const router = useRouter();
@@ -81,6 +82,8 @@ export function DataTable(props: Props) {
 					},
 					tableScroll,
 					checkbox: true,
+					rowSelection,
+					setRowSelection,
 					tableMeta: {
 						rowClick(id, rowData) {
 							router.push(`/community/project-units/${rowData.slug}`);

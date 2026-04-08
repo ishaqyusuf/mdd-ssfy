@@ -10,6 +10,7 @@ import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 import { ConfirmBtn } from "@gnd/ui/confirm-button";
+import { cells } from "@gnd/ui/custom/data-table/cells";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Progress } from "@gnd/ui/custom/progress";
 import { toast } from "@gnd/ui/use-toast";
@@ -28,7 +29,7 @@ type Column = ColumnDef<Item>;
 const column1: Column = {
 	header: "Date",
 	accessorKey: "header",
-	meta: { sortable: true },
+	meta: { sortable: true, className: "w-[110px]" },
 	cell: ({ row: { original: item } }) => (
 		<>
 			{/* <TCell.Primary>#{item.id}</TCell.Primary> */}
@@ -54,6 +55,7 @@ const lotBlock: Column = {
 	meta: {
 		preventDefault: true,
 		sortable: true,
+		className: "w-[150px]",
 	},
 	cell: ({ row: { original: item } }) => {
 		const path =
@@ -67,17 +69,7 @@ const lotBlock: Column = {
 				}
 				className="hover:underline relative"
 			>
-				<TCell.Primary>
-					{item.lotBlock}
-					<Badge
-						variant={item?.template?.version === "v1" ? "secondary" : "success"}
-						className={cn(
-							"px-1 rounded-full text-xs font-semibold absolute -left-10 top-4 font-mono",
-						)}
-					>
-						{item?.template?.version}
-					</Badge>
-				</TCell.Primary>
+				<TCell.Primary>{item.lotBlock}</TCell.Primary>
 				<TCell.Secondary>{item.modelName}</TCell.Secondary>
 			</Link>
 		);
@@ -86,7 +78,9 @@ const lotBlock: Column = {
 const production: Column = {
 	header: "Production",
 	accessorKey: "production",
-	meta: {},
+	meta: {
+		className: "w-[120px]",
+	},
 	cell: ({ row: { original: item } }) => (
 		<div className="w-16">
 			{/* {home.} */}
@@ -97,11 +91,90 @@ const production: Column = {
 		</div>
 	),
 };
+const installCost: Column = {
+	header: "Install Cost",
+	accessorKey: "installCost",
+	meta: {
+		className: "w-[140px]",
+	},
+	cell: ({ row: { original: item } }) => {
+		const summary = item.installCostSummary;
+		const statusClass =
+			summary?.status === "ready"
+				? "bg-emerald-50 text-emerald-700"
+				: summary?.status === "partial"
+					? "bg-amber-50 text-amber-700"
+					: summary?.status === "not-required"
+						? "bg-slate-50 text-slate-600"
+						: "bg-rose-50 text-rose-700";
+
+		return (
+			<div
+				className={cn(
+					"inline-flex items-center gap-2 rounded-md px-2 py-1",
+					statusClass,
+				)}
+			>
+				<TCell.Primary className="font-semibold whitespace-nowrap">
+					{summary?.totalEstimate
+						? `$${summary.totalEstimate.toFixed(0)}`
+						: summary?.status === "not-required"
+							? "N/A"
+							: "$0"}
+				</TCell.Primary>
+				<TCell.Secondary className="whitespace-nowrap">
+					{summary?.totalTasks
+						? `${summary.configuredTasks}/${summary.totalTasks} tasks`
+						: "No tasks"}
+				</TCell.Secondary>
+			</div>
+		);
+	},
+};
+const templateConfig: Column = {
+	header: "Template",
+	accessorKey: "templateConfig",
+	meta: {
+		className: "w-[180px]",
+	},
+	cell: ({ row: { original: item } }) => {
+		const summary = item.templateSummary;
+		const statusClass =
+			summary?.status === "ready"
+				? "bg-emerald-50 text-emerald-700"
+				: "bg-rose-50 text-rose-700";
+
+		return (
+			<div className="inline-flex items-center gap-2">
+				<Badge
+					variant={item?.template?.version === "v1" ? "secondary" : "success"}
+					className="px-1 rounded-full text-xs font-semibold font-mono"
+				>
+					{item?.template?.version || "n/a"}
+				</Badge>
+				<div
+					className={cn(
+						"inline-flex items-center gap-2 rounded-md px-2 py-1",
+						statusClass,
+					)}
+				>
+					<TCell.Primary className="font-semibold whitespace-nowrap">
+						{summary?.configuredCount || 0} configs
+					</TCell.Primary>
+					<TCell.Secondary className="whitespace-nowrap">
+						{summary?.status === "ready" ? "Configured" : "Missing"}
+					</TCell.Secondary>
+				</div>
+			</div>
+		);
+	},
+};
 const installation: Column = {
 	header: "Installation",
 	accessorKey: "installation",
 	meta: {
 		preventDefault: true,
+		className: "w-[120px]",
 	},
 	cell: ({ row: { original: item } }) => (
 		<>
@@ -139,17 +212,23 @@ const actionColumn: Column = {
 };
 
 export const columns: Column[] = [
+	cells.selectColumn,
 	column1,
 	projectColumn,
 	lotBlock,
+	templateConfig,
+	installCost,
 	production,
 	installation,
 	actionColumn,
 ];
 
 export const projectTabColumns: Column[] = [
+	cells.selectColumn,
 	column1,
 	lotBlock,
+	templateConfig,
+	installCost,
 	production,
 	installation,
 	actionColumn,
