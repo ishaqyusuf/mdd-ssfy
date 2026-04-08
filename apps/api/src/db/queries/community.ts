@@ -2285,18 +2285,6 @@ export type SendProjectUnitsToProductionSchema = z.infer<
   typeof sendProjectUnitsToProductionSchema
 >;
 
-function hasLegacyInstallCosting(value: unknown) {
-  if (!value || typeof value !== "object") return false;
-  const configuredValues = Object.values(value as Record<string, unknown>).filter(
-    (entry) => {
-      if (entry === null || entry === undefined || entry === "") return false;
-      const numericValue = Number(entry);
-      return Number.isFinite(numericValue) ? numericValue > 0 : true;
-    },
-  );
-  return configuredValues.length >= 3;
-}
-
 function getProjectUnitPrintKey(projectId?: number | null, modelName?: string | null) {
   return `${projectId || "unknown"}::${String(modelName || "").trim().toLowerCase()}`;
 }
@@ -2309,8 +2297,6 @@ function getInstallCostPreflight(
   resolvedTemplate: {
     id: number;
     version: string | null;
-    meta?: unknown;
-    pivot?: { meta?: unknown } | null;
     communityModelInstallTasks?: Array<{
       builderTaskId: number | null;
       qty: number | null;
@@ -2335,60 +2321,41 @@ function getInstallCostPreflight(
     };
   }
 
-  const version = (resolvedTemplate.version || "v1").toLowerCase();
-  if (version === "v2") {
-    const installableTasks = (resolvedTemplate.project?.builder?.tasks || []).filter(
-      (task) => !!task.installable,
-    );
-    if (!installableTasks.length) {
-      return {
-        status: "not-required" as const,
-        reason: null,
-      };
-    }
-
-    const configuredTaskIds = new Set(
-      (resolvedTemplate.communityModelInstallTasks || [])
-        .filter((task) => {
-          const qty = Number(task.qty || 0);
-          const unitCost = Number(task.installCostModel?.unitCost || 0);
-          return !!task.builderTaskId && qty > 0 && unitCost > 0;
-        })
-        .map((task) => task.builderTaskId as number),
-    );
-
-    const missingTaskCount = installableTasks.filter(
-      (task) => !configuredTaskIds.has(task.id),
-    ).length;
-
-    return missingTaskCount === 0
-      ? {
-          status: "ready" as const,
-          reason: null,
-        }
-      : {
-          status: "missing" as const,
-          reason:
-            missingTaskCount === 1
-              ? "1 builder task is missing install-cost setup."
-              : `${missingTaskCount} builder tasks are missing install-cost setup.`,
-        };
+  const installableTasks = (resolvedTemplate.project?.builder?.tasks || []).filter(
+    (task) => !!task.installable,
+  );
+  if (!installableTasks.length) {
+    return {
+      status: "not-required" as const,
+      reason: null,
+    };
   }
 
-  const pivotInstallCost = (resolvedTemplate.pivot?.meta as CommunityPivotMeta | null)
-    ?.installCost;
-  const templateInstallCost = (resolvedTemplate.meta as CommunityTemplateMeta | null)
-    ?.installCosts?.[0]?.costings;
+  const configuredTaskIds = new Set(
+    (resolvedTemplate.communityModelInstallTasks || [])
+      .filter((task) => {
+        const qty = Number(task.qty || 0);
+        const unitCost = Number(task.installCostModel?.unitCost || 0);
+        return !!task.builderTaskId && qty > 0 && unitCost > 0;
+      })
+      .map((task) => task.builderTaskId as number),
+  );
 
-  return hasLegacyInstallCosting(pivotInstallCost) ||
-    hasLegacyInstallCosting(templateInstallCost)
+  const missingTaskCount = installableTasks.filter(
+    (task) => !configuredTaskIds.has(task.id),
+  ).length;
+
+  return missingTaskCount === 0
     ? {
         status: "ready" as const,
         reason: null,
       }
     : {
         status: "missing" as const,
-        reason: "Legacy install costs are not configured yet.",
+        reason:
+          missingTaskCount === 1
+            ? "1 builder task is missing install-cost setup."
+            : `${missingTaskCount} builder tasks are missing install-cost setup.`,
       };
 }
 
@@ -2415,12 +2382,6 @@ export async function getProjectUnitPrintPreflight(
           id: true,
           slug: true,
           version: true,
-          meta: true,
-          pivot: {
-            select: {
-              meta: true,
-            },
-          },
           project: {
             select: {
               builder: {
@@ -2456,6 +2417,17 @@ export async function getProjectUnitPrintPreflight(
               name: true,
             },
           },
+        },
+      },
+      tasks: {
+        where: {
+          produceable: true,
+        },
+        select: {
+          producedAt: true,
+          prodStartedAt: true,
+          sentToProductionAt: true,
+          productionStatus: true,
         },
       },
     },
@@ -2559,6 +2531,11 @@ export async function getProjectUnitPrintPreflight(
       null;
     const hasTemplate = !!resolvedTemplate?.id;
     const installCost = getInstallCostPreflight(resolvedTemplate);
+    const activeProductionTasks = (unit.tasks || []).filter((task) => {
+      const state = getProductionState(task);
+      return state === "Queued" || state === "Started" || state === "Completed";
+    });
+    const hasProductionActive = activeProductionTasks.length > 0;
     const blockingReasons: string[] = [];
 
     if (!hasTemplate) {
@@ -2610,6 +2587,7 @@ export async function getProjectUnitPrintPreflight(
       hasTemplate,
       installCostStatus: installCost.status,
       installCostReason: installCost.reason,
+      hasProductionActive,
       blockingReasons,
       isReady: hasTemplate && installCost.status !== "missing",
       label: getUnitLabel(unit),
@@ -2624,6 +2602,8 @@ export async function getProjectUnitPrintPreflight(
     summary: {
       totalUnits: preflightUnits.length,
       readyUnits: readyUnitIds.length,
+      productionActiveUnits: preflightUnits.filter((unit) => unit.hasProductionActive)
+        .length,
       missingInstallCostUnits: preflightUnits.filter(
         (unit) => unit.installCostStatus === "missing",
       ).length,

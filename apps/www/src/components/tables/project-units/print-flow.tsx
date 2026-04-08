@@ -4,7 +4,6 @@ import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cos
 import { openLink } from "@/lib/open-link";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
-import { Checkbox } from "@gnd/ui/checkbox";
 import { cn } from "@gnd/ui/cn";
 import {
 	Dialog,
@@ -20,6 +19,7 @@ import {
 	CheckCircle2,
 	Loader2,
 	Printer,
+	Send,
 	Wrench,
 } from "lucide-react";
 import {
@@ -80,8 +80,6 @@ export function ProjectUnitsPrintFlowProvider(props: { children: ReactNode }) {
 	const [selectedUnits, setSelectedUnits] = useState<PrintableUnit[]>([]);
 	const [progressOpen, setProgressOpen] = useState(false);
 	const [pendingOpen, setPendingOpen] = useState(false);
-	const [sendToProductionAfterPrint, setSendToProductionAfterPrint] =
-		useState(false);
 
 	const selectedUnitIds = useMemo(
 		() => selectedUnits.map((unit) => unit.id),
@@ -118,7 +116,6 @@ export function ProjectUnitsPrintFlowProvider(props: { children: ReactNode }) {
 
 	const startPrint = (units: PrintableUnit[]) => {
 		setSelectedUnits(units);
-		setSendToProductionAfterPrint(false);
 		setPendingOpen(false);
 		setProgressOpen(true);
 	};
@@ -135,18 +132,31 @@ export function ProjectUnitsPrintFlowProvider(props: { children: ReactNode }) {
 				},
 				true,
 			);
-
-			if (sendToProductionAfterPrint) {
-				await sendToProductionMutation.mutateAsync({
-					unitIds: readyUnitIds,
-					dueDate: null,
-				});
-				toast.success("Selected units were sent to production.");
-			}
-
-			setProgressOpen(false);
 		} catch (error) {
 			toast.error("Unable to complete the print workflow.");
+		}
+	};
+
+	const handleSendToProduction = async () => {
+		if (!preflightQuery.data) return;
+		const eligibleUnitIds = preflightQuery.data.units
+			.filter((unit) => unit.isReady && !unit.hasProductionActive)
+			.map((unit) => unit.id);
+
+		if (!eligibleUnitIds.length) {
+			toast.error("All selected ready units are already active in production.");
+			return;
+		}
+
+		try {
+			await sendToProductionMutation.mutateAsync({
+				unitIds: eligibleUnitIds,
+				dueDate: null,
+			});
+			toast.success("Eligible selected units were sent to production.");
+			await preflightQuery.refetch();
+		} catch (error) {
+			toast.error("Unable to send selected units to production.");
 		}
 	};
 
@@ -257,15 +267,18 @@ export function ProjectUnitsPrintFlowProvider(props: { children: ReactNode }) {
 
 					{preflightQuery.data && isReadyToPrint ? (
 						<div className="rounded-xl border bg-slate-50 px-4 py-3">
-							<div className="flex items-center gap-3 text-sm font-medium">
-								<Checkbox
-									checked={sendToProductionAfterPrint}
-									onCheckedChange={(checked) => {
-										setSendToProductionAfterPrint(checked === true);
-									}}
-								/>
-								<span>Send to production after print</span>
-							</div>
+							<p className="text-sm font-medium">Ready actions</p>
+							<p className="mt-2 text-xs text-muted-foreground">
+								Print opens the print page and keeps this modal open. Use the
+								production button separately when you are ready.
+							</p>
+							{preflightQuery.data.summary.productionActiveUnits ? (
+								<p className="mt-2 text-xs text-amber-700">
+									{preflightQuery.data.summary.productionActiveUnits} selected
+									units are already active in production and will be skipped by
+									the production action.
+								</p>
+							) : null}
 						</div>
 					) : null}
 
@@ -282,14 +295,29 @@ export function ProjectUnitsPrintFlowProvider(props: { children: ReactNode }) {
 							</Button>
 						) : null}
 						{preflightQuery.data && isReadyToPrint ? (
-							<Button
-								type="button"
-								onClick={() => void handleConfirmPrint()}
-								disabled={sendToProductionMutation.isPending}
-							>
-								<Printer className="mr-2 size-4" />
-								Print
-							</Button>
+							<>
+								<Button
+									type="button"
+									variant="outline"
+									onClick={() => void handleConfirmPrint()}
+								>
+									<Printer className="mr-2 size-4" />
+									Print
+								</Button>
+								<Button
+									type="button"
+									onClick={() => void handleSendToProduction()}
+									disabled={
+										sendToProductionMutation.isPending ||
+										preflightQuery.data.units.filter(
+											(unit) => unit.isReady && !unit.hasProductionActive,
+										).length === 0
+									}
+								>
+									<Send className="mr-2 size-4" />
+									Production
+								</Button>
+							</>
 						) : null}
 					</DialogFooter>
 				</DialogContent>
@@ -327,7 +355,7 @@ export function ProjectUnitsPrintFlowProvider(props: { children: ReactNode }) {
 										onClick={() => {
 											setInstallCostParams({
 												editCommunityModelInstallCostId: entry.modelId,
-												mode: entry.templateVersion === "v2" ? "v2" : "v1",
+												mode: "v2",
 											});
 										}}
 									>

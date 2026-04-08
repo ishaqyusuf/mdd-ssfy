@@ -9,29 +9,30 @@ import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { Suspense } from "react";
 
 export async function generateMetadata() {
-	return constructMetadata({
-		title: "Contractor Payout Print | GND",
-	});
+    return constructMetadata({
+        title: "Contractor Payout Print | GND",
+    });
 }
 
 export default async function Page(props) {
-	const searchParams = await props.searchParams;
-	const filter = loadContractorPayoutPrintFilterParams(searchParams);
+    const searchParams = await props.searchParams;
+    const filter = loadContractorPayoutPrintFilterParams(searchParams);
 
-	batchPrefetch([
-		trpc.print.contractorPayouts.queryOptions({
-			token: filter.token ?? "",
-			preview: filter.preview ?? false,
-		}),
-	]);
+    batchPrefetch([
+        trpc.print.contractorPayouts.queryOptions({
+            token: filter.token ?? "",
+            preview: filter.preview ?? false,
+        }),
+    ]);
 
-	return (
-		<PageShell>
-			<ErrorBoundary errorComponent={ErrorFallback}>
-				<Suspense fallback={<PrintLoading />}>
-					<PrintContractorPayouts />
-				</Suspense>
-			</ErrorBoundary>
-		</PageShell>
-	);
+    return (
+        <>
+            <ErrorBoundary errorComponent={ErrorFallback}>
+                <Suspense fallback={<PrintLoading />}>
+                    <PrintContractorPayouts />
+                </Suspense>
+            </ErrorBoundary>
+        </>
+    );
 }
+
