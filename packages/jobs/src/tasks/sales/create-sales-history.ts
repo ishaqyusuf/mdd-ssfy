@@ -1,4 +1,4 @@
-import { createSalesHistorySchemaTask, TaskName } from "@jobs/schema";
+import { createSalesHistorySchemaTask, TaskName } from "../../schema";
 import { schemaTask } from "@trigger.dev/sdk/v3";
 import { copySales } from "@sales/copy-sales";
 import { createNoteAction } from "@notifications/note";

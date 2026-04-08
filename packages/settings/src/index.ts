@@ -4,6 +4,7 @@ export const SETTINGS_TYPE = [
   "sales-settings",
   "install-price-chart",
   "jobs-settings",
+  "unit-invoice-sweeper-settings",
   "task-events-settings",
   //   "allow-custom-jobs",
 ] as const;

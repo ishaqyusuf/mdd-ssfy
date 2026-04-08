@@ -17,6 +17,7 @@
     "@gnd/db": "workspace:*",
     "@gnd/utils": "workspace:*",
     "@gnd/notifications": "workspace:*",
+    "@gnd/community": "workspace:*",
     "@gnd/sales": "workspace:*",
     "@gnd/settings": "workspace:*",
     "@sindresorhus/slugify": "^2.2.1",

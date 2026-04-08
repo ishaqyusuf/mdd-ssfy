@@ -4,12 +4,22 @@ import { useUnitInvoiceParams } from "@/hooks/use-unit-invoice-params";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
 import { Skeleton } from "@gnd/ui/skeleton";
+import { useMutation } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import { UnitInvoiceForm } from "../forms/unit-invoice-form";
 import { CustomModal } from "./custom-modal";
 
 export function UnitInvoiceModal() {
   const { editUnitInvoiceId, setParams } = useUnitInvoiceParams();
   const trpc = useTRPC();
+  const lastTriggeredHomeIdRef = useRef<number | null>(null);
+  const sweepTrigger = useMutation(
+    trpc.taskTrigger.trigger.mutationOptions({
+      onError: () => {
+        lastTriggeredHomeIdRef.current = null;
+      },
+    }),
+  );
   const { data, isPending } = useQuery(
     trpc.community.getUnitInvoiceForm.queryOptions(
       {
@@ -20,6 +30,24 @@ export function UnitInvoiceModal() {
       },
     ),
   );
+
+  useEffect(() => {
+    if (!editUnitInvoiceId) {
+      lastTriggeredHomeIdRef.current = null;
+      return;
+    }
+
+    if (lastTriggeredHomeIdRef.current === editUnitInvoiceId) return;
+
+    lastTriggeredHomeIdRef.current = editUnitInvoiceId;
+    sweepTrigger.mutate({
+      taskName: "run-unit-invoice-duplicate-sweeper-now",
+      payload: {
+        homeId: editUnitInvoiceId,
+        reason: "invoice-open",
+      },
+    });
+  }, [editUnitInvoiceId, sweepTrigger]);
 
   return (
     <CustomModal

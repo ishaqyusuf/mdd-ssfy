@@ -17,7 +17,7 @@ import {
 	updateSubmissionsTask,
 	updateSalesControlSchema,
 } from "@gnd/sales";
-import type { TaskName } from "@jobs/schema";
+import type { TaskName } from "../../schema";
 import type { NotificationJobInput } from "@notifications/schemas";
 import { NotificationService } from "@notifications/services/triggers";
 import { schemaTask, tasks } from "@trigger.dev/sdk/v3";

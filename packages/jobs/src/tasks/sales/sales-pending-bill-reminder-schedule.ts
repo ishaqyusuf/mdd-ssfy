@@ -2,11 +2,11 @@ import { db } from "@gnd/db";
 import { whereSales } from "@gnd/sales/utils/where-queries";
 import { getSettingAction } from "@gnd/settings";
 import { type SalesPdfToken, tokenize } from "@gnd/utils/tokenizer";
-import type { TaskName } from "@jobs/schema";
+import type { TaskName } from "../../schema";
 import {
   getTaskEventConfigFromMeta,
   getTaskEventDefaultConfig,
-} from "@jobs/task-events/registry";
+} from "../../task-events/registry";
 import type { NotificationJobInput } from "@notifications/schemas";
 import { logger, schedules, task, tasks } from "@trigger.dev/sdk/v3";
 import { getAppApiUrl } from "@utils/envs";

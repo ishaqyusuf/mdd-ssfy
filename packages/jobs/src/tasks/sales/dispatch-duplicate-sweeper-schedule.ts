@@ -1,10 +1,10 @@
 import { db } from "@gnd/db";
 import { getSettingAction } from "@gnd/settings";
-import type { TaskName } from "@jobs/schema";
+import type { TaskName } from "../../schema";
 import {
   getTaskEventConfigFromMeta,
   getTaskEventDefaultConfig,
-} from "@jobs/task-events/registry";
+} from "../../task-events/registry";
 import { logger, schedules, task } from "@trigger.dev/sdk/v3";
 
 const EVENT_NAME = "dispatch-duplicate-sweeper-schedule" as const;

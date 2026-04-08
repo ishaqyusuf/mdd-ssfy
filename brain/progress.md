@@ -4,6 +4,13 @@
 
 ## 2026-04-08
 
+- Added a background unit-invoice duplicate sweeper.
+  - unit-invoice modal open now silently triggers a background task that checks invoice-task duplicates without blocking the modal load
+  - the invoice form still dedupes tasks in-memory immediately, but duplicate cleanup now also happens server-side without waiting for a user save
+  - sweeper progress is tracked in its own `unit-invoice-sweeper-settings` row with `lastStartedAt`, `lastCompletedAt`, `running`, and a compact last-run summary
+  - changed-unit detection uses the last completed sweep timestamp against `home.createdAt`, `homeTask.createdAt`, and `homeTask.updatedAt`
+  - when duplicate rows are removed, the kept task now preserves or restores `builderTaskId` by promoting it from duplicates first and then resolving it from the builder task catalog if needed
+
 - Added the Community Invoice Task Detail PDF report.
   - introduced a second invoice report type, `Task-Level Invoice Detail Report`, in the shared unit-invoice report dropdown
   - added a dedicated public print route at `/p/community-invoice/task-detail-report`

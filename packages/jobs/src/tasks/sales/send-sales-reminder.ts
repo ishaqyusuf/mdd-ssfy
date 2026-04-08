@@ -2,8 +2,8 @@ import { db } from "@gnd/db";
 import {
 	type SendSalesReminderPayload,
 	sendSalesReminderSchema,
-} from "@jobs/schema";
-import { processBatch } from "@jobs/utils/process-batch";
+} from "../../schema";
+import { processBatch } from "../../utils/process-batch";
 import type { NotificationJobInput } from "@notifications/schemas";
 import { logger, schemaTask, tasks } from "@trigger.dev/sdk/v3";
 import { getAppApiUrl, getAppUrl } from "@utils/envs";

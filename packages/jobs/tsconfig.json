@@ -12,6 +12,7 @@
       "@emails/*": ["../email/src/*"],
       "@utils/*": ["../utils/src/*"],
       "@notifications/*": ["../notifications/src/*"],
+      "@community/*": ["../community/src/*"],
       "@api/*": ["../apps/api/src/*"]
     },
     "jsx": "react-jsx"

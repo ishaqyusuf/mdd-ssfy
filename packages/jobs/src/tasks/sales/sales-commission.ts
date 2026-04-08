@@ -1,4 +1,4 @@
-import { TaskName } from "@jobs/schema";
+import { TaskName } from "../../schema";
 import { schemaTask } from "@trigger.dev/sdk/v3";
 import { updateSalesControlSchema } from "@gnd/sales";
 /**

@@ -1,4 +1,4 @@
-import { createSalesDispatchSchemaTask, TaskName } from "@jobs/schema";
+import { createSalesDispatchSchemaTask, TaskName } from "../schema";
 import { schemaTask } from "@trigger.dev/sdk/v3";
 const BATCH_SIZE = 500;
 

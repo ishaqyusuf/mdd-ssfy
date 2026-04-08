@@ -6,6 +6,7 @@ export const settingsSchema = z.object({
     "sales-settings",
     "install-price-chart",
     "jobs-settings",
+    "unit-invoice-sweeper-settings",
     "task-events-settings",
   ]),
   meta: z.record(z.any(), z.any()).default({}),
@@ -36,6 +37,29 @@ export const installCostSettings = settingsSchema.omit({ meta: true }).extend({
 });
 export type InstallCostSettings = z.infer<typeof installCostSettings>;
 export type JobsSettings = z.infer<typeof jobsSettings>;
+export const unitInvoiceSweeperSettings = settingsSchema.extend({
+  meta: z.object({
+    lastStartedAt: z.string().nullable().optional(),
+    lastCompletedAt: z.string().nullable().optional(),
+    running: z.boolean().default(false),
+    lastRunSummary: z
+      .object({
+        homeId: z.number().nullable().optional(),
+        reason: z.string().nullable().optional(),
+        scannedUnits: z.number().default(0),
+        cleanedUnits: z.number().default(0),
+        deletedTaskCount: z.number().default(0),
+        updatedBuilderTaskCount: z.number().default(0),
+        startedAt: z.string().nullable().optional(),
+        completedAt: z.string().nullable().optional(),
+      })
+      .nullable()
+      .optional(),
+  }),
+});
+export type UnitInvoiceSweeperSettings = z.infer<
+  typeof unitInvoiceSweeperSettings
+>;
 export const taskEventsSettings = settingsSchema.extend({
   meta: z.object({
     events: z
@@ -55,6 +79,7 @@ export type SettingsTypes = {
   // "sales-settings": SettingsSchema;
   "install-price-chart": InstallCostSettings;
   "jobs-settings": JobsSettings;
+  "unit-invoice-sweeper-settings": UnitInvoiceSweeperSettings;
   "task-events-settings": TaskEventsSettings;
   "sales-settings": SettingsSchema;
 };

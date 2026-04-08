@@ -2,12 +2,12 @@ import {
   SendSalesEmailPayload,
   sendSalesEmailSchema,
   TaskName,
-} from "@jobs/schema";
+} from "../../schema";
 import { logger, schemaTask } from "@trigger.dev/sdk/v3";
 import { db } from "@gnd/db";
-import { processBatch } from "@jobs/utils/process-batch";
+import { processBatch } from "../../utils/process-batch";
 import { sum } from "@gnd/utils";
-import { sendEmail } from "@jobs/utils/resend";
+import { sendEmail } from "../../utils/resend";
 import SalesEmail from "@gnd/email/emails/sales-email";
 import { getAppUrl } from "@utils/envs";
 import QueryString from "qs";

@@ -1,5 +1,6 @@
 import type { TRPCContext } from "@api/trpc/init";
 import { getUnitProductionStatus } from "@community/utils";
+import { dedupeUnitInvoiceTasks } from "@community/utils/unit-invoice-tasks";
 import type { Prisma } from "@gnd/db";
 import { transformFilterDateToQuery } from "@gnd/utils";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
@@ -208,31 +209,6 @@ export const unitInvoiceFormSchema = z.object({
   homeId: z.number(),
 });
 
-function dedupeInvoiceTasks<
-  T extends {
-    id: number;
-    taskUid: string | null;
-    taskName: string | null;
-  },
->(tasks: T[]) {
-  const taskMap = new Map<string, T>();
-  const duplicateTaskIds: number[] = [];
-
-  for (const task of tasks) {
-    const key = task.taskUid || task.taskName || `task-${task.id}`;
-    if (taskMap.has(key)) {
-      duplicateTaskIds.push(task.id);
-      continue;
-    }
-    taskMap.set(key, task);
-  }
-
-  return {
-    tasks: Array.from(taskMap.values()),
-    duplicateTaskIds,
-  };
-}
-
 export async function getUnitInvoiceForm(
   ctx: TRPCContext,
   input: z.infer<typeof unitInvoiceFormSchema>,
@@ -244,7 +220,7 @@ export async function getUnitInvoiceForm(
     select: unitInvoiceFormSelect,
   });
 
-  const { tasks, duplicateTaskIds } = dedupeInvoiceTasks(unit.tasks);
+  const { tasks, duplicateTaskIds } = dedupeUnitInvoiceTasks(unit.tasks);
   const invoice = tasks.reduce(
     (acc, task) => {
       acc.amountDue += Number(task.amountDue || 0);
