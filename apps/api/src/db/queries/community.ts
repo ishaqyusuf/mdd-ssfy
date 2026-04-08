@@ -2264,6 +2264,421 @@ export async function deleteUnits(ctx: TRPCContext, query: DeleteUnitsSchema) {
   });
 }
 
+const projectUnitPrintPreflightUnitSchema = z.object({
+  id: z.number(),
+  slug: z.string().nullable(),
+  lotBlock: z.string().nullable(),
+});
+
+export const projectUnitPrintPreflightSchema = z.object({
+  unitIds: z.array(z.number()).min(1),
+});
+export type ProjectUnitPrintPreflightSchema = z.infer<
+  typeof projectUnitPrintPreflightSchema
+>;
+
+export const sendProjectUnitsToProductionSchema = z.object({
+  unitIds: z.array(z.number()).min(1),
+  dueDate: z.string().datetime().optional().nullable(),
+});
+export type SendProjectUnitsToProductionSchema = z.infer<
+  typeof sendProjectUnitsToProductionSchema
+>;
+
+function hasLegacyInstallCosting(value: unknown) {
+  if (!value || typeof value !== "object") return false;
+  const configuredValues = Object.values(value as Record<string, unknown>).filter(
+    (entry) => {
+      if (entry === null || entry === undefined || entry === "") return false;
+      const numericValue = Number(entry);
+      return Number.isFinite(numericValue) ? numericValue > 0 : true;
+    },
+  );
+  return configuredValues.length >= 3;
+}
+
+function getProjectUnitPrintKey(projectId?: number | null, modelName?: string | null) {
+  return `${projectId || "unknown"}::${String(modelName || "").trim().toLowerCase()}`;
+}
+
+function getUnitLabel(unit: { lotBlock?: string | null; modelName?: string | null }) {
+  return unit.lotBlock || unit.modelName || "Unit";
+}
+
+function getInstallCostPreflight(
+  resolvedTemplate: {
+    id: number;
+    version: string | null;
+    meta?: unknown;
+    pivot?: { meta?: unknown } | null;
+    communityModelInstallTasks?: Array<{
+      builderTaskId: number | null;
+      qty: number | null;
+      installCostModel?: {
+        unitCost: number | null;
+      } | null;
+    }>;
+    project?: {
+      builder?: {
+        tasks?: Array<{
+          id: number;
+          installable?: boolean | null;
+        }>;
+      } | null;
+    } | null;
+  } | null,
+) {
+  if (!resolvedTemplate) {
+    return {
+      status: "missing" as const,
+      reason: "No printable template found.",
+    };
+  }
+
+  const version = (resolvedTemplate.version || "v1").toLowerCase();
+  if (version === "v2") {
+    const installableTasks = (resolvedTemplate.project?.builder?.tasks || []).filter(
+      (task) => !!task.installable,
+    );
+    if (!installableTasks.length) {
+      return {
+        status: "not-required" as const,
+        reason: null,
+      };
+    }
+
+    const configuredTaskIds = new Set(
+      (resolvedTemplate.communityModelInstallTasks || [])
+        .filter((task) => {
+          const qty = Number(task.qty || 0);
+          const unitCost = Number(task.installCostModel?.unitCost || 0);
+          return !!task.builderTaskId && qty > 0 && unitCost > 0;
+        })
+        .map((task) => task.builderTaskId as number),
+    );
+
+    const missingTaskCount = installableTasks.filter(
+      (task) => !configuredTaskIds.has(task.id),
+    ).length;
+
+    return missingTaskCount === 0
+      ? {
+          status: "ready" as const,
+          reason: null,
+        }
+      : {
+          status: "missing" as const,
+          reason:
+            missingTaskCount === 1
+              ? "1 builder task is missing install-cost setup."
+              : `${missingTaskCount} builder tasks are missing install-cost setup.`,
+        };
+  }
+
+  const pivotInstallCost = (resolvedTemplate.pivot?.meta as CommunityPivotMeta | null)
+    ?.installCost;
+  const templateInstallCost = (resolvedTemplate.meta as CommunityTemplateMeta | null)
+    ?.installCosts?.[0]?.costings;
+
+  return hasLegacyInstallCosting(pivotInstallCost) ||
+    hasLegacyInstallCosting(templateInstallCost)
+    ? {
+        status: "ready" as const,
+        reason: null,
+      }
+    : {
+        status: "missing" as const,
+        reason: "Legacy install costs are not configured yet.",
+      };
+}
+
+export async function getProjectUnitPrintPreflight(
+  ctx: TRPCContext,
+  query: ProjectUnitPrintPreflightSchema,
+) {
+  const units = await ctx.db.homes.findMany({
+    where: {
+      id: {
+        in: query.unitIds,
+      },
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      slug: true,
+      lotBlock: true,
+      modelName: true,
+      projectId: true,
+      communityTemplateId: true,
+      communityTemplate: {
+        select: {
+          id: true,
+          slug: true,
+          version: true,
+          meta: true,
+          pivot: {
+            select: {
+              meta: true,
+            },
+          },
+          project: {
+            select: {
+              builder: {
+                select: {
+                  tasks: {
+                    select: {
+                      id: true,
+                      installable: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          communityModelInstallTasks: {
+            select: {
+              builderTaskId: true,
+              qty: true,
+              installCostModel: {
+                select: {
+                  unitCost: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      project: {
+        select: {
+          title: true,
+          builder: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!units.length) {
+    return {
+      units: [],
+      readyUnitIds: [],
+      summary: {
+        totalUnits: 0,
+        readyUnits: 0,
+        missingInstallCostUnits: 0,
+        missingTemplateUnits: 0,
+      },
+      missingInstallCosts: [],
+      missingTemplates: [],
+    };
+  }
+
+  const fallbackTemplates = await ctx.db.communityModels.findMany({
+    where: {
+      OR: units.map((unit) => ({
+        projectId: unit.projectId,
+        modelName: unit.modelName || undefined,
+      })),
+    },
+    select: {
+      id: true,
+      slug: true,
+      version: true,
+      meta: true,
+      modelName: true,
+      projectId: true,
+      pivot: {
+        select: {
+          meta: true,
+        },
+      },
+      project: {
+        select: {
+          builder: {
+            select: {
+              tasks: {
+                select: {
+                  id: true,
+                  installable: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      communityModelInstallTasks: {
+        select: {
+          builderTaskId: true,
+          qty: true,
+          installCostModel: {
+            select: {
+              unitCost: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const fallbackTemplateMap = new Map(
+    fallbackTemplates.map((template) => [
+      getProjectUnitPrintKey(template.projectId, template.modelName),
+      template,
+    ]),
+  );
+
+  const missingInstallCostMap = new Map<
+    number,
+    {
+      modelId: number;
+      templateSlug: string | null;
+      templateVersion: string | null;
+      modelName: string | null;
+      projectName: string | null;
+      builderName: string | null;
+      units: Array<z.infer<typeof projectUnitPrintPreflightUnitSchema>>;
+    }
+  >();
+  const missingTemplateMap = new Map<
+    string,
+    {
+      projectName: string | null;
+      builderName: string | null;
+      modelName: string | null;
+      units: Array<z.infer<typeof projectUnitPrintPreflightUnitSchema>>;
+    }
+  >();
+
+  const preflightUnits = units.map((unit) => {
+    const resolvedTemplate =
+      unit.communityTemplate ||
+      fallbackTemplateMap.get(getProjectUnitPrintKey(unit.projectId, unit.modelName)) ||
+      null;
+    const hasTemplate = !!resolvedTemplate?.id;
+    const installCost = getInstallCostPreflight(resolvedTemplate);
+    const blockingReasons: string[] = [];
+
+    if (!hasTemplate) {
+      blockingReasons.push("Template not found.");
+      const key = getProjectUnitPrintKey(unit.projectId, unit.modelName);
+      const current = missingTemplateMap.get(key) || {
+        projectName: unit.project?.title || null,
+        builderName: unit.project?.builder?.name || null,
+        modelName: unit.modelName || null,
+        units: [],
+      };
+      current.units.push({
+        id: unit.id,
+        slug: unit.slug,
+        lotBlock: unit.lotBlock,
+      });
+      missingTemplateMap.set(key, current);
+    }
+
+    if (hasTemplate && installCost.status === "missing") {
+      blockingReasons.push(installCost.reason || "Install cost is missing.");
+      const current = missingInstallCostMap.get(resolvedTemplate.id) || {
+        modelId: resolvedTemplate.id,
+        templateSlug: resolvedTemplate.slug || null,
+        templateVersion: resolvedTemplate.version || null,
+        modelName: unit.modelName || null,
+        projectName: unit.project?.title || null,
+        builderName: unit.project?.builder?.name || null,
+        units: [],
+      };
+      current.units.push({
+        id: unit.id,
+        slug: unit.slug,
+        lotBlock: unit.lotBlock,
+      });
+      missingInstallCostMap.set(resolvedTemplate.id, current);
+    }
+
+    return {
+      id: unit.id,
+      slug: unit.slug,
+      lotBlock: unit.lotBlock,
+      modelName: unit.modelName,
+      projectName: unit.project?.title || null,
+      builderName: unit.project?.builder?.name || null,
+      templateId: resolvedTemplate?.id || null,
+      templateSlug: resolvedTemplate?.slug || null,
+      templateVersion: (resolvedTemplate?.version || "v1") as "v1" | "v2",
+      hasTemplate,
+      installCostStatus: installCost.status,
+      installCostReason: installCost.reason,
+      blockingReasons,
+      isReady: hasTemplate && installCost.status !== "missing",
+      label: getUnitLabel(unit),
+    };
+  });
+
+  const readyUnitIds = preflightUnits.filter((unit) => unit.isReady).map((unit) => unit.id);
+
+  return {
+    units: preflightUnits,
+    readyUnitIds,
+    summary: {
+      totalUnits: preflightUnits.length,
+      readyUnits: readyUnitIds.length,
+      missingInstallCostUnits: preflightUnits.filter(
+        (unit) => unit.installCostStatus === "missing",
+      ).length,
+      missingTemplateUnits: preflightUnits.filter((unit) => !unit.hasTemplate).length,
+    },
+    missingInstallCosts: Array.from(missingInstallCostMap.values()).map((entry) => ({
+      ...entry,
+      unitIds: entry.units.map((unit) => unit.id),
+      labels: entry.units.map((unit) => getUnitLabel(unit)),
+    })),
+    missingTemplates: Array.from(missingTemplateMap.values()).map((entry) => ({
+      ...entry,
+      unitIds: entry.units.map((unit) => unit.id),
+      labels: entry.units.map((unit) => getUnitLabel(unit)),
+    })),
+  };
+}
+
+export async function sendProjectUnitsToProduction(
+  ctx: TRPCContext,
+  query: SendProjectUnitsToProductionSchema,
+) {
+  const dueDate = query.dueDate ? dayjs(query.dueDate).toDate() : null;
+
+  const [tasksResult, unitsResult] = await ctx.db.$transaction([
+    ctx.db.homeTasks.updateMany({
+      where: {
+        homeId: {
+          in: query.unitIds,
+        },
+        produceable: true,
+      },
+      data: {
+        productionDueDate: dueDate,
+        sentToProductionAt: new Date(),
+      },
+    }),
+    ctx.db.homes.updateMany({
+      where: {
+        id: {
+          in: query.unitIds,
+        },
+      },
+      data: {
+        sentToProdAt: new Date(),
+      },
+    }),
+  ]);
+
+  return {
+    updatedTasks: tasksResult.count,
+    updatedUnits: unitsResult.count,
+  };
+}
+
 export const getProjectFormSchema = z.object({
   projectId: z.number(),
 });

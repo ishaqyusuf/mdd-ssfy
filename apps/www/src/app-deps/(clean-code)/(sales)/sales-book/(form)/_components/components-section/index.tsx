@@ -129,7 +129,7 @@ function Content({ itemStepUid }) {
         <div className="grid gap-4">
             <div
                 ref={sticky.containerRef}
-                className="relative h-full p-4 pb-20"
+                className="relative h-full p-4 pb-28"
             >
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
                     {!items.length &&
@@ -168,7 +168,7 @@ function FloatingAction({ ctx }: { ctx: UseStepContext }) {
     const {
         stepUid,
         items,
-        sticky: { actionRef },
+        sticky: { actionRef, isFixed },
         selectionState,
     } = ctx;
     const isDoor = ctx.cls.isDoor();
@@ -202,9 +202,14 @@ function FloatingAction({ ctx }: { ctx: UseStepContext }) {
         <>
             <div
                 ref={actionRef}
-                className="sticky bottom-2 left-1/2 z-20 w-fit -translate-x-1/2 transform bg-secondary sm:bottom-12"
+                className={cn(
+                    "left-1/2 z-20 w-fit max-w-[calc(100vw-2rem)] -translate-x-1/2 transform bg-secondary",
+                    isFixed
+                        ? "fixed bottom-6 z-40"
+                        : "sticky bottom-2 sm:bottom-12",
+                )}
             >
-                <div className="flex items-center gap-4 rounded-lg border p-2 px-4 shadow">
+                <div className="flex flex-wrap items-center justify-center gap-3 rounded-lg border p-2 px-4 shadow">
                     {selectionState?.count ? (
                         <>
                             <span className="font-mono$ text-sm font-semibold uppercase">

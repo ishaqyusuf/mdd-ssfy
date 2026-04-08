@@ -24,6 +24,8 @@ import {
   deleteCommunityModelCostSchema,
   deleteUnits,
   deleteUnitsSchema,
+  getProjectUnitPrintPreflight,
+  projectUnitPrintPreflightSchema,
   getCommunityProjects,
   getCommunityProjectsSchema,
   getCommunityTemplateForm,
@@ -34,6 +36,8 @@ import {
   projectList,
   saveCommunityModelCost,
   saveCommunityTemplateForm,
+  sendProjectUnitsToProduction,
+  sendProjectUnitsToProductionSchema,
   updateInstallCost,
 } from "@api/db/queries/community";
 import {
@@ -1193,6 +1197,16 @@ export const communityRouters = createTRPCRouter({
     .input(deleteUnitsSchema)
     .mutation(async (props) => {
       return deleteUnits(props.ctx, props.input);
+    }),
+  getProjectUnitPrintPreflight: publicProcedure
+    .input(projectUnitPrintPreflightSchema)
+    .query(async (props) => {
+      return getProjectUnitPrintPreflight(props.ctx, props.input);
+    }),
+  sendProjectUnitsToProduction: publicProcedure
+    .input(sendProjectUnitsToProductionSchema)
+    .mutation(async (props) => {
+      return sendProjectUnitsToProduction(props.ctx, props.input);
     }),
   getCommunityBlockSchema: publicProcedure
     .input(getCommunityBlockSchemaSchema)
