@@ -38,7 +38,7 @@ export default function PutawayActions({ data }: Props) {
             <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
                     <Button className="h-8  w-8 bg-green-500 p-0">
-                        <Icons.edit className="h-4 w-4" />
+                        <Icons.Edit className="h-4 w-4" />
                         {/* <CheckCircle className="h-4 w-4" /> */}
                     </Button>
                 </PopoverTrigger>

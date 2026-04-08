@@ -138,7 +138,7 @@ export default function ContractorsTableShell({
                                 onClick={() => {
                                     openModal("employee", row.original);
                                 }}
-                                Icon={Icons.edit}
+                                Icon={Icons.Edit}
                             >
                                 Edit
                             </RowActionMenuItem>

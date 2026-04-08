@@ -91,7 +91,7 @@ function Door({ title, url: _url, id, index, setDoors }: any) {
 							<div className="absolute right-0 top-0 -m-4">
 								{load && (
 									<Button onClick={save} className="h-8 w-8" size={"icon"}>
-										<Icons.copy className="size-4" />
+										<Icons.Copy className="size-4" />
 									</Button>
 								)}
 							</div>

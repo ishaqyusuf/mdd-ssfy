@@ -59,7 +59,7 @@ export default function Button({
             <div
                 className={cn("absolute", loading ? "opacity-10" : "opacity-0")}
             >
-                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                <Icons.Spinner className="mr-2 h-4 w-4 animate-spin" />
             </div>
         </BaseButton>
     );

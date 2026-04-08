@@ -41,7 +41,7 @@ export default function SupplierCell({
                             size={"sm"}
                             className="p-1 h-6"
                         >
-                            <Icons.calendar className="size-4 text-muted-foreground" />
+                            <Icons.Calendar className="size-4 text-muted-foreground" />
                             <span className="text-muted-foreground text-xs ml-2">
                                 {!date ? "Set Date" : formatDate(date)}
                             </span>

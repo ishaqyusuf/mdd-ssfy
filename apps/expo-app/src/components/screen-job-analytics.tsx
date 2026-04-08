@@ -39,7 +39,7 @@ const kpiData: KPI[] = [
     value: "1,240",
     change: "+12%",
     trend: "up",
-    icon: "jobs",
+    icon: "Jobs",
     iconColor: "text-primary", // Using generic tailwind for specific brand colors usually allowed if semantic doesn't cover charts
     accentColor: "bg-blue-500/10",
   },
@@ -258,7 +258,7 @@ function JobStatusChart() {
             </Text>
           </View>
           <Pressable className="p-1 rounded hover:bg-muted/20">
-            <Icon name="more" className="text-muted-foreground size-20" />
+            <Icon name="MoreHoriz" className="text-muted-foreground size-20" />
           </Pressable>
         </View>
 

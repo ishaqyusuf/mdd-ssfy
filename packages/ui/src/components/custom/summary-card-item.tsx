@@ -1,13 +1,13 @@
 "use client";
 
+import type { Icon } from "../icons";
 import { Card, CardContent, CardHeader, CardTitle } from "../card";
 import Link from "next/link";
-import type { LucideIcon } from "lucide-react";
 
 interface SummaryCardItemProps {
   path: string;
   summaryProps: {
-    Icon: LucideIcon;
+    Icon: Icon;
     title: string;
     value: React.ReactNode;
     subtitle?: string;

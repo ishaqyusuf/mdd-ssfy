@@ -1,5 +1,5 @@
 import { useCartStore } from '@/store/cartStore'
-import { FontAwesome } from '@expo/vector-icons'
+import { Icon } from '@/components/ui/icon'
 import { Link } from 'expo-router'
 import { Pressable, Text, View } from 'react-native'
 
@@ -12,8 +12,8 @@ export default function CartBadge() {
       <Pressable className=''>
         {({ pressed }) => (
           <View className='mt-2'>
-            <FontAwesome
-              name='shopping-cart'
+            <Icon
+              name='ShoppingCart'
               size={22}
               color='gray'
               style={{ opacity: pressed ? 0.5 : 1 }}

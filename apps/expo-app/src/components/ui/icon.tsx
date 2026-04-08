@@ -31,6 +31,8 @@ import {
   CreditCard,
   Delete,
   DoorOpen,
+  Eye,
+  EyeOff,
   Fence,
   FilePenLine,
   FileText,
@@ -57,6 +59,7 @@ import {
   MapPin,
   Minus,
   MoreHorizontal,
+  Package,
   Pencil,
   Phone,
   PieChart,
@@ -69,7 +72,13 @@ import {
   Settings,
   Share,
   ShieldCheck,
+  ShoppingBag,
+  ShoppingCart,
   SlidersHorizontal,
+  Compass,
+  SearchX,
+  Star,
+  Heart,
   StickyNote,
   Trash,
   TrendingDown,
@@ -97,10 +106,8 @@ import { THEME } from "@/lib/theme";
 import { View } from "react-native";
 export type IconProps = LucideProps & {
   name?: IconKeys;
-  // strokeWidth?: number;
-  // absoluteStrokeWidth?: boolean;
 };
-// type T = IconProps['strokeWidth']
+
 const iconSizes = {
   xs: 12,
   sm: 16,
@@ -110,7 +117,7 @@ const iconSizes = {
   xl: 32,
   "2xl": 40,
 };
-// type T = IconProps['strokeWidth']
+
 function IconImpl({ name, ...props }: IconProps) {
   let IconComponent;
   const { colorScheme } = useColorScheme();
@@ -156,7 +163,7 @@ function IconImpl({ name, ...props }: IconProps) {
 
   props.size = +sizestr || props.size;
   if (!IconComponent)
-    IconComponent = appIcons![name!] || icons![name!] || appIcons.X;
+    IconComponent = Icons[name!] || icons[name!] || Icons.X;
   const otherClasses = className
     .split(" ")
     .filter((a) => ["size-", "text-"].every((b) => !a?.startsWith(b)));
@@ -170,39 +177,27 @@ function IconImpl({ name, ...props }: IconProps) {
 }
 
 function Icon({
-  // as: IconComponent,
   className,
   size = "size-base",
-
   ...props
 }: IconProps) {
   return (
     <IconImpl
-      // as={IconComponent}
       className={cn("text-foreground", className)}
       size={size}
       {...props}
     />
   );
 }
-// function camel(str?: string) {
-//   if (!str) return str;
-//   return str.replace(
-//     /^([A-Z])|\s(\w)/g,
-//     function (match: any, p1: any, p2: any, offset: any) {
-//       if (p2) return p2.toUpperCase();
-//       return p1.toLowerCase();
-//     }
-//   );
-// }
 
-const appIcons = {
+export const Icons = {
   AppWindow,
   Activity,
-  analytics: BarChart2,
+  Analytics: BarChart2,
   AlertCircle,
   ArrowLeft,
   ArrowRight,
+  Apps: AppWindow,
   Ban,
   BarChart3,
   Bell,
@@ -223,10 +218,14 @@ const appIcons = {
   Clock,
   CircleCheck,
   CircleDollarSign,
+  Compass,
   CreditCard,
   Delete,
   DoorOpen,
+  Eye,
+  EyeOff,
   Fence,
+  Filter: SlidersHorizontal,
   FilePenLine,
   FileText,
   FolderPlus,
@@ -235,13 +234,14 @@ const appIcons = {
   GripHorizontal,
   HardHat,
   Hash,
+  Heart,
   HelpCircle,
-  home: LayoutDashboard,
+  Home: LayoutDashboard,
   Hourglass,
   House,
 
   Info,
-  jobs: Briefcase,
+  Jobs: Briefcase,
   LayoutDashboard,
   LayoutGrid,
   List,
@@ -254,7 +254,8 @@ const appIcons = {
   Mail,
   MapPin,
   Minus,
-  more: MoreHorizontal,
+  MoreHoriz: MoreHorizontal,
+  Package,
 
   Pencil,
   Phone,
@@ -266,11 +267,14 @@ const appIcons = {
   ReceiptText,
   Route,
   Search,
-  settings: Settings,
+  SearchX,
   Settings,
   Share,
   ShieldCheck,
+  ShoppingBag,
+  ShoppingCart,
   SlidersHorizontal,
+  Star,
   StickyNote,
   Trash,
   TrendingUp,
@@ -291,5 +295,5 @@ const appIcons = {
   ChartNoAxesColumn,
   Truck,
 };
-export type IconKeys = keyof typeof appIcons | keyof typeof icons;
+export type IconKeys = keyof typeof Icons | keyof typeof icons;
 export { Icon };

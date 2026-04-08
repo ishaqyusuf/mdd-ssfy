@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input-2";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
-import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { Link, Stack } from "expo-router";
 import { TouchableOpacity, View } from "react-native";
 
@@ -31,21 +31,21 @@ export default function NotFound() {
 
           {/* Floating Icons */}
           <View className="absolute top-10 left-8 bg-white p-3 rounded-full shadow-md">
-            <FontAwesome name="question-circle" size={32} color="#F59E0B" />
+            <Icon name="HelpCircle" size={32} color="#F59E0B" />
           </View>
           <View className="absolute top-16 right-12 bg-white p-3 rounded-full shadow-md">
-            <MaterialIcons name="error-outline" size={32} color="#EF4444" />
+            <Icon name="AlertCircle" size={32} color="#EF4444" />
           </View>
           <View className="absolute bottom-20 left-16 bg-white p-3 rounded-full shadow-md">
-            <FontAwesome name="map-signs" size={28} color="#3B82F6" />
+            <Icon name="MapPin" size={28} color="#3B82F6" />
           </View>
           <View className="absolute bottom-24 right-8 bg-white p-3 rounded-full shadow-md">
-            <MaterialIcons name="search-off" size={32} color="#8B5CF6" />
+            <Icon name="SearchX" size={32} color="#8B5CF6" />
           </View>
 
           {/* Center Icon */}
           <View className="absolute bg-white p-6 rounded-full shadow-lg">
-            <FontAwesome name="compass" size={48} color="#10B981" />
+            <Icon name="Compass" size={48} color="#10B981" />
           </View>
         </View>
 
@@ -66,7 +66,7 @@ export default function NotFound() {
         <Link href="/" asChild>
           <TouchableOpacity className="bg-[#1BC464] px-8 py-4 rounded-2xl shadow-lg active:opacity-80">
             <View className="flex-row items-center gap-2">
-              <FontAwesome name="home" size={20} color="white" />
+              <Icon name="House" size={20} color="white" />
               <Text className="text-white text-lg font-bold">Go Back Home</Text>
             </View>
           </TouchableOpacity>

@@ -1,4 +1,4 @@
-import { MaterialIcons } from '@expo/vector-icons'
+import { Icon } from '@/components/ui/icon'
 import { useOnboardingStore } from '@store/onboardingStore'
 import { PressableOpacity } from 'pressto'
 import { Text, View } from 'react-native'
@@ -21,7 +21,7 @@ export const SkipBtn = () => {
         <Text className='will-change-variable text-secondary-turquoise text-lg font-semibold'>
           Skip
         </Text>
-        <MaterialIcons name='navigate-next' size={20} color='#04bf9d' />
+        <Icon name='ArrowRight' size={20} color='#04bf9d' />
       </PressableOpacity>
     </View>
   )

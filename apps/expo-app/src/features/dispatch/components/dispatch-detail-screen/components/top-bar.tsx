@@ -18,10 +18,9 @@ export function DispatchDetailTopBar() {
           {vm.titleText}
         </Text>
         <Pressable className="h-10 w-10 items-center justify-center rounded-lg active:opacity-80">
-          <Icon name="more" className="text-foreground" size={20} />
+          <Icon name="MoreHoriz" className="text-foreground" size={20} />
         </Pressable>
       </View>
     </View>
   );
 }
-

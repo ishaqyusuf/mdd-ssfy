@@ -54,7 +54,7 @@ export function Footer({}) {
                     size="xs"
                     disabled={!amount || !zus.metaData.salesId}
                 >
-                    <Icons.dollar className="mr-2 size-4" />
+                    <Icons.Dollar className="mr-2 size-4" />
                     <Money value={amount}></Money>
                 </Button> */}
 

@@ -87,7 +87,7 @@ export function SigninComponent() {
 					className="absolute inset-0 h-full w-full object-cover opacity-20"
 				/>
 				<div className="relative z-20 flex items-center text-lg font-medium">
-					<Icons.logo />
+					<Icons.Logo />
 				</div>
 			</div>
 			<div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

@@ -20,7 +20,7 @@ export function SubmitJobModalTitle({ data }: SubmitJobModalProps) {
                     className="h-8 w-8 p-0"
                     onClick={goBack}
                 >
-                    <Icons.arrowLeft className="h-4 w-4" />
+                    <Icons.ArrowLeft className="h-4 w-4" />
                 </Button>
             )}
 

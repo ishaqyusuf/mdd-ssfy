@@ -403,7 +403,7 @@ export function GeneralTab({}) {
                             //         });
                             //     }}
                             // >
-                            //     <Icons.payment className="mr-2 size-4" />
+                            //     <Icons.Payment className="mr-2 size-4" />
                             //     Pay
                             // </Button>
                         )}

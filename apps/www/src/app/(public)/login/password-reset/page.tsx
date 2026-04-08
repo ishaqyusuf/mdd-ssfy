@@ -14,7 +14,7 @@ export default async function Page() {
 				<header className="absolute top-0 left-0 z-30 w-full">
 					<div className="p-6 md:p-8">
 						<div className="h-8 w-auto">
-							<Icons.logoLg />
+							<Icons.LogoLg />
 						</div>
 					</div>
 				</header>

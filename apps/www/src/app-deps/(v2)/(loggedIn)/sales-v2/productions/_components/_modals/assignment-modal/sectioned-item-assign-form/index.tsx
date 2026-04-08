@@ -159,7 +159,7 @@ export function SectionedItemAssignForm({ index, salesDoorIndex = -1 }: Props) {
                 <DropdownMenuTrigger>
                     <span className="hidden sm:inline-block">Assign</span>
                     <span className="mr-2 sm:hidden">
-                        <Icons.production className="size-4 " />
+                        <Icons.Production className="size-4 " />
                     </span>
                     <span>
                         (

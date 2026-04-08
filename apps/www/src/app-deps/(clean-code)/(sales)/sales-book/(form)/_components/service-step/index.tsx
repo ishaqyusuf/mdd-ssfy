@@ -41,7 +41,7 @@ export default function ServiceLineItem({ itemStepUid }: Props) {
                         }}
                         className="w-full"
                     >
-                        <Icons.add className="mr-2 size-4" />
+                        <Icons.Add className="mr-2 size-4" />
                         <span>Line</span>
                     </Button>
                 </div>
@@ -81,7 +81,7 @@ export default function ServiceLineItem({ itemStepUid }: Props) {
                                         ctx.ctx.addServiceLine();
                                     }}
                                 >
-                                    <Icons.add className="mr-2 size-4" />
+                                    <Icons.Add className="mr-2 size-4" />
                                     <span>Line</span>
                                 </Button>
                             </TableCell>

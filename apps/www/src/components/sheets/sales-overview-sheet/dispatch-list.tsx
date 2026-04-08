@@ -99,7 +99,7 @@ function EmptyDelivery() {
     return (
         <div className="flex h-36 items-center justify-center">
             <div className="flex flex-col items-center">
-                <Icons.delivery className="mb-4" />
+                <Icons.Delivery className="mb-4" />
                 <div className="mb-6 space-y-2 text-center">
                     <h2 className="text-lg font-medium">No Delivery</h2>
                     <p className="text-sm text-[#606060]">

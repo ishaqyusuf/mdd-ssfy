@@ -149,7 +149,7 @@ function Header({
                                 variant={"secondary"}
                                 size={"icon"}
                             >
-                                <Icons.chevronLeft className="size-4" />
+                                <Icons.ChevronLeft className="size-4" />
                             </Button>
                         </div>
                     )}
@@ -173,7 +173,7 @@ function Header({
                                 variant={"secondary"}
                                 size={"icon"}
                             >
-                                <Icons.chevronRight className="size-4" />
+                                <Icons.ChevronRight className="size-4" />
                             </Button>
                         </div>
                     )}

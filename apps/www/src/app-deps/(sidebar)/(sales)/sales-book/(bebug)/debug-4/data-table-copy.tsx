@@ -49,7 +49,7 @@ export function DataTable(props: Props) {
                 CreateButton={
                     <Button asChild size="sm">
                         <Link href="/sales-book/create-order">
-                            <Icons.add className="mr-2 size-4" />
+                            <Icons.Add className="mr-2 size-4" />
                             <span>New</span>
                         </Link>
                     </Button>

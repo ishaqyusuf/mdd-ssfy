@@ -112,7 +112,7 @@ export function DispatchActions({}) {
                         variant="outline"
                         onClick={ctx.onPrintPacking}
                     >
-                        <Icons.print className="h-4 w-4" />
+                        <Icons.Print className="h-4 w-4" />
                     </Button>
 
                     {/* More Actions Dropdown */}

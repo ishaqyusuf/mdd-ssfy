@@ -29,7 +29,7 @@ export default function SalesAddressSection() {
             >
                 <div className="absolute right-0 opacity-0 group-hover:opacity-100 ">
                     <Button size="sm" variant="secondary" className="h-8">
-                        <Icons.edit className="h-3.5 w-3.5 " />
+                        <Icons.Edit className="h-3.5 w-3.5 " />
                     </Button>
                 </div>
                 <AddressDisplay address={billing} customer={customer} />

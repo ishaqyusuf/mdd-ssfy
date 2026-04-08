@@ -26,13 +26,13 @@ export default function AddressDisplay({
         <div className="space-y-4">
             <Label className="capitalize">{type} Address</Label>
             <div className="space-y-2">
-                <Display Icon={Icons.user}>
+                <Display Icon={Icons.User}>
                     {customer?.businessName || address?.name}
                 </Display>
-                <Display Icon={Icons.phone}>
+                <Display Icon={Icons.Phone}>
                     {address?.phoneNo || customer?.phoneNo}
                 </Display>
-                <Display Icon={Icons.address}>
+                <Display Icon={Icons.Address}>
                     {address?.address1}
                     {address?.address1 && <br />}
                     {[address?.city, address?.state, address?.meta?.zip_code]

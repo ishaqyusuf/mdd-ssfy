@@ -83,7 +83,7 @@ export function ProductImageCarousel({
         aria-roledescription="placeholder"
         className="flex aspect-square size-full flex-1 items-center justify-center bg-secondary"
       >
-        <Icons.placeholder
+        <Icons.Placeholder
           className="size-9 text-muted-foreground"
           aria-hidden="true"
         />

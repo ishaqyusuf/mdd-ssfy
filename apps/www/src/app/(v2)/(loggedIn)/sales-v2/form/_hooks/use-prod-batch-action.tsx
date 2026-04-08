@@ -34,7 +34,7 @@ export function BatchSelectionAction() {
                             size="sm"
                             className="h-8"
                             variant="destructive"
-                            Icon={Icons.trash}
+                            Icon={Icons.Trash}
                         >
                             Delete
                         </ConfirmBtn>

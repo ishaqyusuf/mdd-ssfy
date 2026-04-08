@@ -151,7 +151,7 @@ function PriceInfo({ prod }: { prod: IStepProducts[number] }) {
         return (
             <div id="" className="absolute right-0 top-0 flex ">
                 <Label>{priceLen}</Label>
-                <Icons.dollar className="size-4 text-muted-foreground" />
+                <Icons.Dollar className="size-4 text-muted-foreground" />
             </div>
         );
     return null;

@@ -72,16 +72,16 @@ export function nav(
         Community: [],
         Sales: [],
         Settings: [
-            _route("Profile Settings", Icons.settings2, "/settings/profile"),
+            _route("Profile Settings", Icons.Settings2, "/settings/profile"),
         ],
     };
     const isAdmin = session.role?.name == "Admin";
     if (isAdmin) {
         routes.Dashboard.push(
-            _route("Dashboard", Icons.dashboard, "/dashboard"),
+            _route("Dashboard", Icons.Dashboard, "/dashboard"),
         );
         routes.Settings.push(
-            _route("Sales", Icons.salesSettings, "/settings/sales"),
+            _route("Sales", Icons.SalesSettings, "/settings/sales"),
         );
     }
     if (editOrders) {
@@ -90,32 +90,32 @@ export function nav(
     if (viewProject) {
         routes.Community.push(
             ...[
-                _route("Projects", Icons.project, "/community/projects"),
-                _route("Units", Icons.units, "/community/units"),
+                _route("Projects", Icons.Project, "/community/projects"),
+                _route("Units", Icons.Units, "/community/units"),
             ],
         );
     }
     viewProduction &&
         role != "Production" &&
         routes.Community.push(
-            _route("Productions", Icons.production, "/community/productions"),
+            _route("Productions", Icons.Production, "/community/productions"),
         );
     viewInvoice &&
         routes.Community.push(
-            _route("Invoices", Icons.communityInvoice, "/community/invoices"),
+            _route("Invoices", Icons.CommunityInvoice, "/community/invoices"),
         );
 
     if (role == "Production") {
         routes.Services.push(
             _route(
                 "Sales Production",
-                Icons.production,
+                Icons.Production,
                 `/tasks/sales-productions`,
                 // `/tasks/sales-productions${prodQuery}`
             ),
             _route(
                 "Unit Production",
-                Icons.production,
+                Icons.Production,
                 "/tasks/unit-productions",
             ),
         );
@@ -123,26 +123,26 @@ export function nav(
     if (!isAdmin) {
         if (viewInstallation) {
             routes.Services.push(
-                _route("Installations", Icons.tasks, "/tasks/installations"),
+                _route("Installations", Icons.Tasks, "/tasks/installations"),
             );
             routes.Services.push(
-                _route("Payments", Icons.payment, "/payments"),
+                _route("Payments", Icons.Payment, "/payments"),
             );
         }
         if (__can.viewTech) {
             routes.Services.push(
-                _route("Punchout", Icons.punchout, "/jobs/punchouts"),
+                _route("Punchout", Icons.Punchout, "/jobs/punchouts"),
             );
             routes.Services.push(
-                _route("Payments", Icons.payment, "/payments"),
+                _route("Payments", Icons.Payment, "/payments"),
             );
         }
         if (__can.viewDecoShutterInstall) {
             routes.Services.push(
-                _route("Installations", Icons.tasks, "/jobs/installations"),
+                _route("Installations", Icons.Tasks, "/jobs/installations"),
             );
             routes.Services.push(
-                _route("Payments", Icons.payment, "/payments"),
+                _route("Payments", Icons.Payment, "/payments"),
             );
         }
     }
@@ -150,14 +150,14 @@ export function nav(
         routes.Services.push(
             _route(
                 "Customer Service",
-                Icons.customerService,
+                Icons.CustomerService,
                 "/customer-services",
             ),
         );
     }
     if (__can.viewCommission)
         routes.Singles.push(
-            _route("Sales Commission", Icons.percent, "/sales/commissions"),
+            _route("Sales Commission", Icons.Percent, "/sales/commissions"),
         );
     const Hrm: Route[] = [];
 
@@ -166,7 +166,7 @@ export function nav(
         let href: any = null;
         function setHref(title, _href) {
             if (!href) href = _href;
-            _rw[_href] = _route(title, Icons.hrm, `/hrm/${_href}`);
+            _rw[_href] = _route(title, Icons.Hrm, `/hrm/${_href}`);
         }
         if (viewHrm || viewEmployee) {
             setHref("Employees", "employees");
@@ -174,7 +174,7 @@ export function nav(
             setHref("Roles", "roles");
         }
         Hrm.push(...(Object.values(_rw) as any));
-        if (href) return _route("Hrm", Icons.hrm, `/hrm/${href}`);
+        if (href) return _route("Hrm", Icons.Hrm, `/hrm/${href}`);
         return null;
     })();
 
@@ -188,7 +188,7 @@ export function nav(
             }
         },
         basePath: "/contractor/jobs",
-        Icon: Icons.jobs,
+        Icon: Icons.Jobs,
         // Group: routes.Job,
         // single: true,
         groupName: "Jobs",
@@ -199,14 +199,14 @@ export function nav(
             ...[
                 _route(
                     "Quotes",
-                    Icons.estimates,
+                    Icons.Estimates,
                     `/sales-book/quotes`,
                     // `/sales/estimates?_salesRepId=${session.user.id}`
                 ), //employees,roles
-                _route("Orders", Icons.orders, `/sales-book/orders`),
-                _route("Customers", Icons.user, "/sales/customers"),
-                _route("Dealers", Icons.delivery, "/sales-v2/dealers", true),
-                _route("Dispatch", Icons.delivery, "/sales-v2/dispatch", true),
+                _route("Orders", Icons.Orders, `/sales-book/orders`),
+                _route("Customers", Icons.User, "/sales/customers"),
+                _route("Dealers", Icons.Delivery, "/sales-v2/dealers", true),
+                _route("Dispatch", Icons.Delivery, "/sales-v2/dispatch", true),
             ],
         );
     } else {
@@ -214,7 +214,7 @@ export function nav(
             routes.Sales.push(
                 _route(
                     "Productions",
-                    Icons.production,
+                    Icons.Production,
                     `/sales-v2/productions`,
                 ),
             );
@@ -224,26 +224,26 @@ export function nav(
         routes.Sales.push(
             _route(
                 "Order Dispatch",
-                Icons.delivery,
+                Icons.Delivery,
                 "/sales-v2/dispatch",
                 true,
             ),
         );
     // if (viewPickup && !viewOrders)
     //     routes.Sales.push(
-    //         _route("Order Pickup", Icons.delivery, "/sales/pickup")
+    //         _route("Order Pickup", Icons.Delivery, "/sales/pickup")
     //     );
     if (editOrders)
         routes.Sales.push(
             ...([
                 // _route("Sales Jobs", Briefcase, "/sales/jobs"),
-                _route("Products", Icons.products, "/sales-v2/products"),
+                _route("Products", Icons.Products, "/sales-v2/products"),
                 __can.viewOrderPayment &&
-                    _route("Accounting", Icons.reciept, "/sales/accounting"),
-                _route("Catalogs", Icons.products, "/sales/catalogs"),
+                    _route("Accounting", Icons.Reciept, "/sales/accounting"),
+                _route("Catalogs", Icons.Products, "/sales/catalogs"),
                 _route(
                     "Productions",
-                    Icons.production,
+                    Icons.Production,
                     `/sales-v2/productions`,
                 ),
 
@@ -251,7 +251,7 @@ export function nav(
             ].filter(Boolean) as any),
         );
     if (__can.viewInboundOrder)
-        routes.Sales.push(_route("Inbounds", Icons.inbound, `/sales/inbounds`));
+        routes.Sales.push(_route("Inbounds", Icons.Inbound, `/sales/inbounds`));
     const { rl: ContractorNavs } = groupedNavs({
         action(setHref) {
             __can.viewJobs && setHref("Jobs", "jobs");
@@ -259,7 +259,7 @@ export function nav(
             __can.viewDocuments && setHref("Contractors", "contractors");
         },
         basePath: "/contractor",
-        Icon: Icons.jobs,
+        Icon: Icons.Jobs,
         Group: routes.Contractor,
         groupName: "Contractors",
     });
@@ -271,7 +271,7 @@ export function nav(
             href = _href;
             _rw[_href] = _route(
                 title,
-                Icons.communitySettings,
+                Icons.CommunitySettings,
                 `/settings/community/${_href}`,
             );
         }
@@ -298,7 +298,7 @@ export function nav(
         if (href)
             return _route(
                 "Community",
-                Icons.communitySettings,
+                Icons.CommunitySettings,
                 `/settings/community/${href}`,
             );
         return null;

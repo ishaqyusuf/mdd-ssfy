@@ -66,7 +66,7 @@ export function SecondaryTabSheet({
                         size="icon"
                         className="h-7 w-7"
                     >
-                        <Icons.chevronRight className="h-5 w-5" />
+                        <Icons.ChevronRight className="h-5 w-5" />
                         <span className="sr-only">Close</span>
                     </Button>
                 </div>

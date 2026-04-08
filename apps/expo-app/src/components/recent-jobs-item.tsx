@@ -1,7 +1,7 @@
 import React from "react";
 import { View, TouchableOpacity } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color";
+import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useJobOverviewStore } from "@/stores/use-job-overview-store";
 
@@ -46,8 +46,8 @@ export function RecentJobsItem({ job }: RecentJobsItemProps) {
             </Text>
           </View>
           <View className="flex-row items-center mt-1">
-            <MaterialIcons
-              name="location-on"
+            <Icon
+              name="MapPin"
               size={14}
               color={colorScheme === "dark" ? "#9CA3AF" : "#6B7280"}
             />

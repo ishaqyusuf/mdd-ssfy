@@ -70,7 +70,7 @@ export default function PaymentResponsePage(props) {
 					text: "Processing Transaction...",
 					color: "text-blue-600",
 					icon: (
-						<Icons.spinner className="h-12 w-12 animate-spin text-blue-500" />
+						<Icons.Spinner className="h-12 w-12 animate-spin text-blue-500" />
 					),
 				};
 		}

@@ -1,5 +1,4 @@
 import { View, Text, TouchableOpacity } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
 import { LegendList } from "@legendapp/list";
 import { useColorScheme } from "@/hooks/use-color";
 import { useJobFormContext } from "@/hooks/use-job-form";

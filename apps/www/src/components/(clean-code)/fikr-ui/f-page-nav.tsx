@@ -13,7 +13,7 @@ export default function FPageNav({ children }) {
         <DropdownMenu>
             <DropdownMenuTrigger>
                 <Button size="icon" className="h-6 w-6" variant="outline">
-                    <Icons.more className="size-4" />
+                    <Icons.MoreHoriz className="size-4" />
                 </Button>
             </DropdownMenuTrigger>
         </DropdownMenu>,

@@ -1,5 +1,5 @@
 import CartBadge from '@/components/protected/CartBadge'
-import { Ionicons } from '@expo/vector-icons'
+import { Icon } from '@/components/ui/icon'
 import { useRouter } from 'expo-router'
 import { Text, TouchableOpacity, View } from 'react-native'
 
@@ -12,7 +12,7 @@ export default function Header({ title }: { title: string }) {
         onPress={() => router.back()}
         className='items-center justify-center p-2 rounded-full bg-gray-200'
       >
-        <Ionicons name='arrow-back' size={20} color='#1f2937' />
+        <Icon name='ArrowLeft' size={20} color='#1f2937' />
       </TouchableOpacity>
 
       <View className='items-center pointer-events-none flex-1 mx-4'>

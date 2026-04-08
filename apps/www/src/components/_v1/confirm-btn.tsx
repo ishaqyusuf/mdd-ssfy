@@ -47,7 +47,7 @@ export default function ConfirmBtn({
     const Icone: any = confirm.bool
         ? Info
         : isPending
-          ? Icons.spinner
+          ? Icons.Spinner
           : size == "icon" || trash
             ? Trash
             : Icon;

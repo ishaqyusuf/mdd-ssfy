@@ -16,6 +16,10 @@ import { Toaster as MiddayToast, Toaster } from "@gnd/ui/toaster";
 import { Providers } from "./providers";
 import { Suspense } from "react";
 import { StaticTrpc } from "@/components/static-trpc";
+import { Outfit } from "next/font/google";
+
+const outfit = Outfit({subsets:['latin'],variable:'--font-sans'});
+
 
 export async function generateMetadata({}) {
     return constructMetadata({
@@ -30,7 +34,7 @@ export default async function RootLayout({
 }) {
     const prodDB = env.DATABASE_URL?.includes("pscale");
     return (
-        <html lang="en" suppressHydrationWarning>
+        <html lang="en" suppressHydrationWarning className={cn("font-sans", outfit.variable)}>
             <SpeedInsights />
             <body>
                 <div className="print:hidden">

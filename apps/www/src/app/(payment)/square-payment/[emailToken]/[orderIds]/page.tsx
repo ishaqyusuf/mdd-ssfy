@@ -74,7 +74,7 @@ export default function Page(props) {
 				<div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
 					{loading ? (
 						<div className="flex flex-col items-center space-y-4">
-							<Icons.spinner className="h-12 w-12 animate-spin text-blue-500" />
+							<Icons.Spinner className="h-12 w-12 animate-spin text-blue-500" />
 							<p className="text-gray-600">Loading payment details...</p>
 						</div>
 					) : data?.orders?.length ? (

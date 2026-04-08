@@ -24,7 +24,7 @@ export default function Btn({
             disabled={isLoading || props.disabled}
         >
             {isLoading && (
-                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                <Icons.Spinner className="mr-2 h-4 w-4 animate-spin" />
             )}
             {icon && isLoading ? null : children}
         </Button>

@@ -1,4 +1,4 @@
-import { FontAwesome, MaterialIcons } from '@expo/vector-icons'
+import { Icon } from '@/components/ui/icon'
 import { Text, View } from 'react-native'
 
 export const ListEmptyComponent = () => {
@@ -12,22 +12,22 @@ export const ListEmptyComponent = () => {
         {/* Icon Grid */}
         <View className='flex-row flex-wrap justify-center items-center gap-4'>
           <View className='bg-white p-4 rounded-2xl shadow-sm'>
-            <FontAwesome name='shopping-bag' size={40} color='#D1D5DB' />
+            <Icon name='ShoppingBag' size={40} color='#D1D5DB' />
           </View>
           <View className='bg-white p-4 rounded-2xl shadow-sm'>
-            <MaterialIcons name='shopping-cart' size={40} color='#D1D5DB' />
+            <Icon name='ShoppingCart' size={40} color='#D1D5DB' />
           </View>
           <View className='bg-white p-4 rounded-2xl shadow-sm'>
-            <FontAwesome name='star-o' size={40} color='#D1D5DB' />
+            <Icon name='Star' size={40} color='#D1D5DB' />
           </View>
           <View className='bg-white p-4 rounded-2xl shadow-sm'>
-            <MaterialIcons name='favorite-border' size={40} color='#D1D5DB' />
+            <Icon name='Heart' size={40} color='#D1D5DB' />
           </View>
         </View>
 
         {/* Large Center Icon */}
         <View className='absolute opacity-10'>
-          <FontAwesome name='search' size={120} color='#9CA3AF' />
+          <Icon name='Search' size={120} color='#9CA3AF' />
         </View>
       </View>
 

@@ -43,9 +43,9 @@ function Door({ item }: Props) {
 function Options({ item }: Props) {
     const modal = useModal();
     return (
-        <Menu Icon={Icons.more}>
+        <Menu Icon={Icons.MoreHoriz}>
             <MenuItem
-                Icon={Icons.calendar}
+                Icon={Icons.Calendar}
                 onClick={() => {
                     // modal?.openModal(<DueDateModal item={item} />);
                 }}

@@ -1,11 +1,11 @@
 import React from "react";
 import { View, TouchableOpacity, TextInput } from "react-native";
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { Text } from "@/components/ui/text";
 import { useJobsStore } from "@/stores/use-jobs-store";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColorScheme } from "@/hooks/use-color";
+import { Icon } from "@/components/ui/icon";
 
 export function JobsHeader() {
   const navigation = useNavigation();
@@ -21,8 +21,8 @@ export function JobsHeader() {
             onPress={() => navigation.goBack()}
             className="p-2 rounded-full"
           >
-            <Ionicons
-              name="arrow-back"
+            <Icon
+              name="ArrowLeft"
               size={24}
               color={colorScheme === "dark" ? "#F9FAFB" : "#1F2937"}
             />
@@ -31,8 +31,8 @@ export function JobsHeader() {
             All Jobs
           </Text>
           <TouchableOpacity className="p-2 rounded-full active:bg-gray-200 dark:active:bg-gray-700">
-            <MaterialIcons
-              name="filter-list"
+            <Icon
+              name="Filter"
               size={24}
               color={colorScheme === "dark" ? "#F9FAFB" : "#1F2937"}
             />
@@ -40,8 +40,8 @@ export function JobsHeader() {
         </View>
         <View className="px-4 pb-3">
           <View className="flex-row items-center bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2">
-            <Ionicons
-              name="search"
+            <Icon
+              name="Search"
               size={20}
               color={colorScheme === "dark" ? "#9CA3AF" : "#6B7280"}
             />

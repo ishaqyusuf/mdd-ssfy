@@ -376,7 +376,7 @@ function RouteSection({ uid }: { uid: string }) {
                             className="h-8 uppercase"
                             onClick={() => stepArray.append({ uid: "" })}
                         >
-                            <Icons.add className="size-4" />
+                            <Icons.Add className="size-4" />
                             <span>Step</span>
                         </Button>
                     </div>
@@ -594,7 +594,7 @@ export function NewSalesFormSettingsModal() {
                                             className="gap-2 uppercase"
                                             disabled={value.isLoading}
                                         >
-                                            <Icons.add className="size-4" />
+                                            <Icons.Add className="size-4" />
                                             <span>Section</span>
                                         </Button>
                                     </DropdownMenuTrigger>

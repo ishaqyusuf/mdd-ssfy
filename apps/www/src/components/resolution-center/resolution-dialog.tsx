@@ -165,7 +165,7 @@ export function ResolutionDialog({
                     variant="outline"
                     size="sm"
                 >
-                    <Icons.more className="h-4 w-4" />
+                    <Icons.MoreHoriz className="h-4 w-4" />
                     Resolve
                 </Button>
             </DialogTrigger>

@@ -224,7 +224,7 @@ export default function HomesTableShell<T>({
                                         toast.error("Model Template Not Found");
                                 }}
                             >
-                                <Icons.edit className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
+                                <Icons.Edit className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
                                 Edit Template
                             </DropdownMenuItem>
 
@@ -235,7 +235,7 @@ export default function HomesTableShell<T>({
                                     modal.open(row.original);
                                 }}
                             >
-                                <Icons.edit className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
+                                <Icons.Edit className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
                                 Edit Model
                             </DropdownMenuItem>
                             {!row.original?.tasks.some(
@@ -247,7 +247,7 @@ export default function HomesTableShell<T>({
                                             row.original,
                                         ]);
                                     }}
-                                    Icon={Icons.production}
+                                    Icon={Icons.Production}
                                 >
                                     Send to Production
                                 </MenuItem>
@@ -259,7 +259,7 @@ export default function HomesTableShell<T>({
                                         ]);
                                         toast.success("Removed");
                                     }}
-                                    Icon={Icons.production}
+                                    Icon={Icons.Production}
                                 >
                                     Remove from Production
                                 </MenuItem>

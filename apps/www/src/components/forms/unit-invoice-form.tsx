@@ -195,7 +195,7 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
               className="gap-2"
               onClick={openModelCostEditor}
             >
-              <Icons.edit className="size-4" />
+              <Icons.Edit className="size-4" />
               Edit Model Cost
             </Button>
           </div>
@@ -260,7 +260,7 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
                       remove(index);
                     }}
                   >
-                    <Icons.trash className="size-4" />
+                    <Icons.Trash className="size-4" />
                   </Button>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -443,7 +443,7 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
                           remove(index);
                         }}
                       >
-                        <Icons.trash className="size-4" />
+                        <Icons.Trash className="size-4" />
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -468,7 +468,7 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
             });
           }}
         >
-          <Icons.add className="mr-2 size-4" />
+          <Icons.Add className="mr-2 size-4" />
           Add Task
         </Button>
       </form>

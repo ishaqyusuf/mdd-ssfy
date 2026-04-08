@@ -5,10 +5,10 @@ import React, { useEffect, useMemo } from "react";
 import { TouchableOpacity, View } from "react-native";
 
 import { _trpc } from "@/components/static-trpc";
+import { Icon, type IconKeys } from "@/components/ui/icon";
 import { Modal, useModal } from "@/components/ui/modal";
 import { Text } from "@/components/ui/text";
 import { useJobOverviewStore } from "@/stores/use-job-overview-store";
-import { MaterialIcons } from "@expo/vector-icons";
 
 export function JobOverviewModal() {
   const { job } = useJobOverviewStore();
@@ -36,7 +36,7 @@ export function JobOverviewModal() {
     <Modal
       ref={ref}
       snapPoints={snapPoints}
-      title={job.title}
+      title={job.title ?? undefined}
       onDismiss={closeModal}
     >
       <Content costData={costData} />
@@ -86,7 +86,7 @@ const InfoBlock = ({
   value,
   children,
 }: {
-  icon: React.ComponentProps<typeof MaterialIcons>["name"];
+  icon: IconKeys;
   label: string;
   value?: string | null;
   children?: React.ReactNode;
@@ -94,11 +94,7 @@ const InfoBlock = ({
   if (!value && !children) return null;
   return (
     <View className="flex-row items-start py-3">
-      <MaterialIcons
-        name={icon}
-        size={22}
-        className="text-muted-foreground mt-0.5"
-      />
+      <Icon name={icon} size={22} className="text-muted-foreground mt-0.5" />
       <View className="ml-4 flex-1">
         <Text className="text-sm text-muted-foreground">{label}</Text>
         {value && (
@@ -124,11 +120,7 @@ const TaskItem = ({
   return (
     <View className="flex-row items-center bg-background p-3 rounded-lg mb-2">
       <View className="p-3 bg-muted rounded-lg">
-        <MaterialIcons
-          name="construction"
-          size={20}
-          className="text-muted-foreground"
-        />
+        <Icon name="Wrench" size={20} className="text-muted-foreground" />
       </View>
       <View className="flex-1 mx-4">
         <Text className="text-base font-medium text-foreground">{title}</Text>
@@ -166,15 +158,20 @@ function Content({ costData }: { costData: any }) {
 
   if (!job) return null;
 
-  const paymentStatus = job.payment?.length > 0 ? "Paid" : "Unpaid";
+  const paymentStatus =
+    (Array.isArray(job.payment) ? job.payment.length : Number(job.payment?.amount || 0)) > 0
+      ? "Paid"
+      : "Unpaid";
   const totalCost =
     job.amount != null ? `${job.amount.toFixed(2)}` : "N/A";
   const additionalCost =
-    job.meta?.additionalCost != null
-      ? `${job.meta.additionalCost.toFixed(2)}`
+    (job.meta as any)?.additional_cost != null
+      ? `${(job.meta as any).additional_cost.toFixed(2)}`
       : "N/A";
   const addonCost =
-    job.meta?.addonCost != null ? `${job.meta.addonCost.toFixed(2)}` : "N/A";
+    (job.meta as any)?.addon_cost != null
+      ? `${(job.meta as any).addon_cost.toFixed(2)}`
+      : "N/A";
 
   return (
     <>
@@ -203,17 +200,17 @@ function Content({ costData }: { costData: any }) {
           </Text>
           <View className="bg-card rounded-2xl px-4 divide-y divide-border">
             <InfoBlock
-              icon="person-outline"
+              icon="User"
               label="Installer"
               value={job.user?.name}
             />
             <InfoBlock
-              icon="business"
+              icon="Building2"
               label="Project"
               value={job.project?.title}
             />
             <InfoBlock
-              icon="home-work"
+              icon="House"
               label="Unit"
               value={
                 job.home?.lotBlock && job.home?.modelName
@@ -222,9 +219,9 @@ function Content({ costData }: { costData: any }) {
               }
             />
             <InfoBlock
-              icon="construction"
+              icon="Wrench"
               label="Job Type"
-              value={job.meta?.jobType}
+              value={(job.meta as any)?.job_type ?? (job.meta as any)?.jobType}
             />
           </View>
         </View>
@@ -235,7 +232,7 @@ function Content({ costData }: { costData: any }) {
             Financials
           </Text>
           <View className="bg-card rounded-2xl p-4">
-            <InfoBlock icon="payment" label="Payment Status">
+            <InfoBlock icon="CreditCard" label="Payment Status">
               <View className="mt-1">
                 <StatusBadge status={paymentStatus} />
               </View>
@@ -299,8 +296,8 @@ function Content({ costData }: { costData: any }) {
       <View className="absolute bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-sm border-t border-border">
         <View className="flex-row space-x-3">
           <TouchableOpacity className="flex-1 bg-muted p-4 rounded-xl items-center justify-center flex-row">
-            <MaterialIcons
-              name="edit"
+            <Icon
+              name="Pencil"
               size={20}
               className="text-[--color-primary-light-blue]"
             />
@@ -309,23 +306,15 @@ function Content({ costData }: { costData: any }) {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity className="flex-1 bg-destructive/20 p-4 rounded-xl items-center justify-center flex-row">
-            <MaterialIcons
-              name="delete-outline"
-              size={20}
-              className="text-destructive"
-            />
+            <Icon name="Trash" size={20} className="text-destructive" />
             <Text className="text-destructive font-bold text-base ml-2">
               Delete
             </Text>
           </TouchableOpacity>
         </View>
-        {job.status === "Pending Submission" && (
+        {String(job.status).toLowerCase() === "pending submission" && (
           <TouchableOpacity className="bg-[--color-primary-medium-blue] p-4 rounded-xl items-center shadow-sm mt-3 flex-row justify-center">
-            <MaterialIcons
-              name="check-circle-outline"
-              size={22}
-              color="white"
-            />
+            <Icon name="CircleCheck" size={22} color="white" />
             <Text className="text-white font-bold text-base ml-2">
               Submit Job
             </Text>

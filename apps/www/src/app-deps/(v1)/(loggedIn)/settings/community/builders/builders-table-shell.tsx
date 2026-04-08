@@ -109,7 +109,7 @@ export default function BuildersTableShell<T>({
                                             onClick={() => {
                                                 modal.edit(row.original);
                                             }}
-                                            Icon={Icons.edit}
+                                            Icon={Icons.Edit}
                                         >
                                             Info
                                         </RowActionMenuItem>
@@ -117,13 +117,13 @@ export default function BuildersTableShell<T>({
                                             onClick={() => {
                                                 modal.editTasks(row.original);
                                             }}
-                                            Icon={Icons.edit}
+                                            Icon={Icons.Edit}
                                         >
                                             Tasks
                                         </RowActionMenuItem>
                                     </>
                                 }
-                                Icon={Icons.edit}
+                                Icon={Icons.Edit}
                             >
                                 Edit
                             </RowActionMenuItem>

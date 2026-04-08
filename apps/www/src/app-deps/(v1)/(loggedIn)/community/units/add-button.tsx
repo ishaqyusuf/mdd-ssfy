@@ -16,7 +16,7 @@ export default function AddHomeBtn() {
                 }}
                 size="sm"
             >
-                <Icons.add className="mr-2 size-4" />
+                <Icons.Add className="mr-2 size-4" />
                 <span>Add</span>
             </Button>
         </>

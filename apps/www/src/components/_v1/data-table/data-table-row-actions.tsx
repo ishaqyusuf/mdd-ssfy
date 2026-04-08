@@ -193,7 +193,7 @@ export const EditRowAction = typedMemo(
                     className="flex h-8 w-8 p-0 "
                     onClick={_edit}
                 >
-                    <Icons.edit
+                    <Icons.Edit
                         className={`${
                             isPending ? "h-3.5 w-3.5 animate-spin" : "h-4 w-4"
                         }`}
@@ -207,7 +207,7 @@ export const EditRowAction = typedMemo(
                 className=""
                 onClick={_edit}
             >
-                <Icons.edit
+                <Icons.Edit
                     className={`mr-2 ${
                         isPending ? "h-3.5 w-3.5 animate-spin" : "h-4 w-4"
                     }`}
@@ -271,7 +271,7 @@ export const DeleteRowAction = typedMemo(
         const Icone: any = confirm.bool
             ? Info
             : isPending
-              ? Icons.spinner
+              ? Icons.Spinner
               : Trash;
         if (!menu)
             return (

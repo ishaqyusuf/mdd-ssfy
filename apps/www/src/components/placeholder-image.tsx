@@ -34,7 +34,7 @@ export function PlaceholderImage({
                     isSkeleton ? "animate-pulse" : "animate-none",
                 )}
             >
-                <Icons.placeholder
+                <Icons.Placeholder
                     className="size-9 text-muted-foreground"
                     aria-hidden="true"
                 />

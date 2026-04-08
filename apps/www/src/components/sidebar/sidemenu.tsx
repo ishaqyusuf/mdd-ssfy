@@ -109,10 +109,10 @@ export function SideMenu({}) {
                 <ModuleSwitcher />
                 {sb.state == "expanded" ? (
                     <div className="flex">
-                        <Icons.logoLg width={100} />
+                        <Icons.LogoLg width={100} />
                     </div>
                 ) : (
-                    <Icons.logo />
+                    <Icons.Logo />
                 )}
             </SidebarHeader>
             <SidebarContent

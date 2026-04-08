@@ -1,4 +1,3 @@
-import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Tabs, Stack } from "expo-router";
 import {
   BottomTabBarButtonProps,
@@ -10,7 +9,6 @@ import {
   Label,
   Icon as NtIcon,
 } from "expo-router/unstable-native-tabs";
-import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import {
   Alert,
@@ -243,7 +241,7 @@ export const SpecialTabButton = () => {
       style={styles.button}
       activeOpacity={0.85}
     >
-      <Ionicons name="add-circle" size={30} color="#fff" />
+      <Icon name="PlusCircle" size={30} color="#fff" />
     </TouchableOpacity>
   );
 };

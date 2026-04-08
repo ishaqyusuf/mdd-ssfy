@@ -12,7 +12,7 @@ export function FileViewActions() {
                     openLink(apiPath, null, true);
                 }}
             >
-                <Icons.print className="size-4" />
+                <Icons.Print className="size-4" />
             </Button>
         </div>
     );

@@ -278,7 +278,7 @@ export function ComponentItemCard({
                 <div>
                     <Menu open={open} onOpenChanged={setOpen}>
                         <Menu.Item
-                            Icon={Icons.edit}
+                            Icon={Icons.Edit}
                             SubMenu={
                                 <>
                                     <Menu.Item
@@ -305,7 +305,7 @@ export function ComponentItemCard({
                                                 ? editDoorPrice
                                                 : editPrice
                                         }
-                                        Icon={Icons.dollar}
+                                        Icon={Icons.Dollar}
                                     >
                                         Price
                                     </Menu.Item>

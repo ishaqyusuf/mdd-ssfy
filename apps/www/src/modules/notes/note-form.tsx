@@ -143,7 +143,7 @@ export function NoteForm({}) {
                     size="xs"
                     variant="link"
                 >
-                    <Icons.add className="size-4" />
+                    <Icons.Add className="size-4" />
                     Add Note
                 </Button>
             )}

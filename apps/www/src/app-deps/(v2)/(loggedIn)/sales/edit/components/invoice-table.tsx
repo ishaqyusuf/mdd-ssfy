@@ -199,11 +199,11 @@ function InvoiceTableRowActions({ index, cid, field, length }) {
     return (
         <TableCell className="p-0 px-1">
             <Menu variant={"ghost"}>
-                {/* <MenuItem Icon={Icons.component}>Component</MenuItem> */}
-                <MenuItem onClick={actions.clear} Icon={Icons.clear}>
+                {/* <MenuItem Icon={Icons.Component}>Component</MenuItem> */}
+                <MenuItem onClick={actions.clear} Icon={Icons.Clear}>
                     Clear
                 </MenuItem>
-                <MenuItem onClick={actions.copy} Icon={Icons.copy}>
+                <MenuItem onClick={actions.copy} Icon={Icons.Copy}>
                     Copy
                 </MenuItem>
                 <MenuItem
@@ -224,7 +224,7 @@ function InvoiceTableRowActions({ index, cid, field, length }) {
                                 ))}
                         </div>
                     }
-                    Icon={Icons.move2}
+                    Icon={Icons.Move2}
                 >
                     Move To
                 </MenuItem>
@@ -233,23 +233,23 @@ function InvoiceTableRowActions({ index, cid, field, length }) {
                         <>
                             <MenuItem
                                 onClick={() => actions.addLine("before")}
-                                Icon={Icons.arrowUp}
+                                Icon={Icons.ArrowUp}
                             >
                                 Before
                             </MenuItem>
                             <MenuItem
                                 onClick={() => actions.addLine("after")}
-                                Icon={Icons.arrowDown}
+                                Icon={Icons.ArrowDown}
                             >
                                 After
                             </MenuItem>
                         </>
                     }
-                    Icon={Icons.add}
+                    Icon={Icons.Add}
                 >
                     Add Line
                 </MenuItem>
-                <MenuItem onClick={actions.remove} Icon={Icons.trash}>
+                <MenuItem onClick={actions.remove} Icon={Icons.Trash}>
                     Delete
                 </MenuItem>
             </Menu>

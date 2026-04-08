@@ -142,7 +142,7 @@ export function BuilderForm(props: BuilderFormProps) {
                                     }}
                                     className="w-full"
                                 >
-                                    <Icons.add className="size-4 mr-2" />
+                                    <Icons.Add className="size-4 mr-2" />
                                     Add
                                 </Button>
                             </Table.Cell>

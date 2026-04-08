@@ -35,7 +35,7 @@ export function JobsItem({
         {/* <View
           className={`flex items-center justify-center rounded-2xl shrink-0 h-14 w-14 bg-muted`}
         >
-          <Icon name={"jobs"} className="text-muted-foreground" size={28} />
+          <Icon name="Jobs" className="text-muted-foreground" size={28} />
         </View> */}
         <View className={cn("flex-1", !admin ? " flex-row gap-4" : "")}>
           {admin ? (
@@ -67,7 +67,7 @@ export function JobsItem({
                 className={`flex items-center justify-center rounded-2xl shrink-0 h-14 w-14 bg-muted`}
               >
                 <Icon
-                  name={"jobs"}
+                  name="Jobs"
                   className="text-muted-foreground"
                   size={28}
                 />

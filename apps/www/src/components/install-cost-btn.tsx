@@ -22,7 +22,7 @@ export function InstallCostBtn({ id, templateEditMode }: Props) {
             }}
             className="justify-start gap-2"
         >
-            <Icons.installation className="size-4" />
+            <Icons.Installation className="size-4" />
             Install Cost
         </Button>
     );

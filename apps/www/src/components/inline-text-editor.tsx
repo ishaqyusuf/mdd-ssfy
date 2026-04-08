@@ -72,7 +72,7 @@ export function InlineTextEditor({
                             variant="destructive"
                             className="size-5 bg-green-500 p-0 hover:bg-green-600"
                         >
-                            <Icons.check className="size-3" />
+                            <Icons.Check className="size-3" />
                         </Button>
                     </div>
                 )}

@@ -45,9 +45,9 @@ export function ConfirmBtn({
   const iconName = confirm
     ? "Warn"
     : isPending
-      ? "spinner"
+      ? "Spinner"
       : size == "icon" || trash
-        ? "trash"
+        ? "Trash"
         : icon;
   return (
     <Button

@@ -200,7 +200,7 @@ export default function JobTableShell<T>({
                                                 />,
                                             );
                                         }}
-                                        Icon={Icons.edit}
+                                        Icon={Icons.Edit}
                                     >
                                         Edit
                                     </RowActionMenuItem>

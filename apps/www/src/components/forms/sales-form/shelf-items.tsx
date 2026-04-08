@@ -76,7 +76,7 @@ export function ShelfItems({ itemStepUid }) {
                         className=""
                         size="xs"
                     >
-                        <Icons.add className="size-4" />
+                        <Icons.Add className="size-4" />
                         Item Section
                     </Button>
                 </div>
@@ -134,7 +134,7 @@ export function ShelfItemLine({
                                 }}
                                 className="w-full"
                             >
-                                <Icons.add className="size-4" />
+                                <Icons.Add className="size-4" />
                                 Add Product
                             </Button>
                         </div>
@@ -201,7 +201,7 @@ export function ShelfItemLine({
                                                     ctx.addProduct();
                                                 }}
                                             >
-                                                <Icons.add className="size-4" />
+                                                <Icons.Add className="size-4" />
                                                 Add Product
                                             </Button>
                                         </div>

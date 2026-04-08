@@ -109,7 +109,7 @@ function DeleteRow({
 }) {
     const [confirm, setConfirm] = useState(false);
     const [isPending, startTransition] = useTransition();
-    const Icon = confirm ? Icons.Warn : isPending ? Icons.spinner : Icons.trash;
+    const Icon = confirm ? Icons.Warn : isPending ? Icons.Spinner : Icons.Trash;
     function _delete(e) {
         e.preventDefault();
         if (!confirm) {
@@ -209,14 +209,14 @@ function NewBtn({ onClick, link }: { onClick?; link? }) {
                         }),
                     )}
                 >
-                    <Icons.add className="mr-2 h-4 w-4" aria-hidden="true" />
+                    <Icons.Add className="mr-2 h-4 w-4" aria-hidden="true" />
                     New
                 </div>
             </Link>
         );
     return (
         <Button size="sm" onClick={onClick} className="h-8">
-            <Icons.add className="mr-2 h-4 w-4" aria-hidden="true" />
+            <Icons.Add className="mr-2 h-4 w-4" aria-hidden="true" />
             New
         </Button>
     );
@@ -250,7 +250,7 @@ function BatchDelete({ table, action, selectedIds }) {
             }}
             disabled={isPending}
         >
-            <Icons.trash className="mr-2 h-4 w-4" aria-hidden="true" />
+            <Icons.Trash className="mr-2 h-4 w-4" aria-hidden="true" />
             Delete
         </Button>
     );

@@ -18,7 +18,7 @@ export default function PageAction() {
     return (
         <>
             <Button onClick={newDispatch}>
-                <Icons.add className="mr-2 size-4" />
+                <Icons.Add className="mr-2 size-4" />
                 New
             </Button>
         </>

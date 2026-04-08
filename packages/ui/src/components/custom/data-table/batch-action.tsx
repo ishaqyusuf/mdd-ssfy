@@ -119,7 +119,7 @@ export function BatchDelete(props: BatchBtnProps) {
 			className="rounded-none text-red-600"
 		>
 			{/* <div className="flex items-center"> */}
-			{/* <Icons.trash className="size-3.5 mr-2" /> */}
+			{/* <Icons.Trash className="size-3.5 mr-2" /> */}
 			<span>Delete</span>
 			{/* </div> */}
 		</ConfirmBtn>

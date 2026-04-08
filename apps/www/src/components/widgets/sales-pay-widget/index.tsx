@@ -12,7 +12,7 @@ export function SalesPayWidget(props: Props) {
             <Menu
                 variant="default"
                 label={props?.label || "Pay"}
-                Icon={Icons.payment}
+                Icon={Icons.Payment}
             >
                 {salesPaymentMethods.map((method) => (
                     <Menu.Item>{method.label}</Menu.Item>

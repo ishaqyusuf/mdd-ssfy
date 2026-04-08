@@ -1,24 +1,10 @@
 // import logo2 from "@/public/logo.png";
 import Link from "@/components/link";
 import { cn } from "@/lib/utils";
-import { Icons as BaseIcon, type Icon as LucideIcon } from "@gnd/ui/icons";
+import { Icon as SharedIcon, Icons as BaseIcon, type Icon as SharedIconType } from "@gnd/ui/icons";
 import { type VariantProps, cva } from "class-variance-authority";
-import {
-    Archive,
-    BarChart2,
-    BarChart3,
-    CheckCircle,
-    FileEdit,
-    FileText,
-    FolderTree,
-    Home,
-    LogOut,
-    Monitor,
-    Scale,
-} from "lucide-react";
 import Image from "next/image";
-import type { SVGProps } from "react";
-export type Icon = LucideIcon;
+export type Icon = SharedIconType;
 
 export const Icons = {
     ...BaseIcon,
@@ -45,36 +31,6 @@ export const Icons = {
             />
         </Link>
     ),
-    Transactions2: (props: SVGProps<SVGSVGElement>) => (
-        <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width={40}
-            height={40}
-            fill="none"
-            {...props}
-        >
-            <title>Transactions</title>
-            <path
-                fill="currentColor"
-                d="M23.333 16.667H5V20h18.333v-3.333Zm0-6.667H5v3.333h18.333V10ZM5 26.667h11.667v-3.334H5v3.334Zm19 10 4.333-4.334 4.334 4.334L35 34.333 30.667 30 35 25.667l-2.333-2.334-4.334 4.334L24 23.333l-2.333 2.334L26 30l-4.333 4.333L24 36.667Z"
-            />
-        </svg>
-    ),
-    Draft: FileEdit,
-    Published: CheckCircle,
-    Archived: Archive,
-    Archive: Archive,
-    report: BarChart2,
-    chart: BarChart2,
-    resolutionCenter: Scale,
-    salesDashboard: BarChart3,
-    monitor: Monitor,
-    category: FolderTree,
-    documents: FileText,
-    logout: LogOut,
-    notification: Monitor,
-    home: Home,
-    template: FileText,
 };
 
 export type IconKeys = keyof typeof Icons;
@@ -100,8 +56,10 @@ export function Icon({
     className,
     ...props
 }: { name: IconKeys; className? } & VariantProps<typeof iconVariants>) {
-    const RenderIcon = Icons[name];
-    if (!RenderIcon) return null;
-    return <RenderIcon className={cn("", iconVariants(props), className)} />;
+    return (
+        <SharedIcon
+            name={name as never}
+            className={cn("", iconVariants(props), className)}
+        />
+    );
 }
-

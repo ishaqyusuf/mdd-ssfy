@@ -197,15 +197,15 @@ function Row({}) {
                                     Pricing
                                 </TabsTrigger>
                                 <TabsTrigger value="inbound">
-                                    <Icons.inbound className="size-4 mr-2" />
+                                    <Icons.Inbound className="size-4 mr-2" />
                                     Stock Inbound
                                 </TabsTrigger>
                                 <TabsTrigger value="movement">
-                                    <Icons.project className="size-4 mr-2" />
+                                    <Icons.Project className="size-4 mr-2" />
                                     Stock Movement
                                 </TabsTrigger>
                                 <TabsTrigger value="overview">
-                                    <Icons.project className="size-4 mr-2" />
+                                    <Icons.Project className="size-4 mr-2" />
                                     Stock Overview
                                 </TabsTrigger>
                             </TabsList>
@@ -245,7 +245,7 @@ function NoActiveVariants({}) {
     return (
         <div className={cn("flex h-[30vh] items-center justify-center")}>
             <div className="flex flex-col items-center text-center">
-                <Icons.products className="mb-4" />
+                <Icons.Products className="mb-4" />
                 <div className="mb-6 space-y-2">
                     <h2 className="text-lg font-medium">No active variants</h2>
                     <p className="text-sm text-[#606060]">
@@ -265,7 +265,7 @@ export function EmptyState() {
     return (
         <div className={cn("flex h-[30vh] items-center justify-center")}>
             <div className="flex flex-col items-center">
-                <Icons.products className="mb-4" />
+                <Icons.Products className="mb-4" />
                 <div className="mb-6 space-y-2 text-center">
                     <h2 className="text-lg font-medium">{"No results"}</h2>
                     <p className="text-sm text-[#606060]">

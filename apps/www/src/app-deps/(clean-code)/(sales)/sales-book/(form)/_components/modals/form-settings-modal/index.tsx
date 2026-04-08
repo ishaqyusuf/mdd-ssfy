@@ -69,7 +69,7 @@ export default function FormSettingsModal({}) {
                                         variant="outline"
                                         className="items-center justify-center gap-2"
                                     >
-                                        <Icons.add className="w-h h-4" />
+                                        <Icons.Add className="w-h h-4" />
                                         <span>Section</span>
                                     </Button>
                                 </DropdownMenuTrigger>
@@ -138,7 +138,7 @@ function RouteSection({ uid }) {
                         className="w-fit"
                         onClick={() => arr.append({ uid: "" })}
                     >
-                        <Icons.add className="size-4" />
+                        <Icons.Add className="size-4" />
                         <span>Step</span>
                     </Button>
                 </div>
@@ -259,7 +259,7 @@ function RouteSection({ uid }) {
                         variant="secondary"
                         size="sm"
                     >
-                        <Icons.add className="size-4" />
+                        <Icons.Add className="size-4" />
                         <span>Step</span>
                     </Button>
                 </div>

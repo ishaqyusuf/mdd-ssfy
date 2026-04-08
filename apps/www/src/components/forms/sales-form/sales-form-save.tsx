@@ -113,25 +113,25 @@ export function SalesFormSave({ type = "button", and }: Props) {
             <span className="">Save</span>
         </Button>
     ) : and ? (
-        <Menu.Item Icon={Icons.save} onClick={(e) => save(and)}>
+        <Menu.Item Icon={Icons.Save} onClick={(e) => save(and)}>
             Save & {and}
         </Menu.Item>
     ) : (
         <>
-            <Menu.Item Icon={Icons.save} onClick={(e) => save()}>
+            <Menu.Item Icon={Icons.Save} onClick={(e) => save()}>
                 Save
             </Menu.Item>
             <Menu.Item
-                Icon={Icons.save}
+                Icon={Icons.Save}
                 SubMenu={
                     <>
                         <Menu.Item
-                            Icon={Icons.close}
+                            Icon={Icons.Close}
                             onClick={() => save("close")}
                         >
                             Close
                         </Menu.Item>
-                        <Menu.Item Icon={Icons.add} onClick={() => save("new")}>
+                        <Menu.Item Icon={Icons.Add} onClick={() => save("new")}>
                             New
                         </Menu.Item>
                     </>

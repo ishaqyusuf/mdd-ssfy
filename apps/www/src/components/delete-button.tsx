@@ -63,7 +63,7 @@ export function DeleteButton<R extends Routes>(props: Props<R>) {
             ? `icon-${props.size}`
             : "icon"
         : props.size || "sm";
-    const Icon = confirm ? Icons.Warn : Icons.trash;
+    const Icon = confirm ? Icons.Warn : Icons.Trash;
     return (
         <SubmitButton
             // variant="destructive"

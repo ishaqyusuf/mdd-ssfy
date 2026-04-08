@@ -30,7 +30,7 @@ export function BatchActions() {
 						salesIds={salesIds}
 						trigger={
 							<Button variant="ghost">
-								<Icons.print className="mr-2 size-4" />
+								<Icons.Print className="mr-2 size-4" />
 								Print
 							</Button>
 						}

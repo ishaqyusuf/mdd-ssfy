@@ -101,7 +101,7 @@ export function ComponentSectionFooter({ ctx }: { ctx: UseStepContext }) {
                                 {items?.length} components
                             </span>{" "}
                             <SearchBar ctx={ctx} />
-                            <Menu Icon={Icons.menu}>
+                            <Menu Icon={Icons.Menu}>
                                 <Menu.Item
                                     Icon={Folder}
                                     SubMenu={ctx.tabs?.map((tb) => (

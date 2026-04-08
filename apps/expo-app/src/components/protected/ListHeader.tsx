@@ -1,6 +1,6 @@
 import CartBadge from "@/components/protected/CartBadge";
+import { Icon } from "@/components/ui/icon";
 import { CATEGORIES } from "@/data/categories-data";
-import { Ionicons } from "@expo/vector-icons";
 import { LegendList } from "@legendapp/list";
 import { Link, useRouter } from "expo-router";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
@@ -42,7 +42,7 @@ export const ListHeader = () => {
         className="flex-row items-center bg-gray-200 rounded-2xl px-2 py-1.5 gap-2 border border-gray-200"
         onPress={handleSearch}
       >
-        <Ionicons name="search" size={16} color="#9CA3AF" />
+        <Icon name="Search" size={16} color="#9CA3AF" />
         <Text className="text-gray-400 flex-1 text-sm">Search products...</Text>
       </Pressable>
 

@@ -22,7 +22,7 @@ export function HptAddDoorSize({ doorIndex }) {
                 noSize
                 Trigger={
                     <Button>
-                        <Icons.add className="mr-2 size-4" />
+                        <Icons.Add className="mr-2 size-4" />
                         <span>Size</span>
                     </Button>
                 }
@@ -68,7 +68,7 @@ export function HptAddDoorSize({ doorIndex }) {
                 })}
             </Menu>
             {/* <Button onClick={addDoorSize}>
-                <Icons.add className="mr-2 size-4" />
+                <Icons.Add className="mr-2 size-4" />
                 <span>Size</span>
             </Button> */}
         </>

@@ -1,16 +1,15 @@
-import { Ionicons } from '@expo/vector-icons'
-// import { useAuth } from '@providers/auth-provider'
-// import { cn } from '@utils/cn'
+import { Icon, type IconKeys } from '@/components/ui/icon'
+import { cn } from '@/lib/utils'
 import { useState } from 'react'
 import { Control, Controller, FieldValues, Path } from 'react-hook-form'
-import { Image, Text, TextInput, TextInputProps, View } from 'react-native'
+import { Text, TextInput, TextInputProps, View } from 'react-native'
 
 interface InputProps<T extends FieldValues> extends TextInputProps {
   label?: string
   className?: string
   control: Control<T>
   name: Path<T>
-  icon?: keyof typeof Ionicons.glyphMap
+  icon?: IconKeys
   secureTextEntry?: boolean
 }
 
@@ -24,7 +23,6 @@ export function Input<T extends FieldValues>({
   ...rest
 }: InputProps<T>) {
   const [isPasswordVisible, setIsPasswordVisible] = useState(true)
-  // const { user } = useAuth()
 
   const togglePasswordVisibility = () => {
     setIsPasswordVisible(!isPasswordVisible)
@@ -56,15 +54,7 @@ export function Input<T extends FieldValues>({
                 error ? 'border-red-300' : 'border-gray-300'
               )}
             >
-              {name === 'full_name' ? (
-                <Image
-                  source={{ uri: user?.avatar_url }}
-                  className='w-6 aspect-square rounded-full'
-                  resizeMode='contain'
-                />
-              ) : (
-                <Ionicons name={icon} size={20} color='#6366F1' />
-              )}
+              {icon ? <Icon name={icon} size={20} color='#6366F1' /> : null}
               <TextInput
                 value={value}
                 onBlur={onBlur}
@@ -90,7 +80,7 @@ export function Input<T extends FieldValues>({
                   paddingVertical: 0,
                   includeFontPadding: false,
                 }}
-                {...rest}
+                {...(rest as any)}
               />
               {(name === 'password' ||
                 name === 'confirmPassword' ||
@@ -98,8 +88,8 @@ export function Input<T extends FieldValues>({
                 name === 'newPassword' ||
                 name === 'confirmNewPassword') &&
                 value.length > 0 && (
-                  <Ionicons
-                    name={isPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
+                  <Icon
+                    name={isPasswordVisible ? 'EyeOff' : 'Eye'}
                     size={20}
                     color='#6366F1'
                     onPress={togglePasswordVisibility}

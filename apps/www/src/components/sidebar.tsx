@@ -35,7 +35,7 @@ export function Sidebar({}) {
                 >
                     {isExpanded ? <Icons.LogoLg /> : <Icons.Logo />}
                     {/* <div className="flex">
-                         <Icons.logoLg width={100} />
+                         <Icons.LogoLg width={100} />
                      </div> */}
                 </Link>
             </div>

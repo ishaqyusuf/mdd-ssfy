@@ -44,7 +44,7 @@ interface RowActionMoreMenuProps {
   children;
   disabled?: boolean;
   label?;
-  Icon?;
+  Icon?: IconKeys | React.JSXElementConstructor<any>;
   Trigger?;
   noSize?: boolean;
   variant?: VariantProps<typeof buttonVariants>["variant"];
@@ -104,6 +104,10 @@ function BaseMenu(props: RowActionMoreMenuProps, ref) {
   } = props;
   const value = createMenuContext(props, ref);
   const { _open, _onOpenChanged, setHover, hover } = value;
+  const triggerIconName =
+    typeof MenuIcon === "string" ? (MenuIcon as IconKeys) : undefined;
+  const triggerIconComponent =
+    typeof MenuIcon === "string" ? undefined : MenuIcon;
   return (
     <MenuContext.Provider value={value}>
       <DropdownMenu
@@ -133,7 +137,11 @@ function BaseMenu(props: RowActionMoreMenuProps, ref) {
                 triggerSize == "sm" && "h-6 w-6",
               )}
             >
-              <Icon Icon={MenuIcon} className="h-4 w-4" />
+              <Icon
+                name={triggerIconName}
+                Icon={triggerIconComponent}
+                className="h-4 w-4"
+              />
               {label && <span className="">{label}</span>}
             </Button>
           )}
@@ -163,6 +171,10 @@ function Item({
   ...props
 }: MenuItemProps) {
   const { disabled } = useMenuContext();
+  const itemIconName =
+    iconName || (typeof ItemIcon === "string" ? (ItemIcon as IconKeys) : undefined);
+  const itemIconComponent =
+    typeof ItemIcon === "string" ? undefined : ItemIcon;
 
   // Lucide.ALargeSmall
   if (SubMenu)
@@ -171,8 +183,8 @@ function Item({
         <DropdownMenuSubTrigger>
           {iconName || ItemIcon ? (
             <Icon
-              name={iconName}
-              Icon={ItemIcon}
+              name={itemIconName}
+              Icon={itemIconComponent}
               className="mr-2 size-4 text-muted-foreground/70"
             />
           ) : null}
@@ -202,8 +214,8 @@ function Item({
       className={cn("gap-2", className)}
     >
       <Icon
-        name={iconName}
-        Icon={ItemIcon}
+        name={itemIconName}
+        Icon={itemIconComponent}
         className="h-3.5 w-3.5 text-muted-foreground/70"
       />
       {children}
@@ -232,7 +244,7 @@ interface TrashProps {
   loadingText?;
   successText?;
   errorText?;
-  variant?: "trash" | "primary";
+  variant?: "Trash" | "primary";
 }
 function Trash({ action, children, ...props }: TrashProps) {
   const [confirm, setConfirm] = useState(false);
@@ -271,14 +283,14 @@ function Trash({ action, children, ...props }: TrashProps) {
         });
       }}
       className={cn(
-        (!props.variant || props.variant == "trash") &&
+        (!props.variant || props.variant == "Trash") &&
           "text-red-500 hover:text-red-600",
         props.variant == "primary" && "",
         "gap-2",
       )}
     >
       <Icon
-        name={isPending ? "spinner" : confirm ? "warning" : "trash"}
+        name={isPending ? "Spinner" : confirm ? "Warn" : "Trash"}
         variant="destructive"
         className={cn(isPending ? "h-3.5 w-3.5 animate-spin" : "h-4 w-4", "")}
       />

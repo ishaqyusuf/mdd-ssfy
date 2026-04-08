@@ -70,7 +70,7 @@ export function SalesPaymentProcessor(props: Props) {
                         className=""
                         {...props?.buttonProps}
                     >
-                        <Icons.payment className="mr-2 size-4" />
+                        <Icons.Payment className="mr-2 size-4" />
                         Pay
                     </Button>
                 )}
@@ -579,7 +579,7 @@ function Content(props: Props & { setOpened }) {
                                     size="icon"
                                     variant="ghost"
                                 >
-                                    <Icons.edit className="size-4" />
+                                    <Icons.Edit className="size-4" />
                                 </Button>
                             </>
                         )}
@@ -689,7 +689,7 @@ function Content(props: Props & { setOpened }) {
                                                 setMockStatus("COMPLETED")
                                             }
                                         >
-                                            <Icons.check className="size-4" />
+                                            <Icons.Check className="size-4" />
                                         </Button>
                                     </div>
                                 </Env>
@@ -821,7 +821,7 @@ function Content(props: Props & { setOpened }) {
                                         !!terminalPaymentSession ? (
                                             <Spinner />
                                         ) : (
-                                            <Icons.arrowRight className="size-4" />
+                                            <Icons.ArrowRight className="size-4" />
                                         )}
                                     </Button>
                                 )}

@@ -2,13 +2,8 @@
 
 import type { Editor } from "@tiptap/react";
 import { useRef, useState } from "react";
-import {
-  MdOutlineAddLink,
-  MdOutlineCheck,
-  MdOutlineDelete,
-  MdOutlineLinkOff,
-} from "react-icons/md";
 import { Button } from "../../../button";
+import { Icons } from "../../../icons";
 import { Popover, PopoverContent, PopoverTrigger } from "../../../popover";
 import { formatUrlWithProtocol } from "../../utils";
 import { BubbleMenuButton } from "./bubble-menu-button";
@@ -46,9 +41,9 @@ export function LinkItem({ editor, open, setOpen }: LinkItemProps) {
         <div>
           <BubbleMenuButton isActive={isActive} action={() => setOpen(true)}>
             {linkValue ? (
-              <MdOutlineLinkOff className="size-4" />
+              <Icons.LinkOff className="size-4" />
             ) : (
-              <MdOutlineAddLink className="size-4" />
+              <Icons.Link className="size-4" />
             )}
           </BubbleMenuButton>
         </div>
@@ -83,7 +78,7 @@ export function LinkItem({ editor, open, setOpen }: LinkItemProps) {
                 setOpen(false);
               }}
             >
-              <MdOutlineDelete className="size-4" />
+              <Icons.Delete className="size-4" />
             </Button>
           ) : (
             <Button
@@ -92,7 +87,7 @@ export function LinkItem({ editor, open, setOpen }: LinkItemProps) {
               type="button"
               onClick={handleSubmit}
             >
-              <MdOutlineCheck className="size-4" />
+              <Icons.Check className="size-4" />
             </Button>
           )}
         </div>

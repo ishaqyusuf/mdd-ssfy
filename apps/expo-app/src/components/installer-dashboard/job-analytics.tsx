@@ -1,7 +1,7 @@
-import { MaterialIcons } from "@expo/vector-icons";
 import { useColorScheme } from "@/hooks/use-color";
 import { useQuery } from "@tanstack/react-query";
 import { _trpc } from "@/components/static-trpc";
+import { Icon, type IconKeys } from "@/components/ui/icon";
 import { View } from "@/components/ui/view";
 import { Text } from "../ui/text";
 
@@ -14,8 +14,8 @@ export function JobAnalytics() {
   return (
     <View>
       <View className="flex-row items-center mb-4">
-        <MaterialIcons
-          name="donut-large"
+        <Icon
+          name="PieChart"
           size={22}
           color={colorScheme === "dark" ? "#9CA3AF" : "#6B7280"}
         />
@@ -25,25 +25,25 @@ export function JobAnalytics() {
         <AnalyticsCard
           title="Submitted"
           value={inProgress}
-          iconName="hourglass-empty"
+          iconName="Hourglass"
           color="#F59E0B"
         />
         <AnalyticsCard
           title="Completed"
           value={completed}
-          iconName="check-circle-outline"
+          iconName="CircleCheck"
           color="#10B981"
         />
         <AnalyticsCard
           title="Paid"
           value={paid}
-          iconName="credit-card"
+          iconName="CreditCard"
           color="#3B82F6"
         />
         <AnalyticsCard
           title="Pending Payments"
           value={pendingPayments}
-          iconName="receipt-long"
+          iconName="ReceiptText"
           color="#EF4444"
         />
       </View>
@@ -54,7 +54,7 @@ export function JobAnalytics() {
 type AnalyticsCardProps = {
   title: string;
   value: string | number | undefined;
-  iconName: keyof typeof MaterialIcons.glyphMap;
+  iconName: IconKeys;
   color: string;
 };
 const AnalyticsCard = ({
@@ -71,7 +71,7 @@ const AnalyticsCard = ({
           className="w-10 h-10 rounded-full items-center justify-center"
           style={{ backgroundColor: `${color}25` }}
         >
-          <MaterialIcons name={iconName} size={22} color={color} />
+          <Icon name={iconName} size={22} color={color} />
         </View>
       </View>
       <Text className="text-base font-semibold mt-2" color="secondary">

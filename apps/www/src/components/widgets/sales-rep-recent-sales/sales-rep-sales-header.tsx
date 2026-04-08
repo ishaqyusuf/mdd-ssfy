@@ -22,7 +22,7 @@ export function SalesRepSalesWidgetHeader() {
 
             <Button variant="outline" size="icon" asChild>
                 <Link href="/sales-book/create-order">
-                    <Icons.add />
+                    <Icons.Add />
                 </Link>
             </Button>
         </CardHeader>

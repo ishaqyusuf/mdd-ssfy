@@ -210,7 +210,7 @@ function CloseSecondary({}) {
       className="size-6 p-0"
       variant="destructive"
     >
-      <Icons.chevronLeft className="size-4" />
+      <Icons.ChevronLeft className="size-4" />
     </Button>
   );
 }
@@ -285,7 +285,7 @@ export function SecondarySheetHeader({
           className="size-6 p-0"
           variant="secondary"
         >
-          <Icons.arrowLeft className="size-3.5" />
+          <Icons.ArrowLeft className="size-3.5" />
         </Button>
       </div>
       <div className="flex flex-col">

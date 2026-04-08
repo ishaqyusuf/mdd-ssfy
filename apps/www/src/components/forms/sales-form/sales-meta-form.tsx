@@ -208,7 +208,7 @@ function SummaryTab({}) {
                                 ),
                             )
                     }
-                    <Menu Icon={Icons.add} label={"Add Cost"}>
+                    <Menu Icon={Icons.Add} label={"Add Cost"}>
                         {[
                             {
                                 label: "Discount",

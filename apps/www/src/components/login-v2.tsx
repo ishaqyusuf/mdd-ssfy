@@ -99,7 +99,7 @@ export function LoginV2() {
 
 						<div className="relative z-10 flex h-full flex-col justify-between p-6 text-white sm:p-8 lg:p-10">
 							<div className="inline-flex w-fit items-center rounded-2xl bg-white/92 px-4 py-3 shadow-sm backdrop-blur">
-								<Icons.logoLg width={110} />
+								<Icons.LogoLg width={110} />
 							</div>
 
 							<div className="max-w-lg space-y-4">
@@ -124,7 +124,7 @@ export function LoginV2() {
 					<section className="flex items-center bg-white p-6 sm:p-8 lg:p-10">
 						<div className="mx-auto w-full max-w-md">
 							<div className="mb-6 inline-flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm lg:hidden">
-								<Icons.logoLg width={110} />
+								<Icons.LogoLg width={110} />
 							</div>
 							<div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:p-8">
 								<div className="mb-8 space-y-2">

@@ -48,17 +48,17 @@ export function DataTableColumnHeader<TData, TValue>({
                     >
                         <span>{title}</span>
                         {column.getIsSorted() === "desc" ? (
-                            <Icons.arrowDown
+                            <Icons.ArrowDown
                                 className="ml-2 h-4 w-4"
                                 aria-hidden="true"
                             />
                         ) : column.getIsSorted() === "asc" ? (
-                            <Icons.arrowUp
+                            <Icons.ArrowUp
                                 className="ml-2 h-4 w-4"
                                 aria-hidden="true"
                             />
                         ) : (
-                            <Icons.sortDesc
+                            <Icons.SortDesc
                                 className="ml-2 h-4 w-4"
                                 aria-hidden="true"
                             />
@@ -70,7 +70,7 @@ export function DataTableColumnHeader<TData, TValue>({
                         aria-label="Sort ascending"
                         onClick={() => column.toggleSorting(false)}
                     >
-                        <Icons.arrowUp
+                        <Icons.ArrowUp
                             className="mr-2 h-3.5 w-3.5 text-muted-foreground/70"
                             aria-hidden="true"
                         />
@@ -80,7 +80,7 @@ export function DataTableColumnHeader<TData, TValue>({
                         aria-label="Sort descending"
                         onClick={() => column.toggleSorting(true)}
                     >
-                        <Icons.arrowDown
+                        <Icons.ArrowDown
                             className="mr-2 h-3.5 w-3.5 text-muted-foreground/70"
                             aria-hidden="true"
                         />
