@@ -3,7 +3,6 @@
   "include": ["src", "../../types"],
   "exclude": ["node_modules"],
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
       "@jobs/*": ["src/*"],
       "@sales/*": ["../sales/src/*"],

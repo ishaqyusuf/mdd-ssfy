@@ -2,19 +2,19 @@ import { useState } from "react";
 import { createShelfCategoryAction } from "@/actions/create-shelf-category";
 import { useShelf } from "@/hooks/use-shelf";
 import { useShelfItem } from "@/hooks/use-shelf-item";
-import { ChevronDown } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 
 import {
     Combobox,
-    ComboboxAnchor,
-    ComboboxBadgeItem,
-    ComboboxBadgeList,
+    ComboboxChip,
+    ComboboxChips,
+    ComboboxChipsInput,
     ComboboxContent,
-    ComboboxInput,
     ComboboxItem,
     ComboboxTrigger,
+    useComboboxAnchor,
 } from "@gnd/ui/combobox";
+import { Icons } from "@gnd/ui/icons";
 import { useToast } from "@gnd/ui/use-toast";
 
 import { ClearCategoryModal } from "./clear-category";
@@ -25,6 +25,7 @@ export function ShelfItemCategoryInput({}) {
     const { categoryIds, setCategoryIds, filteredTricks, inputValue } = ctx;
     // const [categoryIds, setCategoryIds] = React.useState<string[]>([]);
     const [open, onOpenChange] = useState(false);
+    const anchor = useComboboxAnchor();
 
     const { itemUid, categories } = useShelf();
     function clearCategory(e) {
@@ -78,8 +79,10 @@ export function ShelfItemCategoryInput({}) {
                 className="w-full"
                 autoHighlight
             >
-                <ComboboxAnchor className="h-full min-h-10 flex-wrap px-3 py-2">
-                    <ComboboxBadgeList>
+                <ComboboxChips
+                    ref={anchor}
+                    className="relative h-full min-h-10 flex-wrap px-3 py-2"
+                >
                         {categoryIds.map((item, index) => {
                             const option = categories?.find(
                                 (trick) => trick.id === Number(item),
@@ -87,7 +90,7 @@ export function ShelfItemCategoryInput({}) {
                             if (!option) return null;
 
                             return (
-                                <ComboboxBadgeItem
+                                <ComboboxChip
                                     noDelete={
                                         !(categoryIds?.length - 1 == index)
                                     }
@@ -98,23 +101,22 @@ export function ShelfItemCategoryInput({}) {
                                     value={String(item)}
                                 >
                                     {option.name}
-                                </ComboboxBadgeItem>
+                                </ComboboxChip>
                             );
                         })}
                         {categoryIds?.length < 2 || (
-                            <ComboboxBadgeItem
+                            <ComboboxChip
                                 className=""
                                 value="clear"
                                 onDelete={clearCategory}
                             >
                                 Clear
-                            </ComboboxBadgeItem>
+                            </ComboboxChip>
                         )}
-                    </ComboboxBadgeList>
                     {!ctx?.options?.length || (
                         <>
-                            <ComboboxInput
-                                className="h-auto min-w-20 flex-1"
+                            <ComboboxChipsInput
+                                className="min-w-20 flex-1"
                                 onFocus={(e) => {
                                     onOpenChange(true);
                                 }}
@@ -129,13 +131,14 @@ export function ShelfItemCategoryInput({}) {
                                 placeholder="Select category..."
                             />
                             <ComboboxTrigger className="absolute right-2 top-3">
-                                <ChevronDown className="h-4 w-4" />
+                                <Icons.ChevronDown className="h-4 w-4" />
                             </ComboboxTrigger>
                         </>
                     )}
-                </ComboboxAnchor>
+                </ComboboxChips>
                 {!ctx.options?.length || (
                     <ComboboxContent
+                        anchor={anchor}
                         ref={(node) => ctx?.setContent(node as any)}
                         className="relative max-h-[300px] overflow-y-auto overflow-x-hidden"
                     >
@@ -158,7 +161,6 @@ export function ShelfItemCategoryInput({}) {
                             <ComboboxItem
                                 key={String(trick.id)}
                                 value={String(trick.id)}
-                                outset
                             >
                                 {trick.name}
                             </ComboboxItem>

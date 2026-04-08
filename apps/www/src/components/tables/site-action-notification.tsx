@@ -7,18 +7,17 @@ import { removeUserFromSiteActionNotification } from "@/actions/remove-user-from
 import { toggleSiteActionNotification } from "@/actions/toggle-site-action-notification";
 import { AsyncFnType } from "@/types";
 import { Events } from "@/utils/constants";
-import { ChevronDown } from "lucide-react";
 
 import {
     Combobox,
-    ComboboxAnchor,
-    ComboboxBadgeItem,
-    ComboboxBadgeList,
+    ComboboxChip,
+    ComboboxChips,
+    ComboboxChipsInput,
     ComboboxContent,
     ComboboxEmpty,
-    ComboboxInput,
     ComboboxItem,
     ComboboxTrigger,
+    useComboboxAnchor,
 } from "@gnd/ui/combobox";
 import {
     Table,
@@ -30,6 +29,7 @@ import {
 } from "@gnd/ui/table";
 
 import { Checkbox } from "@gnd/ui/checkbox";
+import { Icons } from "@gnd/ui/icons";
 
 interface UseData {
     data: AsyncFnType<typeof getActionNotifications>;
@@ -81,6 +81,7 @@ interface UserCellProps {
 function UsersCell({ action, users }: UserCellProps) {
     const userIds = action?.activeUsers?.map((a) => a.userId);
     const [open, onOpenChange] = useState(false);
+    const anchor = useComboboxAnchor();
     async function updateSelection(s) {
         const newIds = s
             ?.map((a) => Number(a))
@@ -119,12 +120,14 @@ function UsersCell({ action, users }: UserCellProps) {
                 className="w-full"
                 autoHighlight
             >
-                <ComboboxAnchor className="h-full min-h-10 flex-wrap px-3 py-2">
-                    <ComboboxBadgeList>
+                <ComboboxChips
+                    ref={anchor}
+                    className="relative h-full min-h-10 flex-wrap px-3 py-2"
+                >
                         {action?.activeUsers?.map((item, index) => {
                             const usr = users.find((u) => u.id == item.userId);
                             return (
-                                <ComboboxBadgeItem
+                                <ComboboxChip
                                     onDelete={(e) => {
                                         e.preventDefault();
                                         removeUserFromSiteActionNotification(
@@ -136,27 +139,25 @@ function UsersCell({ action, users }: UserCellProps) {
                                     value={String(item.userId)}
                                 >
                                     {usr.name}
-                                </ComboboxBadgeItem>
+                                </ComboboxChip>
                             );
                         })}
-                    </ComboboxBadgeList>
 
-                    <>
-                        <ComboboxInput
-                            className="h-auto min-w-20 flex-1"
-                            onFocus={(e) => {
-                                onOpenChange(true);
-                            }}
-                            placeholder="Select users..."
-                        />
-                        <ComboboxTrigger className="absolute right-2 top-3">
-                            <ChevronDown className="h-4 w-4" />
-                        </ComboboxTrigger>
-                    </>
-                </ComboboxAnchor>
+                    <ComboboxChipsInput
+                        className="min-w-20 flex-1"
+                        onFocus={() => {
+                            onOpenChange(true);
+                        }}
+                        placeholder="Select users..."
+                    />
+                    <ComboboxTrigger className="absolute right-2 top-3">
+                        <Icons.ChevronDown className="h-4 w-4" />
+                    </ComboboxTrigger>
+                </ComboboxChips>
 
                 {
                     <ComboboxContent
+                        anchor={anchor}
                         ref={(node) => setContent(node as any)}
                         className="relative max-h-[300px] overflow-y-auto overflow-x-hidden"
                     >
@@ -165,7 +166,6 @@ function UsersCell({ action, users }: UserCellProps) {
                             <ComboboxItem
                                 key={String(trick.id)}
                                 value={String(trick.id)}
-                                outset
                             >
                                 {trick.name}
                             </ComboboxItem>

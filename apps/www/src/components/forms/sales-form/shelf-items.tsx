@@ -16,12 +16,13 @@ import { _useAsync } from "@/lib/use-async";
 
 import {
     Combobox,
-    ComboboxAnchor,
+    ComboboxChips,
+    ComboboxChipsInput,
     ComboboxContent,
     ComboboxEmpty,
-    ComboboxInput,
     ComboboxItem,
     ComboboxTrigger,
+    useComboboxAnchor,
 } from "@gnd/ui/combobox";
 import {
     Table,
@@ -252,6 +253,7 @@ function ShelfItemProduct({
     const [content, setContent] = React.useState<React.ComponentRef<
         typeof ComboboxContent
     > | null>(null);
+    const anchor = useComboboxAnchor();
     const onInputValueChange = React.useCallback(
         (value: string) => {
             setInputValue(value);
@@ -287,9 +289,12 @@ function ShelfItemProduct({
                             className="w-full"
                             autoHighlight
                         >
-                            <ComboboxAnchor className="relative h-full min-h-10 flex-wrap px-3 py-2">
-                                <ComboboxInput
-                                    className="h-auto min-w-20 flex-1 "
+                            <ComboboxChips
+                                ref={anchor}
+                                className="relative h-full min-h-10 flex-wrap px-3 py-2"
+                            >
+                                <ComboboxChipsInput
+                                    className="min-w-20 flex-1 "
                                     onFocus={() => {
                                         onOpenChange(true);
                                         setIsTyping(false);
@@ -314,9 +319,10 @@ function ShelfItemProduct({
                                         <Icons.X className="h-4 w-4" />
                                     </ComboboxTrigger>
                                 )}
-                            </ComboboxAnchor>
+                            </ComboboxChips>
 
                             <ComboboxContent
+                                anchor={anchor}
                                 ref={(node) => setContent(node as any)}
                                 className="relative max-h-[300px] overflow-y-auto overflow-x-hidden"
                             >
@@ -325,7 +331,6 @@ function ShelfItemProduct({
                                     <ComboboxItem
                                         key={String(trick.id)}
                                         value={String(trick.id)}
-                                        outset
                                     >
                                         {trick.title}
                                     </ComboboxItem>
@@ -387,9 +392,12 @@ function ShelfItemProduct({
                     className="w-full"
                     autoHighlight
                 >
-                    <ComboboxAnchor className="relative h-full min-h-10 flex-wrap px-3 py-2">
-                        <ComboboxInput
-                            className="h-auto min-w-20 flex-1 "
+                    <ComboboxChips
+                        ref={anchor}
+                        className="relative h-full min-h-10 flex-wrap px-3 py-2"
+                    >
+                        <ComboboxChipsInput
+                            className="min-w-20 flex-1 "
                             onFocus={(e) => {
                                 onOpenChange(true);
                                 setIsTyping(false);
@@ -414,9 +422,10 @@ function ShelfItemProduct({
                                 <Icons.X className="h-4 w-4" />
                             </ComboboxTrigger>
                         )}
-                    </ComboboxAnchor>
+                    </ComboboxChips>
 
                     <ComboboxContent
+                        anchor={anchor}
                         ref={(node) => setContent(node as any)}
                         className="relative max-h-[300px] overflow-y-auto overflow-x-hidden"
                     >
@@ -425,7 +434,6 @@ function ShelfItemProduct({
                             <ComboboxItem
                                 key={String(trick.id)}
                                 value={String(trick.id)}
-                                outset
                             >
                                 {trick.title}
                             </ComboboxItem>

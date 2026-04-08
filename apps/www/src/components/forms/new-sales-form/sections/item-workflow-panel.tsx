@@ -9,14 +9,14 @@ import { Skeleton } from "@gnd/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import {
     Combobox,
-    ComboboxAnchor,
-    ComboboxBadgeItem,
-    ComboboxBadgeList,
+    ComboboxChip,
+    ComboboxChips,
+    ComboboxChipsInput,
     ComboboxContent,
     ComboboxEmpty,
-    ComboboxInput,
     ComboboxItem,
     ComboboxTrigger,
+    useComboboxAnchor,
 } from "@gnd/ui/combobox";
 import {
     Dialog,
@@ -212,6 +212,7 @@ function ShelfCategoryPathInput({
     onClearRequest?: () => void;
 }) {
     const [open, setOpen] = useState(false);
+    const anchor = useComboboxAnchor();
     const [inputValue, setInputValue] = useState("");
     const selectedIds = Array.isArray(categoryIds) ? categoryIds : [];
     const lastSelectedId = selectedIds.length
@@ -250,8 +251,10 @@ function ShelfCategoryPathInput({
             className="w-full"
             autoHighlight
         >
-            <ComboboxAnchor className="relative min-h-10 flex-wrap px-3 py-2">
-                <ComboboxBadgeList>
+            <ComboboxChips
+                ref={anchor}
+                className="relative min-h-10 flex-wrap px-3 py-2"
+            >
                     {selectedIds.map((item, index) => {
                         const option = (categories || []).find(
                             (category: any) =>
@@ -259,7 +262,7 @@ function ShelfCategoryPathInput({
                         );
                         if (!option) return null;
                         return (
-                            <ComboboxBadgeItem
+                            <ComboboxChip
                                 key={`shelf-cat-badge-${item}`}
                                 value={String(item)}
                                 noDelete={!(selectedIds.length - 1 === index)}
@@ -269,11 +272,11 @@ function ShelfCategoryPathInput({
                                 }}
                             >
                                 {option.name}
-                            </ComboboxBadgeItem>
+                            </ComboboxChip>
                         );
                     })}
                     {selectedIds.length > 1 ? (
-                        <ComboboxBadgeItem
+                        <ComboboxChip
                             value="clear"
                             onDelete={(e) => {
                                 e.preventDefault();
@@ -286,30 +289,29 @@ function ShelfCategoryPathInput({
                             }}
                         >
                             Clear
-                        </ComboboxBadgeItem>
+                        </ComboboxChip>
                     ) : null}
-                </ComboboxBadgeList>
                 {options.length ? (
                     <>
-                        <ComboboxInput
-                            className="h-auto min-w-20 flex-1"
+                        <ComboboxChipsInput
+                            className="min-w-20 flex-1"
                             placeholder="Select category..."
                             onFocus={() => setOpen(true)}
                         />
-                        <ComboboxTrigger className="absolute right-2 top-3">
-                            <ChevronDown className="h-4 w-4" />
-                        </ComboboxTrigger>
+                        <ComboboxTrigger className="absolute right-2 top-3" />
                     </>
                 ) : null}
-            </ComboboxAnchor>
+            </ComboboxChips>
             {options.length ? (
-                <ComboboxContent className="relative max-h-[280px] overflow-y-auto overflow-x-hidden">
+                <ComboboxContent
+                    anchor={anchor}
+                    className="relative max-h-[280px] overflow-y-auto overflow-x-hidden"
+                >
                     <ComboboxEmpty>No category found</ComboboxEmpty>
                     {filteredOptions.map((option: any) => (
                         <ComboboxItem
                             key={`shelf-cat-option-${option.id}`}
                             value={String(option.id)}
-                            outset
                         >
                             {option.name}
                         </ComboboxItem>
@@ -333,6 +335,7 @@ function ShelfProductCombobox({
     onClearRequest?: () => void;
 }) {
     const [open, setOpen] = useState(false);
+    const anchor = useComboboxAnchor();
     const selectedProduct = (products || []).find(
         (product: any) => Number(product?.id || 0) === Number(value || 0),
     );
@@ -371,9 +374,12 @@ function ShelfProductCombobox({
             autoHighlight
             disabled={disabled}
         >
-            <ComboboxAnchor className="relative h-full min-h-10 flex-wrap px-3 py-2">
-                <ComboboxInput
-                    className="h-auto min-w-20 flex-1"
+            <ComboboxChips
+                ref={anchor}
+                className="relative h-full min-h-10 flex-wrap px-3 py-2"
+            >
+                <ComboboxChipsInput
+                    className="min-w-20 flex-1"
                     placeholder="Select product..."
                     onFocus={() => setOpen(true)}
                 />
@@ -395,18 +401,18 @@ function ShelfProductCombobox({
                         <X className="h-4 w-4" />
                     </ComboboxTrigger>
                 ) : (
-                    <ComboboxTrigger className="absolute right-2 top-3">
-                        <ChevronDown className="h-4 w-4" />
-                    </ComboboxTrigger>
+                    <ComboboxTrigger className="absolute right-2 top-3" />
                 )}
-            </ComboboxAnchor>
-            <ComboboxContent className="relative max-h-[300px] overflow-y-auto overflow-x-hidden">
+            </ComboboxChips>
+            <ComboboxContent
+                anchor={anchor}
+                className="relative max-h-[300px] overflow-y-auto overflow-x-hidden"
+            >
                 <ComboboxEmpty>No product found</ComboboxEmpty>
                 {filteredProducts.map((product: any) => (
                     <ComboboxItem
                         key={`shelf-product-option-${product.id}`}
                         value={String(product.id)}
-                        outset
                     >
                         <div className="flex w-full items-center gap-3">
                             {product?.img ? (
