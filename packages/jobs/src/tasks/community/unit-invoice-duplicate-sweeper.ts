@@ -227,6 +227,7 @@ async function runUnitInvoiceDuplicateSweeper(input: z.infer<typeof runSchema>) 
             cleanedUnits: 0,
             deletedTaskCount: 0,
             updatedBuilderTaskCount: 0,
+            skippedPaidDuplicateGroups: 0,
             startedAt: startedAt.toISOString(),
             completedAt: completedAt.toISOString(),
           },
@@ -274,6 +275,7 @@ async function runUnitInvoiceDuplicateSweeper(input: z.infer<typeof runSchema>) 
             taskUid: true,
             taskName: true,
             builderTaskId: true,
+            amountPaid: true,
             createdAt: true,
           },
         },
@@ -287,11 +289,12 @@ async function runUnitInvoiceDuplicateSweeper(input: z.infer<typeof runSchema>) 
     let cleanedUnits = 0;
     let deletedTaskCount = 0;
     let updatedBuilderTaskCount = 0;
+    let skippedPaidDuplicateGroups = 0;
 
     for (const home of homes) {
-      const { groups, duplicateTaskIds } = dedupeUnitInvoiceTasks(home.tasks);
-      if (!duplicateTaskIds.length) continue;
+      const { groups } = dedupeUnitInvoiceTasks(home.tasks);
 
+      const duplicateTaskIdsToDelete: number[] = [];
       const updates: Array<{ id: number; builderTaskId: number }> = [];
       const builderId = home.project?.builderId || null;
       const builderTasks =
@@ -299,6 +302,17 @@ async function runUnitInvoiceDuplicateSweeper(input: z.infer<typeof runSchema>) 
 
       for (const group of groups) {
         if (!group.duplicates.length) continue;
+
+        const hasRecordedPayment = [group.kept, ...group.duplicates].some(
+          (task) => Number(task.amountPaid || 0) !== 0,
+        );
+
+        if (hasRecordedPayment) {
+          skippedPaidDuplicateGroups += 1;
+          continue;
+        }
+
+        duplicateTaskIdsToDelete.push(...group.duplicates.map((task) => task.id));
         if (group.kept.builderTaskId) continue;
 
         const builderTaskId = resolveBuilderTaskId({
@@ -314,6 +328,8 @@ async function runUnitInvoiceDuplicateSweeper(input: z.infer<typeof runSchema>) 
           });
         }
       }
+
+      if (!duplicateTaskIdsToDelete.length && !updates.length) continue;
 
       await db.$transaction(async (tx) => {
         if (updates.length) {
@@ -331,17 +347,21 @@ async function runUnitInvoiceDuplicateSweeper(input: z.infer<typeof runSchema>) 
           );
         }
 
-        await tx.homeTasks.deleteMany({
-          where: {
-            id: {
-              in: duplicateTaskIds,
+        if (duplicateTaskIdsToDelete.length) {
+          await tx.homeTasks.deleteMany({
+            where: {
+              id: {
+                in: duplicateTaskIdsToDelete,
+              },
             },
-          },
-        });
+          });
+        }
       });
 
-      cleanedUnits += 1;
-      deletedTaskCount += duplicateTaskIds.length;
+      if (duplicateTaskIdsToDelete.length) {
+        cleanedUnits += 1;
+      }
+      deletedTaskCount += duplicateTaskIdsToDelete.length;
       updatedBuilderTaskCount += updates.length;
     }
 
@@ -353,6 +373,7 @@ async function runUnitInvoiceDuplicateSweeper(input: z.infer<typeof runSchema>) 
       cleanedUnits,
       deletedTaskCount,
       updatedBuilderTaskCount,
+      skippedPaidDuplicateGroups,
       startedAt: startedAt.toISOString(),
       completedAt: completedAt.toISOString(),
     };
@@ -392,6 +413,7 @@ async function runUnitInvoiceDuplicateSweeper(input: z.infer<typeof runSchema>) 
           cleanedUnits: 0,
           deletedTaskCount: 0,
           updatedBuilderTaskCount: 0,
+          skippedPaidDuplicateGroups: 0,
           startedAt: startedAt.toISOString(),
           completedAt: null,
         },

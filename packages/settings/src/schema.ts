@@ -50,6 +50,7 @@ export const unitInvoiceSweeperSettings = settingsSchema.extend({
         cleanedUnits: z.number().default(0),
         deletedTaskCount: z.number().default(0),
         updatedBuilderTaskCount: z.number().default(0),
+        skippedPaidDuplicateGroups: z.number().default(0),
         startedAt: z.string().nullable().optional(),
         completedAt: z.string().nullable().optional(),
       })

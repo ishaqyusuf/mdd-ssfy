@@ -264,37 +264,42 @@ export function CommunityInvoiceTaskDetailPdfDocument({
 
 				{data.data.length ? (
 					data.data.map((project) => (
-						<View key={`${project.projectTitle}-${project.builderName}`} style={styles.projectSection}>
-							<Text style={styles.projectTitle}>{project.projectTitle}</Text>
-							<Text style={styles.projectSubtitle}>
-								Builder: {project.builderName}
-							</Text>
-							<MetricGrid
-								items={[
-									{ label: "Units", value: String(project.summary.unitCount) },
-									{ label: "Tasks", value: String(project.summary.taskCount) },
-									{
-										label: "Cost",
-										value: formatCurrency(project.summary.totalCost),
-									},
-									{
-										label: "Tax",
-										value: formatCurrency(project.summary.totalTax),
-									},
-									{
-										label: "Due",
-										value: formatCurrency(project.summary.totalDue),
-									},
-									{
-										label: "Paid",
-										value: formatCurrency(project.summary.totalPaid),
-									},
-									{
-										label: "Open",
-										value: formatCurrency(project.summary.totalOpenBalance),
-									},
-								]}
-							/>
+						<View
+							key={`${project.projectTitle}-${project.builderName}`}
+							style={styles.projectSection}
+						>
+							<View wrap={false}>
+								<Text style={styles.projectTitle}>{project.projectTitle}</Text>
+								<Text style={styles.projectSubtitle}>
+									Builder: {project.builderName}
+								</Text>
+								<MetricGrid
+									items={[
+										{ label: "Units", value: String(project.summary.unitCount) },
+										{ label: "Tasks", value: String(project.summary.taskCount) },
+										{
+											label: "Cost",
+											value: formatCurrency(project.summary.totalCost),
+										},
+										{
+											label: "Tax",
+											value: formatCurrency(project.summary.totalTax),
+										},
+										{
+											label: "Due",
+											value: formatCurrency(project.summary.totalDue),
+										},
+										{
+											label: "Paid",
+											value: formatCurrency(project.summary.totalPaid),
+										},
+										{
+											label: "Open",
+											value: formatCurrency(project.summary.totalOpenBalance),
+										},
+									]}
+								/>
+							</View>
 
 							{project.units.map((unit) => (
 								<View key={unit.unitId} style={styles.unitSection}>
