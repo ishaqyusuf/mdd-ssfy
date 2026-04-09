@@ -157,6 +157,22 @@ function hugeIcon(name: HugeIconName): LucideIcon {
     ...props
   }: LucideProps) {
     const icon = (HugeIcons as Record<string, unknown>)[name];
+    const fallbackIcon = (HugeIcons as Record<string, unknown>).Search01Icon;
+
+    if (!Array.isArray(icon)) {
+      if (!Array.isArray(fallbackIcon)) {
+        return null;
+      }
+
+      return (
+        <HugeiconsIcon
+          icon={fallbackIcon as any}
+          size={typeof size === "number" ? size : Number(size)}
+          strokeWidth={strokeWidth}
+          {...props}
+        />
+      );
+    }
 
     return (
       <HugeiconsIcon
@@ -251,6 +267,7 @@ const Download = hugeIcon("Download01Icon");
 const MoreHorizontal = hugeIcon("MoreHorizontal");
 const Search = hugeIcon("Search");
 const Filter = hugeIcon("FilterIcon");
+const LinkOff = hugeIcon("Unlink01Icon");
 const TrendingUp = hugeIcon("AnalyticsUpIcon");
 const TrendingDown = hugeIcon("AnalyticsDownIcon");
 const AlertCircle = hugeIcon("AlertCircle");
@@ -975,6 +992,7 @@ const IconsStatic = {
   Underlined: MdFormatUnderlined,
   Strikethrough: MdFormatStrikethrough,
   AddLink: MdAddLink,
+  LinkOff,
   OpenInNew: MdOutlineOpenInNew,
   DragIndicator: MdDragIndicator,
   Condense: MdOutlineCloseFullscreen,
@@ -1175,12 +1193,39 @@ function resolveDynamicIcon(name: string): LucideIcon {
   return HelpCircle;
 }
 
+const reservedIconProxyProps = new Set([
+  "arguments",
+  "caller",
+  "childContextTypes",
+  "contextType",
+  "contextTypes",
+  "defaultProps",
+  "displayName",
+  "getDerivedStateFromError",
+  "getDerivedStateFromProps",
+  "getDefaultProps",
+  "length",
+  "name",
+  "propTypes",
+  "prototype",
+  "render",
+  "shouldComponentUpdate",
+]);
+
+function shouldResolveDynamicIcon(name: string) {
+  if (reservedIconProxyProps.has(name)) return false;
+  if (name.startsWith("__")) return false;
+  return /^[A-Z]/.test(name) || /^[a-z][A-Za-z0-9]+$/.test(name);
+}
+
 export const Icons = new Proxy(IconsStatic as typeof IconsStatic & Record<string, LucideIcon>, {
   get(target, prop, receiver) {
     if (typeof prop !== "string") return Reflect.get(target, prop, receiver);
-    const resolved =
-      Reflect.get(target, prop, receiver) ||
-      resolveDynamicIcon(prop);
+    const existing = Reflect.get(target, prop, receiver);
+    if (existing) return existing;
+    if (!shouldResolveDynamicIcon(prop)) return existing;
+
+    const resolved = resolveDynamicIcon(prop);
 
     if (resolved && !(prop in target)) {
       target[prop] = resolved;
@@ -1227,9 +1272,11 @@ function IconImpl({
 export const Icon = new Proxy(Object.assign(IconImpl, IconsStatic) as typeof IconImpl & typeof IconsStatic & Record<string, LucideIcon>, {
   get(target, prop, receiver) {
     if (typeof prop !== "string") return Reflect.get(target, prop, receiver);
-    const resolved =
-      Reflect.get(target, prop, receiver) ||
-      resolveDynamicIcon(prop);
+    const existing = Reflect.get(target, prop, receiver);
+    if (existing) return existing;
+    if (!shouldResolveDynamicIcon(prop)) return existing;
+
+    const resolved = resolveDynamicIcon(prop);
 
     if (resolved && !(prop in target)) {
       target[prop] = resolved;

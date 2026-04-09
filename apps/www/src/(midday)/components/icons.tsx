@@ -1,26 +1,15 @@
-import {
-    MdOutlineAccountBalance,
-    MdOutlineAttachFile,
-    MdOutlineCalendarMonth,
-    MdOutlineCategory,
-    MdOutlineClear,
-    MdOutlineEqualizer,
-    MdOutlineFilterList,
-    MdOutlineRepeat,
-    MdOutlineStyle,
-    MdSearch,
-} from "react-icons/md";
+import { Icons as UIIcons } from "@gnd/ui/icons";
 
 export const Icons = {
-    Accounts: MdOutlineAccountBalance,
-    Attachments: MdOutlineAttachFile,
-    Amount: MdOutlineEqualizer,
-    CalendarMonth: MdOutlineCalendarMonth,
-    Categories: MdOutlineCategory,
-    Category: MdOutlineCategory,
-    Clear: MdOutlineClear,
-    Filter: MdOutlineFilterList,
-    Repeat: MdOutlineRepeat,
-    Search: MdSearch,
-    Status: MdOutlineStyle,
+  Accounts: UIIcons.Accounts,
+  Attachments: UIIcons.Attachments,
+  Amount: UIIcons.Amount,
+  CalendarMonth: UIIcons.CalendarMonth,
+  Categories: UIIcons.Categories,
+  Category: UIIcons.Category,
+  Clear: UIIcons.Clear,
+  Filter: UIIcons.Filter,
+  Repeat: UIIcons.Repeat,
+  Search: UIIcons.Search,
+  Status: UIIcons.Status,
 };

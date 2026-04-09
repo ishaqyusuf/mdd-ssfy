@@ -1,6 +1,6 @@
 "use client";
 
-import { MdOutlineAutoAwesome } from "react-icons/md";
+import { Icons } from "../../../icons";
 import { BubbleMenuButton } from "../bubble-menu/bubble-menu-button";
 
 type Props = {
@@ -14,7 +14,7 @@ export function AskAI({ onSelect }: Props) {
       isActive={false}
       className="flex space-x-2 items-center"
     >
-      <MdOutlineAutoAwesome className="size-4" />
+      <Icons.AIOutline className="size-4" />
     </BubbleMenuButton>
   );
 }

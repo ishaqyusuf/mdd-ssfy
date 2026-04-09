@@ -5,31 +5,26 @@ import { useClickAway } from "@uidotdev/usehooks";
 import { readStreamableValue } from "ai/rsc";
 import { motion } from "framer-motion";
 import { useState } from "react";
-import {
-  MdOutlineAutoAwesome,
-  MdOutlineCloseFullscreen,
-  MdOutlineSpellcheck,
-  MdOutlineWrapText,
-} from "react-icons/md";
 import { BubbleMenuButton } from "../bubble-menu/bubble-menu-button";
+import { Icons } from "../../../icons";
 import { generateEditorContent } from "./example-action";
 
 const selectors = [
   {
     name: "Grammar",
-    icon: MdOutlineSpellcheck,
+    icon: Icons.Spellcheck,
     instructions:
       "Fix grammar: Rectify any grammatical errors while preserving the original meaning.",
   },
   {
     name: "Improve",
-    icon: MdOutlineWrapText,
+    icon: Icons.WrapText,
     instructions:
       "Improve text: Refine the text to improve clarity and professionalism.",
   },
   {
     name: "Condense",
-    icon: MdOutlineCloseFullscreen,
+    icon: Icons.Condense,
     instructions:
       "Condense text: Remove any unnecessary text and only keep the invoice-related content and make it more concise.",
   },
@@ -113,7 +108,7 @@ export function AIMenu({ onOpenChange, editor }: AIMenuProps) {
             isActive={false}
           >
             <div className="flex items-center space-x-1">
-              <MdOutlineAutoAwesome className="size-3" />
+              <Icons.AIOutline className="size-3" />
               <span className="text-[11px] font-mono$">Ask AI</span>
             </div>
           </BubbleMenuButton>

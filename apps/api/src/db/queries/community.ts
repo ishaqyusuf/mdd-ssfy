@@ -2293,10 +2293,38 @@ function getUnitLabel(unit: { lotBlock?: string | null; modelName?: string | nul
   return unit.lotBlock || unit.modelName || "Unit";
 }
 
+function isConfiguredTemplateValue(value: unknown) {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (typeof value === "number") return value > 0;
+  if (typeof value === "boolean") return value;
+  if (Array.isArray(value)) return value.length > 0;
+  return true;
+}
+
+function countConfiguredDesignValues(value: unknown): number {
+  if (value === null || value === undefined) return 0;
+  if (Array.isArray(value)) {
+    return value.reduce(
+      (sum, entry) => sum + countConfiguredDesignValues(entry),
+      0,
+    );
+  }
+  if (typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).reduce(
+      (sum, entry) => sum + countConfiguredDesignValues(entry),
+      0,
+    );
+  }
+
+  return isConfiguredTemplateValue(value) ? 1 : 0;
+}
+
 function getInstallCostPreflight(
   resolvedTemplate: {
     id: number;
     version: string | null;
+    meta?: unknown;
     communityModelInstallTasks?: Array<{
       builderTaskId: number | null;
       qty: number | null;
@@ -2318,6 +2346,9 @@ function getInstallCostPreflight(
     return {
       status: "missing" as const,
       reason: "No printable template found.",
+      configuredTasks: 0,
+      totalTasks: 0,
+      totalEstimate: 0,
     };
   }
 
@@ -2328,34 +2359,48 @@ function getInstallCostPreflight(
     return {
       status: "not-required" as const,
       reason: null,
+      configuredTasks: 0,
+      totalTasks: 0,
+      totalEstimate: 0,
     };
   }
 
-  const configuredTaskIds = new Set(
-    (resolvedTemplate.communityModelInstallTasks || [])
-      .filter((task) => {
-        const qty = Number(task.qty || 0);
-        const unitCost = Number(task.installCostModel?.unitCost || 0);
-        return !!task.builderTaskId && qty > 0 && unitCost > 0;
-      })
-      .map((task) => task.builderTaskId as number),
-  );
+  const taskMap = new Map<number, number>();
+  for (const task of resolvedTemplate.communityModelInstallTasks || []) {
+    if (!task.builderTaskId) continue;
+    const qty = Number(task.qty || 0);
+    const unitCost = Number(task.installCostModel?.unitCost || 0);
+    if (qty <= 0 || unitCost <= 0) continue;
+    const current = taskMap.get(task.builderTaskId) || 0;
+    taskMap.set(task.builderTaskId, +(current + qty * unitCost).toFixed(2));
+  }
 
+  const configuredTasks = taskMap.size;
+  const totalTasks = installableTasks.length;
+  const totalEstimate = +Array.from(taskMap.values())
+    .reduce((sum, value) => sum + value, 0)
+    .toFixed(2);
   const missingTaskCount = installableTasks.filter(
-    (task) => !configuredTaskIds.has(task.id),
+    (task) => !taskMap.has(task.id),
   ).length;
 
   return missingTaskCount === 0
     ? {
         status: "ready" as const,
         reason: null,
+        configuredTasks,
+        totalTasks,
+        totalEstimate,
       }
     : {
-        status: "missing" as const,
+        status: configuredTasks > 0 ? ("partial" as const) : ("missing" as const),
         reason:
           missingTaskCount === 1
             ? "1 builder task is missing install-cost setup."
             : `${missingTaskCount} builder tasks are missing install-cost setup.`,
+        configuredTasks,
+        totalTasks,
+        totalEstimate,
       };
 }
 
@@ -2382,6 +2427,7 @@ export async function getProjectUnitPrintPreflight(
           id: true,
           slug: true,
           version: true,
+          meta: true,
           project: {
             select: {
               builder: {
@@ -2430,6 +2476,11 @@ export async function getProjectUnitPrintPreflight(
           productionStatus: true,
         },
       },
+      _count: {
+        select: {
+          jobs: true,
+        },
+      },
     },
   });
 
@@ -2440,8 +2491,13 @@ export async function getProjectUnitPrintPreflight(
       summary: {
         totalUnits: 0,
         readyUnits: 0,
+        printableUnits: 0,
+        productionEligibleUnits: 0,
         missingInstallCostUnits: 0,
+        partialInstallCostUnits: 0,
         missingTemplateUnits: 0,
+        emptyTemplateUnits: 0,
+        productionActiveUnits: 0,
       },
       missingInstallCosts: [],
       missingTemplates: [],
@@ -2530,13 +2586,26 @@ export async function getProjectUnitPrintPreflight(
       fallbackTemplateMap.get(getProjectUnitPrintKey(unit.projectId, unit.modelName)) ||
       null;
     const hasTemplate = !!resolvedTemplate?.id;
+    const templateConfiguredCount = countConfiguredDesignValues(
+      (resolvedTemplate?.meta as CommunityTemplateMeta | null)?.design,
+    );
+    const isTemplateEmpty = hasTemplate && templateConfiguredCount <= 0;
     const installCost = getInstallCostPreflight(resolvedTemplate);
     const activeProductionTasks = (unit.tasks || []).filter((task) => {
       const state = getProductionState(task);
       return state === "Queued" || state === "Started" || state === "Completed";
     });
     const hasProductionActive = activeProductionTasks.length > 0;
+    const productionStatus = activeProductionTasks.length
+      ? getProductionState(activeProductionTasks[0])
+      : "Idle";
     const blockingReasons: string[] = [];
+    const canPrint = hasTemplate && !isTemplateEmpty;
+    const canSendToProduction =
+      canPrint &&
+      installCost.status !== "missing" &&
+      installCost.status !== "partial" &&
+      !hasProductionActive;
 
     if (!hasTemplate) {
       blockingReasons.push("Template not found.");
@@ -2555,7 +2624,14 @@ export async function getProjectUnitPrintPreflight(
       missingTemplateMap.set(key, current);
     }
 
-    if (hasTemplate && installCost.status === "missing") {
+    if (isTemplateEmpty) {
+      blockingReasons.push("Template is empty and will not be printed.");
+    }
+
+    if (
+      hasTemplate &&
+      (installCost.status === "missing" || installCost.status === "partial")
+    ) {
       blockingReasons.push(installCost.reason || "Install cost is missing.");
       const current = missingInstallCostMap.get(resolvedTemplate.id) || {
         modelId: resolvedTemplate.id,
@@ -2585,29 +2661,48 @@ export async function getProjectUnitPrintPreflight(
       templateSlug: resolvedTemplate?.slug || null,
       templateVersion: (resolvedTemplate?.version || "v1") as "v1" | "v2",
       hasTemplate,
+      templateConfiguredCount,
+      isTemplateEmpty,
       installCostStatus: installCost.status,
       installCostReason: installCost.reason,
+      installCostConfiguredTasks: installCost.configuredTasks,
+      installCostTotalTasks: installCost.totalTasks,
+      installCostTotalEstimate: installCost.totalEstimate,
+      jobCount: unit._count?.jobs || 0,
+      jobsHref: `/hrm/contractors/jobs?unitId=${unit.id}`,
       hasProductionActive,
+      productionStatus,
       blockingReasons,
-      isReady: hasTemplate && installCost.status !== "missing",
+      canPrint,
+      canSendToProduction,
+      isReady: canSendToProduction,
       label: getUnitLabel(unit),
     };
   });
 
-  const readyUnitIds = preflightUnits.filter((unit) => unit.isReady).map((unit) => unit.id);
+  const readyUnitIds = preflightUnits
+    .filter((unit) => unit.canPrint)
+    .map((unit) => unit.id);
 
   return {
     units: preflightUnits,
     readyUnitIds,
     summary: {
       totalUnits: preflightUnits.length,
-      readyUnits: readyUnitIds.length,
+      readyUnits: preflightUnits.filter((unit) => unit.isReady).length,
+      printableUnits: preflightUnits.filter((unit) => unit.canPrint).length,
+      productionEligibleUnits: preflightUnits.filter((unit) => unit.canSendToProduction)
+        .length,
       productionActiveUnits: preflightUnits.filter((unit) => unit.hasProductionActive)
         .length,
       missingInstallCostUnits: preflightUnits.filter(
         (unit) => unit.installCostStatus === "missing",
       ).length,
+      partialInstallCostUnits: preflightUnits.filter(
+        (unit) => unit.installCostStatus === "partial",
+      ).length,
       missingTemplateUnits: preflightUnits.filter((unit) => !unit.hasTemplate).length,
+      emptyTemplateUnits: preflightUnits.filter((unit) => unit.isTemplateEmpty).length,
     },
     missingInstallCosts: Array.from(missingInstallCostMap.values()).map((entry) => ({
       ...entry,

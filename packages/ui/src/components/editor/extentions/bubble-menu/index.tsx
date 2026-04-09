@@ -1,11 +1,7 @@
 import { type Editor, BubbleMenu as TiptapBubbleMenu } from "@tiptap/react";
 import { useState } from "react";
-import {
-  MdOutlineFormatBold,
-  MdOutlineFormatItalic,
-  MdOutlineFormatStrikethrough,
-} from "react-icons/md";
 import type { Props as TippyOptions } from "tippy.js";
+import { Icons } from "../../../icons";
 import { AIMenu } from "../ai";
 import { AskAI } from "../ai/ask-ai";
 import { BubbleMenuItem } from "./bubble-item";
@@ -40,7 +36,7 @@ export function BubbleMenu({
                 action={() => editor.chain().focus().toggleBold().run()}
                 isActive={editor.isActive("bold")}
               >
-                <MdOutlineFormatBold className="size-4" />
+                <Icons.Bold className="size-4" />
                 <span className="sr-only">Bold</span>
               </BubbleMenuItem>
 
@@ -49,7 +45,7 @@ export function BubbleMenu({
                 action={() => editor.chain().focus().toggleItalic().run()}
                 isActive={editor.isActive("italic")}
               >
-                <MdOutlineFormatItalic className="size-4" />
+                <Icons.Italic className="size-4" />
                 <span className="sr-only">Italic</span>
               </BubbleMenuItem>
 
@@ -58,7 +54,7 @@ export function BubbleMenu({
                 action={() => editor.chain().focus().toggleStrike().run()}
                 isActive={editor.isActive("strike")}
               >
-                <MdOutlineFormatStrikethrough className="size-4" />
+                <Icons.Strikethrough className="size-4" />
                 <span className="sr-only">Strike</span>
               </BubbleMenuItem>
 
