@@ -1,4 +1,5 @@
 "use server";
+
 import { EventTypes } from "@/utils/constants";
 import { salesCreatedEvent } from "./sales-created-event";
 import { prisma } from "@/db";

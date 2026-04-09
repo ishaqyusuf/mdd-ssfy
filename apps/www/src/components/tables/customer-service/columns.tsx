@@ -18,8 +18,6 @@ import { Item as TableItem } from "@gnd/ui/namespace";
 import { formatDate } from "@gnd/utils/dayjs";
 import { useMutation } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
-import { CheckIcon } from "lucide-react";
-import { CalendarDays, Phone, UserRound, Wrench } from "lucide-react";
 import { useMemo } from "react";
 export type Item =
 	RouterOutputs["customerService"]["getCustomerServices"]["data"][number];
@@ -223,7 +221,7 @@ function AssignedTo({ item }: ItemProps) {
 			renderListItem={({ item }) => (
 				<TableItem size="xs">
 					<TableItem.Media>
-						<CheckIcon
+						<Icons.CheckIcon
 							className={cn(
 								"size-4",
 								item?.id !== selected?.id && "text-transparent",
@@ -332,7 +330,7 @@ function ItemCard({ item }: ItemProps) {
 				>
 					<div className="flex items-center gap-2">
 						<div className="rounded-xl bg-amber-50 p-2 text-amber-700">
-							<CalendarDays className="size-4" />
+							<Icons.CalendarDays className="size-4" />
 						</div>
 						<div className="min-w-0">
 							<p className="truncate text-base font-semibold text-slate-900">
@@ -366,7 +364,7 @@ function ItemCard({ item }: ItemProps) {
 			<div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
 				<div className="rounded-2xl border border-slate-200 px-3 py-3">
 					<div className="flex items-center gap-2 text-slate-700">
-						<UserRound className="size-4" />
+						<Icons.UserRound className="size-4" />
 						<p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
 							Customer
 						</p>
@@ -375,14 +373,14 @@ function ItemCard({ item }: ItemProps) {
 						{item.homeOwner}
 					</p>
 					<p className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
-						<Phone className="size-3.5" />
+						<Icons.Phone className="size-3.5" />
 						{item.homePhone || "No phone number"}
 					</p>
 				</div>
 
 				<div className="rounded-2xl border border-slate-200 px-3 py-3">
 					<div className="flex items-center gap-2 text-slate-700">
-						<Wrench className="size-4" />
+						<Icons.Wrench className="size-4" />
 						<p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
 							Technician
 						</p>

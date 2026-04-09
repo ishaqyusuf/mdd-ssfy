@@ -1,8 +1,8 @@
 "use client";
 
-import type React from "react";
+import { Icons } from "@gnd/ui/icons";
 
-import { Minus, Plus, X } from "lucide-react";
+import type React from "react";
 import { Button } from "@gnd/ui/button";
 import { QuantityInput } from "@gnd/ui/quantity-input";
 import { Input } from "@gnd/ui/input";
@@ -72,7 +72,7 @@ export function CartItem({ item }: CartItemProps) {
           onClick={onRemove}
           className="text-red-600 hover:text-red-800"
         >
-          <X className="h-4 w-4 mr-1" />
+          <Icons.X className="h-4 w-4 mr-1" />
           Remove
         </Button>
       </div>

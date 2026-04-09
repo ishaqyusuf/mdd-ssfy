@@ -8,7 +8,6 @@ import { useTRPC } from "@/trpc/client";
 import { Table } from "@gnd/ui/namespace";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Download, History } from "lucide-react";
 import { _qc, _trpc } from "../static-trpc";
 import { InstallCostLine } from "./install-cost-line";
 import { Button } from "@gnd/ui/button";
@@ -79,7 +78,7 @@ function LegacyImport({ costs = [] }) {
     return (
         <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-in zoom-in-95 duration-300">
             <div className="w-24 h-24 bg-muted/50 rounded-full flex items-center justify-center mb-6 border-2 border-dashed border-border">
-                <History size={40} className="text-muted-foreground" />
+                <Icons.History size={40} className="text-muted-foreground" />
             </div>
             <h3 className="text-2xl font-bold text-foreground mb-2">
                 Import Legacy Costs
@@ -98,7 +97,7 @@ function LegacyImport({ costs = [] }) {
                     size="lg"
                 >
                     <div className="flex gap-4 items-center">
-                        <Download size={20} />
+                        <Icons.Download size={20} />
                         <span>Import from Old Install Costs (v1)</span>
                     </div>
                 </SubmitButton>

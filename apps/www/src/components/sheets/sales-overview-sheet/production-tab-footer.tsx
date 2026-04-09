@@ -1,7 +1,7 @@
+import { Icons } from "@gnd/ui/icons";
 import { useMemo, useState } from "react";
 import { Menu } from "@gnd/ui/custom/menu";
 import NumberFlow from "@number-flow/react";
-import { ActivityIcon, CheckCircle, CheckIcon } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
@@ -74,7 +74,7 @@ export function ProductionTabFooter({}) {
                         open={opened}
                         onOpenChanged={setOpened}
                         label={"Action"}
-                        Icon={ActivityIcon}
+                        Icon={Icons.ActivityIcon}
                     >
                         <ProductionItemMenuActions
                             itemUids={

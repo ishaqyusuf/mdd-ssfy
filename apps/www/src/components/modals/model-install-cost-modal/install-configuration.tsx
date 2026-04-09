@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { _qc, _trpc } from "@/components/static-trpc";
 import { useBuilderModelInstallsContext } from "@/hooks/use-model-install-config";
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
@@ -21,7 +22,6 @@ import { Sortable, SortableDragHandle, SortableItem } from "@gnd/ui/sortable";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import NumberFlow from "@number-flow/react";
 import { useMutation } from "@tanstack/react-query";
-import { DollarSign, GripVertical, RefreshCcw, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useDebouncedCallback } from "use-debounce";
@@ -257,7 +257,7 @@ function Line({
                             event.stopPropagation();
                         }}
                     >
-                        <GripVertical className="size-4" />
+                        <Icons.GripVertical className="size-4" />
                     </SortableDragHandle>
                     <div className="min-w-0 flex-1">
                         <Item.Title className="w-full truncate">
@@ -297,7 +297,7 @@ function Line({
                             className="size-8 text-muted-foreground hover:text-destructive"
                             onClick={() => setShowDeleteDialog(true)}
                         >
-                            <Trash2 className="size-4" />
+                            <Icons.Trash2 className="size-4" />
                         </Button>
                     </div>
                 </Item.Header>
@@ -361,7 +361,7 @@ function Line({
                             size="xs"
                             variant={!isError ? "default" : "destructive"}
                         >
-                            <RefreshCcw className="size-3" />
+                            <Icons.RefreshCcw className="size-3" />
                         </SubmitButton>
                     </div>
                 </Item.Footer>
@@ -409,7 +409,7 @@ function EmptyState() {
     return (
         <div className="flex flex-col items-center justify-center p-12 text-center h-full m-6 rounded-xl bg-muted/5 border-2 border-dashed border-border/60">
             <div className="w-16 h-16 bg-muted/20 rounded-full flex items-center justify-center mb-4 text-muted-foreground">
-                <DollarSign size={32} />
+                <Icons.DollarSign size={32} />
             </div>
             <h3 className="text-lg font-bold text-foreground">
                 No Install Cost Items

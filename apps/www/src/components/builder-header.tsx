@@ -1,4 +1,5 @@
 "use client";
+
 import { SearchFilter } from "@gnd/ui/search-filter";
 import { OpenBuilderModal } from "./open-builder-modal";
 import { builderFilterParams } from "@/hooks/use-builder-filter-params";

@@ -3,7 +3,6 @@ import { _trpc } from "@/components/static-trpc";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { useQuery } from "@gnd/ui/tanstack";
 import { InputGroup } from "@gnd/ui/namespace";
-import { Mail, MapPin, Phone, Search, User } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Spinner } from "@gnd/ui/spinner";
@@ -246,22 +245,22 @@ function CustomerProfileDetails({ customer }: { customer?: CustomerProfile }) {
         {
             key: "name",
             value: customer?.name,
-            icon: User,
+            icon: Icons.User,
         },
         {
             key: "email",
             value: customer?.email,
-            icon: Mail,
+            icon: Icons.Mail,
         },
         {
             key: "phone",
             value: customer?.phone || customer?.address?.phoneNo,
-            icon: Phone,
+            icon: Icons.Phone,
         },
         {
             key: "address",
             value: address,
-            icon: MapPin,
+            icon: Icons.MapPin,
         },
     ];
 
@@ -396,7 +395,7 @@ function SearchCustomer() {
                         placeholder="Search customer name, phone, or profile"
                     />
                     <InputGroup.Addon>
-                        <Search className="size-4" />
+                        <Icons.Search className="size-4" />
                     </InputGroup.Addon>
                     <InputGroup.Addon align="inline-end">
                         {isPending && isEnabled ? (

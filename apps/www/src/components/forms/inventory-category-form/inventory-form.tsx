@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { Form } from "@gnd/ui/form";
 import { useInventoryCategoryParams } from "@/hooks/use-inventory-category-params";
 import { useInventoryCategoryForm } from "./form-context";
@@ -11,7 +12,6 @@ import { useFieldArray } from "react-hook-form";
 import { Label } from "@gnd/ui/label";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
-import { X } from "lucide-react";
 
 export function InventoryCategoryForm({}) {
     //
@@ -163,7 +163,7 @@ function VariationCategory({ id, title, removeVariantCategory }) {
                     )
                 }
             >
-                <X className="h-3 w-3" />
+                <Icons.X className="h-3 w-3" />
             </Button>
         </Badge>
     );

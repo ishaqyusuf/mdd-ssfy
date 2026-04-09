@@ -9,7 +9,6 @@ import {
 import { useTable } from "@gnd/ui/data-table";
 import { Icons } from "@gnd/ui/icons";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
-import { ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { Item } from "./columns";
 import { useProjectUnitsPrintFlow } from "./print-flow";
@@ -58,7 +57,7 @@ export function BatchActions() {
 					router.push(`/community/project-units/${firstSlug}`);
 				}}
 			>
-				<ExternalLink className="mr-2 size-4" />
+				<Icons.ExternalLink className="mr-2 size-4" />
 				Open first
 			</Button>
 			<BatchDelete

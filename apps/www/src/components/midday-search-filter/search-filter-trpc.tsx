@@ -33,7 +33,6 @@ import {
     HoverCardTrigger,
 } from "@gnd/ui/hover-card";
 import { Button } from "@gnd/ui/button";
-import { CheckCheck, CheckCircle, HelpCircle, SearchX } from "lucide-react";
 import { Table, TableBody, TableCell, TableRow } from "@gnd/ui/table";
 import { DaysFilters, daysFilters } from "@gnd/utils/constants";
 import { SuperAdminGuard } from "../auth-guard";
@@ -309,7 +308,7 @@ function CalendarFilter({ filter }: CalendarFilterProps) {
                                     isCurrentFilter(df) && "font-semibold",
                                 )}
                             >
-                                <CheckCircle
+                                <Icons.CheckCircle
                                     className={cn(
                                         "size-3",
                                         !isCurrentFilter(df)
@@ -361,7 +360,7 @@ function SearchTip({ children }) {
                     type="button"
                     className="absolute opacity-50 transition-opacity duration-300 hover:opacity-100 right-10 top-[10px] z-10"
                 >
-                    <HelpCircle className="size-4" />
+                    <Icons.HelpCircle className="size-4" />
                 </button>
             </HoverCardTrigger>
             <HoverCardContent className="w-80">

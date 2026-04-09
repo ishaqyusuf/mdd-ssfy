@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { SearchInput } from "@/components/search-input";
 import { _trpc } from "@/components/static-trpc";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
@@ -8,7 +9,6 @@ import {
 	getInsuranceRequirement,
 	type InsuranceRequirement,
 } from "@gnd/utils/insurance-documents";
-import { ChevronRight } from "lucide-react";
 
 import { StepTitle } from "./step-title";
 import { Skeleton } from "@gnd/ui/skeleton";
@@ -122,7 +122,7 @@ export function UserSelectStep() {
 										{insuranceStatus.message}
 									</p>
 								</div>
-								<ChevronRight size={16} className="text-muted-foreground" />
+								<Icons.ChevronRight size={16} className="text-muted-foreground" />
 							</button>
 						);
 					})}

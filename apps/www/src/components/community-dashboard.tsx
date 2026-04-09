@@ -1,12 +1,8 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { formatDate } from "@gnd/utils/dayjs";
-import {
-    BriefcaseBusiness,
-    Hammer,
-    Home,
-    Receipt,
-} from "lucide-react";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import {
@@ -317,35 +313,35 @@ export function CommunityDashboard() {
                             value="projects"
                             className="gap-2 rounded-2xl py-3 text-slate-600 transition-all data-[state=active]:bg-emerald-700 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-900/10"
                         >
-                            <Home className="size-4" />
+                            <Icons.Home className="size-4" />
                             Projects
                         </TabsTrigger>
                         <TabsTrigger
                             value="productions"
                             className="gap-2 rounded-2xl py-3 text-slate-600 transition-all data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-emerald-900/10"
                         >
-                            <Hammer className="size-4" />
+                            <Icons.Hammer className="size-4" />
                             Productions
                         </TabsTrigger>
                         <TabsTrigger
                             value="units"
                             className="gap-2 rounded-2xl py-3 text-slate-600 transition-all data-[state=active]:bg-sky-600 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-sky-900/10"
                         >
-                            <Home className="size-4" />
+                            <Icons.Home className="size-4" />
                             Units
                         </TabsTrigger>
                         <TabsTrigger
                             value="jobs"
                             className="gap-2 rounded-2xl py-3 text-slate-600 transition-all data-[state=active]:bg-amber-500 data-[state=active]:text-slate-950 data-[state=active]:shadow-md data-[state=active]:shadow-amber-900/10"
                         >
-                            <BriefcaseBusiness className="size-4" />
+                            <Icons.BriefcaseBusiness className="size-4" />
                             Jobs
                         </TabsTrigger>
                         <TabsTrigger
                             value="invoices"
                             className="gap-2 rounded-2xl py-3 text-slate-600 transition-all data-[state=active]:bg-rose-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=active]:shadow-rose-900/10"
                         >
-                            <Receipt className="size-4" />
+                            <Icons.Receipt className="size-4" />
                             Invoices
                         </TabsTrigger>
                     </TabsList>

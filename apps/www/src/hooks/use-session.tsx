@@ -1,4 +1,5 @@
 "use client";
+
 import { getLoggedInProfile } from "@/actions/cache/get-loggedin-profile";
 import { rndTimeout } from "@/lib/timeout";
 import { AsyncFnType } from "@/types";

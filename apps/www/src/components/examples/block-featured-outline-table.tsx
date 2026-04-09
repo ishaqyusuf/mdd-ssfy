@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import * as React from "react";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -82,21 +84,6 @@ import {
     useReactTable,
     VisibilityState,
 } from "@tanstack/react-table";
-import {
-    CheckCircle2Icon,
-    CheckCircleIcon,
-    ChevronDownIcon,
-    ChevronLeftIcon,
-    ChevronRightIcon,
-    ChevronsLeftIcon,
-    ChevronsRightIcon,
-    ColumnsIcon,
-    GripVerticalIcon,
-    LoaderIcon,
-    MoreVerticalIcon,
-    PlusIcon,
-    TrendingUpIcon,
-} from "lucide-react";
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -127,7 +114,7 @@ function DragHandle({ id }: { id: number }) {
             size="icon"
             className="size-7 text-muted-foreground hover:bg-transparent"
         >
-            <GripVerticalIcon className="size-3 text-muted-foreground" />
+            <Icons.GripVerticalIcon className="size-3 text-muted-foreground" />
             <span className="sr-only">Drag to reorder</span>
         </Button>
     );
@@ -198,9 +185,9 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
                 className="flex gap-1 px-1.5 text-muted-foreground [&_svg]:size-3"
             >
                 {row.original.status === "Done" ? (
-                    <CheckCircle2Icon className="text-green-500 dark:text-green-400" />
+                    <Icons.CheckCircle2Icon className="text-green-500 dark:text-green-400" />
                 ) : (
-                    <LoaderIcon />
+                    <Icons.LoaderIcon />
                 )}
                 {row.original.status}
             </Badge>
@@ -313,7 +300,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
                         className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
                         size="icon"
                     >
-                        <MoreVerticalIcon />
+                        <Icons.MoreVerticalIcon />
                         <span className="sr-only">Open menu</span>
                     </Button>
                 </DropdownMenuTrigger>
@@ -471,12 +458,12 @@ export function DataTable() {
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline" size="sm">
-                                <ColumnsIcon />
+                                <Icons.ColumnsIcon />
                                 <span className="hidden lg:inline">
                                     Customize Columns
                                 </span>
                                 <span className="lg:hidden">Columns</span>
-                                <ChevronDownIcon />
+                                <Icons.ChevronDownIcon />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-56">
@@ -504,7 +491,7 @@ export function DataTable() {
                         </DropdownMenuContent>
                     </DropdownMenu>
                     <Button variant="outline" size="sm">
-                        <PlusIcon />
+                        <Icons.PlusIcon />
                         <span className="hidden lg:inline">Add Section</span>
                     </Button>
                 </div>
@@ -628,7 +615,7 @@ export function DataTable() {
                                 <span className="sr-only">
                                     Go to first page
                                 </span>
-                                <ChevronsLeftIcon />
+                                <Icons.ChevronsLeftIcon />
                             </Button>
                             <Button
                                 variant="outline"
@@ -640,7 +627,7 @@ export function DataTable() {
                                 <span className="sr-only">
                                     Go to previous page
                                 </span>
-                                <ChevronLeftIcon />
+                                <Icons.ChevronLeftIcon />
                             </Button>
                             <Button
                                 variant="outline"
@@ -650,7 +637,7 @@ export function DataTable() {
                                 disabled={!table.getCanNextPage()}
                             >
                                 <span className="sr-only">Go to next page</span>
-                                <ChevronRightIcon />
+                                <Icons.ChevronRightIcon />
                             </Button>
                             <Button
                                 variant="outline"
@@ -662,7 +649,7 @@ export function DataTable() {
                                 disabled={!table.getCanNextPage()}
                             >
                                 <span className="sr-only">Go to last page</span>
-                                <ChevronsRightIcon />
+                                <Icons.ChevronsRightIcon />
                             </Button>
                         </div>
                     </div>
@@ -781,7 +768,7 @@ function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
                             <div className="grid gap-2">
                                 <div className="flex gap-2 font-medium leading-none">
                                     Trending up by 5.2% this month{" "}
-                                    <TrendingUpIcon className="size-4" />
+                                    <Icons.TrendingUpIcon className="size-4" />
                                 </div>
                                 <div className="text-muted-foreground">
                                     Showing total visitors for the last 6

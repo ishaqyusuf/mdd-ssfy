@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import {
     _completeManyUnitTaskProductions,
     _startManyUnitTaskProductions,
@@ -11,7 +13,6 @@ import { BatchAction } from "@gnd/ui/custom/data-table/batch-action";
 import { useTable } from "@gnd/ui/data-table";
 import { useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "sonner";
-import { Check, Play, StopCircle } from "lucide-react";
 import type { Item } from "./columns";
 
 async function invalidateProductionQueries(queryClient, trpc) {
@@ -77,7 +78,7 @@ export function BatchActions() {
         <BatchAction>
             <BatchButton
                 label="Start"
-                Icon={Play}
+                Icon={Icons.Play}
                 onClick={() =>
                     runAction(
                         _startManyUnitTaskProductions,
@@ -88,7 +89,7 @@ export function BatchActions() {
             />
             <BatchButton
                 label="Stop"
-                Icon={StopCircle}
+                Icon={Icons.StopCircle}
                 onClick={() =>
                     runAction(
                         _stopManyUnitTaskProductions,
@@ -99,7 +100,7 @@ export function BatchActions() {
             />
             <BatchButton
                 label="Complete"
-                Icon={Check}
+                Icon={Icons.Check}
                 onClick={() =>
                     runAction(
                         _completeManyUnitTaskProductions,

@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import Link from "@/components/link";
 import { useCustomerFilterParams } from "@/hooks/use-customer-filter-params";
 import { useCustomerOverviewV2SheetQuery } from "@/hooks/use-customer-overview-v2-sheet-query";
@@ -18,7 +20,6 @@ import { Input } from "@gnd/ui/input";
 import { useTableData } from "@gnd/ui/data-table";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
-import { Users, Building2, Mail, FileText, Search, ExternalLink } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
 
 type CustomerRow = {
@@ -61,13 +62,13 @@ export function CustomerDirectoryV2Page() {
 				<div className="flex flex-wrap gap-2">
 					<Button asChild variant="outline">
 						<Link href="/sales-book/customers">
-							<ExternalLink className="mr-2 size-4" />
+							<Icons.ExternalLink className="mr-2 size-4" />
 							Legacy page
 						</Link>
 					</Button>
 					<Button asChild>
 						<Link href="/sales-book/create-order">
-							<FileText className="mr-2 size-4" />
+							<Icons.FileText className="mr-2 size-4" />
 							New sales
 						</Link>
 					</Button>
@@ -77,7 +78,7 @@ export function CustomerDirectoryV2Page() {
 			<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 				<DirectoryStatCard
 					description="All tracked customer records"
-					icon={Users}
+					icon={Icons.Users}
 					label="Total customers"
 					value={
 						<StatValue
@@ -88,7 +89,7 @@ export function CustomerDirectoryV2Page() {
 				/>
 				<DirectoryStatCard
 					description="Business account records"
-					icon={Building2}
+					icon={Icons.Building2}
 					label="Business accounts"
 					value={
 						<StatValue
@@ -99,7 +100,7 @@ export function CustomerDirectoryV2Page() {
 				/>
 				<DirectoryStatCard
 					description="Customers with an email on file"
-					icon={Mail}
+					icon={Icons.Mail}
 					label="Reachable customers"
 					value={
 						<StatValue
@@ -110,7 +111,7 @@ export function CustomerDirectoryV2Page() {
 				/>
 				<DirectoryStatCard
 					description="Quote records currently in the system"
-					icon={FileText}
+					icon={Icons.FileText}
 					label="Open quotes"
 					value={
 						<StatValue
@@ -131,7 +132,7 @@ export function CustomerDirectoryV2Page() {
 				<CardContent>
 					<div className="grid gap-3 md:grid-cols-[1fr_auto]">
 						<div className="relative">
-							<Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+							<Icons.Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
 							<Input
 								className="pl-9"
 								onChange={(event) => {

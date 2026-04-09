@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { CancelContractorPayoutButton } from "@/components/payment-dashboard/cancel-contractor-payout-button";
 import { PaymentOverviewContent } from "@/components/payment-dashboard/payment-overview-content";
 import { ReverseContractorPayoutButton } from "@/components/payment-dashboard/reverse-contractor-payout-button";
@@ -9,7 +11,6 @@ import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { useQuery } from "@gnd/ui/tanstack";
 import { formatDate } from "@gnd/utils/dayjs";
-import { Printer } from "lucide-react";
 import { CustomModal } from "./custom-modal";
 
 export function ContractorPayoutOverviewModal() {
@@ -71,7 +72,7 @@ export function ContractorPayoutOverviewModal() {
 							: null
 					}
 				>
-					<Printer className="size-4" />
+					<Icons.Printer className="size-4" />
 					Print Report
 				</Button>
 			</CustomModal.Footer>

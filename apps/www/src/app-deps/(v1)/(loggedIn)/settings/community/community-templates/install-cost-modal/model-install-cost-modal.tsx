@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import React, { useEffect, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
@@ -22,7 +24,6 @@ import {
     InstallCostMeta,
     InstallCostSettings,
 } from "@/types/settings";
-import { Plus } from "lucide-react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 

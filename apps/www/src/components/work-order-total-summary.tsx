@@ -1,9 +1,10 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { _trpc } from "@/components/static-trpc";
 import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import NumberFlow from "@number-flow/react";
-import { ListTodo } from "lucide-react";
 import { SummaryCardItem } from "@gnd/ui/custom/summary-card-item";
 
 export function WorkOrderTotalSummary() {
@@ -17,7 +18,7 @@ export function WorkOrderTotalSummary() {
     <SummaryCardItem
       path="/work-orders"
       summaryProps={{
-        Icon: ListTodo,
+        Icon: Icons.ListTodo,
         title: data?.title || "Total Work Orders",
         value: <NumberFlow value={Number(data?.value?.replace(/,/g, "") || 0)} />,
         subtitle: data?.change,

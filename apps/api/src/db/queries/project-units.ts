@@ -29,6 +29,12 @@ export const communityInstllationFilters = [
 ] as const;
 export type CommunityInstllationFilters =
 	(typeof communityInstllationFilters)[number];
+export const communityInstallCostFilters = [
+	"has install cost",
+	"no install cost",
+] as const;
+export type CommunityInstallCostFilters =
+	(typeof communityInstallCostFilters)[number];
 export const getProjectUnitsSchema = z
 	.object({
 		builderSlug: z.string().optional().nullable(),
@@ -36,6 +42,7 @@ export const getProjectUnitsSchema = z
 		production: z.enum(communityProductionFilter).optional().nullable(),
 		invoice: z.enum(invoiceFilter).optional().nullable(),
 		installation: z.enum(communityInstllationFilters).optional().nullable(),
+		installCost: z.enum(communityInstallCostFilters).optional().nullable(),
 		dateRange: z.array(z.string().optional().nullable()).optional().nullable(),
 	})
 	.extend(paginationSchema.shape);
@@ -287,6 +294,53 @@ export function whereProjectUnits(query: Partial<GetProjectUnitsSchema>) {
 									],
 								},
 							},
+						});
+						break;
+				}
+				break;
+			case "installCost":
+				switch (query.installCost) {
+					case "has install cost":
+						where.push({
+							communityTemplate: {
+								communityModelInstallTasks: {
+									some: {
+										qty: {
+											gt: 0,
+										},
+										installCostModel: {
+											unitCost: {
+												gt: 0,
+											},
+										},
+									},
+								},
+							},
+						});
+						break;
+					case "no install cost":
+						where.push({
+							OR: [
+								{
+									communityTemplate: null,
+								},
+								{
+									communityTemplate: {
+										communityModelInstallTasks: {
+											none: {
+												qty: {
+													gt: 0,
+												},
+												installCostModel: {
+													unitCost: {
+														gt: 0,
+													},
+												},
+											},
+										},
+									},
+								},
+							],
 						});
 						break;
 				}

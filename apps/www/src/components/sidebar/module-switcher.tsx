@@ -1,6 +1,6 @@
+import { Icons } from "@gnd/ui/icons";
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronsUpDown } from "lucide-react";
 
 import {
     DropdownMenu,
@@ -79,7 +79,7 @@ export function ModuleSwitcher() {
                                     {currentModule?.subtitle}
                                 </span>
                             </div>
-                            <ChevronsUpDown className="ml-auto" />
+                            <Icons.ChevronsUpDown className="ml-auto" />
                         </SidebarMenuButton>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent

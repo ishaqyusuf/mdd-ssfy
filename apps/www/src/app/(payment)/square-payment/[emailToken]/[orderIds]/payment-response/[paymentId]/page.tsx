@@ -7,7 +7,6 @@ import PageShell from "@/components/page-shell";
 import { Icons } from "@/components/_v1/icons";
 import { formatPaymentParams } from "@gnd/utils/sales";
 import { motion } from "framer-motion";
-import { CheckCircle, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useRef, useState } from "react";
 
@@ -57,13 +56,13 @@ export default function PaymentResponsePage(props) {
 				return {
 					text: "Payment Successful!",
 					color: "text-green-600",
-					icon: <CheckCircle className="h-12 w-12 text-green-500" />,
+					icon: <Icons.CheckCircle className="h-12 w-12 text-green-500" />,
 				};
 			case "error":
 				return {
 					text: `${error}`,
 					color: "text-red-600",
-					icon: <XCircle className="h-12 w-12 text-red-500" />,
+					icon: <Icons.XCircle className="h-12 w-12 text-red-500" />,
 				};
 			default:
 				return {

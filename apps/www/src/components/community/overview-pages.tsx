@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import ProjectModal from "@/app-deps/(v1)/(loggedIn)/community/projects/project-modal";
 import { useHomeModal } from "@/app-deps/(v1)/(loggedIn)/community/units/home-modal";
 import { markProjectProductionCompletedAction } from "@/actions/community/project-actions";
@@ -18,16 +20,6 @@ import { formatDate } from "@gnd/utils/dayjs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import {
-    ArrowUpRight,
-    BriefcaseBusiness,
-    CheckCheck,
-    FileText,
-    Hammer,
-    Home,
-    Pencil,
-    Receipt,
-} from "lucide-react";
 
 function MetricCard({
     title,
@@ -196,7 +188,7 @@ export function CommunityProjectOverviewPage({ slug }: { slug: string }) {
                             variant="outline"
                             onClick={() => homeModal.open(null)}
                         >
-                            <Home className="mr-2 size-4" />
+                            <Icons.Home className="mr-2 size-4" />
                             Add unit
                         </Button>
                         <Button
@@ -207,14 +199,14 @@ export function CommunityProjectOverviewPage({ slug }: { slug: string }) {
                                 )
                             }
                         >
-                            <Pencil className="mr-2 size-4" />
+                            <Icons.Pencil className="mr-2 size-4" />
                             Edit project
                         </Button>
                         <Button asChild variant="outline">
                             <Link
                                 href={`/community/unit-invoices?projectSlug=${slug}`}
                             >
-                                <Receipt className="mr-2 size-4" />
+                                <Icons.Receipt className="mr-2 size-4" />
                                 Update invoice
                             </Link>
                         </Button>
@@ -229,7 +221,7 @@ export function CommunityProjectOverviewPage({ slug }: { slug: string }) {
                             }}
                             disabled={isPending}
                         >
-                            <CheckCheck className="mr-2 size-4" />
+                            <Icons.CheckCheck className="mr-2 size-4" />
                             Mark all production completed
                         </Button>
                     </div>
@@ -241,25 +233,25 @@ export function CommunityProjectOverviewPage({ slug }: { slug: string }) {
                     title="Units"
                     value={data.summary.units}
                     subtitle="Homes inside this project"
-                    icon={Home}
+                    icon={Icons.Home}
                 />
                 <MetricCard
                     title="Production"
                     value={`${data.summary.completedProductionTasks}/${data.summary.productionTasks}`}
                     subtitle="Completed production tasks"
-                    icon={Hammer}
+                    icon={Icons.Hammer}
                 />
                 <MetricCard
                     title="Invoices"
                     value={formatCurrency.format(data.summary.invoiceDueAmount)}
                     subtitle={`${data.summary.invoices} invoice records in scope`}
-                    icon={Receipt}
+                    icon={Icons.Receipt}
                 />
                 <MetricCard
                     title="Jobs"
                     value={data.summary.jobs}
                     subtitle="Submitted community jobs"
-                    icon={BriefcaseBusiness}
+                    icon={Icons.BriefcaseBusiness}
                 />
             </div>
 
@@ -409,14 +401,14 @@ export function CommunityProjectUnitOverviewPage({ slug }: { slug: string }) {
                             variant="outline"
                             onClick={() => homeModal.open(data.unit as any)}
                         >
-                            <Pencil className="mr-2 size-4" />
+                            <Icons.Pencil className="mr-2 size-4" />
                             Edit unit
                         </Button>
                         <Button asChild variant="outline">
                             <Link
                                 href={`/community/projects/${data.unit.project?.slug}`}
                             >
-                                <ArrowUpRight className="mr-2 size-4" />
+                                <Icons.ArrowUpRight className="mr-2 size-4" />
                                 Open project
                             </Link>
                         </Button>
@@ -424,14 +416,14 @@ export function CommunityProjectUnitOverviewPage({ slug }: { slug: string }) {
                             <Link
                                 href={`/community/unit-invoices?projectSlug=${data.unit.project?.slug}`}
                             >
-                                <Receipt className="mr-2 size-4" />
+                                <Icons.Receipt className="mr-2 size-4" />
                                 Manage invoices
                             </Link>
                         </Button>
                         {templatePath ? (
                             <Button asChild>
                                 <Link href={templatePath}>
-                                    <FileText className="mr-2 size-4" />
+                                    <Icons.FileText className="mr-2 size-4" />
                                     Open template
                                 </Link>
                             </Button>
@@ -445,19 +437,19 @@ export function CommunityProjectUnitOverviewPage({ slug }: { slug: string }) {
                     title="Production"
                     value={`${data.summary.completedProductionTasks}/${data.summary.productionTasks}`}
                     subtitle="Completed production tasks"
-                    icon={Hammer}
+                    icon={Icons.Hammer}
                 />
                 <MetricCard
                     title="Jobs"
                     value={data.summary.jobs}
                     subtitle="Jobs submitted for this unit"
-                    icon={BriefcaseBusiness}
+                    icon={Icons.BriefcaseBusiness}
                 />
                 <MetricCard
                     title="Invoice due"
                     value={formatCurrency.format(data.summary.invoiceDueAmount)}
                     subtitle="Total invoice value on unit tasks"
-                    icon={Receipt}
+                    icon={Icons.Receipt}
                 />
                 <MetricCard
                     title="Outstanding"
@@ -465,7 +457,7 @@ export function CommunityProjectUnitOverviewPage({ slug }: { slug: string }) {
                         data.summary.outstandingInvoiceAmount,
                     )}
                     subtitle="Unpaid amount remaining"
-                    icon={Home}
+                    icon={Icons.Home}
                 />
             </div>
 

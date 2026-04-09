@@ -4,7 +4,6 @@ import { useSaleOverview } from "./context";
 import { openLink } from "@/lib/open-link";
 import { salesFormUrl } from "@/utils/sales-utils";
 import { useBatchSales } from "@/hooks/use-batch-sales";
-import { CheckCheck, FileSearch, RefreshCcw } from "lucide-react";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { AuthGuard } from "@/components/auth-guard";
 import { _perm } from "@/components/sidebar/links";
@@ -51,7 +50,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 				variant="default"
 				className="flex items-center space-x-2 hover:bg-secondary flex-1"
 			>
-				<FileSearch className="size-3.5" />
+				<Icons.FileSearch className="size-3.5" />
 				<span>Preview</span>
 			</Button>
 			<Button
@@ -79,7 +78,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 						<SalesMenu.SalesEmailMenuItems />
 						<SalesMenu.Sub>
 							<SalesMenu.SubTrigger>
-								<CheckCheck className="mr-2 size-4 text-muted-foreground/70" />
+								<Icons.CheckCheck className="mr-2 size-4 text-muted-foreground/70" />
 								Mark as
 							</SalesMenu.SubTrigger>
 							<SalesMenu.SubContent>
@@ -108,7 +107,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 						<SalesMenu.Move />
 						<SalesMenu.Separator />
 						<SalesMenu.Item onSelect={reset} disabled={loading}>
-							<RefreshCcw className="mr-2 size-4 text-muted-foreground/70" />
+							<Icons.RefreshCcw className="mr-2 size-4 text-muted-foreground/70" />
 							Reset Stats
 						</SalesMenu.Item>
 						<AuthGuard rules={[_perm.is("viewSalesResolution")]}>
@@ -125,7 +124,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 								}}
 								disabled={loading}
 							>
-								<RefreshCcw className="mr-2 size-4 text-muted-foreground/70" />
+								<Icons.RefreshCcw className="mr-2 size-4 text-muted-foreground/70" />
 								Resolution Center
 							</SalesMenu.Item>
 						</AuthGuard>

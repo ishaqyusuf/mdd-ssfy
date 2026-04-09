@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { formatCurrency } from "@/lib/utils";
@@ -10,7 +12,6 @@ import { cn } from "@gnd/ui/cn";
 import { cells } from "@gnd/ui/custom/data-table/cells";
 import { HoverCard } from "@gnd/ui/namespace";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Eye, ArrowUpRight } from "lucide-react";
 
 export type Item = RouterOutputs["sales"]["getOrdersV2"]["data"][number];
 
@@ -145,7 +146,7 @@ function ActionCell({ item }: { item: Item }) {
             className="size-8 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-900"
             onClick={(event) => event.stopPropagation()}
           >
-            <Eye className="size-4" />
+            <Icons.Eye className="size-4" />
             <span className="sr-only">Preview order</span>
           </Button>
         </HoverCard.Trigger>
@@ -199,7 +200,7 @@ function ActionCell({ item }: { item: Item }) {
           overviewQuery.open2(item.uuid, "sales");
         }}
       >
-        <ArrowUpRight className="size-4" />
+        <Icons.ArrowUpRight className="size-4" />
         <span className="sr-only">Open order</span>
       </Button>
     </div>

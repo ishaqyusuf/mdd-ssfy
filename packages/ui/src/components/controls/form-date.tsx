@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { InputHTMLAttributes, useState } from "react";
 import { useDataSkeleton } from "@/hooks/use-data-skeleton";
 import { cn } from "@/utils";
@@ -13,7 +14,6 @@ import { NumericFormat, NumericFormatProps } from "react-number-format";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { formatDate } from "@gnd/utils/dayjs";
 import { Calendar, CalendarProps } from "@gnd/ui/calendar";
-import { CalendarIcon } from "lucide-react";
 
 interface Props<T> {
   label?: string;
@@ -85,7 +85,7 @@ export default function FormDate<
                     ) : (
                       <span>{placeholder || "Pick a date"}</span>
                     )}
-                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    <Icons.CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                   </Button>
                 </FormControl>
               </PopoverTrigger>

@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { saveSettingAction } from "@/app-deps/(v1)/_actions/settings";
@@ -7,7 +9,6 @@ import Btn from "@/components/_v1/btn";
 import PageHeader from "@/components/_v1/page-header";
 import { resetPasswordSchema } from "@/lib/validations/auth";
 import { InstallCostMeta, InstallCostSettings } from "@/types/settings";
-import { Delete, Move, Plus, Trash } from "lucide-react";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -173,7 +174,7 @@ export function DimensionList({ data }: { data: HousePackageToolSettings }) {
                                                             ))}
 
                                                             <div className="col-span-1 flex  h-7 items-center space-x-2 border">
-                                                                <Move className="mx-2 size-4 text-slate-300 group-hover:text-gray-600" />
+                                                                <Icons.Move className="mx-2 size-4 text-slate-300 group-hover:text-gray-600" />
                                                                 <Button
                                                                     onClick={() => {
                                                                         remove(
@@ -183,7 +184,7 @@ export function DimensionList({ data }: { data: HousePackageToolSettings }) {
                                                                     size="icon"
                                                                     variant="ghost"
                                                                 >
-                                                                    <Trash className="h-4 w-4 text-slate-300 group-hover:text-red-600" />
+                                                                    <Icons.Trash className="h-4 w-4 text-slate-300 group-hover:text-red-600" />
                                                                 </Button>
                                                             </div>
                                                         </div>
@@ -204,7 +205,7 @@ export function DimensionList({ data }: { data: HousePackageToolSettings }) {
                         variant="secondary"
                         className="mt-1 h-7 w-full"
                     >
-                        <Plus className="mr-2 size-4" />
+                        <Icons.Plus className="mr-2 size-4" />
                         <span>Add Line</span>
                     </Button>
                 </div>

@@ -1,4 +1,6 @@
 "use client";
+
+import { Icons } from "@gnd/ui/icons";
 import { useProductsFilterParams } from "@/hooks/use-products-filter-params";
 import { useProductSearch } from "@/hooks/use-product-search";
 import { Badge } from "@gnd/ui/badge";
@@ -10,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@gnd/ui/select";
-import { Grid, List } from "lucide-react";
 
 export function ProductSearchResultHeader() {
   const { count, viewMode, setViewMode } = useProductSearch();
@@ -47,14 +48,14 @@ export function ProductSearchResultHeader() {
             size="sm"
             onClick={() => setViewMode("grid")}
           >
-            <Grid className="h-4 w-4" />
+            <Icons.Grid className="h-4 w-4" />
           </Button>
           <Button
             variant={viewMode === "list" ? "default" : "ghost"}
             size="sm"
             onClick={() => setViewMode("list")}
           >
-            <List className="h-4 w-4" />
+            <Icons.List className="h-4 w-4" />
           </Button>
         </div>
       </div>

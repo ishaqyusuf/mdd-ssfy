@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { ContractorPayoutsHeader } from "@/components/contractor-payouts-header";
 import { DataTable } from "@/components/tables/contractor-payouts/data-table";
 import { useTRPC } from "@/trpc/client";
@@ -15,14 +17,6 @@ import {
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useQuery } from "@gnd/ui/tanstack";
 import { format } from "date-fns";
-import {
-    ArrowRight,
-    BadgeCheck,
-    CreditCard,
-    ReceiptText,
-    TrendingUp,
-    Wallet,
-} from "lucide-react";
 import Link from "next/link";
 
 function formatCurrency(value?: number | null) {
@@ -63,13 +57,13 @@ export function PaymentsHistoryView() {
                         <div className="flex flex-col gap-3 sm:flex-row">
                             <Button asChild size="lg" variant="outline">
                                 <Link href="/contractors/jobs/payment-dashboard">
-                                    <ReceiptText data-icon="inline-start" />
+                                    <Icons.ReceiptText data-icon="inline-start" />
                                     Open payment dashboard
                                 </Link>
                             </Button>
                             <Button asChild size="lg">
                                 <Link href="/contractors/jobs/payment-portal">
-                                    <CreditCard data-icon="inline-start" />
+                                    <Icons.CreditCard data-icon="inline-start" />
                                     Create new payout
                                 </Link>
                             </Button>
@@ -82,7 +76,7 @@ export function PaymentsHistoryView() {
                             value={formatCurrency(
                                 data?.summary.currentMonthAmount,
                             )}
-                            icon={Wallet}
+                            icon={Icons.Wallet}
                             isPending={isPending}
                         />
                         <MetricCard
@@ -90,19 +84,19 @@ export function PaymentsHistoryView() {
                             value={String(
                                 data?.summary.currentMonthPayments || 0,
                             )}
-                            icon={ReceiptText}
+                            icon={Icons.ReceiptText}
                             isPending={isPending}
                         />
                         <MetricCard
                             label="Ready to pay jobs"
                             value={String(data?.summary.readyToPayCount || 0)}
-                            icon={BadgeCheck}
+                            icon={Icons.BadgeCheck}
                             isPending={isPending}
                         />
                         <MetricCard
                             label="Pending bill"
                             value={formatCurrency(data?.summary.pendingBill)}
-                            icon={TrendingUp}
+                            icon={Icons.TrendingUp}
                             isPending={isPending}
                         />
                     </div>
@@ -208,7 +202,7 @@ function QuickLink({
                         {description}
                     </p>
                 </div>
-                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <Icons.ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
             </div>
         </Link>
     );

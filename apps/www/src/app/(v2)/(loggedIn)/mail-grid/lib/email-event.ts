@@ -1,4 +1,5 @@
 "use server";
+
 import { EmailTriggerEventType } from "../templates/events";
 import { emailTemplates, transformer } from "./templates";
 import { resend } from "@/lib/resend";

@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { Progress } from "@gnd/ui/custom/progress";
 import { useTRPC } from "@/trpc/client";
@@ -12,7 +14,6 @@ import { cn } from "@gnd/ui/cn";
 import { toast } from "@gnd/ui/use-toast";
 import { colorsObject, hexToRgba } from "@gnd/utils/colors";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
-import { CheckCircle, Clock, Upload } from "lucide-react";
 
 export type Item =
     RouterOutputs["inventories"]["inventoryImports"]["data"][number];
@@ -69,9 +70,9 @@ const statucColumn = {
                 className={cn("gap-1 px-1")}
             >
                 {item.categoryUid ? (
-                    <CheckCircle className="size-3" />
+                    <Icons.CheckCircle className="size-3" />
                 ) : (
-                    <Clock className="size-3" />
+                    <Icons.Clock className="size-3" />
                 )}
                 {item.categoryUid ? "Imported" : "Pending"}
             </Badge>
@@ -136,7 +137,7 @@ const actionColumn = {
                     onClick={startImport}
                     className="gap-1"
                 >
-                    <Upload className="w-4 h-4" />
+                    <Icons.Upload className="w-4 h-4" />
                     Import
                 </Button>
             </div>
@@ -181,9 +182,9 @@ function ItemCard({ item }: ItemProps) {
                     className={cn("gap-1 px-1")}
                 >
                     {item.categoryUid ? (
-                        <CheckCircle className="size-3" />
+                        <Icons.CheckCircle className="size-3" />
                     ) : (
-                        <Clock className="size-3" />
+                        <Icons.Clock className="size-3" />
                     )}
                     {item.categoryUid ? "Imported" : "Pending"}
                 </Badge>

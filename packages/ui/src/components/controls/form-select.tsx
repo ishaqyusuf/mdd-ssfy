@@ -1,7 +1,7 @@
+import { Icons } from "@gnd/ui/icons";
 import { useEffect, useState } from "react";
 import { useDataSkeleton } from "@/hooks/use-data-skeleton";
 import { cn } from "../../utils";
-import { CheckIcon, ChevronsUpDown } from "lucide-react";
 import { ControllerProps, FieldPath, FieldValues } from "react-hook-form";
 
 import { Button } from "@gnd/ui/button";
@@ -214,7 +214,7 @@ export function ControlledCombox({
                 ? itemText(options?.find((o) => itemValue?.(o) == field?.value))
                 : placeholder}
             </span>
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            <Icons.ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </FormControl>
       </PopoverTrigger>
@@ -239,7 +239,7 @@ export function ControlledCombox({
                 }}
               >
                 {itemText(opt)}
-                <CheckIcon
+                <Icons.CheckIcon
                   className={cn(
                     "ml-auto h-4 w-4",
                     itemValue(opt) === field?.value

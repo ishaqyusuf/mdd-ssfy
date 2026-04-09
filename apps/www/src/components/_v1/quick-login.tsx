@@ -1,10 +1,11 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useEffect, useState } from "react";
 import { getEmployees } from "@/app-deps/(v1)/_actions/hrm/get-employess";
 import { env } from "@/env.mjs";
 import { IUser } from "@/types/hrm";
-import { Plus } from "lucide-react";
 import { signIn } from "next-auth/react";
 
 import { Button } from "@gnd/ui/button";
@@ -47,7 +48,7 @@ export default function QuickLogin() {
                         variant="secondary"
                         className="flex h-8  data-[state=open]:bg-muted"
                     >
-                        <Plus className="mr-2 h-4 w-4" />
+                        <Icons.Plus className="mr-2 h-4 w-4" />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent

@@ -1,15 +1,8 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useEffect, useState } from "react";
-import {
-  Search,
-  ShoppingCart,
-  Menu,
-  Phone,
-  Mail,
-  MapPin,
-  User,
-} from "lucide-react";
 import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
 import { Badge } from "@gnd/ui/badge";
@@ -63,16 +56,16 @@ export function Header({ cartItems }: HeaderProps) {
         <div className="flex items-center justify-between py-2 text-sm text-muted-foreground border-b">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-1">
-              <Phone className="h-4 w-4" />
+              <Icons.Phone className="h-4 w-4" />
               <span>(305) 278-6555</span>
             </div>
             <div className="flex items-center space-x-1">
-              <Mail className="h-4 w-4" />
+              <Icons.Mail className="h-4 w-4" />
               <span>support@gndmillwork.com</span>
             </div>
           </div>
           <div className="flex items-center space-x-1">
-            <MapPin className="h-4 w-4" />
+            <Icons.MapPin className="h-4 w-4" />
             <span>Free delivery within 50 miles</span>
           </div>
         </div>
@@ -182,7 +175,7 @@ export function Header({ cartItems }: HeaderProps) {
           <div className="flex items-center space-x-4">
             {/* Search */}
             <div className="relative hidden md:block">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Icons.Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Link href="/search">
                 <Input
                   placeholder="Search doors & hardware..."
@@ -202,7 +195,7 @@ export function Header({ cartItems }: HeaderProps) {
                   size="icon"
                   className="bg-transparent"
                 >
-                  <User className="h-4 w-4" />
+                  <Icons.User className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
@@ -253,7 +246,7 @@ export function Header({ cartItems }: HeaderProps) {
                   size="icon"
                   className="md:hidden bg-transparent"
                 >
-                  <Menu className="h-4 w-4" />
+                  <Icons.Menu className="h-4 w-4" />
                 </Button>
               </SheetTrigger>
               <SheetContent>
@@ -281,7 +274,7 @@ export function Header({ cartItems }: HeaderProps) {
                   <div className="border-t pt-4">
                     <Link href="/cart">
                       <Button variant="ghost" className="justify-start w-full">
-                        <ShoppingCart className="h-4 w-4 mr-2" />
+                        <Icons.ShoppingCart className="h-4 w-4 mr-2" />
                         Cart ({totalCartItems})
                       </Button>
                     </Link>

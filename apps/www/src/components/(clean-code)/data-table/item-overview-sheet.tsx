@@ -3,7 +3,6 @@ import { Icons } from "@/components/_v1/icons";
 import { cn } from "@/lib/utils";
 import { PrimitiveDivProps } from "@/types/type";
 import { cva, VariantProps } from "class-variance-authority";
-import { ChevronDown, ChevronUp, X } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
 import { Separator } from "@gnd/ui/separator";
@@ -149,7 +148,7 @@ export function TableSheetHeader({
                                     disabled={!prevId}
                                     onClick={onPrev}
                                 >
-                                    <ChevronUp className="h-5 w-5" />
+                                    <Icons.ChevronUp className="h-5 w-5" />
                                     <span className="sr-only">Previous</span>
                                 </Button>
                             </TooltipTrigger>
@@ -170,7 +169,7 @@ export function TableSheetHeader({
                                     disabled={!nextId}
                                     onClick={onNext}
                                 >
-                                    <ChevronDown className="h-5 w-5" />
+                                    <Icons.ChevronDown className="h-5 w-5" />
                                     <span className="sr-only">Next</span>
                                 </Button>
                             </TooltipTrigger>
@@ -189,7 +188,7 @@ export function TableSheetHeader({
                     <Separator orientation="vertical" className="mx-1" />
                     <SheetClose autoFocus={true} asChild>
                         <Button size="icon" variant="ghost" className="h-7 w-7">
-                            <X className="h-5 w-5" />
+                            <Icons.X className="h-5 w-5" />
                             <span className="sr-only">Close</span>
                         </Button>
                     </SheetClose>

@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { cn } from "@/lib/utils";
 import { TablePageInfo } from "@/types/data-table";
 
@@ -11,12 +12,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@gnd/ui/select";
-import {
-    ArrowLeftIcon,
-    ArrowRightIcon,
-    ChevronLeftIcon,
-    ChevronRightIcon,
-} from "lucide-react";
 
 interface DataTablePaginationProps<TData> {
     table: Table<TData>;
@@ -88,7 +83,7 @@ export function DataTablePagination<TData>({
                         onClick={() => table.setPageIndex(0)}
                         disabled={!table.getCanPreviousPage()}
                     >
-                        <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
+                        <Icons.ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
                     </Button>
                     <Button
                         aria-label="Go to previous page"
@@ -98,7 +93,7 @@ export function DataTablePagination<TData>({
                         onClick={() => table.previousPage()}
                         disabled={!table.getCanPreviousPage()}
                     >
-                        <ChevronLeftIcon
+                        <Icons.ChevronLeftIcon
                             className="h-4 w-4"
                             aria-hidden="true"
                         />
@@ -111,7 +106,7 @@ export function DataTablePagination<TData>({
                         onClick={() => table.nextPage()}
                         disabled={!table.getCanNextPage()}
                     >
-                        <ChevronRightIcon
+                        <Icons.ChevronRightIcon
                             className="h-4 w-4"
                             aria-hidden="true"
                         />
@@ -126,7 +121,7 @@ export function DataTablePagination<TData>({
                         }
                         disabled={!table.getCanNextPage()}
                     >
-                        <ArrowRightIcon
+                        <Icons.ArrowRightIcon
                             className="h-4 w-4"
                             aria-hidden="true"
                         />

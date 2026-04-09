@@ -5,7 +5,6 @@ import { useTransition } from "@/utils/use-safe-transistion";
 import Image from "next/image";
 import { env } from "@/env.mjs";
 import { uploadFile, UploadFolders } from "@/lib/upload-file";
-import { Cloud, Upload, UploadIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@gnd/ui/button";
@@ -76,7 +75,7 @@ export function FileUploader({
             <div className="flex flex-col items-center justify-center space-y-4">
                 {!assetId && onUpload ? (
                     <div className="flex w-full max-w-md flex-col items-center justify-center space-y-2 rounded-lg border-2 border-dashed border-gray-400 p-6">
-                        <Cloud className="h-8 w-8 text-gray-500 dark:text-gray-400" />
+                        <Icons.Cloud className="h-8 w-8 text-gray-500 dark:text-gray-400" />
                         <p className="text-gray-500 dark:text-gray-400">
                             Drag and drop your files here
                         </p>
@@ -107,7 +106,7 @@ export function FileUploader({
                                 className="flex cursor-pointer items-center gap-2 rounded-lg bg-gray-900 px-4 py-1 text-white hover:bg-gray-800 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-100"
                                 htmlFor="file-upload"
                             >
-                                <UploadIcon className="h-5 w-5" />
+                                <Icons.UploadIcon className="h-5 w-5" />
                                 <span>Browse files</span>
                                 <input
                                     disabled={loading}
@@ -147,7 +146,7 @@ export function FileUploader({
                                     size="icon"
                                     className="h-8 w-8"
                                 >
-                                    <Upload className="size-4" />
+                                    <Icons.Upload className="size-4" />
                                 </Button>
                             </div>
                         </div>

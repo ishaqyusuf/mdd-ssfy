@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useEffect, useState } from "react";
 
 import { getSalesListAction } from "@/actions/get-sales-list";
@@ -8,7 +10,6 @@ import salesData from "@/app-deps/(clean-code)/(sales)/_common/utils/sales-data"
 import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import useEffectLoader from "@/lib/use-effect-loader";
-import { Check, Copy } from "lucide-react";
 import { z } from "zod";
 import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
 import { Badge } from "@gnd/ui/badge";
@@ -345,7 +346,7 @@ export function CustomerForm() {
                                                                 );
                                                             }}
                                                         >
-                                                            <Check className="mr-2 h-4 w-4" />
+                                                            <Icons.Check className="mr-2 h-4 w-4" />
                                                             I know
                                                         </Button>
                                                         <Button
@@ -355,7 +356,7 @@ export function CustomerForm() {
                                                                 handleCreateCopy
                                                             }
                                                         >
-                                                            <Copy className="mr-2 h-4 w-4" />
+                                                            <Icons.Copy className="mr-2 h-4 w-4" />
                                                             Create a copy
                                                         </Button>
                                                     </div>

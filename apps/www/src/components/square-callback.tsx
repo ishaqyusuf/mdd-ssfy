@@ -1,9 +1,10 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useEffect, useState, use } from "react";
 import { SquarePaymentStatus, validateSquarePayment } from "@/_v2/lib/square";
 import { motion } from "framer-motion";
-import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent, CardFooter } from "@gnd/ui/card";
@@ -51,7 +52,7 @@ export default function SquareCallback({ params }) {
                                     ease: "linear",
                                 }}
                             >
-                                <Loader2 className="h-16 w-16 text-primary" />
+                                <Icons.Loader2 className="h-16 w-16 text-primary" />
                             </motion.div>
                             <p className="mt-4 text-lg font-medium">
                                 Processing your payment...
@@ -65,7 +66,7 @@ export default function SquareCallback({ params }) {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5 }}
                         >
-                            <CheckCircle2 className="h-16 w-16 text-green-500" />
+                            <Icons.CheckCircle2 className="h-16 w-16 text-green-500" />
                             <h2 className="mt-4 text-2xl font-bold text-green-700">
                                 Payment Successful!
                             </h2>
@@ -83,7 +84,7 @@ export default function SquareCallback({ params }) {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5 }}
                         >
-                            <XCircle className="h-16 w-16 text-red-500" />
+                            <Icons.XCircle className="h-16 w-16 text-red-500" />
                             <h2 className="mt-4 text-2xl font-bold text-red-700">
                                 Payment Failed
                             </h2>

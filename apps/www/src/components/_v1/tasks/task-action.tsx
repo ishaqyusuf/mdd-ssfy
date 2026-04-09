@@ -1,9 +1,10 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { openModal } from "@/lib/modal";
-import { Plus } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 import { Button } from "@gnd/ui/button";
@@ -45,7 +46,7 @@ export default function TaskAction({}) {
                 size="sm"
                 className="h-8"
             >
-                <Plus className="mr-2 h-4 w-4" />
+                <Icons.Plus className="mr-2 h-4 w-4" />
                 <span>Task</span>
             </Button>
         );
@@ -54,7 +55,7 @@ export default function TaskAction({}) {
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button size="sm" className="h-8">
-                        <Plus className="mr-2 h-4 w-4" />
+                        <Icons.Plus className="mr-2 h-4 w-4" />
                         <span>Task</span>
                     </Button>
                 </DropdownMenuTrigger>

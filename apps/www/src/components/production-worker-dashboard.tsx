@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { Avatar } from "@/components/avatar";
 import { useMobile } from "@/hooks/use-mobile";
 import { Badge } from "@gnd/ui/badge";
@@ -36,19 +38,6 @@ import {
 	TableRow,
 } from "@gnd/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
-import {
-	BarChart,
-	Bell,
-	Calendar,
-	ChevronDown,
-	Clock,
-	DollarSign,
-	Filter,
-	Package,
-	Search,
-	User,
-	Wallet,
-} from "lucide-react";
 import { useState } from "react";
 import {
 	Bar,
@@ -184,12 +173,12 @@ export default function ProductionWorkerDashboard() {
 		<div className="flex min-h-screen w-full flex-col bg-muted/40">
 			<header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
 				<div className="flex flex-1 items-center gap-2">
-					<Package className="h-6 w-6" />
+					<Icons.Package className="h-6 w-6" />
 					<h1 className="text-lg font-semibold">Production Dashboard</h1>
 				</div>
 				<div className="flex flex-1 items-center justify-end gap-4">
 					<Button variant="outline" size="icon" className="relative">
-						<Bell className="h-5 w-5" />
+						<Icons.Bell className="h-5 w-5" />
 						<span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
 							3
 						</span>
@@ -204,18 +193,18 @@ export default function ProductionWorkerDashboard() {
 									fallbackClassName="text-[10px]"
 								/>
 								<span className="hidden sm:inline-block">John Doe</span>
-								<ChevronDown className="h-4 w-4" />
+								<Icons.ChevronDown className="h-4 w-4" />
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
 							<DropdownMenuLabel>My Account</DropdownMenuLabel>
 							<DropdownMenuSeparator />
 							<DropdownMenuItem>
-								<User className="mr-2 h-4 w-4" />
+								<Icons.User className="mr-2 h-4 w-4" />
 								Profile
 							</DropdownMenuItem>
 							<DropdownMenuItem>
-								<Wallet className="mr-2 h-4 w-4" />
+								<Icons.Wallet className="mr-2 h-4 w-4" />
 								Commission History
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
@@ -231,7 +220,7 @@ export default function ProductionWorkerDashboard() {
 					</h2>
 					<div className="flex w-full items-center gap-2 sm:w-auto">
 						<div className="relative flex-1 sm:flex-initial">
-							<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+							<Icons.Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
 							<Input
 								type="search"
 								placeholder="Search orders..."
@@ -241,7 +230,7 @@ export default function ProductionWorkerDashboard() {
 							/>
 						</div>
 						<Button variant="outline" size="icon">
-							<Filter className="h-4 w-4" />
+							<Icons.Filter className="h-4 w-4" />
 						</Button>
 					</div>
 				</div>
@@ -252,7 +241,7 @@ export default function ProductionWorkerDashboard() {
 							<CardTitle className="text-sm font-medium">
 								Assigned Jobs
 							</CardTitle>
-							<Package className="h-4 w-4 text-muted-foreground" />
+							<Icons.Package className="h-4 w-4 text-muted-foreground" />
 						</CardHeader>
 						<CardContent>
 							<div className="text-2xl font-bold">{assignedJobs.length}</div>
@@ -270,7 +259,7 @@ export default function ProductionWorkerDashboard() {
 							<CardTitle className="text-sm font-medium">
 								Paid Commission
 							</CardTitle>
-							<DollarSign className="h-4 w-4 text-muted-foreground" />
+							<Icons.DollarSign className="h-4 w-4 text-muted-foreground" />
 						</CardHeader>
 						<CardContent>
 							<div className="text-2xl font-bold">
@@ -286,7 +275,7 @@ export default function ProductionWorkerDashboard() {
 							<CardTitle className="text-sm font-medium">
 								Completion Rate
 							</CardTitle>
-							<Clock className="h-4 w-4 text-muted-foreground" />
+							<Icons.Clock className="h-4 w-4 text-muted-foreground" />
 						</CardHeader>
 						<CardContent>
 							<div className="text-2xl font-bold">
@@ -300,7 +289,7 @@ export default function ProductionWorkerDashboard() {
 							<CardTitle className="text-sm font-medium">
 								Quality Score
 							</CardTitle>
-							<BarChart className="h-4 w-4 text-muted-foreground" />
+							<Icons.BarChart className="h-4 w-4 text-muted-foreground" />
 						</CardHeader>
 						<CardContent>
 							<div className="text-2xl font-bold">
@@ -532,11 +521,11 @@ export default function ProductionWorkerDashboard() {
 									</div>
 									<div className="flex justify-between">
 										<Button variant="outline" size="sm">
-											<Calendar className="mr-2 h-4 w-4" />
+											<Icons.Calendar className="mr-2 h-4 w-4" />
 											Payment Schedule
 										</Button>
 										<Button size="sm">
-											<Wallet className="mr-2 h-4 w-4" />
+											<Icons.Wallet className="mr-2 h-4 w-4" />
 											View History
 										</Button>
 									</div>

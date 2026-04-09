@@ -141,6 +141,37 @@ export const getFullSalesDataSchema = z.object({
   assignedToId: z.number().optional().nullable(),
 });
 export type GetFullSalesDataSchema = z.infer<typeof getFullSalesDataSchema>;
+export const saveOrderProductionGateSchema = z
+  .object({
+    salesOrderId: z.number(),
+    ruleType: z.enum([
+      "fully_paid",
+      "half_paid",
+      "lead_time_before_delivery",
+    ]),
+    leadTimeValue: z.number().nullable().optional(),
+    leadTimeUnit: z.enum(["day", "week"]).nullable().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.ruleType !== "lead_time_before_delivery") return;
+    if (!data.leadTimeValue || data.leadTimeValue <= 0) {
+      ctx.addIssue({
+        path: ["leadTimeValue"],
+        code: "custom",
+        message: "Lead time is required",
+      });
+    }
+    if (!data.leadTimeUnit) {
+      ctx.addIssue({
+        path: ["leadTimeUnit"],
+        code: "custom",
+        message: "Lead time unit is required",
+      });
+    }
+  });
+export type SaveOrderProductionGateSchema = z.infer<
+  typeof saveOrderProductionGateSchema
+>;
 export const salesDispatchOverviewSchema = z
   .object({
     driverId: z.number().nullable().optional(),

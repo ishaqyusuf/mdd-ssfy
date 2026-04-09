@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import type React from "react";
 
 import { useRouter } from "next/navigation";
@@ -9,7 +11,6 @@ import { Button } from "@gnd/ui/button";
 import { Label } from "@gnd/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Alert, AlertDescription } from "@gnd/ui/alert";
-import { Mail, User, Phone } from "lucide-react";
 
 import { useZodForm } from "@/hooks/use-zod-form";
 import { Signup, signupSchema } from "@sales/storefront-account";
@@ -98,7 +99,7 @@ export function Client() {
             <Card>
               <CardHeader className="text-center">
                 <div className="mx-auto bg-green-100 rounded-full p-3 w-fit">
-                  <Mail className="w-8 h-8 text-green-600" />
+                  <Icons.Mail className="w-8 h-8 text-green-600" />
                 </div>
                 <CardTitle className="text-2xl mt-4">
                   Account Created Successfully!
@@ -158,7 +159,7 @@ export function Client() {
                     />
                     <FormInput
                       className={cn("col-span-2", isBusiness || "hidden")}
-                      PrefixIcon={User}
+                      PrefixIcon={Icons.User}
                       label="Business Name"
                       control={form.control}
                       name="businessName"
@@ -166,7 +167,7 @@ export function Client() {
                     />
                     <FormInput
                       className={cn("col-span-2", !isBusiness || "hidden")}
-                      PrefixIcon={User}
+                      PrefixIcon={Icons.User}
                       label="Name"
                       control={form.control}
                       name="name"
@@ -175,7 +176,7 @@ export function Client() {
 
                     <FormInput
                       className="col-span-2"
-                      PrefixIcon={Mail}
+                      PrefixIcon={Icons.Mail}
                       label="Email Address"
                       control={form.control}
                       name="email"
@@ -183,7 +184,7 @@ export function Client() {
                     />
                     <FormInput
                       className="col-span-2"
-                      PrefixIcon={Phone}
+                      PrefixIcon={Icons.Phone}
                       label="Phone Number"
                       control={form.control}
                       name="phoneNo"

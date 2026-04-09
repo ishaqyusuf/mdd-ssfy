@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { createContext, useContext, useState } from "react";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import FormInput from "@/components/common/controls/form-input";
@@ -13,7 +14,6 @@ import { Table, TableBody, TableCell, TableRow } from "@gnd/ui/table";
 
 import { AddTakeOffComponent } from "./add-take-off-component";
 import { useTakeOffForm } from "./take-off-form";
-import { SortDescIcon } from "lucide-react";
 
 interface Props {
     index: number;
@@ -68,7 +68,7 @@ export function TakeOffSection({ index }: Props) {
                             variant={opened ? "secondary" : "ghost"}
                             size="icon"
                         >
-                            <SortDescIcon className="h-4 w-4" />
+                            <Icons.SortDescIcon className="h-4 w-4" />
                         </Button>
                     </CollapsibleTrigger>
                 </div>

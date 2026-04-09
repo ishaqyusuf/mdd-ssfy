@@ -1,11 +1,12 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useTRPC } from "@/trpc/client";
 import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
-import { AlertTriangle, Bell } from "lucide-react";
 import { cn } from "@gnd/ui/cn";
 
 export function DispatchOverdueBanner() {
@@ -26,7 +27,7 @@ export function DispatchOverdueBanner() {
             )}
         >
             <div className="flex items-center gap-2">
-                <AlertTriangle size={16} className="text-orange-500 shrink-0" />
+                <Icons.AlertTriangle size={16} className="text-orange-500 shrink-0" />
                 <span className="text-sm font-medium text-orange-800 dark:text-orange-300">
                     <Badge variant="destructive" className="mr-2 tabular-nums">
                         {count}
@@ -50,7 +51,7 @@ export function DispatchOverdueBanner() {
                     className="h-7 gap-1.5 text-orange-700 dark:text-orange-400"
                     title="Overdue dispatches need attention — notify your team"
                 >
-                    <Bell size={13} />
+                    <Icons.Bell size={13} />
                     Escalate
                 </Button>
             </div>

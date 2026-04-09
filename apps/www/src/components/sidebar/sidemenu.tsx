@@ -1,6 +1,5 @@
 import { Fragment } from "react";
 import Link from "@/components/link";
-import { ChevronRight } from "lucide-react";
 
 import { cn } from "@gnd/ui/cn";
 import {
@@ -229,7 +228,7 @@ function MenuItem({ link: _link, module }) {
                             <Icon name={link.icon} className="mr-2 h-4 w-4" />
                         )}
                         <span>{link.title}</span>
-                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                        <Icons.ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                     </SidebarMenuButton>
                 </View.Trigger>
                 <View.Content>

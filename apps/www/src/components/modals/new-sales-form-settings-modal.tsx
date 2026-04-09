@@ -5,7 +5,6 @@ import { useFieldArray, useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { useTRPC } from "@/trpc/client";
 import { toast } from "@gnd/ui/use-toast";
-import { Trash2 } from "lucide-react";
 import { Button } from "@gnd/ui/button";
 import {
     Accordion,
@@ -421,7 +420,7 @@ function RouteSection({ uid }: { uid: string }) {
                                         className="size-8"
                                         onClick={() => stepArray.remove(index)}
                                     >
-                                        <Trash2 className="size-4" />
+                                        <Icons.Trash2 className="size-4" />
                                     </Button>
                                 </SortableItem>
                             ))}

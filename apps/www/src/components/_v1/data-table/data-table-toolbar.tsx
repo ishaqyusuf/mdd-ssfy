@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import * as React from "react";
 import { DataTableViewOptions } from "@/components/_v1/data-table/data-table-view-options";
 import type {
@@ -15,7 +17,6 @@ import { Input } from "@gnd/ui/input";
 
 import { DataTableFacetedFilter2 } from "./data-table-faceted-filter-2";
 import { DataTableFacetedDate } from "./data-table-facetted-date";
-import { CrossIcon, TrashIcon } from "lucide-react";
 import { useTransition } from "@/utils/use-safe-transistion";
 
 interface DataTableToolbarProps<TData, TValue> {
@@ -114,7 +115,7 @@ export function DataTableToolbar<TData, TValue>({
                         onClick={() => table.resetColumnFilters()}
                     >
                         Reset
-                        <CrossIcon className="ml-2 h-4 w-4" />
+                        <Icons.CrossIcon className="ml-2 h-4 w-4" />
                     </Button>
                 )}
             </div>
@@ -142,7 +143,7 @@ export function DataTableToolbar<TData, TValue>({
                                 }}
                                 disabled={isPending}
                             >
-                                <TrashIcon
+                                <Icons.TrashIcon
                                     className="mr-2 h-4 w-4"
                                     aria-hidden="true"
                                 />

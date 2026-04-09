@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useRef, useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 
@@ -33,7 +34,6 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@gnd/ui/hover-card";
-import { CheckCircle, HelpCircle } from "lucide-react";
 import { Table, TableBody, TableCell, TableRow } from "@gnd/ui/table";
 import { DaysFilters, daysFilters } from "@gnd/utils/constants";
 
@@ -342,7 +342,7 @@ function CalendarFilter({ filter }: CalendarFilterProps) {
                   isCurrentFilter(df) && "font-semibold",
                 )}
               >
-                <CheckCircle
+                <Icons.CheckCircle
                   className={cn(
                     "size-3",
                     !isCurrentFilter(df) ? "opacity-20" : "",
@@ -396,7 +396,7 @@ function SearchTip({ children }) {
           type="button"
           className="absolute opacity-50 transition-opacity duration-300 hover:opacity-100 right-10 top-2.5 z-10"
         >
-          <HelpCircle className="size-4" />
+          <Icons.HelpCircle className="size-4" />
         </button>
       </HoverCardTrigger>
       <HoverCardContent className="w-80">

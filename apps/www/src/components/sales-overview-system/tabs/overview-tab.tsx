@@ -1,18 +1,6 @@
 "use client";
 
-import {
-	Building2,
-	Calendar,
-	CreditCard,
-	Factory,
-	Mail,
-	MapPin,
-	Package,
-	Phone,
-	Truck,
-	User,
-	UserCheck,
-} from "lucide-react";
+import { Icons } from "@gnd/ui/icons";
 
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { openLink } from "@/lib/open-link";
@@ -187,7 +175,7 @@ export function SalesOverviewOverviewTab() {
 			<div className="grid gap-6 lg:grid-cols-2">
 				{/* Customer */}
 				<div className="rounded-xl border bg-card p-4">
-					<SectionLabel icon={User} label="Customer" />
+					<SectionLabel icon={Icons.User} label="Customer" />
 					<DataRow
 						label="Name"
 						value={data?.displayName}
@@ -208,7 +196,7 @@ export function SalesOverviewOverviewTab() {
 					<DataRow label="Email" value={data?.email} />
 					{data?.isBusiness && (
 						<div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-							<Building2 className="size-3" />
+							<Icons.Building2 className="size-3" />
 							Business account
 						</div>
 					)}
@@ -216,7 +204,7 @@ export function SalesOverviewOverviewTab() {
 
 				{/* Order info */}
 				<div className="rounded-xl border bg-card p-4">
-					<SectionLabel icon={Calendar} label="Order" />
+					<SectionLabel icon={Icons.Calendar} label="Order" />
 					<DataRow
 						label="Order #"
 						action={
@@ -252,7 +240,7 @@ export function SalesOverviewOverviewTab() {
 
 			{/* Sales rep */}
 			<div className="rounded-xl border bg-card p-4">
-				<SectionLabel icon={UserCheck} label="Sales Representative" />
+				<SectionLabel icon={Icons.UserCheck} label="Sales Representative" />
 				<div className="flex items-center gap-2">
 					<div className="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-bold uppercase">
 						{data?.salesRepInitial || "?"}
@@ -271,7 +259,7 @@ export function SalesOverviewOverviewTab() {
 			{/* Payment status (non-quote) */}
 			{!isQuote && (
 				<div className="rounded-xl border bg-card p-4">
-					<SectionLabel icon={CreditCard} label="Payment" />
+					<SectionLabel icon={Icons.CreditCard} label="Payment" />
 					<div className="mb-3 space-y-1.5">
 						<div className="flex justify-between text-sm">
 							<span className="text-muted-foreground">Payment progress</span>
@@ -324,7 +312,7 @@ export function SalesOverviewOverviewTab() {
 			{/* Production status (non-quote) */}
 			{!isQuote && (
 				<div className="rounded-xl border bg-card p-4">
-					<SectionLabel icon={Factory} label="Production" />
+					<SectionLabel icon={Icons.Factory} label="Production" />
 					{data?.stats?.prodAssigned?.total === 0 && data?.id ? (
 						<p className="text-sm text-muted-foreground">
 							Production not applicable for this sale.
@@ -379,7 +367,7 @@ export function SalesOverviewOverviewTab() {
 			{/* Delivery status (non-quote) */}
 			{!isQuote && (
 				<div className="rounded-xl border bg-card p-4">
-					<SectionLabel icon={Truck} label="Delivery" />
+					<SectionLabel icon={Icons.Truck} label="Delivery" />
 					<div className="flex items-center justify-between">
 						<p className="text-sm text-muted-foreground">Status</p>
 						<div className="flex items-center gap-1.5">
@@ -403,7 +391,7 @@ export function SalesOverviewOverviewTab() {
 			{/* Addresses */}
 			{addressEntries.length > 0 && (
 				<div className="rounded-xl border bg-card p-4">
-					<SectionLabel icon={MapPin} label="Addresses" />
+					<SectionLabel icon={Icons.MapPin} label="Addresses" />
 					<div className="grid gap-4 md:grid-cols-2">
 						{addressEntries.map((addr, i) => (
 							<div key={i} className="space-y-1">
@@ -432,7 +420,7 @@ export function SalesOverviewOverviewTab() {
 			{/* Cost breakdown */}
 			{!isQuote && data?.costLines?.length ? (
 				<div className="rounded-xl border bg-card p-4">
-					<SectionLabel icon={Package} label="Invoice Breakdown" />
+					<SectionLabel icon={Icons.Package} label="Invoice Breakdown" />
 					<div className="divide-y divide-border/40">
 						{data.costLines.map((c, ci) => (
 							<div

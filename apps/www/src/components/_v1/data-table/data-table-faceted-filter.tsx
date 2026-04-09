@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +17,6 @@ import {
 } from "@gnd/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { Separator } from "@gnd/ui/separator";
-import { CheckIcon, PlusCircleIcon } from "lucide-react";
 
 export interface Option {
     label: string;
@@ -47,7 +47,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                     size="sm"
                     className="h-8 border-dashed"
                 >
-                    <PlusCircleIcon
+                    <Icons.PlusCircleIcon
                         className="mr-2 h-4 w-4"
                         aria-hidden="true"
                     />
@@ -132,7 +132,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                                                     : "opacity-50 [&_svg]:invisible",
                                             )}
                                         >
-                                            <CheckIcon
+                                            <Icons.CheckIcon
                                                 className={cn("h-4 w-4")}
                                                 aria-hidden="true"
                                             />

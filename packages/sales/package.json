@@ -19,6 +19,7 @@
     "./inventory-utils": "./src/utils/inventory-utils.ts",
     "./types": "./src/types.ts",
     "./get-sale-information": "./src/sales-control/get-sale-information.ts",
+    "./production-gate": "./src/production-gate.ts",
     "./sales-production": "./src/sales-production.ts",
     "./sales-transaction": "./src/sales-transaction.ts",
     "./shipping": "./src/shipping.ts",

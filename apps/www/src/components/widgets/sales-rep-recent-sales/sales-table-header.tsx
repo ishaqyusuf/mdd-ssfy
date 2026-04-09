@@ -1,7 +1,8 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { columns } from "@/components/tables/sales-orders/columns";
-import { ArrowDown, ArrowUp } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
@@ -45,9 +46,9 @@ export function SalesTableHeader({}) {
                         >
                             {/* <span>{column.header}</span> */}
                             {"invoice_number" === column.id &&
-                                value === "asc" && <ArrowDown size={16} />}
+                                value === "asc" && <Icons.ArrowDown size={16} />}
                             {"invoice_number" === column.id &&
-                                value === "desc" && <ArrowUp size={16} />}
+                                value === "desc" && <Icons.ArrowUp size={16} />}
                         </Button>
                     </TableHead>
                 ))}

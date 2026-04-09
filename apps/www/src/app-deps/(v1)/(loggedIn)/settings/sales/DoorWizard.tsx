@@ -1,9 +1,10 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import * as React from "react";
 import { deepCopy } from "@/lib/deep-copy";
 import { ISalesSetting, ISalesWizardForm } from "@/types/post";
-import { Edit2, Trash } from "lucide-react";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import { useFieldArray, useForm, UseFormReturn } from "react-hook-form";
 import { v4 as randomUUID } from "uuid";
@@ -167,7 +168,7 @@ export default function DoorWizardSettings({
                                                                             "secondary"
                                                                         }
                                                                     >
-                                                                        <Edit2 className="h-3.5 w-3.5 " />
+                                                                        <Icons.Edit2 className="h-3.5 w-3.5 " />
                                                                     </Button>
                                                                     <Button
                                                                         className="h-8"
@@ -187,7 +188,7 @@ export default function DoorWizardSettings({
                                                                             "secondary"
                                                                         }
                                                                     >
-                                                                        <Trash className="h-3.5 w-3.5 " />
+                                                                        <Icons.Trash className="h-3.5 w-3.5 " />
                                                                     </Button>
                                                                 </div>
                                                             </div>

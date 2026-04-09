@@ -6,7 +6,6 @@ import { Menu } from "@gnd/ui/custom/menu";
 import { AnimatedNumber } from "@/components/animated-number";
 import { WageInput } from "@/components/forms/sales-form/hpt/wage-input";
 import { cn } from "@/lib/utils";
-import { Notebook, Repeat } from "lucide-react";
 import Note from "@/modules/notes";
 import { noteTagFilter } from "@/modules/notes/utils";
 import { doorItemControlUid } from "@/app-deps/(clean-code)/(sales)/_common/utils/item-control-utils";
@@ -240,7 +239,7 @@ function DoorSizeRowContent({
                                 setShowNote(!showNote);
                             }}
                         >
-                            <Notebook className="size-4" />
+                            <Icons.Notebook className="size-4" />
                         </Button>
                         <ConfirmBtn
                             disabled={ctx.hpt.selectCount == 1}
@@ -435,7 +434,7 @@ function DoorSizeRowContent({
                             setShowNote(!showNote);
                         }}
                     >
-                        <Notebook className="size-4" />
+                        <Icons.Notebook className="size-4" />
                     </Button>
                     <ConfirmBtn
                         disabled={ctx.hpt.selectCount == 1}

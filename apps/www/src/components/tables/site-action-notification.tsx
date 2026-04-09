@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import React, { use, useState } from "react";
 import { addUserToSiteActionNotification } from "@/actions/add-user-to-site-action-notification";
 import { getActionNotifications } from "@/actions/cache/get-action-notifications";
@@ -7,7 +9,6 @@ import { removeUserFromSiteActionNotification } from "@/actions/remove-user-from
 import { toggleSiteActionNotification } from "@/actions/toggle-site-action-notification";
 import { AsyncFnType } from "@/types";
 import { Events } from "@/utils/constants";
-import { ChevronDown } from "lucide-react";
 
 import {
     Combobox,
@@ -150,7 +151,7 @@ function UsersCell({ action, users }: UserCellProps) {
                             placeholder="Select users..."
                         />
                         <ComboboxTrigger className="absolute right-2 top-3">
-                            <ChevronDown className="h-4 w-4" />
+                            <Icons.ChevronDown className="h-4 w-4" />
                         </ComboboxTrigger>
                     </>
                 </ComboboxAnchor>

@@ -1,8 +1,9 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { _trpc } from "@/components/static-trpc";
 import { useSuspenseQuery } from "@gnd/ui/tanstack";
-import { Activity } from "lucide-react";
 import { SummaryCardItem } from "@gnd/ui/custom/summary-card-item";
 
 export function WorkOrderAverageSummary() {
@@ -16,7 +17,7 @@ export function WorkOrderAverageSummary() {
     <SummaryCardItem
       path="/work-orders"
       summaryProps={{
-        Icon: Activity,
+        Icon: Icons.Activity,
         title: data?.title || "Avg. Completion",
         value: data?.value || "0 days",
         subtitle: data?.change,

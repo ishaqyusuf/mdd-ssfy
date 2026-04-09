@@ -1,7 +1,8 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@gnd/ui/button";
 import { useProduct } from "@/hooks/use-product";
 import { AspectRatio } from "@gnd/ui/aspect-ratio";
@@ -54,7 +55,7 @@ export function ProductImageGallery({}: ProductImageGalleryProps) {
               className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white"
               onClick={prevImage}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <Icons.ChevronLeft className="h-4 w-4" />
             </Button>
             <Button
               variant="outline"
@@ -62,7 +63,7 @@ export function ProductImageGallery({}: ProductImageGalleryProps) {
               className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white"
               onClick={nextImage}
             >
-              <ChevronRight className="h-4 w-4" />
+              <Icons.ChevronRight className="h-4 w-4" />
             </Button>
           </>
         )}

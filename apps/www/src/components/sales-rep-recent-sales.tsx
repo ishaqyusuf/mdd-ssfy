@@ -1,6 +1,6 @@
+import { Icons } from "@gnd/ui/icons";
 import { authId } from "@/app-deps/(v1)/_actions/utils";
 import { Avatar } from "@/components/avatar";
-import { Eye, MoreHorizontal } from "lucide-react";
 
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -119,11 +119,11 @@ export default async function RecentSales() {
 							<div className="flex items-center space-x-2">
 								<p className="font-medium">{sale.amount}</p>
 								<Button variant="ghost" size="icon">
-									<Eye className="h-4 w-4" />
+									<Icons.Eye className="h-4 w-4" />
 									<span className="sr-only">View details</span>
 								</Button>
 								<Button variant="ghost" size="icon">
-									<MoreHorizontal className="h-4 w-4" />
+									<Icons.MoreHorizontal className="h-4 w-4" />
 									<span className="sr-only">More options</span>
 								</Button>
 							</div>

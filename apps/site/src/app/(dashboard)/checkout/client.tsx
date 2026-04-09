@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import type React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,7 +10,6 @@ import { OrderSummary } from "@/components/order-summary";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Alert, AlertDescription } from "@gnd/ui/alert";
-import { Lock, ArrowLeft, User } from "lucide-react";
 import { useCartStore } from "@/lib/cart-store";
 import { useAuthStore } from "@/lib/auth-store";
 import { CartProvider, useCart } from "@/hooks/use-cart";
@@ -88,7 +89,7 @@ export function Content() {
         <div className="flex items-center mb-6">
           <Link href="/cart">
             <Button variant="ghost">
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <Icons.ArrowLeft className="h-4 w-4 mr-2" />
               Back to Cart
             </Button>
           </Link>
@@ -97,7 +98,7 @@ export function Content() {
         {/* Guest checkout notice */}
         {!isAuthenticated && (
           <Alert className="mb-6">
-            <User className="h-4 w-4" />
+            <Icons.User className="h-4 w-4" />
             <AlertDescription>
               <div className="flex items-center justify-between">
                 <span>
@@ -121,7 +122,7 @@ export function Content() {
         {/* Authenticated user welcome */}
         {isAuthenticated && user && (
           <Alert className="mb-6">
-            <User className="h-4 w-4" />
+            <Icons.User className="h-4 w-4" />
             <AlertDescription>
               <div className="flex items-center justify-between">
                 <span>
@@ -186,7 +187,7 @@ export function Content() {
                       </>
                     ) : (
                       <>
-                        <Lock className="h-4 w-4 mr-2" />
+                        <Icons.Lock className="h-4 w-4 mr-2" />
                         Complete Order - $
                         {cart?.data?.estimate?.total.toFixed(2)}
                       </>
@@ -202,7 +203,7 @@ export function Content() {
 
                   <div className="text-center text-sm text-gray-600">
                     <div className="flex items-center justify-center mb-2">
-                      <Lock className="h-4 w-4 mr-1" />
+                      <Icons.Lock className="h-4 w-4 mr-1" />
                       <span>Secure SSL Encryption</span>
                     </div>
                     <p>Your payment information is safe and secure</p>

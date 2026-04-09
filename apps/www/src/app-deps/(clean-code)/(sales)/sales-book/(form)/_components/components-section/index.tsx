@@ -17,18 +17,6 @@ import { CustomComponentForm } from "@/components/forms/sales-form/custom-compon
 import { useSortControl } from "@/hooks/use-sort-control";
 import { cn } from "@/lib/utils";
 import { closestCorners } from "@dnd-kit/core";
-import {
-    BoxSelect,
-    CheckCircle,
-    ExternalLink,
-    Filter,
-    Folder,
-    Info,
-    LineChart,
-    LucideVariable,
-    Variable,
-    VariableIcon,
-} from "lucide-react";
 
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -248,7 +236,7 @@ function FloatingAction({ ctx }: { ctx: UseStepContext }) {
                             <SearchBar ctx={ctx} />
                             <Menu Icon={Icons.menu}>
                                 <Menu.Item
-                                    Icon={Folder}
+                                    Icon={Icons.Folder}
                                     SubMenu={ctx.tabs?.map((tb) => (
                                         <Menu.Item
                                             key={tb.tab}
@@ -269,7 +257,7 @@ function FloatingAction({ ctx }: { ctx: UseStepContext }) {
                                 </Menu.Item>
                                 <Menu.Item
                                     onClick={() => ctx.selectAll()}
-                                    Icon={BoxSelect}
+                                    Icon={Icons.BoxSelect}
                                 >
                                     Select All
                                 </Menu.Item>

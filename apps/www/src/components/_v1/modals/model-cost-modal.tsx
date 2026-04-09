@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import React, { memo, useEffect, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
@@ -17,7 +19,6 @@ import {
     ICostChart,
     IHomeTemplate,
 } from "@/types/community";
-import { Plus } from "lucide-react";
 import { useFieldArray, useForm, UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -334,7 +335,7 @@ export function CostHistory({
                     variant="outline"
                     className="mt-1 h-7 w-full"
                 >
-                    <Plus className="mr-2 size-4" />
+                    <Icons.Plus className="mr-2 size-4" />
                     <span>New Cost</span>
                 </Button>
             </div>

@@ -1,105 +1,126 @@
 import { cn } from "@/lib/utils";
-import type { LucideProps } from "lucide-react-native";
-import {
-  icons,
-  Activity,
-  AlertCircle,
-  AppWindow,
-  ArrowLeft,
-  ArrowRight,
-  BarChart2,
-  BarChart3,
-  Bell,
-  Briefcase,
-  Building,
-  Building2,
-  Calendar,
-  CalendarCheck,
-  Camera,
-  ChartNoAxesColumn,
-  Check,
-  CheckCircle2,
-  CheckSquare,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  CircleCheck,
-  CircleDollarSign,
-  ClipboardCheck,
-  ClipboardList,
-  Clock,
-  CreditCard,
-  Delete,
-  DoorOpen,
-  Fence,
-  FilePenLine,
-  FileText,
-  FolderPlus,
-  Gavel,
-  Globe,
-  GripHorizontal,
-  HardHat,
-  Hash,
-  HelpCircle,
-  Hourglass,
-  House,
-  Info,
-  LayoutDashboard,
-  LayoutGrid,
-  List,
-  ListChecks,
-  ListX,
-  Loader2,
-  LocateIcon,
-  Lock,
-  LogOut,
-  Mail,
-  MapPin,
-  Minus,
-  MoreHorizontal,
-  Pencil,
-  Phone,
-  PieChart,
-  Pin,
-  Plus,
-  PlusCircle,
-  Receipt,
-  ReceiptText,
-  Search,
-  Settings,
-  Share,
-  ShieldCheck,
-  SlidersHorizontal,
-  StickyNote,
-  Trash,
-  TrendingDown,
-  TrendingUp,
-  TriangleAlert,
-  Truck,
-  User,
-  UserCog,
-  UserPlus,
-  Users,
-  UserX,
-  Warehouse,
-  Wallet,
-  Wind,
-  Wrench,
-  X,
-  XCircle,
-  Zap,
-  Route,
-  Ban,
-} from "lucide-react-native";
+import { HugeiconsIcon, type HugeiconsProps } from "@hugeicons/react-native";
+import * as HugeIcons from "@hugeicons/core-free-icons";
 import { useColorScheme } from "@/hooks/use-color";
 import { camel } from "@gnd/utils";
 import { THEME } from "@/lib/theme";
 import { View } from "react-native";
+import type { ComponentType } from "react";
+
+export type LucideProps = Omit<HugeiconsProps, "icon" | "altIcon" | "showAlt">;
 export type IconProps = LucideProps & {
   name?: IconKeys;
-  // strokeWidth?: number;
-  // absoluteStrokeWidth?: boolean;
 };
+type LucideIcon = ComponentType<LucideProps>;
+type HugeIconName = keyof typeof HugeIcons;
+
+function hugeIcon(name: HugeIconName): LucideIcon {
+  const icon = HugeIcons[name] as any;
+
+  return function HugeIconComponent({
+    strokeWidth = 1.8,
+    size = 24,
+    ...props
+  }: LucideProps) {
+    return (
+      <HugeiconsIcon
+        icon={icon}
+        size={size}
+        strokeWidth={strokeWidth}
+        {...props}
+      />
+    );
+  };
+}
+
+const Activity = hugeIcon("Activity");
+const AlertCircle = hugeIcon("AlertCircle");
+const AppWindow = hugeIcon("ComputerIcon");
+const ArrowLeft = hugeIcon("ArrowLeft");
+const ArrowRight = hugeIcon("ArrowRight");
+const BarChart2 = hugeIcon("Analytics01Icon");
+const BarChart3 = hugeIcon("AnalyticsUpIcon");
+const Bell = hugeIcon("Bell");
+const Briefcase = hugeIcon("Briefcase");
+const Building = hugeIcon("Building");
+const Building2 = hugeIcon("Building02Icon");
+const Calendar = hugeIcon("Calendar");
+const CalendarCheck = hugeIcon("CalendarCheckIn01Icon");
+const Camera = hugeIcon("Camera");
+const ChartNoAxesColumn = hugeIcon("Analytics01Icon");
+const Check = hugeIcon("Check");
+const CheckCircle2 = hugeIcon("CheckmarkCircle01Icon");
+const CheckSquare = hugeIcon("CheckmarkSquare01Icon");
+const ChevronDown = hugeIcon("ArrowDown01Icon");
+const ChevronLeft = hugeIcon("ArrowLeft01Icon");
+const ChevronRight = hugeIcon("ArrowRight01Icon");
+const CircleCheck = hugeIcon("CircleCheck");
+const CircleDollarSign = hugeIcon("DollarCircleIcon");
+const ClipboardCheck = hugeIcon("ClipboardCheck");
+const ClipboardList = hugeIcon("ClipboardList");
+const Clock = hugeIcon("Clock");
+const CreditCard = hugeIcon("CreditCard");
+const Delete = hugeIcon("Delete");
+const DoorOpen = hugeIcon("Door01Icon");
+const Fence = hugeIcon("Fence");
+const FilePenLine = hugeIcon("FileEditIcon");
+const FileText = hugeIcon("File02Icon");
+const FolderPlus = hugeIcon("FolderAddIcon");
+const Gavel = hugeIcon("JudgeIcon");
+const Globe = hugeIcon("Globe");
+const GripHorizontal = hugeIcon("DragDropHorizontalIcon");
+const HardHat = hugeIcon("HardHatIcon");
+const Hash = hugeIcon("Hash");
+const HelpCircle = hugeIcon("HelpCircle");
+const Hourglass = hugeIcon("Hourglass");
+const House = hugeIcon("House");
+const Info = hugeIcon("Info");
+const LayoutDashboard = hugeIcon("LayoutDashboard");
+const LayoutGrid = hugeIcon("LayoutGrid");
+const List = hugeIcon("List");
+const ListChecks = hugeIcon("CheckListIcon");
+const ListX = hugeIcon("ListViewIcon");
+const Loader2 = hugeIcon("Loading03Icon");
+const LocateIcon = hugeIcon("Location01Icon");
+const Lock = hugeIcon("Lock");
+const LogOut = hugeIcon("Logout01Icon");
+const Mail = hugeIcon("Mail");
+const MapPin = hugeIcon("MapPin");
+const Minus = hugeIcon("Minus");
+const MoreHorizontal = hugeIcon("MoreHorizontal");
+const Pencil = hugeIcon("Pencil");
+const Phone = hugeIcon("Phone");
+const PieChart = hugeIcon("PieChart");
+const Pin = hugeIcon("Pin");
+const Plus = hugeIcon("Plus");
+const PlusCircle = hugeIcon("PlusSignCircleIcon");
+const Receipt = hugeIcon("Receipt");
+const ReceiptText = hugeIcon("ReceiptTextIcon");
+const Search = hugeIcon("Search");
+const Settings = hugeIcon("Settings");
+const Share = hugeIcon("Share");
+const ShieldCheck = hugeIcon("SecurityCheckIcon");
+const SlidersHorizontal = hugeIcon("FilterHorizontalIcon");
+const StickyNote = hugeIcon("StickyNote");
+const Trash = hugeIcon("Trash");
+const TrendingDown = hugeIcon("AnalyticsDownIcon");
+const TrendingUp = hugeIcon("AnalyticsUpIcon");
+const TriangleAlert = hugeIcon("AlertTriangle");
+const Truck = hugeIcon("Truck");
+const User = hugeIcon("User");
+const UserCog = hugeIcon("UserCog");
+const UserPlus = hugeIcon("UserPlus");
+const Users = hugeIcon("Users");
+const UserX = hugeIcon("UserX");
+const Warehouse = hugeIcon("Warehouse");
+const Wallet = hugeIcon("Wallet");
+const Wind = hugeIcon("Wind");
+const Wrench = hugeIcon("Wrench");
+const X = hugeIcon("X");
+const XCircle = hugeIcon("XCircle");
+const Zap = hugeIcon("Zap");
+const Route = hugeIcon("RouteIcon");
+const Ban = hugeIcon("CancelSquareIcon");
 // type T = IconProps['strokeWidth']
 const iconSizes = {
   xs: 12,
@@ -155,8 +176,7 @@ function IconImpl({ name, ...props }: IconProps) {
   sizestr = iconSizes[sizestr] || sizestr || iconSizes?.base;
 
   props.size = +sizestr || props.size;
-  if (!IconComponent)
-    IconComponent = appIcons![name!] || icons![name!] || appIcons.X;
+  if (!IconComponent) IconComponent = appIcons[name!] || appIcons.X;
   const otherClasses = className
     .split(" ")
     .filter((a) => ["size-", "text-"].every((b) => !a?.startsWith(b)));
@@ -169,7 +189,7 @@ function IconImpl({ name, ...props }: IconProps) {
   return <IconComponent {...props} />;
 }
 
-function Icon({
+function IconRoot({
   // as: IconComponent,
   className,
   size = "size-base",
@@ -291,5 +311,5 @@ const appIcons = {
   ChartNoAxesColumn,
   Truck,
 };
-export type IconKeys = keyof typeof appIcons | keyof typeof icons;
-export { Icon };
+export type IconKeys = keyof typeof appIcons;
+export const Icon = Object.assign(IconRoot, appIcons);

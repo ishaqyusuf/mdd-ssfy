@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { Avatar } from "@/components/avatar";
 import { useAuth } from "@/hooks/use-auth";
 import { useZodForm } from "@/hooks/use-zod-form";
@@ -19,15 +20,6 @@ import {
 import { Input } from "@gnd/ui/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-	ArrowLeft,
-	Edit,
-	MoreVertical,
-	PlusCircle,
-	ShieldCheck,
-	Trash2,
-	Users,
-} from "lucide-react";
 import { useState } from "react";
 import z from "zod";
 import { _qc, _trpc } from "./static-trpc";
@@ -179,13 +171,13 @@ export function Organization() {
 									<div className="flex flex-col">
 										<span className="truncate font-medium">{org.name}</span>
 										<div className="flex items-center text-xs text-muted-foreground">
-											<Users className="mr-1 h-3 w-3" /> {org.employeesCount}
+											<Icons.Users className="mr-1 h-3 w-3" /> {org.employeesCount}
 										</div>
 									</div>
 								</div>
 								<div className="flex items-center ml-2">
 									{(org.id === auth?.orgId || org.primary) && (
-										<ShieldCheck className="h-4 w-4 text-green-500" />
+										<Icons.ShieldCheck className="h-4 w-4 text-green-500" />
 									)}
 									<DropdownMenu>
 										<DropdownMenuTrigger asChild>
@@ -195,7 +187,7 @@ export function Organization() {
 												className="h-6 w-6 ml-1"
 												onClick={(e) => e.stopPropagation()}
 											>
-												<MoreVertical className="h-4 w-4" />
+												<Icons.MoreVertical className="h-4 w-4" />
 											</Button>
 										</DropdownMenuTrigger>
 										<DropdownMenuContent
@@ -211,7 +203,7 @@ export function Organization() {
 													setView("edit");
 												}}
 											>
-												<Edit className="mr-2 h-4 w-4" /> Edit
+												<Icons.Edit className="mr-2 h-4 w-4" /> Edit
 											</DropdownMenuItem>
 											<DropdownMenuItem
 												className="text-red-500"
@@ -222,7 +214,7 @@ export function Organization() {
 												//     org.primary
 												// }
 											>
-												<Trash2 className="mr-2 h-4 w-4" /> Delete
+												<Icons.Trash2 className="mr-2 h-4 w-4" /> Delete
 											</DropdownMenuItem>
 										</DropdownMenuContent>
 									</DropdownMenu>
@@ -240,7 +232,7 @@ export function Organization() {
 								setView("create");
 							}}
 						>
-							<PlusCircle className="mr-2 h-5 w-5" />
+							<Icons.PlusCircle className="mr-2 h-5 w-5" />
 							Create Office
 						</CommandItem>
 					</CommandGroup>
@@ -256,7 +248,7 @@ export function Organization() {
 						className="h-8 w-8"
 						onClick={() => setView("list")}
 					>
-						<ArrowLeft className="h-4 w-4" />
+						<Icons.ArrowLeft className="h-4 w-4" />
 					</Button>
 					<h3 className="font-semibold text-sm">
 						{view === "create" ? "Create Office" : "Edit Office"}

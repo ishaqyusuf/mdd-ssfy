@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useEffect, useRef, useState } from "react";
 import { useTRPC } from "@/trpc/client";
 import { useQueryClient } from "@gnd/ui/tanstack";
@@ -14,7 +16,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
-import { RefreshCw } from "lucide-react";
 import { cn } from "@gnd/ui/cn";
 
 const INTERVALS = [
@@ -67,7 +68,7 @@ export function DispatchAutoRefresh() {
                 className="gap-1.5"
                 title="Refresh now"
             >
-                <RefreshCw
+                <Icons.RefreshCw
                     size={14}
                     className={cn(spinning && "animate-spin")}
                 />

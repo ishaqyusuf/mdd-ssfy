@@ -1,7 +1,8 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { cn } from "@/lib/utils";
-import { ChevronRightIcon } from "lucide-react";
 import Link from "@/components/link";
 interface Props {
     isFirst?: boolean;
@@ -26,7 +27,7 @@ export function BreadLink({ isFirst, isLast, link, title }: Props) {
                 {title}
             </Link>
             {!isLast && (
-                <ChevronRightIcon className="mx-2 h-4 w-4" aria-hidden="true" />
+                <Icons.ChevronRightIcon className="mx-2 h-4 w-4" aria-hidden="true" />
             )}
         </>
     );

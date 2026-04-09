@@ -59,6 +59,7 @@ model Users {
     customerTransactions        CustomerTransaction[]
     salesTransactions           SalesPayments[]
     submissions                 OrderProductionSubmissions[]
+    definedProductionGates      OrderProductionGate[]
     salesPayrolls               Payroll[]
     myPayouts                   SalesPayout[]                    @relation(name: "myPayouts")
     salesPayoutsByMe            SalesPayout[]                    @relation(name: "myIssuedPayouts")

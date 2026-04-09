@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { useZodForm } from "@/hooks/use-zod-form";
 
 import { Menu, useMenuContext } from "@gnd/ui/custom/menu";
@@ -7,7 +8,6 @@ import { Button } from "@gnd/ui/button";
 import { formatMoney, percentageValue } from "@gnd/utils";
 import { Label } from "@gnd/ui/label";
 import { InputGroup } from "@gnd/ui/namespace";
-import { Send, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { _trpc } from "@/components/static-trpc";
 import { useEffect } from "react";
@@ -108,11 +108,11 @@ export function PaymentLinkMenuAction(props: Props) {
                     size="icon"
                     variant="destructive"
                 >
-                    <X className="size-4" />
+                    <Icons.X className="size-4" />
                 </Button>
                 <div className="flex-1"></div>
                 <Button size="icon" aria-label="Submit">
-                    <Send className="size-4" />
+                    <Icons.Send className="size-4" />
                 </Button>
             </div>
         </div>

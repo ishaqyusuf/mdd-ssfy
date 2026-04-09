@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import {
     useTemplateSchemaInputContext,
@@ -12,7 +13,6 @@ import { QuantityInput } from "@gnd/ui/quantity-input";
 import { ButtonGroup } from "@gnd/ui/button-group";
 import { useCommunityModelStore } from "@/store/community-model";
 import { Input } from "@gnd/ui/input";
-import { Minus, Plus } from "lucide-react";
 import { Button } from "@gnd/ui/button";
 
 export function ModelInput() {
@@ -76,7 +76,7 @@ export function ModelInput() {
                         variant="outline"
                         aria-label="Search"
                     >
-                        <Minus className="size-4" />
+                        <Icons.Minus className="size-4" />
                     </Button>
                     <Input
                         onChange={(e) => {
@@ -98,7 +98,7 @@ export function ModelInput() {
                         variant="outline"
                         aria-label="Search"
                     >
-                        <Plus className="size-4" />
+                        <Icons.Plus className="size-4" />
                     </Button>
                 </ButtonGroup>
                 {/* <QuantityInput

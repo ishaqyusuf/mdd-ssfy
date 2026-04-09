@@ -1,7 +1,8 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { Button } from "@gnd/ui/button";
-import { CheckCircle, XCircle } from "lucide-react";
 
 interface Props {
     recordId: number;
@@ -23,7 +24,7 @@ export function RecordApprovalActions({
                     className="flex items-center gap-1 text-green-600 hover:text-green-700"
                     onClick={() => onApprove(recordId)}
                 >
-                    <CheckCircle className="h-3 w-3" />
+                    <Icons.CheckCircle className="h-3 w-3" />
                     Approve
                 </Button>
             )}
@@ -34,7 +35,7 @@ export function RecordApprovalActions({
                     className="flex items-center gap-1 text-destructive hover:text-destructive"
                     onClick={() => onReject(recordId, "")}
                 >
-                    <XCircle className="h-3 w-3" />
+                    <Icons.XCircle className="h-3 w-3" />
                     Reject
                 </Button>
             )}

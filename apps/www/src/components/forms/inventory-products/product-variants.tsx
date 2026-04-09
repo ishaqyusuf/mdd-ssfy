@@ -13,7 +13,6 @@ import { capitalize, throttle } from "lodash";
 import { useMutation } from "@gnd/ui/tanstack";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { Icons } from "@gnd/ui/icons";
-import { ChartSpline } from "lucide-react";
 import { VariantPricingTab } from "./variant-pricing-tab";
 import { cn } from "@gnd/ui/cn";
 import { VariantFilters } from "./variant-filters";
@@ -193,7 +192,7 @@ function Row({}) {
                         <Tabs defaultValue="price">
                             <TabsList>
                                 <TabsTrigger value="price">
-                                    <ChartSpline className="size-4 mr-2" />
+                                    <Icons.ChartSpline className="size-4 mr-2" />
                                     Pricing
                                 </TabsTrigger>
                                 <TabsTrigger value="inbound">

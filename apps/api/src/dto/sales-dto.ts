@@ -14,6 +14,7 @@ import {
   salesLinks,
 } from "@api/utils/sales";
 import type { Prisma } from "@gnd/db";
+import { deriveOrderProductionGateState } from "@gnd/sales/production-gate";
 import { getNameInitials, sum, toNumber } from "@gnd/utils";
 
 import { timeAgo } from "@gnd/utils/dayjs";
@@ -96,6 +97,10 @@ function getAddressDto(
 
 function commonListData(data: Item, bin?: boolean) {
   const meta = (data.meta || {}) as any as SalesMeta;
+  const gateState = deriveOrderProductionGateState({
+    gate: data.productionGate,
+    order: data,
+  });
   const costLines: { label: string; amount }[] = [];
   const _cost = (label, amount) => costLines.push({ label, amount });
   const paid = sum([data.grandTotal! - data.amountDue!]);
@@ -155,6 +160,10 @@ function commonListData(data: Item, bin?: boolean) {
     shippingId: data.shippingAddressId,
     type: data.type as SalesType,
     isQuote: (data.type as SalesType) == "quote",
+    productionGate: data.productionGate,
+    hasProductionDefinition: gateState.hasProductionDefinition,
+    productionGateStatus: gateState.productionGateStatus,
+    productionGateTriggered: gateState.productionGateTriggered,
     invoice: {
       total: data.grandTotal,
       paid,

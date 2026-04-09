@@ -1,4 +1,5 @@
 "use client";
+
 import { useSalesDashboardParams } from "@/hooks/use-sales-dashboard-params";
 import { openLink } from "@/lib/open-link";
 import { useTRPC } from "@/trpc/client";

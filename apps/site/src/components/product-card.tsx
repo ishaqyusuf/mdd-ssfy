@@ -1,8 +1,8 @@
+import { Icons } from "@gnd/ui/icons";
 import Image from "next/image";
 import Link from "next/link";
 import { Card, CardContent } from "@gnd/ui/card";
 import { Button } from "@gnd/ui/button";
-import { StarIcon } from "lucide-react";
 import type { Product } from "@/lib/types"; // Assuming a types file for Product
 
 interface ProductCardProps {
@@ -38,7 +38,7 @@ export function ProductCard({ product }: ProductCardProps) {
             ${product.price.toFixed(2)}
           </span>
           <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
-            <StarIcon className="w-4 h-4 text-amber-500 fill-amber-500" />
+            <Icons.StarIcon className="w-4 h-4 text-amber-500 fill-amber-500" />
             <span>
               {product.rating.toFixed(1)} ({product.reviews})
             </span>

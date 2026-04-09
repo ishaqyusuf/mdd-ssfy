@@ -1,9 +1,9 @@
+import { Icons } from "@gnd/ui/icons";
 import { Menu } from "@gnd/ui/custom/menu";
 import { GetNotes } from "./actions/get-notes-action";
 import { Progress } from "@gnd/ui/custom/progress";
 import { formatDate } from "@/lib/use-day";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
-import { BellIcon } from "lucide-react";
 import { deleteNoteAction } from "./actions/delete-note-action";
 import { useNote } from "./context";
 import { toast } from "sonner";
@@ -88,7 +88,7 @@ export function NoteLine({ note }: { note: GetNotes[number] }) {
                 ))}
                 {!event || (
                     <div className="flex gap-2 text-xs font-semibold border p-0.5 rounded shadow-sm bg-red-100 font-mono$ items-center">
-                        <BellIcon className="size-4" />
+                        <Icons.BellIcon className="size-4" />
                         <span>{formatDate(event.eventDate)}</span>
                     </div>
                 )}

@@ -1,7 +1,7 @@
+import { Icons } from "@gnd/ui/icons";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { ImageAsset } from "../product-image-display";
 import { CustomModal, CustomModalContent } from "./custom-modal";
-import { ImageIcon, Star, StarOff, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@gnd/ui/card";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -162,7 +162,7 @@ export function ImageManagementModal(props: Props) {
                         <div className="space-y-4">
                             {currentImages?.length === 0 ? (
                                 <div className="text-center py-12 text-muted-foreground">
-                                    <ImageIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                    <Icons.ImageIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
                                     <p>No images selected</p>
                                     <p className="text-sm">
                                         Add images from the gallery or upload
@@ -204,7 +204,7 @@ export function ImageManagementModal(props: Props) {
                                                         {isPrimary && (
                                                             <div className="absolute top-2 left-2">
                                                                 <Badge className="bg-blue-500 text-white text-xs">
-                                                                    <Star className="w-3 h-3 mr-1" />
+                                                                    <Icons.Star className="w-3 h-3 mr-1" />
                                                                     Primary
                                                                 </Badge>
                                                             </div>
@@ -224,7 +224,7 @@ export function ImageManagementModal(props: Props) {
                                                                         }
                                                                         title="Set as primary"
                                                                     >
-                                                                        <StarOff className="w-3 h-3" />
+                                                                        <Icons.StarOff className="w-3 h-3" />
                                                                     </Button>
                                                                 )}
                                                                 <Button
@@ -238,7 +238,7 @@ export function ImageManagementModal(props: Props) {
                                                                     }
                                                                     title="Remove image"
                                                                 >
-                                                                    <Trash2 className="w-3 h-3" />
+                                                                    <Icons.Trash2 className="w-3 h-3" />
                                                                 </Button>
                                                             </div>
                                                         </div>

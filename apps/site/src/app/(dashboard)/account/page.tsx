@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import type React from "react";
 
 import { useState, useEffect } from "react";
@@ -13,17 +15,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Alert, AlertDescription } from "@gnd/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { Badge } from "@gnd/ui/badge";
-import {
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  Package,
-  Settings,
-  LogOut,
-  CheckCircle,
-  Eye,
-} from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
 import { useCartStore } from "@/lib/cart-store";
 import { useOrdersStore } from "@/lib/orders-store";
@@ -167,7 +158,7 @@ export default function AccountPage() {
             onClick={handleLogout}
             className="bg-transparent"
           >
-            <LogOut className="h-4 w-4 mr-2" />
+            <Icons.LogOut className="h-4 w-4 mr-2" />
             Sign Out
           </Button>
         </div>
@@ -190,14 +181,14 @@ export default function AccountPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <User className="h-5 w-5 mr-2" />
+                  <Icons.User className="h-5 w-5 mr-2" />
                   Profile Information
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {success && (
                   <Alert className="mb-4">
-                    <CheckCircle className="h-4 w-4" />
+                    <Icons.CheckCircle className="h-4 w-4" />
                     <AlertDescription>{success}</AlertDescription>
                   </Alert>
                 )}
@@ -237,7 +228,7 @@ export default function AccountPage() {
                   <div>
                     <Label htmlFor="email">Email Address</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Icons.Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                       <Input
                         id="email"
                         type="email"
@@ -254,7 +245,7 @@ export default function AccountPage() {
                   <div>
                     <Label htmlFor="phone">Phone Number</Label>
                     <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Icons.Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                       <Input
                         id="phone"
                         type="tel"
@@ -269,7 +260,7 @@ export default function AccountPage() {
 
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold flex items-center">
-                      <MapPin className="h-5 w-5 mr-2" />
+                      <Icons.MapPin className="h-5 w-5 mr-2" />
                       Address Information
                     </h3>
                     <div>
@@ -337,7 +328,7 @@ export default function AccountPage() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <Package className="h-5 w-5 mr-2" />
+                    <Icons.Package className="h-5 w-5 mr-2" />
                     Recent Orders
                   </div>
                   {userOrders.length > 0 && (
@@ -356,7 +347,7 @@ export default function AccountPage() {
               <CardContent>
                 {recentOrders.length === 0 ? (
                   <div className="text-center py-8">
-                    <Package className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                    <Icons.Package className="h-16 w-16 mx-auto text-gray-400 mb-4" />
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
                       No orders yet
                     </h3>
@@ -400,7 +391,7 @@ export default function AccountPage() {
                               size="sm"
                               className="bg-transparent"
                             >
-                              <Eye className="h-4 w-4 mr-1" />
+                              <Icons.Eye className="h-4 w-4 mr-1" />
                               View Details
                             </Button>
                           </Link>
@@ -417,7 +408,7 @@ export default function AccountPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Settings className="h-5 w-5 mr-2" />
+                  <Icons.Settings className="h-5 w-5 mr-2" />
                   Account Settings
                 </CardTitle>
               </CardHeader>

@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useEffect, useMemo, useState } from "react";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
@@ -14,7 +16,6 @@ import { Badge } from "@gnd/ui/badge";
 import { hasQty } from "@gnd/utils/sales";
 import { cn } from "@gnd/ui/cn";
 import { toast } from "@gnd/ui/use-toast";
-import { AlertTriangle, Minus, Plus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@gnd/ui/input";
 import {
@@ -296,7 +297,7 @@ function DispatchPackingOverviewContent() {
                     <CardHeader className="pb-3">
                         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                             <div className="flex items-start gap-2">
-                                <AlertTriangle className="mt-0.5 h-4 w-4 text-amber-700" />
+                                <Icons.AlertTriangle className="mt-0.5 h-4 w-4 text-amber-700" />
                                 <div>
                                     <CardTitle className="text-base text-amber-900">
                                         Is this a duplicate dispatch?
@@ -876,7 +877,7 @@ function PackItemsForm({
                                                     !canEditPacking
                                                 }
                                             >
-                                                <Minus className="h-4 w-4" />
+                                                <Icons.Minus className="h-4 w-4" />
                                             </Button>
                                             <Input
                                                 type="number"
@@ -912,7 +913,7 @@ function PackItemsForm({
                                                     !canEditPacking
                                                 }
                                             >
-                                                <Plus className="h-4 w-4" />
+                                                <Icons.Plus className="h-4 w-4" />
                                             </Button>
                                         </div>
                                     </div>

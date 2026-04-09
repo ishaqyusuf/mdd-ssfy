@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { Suspense } from "react";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
@@ -7,14 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatDate } from "@gnd/utils/dayjs";
-import {
-    BriefcaseBusiness,
-    FileImage,
-    FileText,
-    Hammer,
-    Home,
-    Receipt,
-} from "lucide-react";
 import { DocumentUploader } from "@/components/common/document-uploader";
 import { DataTable as ContractorJobsDataTable } from "@/components/tables/contractor-jobs/data-table";
 import { projectTabColumns as projectJobsColumns } from "@/components/tables/contractor-jobs/columns";
@@ -96,9 +90,9 @@ function DocumentAttachment({
                 ) : (
                     <div className="flex flex-col items-center gap-2 text-slate-500">
                         {imageDocument ? (
-                            <FileImage className="size-7" />
+                            <Icons.FileImage className="size-7" />
                         ) : (
-                            <FileText className="size-7" />
+                            <Icons.FileText className="size-7" />
                         )}
                     </div>
                 )}
@@ -138,7 +132,7 @@ function ActivityHistory({ data }: { data: ProjectOverviewData }) {
                 >
                     <div className="flex items-start gap-3">
                         <span className="mt-0.5 flex size-8 items-center justify-center rounded-full bg-slate-100 text-slate-600">
-                            <FileText className="size-4" />
+                            <Icons.FileText className="size-4" />
                         </span>
                         <div className="min-w-0 flex-1 space-y-2">
                             <div>
@@ -262,35 +256,35 @@ export function ProjectOverviewWidget({ data }: { data: ProjectOverviewData }) {
                         value="units"
                         className="gap-2 rounded-xl py-2.5"
                     >
-                        <Home className="size-4" />
+                        <Icons.Home className="size-4" />
                         Units
                     </TabsTrigger>
                     <TabsTrigger
                         value="production"
                         className="gap-2 rounded-xl py-2.5"
                     >
-                        <Hammer className="size-4" />
+                        <Icons.Hammer className="size-4" />
                         Production
                     </TabsTrigger>
                     <TabsTrigger
                         value="invoices"
                         className="gap-2 rounded-xl py-2.5"
                     >
-                        <Receipt className="size-4" />
+                        <Icons.Receipt className="size-4" />
                         Invoices
                     </TabsTrigger>
                     <TabsTrigger
                         value="jobs"
                         className="gap-2 rounded-xl py-2.5"
                     >
-                        <BriefcaseBusiness className="size-4" />
+                        <Icons.BriefcaseBusiness className="size-4" />
                         Jobs
                     </TabsTrigger>
                     <TabsTrigger
                         value="documents"
                         className="gap-2 rounded-xl py-2.5"
                     >
-                        <FileText className="size-4" />
+                        <Icons.FileText className="size-4" />
                         Project Timeline
                     </TabsTrigger>
                 </TabsList>

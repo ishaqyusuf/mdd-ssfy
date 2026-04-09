@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
@@ -10,7 +11,6 @@ import {
   AccordionTrigger,
 } from "@gnd/ui/accordion";
 import Image from "next/image";
-import { MailIcon, PhoneIcon, MapPinIcon, ClockIcon } from "lucide-react";
 
 export default function ContactPage() {
   return (
@@ -77,7 +77,7 @@ export default function ContactPage() {
             </CardHeader>
             <CardContent className="grid gap-4">
               <div className="flex items-center gap-3">
-                <MailIcon className="h-6 w-6 text-amber-600" />
+                <Icons.MailIcon className="h-6 w-6 text-amber-600" />
                 <div>
                   <h3 className="font-semibold">Email</h3>
                   <p className="text-gray-700 dark:text-gray-300">
@@ -86,7 +86,7 @@ export default function ContactPage() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <PhoneIcon className="h-6 w-6 text-amber-600" />
+                <Icons.PhoneIcon className="h-6 w-6 text-amber-600" />
                 <div>
                   <h3 className="font-semibold">Phone</h3>
                   <p className="text-gray-700 dark:text-gray-300">
@@ -95,7 +95,7 @@ export default function ContactPage() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <MapPinIcon className="h-6 w-6 text-amber-600" />
+                <Icons.MapPinIcon className="h-6 w-6 text-amber-600" />
                 <div>
                   <h3 className="font-semibold">Address</h3>
                   <p className="text-gray-700 dark:text-gray-300">
@@ -104,7 +104,7 @@ export default function ContactPage() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <ClockIcon className="h-6 w-6 text-amber-600" />
+                <Icons.ClockIcon className="h-6 w-6 text-amber-600" />
                 <div>
                   <h3 className="font-semibold">Store Hours</h3>
                   <p className="text-gray-700 dark:text-gray-300">

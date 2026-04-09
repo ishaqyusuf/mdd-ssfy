@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { endFlow, logStage, startFlow } from "@/lib/dev-flow-logger";
@@ -12,19 +14,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@gnd/ui/select";
-import {
-    Building2,
-    Check,
-    ChevronDown,
-    ChevronUp,
-    CreditCard,
-    Info,
-    Plus,
-    Phone,
-    Search,
-    Truck,
-    X,
-} from "lucide-react";
 import {
     useCustomerProfilesQuery,
     useCustomerTaxProfilesQuery,
@@ -365,10 +354,10 @@ export function InvoiceOverviewPanel() {
                                         onClick={() => setCustomerSearchQuery("")}
                                         className="hover:text-foreground"
                                     >
-                                        <X size={16} />
+                                        <Icons.X size={16} />
                                     </button>
                                 ) : (
-                                    <Search size={16} />
+                                    <Icons.Search size={16} />
                                 )}
                             </div>
                         </div>
@@ -421,7 +410,7 @@ export function InvoiceOverviewPanel() {
                                                 </p>
                                                 {customer.isBusiness ? (
                                                     <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                                                        <Building2 size={12} />
+                                                        <Icons.Building2 size={12} />
                                                         Business
                                                     </span>
                                                 ) : null}
@@ -429,7 +418,7 @@ export function InvoiceOverviewPanel() {
                                             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                                                 {customer.phoneNo ? (
                                                     <span className="inline-flex items-center gap-1">
-                                                        <Phone size={12} />
+                                                        <Icons.Phone size={12} />
                                                         {customer.phoneNo}
                                                     </span>
                                                 ) : null}
@@ -448,7 +437,7 @@ export function InvoiceOverviewPanel() {
                             </div>
                             <div className="border-t border-border bg-muted/50 p-2">
                                 <button className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-primary-foreground">
-                                    <Plus size={16} />
+                                    <Icons.Plus size={16} />
                                     <span className="truncate">Create New Customer</span>
                                 </button>
                             </div>
@@ -465,7 +454,7 @@ export function InvoiceOverviewPanel() {
                                     {customerInitial}
                                 </div>
                                 <div className="absolute -bottom-1 -right-1 rounded-full border-2 border-card bg-green-500 p-0.5">
-                                    <Check size={10} className="text-white" strokeWidth={4} />
+                                    <Icons.Check size={10} className="text-white" strokeWidth={4} />
                                 </div>
                             </div>
                             <div className="min-w-0 flex-1">
@@ -476,9 +465,9 @@ export function InvoiceOverviewPanel() {
                                             "Not selected"}
                                     </p>
                                     {isCustomerExpanded ? (
-                                        <ChevronUp size={16} className="text-muted-foreground" />
+                                        <Icons.ChevronUp size={16} className="text-muted-foreground" />
                                     ) : (
-                                        <ChevronDown size={16} className="text-muted-foreground" />
+                                        <Icons.ChevronDown size={16} className="text-muted-foreground" />
                                     )}
                                 </div>
                                 <p className="mt-0.5 text-xs text-muted-foreground">
@@ -529,7 +518,7 @@ export function InvoiceOverviewPanel() {
                                 <div className="space-y-3">
                                     <div className="space-y-1">
                                         <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                            <CreditCard size={12} /> Billing Address
+                                            <Icons.CreditCard size={12} /> Billing Address
                                         </span>
                                         <p className="border-l-2 border-border pl-4 text-sm font-medium text-foreground">
                                             Billing Address ID: {record.form.billingAddressId ?? "N/A"}
@@ -537,7 +526,7 @@ export function InvoiceOverviewPanel() {
                                     </div>
                                     <div className="space-y-1">
                                         <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                                            <Truck size={12} /> Shipping Address
+                                            <Icons.Truck size={12} /> Shipping Address
                                         </span>
                                         <p className="border-l-2 border-border pl-4 text-sm font-medium text-foreground">
                                             Shipping Address ID: {record.form.shippingAddressId ?? "N/A"}
@@ -552,7 +541,7 @@ export function InvoiceOverviewPanel() {
 
             <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-2 text-foreground">
-                    <Info size={18} className="text-primary" />
+                    <Icons.Info size={18} className="text-primary" />
                     <h3 className="text-sm font-bold">Global Invoice Details</h3>
                 </div>
                 <div className="grid gap-4 rounded-xl border border-border bg-muted/30 p-4 shadow-sm">
@@ -673,7 +662,7 @@ export function InvoiceOverviewPanel() {
 
             <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-2 text-foreground">
-                    <CreditCard size={18} className="text-primary" />
+                    <Icons.CreditCard size={18} className="text-primary" />
                     <h3 className="text-sm font-bold text-primary">Totals & Pricing (Entire Invoice)</h3>
                 </div>
                 <div className="flex flex-col gap-4 rounded-xl border border-primary/20 bg-card p-4 shadow-sm">
@@ -753,7 +742,7 @@ export function InvoiceOverviewPanel() {
                                 })
                             }
                         >
-                            <Plus size={14} />
+                            <Icons.Plus size={14} />
                             Global Add-on Cost
                         </button>
                         <span className="text-xs font-bold text-muted-foreground">+{currency(addOnTotal)}</span>

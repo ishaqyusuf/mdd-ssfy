@@ -1,4 +1,5 @@
 "use client";
+
 import { Button } from "@gnd/ui/button";
 import { Label } from "@gnd/ui/label";
 import { createDeviceCode } from "./action";

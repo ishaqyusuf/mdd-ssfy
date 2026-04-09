@@ -5,7 +5,6 @@ import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { timeout } from "@/lib/timeout";
 import createContextFactory from "@/utils/context-factory";
 import { skeletonListData } from "@/utils/format";
-import { UserPlus } from "lucide-react";
 import { useAsyncMemo } from "use-async-memo";
 
 import { Button } from "@gnd/ui/button";

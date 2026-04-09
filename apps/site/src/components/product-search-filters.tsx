@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { useProductsFilterParams } from "@/hooks/use-products-filter-params";
 import { useProductSearch } from "@/hooks/use-product-search";
 import { Button } from "@gnd/ui/button";
@@ -9,7 +10,6 @@ import {
 } from "@gnd/ui/collapsible";
 import { Label } from "@gnd/ui/label";
 import { Slider } from "@gnd/ui/slider";
-import { ChevronDown } from "lucide-react";
 
 export function ProductSearchFilters() {
   const { searchFilters } = useProductSearch();
@@ -44,7 +44,7 @@ export function ProductSearchFilters() {
       <Collapsible defaultOpen>
         <CollapsibleTrigger className="flex items-center justify-between w-full py-2">
           <h4 className="font-medium">Category</h4>
-          <ChevronDown className="h-4 w-4" />
+          <Icons.ChevronDown className="h-4 w-4" />
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-2 mt-2">
           {searchFilters?.categories?.map((category) => (
@@ -69,7 +69,7 @@ export function ProductSearchFilters() {
       <Collapsible defaultOpen>
         <CollapsibleTrigger className="flex items-center justify-between w-full py-2">
           <h4 className="font-medium">Sub Categories</h4>
-          <ChevronDown className="h-4 w-4" />
+          <Icons.ChevronDown className="h-4 w-4" />
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-2 mt-2">
           {searchFilters?.subCategories?.map((category) => (
@@ -94,7 +94,7 @@ export function ProductSearchFilters() {
       <Collapsible defaultOpen>
         <CollapsibleTrigger className="flex items-center justify-between w-full py-2">
           <h4 className="font-medium">Price Range</h4>
-          <ChevronDown className="h-4 w-4" />
+          <Icons.ChevronDown className="h-4 w-4" />
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-2">
           <div className="px-2">

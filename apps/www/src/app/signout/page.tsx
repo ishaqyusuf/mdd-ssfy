@@ -1,4 +1,5 @@
 "use client";
+
 import PageShell from "@/components/page-shell";
 
 import { signOut } from "next-auth/react";

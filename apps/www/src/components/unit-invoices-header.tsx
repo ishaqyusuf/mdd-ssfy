@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { unitInvoiceReportDefinitions } from "@/components/reports/unit-invoices/report-definitions";
 import {
   printCommunityInvoiceAgingReport,
@@ -11,7 +13,6 @@ import { AlertDialog } from "@gnd/ui/namespace";
 import { Button } from "@gnd/ui/button";
 import { DropdownMenu } from "@gnd/ui/namespace";
 import { SearchFilter } from "@gnd/ui/search-filter";
-import { FileSpreadsheet } from "lucide-react";
 import { useState } from "react";
 import { useQueryStates } from "nuqs";
 
@@ -55,7 +56,7 @@ export function UnitInvoicesHeader() {
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
           <Button variant="outline" className="gap-2">
-            <FileSpreadsheet className="size-4" />
+            <Icons.FileSpreadsheet className="size-4" />
             Report
           </Button>
         </DropdownMenu.Trigger>

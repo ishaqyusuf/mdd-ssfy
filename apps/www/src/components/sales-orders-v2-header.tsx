@@ -1,11 +1,12 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import Link from "next/link";
 import { SearchFilter } from "@gnd/ui/search-filter";
 import { useQueryStates } from "nuqs";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
-import { ArrowUpRight } from "lucide-react";
 import { salesOrdersV2FilterParams } from "@/hooks/use-sales-orders-v2-filter-params";
 import { CreateSalesBtn } from "./create-sales-btn";
 
@@ -26,7 +27,7 @@ export function SalesOrdersV2Header() {
       <div className="flex flex-wrap items-center gap-2">
         <Button asChild size="sm" variant="outline">
           <Link href="/sales-book/orders">
-            <ArrowUpRight className="mr-2 size-4" />
+            <Icons.ArrowUpRight className="mr-2 size-4" />
             Legacy
           </Link>
         </Button>

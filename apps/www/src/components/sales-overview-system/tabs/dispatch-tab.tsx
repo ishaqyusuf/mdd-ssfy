@@ -1,6 +1,6 @@
 "use client";
 
-import { MapPin, Truck } from "lucide-react";
+import { Icons } from "@gnd/ui/icons";
 
 import { useTRPC } from "@/trpc/client";
 
@@ -85,7 +85,7 @@ export function SalesOverviewDispatchTab() {
 		<div className="space-y-5 p-1">
 			{/* Overall progress */}
 			<div className="rounded-xl border bg-card p-5">
-				<SectionLabel icon={Truck} label="Dispatch Overview" />
+				<SectionLabel icon={Icons.Truck} label="Dispatch Overview" />
 				<div className="mb-3 space-y-1.5">
 					<div className="flex justify-between text-sm">
 						<span className="text-muted-foreground">Overall completion</span>
@@ -158,7 +158,7 @@ export function SalesOverviewDispatchTab() {
 							{(delivery as any)?.address && (
 								<div className="mt-4 border-t border-border/40 pt-3">
 									<div className="flex items-start gap-2">
-										<MapPin className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+										<Icons.MapPin className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
 										<p className="text-sm text-muted-foreground">
 											{[
 												(delivery as any).address?.address1,

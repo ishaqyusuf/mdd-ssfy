@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { productionItems } from "./dummy-data";
 import {
   Accordion,
@@ -7,7 +8,6 @@ import {
 } from "@gnd/ui/accordion";
 import { Button } from "@gnd/ui/button";
 import { Separator } from "@gnd/ui/separator";
-import { Check, Trash2, Plus, Minus } from "lucide-react";
 
 export function ProductionTab() {
   return (
@@ -17,13 +17,13 @@ export function ProductionTab() {
           <h3 className="text-lg font-semibold">Production Items</h3>
           <div className="flex gap-2">
             <Button variant="outline" size="sm">
-              <Check className="mr-2 h-4 w-4" /> Assign All
+              <Icons.Check className="mr-2 h-4 w-4" /> Assign All
             </Button>
             <Button variant="outline" size="sm">
-              <Check className="mr-2 h-4 w-4" /> Submit All
+              <Icons.Check className="mr-2 h-4 w-4" /> Submit All
             </Button>
             <Button variant="destructive" size="sm">
-              <Trash2 className="mr-2 h-4 w-4" /> Delete All
+              <Icons.Trash2 className="mr-2 h-4 w-4" /> Delete All
             </Button>
           </div>
         </div>

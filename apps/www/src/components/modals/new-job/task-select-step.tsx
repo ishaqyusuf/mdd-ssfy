@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { _trpc } from "@/components/static-trpc";
 import { SearchInput } from "@/components/search-input";
 import { useBuilderParams } from "@/hooks/use-builder-params";
@@ -7,13 +8,6 @@ import { Button } from "@gnd/ui/button";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useSearch } from "@gnd/ui/hooks/use-search";
 import { useQuery } from "@tanstack/react-query";
-import {
-    AlertTriangle,
-    ChevronRight,
-    Layers,
-    PenTool,
-    Wrench,
-} from "lucide-react";
 import { StepTitle } from "./step-title";
 import { SubHeader } from "./sub-header";
 export function TaskSelectStep({}) {
@@ -90,7 +84,7 @@ export function TaskSelectStep({}) {
                         className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 border-dashed text-left transition-all group ${params.builderTaskId == -1 ? "border-primary bg-primary/5" : "border-primary/30 hover:border-primary hover:bg-primary/5"}`}
                     >
                         <div className="p-2 bg-primary/10 rounded-lg text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                            <PenTool size={20} />
+                            <Icons.PenTool size={20} />
                         </div>
                         <div className="flex-1">
                             <p className="text-sm font-bold text-primary">
@@ -100,14 +94,14 @@ export function TaskSelectStep({}) {
                                 Create a one-off job with manual pricing
                             </p>
                         </div>
-                        <ChevronRight size={16} className="text-primary" />
+                        <Icons.ChevronRight size={16} className="text-primary" />
                     </button>
 
                     {noTasksConfigured && (
                         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
                             <div className="flex items-start gap-3">
                                 <div className="rounded-full bg-amber-100 p-2 text-amber-700">
-                                    <AlertTriangle className="size-4" />
+                                    <Icons.AlertTriangle className="size-4" />
                                 </div>
                                 <div className="flex-1 space-y-3">
                                     <div>
@@ -126,7 +120,7 @@ export function TaskSelectStep({}) {
                                             disabled={!builderId}
                                             className="bg-amber-700 text-white hover:bg-amber-800"
                                         >
-                                            <Wrench className="mr-2 size-4" />
+                                            <Icons.Wrench className="mr-2 size-4" />
                                             Configure Builder Tasks
                                         </Button>
                                     ) : (
@@ -155,7 +149,7 @@ export function TaskSelectStep({}) {
                             className={`w-full flex items-center gap-4 p-3 rounded-xl border text-left transition-all hover:shadow-md ${params.builderTaskId === item.id ? "border-primary bg-primary/5" : "border-border bg-card hover:bg-muted/50"}`}
                         >
                             <div className="p-2 bg-muted rounded-lg text-muted-foreground">
-                                <Layers size={20} />
+                                <Icons.Layers size={20} />
                             </div>
                             <div className="flex-1">
                                 <div className="flex justify-between items-center">
@@ -170,7 +164,7 @@ export function TaskSelectStep({}) {
                                     {/* {item.} */}
                                 </p>
                             </div>
-                            <ChevronRight
+                            <Icons.ChevronRight
                                 size={16}
                                 className="text-muted-foreground"
                             />

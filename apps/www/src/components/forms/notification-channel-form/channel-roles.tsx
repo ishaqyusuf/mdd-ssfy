@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { useNotificationChannelContext } from "@/contexts/notification-channel-context";
 import {
     invalidateInfiniteQueries,
@@ -7,7 +8,6 @@ import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { useMutation } from "@tanstack/react-query";
-import { Shield, X } from "lucide-react";
 import { useState } from "react";
 
 interface Props {}
@@ -88,9 +88,9 @@ export function ChannelRoles(props: Props) {
                                 className="rounded-full text-[11px]"
                             >
                                 <div className="flex gap-2">
-                                    <Shield className="h-3 w-3" />
+                                    <Icons.Shield className="h-3 w-3" />
                                     {role.name}
-                                    {active && <X className="h-3 w-3" />}
+                                    {active && <Icons.X className="h-3 w-3" />}
                                 </div>
                             </SubmitButton>
                         );

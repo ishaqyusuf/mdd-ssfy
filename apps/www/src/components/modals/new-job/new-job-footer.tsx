@@ -1,6 +1,6 @@
+import { Icons } from "@gnd/ui/icons";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { CustomModal } from "../custom-modal";
-import { ChevronLeft } from "lucide-react";
 import { Button } from "@gnd/ui/button";
 
 export function NewJobFooter() {
@@ -28,7 +28,7 @@ export function NewJobFooter() {
                             "Cancel"
                         ) : (
                             <>
-                                <ChevronLeft className="size-4" /> Back
+                                <Icons.ChevronLeft className="size-4" /> Back
                             </>
                         )}
                     </Button>

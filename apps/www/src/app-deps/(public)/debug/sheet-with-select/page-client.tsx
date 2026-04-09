@@ -1,8 +1,9 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CreditCard, DollarSign, User } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -86,7 +87,7 @@ export default function PageClient() {
                                         <FormLabel>Name</FormLabel>
                                         <FormControl>
                                             <div className="relative">
-                                                <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                                                <Icons.User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
                                                 <Input
                                                     placeholder="Enter your name"
                                                     className="pl-10"
@@ -110,7 +111,7 @@ export default function PageClient() {
                                         >
                                             <FormControl>
                                                 <div className="relative">
-                                                    <CreditCard className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                                                    <Icons.CreditCard className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
                                                     <SelectTrigger className="pl-10">
                                                         <SelectValue placeholder="Select payment method" />
                                                     </SelectTrigger>
@@ -143,7 +144,7 @@ export default function PageClient() {
                                         <FormLabel>Amount</FormLabel>
                                         <FormControl>
                                             <div className="relative">
-                                                <DollarSign className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                                                <Icons.DollarSign className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
                                                 <Input
                                                     placeholder="Enter amount"
                                                     className="pl-10"

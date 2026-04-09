@@ -1,4 +1,5 @@
-import { FileClock, FileText } from "lucide-react";
+import { Icons } from "@gnd/ui/icons";
+
 
 export const unitInvoiceReportDefinitions = [
   {
@@ -6,14 +7,14 @@ export const unitInvoiceReportDefinitions = [
     title: "Invoice Aging Report",
     description:
       "Review open balances by age bucket using invoice created dates.",
-    icon: FileClock,
+    icon: Icons.FileClock,
   },
   {
     id: "task-level-detail",
     title: "Task-Level Invoice Detail Report",
     description:
       "Review invoice tasks by project and unit with cost, tax, due, and payment detail.",
-    icon: FileText,
+    icon: Icons.FileText,
   },
 ] as const;
 

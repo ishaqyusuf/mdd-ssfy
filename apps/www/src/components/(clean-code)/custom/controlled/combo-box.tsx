@@ -1,7 +1,7 @@
+import { Icons } from "@gnd/ui/icons";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { cva } from "class-variance-authority";
-import { Check, ChevronsUpDown } from "lucide-react";
 import { ControllerProps, FieldPath, FieldValues } from "react-hook-form";
 
 import { Badge } from "@gnd/ui/badge";
@@ -119,7 +119,7 @@ export function ComboxBox<
                                                         ),
                                                     ) || "Select field"}
                                                 </span>
-                                                <ChevronsUpDown className="size-4 shrink-0 opacity-50" />
+                                                <Icons.ChevronsUpDown className="size-4 shrink-0 opacity-50" />
                                             </>
                                         ) : (
                                             <>
@@ -236,7 +236,7 @@ export function ComboxBox<
                                                         <span className="mr-1.5 truncate">
                                                             {optLabel(opt)}
                                                         </span>
-                                                        <Check
+                                                        <Icons.Check
                                                             className={cn(
                                                                 "ml-auto size-4 shrink-0",
                                                                 optValue(

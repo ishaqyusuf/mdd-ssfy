@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { authUser } from "@/app-deps/(v1)/_actions/utils";
 import Link from "@/components/link";
 import PageShell from "@/components/page-shell";
@@ -17,7 +18,6 @@ import { DataTable as RecentQuoteDataTable } from "@/components/tables/sales-quo
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { Badge } from "@gnd/ui/badge";
 import { cn } from "@gnd/ui/cn";
-import { Plus } from "lucide-react";
 import { Suspense } from "react";
 
 import { buttonVariants } from "@gnd/ui/button";
@@ -60,7 +60,7 @@ export default async function SalesRepProfile(props: {
 						)}
 						href="/sales-book/create-order"
 					>
-						<Plus className="h-4 w-4" />
+						<Icons.Plus className="h-4 w-4" />
 						Create Sale
 					</Link>
 				</div>

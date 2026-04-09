@@ -1,19 +1,13 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useTRPC } from "@/trpc/client";
 import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { AnimatedNumber } from "@/components/animated-number";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
-import {
-    AlertCircle,
-    CheckCircle2,
-    Clock,
-    Package,
-    Truck,
-    XCircle,
-} from "lucide-react";
 import { cn } from "@gnd/ui/cn";
 
 type SummaryCardProps = {
@@ -86,21 +80,21 @@ export function DispatchSummaryCards() {
             <SummaryCard
                 count={data.total}
                 label="Total"
-                icon={<Truck size={18} />}
+                icon={<Icons.Truck size={18} />}
                 color="#66c8bfd9"
                 onClick={() => setFilters({ tab: "all", status: null })}
             />
             <SummaryCard
                 count={data.byStatus.queue}
                 label="Queued"
-                icon={<Clock size={18} />}
+                icon={<Icons.Clock size={18} />}
                 color="#cdeb60d9"
                 onClick={() => setFilters({ tab: null, status: "queue" })}
             />
             <SummaryCard
                 count={data.byStatus.inProgress}
                 label="In Progress"
-                icon={<Truck size={18} />}
+                icon={<Icons.Truck size={18} />}
                 color="#60a5fad9"
                 onClick={() =>
                     setFilters({ tab: null, status: "in progress" })
@@ -109,21 +103,21 @@ export function DispatchSummaryCards() {
             <SummaryCard
                 count={data.byStatus.packed}
                 label="Packed"
-                icon={<Package size={18} />}
+                icon={<Icons.Package size={18} />}
                 color="#a78bfad9"
                 onClick={() => setFilters({ tab: null, status: "packed" })}
             />
             <SummaryCard
                 count={data.byStatus.completed}
                 label="Completed"
-                icon={<CheckCircle2 size={18} />}
+                icon={<Icons.CheckCircle2 size={18} />}
                 color="#34d399d9"
                 onClick={() => setFilters({ tab: "completed", status: null })}
             />
             <SummaryCard
                 count={data.byStatus.cancelled}
                 label="Cancelled"
-                icon={<XCircle size={18} />}
+                icon={<Icons.XCircle size={18} />}
                 color="#f87171d9"
                 onClick={() =>
                     setFilters({ tab: null, status: "cancelled" })
@@ -132,7 +126,7 @@ export function DispatchSummaryCards() {
             <SummaryCard
                 count={data.overdue}
                 label="Overdue"
-                icon={<AlertCircle size={18} />}
+                icon={<Icons.AlertCircle size={18} />}
                 color="#fb923cd9"
             />
         </>

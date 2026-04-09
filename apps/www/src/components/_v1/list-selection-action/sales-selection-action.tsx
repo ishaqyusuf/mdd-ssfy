@@ -1,6 +1,6 @@
 "use client";
 
-import { Printer } from "lucide-react";
+import { Icons } from "@gnd/ui/icons";
 
 import { Button } from "@gnd/ui/button";
 import {
@@ -21,7 +21,7 @@ export function SalesBatchAction({ items }) {
                         size="icon"
                         className="ml-auto hidden h-8 bg-rose-600 lg:flex"
                     >
-                        <Printer className=" h-4 w-4" />
+                        <Icons.Printer className=" h-4 w-4" />
                         {/* View */}
                     </Button>
                 </DropdownMenuTrigger>

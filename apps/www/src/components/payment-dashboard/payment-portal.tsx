@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { JobOverviewModal } from "@/components/modals/job-overview";
 import { useJobParams } from "@/hooks/use-contractor-jobs-params";
 import { generatePayrollReport, printSelectedJobs } from "@/lib/job-print";
@@ -31,14 +33,6 @@ import { Skeleton } from "@gnd/ui/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import { format } from "date-fns";
-import {
-	BanknoteArrowDown,
-	CheckCircle2,
-	Printer,
-	Search,
-	ShieldAlert,
-	XCircle,
-} from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
@@ -362,7 +356,7 @@ export function PaymentPortal() {
 							onClick={() => generatePayrollReport()}
 							disabled={dashboardQuery.isPending || !contractors.length}
 						>
-							<Printer data-icon="inline-start" />
+							<Icons.Printer data-icon="inline-start" />
 							Generate Payroll Report
 						</Button>
 					</div>
@@ -380,7 +374,7 @@ export function PaymentPortal() {
 							</CardDescription>
 						</div>
 						<div className="relative">
-							<Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+							<Icons.Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 							<Input
 								value={contractorSearch}
 								onChange={(event) => setContractorSearch(event.target.value)}
@@ -555,7 +549,7 @@ export function PaymentPortal() {
 								<div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
 									<div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_200px]">
 										<div className="relative">
-											<Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+											<Icons.Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 											<Input
 												value={jobSearch}
 												onChange={(event) => setJobSearch(event.target.value)}
@@ -600,7 +594,7 @@ export function PaymentPortal() {
 											}
 											disabled={!selectedJobIds.length}
 										>
-											<Printer data-icon="inline-start" />
+											<Icons.Printer data-icon="inline-start" />
 											Print Selected
 										</Button>
 										<Button
@@ -663,14 +657,14 @@ export function PaymentPortal() {
 												onClick={() => runBulkReview("reject")}
 												disabled={reviewMutation.isPending}
 											>
-												<XCircle data-icon="inline-start" />
+												<Icons.XCircle data-icon="inline-start" />
 												Reject Marked
 											</Button>
 											<Button
 												onClick={() => runBulkReview("approve")}
 												disabled={reviewMutation.isPending}
 											>
-												<CheckCircle2 data-icon="inline-start" />
+												<Icons.CheckCircle2 data-icon="inline-start" />
 												Approve Marked
 											</Button>
 										</div>
@@ -950,7 +944,7 @@ function JobListItem({
 function EmptyPortalState({ text }: { text: string }) {
 	return (
 		<div className="flex min-h-[320px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed bg-muted/20 p-6 text-center">
-			<ShieldAlert className="h-8 w-8 text-muted-foreground" />
+			<Icons.ShieldAlert className="h-8 w-8 text-muted-foreground" />
 			<p className="font-medium text-foreground">{text}</p>
 			<p className="max-w-md text-sm text-muted-foreground">
 				Click any job row once the list loads to open its overview before you
@@ -1137,7 +1131,7 @@ function PaymentSidebar({
 							disabled={!canSubmitPayment || isSubmitting}
 							className="w-full"
 						>
-							<BanknoteArrowDown data-icon="inline-start" />
+							<Icons.BanknoteArrowDown data-icon="inline-start" />
 							{isSubmitting ? "Creating payment..." : "Make payment"}
 						</Button>
 					</div>

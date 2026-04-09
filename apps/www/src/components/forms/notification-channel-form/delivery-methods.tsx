@@ -8,12 +8,6 @@ import { useTRPC } from "@/trpc/client";
 import { Icons } from "@gnd/ui/icons";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { useMutation } from "@tanstack/react-query";
-import {
-    CheckCircle2,
-    Mail,
-    Settings,
-    Smartphone,
-} from "lucide-react";
 import { useState } from "react";
 
 export function DeliveryMethods() {
@@ -51,7 +45,7 @@ export function DeliveryMethods() {
     }[] = [
         {
             id: "emailSupport",
-            icon: Mail,
+            icon: Icons.Mail,
             label: "Email",
             desc: "Send to primary work email",
             // active: selectedEvent?.emailSupport,
@@ -65,7 +59,7 @@ export function DeliveryMethods() {
         // },
         {
             id: "inAppSupport",
-            icon: Smartphone,
+            icon: Icons.Smartphone,
             label: "In-App / Push",
             desc: "Dashboard & Mobile alerts",
             // active: selectedEvent?.inAppSupport,
@@ -81,7 +75,7 @@ export function DeliveryMethods() {
     return (
         <section className="space-y-4">
             <h4 className="text-xs md:text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                <Settings className="h-4 w-4 text-primary" />
+                <Icons.Settings className="h-4 w-4 text-primary" />
                 Delivery Methods
             </h4>
 
@@ -131,7 +125,7 @@ export function DeliveryMethods() {
                                 {/* <div className="flex-1"></div> */}
                                 <div className="flex justify-end">
                                     {active && (
-                                        <CheckCircle2 className="h-4 w-4 text-primary" />
+                                        <Icons.CheckCircle2 className="h-4 w-4 text-primary" />
                                     )}
                                 </div>
                             </div>

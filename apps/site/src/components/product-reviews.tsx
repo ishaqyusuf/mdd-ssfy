@@ -1,6 +1,6 @@
 "use client";
 
-import { Star, ThumbsUp } from "lucide-react";
+import { Icons } from "@gnd/ui/icons";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Button } from "@gnd/ui/button";
 import { Progress } from "@gnd/ui/progress";
@@ -43,7 +43,7 @@ export function ProductReviews({
             </div>
             <div className="flex items-center justify-center mt-2">
               {[...Array(5)].map((_, i) => (
-                <Star
+                <Icons.Star
                   key={i}
                   className={`h-5 w-5 ${
                     i < Math.floor(averageRating)
@@ -62,7 +62,7 @@ export function ProductReviews({
             {[5, 4, 3, 2, 1].map((rating) => (
               <div key={rating} className="flex items-center space-x-2">
                 <span className="text-sm w-3">{rating}</span>
-                <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                <Icons.Star className="h-4 w-4 text-yellow-400 fill-current" />
                 <Progress
                   value={(ratingDistribution[rating] / totalReviews) * 100}
                   className="flex-1 h-2"
@@ -91,7 +91,7 @@ export function ProductReviews({
                   </div>
                   <div className="flex items-center mt-1">
                     {[...Array(5)].map((_, i) => (
-                      <Star
+                      <Icons.Star
                         key={i}
                         className={`h-4 w-4 ${
                           i < review.rating
@@ -111,7 +111,7 @@ export function ProductReviews({
               <p className="text-gray-700 mb-3">{review.content}</p>
 
               <Button variant="ghost" size="sm" className="text-gray-600">
-                <ThumbsUp className="h-4 w-4 mr-1" />
+                <Icons.ThumbsUp className="h-4 w-4 mr-1" />
                 Helpful ({review.helpful})
               </Button>
             </div>

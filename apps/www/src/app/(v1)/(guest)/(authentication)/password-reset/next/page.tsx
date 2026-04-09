@@ -1,8 +1,8 @@
+import { Icons } from "@gnd/ui/icons";
 import { ResetPasswordStep2Form } from "@/components/_v1/forms/reset-password-form-step2";
 import { Shell } from "@/components/_v1/shells/shell";
 import Link from "@/components/link";
 import { env } from "@/env.mjs";
-import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 
 import PageShell from "@/components/page-shell";
@@ -32,7 +32,7 @@ export default function ResetPasswordStep2Page() {
 								href="/signin"
 								className="inline-flex items-center text-sm text-primary underline-offset-4 transition-colors hover:underline"
 							>
-								<ArrowLeft className="mr-2 inline-flex w-4" /> Sign In
+								<Icons.ArrowLeft className="mr-2 inline-flex w-4" /> Sign In
 							</Link>
 						</div>
 						<CardTitle className="text-2xl">Reset password</CardTitle>

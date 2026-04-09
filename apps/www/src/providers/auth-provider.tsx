@@ -1,5 +1,6 @@
-// app/providers/auth-provider.tsx
 "use client";
+
+// app/providers/auth-provider.tsx
 
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";

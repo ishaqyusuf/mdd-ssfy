@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@gnd/ui/button";
 import { Label } from "@gnd/ui/label";
@@ -21,7 +23,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@gnd/ui/dialog";
-import { Calculator, CheckCircle2, Trash2, X } from "lucide-react";
 import type { NewSalesFormLineItem } from "../schema";
 import {
     deriveDoorSizeCandidates,
@@ -714,7 +715,7 @@ export function DoorSizeVariantDialog(props: DoorSizeVariantDialogProps) {
                                                 )
                                             }
                                         >
-                                            <Trash2 className="mr-2 size-4" />
+                                            <Icons.Trash2 className="mr-2 size-4" />
                                             Remove
                                         </Button>
                                     </div>
@@ -938,7 +939,7 @@ export function DoorSizeVariantDialog(props: DoorSizeVariantDialogProps) {
                                                                 }
                                                                 disabled={group.rules.length <= 1}
                                                             >
-                                                                <Trash2 className="size-4" />
+                                                                <Icons.Trash2 className="size-4" />
                                                             </Button>
                                                         </div>
                                                     </div>
@@ -1598,7 +1599,7 @@ export function MouldingCalculatorDialog(props: MouldingCalculatorDialogProps) {
                         onClick={() => props.onOpenChange(false)}
                         className="text-muted-foreground transition-colors hover:text-foreground"
                     >
-                        <X size={24} />
+                        <Icons.X size={24} />
                     </button>
                 </div>
 
@@ -1631,7 +1632,7 @@ export function MouldingCalculatorDialog(props: MouldingCalculatorDialogProps) {
 
                     <section className="space-y-4">
                         <div className="flex items-center gap-2">
-                            <Calculator size={16} className="text-primary" />
+                            <Icons.Calculator size={16} className="text-primary" />
                             <h3 className="text-sm font-bold uppercase tracking-wide text-foreground">
                                 Product Specs
                             </h3>
@@ -1682,7 +1683,7 @@ export function MouldingCalculatorDialog(props: MouldingCalculatorDialogProps) {
                     <section className="space-y-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <Trash2 size={16} className="text-primary" />
+                                <Icons.Trash2 size={16} className="text-primary" />
                                 <h3 className="text-sm font-bold uppercase tracking-wide text-foreground">
                                     Waste Factor
                                 </h3>
@@ -1708,7 +1709,7 @@ export function MouldingCalculatorDialog(props: MouldingCalculatorDialogProps) {
 
                     <section className="rounded-xl border border-border bg-muted/30 p-5">
                         <div className="mb-4 flex items-center gap-2">
-                            <CheckCircle2 size={16} className="text-primary" />
+                            <Icons.CheckCircle2 size={16} className="text-primary" />
                             <h3 className="text-sm font-bold uppercase tracking-wide text-foreground">
                                 Results
                             </h3>
@@ -1786,7 +1787,7 @@ export function MouldingCalculatorDialog(props: MouldingCalculatorDialogProps) {
                         }}
                         className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90"
                     >
-                        <CheckCircle2 size={20} />
+                        <Icons.CheckCircle2 size={20} />
                         Apply to Invoice
                     </button>
                     <p className="mt-4 text-center text-[11px] text-muted-foreground">

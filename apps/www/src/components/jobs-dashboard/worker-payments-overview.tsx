@@ -1,15 +1,11 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { useQuery } from "@gnd/ui/tanstack";
-import {
-	ArrowRight,
-	BadgeDollarSign,
-	CalendarClock,
-	Wallet,
-} from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 import {
@@ -51,17 +47,17 @@ export function WorkerPaymentsOverview() {
 		<div className="grid gap-6">
 			<div className="grid gap-4 md:grid-cols-3">
 				<PaymentCard
-					icon={Wallet}
+					icon={Icons.Wallet}
 					label="This Month Earnings"
 					value={formatCurrency(earningAnalytics?.earning)}
 				/>
 				<PaymentCard
-					icon={BadgeDollarSign}
+					icon={Icons.BadgeDollarSign}
 					label="Paid Jobs"
 					value={String(jobAnalytics?.paid || 0)}
 				/>
 				<PaymentCard
-					icon={CalendarClock}
+					icon={Icons.CalendarClock}
 					label="Awaiting Payment"
 					value={String(jobAnalytics?.pendingPayments || 0)}
 				/>
@@ -105,7 +101,7 @@ export function WorkerPaymentsOverview() {
 										Open your jobs list to check approval and payment status.
 									</p>
 								</div>
-								<ArrowRight className="h-4 w-4 text-muted-foreground" />
+								<Icons.ArrowRight className="h-4 w-4 text-muted-foreground" />
 							</Link>
 						</Button>
 						<p className="text-sm text-muted-foreground">

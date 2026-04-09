@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import Link from "@/components/link";
 import { Avatar } from "@/components/avatar";
 import { SendSalesReminder } from "@/components/send-sales-reminder";
@@ -9,7 +11,6 @@ import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { useTRPC } from "@/trpc/client";
 import { formatCurrency } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { Clock3, Plus, Truck, Wallet } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 
 import { Badge } from "@gnd/ui/badge";
@@ -67,7 +68,7 @@ export function GeneralTab({ setCustomerName }: Props) {
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">
-                <Wallet className="h-4 w-4 text-muted-foreground" />
+                <Icons.Wallet className="h-4 w-4 text-muted-foreground" />
                 {overviewQuery.isPending ? (
                   <Skeleton className="h-8 w-28 rounded-md" />
                 ) : (
@@ -85,7 +86,7 @@ export function GeneralTab({ setCustomerName }: Props) {
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">
-                <Wallet className="h-4 w-4 text-muted-foreground" />
+                <Icons.Wallet className="h-4 w-4 text-muted-foreground" />
                 {overviewQuery.isPending ? (
                   <Skeleton className="h-8 w-28 rounded-md" />
                 ) : (
@@ -112,28 +113,28 @@ export function GeneralTab({ setCustomerName }: Props) {
               title="Pending payment orders"
               value={data?.general.pendingPaymentOrders?.length || 0}
               isPending={overviewQuery.isPending}
-              icon={<Wallet className="size-4 text-amber-600" />}
+              icon={<Icons.Wallet className="size-4 text-amber-600" />}
               description={formatCurrency.format(data?.general.pendingPayment || 0)}
             />
             <AnalyticsCard
               title="Pending delivery orders"
               value={data?.general.pendingDeliveryOrders?.length || 0}
               isPending={overviewQuery.isPending}
-              icon={<Truck className="size-4 text-sky-600" />}
+              icon={<Icons.Truck className="size-4 text-sky-600" />}
               description="Open delivery work"
             />
             <AnalyticsCard
               title="Sales orders"
               value={data?.general.totalSalesCount || 0}
               isPending={overviewQuery.isPending}
-              icon={<Clock3 className="size-4 text-emerald-600" />}
+              icon={<Icons.Clock3 className="size-4 text-emerald-600" />}
               description={formatCurrency.format(data?.general.totalSalesValue || 0)}
             />
             <AnalyticsCard
               title="Quotes"
               value={data?.general.totalQuotesCount || 0}
               isPending={overviewQuery.isPending}
-              icon={<Clock3 className="size-4 text-violet-600" />}
+              icon={<Icons.Clock3 className="size-4 text-violet-600" />}
               description={formatCurrency.format(data?.general.totalQuotesValue || 0)}
             />
           </div>
@@ -201,7 +202,7 @@ export function GeneralTab({ setCustomerName }: Props) {
               disabled={!data?.general.pendingPaymentOrders?.length}
               variant="outline"
             >
-              <Wallet className="mr-2 size-4" />
+              <Icons.Wallet className="mr-2 size-4" />
               Send payment reminder
             </Button>
           </SendSalesReminder>
@@ -210,18 +211,18 @@ export function GeneralTab({ setCustomerName }: Props) {
             variant="outline"
             onClick={() => query.setParams({ tab: "transactions" })}
           >
-            <Clock3 className="mr-2 size-4" />
+            <Icons.Clock3 className="mr-2 size-4" />
             View transactions
           </Button>
           <Button asChild className="w-full justify-start" variant="outline">
             <Link href="/sales-book/create-quote">
-              <Plus className="mr-2 size-4" />
+              <Icons.Plus className="mr-2 size-4" />
               Create new quote
             </Link>
           </Button>
           <Button asChild className="w-full justify-start">
             <Link href="/sales-book/create-order">
-              <Plus className="mr-2 size-4" />
+              <Icons.Plus className="mr-2 size-4" />
               Create new sales
             </Link>
           </Button>

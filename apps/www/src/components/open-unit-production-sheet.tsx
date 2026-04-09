@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useUnitProductionParams } from "@/hooks/use-unit-productions-params";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
@@ -7,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@gnd/ui/sheet";
 import { formatDate } from "@gnd/utils/dayjs";
-import { CircleCheck, Clock3, FolderKanban, Hammer, Warehouse } from "lucide-react";
 
 function tone(status?: string, overdue?: boolean) {
   if (overdue) return "border-red-200 bg-red-50 text-red-700";
@@ -62,19 +63,19 @@ function OverviewContent({ id }: { id: number }) {
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-slate-600">
             <p className="flex items-center gap-2">
-              <FolderKanban className="size-4 text-slate-400" />
+              <Icons.FolderKanban className="size-4 text-slate-400" />
               <span>{data.project?.title || "No project"}</span>
             </p>
             <p className="flex items-center gap-2">
-              <Warehouse className="size-4 text-slate-400" />
+              <Icons.Warehouse className="size-4 text-slate-400" />
               <span>{data.home?.lotBlock || "No lot/block"}</span>
             </p>
             <p className="flex items-center gap-2">
-              <Hammer className="size-4 text-slate-400" />
+              <Icons.Hammer className="size-4 text-slate-400" />
               <span>{data.home?.modelName || "No model"}</span>
             </p>
             <p className="flex items-center gap-2">
-              <Clock3 className="size-4 text-slate-400" />
+              <Icons.Clock3 className="size-4 text-slate-400" />
               <span>
                 Due {data.productionDueDate ? formatDate(data.productionDueDate) : "Not set"}
               </span>
@@ -124,7 +125,7 @@ function OverviewContent({ id }: { id: number }) {
               className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-3"
             >
               <div className="flex items-center gap-2">
-                <CircleCheck className="size-4 text-slate-400" />
+                <Icons.CircleCheck className="size-4 text-slate-400" />
                 <span className="text-sm font-medium text-slate-800">{event.label}</span>
               </div>
               <span className="text-sm text-slate-500">

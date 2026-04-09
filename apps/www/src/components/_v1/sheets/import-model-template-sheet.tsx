@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import React, { useEffect, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import Link from "@/components/link";
@@ -10,7 +12,6 @@ import { transformCommunityTemplate } from "@/lib/community/community-template";
 import { closeModal, openModal } from "@/lib/modal";
 import { cn, labelValue } from "@/lib/utils";
 import { IJobPayment } from "@/types/hrm";
-import { ExternalLink, Import } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@gnd/ui/button";
@@ -161,7 +162,7 @@ export default function ImportModelTemplateSheet({
                                                                         t.modelName
                                                                     }
                                                                 </PrimaryCellContent>
-                                                                <ExternalLink />
+                                                                <Icons.ExternalLink />
                                                             </span>
 
                                                             <SecondaryCellContent>
@@ -263,7 +264,7 @@ function ImportButton({ data, _import }) {
                     variant="outline"
                     className="flex h-8  data-[state=open]:bg-muted"
                 >
-                    <Import className="mr-2 h-4 w-4" />
+                    <Icons.Import className="mr-2 h-4 w-4" />
                     <span className="">Import</span>
                 </Button>
             </DropdownMenuTrigger>

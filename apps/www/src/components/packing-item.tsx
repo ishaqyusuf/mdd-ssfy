@@ -1,9 +1,9 @@
+import { Icons } from "@gnd/ui/icons";
 import { usePacking, usePackingItem } from "@/hooks/use-sales-packing";
 import { Button } from "@gnd/ui/button";
 import { Card } from "@gnd/ui/card";
 import { cn } from "@gnd/ui/cn";
 import { hasQty } from "@gnd/utils/sales";
-import { Package } from "lucide-react";
 import { QtyLabel } from "./qty-label";
 
 export function PackingItem({}) {
@@ -91,7 +91,7 @@ export function PackingItem({}) {
                             )}
                             // onClick={onInitializePacking}
                         >
-                            <Package className="h-4 w-4" />
+                            <Icons.Package className="h-4 w-4" />
                             <span>Pack</span>
                         </Button>
                     )}

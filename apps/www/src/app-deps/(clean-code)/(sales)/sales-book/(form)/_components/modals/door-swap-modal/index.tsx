@@ -1,5 +1,5 @@
+import { Icons } from "@gnd/ui/icons";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, EyeOff, Search } from "lucide-react";
 import Modal from "@/components/common/modal";
 import { _modal } from "@/components/common/modal/provider";
 import { toast } from "sonner";
@@ -632,7 +632,7 @@ export function DoorSwapModal({ door, itemStepUid }) {
                     <ScrollArea className="h-[75vh]">
                         <div className="space-y-4">
                             <div className="flex items-center gap-2 px-1 text-sm text-muted-foreground">
-                                <EyeOff className="size-4" />
+                                <Icons.EyeOff className="size-4" />
                                 <span>Out of current configuration</span>
                             </div>
                             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3">
@@ -740,7 +740,7 @@ export function DoorSwapModal({ door, itemStepUid }) {
                                 variant="outline"
                                 onClick={() => setView("doors")}
                             >
-                                <ArrowLeft className="mr-2 size-4" />
+                                <Icons.ArrowLeft className="mr-2 size-4" />
                                 Back
                             </Button>
                             <Button type="button" onClick={handleProceed}>
@@ -913,7 +913,7 @@ function MissingStepSelectionsModal({ itemUid }: { itemUid: string }) {
                                 {activeStep.title}
                             </Label>
                             <div className="relative">
-                                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <Icons.Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                                 <input
                                     value={query}
                                     onChange={(event) => setQuery(event.target.value)}
@@ -946,7 +946,7 @@ function MissingStepSelectionsModal({ itemUid }: { itemUid: string }) {
                         onClick={goToPrev}
                         disabled={activeIndex <= 0}
                     >
-                        <ChevronLeft className="mr-2 size-4" />
+                        <Icons.ChevronLeft className="mr-2 size-4" />
                     </Button>
                     <Button
                         type="button"
@@ -954,14 +954,14 @@ function MissingStepSelectionsModal({ itemUid }: { itemUid: string }) {
                         onClick={goToNext}
                         disabled={activeIndex >= steps.length - 1}
                     >
-                        <ChevronRight className="mr-2 size-4" />
+                        <Icons.ChevronRight className="mr-2 size-4" />
                     </Button>
                     <div className="flex-1" />
                     <Button type="button" variant="ghost" onClick={skipCurrent}>
                         Skip
                     </Button>
                     <Button type="button" onClick={handleDone}>
-                        <Check className="mr-2 size-4" />
+                        <Icons.Check className="mr-2 size-4" />
                         Done
                     </Button>
                 </div>

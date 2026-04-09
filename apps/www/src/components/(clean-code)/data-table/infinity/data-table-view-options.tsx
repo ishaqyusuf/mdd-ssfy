@@ -1,10 +1,11 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useMemo, useState } from "react";
 
 import { cn } from "@/lib/utils";
 import type { Table } from "@tanstack/react-table";
-import { Check, GripVertical, Settings2 } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
 import {
@@ -61,7 +62,7 @@ export function DataTableViewOptions<TData>({
                     aria-expanded={open}
                     className="h-9 w-9"
                 >
-                    <Settings2 className="h-4 w-4" />
+                    <Icons.Settings2 className="h-4 w-4" />
                     <span className="sr-only">View</span>
                 </Button>
             </PopoverTrigger>
@@ -112,7 +113,7 @@ export function DataTableViewOptions<TData>({
                                                         : "opacity-50 [&_svg]:invisible",
                                                 )}
                                             >
-                                                <Check
+                                                <Icons.Check
                                                     className={cn("h-4 w-4")}
                                                 />
                                             </div>
@@ -126,7 +127,7 @@ export function DataTableViewOptions<TData>({
                                                     size="icon"
                                                     className="ml-auto size-5 text-muted-foreground hover:text-foreground focus:bg-muted focus:text-foreground"
                                                 >
-                                                    <GripVertical
+                                                    <Icons.GripVertical
                                                         className="size-4"
                                                         aria-hidden="true"
                                                     />

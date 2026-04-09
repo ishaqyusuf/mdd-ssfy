@@ -38,7 +38,6 @@ import NumberFlow from "@number-flow/react";
 import { SalesPrintModes } from "@sales/constants";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { addDays } from "date-fns";
-import { Calculator } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import React, { Suspense, useEffect, useState, useTransition } from "react";
 import z from "zod";
@@ -537,7 +536,7 @@ function Content(props: Props & { setOpened }) {
                         <div className="flex-1"></div>
                         {editPrice ? (
                             <>
-                                <Menu Icon={Calculator}>
+                                <Menu Icon={Icons.Calculator}>
                                     {percentageList.map((p) => (
                                         <Menu.Item onClick={(e) => {}} key={p}>
                                             {p} %

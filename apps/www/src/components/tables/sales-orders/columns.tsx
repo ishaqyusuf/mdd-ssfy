@@ -1,4 +1,5 @@
 "use client";
+
 import * as React from "react";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
@@ -11,8 +12,6 @@ import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { buttonVariants } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
-
-import { Check, ExternalLink, StickyNote } from "lucide-react";
 import { InvoiceColumn } from "./column.invoice";
 import { cells } from "@gnd/ui/custom/data-table/cells";
 import { Item } from "@gnd/ui/namespace";
@@ -181,7 +180,7 @@ export const columns2: ColumnDef<SalesOrderItem>[] = [
                 )}
                 {!item.noteCount || (
                     <Badge className="p-1 h-5" variant="secondary">
-                        <StickyNote className="w-3 mr-1" />
+                        <Icons.StickyNote className="w-3 mr-1" />
                         <span className="">{item.noteCount}</span>
                     </Badge>
                 )}
@@ -279,7 +278,7 @@ export const columns: ColumnDef<SalesOrderItem>[] = [
                 )}
                 {!item.noteCount || (
                     <Badge className="p-1 h-5" variant="secondary">
-                        <StickyNote className="w-3 mr-1" />
+                        <Icons.StickyNote className="w-3 mr-1" />
                         <span className="">{item.noteCount}</span>
                     </Badge>
                 )}
@@ -681,7 +680,7 @@ function Actions({ item }: { item: SalesOrderItem }) {
                 <SuperAdminGuard>
                     <SalesMenu.Sub>
                         <SalesMenu.SubTrigger className="whitespace-nowrap">
-                            <ExternalLink className="mr-2 size-4 text-muted-foreground/70" />
+                            <Icons.ExternalLink className="mr-2 size-4 text-muted-foreground/70" />
                             <span className="whitespace-nowrap">
                                 Open overview
                             </span>
@@ -717,7 +716,7 @@ function Actions({ item }: { item: SalesOrderItem }) {
                 </SuperAdminGuard>
                 <SalesMenu.Sub>
                     <SalesMenu.SubTrigger>
-                        <Check className="mr-2 size-4 text-muted-foreground/70" />
+                        <Icons.Check className="mr-2 size-4 text-muted-foreground/70" />
                         Mark as
                     </SalesMenu.SubTrigger>
                     <SalesMenu.SubContent>
@@ -728,7 +727,7 @@ function Actions({ item }: { item: SalesOrderItem }) {
                                 triggerProductionComplete();
                             }}
                         >
-                            <Check className="mr-2 size-4 text-muted-foreground/70" />
+                            <Icons.Check className="mr-2 size-4 text-muted-foreground/70" />
                             Production Complete
                         </SalesMenu.Item>
                         <SalesMenu.Item
@@ -754,7 +753,7 @@ function Actions({ item }: { item: SalesOrderItem }) {
                                 setFulfillmentModalOpen(true);
                             }}
                         >
-                            <Check className="mr-2 size-4 text-muted-foreground/70" />
+                            <Icons.Check className="mr-2 size-4 text-muted-foreground/70" />
                             Fulfillment Complete
                         </SalesMenu.Item>
                     </SalesMenu.SubContent>
@@ -831,7 +830,7 @@ function ItemCard({ item }: ItemProps) {
                                 className="p-1 h-5 text-xs"
                                 variant="secondary"
                             >
-                                <StickyNote className="w-3 mr-1" />
+                                <Icons.StickyNote className="w-3 mr-1" />
                                 <span>{item.noteCount}</span>
                             </Badge>
                         )}

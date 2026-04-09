@@ -1,10 +1,11 @@
 "use client";
+
+import { Icons } from "@gnd/ui/icons";
 import { useSalesDashboardParams } from "@/hooks/use-sales-dashboard-params";
 import { useTRPC } from "@/trpc/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useQuery } from "@gnd/ui/tanstack";
-import { DollarSign, CreditCard, List, Activity } from "lucide-react";
 
 export function SalesKpiWidgets() {
     const { params } = useSalesDashboardParams();
@@ -24,7 +25,7 @@ export function SalesKpiWidgets() {
                             <CardTitle className="text-sm font-medium">
                                 <Skeleton className="h-[20px] w-24"></Skeleton>
                             </CardTitle>
-                            <CreditCard className="h-4 w-4 text-muted-foreground" />
+                            <Icons.CreditCard className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <Skeleton className="h-[32px] w-24"></Skeleton>
@@ -42,7 +43,7 @@ export function SalesKpiWidgets() {
                     <CardTitle className="text-sm font-medium">
                         Total Sales
                     </CardTitle>
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <Icons.DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">
@@ -55,7 +56,7 @@ export function SalesKpiWidgets() {
                     <CardTitle className="text-sm font-medium">
                         Amount Due
                     </CardTitle>
-                    <Activity className="h-4 w-4 text-muted-foreground" />
+                    <Icons.Activity className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">
@@ -68,7 +69,7 @@ export function SalesKpiWidgets() {
                     <CardTitle className="text-sm font-medium">
                         New Sales
                     </CardTitle>
-                    <CreditCard className="h-4 w-4 text-muted-foreground" />
+                    <Icons.CreditCard className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">+{data?.newSales}</div>
@@ -79,7 +80,7 @@ export function SalesKpiWidgets() {
                     <CardTitle className="text-sm font-medium">
                         New Quotes
                     </CardTitle>
-                    <List className="h-4 w-4 text-muted-foreground" />
+                    <Icons.List className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">+{data?.newQuotes}</div>

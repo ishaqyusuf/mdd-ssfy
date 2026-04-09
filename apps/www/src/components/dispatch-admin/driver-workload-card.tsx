@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { Avatar } from "@/components/avatar";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 import { useTRPC } from "@/trpc/client";
@@ -9,7 +11,6 @@ import { cn } from "@gnd/ui/cn";
 import { Progress } from "@gnd/ui/custom/progress";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useSuspenseQuery } from "@gnd/ui/tanstack";
-import { Users } from "lucide-react";
 
 function WorkloadBadge({ count }: { count: number }) {
 	const variant =
@@ -62,7 +63,7 @@ export function DriverWorkloadCard() {
 		<Card>
 			<CardHeader className="pb-3">
 				<CardTitle className="text-sm font-medium flex items-center gap-2">
-					<Users size={16} />
+					<Icons.Users size={16} />
 					Driver Workload
 					{(filters.driversId?.length ?? 0) > 0 && (
 						<button

@@ -1,10 +1,11 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useMutation, useSuspenseQuery } from "@gnd/ui/tanstack";
 import { _trpc } from "./static-trpc";
 import { Card } from "@gnd/ui/card";
 import { Alert, AlertDescription } from "@gnd/ui/alert";
-import { AlertCircle, CheckCircle2, Clock, Loader2 } from "lucide-react";
 import { Button } from "@gnd/ui/button";
 import { useEffect, useMemo } from "react";
 
@@ -154,7 +155,7 @@ export function SquareTokenCheckout(props: Props) {
             <div className="flex items-center justify-center">
                 <div className="relative">
                     <div className="absolute inset-0 bg-green-500 rounded-full opacity-20 scale-150 animate-pulse" />
-                    <CheckCircle2 className="w-16 h-16 text-green-600 dark:text-green-400 relative" />
+                    <Icons.CheckCircle2 className="w-16 h-16 text-green-600 dark:text-green-400 relative" />
                 </div>
             </div>
 
@@ -207,7 +208,7 @@ export function SquareTokenCheckout(props: Props) {
                 >
                     {isProcessing ? (
                         <span className="flex items-center gap-2">
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <Icons.Loader2 className="w-4 h-4 animate-spin" />
                             Processing...
                         </span>
                     ) : (
@@ -227,7 +228,7 @@ function ExpiredToken({ merchantName, handleRequestToken }) {
             <div className="flex items-center justify-center">
                 <div className="relative">
                     <div className="absolute inset-0 bg-amber-500 rounded-full opacity-20 scale-150 animate-pulse" />
-                    <Clock className="w-16 h-16 text-amber-600 dark:text-amber-400 relative" />
+                    <Icons.Clock className="w-16 h-16 text-amber-600 dark:text-amber-400 relative" />
                 </div>
             </div>
 
@@ -241,7 +242,7 @@ function ExpiredToken({ merchantName, handleRequestToken }) {
             </div>
 
             <Alert className="border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950">
-                <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <Icons.AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                 <AlertDescription className="text-amber-800 dark:text-amber-200">
                     Payment tokens expire after 1 hour. Please request a new
                     token to continue.
@@ -297,7 +298,7 @@ function FailedVerification({ handleRetry, handleContactSupport }) {
             <div className="flex items-center justify-center">
                 <div className="relative">
                     <div className="absolute inset-0 bg-red-500 rounded-full opacity-20 scale-150 animate-pulse" />
-                    <AlertCircle className="w-16 h-16 text-red-600 dark:text-red-400 relative" />
+                    <Icons.AlertCircle className="w-16 h-16 text-red-600 dark:text-red-400 relative" />
                 </div>
             </div>
 
@@ -346,7 +347,7 @@ function InvalidToken({ handleContactSupport }) {
             <div className="flex items-center justify-center">
                 <div className="relative">
                     <div className="absolute inset-0 bg-red-500 rounded-full opacity-20 scale-150 animate-pulse" />
-                    <AlertCircle className="w-16 h-16 text-red-600 dark:text-red-400 relative" />
+                    <Icons.AlertCircle className="w-16 h-16 text-red-600 dark:text-red-400 relative" />
                 </div>
             </div>
 
@@ -360,7 +361,7 @@ function InvalidToken({ handleContactSupport }) {
             </div>
 
             <Alert className="border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950">
-                <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                <Icons.AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
                 <AlertDescription className="text-red-800 dark:text-red-200">
                     This token cannot be used for payment. Please verify the
                     token and try again.

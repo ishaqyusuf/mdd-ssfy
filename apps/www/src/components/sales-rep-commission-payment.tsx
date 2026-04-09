@@ -1,4 +1,5 @@
-import { Download } from "lucide-react";
+import { Icons } from "@gnd/ui/icons";
+
 
 import { Button } from "@gnd/ui/button";
 import {
@@ -92,7 +93,7 @@ export default function CommissionPayments() {
                                     <TableCell>{payment.amount}</TableCell>
                                     <TableCell className="text-right">
                                         <Button variant="ghost" size="icon">
-                                            <Download className="h-4 w-4" />
+                                            <Icons.Download className="h-4 w-4" />
                                             <span className="sr-only">
                                                 Download receipt
                                             </span>

@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { Avatar } from "@/components/avatar";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -9,15 +10,6 @@ import {
 	CardTitle,
 } from "@gnd/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
-import {
-	Building,
-	Calendar,
-	DollarSign,
-	FileText,
-	Mail,
-	MapPin,
-	Phone,
-} from "lucide-react";
 
 export default function CustomerProfile() {
 	return (
@@ -45,27 +37,27 @@ export default function CustomerProfile() {
 
 						<div className="space-y-3">
 							<div className="flex items-center gap-2">
-								<Building className="h-4 w-4 text-muted-foreground" />
+								<Icons.Building className="h-4 w-4 text-muted-foreground" />
 								<span className="text-sm">Technology Industry</span>
 							</div>
 							<div className="flex items-center gap-2">
-								<Mail className="h-4 w-4 text-muted-foreground" />
+								<Icons.Mail className="h-4 w-4 text-muted-foreground" />
 								<span className="text-sm">contact@acmecorp.com</span>
 							</div>
 							<div className="flex items-center gap-2">
-								<Phone className="h-4 w-4 text-muted-foreground" />
+								<Icons.Phone className="h-4 w-4 text-muted-foreground" />
 								<span className="text-sm">+1 (555) 123-4567</span>
 							</div>
 							<div className="flex items-center gap-2">
-								<MapPin className="h-4 w-4 text-muted-foreground" />
+								<Icons.MapPin className="h-4 w-4 text-muted-foreground" />
 								<span className="text-sm">123 Business Ave, New York, NY</span>
 							</div>
 							<div className="flex items-center gap-2">
-								<Calendar className="h-4 w-4 text-muted-foreground" />
+								<Icons.Calendar className="h-4 w-4 text-muted-foreground" />
 								<span className="text-sm">Client since: Jan 2020</span>
 							</div>
 							<div className="flex items-center gap-2">
-								<DollarSign className="h-4 w-4 text-muted-foreground" />
+								<Icons.DollarSign className="h-4 w-4 text-muted-foreground" />
 								<span className="text-sm">Total Revenue: $145,000</span>
 							</div>
 						</div>
@@ -125,7 +117,7 @@ export default function CustomerProfile() {
 											className="flex items-center justify-between rounded-lg border p-4"
 										>
 											<div className="flex items-center gap-3">
-												<FileText className="h-8 w-8 text-muted-foreground" />
+												<Icons.FileText className="h-8 w-8 text-muted-foreground" />
 												<div>
 													<h4 className="font-medium">
 														Annual Support Contract

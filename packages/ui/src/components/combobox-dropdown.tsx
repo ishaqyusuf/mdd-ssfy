@@ -1,8 +1,9 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import * as React from "react";
 import { CommandList } from "cmdk";
-import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "../utils";
 import { Button } from "./button";
 import {
@@ -155,7 +156,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
                     renderListItem({ isChecked, item })
                   ) : (
                     <>
-                      <Check
+                      <Icons.Check
                         className={cn(
                           "mr-2 h-4 w-4",
                           isChecked ? "opacity-100" : "opacity-0",
@@ -226,7 +227,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
                 (placeholder ?? "Select item...")
               )}
             </span>
-            <ChevronsUpDown className="absolute right-2 size-4 opacity-50" />
+            <Icons.ChevronsUpDown className="absolute right-2 size-4 opacity-50" />
           </Button>
         )}
       </PopoverTrigger>

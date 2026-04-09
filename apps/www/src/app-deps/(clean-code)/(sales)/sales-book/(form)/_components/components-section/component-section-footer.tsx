@@ -5,7 +5,6 @@ import { Icons } from "@/components/_v1/icons";
 import { Menu } from "@gnd/ui/custom/menu";
 import { _modal } from "@/components/common/modal/provider";
 import { cn } from "@/lib/utils";
-import { BoxSelect, Folder } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
 
@@ -108,7 +107,7 @@ export function ComponentSectionFooter({ ctx }: { ctx: UseStepContext }) {
                             <SearchBar ctx={ctx} />
                             <Menu Icon={Icons.menu}>
                                 <Menu.Item
-                                    Icon={Folder}
+                                    Icon={Icons.Folder}
                                     SubMenu={ctx.tabs?.map((tb) => (
                                         <Menu.Item
                                             key={tb.tab}
@@ -129,7 +128,7 @@ export function ComponentSectionFooter({ ctx }: { ctx: UseStepContext }) {
                                 </Menu.Item>
                                 <Menu.Item
                                     onClick={() => ctx.selectAll()}
-                                    Icon={BoxSelect}
+                                    Icon={Icons.BoxSelect}
                                 >
                                     Select All
                                 </Menu.Item>

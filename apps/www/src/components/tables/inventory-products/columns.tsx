@@ -14,7 +14,6 @@ import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { imageUrl } from "@gnd/utils";
-import { Eye, Package } from "lucide-react";
 
 export type Item =
     RouterOutputs["inventories"]["inventoryProducts"]["data"][number];
@@ -107,7 +106,7 @@ export const columns: ColumnDef<Item>[] = [
             return (
                 <div className="flex gap-2">
                     <Button variant="ghost" size="sm">
-                        <Eye className="w-4 h-4" />
+                        <Icons.Eye className="w-4 h-4" />
                     </Button>
                     <Button
                         variant="ghost"
@@ -144,7 +143,7 @@ function ProductCell({ item: product }: { item: Item }) {
                     />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                        <Package className="w-6 h-6 text-gray-400" />
+                        <Icons.Package className="w-6 h-6 text-gray-400" />
                     </div>
                 )}
             </div>

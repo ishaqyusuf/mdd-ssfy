@@ -1,7 +1,6 @@
 "use client";
 
 import { Command as CommandPrimitive } from "cmdk";
-import { Loader2 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { cn } from "../utils";
 import {
@@ -117,7 +116,7 @@ export const Combobox = ({
         />
 
         {isLoading && (
-          <Loader2 className="w-[16px] h-[16px] absolute right-2 animate-spin text-dark-gray" />
+          <Icons.Loader2 className="w-[16px] h-[16px] absolute right-2 animate-spin text-dark-gray" />
         )}
 
         {!isLoading && selected && onRemove && (

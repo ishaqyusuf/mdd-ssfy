@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { openLink } from "@/lib/open-link";
 import { useTRPC } from "@/trpc/client";
@@ -14,14 +16,6 @@ import {
 	DialogTitle,
 } from "@gnd/ui/dialog";
 import { useMutation, useQuery } from "@gnd/ui/tanstack";
-import {
-	AlertTriangle,
-	CheckCircle2,
-	Loader2,
-	Printer,
-	Send,
-	Wrench,
-} from "lucide-react";
 import {
 	type ReactNode,
 	createContext,
@@ -55,11 +49,11 @@ function StepRow(props: {
 		<div className="flex items-start gap-3 rounded-xl border px-3 py-3">
 			<div className="mt-0.5">
 				{props.status === "loading" ? (
-					<Loader2 className="size-4 animate-spin text-blue-600" />
+					<Icons.Loader2 className="size-4 animate-spin text-blue-600" />
 				) : props.status === "done" ? (
-					<CheckCircle2 className="size-4 text-emerald-600" />
+					<Icons.CheckCircle2 className="size-4 text-emerald-600" />
 				) : props.status === "error" ? (
-					<AlertTriangle className="size-4 text-amber-600" />
+					<Icons.AlertTriangle className="size-4 text-amber-600" />
 				) : (
 					<div className="size-4 rounded-full border border-slate-300" />
 				)}
@@ -301,7 +295,7 @@ export function ProjectUnitsPrintFlowProvider(props: { children: ReactNode }) {
 									variant="outline"
 									onClick={() => void handleConfirmPrint()}
 								>
-									<Printer className="mr-2 size-4" />
+									<Icons.Printer className="mr-2 size-4" />
 									Print
 								</Button>
 								<Button
@@ -314,7 +308,7 @@ export function ProjectUnitsPrintFlowProvider(props: { children: ReactNode }) {
 										).length === 0
 									}
 								>
-									<Send className="mr-2 size-4" />
+									<Icons.Send className="mr-2 size-4" />
 									Production
 								</Button>
 							</>
@@ -359,7 +353,7 @@ export function ProjectUnitsPrintFlowProvider(props: { children: ReactNode }) {
 											});
 										}}
 									>
-										<Wrench className="mr-2 size-4" />
+										<Icons.Wrench className="mr-2 size-4" />
 										Open Setup
 									</Button>
 								</div>

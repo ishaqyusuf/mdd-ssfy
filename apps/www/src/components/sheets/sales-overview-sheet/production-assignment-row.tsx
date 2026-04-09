@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import {
     createContext as createContextBase,
     useContext as useContextBase,
@@ -12,7 +13,6 @@ import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { formatDate } from "@/lib/use-day";
 import { cn } from "@/lib/utils";
 import createContextFactory from "@/utils/context-factory";
-import { CheckCircle, ClipboardList, Clock, Send } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 
 import { Badge } from "@gnd/ui/badge";
@@ -165,7 +165,7 @@ function Content() {
                                     ctx.openSubmitForm && "hidden"
                                 )}
                             >
-                                <Send className="mr-2 h-4 w-4" />
+                                <Icons.Send className="mr-2 h-4 w-4" />
                                 Submit
                             </Button>
                         </div>
@@ -180,11 +180,11 @@ function Content() {
                         }
                     >
                         {assignment.status === "completed" ? (
-                            <CheckCircle className="mr-1 h-3 w-3" />
+                            <Icons.CheckCircle className="mr-1 h-3 w-3" />
                         ) : assignment.status === "in progress" ? (
-                            <Clock className="mr-1 h-3 w-3" />
+                            <Icons.Clock className="mr-1 h-3 w-3" />
                         ) : (
-                            <ClipboardList className="mr-1 h-3 w-3" />
+                            <Icons.ClipboardList className="mr-1 h-3 w-3" />
                         )}
                         {assignment.status?.replace("-", " ")}
                     </Badge>

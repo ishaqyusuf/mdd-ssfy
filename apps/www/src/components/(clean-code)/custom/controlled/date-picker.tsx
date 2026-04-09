@@ -1,10 +1,11 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import * as React from "react";
 import { useDataSkeleton } from "@/hooks/use-data-skeleton";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
 import { ControllerProps, FieldPath, FieldValues } from "react-hook-form";
 
 import { Button } from "@gnd/ui/button";
@@ -76,7 +77,7 @@ export function DatePicker<
                                                 {placeholder || "Pick a date"}
                                             </span>
                                         )}
-                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        <Icons.Calendar className="ml-auto h-4 w-4 opacity-50" />
                                     </Button>
                                 )}
                             </FormControl>

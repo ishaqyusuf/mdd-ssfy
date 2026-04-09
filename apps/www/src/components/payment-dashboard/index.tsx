@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
@@ -14,14 +16,6 @@ import {
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useQuery } from "@gnd/ui/tanstack";
 import { format } from "date-fns";
-import {
-	ArrowRight,
-	BadgeCheck,
-	CreditCard,
-	ReceiptText,
-	ShieldCheck,
-	Wallet,
-} from "lucide-react";
 import Link from "next/link";
 
 function formatCurrency(value?: number | null) {
@@ -77,13 +71,13 @@ export function PaymentDashboard() {
 								className="min-w-[180px]"
 							>
 								<Link href="/contractors/jobs/payments">
-									<ReceiptText data-icon="inline-start" />
+									<Icons.ReceiptText data-icon="inline-start" />
 									View payouts
 								</Link>
 							</Button>
 							<Button asChild size="lg" className="min-w-[220px]">
 								<Link href="/contractors/jobs/payment-portal">
-									<CreditCard data-icon="inline-start" />
+									<Icons.CreditCard data-icon="inline-start" />
 									Open payment portal
 								</Link>
 							</Button>
@@ -92,25 +86,25 @@ export function PaymentDashboard() {
 
 					<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
 						<MetricCard
-							icon={Wallet}
+							icon={Icons.Wallet}
 							label="Pending bill"
 							value={formatCurrency(data?.summary.pendingBill)}
 							isPending={isPending}
 						/>
 						<MetricCard
-							icon={BadgeCheck}
+							icon={Icons.BadgeCheck}
 							label="Ready to pay"
 							value={String(data?.summary.readyToPayCount || 0)}
 							isPending={isPending}
 						/>
 						<MetricCard
-							icon={ReceiptText}
+							icon={Icons.ReceiptText}
 							label="Pending review"
 							value={String(data?.summary.pendingReviewCount || 0)}
 							isPending={isPending}
 						/>
 						<MetricCard
-							icon={CreditCard}
+							icon={Icons.CreditCard}
 							label="This month payouts"
 							value={formatCurrency(data?.summary.currentMonthAmount)}
 							isPending={isPending}
@@ -185,7 +179,7 @@ export function PaymentDashboard() {
 												href={`/contractors/jobs/payment-portal?contractorId=${contractor.id}`}
 											>
 												Open portal
-												<ArrowRight data-icon="inline-end" />
+												<Icons.ArrowRight data-icon="inline-end" />
 											</Link>
 										</Button>
 									</div>
@@ -205,17 +199,17 @@ export function PaymentDashboard() {
 						</CardHeader>
 						<CardContent className="grid gap-3">
 							<ChecklistItem
-								icon={ShieldCheck}
+								icon={Icons.ShieldCheck}
 								title="Check insurance"
 								description="See missing, pending, expired, and approved insurance before you pay."
 							/>
 							<ChecklistItem
-								icon={ReceiptText}
+								icon={Icons.ReceiptText}
 								title="Review jobs"
 								description="Mark only the jobs you want in the batch and open overview before paying."
 							/>
 							<ChecklistItem
-								icon={CreditCard}
+								icon={Icons.CreditCard}
 								title="Finalize payout"
 								description="Apply adjustment or discount, choose payment method, add check number, and save."
 							/>
@@ -272,7 +266,7 @@ export function PaymentDashboard() {
 							)}
 							<Button asChild variant="outline" className="w-full" size="lg">
 								<Link href="/contractors/jobs/payments">
-									<ReceiptText data-icon="inline-start" />
+									<Icons.ReceiptText data-icon="inline-start" />
 									View all payouts
 								</Link>
 							</Button>

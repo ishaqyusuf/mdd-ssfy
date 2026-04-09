@@ -14,7 +14,6 @@ import { dispatchSlice } from "@/store/slicers";
 import { ExtendedHome } from "@/types/community";
 import { TableShellProps } from "@/types/data-table";
 import { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, Printer, View } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@gnd/ui/button";
@@ -203,7 +202,7 @@ export default function HomesTableShell<T>({
                                 variant="outline"
                                 className="flex h-8 w-8 p-0 data-[state=open]:bg-muted"
                             >
-                                <MoreHorizontal className="h-4 w-4" />
+                                <Icons.MoreHorizontal className="h-4 w-4" />
                                 <span className="sr-only">Open Menu</span>
                             </Button>
                         </DropdownMenuTrigger>
@@ -272,7 +271,7 @@ export default function HomesTableShell<T>({
                                     });
                                 }}
                             >
-                                <Printer className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
+                                <Icons.Printer className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
                                 Print
                             </DropdownMenuItem>
                             <DeleteRowAction

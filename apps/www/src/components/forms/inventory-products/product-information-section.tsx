@@ -1,5 +1,5 @@
+import { Icons } from "@gnd/ui/icons";
 import { useInventoryForm } from "./form-context";
-import { DollarSign, Eye, EyeOff, Package } from "lucide-react";
 import { Progress } from "@gnd/ui/custom/progress";
 import {
     AccordionContent,
@@ -51,20 +51,20 @@ export function ProductInformationSection({}) {
         <AccordionItem value="general">
             <AccordionTrigger className="">
                 <div className="flex gap-4 items-center">
-                    <Package className="size-4" />
+                    <Icons.Package className="size-4" />
                     <span>Product Information</span>
                     <Progress>
                         <Progress.Status>{status || "draft"}</Progress.Status>
                     </Progress>
                     {!stockMonitor || (
                         <Badge variant="outline" className="gap-1">
-                            <EyeOff className="h-3 w-3" />
+                            <Icons.EyeOff className="h-3 w-3" />
                             Stock Unmonitored
                         </Badge>
                     )}
                     {!isPriceEnabled && (
                         <Badge variant="outline" className="gap-1">
-                            <DollarSign className="h-3 w-3" />
+                            <Icons.DollarSign className="h-3 w-3" />
                             Price Disabled
                         </Badge>
                     )}
@@ -124,12 +124,12 @@ export function ProductInformationSection({}) {
                                     >
                                         {stockMonitor ? (
                                             <>
-                                                <Eye className="size-4" />
+                                                <Icons.Eye className="size-4" />
                                                 <span>Stock Monitored</span>
                                             </>
                                         ) : (
                                             <>
-                                                <EyeOff className="size-4" />
+                                                <Icons.EyeOff className="size-4" />
                                                 <span>Stock Unmonitored</span>
                                             </>
                                         )}
@@ -164,14 +164,14 @@ export function ProductInformationSection({}) {
                                             >
                                                 {primaryStoreFront ? (
                                                     <>
-                                                        <Eye className="size-4" />
+                                                        <Icons.Eye className="size-4" />
                                                         <span>
                                                             Primary Store Front
                                                         </span>
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <EyeOff className="size-4" />
+                                                        <Icons.EyeOff className="size-4" />
                                                         <span>
                                                             Primary Store Front
                                                             Disabled

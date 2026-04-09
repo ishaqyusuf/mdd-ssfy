@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { useJobFormContext } from "@/contexts/job-form-context";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { useJobStepInfo } from "@/hooks/use-job-step-info";
@@ -7,7 +8,6 @@ import type { Button } from "@gnd/ui/button";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { percentageValue, sum } from "@gnd/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2 } from "lucide-react";
 import type React from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
@@ -152,7 +152,7 @@ export function JobSubmitButton({
 					Trigger
 				) : (
 					<div className="flex gap-2 items-center">
-						<CheckCircle2 className="size-4" />
+						<Icons.CheckCircle2 className="size-4" />
 						<span>
 							{isConfigRequestedStatus
 								? "Configuration Requested"

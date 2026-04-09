@@ -1,4 +1,5 @@
 "use client";
+
 import QueryString from "qs";
 
 export function openLink(path, query = null, newTab = false) {

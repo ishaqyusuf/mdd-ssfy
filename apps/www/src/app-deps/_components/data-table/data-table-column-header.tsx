@@ -11,7 +11,6 @@ import {
     DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
-import { EyeOffIcon } from "lucide-react";
 
 interface DataTableColumnHeaderProps<
     TData,
@@ -91,7 +90,7 @@ export function DataTableColumnHeader<TData, TValue>({
                         aria-label="Hide column"
                         onClick={() => column.toggleVisibility(false)}
                     >
-                        <EyeOffIcon
+                        <Icons.EyeOffIcon
                             className="mr-2 h-3.5 w-3.5 text-muted-foreground/70"
                             aria-hidden="true"
                         />

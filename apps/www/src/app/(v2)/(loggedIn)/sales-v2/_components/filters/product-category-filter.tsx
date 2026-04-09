@@ -1,4 +1,5 @@
 "use client";
+
 import { DynamicFilter } from "@/components/_v1/data-table/data-table-dynamic-filter";
 
 import { getDykeCategoriesList } from "../../_actions/dyke-categories-list";

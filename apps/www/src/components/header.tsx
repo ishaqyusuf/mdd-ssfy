@@ -1,4 +1,5 @@
 "use client";
+
 import { SiteNav } from "@gnd/site-nav";
 import { NotificationCenter } from "./notification-center";
 import { OpenSearchButton } from "./search/open-search-button";

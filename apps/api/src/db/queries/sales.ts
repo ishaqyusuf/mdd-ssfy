@@ -3,6 +3,7 @@ import { whereSales } from "@api/prisma-where";
 import { composeQueryData } from "@gnd/utils/query-response";
 import type {
   GetFullSalesDataSchema,
+  SaveOrderProductionGateSchema,
   SalesQueryParamsSchema,
 } from "@api/schemas/sales";
 import type { TRPCContext } from "@api/trpc/init";
@@ -611,4 +612,78 @@ export async function salesOverview(
       },
     },
   });
+}
+
+export async function saveOrderProductionGate(
+  ctx: TRPCContext,
+  input: SaveOrderProductionGateSchema,
+) {
+  const { db, userId } = ctx;
+  const order = await db.salesOrders.findUnique({
+    where: { id: input.salesOrderId },
+    select: {
+      id: true,
+      type: true,
+      prodDueDate: true,
+    },
+  });
+
+  if (!order) throw new Error("Order not found.");
+  if (order.type !== "order") {
+    throw new Error("Production gate can only be set on sales orders.");
+  }
+  if (
+    input.ruleType === "lead_time_before_delivery" &&
+    !order.prodDueDate
+  ) {
+    throw new Error(
+      "Set a production due date before using a lead-time kickoff rule.",
+    );
+  }
+
+  const gate = await db.orderProductionGate.upsert({
+    where: {
+      salesOrderId: input.salesOrderId,
+    },
+    create: {
+      salesOrderId: input.salesOrderId,
+      status: "defined",
+      ruleType: input.ruleType,
+      leadTimeValue:
+        input.ruleType === "lead_time_before_delivery"
+          ? input.leadTimeValue
+          : null,
+      leadTimeUnit:
+        input.ruleType === "lead_time_before_delivery"
+          ? input.leadTimeUnit
+          : null,
+      definedAt: new Date(),
+      definedByUserId: userId,
+    },
+    update: {
+      status: "defined",
+      ruleType: input.ruleType,
+      leadTimeValue:
+        input.ruleType === "lead_time_before_delivery"
+          ? input.leadTimeValue
+          : null,
+      leadTimeUnit:
+        input.ruleType === "lead_time_before_delivery"
+          ? input.leadTimeUnit
+          : null,
+      definedAt: new Date(),
+      definedByUserId: userId,
+      triggeredAt: null,
+    },
+  });
+
+  const sale = await db.salesOrders.findUniqueOrThrow({
+    where: { id: input.salesOrderId },
+    include: SalesListInclude,
+  });
+
+  return {
+    gateId: gate.id,
+    sale: salesOrderDto(sale),
+  };
 }

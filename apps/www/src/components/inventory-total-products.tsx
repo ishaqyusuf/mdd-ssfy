@@ -1,9 +1,10 @@
 "use client";
+
+import { Icons } from "@gnd/ui/icons";
 import { useInventoryFilterParams } from "@/hooks/use-inventory-filter-params";
 import { useTRPC } from "@/trpc/client";
 import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import { InventorySummary } from "./inventory-summary";
-import { Package } from "lucide-react";
 import NumberFlow from "@number-flow/react";
 
 export function InventoryTotalProducts() {
@@ -22,7 +23,7 @@ export function InventoryTotalProducts() {
             className="hidden sm:block text-left"
         >
             <InventorySummary
-                Icon={Package}
+                Icon={Icons.Package}
                 title="Total Products"
                 value={<NumberFlow value={data?.value} />}
                 subtitle={data?.subtitle!}

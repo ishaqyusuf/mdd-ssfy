@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { GuardedOpenJobSheet } from "@/components/guarded-open-job-sheet";
 import { InsuranceWarningBanner } from "@/components/insurance-warning-banner";
 import { useTRPC } from "@/trpc/client";
@@ -11,15 +13,6 @@ import {
 	type InsuranceRequirement,
 	getInsuranceRequirement,
 } from "@gnd/utils/insurance-documents";
-import {
-	ArrowRight,
-	BadgeDollarSign,
-	BriefcaseBusiness,
-	Clock3,
-	ReceiptText,
-	ShieldCheck,
-	TrendingUp,
-} from "lucide-react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useMemo } from "react";
@@ -90,7 +83,7 @@ export function WorkerOverview() {
 
 	const summaryCards = [
 		{
-			icon: BriefcaseBusiness,
+			icon: Icons.BriefcaseBusiness,
 			label: "Completed Jobs",
 			value: String(jobAnalytics?.completed || 0),
 			accent:
@@ -98,7 +91,7 @@ export function WorkerOverview() {
 			iconClass: "bg-sky-500 text-white",
 		},
 		{
-			icon: Clock3,
+			icon: Icons.Clock3,
 			label: "Pending Review",
 			value: String(jobAnalytics?.inProgress || 0),
 			accent:
@@ -106,7 +99,7 @@ export function WorkerOverview() {
 			iconClass: "bg-amber-500 text-white",
 		},
 		{
-			icon: BadgeDollarSign,
+			icon: Icons.BadgeDollarSign,
 			label: "Paid Jobs",
 			value: String(jobAnalytics?.paid || 0),
 			accent:
@@ -210,7 +203,7 @@ export function WorkerOverview() {
 					<CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
 						<div className="space-y-2">
 							<div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-600">
-								<TrendingUp className="h-3.5 w-3.5" />
+								<Icons.TrendingUp className="h-3.5 w-3.5" />
 								Earnings Trend
 							</div>
 							<CardTitle className="text-xl font-semibold text-slate-900">
@@ -283,7 +276,7 @@ export function WorkerOverview() {
 					<Card className="rounded-[28px] border border-slate-200/80 bg-white shadow-lg shadow-slate-200/60">
 						<CardHeader className="pb-3">
 							<CardTitle className="flex items-center gap-2 text-lg text-slate-900">
-								<ReceiptText className="h-5 w-5 text-sky-600" />
+								<Icons.ReceiptText className="h-5 w-5 text-sky-600" />
 								Quick Actions
 							</CardTitle>
 						</CardHeader>
@@ -313,7 +306,7 @@ export function WorkerOverview() {
 						<CardContent className="space-y-4 p-6">
 							<div className="flex items-center gap-3">
 								<div className="flex size-11 items-center justify-center rounded-2xl bg-slate-900 text-white">
-									<ShieldCheck className="h-5 w-5" />
+									<Icons.ShieldCheck className="h-5 w-5" />
 								</div>
 								<div>
 									<p className="text-sm font-semibold text-slate-900">
@@ -373,7 +366,7 @@ function QuickLink({
 					<div
 						className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${accent}`}
 					>
-						<ArrowRight className="h-4 w-4" />
+						<Icons.ArrowRight className="h-4 w-4" />
 					</div>
 				</div>
 			</Link>

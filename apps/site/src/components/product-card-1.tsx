@@ -1,9 +1,10 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import type React from "react";
 
 import { useState } from "react";
-import { Star, ShoppingCart } from "lucide-react";
 import { Button } from "@gnd/ui/button";
 import {
   Card,
@@ -109,7 +110,7 @@ export function ProductCard({ data, onAddToCart }: ProductCardProps) {
           <div className="flex items-center mb-2">
             <div className="flex items-center">
               {[...Array(5)].map((_, i) => (
-                <Star
+                <Icons.Star
                   key={i}
                   className={`h-4 w-4 ${
                     i < Math.floor(rating)
@@ -142,7 +143,7 @@ export function ProductCard({ data, onAddToCart }: ProductCardProps) {
             onClick={handleAddToCart}
             disabled={!isHydrated || isAdding}
           >
-            <ShoppingCart className="h-4 w-4 mr-2" />
+            <Icons.ShoppingCart className="h-4 w-4 mr-2" />
             {isAdding ? "Adding..." : "Add to Cart"}
           </Button>
         </CardFooter>

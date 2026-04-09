@@ -1,6 +1,6 @@
 "use client";
 
-import { Dot, PanelLeft } from "lucide-react";
+import { Icons } from "@gnd/ui/icons";
 
 import {
     DropdownMenu,
@@ -43,7 +43,7 @@ export function SidebarControl({}: {}) {
                                     {getInitials(user.name)}
                                 </AvatarFallback>
                             </Avatar> */}
-                            <PanelLeft className="size-6" />
+                            <Icons.PanelLeft className="size-6" />
                             {/* <ChevronsUpDown className="ml-auto size-4" /> */}
                         </SidebarMenuButton>
                     </DropdownMenuTrigger>
@@ -68,7 +68,7 @@ export function SidebarControl({}: {}) {
                                 }}
                                 key={mode}
                             >
-                                <Dot
+                                <Icons.Dot
                                     className={cn(
                                         "size-6 mr-2",
                                         state != mode?.toLocaleLowerCase() &&

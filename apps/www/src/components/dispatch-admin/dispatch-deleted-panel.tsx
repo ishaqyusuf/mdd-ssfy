@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useState } from "react";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
@@ -14,7 +16,6 @@ import { Button } from "@gnd/ui/button";
 import { Badge } from "@gnd/ui/badge";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { toast } from "@gnd/ui/use-toast";
-import { RotateCcw, Trash2, Calendar, User } from "lucide-react";
 import { format } from "date-fns";
 
 type Props = {
@@ -128,14 +129,14 @@ export function DispatchDeletedPanel({ open, onOpenChange }: Props) {
                                     </div>
                                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
                                         <span className="flex items-center gap-1">
-                                            <User size={11} />{" "}
+                                            <Icons.User size={11} />{" "}
                                             {row.driver?.name ?? "Unassigned"}
                                         </span>
                                         <span className="flex items-center gap-1">
-                                            <Calendar size={11} /> Due {dueDate}
+                                            <Icons.Calendar size={11} /> Due {dueDate}
                                         </span>
                                         <span className="flex items-center gap-1">
-                                            <Trash2
+                                            <Icons.Trash2
                                                 size={11}
                                                 className="text-destructive"
                                             />{" "}
@@ -159,7 +160,7 @@ export function DispatchDeletedPanel({ open, onOpenChange }: Props) {
                                         restore.mutate({ dispatchId: row.id });
                                     }}
                                 >
-                                    <RotateCcw size={13} />
+                                    <Icons.RotateCcw size={13} />
                                     Restore
                                 </Button>
                             </div>

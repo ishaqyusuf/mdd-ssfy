@@ -1,12 +1,13 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { SEPARATOR } from "@/app-deps/(clean-code)/(sales)/_common/utils/contants";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { cn } from "@/lib/utils";
 import { useInfiniteQuery } from "@gnd/ui/tanstack";
 import { formatDistanceToNow } from "date-fns";
-import { LoaderCircle, Search, X } from "lucide-react";
 import type { z } from "zod";
 
 import {
@@ -178,9 +179,9 @@ export function DataTableFilterCommand<TData, TSchema extends z.AnyZodObject>({
                 onClick={() => setOpen(true)}
             >
                 {isLoading ? (
-                    <LoaderCircle className="mr-2 h-4 w-4 shrink-0 animate-spin text-muted-foreground opacity-50 group-hover:text-popover-foreground" />
+                    <Icons.LoaderCircle className="mr-2 h-4 w-4 shrink-0 animate-spin text-muted-foreground opacity-50 group-hover:text-popover-foreground" />
                 ) : (
-                    <Search className="mr-2 h-4 w-4 shrink-0 text-muted-foreground opacity-50 group-hover:text-popover-foreground" />
+                    <Icons.Search className="mr-2 h-4 w-4 shrink-0 text-muted-foreground opacity-50 group-hover:text-popover-foreground" />
                 )}
                 <span className="h-11 w-full max-w-sm truncate py-3 text-left text-sm outline-none disabled:cursor-not-allowed disabled:opacity-50 md:max-w-xl lg:max-w-4xl xl:max-w-5xl">
                     {inputValue.trim() ? (
@@ -554,7 +555,7 @@ export function DataTableFilterCommand<TData, TSchema extends z.AnyZodObject>({
                                                     }}
                                                     className="ml-1 hidden rounded-md p-0.5 hover:bg-background group-aria-[selected=true]:block"
                                                 >
-                                                    <X className="h-4 w-4" />
+                                                    <Icons.X className="h-4 w-4" />
                                                 </button>
                                             </CommandItem>
                                         );

@@ -87,6 +87,8 @@
         "@gnd/utils": "workspace:*",
         "@gorhom/bottom-sheet": "^5.0.5",
         "@hookform/resolvers": "^5.2.2",
+        "@hugeicons/core-free-icons": "^4.1.1",
+        "@hugeicons/react-native": "^1.0.13",
         "@legendapp/list": "^2.0.15",
         "@react-native-async-storage/async-storage": "^2.2.0",
         "@react-navigation/bottom-tabs": "^7.4.0",
@@ -640,6 +642,7 @@
       "version": "0.0.1",
       "dependencies": {
         "@fast-csv/format": "5.0.2",
+        "@gnd/community": "workspace:*",
         "@gnd/db": "workspace:*",
         "@gnd/email": "workspace:*",
         "@gnd/notifications": "workspace:*",
@@ -821,6 +824,8 @@
         "@dnd-kit/utilities": "^3.2.2",
         "@gnd/utils": "workspace:*",
         "@hookform/resolvers": "^5.2.2",
+        "@hugeicons/core-free-icons": "^4.1.1",
+        "@hugeicons/react": "^1.1.6",
         "@mui/icons-material": "^6.1.6",
         "@radix-ui/react-accordion": "^1.2.12",
         "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -1549,6 +1554,12 @@
     "@hono/zod-validator": ["@hono/zod-validator@0.7.6", "", { "peerDependencies": { "hono": ">=3.9.0", "zod": "^3.25.0 || ^4.0.0" } }, "sha512-Io1B6d011Gj1KknV4rXYz4le5+5EubcWEU/speUjuw9XMMIaP3n78yXLhjd2A3PXaXaUwEAluOiAyLqhBEJgsw=="],
 
     "@hookform/resolvers": ["@hookform/resolvers@5.2.2", "", { "dependencies": { "@standard-schema/utils": "^0.3.0" }, "peerDependencies": { "react-hook-form": "^7.55.0" } }, "sha512-A/IxlMLShx3KjV/HeTcTfaMxdwy690+L/ZADoeaTltLx+CVuzkeVIPuybK3jrRfw7YZnmdKsVVHAlEPIAEUNlA=="],
+
+    "@hugeicons/core-free-icons": ["@hugeicons/core-free-icons@4.1.1", "", {}, "sha512-teqIBvPHl90ygIwKyJwTxOH8aNp1X1PjDTcMvLkEwdPxPD+8mssrZ5kXKIAJJFYPsz69a8LYQY0UPid4PAdavg=="],
+
+    "@hugeicons/react": ["@hugeicons/react@1.1.6", "", { "peerDependencies": { "react": ">=16.0.0" } }, "sha512-c2LhXJMAW5wN1pC/smBXG0YPqUON6ceR/ZdXHCjEI9KvB+hjtqYjmzIxok5hAQOeXGz0WtORgCQMzqewFKAZwg=="],
+
+    "@hugeicons/react-native": ["@hugeicons/react-native@1.0.13", "", { "peerDependencies": { "react": ">=16.0.0", "react-native": ">=0.60.0", "react-native-svg": ">=12.0.0" } }, "sha512-C6vA/AHTWSbgeVR93fpfnOKZaijh0RZIW7Ud5Xnh1f5RcV88q3Bn4fqE53k+rcjto6gNylzfs73ksHASgc5tPw=="],
 
     "@humanfs/core": ["@humanfs/core@0.19.1", "", {}, "sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA=="],
 

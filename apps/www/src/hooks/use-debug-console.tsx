@@ -1,6 +1,6 @@
+import { Icons } from "@gnd/ui/icons";
 import { Button } from "@gnd/ui/button";
 import { toast } from "@gnd/ui/use-toast";
-import { Copy, Maximize2 } from "lucide-react";
 import { useEffect } from "react";
 import { openDebugToast } from "@/components/modals/debug-modal";
 import { devMode } from "@gnd/utils";
@@ -39,7 +39,7 @@ export const debugToast = (title: string, data: any) => {
                         size="sm"
                         onClick={() => navigator.clipboard.writeText(formatted)}
                     >
-                        <Copy className="mr-2 h-4 w-4" />
+                        <Icons.Copy className="mr-2 h-4 w-4" />
                         Copy
                     </Button>
                     <Button
@@ -47,7 +47,7 @@ export const debugToast = (title: string, data: any) => {
                         size="sm"
                         onClick={() => openDebugToast?.(title, formatted)}
                     >
-                        <Maximize2 className="mr-2 h-4 w-4" />
+                        <Icons.Maximize2 className="mr-2 h-4 w-4" />
                         Expand
                     </Button>
                 </div>

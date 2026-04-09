@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import {
@@ -14,7 +16,6 @@ import { Label } from "@gnd/ui/label";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { Textarea } from "@gnd/ui/textarea";
 import { toast } from "@gnd/ui/use-toast";
-import { RotateCcw } from "lucide-react";
 import { useState } from "react";
 
 export function ReverseContractorPayoutButton({
@@ -86,7 +87,7 @@ export function ReverseContractorPayoutButton({
 				disabled={mutation.isPending}
 				onClick={() => setOpen(true)}
 			>
-				<RotateCcw className="size-4" />
+				<Icons.RotateCcw className="size-4" />
 				{mutation.isPending ? "Reversing..." : "Reverse Cancel"}
 			</Button>
 

@@ -3,7 +3,6 @@ import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { AlertDialog, Field, InputGroup } from "@gnd/ui/namespace";
 import { Slider } from "@gnd/ui/slider";
-import { Calculator, CheckCircle2, Trash2 } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";
 import { Controller } from "react-hook-form";
 import z from "zod";
@@ -93,7 +92,7 @@ export function MouldingCalculator(props: Props) {
                     variant="secondary"
                     title="Open Calculator"
                 >
-                    <Calculator className="" />
+                    <Icons.Calculator className="" />
                 </Button>
             </AlertDialog.Trigger>
             <AlertDialog.Content size="default">
@@ -246,7 +245,7 @@ export function MouldingCalculator(props: Props) {
                                             <Field>
                                                 <div className="flex justify-between items-center">
                                                     <div className="flex items-center gap-2">
-                                                        <Trash2
+                                                        <Icons.Trash2
                                                             size={16}
                                                             className="text-primary"
                                                         />
@@ -289,7 +288,7 @@ export function MouldingCalculator(props: Props) {
                             {/* Results */}
                             <section className="bg-muted/30 overflow-hidden rounded-xl p-5 border border-border">
                                 <div className="flex items-center gap-2 mb-4">
-                                    <CheckCircle2
+                                    <Icons.CheckCircle2
                                         size={16}
                                         className="text-primary"
                                     />
@@ -356,7 +355,7 @@ export function MouldingCalculator(props: Props) {
                             }}
                             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-4 rounded-xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
                         >
-                            <CheckCircle2 size={20} />
+                            <Icons.CheckCircle2 size={20} />
                             Apply to Invoice
                         </Button>
                         <p className="text-center text-[11px] text-muted-foreground mt-4">

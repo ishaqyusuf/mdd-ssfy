@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { Sidebar } from "@gnd/ui/namespace";
 import { SalesMetaForm, SalesMetaTab } from "./sales-meta-form";
 import { useSidebar } from "@gnd/ui/sidebar";
@@ -7,7 +8,6 @@ import { ComponentProps, useState } from "react";
 import { Button } from "@gnd/ui/button";
 import { _modal } from "@/components/common/modal/provider";
 import FormSettingsModal from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/form-settings-modal";
-import { Settings2 } from "lucide-react";
 import { Sheet, SheetContent } from "@gnd/ui/sheet";
 interface Props extends ComponentProps<typeof Sidebar> {
     opened?: boolean;
@@ -99,7 +99,7 @@ function SalesPanelInner({
                         onClick={() => _modal.openModal(<FormSettingsModal />)}
                         title="Step Settings"
                     >
-                        <Settings2 className="size-4" />
+                        <Icons.Settings2 className="size-4" />
                     </Button>
                 </div>
                 <p className="text-sm font-semibold text-slate-900">

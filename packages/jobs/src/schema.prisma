@@ -670,6 +670,7 @@ model SalesOrders {
     payrolls          Payroll[]
     history           SalesHistory[]
     lineItems         LineItem[]
+    productionGate    OrderProductionGate?
 
     org   Organization? @relation(fields: [orgId], references: [id])
     orgId Int?
@@ -684,6 +685,25 @@ model SalesOrders {
     @@index([prodId])
     @@index([salesRepId])
     @@index([pickupId])
+}
+
+model OrderProductionGate {
+    id              Int                         @unique @default(autoincrement())
+    salesOrderId    Int                         @unique
+    status          OrderProductionGateStatus   @default(missing)
+    ruleType        OrderProductionGateRuleType?
+    leadTimeValue   Int?
+    leadTimeUnit    OrderProductionGateTimeUnit?
+    definedAt       DateTime?                   @db.Timestamp(0)
+    definedByUserId Int?
+    triggeredAt     DateTime?                   @db.Timestamp(0)
+    createdAt       DateTime?                   @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime?                   @updatedAt
+    order           SalesOrders                 @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+    definedBy       Users?                      @relation(fields: [definedByUserId], references: [id])
+
+    @@index([definedByUserId])
+    @@index([status])
 }
 
 model SalesHistory {
@@ -1287,6 +1307,23 @@ model OrderProductionSubmissions {
     @@index([salesOrderId])
     @@index([salesOrderItemId])
     @@index([assignmentId])
+}
+
+enum OrderProductionGateStatus {
+    missing
+    defined
+    triggered
+}
+
+enum OrderProductionGateRuleType {
+    fully_paid
+    half_paid
+    lead_time_before_delivery
+}
+
+enum OrderProductionGateTimeUnit {
+    day
+    week
 }
 
 model DykeSalesShelfItem {
@@ -3128,6 +3165,7 @@ model Users {
     customerTransactions        CustomerTransaction[]
     salesTransactions           SalesPayments[]
     submissions                 OrderProductionSubmissions[]
+    definedProductionGates      OrderProductionGate[]
     salesPayrolls               Payroll[]
     myPayouts                   SalesPayout[]                    @relation(name: "myPayouts")
     salesPayoutsByMe            SalesPayout[]                    @relation(name: "myIssuedPayouts")
@@ -4260,4 +4298,3 @@ model SalesPickup {
 
     @@index([pickupApprovedBy])
 }
-

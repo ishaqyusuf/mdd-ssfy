@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useSalesOrdersV2FilterParams } from "@/hooks/use-sales-orders-v2-filter-params";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
@@ -7,27 +9,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
 import { MaskedRevealValue } from "@/components/masked-reveal-value";
-import {
-  CircleDollarSign,
-  ClipboardList,
-  Receipt,
-  ShieldCheck,
-  TimerReset,
-} from "lucide-react";
 
 const cards = [
   {
     key: "totalOrders",
     title: "Orders",
     subtitle: "Filtered order count.",
-    icon: ClipboardList,
+    icon: Icons.ClipboardList,
     money: false,
   },
   {
     key: "invoiceValue",
     title: "Invoice Value",
     subtitle: "Total invoice amount.",
-    icon: CircleDollarSign,
+    icon: Icons.CircleDollarSign,
     money: true,
     masked: true,
   },
@@ -35,7 +30,7 @@ const cards = [
     key: "outstandingBalance",
     title: "Outstanding",
     subtitle: "Open balance remaining.",
-    icon: Receipt,
+    icon: Icons.Receipt,
     money: true,
     masked: true,
   },
@@ -43,14 +38,14 @@ const cards = [
     key: "paidOrders",
     title: "Paid",
     subtitle: "Orders cleared in full.",
-    icon: ShieldCheck,
+    icon: Icons.ShieldCheck,
     money: false,
   },
   {
     key: "evaluatingOrders",
     title: "Evaluating",
     subtitle: "Still in review.",
-    icon: TimerReset,
+    icon: Icons.TimerReset,
     money: false,
   },
 ] as const;

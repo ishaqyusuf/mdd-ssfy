@@ -1,7 +1,8 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useState, useEffect } from "react";
-import { ArrowLeft, Share2, Truck, Shield, RotateCcw } from "lucide-react";
 import { Footer } from "@/components/footer";
 import { ProductImageGallery } from "@/components/product-image-gallery";
 import { ProductActions } from "@/components/product-actions";
@@ -281,7 +282,7 @@ export default function ProductPage({ params }: ProductPageProps) {
         {/* Back Button */}
         <Link href="/search">
           <Button variant="ghost" className="mb-6">
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <Icons.ArrowLeft className="h-4 w-4 mr-2" />
             Back to Products
           </Button>
         </Link>
@@ -304,7 +305,7 @@ export default function ProductPage({ params }: ProductPageProps) {
                   )}
                 </div>
                 <Button variant="ghost" size="icon">
-                  <Share2 className="h-4 w-4" />
+                  <Icons.Share2 className="h-4 w-4" />
                 </Button>
               </div>
 
@@ -362,17 +363,17 @@ export default function ProductPage({ params }: ProductPageProps) {
             {/* Features */}
             <div className="grid grid-cols-3 gap-4 pt-6 border-t">
               <div className="text-center">
-                <Truck className="h-6 w-6 mx-auto mb-2 text-amber-600" />
+                <Icons.Truck className="h-6 w-6 mx-auto mb-2 text-amber-600" />
                 <div className="text-sm font-medium">Free Delivery</div>
                 <div className="text-xs text-gray-600">Within 50 miles</div>
               </div>
               <div className="text-center">
-                <Shield className="h-6 w-6 mx-auto mb-2 text-amber-600" />
+                <Icons.Shield className="h-6 w-6 mx-auto mb-2 text-amber-600" />
                 <div className="text-sm font-medium">5 Year Warranty</div>
                 <div className="text-xs text-gray-600">Full coverage</div>
               </div>
               <div className="text-center">
-                <RotateCcw className="h-6 w-6 mx-auto mb-2 text-amber-600" />
+                <Icons.RotateCcw className="h-6 w-6 mx-auto mb-2 text-amber-600" />
                 <div className="text-sm font-medium">30 Day Returns</div>
                 <div className="text-xs text-gray-600">Easy returns</div>
               </div>

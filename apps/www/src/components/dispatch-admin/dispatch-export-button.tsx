@@ -1,11 +1,12 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useCallback, useState } from "react";
 import { useTRPC } from "@/trpc/client";
 import { useQueryClient } from "@gnd/ui/tanstack";
 import { Button } from "@gnd/ui/button";
 import { toast } from "@gnd/ui/use-toast";
-import { Download, Loader2 } from "lucide-react";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 
 function toCsv(rows: Record<string, string | number | null | undefined>[]) {
@@ -78,9 +79,9 @@ export function DispatchExportButton() {
             className="gap-1.5"
         >
             {exporting ? (
-                <Loader2 size={14} className="animate-spin" />
+                <Icons.Loader2 size={14} className="animate-spin" />
             ) : (
-                <Download size={14} />
+                <Icons.Download size={14} />
             )}
             Export CSV
         </Button>

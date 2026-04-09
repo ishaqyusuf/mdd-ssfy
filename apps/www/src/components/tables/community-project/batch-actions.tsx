@@ -1,10 +1,11 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { updateProjectArchivedAction } from "@/actions/community/project-actions";
 import { Button } from "@gnd/ui/button";
 import { BatchAction } from "@gnd/ui/custom/data-table/batch-action";
 import { useTable } from "@gnd/ui/data-table";
-import { Archive, CheckCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import type { ItemType } from "./columns";
@@ -60,13 +61,13 @@ export function BatchActions() {
         projectIds={projectIds}
         archived={false}
         label="Mark active"
-        icon={CheckCheck}
+        icon={Icons.CheckCheck}
       />
       <BatchArchiveButton
         projectIds={projectIds}
         archived={true}
         label="Archive"
-        icon={Archive}
+        icon={Icons.Archive}
       />
     </BatchAction>
   );

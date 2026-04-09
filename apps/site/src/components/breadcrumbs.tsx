@@ -1,5 +1,5 @@
+import { Icons } from "@gnd/ui/icons";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
 
 interface BreadcrumbItem {
   label: string;
@@ -29,7 +29,7 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
               </span>
             )}
             {index < items.length - 1 && (
-              <ChevronRight className="rtl:rotate-180 w-4 h-4 text-muted-foreground mx-1" />
+              <Icons.ChevronRight className="rtl:rotate-180 w-4 h-4 text-muted-foreground mx-1" />
             )}
           </li>
         ))}

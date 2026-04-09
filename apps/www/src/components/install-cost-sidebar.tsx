@@ -1,4 +1,5 @@
 "use client";
+
 import {
     BuilderModelInstallsProvider,
     ModelInstallConfigProvider,
@@ -16,7 +17,6 @@ import { AddNewInstallCost } from "./modals/model-install-cost-modal/add-new-ins
 import { InstallConfiguration } from "./modals/model-install-cost-modal/install-configuration";
 import { Sheet, SheetContent } from "@gnd/ui/sheet";
 import { useMediaQuery } from "@gnd/ui/hooks";
-import { AlertTriangle } from "lucide-react";
 import { cn } from "@gnd/ui/cn";
 
 export function InstallCostSidebar() {
@@ -129,7 +129,7 @@ export function InstallCostSidebar() {
                                         {shouldShowModelCostAlert ? (
                                             <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
                                                 <div className="flex items-start gap-3">
-                                                    <AlertTriangle className="mt-0.5 size-5 text-amber-600" />
+                                                    <Icons.AlertTriangle className="mt-0.5 size-5 text-amber-600" />
                                                     <div className="flex-1">
                                                         <p className="font-semibold">
                                                             Builder model is not configured

@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -7,7 +9,6 @@ import { useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
-import { Lock } from "lucide-react";
 
 import { useZodForm } from "@/hooks/use-zod-form";
 import {
@@ -180,7 +181,7 @@ function CreatePasswordForm({ email, id }: { email: string; id: number }) {
               )}
 
               <FormInput
-                PrefixIcon={Lock}
+                PrefixIcon={Icons.Lock}
                 label="Password"
                 control={form.control}
                 name="password"
@@ -188,7 +189,7 @@ function CreatePasswordForm({ email, id }: { email: string; id: number }) {
                 placeholder="Create your password"
               />
               <FormInput
-                PrefixIcon={Lock}
+                PrefixIcon={Icons.Lock}
                 label="Confirm Password"
                 control={form.control}
                 name="confirmPassword"

@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
     useFormDataStore,
@@ -7,7 +8,6 @@ import {
 import { StepHelperClass } from "../../_utils/helpers/zus/step-component-class";
 import { useSticky } from "../../_hooks/use-sticky";
 import { useDebounce } from "@/hooks/use-debounce";
-import { Edit3, EyeOff, Layout } from "lucide-react";
 
 export type UseStepContext = ReturnType<typeof useStepContext>;
 export function useStepContext(stepUid) {
@@ -53,19 +53,19 @@ export function useStepContext(stepUid) {
             {
                 title: "Default Components",
                 count: tabCounts.main,
-                Icon: Layout,
+                Icon: Icons.Layout,
                 tab: "main",
             },
             {
                 title: "Custom Components",
                 count: tabCounts.custom,
-                Icon: Edit3,
+                Icon: Icons.Edit3,
                 tab: "custom",
             },
             {
                 title: "Hidden Components",
                 count: tabCounts.hidden,
-                Icon: EyeOff,
+                Icon: Icons.EyeOff,
                 tab: "hidden",
             },
         ];

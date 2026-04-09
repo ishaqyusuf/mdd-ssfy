@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { reviewEmployeeDocument } from "@/app/(sidebar)/hrm/document-approvals/_actions/review-employee-document";
 import { Avatar } from "@/components/avatar";
 import { Inbox } from "@/components/chat";
@@ -18,7 +20,6 @@ import {
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import { Separator } from "@gnd/ui/separator";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink } from "lucide-react";
 import { useMemo } from "react";
 import { toast } from "sonner";
 
@@ -125,7 +126,7 @@ export function DocumentReviewModal() {
 							{data?.url ? (
 								<Button variant="outline" asChild>
 									<a href={data.url} target="_blank" rel="noreferrer">
-										<ExternalLink className="mr-2 h-4 w-4" />
+										<Icons.ExternalLink className="mr-2 h-4 w-4" />
 										Open Document
 									</a>
 								</Button>

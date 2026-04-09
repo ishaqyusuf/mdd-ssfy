@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { _qc, _trpc } from "@/components/static-trpc";
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { useAuth } from "@/hooks/use-auth";
@@ -9,7 +10,6 @@ import { Input } from "@gnd/ui/input";
 import { Item } from "@gnd/ui/namespace";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { X } from "lucide-react";
 import { toast } from "sonner";
 
 export function AddNewInstallCost() {
@@ -262,7 +262,7 @@ export function AddNewInstallCost() {
                             onClick={resetInlineCreate}
                             aria-label="Cancel create cost"
                         >
-                            <X className="size-4" />
+                            <Icons.X className="size-4" />
                         </Button>
                     </div>
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-12 md:items-end">

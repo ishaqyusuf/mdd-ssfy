@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { createContext, useContext } from "react";
 import { createComponentUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/step-component-use-case";
 import { StepComponentForm } from "@/app/(clean-code)/(sales)/types";
@@ -6,7 +7,6 @@ import FormInput from "@/components/common/controls/form-input";
 import { FileUploader } from "@/components/common/file-uploader";
 import Modal from "@/components/common/modal";
 import { _modal } from "@/components/common/modal/provider";
-import { Image } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -105,7 +105,7 @@ export default function StepComponentFormModal(props: Props) {
                     <div className="flex items-center justify-between">
                         <Label>Image</Label>
                         <Button onClick={ctx.browseImg} size="xs">
-                            <Image className="mr-2 size-4" />
+                            <Icons.Image className="mr-2 size-4" />
                             Images
                         </Button>
                     </div>

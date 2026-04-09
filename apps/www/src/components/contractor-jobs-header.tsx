@@ -1,4 +1,6 @@
 "use client";
+
+import { Icons } from "@gnd/ui/icons";
 import { SearchFilter } from "@gnd/ui/search-filter";
 import { OpenJobSheet } from "./open-contractor-jobs-sheet";
 import { jobFilterParams } from "@/hooks/use-contractor-jobs-filter-params";
@@ -11,7 +13,6 @@ import { useTRPC } from "@/trpc/client";
 import { ButtonGroup } from "@gnd/ui/namespace";
 import { Button } from "@gnd/ui/button";
 import { useJobsKpi } from "@/hooks/use-jobs-kpi";
-import { Layers, PenTool } from "lucide-react";
 import { Badge } from "@gnd/ui/badge";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { NotificationJobInput } from "@notifications/schemas";
@@ -73,7 +74,7 @@ export function JobHeader({}) {
                         });
                     }}
                 >
-                    <Layers className="mr-2 h-4 w-4" />
+                    <Icons.Layers className="mr-2 h-4 w-4" />
                     <span>All Jobs</span>
                     <Badge variant="secondary" className="px-1">
                         {totalJobs}
@@ -89,7 +90,7 @@ export function JobHeader({}) {
                     }}
                     // size="sm"
                 >
-                    <PenTool className="mr-2 h-4 w-4" />
+                    <Icons.PenTool className="mr-2 h-4 w-4" />
                     <span>Custom Jobs</span>
                     <Badge variant="secondary" className="px-1">
                         {totalCustomJobs}

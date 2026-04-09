@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { ColumnDef, PageItemData } from "@/types/type";
 import { _perm } from "@/components/sidebar/links";
 
@@ -9,13 +11,6 @@ import {
     CollapsibleTrigger,
 } from "@gnd/ui/collapsible";
 import { useResolutionCenterParams } from "@/hooks/use-resolution-center-params";
-import {
-    Calendar,
-    ChevronDown,
-    ChevronRight,
-    DollarSign,
-    User,
-} from "lucide-react";
 import { CardHeader, CardTitle } from "@gnd/ui/card";
 import Money from "../_v1/money";
 import { Badge } from "@gnd/ui/badge";
@@ -72,9 +67,9 @@ function Content({ item: sale }: { item: Item }) {
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
                                 {ids.includes(sale.id) ? (
-                                    <ChevronDown className="h-5 w-5" />
+                                    <Icons.ChevronDown className="h-5 w-5" />
                                 ) : (
-                                    <ChevronRight className="h-5 w-5" />
+                                    <Icons.ChevronRight className="h-5 w-5" />
                                 )}
                                 <div>
                                     <CardTitle className="text-lg uppercase">
@@ -112,15 +107,15 @@ function Content({ item: sale }: { item: Item }) {
                                     </CardTitle>
                                     <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
                                         <div className="flex items-center gap-1">
-                                            <User className="h-4 w-4" />
+                                            <Icons.User className="h-4 w-4" />
                                             {sale.salesRep}
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <Calendar className="h-4 w-4" />
+                                            <Icons.Calendar className="h-4 w-4" />
                                             {sale.orderDate}
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <DollarSign className="h-4 w-4" />
+                                            <Icons.DollarSign className="h-4 w-4" />
                                             Total:
                                             <Money value={sale.total} />
                                         </div>

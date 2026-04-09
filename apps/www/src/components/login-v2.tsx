@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { z } from "zod";
-import { Loader2, LockKeyhole, Mail } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
@@ -129,7 +128,7 @@ export function LoginV2() {
 							<div className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:p-8">
 								<div className="mb-8 space-y-2">
 									<div className="flex size-12 items-center justify-center rounded-2xl bg-slate-950 text-white">
-										<LockKeyhole className="size-5" />
+										<Icons.LockKeyhole className="size-5" />
 									</div>
 									<h2 className="text-2xl font-semibold tracking-[-0.03em] text-slate-950">
 										Welcome back
@@ -151,7 +150,7 @@ export function LoginV2() {
 													</FormLabel>
 													<FormControl>
 														<div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-															<Mail className="size-4 text-slate-400" />
+															<Icons.Mail className="size-4 text-slate-400" />
 															<Input
 																{...field}
 																type="email"
@@ -211,7 +210,7 @@ export function LoginV2() {
 													</div>
 													<FormControl>
 														<div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-															<LockKeyhole className="size-4 text-slate-400" />
+															<Icons.LockKeyhole className="size-4 text-slate-400" />
 															<Input
 																{...field}
 																type="password"
@@ -233,7 +232,7 @@ export function LoginV2() {
 										>
 											{isPending ? (
 												<>
-													<Loader2 className="size-4 animate-spin" />
+													<Icons.Loader2 className="size-4 animate-spin" />
 													Signing in
 												</>
 											) : (

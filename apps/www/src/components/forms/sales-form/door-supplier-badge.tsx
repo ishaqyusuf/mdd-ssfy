@@ -6,14 +6,6 @@ import { Icons } from "@gnd/ui/icons";
 import { Label } from "@gnd/ui/label";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useSuspenseQuery } from "@gnd/ui/tanstack";
-import {
-    BadgeDollarSign,
-    CheckCheckIcon,
-    CheckSquare,
-    Factory,
-    Square,
-    Star,
-} from "lucide-react";
 import { Suspense } from "react";
 
 export function DoorSupplierBadge({ itemStepUid }) {
@@ -41,17 +33,17 @@ export function Content({ itemStepUid }) {
     return (
         <>
             <Menu
-                Icon={Factory}
+                Icon={Icons.Factory}
                 label={
                     <span>
                         Supplier: {supplier?.supplierName || "GND MILLWORK"}
                     </span>
                 }
             >
-                <Menu.Item Icon={Star}>Best Price</Menu.Item>
+                <Menu.Item Icon={Icons.Star}>Best Price</Menu.Item>
                 <Menu.Item
                     onClick={(e) => select()}
-                    Icon={!supplier?.supplierUid ? CheckSquare : Square}
+                    Icon={!supplier?.supplierUid ? Icons.CheckSquare : Icons.Square}
                 >
                     GND MILLWORK
                 </Menu.Item>
@@ -60,8 +52,8 @@ export function Content({ itemStepUid }) {
                         onClick={(e) => select(s.uid, s.name)}
                         Icon={
                             supplier?.supplierUid == s?.uid
-                                ? CheckSquare
-                                : Square
+                                ? Icons.CheckSquare
+                                : Icons.Square
                         }
                         key={s.id}
                     >

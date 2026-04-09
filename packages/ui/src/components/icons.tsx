@@ -1,4 +1,6 @@
 import { ArchiveIcon } from "@radix-ui/react-icons";
+import { HugeiconsIcon, type HugeiconsIconProps } from "@hugeicons/react";
+import * as HugeIcons from "@hugeicons/core-free-icons";
 import { FaFacebook, FaInstagram, FaXTwitter } from "react-icons/fa6";
 import { FiGithub } from "react-icons/fi";
 // import { DynamicIcon } from "lucide-react/dynamic";
@@ -133,137 +135,160 @@ import {
   MdTrendingUp,
 } from "react-icons/md";
 import { PiDiscordLogo } from "react-icons/pi";
-import {
-  AlertTriangle,
-  ArrowRight,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  ClipboardCheck,
-  Copy,
-  CreditCard,
-  File,
-  FileText,
-  HelpCircle,
-  Image as media,
-  Laptop,
-  Loader2,
-  LucideProps,
-  Moon,
-  MoreVertical,
-  Pizza,
-  Plus,
-  Settings,
-  SunMedium,
-  Trash,
-  Twitter,
-  User,
-  X,
-  type LucideIcon,
-  EyeOff,
-  Eye,
-  Menu,
-  Pencil,
-  BadgeDollarSign,
-  ClipboardEdit,
-  ShoppingBag,
-  Banknote,
-  Package,
-  Construction,
-  ArrowLeft,
-  BookOpen,
-  Printer,
-  Save,
-  FolderClosed,
-  MoreVerticalIcon,
-  Settings2,
-  LayoutDashboard,
-  Cog,
-  FolderGit2,
-  Home,
-  NewspaperIcon,
-  Pin,
-  Cpu,
-  ClipboardList,
-  LayoutTemplate,
-  Briefcase,
-  Truck,
-  PackageOpen,
-  Merge,
-  Percent,
-  Delete,
-  Mail,
-  Layers,
-  Eraser,
-  Edit2,
-  ArrowUp,
-  ArrowDown,
-  Move,
-  Rocket,
-  Phone,
-  MapPin,
-  Info,
-  Timer,
-  Receipt,
-  Calendar,
-  ChevronDown,
-  ChevronUp,
-  DollarSign,
-  ImageIcon,
-  Send,
-  LineChart,
-  Box,
-  Download,
-  MoreHorizontal,
-  Search,
-  Filter,
-  TrendingUp,
-  TrendingDown,
-  AlertCircle,
-  UserCircle,
-  ShieldIcon,
-  TimerIcon,
-  Users,
-  Flag,
-  Smartphone,
-  Building,
-  CheckCircle,
-  XCircle,
-  Clock,
-  SortDesc,
-  Activity,
-  Monitor,
-  FolderTree,
-  Wrench,
-  PackagePlus,
-  LogOut,
-  BarChart3,
-  Scale,
-  BarChart2,
-  Archive,
-  FileEdit,
-  FileLock,
-  UserRoundPlus,
-  BookTemplate,
-} from "lucide-react";
-
 import { Cross2Icon, DashboardIcon } from "@radix-ui/react-icons";
 
 import { cva, VariantProps } from "class-variance-authority";
 import { cn } from "../utils";
-import { ComponentProps } from "react";
+import type { ComponentProps, ComponentType, ReactNode } from "react";
 
+export type LucideProps = Omit<HugeiconsIconProps, "icon" | "altIcon" | "showAlt"> & {
+  absoluteStrokeWidth?: boolean;
+};
+export type LucideIcon = ComponentType<LucideProps>;
 export type Icon = LucideIcon;
+
+type HugeIconName = string;
+
+function hugeIcon(name: HugeIconName): LucideIcon {
+  return function HugeIconComponent({
+    strokeWidth = 1.8,
+    absoluteStrokeWidth: _absoluteStrokeWidth,
+    size = 24,
+    ...props
+  }: LucideProps) {
+    const icon = (HugeIcons as Record<string, unknown>)[name];
+
+    return (
+      <HugeiconsIcon
+        icon={icon as any}
+        size={typeof size === "number" ? size : Number(size)}
+        strokeWidth={strokeWidth}
+        {...props}
+      />
+    );
+  };
+}
+
+const Activity = hugeIcon("Activity");
+const AlertTriangle = hugeIcon("AlertTriangle");
+const ArrowRight = hugeIcon("ArrowRight");
+const Check = hugeIcon("Check");
+const ChevronLeft = hugeIcon("ArrowLeft01Icon");
+const ChevronRight = hugeIcon("ArrowRight01Icon");
+const ClipboardCheck = hugeIcon("ClipboardCheck");
+const Copy = hugeIcon("Copy");
+const CreditCard = hugeIcon("CreditCard");
+const File = hugeIcon("File");
+const FileText = hugeIcon("File02Icon");
+const HelpCircle = hugeIcon("HelpCircle");
+const media = hugeIcon("Image");
+const Laptop = hugeIcon("Laptop");
+const Loader2 = hugeIcon("Loading03Icon");
+const Moon = hugeIcon("Moon");
+const MoreVertical = hugeIcon("MoreVertical");
+const Pizza = hugeIcon("PizzaSlice");
+const Plus = hugeIcon("Plus");
+const Settings = hugeIcon("Settings");
+const SunMedium = hugeIcon("Sun03Icon");
+const Trash = hugeIcon("Trash");
+const Twitter = hugeIcon("NewTwitter");
+const User = hugeIcon("User");
+const X = hugeIcon("X");
+const EyeOff = hugeIcon("ViewOff");
+const Eye = hugeIcon("View");
+const Menu = hugeIcon("Menu");
+const Pencil = hugeIcon("Pencil");
+const BadgeDollarSign = hugeIcon("BadgeDollarSign");
+const ClipboardEdit = hugeIcon("FileEditIcon");
+const ShoppingBag = hugeIcon("ShoppingBag");
+const Banknote = hugeIcon("Banknote");
+const Package = hugeIcon("PackageIcon");
+const Construction = hugeIcon("Construction");
+const ArrowLeft = hugeIcon("ArrowLeft");
+const BookOpen = hugeIcon("BookOpen");
+const Printer = hugeIcon("Printer");
+const Save = hugeIcon("Save");
+const FolderClosed = hugeIcon("Folder01Icon");
+const MoreVerticalIcon = hugeIcon("MoreVertical");
+const Settings2 = hugeIcon("Settings2");
+const LayoutDashboard = hugeIcon("LayoutDashboard");
+const Cog = hugeIcon("Cog");
+const FolderGit2 = hugeIcon("FolderGitIcon");
+const Home = hugeIcon("House");
+const NewspaperIcon = hugeIcon("Notebook01Icon");
+const Pin = hugeIcon("Pin");
+const Cpu = hugeIcon("Cpu");
+const ClipboardList = hugeIcon("ClipboardList");
+const LayoutTemplate = hugeIcon("LayoutTemplate");
+const Briefcase = hugeIcon("Briefcase");
+const Truck = hugeIcon("Truck");
+const PackageOpen = hugeIcon("PackageOpen");
+const Merge = hugeIcon("GitMergeIcon");
+const Percent = hugeIcon("Percent");
+const Delete = hugeIcon("Delete");
+const Mail = hugeIcon("Mail");
+const Layers = hugeIcon("Layers01Icon");
+const Eraser = hugeIcon("Eraser");
+const Edit2 = hugeIcon("Pencil");
+const ArrowUp = hugeIcon("ArrowUp01Icon");
+const ArrowDown = hugeIcon("ArrowDown01Icon");
+const Move = hugeIcon("Move");
+const Rocket = hugeIcon("Rocket");
+const Phone = hugeIcon("Phone");
+const MapPin = hugeIcon("MapPin");
+const Info = hugeIcon("Info");
+const Timer = hugeIcon("Timer01Icon");
+const Receipt = hugeIcon("Receipt");
+const Calendar = hugeIcon("Calendar");
+const ChevronDown = hugeIcon("ArrowDown01Icon");
+const ChevronUp = hugeIcon("ArrowUp01Icon");
+const DollarSign = hugeIcon("DollarSign");
+const ImageIcon = hugeIcon("Image");
+const Send = hugeIcon("MailSend01Icon");
+const LineChart = hugeIcon("ChartLineData01Icon");
+const Box = hugeIcon("BoxIcon");
+const Download = hugeIcon("Download01Icon");
+const MoreHorizontal = hugeIcon("MoreHorizontal");
+const Search = hugeIcon("Search");
+const Filter = hugeIcon("FilterIcon");
+const TrendingUp = hugeIcon("AnalyticsUpIcon");
+const TrendingDown = hugeIcon("AnalyticsDownIcon");
+const AlertCircle = hugeIcon("AlertCircle");
+const UserCircle = hugeIcon("UserCircle");
+const ShieldIcon = hugeIcon("Shield01Icon");
+const TimerIcon = hugeIcon("Timer01Icon");
+const Users = hugeIcon("Users");
+const Flag = hugeIcon("Flag");
+const Smartphone = hugeIcon("SmartPhone01Icon");
+const Building = hugeIcon("Building");
+const CheckCircle = hugeIcon("CheckmarkCircle01Icon");
+const XCircle = hugeIcon("XCircle");
+const Clock = hugeIcon("Clock");
+const SortDesc = hugeIcon("SortByDown01Icon");
+const Monitor = hugeIcon("ComputerIcon");
+const FolderTree = hugeIcon("FolderTreeIcon");
+const Wrench = hugeIcon("Wrench");
+const PackagePlus = hugeIcon("PackageAddIcon");
+const LogOut = hugeIcon("Logout01Icon");
+const BarChart3 = hugeIcon("AnalyticsUpIcon");
+const Scale = hugeIcon("ScaleIcon");
+const BarChart2 = hugeIcon("Analytics01Icon");
+const Archive = hugeIcon("Archive");
+const FileEdit = hugeIcon("FileEditIcon");
+const FileLock = hugeIcon("FileLockIcon");
+const UserRoundPlus = hugeIcon("UserPlus");
+const BookTemplate = hugeIcon("BookOpen01Icon");
+const CircleDollarSign = hugeIcon("DollarCircleIcon");
 type SVGIconProps = {
   size?: number;
   stroke?: string;
   fill?: string;
   strokeWidth?: number;
   className?: string;
-  children?: React.ReactNode;
+  children?: ReactNode;
   viewBox?: string;
 };
-const SVGIcon: React.FC<SVGIconProps> = ({
+const SVGIcon = ({
   size = 20,
   stroke = "currentColor",
   fill = "currentColor",
@@ -271,7 +296,7 @@ const SVGIcon: React.FC<SVGIconProps> = ({
   className,
   children,
   viewBox,
-}) => {
+}: SVGIconProps) => {
   const intrinsicContentDimension = 20;
   const defaultViewBox = `0 0 ${intrinsicContentDimension} ${intrinsicContentDimension}`;
 
@@ -427,7 +452,7 @@ export const IconsBase = {
     </SVGIcon>
   ),
 };
-export const Icons = {
+const IconsStatic = {
   Overview: (props: any) => (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -973,6 +998,198 @@ export const Icons = {
   UserRoundPlus,
   ...IconsBase,
 };
+const dynamicHugeIconAliases: Partial<Record<string, HugeIconName>> = {
+  Activity: "Activity",
+  ActivityIcon: "Activity",
+  AlertTriangle: "AlertTriangle",
+  ArrowDownIcon: "ArrowDown01Icon",
+  ArrowLeftIcon: "ArrowLeft01Icon",
+  ArrowRightIcon: "ArrowRight01Icon",
+  ArrowUpIcon: "ArrowUp01Icon",
+  ArrowUpRight: "ArrowUpRight01Icon",
+  BadgeCheck: "CheckmarkBadge01Icon",
+  BadgeDollarSign: "BadgeDollarSign",
+  Ban: "Cancel01Icon",
+  BarChart: "Analytics01Icon",
+  Bell: "Notification03Icon",
+  BellIcon: "Notification03Icon",
+  BellRing: "Notification03Icon",
+  BoxSelect: "BoundingBoxIcon",
+  Briefcase: "Briefcase",
+  BriefcaseBusiness: "Briefcase",
+  Building: "Building",
+  Building2: "Building02Icon",
+  Calculator: "Calculator01Icon",
+  CalendarClock: "Calendar03Icon",
+  CalendarDays: "Calendar03Icon",
+  CalendarIcon: "Calendar",
+  Camera: "Camera01Icon",
+  ChartSpline: "ChartLineData01Icon",
+  CheckCheck: "CheckmarkSquare02Icon",
+  CheckCheckIcon: "CheckmarkSquare02Icon",
+  CheckCircle: "CheckmarkCircle01Icon",
+  CheckCircle2: "CheckmarkCircle02Icon",
+  CheckCircle2Icon: "CheckmarkCircle02Icon",
+  CheckCircleIcon: "CheckmarkCircle01Icon",
+  CheckIcon: "Check",
+  CheckSquare: "CheckmarkSquare02Icon",
+  ChevronDownIcon: "ArrowDown01Icon",
+  ChevronLeftIcon: "ArrowLeft01Icon",
+  ChevronRightIcon: "ArrowRight01Icon",
+  ChevronUpIcon: "ArrowUp01Icon",
+  ChevronsLeftIcon: "ArrowLeftDoubleIcon",
+  ChevronsRightIcon: "ArrowRightDoubleIcon",
+  ChevronsUpDown: "ArrowUpDownIcon",
+  CircleCheck: "CheckmarkCircle01Icon",
+  CircleDollarSign: "DollarCircleIcon",
+  Clock3: "Clock03Icon",
+  ClockIcon: "Clock",
+  Cloud: "Cloud",
+  ColumnsIcon: "Columns03Icon",
+  CreditCardIcon: "CreditCard",
+  Database: "Database",
+  DoorOpen: "Door01Icon",
+  Edit2: "Pencil",
+  Edit3: "PencilEdit01Icon",
+  Eye: "View",
+  EyeIcon: "View",
+  EyeOff: "ViewOff",
+  EyeOffIcon: "ViewOff",
+  Factory: "Factory",
+  FileBox: "File01Icon",
+  FileClock: "FileSearchIcon",
+  FileImage: "FileImage",
+  FilePenLine: "FileEditIcon",
+  FileSearch: "FileSearchIcon",
+  FileSpreadsheet: "FileExcelIcon",
+  FolderArchive: "FolderZip",
+  FolderClock: "FolderDetailsReferenceIcon",
+  FolderKanban: "DashboardSquare03Icon",
+  Grid: "Grid",
+  GripIcon: "DragDropHorizontalIcon",
+  GripVertical: "DragDropVerticalIcon",
+  GripVerticalIcon: "DragDropVerticalIcon",
+  Group: "GroupItemsIcon",
+  Hammer: "Hammer",
+  HardHat: "HelmetIcon",
+  Heart: "Favourite",
+  History: "ClockReverseIcon",
+  Home: "House",
+  ImageIcon: "Image",
+  Key: "Key01Icon",
+  Laptop2: "Laptop",
+  Layers: "Layers01Icon",
+  Layers3: "LayersThree01Icon",
+  Layout: "Layout01Icon",
+  LayoutGrid: "DashboardSquare02Icon",
+  LineChart: "ChartLineData01Icon",
+  List: "ListView",
+  ListTodo: "Task01Icon",
+  Loader2: "Loading03Icon",
+  LoaderCircle: "Loading03Icon",
+  LoaderIcon: "Loading03Icon",
+  Lock: "SquareLock01Icon",
+  LockKeyhole: "SquareLock01Icon",
+  LogOut: "Logout01Icon",
+  MailIcon: "Mail01Icon",
+  MapPinIcon: "MapPin",
+  Maximize2: "SquareArrowExpand02Icon",
+  MessageSquare: "Message01Icon",
+  MoonIcon: "Moon",
+  MoreHorizontal: "MoreHorizontal",
+  MoreHorizontalIcon: "MoreHorizontal",
+  MoreVerticalIcon: "MoreVertical",
+  Notebook: "Notebook01Icon",
+  OptionIcon: "SlidersHorizontalIcon",
+  Package2: "Package",
+  PackageOpen: "PackageOpen",
+  PanelLeft: "SidebarLeft01Icon",
+  PanelLeftClose: "SidebarLeftIcon",
+  PanelLeftOpen: "SidebarLeft01Icon",
+  PenTool: "PenTool01Icon",
+  PhoneIcon: "Phone",
+  PlusCircle: "PlusSignCircle",
+  PlusCircleIcon: "PlusSignCircle",
+  PlusIcon: "Plus",
+  Receipt: "Receipt",
+  RefreshCcw: "Refresh",
+  RefreshCw: "Refresh",
+  RotateCcw: "Refresh",
+  Ruler: "Ruler",
+  SearchX: "SearchRemoveIcon",
+  Share2: "Share08Icon",
+  Shield: "Shield01Icon",
+  ShieldAlert: "Shield01Icon",
+  ShieldCheck: "ShieldDoneIcon",
+  ShieldOff: "ShieldBlockIcon",
+  ShieldQuestion: "ShieldQuestionIcon",
+  ShoppingCart: "ShoppingBag",
+  SortAsc: "Sorting01Icon",
+  SortDesc: "SortByDown01Icon",
+  SortDescIcon: "SortByDown01Icon",
+  Sparkles: "SparklesIcon",
+  SquareCheckBig: "CheckmarkSquare02Icon",
+  Star: "Star",
+  StarIcon: "Star",
+  StarOff: "StarOff",
+  StickyNote: "NoteIcon",
+  StopCircle: "StopCircleIcon",
+  SunIcon: "Sun03Icon",
+  Table2: "Table02Icon",
+  TimerOff: "TimerOffIcon",
+  TimerReset: "TimerResetIcon",
+  Trash2: "Trash",
+  TrashIcon: "Trash",
+  TrendingUpIcon: "AnalyticsUpIcon",
+  Undo: "Undo02Icon",
+  Upload: "Upload01Icon",
+  UploadCloud: "Upload01Icon",
+  UploadIcon: "Upload01Icon",
+  User2: "User02Icon",
+  UserCheck: "UserCheck01Icon",
+  UserPlus: "UserAdd01Icon",
+  UserRound: "UserCircle",
+  Variable: "Variable",
+  VariableIcon: "Variable",
+  View: "View",
+  Wallet: "Wallet01Icon",
+  WalletCards: "Wallet02Icon",
+  Warehouse: "Warehouse",
+  XCircle: "CancelCircle",
+};
+
+function resolveDynamicIcon(name: string): LucideIcon {
+  const existing = (IconsStatic as Record<string, LucideIcon | undefined>)[name];
+  if (existing) return existing;
+
+  const hugeAlias = dynamicHugeIconAliases[name];
+  if (hugeAlias) return hugeIcon(hugeAlias);
+
+  const trimmedName = name.replace(/Icon$/, "").replace(/[23]$/, "");
+  const trimmedExisting = (IconsStatic as Record<string, LucideIcon | undefined>)[trimmedName];
+  if (trimmedExisting) return trimmedExisting;
+
+  const trimmedHugeAlias = dynamicHugeIconAliases[trimmedName];
+  if (trimmedHugeAlias) return hugeIcon(trimmedHugeAlias);
+
+  return HelpCircle;
+}
+
+export const Icons = new Proxy(IconsStatic as typeof IconsStatic & Record<string, LucideIcon>, {
+  get(target, prop, receiver) {
+    if (typeof prop !== "string") return Reflect.get(target, prop, receiver);
+    const resolved =
+      Reflect.get(target, prop, receiver) ||
+      resolveDynamicIcon(prop);
+
+    if (resolved && !(prop in target)) {
+      target[prop] = resolved;
+    }
+
+    return resolved;
+  },
+});
+
 export type IconKeys = keyof typeof Icons;
 const iconVariants = cva("", {
   variants: {
@@ -991,7 +1208,7 @@ const iconVariants = cva("", {
     variant: "muted",
   },
 });
-export function Icon({
+function IconImpl({
   name,
   Icon,
   className,
@@ -1001,12 +1218,26 @@ export function Icon({
   className?: string;
   Icon?;
 } & VariantProps<typeof iconVariants>) {
-  let RenderIcon = Icons[name] || Icon;
+  let RenderIcon = (name ? Icons[name] : undefined) || Icon;
   // if (!RenderIcon && name)
   // RenderIcon = (props) => <DynamicIcon name={name} {...props} />;
   if (!RenderIcon) return <>{name}</>;
   return <RenderIcon className={cn("", iconVariants(props), className)} />;
 }
+export const Icon = new Proxy(Object.assign(IconImpl, IconsStatic) as typeof IconImpl & typeof IconsStatic & Record<string, LucideIcon>, {
+  get(target, prop, receiver) {
+    if (typeof prop !== "string") return Reflect.get(target, prop, receiver);
+    const resolved =
+      Reflect.get(target, prop, receiver) ||
+      resolveDynamicIcon(prop);
+
+    if (resolved && !(prop in target)) {
+      target[prop] = resolved;
+    }
+
+    return resolved;
+  },
+});
 export const StatusIcon = ({ status }: { status: string }) => {
   switch (status) {
     case "success":

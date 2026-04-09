@@ -1,6 +1,7 @@
 "use client";
+
+import { Icons } from "@gnd/ui/icons";
 import * as React from "react";
-import { ChevronRightIcon } from "lucide-react";
 import { createPortal } from "react-dom";
 
 interface BreadcrumbsProps {
@@ -10,7 +11,7 @@ interface BreadcrumbsProps {
 }
 
 export function Breadcrumbs({ children, separator }: BreadcrumbsProps) {
-    const SeparatorIcon = separator ?? ChevronRightIcon;
+    const SeparatorIcon = separator ?? Icons.ChevronRightIcon;
     const BreadCrumbElement = document?.getElementById("breadCrumb");
     if (!BreadCrumbElement) return;
     return createPortal(

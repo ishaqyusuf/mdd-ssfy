@@ -10,7 +10,6 @@ import {
     type ActivityTagFilter as SharedActivityTagFilter,
     type ActivityTagFilterNode,
 } from "@notifications/activity-tree";
-import { CheckCircle2 } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
 
 export type ActivityTagFilter = SharedActivityTagFilter;
@@ -77,7 +76,7 @@ function ActivityTreeItem({
         <div className={cn("relative pl-8", depth > 0 && "ml-4")}>
             {isLatest ? (
                 <div className="absolute left-0 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border-4 border-card bg-green-500">
-                    <CheckCircle2 size={12} className="text-white" />
+                    <Icons.CheckCircle2 size={12} className="text-white" />
                 </div>
             ) : (
                 <div className="absolute left-0 top-1 z-10 flex h-6 w-6 items-center justify-center rounded-full border-4 border-card bg-muted">

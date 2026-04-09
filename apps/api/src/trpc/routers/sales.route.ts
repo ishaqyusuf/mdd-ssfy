@@ -2,12 +2,14 @@ import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
 import {
 	getFullSalesDataSchema,
 	inboundQuerySchema,
+	saveOrderProductionGateSchema,
 	salesQueryParamsSchema,
 } from "@api/schemas/sales";
 import {
 	getOrders,
 	getQuotes,
 	getSales,
+	saveOrderProductionGate,
 	sales,
 	startNewSales,
 } from "@api/db/queries/sales";
@@ -211,6 +213,11 @@ export const salesRouter = createTRPCRouter({
 			// const resp = await getSalesLifeCycle(props.ctx, props.input);
 			// return resp;
 			return await getSaleInformation(props.ctx.db, props.input);
+		}),
+	saveOrderProductionGate: protectedProcedure
+		.input(saveOrderProductionGateSchema)
+		.mutation(async (props) => {
+			return saveOrderProductionGate(props.ctx, props.input);
 		}),
 	getOrders: publicProcedure
 		.input(salesQueryParamsSchema)

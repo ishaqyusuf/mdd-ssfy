@@ -1,9 +1,9 @@
+import { Icons } from "@gnd/ui/icons";
 import { usePacking } from "@/hooks/use-sales-packing";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Form } from "@gnd/ui/form";
-import { CheckCircle, X } from "lucide-react";
 import { z } from "zod";
 import FormInput from "./common/controls/form-input";
 import { SubmitButton } from "./submit-button";
@@ -57,11 +57,11 @@ export function DispatchCompleteForm({}) {
                 <CardHeader className="bg-green-50">
                     <div className="flex items-center justify-between">
                         <CardTitle className="text-lg flex items-center gap-2">
-                            <CheckCircle className="h-5 w-5 text-green-600" />
+                            <Icons.CheckCircle className="h-5 w-5 text-green-600" />
                             Complete Dispatch
                         </CardTitle>
                         <Button variant="ghost" size="icon" onClick={onCancel}>
-                            <X className="h-4 w-4" />
+                            <Icons.X className="h-4 w-4" />
                         </Button>
                     </div>
                 </CardHeader>
@@ -85,7 +85,7 @@ export function DispatchCompleteForm({}) {
                                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                                     <div className="flex items-start gap-3">
                                         <div className="bg-amber-100 rounded-full p-1">
-                                            <CheckCircle className="h-4 w-4 text-amber-600" />
+                                            <Icons.CheckCircle className="h-4 w-4 text-amber-600" />
                                         </div>
                                         <div className="flex-1">
                                             <h4 className="text-sm font-medium text-amber-800">

@@ -1,4 +1,5 @@
 "use server";
+
 import { prisma } from "@/db";
 type SalesPrintModes =
     | "production"

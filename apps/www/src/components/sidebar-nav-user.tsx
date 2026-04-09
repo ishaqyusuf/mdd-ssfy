@@ -1,10 +1,11 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { Avatar } from "@/components/avatar";
 import Link from "@/components/link";
 import { useAuth } from "@/hooks/use-auth";
 import { useSidebar } from "@/hooks/use-sidebar";
-import { ChevronsUpDown, LogOut } from "lucide-react";
 import { useRef } from "react";
 
 import { Button } from "@gnd/ui/button";
@@ -46,7 +47,7 @@ export function SidebarNavUser() {
 									<span className="truncate font-semibold">{user.name}</span>
 									<span className="truncate text-xs">{user.email}</span>
 								</div>
-								<ChevronsUpDown className="ml-auto size-4" />
+								<Icons.ChevronsUpDown className="ml-auto size-4" />
 							</>
 						)}
 					</Button>
@@ -97,7 +98,7 @@ export function SidebarNavUser() {
                         <DropdownMenuSeparator /> */}
 					<Link href="/signout">
 						<DropdownMenuItem>
-							<LogOut className="size-4 mr-2" />
+							<Icons.LogOut className="size-4 mr-2" />
 							Log out
 						</DropdownMenuItem>
 					</Link>

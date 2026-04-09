@@ -6,7 +6,6 @@ import { ComboxBox } from "@/components/(clean-code)/custom/controlled/combo-box
 import FormSelect from "@/components/common/controls/form-select";
 import Modal from "@/components/common/modal";
 import { _modal } from "@/components/common/modal/provider";
-import { AlertCircle } from "lucide-react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -131,7 +130,7 @@ export default function ComponentVariantModal({ cls, componentsUid }: Props) {
                 </Form>
                 {ctx.componentsUid?.length > 1 ? (
                     <Alert variant="destructive">
-                        <AlertCircle className="size-4" />
+                        <Icons.AlertCircle className="size-4" />
                         <AlertTitle>Warning</AlertTitle>
                         <AlertDescription>
                             Editing multiple components visibility will override

@@ -1,4 +1,5 @@
 "use client";
+
 import { SearchFilter } from "@gnd/ui/search-filter";
 
 import { notificationChannelFilterParams } from "@/hooks/use-notification-channel-filter-params";

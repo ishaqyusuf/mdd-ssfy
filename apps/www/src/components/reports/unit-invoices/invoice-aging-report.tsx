@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import Money from "@/components/_v1/money";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Skeleton } from "@gnd/ui/skeleton";
@@ -12,41 +14,35 @@ import {
   TableRow,
 } from "@gnd/ui/table";
 import { formatDate } from "@gnd/utils/dayjs";
-import {
-  CalendarClock,
-  CircleDollarSign,
-  FolderClock,
-  ReceiptText,
-} from "lucide-react";
 
 const cards = [
   {
     key: "totalUnits",
     title: "Units",
-    icon: ReceiptText,
+    icon: Icons.ReceiptText,
   },
   {
     key: "totalDue",
     title: "Total Due",
-    icon: CircleDollarSign,
+    icon: Icons.CircleDollarSign,
     money: true,
   },
   {
     key: "totalPaid",
     title: "Total Paid",
-    icon: CircleDollarSign,
+    icon: Icons.CircleDollarSign,
     money: true,
   },
   {
     key: "totalOpenBalance",
     title: "Open Balance",
-    icon: FolderClock,
+    icon: Icons.FolderClock,
     money: true,
   },
   {
     key: "current",
     title: "Current Bucket",
-    icon: CalendarClock,
+    icon: Icons.CalendarClock,
     money: true,
     bucketKey: "current",
   },

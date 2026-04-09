@@ -9,22 +9,6 @@ import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { openLink } from "@/lib/open-link";
 import { salesFormUrl } from "@/utils/sales-utils";
-import {
-    Building,
-    Calendar,
-    CheckCircle2,
-    Clock,
-    ExternalLink,
-    Factory,
-    FileText,
-    Mail,
-    MapPin,
-    Package,
-    CreditCardIcon as PaymentIcon,
-    Phone,
-    User,
-    UserCheck,
-} from "lucide-react";
 
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -113,12 +97,12 @@ export function GeneralTab({}) {
                     <div className="space-y-6">
                         <div>
                             <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                                <User className="h-4 w-4" />
+                                <Icons.User className="h-4 w-4" />
                                 CUSTOMER INFORMATION
                             </h3>
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2">
-                                    <User className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                                    <Icons.User className="mt-0.5 h-4 w-4 text-muted-foreground" />
                                     <div>
                                         <DataSkeleton
                                             className="text-lg font-medium"
@@ -139,7 +123,7 @@ export function GeneralTab({}) {
                                                     className="max-w-[150px]"
                                                     text={saleData?.displayName}
                                                 />
-                                                <ExternalLink className="ml-1 h-4 w-4" />
+                                                <Icons.ExternalLink className="ml-1 h-4 w-4" />
                                             </Button>
                                         </DataSkeleton>
                                         {saleData?.isBusiness && (
@@ -148,7 +132,7 @@ export function GeneralTab({}) {
                                                 placeholder="Business"
                                             >
                                                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                                    <Building className="h-3 w-3" />
+                                                    <Icons.Building className="h-3 w-3" />
                                                     <span>Business</span>
                                                 </div>
                                             </DataSkeleton>
@@ -157,7 +141,7 @@ export function GeneralTab({}) {
                                 </div>
 
                                 <div className="flex items-start gap-2">
-                                    <Phone className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                                    <Icons.Phone className="mt-0.5 h-4 w-4 text-muted-foreground" />
                                     <DataSkeleton
                                         className="text-sm"
                                         placeholder="239-825-2782"
@@ -168,7 +152,7 @@ export function GeneralTab({}) {
 
                                 {saleData?.email && (
                                     <div className="flex items-start gap-2">
-                                        <Mail className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                                        <Icons.Mail className="mt-0.5 h-4 w-4 text-muted-foreground" />
                                         <DataSkeleton
                                             className="text-sm"
                                             placeholder="customer@example.com"
@@ -181,7 +165,7 @@ export function GeneralTab({}) {
                         </div>
                         <div>
                             <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                                <Calendar className="h-4 w-4" />
+                                <Icons.Calendar className="h-4 w-4" />
                                 ORDER DETAILS
                             </h3>
                             <div className="space-y-3">
@@ -215,7 +199,7 @@ export function GeneralTab({}) {
                                                     className="max-w-[150px]"
                                                     text={saleData?.orderId}
                                                 />
-                                                <ExternalLink className="ml-1 h-4 w-4" />
+                                                <Icons.ExternalLink className="ml-1 h-4 w-4" />
                                             </Button>
                                         </DataSkeleton>
                                     </div>
@@ -270,7 +254,7 @@ export function GeneralTab({}) {
 
                         <div>
                             <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                                <UserCheck className="h-4 w-4" />
+                                <Icons.UserCheck className="h-4 w-4" />
                                 SALES REPRESENTATIVE
                             </h3>
                             <DataSkeleton
@@ -289,7 +273,7 @@ export function GeneralTab({}) {
                     <div className="space-y-6">
                         <div className={cn(!isQuote || "hidden")}>
                             <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                                <PaymentIcon className="h-4 w-4" />
+                                <Icons.CreditCardIcon className="h-4 w-4" />
                                 PAYMENT STATUS
                             </h3>
                             <div className="space-y-3">
@@ -317,7 +301,7 @@ export function GeneralTab({}) {
                                 </DataSkeleton>
                                 <div className="grid grid-cols-2 gap-4 pt-2">
                                     <div className="flex items-center gap-2">
-                                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                        <Icons.CheckCircle2 className="h-4 w-4 text-green-500" />
                                         <div>
                                             <p className="text-sm text-muted-foreground">
                                                 Paid
@@ -336,7 +320,7 @@ export function GeneralTab({}) {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Clock className="h-4 w-4 text-amber-500" />
+                                        <Icons.Clock className="h-4 w-4 text-amber-500" />
                                         <div>
                                             <p className="text-sm text-muted-foreground">
                                                 Pending
@@ -409,7 +393,7 @@ export function GeneralTab({}) {
                         )}
                         <div>
                             <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                                <FileText className="h-4 w-4" />
+                                <Icons.FileText className="h-4 w-4" />
                                 INVOICE DETAILS
                             </h3>
                             <Card className="border-border/40">
@@ -444,7 +428,7 @@ export function GeneralTab({}) {
 
                 <div>
                     <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                        <MapPin className="h-4 w-4" />
+                        <Icons.MapPin className="h-4 w-4" />
                         ADDRESSES
                     </h3>
                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -484,7 +468,7 @@ export function GeneralTab({}) {
 
                 <div className={cn(!isQuote || "hidden")}>
                     <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                        <Factory className="h-4 w-4" />
+                        <Icons.Factory className="h-4 w-4" />
                         PRODUCTION STATUS
                     </h3>
                     {saleData?.stats?.prodAssigned?.total === 0 &&
@@ -609,7 +593,7 @@ export function GeneralTab({}) {
 
                 <div className={cn(!isQuote || "hidden")}>
                     <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                        <Package className="h-4 w-4" />
+                        <Icons.Package className="h-4 w-4" />
                         SHIPPING STATUS
                     </h3>
                     <Card className="border-border/40">

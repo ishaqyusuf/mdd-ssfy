@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useCommunityProjectFilterParams } from "@/hooks/use-community-project-filter-params";
 import { useProjectUnitFilterParams } from "@/hooks/use-project-units-filter-params";
 import { useTRPC } from "@/trpc/client";
@@ -9,7 +11,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Item } from "@gnd/ui/namespace";
 import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import { formatDate } from "@gnd/utils/dayjs";
-import { Building2, BriefcaseBusiness, Home, Receipt } from "lucide-react";
 import Link from "next/link";
 import {
   Bar,
@@ -137,25 +138,25 @@ export function CommunityProjectUnitsAnalytics() {
         title="Units"
         value={data.summary.total}
         subtitle="Units in the current filtered workspace"
-        icon={Home}
+        icon={Icons.Home}
       />
       <SummaryMetric
         title="Completed"
         value={data.summary.completed}
         subtitle="Units already completed in production"
-        icon={Receipt}
+        icon={Icons.Receipt}
       />
       <SummaryMetric
         title="Active"
         value={data.summary.active}
         subtitle="Units still moving through production"
-        icon={Building2}
+        icon={Icons.Building2}
       />
       <SummaryMetric
         title="Jobs"
         value={data.summary.jobs}
         subtitle="Installation jobs attached to these units"
-        icon={BriefcaseBusiness}
+        icon={Icons.BriefcaseBusiness}
       />
     </div>
   );
@@ -170,25 +171,25 @@ export function CommunityProjectsAnalyticsCards() {
         title="Projects"
         value={data.summary.total}
         subtitle="Projects in the current filtered workspace"
-        icon={Building2}
+        icon={Icons.Building2}
       />
       <SummaryMetric
         title="Active"
         value={data.summary.active}
         subtitle="Projects currently in active operations"
-        icon={Home}
+        icon={Icons.Home}
       />
       <SummaryMetric
         title="Archived"
         value={data.summary.archived}
         subtitle="Projects already archived from daily work"
-        icon={Receipt}
+        icon={Icons.Receipt}
       />
       <SummaryMetric
         title="Units"
         value={data.summary.units}
         subtitle="Homes attached to the filtered project set"
-        icon={BriefcaseBusiness}
+        icon={Icons.BriefcaseBusiness}
       />
     </div>
   );
@@ -204,25 +205,25 @@ export function CommunityProjectsDashboardTab() {
           title="Projects"
           value={data.summary.total}
           subtitle={`${data.summary.active} active and ${data.summary.archived} archived`}
-          icon={Building2}
+          icon={Icons.Building2}
         />
         <SummaryMetric
           title="Units"
           value={data.summary.units}
           subtitle="Community homes attached to these projects"
-          icon={Home}
+          icon={Icons.Home}
         />
         <SummaryMetric
           title="Jobs"
           value={data.summary.jobs}
           subtitle="Submitted work linked to the project portfolio"
-          icon={BriefcaseBusiness}
+          icon={Icons.BriefcaseBusiness}
         />
         <SummaryMetric
           title="Invoices"
           value={data.summary.invoices}
           subtitle="Invoice records tied to the project portfolio"
-          icon={Receipt}
+          icon={Icons.Receipt}
         />
       </div>
 

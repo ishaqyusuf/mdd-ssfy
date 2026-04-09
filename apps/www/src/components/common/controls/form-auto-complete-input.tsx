@@ -1,9 +1,9 @@
+import { Icons } from "@gnd/ui/icons";
 import { useEffect, useMemo } from "react";
 import AutoComplete, {
     AutoCompleteProps,
 } from "@/components/_v1/common/auto-complete";
 import { cn } from "@/lib/utils";
-import { CheckIcon, ChevronsUpDown } from "lucide-react";
 import {
     ControllerProps,
     FieldPath,

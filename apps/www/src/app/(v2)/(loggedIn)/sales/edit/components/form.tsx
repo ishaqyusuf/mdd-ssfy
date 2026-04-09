@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { SalesFormResponse } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/get-sales-form";
 import { FormProvider, useForm } from "react-hook-form";
 import { InvoiceTable } from "./invoice-table";
@@ -14,7 +16,6 @@ import SalesDetailsSection from "./sales-details-section";
 import SalesAddressSection from "./sales-address-section";
 import RenderForm from "@/_v2/components/common/render-form";
 import { cn } from "@/lib/utils";
-import { Dot } from "lucide-react";
 
 interface Props {
     data: SalesFormResponse;
@@ -106,7 +107,7 @@ export default function EditSalesForm({ data }: Props) {
                                 "inline-flex items-center h-6 leading-none rounded-full px-4  py-0.5"
                             )}
                         >
-                            <Dot className="" />
+                            <Icons.Dot className="" />
                             <span className="text-xs">
                                 {Object.keys(form.formState.dirtyFields).length
                                     ? "unsaved"

@@ -1,10 +1,11 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { DispatchSearchFilter } from "@/components/dispatch-search-filter";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 import { Tabs, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { Button } from "@gnd/ui/button";
-import { ShieldAlert, Trash2, LayoutGrid, Table2 } from "lucide-react";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { useEffect, useState } from "react";
@@ -345,7 +346,7 @@ export function AdminDispatchHeader() {
                             onClick={() => setFilters({ view: "table" })}
                             title="Table view"
                         >
-                            <Table2 size={14} />
+                            <Icons.Table2 size={14} />
                         </Button>
                         <Button
                             variant={currentView === "calendar" ? "secondary" : "ghost"}
@@ -354,7 +355,7 @@ export function AdminDispatchHeader() {
                             onClick={() => setFilters({ view: "calendar" })}
                             title="Calendar view"
                         >
-                            <LayoutGrid size={14} />
+                            <Icons.LayoutGrid size={14} />
                         </Button>
                     </div>
                 </div>
@@ -370,7 +371,7 @@ export function AdminDispatchHeader() {
                                 onClick={() => setDeletedOpen(true)}
                                 className="gap-1.5 text-muted-foreground"
                             >
-                                <Trash2 size={14} />
+                                <Icons.Trash2 size={14} />
                                 Deleted
                             </Button>
                             <Button
@@ -379,7 +380,7 @@ export function AdminDispatchHeader() {
                                 onClick={() => setSweeperOpen(true)}
                                 className="gap-1.5 text-amber-600 border-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950"
                             >
-                                <ShieldAlert size={14} />
+                                <Icons.ShieldAlert size={14} />
                                 Duplicate Sweeper
                             </Button>
                         </>

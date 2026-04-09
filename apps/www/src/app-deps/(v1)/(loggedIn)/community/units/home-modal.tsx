@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import React, { useEffect, useState } from "react";
 
 import { useRouter } from "next/navigation";
@@ -17,7 +19,6 @@ import { _useAsync } from "@/lib/use-async";
 import { getModelNumber } from "@/lib/utils";
 import { homeSchema } from "@/lib/validations/community-validations";
 import { ICommunityTemplate, IHome, IProject } from "@/types/community";
-import { Plus } from "lucide-react";
 import { useFieldArray, useForm } from "react-hook-form";
 
 import { Button } from "@gnd/ui/button";
@@ -270,7 +271,7 @@ export default function HomeModal({ home }: Props) {
                                     variant="secondary"
                                     className="mt-1 h-7 w-full"
                                 >
-                                    <Plus className="mr-2 size-4" />
+                                    <Icons.Plus className="mr-2 size-4" />
                                     <span>Add Task</span>
                                 </Button>
                             )}

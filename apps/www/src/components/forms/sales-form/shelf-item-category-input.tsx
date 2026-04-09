@@ -1,8 +1,8 @@
+import { Icons } from "@gnd/ui/icons";
 import { useState } from "react";
 import { createShelfCategoryAction } from "@/actions/create-shelf-category";
 import { useShelf } from "@/hooks/use-shelf";
 import { useShelfItem } from "@/hooks/use-shelf-item";
-import { ChevronDown } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 
 import {
@@ -129,7 +129,7 @@ export function ShelfItemCategoryInput({}) {
                                 placeholder="Select category..."
                             />
                             <ComboboxTrigger className="absolute right-2 top-3">
-                                <ChevronDown className="h-4 w-4" />
+                                <Icons.ChevronDown className="h-4 w-4" />
                             </ComboboxTrigger>
                         </>
                     )}

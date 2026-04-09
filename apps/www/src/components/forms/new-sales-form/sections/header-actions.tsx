@@ -1,9 +1,10 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import type { SaveStatus } from "../schema";
 import { Button } from "@gnd/ui/button";
 import { Menu } from "@gnd/ui/custom/menu";
-import { MoreHorizontal } from "lucide-react";
 
 interface Props {
     type: "order" | "quote";
@@ -78,7 +79,7 @@ export function HeaderActions(props: Props) {
                     </div>
                 </div>
                 <Menu
-                    Icon={MoreHorizontal}
+                    Icon={Icons.MoreHorizontal}
                     iconClassName="size-4"
                     Trigger={
                         <Button
@@ -87,7 +88,7 @@ export function HeaderActions(props: Props) {
                             className="px-3"
                             disabled={props.isSaving}
                         >
-                            <MoreHorizontal className="size-4" />
+                            <Icons.MoreHorizontal className="size-4" />
                             Actions
                         </Button>
                     }

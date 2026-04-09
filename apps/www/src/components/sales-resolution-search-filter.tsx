@@ -1,4 +1,5 @@
 "use client";
+
 import { SearchFilterProvider } from "@/hooks/use-search-filter";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";

@@ -1,8 +1,8 @@
+import { Icons } from "@gnd/ui/icons";
 import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 import type { InsuranceRequirement } from "@gnd/utils/insurance-documents";
-import { ShieldAlert, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 function getBannerStyles(status: InsuranceRequirement["state"]) {
@@ -10,19 +10,19 @@ function getBannerStyles(status: InsuranceRequirement["state"]) {
 		case "valid":
 			return {
 				className: "border-emerald-200 bg-emerald-50 text-emerald-950",
-				icon: ShieldCheck,
+				icon: Icons.ShieldCheck,
 				title: "Insurance approved",
 			};
 		case "expiring_soon":
 			return {
 				className: "border-amber-200 bg-amber-50 text-amber-950",
-				icon: ShieldAlert,
+				icon: Icons.ShieldAlert,
 				title: "Insurance expiring soon",
 			};
 		default:
 			return {
 				className: "border-red-200 bg-red-50 text-red-950",
-				icon: ShieldAlert,
+				icon: Icons.ShieldAlert,
 				title: "Insurance required",
 			};
 	}

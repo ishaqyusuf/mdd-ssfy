@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 /**
  * SalesMenuPrint — standalone print/PDF menu component.
  *
@@ -20,7 +22,6 @@ import {
 } from "@/lib/quick-print";
 import { DropdownMenu } from "@gnd/ui/namespace";
 import type { PrintMode } from "@gnd/sales/print/types";
-import { FileText, Printer } from "lucide-react";
 
 interface SalesMenuPrintProps {
     salesIds: number[];
@@ -52,7 +53,7 @@ export function SalesMenuPrint({
                     void PRINT_ACTIONS[mode]({ salesIds, v2: true });
                 }}
             >
-                <Printer className="mr-2 size-4 text-muted-foreground/70" />
+                <Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
                 Print
             </DropdownMenu.Item>
         );
@@ -61,7 +62,7 @@ export function SalesMenuPrint({
     return (
         <DropdownMenu.Sub>
             <DropdownMenu.SubTrigger disabled={isDisabled}>
-                <Printer className="mr-2 size-4 text-muted-foreground/70" />
+                <Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
                 Print
             </DropdownMenu.SubTrigger>
             <DropdownMenu.SubContent>
@@ -72,7 +73,7 @@ export function SalesMenuPrint({
                         void PRINT_ACTIONS[mode]({ salesIds, v2: true });
                     }}
                 >
-                    <Printer className="mr-2 size-4 text-muted-foreground/70" />
+                    <Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
                     Print
                 </DropdownMenu.Item>
                 <DropdownMenu.Item
@@ -82,7 +83,7 @@ export function SalesMenuPrint({
                         void PRINT_ACTIONS[mode]({ salesIds, v2: true });
                     }}
                 >
-                    <FileText className="mr-2 size-4 text-muted-foreground/70" />
+                    <Icons.FileText className="mr-2 size-4 text-muted-foreground/70" />
                     PDF
                 </DropdownMenu.Item>
             </DropdownMenu.SubContent>
@@ -155,7 +156,7 @@ export function SalesMenuPrintModes({
                     void printQuote({ salesIds, v2: true });
                 }}
             >
-                <Printer className="mr-2 size-4 text-muted-foreground/70" />
+                <Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
                 Print
                 <V2Badge />
             </DropdownMenu.Item>
@@ -165,7 +166,7 @@ export function SalesMenuPrintModes({
     return (
         <DropdownMenu.Sub>
             <DropdownMenu.SubTrigger disabled={isDisabled}>
-                <Printer className="mr-2 size-4 text-muted-foreground/70" />
+                <Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
                 Print
                 <V2Badge />
             </DropdownMenu.SubTrigger>
@@ -179,7 +180,7 @@ export function SalesMenuPrintModes({
                             void ORDER_MODE_ACTIONS[mode]({ salesIds, v2: true });
                         }}
                     >
-                        <Printer className="mr-2 size-4 text-muted-foreground/70" />
+                        <Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
                         {label}
                     </DropdownMenu.Item>
                 ))}

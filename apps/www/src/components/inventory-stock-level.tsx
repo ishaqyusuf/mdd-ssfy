@@ -1,9 +1,10 @@
 "use client";
+
+import { Icons } from "@gnd/ui/icons";
 import { useInventoryFilterParams } from "@/hooks/use-inventory-filter-params";
 import { useTRPC } from "@/trpc/client";
 import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import { InventorySummary } from "./inventory-summary";
-import { AlertTriangle } from "lucide-react";
 import NumberFlow from "@number-flow/react";
 import { cn } from "@gnd/ui/cn";
 
@@ -23,7 +24,7 @@ export function InventoryStockLevel() {
             className="hidden sm:block text-left"
         >
             <InventorySummary
-                Icon={AlertTriangle}
+                Icon={Icons.AlertTriangle}
                 title="Low Stock"
                 value={
                     <NumberFlow

@@ -26,7 +26,6 @@ import { ScrollArea } from "@gnd/ui/scroll-area";
 import { Sortable, SortableDragHandle, SortableItem } from "@gnd/ui/sortable";
 
 import { Context, useSettings, useSettingsContext } from "./ctx";
-import { GripIcon } from "lucide-react";
 import {
     Accordion,
     AccordionContent,
@@ -217,7 +216,7 @@ function RouteSection({ uid }) {
                                         size="icon"
                                         className="size-4 shrink-0"
                                     >
-                                        <GripIcon
+                                        <Icons.GripIcon
                                             className="size-4"
                                             aria-hidden="true"
                                         />

@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useCallback, useEffect, useState } from "react";
 import { DateFormats, formatDate } from "@/lib/use-day";
 import { cn } from "@/lib/utils";
@@ -9,7 +11,6 @@ import { Button, buttonVariants } from "@gnd/ui/button";
 import { Calendar, CalendarProps } from "@gnd/ui/calendar";
 
 import { Menu } from "../(clean-code)/menu";
-import { CalendarIcon } from "lucide-react";
 import { VariantProps } from "class-variance-authority";
 
 interface Props {
@@ -91,7 +92,7 @@ export function DatePicker({
                             className
                         )}
                     >
-                        {!hideIcon && <CalendarIcon className="mr-2 h-4 w-4" />}
+                        {!hideIcon && <Icons.CalendarIcon className="mr-2 h-4 w-4" />}
                         {range &&
                             (from() ? (
                                 to() ? (

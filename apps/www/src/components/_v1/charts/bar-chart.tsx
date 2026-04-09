@@ -1,4 +1,5 @@
 "use client";
+
 import { BarChartProps } from "@/lib/chart";
 import { formatCurrency } from "@/lib/utils";
 import {

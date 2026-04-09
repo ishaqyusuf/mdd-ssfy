@@ -5,7 +5,6 @@ import { useBuilderParams } from "@/hooks/use-builder-params";
 import { CommunityInstallCostForm } from "../../forms/community-install-cost-form";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { Badge } from "@gnd/ui/badge";
-import { AlertTriangle, DollarSign, Layers } from "lucide-react";
 import { useEffect } from "react";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { BuilderTaskItem } from "./builder-task-item";
@@ -141,7 +140,7 @@ export function ModelInstallCostModal() {
                                 {shouldShowModelCostAlert ? (
                                     <div className="mx-6 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
                                         <div className="flex items-start gap-3">
-                                            <AlertTriangle className="mt-0.5 size-5 text-amber-600" />
+                                            <Icons.AlertTriangle className="mt-0.5 size-5 text-amber-600" />
                                             <div className="flex-1">
                                                 <p className="font-semibold">
                                                     Builder model is not configured
@@ -166,7 +165,7 @@ export function ModelInstallCostModal() {
                                     </div>
                                 ) : null}
                                 <div className="bg-amber-50 hidden dark:bg-amber-900/10 border-b border-amber-100 dark:border-amber-800 px-6 py-3 flex items-start gap-3">
-                                    <AlertTriangle className="text-amber-600 mt-0.5 size-10" />
+                                    <Icons.AlertTriangle className="text-amber-600 mt-0.5 size-10" />
                                     <div>
                                         <p className="font-bold text-amber-800 dark:text-amber-200">
                                             Global Builder Configuration
@@ -199,7 +198,7 @@ export function ModelInstallCostModal() {
                                                 Est. Base Cost
                                             </span>
                                             <span className="text-xl font-black text-foreground flex items-center gap-0.5">
-                                                <DollarSign
+                                                <Icons.DollarSign
                                                     size={14}
                                                     className="text-muted-foreground"
                                                 />

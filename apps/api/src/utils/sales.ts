@@ -190,6 +190,16 @@ export const SalesListInclude = {
   },
   stat: true,
   extraCosts: true,
+  productionGate: {
+    select: {
+      status: true,
+      ruleType: true,
+      leadTimeValue: true,
+      leadTimeUnit: true,
+      definedAt: true,
+      triggeredAt: true,
+    },
+  },
   taxes: {
     select: {
       tax: true,

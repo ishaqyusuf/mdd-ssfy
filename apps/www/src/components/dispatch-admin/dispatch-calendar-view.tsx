@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useTRPC } from "@/trpc/client";
 import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
@@ -15,7 +17,6 @@ import {
     isPast,
     isSameDay,
 } from "date-fns";
-import { ChevronLeft, ChevronRight, Truck, Package, Clock } from "lucide-react";
 import { Button } from "@gnd/ui/button";
 import { useState } from "react";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
@@ -222,7 +223,7 @@ export function DispatchCalendarView() {
                         size="sm"
                         onClick={() => setWeekOffset((w) => w - 1)}
                     >
-                        <ChevronLeft size={14} />
+                        <Icons.ChevronLeft size={14} />
                     </Button>
                     <span className="text-sm font-medium">
                         {format(days[0]!, "MMM d")} –{" "}
@@ -233,7 +234,7 @@ export function DispatchCalendarView() {
                         size="sm"
                         onClick={() => setWeekOffset((w) => w + 1)}
                     >
-                        <ChevronRight size={14} />
+                        <Icons.ChevronRight size={14} />
                     </Button>
                     {weekOffset !== 0 && (
                         <Button
@@ -284,7 +285,7 @@ export function DispatchCalendarView() {
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm flex items-center gap-2">
-                            <Clock
+                            <Icons.Clock
                                 size={14}
                                 className="text-muted-foreground"
                             />

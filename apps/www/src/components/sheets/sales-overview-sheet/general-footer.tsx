@@ -1,9 +1,8 @@
+import { Icons } from "@gnd/ui/icons";
 import { useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-
-import { RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@gnd/ui/button";
@@ -78,7 +77,7 @@ export function GeneralFooter({}) {
 					<SalesMenu.Separator />
 					<SalesMenu.Delete onDeleted={() => qs.close()} />
 					<SalesMenu.Item onSelect={reset} disabled={loading}>
-						<RefreshCcw className="mr-2 size-4 text-muted-foreground/70" />
+						<Icons.RefreshCcw className="mr-2 size-4 text-muted-foreground/70" />
 						Reset Stats
 					</SalesMenu.Item>
 					<AuthGuard rules={[_perm.is("viewSalesResolution")]}>
@@ -95,7 +94,7 @@ export function GeneralFooter({}) {
 							}}
 							disabled={loading}
 						>
-							<RefreshCcw className="mr-2 size-4 text-muted-foreground/70" />
+							<Icons.RefreshCcw className="mr-2 size-4 text-muted-foreground/70" />
 							Resolution Center
 						</SalesMenu.Item>
 					</AuthGuard>

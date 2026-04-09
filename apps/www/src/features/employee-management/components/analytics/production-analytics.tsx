@@ -1,9 +1,10 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { ProductionAnalytics as ProductionAnalyticsType } from "../../types";
 import { OverviewStatCard } from "../shared/overview-stat-card";
-import { CheckCircle, Clock, Package, Layers } from "lucide-react";
 
 interface Props {
     data: ProductionAnalyticsType;
@@ -16,22 +17,22 @@ export function ProductionAnalytics({ data }: Props) {
                 <OverviewStatCard
                     label="Total Assignments"
                     value={data.totalAssignments}
-                    icon={Layers}
+                    icon={Icons.Layers}
                 />
                 <OverviewStatCard
                     label="Completed"
                     value={data.completedAssignments}
-                    icon={CheckCircle}
+                    icon={Icons.CheckCircle}
                 />
                 <OverviewStatCard
                     label="Pending"
                     value={data.pendingAssignments}
-                    icon={Clock}
+                    icon={Icons.Clock}
                 />
                 <OverviewStatCard
                     label="Items Produced"
                     value={data.totalItemsProduced}
-                    icon={Package}
+                    icon={Icons.Package}
                 />
             </div>
             <Card>

@@ -1,7 +1,6 @@
 import { usePacking } from "@/hooks/use-sales-packing";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Icons } from "@gnd/ui/icons";
-import { Truck } from "lucide-react";
 
 export function PackingDriverInformation() {
     const { data } = usePacking();
@@ -47,7 +46,7 @@ export function PackingDriverInformation() {
                     </div>
                     <div className="space-y-2">
                         <div className="flex items-center gap-2 mb-2">
-                            <Truck className="h-4 w-4 text-muted-foreground" />
+                            <Icons.Truck className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm font-medium text-muted-foreground">
                                 Vehicle Details
                             </span>

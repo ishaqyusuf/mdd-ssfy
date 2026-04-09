@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { Button, buttonVariants } from "@gnd/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { useHpt, useHptLine } from "../context";
@@ -6,7 +7,6 @@ import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { updateDoorGroupForm } from "@/lib/sales/update-door-form";
 import { Badge } from "@gnd/ui/badge";
 import NumberFlow from "@number-flow/react";
-import { Check } from "lucide-react";
 import { updateItemHeight } from "@/lib/sales/update-item-height";
 
 export function DoorSizeSelect({}) {
@@ -69,7 +69,7 @@ export function DoorSizeSelect({}) {
             placeholder="Select"
             renderListItem={({ isChecked, item }) => (
                 <div className="flex w-full">
-                    <Check
+                    <Icons.Check
                         className={cn(
                             "mr-2 h-4 w-4",
                             size?.takeOffSize == item?.data?.takeOffSize

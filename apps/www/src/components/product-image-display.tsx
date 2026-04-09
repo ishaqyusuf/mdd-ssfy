@@ -1,7 +1,8 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useState } from "react";
-import { Package, Edit, Star, ImageIcon } from "lucide-react";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent } from "@gnd/ui/card";
@@ -57,7 +58,7 @@ export function ProductImageDisplay({
             <div className={`space-y-3 ${className}`}>
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                        <Icons.ImageIcon className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm font-medium">{title}</span>
                         {images.length > 0 && (
                             <Badge variant="secondary" className="text-xs">
@@ -72,7 +73,7 @@ export function ProductImageDisplay({
                             onClick={() => setIsImageModalOpen(true)}
                             className="gap-2"
                         >
-                            <Edit className="h-3 w-3" />
+                            <Icons.Edit className="h-3 w-3" />
                             Manage
                         </Button>
                     )}
@@ -86,7 +87,7 @@ export function ProductImageDisplay({
                         <CardContent className="p-8">
                             <div className="text-center">
                                 <div className="mx-auto w-12 h-12 text-gray-400 mb-4">
-                                    <Package className="w-full h-full" />
+                                    <Icons.Package className="w-full h-full" />
                                 </div>
                                 <p className="text-sm text-gray-600 mb-2">
                                     No images added
@@ -129,7 +130,7 @@ export function ProductImageDisplay({
                                             {isPrimary && (
                                                 <div className="absolute top-2 left-2">
                                                     <Badge className="bg-blue-500 text-white text-xs">
-                                                        <Star className="w-3 h-3 mr-1" />
+                                                        <Icons.Star className="w-3 h-3 mr-1" />
                                                         Primary
                                                     </Badge>
                                                 </div>
@@ -142,7 +143,7 @@ export function ProductImageDisplay({
                                                         variant="secondary"
                                                         className="gap-2"
                                                     >
-                                                        <Edit className="w-3 h-3" />
+                                                        <Icons.Edit className="w-3 h-3" />
                                                         Edit
                                                     </Button>
                                                 </div>
@@ -177,7 +178,7 @@ export function ProductImageDisplay({
                                 <CardContent className="p-2">
                                     <div className="aspect-square flex items-center justify-center bg-gray-50 rounded-md">
                                         <div className="text-center">
-                                            <ImageIcon className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                                            <Icons.ImageIcon className="w-8 h-8 mx-auto text-gray-400 mb-2" />
                                             <p className="text-sm font-medium text-gray-600">
                                                 +{remainingCount}
                                             </p>

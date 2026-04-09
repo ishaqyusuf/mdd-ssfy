@@ -1,5 +1,5 @@
+import { Icons } from "@gnd/ui/icons";
 import { Button } from "@gnd/ui/button";
-import { Phone, Mail, MapPin } from "lucide-react";
 import Link from "next/link";
 
 export function Footer() {
@@ -103,15 +103,15 @@ export function Footer() {
             <h5 className="font-semibold mb-4">Contact</h5>
             <div className="space-y-2 text-gray-300">
               <p className="flex items-center">
-                <Phone className="h-4 w-4 mr-2" />
+                <Icons.Phone className="h-4 w-4 mr-2" />
                 (305) 278-6555
               </p>
               <p className="flex items-center">
-                <Mail className="h-4 w-4 mr-2" />
+                <Icons.Mail className="h-4 w-4 mr-2" />
                 support@gndmillwork.com
               </p>
               <p className="flex items-center">
-                <MapPin className="h-4 w-4 mr-2" />
+                <Icons.MapPin className="h-4 w-4 mr-2" />
                 13285 SW 131th St Miami, FL 33186
               </p>
             </div>

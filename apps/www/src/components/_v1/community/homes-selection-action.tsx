@@ -1,8 +1,9 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { deepCopy } from "@/lib/deep-copy";
 import { dispatchSlice } from "@/store/slicers";
-import { Printer } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
 import {
@@ -26,7 +27,7 @@ export function HomesBatchAction({ items }) {
                 }}
                 className="ml-auto hidden h-8 bg-rose-950 lg:flex"
             >
-                <Printer className=" h-4 w-4" />
+                <Icons.Printer className=" h-4 w-4" />
                 {/* View */}
             </Button>
         </>

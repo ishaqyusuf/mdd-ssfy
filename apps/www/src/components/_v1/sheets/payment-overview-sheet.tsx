@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import React, { useEffect, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
@@ -8,7 +10,6 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
 import { IJobPayment, IJobs } from "@/types/hrm";
 import { InstallCostLine, InstallCostSettings } from "@/types/settings";
-import { ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@gnd/ui/button";
@@ -160,7 +161,7 @@ function Content({
                 <div className="flex-1"></div>
                 <Money value={job.amount} />
                 <Button variant="ghost" size="sm" className="w-9 p-0">
-                    <ChevronsUpDown className="h-4 w-4" />
+                    <Icons.ChevronsUpDown className="h-4 w-4" />
                     <span className="sr-only">Toggle</span>
                 </Button>
             </CollapsibleTrigger>

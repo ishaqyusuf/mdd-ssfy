@@ -1,4 +1,5 @@
 "use client";
+
 import Image from "next/image";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { env } from "@/env.mjs";

@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import ProjectModal from "@/app-deps/(v1)/(loggedIn)/community/projects/project-modal";
 import { deleteProjectAction } from "@/app-deps/(v1)/(loggedIn)/community/projects/actions/delete-project-action";
 import { useModal } from "@/components/common/modal/provider";
@@ -27,15 +29,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import {
-    Building2,
-    CheckCheck,
-    FolderArchive,
-    MoreHorizontal,
-    Pencil,
-    Trash2,
-    UserPlus,
-} from "lucide-react";
 
 export type ItemType =
     RouterOutputs["community"]["getCommunityProjects"]["data"][number];
@@ -106,7 +99,7 @@ function SupervisorCell({ item }: { item: ItemType }) {
                         </span>
                     ) : (
                         <>
-                            <UserPlus className="mr-2 size-4" />
+                            <Icons.UserPlus className="mr-2 size-4" />
                             Add supervisor
                         </>
                     )}
@@ -205,7 +198,7 @@ function Actions({ item }: { item: ItemType }) {
                         className="size-8"
                         onClick={(event) => event.stopPropagation()}
                     >
-                        <MoreHorizontal className="size-4" />
+                        <Icons.MoreHorizontal className="size-4" />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
@@ -214,7 +207,7 @@ function Actions({ item }: { item: ItemType }) {
                 >
                     <DropdownMenuItem asChild>
                         <Link href={`/community/projects/${item.slug}`}>
-                            <Building2 className="mr-2 size-4" />
+                            <Icons.Building2 className="mr-2 size-4" />
                             Open overview
                         </Link>
                     </DropdownMenuItem>
@@ -222,7 +215,7 @@ function Actions({ item }: { item: ItemType }) {
                         <Link
                             href={`/community/project-units?projectSlug=${item.slug}`}
                         >
-                            <Building2 className="mr-2 size-4" />
+                            <Icons.Building2 className="mr-2 size-4" />
                             Open units
                         </Link>
                     </DropdownMenuItem>
@@ -231,7 +224,7 @@ function Actions({ item }: { item: ItemType }) {
                             modal.openModal(<ProjectModal data={item as any} />)
                         }
                     >
-                        <Pencil className="mr-2 size-4" />
+                        <Icons.Pencil className="mr-2 size-4" />
                         Edit project
                     </DropdownMenuItem>
                     <DropdownMenuItem
@@ -246,7 +239,7 @@ function Actions({ item }: { item: ItemType }) {
                         }}
                         disabled={isPending}
                     >
-                        <FolderArchive className="mr-2 size-4" />
+                        <Icons.FolderArchive className="mr-2 size-4" />
                         {item.archived ? "Mark active" : "Archive project"}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
@@ -260,7 +253,7 @@ function Actions({ item }: { item: ItemType }) {
                         }}
                         disabled={isPending}
                     >
-                        <Trash2 className="mr-2 size-4" />
+                        <Icons.Trash2 className="mr-2 size-4" />
                         Delete project
                     </DropdownMenuItem>
                 </DropdownMenuContent>

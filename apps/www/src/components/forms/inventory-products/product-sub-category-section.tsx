@@ -1,4 +1,4 @@
-import { Package, Save } from "lucide-react";
+
 import {
     AccordionContent,
     AccordionItem,
@@ -45,7 +45,7 @@ export function ProductSubCategorySection({}) {
         <AccordionItem value="subcategories">
             <AccordionTrigger className="flex">
                 <div className="flex gap-4  flex-1 items-center">
-                    <Package className="size-4" />
+                    <Icons.Package className="size-4" />
                     <span>Product Sub Categories</span>
                 </div>
             </AccordionTrigger>
@@ -112,7 +112,7 @@ export function ProductSubCategorySection({}) {
                     <Card className="p-8">
                         <div className="flex flex-col items-center justify-center text-center space-y-4">
                             <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center">
-                                <Save className="h-8 w-8 text-blue-500" />
+                                <Icons.Save className="h-8 w-8 text-blue-500" />
                             </div>
                             <div className="space-y-2">
                                 <h4 className="text-lg font-semibold text-gray-900">
@@ -127,7 +127,7 @@ export function ProductSubCategorySection({}) {
                                 </p>
                             </div>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground bg-gray-50 px-3 py-2 rounded-md">
-                                <Package className="h-4 w-4" />
+                                <Icons.Package className="h-4 w-4" />
                                 <span>
                                     Variants will be available after saving
                                 </span>

@@ -16,8 +16,6 @@ import { useEffect } from "react";
 import { InputField } from "@gnd/ui/controls-2/input-field";
 import { parseAsString, useQueryStates } from "nuqs";
 
-import { Key } from "lucide-react";
-
 const loginSchema = z.object({
 	email: z.string().email({ message: "Please enter a valid email address." }),
 	password: z.string().optional(),
@@ -113,7 +111,7 @@ export function SigninComponent() {
 								type="password"
 								label="Password"
 								placeholder="Password"
-								prefix={<Key className="size-4" />}
+								prefix={<Icons.Key className="size-4" />}
 								control={form.control}
 							/>
 							<label

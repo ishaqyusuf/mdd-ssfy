@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { CheckCircle, MoreVertical, TimerOff, UserPlus } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
 import { useProduction } from "./context";
@@ -33,7 +32,7 @@ export function ProductionItemMenu({}) {
                     variant="ghost"
                     size="icon"
                 >
-                    <MoreVertical className="h-4 w-4" />
+                    <Icons.MoreVertical className="h-4 w-4" />
                 </Button>
             }
         >
@@ -51,7 +50,7 @@ export function ProductionItemMenu({}) {
                     variant="ghost"
                     size="icon"
                 >
-                    <MoreVertical className="h-4 w-4" />
+                    <Icons.MoreVertical className="h-4 w-4" />
                 </Button>
             </DropdownMenu.Trigger>
             <DropdownMenu.Content align="end">
@@ -292,7 +291,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                             setAction("assign");
                             setTab("users");
                         }}
-                        Icon={UserPlus}
+                        Icon={Icons.UserPlus}
                         disabled={!pendingQty}
                         shortCut={`QTY: ${pendingQty}`}
                         className="max-h-none overflow-hidden"
@@ -302,7 +301,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                     <Menu.Item
                         shortCut={`QTY: ${submitTotal}`}
                         disabled={!submitTotal}
-                        Icon={CheckCircle}
+                        Icon={Icons.CheckCircle}
                         onClick={(e) => {
                             e.preventDefault();
                             setAction("submit");
@@ -400,7 +399,7 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
                         }}
                         className="w-full"
                     >
-                        <TimerOff className="size-4 mr-4" />
+                        <Icons.TimerOff className="size-4 mr-4" />
                         No Due Date
                     </Button>
                     <Separator />

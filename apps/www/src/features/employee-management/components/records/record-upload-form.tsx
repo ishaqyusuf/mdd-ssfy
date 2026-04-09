@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useZodForm } from "@/hooks/use-zod-form";
 import { uploadFile } from "@/lib/upload-file";
 import { useTRPC } from "@/trpc/client";
@@ -23,7 +25,6 @@ import {
 	SelectValue,
 } from "@gnd/ui/select";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -201,7 +202,7 @@ export function RecordUploadForm({ open, employeeId, onClose }: Props) {
 								className="flex items-center gap-3 rounded-lg border border-dashed p-4 text-left"
 								onClick={() => fileInputRef.current?.click()}
 							>
-								<Upload className="h-4 w-4 shrink-0 text-muted-foreground" />
+								<Icons.Upload className="h-4 w-4 shrink-0 text-muted-foreground" />
 								<div className="flex flex-1 flex-col gap-1">
 									<span className="text-sm font-medium">
 										{isUploading ? "Uploading..." : "Choose a file"}

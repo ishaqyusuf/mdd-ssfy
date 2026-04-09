@@ -1,13 +1,13 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { DataTableColumnHeader } from "../data-table/data-table-column-header";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 import { formatDate } from "@/lib/use-day";
-
-import { Info, Trash } from "lucide-react";
 import LinkableNode from "../link-node";
 import { PrimitiveDivProps } from "@/types/type";
 import { Badge } from "@gnd/ui/badge";

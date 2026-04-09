@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import React, { useEffect, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import Link from "@/components/link";
@@ -15,7 +17,6 @@ import { deepCopy } from "@/lib/deep-copy";
 import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/store";
 import { dispatchSlice } from "@/store/slicers";
-import { AlertTriangle, Archive, Bell, Dot } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
 import {
@@ -90,7 +91,7 @@ export default function NotificationComponent({}) {
                             notificationCount > 0 ? "p-1" : "p-1"
                         )}
                     >
-                        <Bell className="size-4 text-muted-foreground" />
+                        <Icons.Bell className="size-4 text-muted-foreground" />
                         {notificationCount > 0 && (
                             <Badge
                                 variant="default"
@@ -210,7 +211,7 @@ function NotificationItem({
                 >
                     <div className="">
                         <div className=" rounded-full border bg-amber-50 p-1.5">
-                            <AlertTriangle className="h-5 w-5 text-amber-500" />
+                            <Icons.AlertTriangle className="h-5 w-5 text-amber-500" />
                         </div>
                     </div>
                     <div className="ml-4 space-y-1 ">
@@ -238,12 +239,12 @@ function NotificationItem({
                                 variant="secondary"
                                 size="icon"
                             >
-                                <Archive className="size-4" />
+                                <Icons.Archive className="size-4" />
                             </Btn>
                         </ToolTip>
                     </div>
                     {!item.seenAt && (
-                        <Dot className="h-10 w-10 text-blue-700" />
+                        <Icons.Dot className="h-10 w-10 text-blue-700" />
                     )}
                 </div>
             )}

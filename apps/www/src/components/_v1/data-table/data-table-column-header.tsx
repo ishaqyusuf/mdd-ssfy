@@ -1,6 +1,6 @@
+import { Icons } from "@gnd/ui/icons";
 import { cn } from "@/lib/utils";
 import { Column } from "@tanstack/react-table";
-import { ChevronsUpDown, EyeOff, SortAsc, SortDesc } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
 import {
@@ -36,11 +36,11 @@ export function DataTableColumnHeader<TData, TValue>({
                     >
                         <span>{title}</span>
                         {column.getIsSorted() === "desc" ? (
-                            <SortDesc className="ml-2 h-4 w-4" />
+                            <Icons.SortDesc className="ml-2 h-4 w-4" />
                         ) : column.getIsSorted() === "asc" ? (
-                            <SortAsc className="ml-2 h-4 w-4" />
+                            <Icons.SortAsc className="ml-2 h-4 w-4" />
                         ) : (
-                            <ChevronsUpDown className="ml-2 h-4 w-4" />
+                            <Icons.ChevronsUpDown className="ml-2 h-4 w-4" />
                         )}
                     </Button>
                 </DropdownMenuTrigger>
@@ -48,20 +48,20 @@ export function DataTableColumnHeader<TData, TValue>({
                     <DropdownMenuItem
                         onClick={() => column.toggleSorting(false)}
                     >
-                        <SortAsc className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
+                        <Icons.SortAsc className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
                         Asc
                     </DropdownMenuItem>
                     <DropdownMenuItem
                         onClick={() => column.toggleSorting(true)}
                     >
-                        <SortDesc className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
+                        <Icons.SortDesc className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
                         Desc
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                         onClick={() => column.toggleVisibility(false)}
                     >
-                        <EyeOff className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
+                        <Icons.EyeOff className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
                         Hide
                     </DropdownMenuItem>
                 </DropdownMenuContent>

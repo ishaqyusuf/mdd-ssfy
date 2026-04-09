@@ -1,10 +1,11 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { Avatar } from "@/components/avatar";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
-import { ShieldAlert, ShieldCheck, ShieldQuestion } from "lucide-react";
 
 interface EmployeeInfoHeaderProps {
 	name: string;
@@ -22,12 +23,12 @@ interface EmployeeInfoHeaderProps {
 }
 
 const insuranceIcons = {
-	valid: ShieldCheck,
-	expiring_soon: ShieldAlert,
-	expired: ShieldAlert,
-	missing: ShieldQuestion,
-	pending: ShieldQuestion,
-	rejected: ShieldAlert,
+	valid: Icons.ShieldCheck,
+	expiring_soon: Icons.ShieldAlert,
+	expired: Icons.ShieldAlert,
+	missing: Icons.ShieldQuestion,
+	pending: Icons.ShieldQuestion,
+	rejected: Icons.ShieldAlert,
 };
 
 const insuranceVariants: Record<

@@ -1,9 +1,9 @@
+import { Icons } from "@gnd/ui/icons";
 import { useEffect, useState } from "react";
 import { typedMemo } from "@/lib/hocs/typed-memo";
 import { formatDate } from "@/lib/use-day";
 import { DataTableFilterableColumn } from "@/types/data-table";
 import { Column, Table } from "@tanstack/react-table";
-import { CalendarIcon } from "lucide-react";
 import { DateRange } from "react-day-picker";
 
 import { Badge } from "@gnd/ui/badge";
@@ -90,7 +90,7 @@ export function DataTableFacetedDate<TData, TValue>({
                     size="sm"
                     className="h-8 border-dashed"
                 >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    <Icons.CalendarIcon className="mr-2 h-4 w-4" />
                     {_title || title}
                     <Separator orientation="vertical" className="mx-2 h-4" />
                     {date && date instanceof Date ? (

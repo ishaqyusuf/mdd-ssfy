@@ -1,5 +1,7 @@
-
 "use client";
+
+import { Icons } from "@gnd/ui/icons";
+
 
 import {
   chartPeriodOptions,
@@ -19,7 +21,6 @@ import {
 import { formatISO } from "date-fns";
 import { formatDateRange } from "little-date";
 import type { DateRange } from "react-day-picker";
-import { ChevronDown } from 'lucide-react';
 
 export function ChartSelectors() {
   const { params, setParams } = useSalesDashboardParams();
@@ -88,7 +89,7 @@ export function ChartSelectors() {
                     )
                   : "Select date range"}
               </span>
-              <ChevronDown />
+              <Icons.ChevronDown />
             </Button>
           </PopoverTrigger>
           <PopoverContent

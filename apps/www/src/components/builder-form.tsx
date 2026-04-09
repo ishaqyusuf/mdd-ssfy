@@ -5,7 +5,6 @@ import { RouterOutputs } from "@api/trpc/routers/_app";
 import { builderFormSchema } from "@community/schema";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { useMutation } from "@tanstack/react-query";
-import { AlertTriangle, RefreshCw } from "lucide-react";
 import { _qc, _trpc } from "./static-trpc";
 import { InputField } from "@gnd/ui/controls-2/input-field";
 import { CheckboxField } from "@gnd/ui/controls-2/checkbox-field";
@@ -182,7 +181,7 @@ function UpgradeRequiredNotice() {
     return (
         <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-card">
             <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-full flex items-center justify-center mb-6">
-                <AlertTriangle size={40} strokeWidth={2} />
+                <Icons.AlertTriangle size={40} strokeWidth={2} />
             </div>
             <h3 className="text-2xl font-black text-foreground mb-2">
                 Legacy Configuration Detected
@@ -206,7 +205,7 @@ function UpgradeRequiredNotice() {
                     // className="w-full py-3.5 bg-primary text-primary-foreground rounded-xl font-bold text-base shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
                 >
                     <div className="flex gap-4">
-                        <RefreshCw size={20} />
+                        <Icons.RefreshCw size={20} />
                         <span> Auto-Update to New System</span>
                     </div>
                 </SubmitButton>

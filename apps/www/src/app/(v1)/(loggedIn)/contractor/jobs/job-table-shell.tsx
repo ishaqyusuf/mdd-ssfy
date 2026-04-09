@@ -14,7 +14,6 @@ import { labelValue, truthy } from "@/lib/utils";
 import { TableShellProps } from "@/types/data-table";
 import { IJobs } from "@/types/hrm";
 import { ColumnDef } from "@tanstack/react-table";
-import { Briefcase, CheckCheck, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@gnd/ui/badge";
@@ -213,7 +212,7 @@ export default function JobTableShell<T>({
                                                 changeWorker: true,
                                             });
                                         }}
-                                        Icon={Briefcase}
+                                        Icon={Icons.Briefcase}
                                     >
                                         Change Worker
                                     </RowActionMenuItem>
@@ -224,7 +223,7 @@ export default function JobTableShell<T>({
                                             await approveJob(row.original?.id);
                                             toast.success("Job Approved");
                                         }}
-                                        Icon={CheckCheck}
+                                        Icon={Icons.CheckCheck}
                                     >
                                         Approve Job
                                     </RowActionMenuItem>
@@ -235,7 +234,7 @@ export default function JobTableShell<T>({
                                             await rejectJob(row.original?.id);
                                             toast.success("Job Rejected");
                                         }}
-                                        Icon={X}
+                                        Icon={Icons.X}
                                     >
                                         Reject Job
                                     </RowActionMenuItem>

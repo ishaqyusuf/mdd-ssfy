@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
@@ -7,7 +9,6 @@ import { Button } from "@gnd/ui/button";
 import { cells } from "@gnd/ui/custom/data-table/cells";
 import { formatDate } from "@gnd/utils/dayjs";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ReceiptText } from "lucide-react";
 import Link from "next/link";
 
 export type Item = RouterOutputs["jobs"]["contractorPayouts"]["data"][number];
@@ -117,7 +118,7 @@ function ItemCard({ item }: { item: Item }) {
 		<div className="rounded-2xl border bg-card p-4 shadow-sm">
 			<div className="flex items-start gap-3">
 				<div className="rounded-xl bg-primary/10 p-2 text-primary">
-					<ReceiptText className="size-4" />
+					<Icons.ReceiptText className="size-4" />
 				</div>
 				<div className="min-w-0 flex-1">
 					<p className="text-base font-semibold text-foreground">#{item.id}</p>

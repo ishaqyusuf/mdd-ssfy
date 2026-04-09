@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -8,15 +10,6 @@ import { Footer } from "@/components/footer";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Badge } from "@gnd/ui/badge";
-import {
-  CheckCircle,
-  Package,
-  Truck,
-  MapPin,
-  Download,
-  ArrowLeft,
-  ShoppingCart,
-} from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
 import { useOrdersStore, type Order } from "@/lib/orders-store";
 import { useCartStore } from "@/lib/cart-store";
@@ -122,7 +115,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
       <div className="min-h-screen bg-background">
         <main className="container mx-auto px-4 py-8">
           <div className="text-center py-16">
-            <Package className="h-24 w-24 mx-auto text-gray-400 mb-4" />
+            <Icons.Package className="h-24 w-24 mx-auto text-gray-400 mb-4" />
             <h1 className="text-2xl font-bold text-gray-900 mb-4">
               Order Not Found
             </h1>
@@ -149,7 +142,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
         {showSuccess && (
           <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
             <div className="flex items-center">
-              <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+              <Icons.CheckCircle className="h-5 w-5 text-green-600 mr-2" />
               <div>
                 <h3 className="text-green-800 font-semibold">
                   Order Placed Successfully!
@@ -179,7 +172,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
         <div className="flex items-center mb-6">
           <Link href="/orders">
             <Button variant="ghost">
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <Icons.ArrowLeft className="h-4 w-4 mr-2" />
               Back to Orders
             </Button>
           </Link>
@@ -265,11 +258,11 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
                     <div key={index} className="flex items-start space-x-4">
                       <div className="flex-shrink-0 w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
                         {event.status === "Delivered" ? (
-                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <Icons.CheckCircle className="h-4 w-4 text-green-600" />
                         ) : event.status === "Shipped" ? (
-                          <Truck className="h-4 w-4 text-blue-600" />
+                          <Icons.Truck className="h-4 w-4 text-blue-600" />
                         ) : (
-                          <Package className="h-4 w-4 text-amber-600" />
+                          <Icons.Package className="h-4 w-4 text-amber-600" />
                         )}
                       </div>
                       <div className="flex-1">
@@ -329,7 +322,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <MapPin className="h-5 w-5 mr-2" />
+                  <Icons.MapPin className="h-5 w-5 mr-2" />
                   Shipping Address
                 </CardTitle>
               </CardHeader>
@@ -351,7 +344,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    <Truck className="h-5 w-5 mr-2" />
+                    <Icons.Truck className="h-5 w-5 mr-2" />
                     Tracking Information
                   </CardTitle>
                 </CardHeader>
@@ -390,7 +383,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
             {/* Actions */}
             <div className="space-y-3">
               <Button variant="outline" className="w-full bg-transparent">
-                <Download className="h-4 w-4 mr-2" />
+                <Icons.Download className="h-4 w-4 mr-2" />
                 Download Invoice
               </Button>
               {order.trackingNumber && (
@@ -402,7 +395,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
                 onClick={handleReorder}
                 className="w-full bg-amber-700 hover:bg-amber-800"
               >
-                <ShoppingCart className="h-4 w-4 mr-2" />
+                <Icons.ShoppingCart className="h-4 w-4 mr-2" />
                 Reorder Items
               </Button>
             </div>

@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { cva } from "class-variance-authority";
 
 import { useTable } from ".";
@@ -10,7 +11,6 @@ import { cn } from "../../../utils";
 import { Checkbox } from "../../checkbox";
 import { useStickyColumns } from "../../../hooks/use-sticky-columns";
 import { Button } from "../../button";
-import { ArrowDown, ArrowUp } from "lucide-react";
 
 const tableHeaderVariants = cva("", {
   variants: {},
@@ -117,8 +117,8 @@ export function TableHeader({}) {
                           }
                         >
                           <span>{header?.column?.columnDef?.header}</span>
-                          {sortDir === "asc" && <ArrowDown size={16} />}
-                          {sortDir === "desc" && <ArrowUp size={16} />}
+                          {sortDir === "asc" && <Icons.ArrowDown size={16} />}
+                          {sortDir === "desc" && <Icons.ArrowUp size={16} />}
                         </Button>
                       )
                       // flexRender(

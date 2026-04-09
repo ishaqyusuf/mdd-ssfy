@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -9,7 +11,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Badge } from "@gnd/ui/badge";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
-import { Package, Search, Eye, Download, ShoppingBag } from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
 import { useOrdersStore } from "@/lib/orders-store";
 import { useCartStore } from "@/lib/cart-store";
@@ -113,7 +114,7 @@ export default function OrdersPage() {
               <div className="flex-1">
                 <Label htmlFor="search">Search Orders</Label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Icons.Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
                     id="search"
                     placeholder="Search by order ID or product name..."
@@ -186,7 +187,7 @@ export default function OrdersPage() {
           <div className="text-center py-16">
             {searchTerm ? (
               <>
-                <Package className="h-24 w-24 mx-auto text-gray-400 mb-4" />
+                <Icons.Package className="h-24 w-24 mx-auto text-gray-400 mb-4" />
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">
                   No orders found
                 </h2>
@@ -203,7 +204,7 @@ export default function OrdersPage() {
               </>
             ) : userOrders.length === 0 ? (
               <>
-                <ShoppingBag className="h-24 w-24 mx-auto text-gray-400 mb-4" />
+                <Icons.ShoppingBag className="h-24 w-24 mx-auto text-gray-400 mb-4" />
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">
                   No orders yet
                 </h2>
@@ -308,7 +309,7 @@ export default function OrdersPage() {
                           size="sm"
                           className="bg-transparent"
                         >
-                          <Eye className="h-4 w-4 mr-1" />
+                          <Icons.Eye className="h-4 w-4 mr-1" />
                           View Details
                         </Button>
                       </Link>
@@ -328,7 +329,7 @@ export default function OrdersPage() {
                         size="sm"
                         className="bg-transparent"
                       >
-                        <Download className="h-4 w-4 mr-1" />
+                        <Icons.Download className="h-4 w-4 mr-1" />
                         Invoice
                       </Button>
                       <Button
@@ -357,7 +358,7 @@ export default function OrdersPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Button variant="outline" className="bg-transparent" asChild>
                   <Link href="/search">
-                    <ShoppingBag className="h-4 w-4 mr-2" />
+                    <Icons.ShoppingBag className="h-4 w-4 mr-2" />
                     Continue Shopping
                   </Link>
                 </Button>

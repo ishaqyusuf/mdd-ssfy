@@ -1,7 +1,7 @@
+import { Icons } from "@gnd/ui/icons";
 import { _trpc } from "@/components/static-trpc";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { SearchInput } from "@/components/search-input";
 import { Skeleton } from "@gnd/ui/skeleton";
@@ -57,7 +57,7 @@ export function ProjectSelectStep({}) {
 							className={`w-full flex items-center gap-4 p-3 rounded-xl border text-left transition-all hover:shadow-md ${params.projectId === item.id ? "border-primary bg-primary/5" : "border-border bg-card hover:bg-muted/50"}`}
 						>
 							<div className="p-2 bg-muted rounded-lg text-muted-foreground">
-								<Building2 className="size-6" />
+								<Icons.Building2 className="size-6" />
 							</div>
 							<div className="flex-1">
 								<p className="text-sm font-bold text-foreground">
@@ -67,7 +67,7 @@ export function ProjectSelectStep({}) {
 									{item.builder.name}
 								</p>
 							</div>
-							<ChevronRight
+							<Icons.ChevronRight
 								size={16}
 								className="text-muted-foreground"
 							/>

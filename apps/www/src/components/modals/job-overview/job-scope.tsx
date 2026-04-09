@@ -1,7 +1,7 @@
+import { Icons } from "@gnd/ui/icons";
 import { useJobOverviewContext } from "@/contexts/job-overview-context";
 import { Badge } from "@gnd/ui/badge";
 import { Card, Table } from "@gnd/ui/namespace";
-import { FileText, PackageOpen } from "lucide-react";
 
 export function JobScope() {
     const ctx = useJobOverviewContext();
@@ -12,7 +12,7 @@ export function JobScope() {
             {/* Header */}
             <Card.Header className="flex flex-row items-center justify-between border-b bg-muted/20">
                 <Card.Title className="flex items-center gap-2 text-base">
-                    <FileText className="h-4 w-4 text-primary" />
+                    <Icons.FileText className="h-4 w-4 text-primary" />
                     Scope of Work
                 </Card.Title>
 
@@ -38,7 +38,7 @@ export function JobScope() {
                     <Card>
                         <Card.Content className="py-12 text-center">
                             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted text-primary">
-                                <PackageOpen className="h-8 w-8" />
+                                <Icons.PackageOpen className="h-8 w-8" />
                             </div>
 
                             <h4 className="text-lg font-bold text-foreground">

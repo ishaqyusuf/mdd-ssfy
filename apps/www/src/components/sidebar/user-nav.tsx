@@ -1,6 +1,6 @@
+import { Icons } from "@gnd/ui/icons";
 import { Avatar } from "@/components/avatar";
 import Link from "@/components/link";
-import { LayoutGrid, LogOut, User } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 import { Button } from "@gnd/ui/button";
@@ -74,7 +74,7 @@ export function UserNav() {
 				<DropdownMenuSeparator />
 				<Link href="/signout">
 					<DropdownMenuItem onClick={() => {}}>
-						<LogOut className="mr-2 h-4 w-4" />
+						<Icons.LogOut className="mr-2 h-4 w-4" />
 						<span>Log out</span>
 						<DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
 					</DropdownMenuItem>

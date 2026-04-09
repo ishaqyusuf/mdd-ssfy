@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { _trpc } from "@/components/static-trpc";
 import { useJobFormContext } from "@/contexts/job-form-context";
 import { useBuilderParams } from "@/hooks/use-builder-params";
@@ -15,7 +16,6 @@ import { Card, Field, InputGroup, Item } from "@gnd/ui/namespace";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { handleNumberInput, percentageValue, sum } from "@gnd/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Building2, CheckCircle2, Home, Pencil, User } from "lucide-react";
 import { Controller, useFieldArray } from "react-hook-form";
 import { AdminJobFormContent } from "./admin-job-form-content";
 import { InstallTasksList } from "./install-tasks-list";
@@ -158,15 +158,15 @@ function FormContent() {
 			<div className="space-y-6 h-full flex flex-col">
 				<div className="flex flex-wrap gap-2 text-xs">
 					<span className="px-2 py-1 bg-muted rounded border border-border text-muted-foreground flex items-center gap-1">
-						<User className="size-3" />{" "}
+						<Icons.User className="size-3" />{" "}
 						{defaultValues?.user?.name || "Unknown User"}
 					</span>
 					<span className="px-2 py-1 bg-muted rounded border border-border text-muted-foreground flex items-center gap-1">
-						<Building2 className="size-3" />{" "}
+						<Icons.Building2 className="size-3" />{" "}
 						{defaultValues?.unit?.projectTitle || "Unknown Project"}
 					</span>
 					<span className="px-2 py-1 bg-muted rounded border border-border text-muted-foreground flex items-center gap-1">
-						<Home className="size-3" />
+						<Icons.Home className="size-3" />
 						{`${defaultValues?.unit?.modelName} ${defaultValues?.unit?.lotBlock}`}
 					</span>
 				</div>
@@ -307,7 +307,7 @@ function FormContent() {
 												onClick={openBuilderForm}
 												disabled={!builderId}
 											>
-												<Pencil className="size-3" />
+												<Icons.Pencil className="size-3" />
 												Edit
 											</Button>
 										) : null}

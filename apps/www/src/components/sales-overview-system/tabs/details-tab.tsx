@@ -1,6 +1,6 @@
 "use client";
 
-import { Database, Hash, Info, Tag } from "lucide-react";
+import { Icons } from "@gnd/ui/icons";
 
 import { useSalesOverviewSystem } from "../provider";
 
@@ -40,7 +40,7 @@ export function SalesOverviewDetailsTab() {
 		<div className="space-y-5 p-1">
 			{/* Identifiers */}
 			<div className="rounded-xl border bg-card p-5">
-				<SectionLabel icon={Hash} label="Identifiers" />
+				<SectionLabel icon={Icons.Hash} label="Identifiers" />
 				<DetailsRow label="Internal ID" value={String(data?.id || "")} />
 				<DetailsRow label="Order Number" value={data?.orderId} />
 				<DetailsRow label="P.O Number" value={data?.poNo} />
@@ -51,7 +51,7 @@ export function SalesOverviewDetailsTab() {
 
 			{/* Classification */}
 			<div className="rounded-xl border bg-card p-5">
-				<SectionLabel icon={Tag} label="Classification" />
+				<SectionLabel icon={Icons.Tag} label="Classification" />
 				<DetailsRow label="Sale Type" value={data?.type} />
 				<DetailsRow
 					label="Is Quote"
@@ -71,7 +71,7 @@ export function SalesOverviewDetailsTab() {
 
 			{/* Dates */}
 			<div className="rounded-xl border bg-card p-5">
-				<SectionLabel icon={Info} label="Dates &amp; Terms" />
+				<SectionLabel icon={Icons.Info} label="Dates &amp; Terms" />
 				<DetailsRow label="Sales Date" value={data?.salesDate} />
 				<DetailsRow label="Due Date" value={data?.dueDate} />
 				<DetailsRow label="Net Terms" value={data?.netTerm} />
@@ -85,7 +85,7 @@ export function SalesOverviewDetailsTab() {
 
 			{/* Raw status snapshot */}
 			<div className="rounded-xl border bg-card p-5">
-				<SectionLabel icon={Database} label="Status Snapshot" />
+				<SectionLabel icon={Icons.Database} label="Status Snapshot" />
 				<pre className="overflow-x-auto rounded-lg bg-muted/50 p-4 text-[11px] leading-relaxed text-foreground/80">
 					{JSON.stringify(
 						{

@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { type Table } from "@tanstack/react-table";
 
 import { Button } from "@gnd/ui/button";
@@ -11,7 +13,6 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
-import { OptionIcon } from "lucide-react";
 
 interface DataTableViewOptionsProps<TData> {
     table: Table<TData>;
@@ -29,7 +30,7 @@ export function DataTableViewOptions<TData>({
                     size="icon"
                     className="ml-auto hidden h-8 lg:flex"
                 >
-                    <OptionIcon className=" h-4 w-4" />
+                    <Icons.OptionIcon className=" h-4 w-4" />
                     {/* View */}
                 </Button>
             </DropdownMenuTrigger>

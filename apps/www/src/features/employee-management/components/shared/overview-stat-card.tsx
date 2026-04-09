@@ -1,14 +1,15 @@
 "use client";
 
+import { Icons, type Icon } from "@gnd/ui/icons";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { cn } from "@gnd/ui/cn";
-import { LucideIcon } from "lucide-react";
 
 export interface OverviewStatCardProps {
     label: string;
     value: string | number;
     subLabel?: string;
-    icon?: LucideIcon;
+    icon?: Icon;
     trend?: "up" | "down" | "neutral";
     className?: string;
 }

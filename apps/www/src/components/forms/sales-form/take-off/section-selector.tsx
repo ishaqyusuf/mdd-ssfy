@@ -1,9 +1,9 @@
+import { Icons } from "@gnd/ui/icons";
 import { getTakeOffStepForms } from "@/actions/get-takeoff-step-forms";
 import { useTakeoff, useTakeoffItem } from "./context";
 import { ComponentHelperClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
 import { Menu } from "@gnd/ui/custom/menu";
 import { ComponentImg } from "@/components/forms/sales-form/component-img";
-import { Home } from "lucide-react";
 
 export function SectionSelector() {
     const ctx = useTakeoff();
@@ -63,7 +63,7 @@ export function SectionSelector() {
                             />
                         </div>
                     ) : (
-                        <Home className="size-4" />
+                        <Icons.Home className="size-4" />
                     )}
                 </>
             )}

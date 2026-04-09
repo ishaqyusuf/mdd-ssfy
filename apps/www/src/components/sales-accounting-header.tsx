@@ -1,4 +1,5 @@
 "use client";
+
 import { SearchFilter } from "@gnd/ui/search-filter";
 
 import { salesAccountingFilterParams } from "@/hooks/use-sales-accounting-filter-params";

@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@gnd/ui/button";
 import { Menu } from "@gnd/ui/custom/menu";
@@ -31,21 +33,6 @@ import { env } from "@/env.mjs";
 import { endFlow, logStage, startFlow } from "@/lib/dev-flow-logger";
 import { MouldingCalculator } from "@/components/moulding-calculator";
 import { FileUploader } from "@/components/common/file-uploader";
-import {
-    DoorOpen,
-    ChevronDown,
-    ExternalLink,
-    Filter,
-    Hammer,
-    Layers3,
-    LucideVariable,
-    Package2,
-    Search,
-    Ruler,
-    Trash2,
-    WalletCards,
-    X,
-} from "lucide-react";
 import { useNewSalesFormStore } from "../store";
 import {
     useCustomerProfilesQuery,
@@ -297,7 +284,7 @@ function ShelfCategoryPathInput({
                             onFocus={() => setOpen(true)}
                         />
                         <ComboboxTrigger className="absolute right-2 top-3">
-                            <ChevronDown className="h-4 w-4" />
+                            <Icons.ChevronDown className="h-4 w-4" />
                         </ComboboxTrigger>
                     </>
                 ) : null}
@@ -392,11 +379,11 @@ function ShelfProductCombobox({
                         }}
                         className="absolute right-2 top-3"
                     >
-                        <X className="h-4 w-4" />
+                        <Icons.X className="h-4 w-4" />
                     </ComboboxTrigger>
                 ) : (
                     <ComboboxTrigger className="absolute right-2 top-3">
-                        <ChevronDown className="h-4 w-4" />
+                        <Icons.ChevronDown className="h-4 w-4" />
                     </ComboboxTrigger>
                 )}
             </ComboboxAnchor>
@@ -417,7 +404,7 @@ function ShelfProductCombobox({
                                 />
                             ) : (
                                 <div className="flex size-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-500">
-                                    <Package2 className="size-4" />
+                                    <Icons.Package2 className="size-4" />
                                 </div>
                             )}
                             <div className="min-w-0 flex-1">
@@ -2518,11 +2505,11 @@ export function ItemWorkflowPanel() {
                 <div className="border-b border-slate-200 bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.18),transparent_55%)] p-4">
                     <div className="flex flex-wrap items-center gap-2">
                         <span className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-700">
-                            <Package2 size={13} />
+                            <Icons.Package2 size={13} />
                             House Package Tool
                         </span>
                         <span className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-700">
-                            <Hammer size={13} />
+                            <Icons.Hammer size={13} />
                             {supplier.supplierName || "GND MILLWORK"}
                         </span>
                         {activeDoorComponent ? (
@@ -2622,7 +2609,7 @@ export function ItemWorkflowPanel() {
                                 Rows
                             </p>
                             <p className="mt-1 flex items-center gap-2 text-sm font-semibold text-slate-900">
-                                <Layers3 size={14} />
+                                <Icons.Layers3 size={14} />
                                 {summary.rows.length}
                             </p>
                         </div>
@@ -2631,7 +2618,7 @@ export function ItemWorkflowPanel() {
                                 Total Doors
                             </p>
                             <p className="mt-1 flex items-center gap-2 text-sm font-semibold text-slate-900">
-                                <DoorOpen size={14} />
+                                <Icons.DoorOpen size={14} />
                                 {summary.totalDoors}
                             </p>
                         </div>
@@ -2640,7 +2627,7 @@ export function ItemWorkflowPanel() {
                                 Package Total
                             </p>
                             <p className="mt-1 flex items-center gap-2 text-sm font-semibold text-slate-900">
-                                <WalletCards size={14} />
+                                <Icons.WalletCards size={14} />
                                 {money(summary.totalPrice) || "$0.00"}
                             </p>
                         </div>
@@ -2718,7 +2705,7 @@ export function ItemWorkflowPanel() {
                                                     className="h-full w-full object-contain p-1"
                                                 />
                                             ) : (
-                                                <Ruler
+                                                <Icons.Ruler
                                                     size={15}
                                                     className="text-slate-500"
                                                 />
@@ -3221,7 +3208,7 @@ export function ItemWorkflowPanel() {
                                                                         )
                                                                     }
                                                                 >
-                                                                    <Trash2 className="size-4" />
+                                                                    <Icons.Trash2 className="size-4" />
                                                                 </Button>
                                                             </td>
                                                         </tr>
@@ -3527,7 +3514,7 @@ export function ItemWorkflowPanel() {
                                                     )
                                                 }
                                             >
-                                                <Trash2 className="size-4" />
+                                                <Icons.Trash2 className="size-4" />
                                             </Button>
                                         </td>
                                     </tr>
@@ -3954,7 +3941,7 @@ export function ItemWorkflowPanel() {
                                                 variant="outline"
                                                 className="size-9"
                                             >
-                                                <Filter className="size-4" />
+                                                <Icons.Filter className="size-4" />
                                             </Button>
                                         }
                                     >
@@ -5212,18 +5199,18 @@ export function ItemWorkflowPanel() {
                                         <div className="absolute left-2 top-2 z-[2] flex flex-col gap-1">
                                             {component?.variations?.length ? (
                                                 <span className="rounded bg-secondary p-1">
-                                                    <Filter className="size-3 text-muted-foreground" />
+                                                    <Icons.Filter className="size-3 text-muted-foreground" />
                                                 </span>
                                             ) : null}
                                             {component?.sectionOverride
                                                 ?.overrideMode ? (
                                                 <span className="rounded bg-secondary p-1">
-                                                    <LucideVariable className="size-3 text-muted-foreground" />
+                                                    <Icons.LucideVariable className="size-3 text-muted-foreground" />
                                                 </span>
                                             ) : null}
                                             {component?.redirectUid ? (
                                                 <span className="rounded bg-secondary p-1">
-                                                    <ExternalLink className="size-3 text-muted-foreground" />
+                                                    <Icons.ExternalLink className="size-3 text-muted-foreground" />
                                                 </span>
                                             ) : null}
                                         </div>
@@ -5583,7 +5570,7 @@ export function ItemWorkflowPanel() {
                                             variant="outline"
                                             className="size-9"
                                         >
-                                            <Filter className="size-4" />
+                                            <Icons.Filter className="size-4" />
                                         </Button>
                                     }
                                 >

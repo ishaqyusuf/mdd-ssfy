@@ -56,20 +56,6 @@ import {
 } from "@notifications/activity-tree";
 import type { UpdateSalesControl } from "@sales/schema";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import {
-	AlertTriangle,
-	CalendarDays,
-	CalendarIcon,
-	CheckCircle2,
-	ChevronDown,
-	Clock3,
-	MoreVertical,
-	Package,
-	Printer,
-	Search,
-	SquareCheckBig,
-	UserRoundPlus,
-} from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { parseAsString, useQueryStates } from "nuqs";
 import type { ReactNode } from "react";
@@ -441,7 +427,7 @@ function ProductionV2Board({
 							</div>
 							<div className="grid gap-3 sm:grid-cols-2 lg:w-[520px]">
 								<div className="relative">
-									<Search className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+									<Icons.Search className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
 									<Input
 										value={search}
 										onChange={(event) =>
@@ -473,35 +459,35 @@ function ProductionV2Board({
 						<SummaryCard
 							label={scope === "worker" ? "Assigned Queue" : "Open Queue"}
 							value={dashboard?.summary.queueCount}
-							icon={<Package className="h-4 w-4" />}
+							icon={<Icons.Package className="h-4 w-4" />}
 							active={activeLabel === "pending" && !selectedDate}
 							onClick={() => setActiveLabel("pending")}
 						/>
 						<SummaryCard
 							label="Past Due"
 							value={dashboard?.summary.pastDueCount}
-							icon={<AlertTriangle className="h-4 w-4" />}
+							icon={<Icons.AlertTriangle className="h-4 w-4" />}
 							active={activeLabel === "past-due" && !selectedDate}
 							onClick={() => setActiveLabel("past-due")}
 						/>
 						<SummaryCard
 							label="Due Today"
 							value={dashboard?.summary.dueTodayCount}
-							icon={<Clock3 className="h-4 w-4" />}
+							icon={<Icons.Clock3 className="h-4 w-4" />}
 							active={activeLabel === "due-today" && !selectedDate}
 							onClick={() => setActiveLabel("due-today")}
 						/>
 						<SummaryCard
 							label="Due Tomorrow"
 							value={dashboard?.summary.dueTomorrowCount}
-							icon={<CalendarDays className="h-4 w-4" />}
+							icon={<Icons.CalendarDays className="h-4 w-4" />}
 							active={activeLabel === "due-tomorrow" && !selectedDate}
 							onClick={() => setActiveLabel("due-tomorrow")}
 						/>
 						<SummaryCard
 							label="Completed"
 							value={dashboard?.summary.completedCount}
-							icon={<CheckCircle2 className="h-4 w-4" />}
+							icon={<Icons.CheckCircle2 className="h-4 w-4" />}
 							active={activeLabel === "completed" && !selectedDate}
 							onClick={() => setActiveLabel("completed")}
 						/>
@@ -513,7 +499,7 @@ function ProductionV2Board({
 						<div className="flex items-start justify-between gap-4">
 							<div className="space-y-1">
 								<CardTitle className="mb-1 flex items-center gap-2 text-lg">
-									<CalendarDays className="h-5 w-5 text-sky-600" />
+									<Icons.CalendarDays className="h-5 w-5 text-sky-600" />
 									Due Calendar
 								</CardTitle>
 								<CardDescription className="leading-6">
@@ -669,7 +655,7 @@ function ProductionV2Board({
 										)
 									}
 								>
-									<SquareCheckBig className="h-4 w-4" />
+									<Icons.SquareCheckBig className="h-4 w-4" />
 									{allVisibleSelected ? "Clear visible" : "Select visible"}
 								</Button>
 							) : null}
@@ -920,7 +906,7 @@ function ProductionOrderCard({
 										{item.dueDateLabel || item.alert?.dateString || "N/A"}
 									</p>
 								</div>
-								<ChevronDown
+								<Icons.ChevronDown
 									className={cn(
 										"mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform",
 										isExpanded && "rotate-180",
@@ -941,7 +927,7 @@ function ProductionOrderCard({
 							});
 						}}
 					>
-						<Printer className="h-4 w-4" />
+						<Icons.Printer className="h-4 w-4" />
 						Print
 					</Button>
 				</div>
@@ -1471,7 +1457,7 @@ function ProductionItemCard({
 					) : null}
 				</div>
 				{item.isProduction ? (
-					<ChevronDown
+					<Icons.ChevronDown
 						className={cn(
 							"absolute right-4 top-4 h-4 w-4 text-muted-foreground transition-transform duration-300 ease-out",
 							isExpanded && "rotate-180",
@@ -2041,7 +2027,7 @@ function ProductionOrderActionsMenu({
 			noSize
 			Trigger={
 				<Button variant="outline" size="icon" className="rounded-xl">
-					<MoreVertical className="h-4 w-4" />
+					<Icons.MoreVertical className="h-4 w-4" />
 				</Button>
 			}
 			className="min-w-[240px]"
@@ -2049,7 +2035,7 @@ function ProductionOrderActionsMenu({
 			{step === "main" ? (
 				<>
 					<Menu.Item
-						Icon={SquareCheckBig}
+						Icon={Icons.SquareCheckBig}
 						shortCut={`${productionItemIds.length} items`}
 						disabled
 					>
@@ -2057,7 +2043,7 @@ function ProductionOrderActionsMenu({
 					</Menu.Item>
 					{scope === "admin" ? (
 						<Menu.Item
-							Icon={UserRoundPlus}
+							Icon={Icons.UserRoundPlus}
 							shortCut={`QTY: ${assignableSelections.reduce(
 								(total, item) => total + (item.qty.qty || 0),
 								0,
@@ -2072,7 +2058,7 @@ function ProductionOrderActionsMenu({
 						</Menu.Item>
 					) : null}
 					<Menu.Item
-						Icon={CheckCircle2}
+						Icon={Icons.CheckCircle2}
 						shortCut={`${submittableItemUids.length} items`}
 						disabled={!submittableItemUids.length}
 						onClick={(event) => {
@@ -2321,7 +2307,7 @@ function InlineAssignmentForm({
 									)}
 								>
 									{dueDate ? formatDateValue(dueDate) : "Pick a date"}
-									<CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+									<Icons.CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
 								</Button>
 							</PopoverTrigger>
 							<PopoverContent className="w-auto p-0" align="start">
@@ -2894,12 +2880,12 @@ function SimpleSubmissionForm({
 										variant="outline"
 										disabled={!canSubmitAll}
 									>
-										<ChevronDown className="h-4 w-4" />
+										<Icons.ChevronDown className="h-4 w-4" />
 									</Button>
 								}
 							>
 								<Menu.Item
-									Icon={CheckCircle2}
+									Icon={Icons.CheckCircle2}
 									shortCut={formatSubmitAllLabel(progress.pendingQty)}
 									onClick={(event) => {
 										event.preventDefault();
@@ -2912,7 +2898,7 @@ function SimpleSubmissionForm({
 								progress.pendingQty.lh > 0 &&
 								progress.pendingQty.rh > 0 ? (
 									<Menu.Item
-										Icon={CheckCircle2}
+										Icon={Icons.CheckCircle2}
 										shortCut={`${progress.pendingQty.rh}`}
 										onClick={(event) => {
 											event.preventDefault();
@@ -2926,7 +2912,7 @@ function SimpleSubmissionForm({
 								progress.pendingQty.lh > 0 &&
 								progress.pendingQty.rh > 0 ? (
 									<Menu.Item
-										Icon={CheckCircle2}
+										Icon={Icons.CheckCircle2}
 										shortCut={`${progress.pendingQty.lh}`}
 										onClick={(event) => {
 											event.preventDefault();

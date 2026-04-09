@@ -4,7 +4,6 @@ import { Icons } from "@gnd/ui/icons";
 import { useHpt } from "../context";
 import { Menu } from "@gnd/ui/custom/menu";
 import { useMemo } from "react";
-import { Check } from "lucide-react";
 import { cn } from "@gnd/ui/cn";
 import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { Badge } from "@gnd/ui/badge";
@@ -55,7 +54,7 @@ export function HptAddDoorSize({ doorIndex }) {
                             className={cn(selected && "bg-muted")}
                             key={li}
                         >
-                            <Check
+                            <Icons.Check
                                 className={cn(
                                     "size-4 mr-2",
                                     selected || "opacity-20",

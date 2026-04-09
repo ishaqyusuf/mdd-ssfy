@@ -1,6 +1,6 @@
+import { Icons } from "@gnd/ui/icons";
 import * as React from "react";
 import * as ComboboxPrimitive from "@diceui/combobox";
-import { Check, ChevronDown, X } from "lucide-react";
 
 import { cn } from "../utils";
 
@@ -60,7 +60,7 @@ const ComboboxTrigger = React.forwardRef<
     )}
     {...props}
   >
-    {children || <ChevronDown className="h-4 w-4" />}
+    {children || <Icons.ChevronDown className="h-4 w-4" />}
   </ComboboxPrimitive.Trigger>
 ));
 ComboboxTrigger.displayName = ComboboxPrimitive.Trigger.displayName;
@@ -124,7 +124,7 @@ const ComboboxBadgeItem = React.forwardRef<
           noDelete && "hidden",
         )}
       >
-        <X className="h-3 w-3" />
+        <Icons.X className="h-3 w-3" />
       </ComboboxPrimitive.BadgeItemDelete>
     </ComboboxPrimitive.BadgeItem>
   ),
@@ -224,7 +224,7 @@ const ComboboxItem = React.forwardRef<
         outset ? "right-2" : "left-2",
       )}
     >
-      <Check className="h-4 w-4" />
+      <Icons.Check className="h-4 w-4" />
     </ComboboxPrimitive.ItemIndicator>
     <ComboboxPrimitive.ItemText>{children}</ComboboxPrimitive.ItemText>
   </ComboboxPrimitive.Item>

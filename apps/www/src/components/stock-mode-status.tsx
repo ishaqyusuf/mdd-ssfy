@@ -1,6 +1,6 @@
+import { Icons } from "@gnd/ui/icons";
 import { cn } from "@gnd/ui/cn";
 import { StockModes } from "@sales/constants";
-import { Eye, EyeOff } from "lucide-react";
 
 interface Props {
     status: StockModes;
@@ -17,12 +17,12 @@ export function StockModeStatus(props: Props) {
         >
             {stockMonitor ? (
                 <>
-                    <Eye className="size-4" />
+                    <Icons.Eye className="size-4" />
                     <span>{props.prefix} Monitored</span>
                 </>
             ) : (
                 <>
-                    <EyeOff className="size-4" />
+                    <Icons.EyeOff className="size-4" />
                     <span>{props.prefix} Unmonitored</span>
                 </>
             )}

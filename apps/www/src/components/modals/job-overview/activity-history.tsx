@@ -1,7 +1,7 @@
+import { Icons } from "@gnd/ui/icons";
 import { useJobOverviewContext } from "@/contexts/job-overview-context";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2 } from "lucide-react";
 import { useMemo } from "react";
 
 type ActivityNode = {
@@ -56,7 +56,7 @@ function TimelineItem({
                 className={`absolute left-0 top-1 w-6 h-6 rounded-full border-4 border-card z-10 flex items-center justify-center ${isLatest ? "bg-green-500" : "bg-muted"}`}
             >
                 {isLatest ? (
-                    <CheckCircle2 size={12} className="text-white" />
+                    <Icons.CheckCircle2 size={12} className="text-white" />
                 ) : (
                     <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full" />
                 )}

@@ -1,5 +1,5 @@
+import { Icons } from "@gnd/ui/icons";
 import { InputGroup } from "@gnd/ui/namespace";
-import { Search } from "lucide-react";
 
 interface Props {
     placeholder?: string;
@@ -10,7 +10,7 @@ export function SearchInput({ placeholder, value, onChangeText }: Props) {
     return (
         <InputGroup>
             <InputGroup.Addon>
-                <Search className="size-4 text-muted-foreground" />
+                <Icons.Search className="size-4 text-muted-foreground" />
             </InputGroup.Addon>
             <InputGroup.Input
                 value={value || ""}

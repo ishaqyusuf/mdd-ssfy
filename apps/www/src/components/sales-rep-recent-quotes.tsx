@@ -1,4 +1,5 @@
-import { Eye, FileText } from "lucide-react";
+import { Icons } from "@gnd/ui/icons";
+
 
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -125,13 +126,13 @@ export default function RecentQuotes() {
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <Button variant="ghost" size="icon">
-                                        <Eye className="h-4 w-4" />
+                                        <Icons.Eye className="h-4 w-4" />
                                         <span className="sr-only">
                                             View details
                                         </span>
                                     </Button>
                                     <Button variant="ghost" size="icon">
-                                        <FileText className="h-4 w-4" />
+                                        <Icons.FileText className="h-4 w-4" />
                                         <span className="sr-only">
                                             View document
                                         </span>

@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { TableShellProps } from "@/types/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
@@ -40,7 +42,6 @@ import {
     _synchronizeModelCost,
 } from "@/app-deps/(v1)/_actions/community/community-model-cost";
 import { timeout } from "@/lib/timeout";
-import { ExternalLink, Import } from "lucide-react";
 import { useCommunityTemplateParams } from "@/hooks/use-community-template-params";
 import ModelInstallCostModal from "./install-cost-modal/model-install-cost-modal";
 
@@ -155,19 +156,19 @@ export default function CommunityTemplateTableShell<T>({
                             <RowActionMenuItem
                                 _blank
                                 link={`/community/units?_projectId=${row.original.projectId}&_q=${row.original.modelName}`}
-                                Icon={ExternalLink}
+                                Icon={Icons.ExternalLink}
                             >
                                 View Units
                             </RowActionMenuItem>
                             <RowActionMenuItem
                                 _blank
                                 link={`/community/invoices?_projectId=${row.original.projectId}&_q=${row.original.modelName}`}
-                                Icon={ExternalLink}
+                                Icon={Icons.ExternalLink}
                             >
                                 View Invoices
                             </RowActionMenuItem>
                             <RowActionMenuItem
-                                Icon={Import}
+                                Icon={Icons.Import}
                                 onClick={async () => {
                                     async function __importCost() {
                                         return;

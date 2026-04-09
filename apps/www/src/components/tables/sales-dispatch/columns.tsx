@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { DatePicker } from "@/components/_v1/date-range-picker";
 import { Avatar } from "@/components/avatar";
@@ -17,7 +19,6 @@ import { useQueryClient } from "@gnd/ui/tanstack";
 import { useMutation } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import { salesDispatchStatus } from "@gnd/utils/constants";
-import { Calendar, Clock, MapPin, Package, Phone, Truck } from "lucide-react";
 import { useState } from "react";
 
 import { DispatchCompletionDecisionModal } from "@/components/dispatch-completion-decision-modal";
@@ -547,7 +548,7 @@ export function SalesItemCard({ item: dispatch }: { item: Item }) {
 				<div className="flex items-start justify-between">
 					<div className="flex-1">
 						<div className="flex items-center gap-2 mb-1">
-							<Package className="h-4 w-4 text-muted-foreground" />
+							<Icons.Package className="h-4 w-4 text-muted-foreground" />
 							<span className="font-semibold">{dispatch.order.orderId}</span>
 							<div className="flex items-center gap-1 text-xs text-gray-500">
 								{getDeliveryModeIcon(dispatch.deliveryMode)}
@@ -555,7 +556,7 @@ export function SalesItemCard({ item: dispatch }: { item: Item }) {
 							</div>
 						</div>
 						<div className="flex items-center gap-1 text-sm text-muted-foreground">
-							<Clock className="h-3 w-3" />
+							<Icons.Clock className="h-3 w-3" />
 							<span>Ordered {formatDate(dispatch.order.createdAt)}</span>
 						</div>
 					</div>
@@ -577,7 +578,7 @@ export function SalesItemCard({ item: dispatch }: { item: Item }) {
 							Schedule Date
 						</span>
 						<div className="flex items-center gap-1 text-sm">
-							<Calendar className="h-3 w-3 text-accent-foreground" />
+							<Icons.Calendar className="h-3 w-3 text-accent-foreground" />
 							{formatDateTime(dispatch.dueDate)}
 						</div>
 					</div>
@@ -594,12 +595,12 @@ export function SalesItemCard({ item: dispatch }: { item: Item }) {
 							</div>
 
 							<div className="flex items-center gap-1 text-sm text-muted-foreground">
-								<Phone className="h-3 w-3" />
+								<Icons.Phone className="h-3 w-3" />
 								{dispatch.order.customer?.phoneNo}
 							</div>
 							{dispatch.order?.shippingAddress && (
 								<div className="flex items-start gap-1 text-sm text-muted-foreground mt-1">
-									<MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
+									<Icons.MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
 									<span className="leading-tight">
 										{/* {dispatch.order.shippingAddress} */}
 									</span>
@@ -637,9 +638,9 @@ export function SalesItemCard({ item: dispatch }: { item: Item }) {
 
 const getDeliveryModeIcon = (mode: string) => {
 	return mode === "pickup" ? (
-		<Package className="h-3 w-3" />
+		<Icons.Package className="h-3 w-3" />
 	) : (
-		<Truck className="h-3 w-3" />
+		<Icons.Truck className="h-3 w-3" />
 	);
 };
 

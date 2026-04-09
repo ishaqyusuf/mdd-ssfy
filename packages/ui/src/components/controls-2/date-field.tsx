@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import {
   Controller,
   ControllerProps,
@@ -9,7 +10,6 @@ import { Calendar } from "../calendar";
 import { useState } from "react";
 import { Button } from "../button";
 import { cn } from "../../utils";
-import { CalendarIcon } from "lucide-react";
 import { formatDate } from "date-fns";
 
 interface Props<T> {
@@ -94,7 +94,7 @@ export function DateField<
                 ) : (
                   <span>{props.placeholder || "Pick a date"}</span>
                 )}
-                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                <Icons.CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
               </Button>
             </Popover.Trigger>
             <Popover.Content className="w-auto p-0" align="start">

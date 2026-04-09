@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { Table, useTableData } from "@gnd/ui/data-table";
 import { useTRPC } from "@/trpc/client";
 import { columns, mobileColumn } from "./columns";
@@ -7,7 +9,6 @@ import { useSiteActionFilterParams } from "@/hooks/use-site-action-filter-params
 import { _trpc } from "@/components/static-trpc";
 import { cn } from "@gnd/ui/cn";
 import { getColorFromName } from "@gnd/utils/colors";
-import { ArrowUpRight, DollarSign } from "lucide-react";
 import { timeAgo } from "@gnd/utils/dayjs";
 import { Item } from "@gnd/ui/namespace";
 
@@ -151,7 +152,7 @@ export function DataTable({}) {
                                 {/* Quick Action */}
                                 <div className="self-center sm:self-start">
                                     <button className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-primary transition-colors">
-                                        <ArrowUpRight size={18} />
+                                        <Icons.ArrowUpRight size={18} />
                                     </button>
                                 </div>
                             </div>

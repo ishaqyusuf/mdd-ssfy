@@ -1,7 +1,7 @@
+import { Icons } from "@gnd/ui/icons";
 import { useNotificationChannelContext } from "@/contexts/notification-channel-context";
 import { Button } from "@gnd/ui/button";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
-import { Trash2, User, UserPlus } from "lucide-react";
 
 interface Props {}
 export function ChannelSubscribers(props: Props) {
@@ -33,7 +33,7 @@ export function ChannelSubscribers(props: Props) {
                                     size="sm"
                                     className="gap-2"
                                 >
-                                    <UserPlus className="h-3 w-3" />
+                                    <Icons.UserPlus className="h-3 w-3" />
                                     Add User
                                 </Button>
                             }
@@ -61,7 +61,7 @@ export function ChannelSubscribers(props: Props) {
                             >
                                 <div className="flex items-center gap-3">
                                     <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                                        <User className="h-4 w-4" />
+                                        <Icons.User className="h-4 w-4" />
                                     </div>
                                     <div>
                                         <p className="text-sm font-bold">
@@ -80,7 +80,7 @@ export function ChannelSubscribers(props: Props) {
                                         handleRemoveUserFromEvent(id)
                                     }
                                 >
-                                    <Trash2 className="h-4 w-4" />
+                                    <Icons.Trash2 className="h-4 w-4" />
                                 </Button>
                             </div>
                         ))}

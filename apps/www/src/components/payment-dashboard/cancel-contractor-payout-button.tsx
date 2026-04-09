@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import {
@@ -14,7 +16,6 @@ import { Label } from "@gnd/ui/label";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { Textarea } from "@gnd/ui/textarea";
 import { toast } from "@gnd/ui/use-toast";
-import { Ban } from "lucide-react";
 import { useState } from "react";
 
 export function CancelContractorPayoutButton({
@@ -86,7 +87,7 @@ export function CancelContractorPayoutButton({
 				disabled={isCancelled || mutation.isPending}
 				onClick={() => setOpen(true)}
 			>
-				<Ban className="size-4" />
+				<Icons.Ban className="size-4" />
 				{isCancelled
 					? "Cancelled"
 					: mutation.isPending

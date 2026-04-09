@@ -176,6 +176,16 @@ export const SalesListInclude = {
   deliveries: true,
   stat: true,
   extraCosts: true,
+  productionGate: {
+    select: {
+      status: true,
+      ruleType: true,
+      leadTimeValue: true,
+      leadTimeUnit: true,
+      definedAt: true,
+      triggeredAt: true,
+    },
+  },
 } satisfies Prisma.SalesOrdersInclude;
 export const excludeDeleted = {
   where: { deletedAt: null },
@@ -325,8 +335,21 @@ export const FullSalesSelect = {
   isDyke: true,
   id: true,
   prodDueDate: true,
+  amountDue: true,
+  grandTotal: true,
   customer: true,
   createdAt: true,
+  productionGate: {
+    select: {
+      id: true,
+      status: true,
+      ruleType: true,
+      leadTimeValue: true,
+      leadTimeUnit: true,
+      definedAt: true,
+      triggeredAt: true,
+    },
+  },
   shippingAddress: {
     include: {
       region: true,

@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { printSelectedJobs } from "@/lib/job-print";
 import { BatchAction } from "@gnd/ui/custom/data-table/batch-action";
 import { useTable } from "@gnd/ui/data-table";
@@ -7,7 +9,6 @@ import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
-import { CheckCircle2, Loader2, Printer, XCircle } from "lucide-react";
 import type { JobItem } from "./columns";
 
 function BulkReview({
@@ -41,7 +42,7 @@ function BulkReview({
 
 	const isApprove = action === "approve";
 	const label = isApprove ? "Approve" : "Reject";
-	const Icon = isApprove ? CheckCircle2 : XCircle;
+	const Icon = isApprove ? Icons.CheckCircle2 : Icons.XCircle;
 
 	function handleClick() {
 		for (const jobId of selectedIds) {
@@ -68,7 +69,7 @@ function BulkReview({
 			onClick={handleClick}
 		>
 			{reviewMutation.isPending ? (
-				<Loader2 size={12} className="animate-spin mr-1" />
+				<Icons.Loader2 size={12} className="animate-spin mr-1" />
 			) : (
 				<Icon size={12} className="mr-1" />
 			)}
@@ -89,7 +90,7 @@ function PrintSelected({ selectedIds }: { selectedIds: number[] }) {
 				})
 			}
 		>
-			<Printer size={12} className="mr-1" />
+			<Icons.Printer size={12} className="mr-1" />
 			Print Selected
 		</Button>
 	);

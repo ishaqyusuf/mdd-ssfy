@@ -1,5 +1,5 @@
+import { Icons } from "@gnd/ui/icons";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, XCircle } from "lucide-react";
 import * as React from "react";
 
 interface FormMessagesProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -38,9 +38,9 @@ export function AddressFormMessages({
                 : (messages as string[]).map((value, i) => (
                       <div key={i.toString()} className="flex gap-2">
                           {type === "error" ? (
-                              <XCircle className="relative top-0.5 size-4 shrink-0" />
+                              <Icons.XCircle className="relative top-0.5 size-4 shrink-0" />
                           ) : (
-                              <CheckCircle2 className="relative top-0.5 size-4 shrink-0" />
+                              <Icons.CheckCircle2 className="relative top-0.5 size-4 shrink-0" />
                           )}
                           <p>{value}</p>
                       </div>

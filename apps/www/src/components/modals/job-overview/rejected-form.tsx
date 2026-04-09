@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { useJobOverviewContext } from "@/contexts/job-overview-context";
 import { useTRPC } from "@/trpc/client";
 import { Card } from "@gnd/ui/namespace";
@@ -6,7 +7,6 @@ import { Textarea } from "@gnd/ui/textarea";
 import { toast } from "@gnd/ui/use-toast";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import React from "react";
-import { XCircle, CheckCircle2, Ban } from "lucide-react";
 
 export function RejectedForm() {
     const ctx = useJobOverviewContext();
@@ -79,7 +79,7 @@ export function RejectedForm() {
         <Card className="animate-in slide-in-from-top-2">
             <Card.Header className="flex flex-row items-start gap-4">
                 <div className="rounded-lg bg-muted p-2 text-primary">
-                    <XCircle className="h-6 w-6" />
+                    <Icons.XCircle className="h-6 w-6" />
                 </div>
 
                 <div className="space-y-1">
@@ -106,7 +106,7 @@ export function RejectedForm() {
                         isSubmitting={pendingAction === "approve"}
                     >
                         <div className="flex gap-1 items-center">
-                            <CheckCircle2 className="mr-2 h-4 w-4" />
+                            <Icons.CheckCircle2 className="mr-2 h-4 w-4" />
                             Approve Job
                         </div>
                     </SubmitButton>
@@ -118,7 +118,7 @@ export function RejectedForm() {
                         isSubmitting={pendingAction === "reject"}
                     >
                         <div className="flex gap-1 items-center">
-                            <Ban className="mr-2 h-4 w-4" />
+                            <Icons.Ban className="mr-2 h-4 w-4" />
                             Keep Rejected
                         </div>
                     </SubmitButton>

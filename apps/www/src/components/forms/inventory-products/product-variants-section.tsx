@@ -1,5 +1,5 @@
+import { Icons } from "@gnd/ui/icons";
 import { useInventoryForm } from "./form-context";
-import { Eye, EyeOff, Package, Plus, Save, Tag } from "lucide-react";
 import {
     AccordionContent,
     AccordionItem,
@@ -32,7 +32,7 @@ export function ProductVariantsSection({}) {
         <AccordionItem value="variants">
             <AccordionTrigger className="">
                 <div className="flex gap-4 items-center">
-                    <Tag className="size-4" />
+                    <Icons.Tag className="size-4" />
                     <span> Stock Variants & Pricings</span>
                 </div>
             </AccordionTrigger>
@@ -51,7 +51,7 @@ export function ProductVariantsSection({}) {
                     <Card className="p-8">
                         <div className="flex flex-col items-center justify-center text-center space-y-4">
                             <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center">
-                                <Save className="h-8 w-8 text-blue-500" />
+                                <Icons.Save className="h-8 w-8 text-blue-500" />
                             </div>
                             <div className="space-y-2">
                                 <h4 className="text-lg font-semibold text-gray-900">
@@ -66,7 +66,7 @@ export function ProductVariantsSection({}) {
                                 </p>
                             </div>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground bg-gray-50 px-3 py-2 rounded-md">
-                                <Package className="h-4 w-4" />
+                                <Icons.Package className="h-4 w-4" />
                                 <span>
                                     Variants will be available after saving
                                 </span>
@@ -82,7 +82,7 @@ export function ProductVariantsSection({}) {
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                    <Tag className="h-5 w-5 text-muted-foreground" />
+                    <Icons.Tag className="h-5 w-5 text-muted-foreground" />
                     <h3 className="text-lg font-semibold">
                         Stock Variants & Pricings
                     </h3>
@@ -115,7 +115,7 @@ export function ProductVariantsSection({}) {
                 <Card className="p-8">
                     <div className="flex flex-col items-center justify-center text-center space-y-4">
                         <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center">
-                            <Save className="h-8 w-8 text-blue-500" />
+                            <Icons.Save className="h-8 w-8 text-blue-500" />
                         </div>
                         <div className="space-y-2">
                             <h4 className="text-lg font-semibold text-gray-900">
@@ -129,7 +129,7 @@ export function ProductVariantsSection({}) {
                             </p>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground bg-gray-50 px-3 py-2 rounded-md">
-                            <Package className="h-4 w-4" />
+                            <Icons.Package className="h-4 w-4" />
                             <span>Variants will be available after saving</span>
                         </div>
                     </div>

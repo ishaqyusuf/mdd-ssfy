@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { FileViewer } from "@/components/file-viewer";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -11,7 +13,6 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@gnd/ui/dialog";
-import { ExternalLink, Eye, FileText, Upload } from "lucide-react";
 import { useState } from "react";
 import type { EmployeeRecord } from "../../types";
 
@@ -62,7 +63,7 @@ export function EmployeeRecordsTab({ records, onUpload }: Props) {
 							onClick={onUpload}
 							className="flex items-center gap-1"
 						>
-							<Upload className="h-3 w-3" />
+							<Icons.Upload className="h-3 w-3" />
 							Upload
 						</Button>
 					)}
@@ -77,7 +78,7 @@ export function EmployeeRecordsTab({ records, onUpload }: Props) {
 									key={record.id}
 									className="flex items-center gap-3 py-3 text-sm"
 								>
-									<FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+									<Icons.FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
 									<div className="flex flex-1 flex-col gap-0.5">
 										<span className="font-medium">{record.title}</span>
 										<span className="text-xs capitalize text-muted-foreground">
@@ -98,7 +99,7 @@ export function EmployeeRecordsTab({ records, onUpload }: Props) {
 												variant="ghost"
 												onClick={() => setSelectedRecord(record)}
 											>
-												<Eye className="mr-2 h-4 w-4" />
+												<Icons.Eye className="mr-2 h-4 w-4" />
 												Preview
 											</Button>
 										) : null}
@@ -142,7 +143,7 @@ export function EmployeeRecordsTab({ records, onUpload }: Props) {
 							{previewUrl ? (
 								<Button variant="outline" asChild>
 									<a href={previewUrl} target="_blank" rel="noreferrer">
-										<ExternalLink className="mr-2 h-4 w-4" />
+										<Icons.ExternalLink className="mr-2 h-4 w-4" />
 										Open Document
 									</a>
 								</Button>

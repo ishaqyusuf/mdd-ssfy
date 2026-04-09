@@ -1,7 +1,8 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import * as React from "react";
-import { Check } from "lucide-react";
 
 import {
   Command,
@@ -77,7 +78,7 @@ const FacetedFilterItem = React.forwardRef<
             : "opacity-50 [&_svg]:invisible",
         )}
       >
-        <Check className="size-4" />
+        <Icons.Check className="size-4" />
       </span>
       {children}
     </CommandItem>

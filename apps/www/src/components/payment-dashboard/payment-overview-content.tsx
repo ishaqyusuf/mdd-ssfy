@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { ActivityHistory } from "@/components/chat/activity-history";
 import { Badge } from "@gnd/ui/badge";
 import {
@@ -12,7 +14,6 @@ import {
 import { Separator } from "@gnd/ui/separator";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { format } from "date-fns";
-import { BadgeDollarSign, CreditCard, ShieldCheck, User2 } from "lucide-react";
 
 function formatCurrency(value?: number | null) {
 	return new Intl.NumberFormat("en-US", {
@@ -174,18 +175,18 @@ export function PaymentOverviewContent({
 
 					<div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
 						<InfoPill
-							icon={User2}
+							icon={Icons.User2}
 							label="Paid to"
 							value={data.paidTo?.name || "Unknown contractor"}
 							description={data.paidTo?.email || "No email on file"}
 						/>
 						<InfoPill
-							icon={ShieldCheck}
+							icon={Icons.ShieldCheck}
 							label="Authorized by"
 							value={data.authorizedBy?.name || "Unknown payer"}
 						/>
 						<InfoPill
-							icon={CreditCard}
+							icon={Icons.CreditCard}
 							label="Method"
 							value={data.paymentMethod}
 							description={
@@ -193,7 +194,7 @@ export function PaymentOverviewContent({
 							}
 						/>
 						<InfoPill
-							icon={BadgeDollarSign}
+							icon={Icons.BadgeDollarSign}
 							label="Charges"
 							value={formatCurrency(data.charges)}
 							description={`Subtotal ${formatCurrency(data.subTotal)}`}

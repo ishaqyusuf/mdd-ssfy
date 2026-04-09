@@ -1,4 +1,5 @@
 "use client";
+
 import { type DataTableProps, TableProvider } from "@/components/tables";
 import { TableHeaderComponent } from "@/components/tables/table-header";
 import { TableRow } from "@/components/tables/table-row";

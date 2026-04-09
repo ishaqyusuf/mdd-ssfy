@@ -1,8 +1,8 @@
 "use client";
+
+import { Icons } from "@gnd/ui/icons";
 import { useModal } from "@/components/common/modal/provider";
 import type { IJobs } from "@/types/hrm";
-
-import { Plus } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 import { Button } from "@gnd/ui/button";
@@ -40,7 +40,7 @@ export default function SubmitJobBtn({
 	if (disabled) {
 		return (
 			<Button disabled size="sm" className="h-8" title={disabledReason}>
-				<Plus className="mr-2 h-4 w-4" />
+				<Icons.Plus className="mr-2 h-4 w-4" />
 				<span>Job</span>
 			</Button>
 		);
@@ -54,7 +54,7 @@ export default function SubmitJobBtn({
 				size="sm"
 				className="h-8"
 			>
-				<Plus className="mr-2 h-4 w-4" />
+				<Icons.Plus className="mr-2 h-4 w-4" />
 				<span>Task</span>
 			</Button>
 		);
@@ -63,7 +63,7 @@ export default function SubmitJobBtn({
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
 					<Button size="sm" className="h-8">
-						<Plus className="mr-2 h-4 w-4" />
+						<Icons.Plus className="mr-2 h-4 w-4" />
 						<span>Job</span>
 					</Button>
 				</DropdownMenuTrigger>

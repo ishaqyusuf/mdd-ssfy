@@ -1,4 +1,5 @@
 "use client";
+
 import { Menu } from "./(clean-code)/menu";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 

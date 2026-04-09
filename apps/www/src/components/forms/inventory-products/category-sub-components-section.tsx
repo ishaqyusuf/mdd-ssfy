@@ -1,4 +1,4 @@
-import { GripVerticalIcon, Package, Save } from "lucide-react";
+
 import {
     AccordionContent,
     AccordionItem,
@@ -224,7 +224,7 @@ export function CategorySubComponentsSection({}) {
             <Card className="p-8">
                 <div className="flex flex-col items-center justify-center text-center space-y-4">
                     <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center">
-                        <Save className="h-8 w-8 text-blue-500" />
+                        <Icons.Save className="h-8 w-8 text-blue-500" />
                     </div>
                     <div className="space-y-2">
                         <h4 className="text-lg font-semibold text-gray-900">
@@ -238,7 +238,7 @@ export function CategorySubComponentsSection({}) {
                         </p>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground bg-gray-50 px-3 py-2 rounded-md">
-                        <Package className="h-4 w-4" />
+                        <Icons.Package className="h-4 w-4" />
                         <span>Variants will be available after saving</span>
                     </div>
                 </div>
@@ -249,7 +249,7 @@ export function CategorySubComponentsSection({}) {
         <AccordionItem value="subComponents">
             <AccordionTrigger className="flex">
                 <div className="flex gap-4  flex-1 items-center">
-                    <Package className="size-4" />
+                    <Icons.Package className="size-4" />
                     <span>Door Builder Components</span>
                 </div>
             </AccordionTrigger>
@@ -280,7 +280,7 @@ function Row({ children, id }) {
                     size="icon"
                     className="size-7 text-muted-foreground hover:bg-transparent"
                 >
-                    <GripVerticalIcon className="size-3 text-muted-foreground" />
+                    <Icons.GripVerticalIcon className="size-3 text-muted-foreground" />
                     <span className="sr-only">Drag to reorder</span>
                 </Button>
             </TableCell>

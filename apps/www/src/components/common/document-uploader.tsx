@@ -1,10 +1,11 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 import { Label } from "@gnd/ui/label";
 import { Textarea } from "@gnd/ui/textarea";
-import { FileText, UploadCloud, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
@@ -180,7 +181,7 @@ export function DocumentUploader({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <span className="mt-0.5 flex size-10 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-sm">
-              <UploadCloud className="size-5" />
+              <Icons.UploadCloud className="size-5" />
             </span>
             <div className="space-y-1">
               <p className="text-sm font-medium text-slate-900">
@@ -210,7 +211,7 @@ export function DocumentUploader({
               className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2"
             >
               <div className="min-w-0 flex items-center gap-2">
-                <FileText className="size-4 shrink-0 text-slate-500" />
+                <Icons.FileText className="size-4 shrink-0 text-slate-500" />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-slate-900">
                     {file.name}
@@ -230,7 +231,7 @@ export function DocumentUploader({
                 }
                 disabled={isUploading}
               >
-                <X className="size-4" />
+                <Icons.X className="size-4" />
               </Button>
             </div>
           ))}

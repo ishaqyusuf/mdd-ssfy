@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronsUpDown } from "lucide-react";
+import { Icons } from "@gnd/ui/icons";
 
 import {
     DropdownMenu,
@@ -55,7 +55,7 @@ export function SidebarModules() {
                                         {currentModule?.subtitle}
                                     </span>
                                 </div>
-                                <ChevronsUpDown className="ml-auto size-4" />
+                                <Icons.ChevronsUpDown className="ml-auto size-4" />
                             </>
                         )}
                     </Button>

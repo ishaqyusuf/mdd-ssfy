@@ -9,7 +9,6 @@ import { PageTitle } from "@gnd/ui/custom/page-title";
 import Portal from "@gnd/ui/custom/portal";
 import { Icons } from "@gnd/ui/icons";
 import { SubmitButton } from "@gnd/ui/submit-button";
-import { Eye } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCommunityTemplateV1 } from "./context";
@@ -55,7 +54,7 @@ export function V1FormHeader() {
 						);
 					}}
 				>
-					<Eye className="size-4" />
+					<Icons.Eye className="size-4" />
 					Preview
 				</Button>
 				<Link

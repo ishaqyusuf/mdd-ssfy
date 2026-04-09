@@ -8,7 +8,6 @@ import { ColumnDef } from "@tanstack/react-table";
 import { cn } from "@gnd/ui/cn";
 import { useNotificationChannelFilterParams } from "@/hooks/use-notification-channel-filter-params";
 import { useNotificationChannelParams } from "@/hooks/use-notification-channel-params";
-import { Mail, Smartphone } from "lucide-react";
 import { getColorFromName, hexToRgba } from "@gnd/utils/colors";
 
 export type Item =
@@ -75,7 +74,7 @@ export function ListItem({ item: event }: ItemProps) {
                                 : "text-muted-foreground/30",
                         )}
                     >
-                        <Mail className="size-4" />
+                        <Icons.Mail className="size-4" />
                     </div>
                     <div
                         className={cn(
@@ -95,7 +94,7 @@ export function ListItem({ item: event }: ItemProps) {
                                 : "text-muted-foreground/30",
                         )}
                     >
-                        <Smartphone className="size-4" />
+                        <Icons.Smartphone className="size-4" />
                     </div>
                 </div>
             </div>

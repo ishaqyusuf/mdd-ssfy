@@ -13,7 +13,6 @@ import { Icons } from "@gnd/ui/icons";
 import { SalesMenu } from "@/components/sales-menu";
 import { SuperAdminGuard } from "@/components/auth-guard";
 import { useSalesOverviewOpen } from "@/hooks/use-sales-overview-open";
-import { ExternalLink } from "lucide-react";
 
 export type Item = RouterOutputs["sales"]["quotes"]["data"][number];
 interface ItemProps {
@@ -141,7 +140,7 @@ function QuoteActions({ item }: { item: Item }) {
             <SuperAdminGuard>
                 <SalesMenu.Sub>
                     <SalesMenu.SubTrigger className="whitespace-nowrap">
-                        <ExternalLink className="mr-2 size-4 text-muted-foreground/70" />
+                        <Icons.ExternalLink className="mr-2 size-4 text-muted-foreground/70" />
                         <span className="whitespace-nowrap">Open overview</span>
                         <span className="ml-auto rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
                             v2

@@ -23,16 +23,6 @@ import type { SendSalesEmailPayload, TaskName } from "@jobs/schema";
 import type { SalesType } from "@sales/types";
 import { useMutation } from "@tanstack/react-query";
 import {
-	Check,
-	Copy,
-	FileText,
-	Mail,
-	Move,
-	Printer,
-	Share2,
-	Trash2,
-} from "lucide-react";
-import {
 	type ComponentProps,
 	type ReactNode,
 	createContext,
@@ -276,7 +266,7 @@ function SalesMenuCopy({ disabled }: ActionProps) {
 	return (
 		<DropdownMenu.Sub>
 			<DropdownMenu.SubTrigger disabled={disabled || !state.slug}>
-				<Copy className="mr-2 size-4 text-muted-foreground/70" />
+				<Icons.Copy className="mr-2 size-4 text-muted-foreground/70" />
 				Copy As
 			</DropdownMenu.SubTrigger>
 			<DropdownMenu.SubContent>
@@ -312,7 +302,7 @@ function SalesMenuMove({ disabled }: ActionProps) {
 				void actions.move();
 			}}
 		>
-			<Move className="mr-2 size-4 text-muted-foreground/70" />
+			<Icons.Move className="mr-2 size-4 text-muted-foreground/70" />
 			{state.type === "order" ? "Move to Quote" : "Move to Sales"}
 		</DropdownMenu.Item>
 	);
@@ -391,7 +381,7 @@ function SalesMenuShare({ disabled }: ActionProps) {
 				void runPrint(undefined, { share: true });
 			}}
 		>
-			<Share2 className="mr-2 size-4 text-muted-foreground/70" />
+			<Icons.Share2 className="mr-2 size-4 text-muted-foreground/70" />
 			Share
 		</DropdownMenu.Item>
 	);
@@ -411,7 +401,7 @@ function SalesMenuPrint({ disabled }: ActionProps) {
 					void runPrint({ mode: "quote" }, { pdf: false });
 				}}
 			>
-				<Printer className="mr-2 size-4 text-muted-foreground/70" />
+				<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
 				Print
 				<span className="ml-auto rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
 					v2
@@ -423,7 +413,7 @@ function SalesMenuPrint({ disabled }: ActionProps) {
 	return (
 		<DropdownMenu.Sub>
 			<DropdownMenu.SubTrigger disabled={disabled || !state.salesIds.length}>
-				<Printer className="mr-2 size-4 text-muted-foreground/70" />
+				<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
 				Print
 			</DropdownMenu.SubTrigger>
 			<DropdownMenu.SubContent>
@@ -436,7 +426,7 @@ function SalesMenuPrint({ disabled }: ActionProps) {
 						);
 					}}
 				>
-					<Printer className="mr-2 size-4 text-muted-foreground/70" />
+					<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
 					Order & Packing
 				</DropdownMenu.Item>
 				<DropdownMenu.Item
@@ -445,7 +435,7 @@ function SalesMenuPrint({ disabled }: ActionProps) {
 						void runPrint(undefined, { pdf: false });
 					}}
 				>
-					<Printer className="mr-2 size-4 text-muted-foreground/70" />
+					<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
 					Order
 				</DropdownMenu.Item>
 				<DropdownMenu.Item
@@ -454,7 +444,7 @@ function SalesMenuPrint({ disabled }: ActionProps) {
 						void runPrint({ mode: "packing list" }, { pdf: false });
 					}}
 				>
-					<Printer className="mr-2 size-4 text-muted-foreground/70" />
+					<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
 					Packing
 				</DropdownMenu.Item>
 				<DropdownMenu.Item
@@ -463,7 +453,7 @@ function SalesMenuPrint({ disabled }: ActionProps) {
 						void runPrint({ mode: "production" }, { pdf: false });
 					}}
 				>
-					<Printer className="mr-2 size-4 text-muted-foreground/70" />
+					<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
 					Production
 				</DropdownMenu.Item>
 			</DropdownMenu.SubContent>
@@ -485,7 +475,7 @@ function SalesMenuPDF({ disabled }: ActionProps) {
 					void runPrint({ mode: "quote" }, { pdf: true });
 				}}
 			>
-				<FileText className="mr-2 size-4 text-muted-foreground/70" />
+				<Icons.FileText className="mr-2 size-4 text-muted-foreground/70" />
 				PDF
 			</DropdownMenu.Item>
 		);
@@ -494,7 +484,7 @@ function SalesMenuPDF({ disabled }: ActionProps) {
 	return (
 		<DropdownMenu.Sub>
 			<DropdownMenu.SubTrigger disabled={disabled || !state.salesIds.length}>
-				<FileText className="mr-2 size-4 text-muted-foreground/70" />
+				<Icons.FileText className="mr-2 size-4 text-muted-foreground/70" />
 				PDF
 			</DropdownMenu.SubTrigger>
 			<DropdownMenu.SubContent>
@@ -507,7 +497,7 @@ function SalesMenuPDF({ disabled }: ActionProps) {
 						);
 					}}
 				>
-					<FileText className="mr-2 size-4 text-muted-foreground/70" />
+					<Icons.FileText className="mr-2 size-4 text-muted-foreground/70" />
 					Order & Packing
 				</DropdownMenu.Item>
 				<DropdownMenu.Item
@@ -516,7 +506,7 @@ function SalesMenuPDF({ disabled }: ActionProps) {
 						void runPrint(undefined, { pdf: true });
 					}}
 				>
-					<FileText className="mr-2 size-4 text-muted-foreground/70" />
+					<Icons.FileText className="mr-2 size-4 text-muted-foreground/70" />
 					Order
 				</DropdownMenu.Item>
 				<DropdownMenu.Item
@@ -525,7 +515,7 @@ function SalesMenuPDF({ disabled }: ActionProps) {
 						void runPrint({ mode: "packing list" }, { pdf: true });
 					}}
 				>
-					<FileText className="mr-2 size-4 text-muted-foreground/70" />
+					<Icons.FileText className="mr-2 size-4 text-muted-foreground/70" />
 					Packing
 				</DropdownMenu.Item>
 				<DropdownMenu.Item
@@ -534,7 +524,7 @@ function SalesMenuPDF({ disabled }: ActionProps) {
 						void runPrint({ mode: "production" }, { pdf: true });
 					}}
 				>
-					<FileText className="mr-2 size-4 text-muted-foreground/70" />
+					<Icons.FileText className="mr-2 size-4 text-muted-foreground/70" />
 					Production
 				</DropdownMenu.Item>
 			</DropdownMenu.SubContent>
@@ -555,7 +545,7 @@ function SalesMenuNotifications({ disabled }: ActionProps) {
 				sendEmail({ withPayment: false });
 			}}
 		>
-			<Mail className="mr-2 size-4 text-muted-foreground/70" />
+			<Icons.Mail className="mr-2 size-4 text-muted-foreground/70" />
 			{isQuote ? "Quote Email" : "Invoice Email"}
 		</DropdownMenu.Item>
 	);
@@ -630,9 +620,9 @@ function SalesMenuDelete({ onDeleted }: DeleteProps) {
 			}}
 		>
 			{confirm ? (
-				<Check className="mr-2 size-4" />
+				<Icons.Check className="mr-2 size-4" />
 			) : (
-				<Trash2 className="mr-2 size-4" />
+				<Icons.Trash2 className="mr-2 size-4" />
 			)}
 			{confirm ? "Sure?" : "Delete"}
 		</DropdownMenu.Item>
@@ -663,7 +653,7 @@ function SalesMenuPrintModes({ disabled }: ActionProps) {
 					);
 				}}
 			>
-				<Printer className="mr-2 size-4 text-muted-foreground/70" />
+				<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
 				Print
 			</DropdownMenu.Item>
 		);
@@ -672,7 +662,7 @@ function SalesMenuPrintModes({ disabled }: ActionProps) {
 	return (
 		<DropdownMenu.Sub>
 			<DropdownMenu.SubTrigger disabled={isDisabled}>
-				<Printer className="mr-2 size-4 text-muted-foreground/70" />
+				<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
 				Print
 				<span className="ml-auto rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
 					v2
@@ -689,7 +679,7 @@ function SalesMenuPrintModes({ disabled }: ActionProps) {
 							);
 						}}
 					>
-						<Printer className="mr-2 size-4 text-muted-foreground/70" />
+						<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
 						{label}
 					</DropdownMenu.Item>
 				))}

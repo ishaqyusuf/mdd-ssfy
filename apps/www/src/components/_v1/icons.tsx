@@ -3,19 +3,6 @@ import Link from "@/components/link";
 import { cn } from "@/lib/utils";
 import { Icons as BaseIcon, type Icon as LucideIcon } from "@gnd/ui/icons";
 import { type VariantProps, cva } from "class-variance-authority";
-import {
-    Archive,
-    BarChart2,
-    BarChart3,
-    CheckCircle,
-    FileEdit,
-    FileText,
-    FolderTree,
-    Home,
-    LogOut,
-    Monitor,
-    Scale,
-} from "lucide-react";
 import Image from "next/image";
 import type { SVGProps } from "react";
 export type Icon = LucideIcon;
@@ -60,21 +47,21 @@ export const Icons = {
             />
         </svg>
     ),
-    Draft: FileEdit,
-    Published: CheckCircle,
-    Archived: Archive,
-    Archive: Archive,
-    report: BarChart2,
-    chart: BarChart2,
-    resolutionCenter: Scale,
-    salesDashboard: BarChart3,
-    monitor: Monitor,
-    category: FolderTree,
-    documents: FileText,
-    logout: LogOut,
-    notification: Monitor,
-    home: Home,
-    template: FileText,
+    Draft: BaseIcon.Draft,
+    Published: BaseIcon.Published,
+    Archived: BaseIcon.Archive,
+    Archive: BaseIcon.Archive,
+    report: BaseIcon.report,
+    chart: BaseIcon.chart,
+    resolutionCenter: BaseIcon.resolutionCenter,
+    salesDashboard: BaseIcon.salesDashboard,
+    monitor: BaseIcon.monitor,
+    category: BaseIcon.category,
+    documents: BaseIcon.documents,
+    logout: BaseIcon.logout,
+    notification: BaseIcon.monitor,
+    home: BaseIcon.home,
+    template: BaseIcon.documents,
 };
 
 export type IconKeys = keyof typeof Icons;
@@ -104,4 +91,3 @@ export function Icon({
     if (!RenderIcon) return null;
     return <RenderIcon className={cn("", iconVariants(props), className)} />;
 }
-

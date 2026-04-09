@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { Avatar } from "@/components/avatar";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { uploadFile } from "@/lib/upload-file";
@@ -41,16 +43,6 @@ import {
 import { Separator } from "@gnd/ui/separator";
 import { Switch } from "@gnd/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
-import {
-	Bell,
-	Camera,
-	FileText,
-	Key,
-	Loader2,
-	Trash2,
-	Upload,
-	User,
-} from "lucide-react";
 
 import {
 	INSURANCE_DOCUMENT_TITLE,
@@ -166,19 +158,19 @@ function ProfileContent() {
 			<Tabs defaultValue={initialTab} className="w-full">
 				<TabsList className="grid w-full grid-cols-4">
 					<TabsTrigger value="profile" className="gap-2">
-						<User className="h-4 w-4" />
+						<Icons.User className="h-4 w-4" />
 						<span className="hidden sm:inline">Profile</span>
 					</TabsTrigger>
 					<TabsTrigger value="security" className="gap-2">
-						<Key className="h-4 w-4" />
+						<Icons.Key className="h-4 w-4" />
 						<span className="hidden sm:inline">Security</span>
 					</TabsTrigger>
 					<TabsTrigger value="documents" className="gap-2">
-						<FileText className="h-4 w-4" />
+						<Icons.FileText className="h-4 w-4" />
 						<span className="hidden sm:inline">Documents</span>
 					</TabsTrigger>
 					<TabsTrigger value="notifications" className="gap-2">
-						<Bell className="h-4 w-4" />
+						<Icons.Bell className="h-4 w-4" />
 						<span className="hidden sm:inline">Notifications</span>
 					</TabsTrigger>
 				</TabsList>
@@ -273,9 +265,9 @@ function AvatarBanner({
 							title="Upload avatar"
 						>
 							{uploading || updateProfile.isPending ? (
-								<Loader2 className="h-3 w-3 animate-spin" />
+								<Icons.Loader2 className="h-3 w-3 animate-spin" />
 							) : (
-								<Camera className="h-3 w-3" />
+								<Icons.Camera className="h-3 w-3" />
 							)}
 						</button>
 						<input
@@ -625,7 +617,7 @@ function DocumentsTab({
 									className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-dashed border-muted-foreground/30 p-4 hover:border-muted-foreground/50 transition-colors"
 									onClick={() => fileInputRef.current?.click()}
 								>
-									<Upload className="h-5 w-5 text-muted-foreground shrink-0" />
+									<Icons.Upload className="h-5 w-5 text-muted-foreground shrink-0" />
 									<span className="text-sm text-muted-foreground">
 										{uploading
 											? "Uploading…"
@@ -757,7 +749,7 @@ function DocumentRow({
 	return (
 		<div className="flex items-center justify-between rounded-lg border p-3">
 			<div className="flex items-center gap-3 min-w-0">
-				<FileText className="h-5 w-5 text-muted-foreground shrink-0" />
+				<Icons.FileText className="h-5 w-5 text-muted-foreground shrink-0" />
 				<div className="min-w-0">
 					<a
 						href={doc.url}
@@ -807,9 +799,9 @@ function DocumentRow({
 					title="Delete document"
 				>
 					{deleting ? (
-						<Loader2 className="h-4 w-4 animate-spin" />
+						<Icons.Loader2 className="h-4 w-4 animate-spin" />
 					) : (
-						<Trash2 className="h-4 w-4" />
+						<Icons.Trash2 className="h-4 w-4" />
 					)}
 				</Button>
 			</div>

@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { useJobFormContext } from "@/contexts/job-form-context";
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
@@ -5,7 +6,6 @@ import { useJobRole } from "@/hooks/use-job-role";
 import { Button } from "@gnd/ui/button";
 import { Label } from "@gnd/ui/label";
 import { Textarea } from "@gnd/ui/textarea";
-import { AlertTriangle, Clock, Wrench } from "lucide-react";
 import { JobSubmitButton } from "./job-submit-button";
 
 export function MissingTasksConfig({ form }) {
@@ -48,7 +48,7 @@ export function MissingTasksConfig({ form }) {
 	return (
 		<div className="flex flex-col items-center justify-center p-8 text-center bg-amber-50 dark:bg-amber-900/10 border-2 border-dashed border-amber-200 dark:border-amber-800 rounded-2xl animate-in zoom-in-95 duration-300">
 			<div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center text-amber-600 mb-6 shadow-sm">
-				<AlertTriangle size={32} />
+				<Icons.AlertTriangle size={32} />
 			</div>
 			<h3 className="text-xl font-black text-amber-800 dark:text-amber-200 mb-2">
 				Task Configuration Missing
@@ -67,7 +67,7 @@ export function MissingTasksConfig({ form }) {
 						disabled={!jobFormParams.modelId}
 						className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-base shadow-lg shadow-amber-200 dark:shadow-none transition-all flex items-center justify-center gap-2"
 					>
-						<Wrench className="size-5" />
+						<Icons.Wrench className="size-5" />
 						Configure Task
 					</Button>
 				) : (
@@ -101,7 +101,7 @@ export function MissingTasksConfig({ form }) {
 					</div>
 				)}
 				<div className="flex items-start gap-2 text-left p-3 bg-white/50 dark:bg-black/20 rounded-lg border border-amber-100 dark:border-amber-900/30">
-					<Clock className="text-amber-500 shrink-0 size-4 mt-0.5" />
+					<Icons.Clock className="text-amber-500 shrink-0 size-4 mt-0.5" />
 					<p className="text-[11px] text-amber-800 dark:text-amber-300 font-medium">
 						{isAdmin
 							? "This opens Install Cost v2 to configure missing task costs. When you close it, your in-progress job setup will resume automatically."

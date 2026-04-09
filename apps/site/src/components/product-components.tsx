@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { useDebugConsole } from "@/hooks/use-debug-console";
 import { useProduct } from "@/hooks/use-product";
 import { useProductFilterParams } from "@/hooks/use-product-filter-params";
@@ -19,7 +20,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { generateRandomNumber, sum } from "@gnd/utils";
 import NumberFlow from "@number-flow/react";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle, Grid, List } from "lucide-react";
 import { useMemo } from "react";
 import { PlaceholderImage } from "./placeholder-image";
 import Image from "next/image";
@@ -242,7 +242,7 @@ function ComponentProductsSelect({ catId, selectedVariantId }) {
             className="rounded-l-md"
             onClick={() => product.setShowSubComponentImage(true)}
           >
-            <Grid className="size-3" />
+            <Icons.Grid className="size-3" />
           </Button>
           <Button
             variant={!product.showSubComponentImage ? "default" : "ghost"}
@@ -250,7 +250,7 @@ function ComponentProductsSelect({ catId, selectedVariantId }) {
             onClick={() => product.setShowSubComponentImage(false)}
             className="rounded-r-md"
           >
-            <List className="size-3" />
+            <Icons.List className="size-3" />
           </Button>
         </div>
       </div>

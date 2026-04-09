@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { deleteSalesByOrderIds } from "@/app-deps/(clean-code)/(sales)/_common/data-actions/sales-actions";
 import { getCustomerSalesWorkspace } from "@/actions/get-customer-sales-workspace";
 import { SalesMenu } from "@/components/sales-menu";
@@ -27,7 +29,6 @@ import {
     TableHeader,
     TableRow,
 } from "@gnd/ui/table";
-import { ExternalLink, Filter, Mail, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 type Props = {
@@ -191,13 +192,13 @@ export function CustomerSalesWorkspace({ accountNo }: Props) {
                             <div className="flex gap-2">
                                 <Button asChild size="sm">
                                     <Link href="/sales-book/create-order">
-                                        <Plus className="mr-2 size-4" />
+                                        <Icons.Plus className="mr-2 size-4" />
                                         New sales
                                     </Link>
                                 </Button>
                                 <Button asChild size="sm" variant="outline">
                                     <Link href="/sales-book/create-quote">
-                                        <Plus className="mr-2 size-4" />
+                                        <Icons.Plus className="mr-2 size-4" />
                                         New quote
                                     </Link>
                                 </Button>
@@ -312,7 +313,7 @@ export function CustomerSalesWorkspace({ accountNo }: Props) {
                                                             }}
                                                         >
                                                             <span>{item.orderId}</span>
-                                                            <ExternalLink className="size-3.5 text-muted-foreground" />
+                                                            <Icons.ExternalLink className="size-3.5 text-muted-foreground" />
                                                         </button>
                                                         <div className="text-xs text-muted-foreground">
                                                             {item.salesDate}
@@ -389,7 +390,7 @@ export function CustomerSalesWorkspace({ accountNo }: Props) {
                                                         >
                                                             <SalesMenu.Sub>
                                                                 <SalesMenu.SubTrigger>
-                                                                    <Mail className="mr-2 size-4 text-muted-foreground/70" />
+                                                                    <Icons.Mail className="mr-2 size-4 text-muted-foreground/70" />
                                                                     Send email
                                                                 </SalesMenu.SubTrigger>
                                                                 <SalesMenu.SubContent>
@@ -448,7 +449,7 @@ export function CustomerSalesWorkspace({ accountNo }: Props) {
                             <DropdownMenu.Root>
                                 <DropdownMenu.Trigger asChild>
                                     <Button variant="outline" size="sm">
-                                        <Mail className="mr-2 size-4" />
+                                        <Icons.Mail className="mr-2 size-4" />
                                         Send email
                                     </Button>
                                 </DropdownMenu.Trigger>
@@ -517,7 +518,7 @@ export function CustomerSalesWorkspace({ accountNo }: Props) {
                                     void deleteSelected();
                                 }}
                             >
-                                <Trash2 className="mr-2 size-4" />
+                                <Icons.Trash2 className="mr-2 size-4" />
                                 Delete
                             </Button>
                             <Button
@@ -549,7 +550,7 @@ function FilterSelect({
     return (
         <label className="grid gap-1 text-sm">
             <span className="flex items-center gap-2 text-muted-foreground">
-                <Filter className="size-3.5" />
+                <Icons.Filter className="size-3.5" />
                 {label}
             </span>
             <select

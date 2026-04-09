@@ -1,48 +1,43 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useUnitProductionFilterParams } from "@/hooks/use-unit-productions-filter-params";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Skeleton } from "@gnd/ui/skeleton";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Clock3,
-  Package2,
-  TimerReset,
-} from "lucide-react";
 
 const cards = [
   {
     key: "total",
     title: "Tasks",
     subtitle: "All production work.",
-    icon: Package2,
+    icon: Icons.Package2,
   },
   {
     key: "queued",
     title: "Queued",
     subtitle: "Waiting to move.",
-    icon: Clock3,
+    icon: Icons.Clock3,
   },
   {
     key: "started",
     title: "Started",
     subtitle: "In progress.",
-    icon: TimerReset,
+    icon: Icons.TimerReset,
   },
   {
     key: "completed",
     title: "Completed",
     subtitle: "Finished work.",
-    icon: CheckCircle2,
+    icon: Icons.CheckCircle2,
   },
   {
     key: "pastDue",
     title: "Overdue",
     subtitle: "Past due work.",
-    icon: AlertTriangle,
+    icon: Icons.AlertTriangle,
   },
 ] as const;
 

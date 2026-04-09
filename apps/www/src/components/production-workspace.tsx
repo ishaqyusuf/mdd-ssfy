@@ -1,13 +1,8 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useQuery } from "@gnd/ui/tanstack";
-import {
-    AlertTriangle,
-    ArrowRight,
-    CalendarDays,
-    Clock3,
-    Package,
-} from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Suspense, useEffect } from "react";
@@ -207,7 +202,7 @@ export function ProductionWorkspace({ mode }: Props) {
                             title={pageCopy.queueLabel}
                             value={dashboard.summary.queueCount}
                             description="All open production records in the active queue."
-                            icon={<Package className="h-4 w-4" />}
+                            icon={<Icons.Package className="h-4 w-4" />}
                             onClick={() =>
                                 applyPreset({
                                     production: "pending",
@@ -219,7 +214,7 @@ export function ProductionWorkspace({ mode }: Props) {
                             title="Past due"
                             value={dashboard.summary.pastDueCount}
                             description="Needs attention first before more work slips."
-                            icon={<AlertTriangle className="h-4 w-4" />}
+                            icon={<Icons.AlertTriangle className="h-4 w-4" />}
                             onClick={() =>
                                 applyPreset({
                                     show: "past-due",
@@ -231,7 +226,7 @@ export function ProductionWorkspace({ mode }: Props) {
                             title="Due today"
                             value={dashboard.summary.dueTodayCount}
                             description="What must move now before the day closes."
-                            icon={<Clock3 className="h-4 w-4" />}
+                            icon={<Icons.Clock3 className="h-4 w-4" />}
                             onClick={() =>
                                 applyPreset({
                                     show: "due-today",
@@ -243,7 +238,7 @@ export function ProductionWorkspace({ mode }: Props) {
                             title="Due tomorrow"
                             value={dashboard.summary.dueTomorrowCount}
                             description="Tomorrow's pressure points you can prepare today."
-                            icon={<CalendarDays className="h-4 w-4" />}
+                            icon={<Icons.CalendarDays className="h-4 w-4" />}
                             onClick={() =>
                                 applyPreset({
                                     show: "due-tomorrow",
@@ -260,7 +255,7 @@ export function ProductionWorkspace({ mode }: Props) {
                         <div className="flex items-center justify-between gap-3">
                             <div>
                                 <CardTitle className="flex items-center gap-2 text-lg">
-                                    <CalendarDays className="h-5 w-5 text-sky-600" />
+                                    <Icons.CalendarDays className="h-5 w-5 text-sky-600" />
                                     Due-date calendar
                                 </CardTitle>
                                 <CardDescription>
@@ -481,7 +476,7 @@ export function ProductionWorkspace({ mode }: Props) {
                                     >
                                         {item.alert?.text || "Past due"}
                                     </Badge>
-                                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                                    <Icons.ArrowRight className="h-4 w-4 text-muted-foreground" />
                                 </div>
                             </button>
                         ))}
@@ -494,7 +489,7 @@ export function ProductionWorkspace({ mode }: Props) {
                     <Button asChild variant="link" className="px-0">
                         <Link href="/production/dashboard">
                             Open worker dashboard view
-                            <ArrowRight className="h-4 w-4" />
+                            <Icons.ArrowRight className="h-4 w-4" />
                         </Link>
                     </Button>
                 </div>
@@ -599,7 +594,7 @@ function AlertList({
                                         item.alert?.text ||
                                         "Due date"}
                                 </Badge>
-                                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                                <Icons.ArrowRight className="h-4 w-4 text-muted-foreground" />
                             </div>
                         </button>
                     ))

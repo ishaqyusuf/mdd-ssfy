@@ -33,6 +33,7 @@ import type { GetBacklogsSchema } from "./backlogs";
 import type { GetCommunityTemplatesSchema } from "./community-template";
 import type { GetSalesAccountingsSchema } from "./sales-accounting";
 import {
+  communityInstallCostFilters,
   communityInstllationFilters,
   communityProductionFilter,
   invoiceFilter,
@@ -387,6 +388,11 @@ export async function projectUnitFilters(ctx: TRPCContext) {
       "installation",
       "Installation",
       labelValueOptions([...communityInstllationFilters]),
+    ),
+    optionFilter<T>(
+      "installCost",
+      "Install Cost",
+      labelValueOptions([...communityInstallCostFilters]),
     ),
     optionFilter<T>(
       "production",

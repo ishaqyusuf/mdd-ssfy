@@ -1,4 +1,5 @@
 "use server";
+
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 import { getSalesOrdersDta } from "../data-access/sales-dta";
 import { AsyncFnType } from "@/app-deps/(clean-code)/type";

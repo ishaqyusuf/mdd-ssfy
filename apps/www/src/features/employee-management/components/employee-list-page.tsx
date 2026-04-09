@@ -1,4 +1,6 @@
 "use client";
+
+import { Icons } from "@gnd/ui/icons";
 import { Suspense } from "react";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { ErrorFallback } from "@/components/error-fallback";
@@ -6,7 +8,6 @@ import { TableSkeleton } from "@/components/tables/skeleton";
 import { DataTable } from "@/components/tables/employees/data-table";
 import { EmployeeHeader } from "@/components/employee-header";
 import { OverviewStatCard } from "./shared/overview-stat-card";
-import { Users, HardHat, AlertTriangle, ShieldOff } from "lucide-react";
 
 interface EmployeeListStats {
     totalEmployees: number;
@@ -26,22 +27,22 @@ export function EmployeeListPage({ stats }: Props) {
                 <OverviewStatCard
                     label="Total Employees"
                     value={stats?.totalEmployees ?? "—"}
-                    icon={Users}
+                    icon={Icons.Users}
                 />
                 <OverviewStatCard
                     label="Active Contractors"
                     value={stats?.activeContractors ?? "—"}
-                    icon={HardHat}
+                    icon={Icons.HardHat}
                 />
                 <OverviewStatCard
                     label="Expiring Records (30d)"
                     value={stats?.expiringRecords ?? "—"}
-                    icon={AlertTriangle}
+                    icon={Icons.AlertTriangle}
                 />
                 <OverviewStatCard
                     label="Missing Insurance"
                     value={stats?.missingInsurance ?? "—"}
-                    icon={ShieldOff}
+                    icon={Icons.ShieldOff}
                 />
             </div>
             <EmployeeHeader />

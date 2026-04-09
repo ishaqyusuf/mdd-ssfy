@@ -1,9 +1,10 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { _trpc } from "@/components/static-trpc";
 import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import NumberFlow from "@number-flow/react";
-import { CheckCircle } from "lucide-react";
 import { SummaryCardItem } from "@gnd/ui/custom/summary-card-item";
 
 export function WorkOrderCompletedSummary() {
@@ -17,7 +18,7 @@ export function WorkOrderCompletedSummary() {
     <SummaryCardItem
       path="/work-orders?status=completed"
       summaryProps={{
-        Icon: CheckCircle,
+        Icon: Icons.CheckCircle,
         title: data?.title || "Completed",
         value: <NumberFlow value={Number(data?.value?.replace(/,/g, "") || 0)} />,
         subtitle: data?.change,

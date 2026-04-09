@@ -1,7 +1,7 @@
+import { Icons } from "@gnd/ui/icons";
 import { useJobOverviewContext } from "@/contexts/job-overview-context";
 import { Card } from "@gnd/ui/namespace";
 import { SubmitButton } from "@gnd/ui/submit-button";
-import { ShieldAlert, CheckCircle2, XCircle } from "lucide-react";
 import { useTRPC } from "@/trpc/client";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { Textarea } from "@gnd/ui/textarea";
@@ -76,7 +76,7 @@ export function ApprovalForm() {
         <Card className="animate-in slide-in-from-top-2">
             <Card.Header className="flex flex-row items-start gap-4">
                 <div className="rounded-lg bg-muted p-2 text-primary">
-                    <ShieldAlert className="h-6 w-6" />
+                    <Icons.ShieldAlert className="h-6 w-6" />
                 </div>
 
                 <div className="space-y-1">
@@ -105,7 +105,7 @@ export function ApprovalForm() {
                         isSubmitting={pendingAction === "approve"}
                     >
                         <div className="flex gap-1 items-center">
-                            <CheckCircle2 className="mr-2 h-4 w-4" />
+                            <Icons.CheckCircle2 className="mr-2 h-4 w-4" />
                             Approve Payment
                         </div>
                     </SubmitButton>
@@ -117,7 +117,7 @@ export function ApprovalForm() {
                         isSubmitting={pendingAction === "reject"}
                     >
                         <div className="flex gap-1 items-center">
-                            <XCircle className="mr-2 h-4 w-4" />
+                            <Icons.XCircle className="mr-2 h-4 w-4" />
                             Reject & Return
                         </div>
                     </SubmitButton>

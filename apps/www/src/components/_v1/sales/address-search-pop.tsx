@@ -1,8 +1,8 @@
+import { Icons } from "@gnd/ui/icons";
 import React, { useEffect } from "react";
 import { findAddressAction } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/sales-address";
 import { useDebounce } from "@/hooks/use-debounce";
 import { AddressType, IAddressBook, ISalesAddressForm } from "@/types/sales";
-import { Search } from "lucide-react";
 import { UseFormReturn } from "react-hook-form";
 
 import { Button } from "@gnd/ui/button";
@@ -51,7 +51,7 @@ export default function AddressSearchPop({
                         variant="outline"
                         className="h-8"
                     >
-                        <Search className="h-4 w-4 text-muted-foreground" />
+                        <Icons.Search className="h-4 w-4 text-muted-foreground" />
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent className="p-0" align="end">

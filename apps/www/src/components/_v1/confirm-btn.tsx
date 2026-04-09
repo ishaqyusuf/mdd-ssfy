@@ -5,7 +5,6 @@ import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
 import { useBool } from "@/lib/use-loader";
 import { cn } from "@/lib/utils";
-import { Info, Trash } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
@@ -45,11 +44,11 @@ export default function ConfirmBtn({
         });
     }
     const Icone: any = confirm.bool
-        ? Info
+        ? Icons.Info
         : isPending
           ? Icons.spinner
           : size == "icon" || trash
-            ? Trash
+            ? Icons.Trash
             : Icon;
     return (
         <Button

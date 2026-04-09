@@ -17,7 +17,6 @@ import { IBuilder, IProject } from "@/types/community";
 import { TableShellProps } from "@/types/data-table";
 import { IUser } from "@/types/hrm";
 import { ColumnDef } from "@tanstack/react-table";
-import { Key } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@gnd/ui/button";
@@ -151,7 +150,7 @@ export default function ContractorsTableShell({
                                         "Password reset successfully!"
                                     );
                                 }}
-                                Icon={Key}
+                                Icon={Icons.Key}
                             >
                                 Reset Password
                             </RowActionMenuItem>

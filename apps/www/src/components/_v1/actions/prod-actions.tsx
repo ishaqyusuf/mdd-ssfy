@@ -1,9 +1,10 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import Link from "@/components/link";
 import { _updateOrderInventoryStatus } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/sales-inventory";
 import { ISalesOrder, ISalesType } from "@/types/sales";
-import { MoreHorizontal, View } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@gnd/ui/button";
@@ -40,14 +41,14 @@ export function ProdActions(props: IOrderRowProps) {
                         variant="outline"
                         className="flex h-8 w-8 p-0 data-[state=open]:bg-muted"
                     >
-                        <MoreHorizontal className="h-4 w-4" />
+                        <Icons.MoreHorizontal className="h-4 w-4" />
                         <span className="sr-only">Open Menu</span>
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-[185px]">
                     <Link href={_linkDir}>
                         <DropdownMenuItem>
-                            <View className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
+                            <Icons.View className="mr-2 h-3.5 w-3.5 text-muted-foreground/70" />
                             View
                         </DropdownMenuItem>
                     </Link>

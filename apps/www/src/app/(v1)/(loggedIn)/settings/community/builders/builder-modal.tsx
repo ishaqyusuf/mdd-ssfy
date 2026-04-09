@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import React, { useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
@@ -16,7 +18,6 @@ import { useModal } from "@/components/common/modal/provider";
 import { toastArrayAction } from "@/lib/toast-util";
 import { chunkArray, generateRandomString } from "@/lib/utils";
 import { IBuilder } from "@/types/community";
-import { Plus, Trash } from "lucide-react";
 import { useFieldArray, useForm, useFormContext } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -226,7 +227,7 @@ function TasksForm({}) {
                             size="icon"
                             className=""
                         >
-                            <Trash className="size-4 text-slate-300 group-hover:text-red-600" />
+                            <Icons.Trash className="size-4 text-slate-300 group-hover:text-red-600" />
                         </Button>
                     </div>
                 </div>
@@ -238,7 +239,7 @@ function TasksForm({}) {
                 variant="secondary"
                 className="mt-1 h-7 w-full"
             >
-                <Plus className="mr-2 size-4" />
+                <Icons.Plus className="mr-2 size-4" />
                 <span>Add Line</span>
             </Button>
         </div>

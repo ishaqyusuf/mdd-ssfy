@@ -1,4 +1,5 @@
 "use client";
+
 import useEffectLoader from "@/lib/use-effect-loader";
 import { getSalesCustomerConflicts } from "./action";
 import { useEffect } from "react";

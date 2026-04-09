@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import Link from "@/components/link";
 import { SendSalesReminder } from "@/components/send-sales-reminder";
 import { TransactionsTab } from "@/components/sheets/customer-overview-sheet/transactions-tab";
@@ -21,14 +23,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { formatDate } from "@gnd/utils/dayjs";
 import { formatMoney } from "@gnd/utils";
 import { useQuery } from "@tanstack/react-query";
-import {
-	Clock3,
-	FileText,
-	Mail,
-	Phone,
-	ShoppingCart,
-	Wallet,
-} from "lucide-react";
 import { useMemo, useState } from "react";
 
 type Props = {
@@ -282,7 +276,7 @@ function CustomerHero({
 					<div className="flex flex-wrap gap-2">
 						<SendSalesReminder salesIds={pendingPaymentIds}>
 							<Button variant="outline" disabled={!pendingPaymentIds.length}>
-								<Mail className="mr-2 size-4" />
+								<Icons.Mail className="mr-2 size-4" />
 								Send reminder
 							</Button>
 						</SendSalesReminder>
@@ -295,13 +289,13 @@ function CustomerHero({
 						/>
 						<Button asChild variant="outline">
 							<Link href="/sales-book/create-quote">
-								<FileText className="mr-2 size-4" />
+								<Icons.FileText className="mr-2 size-4" />
 								New quote
 							</Link>
 						</Button>
 						<Button asChild>
 							<Link href="/sales-book/create-order">
-								<ShoppingCart className="mr-2 size-4" />
+								<Icons.ShoppingCart className="mr-2 size-4" />
 								New sales
 							</Link>
 						</Button>
@@ -324,25 +318,25 @@ function CustomerSummaryCards({
 			label: "Wallet balance",
 			value: `$${formatMoney(data?.walletBalance || 0)}`,
 			description: "Available customer wallet funds",
-			icon: Wallet,
+			icon: Icons.Wallet,
 		},
 		{
 			label: "Pending payment",
 			value: `$${formatMoney(data?.general.pendingPayment || 0)}`,
 			description: `${data?.general.pendingPaymentOrders?.length || 0} open payment order(s)`,
-			icon: Clock3,
+			icon: Icons.Clock3,
 		},
 		{
 			label: "Sales value",
 			value: `$${formatMoney(data?.general.totalSalesValue || 0)}`,
 			description: `${data?.general.totalSalesCount || 0} sales order(s)`,
-			icon: ShoppingCart,
+			icon: Icons.ShoppingCart,
 		},
 		{
 			label: "Quote value",
 			value: `$${formatMoney(data?.general.totalQuotesValue || 0)}`,
 			description: `${data?.general.totalQuotesCount || 0} quote(s)`,
-			icon: FileText,
+			icon: Icons.FileText,
 		},
 	];
 
@@ -384,12 +378,12 @@ function CustomerContactCard({
 		{
 			label: "Primary",
 			value: data?.customer.phoneNo || "No phone",
-			icon: Phone,
+			icon: Icons.Phone,
 		},
 		{
 			label: "Secondary",
 			value: data?.customer.phoneNo2 || data?.customer.email || "No secondary contact",
-			icon: Mail,
+			icon: Icons.Mail,
 		},
 	];
 

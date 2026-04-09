@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { _getModelCostStat } from "@/app-deps/(v1)/_actions/community/_model-cost-stat";
 import {
     _deleteCommunityModelCost,
@@ -9,7 +11,6 @@ import { _getCommunityModelCostUnits } from "@/app-deps/(v1)/_actions/community/
 import ConfirmBtn from "@/components/_v1/confirm-btn";
 import Money from "@/components/_v1/money";
 import { cn } from "@/lib/utils";
-import { Plus } from "lucide-react";
 import { useFieldArray } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -50,7 +51,7 @@ export function CommunityCostHistory({
                     variant="outline"
                     className="mt-1 h-7 w-full"
                 >
-                    <Plus className="mr-2 size-4" />
+                    <Icons.Plus className="mr-2 size-4" />
                     <span>New Cost</span>
                 </Button>
             </div>

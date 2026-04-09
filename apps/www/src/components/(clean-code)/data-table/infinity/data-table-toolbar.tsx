@@ -1,7 +1,8 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useEffect } from "react";
-import { LoaderCircle, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
 import {
@@ -63,14 +64,14 @@ DataTableToolbarProps<TData>) {
                             >
                                 {controlsOpen ? (
                                     <>
-                                        <PanelLeftClose className="h-4 w-4" />
+                                        <Icons.PanelLeftClose className="h-4 w-4" />
                                         <span className="hidden sm:block">
                                             Hide Controls
                                         </span>
                                     </>
                                 ) : (
                                     <>
-                                        <PanelLeftOpen className="h-4 w-4" />
+                                        <Icons.PanelLeftOpen className="h-4 w-4" />
                                         <span className="hidden sm:block">
                                             Show Controls
                                         </span>
@@ -95,7 +96,7 @@ DataTableToolbarProps<TData>) {
                     {/* TODO: add "(total X rows)" */}
                 </p>
                 {isLoading ? (
-                    <LoaderCircle className="ml-2 h-4 w-4 animate-spin text-muted-foreground" />
+                    <Icons.LoaderCircle className="ml-2 h-4 w-4 animate-spin text-muted-foreground" />
                 ) : null}
             </div>
             <div className="flex-1"></div>
@@ -106,7 +107,7 @@ DataTableToolbarProps<TData>) {
                         variant="ghost"
                         onClick={() => table.resetColumnFilters()}
                     >
-                        <X className="mr-2 h-4 w-4" />
+                        <Icons.X className="mr-2 h-4 w-4" />
                         Reset
                     </Button>
                 ) : null}

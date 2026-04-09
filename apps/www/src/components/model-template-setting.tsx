@@ -9,7 +9,6 @@ import { Button } from "@gnd/ui/button";
 import { DropdownMenu, Field, Select } from "@gnd/ui/namespace";
 import { Icons } from "@gnd/ui/icons";
 import { Switch } from "@gnd/ui/switch";
-import { Eye, Settings, Tag } from "lucide-react";
 import z from "zod";
 
 interface Props {
@@ -98,7 +97,7 @@ export function ModelTemplateSetting(props: Props) {
                     }}
                     className="justify-start gap-2"
                 >
-                    <Settings className="size-4" />
+                    <Icons.Settings className="size-4" />
                     Install Cost
                 </DropdownMenu.Item>
                 <DropdownMenu.Item
@@ -110,11 +109,11 @@ export function ModelTemplateSetting(props: Props) {
                     }}
                     className="justify-start gap-2"
                 >
-                    <Tag className="size-4" />
+                    <Icons.Tag className="size-4" />
                     Model Cost
                 </DropdownMenu.Item>
                 <DropdownMenu.Item disabled className="justify-start gap-2">
-                    <Eye className="size-4" />
+                    <Icons.Eye className="size-4" />
                     Preview
                 </DropdownMenu.Item>
             </DropdownMenu.Content>

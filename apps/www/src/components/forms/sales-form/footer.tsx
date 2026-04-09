@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { Button } from "@gnd/ui/button";
@@ -5,7 +6,6 @@ import { SalesFormSave } from "./sales-form-save";
 import { sum } from "@/lib/utils";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { AnimatedNumber } from "@/components/animated-number";
-import { Printer } from "lucide-react";
 import { printOrder, printQuote } from "@/lib/quick-print";
 
 export function Footer({}) {
@@ -72,7 +72,7 @@ export function Footer({}) {
                                 await printQuote({ salesIds: [previewId] });
                             }}
                         >
-                            <Printer className="mr-1 h-4 w-4" />
+                            <Icons.Printer className="mr-1 h-4 w-4" />
                             Print
                         </Button>
                         <Button

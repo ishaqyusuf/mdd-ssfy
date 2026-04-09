@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { _trpc } from "@/components/static-trpc";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { Button } from "@gnd/ui/button";
@@ -16,7 +18,6 @@ import {
 	reminderPresetPayPlans,
 	resolveReminderAmount,
 } from "@sales/utils/reminder-pay-plan";
-import { BellRing, CreditCard, Loader2, Send } from "lucide-react";
 import { type ComponentProps, type ReactNode, useMemo, useState } from "react";
 
 type Props = {
@@ -124,21 +125,21 @@ export function SalesPaymentNotificationsMenu({
 		<>
 			{!isSingleSale ? (
 				<DropdownMenu.Item disabled>
-					<BellRing className="mr-2 size-4 text-muted-foreground/70" />
+					<Icons.BellRing className="mr-2 size-4 text-muted-foreground/70" />
 					Single sale only
 				</DropdownMenu.Item>
 			) : null}
 
 			{isPending ? (
 				<DropdownMenu.Item disabled>
-					<Loader2 className="mr-2 size-4 animate-spin text-muted-foreground/70" />
+					<Icons.Loader2 className="mr-2 size-4 animate-spin text-muted-foreground/70" />
 					Loading payment details
 				</DropdownMenu.Item>
 			) : null}
 
 			{!isPending && isSingleSale && dueAmount <= 0 ? (
 				<DropdownMenu.Item disabled>
-					<BellRing className="mr-2 size-4 text-muted-foreground/70" />
+					<Icons.BellRing className="mr-2 size-4 text-muted-foreground/70" />
 					No balance due
 				</DropdownMenu.Item>
 			) : null}
@@ -153,7 +154,7 @@ export function SalesPaymentNotificationsMenu({
 								sendReminder(option.payPlan);
 							}}
 						>
-							<CreditCard className="mr-2 size-4 text-muted-foreground/70" />
+							<Icons.CreditCard className="mr-2 size-4 text-muted-foreground/70" />
 							{option.payPlan}% (${formatMoney(option.amount)})
 						</DropdownMenu.Item>
 					))
@@ -167,7 +168,7 @@ export function SalesPaymentNotificationsMenu({
 						sendReminder("flexible");
 					}}
 				>
-					<BellRing className="mr-2 size-4 text-muted-foreground/70" />
+					<Icons.BellRing className="mr-2 size-4 text-muted-foreground/70" />
 					Flexible
 				</DropdownMenu.Item>
 			) : null}
@@ -180,7 +181,7 @@ export function SalesPaymentNotificationsMenu({
 						sendReminder("full");
 					}}
 				>
-					<CreditCard className="mr-2 size-4 text-muted-foreground/70" />
+					<Icons.CreditCard className="mr-2 size-4 text-muted-foreground/70" />
 					Full (${formatMoney(dueAmount)})
 				</DropdownMenu.Item>
 			) : null}
@@ -193,7 +194,7 @@ export function SalesPaymentNotificationsMenu({
 						setCustomOpen(true);
 					}}
 				>
-					<BellRing className="mr-2 size-4 text-muted-foreground/70" />
+					<Icons.BellRing className="mr-2 size-4 text-muted-foreground/70" />
 					Custom
 				</DropdownMenu.Item>
 			) : null}
@@ -249,9 +250,9 @@ export function SalesPaymentNotificationsMenu({
 							}}
 						>
 							{trigger.isActionPending ? (
-								<Loader2 className="size-4 animate-spin" />
+								<Icons.Loader2 className="size-4 animate-spin" />
 							) : (
-								<Send className="size-4" />
+								<Icons.Send className="size-4" />
 							)}
 							Send
 						</Button>
@@ -280,7 +281,7 @@ export function SalesPaymentNotificationsMenu({
 						<DropdownMenu.SubTrigger
 							disabled={disabled || !hasEmail || trigger.isActionPending}
 						>
-							<CreditCard className="mr-2 size-4 text-muted-foreground/70" />
+							<Icons.CreditCard className="mr-2 size-4 text-muted-foreground/70" />
 							Payment Notifications
 						</DropdownMenu.SubTrigger>
 					</TooltipTrigger>

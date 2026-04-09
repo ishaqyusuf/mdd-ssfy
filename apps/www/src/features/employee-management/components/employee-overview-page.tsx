@@ -1,8 +1,9 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useAuth } from "@/hooks/use-auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
-import { Briefcase, CalendarDays, Package, Users } from "lucide-react";
 import { useState } from "react";
 import type { EmployeeOverview } from "../types";
 import { ContractorAnalytics } from "./analytics/contractor-analytics";
@@ -41,22 +42,22 @@ export function EmployeeOverviewPage({ data }: Props) {
 				<OverviewStatCard
 					label="Roles"
 					value={data.user.roles.length}
-					icon={Users}
+					icon={Icons.Users}
 				/>
 				<OverviewStatCard
 					label="Records"
 					value={data.records.length}
-					icon={Briefcase}
+					icon={Icons.Briefcase}
 				/>
 				<OverviewStatCard
 					label="Insurance"
 					value={data.insuranceStatus.replace("_", " ")}
-					icon={Package}
+					icon={Icons.Package}
 				/>
 				<OverviewStatCard
 					label="Member Since"
 					value={new Date(data.user.createdAt).toLocaleDateString()}
-					icon={CalendarDays}
+					icon={Icons.CalendarDays}
 				/>
 			</div>
 

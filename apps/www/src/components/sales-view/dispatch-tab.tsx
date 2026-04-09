@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { dispatches } from "./dummy-data";
 import {
   Table,
@@ -9,7 +10,6 @@ import {
 } from "@gnd/ui/table";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
-import { Plus } from "lucide-react";
 
 export function DispatchTab() {
   return (
@@ -18,7 +18,7 @@ export function DispatchTab() {
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">Dispatch Information</h3>
           <Button>
-            <Plus className="mr-2 h-4 w-4" /> Create Dispatch
+            <Icons.Plus className="mr-2 h-4 w-4" /> Create Dispatch
           </Button>
         </div>
         <Table>

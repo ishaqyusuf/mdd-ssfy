@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useSalesDashboardParams } from "@/hooks/use-sales-dashboard-params";

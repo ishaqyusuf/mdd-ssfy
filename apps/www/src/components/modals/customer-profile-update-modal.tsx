@@ -1,11 +1,12 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import React, { useEffect, useState } from "react";
 import {
     _getSalesCustomerSystemData,
     GetSalesCustomerSystemData,
 } from "@/actions/get-sales-customer-system-data";
-import { ChevronDown } from "lucide-react";
 
 import {
     Dialog,
@@ -81,7 +82,7 @@ export default function CustomerProfileUpdateModal({ phoneNo, profileId }) {
                         <ComboboxAnchor>
                             <CommandInput placeholder="Select Profile..." />
                             <ComboboxTrigger>
-                                <ChevronDown className="size-4" />
+                                <Icons.ChevronDown className="size-4" />
                             </ComboboxTrigger>
                         </ComboboxAnchor>
                         <ComboboxContent>

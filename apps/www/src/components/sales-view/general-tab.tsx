@@ -1,19 +1,8 @@
+import { Icons } from "@gnd/ui/icons";
 import { salesOrder } from "./dummy-data";
 import { Button } from "@gnd/ui/button";
 import { Progress } from "@gnd/ui/progress";
 import { Separator } from "@gnd/ui/separator";
-import {
-  ChevronDown,
-  Copy,
-  Edit,
-  Mail,
-  Printer,
-  Share2,
-  Eye,
-  FileText,
-  FileBox,
-  ArrowRightLeft,
-} from "lucide-react";
 
 export function GeneralTab() {
   const { customer, payment, poNumber, date, dispatchOption } = salesOrder;
@@ -96,26 +85,26 @@ export function GeneralTab() {
         <Separator className="my-2" />
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           <Button variant="outline">
-            <Edit className="mr-2 h-4 w-4" /> Edit Order
+            <Icons.Edit className="mr-2 h-4 w-4" /> Edit Order
           </Button>
           <Button variant="outline">
-            <Eye className="mr-2 h-4 w-4" /> Preview
+            <Icons.Eye className="mr-2 h-4 w-4" /> Preview
           </Button>
           <Button variant="outline">
-            <Mail className="mr-2 h-4 w-4" /> Send Email
+            <Icons.Mail className="mr-2 h-4 w-4" /> Send Email
           </Button>
           <Button variant="outline">
-            <Printer className="mr-2 h-4 w-4" /> Print
-            <ChevronDown className="ml-auto h-4 w-4" />
+            <Icons.Printer className="mr-2 h-4 w-4" /> Print
+            <Icons.ChevronDown className="ml-auto h-4 w-4" />
           </Button>
           <Button variant="outline">
-            <ArrowRightLeft className="mr-2 h-4 w-4" /> Move to...
+            <Icons.ArrowRightLeft className="mr-2 h-4 w-4" /> Move to...
           </Button>
           <Button variant="outline">
-            <Copy className="mr-2 h-4 w-4" /> Copy as...
+            <Icons.Copy className="mr-2 h-4 w-4" /> Copy as...
           </Button>
           <Button variant="outline">
-            <Share2 className="mr-2 h-4 w-4" /> Share
+            <Icons.Share2 className="mr-2 h-4 w-4" /> Share
           </Button>
           <Button>Send Payment Link</Button>
         </div>

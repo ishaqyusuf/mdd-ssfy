@@ -1,10 +1,10 @@
+import { Icons } from "@gnd/ui/icons";
 import { SearchInput } from "@/components/search-input";
 import { _trpc } from "@/components/static-trpc";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { useTRPC } from "@/trpc/client";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Briefcase, DollarSign, Home, Info } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { StepTitle } from "./step-title";
@@ -69,7 +69,7 @@ export function UnitSelectStep() {
 					{hasNoUnits && (
 						<div className="col-span-full rounded-xl border border-dashed border-border bg-muted/20 p-6 text-center">
 							<div className="mx-auto mb-2 flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
-								<Info className="size-4" />
+								<Icons.Info className="size-4" />
 							</div>
 							<p className="text-sm font-medium text-foreground">
 								No units found for this project
@@ -117,7 +117,7 @@ export function UnitSelectStep() {
 								</span>
 							</div>
 							<p className="text-sm font-bold text-foreground flex items-center gap-2">
-								<Home className="text-primary size-4" />
+								<Icons.Home className="text-primary size-4" />
 								{item.modelName}
 							</p>
 							<p className="text-[10px] text-muted-foreground truncate mb-2">
@@ -131,11 +131,11 @@ export function UnitSelectStep() {
 							{/* Stats Section */}
 							<div className="flex items-center gap-2 pt-2 border-t border-border/50">
 								<div className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
-									<Briefcase className="size-4" />
+									<Icons.Briefcase className="size-4" />
 									<span>{item.jobCount} Jobs</span>
 								</div>
 								<div className="flex items-center gap-1 text-[10px] font-bold text-foreground ml-auto">
-									<DollarSign className="size-4 text-primary" />
+									<Icons.DollarSign className="size-4 text-primary" />
 									<span>
 										$
 										{item.totalJobCost.toLocaleString("en-US", {

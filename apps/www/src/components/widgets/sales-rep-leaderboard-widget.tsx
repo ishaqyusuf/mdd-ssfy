@@ -1,4 +1,5 @@
 "use client";
+
 import { Avatar } from "@/components/avatar";
 import { openLink } from "@/lib/open-link";
 import { useTRPC } from "@/trpc/client";

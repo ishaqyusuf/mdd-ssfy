@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import UnitTaskProductionAction from "@/components/_v1/actions/unit-task-production-actions";
 import { useUnitProductionParams } from "@/hooks/use-unit-productions-params";
@@ -11,7 +13,6 @@ import { cn } from "@gnd/ui/cn";
 import { Item as ListItem } from "@gnd/ui/namespace";
 import { formatDate } from "@gnd/utils/dayjs";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Factory, FolderKanban } from "lucide-react";
 
 export type Item =
   RouterOutputs["community"]["getUnitProductions"]["data"][number];
@@ -146,7 +147,7 @@ function ItemCard({ item }: { item: Item }) {
         >
           <div className="flex items-center gap-2">
             <div className="rounded-xl bg-amber-50 p-2 text-amber-700">
-              <Factory className="size-4" />
+              <Icons.Factory className="size-4" />
             </div>
             <div className="min-w-0">
               <p className="truncate text-base font-semibold text-slate-900">
@@ -211,7 +212,7 @@ function ItemCard({ item }: { item: Item }) {
       <div className="mt-3 rounded-2xl border border-slate-200 px-3 py-3">
         <div className="flex items-center gap-2">
           <div className="rounded-xl bg-slate-100 p-2 text-slate-700">
-            <FolderKanban className="size-4" />
+            <Icons.FolderKanban className="size-4" />
           </div>
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">

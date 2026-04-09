@@ -1,10 +1,10 @@
+import { Icons } from "@gnd/ui/icons";
 import { env } from "@/env.mjs";
 import Image from "next/image";
 import ConfirmBtn from "./confirm-button";
 import { del, PutBlobResult } from "@vercel/blob";
 import { FileUpload } from "./file-upload";
 import { Label } from "@gnd/ui/label";
-import { Camera, File, FileText, FileSpreadsheet } from "lucide-react";
 import { BlobPath } from "@gnd/utils/constants";
 interface Props {
     attachments: { pathname }[];
@@ -44,13 +44,13 @@ export function AttachmentGallery(props: Props) {
                         ) : (
                             <div className="flex items-center justify-center w-[75px] h-[75px] bg-gray-100 rounded-lg">
                                 {fileType === "pdf" && (
-                                    <FileText className="size-8 text-gray-500" />
+                                    <Icons.FileText className="size-8 text-gray-500" />
                                 )}
                                 {fileType === "csv" && (
-                                    <FileSpreadsheet className="size-8 text-gray-500" />
+                                    <Icons.FileSpreadsheet className="size-8 text-gray-500" />
                                 )}
                                 {fileType === "file" && (
-                                    <File className="size-8 text-gray-500" />
+                                    <Icons.File className="size-8 text-gray-500" />
                                 )}
                             </div>
                         )}
@@ -92,7 +92,7 @@ export function AttachmentGallery(props: Props) {
                         }
                         className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50"
                     >
-                        <Camera className="size-4" />
+                        <Icons.Camera className="size-4" />
                         <span>Take Photo</span>
                     </Label>
                 </FileUpload>

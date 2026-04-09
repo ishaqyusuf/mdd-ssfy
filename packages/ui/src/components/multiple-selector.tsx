@@ -1,7 +1,8 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { Command as CommandPrimitive, useCommandState } from "cmdk";
-import { X } from "lucide-react";
 import * as React from "react";
 import { forwardRef, useEffect } from "react";
 
@@ -505,7 +506,7 @@ const MultipleSelector = React.forwardRef<
                     }}
                     onClick={() => handleUnselect(option)}
                   >
-                    <X className="size-3 text-muted-foreground hover:text-foreground" />
+                    <Icons.X className="size-3 text-muted-foreground hover:text-foreground" />
                   </button>
                 </Badge>
               );
@@ -561,7 +562,7 @@ const MultipleSelector = React.forwardRef<
                   "hidden"
               )}
             >
-              <X className="size-4 text-muted-foreground hover:text-foreground" />
+              <Icons.X className="size-4 text-muted-foreground hover:text-foreground" />
             </button>
           </div>
         </div>

@@ -15,7 +15,6 @@ import { _perm } from "@/components/sidebar/links";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { toast } from "sonner";
-import { CheckCheck, FileSearch, RefreshCcw } from "lucide-react";
 
 import { useSalesOverviewSystem } from "../provider";
 
@@ -51,7 +50,7 @@ export function QuickActionsBar() {
 				variant="default"
 				className="flex items-center gap-2"
 			>
-				<FileSearch className="size-3.5" />
+				<Icons.FileSearch className="size-3.5" />
 				<span>Preview</span>
 			</Button>
 			<Button
@@ -82,7 +81,7 @@ export function QuickActionsBar() {
 						<SalesMenu.SalesEmailMenuItems />
 						<SalesMenu.Sub>
 							<SalesMenu.SubTrigger>
-								<CheckCheck className="mr-2 size-4 text-muted-foreground/70" />
+								<Icons.CheckCheck className="mr-2 size-4 text-muted-foreground/70" />
 								Mark as
 							</SalesMenu.SubTrigger>
 							<SalesMenu.SubContent>
@@ -111,7 +110,7 @@ export function QuickActionsBar() {
 						<SalesMenu.Move />
 						<SalesMenu.Separator />
 						<SalesMenu.Item onSelect={reset} disabled={loading}>
-							<RefreshCcw className="mr-2 size-4 text-muted-foreground/70" />
+							<Icons.RefreshCcw className="mr-2 size-4 text-muted-foreground/70" />
 							Reset Stats
 						</SalesMenu.Item>
 						<AuthGuard rules={[_perm.is("viewSalesResolution")]}>
@@ -125,7 +124,7 @@ export function QuickActionsBar() {
 									);
 								}}
 							>
-								<RefreshCcw className="mr-2 size-4 text-muted-foreground/70" />
+								<Icons.RefreshCcw className="mr-2 size-4 text-muted-foreground/70" />
 								Resolution Center
 							</SalesMenu.Item>
 						</AuthGuard>

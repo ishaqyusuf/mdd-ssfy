@@ -1,4 +1,5 @@
 "use server";
+
 import { cookies } from "next/headers";
 import { nanoid } from "nanoid";
 export async function getGuestId() {

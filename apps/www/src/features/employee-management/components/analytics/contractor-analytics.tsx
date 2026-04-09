@@ -1,9 +1,10 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { ContractorAnalytics as ContractorAnalyticsType } from "../../types";
 import { OverviewStatCard } from "../shared/overview-stat-card";
-import { Briefcase, CheckCircle, Clock, DollarSign } from "lucide-react";
 
 interface Props {
     data: ContractorAnalyticsType;
@@ -16,22 +17,22 @@ export function ContractorAnalytics({ data }: Props) {
                 <OverviewStatCard
                     label="Total Jobs"
                     value={data.totalJobs}
-                    icon={Briefcase}
+                    icon={Icons.Briefcase}
                 />
                 <OverviewStatCard
                     label="Completed"
                     value={data.completedJobs}
-                    icon={CheckCircle}
+                    icon={Icons.CheckCircle}
                 />
                 <OverviewStatCard
                     label="Pending"
                     value={data.pendingJobs}
-                    icon={Clock}
+                    icon={Icons.Clock}
                 />
                 <OverviewStatCard
                     label="Total Earnings"
                     value={data.totalEarnings}
-                    icon={DollarSign}
+                    icon={Icons.DollarSign}
                 />
             </div>
             <Card>

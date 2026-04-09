@@ -23,7 +23,6 @@ import { AddInput } from "./add-input-block";
 
 import { BlockInput } from "./block-input-section";
 import { Button } from "@gnd/ui/button";
-import { SortDescIcon } from "lucide-react";
 import { useCommunityModelStore } from "@/store/community-model";
 import { SalesBlockCtx } from "@/app-deps/(v2)/printer/sales/sales-print-block";
 
@@ -78,7 +77,7 @@ function FormCard(props: Props) {
                                 setSortMode(!sortMode);
                             }}
                         >
-                            <SortDescIcon className="size-4" />
+                            <Icons.SortDescIcon className="size-4" />
                         </Button>
                         <AddInput />
                     </Card.Title>

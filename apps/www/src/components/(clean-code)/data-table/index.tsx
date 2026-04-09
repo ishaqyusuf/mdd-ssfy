@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { Fragment, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Env } from "@/components/env";
@@ -6,7 +7,6 @@ import { DataTablePagination } from "@/components/common/data-table/data-table-p
 import { formatCompactNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ColumnDef, flexRender } from "@tanstack/react-table";
-import { LoaderCircle } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
@@ -285,7 +285,7 @@ function LoadMore() {
                     variant="outline"
                 >
                     {isFetching ? (
-                        <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                        <Icons.LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
                     ) : null}
                     Load More
                 </Button>

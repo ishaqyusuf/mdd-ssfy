@@ -1,8 +1,8 @@
 "use client";
 
-import type React from "react";
+import { Icons } from "@gnd/ui/icons";
 
-import { Minus, Plus } from "lucide-react";
+import type React from "react";
 import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
 import { useProductFilterParams } from "@/hooks/use-product-filter-params";
@@ -59,7 +59,7 @@ export function ProductQuantitySelector(
           onClick={decreaseQuantity}
           disabled={filter?.qty <= 1}
         >
-          <Minus className="h-4 w-4" />
+          <Icons.Minus className="h-4 w-4" />
         </Button>
         <Input
           type="number"
@@ -75,7 +75,7 @@ export function ProductQuantitySelector(
           onClick={increaseQuantity}
           disabled={filter?.qty >= variant?.stockCount}
         >
-          <Plus className="h-4 w-4" />
+          <Icons.Plus className="h-4 w-4" />
         </Button>
       </div>
     </div>

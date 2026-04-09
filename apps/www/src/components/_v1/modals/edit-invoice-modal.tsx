@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import React, { useEffect, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
@@ -11,7 +13,6 @@ import {
 import { closeModal } from "@/lib/modal";
 import { ExtendedHome, IHomeTask, IHomeTaskList } from "@/types/community";
 import { UpdateOrderPriorityProps } from "@/types/sales";
-import { Plus } from "lucide-react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -247,7 +248,7 @@ export default function EditInvoiceModal() {
                                 variant="secondary"
                                 className="mt-1 h-7 w-full"
                             >
-                                <Plus className="mr-2 size-4" />
+                                <Icons.Plus className="mr-2 size-4" />
                                 <span>Add Task</span>
                             </Button>
                         </div>

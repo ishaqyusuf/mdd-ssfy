@@ -1,7 +1,8 @@
 "use client";
+
+import { Icons } from "@gnd/ui/icons";
 import { useTRPC } from "@/trpc/client";
 import { useSuspenseQuery } from "@gnd/ui/tanstack";
-import { Package } from "lucide-react";
 import NumberFlow from "@number-flow/react";
 import { _path, _pathIs } from "./static-trpc";
 import { SummaryCardLink } from "./summary-card-link";
@@ -17,7 +18,7 @@ export function CommunityTotalProjects() {
         <SummaryCardLink
             path="/community"
             summaryProps={{
-                Icon: Package,
+                Icon: Icons.Package,
                 title: "Projects",
                 value: <NumberFlow value={data?.value} />,
                 subtitle: data?.subtitle,

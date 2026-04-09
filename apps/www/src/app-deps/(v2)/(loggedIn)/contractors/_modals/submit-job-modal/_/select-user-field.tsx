@@ -1,8 +1,8 @@
+import { Icons } from "@gnd/ui/icons";
 import { useContext } from "react";
 import { _revalidate } from "@/app-deps/(v1)/_actions/_revalidate";
 import { Users } from "@/db";
 import { closeModal } from "@/lib/modal";
-import { ArrowLeft } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
 import { ScrollArea } from "@gnd/ui/scroll-area";

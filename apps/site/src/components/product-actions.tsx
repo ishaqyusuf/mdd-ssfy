@@ -1,7 +1,8 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useState } from "react";
-import { Heart, ShoppingCart } from "lucide-react";
 import { Button } from "@gnd/ui/button";
 import { useCartStore } from "@/lib/cart-store";
 import { useProduct } from "@/hooks/use-product";
@@ -115,7 +116,7 @@ export function ProductActions() {
           // disabled={!inStock || !isHydrated || isAdding}
           className="flex-1 bg-amber-700 hover:bg-amber-800"
         >
-          <ShoppingCart className="h-4 w-4 mr-2" />
+          <Icons.ShoppingCart className="h-4 w-4 mr-2" />
           {isAdding ? "Adding..." : "Add to Cart"}
         </Button>
         <Button
@@ -125,7 +126,7 @@ export function ProductActions() {
           // onClick={onAddToFavorites}
           // className={isFavorite ? "text-red-500 border-red-500" : ""}
         >
-          <Heart
+          <Icons.Heart
             className={`h-4 w-4 ${ctx.isFavorite ? "fill-current" : ""}`}
           />
         </Button>

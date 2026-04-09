@@ -1,8 +1,9 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import Link from "next/link";
 import NumberFlow from "@number-flow/react";
-import { Building2, Hammer, Home, Receipt, Wrench } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { formatCurrency } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
@@ -72,7 +73,7 @@ export default function CommunitySummaryWidgets() {
         {
             title: "Projects",
             href: "/community/projects",
-            icon: Building2,
+            icon: Icons.Building2,
             value: data.summary.projects,
             subtitle: `${data.summary.builders} builders active across the community`,
             accent: "linear-gradient(135deg, #0f766e, #14b8a6)",
@@ -80,7 +81,7 @@ export default function CommunitySummaryWidgets() {
         {
             title: "Units",
             href: "/community/project-units",
-            icon: Home,
+            icon: Icons.Home,
             value: data.summary.units,
             subtitle: `${data.units.status[0]?.value || 0} units in the leading state`,
             accent: "linear-gradient(135deg, #1d4ed8, #38bdf8)",
@@ -88,7 +89,7 @@ export default function CommunitySummaryWidgets() {
         {
             title: "Productions",
             href: "/community/unit-productions",
-            icon: Hammer,
+            icon: Icons.Hammer,
             value: data.summary.productions,
             subtitle: `${data.productions.status[0]?.label || "Idle"} is the top production state`,
             accent: "linear-gradient(135deg, #92400e, #f59e0b)",
@@ -96,7 +97,7 @@ export default function CommunitySummaryWidgets() {
         {
             title: "Invoices",
             href: "/community/unit-invoices",
-            icon: Receipt,
+            icon: Icons.Receipt,
             value: data.summary.invoices,
             subtitle: `${data.invoices.status[0]?.value || 0} items are ${data.invoices.status[0]?.label?.toLowerCase() || "tracked"}`,
             accent: "linear-gradient(135deg, #7c2d12, #fb7185)",
@@ -105,7 +106,7 @@ export default function CommunitySummaryWidgets() {
         {
             title: "Templates",
             href: "/community/templates",
-            icon: Wrench,
+            icon: Icons.Wrench,
             value: data.summary.templates,
             subtitle: `${data.summary.builders} builder setups are available`,
             accent: "linear-gradient(135deg, #4338ca, #8b5cf6)",

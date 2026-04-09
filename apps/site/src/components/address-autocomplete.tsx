@@ -1,10 +1,11 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { Button } from "@gnd/ui/button";
 
 import { Input } from "@gnd/ui/input";
 import { useDebounce } from "@/hooks/use-debounce";
-import { Delete } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 // import AddressDialog from "./address-dialog";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
@@ -105,7 +106,7 @@ export default function AddressAutoComplete(props: AddressAutoCompleteProps) {
             variant="outline"
             className="shrink-0"
           >
-            <Delete className="size-4" />
+            <Icons.Delete className="size-4" />
           </Button>
         </div>
       ) : (

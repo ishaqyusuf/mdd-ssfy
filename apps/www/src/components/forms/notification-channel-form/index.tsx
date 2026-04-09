@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import {
     NotificationChannelProvider,
     useCreateNotificationChannelContext,
@@ -12,8 +14,6 @@ import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 import { Card } from "@gnd/ui/namespace";
 import { ScrollArea } from "@gnd/ui/scroll-area";
-
-import { ArrowLeft, ArrowRight, Info, Users, X, BellRing } from "lucide-react";
 import { ChannelSubscribers } from "./channel-subscribers";
 import { ChannelRoles } from "./channel-roles";
 import { DeliveryMethods } from "./delivery-methods";
@@ -35,7 +35,7 @@ export function Content() {
         return (
             <div className="hidden w-full md:ml-[calc(var(--container-sm))]  md:flex flex-1 flex-col items-center justify-center pt-[200px] p-12 text-center bg-muted/5 animate-in fade-in duration-500">
                 <div className="w-24 h-24 bg-card rounded-full border-2 border-dashed border-border flex items-center justify-center text-muted-foreground/30 mb-6 group-hover:scale-110 transition-transform">
-                    <BellRing size={48} />
+                    <Icons.BellRing size={48} />
                 </div>
                 <h3 className="text-2xl font-black text-foreground mb-2">
                     Manage System Alerts
@@ -68,7 +68,7 @@ export function Content() {
                                     });
                                 }}
                             >
-                                <ArrowLeft className="h-5 w-5" />
+                                <Icons.ArrowLeft className="h-5 w-5" />
                             </Button>
 
                             <div>
@@ -99,7 +99,7 @@ export function Content() {
                                 });
                             }}
                         >
-                            <X className="h-5 w-5" />
+                            <Icons.X className="h-5 w-5" />
                         </Button>
                     </Card.Header>
 
@@ -112,7 +112,7 @@ export function Content() {
                             {/* Assignment Rules */}
                             <section className="space-y-4">
                                 <h4 className="text-xs md:text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                                    <Users className="h-4 w-4 text-primary" />
+                                    <Icons.Users className="h-4 w-4 text-primary" />
                                     Assignment Rules
                                 </h4>
 
@@ -130,7 +130,7 @@ export function Content() {
                             <Card className="bg-primary/5 border-primary/10">
                                 <Card.Content className="flex gap-4">
                                     <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                                        <Info className="h-5 w-5" />
+                                        <Icons.Info className="h-5 w-5" />
                                     </div>
                                     <div>
                                         <p className="text-sm font-bold">
@@ -158,7 +158,7 @@ export function Content() {
                         </Button>
                         <Button className="font-black">
                             Save
-                            <ArrowRight className="ml-2 h-4 w-4 hidden md:inline" />
+                            <Icons.ArrowRight className="ml-2 h-4 w-4 hidden md:inline" />
                         </Button>
                     </Card.Footer>
                 </Card>

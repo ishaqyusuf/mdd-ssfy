@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useEffect } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { _revalidate } from "@/app-deps/(v1)/_actions/_revalidate";
@@ -36,7 +38,6 @@ import { openLink } from "@/lib/open-link";
 import { _qc, _trpc } from "@/components/static-trpc";
 import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { Eye, History } from "lucide-react";
 import { InstallCostBtn } from "@/components/install-cost-btn";
 import { CommunityTemplateActions } from "@/components/community-template-actions";
 
@@ -132,7 +133,7 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
                                 );
                             }}
                         >
-                            <Eye className="size-4" />
+                            <Icons.Eye className="size-4" />
                             Preview
                         </Button>
                         <Link
@@ -155,7 +156,7 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
                             }}
                             size="sm"
                         >
-                            <History className="size-4" />
+                            <Icons.History className="size-4" />
                             History
                         </Button>
                         <ImportModelTemplateSheet

@@ -1,8 +1,9 @@
 "use client";
+
+import { Icons } from "@gnd/ui/icons";
 import { useTRPC } from "@/trpc/client";
 import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import { InventorySummary } from "./inventory-summary";
-import { Package } from "lucide-react";
 import NumberFlow from "@number-flow/react";
 import { SummaryCardLink } from "./summary-card-link";
 
@@ -18,7 +19,7 @@ export function CommunityHomesSummary() {
         <SummaryCardLink
             path="/community/project-units"
             summaryProps={{
-                Icon: Package,
+                Icon: Icons.Package,
                 title: "Units",
                 value: <NumberFlow value={data?.value} />,
                 subtitle: data?.subtitle,

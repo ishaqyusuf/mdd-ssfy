@@ -1,6 +1,6 @@
 "use client";
 
-import { Factory, Layers } from "lucide-react";
+import { Icons } from "@gnd/ui/icons";
 
 import { useAuth } from "@/hooks/use-auth";
 import { useTRPC } from "@/trpc/client";
@@ -92,7 +92,7 @@ export function SalesOverviewProductionTab() {
 		<div className="space-y-5 p-1">
 			{/* Summary stats */}
 			<div className="rounded-xl border bg-card p-5">
-				<SectionLabel icon={Factory} label="Production Summary" />
+				<SectionLabel icon={Icons.Factory} label="Production Summary" />
 				<div className="mb-4 grid grid-cols-3 gap-3">
 					<StatPill
 						label="Assigned"
@@ -137,7 +137,7 @@ export function SalesOverviewProductionTab() {
 
 			{/* Item list */}
 			<div className="rounded-xl border bg-card p-5">
-				<SectionLabel icon={Layers} label="Production Items" />
+				<SectionLabel icon={Icons.Layers} label="Production Items" />
 				{items.length === 0 ? (
 					<div className="rounded-lg border border-dashed py-8 text-center text-sm text-muted-foreground">
 						No production items visible for this view.

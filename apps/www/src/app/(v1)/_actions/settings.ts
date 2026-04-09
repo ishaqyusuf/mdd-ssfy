@@ -1,4 +1,5 @@
 "use server";
+
 import { prisma } from "@/db";
 import { ISalesSetting } from "@/types/post";
 import { InstallCostSettings, SettingType } from "@/types/settings";

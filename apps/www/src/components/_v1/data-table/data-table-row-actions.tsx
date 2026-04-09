@@ -9,7 +9,6 @@ import { useBool } from "@/lib/use-loader";
 import { cn } from "@/lib/utils";
 
 import { VariantProps } from "class-variance-authority";
-import { Info, MoreHorizontal, Trash } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button, ButtonProps, buttonVariants } from "@gnd/ui/button";
@@ -269,10 +268,10 @@ export const DeleteRowAction = typedMemo(
         }
 
         const Icone: any = confirm.bool
-            ? Info
+            ? Icons.Info
             : isPending
               ? Icons.spinner
-              : Trash;
+              : Icons.Trash;
         if (!menu)
             return (
                 <Button

@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useState } from "react";
 import { BatchAction, BatchBtn } from "@gnd/ui/custom/data-table/batch-action";
 import { useTable } from "@gnd/ui/data-table";
@@ -7,7 +9,6 @@ import { useTRPC } from "@/trpc/client";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import { useDriversList } from "@/hooks/use-data-list";
-import { Loader2, UserCheck, XCircle } from "lucide-react";
 import type { Item } from "./columns";
 import { Menu } from "@gnd/ui/custom/menu";
 
@@ -80,9 +81,9 @@ function BulkAssignDriver({
     return (
         <BatchBtn icon="user" menu={menu} disabled={bulkAssign.isPending}>
             {bulkAssign.isPending ? (
-                <Loader2 size={12} className="animate-spin mr-1" />
+                <Icons.Loader2 size={12} className="animate-spin mr-1" />
             ) : (
-                <UserCheck size={12} className="mr-1" />
+                <Icons.UserCheck size={12} className="mr-1" />
             )}
             Assign Driver
         </BatchBtn>
@@ -131,9 +132,9 @@ function BulkCancel({
             onClick={() => bulkCancel.mutate({ dispatchIds: selectedIds })}
         >
             {bulkCancel.isPending ? (
-                <Loader2 size={12} className="animate-spin mr-1" />
+                <Icons.Loader2 size={12} className="animate-spin mr-1" />
             ) : (
-                <XCircle size={12} className="mr-1" />
+                <Icons.XCircle size={12} className="mr-1" />
             )}
             Cancel All
         </BatchBtn>

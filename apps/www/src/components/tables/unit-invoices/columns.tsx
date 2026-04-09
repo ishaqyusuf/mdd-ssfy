@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import Money from "@/components/_v1/money";
 import { useUnitInvoiceParams } from "@/hooks/use-unit-invoice-params";
@@ -10,7 +12,6 @@ import { Menu } from "@gnd/ui/custom/menu";
 import { cn } from "@gnd/ui/cn";
 import { formatDate } from "@gnd/utils/dayjs";
 import type { ColumnDef } from "@tanstack/react-table";
-import { FilePenLine, ReceiptText } from "lucide-react";
 
 export type Item = RouterOutputs["community"]["getUnitInvoices"]["data"][number];
 
@@ -143,7 +144,7 @@ function Actions({ item }: { item: Item }) {
           });
         }}
       >
-        <FilePenLine className="size-4" />
+        <Icons.FilePenLine className="size-4" />
       </Button>
       <Menu>
         <Menu.Item
@@ -189,7 +190,7 @@ function ItemCard({ item }: { item: Item }) {
         >
           <div className="flex items-center gap-2">
             <div className="rounded-xl bg-emerald-50 p-2 text-emerald-700">
-              <ReceiptText className="size-4" />
+              <Icons.ReceiptText className="size-4" />
             </div>
             <div className="min-w-0">
               <p className="truncate text-base font-semibold text-slate-900">

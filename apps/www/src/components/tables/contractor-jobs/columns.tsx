@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { Avatar } from "@/components/avatar";
 import { DeleteButton } from "@/components/delete-button";
 import { EditButton } from "@/components/edit-button";
@@ -23,7 +24,6 @@ import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import { padStart } from "@gnd/utils";
 import type { ColumnDef } from "@tanstack/react-table";
-import { CheckCircle2, ChevronDown, Send, XCircle } from "lucide-react";
 
 export type JobItem = RouterOutputs["jobs"]["getJobs"]["data"][number];
 interface ItemProps {
@@ -205,7 +205,7 @@ function StatusActionsDropdown({ item }: ItemProps) {
 					onClick={(e) => e.stopPropagation()}
 				>
 					Status
-					<ChevronDown className="ml-1 size-3.5" />
+					<Icons.ChevronDown className="ml-1 size-3.5" />
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
@@ -218,7 +218,7 @@ function StatusActionsDropdown({ item }: ItemProps) {
 						)
 					}
 				>
-					<Send className="mr-2 size-4" />
+					<Icons.Send className="mr-2 size-4" />
 					Mark as submitted
 				</DropdownMenuItem>
 				<DropdownMenuItem
@@ -227,7 +227,7 @@ function StatusActionsDropdown({ item }: ItemProps) {
 						runAction("approve", "Approved from contractor jobs list.")
 					}
 				>
-					<CheckCircle2 className="mr-2 size-4" />
+					<Icons.CheckCircle2 className="mr-2 size-4" />
 					Approve
 				</DropdownMenuItem>
 				<DropdownMenuItem
@@ -237,7 +237,7 @@ function StatusActionsDropdown({ item }: ItemProps) {
 					}
 					className="text-destructive focus:text-destructive"
 				>
-					<XCircle className="mr-2 size-4" />
+					<Icons.XCircle className="mr-2 size-4" />
 					Reject
 				</DropdownMenuItem>
 			</DropdownMenuContent>

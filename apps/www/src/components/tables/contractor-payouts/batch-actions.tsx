@@ -1,10 +1,11 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { printContractorPayoutReport } from "@/lib/job-print";
 import { BatchAction } from "@gnd/ui/custom/data-table/batch-action";
 import { useTable } from "@gnd/ui/data-table";
 import { Button } from "@gnd/ui/button";
-import { Printer } from "lucide-react";
 import type { Item } from "./columns";
 
 export function BatchActions() {
@@ -27,7 +28,7 @@ export function BatchActions() {
 					})
 				}
 			>
-				<Printer size={12} className="mr-1" />
+				<Icons.Printer size={12} className="mr-1" />
 				Print Report
 			</Button>
 		</BatchAction>

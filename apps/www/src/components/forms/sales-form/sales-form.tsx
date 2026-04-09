@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import ItemSection from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/item-section";
 import { zhAddItem } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/zus-form-helper";
@@ -7,7 +8,6 @@ import { FormWatcher } from "./form-watcher";
 import TakeOff from "./take-off";
 import { TakeoffSwitch } from "./take-off/takeoff-switch";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { Menu as MenuIcon, Plus, Sparkles } from "lucide-react";
 import { SalesFormSidebar } from "./sales-form-sidebar";
 import { SalesFormSave } from "./sales-form-save";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
@@ -67,7 +67,7 @@ function Content({ data }) {
 				>
 					<div className="flex items-center  gap-3">
 						<div className="rounded-full bg-slate-900 p-1.5 text-white">
-							<Sparkles className="size-3.5" />
+							<Icons.Sparkles className="size-3.5" />
 						</div>
 						<div>
 							<h1 className="text-lg font-semibold capitalize text-slate-900 md:text-xl">
@@ -86,7 +86,7 @@ function Content({ data }) {
 							onClick={() => preview()}
 							className="hidden items-center gap-2 sm:flex"
 						>
-							<MenuIcon className="mr-1 h-4 w-4" />
+							<Icons.Menu className="mr-1 h-4 w-4" />
 							Preview
 						</Button>
 						<Button
@@ -147,7 +147,7 @@ function Content({ data }) {
 												zhAddItem();
 											}}
 										>
-											<Plus className="mr-2 size-4" />
+											<Icons.Plus className="mr-2 size-4" />
 											<span>Add Item</span>
 										</Button>
 									</div>

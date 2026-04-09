@@ -28,7 +28,6 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@gnd/ui/tooltip";
-import { StickyNote } from "lucide-react";
 import { InvoiceColumn } from "./column.invoice";
 
 export type Item = RouterOutputs["sales"]["index"]["data"][number];
@@ -58,7 +57,7 @@ export const columns: ColumnDef<Item>[] = [
                 )}
                 {!item.noteCount || (
                     <Badge className="p-1 h-5" variant="secondary">
-                        <StickyNote className="w-3 mr-1" />
+                        <Icons.StickyNote className="w-3 mr-1" />
                         <span className="">{item.noteCount}</span>
                     </Badge>
                 )}
@@ -297,7 +296,7 @@ function ItemCard({ item }: { item: Item }) {
                                 className="p-1 h-5 text-xs"
                                 variant="secondary"
                             >
-                                <StickyNote className="w-3 mr-1" />
+                                <Icons.StickyNote className="w-3 mr-1" />
                                 <span className="">{item.noteCount}</span>
                             </Badge>
                         )}

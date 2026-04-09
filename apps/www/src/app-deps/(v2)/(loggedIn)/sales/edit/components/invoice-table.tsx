@@ -11,7 +11,6 @@ import Money from "@/components/_v1/money";
 import { screens } from "@/lib/responsive";
 import { cn } from "@/lib/utils";
 import { ISalesOrder } from "@/types/sales";
-import { Layers } from "lucide-react";
 import { useFieldArray, useFormContext } from "react-hook-form";
 import { useMediaQuery } from "react-responsive";
 
@@ -262,7 +261,7 @@ function InvoiceTableHeader({ watchProfileEstimate }) {
             <TableRow>
                 <TableHead className="w-[25px]  px-1">#</TableHead>
                 <TableHead className="w-5 px-1">
-                    <Layers className="h-3.5 w-3.5" />
+                    <Icons.Layers className="h-3.5 w-3.5" />
                 </TableHead>
                 <TableHead className="px-1">Item</TableHead>
                 <TableHead className="w-20  px-1">Swing</TableHead>

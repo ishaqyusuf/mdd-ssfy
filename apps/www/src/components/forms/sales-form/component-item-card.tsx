@@ -17,19 +17,6 @@ import { CustomComponentForm } from "@/components/forms/sales-form/custom-compon
 import { useSortControl } from "@/hooks/use-sort-control";
 import { cn } from "@/lib/utils";
 import { closestCorners } from "@dnd-kit/core";
-import {
-    BoxSelect,
-    CheckCircle,
-    EyeOff,
-    ExternalLink,
-    Filter,
-    Folder,
-    Info,
-    LineChart,
-    LucideVariable,
-    Variable,
-    VariableIcon,
-} from "lucide-react";
 
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -210,7 +197,7 @@ export function ComponentItemCard({
                             "px-1",
                         )}
                     >
-                        <Filter className="size-4 text-muted-foreground/70" />
+                        <Icons.Filter className="size-4 text-muted-foreground/70" />
                     </div>
                     <div
                         className={cn(
@@ -218,10 +205,10 @@ export function ComponentItemCard({
                                 "hidden",
                         )}
                     >
-                        <LucideVariable className="size-4 text-muted-foreground/70" />
+                        <Icons.LucideVariable className="size-4 text-muted-foreground/70" />
                     </div>
                     <div className={cn(!component.redirectUid && "hidden")}>
-                        <ExternalLink className="h-4 w-4 text-muted-foreground/70" />
+                        <Icons.ExternalLink className="h-4 w-4 text-muted-foreground/70" />
                     </div>
                 </Badge>
 
@@ -252,17 +239,17 @@ export function ComponentItemCard({
                     <Checkbox checked={selectState?.uids?.[component.uid]} />
                 </div>
                 <div className={cn(!component?.variations?.length && "hidden")}>
-                    <Filter className="size-4 text-muted-foreground/70" />
+                    <Icons.Filter className="size-4 text-muted-foreground/70" />
                 </div>
                 <div
                     className={cn(
                         !component?.sectionOverride?.overrideMode && "hidden",
                     )}
                 >
-                    <LucideVariable className="size-4 text-muted-foreground/70" />
+                    <Icons.LucideVariable className="size-4 text-muted-foreground/70" />
                 </div>
                 <div className={cn(!component.redirectUid && "hidden")}>
-                    <ExternalLink className="h-4 w-4 text-muted-foreground/70" />
+                    <Icons.ExternalLink className="h-4 w-4 text-muted-foreground/70" />
                 </div>
             </div>
             <div
@@ -288,13 +275,13 @@ export function ComponentItemCard({
                                                 component,
                                             );
                                         }}
-                                        Icon={Info}
+                                        Icon={Icons.Info}
                                     >
                                         Details
                                     </Menu.Item>
                                     <Menu.Item
                                         onClick={editVisibility}
-                                        Icon={Variable}
+                                        Icon={Icons.Variable}
                                     >
                                         Visibility
                                     </Menu.Item>
@@ -313,7 +300,7 @@ export function ComponentItemCard({
                                         onClick={() => {
                                             openSectionSettingOverride(cls);
                                         }}
-                                        Icon={VariableIcon}
+                                        Icon={Icons.VariableIcon}
                                     >
                                         Section Setting Override
                                     </Menu.Item>
@@ -331,7 +318,7 @@ export function ComponentItemCard({
                                 // });
                                 ctx.toggleComponent(component.uid);
                             }}
-                            Icon={CheckCircle}
+                            Icon={Icons.CheckCircle}
                         >
                             Select
                         </Menu.Item>
@@ -346,7 +333,7 @@ export function ComponentItemCard({
                         variant="secondary"
                         className="border bg-background/90 px-1.5 py-1 text-muted-foreground"
                     >
-                        <EyeOff className="size-4" />
+                        <Icons.EyeOff className="size-4" />
                     </Badge>
                 </div>
             ) : null}
@@ -362,7 +349,7 @@ function RedirectMenuItem({ cls }: { cls: ComponentHelperClass }) {
 
     return (
         <Menu.Item
-            Icon={ExternalLink}
+            Icon={Icons.ExternalLink}
             disabled={!redirectRoutes?.length}
             SubMenu={
                 <>

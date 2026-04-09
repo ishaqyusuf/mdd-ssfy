@@ -1,4 +1,6 @@
 "use client";
+
+import { Icons } from "@gnd/ui/icons";
 import { useSalesDashboardParams } from "@/hooks/use-sales-dashboard-params";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
@@ -10,13 +12,6 @@ import {
     CardTitle,
 } from "@gnd/ui/card";
 import { useQuery } from "@gnd/ui/tanstack";
-import {
-    DollarSign,
-    CreditCard,
-    List,
-    Activity,
-    AlertTriangle,
-} from "lucide-react";
 
 export function InventoryStockAlertWidget() {
     const { params } = useSalesDashboardParams();
@@ -49,7 +44,7 @@ export function InventoryStockAlertWidget() {
         <Card className="border-orange-200 bg-orange-50">
             <CardHeader>
                 <CardTitle className="text-orange-800 flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5" />
+                    <Icons.AlertTriangle className="w-5 h-5" />
                     Low Stock Alert
                 </CardTitle>
                 <CardDescription className="text-orange-700">

@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useState } from "react";
 import Link from "next/link";
 import { Footer } from "@/components/footer";
@@ -7,7 +9,6 @@ import { CartItem } from "@/components/cart-item";
 import { OrderSummary } from "@/components/order-summary";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
-import { ShoppingBag, ArrowLeft } from "lucide-react";
 import { useCartStore } from "@/lib/cart-store";
 
 import { CartProvider, useCart } from "@/hooks/use-cart";
@@ -41,7 +42,7 @@ function Content() {
       <div className="min-h-screen bg-background">
         <main className="container mx-auto px-4 py-8">
           <div className="text-center py-16">
-            <ShoppingBag className="h-24 w-24 mx-auto text-gray-400 mb-4" />
+            <Icons.ShoppingBag className="h-24 w-24 mx-auto text-gray-400 mb-4" />
             <h1 className="text-3xl font-bold text-gray-900 mb-4">
               Your Cart is Empty
             </h1>
@@ -75,7 +76,7 @@ function Content() {
         <div className="flex items-center mb-6">
           <Link href="/search">
             <Button variant="ghost">
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <Icons.ArrowLeft className="h-4 w-4 mr-2" />
               Continue Shopping
             </Button>
           </Link>
@@ -87,7 +88,7 @@ function Content() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <ShoppingBag className="h-5 w-5 mr-2" />
+                  <Icons.ShoppingBag className="h-5 w-5 mr-2" />
                   Shopping Cart ({list?.length} items)
                 </CardTitle>
               </CardHeader>

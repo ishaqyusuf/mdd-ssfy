@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { env } from "process";
 import { Env } from "@/components/env";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
@@ -10,7 +11,6 @@ import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { formatMoney } from "@/lib/use-number";
 import { cn } from "@/lib/utils";
 import { salesPaymentMethods } from "@/utils/constants";
-import { CheckCircle, Dot, Wallet } from "lucide-react";
 
 import { Button } from "@gnd/ui/button";
 import { Form } from "@gnd/ui/form";
@@ -120,7 +120,7 @@ function Content() {
                             }}
                         >
                             <TableCell className="w-10">
-                                <CheckCircle
+                                <Icons.CheckCircle
                                     className={cn(
                                         "size-4",
                                         selections?.includes(sale?.id)
@@ -165,7 +165,7 @@ function Content() {
                     <div className="flex flex-col w-full">
                         <div className="--flex items-center justify-between p-3 bg-secondary-foreground text-secondary rounded-lg hidden">
                             <div className="flex items-center gap-2">
-                                <Wallet className="h-4 w-4" />
+                                <Icons.Wallet className="h-4 w-4" />
                                 <span className="font-medium">
                                     Current Wallet Balance
                                 </span>
@@ -248,7 +248,7 @@ function Content() {
                                                 className=""
                                             >
                                                 <div className="flex items-center gap-2">
-                                                    <Dot
+                                                    <Icons.Dot
                                                         className={cn(
                                                             option.status ==
                                                                 "PAIRED"

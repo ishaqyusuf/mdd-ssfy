@@ -22,6 +22,7 @@ import {
 } from "../utils/sales-control";
 import { formatCurrency, RenturnTypeAsync, sum } from "@gnd/utils";
 import { hasQty } from "@gnd/utils/sales";
+import { deriveOrderProductionGateState } from "../production-gate";
 
 export type SalesInfoData = RenturnTypeAsync<typeof salesInformationData>;
 type SalesInfoDataItem = SalesInfoData["order"]["items"][number];
@@ -42,11 +43,27 @@ export async function salesInformationData(
     select,
   });
   const meta = order.meta as any as SalesMeta;
+  const gateState = deriveOrderProductionGateState({
+    gate: order.productionGate,
+    order,
+  });
+  if (order.productionGate?.id && gateState.shouldPersistTriggeredAt) {
+    await db.orderProductionGate.update({
+      where: {
+        salesOrderId: order.id,
+      },
+      data: {
+        status: gateState.productionGateStatus,
+        triggeredAt: gateState.triggeredAt,
+      },
+    });
+  }
   const setting = await getSalesSetting(db);
   return {
     order: {
       ...order,
       meta,
+      ...gateState,
     },
     setting,
     assignedToId,

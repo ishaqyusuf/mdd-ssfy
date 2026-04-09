@@ -1,3 +1,4 @@
+import { Icons } from "@gnd/ui/icons";
 import { Avatar } from "@/components/avatar";
 import { SearchInput } from "@/components/search-input";
 import {
@@ -22,14 +23,6 @@ import {
 	type InsuranceRequirement,
 	getInsuranceRequirement,
 } from "@gnd/utils/insurance-documents";
-import { Building2, CreditCard, MapPin, MessageSquare } from "lucide-react";
-import {
-	CheckCircle2,
-	ShieldCheck,
-	Trash2,
-	UserPlus,
-	Wrench,
-} from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Suspense } from "react";
 import React from "react";
@@ -172,7 +165,7 @@ function Content() {
 							<Card>
 								<Card.Header>
 									<div className="flex items-center gap-2 text-muted-foreground">
-										<Building2 className="h-4 w-4" />
+										<Icons.Building2 className="h-4 w-4" />
 										<span className="text-xs font-bold uppercase tracking-wider">
 											Project & Builder
 										</span>
@@ -193,7 +186,7 @@ function Content() {
 							<Card>
 								<Card.Header>
 									<div className="flex items-center gap-2 text-muted-foreground">
-										<MapPin className="h-4 w-4" />
+										<Icons.MapPin className="h-4 w-4" />
 										<span className="text-xs font-bold uppercase tracking-wider">
 											Location
 										</span>
@@ -214,7 +207,7 @@ function Content() {
 							<Card>
 								<Card.Header>
 									<div className="flex items-center gap-2 text-muted-foreground">
-										<Wrench className="h-4 w-4" />
+										<Icons.Wrench className="h-4 w-4" />
 										<span className="text-xs font-bold uppercase tracking-wider">
 											Builder Task
 										</span>
@@ -240,7 +233,7 @@ function Content() {
 						<FinancialSummary />
 						<div className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-4">
 							<div className="flex items-center gap-2 text-muted-foreground">
-								<CreditCard className="h-4 w-4" />
+								<Icons.CreditCard className="h-4 w-4" />
 								<h4 className="text-xs font-bold uppercase tracking-wider">
 									Payment Information
 								</h4>
@@ -293,7 +286,7 @@ function Content() {
 									type="button"
 									className="ml-auto rounded-full p-2 text-muted-foreground hover:bg-muted"
 								>
-									<MessageSquare size={18} />
+									<Icons.MessageSquare size={18} />
 								</button>
 							</div>
 						</div>
@@ -470,7 +463,7 @@ function JobOverviewActionsCard({
 			<Card.Content className="space-y-3">
 				{isAdmin && canConfigure && (
 					<Button className="w-full" onClick={handleConfigure}>
-						<Wrench className="mr-2 h-4 w-4" />
+						<Icons.Wrench className="mr-2 h-4 w-4" />
 						Configure
 					</Button>
 				)}
@@ -481,7 +474,7 @@ function JobOverviewActionsCard({
 						variant="secondary"
 						onClick={() => setShowReassignPicker(true)}
 					>
-						<UserPlus className="mr-2 h-4 w-4" />
+						<Icons.UserPlus className="mr-2 h-4 w-4" />
 						Re-Assign Job
 					</Button>
 				)}
@@ -597,7 +590,7 @@ function JobOverviewActionsCard({
 										: undefined
 								}
 							>
-								<CheckCircle2 className="mr-2 h-4 w-4" />
+								<Icons.CheckCircle2 className="mr-2 h-4 w-4" />
 								{isSubmitted ? "Update Submission" : "Submit Job"}
 							</Button>
 							{!isAdmin ? (
@@ -612,7 +605,7 @@ function JobOverviewActionsCard({
 									}}
 									title="Delete job"
 								>
-									<Trash2 className="h-4 w-4" />
+									<Icons.Trash2 className="h-4 w-4" />
 								</Button>
 							) : null}
 						</div>
@@ -630,7 +623,7 @@ function JobOverviewActionsCard({
 							deleteJob({ id: job.id });
 						}}
 					>
-						<Trash2 className="mr-2 h-4 w-4" />
+						<Icons.Trash2 className="mr-2 h-4 w-4" />
 						Delete
 					</Button>
 				)}
@@ -646,7 +639,7 @@ function JobOverviewActionsCard({
 							});
 						}}
 					>
-						<ShieldCheck className="mr-2 h-4 w-4" />
+						<Icons.ShieldCheck className="mr-2 h-4 w-4" />
 						Open Review
 					</Button>
 				)}

@@ -1,8 +1,8 @@
+import { Icons } from "@gnd/ui/icons";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { DataTableFilterableColumn } from "@/types/data-table";
 import { Table, type Column } from "@tanstack/react-table";
-import { Check } from "lucide-react";
 
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -199,7 +199,7 @@ export function DataTableFacetedFilter2<TData, TValue>({
                                                         : "opacity-50 [&_svg]:invisible",
                                                 )}
                                             >
-                                                <Check
+                                                <Icons.Check
                                                     className={cn("h-4 w-4")}
                                                 />
                                             </div>

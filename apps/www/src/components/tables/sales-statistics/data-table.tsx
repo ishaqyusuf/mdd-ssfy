@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useTableData } from "@gnd/ui/data-table";
 import { useTRPC } from "@/trpc/client";
 
@@ -7,7 +9,6 @@ import { LoadMoreTRPC } from "../load-more";
 
 import { useSalesOrdersStore } from "@/store/sales-orders";
 import { Card, CardContent } from "@gnd/ui/card";
-import { EyeIcon } from "lucide-react";
 import { Badge } from "@gnd/ui/badge";
 import { ProductImage } from "@/app-deps/(v2)/(loggedIn)/sales-v2/form/components/step-items-list/item-section/step-products/product";
 import { useProductReportFilters } from "@/hooks/use-product-report-filter-params";
@@ -129,7 +130,7 @@ export function DataTable(props: Props) {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1 text-xs text-muted-foreground pt-1">
-                                        <EyeIcon className="h-3 w-3" />
+                                        <Icons.EyeIcon className="h-3 w-3" />
                                         <span>
                                             Click for detailed statistics
                                         </span>

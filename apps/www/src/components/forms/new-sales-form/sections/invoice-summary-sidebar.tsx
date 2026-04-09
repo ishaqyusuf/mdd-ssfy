@@ -1,8 +1,9 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { useState } from "react";
 import { Button } from "@gnd/ui/button";
-import { X, Building2 } from "lucide-react";
 import { InvoiceOverviewPanel } from "./invoice-overview-panel";
 import { useNewSalesFormStore } from "../store";
 import { SalesHistory } from "@/components/sales-hx";
@@ -33,7 +34,7 @@ export function InvoiceSummarySidebar(props: Props) {
                 <div className="flex h-full flex-col">
                     <div className="flex items-center border-b px-4 py-3">
                         <div className="flex items-center gap-2">
-                            <Building2 className="size-5 text-primary" />
+                            <Icons.Building2 className="size-5 text-primary" />
                             <h3 className="text-xl font-bold leading-tight tracking-tight text-foreground">
                                 Invoice Summary
                             </h3>
@@ -63,7 +64,7 @@ export function InvoiceSummarySidebar(props: Props) {
                                 className="xl:hidden"
                                 onClick={props.onClose}
                             >
-                                <X className="size-4" />
+                                <Icons.X className="size-4" />
                             </Button>
                         </div>
                     </div>

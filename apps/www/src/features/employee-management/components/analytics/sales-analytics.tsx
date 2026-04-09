@@ -1,9 +1,10 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { SalesAnalytics as SalesAnalyticsType } from "../../types";
 import { OverviewStatCard } from "../shared/overview-stat-card";
-import { DollarSign, ShoppingCart, TrendingUp, Clock } from "lucide-react";
 
 interface Props {
     data: SalesAnalyticsType;
@@ -16,22 +17,22 @@ export function SalesAnalytics({ data }: Props) {
                 <OverviewStatCard
                     label="Total Orders"
                     value={data.totalOrders}
-                    icon={ShoppingCart}
+                    icon={Icons.ShoppingCart}
                 />
                 <OverviewStatCard
                     label="Total Revenue"
                     value={data.totalRevenue}
-                    icon={DollarSign}
+                    icon={Icons.DollarSign}
                 />
                 <OverviewStatCard
                     label="Total Commission"
                     value={data.totalCommission}
-                    icon={TrendingUp}
+                    icon={Icons.TrendingUp}
                 />
                 <OverviewStatCard
                     label="Pending Commission"
                     value={data.pendingCommission}
-                    icon={Clock}
+                    icon={Icons.Clock}
                 />
             </div>
             <Card>

@@ -1,8 +1,8 @@
+import { Icons } from "@gnd/ui/icons";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Progress } from "./(clean-code)/progress";
 import { formatDate } from "@gnd/utils/dayjs";
 import { Badge } from "@gnd/ui/badge";
-import { MapPin } from "lucide-react";
 import { getColorFromName } from "@/lib/color";
 import { getScheduleStatusInfo } from "@gnd/utils";
 import { cn } from "@gnd/ui/cn";
@@ -117,7 +117,7 @@ export function PackingOrderInformation() {
                     {/* Delivery Information */}
                     <div className="space-y-3">
                         <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-                            <MapPin className="h-4 w-4" />
+                            <Icons.MapPin className="h-4 w-4" />
                             Delivery Information
                         </h4>
                         <div className="space-y-2">

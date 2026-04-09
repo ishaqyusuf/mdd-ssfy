@@ -1,6 +1,6 @@
 "use client";
 
-import { CreditCard, DollarSign, FileText, TrendingDown } from "lucide-react";
+import { Icons } from "@gnd/ui/icons";
 
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { cn } from "@gnd/ui/cn";
@@ -93,7 +93,7 @@ export function SalesOverviewFinanceTab() {
 			{/* Payment progress hero */}
 			{!isQuote && (
 				<div className="rounded-xl border bg-card p-5">
-					<SectionLabel icon={CreditCard} label="Payment Progress" />
+					<SectionLabel icon={Icons.CreditCard} label="Payment Progress" />
 					<div className="mb-4 space-y-2">
 						<div className="flex justify-between text-sm">
 							<span className="text-muted-foreground">
@@ -147,7 +147,7 @@ export function SalesOverviewFinanceTab() {
 			{/* Payment action */}
 			{!isQuote && balance > 0 && data?.id && (
 				<div className="rounded-xl border bg-card p-5">
-					<SectionLabel icon={DollarSign} label="Collect Payment" />
+					<SectionLabel icon={Icons.DollarSign} label="Collect Payment" />
 					<SalesPaymentProcessor
 						selectedIds={[data.id]}
 						phoneNo={data.customerPhone}
@@ -158,7 +158,7 @@ export function SalesOverviewFinanceTab() {
 
 			{/* Invoice details */}
 			<div className="rounded-xl border bg-card p-5">
-				<SectionLabel icon={FileText} label="Invoice Details" />
+				<SectionLabel icon={Icons.FileText} label="Invoice Details" />
 				<AmountRow label="Invoice Total" value={total} bold />
 				<AmountRow label="Amount Collected" value={paid} highlight="positive" />
 				{pending > 0 && (
@@ -179,7 +179,7 @@ export function SalesOverviewFinanceTab() {
 			{/* Cost lines */}
 			{data?.costLines?.length ? (
 				<div className="rounded-xl border bg-card p-5">
-					<SectionLabel icon={TrendingDown} label="Cost Breakdown" />
+					<SectionLabel icon={Icons.TrendingDown} label="Cost Breakdown" />
 					<div className="divide-y divide-border/40">
 						{data.costLines.map((line, i) => (
 							<div

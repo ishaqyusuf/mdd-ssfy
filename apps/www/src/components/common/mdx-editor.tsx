@@ -1,4 +1,5 @@
 "use client";
+
 // InitializedMDXEditor.tsx
 import type { ForwardedRef } from "react";
 import {

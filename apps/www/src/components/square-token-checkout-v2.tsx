@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { openLink } from "@/lib/open-link";
 import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
 import { Badge } from "@gnd/ui/badge";
@@ -17,17 +19,6 @@ import { Separator } from "@gnd/ui/separator";
 import { useMutation, useSuspenseQuery } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import { resolveReminderPlanLabel } from "@sales/utils/reminder-pay-plan";
-import {
-	AlertCircle,
-	ArrowRight,
-	CheckCircle2,
-	Clock3,
-	CreditCard,
-	Loader2,
-	RefreshCw,
-	ShieldCheck,
-	Wallet,
-} from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { _trpc } from "./static-trpc";
@@ -215,22 +206,22 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 				<CardContent className="space-y-6 p-6">
 					<div className="grid gap-4 md:grid-cols-4">
 						<SummaryTile
-							icon={<Wallet className="h-4 w-4" />}
+							icon={<Icons.Wallet className="h-4 w-4" />}
 							label="Merchant"
 							value={merchantName}
 						/>
 						<SummaryTile
-							icon={<CreditCard className="h-4 w-4" />}
+							icon={<Icons.CreditCard className="h-4 w-4" />}
 							label={amountLabel}
 							value={currencyFormatter.format(amountDue)}
 						/>
 						<SummaryTile
-							icon={<CreditCard className="h-4 w-4" />}
+							icon={<Icons.CreditCard className="h-4 w-4" />}
 							label="Payment plan"
 							value={paymentPlanLabel}
 						/>
 						<SummaryTile
-							icon={<ShieldCheck className="h-4 w-4" />}
+							icon={<Icons.ShieldCheck className="h-4 w-4" />}
 							label="Token"
 							value={`${token.slice(0, 10)}...`}
 						/>
@@ -238,7 +229,7 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 
 					{isFlexiblePayPlan ? (
 						<Alert className="border-sky-200 bg-sky-50 text-sky-950">
-							<CreditCard className="h-4 w-4 text-sky-700" />
+							<Icons.CreditCard className="h-4 w-4 text-sky-700" />
 							<AlertTitle>Flexible payment</AlertTitle>
 							<AlertDescription>
 								The customer can choose how much to pay right now. Enter any
@@ -249,7 +240,7 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 
 					{payload?.payPlan === "custom" || payload?.preferredAmount ? (
 						<Alert className="border-sky-200 bg-sky-50 text-sky-950">
-							<CreditCard className="h-4 w-4 text-sky-700" />
+							<Icons.CreditCard className="h-4 w-4 text-sky-700" />
 							<AlertTitle>Custom payment request</AlertTitle>
 							<AlertDescription>
 								This reminder asked the customer to pay a preferred amount now.
@@ -285,7 +276,7 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 
 					{state.name === "invalid" ? (
 						<Alert variant="destructive">
-							<AlertCircle className="h-4 w-4" />
+							<Icons.AlertCircle className="h-4 w-4" />
 							<AlertTitle>Invalid payment token</AlertTitle>
 							<AlertDescription>
 								This token could not be decoded. Please request a fresh payment
@@ -296,7 +287,7 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 
 					{state.name === "expired" ? (
 						<Alert className="border-amber-200 bg-amber-50 text-amber-950">
-							<Clock3 className="h-4 w-4 text-amber-700" />
+							<Icons.Clock3 className="h-4 w-4 text-amber-700" />
 							<AlertTitle>Nothing left to charge</AlertTitle>
 							<AlertDescription>
 								This checkout link no longer has any open balances attached to
@@ -356,7 +347,7 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 
 				<CardFooter className="flex flex-col items-stretch gap-3 border-t border-slate-100 bg-slate-50/70 p-6 text-sm text-slate-600 md:flex-row md:items-center md:justify-between">
 					<div className="flex items-center gap-2">
-						<ShieldCheck className="h-4 w-4 text-emerald-600" />
+						<Icons.ShieldCheck className="h-4 w-4 text-emerald-600" />
 						<span>Secure payment link and verification flow.</span>
 					</div>
 
@@ -371,13 +362,13 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 						>
 							{isCreatingCheckout ? (
 								<>
-									<Loader2 className="h-4 w-4 animate-spin" />
+									<Icons.Loader2 className="h-4 w-4 animate-spin" />
 									Creating checkout link
 								</>
 							) : (
 								<>
 									{isFlexiblePayPlan ? "Continue to payment" : "Pay now"}
-									<ArrowRight className="h-4 w-4" />
+									<Icons.ArrowRight className="h-4 w-4" />
 								</>
 							)}
 						</Button>
@@ -385,7 +376,7 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 
 					{state.name === "failed" ? (
 						<Button onClick={handleRetryVerification} variant="outline">
-							<RefreshCw className="h-4 w-4" />
+							<Icons.RefreshCw className="h-4 w-4" />
 							Retry verification
 						</Button>
 					) : null}
@@ -398,12 +389,12 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 						>
 							{isVerifying ? (
 								<>
-									<Loader2 className="h-4 w-4 animate-spin" />
+									<Icons.Loader2 className="h-4 w-4 animate-spin" />
 									Checking payment
 								</>
 							) : (
 								<>
-									<RefreshCw className="h-4 w-4" />
+									<Icons.RefreshCw className="h-4 w-4" />
 									Check again
 								</>
 							)}
@@ -476,7 +467,7 @@ function StatusPanel({ state }: { state: CheckoutStateName }) {
 	if (state === "paid") {
 		return (
 			<Alert className="border-emerald-200 bg-emerald-50 text-emerald-950">
-				<CheckCircle2 className="h-4 w-4 text-emerald-700" />
+				<Icons.CheckCircle2 className="h-4 w-4 text-emerald-700" />
 				<AlertTitle>Payment received</AlertTitle>
 				<AlertDescription>
 					Your payment has been confirmed successfully.
@@ -488,7 +479,7 @@ function StatusPanel({ state }: { state: CheckoutStateName }) {
 	if (state === "failed") {
 		return (
 			<Alert variant="destructive">
-				<AlertCircle className="h-4 w-4" />
+				<Icons.AlertCircle className="h-4 w-4" />
 				<AlertTitle>Verification failed</AlertTitle>
 				<AlertDescription>
 					We could not confirm the payment after the redirect. You can retry the
@@ -501,7 +492,7 @@ function StatusPanel({ state }: { state: CheckoutStateName }) {
 	if (state === "processing") {
 		return (
 			<Alert className="border-sky-200 bg-sky-50 text-sky-950">
-				<Loader2 className="h-4 w-4 animate-spin text-sky-700" />
+				<Icons.Loader2 className="h-4 w-4 animate-spin text-sky-700" />
 				<AlertTitle>Processing payment</AlertTitle>
 				<AlertDescription>
 					We are checking the latest settlement status for this payment.
@@ -513,7 +504,7 @@ function StatusPanel({ state }: { state: CheckoutStateName }) {
 	if (state === "expired") {
 		return (
 			<Alert className="border-amber-200 bg-amber-50 text-amber-950">
-				<Clock3 className="h-4 w-4 text-amber-700" />
+				<Icons.Clock3 className="h-4 w-4 text-amber-700" />
 				<AlertTitle>Link expired</AlertTitle>
 				<AlertDescription>
 					The token resolves, but there are no unpaid orders left on it.
@@ -525,7 +516,7 @@ function StatusPanel({ state }: { state: CheckoutStateName }) {
 	if (state === "invalid") {
 		return (
 			<Alert variant="destructive">
-				<AlertCircle className="h-4 w-4" />
+				<Icons.AlertCircle className="h-4 w-4" />
 				<AlertTitle>Token invalid</AlertTitle>
 				<AlertDescription>
 					We could not load payable data from this token.
@@ -536,7 +527,7 @@ function StatusPanel({ state }: { state: CheckoutStateName }) {
 
 	return (
 		<Alert className="border-slate-200 bg-slate-50 text-slate-900">
-			<CreditCard className="h-4 w-4 text-slate-700" />
+			<Icons.CreditCard className="h-4 w-4 text-slate-700" />
 			<AlertTitle>Ready to pay</AlertTitle>
 			<AlertDescription>
 				Launching payment will create a fresh Square checkout link.

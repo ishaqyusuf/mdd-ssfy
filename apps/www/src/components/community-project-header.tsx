@@ -1,12 +1,13 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import ProjectModal from "@/app-deps/(v1)/(loggedIn)/community/projects/project-modal";
 import { useModal } from "@/components/common/modal/provider";
 import { communityProjectFilterParams } from "@/hooks/use-community-project-filter-params";
 import { useTRPC } from "@/trpc/client";
 import { SearchFilter } from "@gnd/ui/search-filter";
 import { Button } from "@gnd/ui/button";
-import { Plus } from "lucide-react";
 import { useQueryStates } from "nuqs";
 
 export function CommunityProjectHeader() {
@@ -24,7 +25,7 @@ export function CommunityProjectHeader() {
       />
       <div className="flex-1" />
       <Button onClick={() => modal.openModal(<ProjectModal />)}>
-        <Plus className="mr-2 size-4" />
+        <Icons.Plus className="mr-2 size-4" />
         Add Project
       </Button>
     </div>

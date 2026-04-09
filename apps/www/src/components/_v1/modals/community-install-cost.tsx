@@ -1,5 +1,7 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import React, { useEffect, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { useRouter } from "next/navigation";
@@ -11,8 +13,6 @@ import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/store";
 import { loadStaticList } from "@/store/slicers";
 import { InstallCost, IProject } from "@/types/community";
-
-import { Plus } from "lucide-react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -123,7 +123,7 @@ export default function CommunityInstallCostModal() {
                                 variant="outline"
                                 className="mt-1 h-7 w-full"
                             >
-                                <Plus className="mr-2 size-4" />
+                                <Icons.Plus className="mr-2 size-4" />
                                 <span>New Install</span>
                             </Button>
                         </div>

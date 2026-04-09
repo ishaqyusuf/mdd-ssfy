@@ -1,7 +1,7 @@
+import { Icons } from "@gnd/ui/icons";
 import { DatePicker } from "@/components/_v1/date-range-picker";
 
 import { ISalesOrder } from "@/types/sales";
-import { Dot } from "lucide-react";
 import { useState } from "react";
 import { useFormContext } from "react-hook-form";
 
@@ -30,7 +30,7 @@ export default function SupplierCell({
             />
             {(!rowHover || !supplier) && (
                 <div className="absolute -top-[10px] -right-[10px]">
-                    <Dot className="text-muted-foreground" />
+                    <Icons.Dot className="text-muted-foreground" />
                 </div>
             )}
             {supplier && rowHover && (

@@ -1,6 +1,6 @@
+import { Icons } from "@gnd/ui/icons";
 import { Avatar } from "@/components/avatar";
 import Link from "@/components/link";
-import { LogOut } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
 import { useLinks } from "@/hooks/use-sidebar";
@@ -85,7 +85,7 @@ export function UserNav() {
 				<DropdownMenuSeparator />
 				<Link href="/signout">
 					<DropdownMenuItem onClick={() => {}}>
-						<LogOut className="mr-2 h-4 w-4" />
+						<Icons.LogOut className="mr-2 h-4 w-4" />
 						<span>Log out</span>
 						<DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
 					</DropdownMenuItem>

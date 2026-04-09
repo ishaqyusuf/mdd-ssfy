@@ -1,9 +1,10 @@
 "use client";
+
+import { Icons } from "@gnd/ui/icons";
 import { useInventoryFilterParams } from "@/hooks/use-inventory-filter-params";
 import { useTRPC } from "@/trpc/client";
 import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import { InventorySummary } from "./inventory-summary";
-import { TrendingUp } from "lucide-react";
 import NumberFlow from "@number-flow/react";
 
 export function InventoryValue() {
@@ -22,7 +23,7 @@ export function InventoryValue() {
             className="hidden sm:block text-left"
         >
             <InventorySummary
-                Icon={TrendingUp}
+                Icon={Icons.TrendingUp}
                 title="Inventory Value"
                 value={<NumberFlow value={data?.value} prefix="$ " />}
                 subtitle={data?.subtitle!}

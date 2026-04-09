@@ -1,7 +1,8 @@
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 import { IHomeTask } from "@/types/community";
-import { Check, Play, StopCircle } from "lucide-react";
 
 import {
     _completeUnitTaskProduction,
@@ -32,7 +33,7 @@ export default function UnitTaskProductionAction({
                     itemId={task.id}
                     _action={_startUnitTaskProduction}
                     color="blue"
-                    Icon={Play}
+                    Icon={Icons.Play}
                 />
             ) : null}
             {isStarted || isCompleted ? (
@@ -40,7 +41,7 @@ export default function UnitTaskProductionAction({
                     itemId={task.id}
                     _action={_stopUnitTaskProduction}
                     color="red"
-                    Icon={StopCircle}
+                    Icon={Icons.StopCircle}
                 />
             ) : null}
             {!isCompleted ? (
@@ -57,7 +58,7 @@ export default function UnitTaskProductionAction({
                         });
                     }}
                     color="green"
-                    Icon={Check}
+                    Icon={Icons.Check}
                 />
             ) : null}
         </>
