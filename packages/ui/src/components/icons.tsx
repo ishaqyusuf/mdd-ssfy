@@ -3,137 +3,6 @@ import { HugeiconsIcon, type HugeiconsIconProps } from "@hugeicons/react";
 import * as HugeIcons from "@hugeicons/core-free-icons";
 import { FaFacebook, FaInstagram, FaXTwitter } from "react-icons/fa6";
 import { FiGithub } from "react-icons/fi";
-// import { DynamicIcon } from "lucide-react/dynamic";
-import {
-  MdAdd,
-  MdAddLink,
-  MdArrowBack,
-  MdArrowLeft,
-  MdArrowRight,
-  MdArrowRightAlt,
-  MdArrowUpward,
-  MdAttachMoney,
-  MdAutoAwesome,
-  MdBarChart,
-  MdChangeHistory,
-  MdChevronLeft,
-  MdChevronRight,
-  MdClose,
-  MdDescription,
-  MdDownloading,
-  MdDragIndicator,
-  MdDriveFileMove,
-  MdEditCalendar,
-  MdErrorOutline,
-  MdExpandLess,
-  MdExpandMore,
-  MdFence,
-  MdFolder,
-  MdFolderSpecial,
-  MdFolderZip,
-  MdFormatBold,
-  MdFormatItalic,
-  MdFormatStrikethrough,
-  MdFormatUnderlined,
-  MdInventory2,
-  MdIosShare,
-  MdKeyboardArrowDown,
-  MdKeyboardArrowLeft,
-  MdKeyboardArrowRight,
-  MdKeyboardArrowUp,
-  MdMenu,
-  MdMoreHoriz,
-  MdOutlineAccountBalance,
-  MdOutlineAccountCircle,
-  MdOutlineApps,
-  MdOutlineArchive,
-  MdOutlineArrowDownward,
-  MdOutlineArrowForward,
-  MdOutlineArrowOutward,
-  MdOutlineAssuredWorkload,
-  MdOutlineAttachFile,
-  MdOutlineAttachMoney,
-  MdOutlineAutoAwesome,
-  MdOutlineBackspace,
-  MdOutlineBrokenImage,
-  MdOutlineCalculate,
-  MdOutlineCalendarMonth,
-  MdOutlineCancel,
-  MdOutlineCategory,
-  MdOutlineChatBubbleOutline,
-  MdOutlineClear,
-  MdOutlineCloseFullscreen,
-  MdOutlineConfirmationNumber,
-  MdOutlineContentCopy,
-  MdOutlineCreateNewFolder,
-  MdOutlineCropFree,
-  MdOutlineDashboardCustomize,
-  MdOutlineDelete,
-  MdOutlineDescription,
-  MdOutlineDone,
-  MdOutlineDownload,
-  MdOutlineEditNote,
-  MdOutlineEmail,
-  MdOutlineEqualizer,
-  MdOutlineExitToApp,
-  MdOutlineFace,
-  MdOutlineFactCheck,
-  MdOutlineFileDownload,
-  MdOutlineFilterList,
-  MdOutlineForwardToInbox,
-  MdOutlineHandyman,
-  MdOutlineHourglassTop,
-  MdOutlineInbox,
-  MdOutlineInsertPhoto,
-  MdOutlineInventory2,
-  MdOutlineLaunch,
-  MdOutlineListAlt,
-  MdOutlineMoreTime,
-  MdOutlineMoreVert,
-  MdOutlineMoveToInbox,
-  MdOutlineNotificationsNone,
-  MdOutlineOpenInFull,
-  MdOutlineOpenInNew,
-  MdOutlinePalette,
-  MdOutlinePause,
-  MdOutlinePlayArrow,
-  MdOutlineQrCode2,
-  MdOutlineQuestionAnswer,
-  MdOutlineRepeat,
-  MdOutlineSettings,
-  MdOutlineSpellcheck,
-  MdOutlineSquareFoot,
-  MdOutlineStyle,
-  MdOutlineSubject,
-  MdOutlineTask,
-  MdOutlineTimer,
-  MdOutlineTune,
-  MdOutlineUploadFile,
-  MdOutlineVisibility,
-  MdOutlineVolumeOff,
-  MdOutlineVolumeUp,
-  MdOutlineWrapText,
-  MdPause,
-  MdPauseCircle,
-  MdPeople,
-  MdPerson,
-  MdPictureAsPdf,
-  MdPlayArrow,
-  MdPlayCircle,
-  MdRefresh,
-  MdRemove,
-  MdReplay,
-  MdRuleFolder,
-  MdSearch,
-  MdSecurity,
-  MdSignalCellularAlt,
-  MdSnippetFolder,
-  MdSort,
-  MdSubdirectoryArrowLeft,
-  MdTopic,
-  MdTrendingDown,
-  MdTrendingUp,
-} from "react-icons/md";
 import { PiDiscordLogo } from "react-icons/pi";
 import { Cross2Icon, DashboardIcon } from "@radix-ui/react-icons";
 
@@ -296,6 +165,135 @@ const FileLock = hugeIcon("FileLockIcon");
 const UserRoundPlus = hugeIcon("UserPlus");
 const BookTemplate = hugeIcon("BookOpen01Icon");
 const CircleDollarSign = hugeIcon("DollarCircleIcon");
+const MdAdd = Plus;
+const MdAddLink = hugeIcon("Link01Icon");
+const MdArrowBack = ArrowLeft;
+const MdArrowLeft = ArrowLeft;
+const MdArrowRight = ArrowRight;
+const MdArrowRightAlt = ArrowRight;
+const MdArrowUpward = ArrowUp;
+const MdAttachMoney = DollarSign;
+const MdAutoAwesome = hugeIcon("AiGenerativeIcon");
+const MdBarChart = BarChart2;
+const MdChangeHistory = ClipboardEdit;
+const MdChevronLeft = ChevronLeft;
+const MdChevronRight = ChevronRight;
+const MdClose = X;
+const MdDescription = FileText;
+const MdDownloading = Download;
+const MdDragIndicator = hugeIcon("DragDropVerticalIcon");
+const MdDriveFileMove = Move;
+const MdEditCalendar = Calendar;
+const MdErrorOutline = AlertCircle;
+const MdExpandLess = ChevronUp;
+const MdExpandMore = ChevronDown;
+const MdFence = Construction;
+const MdFolder = FolderClosed;
+const MdFolderSpecial = FolderClosed;
+const MdFolderZip = FolderClosed;
+const MdFormatBold = hugeIcon("TextBoldIcon");
+const MdFormatItalic = hugeIcon("TextItalicIcon");
+const MdFormatStrikethrough = hugeIcon("TextStrikethroughIcon");
+const MdFormatUnderlined = hugeIcon("TextUnderlineIcon");
+const MdInventory2 = Package;
+const MdIosShare = hugeIcon("Share08Icon");
+const MdKeyboardArrowDown = ChevronDown;
+const MdKeyboardArrowLeft = ChevronLeft;
+const MdKeyboardArrowRight = ChevronRight;
+const MdKeyboardArrowUp = ChevronUp;
+const MdMenu = Menu;
+const MdMoreHoriz = MoreHorizontal;
+const MdOutlineAccountBalance = Building;
+const MdOutlineAccountCircle = UserCircle;
+const MdOutlineApps = LayoutDashboard;
+const MdOutlineArchive = Archive;
+const MdOutlineArrowDownward = ArrowDown;
+const MdOutlineArrowForward = ArrowRight;
+const MdOutlineArrowOutward = hugeIcon("ArrowUpRight01Icon");
+const MdOutlineAssuredWorkload = ShieldIcon;
+const MdOutlineAttachFile = File;
+const MdOutlineAttachMoney = DollarSign;
+const MdOutlineAutoAwesome = hugeIcon("AiGenerativeIcon");
+const MdOutlineBackspace = Delete;
+const MdOutlineBrokenImage = ImageIcon;
+const MdOutlineCalculate = hugeIcon("Calculator01Icon");
+const MdOutlineCalendarMonth = hugeIcon("Calendar03Icon");
+const MdOutlineCancel = XCircle;
+const MdOutlineCategory = FolderTree;
+const MdOutlineChatBubbleOutline = hugeIcon("BubbleChatIcon");
+const MdOutlineClear = X;
+const MdOutlineCloseFullscreen = hugeIcon("Minimize01Icon");
+const MdOutlineConfirmationNumber = hugeIcon("Coupon01Icon");
+const MdOutlineContentCopy = Copy;
+const MdOutlineCreateNewFolder = FolderClosed;
+const MdOutlineCropFree = hugeIcon("CropIcon");
+const MdOutlineDashboardCustomize = LayoutDashboard;
+const MdOutlineDelete = Delete;
+const MdOutlineDescription = FileText;
+const MdOutlineDone = Check;
+const MdOutlineDownload = Download;
+const MdOutlineEditNote = ClipboardEdit;
+const MdOutlineEmail = Mail;
+const MdOutlineEqualizer = BarChart2;
+const MdOutlineExitToApp = LogOut;
+const MdOutlineFace = UserCircle;
+const MdOutlineFactCheck = ClipboardCheck;
+const MdOutlineFileDownload = Download;
+const MdOutlineFilterList = Filter;
+const MdOutlineForwardToInbox = Send;
+const MdOutlineHandyman = Wrench;
+const MdOutlineHourglassTop = TimerIcon;
+const MdOutlineInbox = Archive;
+const MdOutlineInsertPhoto = ImageIcon;
+const MdOutlineInventory2 = Package;
+const MdOutlineLaunch = hugeIcon("ArrowUpRight01Icon");
+const MdOutlineListAlt = Receipt;
+const MdOutlineMoreTime = Timer;
+const MdOutlineMoreVert = MoreVertical;
+const MdOutlineMoveToInbox = Archive;
+const MdOutlineNotificationsNone = AlertCircle;
+const MdOutlineOpenInFull = hugeIcon("Maximize01Icon");
+const MdOutlineOpenInNew = hugeIcon("ArrowUpRight01Icon");
+const MdOutlinePalette = hugeIcon("PaintBoardIcon");
+const MdOutlinePause = hugeIcon("PauseIcon");
+const MdOutlinePlayArrow = hugeIcon("PlayIcon");
+const MdOutlineQrCode2 = hugeIcon("QrCode01Icon");
+const MdOutlineQuestionAnswer = HelpCircle;
+const MdOutlineRepeat = hugeIcon("RepeatIcon");
+const MdOutlineSettings = Settings;
+const MdOutlineSpellcheck = hugeIcon("TaskDone01Icon");
+const MdOutlineSquareFoot = hugeIcon("RulerIcon");
+const MdOutlineStyle = Flag;
+const MdOutlineSubject = FileText;
+const MdOutlineTask = CheckCircle;
+const MdOutlineTimer = Timer;
+const MdOutlineTune = Settings2;
+const MdOutlineUploadFile = hugeIcon("Upload01Icon");
+const MdOutlineVisibility = Eye;
+const MdOutlineVolumeOff = hugeIcon("VolumeOffIcon");
+const MdOutlineVolumeUp = hugeIcon("VolumeHighIcon");
+const MdOutlineWrapText = hugeIcon("TextWrapIcon");
+const MdPause = hugeIcon("PauseIcon");
+const MdPauseCircle = hugeIcon("PauseCircleIcon");
+const MdPeople = Users;
+const MdPerson = User;
+const MdPictureAsPdf = FileText;
+const MdPlayArrow = hugeIcon("PlayIcon");
+const MdPlayCircle = hugeIcon("PlayCircleIcon");
+const MdRefresh = hugeIcon("Refresh");
+const MdRemove = Trash;
+const MdReplay = hugeIcon("RepeatIcon");
+const MdRuleFolder = FolderClosed;
+const MdSearch = Search;
+const MdSecurity = ShieldIcon;
+const MdSignalCellularAlt = hugeIcon("TouchInteraction01Icon");
+const MdSnippetFolder = FolderClosed;
+const MdSort = SortDesc;
+const MdSubdirectoryArrowLeft = ArrowLeft;
+const MdTopic = FileText;
+const MdTrendingDown = TrendingDown;
+const MdTrendingUp = TrendingUp;
+
 type SVGIconProps = {
   size?: number;
   stroke?: string;
