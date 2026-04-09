@@ -136,6 +136,8 @@ const Download = hugeIcon("Download01Icon");
 const MoreHorizontal = hugeIcon("MoreHorizontal");
 const Search = hugeIcon("Search");
 const Filter = hugeIcon("FilterIcon");
+const Bell = hugeIcon("Bell");
+const Minus = hugeIcon("Minus");
 const LinkOff = hugeIcon("Unlink01Icon");
 const TrendingUp = hugeIcon("AnalyticsUpIcon");
 const TrendingDown = hugeIcon("AnalyticsDownIcon");
@@ -370,7 +372,7 @@ export const IconsBase = {
   Merge: Merge,
   Warn: Info,
   Rocket: Rocket,
-  Delete: Delete,
+  Delete: Trash,
   orders: ShoppingBag,
   project: FolderGit2,
   phone: Phone,
@@ -463,7 +465,7 @@ export const IconsBase = {
   monitor: Monitor,
   category: FolderTree,
   logout: LogOut,
-  notification: Monitor,
+  notification: Bell,
   ...PaymentMethodIcon,
 
   builder: Wrench,
@@ -1134,6 +1136,8 @@ const dynamicHugeIconAliases: Partial<Record<string, HugeIconName>> = {
   PlusCircle: "PlusSignCircle",
   PlusCircleIcon: "PlusSignCircle",
   PlusIcon: "Plus",
+  Minus: "Minus",
+  MinusIcon: "Minus",
   Receipt: "Receipt",
   RefreshCcw: "Refresh",
   RefreshCw: "Refresh",
