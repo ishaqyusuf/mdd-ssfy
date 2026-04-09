@@ -7,8 +7,7 @@ import Image from "next/image";
 import type { SVGProps } from "react";
 export type Icon = LucideIcon;
 
-export const Icons = {
-    ...BaseIcon,
+const customIcons = {
     Logo: () => <Image alt="" src={"/logo_mini.png"} width={48} height={48} />,
     LogoLg: () => <Image alt="" src={"/logo.png"} height={48} width={120} />,
     logoLg: ({ width = 120 }) => (
@@ -63,6 +62,13 @@ export const Icons = {
     home: BaseIcon.home,
     template: BaseIcon.documents,
 };
+export const Icons = new Proxy(customIcons as typeof customIcons & typeof BaseIcon, {
+    get(target, prop, receiver) {
+        const existing = Reflect.get(target, prop, receiver);
+        if (existing) return existing;
+        return Reflect.get(BaseIcon, prop);
+    },
+});
 
 export type IconKeys = keyof typeof Icons;
 const iconVariants = cva("", {

@@ -245,9 +245,9 @@ const profileSection = _section("settings", null, [
 
 const canEditProject = _perm.in("editProject", "editCommunity");
 export const linkModules = [
-    _module("Sales", "orders", "GND Sales", [
+    _module("Sales", "salesDashboard", "GND Sales", [
         _section(null, null, [
-            _link("Sales Dashboard", "dashboard", "/sales-dashboard").access(
+            _link("Sales Dashboard", "salesDashboard", "/sales-dashboard").access(
                 _role.is("Super Admin"),
             ).data,
         ]),
@@ -258,7 +258,7 @@ export const linkModules = [
                     // _role.in("Admin", "Super Admin"),
                 )
                 .level(1).data,
-            _link("Accounting", "billing", "/sales-book/accounting").access(
+            _link("Accounting", "accounting", "/sales-book/accounting").access(
                 _perm.is("editSales"),
             ).data,
             _link("Product Report", "report", "/product-report").access(
@@ -305,7 +305,7 @@ export const linkModules = [
                     "sales-form/edit-order/slug",
                     // "sales-book/orders/sales-statistics",
                 ).data,
-            _link("Quotes", "estimates", "/sales-book/quotes")
+            _link("Quotes", "quotes", "/sales-book/quotes")
                 .access(_perm.is("viewEstimates"))
                 .childPaths(
                     "sales-book/create-quote",
@@ -342,7 +342,7 @@ export const linkModules = [
             ])
                 .access(_perm.is("editOrders"))
                 .childPaths("/sales-book/productions/v2").data,
-            _link("Dispatch", "delivery2", "/sales-book/dispatch-admin", [
+            _link("Dispatch", "dispatch", "/sales-book/dispatch-admin", [
                 _subLink("Dispatch Task", "/sales-book/dispatch-task").access(
                     _perm.is("editDelivery"),
                     _perm.isNot("viewOrders"),
@@ -365,7 +365,7 @@ export const linkModules = [
             ]).access(_perm.is("editOrders")).data,
         ]),
         _section("", "", [
-            _link("Customers", "user", "/sales-book/customers", [
+            _link("Customers", "customers", "/sales-book/customers", [
                 _subLink("Customers v2", "/sales-book/customers/v2").access(
                     _role.is("Super Admin"),
                 ).data,
@@ -377,7 +377,7 @@ export const linkModules = [
             ).data,
         ]),
     ]),
-    _module("HRM", "hrm", "GND HRM", [
+    _module("HRM", "employees", "GND HRM", [
         _section("", null, [
             // _link("HRM", "hrm", "/").access(_perm.in("viewHrm")).data,
             _link("Employees", "employees", "/hrm/employees")
@@ -389,7 +389,7 @@ export const linkModules = [
                 ).data,
             _link(
                 "Document Approvals",
-                "documents",
+                "documentApproval",
                 "/hrm/document-approvals",
             ).access(_role.is("Super Admin")).data,
             // _link("Profile", "profile", "/hrm/profiles").access(
@@ -462,11 +462,11 @@ export const linkModules = [
             ]).access(_role.is("Production")).data,
         ]),
     ]),
-    _module("Community", "communityInvoice", "GND Community", [
+    _module("Community", "project", "GND Community", [
         _section("", null, [
             // _link("Dashboard", "dashbord2", "/community").access(canEditProject)
             // .data,
-            _link("Projects", "communityInvoice", "/community/projects").access(
+            _link("Projects", "project", "/community/projects").access(
                 canEditProject,
             ).data,
             _link("Units", "home", "/community/project-units").access(
@@ -477,7 +477,7 @@ export const linkModules = [
                 "production",
                 "/community/unit-productions",
             ).access(_perm.in("editCommunity", "editProduction")).data,
-            _link("Invoices", "billing", "/community/unit-invoices").access(
+            _link("Invoices", "invoice", "/community/unit-invoices").access(
                 _perm.in("viewInvoice"),
             ).data,
             _link("Templates", "template", "/community/templates")
@@ -494,7 +494,7 @@ export const linkModules = [
             ).data,
             _link(
                 "Install Costs",
-                "payment",
+                "installCosts",
                 "/community/install-costs",
             ).access(canEditProject).data,
         ]),
@@ -567,7 +567,7 @@ export const linkModules = [
         ]),
     ]),
 
-    _module("Inventory", "packingList", "GND Inventory", [
+    _module("Inventory", "products", "GND Inventory", [
         _section("", null, [
             _link("Inventory", "inbound", "/inventory", [
                 _subLink("Inventory", "/inventory").data,
@@ -591,7 +591,7 @@ export const linkModules = [
     _module("", null, "", [
         profileSection,
         _section("Support", null, [
-            _link("Mobile App", "monitor", "/settings/mobile-app").access(
+            _link("Mobile App", "mobileApp", "/settings/mobile-app").access(
                 _role.is("Super Admin"),
             ).data,
         ]),
