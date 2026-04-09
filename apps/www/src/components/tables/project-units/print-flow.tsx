@@ -154,14 +154,16 @@ export function ProjectUnitsPrintFlowProvider(props: { children: ReactNode }) {
 		}
 
 		const version = checkedPrintableUnits[0]?.templateVersion || "v1";
+		const templateSlug = checkedPrintableUnits[0]?.templateSlug || undefined;
 
 		try {
 			openLink(
 				"p/model-template",
 				{
 					preview: true,
-					version,
 					homeIds: checkedPrintableUnits.map((unit) => unit.id),
+					version,
+					templateSlug,
 				},
 				true,
 			);
