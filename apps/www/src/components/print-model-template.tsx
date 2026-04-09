@@ -4,11 +4,13 @@ import { useModelTemplatePrintFilterParams } from "@/hooks/use-model-template-pr
 import { _trpc } from "./static-trpc";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { PDFViewer } from "@community/index";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PdfTemplate } from "@community/index";
+import { PrintLoading } from "./print-loading";
 
 export function PrintModelTemplate() {
     const { filters, setFilters } = useModelTemplatePrintFilterParams();
+    const [mounted, setMounted] = useState(false);
     // filters.slugs.
     const { data: printData, isPending } = useSuspenseQuery(
         _trpc.print.modelTemplate.queryOptions({
@@ -31,6 +33,12 @@ export function PrintModelTemplate() {
     //     }, 300);
     // };
     // if (isPending)
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) return <PrintLoading />;
+
     return (
         <>
             <PDFViewer
@@ -52,4 +60,3 @@ export function PrintModelTemplate() {
         </>
     );
 }
-

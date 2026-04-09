@@ -27,11 +27,24 @@ export function SalesFormClient({ data }) {
 			wait: 200,
 		},
 	);
+	useEffect(() => {
+		const { body, documentElement } = document;
+		const prevBodyOverflow = body.style.overflow;
+		const prevHtmlOverflow = documentElement.style.overflow;
+
+		body.style.overflow = "hidden";
+		documentElement.style.overflow = "hidden";
+
+		return () => {
+			body.style.overflow = prevBodyOverflow;
+			documentElement.style.overflow = prevHtmlOverflow;
+		};
+	}, []);
 
 	if (!zus.formStatus || zus.currentTab != "invoice") return <></>;
 
 	return (
-		<Sidebar.Provider className="h-[calc(100vh_-_var(--header-height)_-_35px)] -mb-8 min-h-0 w-full overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-100/70 ">
+		<Sidebar.Provider className="h-[calc(100vh_-_var(--header-height)_-_35px)] min-h-0 w-full overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-100/70 ">
 			<Content data={data} />
 		</Sidebar.Provider>
 	);

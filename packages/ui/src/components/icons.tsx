@@ -1266,12 +1266,13 @@ function IconImpl({
 }: {
   name?: IconKeys;
   className?: string;
-  Icon?;
+  Icon?: IconKeys | LucideIcon;
 } & VariantProps<typeof iconVariants>) {
-  let RenderIcon = (name ? Icons[name] : undefined) || Icon;
+  const iconName = name || (typeof Icon === "string" ? (Icon as IconKeys) : undefined);
+  let RenderIcon = (iconName ? Icons[iconName] : undefined) || (typeof Icon === "function" ? Icon : undefined);
   // if (!RenderIcon && name)
   // RenderIcon = (props) => <DynamicIcon name={name} {...props} />;
-  if (!RenderIcon) return <>{name}</>;
+  if (!RenderIcon) return <>{iconName}</>;
   return <RenderIcon className={cn("", iconVariants(props), className)} />;
 }
 export const Icon = new Proxy(Object.assign(IconImpl, IconsStatic) as typeof IconImpl & typeof IconsStatic & Record<string, LucideIcon>, {
