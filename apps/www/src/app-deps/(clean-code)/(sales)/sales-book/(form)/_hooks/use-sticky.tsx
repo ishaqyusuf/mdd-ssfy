@@ -16,16 +16,52 @@ export const useSticky = (
     const actionRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        const getScrollParent = (node: HTMLElement | null) => {
+            let current = node?.parentElement;
+
+            while (current) {
+                const style = window.getComputedStyle(current);
+                const overflowY = style.overflowY;
+                if (
+                    overflowY === "auto" ||
+                    overflowY === "scroll" ||
+                    overflowY === "overlay"
+                ) {
+                    return current;
+                }
+                current = current.parentElement;
+            }
+
+            return window;
+        };
+
+        const getViewportBounds = (scrollParent: HTMLElement | Window) => {
+            if (scrollParent === window) {
+                return {
+                    top: 0,
+                    bottom: window.innerHeight,
+                };
+            }
+
+            const rect = scrollParent.getBoundingClientRect();
+            return {
+                top: rect.top,
+                bottom: rect.bottom,
+            };
+        };
+
         const handleScroll = throttle(() => {
             if (containerRef.current) {
+                const scrollParent = getScrollParent(containerRef.current);
+                const viewport = getViewportBounds(scrollParent);
                 const containerRect =
                     containerRef.current.getBoundingClientRect();
                 const containerBottomVisible =
-                    containerRect.bottom > 0 &&
-                    containerRect.bottom <= window.innerHeight;
+                    containerRect.bottom > viewport.top &&
+                    containerRect.bottom <= viewport.bottom;
                 const containerPartiallyVisible =
-                    containerRect.top < window.innerHeight &&
-                    containerRect.bottom > 0;
+                    containerRect.top < viewport.bottom &&
+                    containerRect.bottom > viewport.top;
                 const shouldBeFixed = fn(
                     containerBottomVisible,
                     containerPartiallyVisible,
@@ -35,7 +71,7 @@ export const useSticky = (
                     }
                 );
 
-                if (shouldBeFixed && !isFixed) {
+                if (shouldBeFixed) {
                     const containerCenter =
                         containerRect.left + containerRect.width / 2;
                     setFixedOffset(containerCenter);
@@ -43,12 +79,33 @@ export const useSticky = (
 
                 setIsFixed(shouldBeFixed);
             }
-        }, 500); // Adjust the throttle time as needed (e.g., 100ms)
+        }, 50);
 
-        window.addEventListener("scroll", handleScroll);
+        const scrollParent = getScrollParent(containerRef.current);
+
+        if (scrollParent === window) {
+            window.addEventListener("scroll", handleScroll, {
+                passive: true,
+            });
+        } else {
+            scrollParent.addEventListener("scroll", handleScroll, {
+                passive: true,
+            });
+        }
+        window.addEventListener("resize", handleScroll, {
+            passive: true,
+        });
         handleScroll(); // Trigger on mount to set the initial state
 
-        return () => window.removeEventListener("scroll", handleScroll);
+        return () => {
+            if (scrollParent === window) {
+                window.removeEventListener("scroll", handleScroll);
+            } else {
+                scrollParent.removeEventListener("scroll", handleScroll);
+            }
+            window.removeEventListener("resize", handleScroll);
+            handleScroll.cancel();
+        };
     }, []);
 
     return {

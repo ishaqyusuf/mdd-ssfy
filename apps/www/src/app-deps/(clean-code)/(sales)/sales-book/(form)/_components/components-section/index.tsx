@@ -156,7 +156,7 @@ function FloatingAction({ ctx }: { ctx: UseStepContext }) {
     const {
         stepUid,
         items,
-        sticky: { actionRef, isFixed },
+        sticky: { actionRef, fixedOffset, isFixed },
         selectionState,
     } = ctx;
     const isDoor = ctx.cls.isDoor();
@@ -190,11 +190,12 @@ function FloatingAction({ ctx }: { ctx: UseStepContext }) {
         <>
             <div
                 ref={actionRef}
+                style={isFixed ? { left: fixedOffset || undefined } : undefined}
                 className={cn(
-                    "left-1/2 z-20 w-fit max-w-[calc(100vw-2rem)] -translate-x-1/2 transform bg-secondary",
+                    "z-40 w-fit max-w-[calc(100vw-2rem)] -translate-x-1/2 transform bg-secondary",
                     isFixed
-                        ? "fixed bottom-6 z-40"
-                        : "sticky bottom-2 sm:bottom-12",
+                        ? "fixed bottom-2"
+                        : "absolute bottom-0 left-1/2",
                 )}
             >
                 <div className="flex flex-wrap items-center justify-center gap-3 rounded-lg border p-2 px-4 shadow">

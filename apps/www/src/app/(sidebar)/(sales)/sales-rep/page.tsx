@@ -112,6 +112,7 @@ export default async function SalesRepProfile(props: {
 						<TabsContent value="recent-sales" className="space-y-4">
 							<DataTable
 								singlePage
+								hideFloatingPagination
 								defaultFilters={{
 									size: 5,
 								}}

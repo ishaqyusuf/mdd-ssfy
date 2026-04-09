@@ -21,6 +21,7 @@ interface Props {
     defaultFilters?: RouterInputs["sales"]["getOrders"];
     singlePage?: boolean;
     bin?: boolean;
+    hideFloatingPagination?: boolean;
 }
 export function DataTable(props: Props) {
     const { rowSelection, setRowSelection } = useSalesOrdersStore();
@@ -97,6 +98,7 @@ export function DataTable(props: Props) {
                     },
                     setRowSelection,
                     tableMeta: {
+                        hidePagination: props.hideFloatingPagination,
                         mobileMode: {
                             hideHeader: true,
                             borderless: true,
@@ -128,4 +130,3 @@ export function DataTable(props: Props) {
         </Table.Provider>
     );
 }
-

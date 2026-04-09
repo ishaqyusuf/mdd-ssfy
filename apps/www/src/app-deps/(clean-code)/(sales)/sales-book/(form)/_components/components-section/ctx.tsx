@@ -116,7 +116,10 @@ export function useStepContext(stepUid) {
         stepHelper.fetchStepComponents().then(setStepComponents);
     }, [salesMultiplier, zusStepComponents]);
 
-    const sticky = useSticky((bv, pv, { top, bottom }) => !bv && pv);
+    const sticky = useSticky(
+        (_bottomVisible, partiallyVisible, { bottom }) =>
+            partiallyVisible && bottom > window.innerHeight,
+    );
     const props = {
         stepUid,
         items: filteredComponents,

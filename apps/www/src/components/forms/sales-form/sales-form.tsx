@@ -27,24 +27,11 @@ export function SalesFormClient({ data }) {
 			wait: 200,
 		},
 	);
-	useEffect(() => {
-		const { body, documentElement } = document;
-		const prevBodyOverflow = body.style.overflow;
-		const prevHtmlOverflow = documentElement.style.overflow;
-
-		body.style.overflow = "hidden";
-		documentElement.style.overflow = "hidden";
-
-		return () => {
-			body.style.overflow = prevBodyOverflow;
-			documentElement.style.overflow = prevHtmlOverflow;
-		};
-	}, []);
 
 	if (!zus.formStatus || zus.currentTab != "invoice") return <></>;
 
 	return (
-		<Sidebar.Provider className="h-[calc(100vh_-_var(--header-height)_-_35px)] min-h-0 w-full overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-100/70 ">
+		<Sidebar.Provider className="fixed inset-x-0 bottom-0 top-[calc(var(--header-height)_+_35px)] min-h-0 overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-100/70">
 			<Content data={data} />
 		</Sidebar.Provider>
 	);
@@ -71,7 +58,7 @@ function Content({ data }) {
 
 	return (
 		<>
-			<Sidebar.Inset className="flex min-h-0 min-w-0 flex-col overflow-hidden">
+			<Sidebar.Inset className="ml-4 flex min-h-0 min-w-0 flex-col overflow-hidden sm:ml-6 md:ml-8">
 				<div
 					className={cn(
 						"shrink-0 flex border-b border-slate-200/80 bg-white/90 px-4 py-3 backdrop-blur md:px-6",
@@ -153,7 +140,7 @@ function Content({ data }) {
 									</div>
 								</div>
 
-								<div className="sticky bottom-0 z-10 pointer-events-none flex justify-end pb-2 pt-2">
+								<div className="sticky bottom-0 z-10 pointer-events-none flex justify-end pb-0 pt-2">
 									<div className="pointer-events-auto rounded-xl border border-slate-200 bg-white/95 p-2 shadow-lg backdrop-blur">
 										<Button
 											onClick={() => {

@@ -2285,11 +2285,19 @@ export type SendProjectUnitsToProductionSchema = z.infer<
   typeof sendProjectUnitsToProductionSchema
 >;
 
-function getProjectUnitPrintKey(projectId?: number | null, modelName?: string | null) {
-  return `${projectId || "unknown"}::${String(modelName || "").trim().toLowerCase()}`;
+function getProjectUnitPrintKey(
+  projectId?: number | null,
+  modelName?: string | null,
+) {
+  return `${projectId || "unknown"}::${String(modelName || "")
+    .trim()
+    .toLowerCase()}`;
 }
 
-function getUnitLabel(unit: { lotBlock?: string | null; modelName?: string | null }) {
+function getUnitLabel(unit: {
+  lotBlock?: string | null;
+  modelName?: string | null;
+}) {
   return unit.lotBlock || unit.modelName || "Unit";
 }
 
@@ -2352,9 +2360,9 @@ function getInstallCostPreflight(
     };
   }
 
-  const installableTasks = (resolvedTemplate.project?.builder?.tasks || []).filter(
-    (task) => !!task.installable,
-  );
+  const installableTasks = (
+    resolvedTemplate.project?.builder?.tasks || []
+  ).filter((task) => !!task.installable);
   if (!installableTasks.length) {
     return {
       status: "not-required" as const,
@@ -2393,7 +2401,8 @@ function getInstallCostPreflight(
         totalEstimate,
       }
     : {
-        status: configuredTasks > 0 ? ("partial" as const) : ("missing" as const),
+        status:
+          configuredTasks > 0 ? ("partial" as const) : ("missing" as const),
         reason:
           missingTaskCount === 1
             ? "1 builder task is missing install-cost setup."
@@ -2583,7 +2592,9 @@ export async function getProjectUnitPrintPreflight(
   const preflightUnits = units.map((unit) => {
     const resolvedTemplate =
       unit.communityTemplate ||
-      fallbackTemplateMap.get(getProjectUnitPrintKey(unit.projectId, unit.modelName)) ||
+      fallbackTemplateMap.get(
+        getProjectUnitPrintKey(unit.projectId, unit.modelName),
+      ) ||
       null;
     const hasTemplate = !!resolvedTemplate?.id;
     const templateConfiguredCount = countConfiguredDesignValues(
@@ -2603,8 +2614,8 @@ export async function getProjectUnitPrintPreflight(
     const canPrint = hasTemplate && !isTemplateEmpty;
     const canSendToProduction =
       canPrint &&
-      installCost.status !== "missing" &&
-      installCost.status !== "partial" &&
+      // installCost.status !== "missing" &&
+      // installCost.status !== "partial" &&
       !hasProductionActive;
 
     if (!hasTemplate) {
@@ -2691,24 +2702,30 @@ export async function getProjectUnitPrintPreflight(
       totalUnits: preflightUnits.length,
       readyUnits: preflightUnits.filter((unit) => unit.isReady).length,
       printableUnits: preflightUnits.filter((unit) => unit.canPrint).length,
-      productionEligibleUnits: preflightUnits.filter((unit) => unit.canSendToProduction)
-        .length,
-      productionActiveUnits: preflightUnits.filter((unit) => unit.hasProductionActive)
-        .length,
+      productionEligibleUnits: preflightUnits.filter(
+        (unit) => unit.canSendToProduction,
+      ).length,
+      productionActiveUnits: preflightUnits.filter(
+        (unit) => unit.hasProductionActive,
+      ).length,
       missingInstallCostUnits: preflightUnits.filter(
         (unit) => unit.installCostStatus === "missing",
       ).length,
       partialInstallCostUnits: preflightUnits.filter(
         (unit) => unit.installCostStatus === "partial",
       ).length,
-      missingTemplateUnits: preflightUnits.filter((unit) => !unit.hasTemplate).length,
-      emptyTemplateUnits: preflightUnits.filter((unit) => unit.isTemplateEmpty).length,
+      missingTemplateUnits: preflightUnits.filter((unit) => !unit.hasTemplate)
+        .length,
+      emptyTemplateUnits: preflightUnits.filter((unit) => unit.isTemplateEmpty)
+        .length,
     },
-    missingInstallCosts: Array.from(missingInstallCostMap.values()).map((entry) => ({
-      ...entry,
-      unitIds: entry.units.map((unit) => unit.id),
-      labels: entry.units.map((unit) => getUnitLabel(unit)),
-    })),
+    missingInstallCosts: Array.from(missingInstallCostMap.values()).map(
+      (entry) => ({
+        ...entry,
+        unitIds: entry.units.map((unit) => unit.id),
+        labels: entry.units.map((unit) => getUnitLabel(unit)),
+      }),
+    ),
     missingTemplates: Array.from(missingTemplateMap.values()).map((entry) => ({
       ...entry,
       unitIds: entry.units.map((unit) => unit.id),
