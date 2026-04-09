@@ -82,6 +82,9 @@ export const useSticky = (
         }, 50);
 
         const scrollParent = getScrollParent(containerRef.current);
+        let frame1: number | null = null;
+        let frame2: number | null = null;
+        let resizeObserver: ResizeObserver | null = null;
 
         if (scrollParent === window) {
             window.addEventListener("scroll", handleScroll, {
@@ -96,6 +99,19 @@ export const useSticky = (
             passive: true,
         });
         handleScroll(); // Trigger on mount to set the initial state
+        frame1 = window.requestAnimationFrame(() => {
+            handleScroll();
+            frame2 = window.requestAnimationFrame(() => {
+                handleScroll();
+            });
+        });
+
+        if (typeof ResizeObserver !== "undefined" && containerRef.current) {
+            resizeObserver = new ResizeObserver(() => {
+                handleScroll();
+            });
+            resizeObserver.observe(containerRef.current);
+        }
 
         return () => {
             if (scrollParent === window) {
@@ -104,6 +120,9 @@ export const useSticky = (
                 scrollParent.removeEventListener("scroll", handleScroll);
             }
             window.removeEventListener("resize", handleScroll);
+            if (frame1 != null) window.cancelAnimationFrame(frame1);
+            if (frame2 != null) window.cancelAnimationFrame(frame2);
+            resizeObserver?.disconnect();
             handleScroll.cancel();
         };
     }, []);
