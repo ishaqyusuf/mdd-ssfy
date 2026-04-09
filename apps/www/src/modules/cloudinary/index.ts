@@ -3,7 +3,7 @@ import { cloudinary } from "./lib";
 
 export type UploadFolders = "sales-orders" | "contractor-document" | "dyke";
 
-export function generateDownloadLink(publicId) {
+function generateDownloadLink(publicId) {
     const downloadUrl = cloudinary.url(publicId, {
         resource_type: "raw",
         secure: true,

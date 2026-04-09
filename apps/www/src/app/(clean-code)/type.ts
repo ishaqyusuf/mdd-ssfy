@@ -4,7 +4,7 @@ export type AsyncFnType<T extends (...args: any) => any> = Awaited<
     ReturnType<T>
 >;
 
-export interface PageTab {
+interface PageTab {
     count?;
     params?: { [k in string]: string };
     title: string;
@@ -23,21 +23,21 @@ export interface PageBaseQuery {
     trashedOnly?: boolean;
     withTrashed?: boolean;
 }
-export interface LabelValue {
+interface LabelValue {
     label;
     value;
 }
 
-export interface SelectOption {
+interface SelectOption {
     label?: string;
     value?: any;
     data?: any;
 }
 
-export type ActionTicketType = (typeof actionTicketTypes)[number];
-export type ActionTicketEvents = (typeof actionTicketEvents)[number];
+type ActionTicketType = (typeof actionTicketTypes)[number];
+type ActionTicketEvents = (typeof actionTicketEvents)[number];
 
-export interface ActionTicketMeta {
+interface ActionTicketMeta {
     id?: string | number;
     authorName?: string;
     authorId?: number;

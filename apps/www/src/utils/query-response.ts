@@ -32,7 +32,7 @@ export async function queryResponse<T>(
         meta,
     };
 }
-export function queryMeta(query?: SearchParamsType) {
+function queryMeta(query?: SearchParamsType) {
     const take = query.size ? Number(query.size) : 20;
     const { start = 0 } = query;
     const [sort, sortOrder = "desc"] = (query.sort || "createdAt").split(".");

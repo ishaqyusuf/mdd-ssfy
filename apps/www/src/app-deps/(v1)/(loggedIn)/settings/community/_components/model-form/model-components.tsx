@@ -93,7 +93,7 @@ export function ModelFormSection<T>({
     );
 }
 
-export function ModelComponents<T>({
+function ModelComponents<T>({
     form,
     node,
 }: ModelFormProps & { node: keyof HomeTemplateDesign }) {

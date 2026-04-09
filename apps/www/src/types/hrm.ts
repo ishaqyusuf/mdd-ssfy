@@ -69,12 +69,12 @@ export interface HomeJobList {
 	disabled?;
 	costing?: InstallCosting;
 }
-export interface IRole extends Roles {
+interface IRole extends Roles {
 	_count: {
 		RoleHasPermissions;
 	};
 }
-export interface IRoleForm {
+interface IRoleForm {
 	roleId;
 	name;
 

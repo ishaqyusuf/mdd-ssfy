@@ -1,4 +1,4 @@
-export const InboundStatus = [
+const InboundStatus = [
     "Pending",
     "Order Placed",
     "In Transit",

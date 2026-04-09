@@ -28,7 +28,7 @@ export function ExteriorFrame<T>({ form }: ModelFormProps) {
         />
     );
 }
-export function ProjectHeaderForm<T>({ form }: ModelFormProps) {
+function ProjectHeaderForm<T>({ form }: ModelFormProps) {
     return (
         <ModelFormSection<ProjectHeader<T>>
             form={form}

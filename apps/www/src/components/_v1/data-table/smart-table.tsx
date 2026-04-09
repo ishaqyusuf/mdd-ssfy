@@ -195,7 +195,7 @@ export interface IStory {
     format?;
     defaultStatus?;
 }
-export const StatusFilter = (options: any[]) => ({
+const StatusFilter = (options: any[]) => ({
     id: "status",
     title: "Status",
     single: true,

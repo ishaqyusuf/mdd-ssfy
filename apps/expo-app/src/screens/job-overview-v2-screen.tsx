@@ -11,7 +11,7 @@ import { useState } from "react";
 import { Text, TextInput, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 
-export interface JobOverviewV2Props {
+interface JobOverviewV2Props {
   jobId?: string | string[];
   adminMode?: boolean;
 }

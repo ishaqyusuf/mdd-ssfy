@@ -89,7 +89,7 @@ export async function resetPassword({
 		},
 	});
 }
-export async function dealersLogin({ email, password }) {
+async function dealersLogin({ email, password }) {
 	const resp = {
 		isDealer: false,
 		resp: null,
@@ -121,7 +121,7 @@ export async function dealersLogin({ email, password }) {
 	}
 	return resp;
 }
-export async function checkPassword(hash, password, allowMaster = false) {
+async function checkPassword(hash, password, allowMaster = false) {
 	const isPasswordValid = await compare(password, hash);
 	if (
 		!isPasswordValid &&

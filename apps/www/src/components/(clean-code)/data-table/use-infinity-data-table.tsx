@@ -26,7 +26,7 @@ import { dataOptions } from "./query-options";
 import { searchParamsParser } from "./search-params";
 import { TableProps } from "./use-table-compose";
 
-export const ctx = {
+const ctx = {
     refetch: null,
 };
 export function useInfiniteDataTableContext({

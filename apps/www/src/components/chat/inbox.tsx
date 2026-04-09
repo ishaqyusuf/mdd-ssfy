@@ -9,7 +9,7 @@ import { type ReactNode } from "react";
 import { ActivityHistory, type ActivityHistoryProps } from "./activity-history";
 import { Chat, type ChatProps, type InboxContacts } from "./chat";
 
-export type InboxChatProps = Omit<ChatProps, "children"> & {
+type InboxChatProps = Omit<ChatProps, "children"> & {
     channel: ChannelName;
     payload?: Record<string, unknown>;
     contacts?: InboxContacts;

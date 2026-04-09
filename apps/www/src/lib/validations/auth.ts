@@ -1,5 +1,5 @@
 import { z } from "zod";
-export const authSchema = z.object({
+const authSchema = z.object({
   email: z.string().email({
     message: "Please enter a valid email address",
   }),
@@ -23,7 +23,7 @@ export type ILogin = z.infer<typeof loginSchema>;
 export const checkEmailSchema = z.object({
   email: authSchema.shape.email,
 });
-export const verfifyEmailSchema = z.object({
+const verfifyEmailSchema = z.object({
   code: z
     .string()
     .min(6, {

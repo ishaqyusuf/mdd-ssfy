@@ -17,7 +17,7 @@ export function randomNumber2(min, max) {
 
     return "" + number; //.substring(add);
 }
-export function toSentenceCase(str: string) {
+function toSentenceCase(str: string) {
     return str
         .replace(/([A-Z])/g, " $1")
         .replace(/^./, (str) => str.toUpperCase());
@@ -42,7 +42,7 @@ export function capitalizeFirstLetter(string) {
 export function labelValue(label, value, extras: any = {}) {
     return { label, value, ...extras };
 }
-export function toLabelValue(data) {
+function toLabelValue(data) {
     return data.map((d) => labelValue(d, d));
 }
 export function textValue<T extends object>(
@@ -68,7 +68,7 @@ export function labelIdOptions<T, L extends FieldPath<T>, I extends keyof T>(
         };
     });
 }
-export function keyValue(key, value) {
+function keyValue(key, value) {
     return { key, value };
 }
 export function removeEmptyValues(obj) {
@@ -154,7 +154,7 @@ export const formatCurrency = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD", // Replace with your desired currency code
 });
-export function toSingular(plural) {
+function toSingular(plural) {
     const rules = [
         { suffix: "s", replace: "" },
         { suffix: "es", replace: "" },
@@ -221,7 +221,7 @@ export function designDotToObject(object) {
 export function addSpacesToCamelCase(input): string {
     return input.replace(/([a-z])([A-Z])/g, "$1 $2");
 }
-export function toDotNotation(obj, res = {}, current = "") {
+function toDotNotation(obj, res = {}, current = "") {
     for (const key in obj) {
         let value = obj[key];
         let newKey = current ? current + "." + key : key; // joined key with dot
@@ -286,7 +286,7 @@ export const uniqueBy = (data, key) => {
 
 //   return result;
 // }, []);
-export async function _serverAction(
+async function _serverAction(
     // fn,
     // onSuccess: any = undefined,
     // onError = undefined
@@ -310,7 +310,7 @@ export async function _serverAction(
         onError && onError(e);
     }
 }
-export function groupArray<T>(arr: T[], by: keyof T): { [k in string]: T[] } {
+function groupArray<T>(arr: T[], by: keyof T): { [k in string]: T[] } {
     const grouped: any = {};
 
     for (const item of arr) {
@@ -332,7 +332,7 @@ export function chunkArray(array, chunkSize) {
     //     result.push(array.slice(i, i + chunkSize))
     // return result;
 }
-export const filteredOptions = (q, items, labelKey = "label") => {
+const filteredOptions = (q, items, labelKey = "label") => {
     const escapedText = !q
         ? ""
         : q?.toString().replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
@@ -365,7 +365,7 @@ export function htmlIsEmpty(html) {
     return (doc.textContent as any)?.trim() == "";
 }
 
-export function getAllDotPaths<T>(obj: T, parentKey: string = ""): string[] {
+function getAllDotPaths<T>(obj: T, parentKey: string = ""): string[] {
     let dotPaths: string[] = [];
 
     for (const key in obj) {
@@ -445,7 +445,7 @@ export const math = {
         return est;
     },
 };
-export function ObjectMetaType<T, TMeta>(
+function ObjectMetaType<T, TMeta>(
     data: T,
     meta: TMeta
 ): Omit<NonNullable<T>, "meta"> & { meta: TMeta } {
@@ -457,7 +457,7 @@ export function ObjectMetaType<T, TMeta>(
 export function ArrayMetaType<T, TMeta>(data: T[], meta: TMeta) {
     return data.map((item) => ObjectMetaType(item, meta));
 }
-export function _ObjectMetaType<T, MetaType>(
+function _ObjectMetaType<T, MetaType>(
     data: T,
     metaKey = "meta"
 ): Omit<T, typeof metaKey> & { [key in typeof metaKey]: MetaType } {

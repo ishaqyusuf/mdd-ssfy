@@ -3,7 +3,7 @@ import { ActionCell } from "@/components/tables/action-cell";
 import { PageItemData } from "@/types/type";
 import { ColumnDef } from "@tanstack/react-table";
 
-export type Item = PageItemData<typeof getCommissionPayments>;
+type Item = PageItemData<typeof getCommissionPayments>;
 
 export const columns: ColumnDef<Item>[] = [
     {

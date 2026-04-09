@@ -4,7 +4,7 @@ import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
 import { PageTabs } from "./page-tabs";
 
-export function SalesBookPageTabs() {
+function SalesBookPageTabs() {
     const trpc = useTRPC();
     const { data } = useQuery(
         trpc.pageTabs.salesBook.queryOptions(undefined, {

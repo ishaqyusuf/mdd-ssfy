@@ -54,7 +54,7 @@ export interface DesignTemplateForm extends HomeTemplateDesign {
         print;
     };
 }
-export default function ModelForm({ data, title = "Edit Model" }: Props) {
+function ModelForm({ data, title = "Edit Model" }: Props) {
     const {
         data: { community },
     } = useDataPage();
@@ -181,7 +181,7 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
     );
 }
 
-export function UnitTemplateTabs({ form }) {
+function UnitTemplateTabs({ form }) {
     return (
         <Tabs defaultValue="interior" className="space-y-4 ">
             <TabsList>

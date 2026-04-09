@@ -4,7 +4,7 @@ import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import type { ColumnDef } from "@/types/type";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 
-export type Item = RouterOutputs["sales"]["customersIndex"]["data"][number];
+type Item = RouterOutputs["sales"]["customersIndex"]["data"][number];
 interface ItemProps {
 	item: Item;
 }

@@ -5,7 +5,7 @@ export interface InboundOrder extends OmitMeta<any> {
     meta: {};
     _count: {};
 }
-export interface IInboundOrder extends OmitMeta<any> {
+interface IInboundOrder extends OmitMeta<any> {
     meta: {};
     inboundItems: IInboundOrderItems[];
     _count: {};

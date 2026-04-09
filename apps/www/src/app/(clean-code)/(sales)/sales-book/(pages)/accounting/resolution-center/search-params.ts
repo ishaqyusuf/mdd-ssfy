@@ -12,7 +12,7 @@ const {
     employeeProfileId,
     search,
 } = searchParamsParser;
-export const accountingPageQuery = {
+const accountingPageQuery = {
     search,
     "salesRep.id": salesRepId,
     "payment.type": paymentType,

@@ -1,6 +1,6 @@
 import type { PrintMode, PrintModeConfig } from "./types";
 
-export const modeConfigs: Record<PrintMode, Omit<PrintModeConfig, "mode">> = {
+const modeConfigs: Record<PrintMode, Omit<PrintModeConfig, "mode">> = {
   invoice: {
     showPrices: true,
     showFooter: true,
@@ -42,7 +42,7 @@ export function getModeConfig(mode: PrintMode): PrintModeConfig {
   return { mode, ...modeConfigs[mode] };
 }
 
-export const salesTaxes = [
+const salesTaxes = [
   { code: "A", title: "County Tax", percentage: 1, on: "first 5000" },
   { code: "B", title: "Florida State Tax", percentage: 6, on: "total" },
 ] as const;

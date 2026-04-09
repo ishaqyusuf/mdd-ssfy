@@ -20,7 +20,7 @@ import { useAssignment } from "@/app-deps/(v2)/(loggedIn)/sales-v2/productions/_
 import { useSalesStatus } from "../../hooks/sales-hooks";
 import { useSalesMenu } from "../../utils/use-sales-menu";
 
-export interface SalesCellProps {
+interface SalesCellProps {
     item: GetSales["data"][number];
 }
 function OrderDispatch({ item, href }: SalesCellProps & { href? }) {

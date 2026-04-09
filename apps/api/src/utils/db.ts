@@ -1,11 +1,11 @@
 import dayjs from "@gnd/utils/dayjs";
 
-export function anyDateQuery() {
+function anyDateQuery() {
   return {
     lte: fixDbTime(dayjs()).toISOString(),
   };
 }
-export function fixDbTime(date: dayjs.Dayjs, h = 0, m = 0, s = 0) {
+function fixDbTime(date: dayjs.Dayjs, h = 0, m = 0, s = 0) {
   return date.set("hours", h).set("minutes", m).set("seconds", s);
 }
 export function dateEquals(date) {

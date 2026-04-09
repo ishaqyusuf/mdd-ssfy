@@ -36,7 +36,7 @@ import {
     FulfillmentCompleteModal,
     FulfillmentDispatch,
 } from "./fulfillment-complete-modal";
-export type SalesOrderItem = RouterOutputs["sales"]["index"]["data"][number];
+type SalesOrderItem = RouterOutputs["sales"]["index"]["data"][number];
 interface ItemProps {
     item: SalesOrderItem;
 }
@@ -153,7 +153,7 @@ const compactCustomerColumn: ColumnDef<SalesOrderItem>[] = [
 const legacyCustomerColumns: ColumnDef<SalesOrderItem>[] =
     legacyCustomerColumnsV2;
 
-export const columns2: ColumnDef<SalesOrderItem>[] = [
+const columns2: ColumnDef<SalesOrderItem>[] = [
     cells.selectColumn,
     {
         header: "Date",

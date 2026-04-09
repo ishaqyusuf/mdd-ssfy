@@ -19,12 +19,12 @@ import { formatDate } from "@gnd/utils/dayjs";
 import { useMutation } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
-export type Item =
+type Item =
 	RouterOutputs["customerService"]["getCustomerServices"]["data"][number];
 interface ItemProps {
 	item: Item;
 }
-export interface TableExtra {
+interface TableExtra {
 	employees: RouterOutputs["hrm"]["getEmployees"]["data"];
 }
 type Column = ColumnDef<Item>;

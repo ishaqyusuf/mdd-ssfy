@@ -4,7 +4,7 @@ import { Prisma } from "@/db";
 import { composeQueryData, queryResponse } from "../query-response";
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 
-export function whereCommissionPayment(query: SearchParamsType) {
+function whereCommissionPayment(query: SearchParamsType) {
     const userId = query["user.id"];
     const where: Prisma.CommissionPaymentWhereInput[] = [];
     return composeQuery(where);

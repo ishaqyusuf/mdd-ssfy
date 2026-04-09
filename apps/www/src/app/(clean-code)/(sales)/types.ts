@@ -18,12 +18,12 @@ import { GetSalesBookForm } from "./_common/use-case/sales-book-form-use-case";
 import { SalesPaymentMethods } from "@sales/constants";
 import { StepComponentData } from "@api/db/queries/sales-form";
 
-export { HousePackageToolMeta };
+;
 
 export type SalesType = "order" | "quote";
 export type SalesPriority = "Low" | "High" | "Medium" | "Non";
 export type PaymentMethods = SalesPaymentMethods;
-export type SquarePaymentMethods = "terminal" | "link";
+type SquarePaymentMethods = "terminal" | "link";
 export type DykeStepTitles =
     | "Category"
     | "Shelf Items"
@@ -55,12 +55,12 @@ export type SalesStatStatus =
     | "completed"
     | "unknown"
     | "N/A";
-export type TypedSalesStat = Omit<SalesStat, "status" | "type" | "id"> & {
+type TypedSalesStat = Omit<SalesStat, "status" | "type" | "id"> & {
     type: QtyControlType;
     id?: number;
     status?: SalesStatStatus;
 };
-export type SalesPrintMode =
+type SalesPrintMode =
     | "quote"
     | "order"
     | "production"
@@ -150,7 +150,7 @@ export type SalesMeta = {
     };
 };
 
-export type TypedSales = SalesOrders & {
+type TypedSales = SalesOrders & {
     type: SalesType;
     deliveryOption: DeliveryOption;
     meta: SalesMeta;
@@ -160,7 +160,7 @@ export interface AddressBookMeta {
     placeId?: string;
     placeSearchText?: string;
 }
-export type CustomerMeta = {
+type CustomerMeta = {
     netTerm?: string;
 };
 export type TypedAddressBook = Omit<AddressBooks, "meta"> & {
@@ -193,21 +193,21 @@ export interface DykeProductMeta {
     mouldingSpecies: { [id in string]: boolean };
     doorPrice?: { [size in string]: number };
 }
-export type DykeFormData = OldDykeForm;
-export type OldDykeFormData = OldDykeForm;
-export type DykeFormDataPath = FieldPath<OldDykeFormData>;
-export type DykeFormItemData = OldDykeForm["itemArray"][number];
-export type DykeFormStepData =
+type DykeFormData = OldDykeForm;
+type OldDykeFormData = OldDykeForm;
+type DykeFormDataPath = FieldPath<OldDykeFormData>;
+type DykeFormItemData = OldDykeForm["itemArray"][number];
+type DykeFormStepData =
     DykeFormItemData["item"]["formStepArray"][number];
-export type DykeFormStepDataPath = FieldPath<DykeFormStepData>;
-export type DykeFormItemDataPath = FieldPath<DykeFormItemData>;
-export type ItemMultiComponentData =
+type DykeFormStepDataPath = FieldPath<DykeFormStepData>;
+type DykeFormItemDataPath = FieldPath<DykeFormItemData>;
+type ItemMultiComponentData =
     DykeFormItemData["multiComponent"]["components"][number];
-export type ItemMultiComponentSizeData =
+type ItemMultiComponentSizeData =
     ItemMultiComponentData["_doorForm"][number];
-export type ItemMultiComponentSizeDataPath =
+type ItemMultiComponentSizeDataPath =
     FieldPath<ItemMultiComponentSizeData>;
-export type ItemMultiComponentDataPath = FieldPath<ItemMultiComponentData>;
+type ItemMultiComponentDataPath = FieldPath<ItemMultiComponentData>;
 
 export interface HousePackageToolSettingsMeta {
     sizes: {
@@ -223,7 +223,7 @@ export interface HousePackageToolSettings {
     type: string;
     data: HousePackageToolSettingsMeta;
 }
-export type SalesTransaction = {
+type SalesTransaction = {
     squarePaymentType?: SalesPaymentType;
     squarePaymentId?;
     paymentMode: PaymentMethods;
@@ -233,18 +233,18 @@ export type SalesTransaction = {
     description: string;
     checkNo: string;
 };
-export type SalesPaymentType = "square_terminal" | "square_link";
-export type SalesPaymentStatus =
+type SalesPaymentType = "square_terminal" | "square_link";
+type SalesPaymentStatus =
     | "created"
     | "pending"
     | "success"
     | "cancelled";
-export type TypedDykeSalesDoor = Omit<DykeSalesDoors, "meta"> & {
+type TypedDykeSalesDoor = Omit<DykeSalesDoors, "meta"> & {
     meta: DykeSalesDoorMeta;
     priceData?: Partial<ComponentPrice>;
     stepProduct: DykeStepProduct;
 };
-export interface DykeSalesDoorMeta {
+interface DykeSalesDoorMeta {
     _doorPrice?: number | null;
     overridePrice?: number | string;
     unitLabor?: number;
@@ -288,7 +288,7 @@ export interface DykeFormStepMeta {
     supplierUid?: string;
     supplierName?: string;
 }
-export interface ShelfItemMeta {
+interface ShelfItemMeta {
     categoryUid: string;
     itemIndex: number;
     lineUid: string;
@@ -298,7 +298,7 @@ export interface ShelfItemMeta {
     laborQty?: number;
 }
 
-export type DykeStepProduct = Omit<DykeStepProducts, "meta"> & {
+type DykeStepProduct = Omit<DykeStepProducts, "meta"> & {
     meta: StepComponentMeta;
     door?: Omit<DykeDoors, "meta"> & {
         meta: DykeProductMeta;
@@ -313,7 +313,7 @@ export type DykeStepProduct = Omit<DykeStepProducts, "meta"> & {
         isDoor?: boolean;
     };
 }; //Awaited<ReturnType<typeof getStepProduct>>;
-export interface MultiSalesFormItem {
+interface MultiSalesFormItem {
     components: {
         [doorTitle in string]: {
             checked?: boolean;
@@ -356,7 +356,7 @@ export interface MultiSalesFormItem {
     primary?: boolean;
     rowIndex?;
 }
-export type DykeSalesDoor = Omit<DykeSalesDoors, "meta"> & {
+type DykeSalesDoor = Omit<DykeSalesDoors, "meta"> & {
     meta: DykeSalesDoorMeta;
     priceData?: Partial<ComponentPrice>;
 };
@@ -372,7 +372,7 @@ export type StepMeta = {
         widthList?: string[];
     }[];
 };
-export interface AddressForm {
+interface AddressForm {
     id?: number;
     name: string;
     email: string;
@@ -401,7 +401,7 @@ export interface PricingMetaData {
 }
 export type PaymentTerms = "None" | "Net10" | "Net20" | "Net30";
 
-export interface SalesShelfField {
+interface SalesShelfField {
     categoryIds: number[];
     productUids: string[];
     products: {
@@ -661,16 +661,16 @@ export type QtyControlByType = {
         type: QtyControlType;
     };
 };
-export type CustomerProfileMeta = {
+type CustomerProfileMeta = {
     net: string;
     goodUntil: number;
     taxCode?: string;
 };
 
-export interface ICustomerProfile extends Omit<CustomerTypes, "meta"> {
+interface ICustomerProfile extends Omit<CustomerTypes, "meta"> {
     meta: ICustomerProfileMeta;
 }
-export interface ICustomerProfileMeta {
+interface ICustomerProfileMeta {
     net: string;
     goodUntil: number;
     taxCode?: string;

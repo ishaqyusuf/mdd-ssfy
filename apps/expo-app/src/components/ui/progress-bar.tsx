@@ -83,4 +83,4 @@ function ProgressBar({
 }
 
 export { ProgressBar };
-export type { ProgressBarProps };
+;

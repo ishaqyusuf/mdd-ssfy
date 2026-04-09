@@ -1,33 +1,33 @@
 import React from "react";
 
-export type SearchParams = {
+type SearchParams = {
     [key: string]: string | string[] | undefined;
 };
 
-export type DatePreset = {
+type DatePreset = {
     label: string;
     from: Date;
     to: Date;
     shortcut: string;
 };
 
-export type Option = {
+type Option = {
     label: string;
     value: string | boolean | number | undefined;
 };
 
-export type Input = {
+type Input = {
     type: "input";
     options?: Option[];
 };
 
-export type Checkbox = {
+type Checkbox = {
     type: "checkbox";
     component?: (props: Option) => React.ReactElement | null;
     options?: Option[];
 };
 
-export type Slider = {
+type Slider = {
     type: "slider";
     min: number;
     max: number;
@@ -35,13 +35,13 @@ export type Slider = {
     options?: Option[];
 };
 
-export type Timerange = {
+type Timerange = {
     type: "timerange";
     options?: Option[]; // required for TS
     presets?: DatePreset[];
 };
 
-export type Base<TData> = {
+type Base<TData> = {
     label: string;
     value: keyof TData;
     /**
@@ -54,10 +54,10 @@ export type Base<TData> = {
     commandDisabled?: boolean;
 };
 
-export type DataTableCheckboxFilterField<TData> = Base<TData> & Checkbox;
-export type DataTableSliderFilterField<TData> = Base<TData> & Slider;
-export type DataTableInputFilterField<TData> = Base<TData> & Input;
-export type DataTableTimerangeFilterField<TData> = Base<TData> & Timerange;
+type DataTableCheckboxFilterField<TData> = Base<TData> & Checkbox;
+type DataTableSliderFilterField<TData> = Base<TData> & Slider;
+type DataTableInputFilterField<TData> = Base<TData> & Input;
+type DataTableTimerangeFilterField<TData> = Base<TData> & Timerange;
 
 export type DataTableFilterField<TData> =
     | DataTableCheckboxFilterField<TData>

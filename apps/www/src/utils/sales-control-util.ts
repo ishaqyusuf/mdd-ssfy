@@ -14,7 +14,7 @@ export interface Qty {
     noHandle?: boolean;
 }
 
-export const composeQtyMatrix = (rh, lh, qty) => {
+const composeQtyMatrix = (rh, lh, qty) => {
     if (!qty || rh || lh) qty = sum([rh, lh]);
     return { rh, lh, qty, noHandle: !rh && !lh };
 };
@@ -47,7 +47,7 @@ export function negativeQty({ lh, rh, qty, ...rest }: Qty): Qty {
         qty: qty * -1,
     };
 }
-export function composeSalesItemControlStat(
+function composeSalesItemControlStat(
     // uid,
     // qty: Qty,
     item: ItemControlData,

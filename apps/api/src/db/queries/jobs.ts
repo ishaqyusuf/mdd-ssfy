@@ -1333,7 +1333,7 @@ export type CreatePaymentPortalSchema = z.infer<
 	typeof createPaymentPortalSchema
 >;
 
-export const getJobsPrintDataSchema = z.object({
+const getJobsPrintDataSchema = z.object({
 	jobIds: z.array(z.number()).min(1).optional().nullable(),
 	context: z
 		.enum(["jobs-page", "payment-portal", "payroll-report"])

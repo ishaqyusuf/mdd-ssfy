@@ -4,7 +4,7 @@ import { Prisma } from "@/db";
 import { composeQueryData } from "../query-response";
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 
-export function whereEmployees(query: SearchParamsType) {
+function whereEmployees(query: SearchParamsType) {
     const { roleId, employeeProfileId, search } = query;
     const where: Prisma.UsersWhereInput[] = [];
     if (roleId)

@@ -8,7 +8,7 @@ import { IAddressMeta, ISalesOrderMeta, ISalesType } from "@/types/sales";
 
 export type IGetFullSale = Awaited<ReturnType<typeof getSale>>;
 
-export async function getSalesOverviewPage(type: ISalesType, slug) {
+async function getSalesOverviewPage(type: ISalesType, slug) {
     const sale = await getSale(type, slug);
 
     return {
@@ -16,7 +16,7 @@ export async function getSalesOverviewPage(type: ISalesType, slug) {
         info: composeSalesInformation(sale),
     };
 }
-export async function getSale(type: ISalesType, slug) {
+async function getSale(type: ISalesType, slug) {
     const sale = await prisma.salesOrders.findFirstOrThrow({
         where: {
             type,

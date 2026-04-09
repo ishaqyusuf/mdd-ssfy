@@ -1,7 +1,7 @@
 import type { TRPCContext } from "@api/trpc/init";
 import type { SalesSettingsMeta, SettingType } from "@api/type";
 
-export const salesSettingsKey: SettingType = "sales-settings";
+const salesSettingsKey: SettingType = "sales-settings";
 export async function getSalesSetting(ctx: TRPCContext) {
   return await getSetting<SalesSettingsMeta>(ctx, "sales-settings");
 }

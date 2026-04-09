@@ -124,7 +124,7 @@ interface DoorDetailsDialogProps {
     onApply: (linePatch: Partial<NewSalesFormLineItem>) => void;
 }
 
-export function DoorDetailsDialog(props: DoorDetailsDialogProps) {
+function DoorDetailsDialog(props: DoorDetailsDialogProps) {
     const [rows, setRows] = useState<DoorLine[]>(
         (props.line.housePackageTool?.doors || []).map(calcDoorRow),
     );
@@ -344,7 +344,7 @@ interface DoorSizeQtyDialogProps {
     onApply: (payload: { rows: DoorLine[]; selected: boolean }) => void;
 }
 
-export function formatDoorSizeTitle(size?: string | null) {
+function formatDoorSizeTitle(size?: string | null) {
     const [width, height] = String(size || "").split(" x ");
     const widthIn = width ? ftToIn(width.trim())?.replace("in", '"') : "";
     const heightIn = height ? ftToIn(height.trim())?.replace("in", '"') : "";

@@ -18,7 +18,7 @@ export function useProfilesList(enabled = false) {
     );
     return profiles || [];
 }
-export function useOrganizationList(enabled = false) {
+function useOrganizationList(enabled = false) {
     const { data: organizations } = useQuery(
         useTRPC().orgs.getOrganizationProfile.queryOptions(undefined, {
             enabled,

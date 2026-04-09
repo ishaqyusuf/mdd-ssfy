@@ -4,7 +4,7 @@ import { NumericFormat, type NumericFormatProps } from "react-number-format";
 
 import { Input } from "@gnd/ui/input";
 
-export function CurrencyInput({
+function CurrencyInput({
     thousandSeparator = true,
     ...props
 }: NumericFormatProps) {

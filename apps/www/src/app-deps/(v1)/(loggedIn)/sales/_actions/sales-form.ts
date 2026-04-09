@@ -9,7 +9,7 @@ import dayjs from "dayjs";
 
 import { user } from "../../../_actions/utils";
 
-export interface ICreateOrderFormQuery {
+interface ICreateOrderFormQuery {
     customerId?;
     addressId?;
     type?: ISalesType;
@@ -30,7 +30,7 @@ export interface SalesFormCtx {
     defaultProfile: CustomerTypes;
     items: any[];
 }
-export async function salesFormAction(
+async function salesFormAction(
     query: ICreateOrderFormQuery,
 ): Promise<SalesFormResponse> {
     const order = await prisma.salesOrders.findFirst({

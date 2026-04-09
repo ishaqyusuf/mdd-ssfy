@@ -26,7 +26,7 @@ type PricingOption = (typeof pricingOptions)[number];
 export function openEditComponentPrice(cls: ComponentHelperClass) {
     _modal.openModal(<ComponentPriceModal cls={cls} />);
 }
-export function useInitContext(cls: ComponentHelperClass) {
+function useInitContext(cls: ComponentHelperClass) {
     const memoied = useMemo(() => {
         const step = cls.getStepForm();
         const priceModel = cls.getComponentPriceModel(cls.componentUid);
@@ -69,7 +69,7 @@ export function useInitContext(cls: ComponentHelperClass) {
         save,
     };
 }
-export default function ComponentPriceModal({ cls }: Props) {
+function ComponentPriceModal({ cls }: Props) {
     const ctx = useInitContext(cls);
     return (
         <Context.Provider value={ctx}>

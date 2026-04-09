@@ -45,7 +45,7 @@ export interface ModelFormProps {
     data?: GetCommunityTemplate;
     form: any; //UseFormReturn<DesignTemplateForm, any, undefined>;
 }
-export interface DesignTemplateForm extends HomeTemplateDesign {
+interface DesignTemplateForm extends HomeTemplateDesign {
     ctx: {
         print;
     };
@@ -120,7 +120,7 @@ export default function ModelForm({ data, title = "Edit Model" }: Props) {
     );
 }
 
-export function UnitTemplateTabs({ form }) {
+function UnitTemplateTabs({ form }) {
     return (
         <Tabs defaultValue="interior" className="space-y-4 ">
             <TabsList>

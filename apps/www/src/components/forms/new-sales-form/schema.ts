@@ -43,14 +43,14 @@ export type NewSalesFormDeleteLineItemInput = Exclude<
 >;
 
 export type NewSalesFormRecord = RouterOutputs["newSalesForm"]["get"];
-export type NewSalesFormStepRouting =
+type NewSalesFormStepRouting =
     RouterOutputs["newSalesForm"]["getStepRouting"];
 export type NewSalesFormSummary = NewSalesFormRecord["summary"];
 export type NewSalesFormLineItem = NewSalesFormRecord["lineItems"][number];
 export type NewSalesFormExtraCost = NewSalesFormRecord["extraCosts"][number];
 export type NewSalesFormMeta = NewSalesFormRecord["form"];
 
-export const saveStatusSchema = z.enum([
+const saveStatusSchema = z.enum([
   "idle",
   "saving",
   "saved",
@@ -59,10 +59,10 @@ export const saveStatusSchema = z.enum([
 ]);
 export type SaveStatus = z.infer<typeof saveStatusSchema>;
 
-export const newSalesFormUiStateSchema = z.object({
+const newSalesFormUiStateSchema = z.object({
   saveStatus: saveStatusSchema.default("idle"),
   dirty: z.boolean().default(false),
   lastSavedAt: z.string().nullable().default(null),
   lastError: z.string().nullable().default(null),
 });
-export type NewSalesFormUiState = z.infer<typeof newSalesFormUiStateSchema>;
+type NewSalesFormUiState = z.infer<typeof newSalesFormUiStateSchema>;

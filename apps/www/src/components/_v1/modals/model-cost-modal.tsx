@@ -147,7 +147,7 @@ interface Props {
     community?;
     fIndex?;
 }
-export function CostForm({ form, data, fIndex, community, index }: Props) {
+function CostForm({ form, data, fIndex, community, index }: Props) {
     const { prepend, fields } = useFieldArray({
         control: form.control,
         name: "costs",
@@ -302,7 +302,7 @@ export function CostForm({ form, data, fIndex, community, index }: Props) {
     // );
 }
 const MemoCostForm = memo(CostForm);
-export function CostHistory({
+function CostHistory({
     form,
     data,
     changeIndex,

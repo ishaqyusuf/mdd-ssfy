@@ -8,7 +8,7 @@ import { revalidateTag } from "next/cache";
 
 export type CreateRoleForm = z.infer<typeof createRoleSchema>;
 
-export async function createRole(data: CreateRoleForm) {
+async function createRole(data: CreateRoleForm) {
     if (data.id) {
         await prisma.roles.update({
             where: {

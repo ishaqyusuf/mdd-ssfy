@@ -174,7 +174,7 @@ function newInvoiceLine(toIndex, fields: ISalesFormItem[]) {
         ];
     return calibrateLines(fields);
 }
-export function moreInvoiceLines() {
+function moreInvoiceLines() {
     // const baseUID = fields.length;
     const fields: any[] = [];
     Array(5)

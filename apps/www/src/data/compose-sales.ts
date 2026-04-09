@@ -27,7 +27,7 @@ export function composeSalesInformation(data: IGetFullSale) {
         address: composeSalesAddress(data),
     };
 }
-export function composeSalesAddress(data: IGetFullSale) {
+function composeSalesAddress(data: IGetFullSale) {
     return {
         businessName: data.customer?.businessName,
         customerName: data.customer?.name,
@@ -45,7 +45,7 @@ export function composeSalesAddress(data: IGetFullSale) {
         },
     };
 }
-export function composeSalesStatus(data: IGetFullSale) {
+function composeSalesStatus(data: IGetFullSale) {
     const statsKv = composeSalesStatKeyValue(data.stat);
     return statsKv;
 }
@@ -65,7 +65,7 @@ export function composeSalesStatKeyValue(stats: SalesStat[]) {
     return resp;
 }
 
-export function composeListOrders(item: GetAllSales["data"][number]) {
+function composeListOrders(item: GetAllSales["data"][number]) {
     return {
         id: item.id,
         slug: item.slug,

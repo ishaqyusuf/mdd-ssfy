@@ -1,11 +1,11 @@
 import { Icons } from "@/components/_v1/icons";
 import { Column } from "@tanstack/react-table";
 
-export interface PageProps<T = {}> {
+interface PageProps<T = {}> {
     params: T;
     searchParams: SearchParams;
 }
-export interface NavItem {
+interface NavItem {
     title: string;
     href?: string;
     disabled?: boolean;
@@ -15,15 +15,15 @@ export interface NavItem {
     description?: string;
 }
 
-export interface NavItemWithChildren extends NavItem {
+interface NavItemWithChildren extends NavItem {
     items: NavItemWithChildren[];
 }
 
-export interface NavItemWithOptionalChildren extends NavItem {
+interface NavItemWithOptionalChildren extends NavItem {
     items?: NavItemWithChildren[];
 }
 
-export interface FooterItem {
+interface FooterItem {
     title: string;
     items: {
         title: string;
@@ -32,21 +32,21 @@ export interface FooterItem {
     }[];
 }
 
-export type MainNavItem = NavItemWithOptionalChildren;
+type MainNavItem = NavItemWithOptionalChildren;
 export interface SearchParams {
     [key: string]: string | string[] | undefined;
 }
 
-export interface DataTableSearchableColumn<TData> {
+interface DataTableSearchableColumn<TData> {
     id: keyof TData;
     title: string;
 }
-export interface Option {
+interface Option {
     label: string;
     value: string;
     icon?: React.ComponentType<{ className?: string }>;
 }
-export interface DataTableFilterableColumn<TData, TValue>
+interface DataTableFilterableColumn<TData, TValue>
     extends DataTableSearchableColumn<TData> {
     column?: Column<TData, TValue>;
     options: Option[];
@@ -54,7 +54,7 @@ export interface DataTableFilterableColumn<TData, TValue>
     defaultValue?: string;
 }
 // type Awaited<T> = T extends PromiseLike<infer U> ? Awaited<U> : T;
-export type DataTableType<T extends (...args: any) => any> = Awaited<
+type DataTableType<T extends (...args: any) => any> = Awaited<
     ReturnType<T>
 > extends { data: infer U }
     ? U extends Record<number, any>

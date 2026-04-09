@@ -41,7 +41,7 @@ interface Props<T> {
     cellVariants?: TableCellProps;
     v2?: boolean;
 }
-export function useDataTableColumn3<T>(data: T) {
+function useDataTableColumn3<T>(data: T) {
     const ctx = {
         _props: {},
         cells: null,

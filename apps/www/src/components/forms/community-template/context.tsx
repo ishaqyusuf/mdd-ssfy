@@ -16,7 +16,7 @@ import {
 } from "@/store/community-model";
 import { dotObject } from "@/app-deps/(clean-code)/_common/utils/utils";
 type TemplateSchemaContext = ReturnType<typeof createTemplateSchemaContext>;
-export const TemplateSchemaContext =
+const TemplateSchemaContext =
     createContext<TemplateSchemaContext>(undefined);
 export const TemplateBlocksProvider = TemplateSchemaContext.Provider;
 export interface CreateTemplateSchemaContextProps {
@@ -79,7 +79,7 @@ export const useTemplateSchemaContext = () => {
 };
 
 type TemplateSchemaBlock = ReturnType<typeof createTemplateSchemaBlock>;
-export const TemplateSchemaBlock =
+const TemplateSchemaBlock =
     createContext<TemplateSchemaBlock>(undefined);
 export const SchemaBlockProvider = TemplateSchemaBlock.Provider;
 interface SchemaBlockProps {
@@ -160,7 +160,7 @@ export const useTemplateSchemaBlock = () => {
 type TemplateSchemaInputContext = ReturnType<
     typeof createTemplateSchemaInputContext
 >;
-export const TemplateSchemaInputContext =
+const TemplateSchemaInputContext =
     createContext<TemplateSchemaInputContext>(undefined);
 export const BlockInputProvider = TemplateSchemaInputContext.Provider;
 interface BlockInputProps {

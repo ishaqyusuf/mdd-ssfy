@@ -10,9 +10,9 @@ import { getPageInfo, queryFilter } from "../../../../_actions/action-utils";
 import { userId } from "../../../../_actions/utils";
 import { consoleLog } from "@gnd/utils";
 
-export interface HomeTemplatesQueryParams extends BaseQuery {}
-export type GetHomeTemplates = Awaited<ReturnType<typeof getHomeTemplates>>;
-export async function getHomeTemplates(query: HomeTemplatesQueryParams) {
+interface HomeTemplatesQueryParams extends BaseQuery {}
+type GetHomeTemplates = Awaited<ReturnType<typeof getHomeTemplates>>;
+async function getHomeTemplates(query: HomeTemplatesQueryParams) {
     const where = whereHomeTemplate(query);
     const _items = await prisma.homeTemplates.findMany({
         where,
@@ -39,7 +39,7 @@ export async function getHomeTemplates(query: HomeTemplatesQueryParams) {
         data: _items as any,
     };
 }
-export async function getCommunityTemplates(query: HomeTemplatesQueryParams) {
+async function getCommunityTemplates(query: HomeTemplatesQueryParams) {
     const where = whereCommunityTemplate(query);
     // where.deletedAt = {
     //     not: null,
@@ -154,7 +154,7 @@ export async function printHomesAction(
 
     return { prints, communityPrints };
 }
-export async function getHomeTemplate(slug) {
+async function getHomeTemplate(slug) {
     const homeTemplate = await prisma.homeTemplates.findUnique({
         where: { slug },
     });
@@ -164,7 +164,7 @@ export async function getHomeTemplate(slug) {
 export type GetCommunityTemplate = Awaited<
     ReturnType<typeof getCommunityTemplate>
 >;
-export async function getCommunityTemplate(slug) {
+async function getCommunityTemplate(slug) {
     const homeTemplate = await prisma.communityModels.findUnique({
         where: { slug },
         include: {

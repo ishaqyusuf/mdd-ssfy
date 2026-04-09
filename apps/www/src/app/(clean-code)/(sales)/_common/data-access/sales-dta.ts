@@ -23,7 +23,7 @@ import { salesNotesCount } from "@/actions/sales-note-count";
 
 // import { unstable_noStore } from "next/cache";
 
-export interface GetSalesListQuery extends PageBaseQuery {
+interface GetSalesListQuery extends PageBaseQuery {
     _type?: SalesType;
     dealerId?;
     id?;
@@ -33,8 +33,8 @@ export interface GetSalesListQuery extends PageBaseQuery {
     phone?;
     rep?;
 }
-export type GetSalesQuotesDta = AsyncFnType<typeof getSalesQuotesDta>;
-export async function getSalesQuotesDta(query: SearchParamsType) {
+type GetSalesQuotesDta = AsyncFnType<typeof getSalesQuotesDta>;
+async function getSalesQuotesDta(query: SearchParamsType) {
     const resp = await getSalesListDta(query);
 
     return {
@@ -42,9 +42,9 @@ export async function getSalesQuotesDta(query: SearchParamsType) {
         data: resp.data.map(salesQuoteDto),
     };
 }
-export type GetSalesOrdersDta = AsyncFnType<typeof getSalesOrdersDta>;
-export type SalesListItem = GetSalesOrdersDta["data"][number];
-export async function getSalesOrdersDta(query: SearchParamsType) {
+type GetSalesOrdersDta = AsyncFnType<typeof getSalesOrdersDta>;
+type SalesListItem = GetSalesOrdersDta["data"][number];
+async function getSalesOrdersDta(query: SearchParamsType) {
     const resp = await getSalesListDta(query);
 
     return {
@@ -54,7 +54,7 @@ export async function getSalesOrdersDta(query: SearchParamsType) {
 }
 
 export type GetSalesListDta = AsyncFnType<typeof getSalesListDta>;
-export async function getSalesListDta(query: SearchParamsType) {
+async function getSalesListDta(query: SearchParamsType) {
     const where = whereSales(query);
 
     const data = await prisma.salesOrders.findMany({
@@ -82,7 +82,7 @@ export async function getSalesListDta(query: SearchParamsType) {
         },
     };
 }
-export async function getSalesListDataByIdDta(id) {
+async function getSalesListDataByIdDta(id) {
     const data = await getSalesListDta({
         id,
     });
@@ -98,7 +98,7 @@ export async function getFullSaleById(id) {
     });
     return sale;
 }
-export async function getFullSaleBySlugType(slug, type) {
+async function getFullSaleBySlugType(slug, type) {
     const include = SalesOverviewIncludes;
 
     const sale = await prisma.salesOrders.findFirstOrThrow({
@@ -139,7 +139,7 @@ export function typedFullSale(sale: AsyncFnType<typeof getFullSaleById>) {
 export type GetSalesItemOverviewDta = AsyncFnType<
     typeof getSalesItemOverviewDta
 >;
-export async function getSalesItemOverviewDta(slug, type, retries = 0) {
+async function getSalesItemOverviewDta(slug, type, retries = 0) {
     const sale = isNaN(Number(slug))
         ? await getFullSaleBySlugType(slug, type)
         : await getFullSaleById(slug);
@@ -157,7 +157,7 @@ export async function getSalesItemOverviewDta(slug, type, retries = 0) {
     }
     return resp;
 }
-export async function getSalesCustomerIdDta(id) {
+async function getSalesCustomerIdDta(id) {
     return (
         await prisma.salesOrders.findFirstOrThrow({
             where: { id },
@@ -167,7 +167,7 @@ export async function getSalesCustomerIdDta(id) {
         })
     )?.customerId;
 }
-export async function getSaleByOrderIdDta(orderId) {
+async function getSaleByOrderIdDta(orderId) {
     return await prisma.salesOrders.findFirstOrThrow({
         where: {
             orderId,
@@ -178,7 +178,7 @@ export async function deleteSalesByOrderId(orderId) {
     const data = await getSaleByOrderIdDta(orderId);
     await deleteSalesDta(data.id);
 }
-export async function deleteSalesDta(id) {
+async function deleteSalesDta(id) {
     return await prisma.salesOrders.update({
         where: {
             id,
@@ -188,7 +188,7 @@ export async function deleteSalesDta(id) {
         },
     });
 }
-export async function restoreDeleteDta(id) {
+async function restoreDeleteDta(id) {
     return await prisma.salesOrders.update({
         where: { id, deletedAt: {} },
         data: {

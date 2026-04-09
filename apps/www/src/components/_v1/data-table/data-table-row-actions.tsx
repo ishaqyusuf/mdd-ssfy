@@ -144,7 +144,7 @@ export function RowActionMenuItem({
     return <Frag />;
 }
 export const MenuItem = RowActionMenuItem;
-export function ActionButton({
+function ActionButton({
     Icon,
     label,
     className,

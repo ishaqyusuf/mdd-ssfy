@@ -26,7 +26,7 @@ export function NotificationChannelForm() {
         </NotificationChannelProvider>
     );
 }
-export function Content() {
+function Content() {
     const { openNotificationChannelId, setParams } =
         useNotificationChannelParams();
     const { selectedEvent } = useNotificationChannelContext();

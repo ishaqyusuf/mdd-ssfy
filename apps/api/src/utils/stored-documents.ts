@@ -5,7 +5,7 @@ import {
 } from "@gnd/documents";
 import type { Db } from "@gnd/db";
 
-export function createStoredDocumentRepository(
+function createStoredDocumentRepository(
   db: Db,
 ): StoredDocumentRepository {
   return {

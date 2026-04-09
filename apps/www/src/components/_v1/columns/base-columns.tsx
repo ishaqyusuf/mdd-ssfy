@@ -175,7 +175,7 @@ export function StatusCell({ status }) {
         </div>
     );
 }
-export function ProgressStatusCell({
+function ProgressStatusCell({
     score,
     total,
     status,

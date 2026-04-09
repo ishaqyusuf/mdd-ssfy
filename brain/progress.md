@@ -2,6 +2,17 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-04-09
+
+- Dead code cleanup: deleted 6 directories and verified 4 individual files were already absent.
+  - Deleted `/ai/` (91 files — AI design prototypes, never imported)
+  - Deleted `apps/www/src/actions/--fix/` (1 file — one-off migration script, already run)
+  - Deleted `apps/www/src/(midday)/` (empty dirs — abandoned midday-inspired code)
+  - Deleted `apps/www/src/_v2/` (10 files — old v2 folder)
+  - Deleted `apps/www/src/app/(clean-code)/(sales)/_backward-compat/` (empty dir)
+  - Deleted `apps/www/src/app-deps/(clean-code)/(sales)/_backward-compat/` (empty dir)
+  - 4 individual files (`middleware_.ts`, `renderEmailFix.js` x2, `image-loader.ts`) were not present — already removed
+
 ## 2026-04-08
 
 - Reduced Trigger startup cost for the duplicated sales email tasks.

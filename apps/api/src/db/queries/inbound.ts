@@ -6,7 +6,7 @@ import type { TRPCContext } from "@api/trpc/init";
 import type { InboundFilterStatus, NoteTagNames } from "@gnd/utils/constants";
 import { getSales } from "./sales";
 
-export async function getInboundStatuses(
+async function getInboundStatuses(
   ctx: TRPCContext,
   salesIds?: number[]
 ) {

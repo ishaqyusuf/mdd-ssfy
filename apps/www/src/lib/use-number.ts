@@ -18,7 +18,7 @@ export function formatMoney(value) {
     if (!v) return 0;
     return +v;
 }
-export function formatCurrency(value) {
+function formatCurrency(value) {
     return new Intl.NumberFormat("en-US", {
         minimumFractionDigits: 2,
     }).format(value);

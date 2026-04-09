@@ -258,7 +258,7 @@ function NoActiveVariants({}) {
         </div>
     );
 }
-export function EmptyState() {
+function EmptyState() {
     // if (!props.empty) return props.children;
 
     return (

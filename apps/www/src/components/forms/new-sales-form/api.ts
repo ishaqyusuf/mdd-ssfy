@@ -162,7 +162,7 @@ export function useNewSalesFormResolveCustomerQuery(
     );
 }
 
-export function useRecalculateNewSalesFormMutation() {
+function useRecalculateNewSalesFormMutation() {
     const trpc = useTRPC();
     return useMutation(trpc.newSalesForm.recalculate.mutationOptions());
 }
@@ -177,12 +177,12 @@ export function useSaveFinalNewSalesFormMutation() {
     return useMutation(trpc.newSalesForm.saveFinal.mutationOptions());
 }
 
-export function useDeleteNewSalesFormLineItemMutation() {
+function useDeleteNewSalesFormLineItemMutation() {
     const trpc = useTRPC();
     return useMutation(trpc.newSalesForm.deleteLineItem.mutationOptions());
 }
 
-export function useNewSalesFormCache() {
+function useNewSalesFormCache() {
     const trpc = useTRPC();
     const queryClient = useQueryClient();
     return {
@@ -204,7 +204,7 @@ export function useNewSalesFormCache() {
     };
 }
 
-export type NewSalesFormApiInputs = {
+type NewSalesFormApiInputs = {
     bootstrap: NewSalesFormBootstrapInput;
     get: NewSalesFormGetInput;
     saveDraft: NewSalesFormSaveDraftInput;

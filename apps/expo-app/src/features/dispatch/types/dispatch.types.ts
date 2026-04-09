@@ -7,10 +7,10 @@ export type DispatchStatus =
   | "completed"
   | "cancelled";
 
-export type DispatchListResponse = RouterOutputs["dispatch"]["assignedDispatch"];
+type DispatchListResponse = RouterOutputs["dispatch"]["assignedDispatch"];
 export type DispatchListItem = DispatchListResponse["data"][number];
 
-export type DispatchOverview = RouterOutputs["dispatch"]["dispatchOverviewV2"];
+type DispatchOverview = RouterOutputs["dispatch"]["dispatchOverviewV2"];
 export type DispatchOverviewItem = DispatchOverview["dispatchItems"][number];
 export type DispatchPackingHistoryItem =
   DispatchOverviewItem["packingHistory"][number];

@@ -222,7 +222,7 @@ export async function getQuotes(
   );
 }
 
-export async function salesNotesCount(salesIds: number[], prisma) {
+async function salesNotesCount(salesIds: number[], prisma) {
   if (!salesIds || salesIds.length === 0) return {};
   const notes = await prisma.notePad.findMany({
     where: {
@@ -490,7 +490,7 @@ export async function getSalesLifeCycle(
     // order
   };
 }
-export async function updateSalesDueAmount(id, _tx) {
+async function updateSalesDueAmount(id, _tx) {
   await calculateSalesDueAmount(_tx, id);
 }
 interface Props {
@@ -553,12 +553,12 @@ salesOverview: publicProcedure
         return salesOverview(props.ctx, props.input);
       }),
 */
-export const salesOverviewSchema = z.object({
+const salesOverviewSchema = z.object({
   slug: z.string(),
 });
-export type SalesOverviewSchema = z.infer<typeof salesOverviewSchema>;
+type SalesOverviewSchema = z.infer<typeof salesOverviewSchema>;
 
-export async function salesOverview(
+async function salesOverview(
   ctx: TRPCContext,
   query: SalesOverviewSchema,
 ) {

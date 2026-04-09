@@ -1,7 +1,7 @@
 import { SalesPrintProps } from "@/utils/sales-print-utils";
 import { generateCustomerPrintReport } from "./customer-report/_action";
 
-export type GeneratCustomerPrintReport = Awaited<
+type GeneratCustomerPrintReport = Awaited<
     ReturnType<typeof generateCustomerPrintReport>
 >;
 export type SalesPrinterProps = SalesPrintProps["searchParams"];

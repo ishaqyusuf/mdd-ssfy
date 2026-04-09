@@ -24,7 +24,7 @@ export function anyDateQuery() {
         lte: fixDbTime(dayjs()).toISOString(),
     };
 }
-export const withDeleted = {
+const withDeleted = {
     OR: [{ deletedAt: null }, { deletedAt: anyDateQuery() }],
 };
 export function dateEquals(date) {

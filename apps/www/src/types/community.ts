@@ -90,7 +90,7 @@ export interface IHomeStatus {
     prodDate;
     badgeColor;
 }
-export type IInvoice = OmitMeta<Invoices> & {
+type IInvoice = OmitMeta<Invoices> & {
     project: IProject;
     home: ExtendedHome;
     meta: {};
@@ -148,7 +148,7 @@ export interface InstallCost {
     uid?;
 }
 export type InstallCosting = InstallCostingTemplate<number | string>;
-export interface TemplateDesign<T> {
+interface TemplateDesign<T> {
     project: ProjectHeader<T>;
     entry: Entry<T>;
     garageDoor: GarageDoor<T>;

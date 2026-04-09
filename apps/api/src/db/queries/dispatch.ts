@@ -1652,7 +1652,7 @@ export async function getDispatchOverviewV2(
   };
 }
 
-export async function enlistItemToForDispatch(ctx: TRPCContext) {
+async function enlistItemToForDispatch(ctx: TRPCContext) {
   //
 }
 

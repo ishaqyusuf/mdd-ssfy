@@ -10,7 +10,7 @@ const schema = z.object({
     squarePaymentId: z.string(),
 });
 
-export const getTerminalPaymentStatusAction = actionClient
+const getTerminalPaymentStatusAction = actionClient
     .schema(schema)
     .metadata({
         name: "get-terminal-payment-status",

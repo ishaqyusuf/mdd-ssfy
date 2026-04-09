@@ -4,7 +4,7 @@ import { Prisma } from "@/db";
 import { composeQueryData } from "../query-response";
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 
-export function whereCommissions(query: SearchParamsType) {
+function whereCommissions(query: SearchParamsType) {
     const userId = query["user.id"];
     const where: Prisma.PayrollWhereInput[] = [
         { userId: userId ? +userId : undefined },

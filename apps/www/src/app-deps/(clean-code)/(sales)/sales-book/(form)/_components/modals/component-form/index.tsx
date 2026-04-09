@@ -38,7 +38,7 @@ export function openComponentModal(
     }
     _modal.openModal(<StepComponentFormModal stepCls={stepCls} data={data} />);
 }
-export function useInitContext(props: Props) {
+function useInitContext(props: Props) {
     const form = useForm({
         defaultValues: {
             ...props.data,
@@ -82,7 +82,7 @@ export function useInitContext(props: Props) {
         title,
     };
 }
-export default function StepComponentFormModal(props: Props) {
+function StepComponentFormModal(props: Props) {
     const ctx = useInitContext(props);
 
     return (

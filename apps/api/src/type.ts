@@ -26,7 +26,7 @@ export type PageFilterData<TValue = string> = {
     value: string;
   }[];
 };
-export type StepMeta = {
+type StepMeta = {
   custom: boolean;
   priceStepDeps: string[];
   doorSizeVariation?: {

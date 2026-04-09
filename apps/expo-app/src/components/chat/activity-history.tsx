@@ -14,8 +14,6 @@ import {
 import { type ReactNode, useEffect, useMemo } from "react";
 import { View } from "react-native";
 
-export type ActivityTagFilter = SharedActivityTagFilter;
-
 type ActivityNode = {
   id: number;
   createdAt: Date | string | null;

@@ -4,7 +4,7 @@ import { createColumnHelper } from "@tanstack/react-table";
 import { FilterKeys } from "../search-params";
 import { DataTableFilterField } from "../type";
 
-export const queryKeys = [
+const queryKeys = [
     "orders",
     "quotes",
     "sales-delivery",
@@ -14,7 +14,7 @@ export const queryKeys = [
     "production-tasks",
     "sales-accounting",
 ] as const;
-export type QueryKeys = (typeof queryKeys)[number];
+type QueryKeys = (typeof queryKeys)[number];
 export type Filters = Partial<{
     [id in QueryKeys]: Partial<{
         fields: any[];
@@ -68,7 +68,7 @@ export const filterFields: Partial<{
     ...filterField("production.dueDate", "date-range"),
 };
 const getFilter = (k) => __filters()[k];
-export const composeFilter = (queryKey: QueryKeys, loadedFilters?) => {
+const composeFilter = (queryKey: QueryKeys, loadedFilters?) => {
     const { fields, options } = getFilter(queryKey) || {};
 
     const f = fields?.map((filter: any) => {
@@ -97,8 +97,8 @@ const dotFilterKey = (k) => k?.split("_")?.join(".");
 export const __findFilterField = (field, filter) =>
     undotFilterKey(field?.value) == undotFilterKey(filter.id);
 
-export const __getTableCol = (table, key) =>
+const __getTableCol = (table, key) =>
     table.getColumn(dotFilterKey(key)) || table.getColumn(undotFilterKey(key));
-export const __filterKeyInSearch = (id, data) =>
+const __filterKeyInSearch = (id, data) =>
     dotFilterKey(id) in data || undotFilterKey(id) in data;
 // export const __transformInputValue = (inputValue)

@@ -13,7 +13,7 @@ import {
 import { userId } from "@/app-deps/(v1)/_actions/utils";
 
 export interface HomeTemplatesQueryParams extends BaseQuery {}
-export type GetHomeTemplates = Awaited<ReturnType<typeof getHomeTemplates>>;
+type GetHomeTemplates = Awaited<ReturnType<typeof getHomeTemplates>>;
 export async function getHomeTemplates(query: HomeTemplatesQueryParams) {
     const where = whereHomeTemplate(query);
     const _items = await prisma.homeTemplates.findMany({
@@ -41,7 +41,7 @@ export async function getHomeTemplates(query: HomeTemplatesQueryParams) {
         data: _items as any,
     };
 }
-export async function getCommunityTemplates(query: HomeTemplatesQueryParams) {
+async function getCommunityTemplates(query: HomeTemplatesQueryParams) {
     const where = whereCommunityTemplate(query);
     // where.deletedAt = {
     //     not: null,
@@ -128,7 +128,7 @@ function whereHomeTemplate(query: HomeTemplatesQueryParams) {
 
     return where;
 }
-export async function printHomesAction(
+async function printHomesAction(
     homes: { builderId: number; projectId: number; modelName }[]
 ) {
     const prints = await prisma.homeTemplates.findMany({
@@ -212,4 +212,4 @@ export async function saveCommunityTemplateDesign(slug, _meta) {
         },
     });
 }
-export async function deleteHomeTemplateAction(id) {}
+async function deleteHomeTemplateAction(id) {}

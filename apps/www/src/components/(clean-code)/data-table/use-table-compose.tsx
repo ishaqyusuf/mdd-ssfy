@@ -48,7 +48,7 @@ export type TableProps = ReturnType<typeof useTableCompose>["props"] & {
     checkable?: boolean;
     ActionCell?;
 };
-export function useTableCompose<T>(props: Props<T>) {
+function useTableCompose<T>(props: Props<T>) {
     const [dynamicCols, setDynamicCols] = useState([]);
     const [isPending, startTransition] = useTransition();
     const ctx: CtxType<T> = {

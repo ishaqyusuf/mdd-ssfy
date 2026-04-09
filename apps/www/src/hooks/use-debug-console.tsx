@@ -12,14 +12,14 @@ export function useDebugConsole(...deps) {
         });
     }, deps);
 }
-export function useDebugToast(title, ...deps) {
+function useDebugToast(title, ...deps) {
     useEffect(() => {
         // if (deps.every((a) => !a)) return null;
         debugToast(title, deps);
     }, deps);
 }
 
-export const debugToast = (title: string, data: any) => {
+const debugToast = (title: string, data: any) => {
     if (!devMode) return;
     const formatted =
         typeof data === "string" ? data : JSON.stringify(data, null, 2);

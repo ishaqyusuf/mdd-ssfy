@@ -5,7 +5,7 @@ import type React from "react";
 export { Button } from "./button";
 
 // Email-optimized theme colors (avoiding pure white/black for better email client compatibility)
-export const emailTheme = {
+const emailTheme = {
   light: {
     background: "#ffffff",
     foreground: "#0e0e0e", // Slightly off-black to prevent auto-inversion
@@ -25,7 +25,7 @@ export const emailTheme = {
 } as const;
 
 // Industry-standard dark mode CSS for email clients
-export const getEmailDarkModeCSS = () => {
+const getEmailDarkModeCSS = () => {
   return `
     /* Root CSS for email dark mode support */
     :root {
@@ -272,7 +272,7 @@ export function getEmailInlineStyles(mode: "light" | "dark" = "light") {
 }
 
 // Simplified theme hook for email components
-export function useEmailTheme() {
+function useEmailTheme() {
   return {
     classes: getEmailThemeClasses(),
     lightStyles: getEmailInlineStyles("light"),

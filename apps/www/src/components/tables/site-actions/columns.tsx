@@ -5,7 +5,7 @@ import { RouterOutputs } from "@api/trpc/routers/_app";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { Progress } from "@gnd/ui/custom/progress";
 
-export type Item = RouterOutputs["siteActions"]["index"]["data"][number];
+type Item = RouterOutputs["siteActions"]["index"]["data"][number];
 interface ItemProps {
     item: Item;
 }

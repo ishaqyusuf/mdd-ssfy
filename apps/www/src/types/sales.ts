@@ -19,11 +19,11 @@ import { SalesType } from "@sales/types";
 export type ISalesOrderForm = UseFormReturn<ISalesOrder>;
 
 export type IPriority = "Low" | "High" | "Medium" | "Non";
-export type ProdStatus = "In Production" | "Completed" | "Queued";
+type ProdStatus = "In Production" | "Completed" | "Queued";
 export type ISalesType = SalesType;
 export type IOrderPrintMode = SalesPrintModes;
 
-export interface IBackOrderForm {
+interface IBackOrderForm {
     backOrder: {
         [k in any]: {
             qty;
@@ -34,7 +34,7 @@ export interface IBackOrderForm {
     };
 }
 export type ISalesOrder = any;
-export interface ISalesPickup extends OmitMeta<SalesPickup> {
+interface ISalesPickup extends OmitMeta<SalesPickup> {
     meta: {
         signature;
     };
@@ -113,7 +113,7 @@ export interface ISalesOrderItemMeta {
     _dykeSizes: { [size in string]: boolean };
     // _dykeMulti: { [item in string]: boolean };
 }
-export interface HousePackageTool {
+interface HousePackageTool {
     calculated?: boolean;
     totalDoors: number;
     totalPrice: number;
@@ -176,7 +176,7 @@ export interface IAddressMeta {
     lng?;
 }
 
-export type AddressType = "shippingAddress" | "billingAddress";
+type AddressType = "shippingAddress" | "billingAddress";
 
 export type SalesStatus =
     | "Queued"
@@ -234,7 +234,7 @@ export interface SaveOrderActionProps {
     autoSave?: boolean;
     items: ISalesOrderItem[];
 }
-export interface ISaveOrder {
+interface ISaveOrder {
     order: SalesOrders;
     deleteIds?: Number[];
     id?;
@@ -273,8 +273,8 @@ export interface IOrderInventoryUpdate {
     // currentData?: OrderInventory;
     checked?;
 }
-export type ProdActions = "Start" | "Cancel" | "Complete" | "Stop";
-export interface ProdActionProps {
+type ProdActions = "Start" | "Cancel" | "Complete" | "Stop";
+interface ProdActionProps {
     action: ProdActions;
     itemId;
     qty?;

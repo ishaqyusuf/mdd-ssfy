@@ -36,7 +36,7 @@ export const getBaseUrl = () => {
 
   return `http://${localhost}:${getPortlessAppPort()}`;
 };
-export const getWebUrl = () => {
+const getWebUrl = () => {
   const debuggerHost = Constants.expoConfig?.hostUri;
   const localhost = debuggerHost?.split(":")[0];
 

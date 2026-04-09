@@ -33,13 +33,13 @@ export function BreadLink({ isFirst, isLast, link, title }: Props) {
     );
 }
 
-export const ProductionsCrumb = (props: Props) => (
+const ProductionsCrumb = (props: Props) => (
     <BreadLink {...props} title="Productions" link="/sales/productions" />
 );
 export const OrdersCrumb = (props: Props) => (
     <BreadLink {...props} title="Orders" link="/sales/orders" />
 );
-export const EstimatesCrumb = (props: Props) => (
+const EstimatesCrumb = (props: Props) => (
     <BreadLink {...props} title="Quotes" link="/sales/quotes" />
 );
 export const OrderViewCrumb = (props: Props) => (

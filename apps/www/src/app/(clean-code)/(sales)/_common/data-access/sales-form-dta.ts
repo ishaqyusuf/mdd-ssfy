@@ -167,7 +167,7 @@ export async function getTransformedSalesBookFormDataDta(
     const sbf = await getSalesBookFormDataDta(data);
     return await formatForm(sbf);
 }
-export async function getFormStepComponentsDta(uids) {
+async function getFormStepComponentsDta(uids) {
     const c = await prisma.dykeStepProducts.findMany({
         where: {
             uid: { in: Array.from(new Set(uids)) },
@@ -178,7 +178,7 @@ export async function getFormStepComponentsDta(uids) {
         meta: component.meta as any as StepComponentMeta,
     }));
 }
-export async function saveSalesComponentPricingDta(
+async function saveSalesComponentPricingDta(
     prices: Partial<ComponentPrice>[],
     orderId
 ) {

@@ -383,7 +383,7 @@ function groupedNavs({
     return { rl, route };
 }
 const isProd = env.NEXT_PUBLIC_NODE_ENV == "production";
-export const upRoutes = [
+const upRoutes = [
     "Dashboard",
     !isProd && "Community",
     !isProd && "Hrm",

@@ -20,7 +20,7 @@ export type DealerStatus =
     | "Pending Approval"
     | "Rejected"
     | "Restricted";
-export type GetDealersPageTabAction = Awaited<
+type GetDealersPageTabAction = Awaited<
     ReturnType<typeof getDealersPageTabAction>
 >;
 export type GetDealersAction = Awaited<ReturnType<typeof getDealersAction>>;
@@ -61,7 +61,7 @@ export async function getDealersAction(query: GetDealersQuery) {
         pageCount,
     };
 }
-export async function getDealersPageTabAction(): Promise<PageTab[]> {
+async function getDealersPageTabAction(): Promise<PageTab[]> {
     const s = await prisma.dealerAuth.findMany({
         select: {
             status: true,

@@ -166,14 +166,14 @@ getWorkorderChartFilter: publicProcedure
         return getWorkorderChartFilter(props.ctx, props.input);
       }),
 */
-export const getWorkorderChartFilterSchema = z.object({
+const getWorkorderChartFilterSchema = z.object({
   // date: z.string(),
 });
-export type GetWorkorderChartFilterSchema = z.infer<
+type GetWorkorderChartFilterSchema = z.infer<
   typeof getWorkorderChartFilterSchema
 >;
 
-export async function getWorkorderChartFilter(
+async function getWorkorderChartFilter(
   ctx: TRPCContext,
   query: GetWorkorderChartFilterSchema,
 ) {

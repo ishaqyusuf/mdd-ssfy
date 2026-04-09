@@ -1,4 +1,4 @@
-export function statusData(label, status?) {
+function statusData(label, status?) {
     return {
         label,
         status,
@@ -16,4 +16,4 @@ export function infoData(label, value?) {
         value,
     };
 }
-export function composeAddress(title: "Bill To" | "Ship To") {}
+function composeAddress(title: "Bill To" | "Ship To") {}

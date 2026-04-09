@@ -81,7 +81,7 @@ export const createCustomerSchema = z
             });
         }
     });
-export const createPaymentSchemaOld = z
+const createPaymentSchemaOld = z
     .object({
         paymentMethod: z.enum([
             "link",
@@ -182,7 +182,7 @@ export const createPaymentSchema = z
         } else {
         }
     });
-export const updateDispatchStatusSchema = z.object({
+const updateDispatchStatusSchema = z.object({
     orderId: z.number(),
     deliveryId: z.number(),
     status: z.string() as z.ZodType<SalesDispatchStatus>,

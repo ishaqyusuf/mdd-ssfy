@@ -14,7 +14,7 @@ export type INotification = Notifications & {
     archived: Boolean;
     time;
 };
-export async function loadNotificationsAction() {
+async function loadNotificationsAction() {
     const id = await userId();
     const noficiations: INotification[] = (await prisma.notifications.findMany({
         where: {
@@ -27,8 +27,8 @@ export async function loadNotificationsAction() {
     })) as any;
     return noficiations;
 }
-export async function deleteOldNotifications() {}
-export async function getNotificationCountAction() {
+async function deleteOldNotifications() {}
+async function getNotificationCountAction() {
     const id = await userId();
     const count = await prisma.notifications.count({
         where: {
@@ -53,7 +53,7 @@ export async function getNotificationCountAction() {
     return count;
 }
 
-export async function markAsReadAction(id) {
+async function markAsReadAction(id) {
     await prisma.notifications.update({
         where: {
             id,
@@ -63,7 +63,7 @@ export async function markAsReadAction(id) {
         },
     });
 }
-export async function archiveAction(id, seenAt) {
+async function archiveAction(id, seenAt) {
     await prisma.notifications.update({
         where: {
             id,
@@ -74,13 +74,13 @@ export async function archiveAction(id, seenAt) {
         },
     });
 }
-export type NotificationType =
+type NotificationType =
     | "sales production"
     | "assign production"
     | "installation"
     | "community task"
     | "punchount";
-export async function _notify(
+async function _notify(
     _userId,
     type: NotificationType,
     message,
@@ -120,7 +120,7 @@ export async function _notifyProdStarted(
         `/tasks/sales-production/${order.orderId}`,
     );
 }
-export async function _notifyProductionDateUpdate(order: SalesOrders) {
+async function _notifyProductionDateUpdate(order: SalesOrders) {
     if (order.prodId)
         await _notify(
             order.prodId,
@@ -131,7 +131,7 @@ export async function _notifyProductionDateUpdate(order: SalesOrders) {
             `/tasks/sales-production/${order.orderId}`,
         );
 }
-export async function _notifyProductionAssigned(order: SalesOrders) {
+async function _notifyProductionAssigned(order: SalesOrders) {
     // const me = await user();
     await _notify(
         order.prodId,

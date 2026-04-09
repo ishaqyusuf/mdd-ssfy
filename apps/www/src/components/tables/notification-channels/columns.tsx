@@ -10,7 +10,7 @@ import { useNotificationChannelFilterParams } from "@/hooks/use-notification-cha
 import { useNotificationChannelParams } from "@/hooks/use-notification-channel-params";
 import { getColorFromName, hexToRgba } from "@gnd/utils/colors";
 
-export type Item =
+type Item =
     RouterOutputs["notes"]["getNotificationChannels"]["data"][number];
 interface ItemProps {
     item: Item;

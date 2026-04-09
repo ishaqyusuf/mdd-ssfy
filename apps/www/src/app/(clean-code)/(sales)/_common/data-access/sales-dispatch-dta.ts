@@ -22,16 +22,16 @@ import {
 } from "./sales-prod.dta";
 import { updateSalesProgressDta } from "./sales-progress.dta";
 
-export type SalesDispatchFormData = AsyncFnType<typeof getSalesDispatchFormDta>;
+type SalesDispatchFormData = AsyncFnType<typeof getSalesDispatchFormDta>;
 export interface GetSalesDispatchListQuery extends PageBaseQuery {}
-export async function getSalesDispatchDta(query: SearchParamsType) {
+async function getSalesDispatchDta(query: SearchParamsType) {
     const resp = await getSalesDispatchListDta(query);
     return {
         ...resp,
         data: resp.data.map(salesDispatchListDto),
     };
 }
-export async function getDispatchStatusDta(id): Promise<SalesDispatchStatus> {
+async function getDispatchStatusDta(id): Promise<SalesDispatchStatus> {
     return (
         ((
             await prisma.orderDelivery.findUnique({
@@ -43,7 +43,7 @@ export async function getDispatchStatusDta(id): Promise<SalesDispatchStatus> {
 export type GetSalesDispatchListDta = AsyncFnType<
     typeof getSalesDispatchListDta
 >;
-export async function getSalesDispatchListDta(
+async function getSalesDispatchListDta(
     query: GetSalesDispatchListQuery
 ) {
     const where = whereDispatch(query);
@@ -59,9 +59,9 @@ export async function getSalesDispatchListDta(
         data,
     };
 }
-export async function initDispatchQuery(searchParams) {}
+async function initDispatchQuery(searchParams) {}
 
-export async function getSalesDispatchFormDta(shipping: SalesShippingDto) {
+async function getSalesDispatchFormDta(shipping: SalesShippingDto) {
     return {
         toggleAll: false,
         shipping,
@@ -92,7 +92,7 @@ export async function getSalesDispatchFormDta(shipping: SalesShippingDto) {
     };
 }
 type CreateManyDeliveryItem = Prisma.OrderItemDeliveryCreateManyInput;
-export async function deleteSalesDispatchDta(id) {
+async function deleteSalesDispatchDta(id) {
     const d = await prisma.orderDelivery.update({
         where: { id },
         data: {
@@ -121,7 +121,7 @@ export async function deleteSalesDispatchDta(id) {
         minusScore: totalQty,
     });
 }
-export async function updateSalesDispatchStatusDta(
+async function updateSalesDispatchStatusDta(
     id,
     status: SalesDispatchStatus,
     oldStatus: SalesDispatchStatus
@@ -160,7 +160,7 @@ export async function updateSalesDispatchStatusDta(
         );
 }
 
-export async function createSalesDispatchDta(data: SalesDispatchFormData) {
+async function createSalesDispatchDta(data: SalesDispatchFormData) {
     const orderId = data.delivery.order.connect.id;
 
     const __items = Object.values(data.selection).filter((s) => s.selected);

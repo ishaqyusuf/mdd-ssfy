@@ -1,7 +1,7 @@
 import { Tags } from "@/utils/constants";
 import { revalidateTag } from "next/cache";
 
-export function __salesOrderIdUpdate() {
+function __salesOrderIdUpdate() {
     revalidateTag(Tags.salesOrderNos);
 }
 export function __salesPayrollUpdated({ orderId = null, userId = null }) {

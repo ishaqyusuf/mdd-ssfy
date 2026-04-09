@@ -22,7 +22,7 @@ type ActiveItem = string | null;
 type DoorViewMode = "selection" | "package";
 type MouldingViewMode = "selection" | "lineItems";
 
-export type NewSalesFormEditorState = {
+type NewSalesFormEditorState = {
     stepDisplayMode: StepDisplayMode;
     activeItem: ActiveItem;
     doorViewMode: DoorViewMode;
@@ -32,7 +32,7 @@ export type NewSalesFormEditorState = {
     autosaveEnabled: boolean;
 };
 
-export type NewSalesFormState = {
+type NewSalesFormState = {
     record: NewSalesFormRecord | null;
     dirty: boolean;
     lastSaveError: string | null;
@@ -64,7 +64,7 @@ type NewSalesFormActions = {
     setEditor: (patch: Partial<NewSalesFormEditorState>) => void;
 };
 
-export type NewSalesFormStore = NewSalesFormState & NewSalesFormActions;
+type NewSalesFormStore = NewSalesFormState & NewSalesFormActions;
 
 const initialEditorState: NewSalesFormEditorState = {
     stepDisplayMode: "extended",

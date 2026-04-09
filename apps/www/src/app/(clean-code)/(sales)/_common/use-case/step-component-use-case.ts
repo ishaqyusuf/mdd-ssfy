@@ -30,13 +30,13 @@ import {
 import { updateComponentPricingUseCase } from "./sales-book-pricing-use-case";
 import { getStepComponents } from "@api/db/queries/sales-form";
 
-export async function getMouldingSpeciesUseCase() {
+async function getMouldingSpeciesUseCase() {
     return await getDykeStepProductTitles("Specie");
 }
-export async function getDoorSizesUseCase(height) {
+async function getDoorSizesUseCase(height) {
     return await getDoorSizesDta(height);
 }
-export async function getDykeStepTitlesOptionUseCase() {
+async function getDykeStepTitlesOptionUseCase() {
     const resp = await getDykeStepTitlesDta();
     return resp.map(
         ({ id, title }) =>
@@ -46,7 +46,7 @@ export async function getDykeStepTitlesOptionUseCase() {
             } as LabelValue)
     );
 }
-export async function sortStepComponentsUseCase(components) {
+async function sortStepComponentsUseCase(components) {
     await Promise.all(
         components.map(async (c, index) => {
             const data = { sortIndex: index };
@@ -61,7 +61,7 @@ interface GetNextStepProps {
     nextStepId;
     // currentStepTitle;
 }
-export async function getNextStepUseCase({
+async function getNextStepUseCase({
     nextStepId,
 }: GetNextStepProps): Promise<SalesFormZusData["kvStepForm"][number]> {
     const step = await getSalesFormStepByIdDta(nextStepId);
@@ -107,11 +107,11 @@ export async function updateSectionOverrideUseCase(id, sectionOverride) {
 export async function updateStepMetaUseCase(id, meta) {
     return await updateStepMetaDta(id, meta);
 }
-export async function harvestDoorPricingUseCase() {
+async function harvestDoorPricingUseCase() {
     const val = await harvestSalesPricingDta();
     return val;
 }
-export async function saveHarvestedDoorPricingUseCase(ls) {
+async function saveHarvestedDoorPricingUseCase(ls) {
     const val = await saveHarvestedDta(ls);
     return val;
 }
@@ -130,7 +130,7 @@ export async function createComponentUseCase(data: StepComponentForm) {
     )[0];
     return resp;
 }
-export async function updateCustomComponentUseCase(data: {
+async function updateCustomComponentUseCase(data: {
     price: number;
     id: number;
 }) {
@@ -151,7 +151,7 @@ export async function updateCustomComponentUseCase(data: {
     )[0];
     return c;
 }
-export async function createCustomComponentUseCase(data: {
+async function createCustomComponentUseCase(data: {
     title: string;
     stepId: number;
     price: number | null;

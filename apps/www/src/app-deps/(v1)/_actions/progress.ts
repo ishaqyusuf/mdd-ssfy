@@ -64,14 +64,14 @@ export async function saveProgress(
 type ProgressType = "production" | "sales" | "delivery" | undefined;
 type ProgressableType = "SalesOrder" | "SalesOrderItem" | "WorkOrder";
 
-export interface TimelineUpdateProps {
+interface TimelineUpdateProps {
     parentId;
     userId;
     note;
     status;
     type;
 }
-export async function updateTimelineAction(
+async function updateTimelineAction(
     progressableType: ProgressableType,
     { parentId, note, status, type }: TimelineUpdateProps,
 ) {
@@ -83,7 +83,7 @@ export async function updateTimelineAction(
         status,
     });
 }
-export async function getProgressTypes(...types: ProgressableType[]) {
+async function getProgressTypes(...types: ProgressableType[]) {
     await prisma.progress.updateMany({
         where: {
             type: {

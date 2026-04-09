@@ -15,16 +15,9 @@
   },
   "dependencies": {
     "@gnd/db": "workspace:*",
-    "@gnd/ui": "workspace:*",
-    "@gnd/utils": "workspace:*",
-    "@react-pdf/renderer": "^4.3.0",
-    "date-fns": "^4.1.0",
-    "jose": "^6.0.11",
-    "square": "^43.2.1",
-    "qrcode": "^1.5.4"
+    "square": "^43.2.1"
   },
   "devDependencies": {
-    "@gnd/tsconfig": "workspace:*",
-    "@types/qrcode": "^1.5.5"
+    "@gnd/tsconfig": "workspace:*"
   }
 }

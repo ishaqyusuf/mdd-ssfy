@@ -6,7 +6,7 @@ export const placeAutoCompleteSchema = z.object({
 export const placeSchema = z.object({
   placeId: z.string(),
 });
-export async function autocomplete(
+async function autocomplete(
   args: z.infer<typeof placeAutoCompleteSchema>
 ) {
   const apiKey = process.env.PLACE_API as string;
@@ -94,7 +94,7 @@ export async function place(placeId) {
     };
   }
 }
-export interface AddressType {
+interface AddressType {
   address1: string;
   address2: string;
   formattedAddress: string;

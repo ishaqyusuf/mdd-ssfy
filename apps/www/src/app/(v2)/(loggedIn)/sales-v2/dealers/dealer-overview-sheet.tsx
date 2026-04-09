@@ -38,7 +38,7 @@ export function useDealerSheet() {
 interface Props {
     dealer: GetDealersAction["data"][number];
 }
-export default function DealerOverviewSheet({ dealer }: Props) {
+function DealerOverviewSheet({ dealer }: Props) {
     const [reject, setReject] = useState(false);
     const [reason, setReason] = useState("");
     const modal = useModal();

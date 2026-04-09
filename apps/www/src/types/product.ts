@@ -8,7 +8,7 @@ export type IProductVariant = OmitMeta<any> & {
     meta: IProductVariantMeta;
     product: LegacyProduct;
 };
-export interface IProductVariantMeta {
+interface IProductVariantMeta {
     componentTitle;
 }
-export interface LegacyProduct extends OmitMeta<any> {}
+interface LegacyProduct extends OmitMeta<any> {}

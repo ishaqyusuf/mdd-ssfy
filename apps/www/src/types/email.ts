@@ -6,7 +6,7 @@ export interface EmailProps extends Inbox {
     attachOrder;
     data: any;
 }
-export interface EmailModalProps {
+interface EmailModalProps {
     email: {
         toName?;
         toEmail?;

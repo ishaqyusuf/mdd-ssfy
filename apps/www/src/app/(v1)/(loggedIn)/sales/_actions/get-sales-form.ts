@@ -8,7 +8,7 @@ import { ISalesSettingMeta, PostTypes } from "@/types/post";
 import { ISalesOrder, ISalesType } from "@/types/sales";
 import dayjs from "dayjs";
 
-export interface ICreateOrderFormQuery {
+interface ICreateOrderFormQuery {
     customerId?;
     addressId?;
     type?: ISalesType;
@@ -16,12 +16,12 @@ export interface ICreateOrderFormQuery {
     orderId?;
     salesRepId?;
 }
-export interface SalesFormResponse {
+interface SalesFormResponse {
     form: ISalesOrder;
     ctx: SalessalesFormData;
     paidAmount: number;
 }
-export interface SalessalesFormData {
+interface SalessalesFormData {
     settings: ISalesSettingMeta;
     swings: (string | null)[];
     suppliers: (string | null)[];
@@ -29,7 +29,7 @@ export interface SalessalesFormData {
     defaultProfile: CustomerTypes;
     items: any[];
 }
-export async function _getSalesFormAction(
+async function _getSalesFormAction(
     query: ICreateOrderFormQuery
 ): Promise<SalesFormResponse> {
     const order = await prisma.salesOrders.findFirst({

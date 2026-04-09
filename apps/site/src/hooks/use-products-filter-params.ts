@@ -7,7 +7,7 @@ import {
   useQueryStates,
 } from "nuqs";
 
-export const productsFilterParamsSchema = {
+const productsFilterParamsSchema = {
   q: parseAsString,
   inStock: parseAsBoolean,
   categorySlug: parseAsString,
@@ -33,6 +33,6 @@ export function useProductsFilterParams() {
     },
   };
 }
-export const loadProductsFilterParams = createLoader(
+const loadProductsFilterParams = createLoader(
   productsFilterParamsSchema
 );

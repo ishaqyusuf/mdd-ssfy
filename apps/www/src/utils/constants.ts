@@ -4,7 +4,7 @@ export const Cookies = {
     QuotesRoute: "quote-route",
     LastSquareTerminalUsed: "last-square-terminal",
 };
-export const ROUTE_VERSIONS = {
+const ROUTE_VERSIONS = {
     sales: {
         old: "/sales",
         new: "",
@@ -30,7 +30,7 @@ export const Tags = {
     rootStepComponents: "root-step-components",
     takeOffTemplates: "takeoff-templates",
 };
-export const Events = {
+const Events = {
     salesCreated: "sales_created",
     salesDeleted: "sales_deleted",
     salesUpdated: "sales_updated",
@@ -107,7 +107,7 @@ export const doorSwings = ["IN-SWING", "OUT-SWING", "NONE"];
 
 export type CustomerTransactionStatus =
     (typeof customerTransactionStatus)[number];
-export const customerTransactionStatus = [
+const customerTransactionStatus = [
     "cancelled",
     "canceled",
     "draft",
@@ -115,8 +115,8 @@ export const customerTransactionStatus = [
     "success",
 ] as const;
 
-export type SalesResolutionConflictType = (typeof conflictType)[number];
-export const conflictType = [
+type SalesResolutionConflictType = (typeof conflictType)[number];
+const conflictType = [
     "duplicate payments",
     "payment not up to date",
     "overpayment",

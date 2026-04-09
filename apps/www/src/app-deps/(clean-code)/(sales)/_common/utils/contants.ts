@@ -15,9 +15,9 @@ import {
     SALES_PAYMENT_METHOD_OPTIONS,
 } from "@sales/constants";
 const SalesPriority = [] as any;
-export const SEPARATOR = ` &`;
+const SEPARATOR = ` &`;
 
-export const dispatchStatusList: SalesDispatchStatus[] = [
+const dispatchStatusList: SalesDispatchStatus[] = [
     "queue",
     "in progress",
     "cancelled",
@@ -31,7 +31,7 @@ export const INVOICE_FILTER_OPTIONS = [
     "part-paid",
     "overdraft",
 ] as const;
-export const PRODUCTION_FILTER_OPTIONS = [
+const PRODUCTION_FILTER_OPTIONS = [
     "pending",
     "in progress",
     "completed",
@@ -180,5 +180,5 @@ export const __filters = (): Filters => ({
     },
 });
 
-export const paymentMethods = SALES_PAYMENT_METHOD_OPTIONS;
-export const dispatchModes = SALES_DELIVERY_OPTIONS;
+const paymentMethods = SALES_PAYMENT_METHOD_OPTIONS;
+const dispatchModes = SALES_DELIVERY_OPTIONS;

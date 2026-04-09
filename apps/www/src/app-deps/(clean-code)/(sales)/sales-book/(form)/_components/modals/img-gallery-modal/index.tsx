@@ -19,7 +19,7 @@ export function openImgModal(props: Props) {
     _modal.openModal(<StepComponentFormModal {...props} />);
 }
 
-export default function StepComponentFormModal(props: Props) {
+function StepComponentFormModal(props: Props) {
     let initialInput = "";
     const [results, setResults] = useState<{ img: string; title: string }[]>(
         [],

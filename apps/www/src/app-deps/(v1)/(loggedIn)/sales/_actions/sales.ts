@@ -21,15 +21,15 @@ import { user, userId } from "../../../_actions/utils";
 import { fixSalesPaymentAction } from "./sales-payment";
 import { DispatchItemPackingStatus } from "@sales/types";
 
-export async function getSalesOrder(query: SalesQueryParams) {
+async function getSalesOrder(query: SalesQueryParams) {
     query.type = "order";
     return await getSales(query);
 }
-export async function _getInboundOrders(query: SalesQueryParams) {
+async function _getInboundOrders(query: SalesQueryParams) {
     //   query.type = "order";
     return await getSales(query);
 }
-export async function getOrderAction(orderId, isProd = false) {
+async function getOrderAction(orderId, isProd = false) {
     const order = await prisma.salesOrders.findFirst({
         where: {
             orderId,
@@ -96,12 +96,12 @@ export async function getOrderAction(orderId, isProd = false) {
         progress,
     };
 }
-export async function getSalesEstimates(query: SalesQueryParams) {
+async function getSalesEstimates(query: SalesQueryParams) {
     query.type = "quote";
     return await getSales(query);
 }
 
-export async function saveOrderAction({
+async function saveOrderAction({
     id,
     order,
     items,

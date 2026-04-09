@@ -8,7 +8,7 @@ export async function staticCustomerProfilesAction() {
     return await prisma.customerTypes.findMany({});
 }
 
-export async function saveCustomerProfile(data: CustomerTypes) {
+async function saveCustomerProfile(data: CustomerTypes) {
     const { id, ...rest } = data;
     if (!id)
         await prisma.customerTypes.create({
@@ -20,7 +20,7 @@ export async function saveCustomerProfile(data: CustomerTypes) {
             data: transformData(rest) as any,
         });
 }
-export async function setCustomerProfileAction(id, profileId) {
+async function setCustomerProfileAction(id, profileId) {
     await prisma.customers.update({
         where: {
             id,
@@ -34,7 +34,7 @@ export async function setCustomerProfileAction(id, profileId) {
         },
     });
 }
-export async function setDefaultCustomerProfile(id) {
+async function setDefaultCustomerProfile(id) {
     if (!id) return;
     await prisma.customerTypes.updateMany({
         where: {

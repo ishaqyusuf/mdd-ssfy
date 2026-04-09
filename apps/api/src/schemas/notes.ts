@@ -16,7 +16,7 @@ export const saveInboundNoteSchema = z.object({
     .optional(),
 });
 export type SaveInboundNoteSchema = z.infer<typeof saveInboundNoteSchema>;
-export const saveDispatchNoteSchema = z.object({
+const saveDispatchNoteSchema = z.object({
   note: z.string().nullable().optional(),
   noteColor: z.string().nullable().optional(),
   salesId: z.number(),
@@ -30,4 +30,4 @@ export const saveDispatchNoteSchema = z.object({
     )
     .optional(),
 });
-export type SaveDispatchNote = z.infer<typeof saveDispatchNoteSchema>;
+type SaveDispatchNote = z.infer<typeof saveDispatchNoteSchema>;

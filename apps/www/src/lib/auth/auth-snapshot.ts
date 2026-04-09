@@ -15,7 +15,7 @@ export type AuthSnapshot = {
 type SessionLike = Pick<Session, "user" | "role" | "can">;
 type TokenLike = Partial<Pick<JWT, "user" | "role" | "can">>;
 
-export function emptyAuthSnapshot(): AuthSnapshot {
+function emptyAuthSnapshot(): AuthSnapshot {
 	return {
 		userId: null,
 		role: null,

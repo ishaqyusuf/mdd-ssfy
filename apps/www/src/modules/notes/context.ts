@@ -6,7 +6,7 @@ import { GetNotes, getNotesAction } from "./actions/get-notes-action";
 import { NoteTagNames } from "@gnd/utils/constants";
 import { timeout } from "@/lib/timeout";
 
-export const noteContext = createContext<ReturnType<typeof useNoteContext>>(
+const noteContext = createContext<ReturnType<typeof useNoteContext>>(
     null as any,
 );
 export const NoteProvider = noteContext.Provider;

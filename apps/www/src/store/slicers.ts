@@ -180,7 +180,7 @@ export async function loadStaticList(key: keyof ISlicer, list, _loader) {
         dispatchSlice(key, deepCopy(data));
     }
 }
-export function navigateTo(href) {
+function navigateTo(href) {
     store.dispatch(
         updateSlice({
             key: "href",

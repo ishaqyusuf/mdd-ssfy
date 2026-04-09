@@ -18,7 +18,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { Separator } from "@gnd/ui/separator";
 
-export interface Option {
+interface Option {
     label: string;
     value: string;
     icon?: React.ComponentType<{ className?: string }>;

@@ -52,7 +52,7 @@ interface Props extends PrintTextProps {
     value?;
     className?: string;
 }
-export default function Text({ children, className, value, ...props }: Props) {
+function Text({ children, className, value, ...props }: Props) {
     return (
         <div className={cn(textVariants({ ...props }), className)}>
             {children && children}

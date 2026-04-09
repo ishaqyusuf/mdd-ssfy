@@ -15,10 +15,10 @@ import { whereSales } from "@/utils/db/where.sales";
 import { overallStatus } from "../../data-access/dto/sales-stat-dto";
 import { dueDateAlert } from "../../utils/production-utils";
 
-export type GetProductionListPage = AsyncFnType<
+type GetProductionListPage = AsyncFnType<
     typeof getProductionListPageAction
 >;
-export type GetProductionList = AsyncFnType<typeof getProductionListAction>;
+type GetProductionList = AsyncFnType<typeof getProductionListAction>;
 export async function getProductionTasksListPageAction(
     query: SearchParamsType,
 ) {
@@ -90,7 +90,7 @@ export async function getProductionListPageAction(
     );
     return result;
 }
-export async function getProductionListAction(query: SearchParamsType) {
+async function getProductionListAction(query: SearchParamsType) {
     const where = whereSales(query);
 
     const whereAssignments: Prisma.OrderItemProductionAssignmentsWhereInput[] =

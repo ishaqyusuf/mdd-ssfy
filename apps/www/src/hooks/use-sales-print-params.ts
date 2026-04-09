@@ -9,7 +9,7 @@ import {
 
 type FilterKeys = keyof PrintInvoice;
 
-export const paramsSchema = {
+const paramsSchema = {
     ids: parseAsArrayOf(parseAsInteger),
     slugs: parseAsArrayOf(parseAsString),
     mode: parseAsString,

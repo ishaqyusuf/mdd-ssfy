@@ -278,7 +278,7 @@ function Pane({ children }) {
     );
 }
 
-export const multiPaneNode = () => document.getElementById("multiPane");
+const multiPaneNode = () => document.getElementById("multiPane");
 export const openSecondaryPane = (component, id) => {
     const node = multiPaneNode();
 

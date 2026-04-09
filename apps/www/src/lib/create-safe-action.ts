@@ -6,11 +6,11 @@ import { z } from "zod";
 
 import { generateRandomString } from "./utils";
 
-export type FieldErrors<T> = {
+type FieldErrors<T> = {
     [K in keyof T]?: string[];
 };
 
-export type ActionState<TInput, TOutput> = {
+type ActionState<TInput, TOutput> = {
     fieldErrors?: FieldErrors<TInput>;
     error?: string | null;
     data?: TOutput;

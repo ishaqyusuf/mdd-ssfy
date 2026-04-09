@@ -13,7 +13,7 @@ export type ZusGroupItem = ZusItemFormData["groupItem"];
 export type ZusGroupItemForm = ZusItemFormData["groupItem"]["form"];
 export type ZusGroupItemFormPath = ZusGroupItemForm[string];
 type SalesFormZusAction = ReturnType<typeof fns>;
-export type SalesFormSet = (
+type SalesFormSet = (
     update: (state: SalesFormZusData) => Partial<SalesFormZusData>,
 ) => void;
 function fns(set: SalesFormSet) {

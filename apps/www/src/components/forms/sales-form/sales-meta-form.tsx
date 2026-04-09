@@ -404,7 +404,7 @@ function LineContainer({ label, lg = false, className = "", children }) {
         </div>
     );
 }
-export function Select<T>({
+function Select<T>({
     name,
     options,
     valueKey,

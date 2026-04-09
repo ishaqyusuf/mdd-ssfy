@@ -3,7 +3,7 @@ import { useLocalSearchParams } from "expo-router";
 import { createContext, useContext } from "react";
 
 type FilterContextProps = ReturnType<typeof useCreateFilterContext>;
-export const FilterContext = createContext<FilterContextProps>(
+const FilterContext = createContext<FilterContextProps>(
   undefined as any
 );
 export const FilterProvider = FilterContext.Provider;

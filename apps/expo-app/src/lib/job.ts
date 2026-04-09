@@ -1,7 +1,7 @@
 import { _push } from "@/components/static-router";
 import { getSessionProfile } from "@/lib/session-store";
 
-export function getJobType(role) {
+function getJobType(role) {
   return role === "1099 Contractor" ? "installation" : "punchout";
 }
 
@@ -60,13 +60,13 @@ export function editJob(job: JobLike) {
   pushJobFormV2(job, isAdmin ? "re-assign" : "submit");
 }
 
-export function openJob(job: JobLike) {
+function openJob(job: JobLike) {
   if (!job?.id) return;
 
   _push?.(`/job/${job.id}` as any);
 }
 
-export function openJobAlert(
+function openJobAlert(
   jobId: number | string,
   alert:
     | "request-submitted"

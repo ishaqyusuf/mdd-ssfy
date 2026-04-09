@@ -559,7 +559,7 @@ function whereSearch(params): Prisma.SalesOrdersWhereInput | null {
     }
     return null;
 }
-export function parseSearchparams(_params) {
+function parseSearchparams(_params) {
     let itemSearch = null;
     if (_params?.startsWith("item:")) {
         itemSearch = _params.split("item:")[1]?.trim();

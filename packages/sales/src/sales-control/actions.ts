@@ -117,7 +117,7 @@ export interface CreateSalesAssignmentSubmissionProps {
     qty: Qty;
   }[];
 }
-export async function createSalesAssignmentSubmissionAction(
+async function createSalesAssignmentSubmissionAction(
   db: Db,
   args: CreateSalesAssignmentSubmissionProps,
 ) {

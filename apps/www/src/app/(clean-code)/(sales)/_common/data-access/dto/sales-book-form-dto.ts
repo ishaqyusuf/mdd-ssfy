@@ -40,7 +40,7 @@ export function transformSalesBookForm(data: SalesFormData) {
     };
 }
 
-export function typedSalesBookFormItems(data: SalesFormData) {
+function typedSalesBookFormItems(data: SalesFormData) {
     return data.order.items.map((item) => {
         let _doorForm: {
             [dimension in string]: TypedDykeSalesDoor;
@@ -118,7 +118,7 @@ export function typedSalesBookFormItems(data: SalesFormData) {
         };
     });
 }
-export function transformSalesBookFormItem(
+function transformSalesBookFormItem(
     data: SalesFormData,
     items: SalesFormItems
 ) {
@@ -198,7 +198,7 @@ const batchSetting: {
         };
     };
 } = {};
-export function transformShelfItem(item: SalesFormItems[number]) {
+function transformShelfItem(item: SalesFormItems[number]) {
     const { shelfItems, ...itemData } = item;
     const shelfItemsData: SalesFormItem["shelfItems"] = {
         salesItemId: item?.id,
@@ -245,7 +245,7 @@ export function transformShelfItem(item: SalesFormItems[number]) {
         shelfItemsData,
     };
 }
-export function transformMultiDykeItem(
+function transformMultiDykeItem(
     item: SalesFormItems[number],
     items: SalesFormItems,
     itemIndex
@@ -368,7 +368,7 @@ export function transformMultiDykeItem(
         sectionPrice,
     };
 }
-export function transformStepProduct(stepProduct): DykeStepProduct | undefined {
+function transformStepProduct(stepProduct): DykeStepProduct | undefined {
     if (!stepProduct) return undefined;
     const result = stepProduct as DykeStepProduct;
     if (!result.meta)

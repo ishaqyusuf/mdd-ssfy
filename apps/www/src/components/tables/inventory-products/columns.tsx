@@ -15,7 +15,7 @@ import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { imageUrl } from "@gnd/utils";
 
-export type Item =
+type Item =
     RouterOutputs["inventories"]["inventoryProducts"]["data"][number];
 interface ItemProps {
     item: Item;

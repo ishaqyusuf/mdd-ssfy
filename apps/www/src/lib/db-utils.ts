@@ -4,7 +4,7 @@ import {
 } from "@/app-deps/(v1)/_actions/action-utils";
 import dayjs from "dayjs";
 
-export function _searchQuery<T>(query, ...columns: (keyof T)[]) {
+function _searchQuery<T>(query, ...columns: (keyof T)[]) {
     if (!query._q) return {};
     const q = {
         contains: query._q || undefined,

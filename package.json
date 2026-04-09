@@ -65,7 +65,6 @@
     "@biomejs/biome": "1.9.4",
     "@manypkg/cli": "^0.24.0",
     "bcrypt-ts": "^5.0.3",
-    "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.18",
     "dot-object": "^2.1.5",

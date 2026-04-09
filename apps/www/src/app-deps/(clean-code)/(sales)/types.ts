@@ -60,7 +60,7 @@ export type TypedSalesStat = Omit<SalesStat, "status" | "type" | "id"> & {
     id?: number;
     status?: SalesStatStatus;
 };
-export type SalesPrintMode =
+type SalesPrintMode =
     | "quote"
     | "order"
     | "production"
@@ -150,7 +150,7 @@ export type SalesMeta = {
     };
 };
 
-export type TypedSales = SalesOrders & {
+type TypedSales = SalesOrders & {
     type: SalesType;
     deliveryOption: DeliveryOption;
     meta: SalesMeta;
@@ -195,23 +195,23 @@ export interface DykeProductMeta {
     mouldingSpecies: { [id in string]: boolean };
     doorPrice?: { [size in string]: number };
 }
-export type DykeFormData = OldDykeForm;
-export type OldDykeFormData = OldDykeForm;
-export type DykeFormDataPath = FieldPath<OldDykeFormData>;
-export type DykeFormItemData = OldDykeForm["itemArray"][number];
-export type DykeFormStepData =
+type DykeFormData = OldDykeForm;
+type OldDykeFormData = OldDykeForm;
+type DykeFormDataPath = FieldPath<OldDykeFormData>;
+type DykeFormItemData = OldDykeForm["itemArray"][number];
+type DykeFormStepData =
     DykeFormItemData["item"]["formStepArray"][number];
-export type DykeFormStepDataPath = FieldPath<DykeFormStepData>;
-export type DykeFormItemDataPath = FieldPath<DykeFormItemData>;
-export type ItemMultiComponentData =
+type DykeFormStepDataPath = FieldPath<DykeFormStepData>;
+type DykeFormItemDataPath = FieldPath<DykeFormItemData>;
+type ItemMultiComponentData =
     DykeFormItemData["multiComponent"]["components"][number];
-export type ItemMultiComponentSizeData =
+type ItemMultiComponentSizeData =
     ItemMultiComponentData["_doorForm"][number];
-export type ItemMultiComponentSizeDataPath =
+type ItemMultiComponentSizeDataPath =
     FieldPath<ItemMultiComponentSizeData>;
-export type ItemMultiComponentDataPath = FieldPath<ItemMultiComponentData>;
+type ItemMultiComponentDataPath = FieldPath<ItemMultiComponentData>;
 
-export interface HousePackageToolSettingsMeta {
+interface HousePackageToolSettingsMeta {
     sizes: {
         ft: string;
         in: string;
@@ -220,12 +220,12 @@ export interface HousePackageToolSettingsMeta {
         height: boolean;
     }[];
 }
-export interface HousePackageToolSettings {
+interface HousePackageToolSettings {
     id: number;
     type: string;
     data: HousePackageToolSettingsMeta;
 }
-export type SalesTransaction = {
+type SalesTransaction = {
     squarePaymentType?: SalesPaymentType;
     squarePaymentId?;
     paymentMode: PaymentMethods;
@@ -235,7 +235,7 @@ export type SalesTransaction = {
     description: string;
     checkNo: string;
 };
-export type SalesPaymentType = "square_terminal" | "square_link";
+type SalesPaymentType = "square_terminal" | "square_link";
 export type SalesPaymentStatus =
     | "created"
     | "pending"
@@ -374,7 +374,7 @@ export type StepMeta = {
         widthList?: string[];
     }[];
 };
-export interface AddressForm {
+interface AddressForm {
     id?: number;
     name: string;
     email: string;
@@ -640,7 +640,7 @@ export type SalesSettingsMeta = {
         };
     };
 };
-export interface StepComponentForm {
+interface StepComponentForm {
     title: string;
     id?;
     img?: string;
@@ -663,7 +663,7 @@ export type QtyControlByType = {
         type: QtyControlType;
     };
 };
-export type CustomerProfileMeta = {
+type CustomerProfileMeta = {
     net: string;
     goodUntil: number;
     taxCode?: string;

@@ -19,14 +19,9 @@
     "./*": "./src/*"
   },
   "dependencies": {
-    "@gnd/ui": "workspace:*",
     "@gnd/db": "workspace:*",
-    "@gnd/sales": "workspace:*",
     "@gnd/utils": "workspace:*",
     "@react-pdf/renderer": "^4.3.1",
-    "date-fns": "^4.1.0",
-    "jose": "^6.0.11",
-    "lodash": "^4.17.21",
     "qrcode": "^1.5.4",
     "zod": "catalog:"
   },
@@ -34,7 +29,6 @@
     "@gnd/tsconfig": "workspace:*",
     "@types/react": "~19.1.0",
     "@types/qrcode": "^1.5.5",
-    "react": "catalog:",
-    "react-dom": "catalog:"
+    "react": "catalog:"
   }
 }

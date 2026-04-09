@@ -15,7 +15,7 @@ import {
     SheetTitle,
 } from "@gnd/ui/sheet";
 
-export interface BaseModalProps<T> {
+interface BaseModalProps<T> {
     onOpen?(data: T);
     onClose?();
     modalName: ModalName;

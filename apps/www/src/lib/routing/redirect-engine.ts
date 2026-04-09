@@ -1,4 +1,4 @@
-export type RedirectRule = {
+type RedirectRule = {
     from: string;
     to: string;
     type?: "exact" | "pattern" | "prefix";
@@ -35,7 +35,7 @@ const dynamicRedirectMaps = {
     // "/sales-book/orders/:salesNo": "/sales-book/orders/v2/:salesNo",
     // "/sales-book/productions/:salesNo": "/sales-book/productions/v2/:salesNo",
 } as const;
-export const redirectRules: RedirectRule[] = [
+const redirectRules: RedirectRule[] = [
     ...Object.entries(exactRedirectMaps).map(([from, to]) => ({
         from,
         to,
@@ -65,7 +65,7 @@ export function resolveRedirectPath(input: string): ResolvedRedirect | null {
     return resolveRedirectPathWithRules(input, redirectRules);
 }
 
-export function resolveRedirectPathWithRules(
+function resolveRedirectPathWithRules(
     input: string,
     rules: RedirectRule[],
 ): ResolvedRedirect | null {

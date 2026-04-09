@@ -36,7 +36,7 @@ export async function getSalesFormStepByIdDta(id) {
         },
     };
 }
-export async function getStepDta(dyekStepId) {
+async function getStepDta(dyekStepId) {
     const step = await prisma.dykeSteps.findUnique({
         where: {
             id: dyekStepId,
@@ -61,9 +61,9 @@ export async function getStepDta(dyekStepId) {
 interface ValidateNextStepIdProps {
     nextStepId;
 }
-export async function validateNextStepIdDta({}: ValidateNextStepIdProps) {}
-export type GetStepsForRoutingProps = AsyncFnType<typeof getStepsForRoutingDta>;
-export async function getStepsForRoutingDta() {
+async function validateNextStepIdDta({}: ValidateNextStepIdProps) {}
+type GetStepsForRoutingProps = AsyncFnType<typeof getStepsForRoutingDta>;
+async function getStepsForRoutingDta() {
     // await fixStepsDta();
     // return [];
     const steps = await prisma.dykeSteps.findMany({
@@ -126,7 +126,7 @@ export async function getStepsForRoutingDta() {
             };
         });
 }
-export async function deleteStepProductsByUidDta(uids: string[]) {
+async function deleteStepProductsByUidDta(uids: string[]) {
     await prisma.dykeStepProducts.updateMany({
         where: {
             uid: {
@@ -138,15 +138,15 @@ export async function deleteStepProductsByUidDta(uids: string[]) {
         },
     });
 }
-export async function getComponentDta(id) {
+async function getComponentDta(id) {
     return await prisma.dykeStepProducts.findUniqueOrThrow({
         where: { id },
     });
 }
-export async function getComponentMetaDta(id) {
+async function getComponentMetaDta(id) {
     return (await getComponentDta(id))?.meta as any as StepComponentMeta;
 }
-export async function getStepComponentsMetaByUidDta(uids: string[]) {
+async function getStepComponentsMetaByUidDta(uids: string[]) {
     return (
         await prisma.dykeStepProducts.findMany({
             where: {
@@ -159,13 +159,13 @@ export async function getStepComponentsMetaByUidDta(uids: string[]) {
         })
     ).map(({ id, meta }) => ({ id, meta: meta as StepComponentMeta }));
 }
-export async function updateStepComponentMetaDta(id, meta) {
+async function updateStepComponentMetaDta(id, meta) {
     const data = await prisma.dykeStepProducts.update({
         where: { id },
         data: { meta },
     });
 }
-export async function updateStepMetaDta(id, meta) {
+async function updateStepMetaDta(id, meta) {
     const data = await prisma.dykeSteps.update({
         where: { id },
         data: { meta },

@@ -99,10 +99,10 @@ export async function getCustomersAction(query: IGetCustomerActionQuery) {
         }),
     };
 }
-export interface ICustomerOverview {
+interface ICustomerOverview {
     customer: ICustomer;
 }
-export async function getCustomerAction(id) {
+async function getCustomerAction(id) {
     const _customer = await prisma.customers.findUnique({
         where: {
             id,
@@ -155,7 +155,7 @@ export async function getCustomerAction(id) {
     return { customer };
 }
 
-export async function saveCustomer(customer: ICustomer) {
+async function saveCustomer(customer: ICustomer) {
     let id = customer.id;
     if (!id) {
         const { email, name, meta, businessName, phoneNo } = customer;
@@ -191,7 +191,7 @@ export async function saveCustomer(customer: ICustomer) {
         });
     }
 }
-export async function getCustomerProfileId(customer: ICustomer) {
+async function getCustomerProfileId(customer: ICustomer) {
     let id = customer.customerTypeId;
     if (id == -1) {
         const { title, coefficient } = customer.profile || {};

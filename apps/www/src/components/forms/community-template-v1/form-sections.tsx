@@ -44,7 +44,7 @@ function styler<T>(fn: typeof field) {
     };
 }
 
-export function FormSection({ section, title, node, rows }: FormSectionProps) {
+function FormSection({ section, title, node, rows }: FormSectionProps) {
     const _rows = rows(field, field2);
 
     return (
@@ -248,4 +248,4 @@ export function DecoForm() {
     );
 }
 
-export { styler };
+;

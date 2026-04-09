@@ -38,7 +38,7 @@ export type UpdateSalesDeliveryOptionSchema = z.infer<
   typeof updateSalesDeliveryOptionSchema
 >;
 
-export const dispatchStatusSchema = z.enum([
+const dispatchStatusSchema = z.enum([
   "queue",
   "packed",
   "in progress",
@@ -65,7 +65,7 @@ export type UpdateDispatchDueDateSchema = z.infer<
   typeof updateDispatchDueDateSchema
 >;
 
-export const completionModeSchema = z.enum(["packed_only", "complete_all"]);
+const completionModeSchema = z.enum(["packed_only", "complete_all"]);
 export type CompletionModeSchema = z.infer<typeof completionModeSchema>;
 
 export const updateDispatchStatusSchema = z.object({
@@ -129,7 +129,7 @@ export const startNewSalesSchema = z.object({
   customerId: z.number().optional().nullable(),
 });
 
-export type StartNewSalesSchema = z.infer<typeof startNewSalesSchema>;
+type StartNewSalesSchema = z.infer<typeof startNewSalesSchema>;
 export const salesDashboardFilterSchema = z.object({
   from: z.string().optional(),
   to: z.string().optional(),
@@ -182,7 +182,7 @@ export type SalesDispatchOverviewSchema = z.infer<
   typeof salesDispatchOverviewSchema
 >;
 
-export const enlistDispatchItemSchema = z.object({
+const enlistDispatchItemSchema = z.object({
   dispatchId: z.number(),
   submissions: z.array(z.object({})),
 });

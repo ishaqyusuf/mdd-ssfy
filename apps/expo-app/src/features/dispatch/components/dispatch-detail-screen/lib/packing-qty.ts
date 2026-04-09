@@ -9,7 +9,7 @@ function asNumber(v?: number | null) {
   return Number(v || 0);
 }
 
-export function recomposeQty(qty?: QtyMatrix | null) {
+function recomposeQty(qty?: QtyMatrix | null) {
   const lh = asNumber(qty?.lh);
   const rh = asNumber(qty?.rh);
   const noHandle = lh <= 0 && rh <= 0;

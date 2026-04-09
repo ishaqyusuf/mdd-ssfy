@@ -11,7 +11,7 @@ export interface EmployeeQueryParamsProps extends BaseQuery {
     _roleId?;
     role?;
 }
-export async function getEmployees(query: EmployeeQueryParamsProps) {
+async function getEmployees(query: EmployeeQueryParamsProps) {
     if (!query.sort) {
         query.sort = "name";
         query.sort_order = "asc";

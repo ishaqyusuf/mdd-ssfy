@@ -18,7 +18,7 @@ import { isComponentType } from "../is-component-type";
 import { DispatchItemPackingStatus } from "@sales/types";
 import { consoleLog } from "@gnd/utils";
 
-export async function getSalesOverview({
+async function getSalesOverview({
     type,
     slug,
 }: {

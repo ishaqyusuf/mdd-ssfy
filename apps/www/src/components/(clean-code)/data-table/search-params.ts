@@ -28,7 +28,7 @@ import { z } from "zod";
 
 // https://logs.run/i?sort=latency.desc
 const SalesPriority = [] as any;
-export const parseAsSort = createParser({
+const parseAsSort = createParser({
     parse(queryValue) {
         const [id, desc] = queryValue.split(SORT_DELIMITER);
         if (!id && !desc) return null;
@@ -128,7 +128,7 @@ export const searchParamsParser: {
     roleId: parseAsInteger,
     ...noteParamsParser,
 };
-export const searchSchema = z
+const searchSchema = z
     .object({
         "account.no": z.string().optional(),
         address: z.string().optional(),

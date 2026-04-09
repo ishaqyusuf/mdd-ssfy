@@ -43,5 +43,5 @@ export function useInventoryParams() {
     };
 }
 
-export const loadInventoryParams = createLoader(inventoryParamsSchema);
+const loadInventoryParams = createLoader(inventoryParamsSchema);
 

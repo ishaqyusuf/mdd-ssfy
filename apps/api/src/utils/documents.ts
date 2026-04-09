@@ -6,9 +6,9 @@ import {
   createVercelBlobProvider,
 } from "@gnd/documents";
 
-export type ApiDocumentProviderName = "vercel-blob" | "cloudinary";
+type ApiDocumentProviderName = "vercel-blob" | "cloudinary";
 
-export function getApiDocumentProviderFromEnv(): ApiDocumentProviderName {
+function getApiDocumentProviderFromEnv(): ApiDocumentProviderName {
   const provider = String(process.env.DOCUMENT_PROVIDER || "vercel-blob")
     .trim()
     .toLowerCase();
@@ -46,7 +46,7 @@ export function createApiVercelBlobDocumentService(options: {
   );
 }
 
-export function createApiCloudinaryDocumentService(options: {
+function createApiCloudinaryDocumentService(options: {
   upload: (input: {
     body: DocumentUploadInput["body"];
     folder?: string;
@@ -73,7 +73,7 @@ export function createApiCloudinaryDocumentService(options: {
   );
 }
 
-export function createApiDocumentServiceByProvider(providers: {
+function createApiDocumentServiceByProvider(providers: {
   vercelBlob?: DocumentService;
   cloudinary?: DocumentService;
 }) {

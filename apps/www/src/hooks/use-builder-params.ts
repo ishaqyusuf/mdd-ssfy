@@ -15,7 +15,7 @@ const builderJobPayloadSchema = z.object({
     modelId: z.number().nullable().optional(),
 });
 
-export type BuilderJobPayload = z.infer<typeof builderJobPayloadSchema>;
+type BuilderJobPayload = z.infer<typeof builderJobPayloadSchema>;
 
 export function useBuilderParams(options?: { shallow: boolean }) {
     const { setParams: setJobFormParams } = useJobFormParams();

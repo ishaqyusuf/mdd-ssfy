@@ -6,7 +6,7 @@ const salesTaxes = [
     { code: "B", title: "Florida State Tax", percentage: 6, on: "total" },
 ] as const;
 export type SalesTaxes = (typeof salesTaxes)[number];
-export type TaxCodes = SalesTaxes["code"];
+type TaxCodes = SalesTaxes["code"];
 
 const salesTaxByCode: { [id in TaxCodes]: SalesTaxes } = {
     A: salesTaxes[0],

@@ -61,7 +61,7 @@ export async function staticBuildersAction() {
     );
 }
 export async function deleteBuilderAction(id) {}
-export async function saveBuilder(data: IBuilder) {
+async function saveBuilder(data: IBuilder) {
     if (
         (await prisma.builders.count({
             where: { name: data.name },
@@ -76,7 +76,7 @@ export async function saveBuilder(data: IBuilder) {
         },
     });
 }
-export async function saveBuilderTasks(data: IBuilder, deleteIds, newTaskIds) {
+async function saveBuilderTasks(data: IBuilder, deleteIds, newTaskIds) {
     await prisma.builders.update({
         where: {
             id: data.id,
@@ -198,6 +198,6 @@ export async function saveBuilderTasks(data: IBuilder, deleteIds, newTaskIds) {
     });
     revalidatePath("/settings/community/builders", "page");
 }
-export async function deleteBuilderTasks({ builderId, taskIds }) {}
-export async function addBuilderTasks({ builderId, tasksIds, tasks }) {}
-export async function saveBuilderInstallations(data: IBuilder) {}
+async function deleteBuilderTasks({ builderId, taskIds }) {}
+async function addBuilderTasks({ builderId, tasksIds, tasks }) {}
+async function saveBuilderInstallations(data: IBuilder) {}

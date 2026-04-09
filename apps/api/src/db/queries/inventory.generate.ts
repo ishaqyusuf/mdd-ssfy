@@ -10,7 +10,7 @@ import type { StepComponentMeta } from "@sales/types";
 
 let logs = {};
 const log = (data) => (logs = { ...logs, ...data });
-export async function migrateDykeStepToInventories(
+async function migrateDykeStepToInventories(
   ctx: TRPCContext,
   stepId: number
 ) {
@@ -570,7 +570,7 @@ export async function migrateDykeStepToInventories(
   }
   return logs;
 }
-export async function getInventoryTypesByUids(
+async function getInventoryTypesByUids(
   ctx: TRPCContext,
   uids: string[]
 ) {
@@ -780,6 +780,6 @@ const upsertInventoriesForDykeProductsSchema = z.object({
     })
   ),
 });
-export type UpsertInventoriesForDykeProducts = z.infer<
+type UpsertInventoriesForDykeProducts = z.infer<
   typeof upsertInventoriesForDykeProductsSchema
 >;

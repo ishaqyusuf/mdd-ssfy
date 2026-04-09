@@ -4,7 +4,7 @@ export type AsyncFnType<T extends (...args: any) => any> = Awaited<
     ReturnType<T>
 >;
 
-export interface PageTab {
+interface PageTab {
     count?;
     params?: { [k in string]: string };
     title: string;
@@ -28,7 +28,7 @@ export interface LabelValue {
     value;
 }
 
-export interface SelectOption {
+interface SelectOption {
     label?: string;
     value?: any;
     data?: any;

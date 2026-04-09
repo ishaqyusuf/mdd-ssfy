@@ -115,7 +115,7 @@ function commonListData(data: Item) {
         },
     };
 }
-export function salesStatisticDto(data: Item) {}
+function salesStatisticDto(data: Item) {}
 export function salesQuoteDto(data: Item) {
     return {
         ...commonListData(data),

@@ -7,7 +7,7 @@ import { AsyncFnType } from "@/types";
 import { ISalesPaymentMeta } from "@/types/sales";
 import { whereSalesPayment } from "@/utils/db/where.sales-payment";
 
-export type GetSalesPayments = AsyncFnType<typeof getSalesPaymentsAction>;
+type GetSalesPayments = AsyncFnType<typeof getSalesPaymentsAction>;
 export async function getSalesPaymentsAction(query: SearchParamsType) {
     const where = whereSalesPayment(query);
 

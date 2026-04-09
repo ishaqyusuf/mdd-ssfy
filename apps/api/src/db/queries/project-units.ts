@@ -12,7 +12,7 @@ export const invoiceFilter = [
 	"no payment",
 	"has payment",
 ] as const;
-export type INVOICE_TYPES = (typeof invoiceFilter)[number];
+type INVOICE_TYPES = (typeof invoiceFilter)[number];
 
 export const communityProductionFilter = [
 	"started",
@@ -21,19 +21,19 @@ export const communityProductionFilter = [
 	"completed",
 	"sort",
 ] as const;
-export type CommunityProductionFilter =
+type CommunityProductionFilter =
 	(typeof communityProductionFilter)[number];
 export const communityInstllationFilters = [
 	"Submitted",
 	"No Submission",
 ] as const;
-export type CommunityInstllationFilters =
+type CommunityInstllationFilters =
 	(typeof communityInstllationFilters)[number];
 export const communityInstallCostFilters = [
 	"has install cost",
 	"no install cost",
 ] as const;
-export type CommunityInstallCostFilters =
+type CommunityInstallCostFilters =
 	(typeof communityInstallCostFilters)[number];
 export const getProjectUnitsSchema = z
 	.object({

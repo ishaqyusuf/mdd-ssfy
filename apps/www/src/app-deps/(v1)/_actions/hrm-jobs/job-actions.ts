@@ -39,4 +39,4 @@ export async function rejectJob(jobId) {
         }
     });
 }
-export async function updateJobTask(id, meta) {}
+async function updateJobTask(id, meta) {}

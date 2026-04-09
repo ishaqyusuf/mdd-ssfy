@@ -18,7 +18,7 @@ export const composeQtyMatrix = (rh, lh, qty) => {
   if (!qty || rh || lh) qty = sum([rh, lh]);
   return { rh, lh, qty, noHandle: !rh && !lh };
 };
-export function qtyMatrixDifference(a: Qty, b: Qty) {
+function qtyMatrixDifference(a: Qty, b: Qty) {
   a = recomposeQty(a);
   b = recomposeQty(b);
   let res: Qty = {
@@ -27,7 +27,7 @@ export function qtyMatrixDifference(a: Qty, b: Qty) {
   ["rh", "lh", "qty"].map((k) => (res[k] = sum([a[k], b[k] * -1])));
   return res;
 }
-export function qtyMatrixSum(...qties: Qty[]): Qty {
+function qtyMatrixSum(...qties: Qty[]): Qty {
   qties = qties
     ?.filter(Boolean)
     .map(({ lh, rh, qty }) => composeQtyMatrix(rh, lh, qty));
@@ -42,14 +42,14 @@ export function qtyMatrixSum(...qties: Qty[]): Qty {
   return res;
 }
 
-export function transformQtyHandle({ lhQty: lh, rhQty: rh, qty }): Qty {
+function transformQtyHandle({ lhQty: lh, rhQty: rh, qty }): Qty {
   return { lh, rh, qty, noHandle: !rh && !lh };
 }
-export function laborRate(rate, override) {
+function laborRate(rate, override) {
   return override ?? (override === 0 ? 0 : rate);
 }
 
-export function negativeQty({ lh, rh, qty, ...rest }: Qty): Qty {
+function negativeQty({ lh, rh, qty, ...rest }: Qty): Qty {
   return {
     ...rest,
     lh: lh * -1,
@@ -269,7 +269,7 @@ export function composeSalesItemControlStat(
   };
 }
 
-export function itemControlUid(props: ItemControl) {
+function itemControlUid(props: ItemControl) {
   const stacks = [props.type];
   if (props.doorId) {
     stacks.push(props.doorId);
@@ -282,7 +282,7 @@ export function itemControlUid(props: ItemControl) {
   }
   return stacks.join("-");
 }
-export function itemControlUidObject(str) {
+function itemControlUidObject(str) {
   const [type, x, ...y]: [ItemControlTypes, string, string[]] = str.split("-");
   const obj: ItemControl = { type };
   if (type == "door") {
@@ -294,7 +294,7 @@ export function itemControlUidObject(str) {
   }
   return obj;
 }
-export function shelfItemControlUid(shelfId) {
+function shelfItemControlUid(shelfId) {
   return itemControlUid({
     type: "shelf",
     shelfId,
@@ -313,7 +313,7 @@ export function doorItemControlUid(doorId, dim) {
     dim,
   });
 }
-export function generateItemControlUid({
+function generateItemControlUid({
   itemId = null,
   hptId = null,
   doorId = null,
@@ -459,7 +459,7 @@ function composeQtyControl(props: ComposeQtyControlProps) {
     return control;
   });
 }
-export function composeControls(order: GetSalesItemControllables) {
+function composeControls(order: GetSalesItemControllables) {
   const controls: {
     uid;
     itemId;

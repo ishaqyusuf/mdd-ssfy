@@ -2,7 +2,7 @@ import { useDebuggerParams } from "@/hooks/use-debug-params";
 import { CustomModal, CustomModalContent } from "./custom-modal";
 
 export let openDebugToast: any = null;
-export function DebugModal() {
+function DebugModal() {
     const { opened, open, debugTitle, debugContent, setParams } =
         useDebuggerParams();
     openDebugToast = open;

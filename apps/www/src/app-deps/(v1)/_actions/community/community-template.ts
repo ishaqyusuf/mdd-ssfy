@@ -32,7 +32,7 @@ export async function updateCommunityModelInstallCost(
         });
     revalidatePath("/settings/community/community-templates", "page");
 }
-export async function staticCommunity() {
+async function staticCommunity() {
     return await prisma.communityModels.findMany({
         select: {
             id: true,
@@ -41,7 +41,7 @@ export async function staticCommunity() {
         },
     });
 }
-export async function _saveCommunityModelCost(
+async function _saveCommunityModelCost(
     id,
     meta: ICommunityTemplateMeta,
 ) {
@@ -89,7 +89,7 @@ export async function _saveCommunityModelCost(
     );
     revalidatePath("/settings/community/community-templates", "page");
 }
-export async function _createCommunityTemplate(data, projectName) {
+async function _createCommunityTemplate(data, projectName) {
     const slug = slugify(`${projectName} ${data.modelName}`);
     const pivotM = getPivotModel(data.modelName);
     let pivot = await prisma.communityModelPivot.findFirst({
@@ -129,7 +129,7 @@ export async function _createCommunityTemplate(data, projectName) {
     });
     revalidatePath("/settings/community/community-templates", "page");
 }
-export async function _updateCommunityModel(newData, oldData) {
+async function _updateCommunityModel(newData, oldData) {
     //
     if (oldData.modelName != newData.modelName) {
         const homes = await prisma.homes.updateMany({
@@ -164,7 +164,7 @@ export async function _updateCommunityModel(newData, oldData) {
         // });
     }
 }
-export async function _importModelCost(
+async function _importModelCost(
     id,
     modelName,
     builderId,
@@ -218,7 +218,7 @@ export async function _importModelCost(
     }
     return false;
 }
-export async function _deleteCommunitModel(id) {
+async function _deleteCommunitModel(id) {
     await prisma.homes.updateMany({
         where: {
             communityTemplateId: id,

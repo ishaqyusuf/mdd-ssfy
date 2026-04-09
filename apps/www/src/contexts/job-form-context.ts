@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createContext, useContext, useState } from "react";
 
 type JobFormContextProps = ReturnType<typeof useCreateJobFormContext>;
-export const JobFormContext = createContext<JobFormContextProps>(
+const JobFormContext = createContext<JobFormContextProps>(
 	undefined as any,
 );
 export const JobFormProvider = JobFormContext.Provider;

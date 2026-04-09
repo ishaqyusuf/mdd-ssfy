@@ -13,7 +13,7 @@ interface DealerEmailProps {
     from?: string;
     to: string;
 }
-export async function dealerEmail(data: DealerEmailProps) {
+async function dealerEmail(data: DealerEmailProps) {
     let from = isProdClient
         ? data.from || `Pablo From GND Millwork<noreply@gndprodesk.com>`
         : `Ishaq Yusuf From GND Millwork<ishaqyusuf@gndprodesk.com>`;
@@ -36,7 +36,7 @@ export async function signupSuccess(id) {
     });
     //
 }
-export async function _dispatchSalesEmailEvent(id, ev: EmailTriggerEventType) {
+async function _dispatchSalesEmailEvent(id, ev: EmailTriggerEventType) {
     const sale = await prisma.salesOrders.findFirst({
         where: { id },
         include: {
@@ -83,4 +83,4 @@ export async function _dispatchSalesEmailEvent(id, ev: EmailTriggerEventType) {
     }
 }
 
-export async function _processEmail(data, event: EmailTriggerEventType) {}
+async function _processEmail(data, event: EmailTriggerEventType) {}

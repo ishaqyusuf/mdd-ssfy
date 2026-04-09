@@ -15,7 +15,7 @@ import { SalesDispatchStatus } from "@/app-deps/(clean-code)/(sales)/types";
 import { calculateDeliveryBreakdownPercentage } from "@/app-deps/(clean-code)/(sales)/_common/utils/dispatch-utils";
 
 export type SalesDispatchListItem = GetSalesDispatchListDta["data"][number];
-export type SalesDispatchListDto = ReturnType<typeof salesDispatchListDto>;
+type SalesDispatchListDto = ReturnType<typeof salesDispatchListDto>;
 export function salesDispatchListDto(data: SalesDispatchListItem) {
     return {
         orderDate: data.order.createdAt,
@@ -154,7 +154,7 @@ export function salesShippingDto(
         orderId: data.id,
     };
 }
-export function deliveriesByStatus(
+function deliveriesByStatus(
     items: { qty; status: SalesDispatchStatus }[]
 ): DeliveryBreakdown {
     const resp: DeliveryBreakdown = {

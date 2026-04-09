@@ -2,24 +2,24 @@ import dayjs from "dayjs";
 function fixDbTime(date: dayjs.Dayjs, h = 0, m = 0, s = 0) {
     return date.set("hours", h).set("minutes", m).set("seconds", s);
 }
-export function anyDateQuery() {
+function anyDateQuery() {
     return {
         lte: fixDbTime(dayjs()).toISOString(),
     };
 }
-export function isDay(date: dayjs.Dayjs) {
+function isDay(date: dayjs.Dayjs) {
     return {
         gte: fixDbTime(date).toISOString(),
         lte: fixDbTime(date, 23, 59, 59).toISOString(),
     };
 }
-export function isYear(date: dayjs.Dayjs) {
+function isYear(date: dayjs.Dayjs) {
     return {
         gte: date.startOf("year").startOf("day").toISOString(),
         lte: date.endOf("year").endOf("day").toISOString(),
     };
 }
-export function isMonth(date: dayjs.Dayjs) {
+function isMonth(date: dayjs.Dayjs) {
     return {
         gte: date.startOf("month").startOf("day").toISOString(),
         lte: date.endOf("month").endOf("day").toISOString(),

@@ -2,7 +2,7 @@ import { Spinner } from "@gnd/ui/spinner";
 import { useTable } from ".";
 import { ForwardedRef } from "react";
 
-export function LoadMore({
+function LoadMore({
     hasNextPage,
     ref,
 }: {

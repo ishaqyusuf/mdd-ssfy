@@ -4,7 +4,7 @@ import { prisma } from "@/db";
 import { PageFilterData } from "@/types/type";
 import { unstable_cache } from "next/cache";
 
-export async function employeesFilterData() {
+async function employeesFilterData() {
     const fn = async () => {
         const [roles, profiles] = await Promise.all([
             getRoles(),
@@ -46,7 +46,7 @@ export async function employeesFilterData() {
 
     return unstable_cache(fn, tags, { tags })();
 }
-export async function getRoles() {
+async function getRoles() {
     const tags = [`roles`];
     return unstable_cache(
         async () => {
@@ -76,7 +76,7 @@ export async function getPermissions() {
         { tags },
     )();
 }
-export async function getEmployeeProfiles() {
+async function getEmployeeProfiles() {
     const tags = [`employee-profiles`];
     return unstable_cache(
         async () => {

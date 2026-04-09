@@ -10,7 +10,7 @@ export type CacheNames =
     | "projects"
     | "job-employees"
     | "install-price-chart";
-export async function fetchCache(name: CacheNames, group = null) {
+async function fetchCache(name: CacheNames, group = null) {
     const c = await prisma.cache.findFirst({
         where: {
             name: `${name}-cache`,
@@ -25,7 +25,7 @@ export async function fetchCache(name: CacheNames, group = null) {
     // if (data) return (c as any).meta.data;
     return data;
 }
-export async function saveCache(name: CacheNames, data, group) {
+async function saveCache(name: CacheNames, data, group) {
     return;
     const type = `${name}-cache`;
     const c = await prisma.cache.create({

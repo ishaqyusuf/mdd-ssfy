@@ -30,19 +30,19 @@ import {
 } from "react";
 import { toast } from "sonner";
 
-export type ChatOption = {
+type ChatOption = {
 	label: string;
 	value: string;
 	icon?: ReactNode;
 	disabled?: boolean;
 };
 
-export type InboxContact = {
+type InboxContact = {
 	id: number;
 	role?: "employee" | "customer";
 };
 
-export type InboxContactGroup = {
+type InboxContactGroup = {
 	ids: number[];
 	role?: "employee" | "customer";
 };
@@ -489,7 +489,7 @@ type ChatContentProps = {
 	placeholder?: string;
 };
 
-export function ChatContent({
+function ChatContent({
 	className,
 	placeholder = "Write a note...",
 }: ChatContentProps) {

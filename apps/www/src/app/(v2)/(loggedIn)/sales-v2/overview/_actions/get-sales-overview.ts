@@ -17,7 +17,7 @@ import { isComponentType } from "../is-component-type";
 import { DispatchItemPackingStatus } from "@sales/types";
 import { composeSalesItems } from "@/app-deps/(v2)/(loggedIn)/sales-v2/_utils/compose-sales-items";
 
-export async function getSalesOverview({
+async function getSalesOverview({
     type,
     slug,
 }: {

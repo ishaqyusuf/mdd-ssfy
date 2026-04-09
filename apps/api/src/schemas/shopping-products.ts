@@ -7,7 +7,7 @@ export const reviewSchema = z.object({
   comment: z.string(),
 });
 
-export const variantOptionSchema = z.object({
+const variantOptionSchema = z.object({
   type: z.string(),
   options: z.array(z.string()),
 });
