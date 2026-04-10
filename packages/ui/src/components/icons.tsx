@@ -69,6 +69,8 @@ const Copy = hugeIcon("Copy");
 const CreditCard = hugeIcon("CreditCard");
 const File = hugeIcon("File");
 const FileText = hugeIcon("File02Icon");
+const FileSearch = hugeIcon("FileSearchIcon");
+const Factory = hugeIcon("Factory");
 const HelpCircle = hugeIcon("HelpCircle");
 const media = hugeIcon("Image");
 const Laptop = hugeIcon("Laptop");
@@ -412,7 +414,7 @@ export const IconsBase = {
   estimates: Banknote,
   send: Send,
   packingList: Package,
-  production: Construction,
+  production: Factory,
   open: BookOpen,
   close: X,
   print: Printer,
@@ -464,7 +466,7 @@ export const IconsBase = {
   Archive: Archive,
   report: BarChart2,
   chart: BarChart2,
-  resolutionCenter: Scale,
+  resolutionCenter: FileSearch,
   salesDashboard: BarChart3,
   monitor: Monitor,
   category: FolderTree,

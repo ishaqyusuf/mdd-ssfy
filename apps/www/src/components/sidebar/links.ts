@@ -242,6 +242,7 @@ const profileSection = _section("settings", null, [
 ]);
 
 const canEditProject = _perm.in("editProject", "editCommunity");
+const isDev = process.env.NODE_ENV !== "production";
 export const linkModules = [
 	_module("Sales", "salesDashboard", "GND Sales", [
 		_section(null, null, [
@@ -531,26 +532,30 @@ export const linkModules = [
 		]),
 	]),
 
-	_module("Inventory", "products", "GND Inventory", [
-		_section("", null, [
-			_link("Inventory", "inbound", "/inventory", [
-				_subLink("Inventory", "/inventory").data,
-				_subLink("Inbounds", "/inventory/inbounds").data,
-				_subLink("Stock Movements", "/inventory/stocks").data,
-				_subLink("Categories", "/inventory/categories").data,
-				_subLink("Imports", "/inventory/imports").data,
-				_subLink("Inbound Management", "/sales-book/inbound-management").data,
-			]).access(_role.is("Super Admin")).data,
-			// _link(
-			//     "Inbounds Managment",
-			//     "inbound",
-			//     "/sales-book/inbound-management",
-			// ).access(_perm.is("viewInboundOrder")).data,
-			// _link("Dispatch", "estimates", "/sales-books/quotes").access(
-			//     _perm.is("editOrders"),
-			// ).data,
-		]),
-	]),
+	...(isDev
+		? [
+				_module("Inventory", "products", "GND Inventory", [
+					_section("", null, [
+						_link("Inventory", "inbound", "/inventory", [
+							_subLink("Inventory", "/inventory").data,
+							_subLink("Inbounds", "/inventory/inbounds").data,
+							_subLink("Stock Movements", "/inventory/stocks").data,
+							_subLink("Categories", "/inventory/categories").data,
+							_subLink("Imports", "/inventory/imports").data,
+							_subLink("Inbound Management", "/sales-book/inbound-management").data,
+						]).access(_role.is("Super Admin")).data,
+						// _link(
+						//     "Inbounds Managment",
+						//     "inbound",
+						//     "/sales-book/inbound-management",
+						// ).access(_perm.is("viewInboundOrder")).data,
+						// _link("Dispatch", "estimates", "/sales-books/quotes").access(
+						//     _perm.is("editOrders"),
+						// ).data,
+					]),
+				]),
+			]
+		: []),
 	_module("", null, "", [
 		profileSection,
 		_section("Support", null, [

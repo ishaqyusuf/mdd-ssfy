@@ -8,6 +8,7 @@ interface Props {
 }
 export function StockModeStatus(props: Props) {
     const stockMonitor = props.status == "monitored";
+    const StatusIcon = stockMonitor ? Icons.view : Icons.hide;
     return (
         <div
             className={cn(
@@ -15,18 +16,8 @@ export function StockModeStatus(props: Props) {
                 stockMonitor ? "text-green-500" : "text-muted-foreground",
             )}
         >
-            {stockMonitor ? (
-                <>
-                    <Icons.Eye className="size-4" />
-                    <span>{props.prefix} Monitored</span>
-                </>
-            ) : (
-                <>
-                    <Icons.EyeOff className="size-4" />
-                    <span>{props.prefix} Unmonitored</span>
-                </>
-            )}
+            <StatusIcon className="size-4" />
+            <span>{props.prefix} {stockMonitor ? "Monitored" : "Unmonitored"}</span>
         </div>
     );
 }
-
