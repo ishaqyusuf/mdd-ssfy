@@ -182,3 +182,40 @@ The 97 files reported missing from the old `knip-report.txt` had already been de
 8. Delete old versioned pages once v2 is fully promoted (orders, dispatch, customers, productions, employees)
 9. Clean up `(storefront)` route group
 10. Remove `(v2)/__sales-book` (disabled, double-underscore)
+
+---
+
+## Part 6 — Addendum: Additional Findings
+
+### Dual Sales Form Routes (Active but Overlapping)
+
+Two separate URL paths both serve sales order/quote form functionality:
+
+| URL Pattern | Route Group | Component | Nav Status |
+|-------------|-------------|-----------|------------|
+| `/sales-book/create-order`, `/sales-book/edit-order/[slug]` | `(clean-code)/(sales)/sales-book/(form)/` | `FormClient` (clean-code form) | **Primary** — linked directly in nav |
+| `/sales-form/create-order`, `/sales-form/edit-order/[slug]` | `(sidebar)/(sales)/sales-form/` | `NewSalesForm` (older form) | **Legacy** — only in `childPaths` for highlight detection |
+
+Both sets are registered in `links.ts` `childPaths` so the sidebar highlights correctly for either URL. The `/sales-form/` routes are the old form; `/sales-book/` is the new clean-code form. The nav sub-links only expose `/sales-book/create-order`.
+
+> **Action needed**: Once clean-code form is fully stable, remove `/sales-form/*` sidebar routes and drop them from `childPaths`.
+
+### Auth Route Duplicates
+
+| URL | Status |
+|-----|--------|
+| `/login` | Active (public group) |
+| `/login/v2` | Alternate login UI (`LoginV2`) — not linked in nav |
+| `/signin` | Separate signin page — purpose unclear, may be redundant with `/login` |
+
+### v1 Dealer Auth Pages (Orphaned)
+
+The `(v1)/(guest)/` group has dedicated dealer registration flows:
+- `/dealer/signup` — dealer self-registration
+- `/dealer/create-password/[token]` — password creation from invite token
+- `/dealer/registration-submitted` — confirmation page
+
+These are NOT in the main auth group (`(public)/login`). They may still be needed for dealer onboarding emails that link directly to these URLs. Do not delete without confirming dealer invite emails don't reference them.
+
+### v1 Print-Model Page
+- `/print-model` — lives under `(v1)/(guest)/print-model/page.tsx`; likely a legacy public print route superseded by `(public)/p/*` print routes
