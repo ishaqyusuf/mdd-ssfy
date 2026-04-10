@@ -4,6 +4,7 @@
 Tracks the active work queue. Keep this focused and execution-ready.
 
 ## Current Focus
+- [x] **Dead Code & Dead Link Cleanup 2026-04-10** — deleted 180 knip-identified unused files from `apps/www`; full dead-link analysis documented at `brain/decisions/dead-code-dead-links-cleanup-2026-04-10.md`; **action needed**: 7 broken nav links in `sidebar/links.ts` (dealers URL wrong, typo in quotes, missing commissions/pickups pages)
 - [x] Sales PDF V2: isolated multi-template print system (`brain/features/sales-pdf-system.md`) — COMPLETED: Phase 4 (salesV2 tRPC endpoint), Phase 6 (print-sales-v2.tsx + /p/sales-invoice-v2 route), quick-print helper, sales-menu-print component
 - [ ] Employee Management V2 — remaining phases: DB schema migration (`EmployeeRecord`), `employees.route.ts` API layer, `[employeeId]` per-employee overview route, insurance gate on job creation, expo app mirror
 - [ ] Sales PDF V2 follow-up slice: wire quick-print entry points into sales form and sales overview, switch sales preview to the new template renderer, reduce print latency, and define stored-PDF cache invalidation/reuse rules including multi-print merge behavior (`brain/features/sales-pdf-system.md`)
