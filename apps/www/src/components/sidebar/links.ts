@@ -247,9 +247,11 @@ const canEditProject = _perm.in("editProject", "editCommunity");
 export const linkModules = [
     _module("Sales", "salesDashboard", "GND Sales", [
         _section(null, null, [
-            _link("Sales Dashboard", "salesDashboard", "/sales-dashboard").access(
-                _role.is("Super Admin"),
-            ).data,
+            _link(
+                "Sales Dashboard",
+                "salesDashboard",
+                "/sales-dashboard",
+            ).access(_role.is("Super Admin")).data,
         ]),
         _section(null, null, [
             _link("My Dashboard", "dashboard", "/sales-rep")
@@ -383,15 +385,19 @@ export const linkModules = [
             _link("Employees", "employees", "/hrm/employees")
                 .access(_perm.some("viewHrm", "viewEmployee"))
                 .subLinks(
-                    _subLink("Employees - v2", "/hrm/employees/v2").access(
-                        _role.is("Super Admin"),
-                    ).data,
+                    // .access(
+                    //     // _role.is("Super Admin"),
+                    // )
+                    _subLink("Employees - v2", "/hrm/employees/v2").data,
                 ).data,
             _link(
                 "Document Approvals",
                 "documentApproval",
                 "/hrm/document-approvals",
-            ).access(_role.is("Super Admin")).data,
+            ).access(
+                // _role.is("Super Admin")
+                _perm.some("editEmployeeDocument"),
+            ).data,
             // _link("Profile", "profile", "/hrm/profiles").access(
             //     _perm.some("viewHrm", "viewEmployee"),
             // ).data,
@@ -738,3 +744,4 @@ export function getActiveLinkFromMap(
         )
         .sort(([hrefA], [hrefB]) => hrefB.length - hrefA.length)?.[0]?.[1];
 }
+
