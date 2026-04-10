@@ -130,3 +130,4 @@ export function DataTable(props: Props) {
         </Table.Provider>
     );
 }
+
