@@ -1,6 +1,6 @@
 import { db, Db, Prisma } from "@gnd/db";
 import { nextId, RenturnTypeAsync } from "@gnd/utils";
-import { StepComponentMeta, StepMeta } from "./types";
+import { StepComponentMeta, StepMeta } from "../../../types";
 
 interface Data {
   stepId: null;

@@ -15,6 +15,7 @@
   "dependencies": {
     "@fast-csv/format": "5.0.2",
     "@gnd/db": "workspace:*",
+    "@gnd/inventory": "workspace:*",
     "@gnd/utils": "workspace:*",
     "@gnd/notifications": "workspace:*",
     "@gnd/community": "workspace:*",

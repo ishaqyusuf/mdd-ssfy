@@ -13,11 +13,12 @@ import {
   inventoryCategoryFormSchema,
   inventoryFormSchema,
   inventoryImportSchema,
+  inventoryImportRunSchema,
   inventoryListSchema,
   updateCategoryVariantAttributeSchema,
   updateSubComponentSchema,
   variantFormSchema,
-} from "@sales/schema";
+} from "@gnd/inventory/schema";
 import {
   deleteInventories,
   deleteInventoryCategory,
@@ -31,10 +32,13 @@ import {
   inventorySummarySchema,
   inventoryVariantStockForm,
   resetInventorySystem,
+  runFullInventoryImport,
   saveInventory,
   saveInventoryCategoryForm,
   saveVariantForm,
   updateCategoryVariantAttribute,
+  dykeUpdateFromInventory,
+  inventoryUpdateFromDyke,
   updateSubCategory,
   updateSubCategorySchema,
   updateVariantCost,
@@ -42,12 +46,11 @@ import {
   updateVariantStatus,
   updateVariantStatusSchema,
   updateSubComponent,
-} from "@sales/inventory";
+} from "@gnd/inventory";
 import { getStoreAddonComponentForm } from "@sales/storefront-product";
-import { inventoryImport } from "@sales/inventory-import";
-import { InventoryImportService } from "@sales/inventory-import-service";
+import { inventoryImport } from "@gnd/inventory/inventory-import";
 import { idSchema } from "@api/schemas/common";
-import { INVENTORY_STATUS } from "@sales/constants";
+import { INVENTORY_STATUS } from "@gnd/inventory/constants";
 import {
   saveCommunityInput,
   saveCommunityInputSchema,
@@ -130,14 +133,49 @@ export const inventoriesRouter = createTRPCRouter({
       return upsertInventoriesForDykeShelfProducts(props.ctx, props.input);
     }),
   upsertComponents: publicProcedure
-    .input(upsertInventoriesForDykeShelfProductsSchema)
+    .input(
+      upsertInventoriesForDykeShelfProductsSchema.extend(
+        inventoryImportRunSchema.shape
+      )
+    )
     .mutation(async (props) => {
-      const iis = new InventoryImportService(props.ctx.db);
-      await iis.importComponents(props.input.categoryId);
       return {
-        data: iis.result,
+        data: await inventoryUpdateFromDyke(props.ctx.db, {
+          stepId: props.input.categoryId,
+          compare: props.input.compare,
+          strategy: props.input.strategy,
+          source: props.input.source,
+        }),
       };
-      // return migrateDykeStepToInventories(props.ctx, props.input.categoryId);
+    }),
+  runFullImport: publicProcedure
+    .input(inventoryImportRunSchema)
+    .mutation(async (props) => {
+      return runFullInventoryImport(props.ctx.db, props.input);
+    }),
+  inventoryUpdateFromDyke: publicProcedure
+    .input(
+      z.object({
+        stepId: z.number(),
+        compare: z.boolean().optional(),
+        strategy: inventoryImportRunSchema.shape.strategy,
+        source: inventoryImportRunSchema.shape.source,
+      })
+    )
+    .mutation(async (props) => {
+      return inventoryUpdateFromDyke(props.ctx.db, props.input);
+    }),
+  dykeUpdateFromInventory: publicProcedure
+    .input(
+      z.object({
+        inventoryCategoryId: z.number().optional().nullable(),
+        inventoryId: z.number().optional().nullable(),
+        syncTitle: z.boolean().optional(),
+        syncImage: z.boolean().optional(),
+      })
+    )
+    .mutation(async (props) => {
+      return dykeUpdateFromInventory(props.ctx.db, props.input);
     }),
   getInventoryCategories: publicProcedure
     .input(getInventoryCategoriesSchema)

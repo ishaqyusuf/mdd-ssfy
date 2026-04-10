@@ -1,0 +1,34 @@
+{
+  "name": "@gnd/inventory",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "clean": "rm -rf .turbo node_modules",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./constants": "./src/constants.ts",
+    "./schema": "./src/schema.ts",
+    "./types": "./src/types.ts",
+    "./inventory": "./src/inventory.ts",
+    "./inventory-import": "./src/inventory-import.ts",
+    "./inventory-import-service": "./src/application/import/inventory-import-service.ts",
+    "./inventory-import-handcrafted": "./src/application/import/strategies/handcrafted-importer.ts",
+    "./inventory-import-optimized": "./src/application/import/strategies/optimized-importer.ts",
+    "./inventory-utils": "./src/utils/inventory-utils.ts",
+    "./sync": "./src/application/sync/index.ts",
+    "./jobs": "./src/application/jobs/index.ts"
+  },
+  "dependencies": {
+    "@gnd/db": "workspace:*",
+    "@gnd/utils": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@gnd/tsconfig": "workspace:*",
+    "typescript": "^5.9.3"
+  }
+}

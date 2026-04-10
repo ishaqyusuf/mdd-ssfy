@@ -16,6 +16,8 @@ export const taskNames = [
   "create-sales-dispatch",
   "create-sales-history",
   "mark-sales-as-completed",
+  "run-inventory-full-import-now",
+  "run-inventory-full-import-test",
   "run-dispatch-duplicate-sweeper-now",
   "run-dispatch-duplicate-sweeper-test",
   "run-unit-invoice-duplicate-sweeper-now",
@@ -88,6 +90,16 @@ export const sendSalesReminderSchema = z.object({
   salesRep: z.string(),
 });
 export type SendSalesReminderPayload = z.infer<typeof sendSalesReminderSchema>;
+export const runFullInventoryImportTaskSchema = z.object({
+  categoryId: z.number().optional().nullable(),
+  strategy: z.enum(["handcrafted", "optimized"]).optional().default("optimized"),
+  compare: z.boolean().optional().default(false),
+  reset: z.boolean().optional().default(false),
+  source: z.enum(["manual", "event", "job"]).optional().default("job"),
+});
+export type RunFullInventoryImportTaskPayload = z.infer<
+  typeof runFullInventoryImportTaskSchema
+>;
 export const sendLoginEmailSchema = z.object({
   //validate email
   email: z.string().email("Please enter a valid email address"),

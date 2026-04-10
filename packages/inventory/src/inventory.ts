@@ -21,7 +21,7 @@ import {
   generateRandomString,
   sum,
 } from "@gnd/utils";
-import { TABLE_NAMES } from "./inventory-import-service";
+import { TABLE_NAMES } from "./application/import/strategies/handcrafted-importer";
 import { z } from "zod";
 import { formatDate } from "@gnd/utils/dayjs";
 

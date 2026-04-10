@@ -1,5 +1,5 @@
 import { uniqueList } from "@gnd/utils";
-import { Prisma } from "../types";
+import type { Prisma } from "../types";
 
 export const inventoryCategoryTypes = ["shelf-item"] as const;
 export type InventoryCategoryTypes = (typeof inventoryCategoryTypes)[number];

@@ -52,6 +52,19 @@ const buildRunTaskName = (
 };
 
 const registry = {
+	"inventory-full-import-schedule": {
+		eventName: "inventory-full-import-schedule",
+		title: "Inventory Full Import",
+		description:
+			"Run the dyke-to-inventory full import using the strategy-based inventory package.",
+		runNowTaskId: buildRunTaskName("inventory-full-import-schedule", "now"),
+		runTestTaskId: buildRunTaskName("inventory-full-import-schedule", "test"),
+		filterSchema: dispatchDuplicateSweeperFilterSchema,
+		defaultConfig: {
+			status: "inactive" as TaskEventStatus,
+			filter: {},
+		},
+	},
 	"dispatch-duplicate-sweeper-schedule": {
 		eventName: "dispatch-duplicate-sweeper-schedule",
 		title: "Dispatch Duplicate Sweeper",

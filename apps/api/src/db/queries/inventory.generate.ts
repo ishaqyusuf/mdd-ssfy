@@ -5,7 +5,7 @@ import { z } from "zod";
 import {
   generateInventoryCategoryUidFromShelfCategoryId,
   type InventoryCategoryTypes,
-} from "@sales/utils/inventory-utils";
+} from "@gnd/inventory/inventory-utils";
 import type { StepComponentMeta } from "@sales/types";
 
 let logs = {};

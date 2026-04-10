@@ -177,6 +177,20 @@ function Line({
                         ).toFixed(2),
                     },
                 }));
+                _qc.invalidateQueries({
+                    queryKey: _trpc.community.getModelBuilderTasks.queryKey({
+                        modelId: modelId!,
+                    }),
+                });
+                _qc.invalidateQueries({
+                    queryKey:
+                        _trpc.community.getModelInstallTasksByBuilderTask.queryKey(
+                            {
+                                builderTaskId: task.builderTaskId,
+                                modelId: modelId!,
+                            },
+                        ),
+                });
             },
             meta: {
                 toastTitle: {

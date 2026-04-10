@@ -1,6 +1,5 @@
 import { Db } from "@gnd/db";
 import { InventoryImport } from "./schema";
-import { generateInventoryCategoryUidFromShelfCategoryId } from "./utils/inventory-utils";
 
 export async function inventoryImport(db: Db, data: InventoryImport) {
   //   const { db } = ctx;

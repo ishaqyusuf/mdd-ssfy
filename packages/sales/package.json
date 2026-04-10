@@ -16,6 +16,7 @@
     "./inventory": "./src/inventory.ts",
     "./inventory-import": "./src/inventory-import.ts",
     "./inventory-import-service": "./src/inventory-import-service.ts",
+    "./inventory-import-services2": "./src/inventory-import-services2.ts",
     "./inventory-utils": "./src/utils/inventory-utils.ts",
     "./types": "./src/types.ts",
     "./get-sale-information": "./src/sales-control/get-sale-information.ts",
@@ -41,6 +42,7 @@
   },
   "dependencies": {
     "@gnd/db": "workspace:*",
+    "@gnd/inventory": "workspace:*",
     "@gnd/ui": "workspace:*",
     "@gnd/utils": "workspace:*",
     "@react-pdf/renderer": "^4.3.0",
