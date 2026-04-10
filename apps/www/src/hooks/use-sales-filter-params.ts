@@ -1,8 +1,11 @@
 import type { RouterInputs } from "@api/trpc/routers/_app";
 import { useQueryStates } from "nuqs";
 import { createLoader, parseAsArrayOf, parseAsString } from "nuqs/server";
+
 import { useAuth } from "./use-auth";
+
 type FilterKeys = keyof Exclude<RouterInputs["sales"]["index"], void>;
+
 export const salesFilterParamsSchema = {
 	q: parseAsString,
 	"customer.name": parseAsString,
@@ -14,8 +17,6 @@ export const salesFilterParamsSchema = {
 	"production.status": parseAsString,
 	"dispatch.status": parseAsString,
 	production: parseAsString,
-	// "sales.type": parseAsString,
-	// "dispatch.type": parseAsString,
 	invoice: parseAsString,
 	dateRange: parseAsArrayOf(parseAsString),
 	showing: parseAsString,
@@ -24,14 +25,6 @@ export const salesFilterParamsSchema = {
 export function useOrderFilterParams() {
 	const [filters, setFilters] = useQueryStates(salesFilterParamsSchema);
 	const auth = useAuth();
-	// function validateFilter(k: FilterKeys) {
-	//     switch (k) {
-	//         case "showing":
-	//             return auth.roleTitle === "Super Admin";
-	//         default:
-	//             return true;
-	//     }
-	// }
 
 	return {
 		filters: {
@@ -43,4 +36,5 @@ export function useOrderFilterParams() {
 		isPending: auth.isPending,
 	};
 }
+
 export const loadOrderFilterParams = createLoader(salesFilterParamsSchema);

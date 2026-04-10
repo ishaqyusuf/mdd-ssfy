@@ -2,19 +2,18 @@
 
 import { cn } from "@/lib/utils";
 import { type VariantProps, cva } from "class-variance-authority";
-
-import type { SheetContentProps } from "@gnd/ui/sheet";
-
-import { ScrollArea } from "@gnd/ui/scroll-area";
-import Portal from "../_v1/portal";
-
-import { Dialog } from "@gnd/ui/namespace";
 import type { ComponentPropsWithoutRef } from "react";
 
-const sheetContentVariant = cva("flex flex-col w-full ", {
+import { Dialog } from "@gnd/ui/namespace";
+import { ScrollArea } from "@gnd/ui/scroll-area";
+import type { SheetContentProps } from "@gnd/ui/sheet";
+
+import Portal from "../_v1/portal";
+
+const sheetContentVariant = cva("flex w-full flex-col", {
 	variants: {
 		floating: {
-			true: "md:h-[96vh] md:mx-4 md:mt-[2vh]",
+			true: "md:mt-[2vh] md:mx-4 md:h-[96vh]",
 		},
 		rounded: {
 			true: "md:rounded-xl",
@@ -41,18 +40,20 @@ const sheetContentVariant = cva("flex flex-col w-full ", {
 		height: "default",
 	},
 });
+
 interface Props
 	extends SheetContentProps,
 		VariantProps<typeof sheetContentVariant> {
-	children?;
+	children?: React.ReactNode;
 	open?: boolean;
-	onOpenChange?;
-	title?;
-	description?;
+	onOpenChange?: (open: boolean) => void;
+	title?: React.ReactNode;
+	description?: React.ReactNode;
 	className?: string;
 	titleAsChild?: boolean;
 	descriptionAsChild?: boolean;
 }
+
 function CustomModalBase({
 	children,
 	open,
@@ -76,6 +77,7 @@ function CustomModalBase({
 		height: props.height,
 		size: props.size,
 	};
+
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<Dialog.Content
@@ -110,27 +112,34 @@ function CustomModalBase({
 		</Dialog>
 	);
 }
-function Title({ children }) {
+
+function Title({ children }: { children: React.ReactNode }) {
 	return (
-		<Portal nodeId={"customModalTitle"} noDelay>
+		<Portal nodeId="customModalTitle" noDelay>
 			{children}
 		</Portal>
 	);
 }
-function Description({ children }) {
+
+function Description({ children }: { children: React.ReactNode }) {
 	return (
-		<Portal nodeId={"customModalDescription"} noDelay>
+		<Portal nodeId="customModalDescription" noDelay>
 			{children}
 		</Portal>
 	);
 }
-export function CustomModalPortal({ children }) {
-	return <Portal nodeId={"customModalContent"}>{children}</Portal>;
+
+export function CustomModalPortal({
+	children,
+}: {
+	children: React.ReactNode;
+}) {
+	return <Portal nodeId="customModalContent">{children}</Portal>;
 }
+
 interface CustomModalContentProps
-	extends ComponentPropsWithoutRef<typeof ScrollArea> {
-	// className?: string;
-}
+	extends ComponentPropsWithoutRef<typeof ScrollArea> {}
+
 export function CustomModalContent({
 	children,
 	className,
@@ -138,20 +147,28 @@ export function CustomModalContent({
 }: CustomModalContentProps) {
 	return (
 		<ScrollArea
-			className={cn("-mx-4 flex-1 px-4 max-h-[70vh] overflow-auto", className)}
+			className={cn("-mx-4 max-h-[70vh] flex-1 overflow-auto px-4", className)}
 			{...props}
 		>
 			{children}
 		</ScrollArea>
 	);
 }
-function Footer({ children, className = "" }) {
+
+function Footer({
+	children,
+	className = "",
+}: {
+	children: React.ReactNode;
+	className?: string;
+}) {
 	return (
 		<CustomModalPortal>
 			<Dialog.Footer className={cn(className)}>{children}</Dialog.Footer>
 		</CustomModalPortal>
 	);
 }
+
 export const CustomModal = Object.assign(CustomModalBase, {
 	Content: CustomModalContent,
 	Portal: CustomModalPortal,
