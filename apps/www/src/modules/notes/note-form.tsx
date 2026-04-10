@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import AutoComplete from "@/components/_v1/common/auto-complete";
 import { DatePicker } from "@/components/_v1/date-range-picker";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import FormSelect from "@/components/common/controls/form-select";
 import { useEnterSubmit } from "@/hooks/use-enter-submit";
 import { useForm, useFormContext } from "react-hook-form";

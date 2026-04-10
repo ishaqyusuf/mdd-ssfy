@@ -1,6 +1,6 @@
 "use client";
 
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { useSalesBlockCtx } from "../sales-print-block";
 import Text from "../../components/print-text";
 import React from "react";

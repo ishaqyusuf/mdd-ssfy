@@ -4,6 +4,11 @@
 
 ## 2026-04-10
 
+- Migrated the web app off `components/_v1/icons` onto `@gnd/ui/icons`.
+  - added the legacy branding/logo icons and the missing `documents` alias directly to `packages/ui/src/components/icons.tsx`
+  - replaced `apps/www` imports that referenced `_v1/icons` with `@gnd/ui/icons`
+  - converted `apps/www/src/components/_v1/icons.tsx` into a thin compatibility re-export so any stragglers still resolve to the shared UI icon registry
+
 - Moved notification channel built-in sync out of the read query and into an explicit mutation.
   - `packages/notifications/src/channels-query.ts` now loads channels without creating/restoring built-in rows during page fetch
   - the list response now exposes `meta.staticUpdateChecker` so the UI can tell when built-in channels are out of sync

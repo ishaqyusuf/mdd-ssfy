@@ -1,7 +1,7 @@
 "use client";
 
 import { Env } from "@/components/env";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import Portal from "@/components/_v1/portal";
 
 import { Menu } from "../../../../components/(clean-code)/menu";

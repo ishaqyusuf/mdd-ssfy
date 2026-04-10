@@ -1,6 +1,6 @@
 "use client";
 
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import StatusBadge from "@/components/_v1/status-badge";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";

@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@gnd/ui/cn";
-import { Icons } from "./_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import Link from "next/link";
 import { SidebarNavUser } from "./sidebar-nav-user";
 import { useSidebar } from "@/hooks/use-sidebar";

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import salesFormUtils from "@/app-deps/(clean-code)/(sales)/_common/utils/sales-form-utils";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import Money from "@/components/_v1/money";
 import FormCheckbox from "@/components/common/controls/form-checkbox";
 import FormInput from "@/components/common/controls/form-input";

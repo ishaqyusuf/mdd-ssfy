@@ -10,7 +10,7 @@ import {
 } from "react";
 import { updateComponentsSortingAction } from "@/actions/update-components-sorting";
 import { DeleteRowAction } from "@/components/_v1/data-table/data-table-row-actions";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { Menu } from "@gnd/ui/custom/menu";
 import { _modal } from "@/components/common/modal/provider";
 import { CustomComponentForm } from "@/components/forms/sales-form/custom-component";

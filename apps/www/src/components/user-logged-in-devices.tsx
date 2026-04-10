@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment } from "react";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { Menu } from "@gnd/ui/custom/menu";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { useLoadingToast } from "@/hooks/use-loading-toast";

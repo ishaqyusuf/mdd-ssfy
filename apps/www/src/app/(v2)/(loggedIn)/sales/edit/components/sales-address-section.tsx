@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { _modal } from "@/components/common/modal/provider";
 import { openModal } from "@/lib/modal";
 import { useForm, useFormContext } from "react-hook-form";

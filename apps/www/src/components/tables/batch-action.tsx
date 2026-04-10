@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
-import { IconKeys, Icons } from "@/components/_v1/icons";
+import { IconKeys, Icons } from "@gnd/ui/icons";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { toast } from "sonner";

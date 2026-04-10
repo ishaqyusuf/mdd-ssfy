@@ -4,7 +4,7 @@ import { finalizeSalesCheckout } from "@/actions/finalize-sales-checkout";
 import { salesPaymentCheckoutResponse } from "@/actions/sales-payment-checkout-response";
 // import { notifySalesRepPaymentSuccessAction } from "@/actions/triggers/sales-rep-payment-notification";
 import PageShell from "@/components/page-shell";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { formatPaymentParams } from "@gnd/utils/sales";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";

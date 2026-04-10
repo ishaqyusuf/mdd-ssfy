@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { LegacyDykeFormStepType } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import FormCheckbox from "@/components/common/controls/form-checkbox";
 import Modal from "@/components/common/modal";
 import { cn } from "@/lib/utils";

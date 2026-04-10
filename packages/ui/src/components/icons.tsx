@@ -1,6 +1,8 @@
 import { ArchiveIcon } from "@radix-ui/react-icons";
 import { HugeiconsIcon, type HugeiconsIconProps } from "@hugeicons/react";
 import * as HugeIcons from "@hugeicons/core-free-icons";
+import Image from "next/image";
+import Link from "next/link";
 import { FaFacebook, FaInstagram, FaXTwitter } from "react-icons/fa6";
 import { FiGithub } from "react-icons/fi";
 import { PiDiscordLogo } from "react-icons/pi";
@@ -8,17 +10,19 @@ import { Cross2Icon, DashboardIcon } from "@radix-ui/react-icons";
 
 import { cva, VariantProps } from "class-variance-authority";
 import { cn } from "../utils";
-import type { ComponentProps, ComponentType, ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
 
-export type LucideProps = Omit<HugeiconsIconProps, "icon" | "altIcon" | "showAlt"> & {
+export type LucideProps = Omit<
+  HugeiconsIconProps,
+  "icon" | "altIcon" | "showAlt"
+> & {
   absoluteStrokeWidth?: boolean;
 };
-export type LucideIcon = ComponentType<LucideProps>;
-export type Icon = LucideIcon;
+type IconComponent = ComponentType<LucideProps>;
 
 type HugeIconName = string;
 
-function hugeIcon(name: HugeIconName): LucideIcon {
+function hugeIcon(name: HugeIconName): IconComponent {
   return function HugeIconComponent({
     strokeWidth = 1.8,
     absoluteStrokeWidth: _absoluteStrokeWidth,
@@ -464,6 +468,7 @@ export const IconsBase = {
   salesDashboard: BarChart3,
   monitor: Monitor,
   category: FolderTree,
+  documents: FileText,
   logout: LogOut,
   notification: Bell,
   ...PaymentMethodIcon,
@@ -477,6 +482,81 @@ export const IconsBase = {
   ),
 };
 const IconsStatic = {
+  Logo: () => <Image alt="" src="/logo_mini.png" width={48} height={48} />,
+  LogoLg: () => <Image alt="" src="/logo.png" height={48} width={120} />,
+  logoLg: ({ width = 120 }: { width?: number }) => (
+    <Link href="/">
+      <Image alt="" src="/logo.png" height={48} width={width} />
+    </Link>
+  ),
+  logo: () => (
+    <Link href="/">
+      <Image alt="" src="/logo_mini.png" width={48} height={48} />
+    </Link>
+  ),
+  PrintLogo: () => (
+    <Link href="/">
+      <Image alt="" width={178} height={80} src="/logo.png" />
+    </Link>
+  ),
+  ArrowDownward: ArrowDown,
+  ArrowRightLeft: Move,
+  ArrowUpward: ArrowUp,
+  BanknoteArrowDown: Banknote,
+  check: Check,
+  Circle: (props: SVGIconProps) => (
+    <SVGIcon {...props} viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10" />
+    </SVGIcon>
+  ),
+  CircleIcon: (props: SVGIconProps) => (
+    <SVGIcon {...props} viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10" />
+    </SVGIcon>
+  ),
+  ClipboardList,
+  Clock,
+  CreditCard,
+  CrossIcon: X,
+  Dot: (props: SVGIconProps) => (
+    <SVGIcon {...props} viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="6" />
+    </SVGIcon>
+  ),
+  DollarSign,
+  File,
+  FileText,
+  Hash: hugeIcon("Hash"),
+  HelpCircle,
+  House: Home,
+  LucideVariable: hugeIcon("Variable"),
+  Mail,
+  MapPin,
+  Move,
+  Package,
+  Pencil,
+  Phone,
+  Plus,
+  Printer,
+  Save,
+  Send,
+  Settings2,
+  ShoppingBag,
+  Smartphone,
+  Square: (props: SVGIconProps) => (
+    <SVGIcon {...props} viewBox="0 0 24 24">
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+    </SVGIcon>
+  ),
+  SubdirectoryArrowLeft: ArrowLeft,
+  Tag: hugeIcon("Tag01Icon"),
+  ThumbsUp: hugeIcon("ThumbsUp"),
+  Trash,
+  Truck,
+  User,
+  UserRoundPlus,
+  Users,
+  Wrench,
   Overview: (props: any) => (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -1023,7 +1103,7 @@ const IconsStatic = {
   UserRoundPlus,
   ...IconsBase,
 };
-const dynamicHugeIconAliases: Partial<Record<string, HugeIconName>> = {
+const dynamicHugeIconAliases = {
   Activity: "Activity",
   ActivityIcon: "Activity",
   AlertTriangle: "AlertTriangle",
@@ -1183,68 +1263,42 @@ const dynamicHugeIconAliases: Partial<Record<string, HugeIconName>> = {
   WalletCards: "Wallet02Icon",
   Warehouse: "Warehouse",
   XCircle: "CancelCircle",
+} as const satisfies Record<string, HugeIconName>;
+
+type DynamicIconAliases = {
+  [K in keyof typeof dynamicHugeIconAliases]: IconComponent;
 };
 
-function resolveDynamicIcon(name: string): LucideIcon {
-  const existing = (IconsStatic as Record<string, LucideIcon | undefined>)[name];
-  if (existing) return existing;
+type RegisteredIcons = typeof IconsStatic & DynamicIconAliases;
 
-  const hugeAlias = dynamicHugeIconAliases[name];
-  if (hugeAlias) return hugeIcon(hugeAlias);
-
-  const trimmedName = name.replace(/Icon$/, "").replace(/[23]$/, "");
-  const trimmedExisting = (IconsStatic as Record<string, LucideIcon | undefined>)[trimmedName];
-  if (trimmedExisting) return trimmedExisting;
-
-  const trimmedHugeAlias = dynamicHugeIconAliases[trimmedName];
-  if (trimmedHugeAlias) return hugeIcon(trimmedHugeAlias);
-
-  return HelpCircle;
+function isDynamicAliasKey(
+  name: string,
+): name is keyof typeof dynamicHugeIconAliases {
+  return name in dynamicHugeIconAliases;
 }
 
-const reservedIconProxyProps = new Set([
-  "arguments",
-  "caller",
-  "childContextTypes",
-  "contextType",
-  "contextTypes",
-  "defaultProps",
-  "displayName",
-  "getDerivedStateFromError",
-  "getDerivedStateFromProps",
-  "getDefaultProps",
-  "length",
-  "name",
-  "propTypes",
-  "prototype",
-  "render",
-  "shouldComponentUpdate",
-]);
+export const Icons = new Proxy(IconsStatic as RegisteredIcons,
+  {
+    get(target, prop, receiver) {
+      if (typeof prop !== "string") return Reflect.get(target, prop, receiver);
+      const existing = Reflect.get(target, prop, receiver);
+      if (existing) return existing;
+      if (!isDynamicAliasKey(prop)) return existing;
 
-function shouldResolveDynamicIcon(name: string) {
-  if (reservedIconProxyProps.has(name)) return false;
-  if (name.startsWith("__")) return false;
-  return /^[A-Z]/.test(name) || /^[a-z][A-Za-z0-9]+$/.test(name);
-}
+      const resolved = hugeIcon(dynamicHugeIconAliases[prop]);
 
-export const Icons = new Proxy(IconsStatic as typeof IconsStatic & Record<string, LucideIcon>, {
-  get(target, prop, receiver) {
-    if (typeof prop !== "string") return Reflect.get(target, prop, receiver);
-    const existing = Reflect.get(target, prop, receiver);
-    if (existing) return existing;
-    if (!shouldResolveDynamicIcon(prop)) return existing;
+      if (!(prop in target)) {
+        target[prop] = resolved as RegisteredIcons[typeof prop];
+      }
 
-    const resolved = resolveDynamicIcon(prop);
-
-    if (resolved && !(prop in target)) {
-      target[prop] = resolved;
-    }
-
-    return resolved;
+      return resolved;
+    },
   },
-});
+);
 
 export type IconKeys = keyof typeof Icons;
+export type LucideIcon = RegisteredIcons[IconKeys];
+export type Icon = LucideIcon;
 const iconVariants = cva("", {
   variants: {
     variant: {
@@ -1270,31 +1324,38 @@ function IconImpl({
 }: {
   name?: IconKeys;
   className?: string;
-  Icon?: IconKeys | LucideIcon;
+  Icon?: IconKeys | Icon;
 } & VariantProps<typeof iconVariants>) {
-  const iconName = name || (typeof Icon === "string" ? (Icon as IconKeys) : undefined);
-  let RenderIcon = (iconName ? Icons[iconName] : undefined) || (typeof Icon === "function" ? Icon : undefined);
+  const iconName =
+    name || (typeof Icon === "string" ? (Icon as IconKeys) : undefined);
+  let RenderIcon =
+    (iconName ? Icons[iconName] : undefined) ||
+    (typeof Icon === "function" ? Icon : undefined);
   // if (!RenderIcon && name)
   // RenderIcon = (props) => <DynamicIcon name={name} {...props} />;
   if (!RenderIcon) return <>{iconName}</>;
   return <RenderIcon className={cn("", iconVariants(props), className)} />;
 }
-export const Icon = new Proxy(Object.assign(IconImpl, IconsStatic) as typeof IconImpl & typeof IconsStatic & Record<string, LucideIcon>, {
-  get(target, prop, receiver) {
-    if (typeof prop !== "string") return Reflect.get(target, prop, receiver);
-    const existing = Reflect.get(target, prop, receiver);
-    if (existing) return existing;
-    if (!shouldResolveDynamicIcon(prop)) return existing;
+export const Icon = new Proxy(
+  Object.assign(IconImpl, IconsStatic) as typeof IconImpl &
+    RegisteredIcons,
+  {
+    get(target, prop, receiver) {
+      if (typeof prop !== "string") return Reflect.get(target, prop, receiver);
+      const existing = Reflect.get(target, prop, receiver);
+      if (existing) return existing;
+      if (!isDynamicAliasKey(prop)) return existing;
 
-    const resolved = resolveDynamicIcon(prop);
+      const resolved = hugeIcon(dynamicHugeIconAliases[prop]);
 
-    if (resolved && !(prop in target)) {
-      target[prop] = resolved;
-    }
+      if (!(prop in target)) {
+        target[prop] = resolved as (typeof target)[typeof prop];
+      }
 
-    return resolved;
+      return resolved;
+    },
   },
-});
+);
 export const StatusIcon = ({ status }: { status: string }) => {
   switch (status) {
     case "success":

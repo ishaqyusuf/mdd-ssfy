@@ -6,7 +6,7 @@ import { _getProductionList } from "../actions";
 import useDataTableColumn from "@/components/common/data-table/columns/use-data-table-columns";
 import { DataTable2 } from "@/components/_v1/data-table/data-table-2";
 import { ProductionCells } from "./sales-prod-cells";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 
 interface Props {
     promise;

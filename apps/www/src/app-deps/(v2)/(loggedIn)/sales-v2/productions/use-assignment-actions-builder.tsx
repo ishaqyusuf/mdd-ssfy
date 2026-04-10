@@ -1,4 +1,4 @@
-import { IconKeys } from "@/components/_v1/icons";
+import { IconKeys } from "@gnd/ui/icons";
 import { AssignmentModalProps } from "./_components/_modals/assignment-modal";
 import {
     Menu,

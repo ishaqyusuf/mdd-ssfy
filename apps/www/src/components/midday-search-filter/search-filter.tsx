@@ -19,7 +19,7 @@ import {
 } from "@gnd/ui/dropdown-menu";
 import { Input } from "@gnd/ui/input";
 
-import { Icon, Icons } from "../_v1/icons";
+import { Icon, Icons } from "@gnd/ui/icons";
 import { searchParamsParser } from "../(clean-code)/data-table/search-params";
 import { SelectTag } from "../select-tag";
 import { FilterList } from "./filter-list";

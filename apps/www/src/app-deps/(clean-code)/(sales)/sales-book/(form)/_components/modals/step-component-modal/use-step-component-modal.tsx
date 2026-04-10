@@ -7,7 +7,7 @@ import {
 import { LegacyDykeFormStepType } from "@/app/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step";
 import stepHelpers from "@/app/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/step-helper";
 import { LabelValue } from "@/app/(clean-code)/type";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { Search } from "@/components/(clean-code)/search";
 import { cn } from "@/lib/utils";
 import { useFieldArray, useForm } from "react-hook-form";

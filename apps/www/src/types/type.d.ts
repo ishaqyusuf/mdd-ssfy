@@ -1,6 +1,6 @@
 declare module "cloudinary";
 import { SearchParamsKeys } from "@/components/(clean-code)/data-table/search-params";
-import { IconKeys } from "@/components/_v1/icons";
+import { IconKeys } from "@gnd/ui/icons";
 import { ColumnDef as TanColumnDef } from "@tanstack/react-table";
 import React from "react";
 export type Any<T> = Partial<T> & any;

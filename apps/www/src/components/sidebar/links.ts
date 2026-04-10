@@ -2,7 +2,7 @@ import type { ICan, PermissionScope } from "@/types/auth";
 import type z from "zod";
 
 import { sum } from "@/lib/utils";
-import type { IconKeys } from "../_v1/icons";
+import type { IconKeys } from "@gnd/ui/icons";
 import type { schema } from "./context";
 // import va from "@/lib/va";
 

@@ -6,7 +6,7 @@ import { cn } from "@gnd/ui/cn";
 import { cva } from "class-variance-authority";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Icon } from "./_v1/icons";
+import { Icon } from "@gnd/ui/icons";
 
 import { Icons } from "@gnd/ui/icons";
 import { useSidebar } from "@/hooks/use-sidebar";

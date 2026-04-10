@@ -11,7 +11,7 @@ import { Checkbox } from "@gnd/ui/checkbox";
 import { Form } from "@gnd/ui/form";
 import { signIn } from "next-auth/react";
 import { useTransition } from "@/utils/use-safe-transistion";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { useEffect } from "react";
 import { InputField } from "@gnd/ui/controls-2/input-field";
 import { parseAsString, useQueryStates } from "nuqs";

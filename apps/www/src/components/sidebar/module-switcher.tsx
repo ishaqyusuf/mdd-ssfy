@@ -17,7 +17,7 @@ import {
     SidebarMenuItem,
 } from "@gnd/ui/sidebar";
 
-import { Icon } from "../_v1/icons";
+import { Icon } from "@gnd/ui/icons";
 import { useSidebar } from "./context";
 import { useSidebarStore } from "./store";
 import Link from "@/components/link";

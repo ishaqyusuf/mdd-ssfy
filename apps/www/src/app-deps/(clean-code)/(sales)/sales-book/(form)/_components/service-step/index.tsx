@@ -1,5 +1,5 @@
 import ConfirmBtn from "@/components/_v1/confirm-btn";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { AnimatedNumber } from "@/components/animated-number";
 import { cn } from "@/lib/utils";

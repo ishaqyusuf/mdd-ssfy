@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 // import { cn } from "../utils";
 import { Button, type ButtonProps } from "@gnd/ui/button";
-import { Icon } from "./_v1/icons";
+import { Icon } from "@gnd/ui/icons";
 import { IconKeys } from "@gnd/ui/icons";
 
 export function IconButton({

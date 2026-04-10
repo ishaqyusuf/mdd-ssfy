@@ -3,7 +3,7 @@
 import React, { useDeferredValue, useEffect, useState } from "react";
 import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { AnimatedNumber } from "@/components/animated-number";
 import Button from "@/components/common/button";
 import { ShelfContext, useShelf, useShelfContext } from "@/hooks/use-shelf";

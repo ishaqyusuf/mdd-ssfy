@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
-import { Icon, IconKeys } from "./_v1/icons";
+import { Icon, IconKeys } from "@gnd/ui/icons";
 
 type ButtonProps = React.ComponentProps<typeof Button>;
 export interface ConfirmBtnProps extends ButtonProps {

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 import { Button as BaseButton, ButtonProps } from "@gnd/ui/button";
 
-import { IconKeys, Icons } from "../_v1/icons";
+import { IconKeys, Icons } from "@gnd/ui/icons";
 
 interface BtnProps extends ButtonProps {
     action?;

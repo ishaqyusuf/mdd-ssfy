@@ -3,7 +3,7 @@
 import {} from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 import Btn from "@/components/_v1/btn";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import StatusBadge from "@/components/_v1/status-badge";
 import FormInput from "@/components/common/controls/form-input";
 import FormSelect from "@/components/common/controls/form-select";

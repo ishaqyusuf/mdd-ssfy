@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { useModal } from "@/components/common/modal/provider";
 
 import { Button } from "@gnd/ui/button";

@@ -22,7 +22,7 @@ import {
 	TooltipTrigger,
 } from "@gnd/ui/tooltip";
 import { Fragment } from "react";
-import { Icon } from "./_v1/icons";
+import { Icon } from "@gnd/ui/icons";
 
 export function UserNav() {
 	// const { data: session } = useSession();

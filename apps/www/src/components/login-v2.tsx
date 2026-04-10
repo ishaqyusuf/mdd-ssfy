@@ -19,7 +19,7 @@ import {
 } from "@gnd/ui/form";
 import { Input } from "@gnd/ui/input";
 
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { Env } from "@/components/env";
 import QuickLogin from "@/components/quick-login";
 import { useZodForm } from "@/hooks/use-zod-form";

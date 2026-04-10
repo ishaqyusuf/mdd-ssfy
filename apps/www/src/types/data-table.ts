@@ -1,7 +1,6 @@
-import { type z } from "zod";
+import type { z } from "zod";
 
-import { type Icons } from "@/components/_v1/icons";
-import { Column } from "@tanstack/react-table";
+import type { Column } from "@tanstack/react-table";
 
 export interface Option {
     label: string;

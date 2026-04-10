@@ -5,7 +5,7 @@ import { useTransition } from "@/utils/use-safe-transistion";
 import { useStaticProducers } from "@/_v2/hooks/use-static-data";
 import Btn from "@/components/_v1/btn";
 import { DatePicker } from "@/components/_v1/date-range-picker";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import FormInput from "@/components/common/controls/form-input";
 import FormSelect from "@/components/common/controls/form-select";
 import { TableCol } from "@/components/common/data-table/table-cells";

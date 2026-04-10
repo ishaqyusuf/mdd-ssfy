@@ -11,7 +11,7 @@ import {
     DeleteRowAction,
     MenuItem,
 } from "@/components/_v1/data-table/data-table-row-actions";
-import { IconKeys } from "@/components/_v1/icons";
+import { IconKeys } from "@gnd/ui/icons";
 import SendEmailSheet from "@/components/_v2/email/send-email";
 import { useModal } from "@/components/common/modal/provider";
 import { openLink } from "@/lib/open-link";

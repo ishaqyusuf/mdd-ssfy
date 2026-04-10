@@ -1,4 +1,4 @@
-import { IconKeys, Icons } from "@/components/_v1/icons";
+import { IconKeys, Icons } from "@gnd/ui/icons";
 import { cn } from "@/lib/utils";
 import { cva, VariantProps } from "class-variance-authority";
 

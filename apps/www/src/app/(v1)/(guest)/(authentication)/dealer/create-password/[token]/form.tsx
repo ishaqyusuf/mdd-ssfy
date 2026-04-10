@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import FormInput from "@/components/common/controls/form-input";
 import { _useAsync } from "@/lib/use-async";
 import { zodResolver } from "@hookform/resolvers/zod";

@@ -46,7 +46,7 @@ import {
     MenuItem,
 } from "../../../../../components/_v1/data-table/data-table-row-actions";
 import { ProjectsFilter } from "../../../../../components/_v1/filters/projects-filter";
-import { Icons } from "../../../../../components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import HomePrinter from "../../../../../components/_v1/print/home/home-printer";
 import { useHomeModal } from "./home-modal";
 

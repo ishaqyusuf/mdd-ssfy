@@ -24,7 +24,7 @@ import { Sortable, SortableItem } from "@gnd/ui/sortable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import Modal from "@/components/common/modal";
 import { _modal } from "@/components/common/modal/provider";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { FormCheckbox } from "@gnd/ui/controls/form-checkbox";
 import { FormSelect } from "@gnd/ui/controls/form-select";
 import { FormInput } from "@gnd/ui/controls/form-input";

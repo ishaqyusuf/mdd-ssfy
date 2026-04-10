@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { cn } from "@/lib/utils";
 
 import Text from "../../components/print-text";

@@ -1,5 +1,5 @@
 import React from "react";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import Money from "@/components/_v1/money";
 import { SalesOverviewInbox } from "@/components/chat";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";

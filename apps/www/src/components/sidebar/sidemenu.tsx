@@ -23,7 +23,7 @@ import {
     SidebarMenuSubItem,
 } from "@gnd/ui/sidebar";
 
-import { Icon, Icons } from "../_v1/icons";
+import { Icon, Icons } from "@gnd/ui/icons";
 import { useSidebar, useSidebarState } from "./context";
 import { cva } from "class-variance-authority";
 import {

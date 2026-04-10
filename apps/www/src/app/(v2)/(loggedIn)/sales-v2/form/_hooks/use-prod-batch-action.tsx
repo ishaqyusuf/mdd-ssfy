@@ -1,6 +1,6 @@
 import { useLegacyDykeFormStep } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { useModal } from "@/components/common/modal/provider";
 
 import { Button } from "@gnd/ui/button";

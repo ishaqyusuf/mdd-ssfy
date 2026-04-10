@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { Info } from "@/components/_v1/info";
 import { TableCol } from "@/components/common/data-table/table-cells";
 import { cn } from "@/lib/utils";

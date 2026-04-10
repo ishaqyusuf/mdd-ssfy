@@ -4,7 +4,7 @@ import { getCustomerAddress } from "@/actions/cache/get-customer-address";
 import { getSalesCustomerData } from "@/actions/get-sales-customer-data";
 import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { SettingsClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
 import { useDebounce } from "@/hooks/use-debounce";
 import { timeout } from "@/lib/timeout";

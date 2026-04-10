@@ -4,7 +4,7 @@ import {
     updateSectionOverrideUseCase,
 } from "@/app/(clean-code)/(sales)/_common/use-case/step-component-use-case";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { ComboxBox } from "@/components/(clean-code)/custom/controlled/combo-box";
 import FormCheckbox from "@/components/common/controls/form-checkbox";
 import FormSelect from "@/components/common/controls/form-select";

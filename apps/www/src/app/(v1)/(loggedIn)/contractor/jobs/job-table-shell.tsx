@@ -38,7 +38,7 @@ import {
 import { PayableEmployees } from "@/components/_v1/filters/employee-filter";
 import { ProjectsFilter } from "@/components/_v1/filters/projects-filter";
 import JobType from "@/components/_v1/hrm/job-type";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import Money from "@/components/_v1/money";
 import JobOverviewSheet from "./job-overview/job-overview-sheet";
 

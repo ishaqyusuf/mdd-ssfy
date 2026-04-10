@@ -1,4 +1,4 @@
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { ICustomer } from "@/types/customers";
 import { IAddressBook } from "@/types/sales";
 

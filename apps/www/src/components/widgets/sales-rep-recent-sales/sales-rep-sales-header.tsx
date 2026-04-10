@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "@/components/link";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 
 import { Button } from "@gnd/ui/button";
 import { CardDescription, CardHeader, CardTitle } from "@gnd/ui/card";

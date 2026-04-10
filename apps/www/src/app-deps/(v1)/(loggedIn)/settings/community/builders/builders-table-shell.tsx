@@ -24,7 +24,7 @@ import {
     RowActionMoreMenu,
 } from "../../../../../../components/_v1/data-table/data-table-row-actions";
 import { deleteBuilderAction } from "@/app-deps/(v1)/(loggedIn)/settings/community/builders/action";
-import { Icons } from "../../../../../../components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { openModal } from "@/lib/modal";
 import PageHeader from "@/components/_v1/page-header";
 import { useBuilderModal } from "./builder-modal";

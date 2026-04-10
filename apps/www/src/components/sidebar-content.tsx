@@ -9,7 +9,7 @@ import { usePathname } from "next/dist/client/components/navigation";
 import { createSiteNavContext, SiteNav } from "@gnd/site-nav";
 import Link from "next/link";
 import { linkModules } from "./sidebar/links";
-import { Icons } from "./_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 export function SidebarContent({ children }) {
     const auth = useAuth();
     if (!auth.id) return null;

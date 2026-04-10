@@ -1,4 +1,4 @@
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { env } from "@/env.mjs";
 import { ICan } from "@/types/auth";
 import { Session } from "next-auth";

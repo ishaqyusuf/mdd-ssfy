@@ -2,7 +2,7 @@
 
 import RenderForm from "@/_v2/components/common/render-form";
 import { LegacyDykeFormStepType } from "@/app/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { Search } from "@/components/(clean-code)/search";
 import FormCheckbox from "@/components/common/controls/form-checkbox";
 import FormInput from "@/components/common/controls/form-input";

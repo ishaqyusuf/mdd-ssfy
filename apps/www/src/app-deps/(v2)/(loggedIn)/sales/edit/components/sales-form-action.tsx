@@ -5,7 +5,7 @@ import {
     MenuItem,
 } from "@/components/_v1/data-table/data-table-row-actions";
 import { DatePicker } from "@/components/_v1/date-range-picker";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useFormContext, useWatch } from "react-hook-form";
 

@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from "react";
 import Link from "@/components/link";
 import { DataTableFacetedFilter2 } from "@/components/_v1/data-table/data-table-faceted-filter-2";
-import { IconKeys, Icons } from "@/components/_v1/icons";
+import { IconKeys, Icons } from "@gnd/ui/icons";
 import Portal from "@/components/_v1/portal";
 import { timeout } from "@/lib/timeout";
 import useEffectLoader from "@/lib/use-effect-loader";

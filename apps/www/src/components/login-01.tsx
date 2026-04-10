@@ -1,5 +1,5 @@
 import { Env } from "@/components/env";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { LoginForm } from "@/components/login-form";
 import QuickLogin from "@/components/quick-login";
 import { Card, CardDescription, CardHeader, CardTitle } from "@gnd/ui/card";

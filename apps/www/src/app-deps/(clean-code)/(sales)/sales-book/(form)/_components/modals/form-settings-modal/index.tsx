@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { Menu } from "@gnd/ui/custom/menu";
 import FormCheckbox from "@/components/common/controls/form-checkbox";
 import FormSelect from "@/components/common/controls/form-select";

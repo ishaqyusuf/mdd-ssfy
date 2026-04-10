@@ -18,7 +18,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useRef } from "react";
 import { Button } from "@gnd/ui/button";
 import { useSidebar } from "@/hooks/use-sidebar";
-import { Icon } from "./_v1/icons";
+import { Icon } from "@gnd/ui/icons";
 import { Organization } from "./organization";
 
 export function SidebarModules() {

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo } from "react";
 import { saveComponentVariantUseCase } from "@/app/(clean-code)/(sales)/_common/use-case/step-component-use-case";
 import ConfirmBtn from "@/components/_v1/confirm-btn";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { ComboxBox } from "@/components/(clean-code)/custom/controlled/combo-box";
 import FormSelect from "@/components/common/controls/form-select";
 import Modal from "@/components/common/modal";

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@gnd/ui/button";
 
-import { Icons } from "./_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 export function InlineTextEditor({
     children,
     value,

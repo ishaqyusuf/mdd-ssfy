@@ -1,6 +1,6 @@
 "use server";
 
-import { IconKeys } from "@/components/_v1/icons";
+import { IconKeys } from "@gnd/ui/icons";
 import { prisma } from "@/db";
 import { formatMoney } from "@/lib/use-number";
 import { AsyncFnType } from "@/types";

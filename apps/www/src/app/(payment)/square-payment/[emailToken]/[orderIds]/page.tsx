@@ -7,7 +7,7 @@ import {
 	type GetSalesPaymentCheckoutInfo,
 	getSalesPaymentCheckoutInfoAction,
 } from "@/actions/get-sales-payment-checkout-info-action";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import Money from "@/components/_v1/money";
 import { openLink } from "@/lib/open-link";
 import { cn } from "@/lib/utils";

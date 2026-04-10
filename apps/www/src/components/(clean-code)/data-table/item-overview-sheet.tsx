@@ -1,5 +1,5 @@
 import React from "react";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { cn } from "@/lib/utils";
 import { PrimitiveDivProps } from "@/types/type";
 import { cva, VariantProps } from "class-variance-authority";

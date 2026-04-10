@@ -1,6 +1,6 @@
 import { cn } from "@gnd/ui/cn";
 
-import { IconKeys, Icons } from "./_v1/icons";
+import { IconKeys, Icons } from "@gnd/ui/icons";
 
 interface Props {
     children?;

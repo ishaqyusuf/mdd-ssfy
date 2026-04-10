@@ -1,4 +1,4 @@
-import { Icons } from "../_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 
 export default function useCommands() {
     return {

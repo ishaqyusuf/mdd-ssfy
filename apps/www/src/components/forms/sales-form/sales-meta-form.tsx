@@ -3,7 +3,7 @@ import salesData from "@/app-deps/(clean-code)/(sales)/_common/utils/sales-data"
 import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { SettingsClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class";
 import { DatePicker } from "@/components/_v1/date-range-picker";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { Menu } from "@gnd/ui/custom/menu";
 import { AnimatedNumber } from "@/components/animated-number";
 import { FormSelectProps } from "@/components/common/controls/form-select";

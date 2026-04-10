@@ -1,5 +1,5 @@
 import { ResetPasswordForm } from "@/components/_v1/forms/reset-password-form";
-import { Icons } from "@/components/_v1/icons";
+import { Icons } from "@gnd/ui/icons";
 import { Card, CardDescription, CardHeader, CardTitle } from "@gnd/ui/card";
 import type { Metadata } from "next";
 
