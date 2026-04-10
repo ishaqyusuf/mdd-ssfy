@@ -8,7 +8,6 @@ import {
 } from "@api/db/queries/inventory.generate";
 import {
   getInventoryCategoriesSchema,
-  getStoreAddonComponentFormSchema,
   inventoryCategoriesSchema,
   inventoryCategoryFormSchema,
   inventoryFormSchema,
@@ -19,6 +18,7 @@ import {
   updateSubComponentSchema,
   variantFormSchema,
 } from "@gnd/inventory/schema";
+import { getStoreAddonComponentFormSchema } from "@gnd/sales/schema";
 import {
   deleteInventories,
   deleteInventoryCategory,

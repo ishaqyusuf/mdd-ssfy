@@ -114,6 +114,11 @@ export function CommunityTemplateV1Provider({ slug, children }: ProviderProps) {
                             slug,
                         }),
                 });
+                _qc.invalidateQueries({
+                    queryKey: trpc.community.getCommunityTemplateHistory.queryKey({
+                        slug,
+                    }),
+                });
             },
             meta: {
                 toastTitle: {

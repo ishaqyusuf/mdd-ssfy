@@ -230,6 +230,78 @@ export async function getCommunityTemplateForm(ctx: TRPCContext, templateId) {
     id: data.id,
   };
 }
+
+export const getCommunityTemplateHistorySchema = z.object({
+  slug: z.string(),
+});
+export type GetCommunityTemplateHistorySchema = z.infer<
+  typeof getCommunityTemplateHistorySchema
+>;
+
+function countTemplateHistoryConfiguredValues(value: unknown): number {
+  if (value === null || value === undefined) return 0;
+  if (Array.isArray(value)) {
+    return value.reduce(
+      (sum, entry) => sum + countTemplateHistoryConfiguredValues(entry),
+      0,
+    );
+  }
+  if (typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).reduce(
+      (sum, entry) => sum + countTemplateHistoryConfiguredValues(entry),
+      0,
+    );
+  }
+  if (typeof value === "string") return value.trim().length > 0 ? 1 : 0;
+  if (typeof value === "number") return value > 0 ? 1 : 0;
+  if (typeof value === "boolean") return value ? 1 : 0;
+  return 0;
+}
+
+export async function getCommunityTemplateHistory(
+  ctx: TRPCContext,
+  input: GetCommunityTemplateHistorySchema,
+) {
+  const template = await ctx.db.communityModels.findFirstOrThrow({
+    where: {
+      slug: input.slug,
+      deletedAt: null,
+    },
+    select: {
+      history: {
+        where: {
+          deletedAt: null,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        select: {
+          id: true,
+          slug: true,
+          meta: true,
+          createdAt: true,
+          Users: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return template.history.map((entry) => {
+    const design = (entry.meta as any)?.design;
+
+    return {
+      id: entry.id,
+      slug: entry.slug,
+      createdAt: entry.createdAt,
+      author: entry.Users?.name || "Unknown",
+      configsCount: countTemplateHistoryConfiguredValues(design),
+    };
+  });
+}
 export async function saveCommunityTemplateForm(
   ctx: TRPCContext,
   data: CommunityTemplateForm,

@@ -19,6 +19,7 @@ import {
     LockHardwareForm,
     DecoForm,
 } from "./form-sections";
+import { TemplateFormActions } from "./v1-form-header";
 
 export function TemplateFormTabs() {
     const isSmallScreen = useMediaQuery("(max-width: 767px)");
@@ -33,28 +34,35 @@ export function TemplateFormTabs() {
 
     return (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            {isSmallScreen ? (
-                <Select value={activeTab} onValueChange={setActiveTab}>
-                    <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Choose section" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {tabOptions.map((tab) => (
-                            <SelectItem key={tab.value} value={tab.value}>
-                                {tab.label}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            ) : (
-                <TabsList className="h-auto flex-wrap">
-                    {tabOptions.map((tab) => (
-                        <TabsTrigger key={tab.value} value={tab.value}>
-                            {tab.label}
-                        </TabsTrigger>
-                    ))}
-                </TabsList>
-            )}
+            <div className="flex flex-col-reverse gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="min-w-0">
+                    {isSmallScreen ? (
+                        <Select value={activeTab} onValueChange={setActiveTab}>
+                            <SelectTrigger className="w-full md:min-w-[240px]">
+                                <SelectValue placeholder="Choose section" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {tabOptions.map((tab) => (
+                                    <SelectItem key={tab.value} value={tab.value}>
+                                        {tab.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    ) : (
+                        <TabsList className="h-auto flex-wrap">
+                            {tabOptions.map((tab) => (
+                                <TabsTrigger key={tab.value} value={tab.value}>
+                                    {tab.label}
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                    )}
+                </div>
+                <div className="md:ml-4">
+                    <TemplateFormActions />
+                </div>
+            </div>
             <TabsContent value="exterior" className="space-y-4">
                 {activeTab === "exterior" ? <ExteriorFrame /> : null}
             </TabsContent>

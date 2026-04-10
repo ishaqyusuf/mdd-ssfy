@@ -16,9 +16,7 @@ export async function saveCommunityModelLegacy(
   query: SaveCommunityModelLegacySchema
 ) {
   let meta = removeEmptyValues(query.meta);
-  // meta.design
-
-  const u = await db.communityModels.update({
+  await db.communityModels.update({
     where: {
       slug: query.slug,
     },
@@ -28,6 +26,7 @@ export async function saveCommunityModelLegacy(
       history: {
         create: {
           createdAt: new Date(),
+          slug: query.slug,
           meta: {
             design: meta.design,
           } as any,

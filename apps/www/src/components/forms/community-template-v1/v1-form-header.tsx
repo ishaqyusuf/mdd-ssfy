@@ -14,11 +14,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCommunityTemplateV1 } from "./context";
 import { CopyDesignModal } from "./copy-design-modal";
+import { TemplateHistorySheet } from "./history-sheet";
 
 export function V1FormHeader() {
-	const { templateData, isSaving, save } = useCommunityTemplateV1();
+	const { templateData } = useCommunityTemplateV1();
 	const router = useRouter();
-	const [copyOpen, setCopyOpen] = useState(false);
 
 	return (
 		<div className="space-y-2">
@@ -40,8 +40,28 @@ export function V1FormHeader() {
 					<Icons.ChevronLeft className="size-4" />
 				</button>
 			</Portal>
+		</div>
+	);
+}
+
+export function TemplateFormActions() {
+	const { templateData, isSaving, save } = useCommunityTemplateV1();
+	const [copyOpen, setCopyOpen] = useState(false);
+	const [historyOpen, setHistoryOpen] = useState(false);
+
+	return (
+		<>
 			<div className="flex flex-wrap gap-2 justify-end">
-				<div className="flex-1" />
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => {
+						setHistoryOpen(true);
+					}}
+				>
+					<Icons.History className="size-4" />
+					History
+				</Button>
 				<Button
 					variant="outline"
 					size="sm"
@@ -95,6 +115,10 @@ export function V1FormHeader() {
 				</SubmitButton>
 			</div>
 			<CopyDesignModal open={copyOpen} onOpenChange={setCopyOpen} />
-		</div>
+			<TemplateHistorySheet
+				open={historyOpen}
+				onOpenChange={setHistoryOpen}
+			/>
+		</>
 	);
 }

@@ -30,6 +30,8 @@ import {
   getCommunityProjects,
   getCommunityProjectsSchema,
   getCommunityTemplateForm,
+  getCommunityTemplateHistory,
+  getCommunityTemplateHistorySchema,
   getProjectForm,
   getProjectFormSchema,
   getUnitJobs,
@@ -253,6 +255,11 @@ export const communityRouters = createTRPCRouter({
         meta: data.meta as any,
         pivotModelCostId: data.pivot?.modelCosts?.[0]?.id,
       };
+    }),
+  getCommunityTemplateHistory: publicProcedure
+    .input(getCommunityTemplateHistorySchema)
+    .query(async (props) => {
+      return getCommunityTemplateHistory(props.ctx, props.input);
     }),
   buildersList: publicProcedure.query(async (q) => {
     return buildersList(q.ctx);
