@@ -1,1 +1,0 @@
-import QRCodeUtil from "qrcode";

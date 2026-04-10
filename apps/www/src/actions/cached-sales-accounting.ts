@@ -9,7 +9,7 @@ import { PageFilterData } from "@/types/type";
 import { paymentMethods, salesHaving } from "@/utils/constants";
 import { unstable_cache } from "next/cache";
 
-export async function salesAccountingFilterData() {
+async function salesAccountingFilterData() {
     const fn = async () => {
         const [] = await Promise.all([]);
         const response: PageFilterData[] = [

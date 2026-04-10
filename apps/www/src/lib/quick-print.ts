@@ -47,11 +47,11 @@ export function printOrder(options: SalesPrintHelperOptions) {
     return quickPrint({ ...options, mode: "invoice" });
 }
 
-export function printOrderWithPacking(options: SalesPrintHelperOptions) {
+function printOrderWithPacking(options: SalesPrintHelperOptions) {
     return quickPrint({ ...options, mode: "order-packing" });
 }
 
-export function printPackingSlip(options: SalesPrintHelperOptions) {
+function printPackingSlip(options: SalesPrintHelperOptions) {
     return quickPrint({ ...options, mode: "packing-slip" });
 }
 
@@ -63,7 +63,7 @@ export function printQuote(options: SalesPrintHelperOptions) {
     return quickPrint({ ...options, mode: "quote" });
 }
 
-export const salesPrintHelper = {
+const salesPrintHelper = {
     printOrder,
     printOrderWithPacking,
     printPackingSlip,

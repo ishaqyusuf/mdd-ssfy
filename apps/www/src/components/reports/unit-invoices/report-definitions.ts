@@ -18,8 +18,8 @@ export const unitInvoiceReportDefinitions = [
   },
 ] as const;
 
-export type UnitInvoiceReportId = (typeof unitInvoiceReportDefinitions)[number]["id"];
+type UnitInvoiceReportId = (typeof unitInvoiceReportDefinitions)[number]["id"];
 
-export function getUnitInvoiceReportDefinition(reportId?: string | null) {
+function getUnitInvoiceReportDefinition(reportId?: string | null) {
   return unitInvoiceReportDefinitions.find((item) => item.id === reportId);
 }

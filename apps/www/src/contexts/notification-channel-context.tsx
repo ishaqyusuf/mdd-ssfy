@@ -7,7 +7,7 @@ import { createContext, useContext } from "react";
 type NotificationChannelContextProps = ReturnType<
     typeof useCreateNotificationChannelContext
 >;
-export const NotificationChannelContext =
+const NotificationChannelContext =
     createContext<NotificationChannelContextProps>(undefined as any);
 export const NotificationChannelProvider = NotificationChannelContext.Provider;
 export const useCreateNotificationChannelContext = () => {

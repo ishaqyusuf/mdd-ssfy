@@ -10,7 +10,7 @@ export type Routes = {
           }[keyof TRPCClient[NS]]
         : never;
 }[keyof TRPCClient];
-export type SplitRoute<R extends Routes> = R extends `${infer NS}.${infer P}`
+type SplitRoute<R extends Routes> = R extends `${infer NS}.${infer P}`
     ? [NS & keyof RouterInputs, P & keyof RouterInputs[NS & keyof RouterInputs]]
     : never;
 

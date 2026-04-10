@@ -80,7 +80,7 @@ export async function saveInboundNote(
   });
 }
 
-export async function getSenderId(ctx: TRPCContext) {
+async function getSenderId(ctx: TRPCContext) {
   const user = await getAuthUser(ctx);
   if (!user) throw new Error("Unauthorized!");
   const senderContactId = (await getSubscriberAccount(ctx.db, user.id))?.id!;

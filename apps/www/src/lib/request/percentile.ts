@@ -1,6 +1,6 @@
 export type Percentile = 50 | 75 | 90 | 95 | 99;
 
-export function calculateSpecificPercentile(
+function calculateSpecificPercentile(
   values: number[],
   percentile: Percentile
 ) {
@@ -27,7 +27,7 @@ export function calculateSpecificPercentile(
   }
 }
 
-export function calculatePercentile(values: number[], value: number) {
+function calculatePercentile(values: number[], value: number) {
   // Step 1: Sort the values in ascending order
   const sortedValues = values.slice().sort((a, b) => a - b);
   const n = sortedValues.length;
@@ -41,7 +41,7 @@ export function calculatePercentile(values: number[], value: number) {
   return percentile;
 }
 
-export function getPercentileColor(value: number) {
+function getPercentileColor(value: number) {
   if (value < 50) {
     return {
       text: "text-green-500",

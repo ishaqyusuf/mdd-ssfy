@@ -12,7 +12,7 @@ export const createRoleSchema = z.object({
         })
     ),
 });
-export const createEmployeeProfileSchema = z.object({
+const createEmployeeProfileSchema = z.object({
     title: z.string().min(1),
     id: z.number().optional(),
     discount: z.number().optional(),

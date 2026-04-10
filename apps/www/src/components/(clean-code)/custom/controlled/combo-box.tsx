@@ -18,7 +18,7 @@ import { FacetedFilterItem } from "@gnd/ui/faceted-filter";
 import { FormControl, FormField, FormItem, FormLabel } from "@gnd/ui/form";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 
-export const comboBoxVariants = cva("", {
+const comboBoxVariants = cva("", {
     variants: {
         container: {},
     },

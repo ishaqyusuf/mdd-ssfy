@@ -9,9 +9,7 @@
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "zod": "catalog:"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^24.10.1",
     "typescript": "catalog:",

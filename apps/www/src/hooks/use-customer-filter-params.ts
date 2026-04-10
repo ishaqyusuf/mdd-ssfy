@@ -23,7 +23,7 @@ export function useCustomerFilterParams() {
         hasFilters: Object.values(filter).some((value) => value !== null),
     };
 }
-export function useInboundView() {
+function useInboundView() {
     const [params, setParams] = useQueryStates({
         viewInboundId: parseAsInteger,
         payload: parseAsJson<Item>(null as any),
@@ -33,6 +33,6 @@ export function useInboundView() {
         setParams,
     };
 }
-export const loadCustomerFilterParams = createLoader(
+const loadCustomerFilterParams = createLoader(
     customerFilterParamsSchema,
 );

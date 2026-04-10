@@ -22,7 +22,7 @@ export async function getSignature(folder) {
 
     return { timestamp, signature };
 }
-export async function saveToDatabase({ public_id, version, signature }) {
+async function saveToDatabase({ public_id, version, signature }) {
     // verify the data
     const expectedSignature = cloudinary.utils.api_sign_request(
         { public_id, version },

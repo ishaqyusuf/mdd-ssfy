@@ -7,7 +7,7 @@ import { THEME } from "@/lib/theme";
 import { View } from "react-native";
 import type { ComponentType } from "react";
 
-export type LucideProps = Omit<HugeiconsProps, "icon" | "altIcon" | "showAlt">;
+type LucideProps = Omit<HugeiconsProps, "icon" | "altIcon" | "showAlt">;
 export type IconProps = LucideProps & {
   name?: IconKeys;
 };

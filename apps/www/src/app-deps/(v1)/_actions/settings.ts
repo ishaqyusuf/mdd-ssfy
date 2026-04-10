@@ -28,10 +28,10 @@ export async function getSettingAction<T>(type: SettingType) {
     }
     return setting as T;
 }
-export async function getInstallCostSettingAction() {
+async function getInstallCostSettingAction() {
     return await getSettingAction<InstallCostSettings>("install-price-chart");
 }
-export async function getSalesSettingAction() {
+async function getSalesSettingAction() {
     return await getSettingAction<ISalesSetting>("sales-settings");
 }
 export async function getAppDownloadSettingAction() {
@@ -49,7 +49,7 @@ export async function saveSettingAction(id, data): Promise<any> {
     return setting;
 }
 
-export async function updateSettingsMeta(meta, id?) {
+async function updateSettingsMeta(meta, id?) {
     const settings = await getSettingAction<any>("sales-settings");
     if (!settings?.id) throw Error("Setting not found");
     else id = settings.id;

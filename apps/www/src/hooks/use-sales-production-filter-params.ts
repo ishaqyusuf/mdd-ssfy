@@ -22,6 +22,6 @@ export function useSalesProductionFilterParams() {
 		hasFilters: Object.values(filters).some((value) => value !== null),
 	};
 }
-export const loadSalesProductionFilterParams = createLoader(
+const loadSalesProductionFilterParams = createLoader(
 	salesProductionFilterParamsSchema,
 );

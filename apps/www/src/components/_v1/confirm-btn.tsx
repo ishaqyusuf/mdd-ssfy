@@ -10,7 +10,7 @@ import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 type ButtonProps = React.ComponentProps<typeof Button>;
 
-export interface ConfirmBtnProps extends ButtonProps {
+interface ConfirmBtnProps extends ButtonProps {
     Icon?;
     trash?: boolean;
     variant?: ButtonProps["variant"];

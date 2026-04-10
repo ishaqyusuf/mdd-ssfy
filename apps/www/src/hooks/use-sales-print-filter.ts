@@ -1,7 +1,7 @@
 import { useQueryStates } from "nuqs";
 import { createLoader, parseAsBoolean, parseAsString } from "nuqs/server";
 
-export const salesPrintFilterSchema = {
+const salesPrintFilterSchema = {
     token: parseAsString,
     preview: parseAsBoolean,
 };

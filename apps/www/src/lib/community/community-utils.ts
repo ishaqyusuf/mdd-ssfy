@@ -56,7 +56,7 @@ export function homeSearchMeta(
     if (lot && block) search.push(`${lot}/${block}`);
     return search.join(" ");
 }
-export function hasConflictingDateRanges(dateRanges) {
+function hasConflictingDateRanges(dateRanges) {
     dateRanges.sort((a, b) => a.startDate - b.startDate); // Sort date ranges by start date
 
     for (let i = 0; i < dateRanges.length - 1; i++) {

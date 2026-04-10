@@ -14,8 +14,8 @@ import {
     queryFilter,
 } from "@/app-deps/(v1)/_actions/action-utils";
 
-export interface BuildersQueryParams extends BaseQuery {}
-export async function getBuildersAction(query: BuildersQueryParams) {
+interface BuildersQueryParams extends BaseQuery {}
+async function getBuildersAction(query: BuildersQueryParams) {
     const where = whereBuilder(query);
     const _items = await prisma.builders.findMany({
         where,
@@ -48,7 +48,7 @@ function whereBuilder(query: BuildersQueryParams) {
 
     return where;
 }
-export async function staticBuildersAction() {
+async function staticBuildersAction() {
     return await _cache(
         "builders",
         async () => {
@@ -63,7 +63,7 @@ export async function staticBuildersAction() {
         "builders"
     );
 }
-export async function deleteBuilderAction(id) {}
+async function deleteBuilderAction(id) {}
 export async function saveBuilder(data: IBuilder) {
     if (
         (await prisma.builders.count({
@@ -79,7 +79,7 @@ export async function saveBuilder(data: IBuilder) {
         },
     });
 }
-export async function saveBuilderTasks(data: IBuilder, deleteIds, newTaskIds) {
+async function saveBuilderTasks(data: IBuilder, deleteIds, newTaskIds) {
     await prisma.builders.update({
         where: {
             id: data.id,
@@ -201,6 +201,6 @@ export async function saveBuilderTasks(data: IBuilder, deleteIds, newTaskIds) {
     });
     revalidatePath("/settings/community/builders", "page");
 }
-export async function deleteBuilderTasks({ builderId, taskIds }) {}
-export async function addBuilderTasks({ builderId, tasksIds, tasks }) {}
+async function deleteBuilderTasks({ builderId, taskIds }) {}
+async function addBuilderTasks({ builderId, tasksIds, tasks }) {}
 export async function saveBuilderInstallations(data: IBuilder) {}

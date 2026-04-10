@@ -427,7 +427,7 @@ export function zhHarvestDoorSizes(data: SalesFormZusData, itemUid) {
         height: stepCls.getStepForm()?.value,
     };
 }
-export function zhItemUidFromStepUid(stepUid) {
+function zhItemUidFromStepUid(stepUid) {
     const [uid] = stepUid?.split("-");
     return uid;
 }

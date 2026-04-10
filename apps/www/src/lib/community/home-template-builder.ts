@@ -387,7 +387,7 @@ function buildTask(task, type) {
     //   });
     return task;
 }
-export const taskSections = {
+const taskSections = {
     entry: "Exterior Door",
     // project: "Project Detail",
     garage_door: "Interior Trim",
@@ -419,4 +419,4 @@ const exp = {
         ];
     },
 };
-export default exp;
+

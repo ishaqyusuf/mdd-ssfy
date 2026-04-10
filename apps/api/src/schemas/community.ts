@@ -51,7 +51,7 @@ export type SaveCommunityModelCost = z.infer<
   typeof saveCommunityModelCostSchema
 >;
 
-export const communityTemplateQueryParamsSchema = z
+const communityTemplateQueryParamsSchema = z
   .object({
     // example: z.string(),
     _q: z.string().optional().nullable(),

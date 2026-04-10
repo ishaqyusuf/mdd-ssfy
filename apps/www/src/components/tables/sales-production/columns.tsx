@@ -13,7 +13,7 @@ import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 
-export type Item = RouterOutputs["sales"]["productions"]["data"][number];
+type Item = RouterOutputs["sales"]["productions"]["data"][number];
 interface ItemProps {
 	item: Item;
 }

@@ -35,7 +35,7 @@ export function CheckoutPage() {
     </CartProvider>
   );
 }
-export function Content() {
+function Content() {
   const router = useRouter();
   const cart = useCart();
   const auth = useAuth();

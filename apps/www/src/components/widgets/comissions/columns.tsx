@@ -6,7 +6,7 @@ import { ActionCell } from "@/components/tables/action-cell";
 import { PageItemData } from "@/types/type";
 import { ColumnDef } from "@tanstack/react-table";
 
-export type Item = PageItemData<typeof getCommissionsList>;
+type Item = PageItemData<typeof getCommissionsList>;
 
 export const columns: ColumnDef<Item>[] = [
     {

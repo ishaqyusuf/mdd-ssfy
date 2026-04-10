@@ -13,7 +13,7 @@ import {
     IOrderInventoryUpdate,
     ISaveOrderResponse,
 } from "@/types/sales";
-export interface OrderItemFormState {
+interface OrderItemFormState {
     open;
     rowIndex;
     item;
@@ -102,12 +102,12 @@ const orderItemComponentSlice = createSlice({
 });
 export default orderItemComponentSlice.reducer;
 export const {
-    open: openItemComponent,
-    close: closeItemComponent,
-    updateFooterInfo,
-    resetFooterInfo,
-    itemQuoteUpdated,
-    closeCostUpdater,
-    toggleMockup,
+    
+    
+    
+    
+    
+    
+    
 } = orderItemComponentSlice.actions;
 

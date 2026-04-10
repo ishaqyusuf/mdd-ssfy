@@ -33,4 +33,4 @@ export function useInboundView() {
         setParams,
     };
 }
-export const loadInboundFilterParams = createLoader(inboundFilterParamsSchema);
+const loadInboundFilterParams = createLoader(inboundFilterParamsSchema);

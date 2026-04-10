@@ -12,7 +12,7 @@ import {
 import { getCustomerWallet } from "../../../_actions/customer-wallet/wallet";
 import { getSettingAction } from "../../../_actions/settings";
 
-export interface PaymentOrderProps {
+interface PaymentOrderProps {
     id;
     amountDue;
     amountPaid;
@@ -23,13 +23,13 @@ export interface PaymentOrderProps {
     checkNo;
     salesRepId;
 }
-export interface ApplyPaymentProps {
+interface ApplyPaymentProps {
     orders: PaymentOrderProps[];
     credit;
     debit;
     balance?;
 }
-export async function applyPaymentAction({
+async function applyPaymentAction({
     orders,
     credit,
     debit,
@@ -105,7 +105,7 @@ export async function applyPaymentAction({
     );
     return true;
 }
-export async function deleteSalesPayment({
+async function deleteSalesPayment({
     id,
     amount,
     orderId,
@@ -136,7 +136,7 @@ export async function deleteSalesPayment({
             : `Sales Payment deleted with no refund (${sales.orderId}). $${amount}`,
     );
 }
-export async function fixPaymentAction({
+async function fixPaymentAction({
     amountDue,
     id,
 }: {
@@ -170,7 +170,7 @@ export async function fixSalesPaymentAction(id) {
         amountDue: +toFixed(amountDue),
     });
 }
-export async function updatePaymentTerm(id, paymentTerm, goodUntil) {
+async function updatePaymentTerm(id, paymentTerm, goodUntil) {
     await prisma.salesOrders.update({
         where: { id },
         data: {

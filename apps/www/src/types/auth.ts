@@ -5,8 +5,8 @@ import type {
 
 export type ICan = { [permission in PermissionScope]: boolean };
 
-export type PascalResource = (typeof PERMISSION_NAMES_PASCAL)[number];
-export type Resource = (typeof PERMISSION_NAMES)[number];
+type PascalResource = (typeof PERMISSION_NAMES_PASCAL)[number];
+type Resource = (typeof PERMISSION_NAMES)[number];
 type Action = "edit" | "view" | "review";
 // type PermissionScopeDot = `${Action}.${Resource}`;
 export type PermissionScope = `${Action}${PascalResource}`;

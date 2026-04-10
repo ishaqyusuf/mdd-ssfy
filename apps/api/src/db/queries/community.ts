@@ -308,7 +308,7 @@ export async function createCommnunityModelCost(
 export const communityModelCostHistorySchema = z.object({
   id: z.number(),
 });
-export type CommunityModelCostHistory = z.infer<
+type CommunityModelCostHistory = z.infer<
   typeof communityModelCostHistorySchema
 >;
 
@@ -445,7 +445,7 @@ export async function updateInstallCost(
       data: { meta: meta.pivot as CommunityPivotMeta },
     });
 }
-export async function getInstallPriceConfiguration(ctx: TRPCContext) {
+async function getInstallPriceConfiguration(ctx: TRPCContext) {
   const s = await ctx.db.settings.findFirst({
     where: {
       type: "install-price-chart",
@@ -578,7 +578,7 @@ export async function deleteCommunityModelCost(
     },
   });
 }
-export async function _createMissingPivots(prisma: Db) {
+async function _createMissingPivots(prisma: Db) {
   await Promise.all(
     (
       await prisma.communityModels.findMany({
@@ -616,7 +616,7 @@ export async function _createMissingPivots(prisma: Db) {
     }),
   );
 }
-export async function _addMissingPivotToModelCosts(prisma: Db) {
+async function _addMissingPivotToModelCosts(prisma: Db) {
   const p = await prisma.communityModelCost.findMany({
     where: {
       pivotId: null,

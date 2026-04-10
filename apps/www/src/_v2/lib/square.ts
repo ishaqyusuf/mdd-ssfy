@@ -5,19 +5,12 @@ import { env } from "@/env.mjs";
 import { __isProd } from "@/lib/is-prod-server";
 import {
     squareClient,
-    getSquareDevices as _getSquareDevices,
 } from "@gnd/square";
-// import { OrderLineItem, PrePopulatedData } from "square/";
 
-// export { getSquareDevices } from "@gnd/square";
-// export const  getSquareDevices = _getSquareDevices
-export async function getSquareDevices() {
-    return _getSquareDevices();
-}
 export interface SquarePaymentMeta {
     squareOrderId;
 }
-export interface BaseSalesPaymentProps {
+interface BaseSalesPaymentProps {
     customerName: string;
     amount?: number;
     dueAmount: number;
@@ -43,12 +36,12 @@ export interface BaseSalesPaymentProps {
         | "failed"
         | "cancelled";
 }
-export interface CreateSalesPaymentLinkProps extends BaseSalesPaymentProps {
+interface CreateSalesPaymentLinkProps extends BaseSalesPaymentProps {
     type: "link";
     deviceId?: never; // deviceId should not exist for type 'link'
 }
 
-export interface CreateSalesPaymentTerminalProps extends BaseSalesPaymentProps {
+interface CreateSalesPaymentTerminalProps extends BaseSalesPaymentProps {
     type: "terminal";
     deviceId: string; // deviceId is required for type 'terminal'
 }
@@ -58,7 +51,7 @@ export type SquarePaymentStatus =
     | "COMPLETED"
     | "CANCELED"
     | "FAILED";
-export type CreateSalesPaymentProps =
+type CreateSalesPaymentProps =
     | CreateSalesPaymentLinkProps
     | CreateSalesPaymentTerminalProps;
 
@@ -140,7 +133,7 @@ export async function validateSquarePayment(id) {
     if (resp.amount > 0) await paymentSuccess({ ...checkout, tip: resp.tip });
     return resp;
 }
-export async function paymentSuccess(p: {
+async function paymentSuccess(p: {
     amount;
     orderId;
     tip;
@@ -178,18 +171,6 @@ export async function paymentSuccess(p: {
         },
     });
 }
-export async function squarePaymentSuccessful(id) {
-    const p = await prisma.salesCheckout.findUnique({
-        where: {
-            id,
-        },
-        include: {
-            order: true,
-        },
-    });
-    if (p.status == "success") return;
-    await paymentSuccess(p);
-}
 export async function __cancelTerminalPayment(checkoutId) {
     // const p = await prisma.salesCheckout.findUnique({
     //     where: {
@@ -202,25 +183,5 @@ export async function __cancelTerminalPayment(checkoutId) {
     // await squareClient.terminalApi.cancelTerminalCheckout(checkoutId);
     await squareClient.terminal.dismissTerminalCheckout({
         checkoutId,
-    });
-}
-export async function cancelTerminalPayment(id) {
-    const p = await prisma.salesCheckout.findUnique({
-        where: {
-            id,
-        },
-        include: {
-            order: true,
-        },
-    });
-    // await squareClient.terminalApi.cancelTerminalCheckout(p.paymentId);
-    await squareClient.terminal.dismissTerminalCheckout({
-        checkoutId: p.paymentId,
-    });
-    await prisma.salesCheckout.update({
-        where: { id },
-        data: {
-            status: "cancelled",
-        },
     });
 }

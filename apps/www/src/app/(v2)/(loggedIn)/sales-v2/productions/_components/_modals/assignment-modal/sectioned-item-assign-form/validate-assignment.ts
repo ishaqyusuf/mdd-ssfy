@@ -34,7 +34,7 @@ export function useValidateAssignment(form?: UseFormReturn<IAssignGroupForm>) {
         },
     };
 }
-export function composeAssignments(form: IAssignGroupForm) {
+function composeAssignments(form: IAssignGroupForm) {
     const doors = form.doors;
     let schema: any = null;
     const assignments: Partial<OrderItemProductionAssignments>[] = [];

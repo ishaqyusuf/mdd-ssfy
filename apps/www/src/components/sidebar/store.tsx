@@ -17,7 +17,7 @@ const data = {
 type Action = ReturnType<typeof funcs>;
 type Data = typeof data;
 type Store = Data & Action;
-export type ZusFormSet = (update: (state: Data) => Partial<Data>) => void;
+type ZusFormSet = (update: (state: Data) => Partial<Data>) => void;
 
 function funcs(set: ZusFormSet) {
     return {

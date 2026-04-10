@@ -8,7 +8,7 @@ import { NavLink } from "./nav-link";
 import { NavChildItem } from "./nav-child-item";
 import { useSiteNav } from "./use-site-nav";
 
-export interface NavItemProps {
+interface NavItemProps {
   module: NavModule;
   item: NavLinkType;
   isActive: boolean;

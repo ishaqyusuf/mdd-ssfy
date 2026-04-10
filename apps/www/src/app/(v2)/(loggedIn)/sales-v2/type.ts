@@ -10,7 +10,7 @@ import { getDykeFormAction } from "./form/_action/get-dyke-form";
 import { getStepForm } from "./form/_action/get-dyke-step";
 import { getStepProduct } from "./form/_action/get-dyke-step-product";
 
-export interface IDykeSalesItem {
+interface IDykeSalesItem {
     meta: {
         shelfItem: {
             categoryIds: number[];
@@ -30,7 +30,7 @@ export type DykeDoorType =
     | "Moulding"
     | "Door Slabs Only"
     | "Services";
-export type DykeStep = Awaited<ReturnType<typeof getStepForm>>;
+type DykeStep = Awaited<ReturnType<typeof getStepForm>>;
 type DykeStepProducts = Awaited<ReturnType<typeof getStepProduct>>;
 // type IDykeStepForm = {
 //     data: DykeStepForm;
@@ -38,12 +38,12 @@ type DykeStepProducts = Awaited<ReturnType<typeof getStepProduct>>;
 // };
 export interface DykeForm
     extends Awaited<ReturnType<typeof getDykeFormAction>> {}
-export type FormStepArray = DykeForm["itemArray"][0]["item"]["formStepArray"];
-export type DykeFormItem = DykeForm["itemArray"][0];
-export type DykeDoorForm =
+type FormStepArray = DykeForm["itemArray"][0]["item"]["formStepArray"];
+type DykeFormItem = DykeForm["itemArray"][0];
+type DykeDoorForm =
     DykeFormItem["multiComponent"]["components"][number]["_doorForm"];
-export type DykeDoorSizeForm = DykeDoorForm[number];
-export type SaveMode = "close" | "new" | "default";
+type DykeDoorSizeForm = DykeDoorForm[number];
+type SaveMode = "close" | "new" | "default";
 // export interface DykeForm {
 //     items: { [index in string]: DykeItemForm };
 //     currentItemIndex: string | null;
@@ -55,7 +55,7 @@ export type SaveMode = "close" | "new" | "default";
 //         };
 //     };
 // }
-export interface DykeItemForm {
+interface DykeItemForm {
     meta: {
         configIndex;
         config: { [label in string]: string };
@@ -63,7 +63,7 @@ export interface DykeItemForm {
     };
     shelfItems: CategorizedShelfItem[];
 }
-export interface CategorizedShelfItem {
+interface CategorizedShelfItem {
     categoryId: number | undefined;
     categoryIds: number[];
     productArray: { item: DykeShelfItemForm }[];
@@ -71,10 +71,10 @@ export interface CategorizedShelfItem {
 export interface ShelfItemMeta {
     categoryIds: number[];
 }
-export type IDykeShelfProducts = Omit<DykeShelfProducts, "meta"> & {
+type IDykeShelfProducts = Omit<DykeShelfProducts, "meta"> & {
     meta: ShelfItemMeta;
 };
-export type IDykeShelfProductsForm = IDykeShelfProducts & {
+type IDykeShelfProductsForm = IDykeShelfProducts & {
     _meta: {
         categories: { id: number }[];
         parentCategoryId;
@@ -108,7 +108,7 @@ export interface StepProdctMeta {
     deleted?: { [uid in string]: boolean };
     show?: { [uid in string]: boolean };
 }
-export type ItemStepSequence = {
+type ItemStepSequence = {
     [id in number]: {
         stepIndex?;
         sequence: StepProdctMeta["stepSequence"];
@@ -122,7 +122,7 @@ export interface DykeProductMeta {
     mouldingSpecies: { [id in string]: boolean };
     doorPrice?: { [size in string]: number };
 }
-export interface DykeShelfItemForm extends Omit<DykeSalesShelfItem, "meta"> {
+interface DykeShelfItemForm extends Omit<DykeSalesShelfItem, "meta"> {
     meta: {
         categoryIds: number[];
     };
@@ -177,7 +177,7 @@ export interface DykeSalesDoorMeta {
     _doorPrice: number | null;
 }
 
-export interface DykeBlock {
+interface DykeBlock {
     title;
     options: { title; img }[];
 }

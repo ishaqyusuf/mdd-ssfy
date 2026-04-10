@@ -42,7 +42,7 @@ export async function _getCommunityJobTasks(query: CommunityTaskQuery) {
         data: _items as any,
     };
 }
-export async function _linkTaskToJob(taskId, jobId) {
+async function _linkTaskToJob(taskId, jobId) {
     await prisma.homeTasks.update({
         where: {
             id: taskId,

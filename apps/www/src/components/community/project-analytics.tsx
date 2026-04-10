@@ -195,7 +195,7 @@ export function CommunityProjectsAnalyticsCards() {
   );
 }
 
-export function CommunityProjectsDashboardTab() {
+function CommunityProjectsDashboardTab() {
   const { data } = useProjectsOverviewData();
 
   return (

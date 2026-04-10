@@ -5,7 +5,7 @@ import { createContext, useContext } from "react";
 import { JobsContext, JobsProps, useCreateJobsContext } from "./jobs-context";
 
 type HomeContextProps = ReturnType<typeof useCreateHomeContext>;
-export const HomeContext = createContext<HomeContextProps>(undefined as any);
+const HomeContext = createContext<HomeContextProps>(undefined as any);
 export const HomeProvider = ({
   value,
   children,

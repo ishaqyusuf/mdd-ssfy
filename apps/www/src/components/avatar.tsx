@@ -77,7 +77,7 @@ export function Avatar({
 	);
 }
 
-export function AvatarGroup({
+function AvatarGroup({
 	users,
 }: {
 	users: { name?: string | null; url?: string | null }[];

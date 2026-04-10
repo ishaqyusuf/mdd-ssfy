@@ -16,7 +16,7 @@ export async function dealerSession() {
     const dealerMode = auth.role?.name == "Dealer";
     return dealerMode;
 }
-export async function getSessionPermissions() {
+async function getSessionPermissions() {
     const session = await serverSession();
     return session.can;
 }
@@ -37,7 +37,7 @@ export async function _dbUser() {
         where: { id: await userId() },
     })) as any as IUser;
 }
-export async function streamlineMeta(meta: any = null) {
+async function streamlineMeta(meta: any = null) {
     if (meta == null) return {};
 
     function _streamline(value) {

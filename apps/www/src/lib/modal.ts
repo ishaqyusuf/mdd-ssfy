@@ -17,7 +17,7 @@ export function closeModal(name?: ModalName | string) {
         data: null,
     });
 }
-export function openEmailComposer(
+function openEmailComposer(
     data,
     extras: { type: EmailTypes; parentId?: number }
 ) {

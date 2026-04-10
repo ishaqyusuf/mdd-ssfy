@@ -46,7 +46,7 @@ export function itemControlUidObject(str) {
     }
     return obj;
 }
-export function shelfItemControlUid(shelfId) {
+function shelfItemControlUid(shelfId) {
     return itemControlUid({
         type: "shelf",
         shelfId,

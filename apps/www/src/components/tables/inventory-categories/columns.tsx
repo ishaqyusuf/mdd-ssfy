@@ -7,7 +7,7 @@ import { ActionCell } from "../action-cell";
 import { IconButton } from "@/components/icon-button";
 import { useInventoryCategoryParams } from "@/hooks/use-inventory-category-params";
 
-export type Item =
+type Item =
     RouterOutputs["inventories"]["inventoryCategories"]["data"][number];
 interface ItemProps {
     item: Item;

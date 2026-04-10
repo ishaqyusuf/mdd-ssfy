@@ -16,7 +16,7 @@ import { _revalidate } from "../_revalidate";
 import { fixDbTime } from "../action-utils";
 import { linkUnitsToCommunityByPivotId } from "@community/db-utils";
 
-export async function _importModelCostData(
+async function _importModelCostData(
     id,
     modelName,
     builderId,
@@ -145,10 +145,10 @@ export async function _saveCommunitModelCostData(
     _revalidate("communityTemplates");
     return _c;
 }
-export async function _attachedUnitsToCommunity(pivotId) {
+async function _attachedUnitsToCommunity(pivotId) {
     return linkUnitsToCommunityByPivotId(pivotId, prisma);
 }
-export async function _findOrGeneratePivotForCommunity(id) {
+async function _findOrGeneratePivotForCommunity(id) {
     const c = await prisma.communityModels.findUnique({ where: { id } });
     if (!c) return null;
     if (c?.pivotId) return c.pivotId;
@@ -175,7 +175,7 @@ export async function _findOrGeneratePivotForCommunity(id) {
     }
     return null;
 }
-export async function _synchronizeModelCost(_c, pivotId) {
+async function _synchronizeModelCost(_c, pivotId) {
     await Promise.all(
         Object.entries(_c.meta.sumCosts).map(async ([k, v]) => {
             const { startDate: from, endDate: to } = _c;

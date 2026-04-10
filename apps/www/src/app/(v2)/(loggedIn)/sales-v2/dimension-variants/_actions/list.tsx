@@ -24,7 +24,7 @@ import { HousePackageToolSettings } from "../type";
 import { saveHousePackageTool } from "./save-house-package-tool";
 import { useTransition } from "@/utils/use-safe-transistion";
 
-export type ResetPasswordFormInputs = z.infer<typeof resetPasswordSchema>;
+type ResetPasswordFormInputs = z.infer<typeof resetPasswordSchema>;
 
 export function DimensionList({ data }: { data: HousePackageToolSettings }) {
     const router = useRouter();

@@ -8,7 +8,7 @@ export type JobAlertType =
 
 type AlertTone = "success" | "info" | "danger";
 
-export type JobAlertConfig = {
+type JobAlertConfig = {
   title: string;
   subtitle: string;
   description: string;

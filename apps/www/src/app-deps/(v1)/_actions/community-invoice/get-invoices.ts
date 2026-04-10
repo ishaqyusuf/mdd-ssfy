@@ -6,7 +6,7 @@ import { BaseQuery } from "@/types/action";
 import { getPageInfo, queryFilter } from "../action-utils";
 import { HomeQueryParams, whereHome } from "../community/home";
 
-export interface InvoiceQueryParams extends BaseQuery {}
+interface InvoiceQueryParams extends BaseQuery {}
 export async function getHomeInvoices(query: HomeQueryParams) {
     if (query._production == "sort") {
         query.sort = "sentToProdAt";

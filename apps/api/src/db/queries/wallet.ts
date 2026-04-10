@@ -14,7 +14,7 @@ import type { CustomerTransactionType } from "@sales/types";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { getAuthUser } from "./user";
 import z from "zod";
-export { resolvePaymentSchema, type ResolvePayment };
+export { resolvePaymentSchema,  };
 
 export async function resolvePayment(ctx: TRPCContext, data: ResolvePayment) {
   const { db } = ctx;
@@ -120,13 +120,13 @@ export async function resolvePayment(ctx: TRPCContext, data: ResolvePayment) {
   });
 }
 
-export const createResolutionSchema = z.object({
+const createResolutionSchema = z.object({
   salesId: z.number(),
   action: z.string(),
   reason: z.string(),
 });
-export type CreateResolution = z.infer<typeof createResolutionSchema>;
-export async function createResolution(
+type CreateResolution = z.infer<typeof createResolutionSchema>;
+async function createResolution(
   ctx: TRPCContext,
   data: CreateResolution,
 ) {
@@ -139,11 +139,11 @@ export async function createResolution(
     reason: data.reason,
   });
 }
-export const getCustomerWalletSchema = z.object({
+const getCustomerWalletSchema = z.object({
   accountNo: z.string(),
 });
-export type GetCustomerWallet = z.infer<typeof getCustomerWalletSchema>;
-export async function getCustomerWallet(
+type GetCustomerWallet = z.infer<typeof getCustomerWalletSchema>;
+async function getCustomerWallet(
   ctx: TRPCContext,
   data: GetCustomerWallet,
 ) {
@@ -182,14 +182,14 @@ export async function getCustomerWallet(
   };
 }
 
-export const payWithWalletSchema = z.object({
+const payWithWalletSchema = z.object({
   salesIds: z.array(z.number()),
   walletId: z.number(),
   accountNo: z.string(),
 });
-export type PayWithWallet = z.infer<typeof payWithWalletSchema>;
+type PayWithWallet = z.infer<typeof payWithWalletSchema>;
 
-export async function payWithWallet(ctx: TRPCContext, data: PayWithWallet) {
+async function payWithWallet(ctx: TRPCContext, data: PayWithWallet) {
   const { db } = ctx;
   const wallet = await getCustomerWallet(ctx, {
     accountNo: data.accountNo,

@@ -13,7 +13,7 @@ import { cells } from "@gnd/ui/custom/data-table/cells";
 import { HoverCard } from "@gnd/ui/namespace";
 import type { ColumnDef } from "@tanstack/react-table";
 
-export type Item = RouterOutputs["sales"]["getOrdersV2"]["data"][number];
+type Item = RouterOutputs["sales"]["getOrdersV2"]["data"][number];
 
 type Column = ColumnDef<Item>;
 

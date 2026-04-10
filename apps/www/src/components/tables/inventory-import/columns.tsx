@@ -15,7 +15,7 @@ import { toast } from "@gnd/ui/use-toast";
 import { colorsObject, hexToRgba } from "@gnd/utils/colors";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 
-export type Item =
+type Item =
     RouterOutputs["inventories"]["inventoryImports"]["data"][number];
 interface ItemProps {
     item: Item;

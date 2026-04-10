@@ -13,7 +13,7 @@ import SalesPrintFooter from "./components/sales-print-footer";
 import { env } from "@/env.mjs";
 import { formatDate } from "@gnd/utils/dayjs";
 
-export type SalesPrintData = NonNullable<
+type SalesPrintData = NonNullable<
     Awaited<ReturnType<typeof getSalesPrintData>>
 >;
 interface Props {
@@ -31,7 +31,7 @@ export const SalesBlockCtx = React.createContext<SalesBlockCtxProps>(
 export const useSalesBlockCtx = () =>
     React.useContext<SalesBlockCtxProps>(SalesBlockCtx);
 
-export default function SalesPrintBlock({ action, slug, className }: Props) {
+function SalesPrintBlock({ action, slug, className }: Props) {
     const data = React.use(action);
     const ctx = usePrintContext();
     const basePrint = useSalesPrintCtx();

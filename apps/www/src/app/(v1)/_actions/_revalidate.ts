@@ -45,6 +45,6 @@ export async function _revalidate(pathName: RevalidatePaths) {
     const path = _path[pathName];
     await revalidatePath(path, "page");
 }
-export async function __revalidatePath(url, type = "page") {
+async function __revalidatePath(url, type = "page") {
     await revalidatePath(url, type as any);
 }

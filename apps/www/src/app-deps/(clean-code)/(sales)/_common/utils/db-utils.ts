@@ -29,7 +29,7 @@ interface InfiniteListQueryProps<T> {
     query?;
     whereFn?;
 }
-export async function infinitListQuery<T>(props: InfiniteListQueryProps<T>) {
+async function infinitListQuery<T>(props: InfiniteListQueryProps<T>) {
     if (!props.where && props.whereFn) props.where = props.whereFn(props.query);
     interface ResponseProps<T1> {
         data: T1[];
@@ -314,7 +314,7 @@ export const SalesOverviewIncludes = {
     // itemDeliveries: excludeDeleted,
 } satisfies Prisma.SalesOrdersInclude;
 
-export const dykeFormIncludes = (restoreQuery) =>
+const dykeFormIncludes = (restoreQuery) =>
     ({
         items: {
             where: {
@@ -383,7 +383,7 @@ export const dykeFormIncludes = (restoreQuery) =>
         shippingAddress: true,
         billingAddress: true,
     }) satisfies Prisma.SalesOrdersInclude;
-export const includeStepPriceCount = {
+const includeStepPriceCount = {
     select: {
         priceSystem: {
             where: {

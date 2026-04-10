@@ -19,7 +19,7 @@ import {
 //@ts-ignore
 type Comp<T, FormType> = { data?: T; form?: UseFormReturn<FormType> };
 
-export interface BaseModalProps<T, FormType> {
+interface BaseModalProps<T, FormType> {
     //@ts-ignore
     onOpen?(data: T, form?: UseFormReturn<FormType>);
     onClose?();

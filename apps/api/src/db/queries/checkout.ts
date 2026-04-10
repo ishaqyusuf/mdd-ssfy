@@ -156,7 +156,7 @@ export async function createSalesCheckoutLink(
 	});
 }
 
-export function squareSalesNote(orderIds: string[]) {
+function squareSalesNote(orderIds: string[]) {
 	return `sales payment for order${
 		orderIds.length > 1 ? "s" : ""
 	} ${orderIds.join(", ")}`;
@@ -309,7 +309,7 @@ export async function verifyPayment(
 	}
 	return result;
 }
-export async function paymentSuccess(
+async function paymentSuccess(
 	p: {
 		squarePaymentId;
 		walletId;

@@ -16,7 +16,7 @@ export async function dealerSession() {
     const dealerMode = auth.role?.name == "Dealer";
     return dealerMode;
 }
-export async function getSessionPermissions() {
+async function getSessionPermissions() {
     const session = await serverSession();
     return session.can;
 }
@@ -31,12 +31,12 @@ export async function userId() {
     return (await user())?.id;
 }
 export const authId = userId;
-export async function _dbUser() {
+async function _dbUser() {
     return (await prisma.users.findUnique({
         where: { id: await userId() },
     })) as any as IUser;
 }
-export async function streamlineMeta(meta: any = null) {
+async function streamlineMeta(meta: any = null) {
     if (meta == null) return {};
 
     function _streamline(value) {
@@ -56,10 +56,10 @@ export async function streamlineMeta(meta: any = null) {
     }
     return _streamline(meta);
 }
-export async function hashPassword(pwrd) {
+async function hashPassword(pwrd) {
     return await hash(pwrd, 10);
 }
-export async function sessionIsDealerMode() {
+async function sessionIsDealerMode() {
     const s = await serverSession();
     let isDealerMode = s.role.name == "Dealer";
     if (!isDealerMode) return null;

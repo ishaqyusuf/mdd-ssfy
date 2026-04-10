@@ -10,7 +10,7 @@ import { GetOrderAssignmentData } from "./get-order-assignment-data";
 type Props =
     GetOrderAssignmentData["doorGroups"][0]["salesDoors"][0]["assignments"][0];
 
-export async function serverDate(date) {
+async function serverDate(date) {
     // dayjs.locale(ILOca)
     return date;
 }

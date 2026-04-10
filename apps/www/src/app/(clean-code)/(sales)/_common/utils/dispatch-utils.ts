@@ -2,7 +2,7 @@ import { percent, sum } from "@/lib/utils";
 import { DeliveryBreakdown } from "../data-access/dto/sales-item-dto";
 import { padStart } from "lodash";
 
-export function calculateDeliveryBreakdownPercentage(
+function calculateDeliveryBreakdownPercentage(
     bd: DeliveryBreakdown,
     totalDeliverables
 ) {
@@ -56,6 +56,6 @@ export function overallDeliveryBreakdown(dbs: DeliveryBreakdown[]) {
     return bd;
 }
 
-export function generateDispatchId(id) {
+function generateDispatchId(id) {
     return `#DISP-${padStart(id, 4, "0")}`;
 }

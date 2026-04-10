@@ -8,7 +8,7 @@ import {
 } from "date-fns";
 
 export { getInitials } from "@gnd/utils";
-export function formatSize(bytes: number): string {
+function formatSize(bytes: number): string {
     const units = ["byte", "kilobyte", "megabyte", "gigabyte", "terabyte"];
 
     const unitIndex = Math.max(
@@ -33,7 +33,7 @@ type FormatAmountParams = {
     minimumFractionDigits?: number;
 };
 
-export function formatAmount({
+function formatAmount({
     currency,
     amount,
     locale = "en-US",
@@ -52,7 +52,7 @@ export function formatAmount({
     }).format(amount);
 }
 
-export function secondsToHoursAndMinutes(seconds: number) {
+function secondsToHoursAndMinutes(seconds: number) {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
 
@@ -76,7 +76,7 @@ type BurnRateData = {
     date: string;
 };
 
-export function calculateAvgBurnRate(data: BurnRateData[] | null) {
+function calculateAvgBurnRate(data: BurnRateData[] | null) {
     if (!data) {
         return 0;
     }
@@ -92,7 +92,7 @@ export function formatDate(date: string, dateFormat?: string) {
     return format(new Date(date), dateFormat ?? "P");
 }
 
-export function formatAccountName({
+function formatAccountName({
     name,
     currency,
 }: {
@@ -106,7 +106,7 @@ export function formatAccountName({
     return name;
 }
 
-export function formatDateRange(dates: TZDate[]): string {
+function formatDateRange(dates: TZDate[]): string {
     if (!dates.length) return "";
 
     const formatFullDate = (date: TZDate) => format(date, "MMM d");
@@ -158,7 +158,7 @@ export function getDueDateStatus(dueDate: string): string {
     return `${diffMonths} month${diffMonths === 1 ? "" : "s"} ago`;
 }
 
-export function formatRelativeTime(date: Date): string {
+function formatRelativeTime(date: Date): string {
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 

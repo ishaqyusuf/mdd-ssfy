@@ -15,7 +15,7 @@ function roundCurrency(value: number) {
     return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
-export function createLineItemUid(index = 0) {
+function createLineItemUid(index = 0) {
     const stamp = Date.now().toString(36);
     const random = Math.random().toString(36).slice(2, 8);
     return `line-${index + 1}-${stamp}-${random}`;
@@ -59,7 +59,7 @@ export function normalizeLineItem(
     };
 }
 
-export function normalizeLineItems(
+function normalizeLineItems(
     lines: Partial<NewSalesFormLineItem>[],
 ): NewSalesFormLineItem[] {
     return (lines || []).map((line, index) => normalizeLineItem(line, index));

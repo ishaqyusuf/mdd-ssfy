@@ -3,10 +3,10 @@ import { prisma } from "@/db";
 import { sum } from "@/lib/utils";
 import { SalesPaymentStatus } from "../../../types";
 import { getCustomerWallet } from "@gnd/sales/wallet";
-export async function getCustomerWalletDta(accountNo) {
+async function getCustomerWalletDta(accountNo) {
     return await getCustomerWallet(prisma, accountNo);
 }
-export async function fundCustomerWalletDta({
+async function fundCustomerWalletDta({
     accountId,
     amount,
     paymentMethod,
@@ -53,7 +53,7 @@ export async function getCustomerWalletInfoDta(accountId) {
         customerBalance: wallet.balance,
     };
 }
-export async function applyPaymentDta(
+async function applyPaymentDta(
     walletId,
     transactionIds,
     paymentMethod,

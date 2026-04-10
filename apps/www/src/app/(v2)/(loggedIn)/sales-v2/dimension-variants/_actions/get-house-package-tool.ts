@@ -27,7 +27,7 @@ export async function getHousePackageTool(): Promise<HousePackageToolSettings> {
         data: await verifyBifoldDoors(s.id, s.meta as any),
     };
 }
-export async function verifyBifoldDoors(
+async function verifyBifoldDoors(
     id,
     data: HousePackageToolSettings["data"],
 ) {

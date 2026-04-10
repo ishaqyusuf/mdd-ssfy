@@ -13,7 +13,7 @@ import { deleteSalesAssignmentSubmissionSchema } from "./schema";
 import { updateSalesItemStats } from "./update-sales-item-stat";
 import { updateSalesStatAction } from "./update-sales-stat";
 
-export async function deleteSalesAssignmentSubmission(
+async function deleteSalesAssignmentSubmission(
     data: z.infer<typeof deleteSalesAssignmentSubmissionSchema>,
     tx: typeof prisma = prisma,
 ) {

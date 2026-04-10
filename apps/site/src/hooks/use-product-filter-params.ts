@@ -2,7 +2,7 @@ import { useQueryStates } from "nuqs";
 import { createLoader, parseAsJson, parseAsInteger } from "nuqs/server";
 import { z } from "zod";
 
-export const productFilterParamsSchema = {
+const productFilterParamsSchema = {
   qty: parseAsInteger,
   variantId: parseAsInteger,
   subComponent: parseAsJson(

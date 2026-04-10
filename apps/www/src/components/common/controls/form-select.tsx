@@ -201,7 +201,7 @@ export default function FormSelect<
         />
     );
 }
-export function ControlledCombox({
+function ControlledCombox({
     field,
     placeholder,
     onSelect,

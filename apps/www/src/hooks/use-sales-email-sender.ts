@@ -25,7 +25,7 @@ export function useSalesEmailSender() {
         setParams,
     };
 }
-export function useSalesMailer() {
+function useSalesMailer() {
     const [runId, setRunId] = useState<string | undefined>();
     const [accessToken, setAccessToken] = useState<string | undefined>();
     // const { status, setStatus } = useSyncStatus({ runId, accessToken });

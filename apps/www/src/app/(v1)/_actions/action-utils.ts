@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 
-export function queryParams(searchParams, _baseQuery = {}) {
+function queryParams(searchParams, _baseQuery = {}) {
     const q: any = {
         ...(searchParams || {}),
         ..._baseQuery,
@@ -16,18 +16,18 @@ export function queryParams(searchParams, _baseQuery = {}) {
     });
     return q;
 }
-export function fixDbTime(date: dayjs.Dayjs, h = 0, m = 0, s = 0) {
+function fixDbTime(date: dayjs.Dayjs, h = 0, m = 0, s = 0) {
     return date.set("hours", h).set("minutes", m).set("seconds", s);
 }
-export function anyDateQuery() {
+function anyDateQuery() {
     return {
         lte: fixDbTime(dayjs()).toISOString(),
     };
 }
-export const withDeleted = {
+const withDeleted = {
     OR: [{ deletedAt: null }, { deletedAt: anyDateQuery() }],
 };
-export function dateEquals(date) {
+function dateEquals(date) {
     return {
         gte: dayjs(date).startOf("day").toDate(),
         lte: dayjs(date).endOf("day").toDate(),
@@ -37,7 +37,7 @@ export function dateEquals(date) {
     //     lte: fixDbTime(dayjs(date), 23, 59, 59).toISOString(),
     // };
 }
-export function dateQuery({
+function dateQuery({
     date,
     from,
     to,
@@ -111,7 +111,7 @@ export async function getPageInfo(input, where, model) {
     };
     return pageInfo;
 }
-export function serverDate(date) {
+function serverDate(date) {
     if (!date) return date;
     return dayjs(date).toISOString();
 }

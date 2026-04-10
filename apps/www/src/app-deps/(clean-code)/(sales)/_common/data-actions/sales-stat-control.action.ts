@@ -6,7 +6,7 @@ import { percent, sum } from "@/lib/utils";
 import { QtyControlType } from "../../types";
 import { updateSalesItemControlAction } from "./item-control.action";
 
-export async function validateSalesStatControlAction(salesId) {
+async function validateSalesStatControlAction(salesId) {
     const order = await prisma.salesOrders.findFirstOrThrow({
         where: { id: salesId },
         select: {
@@ -28,7 +28,7 @@ export async function validateSalesStatControlAction(salesId) {
         await resetSalesStatAction(salesId);
     }
 }
-export async function updateSalesStatControlAction(salesId) {
+async function updateSalesStatControlAction(salesId) {
     const order = await prisma.salesOrders.findFirstOrThrow({
         where: {
             id: salesId,

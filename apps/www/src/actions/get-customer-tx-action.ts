@@ -13,7 +13,7 @@ import { __getPaymentCountBySales } from "./cached-sales-accounting";
 import { padStart } from "lodash";
 import { sum } from "@gnd/utils";
 
-export type GetSalesCustomerTx = AsyncFnType<
+type GetSalesCustomerTx = AsyncFnType<
     typeof getCustomerTransactionsAction
 >;
 export type CustomerTransactionType = "wallet" | "transaction";
@@ -201,10 +201,10 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
     );
 }
 
-export type GetSalesCustomerTxOverview = AsyncFnType<
+type GetSalesCustomerTxOverview = AsyncFnType<
     typeof getSalesCustomerTxOverviewAction
 >;
-export async function getSalesCustomerTxOverviewAction(id) {
+async function getSalesCustomerTxOverviewAction(id) {
     const resp = await prisma.customerTransaction.findUnique({
         where: {
             id,

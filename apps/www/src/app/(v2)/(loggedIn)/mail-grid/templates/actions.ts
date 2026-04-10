@@ -3,7 +3,7 @@
 import { paginatedAction } from "@/app-deps/_actions/get-action-utils";
 import { prisma } from "@/db";
 
-export type GetMailGridAction = Awaited<ReturnType<typeof getMailGridAction>>;
+type GetMailGridAction = Awaited<ReturnType<typeof getMailGridAction>>;
 export async function getMailGridAction(query = {}) {
     const where = {};
     const { pageCount, skip, take } = await paginatedAction(

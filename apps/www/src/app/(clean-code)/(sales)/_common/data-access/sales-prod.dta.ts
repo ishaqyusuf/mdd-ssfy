@@ -10,7 +10,7 @@ import {
 } from "./sales-progress.dta";
 import { DispatchItemPackingStatus } from "@sales/types";
 
-export async function createItemAssignmentDta(
+async function createItemAssignmentDta(
     data: Prisma.OrderItemProductionAssignmentsCreateInput,
     produceable
 ) {
@@ -24,7 +24,7 @@ export async function createItemAssignmentDta(
         await salesAssignmentCreated(data.order.connect.id, data.qtyAssigned);
     return assignment;
 }
-export async function deleteAssignmentDta(
+async function deleteAssignmentDta(
     assignmentId,
     produceable
     // deliverable
@@ -114,7 +114,7 @@ export async function submitAssignmentDta(
         });
     return c;
 }
-export async function deleteAssignmentSubmissionDta(submitId, produceable) {
+async function deleteAssignmentSubmissionDta(submitId, produceable) {
     const submission = await prisma.orderProductionSubmissions.update({
         where: {
             id: submitId,
@@ -128,7 +128,7 @@ export async function deleteAssignmentSubmissionDta(submitId, produceable) {
             minusScore: submission.qty,
         });
 }
-export async function updateAssignmentDta(
+async function updateAssignmentDta(
     id,
     data: Prisma.OrderItemProductionAssignmentsUpdateInput
 ) {

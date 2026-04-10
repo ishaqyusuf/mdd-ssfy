@@ -10,7 +10,7 @@ import { createAssignmentSchema } from "./schema";
 import { updateSalesItemStats } from "./update-sales-item-stat";
 import { updateSalesStatAction } from "./update-sales-stat";
 
-export async function createSalesAssignment(
+async function createSalesAssignment(
     data: z.infer<typeof createAssignmentSchema>,
     tx: typeof prisma = prisma
 ) {
@@ -78,7 +78,7 @@ export const createSalesAssignmentAction = actionClient
         // if (input.assignedToId) input.assignedToId = +input.assignedToId;
         return _createSalesAssignmentAction(input);
     });
-export const _createSalesAssignmentAction = async (input) => {
+const _createSalesAssignmentAction = async (input) => {
     const resp = await prisma.$transaction(async (tx: typeof prisma) => {
         const assignment = await createSalesAssignment(input, tx);
         await updateSalesItemStats(

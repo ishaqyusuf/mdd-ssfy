@@ -11,7 +11,7 @@ function resolveCloudinaryEndpoint(resourceType: UploadResourceType) {
 
     return env.CLOUDINARY_UPLOAD_URL.replace("/image/upload", "/raw/upload");
 }
-export async function cldUploadFiles(files, folder: UploadFolders) {
+async function cldUploadFiles(files, folder: UploadFolders) {
     const formData = new FormData();
     if (Array.isArray(files))
         files.map((f, i) => formData.append(`file${i + 1}`, f));

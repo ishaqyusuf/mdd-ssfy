@@ -24,7 +24,7 @@ export async function getSalesLaborCost() {
     })();
 }
 
-export async function updateSalesLaborCost(rate) {
+async function updateSalesLaborCost(rate) {
     let cost = await getSalesLaborCost();
     if (cost && dayjs().diff(cost.createdAt, "days") > 30) {
         await prisma.salesLaborCosts.updateMany({

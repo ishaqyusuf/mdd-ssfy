@@ -9,7 +9,7 @@ export function dotSet<T>(object: T) {
         },
     };
 }
-export function dotArray(obj, parentKey = "", removeEmptyArrays = false) {
+function dotArray(obj, parentKey = "", removeEmptyArrays = false) {
     let result = {};
     if (!obj) obj = {};
     for (const key in obj) {
@@ -35,6 +35,6 @@ export function dotArray(obj, parentKey = "", removeEmptyArrays = false) {
     return result;
 }
 
-export function dotKeys(arr, parentKey = "", removeEmptyArrays = false) {
+function dotKeys(arr, parentKey = "", removeEmptyArrays = false) {
     return Object.keys(dotArray(arr, parentKey, removeEmptyArrays));
 }

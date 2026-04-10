@@ -53,7 +53,7 @@ const RenderStack = ({ stack }) => {
         </>
     );
 };
-export const composeEmailTemplate = (props: { emailStack; preview }) => (
+const composeEmailTemplate = (props: { emailStack; preview }) => (
     <EmailTemplate {...props} />
 );
 export const EmailTemplate = ({ emailStack, preview }) => {

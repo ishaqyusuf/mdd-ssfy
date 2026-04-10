@@ -7,7 +7,7 @@ import { useDataPage } from "@/lib/data-page-context";
 import SectionedItems from "./sectioned-items";
 import ModalHeader from "./modal-header";
 
-export type OrderAssignmentDataGroup = GetOrderAssignmentData["doorGroups"][0];
+type OrderAssignmentDataGroup = GetOrderAssignmentData["doorGroups"][0];
 export type OrderAssignmentSalesDoor =
     OrderAssignmentDataGroup["salesDoors"][0];
 export interface AssignmentModalProps {

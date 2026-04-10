@@ -453,7 +453,7 @@ function RouteSection({ uid }: { uid: string }) {
     );
 }
 
-export function NewSalesFormSettingsModal() {
+function NewSalesFormSettingsModal() {
     const value = useNewSalesFormSettingsContext();
     const rootProducts = value.routeData?.rootComponents ?? [];
     const [tab, setTab] = useState("invoice-steps");

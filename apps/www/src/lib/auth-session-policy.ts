@@ -1,5 +1,5 @@
-export const STANDARD_WEB_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24;
-export const REMEMBER_ME_WEB_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+const STANDARD_WEB_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24;
+const REMEMBER_ME_WEB_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 export const WEB_AUTH_SESSION_MAX_AGE_SECONDS =
 	REMEMBER_ME_WEB_SESSION_MAX_AGE_SECONDS;
 
@@ -10,7 +10,7 @@ export function normalizeRememberMe(value: unknown) {
 	return value === true || value === "true" || value === "on";
 }
 
-export function getWebSessionMaxAgeSeconds(rememberMe?: boolean) {
+function getWebSessionMaxAgeSeconds(rememberMe?: boolean) {
 	return rememberMe
 		? REMEMBER_ME_WEB_SESSION_MAX_AGE_SECONDS
 		: STANDARD_WEB_SESSION_MAX_AGE_SECONDS;

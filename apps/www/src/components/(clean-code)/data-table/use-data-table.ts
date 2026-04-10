@@ -20,10 +20,10 @@ import qs from "qs";
 
 import { useInfiniteDataTableContext } from "./use-infinity-data-table";
 
-export const dataTableContext = createContext({});
-export const dataTableRowContext = createContext({});
-export type DataTableType = ReturnType<typeof useDataTable>;
-export type TableRowModel = ReturnType<
+const dataTableContext = createContext({});
+const dataTableRowContext = createContext({});
+type DataTableType = ReturnType<typeof useDataTable>;
+type TableRowModel = ReturnType<
     DataTableType["table"]["getRowModel"]
 >["rows"][number];
 export const useDataTableContext = (): DataTableType =>
@@ -35,7 +35,7 @@ export const useInfiniteDataTable = (): InfinityDataTableType =>
 export const useTRContext = (): DataTableType =>
     useContext(dataTableRowContext) as any;
 
-export function useDataTable({
+function useDataTable({
     data,
     columns,
     pageCount,

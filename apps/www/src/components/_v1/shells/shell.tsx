@@ -34,4 +34,4 @@ function Shell({
   )
 }
 
-export { Shell, shellVariants }
+export { Shell,  }

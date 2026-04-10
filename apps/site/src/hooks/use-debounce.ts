@@ -13,7 +13,7 @@ export function useDebounce<T>(value: T, delay?: number): T {
 
     return debouncedValue;
 }
-export function useDebounceInput<T>(
+function useDebounceInput<T>(
     initialValue: T,
     delay?: number,
     fn?: (val: T) => void,

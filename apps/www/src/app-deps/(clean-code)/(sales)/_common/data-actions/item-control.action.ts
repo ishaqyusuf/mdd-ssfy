@@ -14,7 +14,7 @@ import {
 } from "../utils/item-control-utils";
 import { DispatchItemPackingStatus } from "@sales/types";
 
-export async function updateQtyControlAutoComplete(
+async function updateQtyControlAutoComplete(
     data,
     uid,
     { produceableQty, shippableQty, produceableChanged, shippableChanged, qty },
@@ -64,7 +64,7 @@ export async function updateQtyControlAutoComplete(
         }),
     );
 }
-export async function updateQtyControlAction(
+async function updateQtyControlAction(
     uid,
     type: QtyControlType,
     { qty, lh, rh, totalQty, reset = false } = { reset: false } as any,
@@ -111,7 +111,7 @@ export async function updateQtyControlAction(
         },
     });
 }
-export async function getItemControlAction(uid) {
+async function getItemControlAction(uid) {
     const control = await prisma.salesItemControl.findUnique({
         where: {
             uid,
@@ -123,7 +123,7 @@ export async function getItemControlAction(uid) {
 export type GetSalesItemControllables = AsyncFnType<
     typeof getSalesItemControllablesInfoAction
 >;
-export async function getSalesItemControllablesInfoAction(salesId) {
+async function getSalesItemControllablesInfoAction(salesId) {
     const order = await prisma.salesOrders.findFirstOrThrow({
         where: { id: salesId },
         select: {
@@ -309,7 +309,7 @@ export async function getSalesItemControllablesInfoAction(salesId) {
         }),
     };
 }
-export async function updateItemQtyControlsAction(uid) {
+async function updateItemQtyControlsAction(uid) {
     const control = await prisma.salesItemControl.findFirstOrThrow({
         where: { uid },
         include: {

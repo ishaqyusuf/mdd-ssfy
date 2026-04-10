@@ -117,7 +117,7 @@ export const images = {
 };
 
 // Helper function to get random image from category
-export function getRandomImage(
+function getRandomImage(
   category: keyof typeof images.categories
 ): string {
   const categoryImages = images.categories[category]?.images || [];
@@ -128,7 +128,7 @@ export function getRandomImage(
 }
 
 // Helper function to get product image by ID
-export function getProductImage(productId: number): string {
+function getProductImage(productId: number): string {
   const productImageMap: { [key: number]: string } = {
     1: images.products.craftsmanDoor,
     2: images.products.oakExteriorDoor,

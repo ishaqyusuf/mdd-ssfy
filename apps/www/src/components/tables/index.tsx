@@ -155,7 +155,7 @@ export const { useContext: useTable, Provider: TableProvider } =
         };
     });
 
-export const useTableData = ({ filter, route }) => {
+const useTableData = ({ filter, route }) => {
     // const trpc = useTRPC();
     const { ref, inView } = useInView();
 

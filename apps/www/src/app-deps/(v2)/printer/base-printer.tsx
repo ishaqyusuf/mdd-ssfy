@@ -19,7 +19,7 @@ interface Props {
     getData(slug);
     pageReady(slug, pageData);
 }
-export const PrintCtx = React.createContext<Props>({
+const PrintCtx = React.createContext<Props>({
     // pages: {},
 } as any);
 export const usePrintContext = () => React.useContext<Props>(PrintCtx);
@@ -29,7 +29,7 @@ interface BasPrinterProps {
     preview?;
     pdf?;
 }
-export default function BasePrinter({
+function BasePrinter({
     slugs,
     children,
     preview = false,

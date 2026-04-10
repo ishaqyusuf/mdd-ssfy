@@ -10,7 +10,7 @@ import {
     StepProdctMeta,
 } from "../../type";
 
-export async function getMouldingStepProduct(specie) {
+async function getMouldingStepProduct(specie) {
     const stepProducts = await prisma.dykeStepProducts.findMany({
         where: {
             product: {
@@ -31,7 +31,7 @@ export async function getMouldingStepProduct(specie) {
         .map(transformStepProducts);
     return sortStepProducts(prods);
 }
-export async function getSlabDoorTypes() {
+async function getSlabDoorTypes() {
     const p = await prisma.dykeProducts.findFirst({
         where: {
             title: "HC Molded",

@@ -425,7 +425,7 @@ export async function updateNotificationPreferences(
   return { success: true };
 }
 
-export async function updateUserProfileAction(
+async function updateUserProfileAction(
   ctx: TRPCContext,
   data: UpdateUserProfileSchema,
 ) {
@@ -464,7 +464,7 @@ export async function getLoginByToken(
     email: user?.email,
   };
 }
-export async function getLoggedInDevices(ctx: TRPCContext) {
+async function getLoggedInDevices(ctx: TRPCContext) {
   const { db } = ctx;
 
   return db.session.findMany({

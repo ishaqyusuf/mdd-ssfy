@@ -89,7 +89,7 @@ export async function getSalesResolutions(
 		meta,
 	};
 }
-export async function getSalesResolvables(
+async function getSalesResolvables(
 	ctx: TRPCContext,
 	query: SalesQueryParamsSchema,
 ) {

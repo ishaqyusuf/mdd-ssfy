@@ -17,7 +17,7 @@ interface CustomerReportCtxProps
         GeneratCustomerPrintReport {
     // report: GeneratCustomerPrintReport;
 }
-export const CustomerReportCtx = createContext<CustomerReportCtxProps>(
+const CustomerReportCtx = createContext<CustomerReportCtxProps>(
     null as any
 );
 export const useCustomerReportCtx = () =>

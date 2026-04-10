@@ -5,13 +5,13 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatPrice(price: number) {
+function formatPrice(price: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
   }).format(price);
 }
-export function skeletonListData<T>(
+function skeletonListData<T>(
   data: T[],
   count = 5,
   placeholder: Partial<T> | null = null

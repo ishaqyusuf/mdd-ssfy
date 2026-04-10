@@ -4,11 +4,11 @@ import { _cache } from "@/app-deps/(v1)/_actions/_cache/load-data";
 import { CustomerTypes, prisma } from "@/db";
 import { transformData } from "@/lib/utils";
 
-export async function staticCustomerProfilesAction() {
+async function staticCustomerProfilesAction() {
     return await prisma.customerTypes.findMany({});
 }
 
-export async function saveCustomerProfile(data: CustomerTypes) {
+async function saveCustomerProfile(data: CustomerTypes) {
     const { id, ...rest } = data;
     if (!id)
         await prisma.customerTypes.create({
@@ -20,7 +20,7 @@ export async function saveCustomerProfile(data: CustomerTypes) {
             data: transformData(rest) as any,
         });
 }
-export async function setCustomerProfileAction(id, profileId) {
+async function setCustomerProfileAction(id, profileId) {
     await prisma.customers.update({
         where: {
             id,

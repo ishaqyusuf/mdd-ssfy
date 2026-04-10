@@ -107,7 +107,7 @@ export type Access = {
     equator: "is" | "isNot" | "in" | "notIn" | "every" | "some";
     values: string[];
 };
-export const __access = (
+const __access = (
     type: Access["type"],
     equator: Access["equator"],
     ...values

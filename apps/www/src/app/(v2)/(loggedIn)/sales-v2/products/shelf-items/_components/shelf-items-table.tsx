@@ -14,7 +14,7 @@ import { useModal } from "@/components/common/modal/provider";
 import ShelfItemFormModal from "../_shelf-item-form-modal";
 
 type Promise = PromiseDataTable<typeof getShelfItems>;
-export type ShelfItem = Awaited<Promise>["data"][0];
+type ShelfItem = Awaited<Promise>["data"][0];
 // export type ShelfItem = Awaited<ReturnType<typeof getShelfItems>>["data"][0];
 interface Props<T> {
     promise: Promise;

@@ -20,11 +20,11 @@ export type DealerStatus =
     | "Pending Approval"
     | "Rejected"
     | "Restricted";
-export type GetDealersPageTabAction = Awaited<
+type GetDealersPageTabAction = Awaited<
     ReturnType<typeof getDealersPageTabAction>
 >;
-export type GetDealersAction = Awaited<ReturnType<typeof getDealersAction>>;
-export async function getDealersAction(query: GetDealersQuery) {
+type GetDealersAction = Awaited<ReturnType<typeof getDealersAction>>;
+async function getDealersAction(query: GetDealersQuery) {
     const where = _where(query);
     const { pageCount } = await paginatedAction(
         query,
@@ -61,7 +61,7 @@ export async function getDealersAction(query: GetDealersQuery) {
         pageCount,
     };
 }
-export async function getDealersPageTabAction(): Promise<PageTab[]> {
+async function getDealersPageTabAction(): Promise<PageTab[]> {
     const s = await prisma.dealerAuth.findMany({
         select: {
             status: true,
@@ -105,7 +105,7 @@ function _where(query: GetDealersQuery) {
     };
     return where;
 }
-export async function resendApprovalTokenAction(id) {
+async function resendApprovalTokenAction(id) {
     // await prisma.dealerAuth.update({
     //     where: { id },
     //     data: {
@@ -120,7 +120,7 @@ export async function resendApprovalTokenAction(id) {
     await sendDealerApprovalEmail(id);
     _revalidate("dealers");
 }
-export async function dealershipApprovalAction(
+async function dealershipApprovalAction(
     id,
     status: DealerStatus,
     reason?: string,
@@ -154,7 +154,7 @@ export async function dealershipApprovalAction(
     });
     _revalidate("dealers");
 }
-export async function updateDealerProfileAction(id, profileId) {
+async function updateDealerProfileAction(id, profileId) {
     await prisma.dealerAuth.update({
         where: { id },
         data: {
@@ -166,7 +166,7 @@ export async function updateDealerProfileAction(id, profileId) {
         },
     });
 }
-export async function sendDealerApprovalEmail(id) {
+async function sendDealerApprovalEmail(id) {
     const dealer = await prisma.dealerAuth.findFirst({
         where: { id },
         include: {

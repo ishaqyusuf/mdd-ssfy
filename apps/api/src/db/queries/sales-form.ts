@@ -270,7 +270,7 @@ function whereStepComponents(query: GetStepComponentsSchema) {
   return composeQuery(wheres);
 }
 export type StepComponentData = RenturnTypeAsync<typeof dtoStepComponent>;
-export function dtoStepComponent(
+function dtoStepComponent(
   data: Prisma.DykeStepProductsGetPayload<{
     include: {
       door: true;

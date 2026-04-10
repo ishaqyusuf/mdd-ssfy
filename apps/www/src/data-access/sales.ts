@@ -80,7 +80,7 @@ export async function getSales(query: SalesQueryParams) {
         data: _items.map(transformOrder),
     };
 }
-export async function whereSales(query: SalesQueryParams) {
+async function whereSales(query: SalesQueryParams) {
     let {
         _q,
         _dateType = "createdAt",
@@ -339,12 +339,12 @@ export async function whereSales(query: SalesQueryParams) {
     return where;
 }
 
-export interface SalesQueryParam2 extends PageQuery {
+interface SalesQueryParam2 extends PageQuery {
     _q?: string;
     _type?: ISalesType;
 }
 export type GetAllSales = Awaited<ReturnType<typeof getAllSales>>;
-export async function getAllSales(query: SalesQueryParam2) {
+async function getAllSales(query: SalesQueryParam2) {
     const where = allSalesQuery(query);
     const sales = await prisma.salesOrders.findMany({
         where,

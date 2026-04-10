@@ -7,7 +7,7 @@ import { getStatusVariant } from "@/lib/status-variant";
 /* =========================
    STATUS CONTAINER
 ========================= */
-export const statusVariant = cva(
+const statusVariant = cva(
   "inline-flex items-center rounded-full px-2 py-1",
   {
     variants: {
@@ -114,7 +114,7 @@ export const statusVariant = cva(
 /* =========================
    STATUS TEXT (AUTO COLOR) 
 ========================= */
-export const statusTextVariant = cva("text-xs font-semibold", {
+const statusTextVariant = cva("text-xs font-semibold", {
   variants: {
     style: {
       default: "",

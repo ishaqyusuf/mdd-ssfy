@@ -9,7 +9,7 @@ import {
 } from "./sales-dta";
 import { salesOverviewDto } from "./dto/sales-item-dto";
 
-export async function initSalesProgressDta(id) {}
+async function initSalesProgressDta(id) {}
 export async function salesAssignmentCreated(orderId, qty) {
     await updateSalesProgressDta(orderId, "prodAssigned", {
         plusScore: qty,

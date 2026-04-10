@@ -2,8 +2,8 @@ import { _trpc } from "@/components/static-trpc";
 import { useQuery } from "@tanstack/react-query";
 import { createContext, useContext } from "react";
 
-export type JobContextProps = ReturnType<typeof useCreateJobContext>;
-export const JobContext = createContext<JobContextProps>(undefined as any);
+type JobContextProps = ReturnType<typeof useCreateJobContext>;
+const JobContext = createContext<JobContextProps>(undefined as any);
 export const JobProvider = JobContext.Provider as any;
 export interface JobOverviewProps {
   jobId;

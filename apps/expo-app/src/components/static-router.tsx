@@ -1,10 +1,10 @@
 import { useRouter } from "expo-router";
 
 type Router = ReturnType<typeof useRouter>;
-export let _router: Router;
+let _router: Router;
 export let _goBack: Router["back"];
 export let _push: Router["push"];
-export let _replace: Router["replace"];
+let _replace: Router["replace"];
 export let _setRouteParams: Router["setParams"];
 
 export function StaticRouter() {

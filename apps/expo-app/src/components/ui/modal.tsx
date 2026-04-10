@@ -137,7 +137,7 @@ const CustomBackdrop = ({ style }: BottomSheetBackdropProps) => {
   );
 };
 
-export const renderBackdrop = (props: BottomSheetBackdropProps) => (
+const renderBackdrop = (props: BottomSheetBackdropProps) => (
   <CustomBackdrop {...props} />
 );
 

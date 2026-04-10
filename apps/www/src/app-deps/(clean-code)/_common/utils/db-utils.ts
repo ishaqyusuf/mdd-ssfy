@@ -7,19 +7,19 @@ export function anyDateQuery() {
         lte: fixDbTime(dayjs()).toISOString(),
     };
 }
-export function isDay(date: dayjs.Dayjs) {
+function isDay(date: dayjs.Dayjs) {
     return {
         gte: fixDbTime(date).toISOString(),
         lte: fixDbTime(date, 23, 59, 59).toISOString(),
     };
 }
-export function isYear(date: dayjs.Dayjs) {
+function isYear(date: dayjs.Dayjs) {
     return {
         gte: date.startOf("year").startOf("day").toISOString(),
         lte: date.endOf("year").endOf("day").toISOString(),
     };
 }
-export function isMonth(date: dayjs.Dayjs) {
+function isMonth(date: dayjs.Dayjs) {
     return {
         gte: date.startOf("month").startOf("day").toISOString(),
         lte: date.endOf("month").endOf("day").toISOString(),
@@ -38,7 +38,7 @@ export const whereNotTrashed = {
         deletedAt: null,
     },
 };
-export async function inifinitePageInfo<T>(
+async function inifinitePageInfo<T>(
     query,
     where,
     model,

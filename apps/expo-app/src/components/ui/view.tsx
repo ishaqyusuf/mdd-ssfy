@@ -35,4 +35,4 @@ function View({
   );
 }
 
-export { View, ViewClassContext };
+export { View,  };

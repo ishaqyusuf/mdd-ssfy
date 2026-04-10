@@ -27,7 +27,7 @@ import { useState } from "react";
 import { invalidateInfiniteQueries } from "@/hooks/use-invalidate-query";
 import { EditButton } from "@/components/edit-button";
 
-export type Item = RouterOutputs["hrm"]["getEmployees"]["data"][number];
+type Item = RouterOutputs["hrm"]["getEmployees"]["data"][number];
 interface ItemProps {
     item: Item;
 }

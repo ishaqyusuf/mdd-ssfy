@@ -46,7 +46,7 @@ export async function createSalesBookFormUseCase(
     const resp = await createSalesBookFormDataDta(data);
     return await composeBookForm(resp);
 }
-export async function saveSalesSettingUseCase(meta) {
+async function saveSalesSettingUseCase(meta) {
     await saveSalesSettingData(meta);
 }
 

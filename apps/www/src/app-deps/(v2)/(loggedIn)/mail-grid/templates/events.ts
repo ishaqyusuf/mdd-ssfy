@@ -1,4 +1,4 @@
-export const emailTriggerEvents = [
+const emailTriggerEvents = [
     "DEALERSHIP_APPROVED",
     "DEALERSHIP_REJECTED",
     "DEALERSHIP_REGISTRATION_SUBMITTED",
@@ -22,16 +22,16 @@ export const emailTriggerEvents = [
     "PAYMENT_FAILED",
 ] as const;
 export type EmailTriggerEventType = (typeof emailTriggerEvents)[number];
-export const eventRecipients = [
+const eventRecipients = [
     "CUSTOMER_EMAIL",
     "DEALER_EMAIL",
     "SALES_REP",
     "ADMIN",
     "PRODUCTION_WORKER",
 ] as const;
-export type EventReceipientTypes = (typeof eventRecipients)[number];
+type EventReceipientTypes = (typeof eventRecipients)[number];
 
-export function getTriggerEmailReceivers(event: EmailTriggerEventType) {
+function getTriggerEmailReceivers(event: EmailTriggerEventType) {
     let recipients: EventReceipientTypes[] = [];
     switch (event) {
         case "DEALERSHIP_APPROVED":

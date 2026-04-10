@@ -87,7 +87,7 @@ export function logStage(flow: FlowHandle, event: FlowEvent) {
     writeLog(flow, event);
 }
 
-export function logError(flow: FlowHandle, eventType: string, error: unknown) {
+function logError(flow: FlowHandle, eventType: string, error: unknown) {
     writeLog(flow, {
         stage: "error",
         eventType,

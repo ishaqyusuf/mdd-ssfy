@@ -15,28 +15,28 @@ import {
     SALES_PAYMENT_METHOD_OPTIONS,
 } from "@sales/constants";
 const SalesPriority = [] as any;
-export const SEPARATOR = ` &`;
+const SEPARATOR = ` &`;
 
-export const dispatchStatusList: SalesDispatchStatus[] = [
+const dispatchStatusList: SalesDispatchStatus[] = [
     "queue",
     "in progress",
     "cancelled",
     "completed",
 ] as const;
 
-export const INVOICE_FILTER_OPTIONS = [
+const INVOICE_FILTER_OPTIONS = [
     "paid",
     "pending",
     "late",
     "part-paid",
     "overdraft",
 ] as const;
-export const PRODUCTION_FILTER_OPTIONS = [
+const PRODUCTION_FILTER_OPTIONS = [
     "pending",
     "in progress",
     "completed",
 ] as const;
-export const PRODUCTION_STATUS = [
+const PRODUCTION_STATUS = [
     "not assigned",
     "part assigned",
     "due today",
@@ -44,12 +44,12 @@ export const PRODUCTION_STATUS = [
     "completed",
     "not completed",
 ] as const;
-export const PRODUCTION_ASSIGNMENT_FILTER_OPTIONS = [
+const PRODUCTION_ASSIGNMENT_FILTER_OPTIONS = [
     "not assigned",
     "part assigned",
     "all assigned",
 ] as const;
-export const DISPATCH_FILTER_OPTIONS = [
+const DISPATCH_FILTER_OPTIONS = [
     "delivered",
     "pending delivery",
     "backorder",
@@ -75,7 +75,7 @@ export const widthList = [
     "6-0",
     "6-8",
 ];
-export const __filters = (): Filters => ({
+const __filters = (): Filters => ({
     "production-tasks": {
         fields: [
             // filterFields["production.assignedToId"],
@@ -180,5 +180,5 @@ export const __filters = (): Filters => ({
     },
 });
 
-export const paymentMethods = SALES_PAYMENT_METHOD_OPTIONS;
-export const dispatchModes = SALES_DELIVERY_OPTIONS;
+const paymentMethods = SALES_PAYMENT_METHOD_OPTIONS;
+const dispatchModes = SALES_DELIVERY_OPTIONS;

@@ -50,7 +50,7 @@ export function useHomeModal() {
 interface Props {
     home?;
 }
-export default function HomeModal({ home }: Props) {
+function HomeModal({ home }: Props) {
     const route = useRouter();
     const modal = useModal();
     const [isSaving, startTransition] = useTransition();

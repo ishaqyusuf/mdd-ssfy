@@ -23,7 +23,7 @@ import {
 } from "@gnd/ui/tooltip";
 import { formatCurrency } from "@/lib/utils";
 
-export type Item =
+type Item =
     RouterOutputs["community"]["getCommunityTemplates"]["data"][number];
 interface ItemProps {
     item: Item;

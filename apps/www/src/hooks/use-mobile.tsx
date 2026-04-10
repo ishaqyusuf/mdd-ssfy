@@ -21,7 +21,7 @@ export function useIsMobile() {
 
     return !!isMobile;
 }
-export function useMobile() {
+function useMobile() {
     const [isMobile, setIsMobile] = React.useState(false);
 
     React.useEffect(() => {

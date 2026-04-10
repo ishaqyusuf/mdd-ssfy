@@ -1,9 +1,9 @@
 import { z } from "zod";
 
-export const newSalesFormTypeSchema = z.enum(["order", "quote"]);
-export type NewSalesFormType = z.infer<typeof newSalesFormTypeSchema>;
+const newSalesFormTypeSchema = z.enum(["order", "quote"]);
+type NewSalesFormType = z.infer<typeof newSalesFormTypeSchema>;
 
-export const newSalesFormLineItemSchema = z.object({
+const newSalesFormLineItemSchema = z.object({
   id: z.number().optional().nullable(),
   uid: z.string(),
   title: z.string().trim().min(1),
@@ -101,7 +101,7 @@ export const newSalesFormLineItemSchema = z.object({
 });
 export type NewSalesFormLineItem = z.infer<typeof newSalesFormLineItemSchema>;
 
-export const newSalesFormSummarySchema = z.object({
+const newSalesFormSummarySchema = z.object({
   subTotal: z.number(),
   taxRate: z.number().min(0).max(100).default(0),
   taxTotal: z.number(),
@@ -109,7 +109,7 @@ export const newSalesFormSummarySchema = z.object({
 });
 export type NewSalesFormSummary = z.infer<typeof newSalesFormSummarySchema>;
 
-export const newSalesFormMetaSchema = z.object({
+const newSalesFormMetaSchema = z.object({
   customerId: z.number().optional().nullable(),
   customerProfileId: z.number().optional().nullable(),
   billingAddressId: z.number().optional().nullable(),
@@ -125,7 +125,7 @@ export const newSalesFormMetaSchema = z.object({
 });
 export type NewSalesFormMeta = z.infer<typeof newSalesFormMetaSchema>;
 
-export const newSalesFormExtraCostTypeSchema = z.enum([
+const newSalesFormExtraCostTypeSchema = z.enum([
   "Discount",
   "DiscountPercentage",
   "Labor",
@@ -134,11 +134,11 @@ export const newSalesFormExtraCostTypeSchema = z.enum([
   "Delivery",
   "EXT",
 ]);
-export type NewSalesFormExtraCostType = z.infer<
+type NewSalesFormExtraCostType = z.infer<
   typeof newSalesFormExtraCostTypeSchema
 >;
 
-export const newSalesFormExtraCostSchema = z.object({
+const newSalesFormExtraCostSchema = z.object({
   id: z.number().optional().nullable(),
   label: z.string().trim().min(1),
   type: newSalesFormExtraCostTypeSchema,

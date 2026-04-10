@@ -14,7 +14,7 @@ import { useRouter } from "expo-router";
 import { createContext, useContext, useState } from "react";
 
 type AuthContextProps = ReturnType<typeof useCreateAuthContext>;
-export const AuthContext = createContext<AuthContextProps>(undefined as any);
+const AuthContext = createContext<AuthContextProps>(undefined as any);
 export const AuthProvider = AuthContext.Provider as any;
 
 const sectionLabels: Record<SectionKey, string> = {

@@ -4,7 +4,7 @@ export function getBaseUrl() {
     }
     return "https://www.gndprodesk.com";
 }
-export function getPdfDownloadUrl() {
+function getPdfDownloadUrl() {
     const url = getBaseUrl();
     return `${url}/api/pdf/download`;
 }

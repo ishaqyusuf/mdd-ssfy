@@ -101,7 +101,7 @@ export async function updateSalesStat(id) {
     });
 }
 
-export async function saveStat(data: Partial<TypedSalesStat>) {
+async function saveStat(data: Partial<TypedSalesStat>) {
     const { id, salesId, ...rest } = data;
     rest.percentage = (rest.score / rest.total) * 100 || 0;
     data.status = statStatus(rest as any).status;

@@ -6,7 +6,7 @@ import type { DispatchItemPackingStatus } from "@sales/types";
 export type GetSalesItemControllables = RenturnTypeAsync<
   typeof getSalesItemControllablesInfoAction
 >;
-export async function getSalesItemControllablesInfoAction(
+async function getSalesItemControllablesInfoAction(
   ctx: TRPCContext,
   salesId
 ) {

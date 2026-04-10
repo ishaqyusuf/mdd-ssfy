@@ -1,7 +1,7 @@
 import { ICan, Roles } from "@gnd/utils/constants";
 import * as SecureStore from "expo-secure-store";
 
-export const SESSION_KEY = "gnd_prodesk";
+const SESSION_KEY = "gnd_prodesk";
 export type SectionKey = "jobs" | "dispatch" | "installer" | "driver";
 export type CurrentSectionKey = SectionKey | "sales";
 export type CurrentSection = {

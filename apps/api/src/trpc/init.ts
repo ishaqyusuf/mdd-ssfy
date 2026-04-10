@@ -42,7 +42,7 @@ const t = initTRPC.context<TRPCContext>().create({
 });
 
 export const createTRPCRouter = t.router;
-export const createCallerFactory = t.createCallerFactory;
+const createCallerFactory = t.createCallerFactory;
 const withPrimaryDbMiddleware = t.middleware(async (opts) => {
   return withAuthPermission({
     ctx: opts.ctx,

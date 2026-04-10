@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import throttle from "lodash.throttle"; // Install lodash if not already done: npm install lodash.throttle
 
-export type Sticky = ReturnType<typeof useSticky>;
+type Sticky = ReturnType<typeof useSticky>;
 export const useSticky = (
     fn: (
         bottomVisible,

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const globalSearchSourceNames = [
+const globalSearchSourceNames = [
 	"sales",
 	"quotes",
 	"dispatch",
@@ -12,7 +12,7 @@ export const globalSearchSourceNames = [
 	"builders",
 ] as const;
 
-export const globalSearchSourceSchema = z.enum(globalSearchSourceNames);
+const globalSearchSourceSchema = z.enum(globalSearchSourceNames);
 export type GlobalSearchSource = z.infer<typeof globalSearchSourceSchema>;
 
 export const globalSearchSchema = z.object({

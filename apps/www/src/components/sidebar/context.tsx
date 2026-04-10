@@ -87,7 +87,7 @@ const { useContext: useSidebar, Provider: SidebarContext } =
             user,
         };
     });
-export { useSidebar, SidebarContext };
+;
 
 export const { useContext: useSidebarState, Provider: SidebarStateProvider } =
     createContextFactory(function (_state: "expanded" | "collapsed") {
@@ -96,7 +96,7 @@ export const { useContext: useSidebarState, Provider: SidebarStateProvider } =
         const [state, setState] = useState(_state);
         return { defaultOpen, setDefaultOpen, state, setState };
     });
-export function SidebarProviderRoot({ children, state }) {
+function SidebarProviderRoot({ children, state }) {
     return (
         <SidebarStateProvider args={[state]}>
             <ShadSidebarProvider>{children}</ShadSidebarProvider>

@@ -1,4 +1,4 @@
-export function isValidUrlFormat(urlString: string) {
+function isValidUrlFormat(urlString: string) {
   try {
     new URL(urlString);
     return true;

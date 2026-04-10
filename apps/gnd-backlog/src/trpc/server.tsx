@@ -16,7 +16,7 @@ import { AppRouter } from "@gnd/api/trpc/routers/_app";
 
 // IMPORTANT: Create a stable getter for the query client that
 //            will return the same client during the same request.
-export const getQueryClient = cache(makeQueryClient);
+const getQueryClient = cache(makeQueryClient);
 
 export const trpc = createTRPCOptionsProxy<AppRouter>({
   queryClient: getQueryClient,
@@ -43,7 +43,7 @@ export const trpc = createTRPCOptionsProxy<AppRouter>({
   }),
 });
 
-export function HydrateClient(props: { children: React.ReactNode }) {
+function HydrateClient(props: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
 
   return (
@@ -53,7 +53,7 @@ export function HydrateClient(props: { children: React.ReactNode }) {
   );
 }
 
-export function prefetch<T extends ReturnType<TRPCQueryOptions<any>>>(
+function prefetch<T extends ReturnType<TRPCQueryOptions<any>>>(
   queryOptions: T,
 ) {
   const queryClient = getQueryClient();

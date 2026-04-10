@@ -5,7 +5,7 @@ export const PostTypes = {
     SWINGS: "swings",
     SUPPLIERS: "suppliers",
 };
-export type PostType = "sales-settings" | "swings" | "suppliers";
+type PostType = "sales-settings" | "swings" | "suppliers";
 export type ISalesSetting = Settings & {
     meta: ISalesSettingMeta;
 };

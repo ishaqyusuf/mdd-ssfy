@@ -45,7 +45,7 @@ function whereBacklog(query: GetBacklogsSchema) {
 export const backlogFormSchema = z.object({
   id: z.number(),
 });
-export type BacklogFormSchema = z.infer<typeof backlogFormSchema>;
+type BacklogFormSchema = z.infer<typeof backlogFormSchema>;
 export const backlogForm = publicProcedure
   .input(backlogFormSchema)
   .query(async (props) => {
@@ -69,13 +69,13 @@ export const saveBacklogSchema = z.object({
   title: z.string(),
   description: z.string().optional().nullable(),
 });
-export type SaveBacklogSchema = z.infer<typeof saveBacklogSchema>;
-export const saveBacklog = publicProcedure
+type SaveBacklogSchema = z.infer<typeof saveBacklogSchema>;
+const saveBacklog = publicProcedure
   .input(saveBacklogSchema)
   .mutation(async (props) => {
     return __saveBacklog(props.ctx, props.input);
   });
-export async function __saveBacklog(
+async function __saveBacklog(
   ctx: TRPCContext,
   query: SaveBacklogSchema
 ) {

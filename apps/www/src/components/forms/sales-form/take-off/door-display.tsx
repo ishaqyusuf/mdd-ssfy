@@ -29,7 +29,7 @@ export function DoorDisplay({}) {
         </div>
     );
 }
-export function DoorTitle({}) {
+function DoorTitle({}) {
     const item = useTakeoffItem();
 
     return (

@@ -47,7 +47,7 @@ interface Props {
     data?;
     type: "main" | "tasks" | "installations";
 }
-export default function BuilderModal({
+function BuilderModal({
     type,
     data = {
         meta: {

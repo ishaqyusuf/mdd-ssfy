@@ -135,7 +135,7 @@ export function cn(
   ) as any;
 }
 
-export function style(...names: (StyleType | false | undefined | null)[]) {
+function style(...names: (StyleType | false | undefined | null)[]) {
   return names.reduce(
     (acc, name) => {
       if (name && tw[name]) {

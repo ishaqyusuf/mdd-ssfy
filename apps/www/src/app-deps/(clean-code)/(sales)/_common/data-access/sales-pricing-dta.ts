@@ -18,12 +18,12 @@ export async function getPricingListDta(
     });
     return pricings;
 }
-export async function getComponentPricingListByUidDta(stepProductUid) {
+async function getComponentPricingListByUidDta(stepProductUid) {
     return await getPricingListDta({
         stepProductUid,
     });
 }
-export async function updateComponentPricingsDta(
+async function updateComponentPricingsDta(
     data: Partial<Prisma.DykePricingSystemCreateManyInput>[],
 ) {
     const updateByPrice: { [price in string]: number[] } = {};
@@ -52,7 +52,7 @@ export async function updateComponentPricingsDta(
             },
         });
 }
-export async function saveComponentPricingsDta(
+async function saveComponentPricingsDta(
     data: Prisma.DykePricingSystemCreateManyInput[],
 ) {
     const newData = data
@@ -69,12 +69,12 @@ export async function saveComponentPricingsDta(
         status: "success",
     };
 }
-export async function saveHarvestedDta(ls) {
+async function saveHarvestedDta(ls) {
     return await prisma.dykePricingSystem.createMany({
         data: ls,
     });
 }
-export async function harvestSalesPricingDta() {
+async function harvestSalesPricingDta() {
     const steps = await prisma.dykeStepProducts.findMany({
         where: {
             door: {

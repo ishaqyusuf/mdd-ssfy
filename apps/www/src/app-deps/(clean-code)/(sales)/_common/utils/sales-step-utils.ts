@@ -83,7 +83,7 @@ const hiddenDisplaySteps = [
     "Hand",
     "Width",
 ];
-export const composeStepFormDisplay = (
+const composeStepFormDisplay = (
     stepForms: any[],
     sectionTitle = null,
 ) => {

@@ -97,7 +97,7 @@ export async function getLoggedInProfile(debugMode = false) {
     //     tags,
     // })()) as AsyncFnType<typeof fn>;
 }
-export async function setSidebarAuthId(userId, e) {
+async function setSidebarAuthId(userId, e) {
     (await cookies()).set(
         "side-bar-auth-id",
         JSON.stringify({

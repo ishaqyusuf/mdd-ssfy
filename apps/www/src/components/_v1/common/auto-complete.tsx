@@ -14,7 +14,7 @@ import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 
 // import JsonSearch from "search-array";
-export interface AutoCompleteProps {
+interface AutoCompleteProps {
     options?: any[];
     value?: any;
     onChange?;

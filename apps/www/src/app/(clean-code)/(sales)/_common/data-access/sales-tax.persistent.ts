@@ -4,7 +4,7 @@ import { prisma, SalesTaxes, Taxes } from "@/db";
 import { generateRandomString, sum } from "@/lib/utils";
 import { DykeForm } from "@/app-deps/(v2)/(loggedIn)/sales-v2/type";
 
-export async function saveSalesTaxDta(data: DykeForm, salesId) {
+async function saveSalesTaxDta(data: DykeForm, salesId) {
     const taxForm = data._taxForm;
     const taxList = Object.values(taxForm.taxByCode);
     const selectTaxes = taxList.filter((s) => s.selected);
@@ -45,15 +45,15 @@ export async function saveSalesTaxDta(data: DykeForm, salesId) {
         await prisma.salesTaxes.createMany({ data: newTaxes as any });
 }
 
-export async function getTaxList() {
+async function getTaxList() {
     return await prisma.taxes.findMany({});
 }
-export async function getWithDeletedTaxList() {
+async function getWithDeletedTaxList() {
     return await prisma.taxes.findMany({
         where: withDeleted,
     });
 }
-export async function createSalesTax(tax: Taxes) {
+async function createSalesTax(tax: Taxes) {
     return await prisma.taxes.create({
         data: {
             ...tax,

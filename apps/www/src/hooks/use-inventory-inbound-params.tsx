@@ -13,7 +13,7 @@ export function useInventoryInboundParams() {
     };
 }
 
-export const loadInventoryInboundParams = createLoader(
+const loadInventoryInboundParams = createLoader(
     inventoryInboundParamsSchema,
 );
 

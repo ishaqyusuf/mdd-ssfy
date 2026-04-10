@@ -3,7 +3,7 @@ import { SearchParamsType, searchParamsSerializer } from "./search-params";
 import { infiniteQueryOptions, keepPreviousData } from "@gnd/ui/tanstack";
 import { Percentile } from "@/lib/request/percentile";
 
-export type InfiniteQueryMeta = {
+type InfiniteQueryMeta = {
     totalRowCount: number;
     filterRowCount: number;
     totalFilters; //: MakeArray<ColumnSchema>;

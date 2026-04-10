@@ -13,7 +13,7 @@ import SalesPrintFooter from "./components/sales-print-footer";
 import { env } from "@/env.mjs";
 import { formatDate } from "@gnd/utils/dayjs";
 
-export type SalesPrintData = NonNullable<
+type SalesPrintData = NonNullable<
     Awaited<ReturnType<typeof getSalesPrintData>>
 >;
 interface Props {
@@ -25,7 +25,7 @@ interface Props {
 interface SalesBlockCtxProps extends BasePrintProps {
     sale: SalesPrintData;
 }
-export const SalesBlockCtx = React.createContext<SalesBlockCtxProps>(
+const SalesBlockCtx = React.createContext<SalesBlockCtxProps>(
     null as any
 );
 export const useSalesBlockCtx = () =>

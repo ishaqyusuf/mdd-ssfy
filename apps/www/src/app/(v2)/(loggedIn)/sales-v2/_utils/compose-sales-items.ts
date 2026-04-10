@@ -60,7 +60,7 @@ export function composeSalesItems(data: ViewSaleType) {
     };
 }
 
-export function composeDoorDetails(
+function composeDoorDetails(
     steps: ViewSaleType["items"][0]["formSteps"],
     item: ViewSaleType["items"][0],
 ) {

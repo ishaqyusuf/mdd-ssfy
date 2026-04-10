@@ -31,7 +31,7 @@ export function ftToIn(h) {
         .filter(Boolean);
     return `${+_in + +ft * 12}in`;
 }
-export function createSaleStat(type: QtyControlType, score, total, salesId) {
+function createSaleStat(type: QtyControlType, score, total, salesId) {
     const percentage = (score / total) * 100 || 0;
     return {
         type,
@@ -81,14 +81,14 @@ export function statStatus(stat: SalesStat): {
     };
 }
 
-export function itemLineIndex(line) {
+function itemLineIndex(line) {
     return Number(line?.meta?.line_index || line?.meta?.uid || 0);
 }
 export function sortSalesItems(a, b) {
     return itemLineIndex(a) - itemLineIndex(b);
 }
 
-export function isNewSales(orderId) {
+function isNewSales(orderId) {
     return ["quo-", "ord-"].some((a) => orderId?.toLowerCase()?.startsWith(a));
 }
 export const composeSalesUrl = (props) =>
@@ -96,7 +96,7 @@ export const composeSalesUrl = (props) =>
         ? `/sales-book/edit-${props.type}/${props.orderId || props.slug}`
         : `/sales/edit/${props.type}/${props.orderId || props.slug}`;
 
-export const qtyControlDifference = <T>(from: T, sub): T => {
+const qtyControlDifference = <T>(from: T, sub): T => {
     let result: any = {};
     Object.entries(from).map(([k, v]) => {
         result[k] = sum([v, sub[k]]);

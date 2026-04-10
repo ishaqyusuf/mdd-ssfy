@@ -9,7 +9,7 @@ import { cn } from "@gnd/ui/cn";
 import { Icon, IconKeys } from "./_v1/icons";
 
 type ButtonProps = React.ComponentProps<typeof Button>;
-export interface ConfirmBtnProps extends ButtonProps {
+interface ConfirmBtnProps extends ButtonProps {
     icon?: IconKeys;
     trash?: boolean;
     variant?: ButtonProps["variant"];

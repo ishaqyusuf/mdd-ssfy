@@ -93,7 +93,7 @@ export function overallStatus(dataStats: Prisma.SalesStatGetPayload<{}>[]) {
   };
 }
 
-export function statStatus(stat: Prisma.SalesStatGetPayload<{}>): {
+function statStatus(stat: Prisma.SalesStatGetPayload<{}>): {
   color;
   status: SalesStatStatus;
   scoreStatus: string;
@@ -208,7 +208,7 @@ export const SalesListInclude = {
     },
   },
 } satisfies Prisma.SalesOrdersInclude;
-export const excludeDeleted = {
+const excludeDeleted = {
   where: { deletedAt: null },
 };
 const AssignmentsInclude = {
@@ -233,7 +233,7 @@ const AssignmentsInclude = {
 } satisfies
   | Prisma.DykeSalesDoors$productionsArgs
   | Prisma.SalesOrderItems$assignmentsArgs;
-export const SalesIncludeAll = {
+const SalesIncludeAll = {
   extraCosts: true,
   items: {
     where: { deletedAt: null },

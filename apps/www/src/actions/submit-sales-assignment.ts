@@ -11,7 +11,7 @@ import { createSubmissionSchema } from "./schema";
 import { updateSalesItemStats } from "./update-sales-item-stat";
 import { updateSalesStatAction } from "./update-sales-stat";
 
-export async function submitSalesAssignment(
+async function submitSalesAssignment(
     data: z.infer<typeof createSubmissionSchema>,
     tx: typeof prisma = prisma,
 ) {

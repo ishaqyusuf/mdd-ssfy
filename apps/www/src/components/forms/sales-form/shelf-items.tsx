@@ -84,7 +84,7 @@ export function ShelfItems({ itemStepUid }) {
         </ShelfContext.Provider>
     );
 }
-export function ShelfItemLine({
+function ShelfItemLine({
     shelfUid,
     index,
     isLast,

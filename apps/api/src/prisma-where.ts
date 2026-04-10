@@ -158,7 +158,7 @@ export function whereDispatch(query: DispatchQueryParamsSchema) {
 }
 export { whereSales };
 
-export function parseSearchparams(_params) {
+function parseSearchparams(_params) {
   let itemSearch: any = null;
   if (_params?.startsWith("item:")) {
     itemSearch = _params.split("item:")[1]?.trim();

@@ -63,7 +63,7 @@ export async function getDoorSizesDta(height) {
         return aSecond - bSecond;
     });
 }
-export async function getHptSettings() {
+async function getHptSettings() {
     const s = await prisma.settings.findFirst({
         where: {
             type: "house-package-tools" as SettingType,

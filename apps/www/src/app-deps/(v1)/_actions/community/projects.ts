@@ -39,7 +39,7 @@ export async function getProjectsAction(
     };
 }
 
-export async function saveProject(project: IProject) {
+async function saveProject(project: IProject) {
     project.slug = await slugModel(project.title, prisma.projects);
     const _project = await prisma.projects.create({
         data: transformData(project) as any,
@@ -87,7 +87,7 @@ export async function staticProjectsAction() {
 
     return f;
 }
-export async function updateCommunityCost(id, meta: IProjectMeta) {
+async function updateCommunityCost(id, meta: IProjectMeta) {
     await updateProjectMeta(id, meta);
     revalidatePath("/settings/community/community-costs", "page");
 }

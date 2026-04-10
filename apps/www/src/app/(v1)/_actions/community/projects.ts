@@ -11,11 +11,11 @@ import { _cache } from "../_cache/load-data";
 import { _revalidate } from "../_revalidate";
 import { getPageInfo, queryFilter } from "../action-utils";
 
-export interface ProjectsQueryParams extends BaseQuery {
+interface ProjectsQueryParams extends BaseQuery {
     _builderId;
 }
 
-export async function getProjectsAction(
+async function getProjectsAction(
     query: ProjectsQueryParams,
 ): TableApiResponse<IProject> {
     const where = whereProject(query);
@@ -87,11 +87,11 @@ export async function staticProjectsAction() {
 
     return f;
 }
-export async function updateCommunityCost(id, meta: IProjectMeta) {
+async function updateCommunityCost(id, meta: IProjectMeta) {
     await updateProjectMeta(id, meta);
     revalidatePath("/settings/community/community-costs", "page");
 }
-export async function updateProjectMeta(id, meta: IProjectMeta) {
+async function updateProjectMeta(id, meta: IProjectMeta) {
     await prisma.projects.update({
         where: {
             id,

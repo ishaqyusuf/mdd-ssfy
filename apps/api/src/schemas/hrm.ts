@@ -43,13 +43,13 @@ export const getEmployeeFormDataSchema = z.object({
 export type GetEmployeeFormDataSchema = z.infer<
   typeof getEmployeeFormDataSchema
 >;
-export const updateEmployeeRoleSchema = z.object({
+const updateEmployeeRoleSchema = z.object({
   roleId: z.number(),
   userId: z.number(),
 });
-export type UpdateEmployeeRoleSchema = z.infer<typeof updateEmployeeRoleSchema>;
+type UpdateEmployeeRoleSchema = z.infer<typeof updateEmployeeRoleSchema>;
 
-export const updateUserProfileSchema = z.object({
+const updateUserProfileSchema = z.object({
   name: z.string(),
   username: z.string().optional().nullable(),
   phoneNo: z.string().optional().nullable(),

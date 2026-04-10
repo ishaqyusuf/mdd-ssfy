@@ -539,7 +539,7 @@ function ActionMenu({ item }: { item: Item }) {
 		</Menu>
 	);
 }
-export function SalesItemCard({ item: dispatch }: { item: Item }) {
+function SalesItemCard({ item: dispatch }: { item: Item }) {
 	const ctx = useSalesOverviewQuery();
 
 	return (

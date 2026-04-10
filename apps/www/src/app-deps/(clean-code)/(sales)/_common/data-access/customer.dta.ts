@@ -12,7 +12,7 @@ import { SalesMeta, SalesType } from "../../types";
 import { getCustomerWalletInfoDta } from "./wallet/wallet-dta";
 
 export type CustomersQueryParams = Pick<SearchParamsType, "search" | "address">;
-export type GetCustomersDta = AsyncFnType<typeof getCustomersDta>;
+type GetCustomersDta = AsyncFnType<typeof getCustomersDta>;
 
 export async function getCustomersDta(query: CustomersQueryParams) {
     const where = whereCustomers(query);
@@ -47,7 +47,7 @@ export async function getCustomersDta(query: CustomersQueryParams) {
         }),
     };
 }
-export async function getCustomersSimpleListDta() {
+async function getCustomersSimpleListDta() {
     const data = await prisma.customers.findMany({
         select: {
             phoneNo: true,
@@ -58,7 +58,7 @@ export async function getCustomersSimpleListDta() {
     });
     return data;
 }
-export async function updateCustomerEmailDta(id, email) {
+async function updateCustomerEmailDta(id, email) {
     if (!id) throw new Error("Customer id is required");
     await prisma.customers.update({
         where: {
@@ -85,7 +85,7 @@ export async function saveCustomerDta(data: Prisma.CustomersCreateInput) {
 
     return customer;
 }
-export async function getCustomerProfileDta(phoneNo) {
+async function getCustomerProfileDta(phoneNo) {
     const customer = await prisma.customers.upsert({
         where: {
             phoneNo,
@@ -107,15 +107,15 @@ export async function getCustomerProfileDta(phoneNo) {
         phoneNo: customer.phoneNo,
     };
 }
-export async function getCustomerNameDta(phoneNo) {
+async function getCustomerNameDta(phoneNo) {
     const customer = await getCustomerProfileDta(phoneNo);
     return customer?.displayName?.toUpperCase();
 }
-export async function getCustomerOverviewDta(phoneNo) {
+async function getCustomerOverviewDta(phoneNo) {
     const profile = await getCustomerProfileDta(phoneNo);
     const customerInfo = await getCustomerSalesInfoDta(phoneNo);
 }
-export async function getCustomerSalesInfoDta(phoneNo) {
+async function getCustomerSalesInfoDta(phoneNo) {
     const salesList = (
         await prisma.salesOrders.findMany({
             where: {
@@ -166,7 +166,7 @@ export async function getCustomerSalesInfoDta(phoneNo) {
         }),
     };
 }
-export async function getCustomerPaymentInfo(phoneNo) {
+async function getCustomerPaymentInfo(phoneNo) {
     const orders = await prisma.salesOrders.findMany({
         where: {
             OR: [
@@ -202,7 +202,7 @@ export async function getCustomerPaymentInfo(phoneNo) {
     };
 }
 
-export async function getCustomerIdByPhoneNo(phoneNo) {
+async function getCustomerIdByPhoneNo(phoneNo) {
     return (
         await prisma.customers.findFirst({
             where: {
