@@ -2,6 +2,27 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-04-10
+
+- Moved notification channel built-in sync out of the read query and into an explicit mutation.
+  - `packages/notifications/src/channels-query.ts` now loads channels without creating/restoring built-in rows during page fetch
+  - the list response now exposes `meta.staticUpdateChecker` so the UI can tell when built-in channels are out of sync
+  - added a new `notes.syncNotificationChannels` mutation in `apps/api` to create or restore built-in channels on demand
+  - updated the v2 settings UI to show an `Update Channels` button whenever the query reports missing built-in definitions
+
+- Rebuilt notification channels as a new v2 settings page at `/settings/notification-channels/v2`.
+  - replaced the old suspense-heavy notification-channels entrypoint with a redirect to the new v2 route
+  - added a simpler client-driven master-detail UI that uses plain tRPC queries with explicit loading states instead of the previous infinite-table loader
+  - wired role assignment, delivery-method toggles, and manual subscriber add/remove into the new screen
+  - updated the sidebar settings link to open the new v2 page directly
+  - validation note: focused `biome check` passes for the new web route and component files; `apps/api/src/db/queries/note.ts` and `apps/api/src/trpc/routers/notes.route.ts` still carry unrelated pre-existing lint issues outside this rebuild
+
+- Fixed the web notification-channels query contract so the settings page can resolve its shared infinite-table loader reliably.
+  - updated `packages/notifications/src/channels-query.ts` to return paginated `{ data, meta }` responses via `composeQueryData`, matching the table/query expectations used across the web app
+  - added support for the `q` search parameter in notification-channel filtering so the page search box and route input stay aligned
+  - preserved the built-in channel auto-restore/create behavior before the paginated fetch runs
+  - validation note: `bunx biome check packages/notifications/src/channels-query.ts` passes; workspace `@gnd/api` and `@gnd/notifications` typechecks still fail due to unrelated pre-existing errors in other files
+
 ## 2026-04-08
 
 - Reduced Trigger startup cost for the duplicated sales email tasks.
