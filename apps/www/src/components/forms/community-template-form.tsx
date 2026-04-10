@@ -13,6 +13,7 @@ import { z } from "zod";
 import { useCommunityProjectList } from "@/hooks/use-community-lists";
 import { toast } from "@gnd/ui/use-toast";
 import { useCommunityTemplateParams } from "@/hooks/use-community-template-params";
+import { revalidatePathAction } from "@/actions/revalidate-path";
 
 interface Props {
     data;
@@ -42,12 +43,19 @@ export function CommunityTemplateForm({ data }: Props) {
     const saveTemplateMutate = useMutation(
         trpc.community.saveCommunityTemplateData.mutationOptions({
             onSuccess(data, variables, context) {
+                revalidatePathAction("/settings/community/community-templates");
                 qc.invalidateQueries({
-                    //  queryKey: trpc..queryKey()
+                    queryKey: trpc.community.getCommunityTemplates.infiniteQueryKey(),
+                });
+                qc.invalidateQueries({
+                    queryKey: trpc.community.getCommunityTemplateForm.queryKey({
+                        templateId: variables.id || -1,
+                    }),
                 });
                 setParams(null);
                 toast({
                     title: "Saved",
+                    variant: "success",
                 });
             },
         }),
@@ -97,4 +105,3 @@ export function CommunityTemplateForm({ data }: Props) {
         </Form>
     );
 }
-

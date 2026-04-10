@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { InstallCostBtn } from "@/components/install-cost-btn";
 import { ModelTemplateSetting } from "@/components/model-template-setting";
 import { openLink } from "@/lib/open-link";
@@ -12,10 +13,12 @@ import { SubmitButton } from "@gnd/ui/submit-button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCommunityTemplateV1 } from "./context";
+import { CopyDesignModal } from "./copy-design-modal";
 
 export function V1FormHeader() {
 	const { templateData, isSaving, save } = useCommunityTemplateV1();
 	const router = useRouter();
+	const [copyOpen, setCopyOpen] = useState(false);
 
 	return (
 		<div className="space-y-2">
@@ -39,6 +42,16 @@ export function V1FormHeader() {
 			</Portal>
 			<div className="flex flex-wrap gap-2 justify-end">
 				<div className="flex-1" />
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => {
+						setCopyOpen(true);
+					}}
+				>
+					<Icons.Copy className="size-4" />
+					Copy Design
+				</Button>
 				<Button
 					variant="outline"
 					size="sm"
@@ -81,6 +94,7 @@ export function V1FormHeader() {
 					Save
 				</SubmitButton>
 			</div>
+			<CopyDesignModal open={copyOpen} onOpenChange={setCopyOpen} />
 		</div>
 	);
 }

@@ -6,6 +6,7 @@ import { ComboboxDropdown, ComboboxItem } from "@gnd/ui/combobox-dropdown";
 import { Label } from "@gnd/ui/label";
 import { cn } from "@gnd/ui/cn";
 import { Input } from "@gnd/ui/input";
+import { CommandItem } from "@gnd/ui/command";
 import { useMediaQuery } from "@gnd/ui/hooks";
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { useCommunityTemplateV1 } from "./context";
@@ -96,6 +97,51 @@ export function DesignInput({
                                 <span>{`Use "${value}"`}</span>
                             </div>
                         )}
+                        renderActions={({ inputValue, close }) => {
+                            const normalizedInput = inputValue.trim().toUpperCase();
+                            const normalizedCurrent = String(currentValue || "")
+                                .trim()
+                                .toUpperCase();
+
+                            return (
+                                <>
+                                    {normalizedInput &&
+                                    normalizedInput !== normalizedCurrent ? (
+                                        <CommandItem
+                                            value={`fill-${normalizedInput}`}
+                                            onSelect={() => {
+                                                form.setValue(
+                                                    formKey as any,
+                                                    normalizedInput,
+                                                );
+                                                close();
+                                            }}
+                                            onMouseDown={(event) => {
+                                                event.preventDefault();
+                                                event.stopPropagation();
+                                            }}
+                                        >
+                                            Fill input with "{normalizedInput}"
+                                        </CommandItem>
+                                    ) : null}
+                                    {normalizedCurrent ? (
+                                        <CommandItem
+                                            value={`clear-${formKey}`}
+                                            onSelect={() => {
+                                                form.setValue(formKey as any, "");
+                                                close();
+                                            }}
+                                            onMouseDown={(event) => {
+                                                event.preventDefault();
+                                                event.stopPropagation();
+                                            }}
+                                        >
+                                            Clear input
+                                        </CommandItem>
+                                    ) : null}
+                                </>
+                            );
+                        }}
                     />
                 ) : (
                     <Input

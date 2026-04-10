@@ -32,6 +32,10 @@ interface CommunityTemplateV1ContextValue {
     isSaving: boolean;
     autocompleteEnabled: boolean;
     setAutocompleteEnabled: (enabled: boolean) => void;
+    importDesignFromTemplate: (template: {
+        modelName: string;
+        meta: any;
+    }) => void;
     save: () => void;
 }
 
@@ -132,6 +136,18 @@ export function CommunityTemplateV1Provider({ slug, children }: ProviderProps) {
         });
     };
 
+    const importDesignFromTemplate = (template: {
+        modelName: string;
+        meta: any;
+    }) => {
+        const importedDesign = transformCommunityTemplate(template?.meta?.design || {});
+        const currentCtx = form.getValues("ctx");
+        form.reset({
+            ...(importedDesign as any),
+            ctx: currentCtx,
+        });
+    };
+
     const setAutocompleteEnabled = (enabled: boolean) => {
         setAutocompleteEnabledState(enabled);
         document.cookie = `${TEMPLATE_V1_AUTOCOMPLETE_COOKIE}=${enabled}; path=/; max-age=${TEMPLATE_V1_AUTOCOMPLETE_COOKIE_MAX_AGE}; SameSite=Lax`;
@@ -145,6 +161,7 @@ export function CommunityTemplateV1Provider({ slug, children }: ProviderProps) {
             isSaving,
             autocompleteEnabled,
             setAutocompleteEnabled,
+            importDesignFromTemplate,
             save,
         }),
         [
@@ -153,6 +170,7 @@ export function CommunityTemplateV1Provider({ slug, children }: ProviderProps) {
             templateData,
             isSaving,
             autocompleteEnabled,
+            importDesignFromTemplate,
         ],
     );
 

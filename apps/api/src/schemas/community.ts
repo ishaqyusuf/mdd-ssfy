@@ -10,6 +10,13 @@ export const communityTemplateFormSchema = z.object({
 });
 export type CommunityTemplateForm = z.infer<typeof communityTemplateFormSchema>;
 
+export const deleteCommunityTemplateSchema = z.object({
+  templateId: z.number(),
+});
+export type DeleteCommunityTemplate = z.infer<
+  typeof deleteCommunityTemplateSchema
+>;
+
 export const createCommunityModelCostSchema = z.object({
   builderId: z.number(),
   modelName: z.string(),

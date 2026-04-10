@@ -46,6 +46,10 @@ export interface ComboboxProps<T> {
   onSearch?: (value: string) => void;
   Trigger?: React.ReactNode;
   showCreateWhenMatches?: boolean;
+  renderActions?: (context: {
+    inputValue: string;
+    close: () => void;
+  }) => React.ReactNode;
 }
 export function ComboboxDropdown<T extends ComboboxItem>({
   headless,
@@ -69,6 +73,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
   openChanged,
   Trigger,
   showCreateWhenMatches,
+  renderActions,
 }: ComboboxProps<T>) {
   const [open, setOpen] = React.useState(false);
   const [internalSelectedItem, setInternalSelectedItem] = React.useState<
@@ -186,6 +191,15 @@ export function ComboboxDropdown<T extends ComboboxItem>({
                 {renderOnCreate ? renderOnCreate(inputValue) : null}
               </CommandItem>
             )}
+            {renderActions
+              ? renderActions({
+                  inputValue,
+                  close: () => {
+                    setOpen(false);
+                    setInputValue("");
+                  },
+                })
+              : null}
           </div>
         </CommandList>
       </CommandGroup>

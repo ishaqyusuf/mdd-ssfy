@@ -2,6 +2,7 @@ import type {
   CommunityTemplateForm,
   CommunityModelCostForm,
   CreateCommunityModelCost,
+  DeleteCommunityTemplate,
   SaveCommunityModelCost,
   UpdateInstallCostSchema,
 } from "@api/schemas/community";
@@ -16,6 +17,7 @@ import {
   normalizeStoredDocument,
 } from "@api/utils/stored-documents";
 import { publicProcedure, type TRPCContext } from "@api/trpc/init";
+import { TRPCError } from "@trpc/server";
 import { put } from "@vercel/blob";
 import { buildOwnerDocumentFolder } from "@gnd/documents";
 import slugify from "slugify";
@@ -215,14 +217,16 @@ export async function buildersList(ctx: TRPCContext) {
   return _data;
 }
 export async function getCommunityTemplateForm(ctx: TRPCContext, templateId) {
-  const data = await ctx.db.communityModels.findUniqueOrThrow({
+  const data = await ctx.db.communityModels.findFirstOrThrow({
     where: {
       id: templateId,
+      deletedAt: null,
     },
   });
   return {
     projectId: data.projectId,
     modelName: data.modelName,
+    oldModelName: data.modelName,
     id: data.id,
   };
 }
@@ -243,7 +247,7 @@ export async function saveCommunityTemplateForm(
       await ctx.db.homes.updateMany({
         where: {
           projectId: data.projectId,
-          modelName: data.modelName,
+          modelName: data.oldModelName,
         },
         data: {
           communityTemplateId: data.id!,
@@ -290,6 +294,51 @@ export async function saveCommunityTemplateForm(
       },
     });
   }
+}
+
+export async function deleteCommunityTemplate(
+  ctx: TRPCContext,
+  data: DeleteCommunityTemplate,
+) {
+  const template = await ctx.db.communityModels.findFirstOrThrow({
+    where: {
+      id: data.templateId,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      _count: {
+        select: {
+          homes: {
+            where: {
+              deletedAt: null,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (template._count.homes > 0) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message:
+        "This template has linked units and cannot be deleted until those units are reassigned.",
+    });
+  }
+
+  await ctx.db.communityModels.update({
+    where: {
+      id: template.id,
+    },
+    data: {
+      deletedAt: new Date(),
+    },
+  });
+
+  return {
+    success: true,
+  };
 }
 export async function createCommnunityModelCost(
   ctx: TRPCContext,

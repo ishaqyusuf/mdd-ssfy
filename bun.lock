@@ -37,6 +37,7 @@
         "@gnd/db": "workspace:*",
         "@gnd/dev-logger": "workspace:*",
         "@gnd/documents": "workspace:*",
+        "@gnd/inventory": "workspace:*",
         "@gnd/jobs": "workspace:*",
         "@gnd/logger": "workspace:*",
         "@gnd/notifications": "workspace:*",
@@ -637,6 +638,18 @@
         "typescript": "^5.9.3",
       },
     },
+    "packages/inventory": {
+      "name": "@gnd/inventory",
+      "dependencies": {
+        "@gnd/db": "workspace:*",
+        "@gnd/utils": "workspace:*",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@gnd/tsconfig": "workspace:*",
+        "typescript": "^5.9.3",
+      },
+    },
     "packages/jobs": {
       "name": "@gnd/jobs",
       "version": "0.0.1",
@@ -645,6 +658,7 @@
         "@gnd/community": "workspace:*",
         "@gnd/db": "workspace:*",
         "@gnd/email": "workspace:*",
+        "@gnd/inventory": "workspace:*",
         "@gnd/notifications": "workspace:*",
         "@gnd/sales": "workspace:*",
         "@gnd/settings": "workspace:*",
@@ -738,6 +752,7 @@
       "name": "@gnd/sales",
       "dependencies": {
         "@gnd/db": "workspace:*",
+        "@gnd/inventory": "workspace:*",
         "@gnd/ui": "workspace:*",
         "@gnd/utils": "workspace:*",
         "@react-pdf/renderer": "^4.3.0",
@@ -1504,6 +1519,8 @@
     "@gnd/expo-app": ["@gnd/expo-app@workspace:apps/expo-app"],
 
     "@gnd/gnd-backlog": ["@gnd/gnd-backlog@workspace:apps/gnd-backlog"],
+
+    "@gnd/inventory": ["@gnd/inventory@workspace:packages/inventory"],
 
     "@gnd/jobs": ["@gnd/jobs@workspace:packages/jobs"],
 

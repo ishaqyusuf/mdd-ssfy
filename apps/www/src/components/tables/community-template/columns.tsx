@@ -22,6 +22,11 @@ import {
     TooltipTrigger,
 } from "@gnd/ui/tooltip";
 import { formatCurrency } from "@/lib/utils";
+import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
+import { useTRPC } from "@/trpc/client";
+import { toast } from "@gnd/ui/use-toast";
+import { AlertDialog } from "@gnd/ui/namespace";
+import { useState } from "react";
 
 export type Item =
     RouterOutputs["community"]["getCommunityTemplates"]["data"][number];
@@ -73,11 +78,15 @@ const units: Column = {
     accessorKey: "units",
     meta: {
         className: "w-[50px] text-center",
+        preventDefault: true,
     },
     cell: ({ row: { original: item } }) => (
-        <>
+        <Link
+            href={`/community/project-units?projectSlug=${item.project?.slug}&q=${encodeURIComponent(item.modelName)}`}
+            className="inline-flex justify-center hover:underline"
+        >
             <TCell.Primary>{item._count.homes}</TCell.Primary>
-        </>
+        </Link>
     ),
 };
 const modelCost: Column = {
@@ -243,37 +252,107 @@ export const columns: Column[] = [
 
 function Actions({ item }: ItemProps) {
     const isMobile = useIsMobile();
+    const trpc = useTRPC();
+    const qc = useQueryClient();
+    const { setParams } = useCommunityTemplateParams();
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const deleteTemplate = useMutation(
+        trpc.community.deleteCommunityTemplate.mutationOptions({
+            onSuccess() {
+                qc.invalidateQueries({
+                    queryKey: trpc.community.getCommunityTemplates.infiniteQueryKey(),
+                });
+                qc.invalidateQueries({
+                    queryKey: trpc.community.getCommunityTemplateForm.queryKey({
+                        templateId: item.id,
+                    }),
+                });
+                setConfirmOpen(false);
+                toast({
+                    title: "Deleted",
+                    variant: "success",
+                });
+            },
+            onError(error) {
+                toast({
+                    title: error.message || "Unable to delete template",
+                    variant: "destructive",
+                });
+            },
+        }),
+    );
+
     return (
-        <div className="relative flex justify-end z-10">
-            <Menu
-                triggerSize={isMobile ? "default" : "xs"}
-                Trigger={
-                    <Button
-                        className={cn(isMobile || "size-4 p-0")}
-                        variant="ghost"
-                    >
-                        <Icons.MoreHoriz className="" />
-                    </Button>
-                }
-            >
-                <Menu.Item
-                    onClick={(e) => {
-                        openLink(
-                            "p/model-template",
-                            {
-                                preview: true,
-                                // slugs: [item.id].join(","),
-                                // slugs: "",
-                                templateSlug: item.slug,
-                            },
-                            true,
-                        );
-                    }}
+        <>
+            <div className="relative z-10 flex justify-end">
+                <Menu
+                    triggerSize={isMobile ? "default" : "xs"}
+                    Trigger={
+                        <Button
+                            className={cn(isMobile || "size-4 p-0")}
+                            variant="ghost"
+                        >
+                            <Icons.MoreHoriz className="" />
+                        </Button>
+                    }
                 >
-                    Preview
-                </Menu.Item>
-            </Menu>
-        </div>
+                    <Menu.Item
+                        onClick={() => {
+                            setParams({
+                                templateId: item.id,
+                            });
+                        }}
+                    >
+                        Edit
+                    </Menu.Item>
+                    <Menu.Item
+                        onClick={() => {
+                            openLink(
+                                "p/model-template",
+                                {
+                                    preview: true,
+                                    templateSlug: item.slug,
+                                },
+                                true,
+                            );
+                        }}
+                    >
+                        Preview
+                    </Menu.Item>
+                    <Menu.Item
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => {
+                            setConfirmOpen(true);
+                        }}
+                    >
+                        Delete
+                    </Menu.Item>
+                </Menu>
+            </div>
+            <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+                <AlertDialog.Content>
+                    <AlertDialog.Header>
+                        <AlertDialog.Title>Delete Community Template</AlertDialog.Title>
+                        <AlertDialog.Description>
+                            Delete {item.modelName}? Templates linked to units
+                            cannot be deleted.
+                        </AlertDialog.Description>
+                    </AlertDialog.Header>
+                    <AlertDialog.Footer>
+                        <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+                        <AlertDialog.Action
+                            onClick={() => {
+                                deleteTemplate.mutate({
+                                    templateId: item.id,
+                                });
+                            }}
+                        >
+                            Delete
+                        </AlertDialog.Action>
+                    </AlertDialog.Footer>
+                </AlertDialog.Content>
+            </AlertDialog>
+        </>
     );
 }
 export const mobileColumn: ColumnDef<Item>[] = [
@@ -331,14 +410,17 @@ function ItemCard({ item }: ItemProps) {
             </div>
 
             <div className="mt-3 grid grid-cols-3 gap-2">
-                <div className="rounded-2xl border border-slate-200 px-3 py-3 text-center">
+                <Link
+                    href={`/community/project-units?projectSlug=${item.project?.slug}&q=${encodeURIComponent(item.modelName)}`}
+                    className="rounded-2xl border border-slate-200 px-3 py-3 text-center transition-colors hover:bg-slate-50"
+                >
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                         Units
                     </p>
                     <p className="mt-2 text-lg font-semibold text-slate-900">
                         {item._count.homes}
                     </p>
-                </div>
+                </Link>
                 <button
                     type="button"
                     className="rounded-2xl border border-slate-200 px-3 py-3 text-left hover:bg-slate-50"

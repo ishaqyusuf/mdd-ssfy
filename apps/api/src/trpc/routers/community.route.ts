@@ -20,6 +20,7 @@ import {
   communitySummary,
   communitySummarySchema,
   createCommnunityModelCost,
+  deleteCommunityTemplate,
   deleteCommunityModelCost,
   deleteCommunityModelCostSchema,
   deleteUnits,
@@ -83,6 +84,7 @@ import {
   saveCommunityModelCostSchema,
   communityTemplateFormSchema,
   createCommunityModelCostSchema,
+  deleteCommunityTemplateSchema,
   updateInstallCostSchema,
 } from "@api/schemas/community";
 import { getBuilders, getBuildersSchema } from "@community/builder";
@@ -1422,6 +1424,11 @@ export const communityRouters = createTRPCRouter({
     .input(communityTemplateFormSchema)
     .mutation(async (props) => {
       return saveCommunityTemplateForm(props.ctx, props.input);
+    }),
+  deleteCommunityTemplate: publicProcedure
+    .input(deleteCommunityTemplateSchema)
+    .mutation(async (props) => {
+      return deleteCommunityTemplate(props.ctx, props.input);
     }),
   saveCommunityModelLegacy: publicProcedure
     .input(saveCommunityModelLegacySchema)
