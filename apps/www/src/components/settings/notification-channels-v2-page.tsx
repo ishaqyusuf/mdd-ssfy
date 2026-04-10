@@ -254,9 +254,9 @@ export function NotificationChannelsV2Page() {
 	};
 
 	return (
-		<div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
-			<Card className="overflow-hidden">
-				<Card.Header className="space-y-4">
+		<div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
+			<Card className="flex min-h-0 flex-col overflow-hidden">
+				<Card.Header className="shrink-0 space-y-4">
 					<div className="flex items-center justify-between gap-3">
 						<div>
 							<Card.Title className="text-lg font-bold">Channels</Card.Title>
@@ -305,7 +305,7 @@ export function NotificationChannelsV2Page() {
 						</div>
 					) : null}
 				</Card.Header>
-				<ScrollArea className="h-[calc(100vh-260px)]">
+				<ScrollArea className="min-h-0 flex-1">
 					<Card.Content className="space-y-3">
 						{channelsQuery.isPending ? (
 							<ListSkeleton />
@@ -389,10 +389,10 @@ export function NotificationChannelsV2Page() {
 				</ScrollArea>
 			</Card>
 
-			<Card className="min-h-[600px]">
+			<Card className="flex min-h-0 flex-col overflow-hidden">
 				{selectedChannel ? (
 					<>
-						<Card.Header className="space-y-4 border-b">
+						<Card.Header className="shrink-0 space-y-4 border-b">
 							<div className="flex items-start justify-between gap-4">
 								<div className="space-y-2">
 									<div className="flex flex-wrap items-center gap-2">
@@ -433,7 +433,7 @@ export function NotificationChannelsV2Page() {
 								)}
 							</div>
 						</Card.Header>
-						<ScrollArea className="h-[calc(100vh-260px)]">
+						<ScrollArea className="min-h-0 flex-1">
 							<Card.Content className="space-y-8 p-6">
 								<section className="space-y-4">
 									<SectionHeading

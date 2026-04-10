@@ -11,7 +11,7 @@ export async function generateMetadata() {
 
 export default function Page() {
 	return (
-		<PageShell className="gap-6">
+		<PageShell className="h-[calc(100vh-var(--header-height))] overflow-hidden gap-6">
 			<PageTitle>Notification Channels</PageTitle>
 			<NotificationChannelsV2Page />
 		</PageShell>
