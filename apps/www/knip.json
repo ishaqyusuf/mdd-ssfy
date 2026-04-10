@@ -1,0 +1,17 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "src/app/**/{page,layout,route,loading,error,global-error,not-found,default,template}.{ts,tsx}",
+    "src/app-deps/**/{page,layout,route,loading,error,global-error,not-found,default,template}.{ts,tsx}"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "*.mjs"
+  ],
+  "ignore": [
+    "src/**/*.d.ts",
+    "src/**/*.md",
+    "knip-report.txt",
+    "knip-vscode-report.txt"
+  ]
+}
