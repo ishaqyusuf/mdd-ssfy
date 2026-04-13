@@ -48,6 +48,7 @@ export const taskNames = [
   "send-storefront-promotional-email",
   "send-storefront-shipping-confirmation-email",
   "send-storefront-win-back-email",
+  "sync-sales-inventory-line-items",
   "update-sales-control",
   "sales-commission",
   "reset-sales-control",
@@ -132,6 +133,17 @@ export const sendStorefrontWelcomeEmailSchema = z.object({
 });
 export type SendStorefrontWelcomeEmailPayload = z.infer<
   typeof sendStorefrontWelcomeEmailSchema
+>;
+
+export const syncSalesInventoryLineItemsSchemaTask = z.object({
+  salesOrderId: z.number(),
+  source: z
+    .enum(["old-form", "new-form", "manual", "repair"])
+    .default("manual"),
+  triggeredByUserId: z.number().optional().nullable(),
+});
+export type SyncSalesInventoryLineItemsSchemaTask = z.infer<
+  typeof syncSalesInventoryLineItemsSchemaTask
 >;
 
 export const sendStorefrontOrderConfirmationEmailSchema = z.object({

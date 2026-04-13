@@ -30,6 +30,7 @@ model InventoryCategory {
     discountId         String?
     featuredProduct    FeaturedProduct[]
     lineItemComponents LineItemComponents[]
+    inboundExtractionLines InboundShipmentExtractionLine[]
     lineItems          LineItem[]
 
     @@index([discountId])
@@ -92,6 +93,7 @@ model Inventory {
     asSubCategoryValues        InventoryItemSubCategoryValue[]
     reviews                    ProductReview[]
     lineItemComponents         LineItemComponents[]
+    inboundExtractionLines     InboundShipmentExtractionLine[]
     lineItems                  LineItem[]
     discount                   Discount?                       @relation(fields: [discountId], references: [id])
     discountId                 String?
@@ -150,6 +152,9 @@ model InventoryVariant {
     lineItems          LineItem[]
     lineItemComponents LineItemComponents[]
     linePricings       LinePricing[]
+    stockAllocations   StockAllocation[]
+    inboundDemands     InboundDemand[]
+    inboundExtractionLines InboundShipmentExtractionLine[]
 
     @@index([inventoryId])
 }
@@ -328,6 +333,7 @@ model InventoryStock {
     deletedAt DateTime? @db.Timestamp(0)
 
     logs InventoryLog[]
+    stockAllocations StockAllocation[]
 
     @@index([inventoryVariantId])
     @@index([supplierId])
@@ -498,6 +504,7 @@ model InboundShipment {
     progress   Float? // percentage completion
 
     items InboundShipmentItem[]
+    extractions InboundShipmentExtraction[]
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
@@ -519,12 +526,76 @@ model InboundShipmentItem {
 
     // NEW: one-to-one link to StockMovement for auditing
     stockMovement StockMovement[]
+    inboundDemands InboundDemand[]
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
     deletedAt DateTime? @db.Timestamp(0)
 
     @@index([inboundId])
+    @@index([inventoryVariantId])
+}
+
+model InboundShipmentExtraction {
+    id Int @id @default(autoincrement())
+
+    inboundId Int
+    inbound   InboundShipment @relation(fields: [inboundId], references: [id])
+
+    storedDocumentId String? @db.VarChar(191)
+    status           InboundExtractionStatus @default(pending)
+    provider         String? @db.VarChar(100)
+    model            String? @db.VarChar(100)
+    supplierNameRaw  String? @db.VarChar(255)
+    invoiceNumber    String? @db.VarChar(255)
+    invoiceDate      DateTime?
+    rawText          String? @db.Text
+    structuredPayload Json? @db.Json
+    reviewedAt       DateTime?
+    reviewedBy       Int?
+    errorMessage     String? @db.Text
+    meta             Json? @db.Json
+
+    lines InboundShipmentExtractionLine[]
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
+    @@index([inboundId])
+    @@index([storedDocumentId])
+    @@index([status])
+}
+
+model InboundShipmentExtractionLine {
+    id Int @id @default(autoincrement())
+
+    extractionId Int
+    extraction   InboundShipmentExtraction @relation(fields: [extractionId], references: [id])
+
+    lineNo         Int?
+    rawDescription String? @db.Text
+    rawSku         String? @db.VarChar(255)
+    qty            Float?
+    unitPrice      Float?
+    matchStatus    InboundExtractionMatchStatus @default(unresolved)
+    inventoryCategoryId Int?
+    inventoryCategory   InventoryCategory? @relation(fields: [inventoryCategoryId], references: [id])
+    inventoryId         Int?
+    inventory           Inventory? @relation(fields: [inventoryId], references: [id])
+    inventoryVariantId  Int?
+    inventoryVariant    InventoryVariant? @relation(fields: [inventoryVariantId], references: [id])
+    confidence          Float?
+    meta                Json? @db.Json
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
+    @@index([extractionId])
+    @@index([matchStatus])
+    @@index([inventoryCategoryId])
+    @@index([inventoryId])
     @@index([inventoryVariantId])
 }
 
@@ -640,12 +711,110 @@ model LineItemComponents {
     inventoryVariantId  Int?
     price               LinePricing?
     qty                 Int?
+    qtyAllocated        Float              @default(0)
+    qtyInbound          Float              @default(0)
+    qtyReceived         Float              @default(0)
+    status              LineItemComponentStatus @default(pending)
+    stockAllocations    StockAllocation[]
+    inboundDemands      InboundDemand[]
 
     @@index([lineItemId])
     @@index([inventoryVariantId])
     @@index([inventoryId])
     @@index([subComponentId])
     @@index([inventoryCategoryId])
+}
+
+model StockAllocation {
+    id Int @id @default(autoincrement())
+
+    lineItemComponentId Int
+    lineItemComponent   LineItemComponents @relation(fields: [lineItemComponentId], references: [id])
+
+    inventoryStockId Int?
+    inventoryStock   InventoryStock? @relation(fields: [inventoryStockId], references: [id])
+
+    inventoryVariantId Int
+    inventoryVariant   InventoryVariant @relation(fields: [inventoryVariantId], references: [id])
+
+    qty    Float
+    status StockAllocationStatus @default(reserved)
+    notes  String?
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
+    @@index([lineItemComponentId])
+    @@index([inventoryStockId])
+    @@index([inventoryVariantId])
+}
+
+model InboundDemand {
+    id Int @id @default(autoincrement())
+
+    lineItemComponentId Int
+    lineItemComponent   LineItemComponents @relation(fields: [lineItemComponentId], references: [id])
+
+    inventoryVariantId Int
+    inventoryVariant   InventoryVariant @relation(fields: [inventoryVariantId], references: [id])
+
+    qty         Float
+    qtyReceived Float @default(0)
+
+    inboundShipmentItemId Int?
+    inboundShipmentItem   InboundShipmentItem? @relation(fields: [inboundShipmentItemId], references: [id])
+
+    status InboundDemandStatus @default(pending)
+    notes  String?
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
+    @@index([lineItemComponentId])
+    @@index([inventoryVariantId])
+    @@index([inboundShipmentItemId])
+}
+
+enum LineItemComponentStatus {
+    pending
+    allocated
+    partially_allocated
+    inbound_required
+    partially_received
+    fulfilled
+    cancelled
+}
+
+enum StockAllocationStatus {
+    reserved
+    picked
+    consumed
+    released
+}
+
+enum InboundDemandStatus {
+    pending
+    ordered
+    partially_received
+    received
+    cancelled
+}
+
+enum InboundExtractionStatus {
+    pending
+    processing
+    extracted
+    reviewed
+    failed
+}
+
+enum InboundExtractionMatchStatus {
+    unresolved
+    suggested
+    matched
+    ignored
 }
 
 enum LineItemType {

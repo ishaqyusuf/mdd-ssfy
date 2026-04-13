@@ -16,6 +16,7 @@
     "./inventory": "./src/inventory.ts",
     "./inventory-import": "./src/inventory-import.ts",
     "./inventory-import-service": "./src/application/import/inventory-import-service.ts",
+    "./inbound": "./src/application/inbound/index.ts",
     "./inventory-import-handcrafted": "./src/application/import/strategies/handcrafted-importer.ts",
     "./inventory-import-optimized": "./src/application/import/strategies/optimized-importer.ts",
     "./inventory-utils": "./src/utils/inventory-utils.ts",

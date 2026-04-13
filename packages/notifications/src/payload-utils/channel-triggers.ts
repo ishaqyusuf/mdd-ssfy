@@ -202,6 +202,18 @@ export function createNotificationChannelTriggers(
 				recipients: resolvedRecipients,
 			});
 		},
+		inventoryInboundActivity(input: Input<"inventory_inbound_activity">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("inventory_inbound_activity", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
 		communityUnitProductionStarted(
 			input: Input<"community_unit_production_started">,
 		) {

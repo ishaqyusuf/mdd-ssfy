@@ -374,6 +374,54 @@ export const communityDocumentsTags = actityTagsSchema.extend({
 });
 export type CommunityDocumentsTags = z.infer<typeof communityDocumentsTags>;
 
+const orderNosTagSchema = z
+	.union([z.string(), z.array(z.string())])
+	.transform((value) => (Array.isArray(value) ? value : [value]));
+
+export const inventoryInboundActivitySchema = z.object({
+	inboundId: z.number(),
+	supplierId: z.number().optional().nullable(),
+	supplierName: z.string().optional().nullable(),
+	reference: z.string().optional().nullable(),
+	activityType: z.enum([
+		"created",
+		"documents_uploaded",
+		"extraction_started",
+		"extraction_completed",
+		"extraction_failed",
+		"extraction_applied",
+		"demands_assigned",
+		"received",
+	]),
+	documentIds: z.array(z.string()).optional(),
+	orderNos: z.array(z.string()).optional(),
+	note: z.string().optional().nullable(),
+});
+export type InventoryInboundActivityInput = z.infer<
+	typeof inventoryInboundActivitySchema
+>;
+export const inventoryInboundActivityTags = actityTagsSchema.extend({
+	inboundId: z.coerce.number(),
+	supplierId: z.coerce.number().optional(),
+	supplierName: z.string().optional(),
+	reference: z.string().optional(),
+	activityType: z.enum([
+		"created",
+		"documents_uploaded",
+		"extraction_started",
+		"extraction_completed",
+		"extraction_failed",
+		"extraction_applied",
+		"demands_assigned",
+		"received",
+	]),
+	documentIds: documentIdsTagSchema.optional(),
+	orderNos: orderNosTagSchema.optional(),
+});
+export type InventoryInboundActivityTags = z.infer<
+	typeof inventoryInboundActivityTags
+>;
+
 export const communityUnitProductionStartedSchema = z.object({
 	taskId: z.number(),
 	taskName: z.string(),
@@ -491,6 +539,7 @@ export type NotificationTypes = {
 	job_task_configured: JobTaskConfiguredInput;
 	employee_document_review: EmployeeDocumentReviewInput;
 	community_documents: CommunityDocumentsInput;
+	inventory_inbound_activity: InventoryInboundActivityInput;
 	community_unit_production_started: CommunityUnitProductionStartedInput;
 	community_unit_production_stopped: CommunityUnitProductionStoppedInput;
 	community_unit_production_completed: CommunityUnitProductionCompletedInput;
@@ -1095,6 +1144,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("community_documents"),
 		payload: communityDocumentsSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("inventory_inbound_activity"),
+		payload: inventoryInboundActivitySchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("community_unit_production_started"),

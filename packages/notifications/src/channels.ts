@@ -14,6 +14,7 @@ export const channelNames = [
 	"job_task_configured",
 	"employee_document_review",
 	"community_documents",
+	"inventory_inbound_activity",
 	"community_unit_production_started",
 	"community_unit_production_stopped",
 	"community_unit_production_completed",
@@ -62,7 +63,7 @@ export const priorityStrings = [
 ] as const;
 export type PriorityString = (typeof priorityStrings)[number];
 
-export const channelCategories = ["Community", "Sales"] as const;
+export const channelCategories = ["Community", "Sales", "Inventory"] as const;
 export type ChannelCategory = (typeof channelCategories)[number];
 
 export type ChannelConfig = {
@@ -115,6 +116,13 @@ export const channelsConfig: Partial<{
 			"Send when documents are uploaded to a community project overview.",
 		priority: 5,
 		category: "Community",
+	},
+	inventory_inbound_activity: {
+		name: "Inventory Inbound Activity",
+		description:
+			"Send when inbound receipts, extraction, assignment, or receiving activity occurs.",
+		priority: 5,
+		category: "Inventory",
 	},
 	community_unit_production_started: {
 		name: "Unit Production Started",

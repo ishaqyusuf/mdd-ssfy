@@ -6,6 +6,21 @@ Tracks important schema-level entities and ownership boundaries.
 ## Current Notes
 - Primary schema work appears to live in `packages/db`.
 - Active schema-heavy domains include sales, payment-system, resolution-system, and document-platform foundations.
+- Inventory demand is now being shaped around three layers in `packages/db/src/schema/inventory.prisma`:
+  - `LineItemComponents` as the gross demand row created from sales/inventory sync
+  - `StockAllocation` as stock-side reservation/allocation against that demand
+  - `InboundDemand` as the shortage/replenishment row that should link into `InboundShipmentItem` and later post through `StockMovement`
+- The first shared inbound service now exists in `packages/inventory/src/application/inbound/inbound-demand.ts`:
+  - `createInboundShipmentFromDemands(...)` converts `InboundDemand` shortages into `InboundShipment` + `InboundShipmentItem`
+  - `receiveInboundShipment(...)` posts receipt into `InventoryStock`, writes `StockMovement`, and rolls progress back up into `LineItemComponents`
+- Receipt snaps now reuse the shared document platform instead of a bespoke inbound file table:
+  - `StoredDocument.ownerType = "inventory_inbound_shipment"`
+  - `StoredDocument.kind = "inbound_receipt"`
+- AI receipt parsing now persists in inventory schema through:
+  - `InboundShipmentExtraction`
+  - `InboundShipmentExtractionLine`
+  These hold extraction status, invoice metadata, parsed lines, and inventory match state before the user applies results to inbound items.
+- Receiving work should extend the existing inventory schema (`InboundShipment`, `InboundShipmentItem`, `InventoryStock`, `StockMovement`) instead of creating a separate supplier-receipt system outside inventory.
 
 ## TODO
 - Document the canonical schema modules and the most important tables/models.

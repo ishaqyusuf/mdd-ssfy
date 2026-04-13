@@ -32,6 +32,7 @@ import { TRPCError } from "@trpc/server";
 import { generateRandomString } from "@gnd/utils";
 import { calculateSalesFormSummary } from "@gnd/sales/sales-form";
 import { generateSalesSlug } from "@gnd/sales/utils";
+import { syncSalesInventoryLineItems } from "@sales/sync-sales-inventory-line-items";
 
 const DEFAULT_DELIVERY_OPTION = "pickup";
 const DEFAULT_PAYMENT_TERM = "None";
@@ -1442,6 +1443,11 @@ async function saveNewSalesFormInternal(
         },
       });
     }
+
+    await syncSalesInventoryLineItems(tx, {
+      salesOrderId: currentId,
+      source: "new-form",
+    });
 
     return {
       salesId: currentId,

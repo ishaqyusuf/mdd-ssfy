@@ -1,5 +1,5 @@
 // import { upsertInventoriesForDykeShelfProductsSchema } from "@api/db/queries/inventory";
-import { createTRPCRouter, publicProcedure } from "../init";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
 import { z } from "zod";
 import {
   getInventoryCategoryByShelfId,
@@ -46,6 +46,10 @@ import {
   updateVariantStatus,
   updateVariantStatusSchema,
   updateSubComponent,
+  createInboundShipmentFromDemands,
+  getInboundDemandQueue,
+  getInboundShipmentDetail,
+  receiveInboundShipment,
 } from "@gnd/inventory";
 import { getStoreAddonComponentForm } from "@sales/storefront-product";
 import { inventoryImport } from "@gnd/inventory/inventory-import";
@@ -55,6 +59,18 @@ import {
   saveCommunityInput,
   saveCommunityInputSchema,
 } from "@community/community-template-schemas";
+import {
+  applyInboundExtractionQuery,
+  assignInboundDemandsQuery,
+  createInboundShipmentQuery,
+  extractInboundDocumentsQuery,
+  getInboundActivityQuery,
+  getInboundExtractionsQuery,
+  listInboundDocumentsQuery,
+  listInboundShipmentsQuery,
+  listInboundSuppliers,
+  uploadInboundDocumentsQuery,
+} from "@api/db/queries/inbound-receiving";
 // import {
 //   dimensionalWeightFormSchema,
 //   flatRateFormSchema,
@@ -71,6 +87,175 @@ import {
 //   zoneBasedFormSchema,
 // } from "@sales/shipping";
 export const inventoriesRouter = createTRPCRouter({
+  inboundShipments: protectedProcedure
+    .input(
+      z.object({
+        status: z
+          .array(z.enum(["pending", "in_progress", "completed", "cancelled"]))
+          .optional(),
+        supplierId: z.number().optional().nullable(),
+      }),
+    )
+    .query(async (props) => {
+      return listInboundShipmentsQuery(props.ctx, props.input);
+    }),
+  inboundSuppliers: protectedProcedure.query(async (props) => {
+    return listInboundSuppliers(props.ctx);
+  }),
+  createInboundShipment: protectedProcedure
+    .input(
+      z.object({
+        supplierId: z.number(),
+        reference: z.string().optional().nullable(),
+        expectedAt: z.date().optional().nullable(),
+      }),
+    )
+    .mutation(async (props) => {
+      return createInboundShipmentQuery(props.ctx, props.input);
+    }),
+  inboundDemandQueue: protectedProcedure
+    .input(
+      z.object({
+        status: z
+          .array(
+            z.enum([
+              "pending",
+              "ordered",
+              "partially_received",
+              "received",
+              "cancelled",
+            ])
+          )
+          .optional(),
+        supplierId: z.number().optional().nullable(),
+        saleId: z.number().optional().nullable(),
+      })
+    )
+    .query(async (props) => {
+      return getInboundDemandQueue(props.ctx.db, props.input);
+    }),
+  inboundShipmentDetail: protectedProcedure
+    .input(
+      z.object({
+        inboundId: z.number(),
+      })
+    )
+    .query(async (props) => {
+      return getInboundShipmentDetail(props.ctx.db, props.input);
+    }),
+  inboundDocuments: protectedProcedure
+    .input(
+      z.object({
+        inboundId: z.number(),
+      }),
+    )
+    .query(async (props) => {
+      return listInboundDocumentsQuery(props.ctx, props.input.inboundId);
+    }),
+  uploadInboundDocuments: protectedProcedure
+    .input(
+      z.object({
+        inboundId: z.number(),
+        note: z.string().optional().nullable(),
+        files: z
+          .array(
+            z.object({
+              filename: z.string().min(1),
+              contentType: z.string().optional().nullable(),
+              contentBase64: z.string().min(1),
+              size: z.number().optional().nullable(),
+            }),
+          )
+          .min(1),
+      }),
+    )
+    .mutation(async (props) => {
+      return uploadInboundDocumentsQuery(props.ctx, props.input);
+    }),
+  inboundExtractions: protectedProcedure
+    .input(
+      z.object({
+        inboundId: z.number(),
+      }),
+    )
+    .query(async (props) => {
+      return getInboundExtractionsQuery(props.ctx, props.input.inboundId);
+    }),
+  extractInboundDocuments: protectedProcedure
+    .input(
+      z.object({
+        inboundId: z.number(),
+        documentId: z.string().optional().nullable(),
+        force: z.boolean().optional(),
+      }),
+    )
+    .mutation(async (props) => {
+      return extractInboundDocumentsQuery(props.ctx, props.input);
+    }),
+  applyInboundExtraction: protectedProcedure
+    .input(
+      z.object({
+        inboundId: z.number(),
+        extractionId: z.number(),
+        autoAssignDemands: z.boolean().optional(),
+      }),
+    )
+    .mutation(async (props) => {
+      return applyInboundExtractionQuery(props.ctx, props.input);
+    }),
+  assignInboundDemands: protectedProcedure
+    .input(
+      z.object({
+        inboundId: z.number(),
+        demandIds: z.array(z.number()).min(1),
+      }),
+    )
+    .mutation(async (props) => {
+      return assignInboundDemandsQuery(props.ctx, props.input);
+    }),
+  inboundActivity: protectedProcedure
+    .input(
+      z.object({
+        inboundId: z.number(),
+      }),
+    )
+    .query(async (props) => {
+      return getInboundActivityQuery(props.ctx, props.input.inboundId);
+    }),
+  createInboundShipmentFromDemands: protectedProcedure
+    .input(
+      z.object({
+        supplierId: z.number(),
+        demandIds: z.array(z.number()).min(1),
+        reference: z.string().optional().nullable(),
+        expectedAt: z.date().optional().nullable(),
+      })
+    )
+    .mutation(async (props) => {
+      return createInboundShipmentFromDemands(props.ctx.db, props.input);
+    }),
+  receiveInboundShipment: protectedProcedure
+    .input(
+      z.object({
+        inboundId: z.number(),
+        receivedAt: z.date().optional().nullable(),
+        items: z
+          .array(
+            z.object({
+              inboundShipmentItemId: z.number(),
+              qtyReceived: z.number().optional().nullable(),
+              unitPrice: z.number().optional().nullable(),
+            })
+          )
+          .optional(),
+      })
+    )
+    .mutation(async (props) => {
+      return receiveInboundShipment(props.ctx.db, {
+        ...props.input,
+        authorName: String(props.ctx.userId),
+      });
+    }),
   saveCommunityInput: publicProcedure
     .input(saveCommunityInputSchema)
     .mutation(async (props) => {

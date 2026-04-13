@@ -2,6 +2,74 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-04-11
+
+- Started the inventory demand/allocation groundwork so sales-driven inventory sync can move toward the canonical stock and inbound system instead of a parallel supply layer.
+  - added deterministic sales-to-inventory sync foundations in `packages/sales/src/sync-sales-inventory-line-items.ts` so sales items can resolve inventory-backed parent `LineItem` rows and component demand from Dyke step selections, shelf items, HPT products, and HPT door products using stable source UIDs
+  - added old-form background task triggering and new-form inline sync wiring so both sales save paths now feed the same shared inventory sync entrypoint
+  - updated `packages/db/src/schema/inventory.prisma` and `packages/jobs/src/schema.prisma` to model inventory demand fulfillment in three layers:
+    - `LineItemComponents` remains the demand row and now carries `qtyAllocated`, `qtyInbound`, `qtyReceived`, and `status`
+    - new `StockAllocation` model tracks stock-side assignment / reservation against a line-item component
+    - new `InboundDemand` model tracks shortage/replenishment and links forward to `InboundShipmentItem`
+  - documented the active workstream in `brain/tasks/in-progress.md` so the next major slice can focus on stock availability checks, shortage creation, and receiving-posting against `InboundShipmentItem` plus `StockMovement`
+  - validation note:
+    - `packages/jobs/src/schema.prisma` validates successfully with Prisma using a dummy `DATABASE_URL`
+    - the standalone `packages/db/src/schema/inventory.prisma` fragment cannot be validated in isolation because it references composed cross-domain models; the full composed DB schema already has unrelated pre-existing validation issues outside this inventory slice
+
+- Extended the sales inventory sync so component demand now splits into stock allocation and inbound shortage.
+  - `packages/sales/src/sync-sales-inventory-line-items.ts` now checks `InventoryStock` for the component variant, allocates available quantity into `StockAllocation`, and creates `InboundDemand` only for the remaining shortage
+  - component sync now updates `LineItemComponents.qtyAllocated`, `qtyInbound`, `qtyReceived`, and `status` after each upsert so the demand row reflects whether it is fully allocated, partially allocated, or still waiting on inbound
+  - stale sales component cleanup now also releases/cancels related `StockAllocation` and `InboundDemand` rows before deleting obsolete component demand
+  - validation note:
+    - focused `@gnd/sales` typecheck grep for `sync-sales-inventory-line-items.ts` is clean after the new fulfillment logic
+    - the main DB Prisma generation path works when run through `packages/db` Prisma config or the root workspace command `bun run db:generate`; updated the root script to use `bun run --filter @gnd/db db:generate` instead of the Turbo interactive task wrapper
+    - after regenerating the Prisma client, removed the temporary `any` delegate fallbacks from the sync service so `StockAllocation` and `InboundDemand` writes are back on the typed Prisma surface
+
+- Added the first inventory-native inbound bridge so replenishment demand can flow into receiving and stock posting without a parallel side system.
+  - added `packages/inventory/src/application/inbound/inbound-demand.ts` with `createInboundShipmentFromDemands(...)` to group shortage rows into `InboundShipment` + `InboundShipmentItem` records and link `InboundDemand` rows forward to the created inbound items
+  - added `receiveInboundShipment(...)` to post received quantities into `InventoryStock`, create `StockMovement` audit rows, update linked `InboundDemand.qtyReceived/status`, and recompute parent `LineItemComponents` demand progress
+  - exported the new inbound helpers from `@gnd/inventory` so API and job layers can build receiving tray workflows on top of the shared service instead of inventing another receipt path
+  - validation note:
+    - next check is focused type validation on the new inbound helper surface; full package-wide type health is still expected to show unrelated pre-existing issues outside this slice
+
+- Added the first API layer on top of the inbound bridge so the web app can start building a receiving tray against the shared inventory workflow.
+  - extended `apps/api/src/trpc/routers/inventories.route.ts` with:
+    - `inboundDemandQueue`
+    - `inboundShipmentDetail`
+    - `createInboundShipmentFromDemands`
+    - `receiveInboundShipment`
+  - added shared inventory-side query helpers in `packages/inventory/src/application/inbound/inbound-demand.ts` so the API router stays thin and consumes the same package-level primitives that jobs and future receiving flows can reuse
+  - exported the inbound module through `packages/inventory/src/application/inbound/index.ts`, `packages/inventory/src/index.ts`, and `packages/inventory/package.json`
+  - validation note:
+    - focused `@gnd/inventory` and `apps/api` typecheck greps for the new inbound helpers and router procedures are clean
+    - `apps/api` still contains unrelated pre-existing type errors outside these new receiving endpoints
+
+- Implemented the first end-to-end receiving workspace for inventory inbounds.
+  - extended the inventory schema with `InboundShipmentExtraction` and `InboundShipmentExtractionLine` so AI receipt parsing has a durable review/match surface tied to existing `InboundShipment`
+  - reused the shared `StoredDocument` platform for inbound receipt snaps under owner type `inventory_inbound_shipment` and kind `inbound_receipt` instead of creating another file table
+  - added `apps/api/src/db/queries/inbound-receiving.ts` to handle:
+    - blank inbound creation
+    - supplier listing
+    - receipt document upload
+    - AI extraction requests
+    - extraction-to-inbound-item application
+    - demand assignment to existing inbound shipments
+    - inbound activity history queries
+  - extended `inventories.route.ts` again with shipment list, supplier list, receipt upload, extraction, extraction review, assignment, and activity procedures
+  - added an inventory inbound notification channel (`inventory_inbound_activity`) in `packages/notifications` so receipt upload / extraction / assignment / receiving can flow through the existing activity + notification pipeline
+  - replaced the placeholder `/inventory/inbounds` page with a functional receiving workspace in `apps/www/src/components/inventory/inbound-receiving-page.tsx`
+    - shortage demand tray
+    - inbound shipment list
+    - receipt document upload
+    - AI extraction review/apply
+    - linked-order assignment
+    - receive/post to stock
+    - inbound activity timeline
+  - validation note:
+    - `bun run db:generate` succeeds after the new extraction models were added
+    - focused `@gnd/inventory`, `@gnd/notifications`, and `@gnd/api` greps for the new inbound slice are clean
+    - `apps/www` full workspace typecheck remains slower/noisier; no focused inbound-specific grep hits were surfaced in the final web pass before timeout
+
 ## 2026-04-10
 
 - Migrated the web app off `components/_v1/icons` onto `@gnd/ui/icons`.

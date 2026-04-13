@@ -1279,24 +1279,22 @@ function isDynamicAliasKey(
   return name in dynamicHugeIconAliases;
 }
 
-export const Icons = new Proxy(IconsStatic as RegisteredIcons,
-  {
-    get(target, prop, receiver) {
-      if (typeof prop !== "string") return Reflect.get(target, prop, receiver);
-      const existing = Reflect.get(target, prop, receiver);
-      if (existing) return existing;
-      if (!isDynamicAliasKey(prop)) return existing;
+export const Icons = new Proxy(IconsStatic as RegisteredIcons, {
+  get(target, prop, receiver) {
+    if (typeof prop !== "string") return Reflect.get(target, prop, receiver);
+    const existing = Reflect.get(target, prop, receiver);
+    if (existing) return existing;
+    if (!isDynamicAliasKey(prop)) return existing;
 
-      const resolved = hugeIcon(dynamicHugeIconAliases[prop]);
+    const resolved = hugeIcon(dynamicHugeIconAliases[prop]);
 
-      if (!(prop in target)) {
-        target[prop] = resolved as RegisteredIcons[typeof prop];
-      }
+    if (!(prop in target)) {
+      target[prop] = resolved as RegisteredIcons[typeof prop];
+    }
 
-      return resolved;
-    },
+    return resolved;
   },
-);
+});
 
 export type IconKeys = keyof typeof Icons;
 export type LucideIcon = RegisteredIcons[IconKeys];
@@ -1339,8 +1337,7 @@ function IconImpl({
   return <RenderIcon className={cn("", iconVariants(props), className)} />;
 }
 export const Icon = new Proxy(
-  Object.assign(IconImpl, IconsStatic) as typeof IconImpl &
-    RegisteredIcons,
+  Object.assign(IconImpl, IconsStatic) as typeof IconImpl & RegisteredIcons,
   {
     get(target, prop, receiver) {
       if (typeof prop !== "string") return Reflect.get(target, prop, receiver);

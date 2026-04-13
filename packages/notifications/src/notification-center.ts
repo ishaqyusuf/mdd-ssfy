@@ -5,6 +5,7 @@ import {
 	type CommunityUnitProductionStoppedTags,
 	type DispatchPackingDelayTags,
 	type CommunityDocumentsTags,
+	type InventoryInboundActivityTags,
 	type EmployeeDocumentReviewTags,
 	type JobSubmittedTags,
 	type SalesDispatchAssignedTags,
@@ -16,6 +17,7 @@ import {
 	communityUnitProductionBatchUpdatedTags,
 	communityUnitProductionCompletedTags,
 	communityDocumentsTags,
+	inventoryInboundActivityTags,
 	communityUnitProductionStartedTags,
 	communityUnitProductionStoppedTags,
 	dispatchPackingDelayTags,
@@ -59,6 +61,7 @@ type NotificationActionPayloadMap = {
 	job_task_configure_request: Omit<JobTaskConfigureRequestTags, "type">;
 	employee_document_review: Omit<EmployeeDocumentReviewTags, "type">;
 	community_documents: Omit<CommunityDocumentsTags, "type">;
+	inventory_inbound_activity: Omit<InventoryInboundActivityTags, "type">;
 	dispatch_packing_delay: Omit<DispatchPackingDelayTags, "type">;
 	sales_dispatch_duplicate_alert: Omit<SalesDispatchDuplicateAlertTags, "type">;
 	sales_checkout_success: Omit<SalesCheckoutSuccessTags, "type">;
@@ -183,6 +186,16 @@ function parseAction(
 		return {
 			type: "community_documents",
 			label: "Open Project",
+			data: parsed.data,
+		};
+	}
+
+	if (type === "inventory_inbound_activity") {
+		const parsed = inventoryInboundActivityTags.safeParse(tags);
+		if (!parsed.success) return undefined;
+		return {
+			type: "inventory_inbound_activity",
+			label: "Open Inbound",
 			data: parsed.data,
 		};
 	}
