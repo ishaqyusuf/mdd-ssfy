@@ -2,6 +2,7 @@ import type { Db } from "@gnd/db";
 import { runInventoryImport } from "../import/inventory-import-service";
 import { inventoryImportRunSchema, type InventoryImportRun } from "../../schema";
 import { resetInventorySystem } from "../../inventory";
+import { resolveActiveInventoryImportScope } from "../import/resolve-active-inventory-import-scope";
 
 export async function runFullInventoryImport(
   db: Db,
@@ -16,13 +17,15 @@ export async function runFullInventoryImport(
 
   const stepIds = payload.categoryId
     ? [payload.categoryId]
-    : (
-        await db.dykeSteps.findMany({
-          distinct: "title",
-          select: { id: true },
-          orderBy: { id: "asc" },
-        })
-      ).map((step) => step.id);
+    : payload.scope === "all"
+      ? (
+          await db.dykeSteps.findMany({
+            distinct: "title",
+            select: { id: true },
+            orderBy: { id: "asc" },
+          })
+        ).map((step) => step.id)
+      : (await resolveActiveInventoryImportScope(db)).activeStepIds;
 
   const runs: Awaited<ReturnType<typeof runInventoryImport>>[] = [];
   for (const stepId of stepIds) {

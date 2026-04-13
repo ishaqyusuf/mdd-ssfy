@@ -1,11 +1,12 @@
-import { parseAsArrayOf, parseAsString, useQueryStates } from "nuqs";
+import { parseAsString, useQueryStates } from "nuqs";
 import { createLoader } from "nuqs/server";
-import { RouterInputs } from "@api/trpc/routers/_app";
-import { InventoryList } from "@sales/schema";
-type FilterKeys = keyof InventoryList;
+import { InventoryImport } from "@gnd/inventory/schema";
+import { parseAsStringEnum } from "nuqs/server";
+type FilterKeys = keyof InventoryImport;
 
 export const inventoryImportFilterParamsSchema = {
     q: parseAsString,
+    scope: parseAsStringEnum(["active", "all"]),
 } satisfies Partial<Record<FilterKeys, any>>;
 
 export function useInventoryImportFilterParams() {
@@ -21,4 +22,3 @@ export function useInventoryImportFilterParams() {
 export const loadInventoryImportFilterParams = createLoader(
     inventoryImportFilterParamsSchema,
 );
-

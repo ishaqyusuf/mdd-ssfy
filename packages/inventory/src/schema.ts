@@ -9,12 +9,21 @@ import {
 export const INVENTORY_PRODUCT_KINDS = ["inventory", "component"] as const;
 export const inventoryProductKindSchema = z.enum(INVENTORY_PRODUCT_KINDS);
 export type InventoryProductKind = z.infer<typeof inventoryProductKindSchema>;
+export const INVENTORY_IMPORT_SCOPES = ["active", "all"] as const;
+export const inventoryImportScopeSchema = z.enum(INVENTORY_IMPORT_SCOPES);
+export type InventoryImportScope = z.infer<typeof inventoryImportScopeSchema>;
 
-export const inventoryImportSchema = z.object({}).extend(paginationSchema.shape);
+export const inventoryImportSchema = z
+  .object({
+    q: z.string().optional().nullable(),
+    scope: inventoryImportScopeSchema.optional().default("active"),
+  })
+  .extend(paginationSchema.shape);
 export type InventoryImport = z.infer<typeof inventoryImportSchema>;
 
 export const inventoryImportRunSchema = z.object({
   categoryId: z.number().optional().nullable(),
+  scope: inventoryImportScopeSchema.optional().default("active"),
   strategy: z.enum(IMPORT_STRATEGIES).optional().default("optimized"),
   compare: z.boolean().optional().default(false),
   reset: z.boolean().optional().default(false),

@@ -37,6 +37,7 @@ import {
   inventorySummary,
   inventorySummarySchema,
   inventoryVariantStockForm,
+  lowStockSummary,
   resetInventorySystem,
   runFullInventoryImport,
   saveInventory,
@@ -330,6 +331,9 @@ export const inventoriesRouter = createTRPCRouter({
       const result = await inventorySummary(props.ctx.db, props.input);
       return result;
     }),
+  lowStockSummary: publicProcedure.query(async (props) => {
+    return lowStockSummary(props.ctx.db);
+  }),
   upsertShelfProducts: publicProcedure
     .input(upsertInventoriesForDykeShelfProductsSchema)
     .mutation(async (props) => {

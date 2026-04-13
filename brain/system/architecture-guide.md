@@ -25,6 +25,23 @@ This guide combines:
 
 The goal is not to make GND look exactly like Midday. The goal is to borrow the useful parts of Midday's app architecture and pair them with stricter domain authority for GND's operations-heavy workflows.
 
+## Midday-First Reference Rule
+
+For page architecture, loading strategy, and code organization, Midday should be treated as the primary reference model before inventing a new local pattern.
+
+That means:
+- study the real local Midday repo at `/Users/M1PRO/Documents/code/_kitchen_sink/midday` before introducing a new dashboard/workspace layout
+- borrow its structural decisions first:
+  - thin route entrypoints
+  - summary-first first paint
+  - section-based page composition
+  - deferred secondary detail
+  - smaller independent queries instead of giant route-blocking loaders
+- borrow its organizational discipline too:
+  - do not let large page files accumulate business logic, modal orchestration, analytics composition, and data shaping all in one place
+  - split feature pages into focused sections and move reusable logic into stable feature/domain modules
+- use GND-specific divergence only when the operational workflow truly requires it, and document meaningful divergence in Brain when it becomes durable
+
 ## Scope
 This guide applies to:
 - `apps/www`

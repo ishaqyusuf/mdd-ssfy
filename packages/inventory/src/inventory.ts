@@ -498,7 +498,90 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
     filterParams,
   };
 }
-export async function lowStockSummary(db: Db) {}
+export async function lowStockSummary(db: Db) {
+  const variants = await db.inventoryVariant.findMany({
+    where: {
+      deletedAt: null,
+      lowStockAlert: {
+        gt: 0,
+      },
+      inventory: {
+        deletedAt: null,
+        stockMode: "monitored" as StockModes,
+        productKind: "inventory",
+      },
+    },
+    select: {
+      id: true,
+      uid: true,
+      lowStockAlert: true,
+      inventoryId: true,
+      inventory: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      attributes: {
+        select: {
+          value: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+      stockMovements: {
+        where: {
+          deletedAt: null,
+          status: "completed",
+        },
+        select: {
+          changeQty: true,
+        },
+      },
+    },
+  });
+
+  const rows = variants
+    .map((variant) => {
+      const qty = sum(variant.stockMovements, "changeQty");
+      const threshold = Number(variant.lowStockAlert || 0);
+      const shortage = Math.max(0, threshold - qty);
+      const variantTitle = variant.attributes
+        .map((attribute) => attribute.value?.name)
+        .filter(Boolean)
+        .join(" ");
+
+      return {
+        id: variant.id,
+        uid: variant.uid,
+        inventoryId: variant.inventoryId,
+        inventoryName: variant.inventory?.name || "Untitled inventory",
+        variantTitle: variantTitle || null,
+        qty,
+        threshold,
+        shortage,
+      };
+    })
+    .filter((variant) => variant.qty <= variant.threshold)
+    .sort((a, b) => {
+      if (a.shortage !== b.shortage) {
+        return b.shortage - a.shortage;
+      }
+      if (a.qty !== b.qty) {
+        return a.qty - b.qty;
+      }
+      return `${a.inventoryName} ${a.variantTitle || ""}`.localeCompare(
+        `${b.inventoryName} ${b.variantTitle || ""}`,
+      );
+    });
+
+  return {
+    total: rows.length,
+    items: rows.slice(0, 5),
+  };
+}
 export async function pendingInboundSummary(db: Db) {}
 
 export async function saveInventory(db: Db, data: InventoryForm) {

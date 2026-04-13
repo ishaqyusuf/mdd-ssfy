@@ -6,13 +6,13 @@ import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Card } from "@gnd/ui/card";
-import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import { useMemo, useState } from "react";
 
 type Strategy = "optimized" | "handcrafted";
+type ScopeMode = "active" | "all";
 
 function StatCard({
     title,
@@ -68,11 +68,13 @@ export function InventoryImportControlCenter() {
     const trpc = useTRPC();
     const queryClient = useQueryClient();
     const [strategy, setStrategy] = useState<Strategy>("optimized");
+    const [scope, setScope] = useState<ScopeMode>("active");
     const [lastRunSummary, setLastRunSummary] = useState<string | null>(null);
 
     const imports = useQuery(
         trpc.inventories.inventoryImports.queryOptions({
             size: 200,
+            scope,
         }),
     );
     const totalProducts = useQuery(
@@ -90,9 +92,10 @@ export function InventoryImportControlCenter() {
     );
 
     const rows = imports.data?.data || [];
+    const scopeMeta = imports.data?.meta;
     const importedCount = rows.filter((row) => Boolean(row.categoryUid)).length;
     const pendingCount = rows.filter((row) => !row.categoryUid).length;
-    const totalLegacyProducts = rows.reduce(
+    const totalScopedProducts = rows.reduce(
         (sum, row) => sum + Number(row.totalProducts || 0),
         0,
     );
@@ -118,7 +121,7 @@ export function InventoryImportControlCenter() {
         trpc.inventories.runFullImport.mutationOptions({
             onSuccess: async (data, variables) => {
                 setLastRunSummary(
-                    `${data.totalSteps} steps processed using ${data.strategy}${data.compare ? " (compare)" : ""}${data.reset ? " with reset" : ""}.`,
+                    `${data.totalSteps} steps processed using ${data.strategy} in ${scope} scope${data.compare ? " (compare)" : ""}${data.reset ? " with reset" : ""}.`,
                 );
                 toast({
                     title: data.compare ? "System check completed" : "Inventory update completed",
@@ -161,8 +164,16 @@ export function InventoryImportControlCenter() {
                 ok: pendingCount === 0,
                 detail:
                     pendingCount === 0
-                        ? "Every legacy Dyke step category has an imported inventory category."
-                        : `${pendingCount} legacy categories are still pending import coverage.`,
+                        ? "Every active sales-settings step in scope has an imported inventory category."
+                        : `${pendingCount} active-scope steps are still pending import coverage.`,
+            },
+            {
+                label: "Stale imported categories",
+                ok: (scopeMeta?.staleImportedCategories || 0) === 0,
+                detail:
+                    (scopeMeta?.staleImportedCategories || 0) === 0
+                        ? "No excluded Dyke steps are still represented in imported inventory categories."
+                        : `${scopeMeta?.staleImportedCategories || 0} imported categories belong to steps outside the active sales-settings scope.`,
             },
             {
                 label: "Kind classification review",
@@ -181,7 +192,7 @@ export function InventoryImportControlCenter() {
                         : "Handcrafted strategy is selected for this run. Use only when validating edge cases.",
             },
         ],
-        [kindReview.data?.mismatched, pendingCount, strategy],
+        [kindReview.data?.mismatched, pendingCount, scopeMeta?.staleImportedCategories, strategy],
     );
 
     return (
@@ -189,22 +200,22 @@ export function InventoryImportControlCenter() {
             <div className="flex flex-col gap-2">
                 <h2 className="text-xl font-semibold">Import Control Center</h2>
                 <p className="max-w-3xl text-sm text-muted-foreground">
-                    This workspace is now global-first. Update, check, reset, and
-                    monitor the legacy Dyke import from one place instead of
-                    running category-by-category actions.
+                    This workspace is now settings-driven. Update, check, reset,
+                    and monitor the inventory import from the steps actively used
+                    by the sales form instead of pulling the full legacy Dyke set.
                 </p>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <StatCard
-                    title="Legacy Categories"
+                    title="Scoped Steps"
                     value={rows.length}
-                    subtitle={`${importedCount} imported • ${pendingCount} pending`}
+                    subtitle={`${importedCount} imported • ${pendingCount} pending • ${scopeMeta?.excludedSteps || 0} excluded`}
                 />
                 <StatCard
-                    title="Legacy Products"
-                    value={totalLegacyProducts}
-                    subtitle="Total Dyke step products visible to the importer"
+                    title="Scoped Products"
+                    value={totalScopedProducts}
+                    subtitle="Total Dyke products visible inside the selected import scope"
                 />
                 <StatCard
                     title="Inventory Records"
@@ -224,16 +235,28 @@ export function InventoryImportControlCenter() {
                         <div className="space-y-1">
                             <h3 className="font-semibold">Import Actions</h3>
                             <p className="text-sm text-muted-foreground">
-                                Run full inventory updates across all legacy Dyke
-                                steps. No per-category import action is required here.
+                                Run full inventory updates across the configured
+                                sales-settings scope. No per-category import action
+                                is required here.
                             </p>
                         </div>
                         <Badge variant="outline" className="capitalize">
-                            {strategy}
+                            {strategy} • {scope}
                         </Badge>
                     </div>
 
                     <div className="mt-4 flex flex-wrap gap-2">
+                        {(["active", "all"] as const).map((value) => (
+                            <Button
+                                key={value}
+                                type="button"
+                                size="sm"
+                                variant={scope === value ? "default" : "outline"}
+                                onClick={() => setScope(value)}
+                            >
+                                {value === "active" ? "Active Scope" : "All Dyke"}
+                            </Button>
+                        ))}
                         {(["optimized", "handcrafted"] as const).map((value) => (
                             <Button
                                 key={value}
@@ -253,6 +276,7 @@ export function InventoryImportControlCenter() {
                             disabled={runFullImport.isPending}
                             onClick={() =>
                                 runFullImport.mutate({
+                                    scope,
                                     strategy,
                                     source: "manual",
                                     compare: false,
@@ -269,6 +293,7 @@ export function InventoryImportControlCenter() {
                             disabled={runFullImport.isPending}
                             onClick={() =>
                                 runFullImport.mutate({
+                                    scope,
                                     strategy,
                                     source: "manual",
                                     compare: true,
@@ -285,6 +310,7 @@ export function InventoryImportControlCenter() {
                             disabled={runFullImport.isPending}
                             onClick={() =>
                                 runFullImport.mutate({
+                                    scope,
                                     strategy,
                                     source: "manual",
                                     compare: false,
@@ -310,9 +336,9 @@ export function InventoryImportControlCenter() {
                     <div className="mt-4 rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
                         <div className="font-medium text-foreground">Run notes</div>
                         <div className="mt-1">
-                            `Update Inventory` runs the global import without reset.
-                            `System Check` runs compare mode. `Full Refresh` resets
-                            and rebuilds the inventory import layer.
+                            `Update Inventory` runs the selected scope without
+                            reset. `System Check` runs compare mode. `Full Refresh`
+                            resets and rebuilds the selected inventory import scope.
                         </div>
                         {lastRunSummary ? (
                             <div className="mt-3 rounded-md bg-background p-3 text-foreground">
@@ -340,14 +366,15 @@ export function InventoryImportControlCenter() {
 
             <Card className="p-5">
                 <div className="space-y-1">
-                    <h3 className="font-semibold">Legacy Breakdown</h3>
+                    <h3 className="font-semibold">Scope Breakdown</h3>
                     <p className="text-sm text-muted-foreground">
-                        Read-only category visibility for debugging and audit.
-                        The primary workflow above is now global, not per-category.
+                        Read-only Dyke step visibility for debugging and audit.
+                        The primary workflow above is now scope-driven, not
+                        category-by-category.
                     </p>
                 </div>
                 <div className="mt-4">
-                    <DataTable />
+                    <DataTable scope={scope} />
                 </div>
             </Card>
         </div>

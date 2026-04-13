@@ -6,6 +6,7 @@ import {
 import { inventoryImportRunSchema, type InventoryImportRun } from "../../schema";
 import { InventoryImportService as HandcraftedInventoryImportService } from "./strategies/handcrafted-importer";
 import { InventoryImportService as OptimizedInventoryImportService } from "./strategies/optimized-importer";
+import { resolveActiveInventoryImportScope } from "./resolve-active-inventory-import-scope";
 
 type ImporterInstance = {
   importComponents(stepId: number): Promise<void>;
@@ -23,6 +24,9 @@ export type InventoryImportExecution = {
     };
     data?: {
       error?: unknown;
+      skipped?: boolean;
+      reason?: string;
+      scope?: InventoryImportRun["scope"];
       tables?: Record<string, { tableResult?: { count?: number | null } }>;
     };
   };
@@ -97,6 +101,33 @@ export async function runInventoryImport(
     throw new Error("categoryId is required for inventory import runs");
   }
 
+  if (payload.scope !== "all") {
+    const scope = await resolveActiveInventoryImportScope(db);
+    if (!scope.activeStepIds.includes(payload.categoryId)) {
+      const step = await db.dykeSteps.findUnique({
+        where: { id: payload.categoryId },
+        select: { uid: true },
+      });
+      return {
+        strategy: payload.strategy ?? IMPORT_STRATEGIES[1],
+        categoryId: payload.categoryId,
+        result: {
+          stepData: {
+            step: {
+              uid: step?.uid ?? null,
+            },
+          },
+          data: {
+            skipped: true,
+            reason: "step_outside_active_sales_settings_scope",
+            scope: payload.scope,
+            tables: {},
+          },
+        },
+      };
+    }
+  }
+
   if (payload.compare) {
     const handcrafted = createImporter(db, "handcrafted");
     await handcrafted.importComponents(payload.categoryId);
@@ -142,12 +173,14 @@ export class InventoryImportService {
   ) {}
 
   public async importComponents(categoryId: number): Promise<void> {
+    const scope = this.options.scope ?? "active";
     const strategy = this.options.strategy ?? "optimized";
     const compare = this.options.compare ?? false;
     const reset = this.options.reset ?? false;
     const source = this.options.source ?? "manual";
     this.#result = await runInventoryImport(this.db, {
       categoryId,
+      scope,
       strategy,
       compare,
       reset,

@@ -5,13 +5,15 @@ import {
     useInboundView,
 } from "@/hooks/use-inbound-filter-params";
 import { useTRPC } from "@/trpc/client";
+import { EmptyState } from "@gnd/ui/custom/empty-state";
+import { NoResults } from "@gnd/ui/custom/no-results";
 import { Table, useTableData } from "@gnd/ui/data-table";
 import { columns, mobileColumn } from "./columns";
 
 export function DataTable({}) {
     const trpc = useTRPC();
-    const { filter, setFilter } = useInboundFilterParams();
-    const { data, ref: loadMoreRef, hasNextPage } = useTableData({
+    const { filter, setFilter, hasFilters } = useInboundFilterParams();
+    const { data, ref: loadMoreRef, hasNextPage, isFetching } = useTableData({
         filter,
         route: trpc.sales.inboundIndex,
     });
@@ -39,6 +41,14 @@ export function DataTable({}) {
     //         fetchNextPage();
     //     }
     // }, [inView]);
+    if (hasFilters && !data?.length) {
+        return <NoResults setFilter={setFilter} />;
+    }
+
+    if (!data?.length && !isFetching) {
+        return <EmptyState label="inbounds" />;
+    }
+
     return (
         <Table.Provider
             args={[

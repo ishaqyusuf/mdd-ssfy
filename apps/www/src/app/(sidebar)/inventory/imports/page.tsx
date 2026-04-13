@@ -1,7 +1,7 @@
 import { ErrorFallback } from "@/components/error-fallback";
 import { InventoryImportControlCenter } from "@/components/inventory/inventory-import-control-center";
+import { InventoryImportControlCenterSkeleton } from "@/components/inventory/inventory-import-control-center-skeleton";
 
-import { TableSkeleton } from "@/components/tables/skeleton";
 import { HydrateClient } from "@/trpc/server";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import type { SearchParams } from "nuqs";
@@ -20,7 +20,7 @@ export default async function Page(props: Props) {
 			<PageTitle>Inventory Imports</PageTitle>
 			<HydrateClient>
 				<ErrorBoundary errorComponent={ErrorFallback}>
-					<Suspense fallback={<TableSkeleton />}>
+					<Suspense fallback={<InventoryImportControlCenterSkeleton />}>
 						<InventoryImportControlCenter />
 					</Suspense>
 				</ErrorBoundary>

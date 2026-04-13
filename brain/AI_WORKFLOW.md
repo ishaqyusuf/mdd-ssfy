@@ -14,12 +14,17 @@ Defines the expected read-before-write and update-after-change workflow for AI c
 - Keep changes aligned with existing package boundaries and avoid creating duplicate business logic.
 - Use feature plans and ADRs as the authority when they exist.
 - Default to Midday-style architecture wherever possible:
+  - before changing page architecture or route composition, inspect the real local Midday repo and borrow its loading and file-organization pattern where it fits
   - optimize for fast first paint and perceived navigation speed
   - let shells, widgets, and loading boundaries appear before non-critical data finishes loading
   - prefer smaller independent queries over one large route-blocking payload
   - avoid full-dataset fetches when aggregates, summaries, or paginated slices are enough
   - in sheets and tabbed UIs, load the opening tab only and let secondary tabs fetch on demand
   - treat transactions, audit history, and long tables as secondary data unless the user is explicitly opening that workspace
+  - use Midday as an architecture teacher, not a styling reference:
+    - copy how it keeps pages decomposed into focused sections
+    - copy how it keeps page files thin and moves reusable logic out of the route
+    - copy how it improves loading by separating overview queries from secondary detail
   - check the real Midday project first for architecture decisions:
     - `/Users/M1PRO/Documents/code/_kitchen_sink/midday`
   - follow the Midday architecture pattern directly:

@@ -1,29 +1,19 @@
 import { Db } from "@gnd/db";
 import { InventoryImport } from "./schema";
+import { resolveActiveInventoryImportScope } from "./application/import/resolve-active-inventory-import-scope";
 
 export async function inventoryImport(db: Db, data: InventoryImport) {
-  //   const { db } = ctx;
-  // const shelfCategories = (
-  //   await db.dykeShelfCategories.findMany({
-  //     where: {
-  //       parentCategoryId: null,
-  //     },
-  //     select: {
-  //       id: true,
-  //       name: true,
-  //       _count: {
-  //         select: {
-  //           groupedProducts: true,
-  //         },
-  //       },
-  //     },
-  //   })
-  // ).map((c) => ({
-  //   ...c,
-  //   uid: generateInventoryCategoryUidFromShelfCategoryId(c.id),
-  // }));
+  const scope = await resolveActiveInventoryImportScope(db);
+  const query = data.q?.trim().toLowerCase() || "";
   const categories = await db.dykeSteps.findMany({
-    distinct: "title",
+    where:
+      data.scope === "all"
+        ? {}
+        : {
+            uid: {
+              in: scope.activeStepUids,
+            },
+          },
     select: {
       uid: true,
       id: true,
@@ -34,10 +24,12 @@ export async function inventoryImport(db: Db, data: InventoryImport) {
             where: {
               deletedAt: null,
             },
-            // distinct: ""
           },
         },
       },
+    },
+    orderBy: {
+      title: "asc",
     },
   });
   const inventories = await db.inventoryCategory.findMany({
@@ -45,7 +37,6 @@ export async function inventoryImport(db: Db, data: InventoryImport) {
       uid: {
         in: [
           ...categories.map((c) => c.uid!),
-          // ...shelfCategories.map((sc) => sc.uid),
         ],
       },
     },
@@ -70,25 +61,49 @@ export async function inventoryImport(db: Db, data: InventoryImport) {
     };
   }
   const response = {
-    data: [
-      // ...shelfCategories.map((c) => ({
-      //   uid: c.uid,
-      //   title: c.name,
-      //   totalProducts: c._count?.groupedProducts,
-      //   ...inventoryInfo(c.uid),
-      //   subCategory: "shelf item",
-      //   importCategoryId: c.id,
-      // })),
-      ...categories.map((c) => ({
+    data: categories
+      .map((c) => ({
+        id: c.id,
         uid: c.uid,
         title: c.title,
         totalProducts: c._count?.stepProducts,
         ...inventoryInfo(c.uid),
-        subCategory: "component",
+        subCategory: scope.dependencyStepUids.includes(c.uid || "")
+          ? "dependency"
+          : "configured",
         importCategoryId: c.id,
-      })),
-    ].sort((a, b) => a.title!?.localeCompare(b.title!)),
-    //   ?.filter((a) => a.totalProducts > 0),
+        inScope: scope.activeStepUids.includes(c.uid || ""),
+        isDependencyOnly: scope.dependencyStepUids.includes(c.uid || ""),
+        isStaleImported: scope.staleImportedCategoryUids.includes(c.uid || ""),
+        scopeReason: (scope.reasonsByStepUid[c.uid || ""] || []).join(", "),
+      }))
+      .filter((row) => {
+        if (!query) return true;
+        return (
+          String(row.title || "")
+            .toLowerCase()
+            .includes(query) ||
+          String(row.uid || "")
+            .toLowerCase()
+            .includes(query) ||
+          String(row.scopeReason || "")
+            .toLowerCase()
+            .includes(query)
+        );
+      })
+      .sort((a, b) =>
+        String(a.title || a.uid || "").localeCompare(
+          String(b.title || b.uid || ""),
+        ),
+      ),
+    meta: {
+      scope: data.scope,
+      totalRows: categories.length,
+      activeSteps: scope.activeStepUids.length,
+      dependencySteps: scope.dependencyStepUids.length,
+      excludedSteps: scope.excludedStepUids.length,
+      staleImportedCategories: scope.staleImportedCategoryUids.length,
+    },
   };
   return response;
 }

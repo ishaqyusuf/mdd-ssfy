@@ -2,6 +2,20 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-04-13
+
+- Replaced the placeholder low-stock widget on the inventory page with a real inventory-domain alert feed.
+  - implemented `lowStockSummary()` in `packages/inventory/src/inventory.ts`
+  - exposed the feed through `inventories.lowStockSummary` in `apps/api/src/trpc/routers/inventories.route.ts`
+  - rewired `apps/www/src/components/widgets/inventory-stock-alert-widget.tsx` off the unrelated sales-dashboard KPI query and onto the new inventory query
+  - the widget now shows actual monitored inventory variants whose stock is at or below their `lowStockAlert` threshold, plus an internal loading skeleton and empty state
+
+- Strengthened the Brain architecture rules so Midday is now treated as the primary reference for page architecture, loading strategy, and code organization rather than just a loose inspiration.
+  - updated `brain/engineering/ai-rules.md` to explicitly require studying the real local Midday repo before building/refactoring page/workspace architecture
+  - updated `brain/engineering/coding-standards.md` to make Midday-style structure part of codebase organization rules, not just loading/performance guidance
+  - updated `brain/AI_WORKFLOW.md` so AI contributors use Midday as an architecture teacher for thin routes, focused sections, and deferred detail loading
+  - added a dedicated `Midday-First Reference Rule` section to `brain/system/architecture-guide.md`
+  - this is intended to keep future page work faster on first paint and better organized at the file/module level
 ## 2026-04-11
 
 - Started consolidating legacy Dyke authoring logic into the inventory domain instead of leaving business writes in `apps/www`.
@@ -102,6 +116,28 @@
   - removed per-row import actions from the legacy import table so the primary workflow is no longer category-by-category
   - validation note:
     - focused import-area checks were started for the touched web/api files, but the workspace typecheck remains long-running/noisy; no targeted regression surfaced before wrap-up
+
+- Moved inventory import scope off “all Dyke steps” and onto the active sales-settings route graph.
+  - added `resolveActiveInventoryImportScope()` in `packages/inventory/src/application/import/resolve-active-inventory-import-scope.ts`
+  - the resolver now reads `sales-settings`, reconstructs the configured route graph, identifies the active root step, and expands the import universe by dependency closure:
+    - route-sequence steps
+    - redirect steps
+    - variation-linked steps
+    - price-system linked steps
+    - dependency-token owner steps
+    - Width/Height support steps when active dependencies require them
+  - extended inventory import schemas with `scope: "active" | "all"` and made `active` the default for both analytics and full import runs
+  - updated `runFullInventoryImport()` so full import uses only active-scope step ids unless an explicit `all` scope is requested
+  - updated `inventoryImport()` analytics to report:
+    - in-scope rows
+    - dependency-only rows
+    - excluded Dyke steps
+    - stale imported categories that are no longer in active scope
+  - updated `inventoryUpdateFromDyke()` so targeted syncs now skip out-of-scope steps instead of re-importing dead Dyke areas back into inventory
+  - updated the imports control center and lower breakdown table so the UI can switch between `Active Scope` and `All Dyke`, with active scope as the primary workflow
+  - validation note:
+    - `bun run --filter @gnd/inventory typecheck` passes after the scope-resolver/import-run changes
+    - the broader `@gnd/www` workspace typecheck was still running under existing repo-wide noise when this slice wrapped, so browser verification on `/inventory/imports` is still recommended
 
 - Simplified the shared inventory workspace layout so only the main inventory screen behaves like a dashboard.
   - removed the old shared `InventoryTabs` bar from the inventory layout and deleted the component entirely

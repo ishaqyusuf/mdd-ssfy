@@ -405,7 +405,35 @@ export class InventoryImportService {
       },
     });
 
-    const data = { inventories, componentUids, inventoryCategories };
+    const inventoryCategoryVariantAttributes =
+      await this.db.inventoryCategoryVariantAttribute.findMany({
+        where: {
+          OR: [
+            {
+              inventoryCategoryId: {
+                in: inventoryCategories.map((category) => category.id),
+              },
+            },
+            {
+              valuesInventoryCategoryId: {
+                in: inventoryCategories.map((category) => category.id),
+              },
+            },
+          ],
+        },
+        select: {
+          id: true,
+          inventoryCategoryId: true,
+          valuesInventoryCategoryId: true,
+        },
+      });
+
+    const data = {
+      inventories,
+      componentUids,
+      inventoryCategories,
+      inventoryCategoryVariantAttributes,
+    };
     (this.#state as any as Record<string, unknown>).inventoryLoadedData = data;
     return data;
   }
@@ -659,11 +687,16 @@ export class InventoryImportService {
       this.#inventoryCategoryIdByInventoryId(attributeInventoryId);
 
     let id =
-      this.#state.tables.inventoryCategoryVariantAttribute.createMany.find(
+      this.#requirePreData().inventoryCategoryVariantAttributes.find(
+        (a) =>
+          a.valuesInventoryCategoryId === valuesInventoryCategoryId &&
+          a.inventoryCategoryId === inventoryCategoryId,
+      ) ??
+      (this.#state.tables.inventoryCategoryVariantAttribute.createMany.find(
         (a: any) =>
           a.valuesInventoryCategoryId === valuesInventoryCategoryId &&
           a.inventoryCategoryId === inventoryCategoryId,
-      ) as { id?: number } | undefined;
+      ) as { id?: number } | undefined);
 
     if (!id?.id && inventoryCategoryId && valuesInventoryCategoryId) {
       const created = this.#addCreateData("inventoryCategoryVariantAttribute", {

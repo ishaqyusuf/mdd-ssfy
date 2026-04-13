@@ -28,6 +28,9 @@ const categoryColumn = {
                     <Progress.Status noDot>{item.subCategory}</Progress.Status>
                 </Progress>
             </TCell.Secondary>
+            {item.scopeReason ? (
+                <TCell.Secondary>{item.scopeReason}</TCell.Secondary>
+            ) : null}
         </>
     ),
 };
@@ -71,11 +74,32 @@ const statucColumn = {
                 )}
                 {item.categoryUid ? "Imported" : "Pending"}
             </Badge>
+            {item.isDependencyOnly ? (
+                <Badge variant="outline" className="ml-2">
+                    Dependency
+                </Badge>
+            ) : null}
         </>
+    ),
+};
+const scopeColumn = {
+    header: "Scope",
+    accessorKey: "scope",
+    meta: {},
+    cell: ({ row: { original: item } }) => (
+        <div className="flex flex-wrap gap-2">
+            <Badge variant={item.inScope ? "secondary" : "outline"}>
+                {item.inScope ? "Active" : "Excluded"}
+            </Badge>
+            {item.isStaleImported ? (
+                <Badge variant="destructive">Stale Import</Badge>
+            ) : null}
+        </div>
     ),
 };
 export const columns: ColumnDef<Item>[] = [
     categoryColumn,
+    scopeColumn,
     statucColumn,
     productCount,
 ];
@@ -121,6 +145,20 @@ function ItemCard({ item }: ItemProps) {
             <Progress>
                 <Progress.Status noDot>{item.subCategory}</Progress.Status>
             </Progress>
+            <div className="flex flex-wrap gap-2">
+                <Badge variant={item.inScope ? "secondary" : "outline"}>
+                    {item.inScope ? "Active" : "Excluded"}
+                </Badge>
+                {item.isDependencyOnly ? (
+                    <Badge variant="outline">Dependency</Badge>
+                ) : null}
+                {item.isStaleImported ? (
+                    <Badge variant="destructive">Stale Import</Badge>
+                ) : null}
+            </div>
+            {item.scopeReason ? (
+                <TCell.Secondary>{item.scopeReason}</TCell.Secondary>
+            ) : null}
             <TCell.Secondary>{item.totalProducts} products</TCell.Secondary>
         </div>
     );
