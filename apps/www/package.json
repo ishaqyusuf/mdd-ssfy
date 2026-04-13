@@ -28,6 +28,7 @@
         "@gnd/db": "workspace:*",
         "@gnd/email": "workspace:*",
         "@gnd/events": "workspace:*",
+        "@gnd/inventory": "workspace:*",
         "@gnd/notifications": "workspace:*",
         "@gnd/printer": "workspace:*",
         "@gnd/sales": "workspace:*",

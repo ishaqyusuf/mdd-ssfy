@@ -21,7 +21,10 @@
     "./inventory-import-optimized": "./src/application/import/strategies/optimized-importer.ts",
     "./inventory-utils": "./src/utils/inventory-utils.ts",
     "./sync": "./src/application/sync/index.ts",
-    "./jobs": "./src/application/jobs/index.ts"
+    "./jobs": "./src/application/jobs/index.ts",
+    "./definitions": "./src/application/definitions/index.ts",
+    "./pricing": "./src/application/pricing/index.ts",
+    "./suppliers": "./src/application/suppliers/index.ts"
   },
   "dependencies": {
     "@gnd/db": "workspace:*",

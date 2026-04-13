@@ -532,6 +532,7 @@ function repricePersistedDoorRowsForSupplier(
             pricing: component?.pricing || {},
             size,
             supplierUid,
+            supplierVariants: component?.supplierVariants || [],
             salesMultiplier,
             fallbackSalesPrice: component?.salesPrice,
             fallbackBasePrice: component?.basePrice,
@@ -608,6 +609,8 @@ function snapshotSelectedComponent(component: any) {
         uid: component?.uid || "",
         title: component?.title || "",
         img: component?.img || null,
+        inventoryId: component?.inventoryId ?? null,
+        inventoryVariantId: component?.inventoryVariantId ?? null,
         salesPrice:
             component?.salesPrice == null
                 ? null
@@ -617,6 +620,9 @@ function snapshotSelectedComponent(component: any) {
                 ? null
                 : Number(component.basePrice || 0),
         pricing: component?.pricing || null,
+        supplierVariants: Array.isArray(component?.supplierVariants)
+            ? component.supplierVariants
+            : [],
         redirectUid: component?.redirectUid || null,
         sectionOverride: component?.sectionOverride || null,
     };
@@ -2453,6 +2459,7 @@ export function ItemWorkflowPanel() {
                 pricing,
                 size,
                 supplierUid: supplier.supplierUid,
+                supplierVariants: activeDoorComponent?.supplierVariants || [],
                 salesMultiplier:
                     Number.isFinite(activeProfileCoefficient) &&
                     activeProfileCoefficient > 0

@@ -47,6 +47,37 @@ export const inventoryFormSchema = z.object({
     stockMonitor: z.boolean().optional().default(false),
     primaryStoreFront: z.boolean().optional().default(false),
   }),
+  suppliers: z
+    .array(
+      z.object({
+        id: z.number().optional().nullable(),
+        uid: z.string().optional().nullable(),
+        name: z.string(),
+        email: z.string().optional().nullable(),
+        phone: z.string().optional().nullable(),
+        address: z.string().optional().nullable(),
+      }),
+    )
+    .optional()
+    .nullable(),
+  supplierVariants: z
+    .array(
+      z.object({
+        id: z.number().optional().nullable(),
+        supplierId: z.number(),
+        inventoryVariantId: z.number().optional().nullable(),
+        variantUid: z.string().optional().nullable(),
+        supplierSku: z.string().optional().nullable(),
+        costPrice: z.number().optional().nullable(),
+        salesPrice: z.number().optional().nullable(),
+        minOrderQty: z.number().optional().nullable(),
+        leadTimeDays: z.number().optional().nullable(),
+        preferred: z.boolean().optional().default(false),
+        active: z.boolean().optional().default(true),
+      }),
+    )
+    .optional()
+    .nullable(),
   subCategories: z.array(
     z.object({
       categoryId: z.number().optional().nullable(),
@@ -169,3 +200,66 @@ export const updateCategoryVariantAttributeSchema = z.object({
 export type UpdateCategoryVariantAttribute = z.infer<
   typeof updateCategoryVariantAttributeSchema
 >;
+
+export const dykeStepComponentSchema = z.object({
+  id: z.number().optional(),
+  img: z.string().optional(),
+  name: z.string(),
+  productCode: z.string().optional(),
+  custom: z.boolean().optional().default(false),
+  stepId: z.number().optional(),
+  meta: z.record(z.string(), z.any()).optional(),
+});
+export type DykeStepComponent = z.infer<typeof dykeStepComponentSchema>;
+
+export const updateDykeComponentPricingSchema = z.object({
+  stepId: z.number(),
+  stepProductUid: z.string(),
+  pricings: z.array(
+    z.object({
+      id: z.number().optional(),
+      dependenciesUid: z.string().optional(),
+      price: z.number().nullable().optional(),
+    }),
+  ),
+  triggerInventorySync: z.boolean().optional().default(true),
+});
+export type UpdateDykeComponentPricing = z.infer<
+  typeof updateDykeComponentPricingSchema
+>;
+
+export const dykeInventoryDriftReportSchema = z.object({
+  stepId: z.number().optional().nullable(),
+});
+export type DykeInventoryDriftReport = z.infer<
+  typeof dykeInventoryDriftReportSchema
+>;
+
+export const inventorySuppliersSchema = z.object({
+  q: z.string().optional().nullable(),
+});
+export type InventorySuppliers = z.infer<typeof inventorySuppliersSchema>;
+
+export const inventorySupplierFormSchema = z.object({
+  id: z.number().optional().nullable(),
+  uid: z.string().optional().nullable(),
+  name: z.string(),
+  email: z.string().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
+});
+export type InventorySupplierForm = z.infer<typeof inventorySupplierFormSchema>;
+
+export const supplierVariantFormSchema = z.object({
+  id: z.number().optional().nullable(),
+  supplierId: z.number(),
+  inventoryVariantId: z.number(),
+  supplierSku: z.string().optional().nullable(),
+  costPrice: z.number().optional().nullable(),
+  salesPrice: z.number().optional().nullable(),
+  minOrderQty: z.number().optional().nullable(),
+  leadTimeDays: z.number().optional().nullable(),
+  preferred: z.boolean().optional().default(false),
+  active: z.boolean().optional().default(true),
+});
+export type SupplierVariantForm = z.infer<typeof supplierVariantFormSchema>;

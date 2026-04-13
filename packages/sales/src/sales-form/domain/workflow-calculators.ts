@@ -1,3 +1,7 @@
+import {
+  buildLegacyDoorSupplierPricingKeys,
+  resolveSupplierVariantPricing,
+} from "@gnd/inventory/suppliers";
 import { normalizeSalesFormTitle } from "./step-engine";
 
 function firstFiniteNumber(...values: Array<number | null | undefined>) {
@@ -117,19 +121,42 @@ export function resolvePricingBucketUnitPrice({
   pricing,
   size,
   supplierUid,
+  supplierVariants,
   fallbackSalesPrice,
   fallbackBasePrice,
 }: {
   pricing: Record<string, any> | null | undefined;
   size: string;
   supplierUid?: string | null;
+  supplierVariants?: Array<any> | null;
   fallbackSalesPrice?: number | null;
   fallbackBasePrice?: number | null;
 }) {
   const source = pricing || {};
-  const supplierKey = supplierUid ? `${size} & ${supplierUid}` : null;
+  const supplierVariant = resolveSupplierVariantPricing({
+    supplierUid,
+    supplierVariants,
+  });
+  if (supplierVariant) {
+    const supplierUnit = firstFiniteNumber(
+      supplierVariant.salesPrice ?? undefined,
+      supplierVariant.costPrice ?? undefined,
+      fallbackSalesPrice,
+      fallbackBasePrice,
+    );
+    return supplierUnit == null ? 0 : supplierUnit;
+  }
+
+  const candidateKeys = supplierUid
+    ? buildLegacyDoorSupplierPricingKeys({
+        supplierUid,
+        size,
+      })
+    : [];
   const bucket =
-    (supplierKey ? source[supplierKey] : null) ||
+    candidateKeys
+      .map((key) => source[key])
+      .find((value) => value != null) ||
     source[size] ||
     null;
   const unit = firstFiniteNumber(
@@ -148,6 +175,7 @@ export function resolveDoorTierPricing({
   pricing,
   size,
   supplierUid,
+  supplierVariants,
   salesMultiplier,
   fallbackSalesPrice,
   fallbackBasePrice,
@@ -155,13 +183,53 @@ export function resolveDoorTierPricing({
   pricing: Record<string, any> | null | undefined;
   size: string;
   supplierUid?: string | null;
+  supplierVariants?: Array<any> | null;
   salesMultiplier?: number | null;
   fallbackSalesPrice?: number | null;
   fallbackBasePrice?: number | null;
 }) {
   const source = pricing || {};
-  const supplierKey = supplierUid ? `${size} & ${supplierUid}` : null;
-  const raw = supplierKey ? (source[supplierKey] ?? null) : (source[size] ?? null);
+  const supplierVariant = resolveSupplierVariantPricing({
+    supplierUid,
+    supplierVariants,
+  });
+  if (supplierVariant) {
+    const basePrice = firstFiniteNumber(
+      supplierVariant.costPrice ?? undefined,
+      supplierVariant.salesPrice ?? undefined,
+      fallbackBasePrice,
+      fallbackSalesPrice,
+    );
+    const multiplier = Number(salesMultiplier);
+    const normalizedMultiplier =
+      Number.isFinite(multiplier) && multiplier > 0
+        ? roundCurrency(multiplier)
+        : 1;
+    const derivedSales =
+      basePrice != null ? roundCurrency(basePrice * normalizedMultiplier) : null;
+    const salesPrice = firstFiniteNumber(
+      supplierVariant.salesPrice ?? undefined,
+      derivedSales,
+      fallbackSalesPrice,
+      basePrice,
+    );
+
+    return {
+      hasPrice: true,
+      basePrice: basePrice ?? 0,
+      salesPrice: salesPrice ?? 0,
+    };
+  }
+
+  const supplierRaw = supplierUid
+    ? buildLegacyDoorSupplierPricingKeys({
+        supplierUid,
+        size,
+      })
+        .map((key) => source[key])
+        .find((value) => value != null) ?? null
+    : null;
+  const raw = supplierUid ? supplierRaw : (source[size] ?? null);
   const bucket = typeof raw === "number" ? { price: raw } : raw;
   const hasPrice =
     raw != null &&

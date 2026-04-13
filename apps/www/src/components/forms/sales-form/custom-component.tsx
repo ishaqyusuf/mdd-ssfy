@@ -1,19 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
-import { saveStepComponent } from "@/actions/save-step-component";
-import { updateComponentPricingAction } from "@/actions/update-component-pricing-action";
 import { useStepContext } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/components-section/ctx";
 import { ComponentHelperClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
 import Button from "@/components/common/button";
 import { NumberInput } from "@/components/currency-input";
 import { LabelInput } from "@/components/label-input";
 import { generateRandomString } from "@/lib/utils";
+import { useTRPC } from "@/trpc/client";
 import { CUSTOM_IMG_ID } from "@/utils/constants";
-import { useAction } from "next-safe-action/hooks";
 import { useForm } from "react-hook-form";
+import { useMutation } from "@tanstack/react-query";
 
 import { Label } from "@gnd/ui/label";
 
 export function CustomComponentForm({ itemStepUid }) {
+    const trpc = useTRPC();
     const ctx = useStepContext(itemStepUid);
     const customInputs = useMemo(
         () => ctx.stepComponents?.filter((s) => s._metaData.custom),
@@ -46,7 +46,7 @@ export function CustomComponentForm({ itemStepUid }) {
 
         if (current?.price == formData.basePrice) refreshAndSelectComponent();
         else {
-            savePriceAction.execute({
+            savePriceMutation.mutate({
                 stepId: ctx.cls.getStepForm().stepId,
                 stepProductUid: uid,
                 pricings: [
@@ -59,13 +59,15 @@ export function CustomComponentForm({ itemStepUid }) {
             });
         }
     }
-    const savePriceAction = useAction(updateComponentPricingAction, {
+    const savePriceMutation = useMutation(
+        trpc.inventories.updateDykeComponentPricing.mutationOptions({
         onSuccess(data) {
             form.setValue("pricingUpdated", generateRandomString());
             // refreshAndSelectComponent(data.input.stepProductUid);
         },
         onError(error) {},
-    });
+        })
+    );
     useEffect(() => {
         let data = formData.saveData;
         if (data) {
@@ -82,12 +84,14 @@ export function CustomComponentForm({ itemStepUid }) {
         }
     }, [formData.pricingUpdated, formData.saveData]);
     // saveAction.hasSucceeded
-    const saveAction = useAction(saveStepComponent, {
-        onError(e) {},
-        onSuccess(data) {
-            form.setValue("saveData", data.data);
-        },
-    });
+    const saveComponentMutation = useMutation(
+        trpc.inventories.saveDykeStepComponent.mutationOptions({
+            onError() {},
+            onSuccess(data) {
+                form.setValue("saveData", data.component);
+            },
+        })
+    );
     const [componentCls, setComponentCls] = useState<ComponentHelperClass>();
     useEffect(() => {
         if (!componentCls) return;
@@ -111,7 +115,7 @@ export function CustomComponentForm({ itemStepUid }) {
                 formData?.title?.toLocaleLowerCase()
         );
 
-        saveAction.execute({
+        saveComponentMutation.mutate({
             id: existing?.id,
             custom: true,
             img: CUSTOM_IMG_ID,
@@ -152,7 +156,10 @@ export function CustomComponentForm({ itemStepUid }) {
                 </div>
                 <div className="flex justify-end">
                     <Button
-                        disabled={saveAction.isExecuting}
+                        disabled={
+                            saveComponentMutation.isPending ||
+                            savePriceMutation.isPending
+                        }
                         onClick={save}
                         size="xs"
                     >

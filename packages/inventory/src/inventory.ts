@@ -1,9 +1,13 @@
-import { Db, Prisma } from "@gnd/db";
-import {
+import { Prisma } from "@gnd/db";
+import type { Db } from "@gnd/db";
+import type {
   GetInventoryCategories,
   InventoryCategories,
   InventoryCategoryForm,
   InventoryForm,
+  InventorySupplierForm,
+  InventorySuppliers,
+  SupplierVariantForm,
   InventoryList,
   UpdateCategoryVariantAttribute,
   UpdateSubComponent,
@@ -14,7 +18,8 @@ import {
   composeQueryData,
   queryBuilder,
 } from "@gnd/utils/query-response";
-import { INVENTORY_STATUS, StockModes } from "./constants";
+import { INVENTORY_STATUS } from "./constants";
+import type { StockModes } from "./constants";
 import {
   formatMoney,
   generateRandomNumber,
@@ -378,6 +383,14 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
         include: {
           attributes: true,
           pricing: true,
+          supplierVariants: {
+            where: {
+              deletedAt: null,
+            },
+            include: {
+              supplier: true,
+            },
+          },
           stockMovements: {
             where: {
               deletedAt: null,
@@ -456,6 +469,7 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
         title: titleParts.join(" "),
         stockCount: sum(matchedVariant?.stockMovements, "changeQty"),
         lowStock: matchedVariant?.lowStockAlert,
+        supplierVariants: matchedVariant?.supplierVariants || [],
         inventoryId,
       };
     })
@@ -534,6 +548,37 @@ export async function saveInventory(db: Db, data: InventoryForm) {
     inventoryUid = inventory.uid;
     inventoryId = inventory.id;
   }
+
+  const suppliers = data.suppliers || [];
+  for (const supplier of suppliers) {
+    if (!supplier?.name?.trim()) continue;
+    if (supplier.id) {
+      await db.supplier.update({
+        where: {
+          id: supplier.id,
+        },
+        data: {
+          uid: supplier.uid || undefined,
+          name: supplier.name,
+          email: supplier.email || null,
+          phone: supplier.phone || null,
+          address: supplier.address || null,
+          deletedAt: null,
+        },
+      });
+    } else {
+      await db.supplier.create({
+        data: {
+          uid: supplier.uid || generateRandomString(5),
+          name: supplier.name,
+          email: supplier.email || null,
+          phone: supplier.phone || null,
+          address: supplier.address || null,
+        },
+      });
+    }
+  }
+
   return { id: inventoryId, uid: inventoryUid };
 }
 export async function inventoryForm(db: Db, inventoryId) {
@@ -570,8 +615,39 @@ export async function inventoryForm(db: Db, inventoryId) {
           enablePricing: true,
         },
       },
+      variants: {
+        select: {
+          id: true,
+          uid: true,
+          supplierVariants: {
+            where: {
+              deletedAt: null,
+            },
+            select: {
+              id: true,
+              supplierId: true,
+              supplierSku: true,
+              costPrice: true,
+              salesPrice: true,
+              minOrderQty: true,
+              leadTimeDays: true,
+              preferred: true,
+              active: true,
+            },
+          },
+        },
+      },
     },
   });
+  const suppliers = await db.supplier.findMany({
+    where: {
+      deletedAt: null,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
+
   const formData = {
     product: {
       categoryId: inv.inventoryCategoryId,
@@ -588,6 +664,29 @@ export async function inventoryForm(db: Db, inventoryId) {
       enablePricing: inv.inventoryCategory?.enablePricing!,
     },
     images: [],
+    suppliers: suppliers.map((supplier) => ({
+      id: supplier.id,
+      uid: supplier.uid,
+      name: supplier.name,
+      email: supplier.email,
+      phone: supplier.phone,
+      address: supplier.address,
+    })),
+    supplierVariants: inv.variants.flatMap((variant) =>
+      variant.supplierVariants.map((supplierVariant) => ({
+        id: supplierVariant.id,
+        supplierId: supplierVariant.supplierId,
+        inventoryVariantId: variant.id,
+        variantUid: variant.uid,
+        supplierSku: supplierVariant.supplierSku,
+        costPrice: supplierVariant.costPrice,
+        salesPrice: supplierVariant.salesPrice,
+        minOrderQty: supplierVariant.minOrderQty,
+        leadTimeDays: supplierVariant.leadTimeDays,
+        preferred: supplierVariant.preferred,
+        active: supplierVariant.active,
+      })),
+    ),
     subComponents: inv.subComponents.map((a) => ({
       id: a.id,
       inventoryCategoryId: a.inventoryCategoryId,
@@ -621,6 +720,123 @@ export async function inventoryForm(db: Db, inventoryId) {
       }),
   } satisfies InventoryForm;
   return formData;
+}
+
+export async function inventorySuppliers(db: Db, query: InventorySuppliers) {
+  return db.supplier.findMany({
+    where: {
+      deletedAt: null,
+      ...(query.q
+        ? {
+            name: {
+              contains: query.q,
+            },
+          }
+        : {}),
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
+}
+
+export async function saveInventorySupplier(db: Db, input: InventorySupplierForm) {
+  const payload = {
+    uid: input.uid || generateRandomString(5),
+    name: input.name,
+    email: input.email || null,
+    phone: input.phone || null,
+    address: input.address || null,
+    deletedAt: null,
+  };
+
+  if (input.id) {
+    return db.supplier.update({
+      where: {
+        id: input.id,
+      },
+      data: payload,
+    });
+  }
+
+  return db.supplier.create({
+    data: payload,
+  });
+}
+
+export async function saveSupplierVariantForm(db: Db, input: SupplierVariantForm) {
+  if (input.preferred) {
+    await db.supplierVariant.updateMany({
+      where: {
+        inventoryVariantId: input.inventoryVariantId,
+        deletedAt: null,
+      },
+      data: {
+        preferred: false,
+      },
+    });
+  }
+
+  const payload = {
+    supplierId: input.supplierId,
+    inventoryVariantId: input.inventoryVariantId,
+    supplierSku: input.supplierSku || null,
+    costPrice: input.costPrice ?? null,
+    salesPrice: input.salesPrice ?? null,
+    minOrderQty: input.minOrderQty ?? null,
+    leadTimeDays: input.leadTimeDays ?? null,
+    preferred: input.preferred ?? false,
+    active: input.active ?? true,
+    deletedAt: null,
+  };
+
+  if (input.id) {
+    return db.supplierVariant.update({
+      where: {
+        id: input.id,
+      },
+      data: payload,
+      include: {
+        supplier: true,
+      },
+    });
+  }
+
+  return db.supplierVariant.upsert({
+    where: {
+      supplierId_inventoryVariantId: {
+        supplierId: input.supplierId,
+        inventoryVariantId: input.inventoryVariantId,
+      },
+    },
+    update: payload,
+    create: payload,
+    include: {
+      supplier: true,
+    },
+  });
+}
+
+export async function supplierVariantsByInventory(db: Db, inventoryId: number) {
+  return db.supplierVariant.findMany({
+    where: {
+      deletedAt: null,
+      inventoryVariant: {
+        inventoryId,
+      },
+    },
+    include: {
+      supplier: true,
+      inventoryVariant: {
+        select: {
+          id: true,
+          uid: true,
+          sku: true,
+        },
+      },
+    },
+    orderBy: [{ preferred: "desc" }, { supplier: { name: "asc" } }],
+  });
 }
 
 export async function saveVariantForm(db: Db, data: VariantForm) {

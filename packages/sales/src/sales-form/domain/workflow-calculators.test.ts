@@ -287,6 +287,26 @@ describe("workflow-calculators domain", () => {
     expect(unit).toBe(155);
   });
 
+  it("prefers supplier-variant pricing over legacy pricing buckets when available", () => {
+    const unit = resolvePricingBucketUnitPrice({
+      pricing: {
+        "2-8 x 7-0 & SUP-1": { salesUnitCost: 155 },
+      },
+      size: "2-8 x 7-0",
+      supplierUid: "SUP-1",
+      supplierVariants: [
+        {
+          salesPrice: 199,
+          costPrice: 120,
+          supplier: { uid: "SUP-1" },
+          active: true,
+        },
+      ],
+      fallbackSalesPrice: 99,
+    });
+    expect(unit).toBe(199);
+  });
+
   it("keeps explicit zero pricing buckets instead of falling back", () => {
     const unit = resolvePricingBucketUnitPrice({
       pricing: {
@@ -313,6 +333,30 @@ describe("workflow-calculators domain", () => {
     expect(pricing.hasPrice).toBe(true);
     expect(pricing.basePrice).toBe(120);
     expect(pricing.salesPrice).toBe(30);
+  });
+
+  it("derives door tier pricing from supplier-variant cost when present", () => {
+    const pricing = resolveDoorTierPricing({
+      pricing: {
+        "2-8 x 7-0 & SUP-1": { price: 120 },
+      },
+      size: "2-8 x 7-0",
+      supplierUid: "SUP-1",
+      supplierVariants: [
+        {
+          costPrice: 80,
+          salesPrice: null,
+          supplier: { uid: "SUP-1" },
+          active: true,
+        },
+      ],
+      salesMultiplier: 0.25,
+      fallbackSalesPrice: 99,
+      fallbackBasePrice: 88,
+    });
+    expect(pricing.hasPrice).toBe(true);
+    expect(pricing.basePrice).toBe(80);
+    expect(pricing.salesPrice).toBe(20);
   });
 
   it("treats missing supplier-specific door pricing as empty instead of falling back", () => {

@@ -12,6 +12,8 @@
             "@emails/*": ["../../packages/email/emails/*"],
             "@notifications/*": ["../../packages/notifications/src/*"],
             "@engine/*": ["../engine/src/*"],
+            "@gnd/inventory": ["../../packages/inventory/src/index.ts"],
+            "@gnd/inventory/*": ["../../packages/inventory/src/*"],
             "@jobs/*": ["../../packages/jobs/src/*"],
             "@sales/*": ["../../packages/sales/src/*"],
             "@square/*": ["../../packages/jobs/src/*"]
@@ -30,4 +32,3 @@
     ],
     "exclude": ["node_modules", ".next"]
 }
-

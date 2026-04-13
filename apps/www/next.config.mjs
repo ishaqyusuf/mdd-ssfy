@@ -13,6 +13,7 @@ const config = {
         "@gnd/api",
         "@gnd/sales",
         "@gnd/community",
+        "@gnd/inventory",
         "@gnd/square",
     ],
     eslint: {

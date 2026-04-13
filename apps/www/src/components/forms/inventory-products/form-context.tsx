@@ -1,6 +1,6 @@
 import { useInventoryParams } from "@/hooks/use-inventory-params";
 import { useZodForm } from "@/hooks/use-zod-form";
-import { InventoryForm, inventoryFormSchema } from "@sales/schema";
+import { InventoryForm, inventoryFormSchema } from "@gnd/inventory/schema";
 import { useEffect } from "react";
 import { FormProvider, useFormContext } from "react-hook-form";
 import { z } from "zod";
@@ -21,6 +21,8 @@ export function FormContext({ children, data }: FormContextProps) {
         },
         variants: [],
         images: [],
+        suppliers: [],
+        supplierVariants: [],
         subCategories: [],
         subComponents: [],
     } satisfies InventoryForm;
@@ -44,4 +46,3 @@ export function FormContext({ children, data }: FormContextProps) {
 
 export const useInventoryForm = () =>
     useFormContext<z.infer<typeof inventoryFormSchema>>();
-

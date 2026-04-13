@@ -8,6 +8,7 @@ import { ProductProvider } from "./context";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
 import { ProductSubCategorySection } from "./product-sub-category-section";
 import { CategorySubComponentsSection } from "./category-sub-components-section";
+import { InventorySuppliersSection } from "./inventory-suppliers-section";
 
 export function InventoryForm({}) {
     const form = useInventoryForm();
@@ -27,6 +28,7 @@ export function InventoryForm({}) {
                     <ProductInformationSection />
                     {productId < 0 || (
                         <>
+                            <InventorySuppliersSection />
                             <ProductSubCategorySection />
                             <CategorySubComponentsSection />
                         </>
@@ -37,4 +39,3 @@ export function InventoryForm({}) {
         </Form>
     );
 }
-

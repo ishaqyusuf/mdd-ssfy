@@ -49,6 +49,7 @@ export const taskNames = [
   "send-storefront-shipping-confirmation-email",
   "send-storefront-win-back-email",
   "sync-sales-inventory-line-items",
+  "sync-dyke-step-to-inventory",
   "update-sales-control",
   "sales-commission",
   "reset-sales-control",
@@ -144,6 +145,16 @@ export const syncSalesInventoryLineItemsSchemaTask = z.object({
 });
 export type SyncSalesInventoryLineItemsSchemaTask = z.infer<
   typeof syncSalesInventoryLineItemsSchemaTask
+>;
+
+export const syncDykeStepToInventorySchemaTask = z.object({
+  stepId: z.number(),
+  compare: z.boolean().optional().default(false),
+  strategy: z.enum(["handcrafted", "optimized"]).optional().default("optimized"),
+  source: z.enum(["manual", "event", "job"]).optional().default("event"),
+});
+export type SyncDykeStepToInventorySchemaTask = z.infer<
+  typeof syncDykeStepToInventorySchemaTask
 >;
 
 export const sendStorefrontOrderConfirmationEmailSchema = z.object({

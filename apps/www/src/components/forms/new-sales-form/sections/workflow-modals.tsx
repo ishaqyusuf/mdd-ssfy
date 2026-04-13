@@ -401,6 +401,7 @@ function deriveDoorSizeRows(
             pricing,
             size: normalizedSize,
             supplierUid,
+            supplierVariants: component?.supplierVariants || [],
             salesMultiplier:
                 Number.isFinite(Number(profileCoefficient || 0)) &&
                 Number(profileCoefficient || 0) > 0

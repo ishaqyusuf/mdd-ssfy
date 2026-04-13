@@ -8,11 +8,17 @@ import {
 } from "@api/db/queries/inventory.generate";
 import {
   getInventoryCategoriesSchema,
+  dykeInventoryDriftReportSchema,
+  dykeStepComponentSchema,
+  inventorySupplierFormSchema,
+  inventorySuppliersSchema,
   inventoryCategoriesSchema,
   inventoryCategoryFormSchema,
   inventoryFormSchema,
   inventoryImportSchema,
   inventoryImportRunSchema,
+  supplierVariantFormSchema,
+  updateDykeComponentPricingSchema,
   inventoryListSchema,
   updateCategoryVariantAttributeSchema,
   updateSubComponentSchema,
@@ -50,11 +56,21 @@ import {
   getInboundDemandQueue,
   getInboundShipmentDetail,
   receiveInboundShipment,
+  getDykeInventoryDriftReport,
+  inventorySuppliers,
+  saveDykeStepComponent,
+  saveInventorySupplier,
+  saveSupplierVariantForm,
+  supplierVariantsByInventory,
+  syncInventorySuppliersFromDyke,
+  updateDykeComponentPricing,
 } from "@gnd/inventory";
+import { syncSalesInventoryLineItems } from "@sales/sync-sales-inventory-line-items";
 import { getStoreAddonComponentForm } from "@sales/storefront-product";
 import { inventoryImport } from "@gnd/inventory/inventory-import";
 import { idSchema } from "@api/schemas/common";
 import { INVENTORY_STATUS } from "@gnd/inventory/constants";
+import { tasks } from "@trigger.dev/sdk/v3";
 import {
   saveCommunityInput,
   saveCommunityInputSchema,
@@ -324,6 +340,9 @@ export const inventoriesRouter = createTRPCRouter({
       )
     )
     .mutation(async (props) => {
+      if (!props.input.categoryId) {
+        throw new Error("categoryId is required");
+      }
       return {
         data: await inventoryUpdateFromDyke(props.ctx.db, {
           stepId: props.input.categoryId,
@@ -349,6 +368,75 @@ export const inventoriesRouter = createTRPCRouter({
     )
     .mutation(async (props) => {
       return inventoryUpdateFromDyke(props.ctx.db, props.input);
+    }),
+  saveDykeStepComponent: protectedProcedure
+    .input(dykeStepComponentSchema)
+    .mutation(async (props) => {
+      const result = await saveDykeStepComponent(props.ctx.db, props.input);
+      if (result.stepId) {
+        await tasks.trigger("sync-dyke-step-to-inventory", {
+          stepId: result.stepId,
+          source: "event",
+        });
+      }
+      return result;
+    }),
+  updateDykeComponentPricing: protectedProcedure
+    .input(updateDykeComponentPricingSchema)
+    .mutation(async (props) => {
+      const result = await updateDykeComponentPricing(props.ctx.db, props.input);
+      if (props.input.triggerInventorySync !== false) {
+        await tasks.trigger("sync-dyke-step-to-inventory", {
+          stepId: props.input.stepId,
+          source: "event",
+        });
+      }
+      return result;
+    }),
+  dykeInventoryDriftReport: protectedProcedure
+    .input(dykeInventoryDriftReportSchema)
+    .query(async (props) => {
+      return getDykeInventoryDriftReport(props.ctx.db, props.input);
+    }),
+  inventorySuppliers: protectedProcedure
+    .input(inventorySuppliersSchema)
+    .query(async (props) => {
+      return inventorySuppliers(props.ctx.db, props.input);
+    }),
+  syncInventorySuppliersFromDyke: protectedProcedure
+    .mutation(async (props) => {
+      return syncInventorySuppliersFromDyke(props.ctx.db);
+    }),
+  saveInventorySupplier: protectedProcedure
+    .input(inventorySupplierFormSchema)
+    .mutation(async (props) => {
+      return saveInventorySupplier(props.ctx.db, props.input);
+    }),
+  supplierVariantsByInventory: protectedProcedure
+    .input(
+      z.object({
+        inventoryId: z.number(),
+      }),
+    )
+    .query(async (props) => {
+      return supplierVariantsByInventory(props.ctx.db, props.input.inventoryId);
+    }),
+  saveSupplierVariantForm: protectedProcedure
+    .input(supplierVariantFormSchema)
+    .mutation(async (props) => {
+      return saveSupplierVariantForm(props.ctx.db, props.input);
+    }),
+  repairSalesInventorySync: protectedProcedure
+    .input(
+      z.object({
+        salesOrderId: z.number(),
+      }),
+    )
+    .mutation(async (props) => {
+      return syncSalesInventoryLineItems(props.ctx.db, {
+        salesOrderId: props.input.salesOrderId,
+        source: "repair",
+      });
     }),
   dykeUpdateFromInventory: publicProcedure
     .input(

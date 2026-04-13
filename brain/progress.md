@@ -4,6 +4,59 @@
 
 ## 2026-04-11
 
+- Started consolidating legacy Dyke authoring logic into the inventory domain instead of leaving business writes in `apps/www`.
+  - added inventory-domain services for Dyke component save/update and pricing update:
+    - `packages/inventory/src/application/definitions/dyke-step-components.ts`
+    - `packages/inventory/src/application/pricing/update-dyke-component-pricing.ts`
+  - exposed those through `inventories` tRPC with:
+    - `saveDykeStepComponent`
+    - `updateDykeComponentPricing`
+    - `dykeInventoryDriftReport`
+    - `repairSalesInventorySync`
+  - added a dedicated async job/task contract for targeted Dyke step sync:
+    - task name `sync-dyke-step-to-inventory`
+    - task file `packages/jobs/src/tasks/inventory/sync-dyke-step-to-inventory.ts`
+  - switched the active legacy custom-component form away from `next-safe-action` server actions and onto the new inventories tRPC mutations so the active write path now goes through `@gnd/inventory`
+  - added a first structural drift report for Dyke component UIDs missing inventory or variant rows so migration gaps are visible instead of implicit
+  - validation note:
+    - targeted package/workspace typechecks were run after the migration slice; any failures should be interpreted against existing workspace noise first, because this repo already contains unrelated pre-existing type errors in some packages
+    - the active custom-component flow should now be browser-checked once to confirm save + price update + targeted sync all behave cleanly end to end
+
+- Added the first inventory-native supplier layer for door pricing migration.
+  - extended inventory schema direction to use:
+    - `Supplier` as the vendor entity with legacy Dyke supplier UID bridge
+    - `SupplierVariant` as the per-variant supplier pricing/procurement record
+  - added inventory-domain supplier utilities in `packages/inventory/src/application/suppliers/suppliers.ts`
+    - legacy door supplier pricing key builder
+    - Dyke `"Supplier"` step sync into inventory suppliers by UID/name
+  - extended inventory save/load/query surfaces so inventory forms now include:
+    - managed supplier list
+    - per-variant supplier pricing rows
+  - extended inventories tRPC with supplier-focused endpoints:
+    - `inventorySuppliers`
+    - `syncInventorySuppliersFromDyke`
+    - `saveInventorySupplier`
+    - `supplierVariantsByInventory`
+    - `saveSupplierVariantForm`
+  - updated the inventory form UI to include:
+    - supplier management section in the main inventory form
+    - supplier pricing editor inside each variant pricing tab
+  - validation note:
+    - `bun run db:generate` succeeds after the supplier schema changes
+    - `bun run --filter @gnd/inventory typecheck` passes
+    - focused API grep for the touched supplier slice comes back clean; full web workspace type health still contains broader unrelated noise
+
+- Wired sales door pricing into the new supplier domain without breaking legacy supplier-key behavior.
+  - extended `packages/sales/src/sales-form/domain/workflow-calculators.ts` so:
+    - `resolvePricingBucketUnitPrice(...)` now prefers an exact `SupplierVariant` match by legacy supplier UID before consulting legacy pricing buckets
+    - `resolveDoorTierPricing(...)` now prefers an exact `SupplierVariant` match by supplier UID, derives sales price from supplier cost when needed, and still preserves the old "no generic size fallback when a supplier was explicitly chosen" behavior
+  - extended component snapshots in the active sales form and shared sales-domain mutation/selectors so `supplierVariants`, `inventoryId`, and `inventoryVariantId` survive route selection and repricing flows
+  - updated the active new-sales-form door pricing call sites so live repricing paths pass `supplierVariants` into the shared resolver
+  - fixed the inventory form package-resolution regression by switching the client form context to `@gnd/inventory/schema` and adding `@gnd/inventory` to `apps/www/package.json`
+  - validation note:
+    - `bun test packages/sales/src/sales-form/domain/workflow-calculators.test.ts` passes with new supplier-variant coverage
+    - focused `@gnd/www` / `@gnd/sales` grep checks were started for the touched files; they produced no immediate hits for the import-resolution issue before the long-running workspace typecheck noise kicked in
+
 - Started the inventory demand/allocation groundwork so sales-driven inventory sync can move toward the canonical stock and inbound system instead of a parallel supply layer.
   - added deterministic sales-to-inventory sync foundations in `packages/sales/src/sync-sales-inventory-line-items.ts` so sales items can resolve inventory-backed parent `LineItem` rows and component demand from Dyke step selections, shelf items, HPT products, and HPT door products using stable source UIDs
   - added old-form background task triggering and new-form inline sync wiring so both sales save paths now feed the same shared inventory sync entrypoint
