@@ -114,6 +114,8 @@
   - surfaced live import analytics from the existing import dataset plus system checks from product-kind review and import coverage
   - kept the old category import table only as a lower read-only “Legacy Breakdown” diagnostic section
   - removed per-row import actions from the legacy import table so the primary workflow is no longer category-by-category
+  - added a visible in-product fixed note on the imports control center so operators can see that the optimized importer’s duplicate-creation paths were hardened for repeat runs
+  - moved `Update Inventory` / `System Check` / `Full Refresh` off the synchronous tRPC loop and onto the existing Trigger full-import jobs; the imports page now queues the run, tracks job status, and refreshes analytics after completion instead of blocking the request for the whole import
   - validation note:
     - focused import-area checks were started for the touched web/api files, but the workspace typecheck remains long-running/noisy; no targeted regression surfaced before wrap-up
 
@@ -1278,3 +1280,4 @@
 - Enhanced the community template v1 autocomplete inputs with inline command actions for `Fill input with "..."` and `Clear input`, using a small shared `ComboboxDropdown` action slot so autocomplete fields can expose contextual actions without forking the base combobox behavior elsewhere.
 - Added a community template v1 history feature backed by the existing `CommunityTemplateHistory` table. Each legacy template save now records a snapshot row with the current slug, author, and copied `design` meta, and the v1 editor header now exposes a `History` action that opens a right-side sheet.
 - Added a dedicated `getCommunityTemplateHistory` query that returns history rows with save date, author name, and computed configured-design count so the v1 history sheet can show compact template version summaries without loading full snapshots into the UI.
+- Hardened the optimized inventory importer to be properly re-runnable on more than just category creation: it now preloads existing `InventoryItemSubCategory` links and `InventoryImage` links, dedupes category-variant attributes against both DB and in-flight rows, skips duplicate same-run variant attribute parts, and avoids re-creating subcategory/image relationships on repeated imports.

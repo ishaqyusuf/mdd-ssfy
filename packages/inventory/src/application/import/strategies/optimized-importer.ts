@@ -65,20 +65,20 @@ interface PricingEntry {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export class InventoryImportService {
-  // FIX #4 / #5 – stepId typed as number | null; all mutable state declared
-  // explicitly so a re-entrant call resets cleanly.
+  // Fixed: state is fully declared and stepId is nullable so each run resets
+  // cleanly without leaking partial state across calls.
   #state: ImportState = {
     stepId: null,
     tables: {} as Record<TableName, TableSlot>,
   };
 
-  // These are reset at the top of importComponents before the awaits so a
-  // partial failure on a prior call never leaks stale data (FIX #4).
+  // Fixed: reset cached step/preload data before async work so a partial
+  // failure on a prior call never leaks stale state into the next run.
   #stepData: RenturnTypeAsync<typeof this.initStepData> | null = null;
   #inventoryPreData: RenturnTypeAsync<typeof this.loadInventoryPreData> | null =
     null;
 
-  // FIX #7 – guard against concurrent calls on the same instance
+  // Fixed: guard against concurrent calls on the same importer instance.
   #running = false;
 
   constructor(private readonly db: Db) {}
@@ -86,7 +86,7 @@ export class InventoryImportService {
   // ─── Public API ─────────────────────────────────────────────────────────────
 
   public async importComponents(stepId: number): Promise<void> {
-    // FIX #7 – reject concurrent invocations on the same instance
+    // Fixed: reject concurrent invocations on the same importer instance.
     if (this.#running) {
       throw new Error(
         "InventoryImportService: importComponents is already running. " +
@@ -96,7 +96,7 @@ export class InventoryImportService {
     this.#running = true;
 
     try {
-      // FIX #4 – reset ALL state before doing any async work
+      // Fixed: reset all state before any awaited work begins.
       this.#stepData = null;
       this.#inventoryPreData = null;
       this.#state = {
@@ -124,7 +124,8 @@ export class InventoryImportService {
     return Array.from(new Set(stepsUids)).filter(Boolean) as string[];
   }
 
-  // FIX #12 – deep-clone tables so nulling .table doesn't mutate live state
+  // Fixed: deep-clone table metadata so result serialization does not mutate
+  // the live importer state by nulling delegate references in place.
   public get result() {
     const clonedTables = Object.fromEntries(
       Object.entries(this.#state.tables).map(([key, slot]) => [
@@ -280,8 +281,8 @@ export class InventoryImportService {
       .filter(Boolean)
       .map((s) => s!);
 
-    // FIX #6 – correct Width/Height conditional: include the title string only
-    // when the corresponding uid list is NON-empty (was inverted with ||)
+    // Fixed: only include Width/Height title lookups when those dependency
+    // uid lists are actually present.
     const sizeTitleFilter = [
       widthUids.length ? "Width" : null,
       heightUids.length ? "Height" : null,
@@ -405,6 +406,8 @@ export class InventoryImportService {
       },
     });
 
+    const inventoryIds = inventories.map((inventory) => inventory.id);
+
     const inventoryCategoryVariantAttributes =
       await this.db.inventoryCategoryVariantAttribute.findMany({
         where: {
@@ -428,11 +431,45 @@ export class InventoryImportService {
         },
       });
 
+    const inventoryItemSubCategories =
+      inventoryIds.length === 0
+        ? []
+        : await this.db.inventoryItemSubCategory.findMany({
+            where: {
+              inventoryId: { in: inventoryIds },
+              deletedAt: null,
+            },
+            select: {
+              inventoryId: true,
+              value: {
+                select: {
+                  inventoryId: true,
+                },
+              },
+            },
+          });
+
+    const inventoryImages =
+      inventoryIds.length === 0
+        ? []
+        : await this.db.inventoryImage.findMany({
+            where: {
+              inventoryId: { in: inventoryIds },
+              deletedAt: null,
+            },
+            select: {
+              inventoryId: true,
+              imageGalleryId: true,
+            },
+          });
+
     const data = {
       inventories,
       componentUids,
       inventoryCategories,
       inventoryCategoryVariantAttributes,
+      inventoryItemSubCategories,
+      inventoryImages,
     };
     (this.#state as any as Record<string, unknown>).inventoryLoadedData = data;
     return data;
@@ -470,14 +507,13 @@ export class InventoryImportService {
       const uid = sp?.uid;
       if (!priceDependencies.length) continue;
       for (const puid of priceDependencies) {
-        const v = {
-          id: this.#nextId("inventoryCategoryVariantAttribute"),
-          inventoryCategoryId: this.getCategoryId(uid)!,
-          valuesInventoryCategoryId: this.getCategoryId(puid)!,
-        } satisfies Prisma.InventoryCategoryVariantAttributeCreateManyInput;
-        if (v.inventoryCategoryId && v.valuesInventoryCategoryId) {
-          this.#addCreateData("inventoryCategoryVariantAttribute", v);
-        }
+        const inventoryCategoryId = this.getCategoryId(uid);
+        const valuesInventoryCategoryId = this.getCategoryId(puid);
+        if (!inventoryCategoryId || !valuesInventoryCategoryId) continue;
+        this.#ensureInventoryCategoryVariantAttributeId(
+          inventoryCategoryId,
+          valuesInventoryCategoryId,
+        );
       }
     }
   }
@@ -540,12 +576,13 @@ export class InventoryImportService {
     }
   }
 
-  // FIX #10 – made private (was public)
+  // Fixed: keep this helper private; external callers should use the public
+  // lookup helpers instead of mutating subcategory generation indirectly.
   #prepareInventorySubCategories(uid: string, depsUids: string[]) {
     const id = this.inventoryIdByUid(uid);
     for (const duid of depsUids) {
       const depId = this.inventoryIdByUid(duid);
-      if (!depId) continue;
+      if (!id || !depId || this.#hasInventorySubCategoryLink(id, depId)) continue;
       const itemSubCategory = this.#addCreateData("inventoryItemSubCategory", {
         inventoryId: id!,
         id: this.#nextId("inventoryItemSubCategory"),
@@ -584,7 +621,8 @@ export class InventoryImportService {
           (a) => a.dependenciesUid === m.dependenciesUid,
         );
 
-        // FIX #2 – .map (not .filter) to project to { price, date }
+        // Fixed: project pricing history entries with .map so price/date are
+        // preserved instead of accidentally filtering values out.
         const pricingEntries: PricingEntry[] = priceList.map((a) => ({
           price: a.price,
           date: a.createdAt,
@@ -623,7 +661,10 @@ export class InventoryImportService {
 
     // compound variantUid ("uid1-uid2") encodes the attribute combination
     if (variantUid !== uid && variantUid) {
+      const seenAttributeUids = new Set<string>();
       for (const partUid of variantUid.split("-")) {
+        if (!partUid || seenAttributeUids.has(partUid)) continue;
+        seenAttributeUids.add(partUid);
         const valueInventoryId = this.inventoryIdByUid(partUid);
         const { id: inventoryCategoryVariantAttributeId, ...rest } =
           this.#getInventoryCategoryVariantAttributeId(
@@ -671,7 +712,8 @@ export class InventoryImportService {
         newCostPrice: p.price,
         oldCostPrice: pricings[pi - 1]?.price,
         effectiveFrom: p.date!,
-        // FIX #3 – index into pricings[], not into p (the current entry)
+        // Fixed: compute the next effective date from the pricing array, not
+        // from the current pricing entry object.
         effectiveTo: pricings[pi + 1]?.date,
       } satisfies Prisma.PriceHistoryCreateManyInput);
     }
@@ -685,6 +727,17 @@ export class InventoryImportService {
       this.#inventoryCategoryIdByInventoryId(inventoryId);
     const valuesInventoryCategoryId =
       this.#inventoryCategoryIdByInventoryId(attributeInventoryId);
+
+    return this.#ensureInventoryCategoryVariantAttributeId(
+      inventoryCategoryId,
+      valuesInventoryCategoryId,
+    );
+  }
+
+  #ensureInventoryCategoryVariantAttributeId(
+    inventoryCategoryId: number | undefined,
+    valuesInventoryCategoryId: number | undefined,
+  ) {
 
     let id =
       this.#requirePreData().inventoryCategoryVariantAttributes.find(
@@ -730,7 +783,13 @@ export class InventoryImportService {
       const img = component.img;
       if (!img) continue;
 
-      let imgId: number | undefined = images.find((i) => i.path === img)?.id;
+      let imgId: number | undefined =
+        images.find((i) => i.path === img)?.id ??
+        (
+          this.#state.tables.imageGallery.createMany.find(
+            (gallery: any) => gallery.path === img,
+          ) as { id?: number } | undefined
+        )?.id;
       if (!imgId) {
         imgId = (
           this.#addCreateData("imageGallery", {
@@ -744,7 +803,11 @@ export class InventoryImportService {
       }
 
       const inventoryId = this.inventoryIdByUid(uid);
-      if (imgId && inventoryId) {
+      if (
+        imgId &&
+        inventoryId &&
+        !this.#hasInventoryImageLink(inventoryId, imgId)
+      ) {
         this.#addCreateData("inventoryImage", {
           imageGalleryId: imgId,
           inventoryId,
@@ -766,8 +829,8 @@ export class InventoryImportService {
           if (!slot?.createMany.length) continue;
 
           this.#log(tableName, "uploadStatus", "starting...");
-          // FIX #8 – removed skipDuplicates so collisions surface as errors
-          // rather than silently dropping rows
+          // Fixed: do not use skipDuplicates here. Collisions should surface so
+          // the importer can be hardened explicitly instead of silently losing rows.
           const res = await (tx[tableName] as any).createMany({
             data: slot.createMany,
           });
@@ -800,7 +863,8 @@ export class InventoryImportService {
 
   // ─── Lookup helpers ──────────────────────────────────────────────────────────
 
-  // FIX #10 – getCategoryId kept public as it's legitimately used by callers
+  // Fixed: this stays public because callers outside the internal prep helpers
+  // legitimately use it to resolve category ids by uid.
   public getCategoryId(uid: string | undefined | null): number | undefined {
     if (!uid) return undefined;
     return (
@@ -830,6 +894,57 @@ export class InventoryImportService {
   ): number | undefined {
     if (!uid) return undefined;
     return this.#allInventories.find((a) => a.uid === uid)?.inventoryCategoryId;
+  }
+
+  #hasInventorySubCategoryLink(inventoryId: number, valueInventoryId: number) {
+    const existing = this.#requirePreData().inventoryItemSubCategories.some(
+      (subCategory) =>
+        subCategory.inventoryId === inventoryId &&
+        subCategory.value?.inventoryId === valueInventoryId,
+    );
+
+    if (existing) return true;
+
+    const pendingSubCategories =
+      this.#state.tables.inventoryItemSubCategory.createMany as Array<{
+        id: number;
+        inventoryId?: number;
+      }>;
+    const pendingValues =
+      this.#state.tables.inventoryItemSubCategoryValue.createMany as Array<{
+        subCategoryId?: number;
+        inventoryId?: number;
+      }>;
+
+    return pendingSubCategories.some((subCategory) => {
+      if (subCategory.inventoryId !== inventoryId) return false;
+      return pendingValues.some(
+        (value) =>
+          value.subCategoryId === subCategory.id &&
+          value.inventoryId === valueInventoryId,
+      );
+    });
+  }
+
+  #hasInventoryImageLink(inventoryId: number, imageGalleryId: number) {
+    const existing = this.#requirePreData().inventoryImages.some(
+      (image) =>
+        image.inventoryId === inventoryId &&
+        image.imageGalleryId === imageGalleryId,
+    );
+
+    if (existing) return true;
+
+    return (
+      this.#state.tables.inventoryImage.createMany as Array<{
+        inventoryId?: number;
+        imageGalleryId?: number;
+      }>
+    ).some(
+      (image) =>
+        image.inventoryId === inventoryId &&
+        image.imageGalleryId === imageGalleryId,
+    );
   }
 
   /** Merges DB-loaded inventories with in-flight createMany entries */
@@ -863,7 +978,8 @@ export class InventoryImportService {
 
   // ─── Logging ─────────────────────────────────────────────────────────────────
 
-  // FIX #1 – write into odata.logs[logKey], not odata[logKey]
+  // Fixed: write log entries into slot.logs[logKey] so log state stays scoped
+  // to the table slot instead of mutating the slot object shape directly.
   #log(table: TableName, logKey: string, logValue: unknown) {
     const slot = this.#state.tables[table];
     if (!slot) return;

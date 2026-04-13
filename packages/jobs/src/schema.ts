@@ -94,6 +94,7 @@ export const sendSalesReminderSchema = z.object({
 export type SendSalesReminderPayload = z.infer<typeof sendSalesReminderSchema>;
 export const runFullInventoryImportTaskSchema = z.object({
   categoryId: z.number().optional().nullable(),
+  scope: z.enum(["active", "all"]).optional().default("active"),
   strategy: z.enum(["handcrafted", "optimized"]).optional().default("optimized"),
   compare: z.boolean().optional().default(false),
   reset: z.boolean().optional().default(false),

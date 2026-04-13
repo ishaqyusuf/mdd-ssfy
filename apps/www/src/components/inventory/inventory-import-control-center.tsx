@@ -9,7 +9,7 @@ import { Card } from "@gnd/ui/card";
 import { Icons } from "@gnd/ui/icons";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type Strategy = "optimized" | "handcrafted";
 type ScopeMode = "active" | "all";
@@ -70,6 +70,8 @@ export function InventoryImportControlCenter() {
     const [strategy, setStrategy] = useState<Strategy>("optimized");
     const [scope, setScope] = useState<ScopeMode>("active");
     const [lastRunSummary, setLastRunSummary] = useState<string | null>(null);
+    const [currentRunId, setCurrentRunId] = useState<string | null>(null);
+    const [currentRunLabel, setCurrentRunLabel] = useState<string | null>(null);
 
     const imports = useQuery(
         trpc.inventories.inventoryImports.queryOptions({
@@ -90,6 +92,21 @@ export function InventoryImportControlCenter() {
     const kindReview = useQuery(
         trpc.inventories.inventoryProductKindReview.queryOptions(),
     );
+    const runStatus = useQuery({
+        ...trpc.taskTrigger.status.queryOptions({
+            runId: currentRunId || "pending",
+        }),
+        enabled: !!currentRunId,
+        refetchInterval: (query) => {
+            const status = query.state.data?.status;
+            return status &&
+                ["COMPLETED", "FAILED", "CANCELED", "CANCELLED"].includes(
+                    status,
+                )
+                ? false
+                : 1500;
+        },
+    });
 
     const rows = imports.data?.data || [];
     const scopeMeta = imports.data?.meta;
@@ -100,7 +117,7 @@ export function InventoryImportControlCenter() {
         0,
     );
 
-    const invalidateAll = async () => {
+    const invalidateAll = useCallback(async () => {
         await Promise.all([
             queryClient.invalidateQueries({
                 queryKey: trpc.inventories.inventoryImports.queryKey(),
@@ -112,22 +129,34 @@ export function InventoryImportControlCenter() {
                 queryKey: trpc.inventories.inventorySummary.queryKey(),
             }),
             queryClient.invalidateQueries({
-                queryKey: trpc.inventories.inventoryProductKindReview.queryKey(),
+                queryKey:
+                    trpc.inventories.inventoryProductKindReview.queryKey(),
             }),
         ]);
-    };
+    }, [queryClient, trpc]);
 
     const runFullImport = useMutation(
         trpc.inventories.runFullImport.mutationOptions({
             onSuccess: async (data, variables) => {
+                setCurrentRunId(data.id);
+                setCurrentRunLabel(
+                    variables.compare
+                        ? "System Check"
+                        : variables.reset
+                          ? "Full Refresh"
+                          : "Update Inventory",
+                );
                 setLastRunSummary(
-                    `${data.totalSteps} steps processed using ${data.strategy} in ${scope} scope${data.compare ? " (compare)" : ""}${data.reset ? " with reset" : ""}.`,
+                    `${variables.compare ? "System check" : variables.reset ? "Full refresh" : "Inventory update"} queued for ${variables.scope} scope using ${variables.strategy}.`,
                 );
                 toast({
-                    title: data.compare ? "System check completed" : "Inventory update completed",
+                    title: variables.compare
+                        ? "System check queued"
+                        : variables.reset
+                          ? "Full refresh queued"
+                          : "Inventory update queued",
                     variant: "success",
                 });
-                await invalidateAll();
             },
             onError: () => {
                 toast({
@@ -137,6 +166,57 @@ export function InventoryImportControlCenter() {
             },
         }),
     );
+
+    const isImportRunning =
+        runFullImport.isPending ||
+        runStatus.data?.isQueued ||
+        runStatus.data?.isExecuting ||
+        false;
+
+    useEffect(() => {
+        if (!currentRunId || !runStatus.data) return;
+
+        if (runStatus.data.isCompleted) {
+            const output = runStatus.data.output as {
+                totalSteps?: number;
+                strategy?: string;
+                compare?: boolean;
+                reset?: boolean;
+            } | null;
+            const summary =
+                output && typeof output === "object"
+                    ? `${output.totalSteps || 0} steps processed using ${output.strategy || strategy}${output.compare ? " (compare)" : ""}${output.reset ? " with reset" : ""}.`
+                    : `${currentRunLabel || "Inventory import"} completed.`;
+
+            setLastRunSummary(summary);
+            toast({
+                title: `${currentRunLabel || "Inventory import"} completed`,
+                variant: "success",
+            });
+            void invalidateAll();
+            setCurrentRunId(null);
+            setCurrentRunLabel(null);
+            return;
+        }
+
+        if (runStatus.data.isFailed || runStatus.data.isCancelled) {
+            setLastRunSummary(
+                `${currentRunLabel || "Inventory import"} failed. Review the latest job run for details.`,
+            );
+            toast({
+                title: `${currentRunLabel || "Inventory import"} failed`,
+                variant: "destructive",
+            });
+            setCurrentRunId(null);
+            setCurrentRunLabel(null);
+        }
+    }, [
+        currentRunId,
+        currentRunLabel,
+        invalidateAll,
+        runStatus.data,
+        strategy,
+    ]);
 
     const resetInventory = useMutation(
         trpc.inventories.resetInventorySystem.mutationOptions({
@@ -192,7 +272,12 @@ export function InventoryImportControlCenter() {
                         : "Handcrafted strategy is selected for this run. Use only when validating edge cases.",
             },
         ],
-        [kindReview.data?.mismatched, pendingCount, scopeMeta?.staleImportedCategories, strategy],
+        [
+            kindReview.data?.mismatched,
+            pendingCount,
+            scopeMeta?.staleImportedCategories,
+            strategy,
+        ],
     );
 
     return (
@@ -201,8 +286,9 @@ export function InventoryImportControlCenter() {
                 <h2 className="text-xl font-semibold">Import Control Center</h2>
                 <p className="max-w-3xl text-sm text-muted-foreground">
                     This workspace is now settings-driven. Update, check, reset,
-                    and monitor the inventory import from the steps actively used
-                    by the sales form instead of pulling the full legacy Dyke set.
+                    and monitor the inventory import from the steps actively
+                    used by the sales form instead of pulling the full legacy
+                    Dyke set.
                 </p>
             </div>
 
@@ -220,7 +306,10 @@ export function InventoryImportControlCenter() {
                 <StatCard
                     title="Inventory Records"
                     value={totalProducts.data?.value || 0}
-                    subtitle={String(totalProducts.data?.subtitle || "Current inventory count")}
+                    subtitle={String(
+                        totalProducts.data?.subtitle ||
+                            "Current inventory count",
+                    )}
                 />
                 <StatCard
                     title="Categories"
@@ -236,8 +325,8 @@ export function InventoryImportControlCenter() {
                             <h3 className="font-semibold">Import Actions</h3>
                             <p className="text-sm text-muted-foreground">
                                 Run full inventory updates across the configured
-                                sales-settings scope. No per-category import action
-                                is required here.
+                                sales-settings scope. No per-category import
+                                action is required here.
                             </p>
                         </div>
                         <Badge variant="outline" className="capitalize">
@@ -251,29 +340,39 @@ export function InventoryImportControlCenter() {
                                 key={value}
                                 type="button"
                                 size="sm"
-                                variant={scope === value ? "default" : "outline"}
+                                variant={
+                                    scope === value ? "default" : "outline"
+                                }
                                 onClick={() => setScope(value)}
                             >
-                                {value === "active" ? "Active Scope" : "All Dyke"}
+                                {value === "active"
+                                    ? "Active Scope"
+                                    : "All Dyke"}
                             </Button>
                         ))}
-                        {(["optimized", "handcrafted"] as const).map((value) => (
-                            <Button
-                                key={value}
-                                type="button"
-                                size="sm"
-                                variant={strategy === value ? "default" : "outline"}
-                                onClick={() => setStrategy(value)}
-                            >
-                                {value}
-                            </Button>
-                        ))}
+                        {(["optimized", "handcrafted"] as const).map(
+                            (value) => (
+                                <Button
+                                    key={value}
+                                    type="button"
+                                    size="sm"
+                                    variant={
+                                        strategy === value
+                                            ? "default"
+                                            : "outline"
+                                    }
+                                    onClick={() => setStrategy(value)}
+                                >
+                                    {value}
+                                </Button>
+                            ),
+                        )}
                     </div>
 
                     <div className="mt-5 grid gap-3 md:grid-cols-2">
                         <Button
                             type="button"
-                            disabled={runFullImport.isPending}
+                            disabled={isImportRunning}
                             onClick={() =>
                                 runFullImport.mutate({
                                     scope,
@@ -290,7 +389,7 @@ export function InventoryImportControlCenter() {
                         <Button
                             type="button"
                             variant="outline"
-                            disabled={runFullImport.isPending}
+                            disabled={isImportRunning}
                             onClick={() =>
                                 runFullImport.mutate({
                                     scope,
@@ -307,7 +406,7 @@ export function InventoryImportControlCenter() {
                         <Button
                             type="button"
                             variant="secondary"
-                            disabled={runFullImport.isPending}
+                            disabled={isImportRunning}
                             onClick={() =>
                                 runFullImport.mutate({
                                     scope,
@@ -334,12 +433,26 @@ export function InventoryImportControlCenter() {
                     </div>
 
                     <div className="mt-4 rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
-                        <div className="font-medium text-foreground">Run notes</div>
+                        <div className="font-medium text-foreground">
+                            Run notes
+                        </div>
                         <div className="mt-1">
                             `Update Inventory` runs the selected scope without
-                            reset. `System Check` runs compare mode. `Full Refresh`
-                            resets and rebuilds the selected inventory import scope.
+                            reset as a background job. `System Check` runs
+                            compare mode. `Full Refresh` resets and rebuilds the
+                            selected inventory import scope in the background.
                         </div>
+                        {currentRunId && runStatus.data ? (
+                            <div className="mt-3 rounded-md bg-background p-3 text-foreground">
+                                <div className="font-medium">
+                                    {currentRunLabel || "Inventory import"}{" "}
+                                    status
+                                </div>
+                                <div className="mt-1 text-sm text-muted-foreground">
+                                    {runStatus.data.status}
+                                </div>
+                            </div>
+                        ) : null}
                         {lastRunSummary ? (
                             <div className="mt-3 rounded-md bg-background p-3 text-foreground">
                                 {lastRunSummary}
@@ -352,8 +465,8 @@ export function InventoryImportControlCenter() {
                     <div className="space-y-1">
                         <h3 className="font-semibold">System Checks</h3>
                         <p className="text-sm text-muted-foreground">
-                            Quick visibility into whether the import area looks safe
-                            before you run an update.
+                            Quick visibility into whether the import area looks
+                            safe before you run an update.
                         </p>
                     </div>
                     <div className="mt-4 grid gap-3">

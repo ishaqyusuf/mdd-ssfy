@@ -39,7 +39,6 @@ import {
   inventoryVariantStockForm,
   lowStockSummary,
   resetInventorySystem,
-  runFullInventoryImport,
   saveInventory,
   saveInventoryCategoryForm,
   saveVariantForm,
@@ -361,7 +360,19 @@ export const inventoriesRouter = createTRPCRouter({
   runFullImport: publicProcedure
     .input(inventoryImportRunSchema)
     .mutation(async (props) => {
-      return runFullInventoryImport(props.ctx.db, props.input);
+      return tasks.trigger(
+        props.input.compare
+          ? "run-inventory-full-import-test"
+          : "run-inventory-full-import-now",
+        {
+          categoryId: props.input.categoryId,
+          scope: props.input.scope,
+          strategy: props.input.strategy,
+          compare: props.input.compare,
+          reset: props.input.reset,
+          source: "manual",
+        },
+      );
     }),
   inventoryUpdateFromDyke: publicProcedure
     .input(
