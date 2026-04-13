@@ -77,6 +77,7 @@ export async function inventoryList(db: Db, query: InventoryList) {
         title: r.name,
         uid: r.uid,
         productKind: (r.productKind || "inventory") as InventoryProductKind,
+        sourceCustom: !!(r as any).sourceCustom,
         brand: r.inventoryCategory?.type,
         images: [],
         category: r.inventoryCategory?.title,
@@ -116,6 +117,10 @@ function whereInventoryProducts(query: InventoryList) {
     wheres.push({
       productKind: query.productKind,
     });
+  if (!query.showCustom)
+    wheres.push({
+      ...( { sourceCustom: false } as any ),
+    } as any);
   if (query.variantIds)
     wheres.push({
       variants: {
@@ -602,6 +607,11 @@ export async function saveInventory(db: Db, data: InventoryForm) {
           status: product.status,
           name: product.name,
           productKind,
+          ...( {
+            sourceStepUid: null,
+            sourceComponentUid: null,
+            sourceCustom: false,
+          } as any ),
           stockMode: productKind === "component" ? "unmonitored" : stockMode,
           description: product.description,
           primaryStoreFront: product.primaryStoreFront,
@@ -614,6 +624,11 @@ export async function saveInventory(db: Db, data: InventoryForm) {
         name: product.name,
         uid: generateRandomString(4),
         productKind,
+        ...( {
+          sourceStepUid: null,
+          sourceComponentUid: null,
+          sourceCustom: false,
+        } as any ),
         description: product.description,
         status: product.status,
         publishedAt: product.status == "published" ? new Date() : null,
@@ -1024,6 +1039,118 @@ export async function backfillInventoryProductKinds(db: Db) {
     componentCount,
     unchangedCount,
     total: inventories.length,
+  };
+}
+
+export async function backfillInventoryImportSources(db: Db) {
+  const inventoriesRaw = await db.inventory.findMany({
+    where: {
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      uid: true,
+      ...( {
+        sourceCustom: true,
+        sourceStepUid: true,
+        sourceComponentUid: true,
+      } as any ),
+    },
+  });
+
+  const inventories = inventoriesRaw as unknown as Array<{
+    id: number;
+    uid: string | null;
+    sourceCustom?: boolean | null;
+    sourceStepUid?: string | null;
+    sourceComponentUid?: string | null;
+  }>;
+
+  const inventoryUids = inventories
+    .map((inventory) => inventory.uid)
+    .filter((uid): uid is string => !!uid);
+
+  const dykeProducts = await db.dykeStepProducts.findMany({
+    where: {
+      deletedAt: null,
+      uid: {
+        in: inventoryUids,
+      },
+    },
+    select: {
+      uid: true,
+      custom: true,
+      step: {
+        select: {
+          uid: true,
+        },
+      },
+    },
+  });
+
+  const dykeByUid = new Map<string, {
+    sourceComponentUid: string;
+    sourceStepUid: string | null;
+    sourceCustom: boolean;
+  }>(
+    dykeProducts
+      .filter((product) => !!product.uid)
+      .map((product) => [
+        product.uid!,
+        {
+          sourceComponentUid: product.uid!,
+          sourceStepUid: product.step?.uid || null,
+          sourceCustom: !!product.custom,
+        },
+      ]),
+  );
+
+  let updated = 0;
+  let unchanged = 0;
+
+  for (const inventory of inventories) {
+    if (!inventory.uid) {
+      unchanged += 1;
+      continue;
+    }
+
+    const match = dykeByUid.get(inventory.uid);
+    if (!match) {
+      unchanged += 1;
+      continue;
+    }
+
+    const shouldUpdate =
+      inventory.sourceCustom !== match.sourceCustom ||
+      (inventory.sourceStepUid || null) !== match.sourceStepUid ||
+      (inventory.sourceComponentUid || null) !== match.sourceComponentUid;
+
+    if (!shouldUpdate) {
+      unchanged += 1;
+      continue;
+    }
+
+    await db.inventory.update({
+      where: {
+        id: inventory.id,
+      },
+      data: {
+        ...( {
+          sourceCustom: match.sourceCustom,
+          sourceStepUid: match.sourceStepUid,
+          sourceComponentUid: match.sourceComponentUid,
+        } as any ),
+      },
+    });
+
+    updated += 1;
+  }
+
+  return {
+    total: inventories.length,
+    matched: dykeByUid.size,
+    updated,
+    unchanged,
   };
 }
 

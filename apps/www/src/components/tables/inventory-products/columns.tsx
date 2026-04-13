@@ -156,6 +156,9 @@ function ProductCell({ item: product }: { item: Item }) {
                     <Badge variant="outline" className="capitalize">
                         {product.productKind}
                     </Badge>
+                    {product.sourceCustom ? (
+                        <Badge variant="secondary">Custom</Badge>
+                    ) : null}
                     {!product.stockStatus || (
                         <Badge
                             className="whitespace-nowrap"

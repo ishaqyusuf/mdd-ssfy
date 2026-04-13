@@ -24,6 +24,17 @@ export function InventoryHeader({}) {
             },
         }),
     );
+    const backfillImportSources = useMutation(
+        trpc.inventories.backfillInventoryImportSources.mutationOptions({
+            onSuccess(data) {
+                toast({
+                    title: "Import source labels updated",
+                    description: `${data.updated} inventories updated from ${data.matched} Dyke component matches.`,
+                    variant: "success",
+                });
+            },
+        }),
+    );
     const productKind = filters.productKind || "inventory";
     return (
         <div className="flex justify-between gap-4">
@@ -58,9 +69,30 @@ export function InventoryHeader({}) {
                     >
                         Components
                     </Button>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant={filters.showCustom ? "default" : "ghost"}
+                        onClick={() =>
+                            setFilters({
+                                showCustom: filters.showCustom ? null : true,
+                            })
+                        }
+                    >
+                        {filters.showCustom ? "Custom Visible" : "Show Custom"}
+                    </Button>
                 </div>
             </div>
             <div className="flex-1"></div>
+            <Button
+                type="button"
+                variant="outline"
+                disabled={backfillImportSources.isPending}
+                onClick={() => backfillImportSources.mutate()}
+            >
+                <Icons.Refresh className="size-4 mr-2" />
+                <span>Backfill Import Labels</span>
+            </Button>
             <Button
                 type="button"
                 variant="outline"

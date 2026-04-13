@@ -23,6 +23,7 @@ export function DataTable({
     const effectiveFilters = {
         ...filters,
         productKind: filters.productKind ?? defaultProductKind,
+        showCustom: filters.showCustom ?? false,
     };
     const { data, ref: loadMoreRef, hasNextPage, isFetching } = useTableData({
         filter: effectiveFilters,

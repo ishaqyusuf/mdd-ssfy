@@ -134,6 +134,9 @@ export class InventoryImportService {
           inventoryCategoryId,
           id: inventoryId,
           productKind: "component",
+          sourceStepUid: depComponent.stepUid,
+          sourceComponentUid: uid,
+          sourceCustom: !!depComponent.custom,
         } as Prisma.InventoryCreateManyInput);
       }
       if (component) {
@@ -148,6 +151,9 @@ export class InventoryImportService {
           inventoryCategoryId,
           id: inventoryId,
           productKind: hasMeaningfulPrice ? "inventory" : "component",
+          sourceStepUid: stepData.step.uid,
+          sourceComponentUid: uid,
+          sourceCustom: !!component.custom,
         } as Prisma.InventoryCreateManyInput);
         // images
 
@@ -481,6 +487,7 @@ export class InventoryImportService {
             ],
           },
           select: {
+            custom: true,
             product: {
               select: {
                 title: true,
@@ -600,6 +607,7 @@ export class InventoryImportService {
         title: true,
         stepProducts: {
           select: {
+            custom: true,
             uid: true,
             name: true,
             product: {
@@ -619,6 +627,7 @@ export class InventoryImportService {
             uid: {
               in: priceSystemComponentUids,
             },
+            deletedAt: null,
           },
         },
       },
@@ -661,6 +670,7 @@ export class InventoryImportService {
       include: {
         stepProducts: {
           select: {
+            custom: true,
             uid: true,
             name: true,
             product: {
@@ -692,6 +702,7 @@ export class InventoryImportService {
         ...s,
         stepProducts: s.stepProducts.map((sp) => ({
           name: sp.name || sp.product?.title || sp?.door?.title,
+          custom: !!sp.custom,
           uid: sp.uid,
         })),
       })),
@@ -717,6 +728,7 @@ export class InventoryImportService {
             depsComponentsList.push({
               name: a!.replaceAll("_", "-").replace(k, "")!,
               stepUid: step?.uid!,
+              custom: false,
               uid: a,
             });
           });

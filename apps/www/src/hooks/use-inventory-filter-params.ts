@@ -1,6 +1,7 @@
 import { useQueryStates } from "nuqs";
 import {
     createLoader,
+    parseAsBoolean,
     parseAsInteger,
     parseAsString,
     parseAsStringEnum,
@@ -13,6 +14,7 @@ export const inventoryFilterParamsSchema = {
     q: parseAsString,
     categoryId: parseAsInteger,
     productKind: parseAsStringEnum(inventoryProductKindSchema.options),
+    showCustom: parseAsBoolean,
 } satisfies Partial<Record<FilterKeys, any>>;
 
 export function useInventoryFilterParams() {
@@ -20,10 +22,12 @@ export function useInventoryFilterParams() {
     return {
         filters,
         setFilters,
-        hasFilters: Object.values(filters).some((value) => value !== null),
+        hasFilters: Object.entries(filters).some(([key, value]) => {
+            if (key === "showCustom") return value === true;
+            return value !== null;
+        }),
     };
 }
 export const loadInventoryFilterParams = createLoader(
     inventoryFilterParamsSchema,
 );
-

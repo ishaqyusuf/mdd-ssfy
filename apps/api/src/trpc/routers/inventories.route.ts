@@ -59,6 +59,7 @@ import {
   getDykeInventoryDriftReport,
   inventorySuppliers,
   inventoryProductKindReview,
+  backfillInventoryImportSources,
   backfillInventoryProductKinds,
   saveDykeStepComponent,
   saveInventorySupplier,
@@ -502,6 +503,9 @@ export const inventoriesRouter = createTRPCRouter({
     .mutation(async (props) => {
       return backfillInventoryProductKinds(props.ctx.db);
     }),
+  backfillInventoryImportSources: protectedProcedure.mutation(async (props) => {
+    return backfillInventoryImportSources(props.ctx.db);
+  }),
   inventoryCategories: publicProcedure
     .input(inventoryCategoriesSchema)
     .query(async (props) => {

@@ -165,6 +165,7 @@ export class InventoryImportService {
             ],
           },
           select: {
+            custom: true,
             product: { select: { title: true, img: true } },
             door: { select: { title: true, img: true } },
             meta: true,
@@ -256,17 +257,18 @@ export class InventoryImportService {
       where: {
         stepProducts: { some: { uid: { in: priceSystemComponentUids } } },
       },
-      select: {
-        uid: true,
-        title: true,
-        stepProducts: {
           select: {
             uid: true,
-            name: true,
-            product: { select: { title: true, img: true } },
-            door: { select: { title: true, img: true } },
-          },
-          where: { uid: { in: priceSystemComponentUids } },
+            title: true,
+            stepProducts: {
+              select: {
+                custom: true,
+                uid: true,
+                name: true,
+                product: { select: { title: true, img: true } },
+                door: { select: { title: true, img: true } },
+              },
+          where: { uid: { in: priceSystemComponentUids }, deletedAt: null },
         },
       },
     });
@@ -302,6 +304,7 @@ export class InventoryImportService {
       include: {
         stepProducts: {
           select: {
+            custom: true,
             uid: true,
             name: true,
             product: { select: { title: true } },
@@ -324,6 +327,7 @@ export class InventoryImportService {
       s.stepProducts.map((sp) => ({
         name: sp.name || sp.product?.title || sp?.door?.title,
         stepUid: s.uid,
+        custom: !!sp.custom,
         uid:
           s.title === "Width"
             ? `w${sp.name?.replace("-", "_")}`
@@ -345,6 +349,7 @@ export class InventoryImportService {
           depsComponentsList.push({
             name: uid.replaceAll("_", "-").replace(prefix, ""),
             stepUid: sizeStep.uid!,
+            custom: false,
             uid,
           });
         });
@@ -552,6 +557,9 @@ export class InventoryImportService {
           inventoryCategoryId: inventoryCategoryId!,
           id: inventoryId,
           productKind: "component",
+          sourceStepUid: depComponent.stepUid,
+          sourceComponentUid: uid,
+          sourceCustom: !!depComponent.custom,
         } satisfies Prisma.InventoryCreateManyInput);
       }
 
@@ -567,6 +575,9 @@ export class InventoryImportService {
           inventoryCategoryId: inventoryCategoryId!,
           id: inventoryId,
           productKind: hasMeaningfulPrice ? "inventory" : "component",
+          sourceStepUid: stepData.step.uid,
+          sourceComponentUid: uid,
+          sourceCustom: !!component.custom,
         } satisfies Prisma.InventoryCreateManyInput);
         this.#prepareInventorySubCategories(
           uid,

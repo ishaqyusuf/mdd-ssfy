@@ -70,6 +70,9 @@ model Inventory {
     img               String?
     uid               String
     productKind       String    @default("inventory")
+    sourceStepUid     String?
+    sourceComponentUid String?
+    sourceCustom      Boolean   @default(false)
     stockMode         String?
     status            String?
     publishedAt       DateTime?
@@ -126,6 +129,9 @@ model Inventory {
 
     @@index([inventoryCategoryId])
     @@index([discountId])
+    @@index([sourceStepUid])
+    @@index([sourceComponentUid])
+    @@index([sourceCustom])
 }
 
 model InventoryVariant {

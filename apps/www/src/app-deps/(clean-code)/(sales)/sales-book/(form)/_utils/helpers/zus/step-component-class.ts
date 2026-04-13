@@ -329,7 +329,6 @@ export class StepHelperClass extends SettingsClass {
     public async fetchStepComponents(reload = false) {
         const stepData = this.getStepForm();
         const ls = this.getStepComponents;
-
         const components =
             ls?.length && !reload
                 ? ls

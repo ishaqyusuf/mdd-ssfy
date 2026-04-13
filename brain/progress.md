@@ -4,6 +4,16 @@
 
 ## 2026-04-13
 
+- Extended the inventory import pipeline to preserve Dyke custom components without polluting the default inventory workspace.
+  - added import-source labeling on `Inventory` with `sourceStepUid`, `sourceComponentUid`, and `sourceCustom` in the DB and jobs Prisma schemas
+  - updated both optimized and handcrafted importers to persist those source labels when creating imported inventory rows
+  - added `backfillInventoryImportSources()` and exposed it through `inventories.backfillInventoryImportSources` so existing imported rows can be labeled retroactively
+  - updated inventory list filtering to exclude `sourceCustom = true` by default while keeping a `Show Custom` toggle in the inventory header
+  - added a `Custom` badge in the inventory products table so imported custom rows remain visible and explainable when intentionally included
+  - validation note:
+    - `bun run db:generate` succeeds after the schema change
+    - `bun run --filter @gnd/inventory typecheck` passes after the backfill helper/type cleanup
+
 - Replaced the placeholder low-stock widget on the inventory page with a real inventory-domain alert feed.
   - implemented `lowStockSummary()` in `packages/inventory/src/inventory.ts`
   - exposed the feed through `inventories.lowStockSummary` in `apps/api/src/trpc/routers/inventories.route.ts`

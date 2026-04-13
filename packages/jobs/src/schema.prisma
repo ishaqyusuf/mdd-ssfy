@@ -688,19 +688,19 @@ model SalesOrders {
 }
 
 model OrderProductionGate {
-    id              Int                         @unique @default(autoincrement())
-    salesOrderId    Int                         @unique
-    status          OrderProductionGateStatus   @default(missing)
-    ruleType        OrderProductionGateRuleType?
-    leadTimeValue   Int?
-    leadTimeUnit    OrderProductionGateTimeUnit?
-    definedAt       DateTime?                   @db.Timestamp(0)
+    id             Int                         @unique @default(autoincrement())
+    salesOrderId   Int                         @unique
+    status         OrderProductionGateStatus   @default(missing)
+    ruleType       OrderProductionGateRuleType?
+    leadTimeValue  Int?
+    leadTimeUnit   OrderProductionGateTimeUnit?
+    definedAt      DateTime?                   @db.Timestamp(0)
     definedByUserId Int?
-    triggeredAt     DateTime?                   @db.Timestamp(0)
-    createdAt       DateTime?                   @default(now()) @db.Timestamp(0)
-    updatedAt       DateTime?                   @updatedAt
-    order           SalesOrders                 @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
-    definedBy       Users?                      @relation(fields: [definedByUserId], references: [id])
+    triggeredAt    DateTime?                   @db.Timestamp(0)
+    createdAt      DateTime?                   @default(now()) @db.Timestamp(0)
+    updatedAt      DateTime?                   @updatedAt
+    order          SalesOrders                 @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+    definedBy      Users?                      @relation(fields: [definedByUserId], references: [id])
 
     @@index([definedByUserId])
     @@index([status])
@@ -1965,6 +1965,9 @@ model Inventory {
     img               String?
     uid               String
     productKind       String    @default("inventory")
+    sourceStepUid     String?
+    sourceComponentUid String?
+    sourceCustom      Boolean   @default(false)
     stockMode         String?
     status            String?
     publishedAt       DateTime?
@@ -2021,6 +2024,9 @@ model Inventory {
 
     @@index([inventoryCategoryId])
     @@index([discountId])
+    @@index([sourceStepUid])
+    @@index([sourceComponentUid])
+    @@index([sourceCustom])
 }
 
 model InventoryVariant {
@@ -4498,3 +4504,4 @@ model SalesPickup {
 
     @@index([pickupApprovedBy])
 }
+
