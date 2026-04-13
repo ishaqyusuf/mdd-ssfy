@@ -537,15 +537,23 @@ export const linkModules = [
 				_module("Inventory", "products", "GND Inventory", [
 					_section("", null, [
 						_link("Inventory", "inbound", "/inventory", [
-							_subLink("Inventory", "/inventory").data,
-							_subLink("Components", "/inventory/components").data,
-							_subLink("Kind Review", "/inventory/review").data,
-							_subLink("Inbounds", "/inventory/inbounds").data,
-							_subLink("Stock Movements", "/inventory/stocks").data,
-							_subLink("Categories", "/inventory/categories").data,
-							_subLink("Imports", "/inventory/imports").data,
-							_subLink("Inbound Management", "/sales-book/inbound-management").data,
+							_subLink("Create Inventory", "/inventory?productId=-1").data,
 						]).access(_role.is("Super Admin")).data,
+						_link("Components", "products", "/inventory/components", [
+							_subLink("Create Component", "/inventory/components?productId=-1").data,
+						]).access(_role.is("Super Admin")).data,
+						_link("Kind Review", "report", "/inventory/review")
+							.access(_role.is("Super Admin")).data,
+						_link("Inbounds", "inbound", "/inventory/inbounds")
+							.access(_role.is("Super Admin")).data,
+						_link("Stock Movements", "report", "/inventory/stocks")
+							.access(_role.is("Super Admin")).data,
+						_link("Categories", "products", "/inventory/categories")
+							.access(_role.is("Super Admin")).data,
+						_link("Imports", "report", "/inventory/imports")
+							.access(_role.is("Super Admin")).data,
+						_link("Inbound Management", "inbound", "/sales-book/inbound-management")
+							.access(_role.is("Super Admin")).data,
 						// _link(
 						//     "Inbounds Managment",
 						//     "inbound",

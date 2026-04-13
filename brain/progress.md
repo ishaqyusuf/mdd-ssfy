@@ -90,6 +90,27 @@
     - focused greps for the touched `@gnd/api` files returned no hits after the community type-import cleanup
     - the web-focused grep stayed quiet for the touched inventory files, but full `@gnd/www` typecheck remains a noisy workspace-wide signal outside this slice
 
+- Reworked the inventory imports page away from per-category actions into a control-center workspace.
+  - replaced the old imports page shell with `InventoryImportControlCenter`
+  - added global actions for:
+    - `Update Inventory`
+    - `System Check`
+    - `Full Refresh`
+    - `Reset Only`
+  - surfaced live import analytics from the existing import dataset plus system checks from product-kind review and import coverage
+  - kept the old category import table only as a lower read-only “Legacy Breakdown” diagnostic section
+  - removed per-row import actions from the legacy import table so the primary workflow is no longer category-by-category
+  - validation note:
+    - focused import-area checks were started for the touched web/api files, but the workspace typecheck remains long-running/noisy; no targeted regression surfaced before wrap-up
+
+- Simplified the shared inventory workspace layout so only the main inventory screen behaves like a dashboard.
+  - removed the old shared `InventoryTabs` bar from the inventory layout and deleted the component entirely
+  - stopped injecting the generic inventory summary widgets and stock-alert widget from `apps/www/src/app/(sidebar)/(sales)/inventory/layout.tsx`
+  - moved `InventorySummaryWidgets` and `InventoryStockAlertWidget` onto the main `/inventory` page so analytics stay on the primary inventory screen only
+  - left inventory subpages like components, imports, inbounds, and review as focused workspaces without inheriting the generic dashboard shell
+  - validation note:
+    - searched the web app for leftover `InventoryTabs` references and confirmed the shared tab component is no longer used
+
 - Started the inventory demand/allocation groundwork so sales-driven inventory sync can move toward the canonical stock and inbound system instead of a parallel supply layer.
   - added deterministic sales-to-inventory sync foundations in `packages/sales/src/sync-sales-inventory-line-items.ts` so sales items can resolve inventory-backed parent `LineItem` rows and component demand from Dyke step selections, shelf items, HPT products, and HPT door products using stable source UIDs
   - added old-form background task triggering and new-form inline sync wiring so both sales save paths now feed the same shared inventory sync entrypoint

@@ -1,8 +1,8 @@
 import { ErrorFallback } from "@/components/error-fallback";
-import { DataTable } from "@/components/tables/inventory-import/data-table";
+import { InventoryImportControlCenter } from "@/components/inventory/inventory-import-control-center";
 
 import { TableSkeleton } from "@/components/tables/skeleton";
-import { HydrateClient, getQueryClient } from "@/trpc/server";
+import { HydrateClient } from "@/trpc/server";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import type { SearchParams } from "nuqs";
 import { Suspense } from "react";
@@ -13,17 +13,15 @@ type Props = {
 	searchParams: Promise<SearchParams>;
 };
 export default async function Page(props: Props) {
-	const queryClient = getQueryClient();
 	const searchParams = await props.searchParams;
 
 	return (
 		<PageShell>
-			<PageTitle>Import Old Data</PageTitle>
-			{/* <InventoryTabSwitch path="/inventory" /> */}
+			<PageTitle>Inventory Imports</PageTitle>
 			<HydrateClient>
 				<ErrorBoundary errorComponent={ErrorFallback}>
 					<Suspense fallback={<TableSkeleton />}>
-						<DataTable />
+						<InventoryImportControlCenter />
 					</Suspense>
 				</ErrorBoundary>
 			</HydrateClient>

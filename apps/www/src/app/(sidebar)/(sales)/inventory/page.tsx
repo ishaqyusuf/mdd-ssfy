@@ -1,8 +1,9 @@
 import { ErrorFallback } from "@/components/error-fallback";
 import { InventoryHeader } from "@/components/inventory-header";
 import { DataTable } from "@/components/tables/inventory-products/data-table";
-
 import { TableSkeleton } from "@/components/tables/skeleton";
+import { InventoryStockAlertWidget } from "@/components/widgets/inventory-stock-alert-widget";
+import InventorySummaryWidgets from "@/components/widgets/inventory-summary-widgets";
 import { loadInventoryFilterParams } from "@/hooks/use-inventory-filter-params";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import PageShell from "@/components/page-shell";
@@ -51,11 +52,12 @@ export default async function Page(props: Props) {
 		),
 	]);
 	return (
-		<PageShell>
+		<PageShell className="gap-6">
 			<PageTitle>Inventory</PageTitle>
-			{/* <InventoryTabSwitch path="/inventory" /> */}
 			<HydrateClient>
 				<div className="flex flex-col gap-6">
+					<InventorySummaryWidgets />
+					<InventoryStockAlertWidget />
 					<InventoryHeader />
 					<ErrorBoundary errorComponent={ErrorFallback}>
 						<Suspense fallback={<TableSkeleton />}>
