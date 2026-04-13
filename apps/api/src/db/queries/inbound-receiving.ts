@@ -179,6 +179,10 @@ async function matchExtractionLines(
         where: {
           sku: rawSku,
           deletedAt: null,
+          inventory: {
+            productKind: "inventory",
+            deletedAt: null,
+          },
         },
         select: {
           id: true,
@@ -206,6 +210,7 @@ async function matchExtractionLines(
       const inventory = await ctx.db.inventory.findFirst({
         where: {
           deletedAt: null,
+          productKind: "inventory",
           name: {
             contains: rawDescription.split(/\s+/).slice(0, 4).join(" "),
           },

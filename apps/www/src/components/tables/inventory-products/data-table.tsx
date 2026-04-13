@@ -6,12 +6,20 @@ import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { columns, mobileColumn } from "./columns";
 import { useInventoryFilterParams } from "@/hooks/use-inventory-filter-params";
 
-export function DataTable() {
+export function DataTable({
+    defaultProductKind = "inventory",
+}: {
+    defaultProductKind?: "inventory" | "component";
+}) {
     const trpc = useTRPC();
     // const { rowSelection, setRowSelection } = useSalesOrdersStore();
     const { filters } = useInventoryFilterParams();
+    const effectiveFilters = {
+        ...filters,
+        productKind: filters.productKind ?? defaultProductKind,
+    };
     const { data, ref: loadMoreRef, hasNextPage } = useTableData({
-        filter: filters,
+        filter: effectiveFilters,
         route: trpc.inventories.inventoryProducts,
     });
 
@@ -50,4 +58,3 @@ export function DataTable() {
         </Table.Provider>
     );
 }
-

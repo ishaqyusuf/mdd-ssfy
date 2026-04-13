@@ -20,4 +20,6 @@ Repository-level implementation rules that recur across active workstreams.
   - for sheets and tabbed workspaces, mount only the active tab content and keep each tab responsible for its own on-demand query
   - replace broad legacy server-action loaders with narrower tRPC queries when the first-paint view only needs overview data
   - keep overview queries intentionally small: recent slices, counts, and totals first; full histories and transaction tables later
-  - prefer existing local reference patterns from `apps/www/src/(midday)` and `ai/midday-example` before inventing new page/loading architectures
+  - use `/Users/M1PRO/Documents/code/_kitchen_sink/midday` as the primary local reference for page architecture decisions
+  - follow Midday's structural patterns first: thin route shells, section-based composition, and on-demand secondary data
+  - use existing in-repo reference patterns from `apps/www/src/(midday)` and `ai/midday-example` only as secondary examples

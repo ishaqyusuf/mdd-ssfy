@@ -33,7 +33,12 @@ Tracks the current technical topology and major module boundaries.
     - use one slim overview query for the opening surface and move transactions, full lists, and deep history into on-demand tab queries
     - avoid server actions that fan out into many unrelated reads when a focused tRPC query can provide the first-paint payload
     - keep first-open payloads bounded; prefer recent slices and summary counts over `size: 200` style catch-all fetches
-  - reference local Midday-inspired implementations when choosing patterns:
+  - use the real local Midday repo as the primary architecture authority when choosing patterns:
+    - `/Users/M1PRO/Documents/code/_kitchen_sink/midday`
+  - follow the Midday architecture model deliberately:
+    - reuse its shell-first routing, smaller section composition, and detail-on-demand loading patterns
+    - avoid copying only visuals; preserve the architectural intent behind its page and data boundaries
+  - reference in-repo Midday-inspired implementations second:
     - `apps/www/src/(midday)` for shared in-repo Midday-style UI patterns
     - `ai/midday-example` for focused example snippets and interaction patterns
 

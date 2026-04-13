@@ -2,6 +2,7 @@ import { useInventoryParams } from "@/hooks/use-inventory-params";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { InventoryForm, inventoryFormSchema } from "@gnd/inventory/schema";
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { FormProvider, useFormContext } from "react-hook-form";
 import { z } from "zod";
 
@@ -10,6 +11,7 @@ interface FormContextProps {
     data?: InventoryForm;
 }
 export function FormContext({ children, data }: FormContextProps) {
+    const pathname = usePathname();
     const defaultValues = {
         product: {
             id: null,
@@ -19,6 +21,7 @@ export function FormContext({ children, data }: FormContextProps) {
             productKind: "inventory",
             status: "draft",
             stockMonitor: false,
+            primaryStoreFront: false,
         },
         variants: [],
         images: [],
@@ -31,6 +34,8 @@ export function FormContext({ children, data }: FormContextProps) {
         defaultValues,
     });
     const { mode, defaultValues: paramDefaultValues } = useInventoryParams();
+    const routeDefaultKind =
+        pathname?.startsWith("/inventory/components") ? "component" : "inventory";
     useEffect(() => {
         if (data) {
             data.product.status = data.product.status || "draft";
@@ -38,11 +43,15 @@ export function FormContext({ children, data }: FormContextProps) {
         }
         form.reset({
             ...defaultValues,
+            product: {
+                ...defaultValues.product,
+                productKind: routeDefaultKind,
+            },
             ...(paramDefaultValues || {}),
             ...(data ?? defaultValues),
             mode,
         });
-    }, [data, mode, paramDefaultValues]);
+    }, [data, mode, paramDefaultValues, pathname]);
 
     return <FormProvider {...form}>{children}</FormProvider>;
 }

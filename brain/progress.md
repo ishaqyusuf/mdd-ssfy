@@ -79,6 +79,17 @@
   - validation note:
     - follow-up verification is Prisma generation plus focused inventory/web typecheck on the touched files; full repo type health still includes unrelated pre-existing noise
 
+- Tightened the inventory/component split into an operational admin workflow instead of just a schema label.
+  - storefront search now hard-filters to `productKind = inventory`
+  - inbound extraction matching now only suggests real inventory items, excluding `component` rows from receiving
+  - main `/inventory` page now defaults to sellable inventory, and a dedicated `/inventory/components` page was added for component-only review
+  - added `/inventory/review` with a mismatch report that compares current `productKind` to the pricing-based suggested kind, plus a one-click backfill action
+  - added the new `Components` and `Kind Review` links to the dev-only inventory sidebar module
+  - validation note:
+    - focused `@gnd/inventory` typecheck passes
+    - focused greps for the touched `@gnd/api` files returned no hits after the community type-import cleanup
+    - the web-focused grep stayed quiet for the touched inventory files, but full `@gnd/www` typecheck remains a noisy workspace-wide signal outside this slice
+
 - Started the inventory demand/allocation groundwork so sales-driven inventory sync can move toward the canonical stock and inbound system instead of a parallel supply layer.
   - added deterministic sales-to-inventory sync foundations in `packages/sales/src/sync-sales-inventory-line-items.ts` so sales items can resolve inventory-backed parent `LineItem` rows and component demand from Dyke step selections, shelf items, HPT products, and HPT door products using stable source UIDs
   - added old-form background task triggering and new-form inline sync wiring so both sales save paths now feed the same shared inventory sync entrypoint

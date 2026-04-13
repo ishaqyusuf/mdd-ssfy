@@ -240,6 +240,7 @@ function searchQuery(query: ProductSearch) {
   const wheres: Prisma.InventoryWhereInput[] = [
     {
       status: "published",
+      productKind: "inventory",
     },
   ];
   wheres.push({

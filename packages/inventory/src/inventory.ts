@@ -944,6 +944,101 @@ export async function backfillInventoryProductKinds(db: Db) {
   };
 }
 
+export async function inventoryProductKindReview(db: Db) {
+  const inventories = await db.inventory.findMany({
+    where: {
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      uid: true,
+      name: true,
+      productKind: true,
+      inventoryCategory: {
+        select: {
+          title: true,
+        },
+      },
+      variants: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          pricing: {
+            select: {
+              costPrice: true,
+              price: true,
+            },
+          },
+          supplierVariants: {
+            where: {
+              deletedAt: null,
+              active: true,
+            },
+            select: {
+              costPrice: true,
+              salesPrice: true,
+            },
+          },
+        },
+      },
+      variantPricings: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          costPrice: true,
+          price: true,
+        },
+      },
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
+
+  const rows = inventories.map((inventory) => {
+    const hasMeaningfulPrice =
+      inventory.variantPricings.some(
+        (pricing) =>
+          Number(pricing.costPrice || 0) > 0 || Number(pricing.price || 0) > 0,
+      ) ||
+      inventory.variants.some(
+        (variant) =>
+          Number(variant.pricing?.costPrice || 0) > 0 ||
+          Number(variant.pricing?.price || 0) > 0 ||
+          variant.supplierVariants.some(
+            (supplierVariant) =>
+              Number(supplierVariant.costPrice || 0) > 0 ||
+              Number(supplierVariant.salesPrice || 0) > 0,
+          ),
+      );
+
+    const suggestedKind: InventoryProductKind = hasMeaningfulPrice
+      ? "inventory"
+      : "component";
+
+    return {
+      id: inventory.id,
+      uid: inventory.uid,
+      name: inventory.name,
+      category: inventory.inventoryCategory?.title || null,
+      currentKind: (inventory.productKind || "inventory") as InventoryProductKind,
+      suggestedKind,
+      hasMeaningfulPrice,
+      variantCount: inventory.variants.length,
+      pricingCount: inventory.variantPricings.length,
+      needsReview: (inventory.productKind || "inventory") !== suggestedKind,
+    };
+  });
+
+  return {
+    total: rows.length,
+    mismatched: rows.filter((row) => row.needsReview).length,
+    rows,
+  };
+}
+
 export async function saveVariantForm(db: Db, data: VariantForm) {
   if (!data.id) {
     const variant = await db.inventoryVariant.create({

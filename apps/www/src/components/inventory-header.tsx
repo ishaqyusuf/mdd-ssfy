@@ -33,6 +33,14 @@ export function InventoryHeader({}) {
                     <Button
                         type="button"
                         size="sm"
+                        variant={!filters.productKind ? "secondary" : "ghost"}
+                        onClick={() => setFilters({ productKind: null })}
+                    >
+                        All
+                    </Button>
+                    <Button
+                        type="button"
+                        size="sm"
                         variant={
                             productKind === "inventory" ? "default" : "ghost"
                         }

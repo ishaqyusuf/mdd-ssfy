@@ -538,6 +538,8 @@ export const linkModules = [
 					_section("", null, [
 						_link("Inventory", "inbound", "/inventory", [
 							_subLink("Inventory", "/inventory").data,
+							_subLink("Components", "/inventory/components").data,
+							_subLink("Kind Review", "/inventory/review").data,
 							_subLink("Inbounds", "/inventory/inbounds").data,
 							_subLink("Stock Movements", "/inventory/stocks").data,
 							_subLink("Categories", "/inventory/categories").data,

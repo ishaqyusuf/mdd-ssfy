@@ -1,5 +1,6 @@
-import { Db } from "@gnd/db";
-import { RenturnTypeAsync, sortList } from "@gnd/utils";
+import type { Db } from "@gnd/db";
+import { sortList } from "@gnd/utils";
+import type { RenturnTypeAsync } from "@gnd/utils";
 import {
   inventoryCategories,
   inventoryList,
@@ -10,9 +11,9 @@ import { z } from "zod";
 import {
   COMMUNITY_BLOCKS_INVENTORY_CATEGORY_TITLE,
   COMMUNITY_SECTIONS_INVENTORY_CATEGORY_TITLE,
-  CommunityCategory,
 } from "./constants";
-import { InputType } from "./types";
+import type { CommunityCategory } from "./constants";
+import type { InputType } from "./types";
 
 export const createCommunityTemplateBlockSchema = z.object({
   title: z.string(),
@@ -31,6 +32,7 @@ export async function createCommunityTemplateBlock(
     product: {
       categoryId: data.categoryId,
       name: data.title,
+      productKind: "inventory",
       status: "draft",
       primaryStoreFront: false,
       stockMonitor: false,
@@ -87,6 +89,7 @@ export async function saveCommunityInput(
         product: {
           categoryId,
           name: data.title,
+          productKind: "inventory",
           status: "draft",
           primaryStoreFront: false,
           stockMonitor: false,
@@ -561,6 +564,7 @@ export async function saveTemplateInputListing(
       product: {
         categoryId: category?.id!,
         name: data.title,
+        productKind: "inventory",
         status: "draft",
         primaryStoreFront: false,
         stockMonitor: false,

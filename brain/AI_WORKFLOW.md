@@ -20,7 +20,12 @@ Defines the expected read-before-write and update-after-change workflow for AI c
   - avoid full-dataset fetches when aggregates, summaries, or paginated slices are enough
   - in sheets and tabbed UIs, load the opening tab only and let secondary tabs fetch on demand
   - treat transactions, audit history, and long tables as secondary data unless the user is explicitly opening that workspace
-  - check local references first:
+  - check the real Midday project first for architecture decisions:
+    - `/Users/M1PRO/Documents/code/_kitchen_sink/midday`
+  - follow the Midday architecture pattern directly:
+    - keep route entrypoints lean, split pages into focused sections, and defer secondary detail until after the shell is visible
+    - use Midday for structure, data-loading cadence, and boundary decisions rather than surface-level styling
+  - use local in-repo references second:
     - `apps/www/src/(midday)`
     - `ai/midday-example`
 
