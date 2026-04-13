@@ -3,6 +3,7 @@ model InventoryCategory {
     title         String
     img           String?
     uid           String
+    productKind   String   @default("inventory")
     type          String?
     description   String?
     enablePricing Boolean?

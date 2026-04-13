@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 
 interface Props {
     enableCategoryList?: boolean;
+    productKind?: "inventory" | "component" | null;
 }
 export function useInventoryTrpc(props: Props = {}) {
     const trpc = useTRPC();
@@ -86,7 +87,9 @@ export function useInventoryTrpc(props: Props = {}) {
         error,
     } = useQuery(
         trpc.inventories.getInventoryCategories.queryOptions(
-            {},
+            {
+                productKind: props.productKind ?? undefined,
+            },
             {
                 enabled: props.enableCategoryList,
             },
@@ -154,4 +157,3 @@ export function useInventoryTrpc(props: Props = {}) {
     };
     return ctx;
 }
-

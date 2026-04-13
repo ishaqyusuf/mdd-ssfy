@@ -27,8 +27,10 @@ import { INVENTORY_PRODUCT_KINDS } from "@gnd/inventory/schema";
 export function ProductInformationSection({}) {
     const form = useInventoryForm();
     const trpc = useTRPC();
+    const watchedProductKind = form.watch("product.productKind");
     const { categoryList } = useInventoryTrpc({
         enableCategoryList: true,
+        productKind: watchedProductKind,
     });
     const { _mode, mode } = useInventoryParams();
     useEffect(() => {

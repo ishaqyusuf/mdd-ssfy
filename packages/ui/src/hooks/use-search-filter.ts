@@ -31,15 +31,28 @@ export const {
     });
   }, [filters]);
   const shouldFetch = isOpen || isFocused || hasFilter;
+  function normalizeFilterValue(parser, value) {
+    if (value === null || value === undefined) return value;
+    if (!parser?.parse) return value;
+
+    try {
+      return parser.parse(String(value));
+    } catch {
+      return value;
+    }
+  }
+
   function optionSelected(qk, { label, value }) {
-    const isArray = isArrayParser(filterSchema?.[qk]);
+    const parser = filterSchema?.[qk];
+    const isArray = isArrayParser(parser);
+    const normalizedValue = normalizeFilterValue(parser, value);
 
     setFilters({
       [qk]: !isArray
-        ? value
-        : filters?.[qk]?.includes(value)
-        ? filters?.[qk].filter((s) => s !== value)
-        : [...(filters?.[qk] ?? []), value],
+        ? normalizedValue
+        : filters?.[qk]?.includes(normalizedValue)
+        ? filters?.[qk].filter((s) => s !== normalizedValue)
+        : [...(filters?.[qk] ?? []), normalizedValue],
     });
   }
   return {

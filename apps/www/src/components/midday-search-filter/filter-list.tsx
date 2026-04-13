@@ -151,11 +151,13 @@ export function FilterList({ loading, filterList, filters, onRemove }: Props) {
 
             default:
                 if (isSearchKey(key)) return value;
-                //  return null;
                 const opts = filterList?.find((f) => f?.value === key)?.options;
                 if (!opts) return null;
                 if (!Array.isArray(value)) {
-                    return value;
+                    return (
+                        opts?.find((a) => String(a?.value) === String(value))
+                            ?.label || value
+                    );
                 }
                 return (value || [])
                     ?.map((v) => opts?.find((a) => a?.value == v)?.label || v)

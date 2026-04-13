@@ -12,6 +12,7 @@ import { useFieldArray } from "react-hook-form";
 import { Label } from "@gnd/ui/label";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import { INVENTORY_PRODUCT_KINDS } from "@gnd/inventory/schema";
 
 export function InventoryCategoryForm({}) {
     //
@@ -69,6 +70,20 @@ export function InventoryCategoryForm({}) {
                     label="Category Title"
                     control={form.control}
                     name="title"
+                />
+                <FormCombobox
+                    control={form.control}
+                    name="productKind"
+                    label="Category Type"
+                    comboProps={{
+                        items: INVENTORY_PRODUCT_KINDS.map((kind) => ({
+                            label:
+                                kind === "inventory"
+                                    ? "Inventory"
+                                    : "Component",
+                            value: kind,
+                        })),
+                    }}
                 />
                 <FormInput
                     label="Description"
@@ -168,4 +183,3 @@ function VariationCategory({ id, title, removeVariantCategory }) {
         </Badge>
     );
 }
-

@@ -47,6 +47,7 @@ export type InventoryList = z.infer<typeof inventoryListSchema>;
 export const inventoryCategoriesSchema = z
   .object({
     title: z.string().optional().nullable(),
+    productKind: inventoryProductKindSchema.nullable().optional(),
   })
   .extend(paginationSchema.shape);
 export type InventoryCategories = z.infer<typeof inventoryCategoriesSchema>;
@@ -155,7 +156,9 @@ export const updateSubComponentSchema =
   inventoryFormSchema.shape.subComponents.element;
 export type UpdateSubComponent = z.infer<typeof updateSubComponentSchema>;
 
-export const getInventoryCategoriesSchema = z.object({});
+export const getInventoryCategoriesSchema = z.object({
+  productKind: inventoryProductKindSchema.nullable().optional(),
+});
 export type GetInventoryCategories = z.infer<
   typeof getInventoryCategoriesSchema
 >;
@@ -193,6 +196,7 @@ export type VariantForm = z.infer<typeof variantFormSchema>;
 export const inventoryCategoryFormSchema = z.object({
   id: z.number().optional().nullable(),
   title: z.string(),
+  productKind: inventoryProductKindSchema.default("inventory"),
   description: z.string().optional().nullable(),
   type: z.string().optional().nullable(),
   enablePricing: z.boolean().optional().nullable().default(false),

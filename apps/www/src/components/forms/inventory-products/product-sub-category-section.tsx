@@ -29,6 +29,7 @@ export function ProductSubCategorySection({}) {
     });
     const nav = useInventoryTrpc({
         enableCategoryList: true,
+        productKind: "inventory",
     });
     // const subCatUpdated = (index, valueData) => {
     //     const data = subCatArray.fields[index];
@@ -193,4 +194,3 @@ function SubCategoryValues({ index }) {
         </>
     );
 }
-

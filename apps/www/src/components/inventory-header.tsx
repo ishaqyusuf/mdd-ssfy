@@ -1,6 +1,12 @@
 "use client";
 
 import { Button } from "@gnd/ui/button";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
 import { InventorySearchFilter } from "./inventory-search-filter";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
@@ -84,43 +90,50 @@ export function InventoryHeader({}) {
                 </div>
             </div>
             <div className="flex-1"></div>
-            <Button
-                type="button"
-                variant="outline"
-                disabled={backfillImportSources.isPending}
-                onClick={() => backfillImportSources.mutate()}
-            >
-                <Icons.Refresh className="size-4 mr-2" />
-                <span>Backfill Import Labels</span>
-            </Button>
-            <Button
-                type="button"
-                variant="outline"
-                disabled={backfillKinds.isPending}
-                onClick={() => backfillKinds.mutate()}
-            >
-                <Icons.Refresh className="size-4 mr-2" />
-                <span>Backfill Types</span>
-            </Button>
-            <Button
-                onClick={(e) => {
-                    setParams({
-                        productId: -1,
-                        defaultValues: {
-                            product: {
-                                productKind,
-                            },
-                        } as any,
-                    });
-                }}
-            >
-                <Icons.Add className="size-4 mr-2" />
-                <span>
-                    {productKind === "component"
-                        ? "Add Component"
-                        : "Add Inventory"}
-                </span>
-            </Button>
+            <div className="flex items-center gap-2">
+                <Button
+                    onClick={(e) => {
+                        setParams({
+                            productId: -1,
+                            defaultValues: {
+                                product: {
+                                    productKind,
+                                },
+                            } as any,
+                        });
+                    }}
+                >
+                    <Icons.Add className="size-4 mr-2" />
+                    <span>
+                        {productKind === "component"
+                            ? "Add Component"
+                            : "Add Inventory"}
+                    </span>
+                </Button>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button type="button" variant="outline" size="icon">
+                            <Icons.MoreHorizontal className="size-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                            disabled={backfillImportSources.isPending}
+                            onClick={() => backfillImportSources.mutate()}
+                        >
+                            <Icons.Refresh className="size-4 mr-2" />
+                            <span>Backfill Import Labels</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            disabled={backfillKinds.isPending}
+                            onClick={() => backfillKinds.mutate()}
+                        >
+                            <Icons.Refresh className="size-4 mr-2" />
+                            <span>Backfill Types</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
         </div>
     );
 }

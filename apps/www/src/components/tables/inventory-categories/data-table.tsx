@@ -12,13 +12,21 @@ import { columns, mobileColumn } from "./columns";
 import { useInventoryFilterParams } from "@/hooks/use-inventory-filter-params";
 import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
 
-export function DataTable() {
+export function DataTable({
+    defaultProductKind = "inventory",
+}: {
+    defaultProductKind?: "inventory" | "component";
+}) {
     const trpc = useTRPC();
     // const { rowSelection, setRowSelection } = useSalesOrdersStore();
     const { filters, hasFilters, setFilters } = useInventoryFilterParams();
     const { setParams } = useInventoryCategoryParams();
+    const effectiveFilters = {
+        ...filters,
+        productKind: filters.productKind ?? defaultProductKind,
+    };
     const { data, ref: loadMoreRef, hasNextPage, isFetching } = useTableData({
-        filter: filters,
+        filter: effectiveFilters,
         route: trpc.inventories.inventoryCategories,
     });
     const inventory = useInventoryTrpc();

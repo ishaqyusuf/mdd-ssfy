@@ -192,7 +192,7 @@ export async function getInventoryCategoryForm(
   db: Db,
   id
 ): Promise<InventoryCategoryForm> {
-  const category = await db.inventoryCategory.findUniqueOrThrow({
+  const categoryRaw = await db.inventoryCategory.findUniqueOrThrow({
     where: {
       id,
     },
@@ -201,6 +201,7 @@ export async function getInventoryCategoryForm(
       description: true,
       enablePricing: true,
       img: true,
+      ...( { productKind: true } as any ),
       title: true,
       categoryVariantAttributes: {
         where: {
@@ -215,9 +216,26 @@ export async function getInventoryCategoryForm(
       },
     },
   });
+  const category = categoryRaw as unknown as {
+    id: number;
+    title: string;
+    productKind?: InventoryProductKind | null;
+    description?: string | null;
+    enablePricing?: boolean | null;
+    img?: string | null;
+    categoryVariantAttributes?: Array<{
+      id?: number | null;
+      valuesInventoryCategoryId: number | null;
+      deletedAt?: Date | null;
+    }>;
+  };
   return {
-    ...category,
-    categoryVariantAttributes: category.categoryVariantAttributes.map((a) => {
+    id: category.id,
+    title: category.title,
+    productKind: (category.productKind || "inventory") as InventoryProductKind,
+    description: category.description || null,
+    enablePricing: category.enablePricing ?? false,
+    categoryVariantAttributes: (category.categoryVariantAttributes || []).map((a) => {
       const { deletedAt, ...cva } = a;
       return {
         ...cva,
@@ -232,9 +250,18 @@ export async function getInventoryCategories(
   data: GetInventoryCategories
 ) {
   const categories = await db.inventoryCategory.findMany({
+    where: {
+      deletedAt: null,
+      ...(data.productKind
+        ? {
+            productKind: data.productKind,
+          }
+        : {}),
+    },
     select: {
       id: true,
       title: true,
+      ...(data.productKind ? ({ productKind: true } as any) : {}),
     },
   });
   return categories;
@@ -1335,6 +1362,7 @@ export async function inventoryCategories(db: Db, query: InventoryCategories) {
       id: true,
       title: true,
       description: true,
+      ...( { productKind: true } as any ),
       type: true,
       _count: {
         select: {
@@ -1366,6 +1394,11 @@ function whereInventoryCategories(query: InventoryCategories) {
       title: {
         contains: query.q,
       },
+    });
+  }
+  if (query.productKind) {
+    wheres.push({
+      ...( { productKind: query.productKind } as any ),
     });
   }
   return composeQuery(wheres);
@@ -1413,6 +1446,7 @@ export async function saveInventoryCategoryForm(
       data: {
         title: data.title,
         uid: generateRandomString(5),
+        ...( { productKind: data.productKind } as any ),
         enablePricing: data.enablePricing,
         description: data.description,
         type: data.type,
@@ -1434,6 +1468,7 @@ export async function saveInventoryCategoryForm(
       },
       data: {
         title: data.title,
+        ...( { productKind: data.productKind } as any ),
         // uid: generateRandomString(5),
         enablePricing: data.enablePricing,
         description: data.description,

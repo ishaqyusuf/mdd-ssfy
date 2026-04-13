@@ -16,6 +16,16 @@
     - `bun run db:generate` succeeds after the schema change
     - `bun run --filter @gnd/inventory typecheck` passes after the backfill helper/type cleanup
 
+- Split inventory categories and component categories into an explicit category-kind boundary instead of keeping one mixed category source.
+  - added `InventoryCategory.productKind` in the Prisma schemas so category kind no longer has to be inferred from related products
+  - extended category list/query contracts so both `inventoryCategories` and `getInventoryCategories` can filter by `productKind`
+  - updated inventory product forms to request category lists by the active product kind
+  - updated sub-component and sub-category selectors so they explicitly request `component` or `inventory` categories as appropriate
+  - updated the categories workspace to default to inventory categories and added inventory/component category switching through the existing category page flow
+  - validation note:
+    - `bun run db:generate` succeeds after the schema change
+    - `bun run --filter @gnd/inventory typecheck` passes
+
 - Replaced the placeholder low-stock widget on the inventory page with a real inventory-domain alert feed.
   - implemented `lowStockSummary()` in `packages/inventory/src/inventory.ts`
   - exposed the feed through `inventories.lowStockSummary` in `apps/api/src/trpc/routers/inventories.route.ts`

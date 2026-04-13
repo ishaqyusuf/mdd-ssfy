@@ -47,6 +47,7 @@ export function CategorySubComponentsSection({}) {
     );
     const nav = useInventoryTrpc({
         enableCategoryList: true,
+        productKind: "component",
     });
     const trpc = useTRPC();
     const updateStatus = useMutation(
@@ -344,4 +345,3 @@ function SubCategoryValues({ index }) {
         </>
     );
 }
-
