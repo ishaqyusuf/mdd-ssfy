@@ -116,6 +116,14 @@ export function InventoryImportControlCenter() {
         (sum, row) => sum + Number(row.totalProducts || 0),
         0,
     );
+    const totalStandardProducts = rows.reduce(
+        (sum, row) => sum + Number(row.standardProducts || 0),
+        0,
+    );
+    const totalCustomProducts = rows.reduce(
+        (sum, row) => sum + Number(row.customProducts || 0),
+        0,
+    );
 
     const invalidateAll = useCallback(async () => {
         await Promise.all([
@@ -256,6 +264,14 @@ export function InventoryImportControlCenter() {
                         : `${scopeMeta?.staleImportedCategories || 0} imported categories belong to steps outside the active sales-settings scope.`,
             },
             {
+                label: "Custom import spillover",
+                ok: (scopeMeta?.staleCustomImported || 0) === 0,
+                detail:
+                    (scopeMeta?.staleCustomImported || 0) === 0
+                        ? "No excluded custom imports are still attached to stale steps."
+                        : `${scopeMeta?.staleCustomImported || 0} custom imported rows are still linked to steps outside the active scope.`,
+            },
+            {
                 label: "Kind classification review",
                 ok: (kindReview.data?.mismatched || 0) === 0,
                 detail:
@@ -275,6 +291,7 @@ export function InventoryImportControlCenter() {
         [
             kindReview.data?.mismatched,
             pendingCount,
+            scopeMeta?.staleCustomImported,
             scopeMeta?.staleImportedCategories,
             strategy,
         ],
@@ -301,7 +318,12 @@ export function InventoryImportControlCenter() {
                 <StatCard
                     title="Scoped Products"
                     value={totalScopedProducts}
-                    subtitle="Total Dyke products visible inside the selected import scope"
+                    subtitle={`${totalStandardProducts} standard • ${totalCustomProducts} custom in the selected scope`}
+                />
+                <StatCard
+                    title="Imported Labels"
+                    value={scopeMeta?.importedStandardProducts || 0}
+                    subtitle={`${scopeMeta?.importedCustomProducts || 0} custom imports labeled separately`}
                 />
                 <StatCard
                     title="Inventory Records"
@@ -441,6 +463,8 @@ export function InventoryImportControlCenter() {
                             reset as a background job. `System Check` runs
                             compare mode. `Full Refresh` resets and rebuilds the
                             selected inventory import scope in the background.
+                            Custom Dyke rows are still imported, but standard
+                            inventory remains the default operational view.
                         </div>
                         {currentRunId && runStatus.data ? (
                             <div className="mt-3 rounded-md bg-background p-3 text-foreground">

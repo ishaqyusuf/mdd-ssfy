@@ -514,6 +514,7 @@ export async function lowStockSummary(db: Db) {
         deletedAt: null,
         stockMode: "monitored" as StockModes,
         productKind: "inventory",
+        ...( { sourceCustom: false } as any ),
       },
     },
     select: {

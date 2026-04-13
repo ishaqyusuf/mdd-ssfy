@@ -241,6 +241,7 @@ function searchQuery(query: ProductSearch) {
     {
       status: "published",
       productKind: "inventory",
+      ...( { sourceCustom: false } as any ),
     },
   ];
   wheres.push({

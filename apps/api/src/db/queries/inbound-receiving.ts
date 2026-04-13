@@ -182,6 +182,7 @@ async function matchExtractionLines(
           inventory: {
             productKind: "inventory",
             deletedAt: null,
+            ...( { sourceCustom: false } as any ),
           },
         },
         select: {
@@ -211,6 +212,7 @@ async function matchExtractionLines(
         where: {
           deletedAt: null,
           productKind: "inventory",
+          ...( { sourceCustom: false } as any ),
           name: {
             contains: rawDescription.split(/\s+/).slice(0, 4).join(" "),
           },

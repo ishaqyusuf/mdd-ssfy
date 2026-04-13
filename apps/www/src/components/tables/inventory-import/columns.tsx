@@ -39,10 +39,32 @@ const productCount = {
     accessorKey: "productCount",
     meta: {},
     cell: ({ row: { original: item } }) => (
-        <div className="w-16">
+        <div className="min-w-24">
             <div className="text-center">
                 <TCell.Primary>{item.totalProducts}</TCell.Primary>
-                <TCell.Secondary>products</TCell.Secondary>
+                <TCell.Secondary>
+                    {item.standardProducts || 0} standard •{" "}
+                    {item.customProducts || 0} custom
+                </TCell.Secondary>
+            </div>
+        </div>
+    ),
+};
+const importedCountColumn = {
+    header: "Imported Rows",
+    accessorKey: "importedRows",
+    meta: {},
+    cell: ({ row: { original: item } }) => (
+        <div className="min-w-24">
+            <div className="text-center">
+                <TCell.Primary>
+                    {(item.importedStandardCount || 0) +
+                        (item.importedCustomCount || 0)}
+                </TCell.Primary>
+                <TCell.Secondary>
+                    {item.importedStandardCount || 0} standard •{" "}
+                    {item.importedCustomCount || 0} custom
+                </TCell.Secondary>
             </div>
         </div>
     ),
@@ -102,6 +124,7 @@ export const columns: ColumnDef<Item>[] = [
     scopeColumn,
     statucColumn,
     productCount,
+    importedCountColumn,
 ];
 export const mobileColumn: ColumnDef<Item>[] = [
     {
@@ -159,7 +182,14 @@ function ItemCard({ item }: ItemProps) {
             {item.scopeReason ? (
                 <TCell.Secondary>{item.scopeReason}</TCell.Secondary>
             ) : null}
-            <TCell.Secondary>{item.totalProducts} products</TCell.Secondary>
+            <TCell.Secondary>
+                {item.totalProducts} products • {item.standardProducts || 0}{" "}
+                standard • {item.customProducts || 0} custom
+            </TCell.Secondary>
+            <TCell.Secondary>
+                Imported: {item.importedStandardCount || 0} standard •{" "}
+                {item.importedCustomCount || 0} custom
+            </TCell.Secondary>
         </div>
     );
 }

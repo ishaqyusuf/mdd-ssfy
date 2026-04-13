@@ -10,6 +10,8 @@
   - added `backfillInventoryImportSources()` and exposed it through `inventories.backfillInventoryImportSources` so existing imported rows can be labeled retroactively
   - updated inventory list filtering to exclude `sourceCustom = true` by default while keeping a `Show Custom` toggle in the inventory header
   - added a `Custom` badge in the inventory products table so imported custom rows remain visible and explainable when intentionally included
+  - extended the imports control center and scope breakdown so they now show standard-vs-custom Dyke product counts and imported standard-vs-custom row counts per step, plus a stale-custom-import signal
+  - tightened default operational boundaries so low-stock alerts, storefront product search, and inbound extraction matching now exclude `sourceCustom = true` by default alongside the existing `productKind = inventory` rules
   - validation note:
     - `bun run db:generate` succeeds after the schema change
     - `bun run --filter @gnd/inventory typecheck` passes after the backfill helper/type cleanup
