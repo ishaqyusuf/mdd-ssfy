@@ -1,7 +1,11 @@
 import { useQueryStates } from "nuqs";
-import { createLoader, parseAsInteger, parseAsString } from "nuqs/server";
+import {
+    createLoader,
+    parseAsInteger,
+    parseAsString,
+    parseAsStringEnum,
+} from "nuqs/server";
 import { inventoryProductKindSchema } from "@gnd/inventory/schema";
-import { parseAsStringEnum } from "nuqs";
 import { InventoryList } from "@gnd/inventory/schema";
 type FilterKeys = keyof InventoryList;
 
@@ -22,3 +26,4 @@ export function useInventoryFilterParams() {
 export const loadInventoryFilterParams = createLoader(
     inventoryFilterParamsSchema,
 );
+

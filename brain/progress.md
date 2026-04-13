@@ -105,11 +105,17 @@
 
 - Simplified the shared inventory workspace layout so only the main inventory screen behaves like a dashboard.
   - removed the old shared `InventoryTabs` bar from the inventory layout and deleted the component entirely
-  - stopped injecting the generic inventory summary widgets and stock-alert widget from `apps/www/src/app/(sidebar)/(sales)/inventory/layout.tsx`
+  - stopped injecting the generic inventory summary widgets and stock-alert widget from `apps/www/src/app/(sidebar)/inventory/layout.tsx`
   - moved `InventorySummaryWidgets` and `InventoryStockAlertWidget` onto the main `/inventory` page so analytics stay on the primary inventory screen only
   - left inventory subpages like components, imports, inbounds, and review as focused workspaces without inheriting the generic dashboard shell
   - validation note:
     - searched the web app for leftover `InventoryTabs` references and confirmed the shared tab component is no longer used
+
+- Moved inventory out of the sales route-group boundary and into its own App Router domain.
+  - relocated the full inventory page tree from `apps/www/src/app/(sidebar)/(sales)/inventory` to `apps/www/src/app/(sidebar)/inventory`
+  - preserved all public `/inventory/...` URLs because Next route groups do not affect the URL path
+  - confirmed there was no `(sales)`-specific layout wrapping inventory, so the move did not drop any route-group providers
+  - this makes the codebase reflect the product direction more accurately: inventory is now its own workspace instead of a sales-owned subtree
 
 - Started the inventory demand/allocation groundwork so sales-driven inventory sync can move toward the canonical stock and inbound system instead of a parallel supply layer.
   - added deterministic sales-to-inventory sync foundations in `packages/sales/src/sync-sales-inventory-line-items.ts` so sales items can resolve inventory-backed parent `LineItem` rows and component demand from Dyke step selections, shelf items, HPT products, and HPT door products using stable source UIDs
