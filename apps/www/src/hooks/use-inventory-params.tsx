@@ -1,5 +1,5 @@
 import { CamelCaseType } from "@gnd/utils/types";
-import { InventoryForm } from "@sales/schema";
+import { InventoryForm } from "@gnd/inventory/schema";
 import {
     createLoader,
     parseAsInteger,
@@ -44,4 +44,3 @@ export function useInventoryParams() {
 }
 
 export const loadInventoryParams = createLoader(inventoryParamsSchema);
-

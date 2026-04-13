@@ -6,6 +6,10 @@ import {
   INVENTORY_STATUS,
 } from "./constants";
 
+export const INVENTORY_PRODUCT_KINDS = ["inventory", "component"] as const;
+export const inventoryProductKindSchema = z.enum(INVENTORY_PRODUCT_KINDS);
+export type InventoryProductKind = z.infer<typeof inventoryProductKindSchema>;
+
 export const inventoryImportSchema = z.object({}).extend(paginationSchema.shape);
 export type InventoryImport = z.infer<typeof inventoryImportSchema>;
 
@@ -21,6 +25,7 @@ export type InventoryImportRun = z.infer<typeof inventoryImportRunSchema>;
 export const inventoryListSchema = z
   .object({
     categoryId: z.number().nullable().optional(),
+    productKind: inventoryProductKindSchema.nullable().optional(),
     subCategoryInvId: z.number().nullable().optional(),
     subCategoryId: z.number().nullable().optional(),
     ids: z.array(z.number()).optional(),
@@ -43,6 +48,7 @@ export const inventoryFormSchema = z.object({
     name: z.string(),
     categoryId: z.number(),
     id: z.number().optional().nullable(),
+    productKind: inventoryProductKindSchema.default("inventory"),
     status: z.enum(INVENTORY_STATUS),
     stockMonitor: z.boolean().optional().default(false),
     primaryStoreFront: z.boolean().optional().default(false),

@@ -5,6 +5,7 @@ import type {
   InventoryCategories,
   InventoryCategoryForm,
   InventoryForm,
+  InventoryProductKind,
   InventorySupplierForm,
   InventorySuppliers,
   SupplierVariantForm,
@@ -75,6 +76,7 @@ export async function inventoryList(db: Db, query: InventoryList) {
         id: r.id,
         title: r.name,
         uid: r.uid,
+        productKind: (r.productKind || "inventory") as InventoryProductKind,
         brand: r.inventoryCategory?.type,
         images: [],
         category: r.inventoryCategory?.title,
@@ -109,6 +111,10 @@ function whereInventoryProducts(query: InventoryList) {
   if (query.categoryId)
     wheres.push({
       inventoryCategoryId: query.categoryId,
+    });
+  if (query.productKind)
+    wheres.push({
+      productKind: query.productKind,
     });
   if (query.variantIds)
     wheres.push({
@@ -499,6 +505,7 @@ export async function saveInventory(db: Db, data: InventoryForm) {
   let inventoryId = data.product.id;
   let inventoryUid;
   const { product } = data;
+  const productKind = (product.productKind || "inventory") as InventoryProductKind;
   const stockMode: StockModes = product.stockMonitor
     ? "monitored"
     : "unmonitored";
@@ -511,7 +518,8 @@ export async function saveInventory(db: Db, data: InventoryForm) {
         data: {
           status: product.status,
           name: product.name,
-          stockMode,
+          productKind,
+          stockMode: productKind === "component" ? "unmonitored" : stockMode,
           description: product.description,
           primaryStoreFront: product.primaryStoreFront,
         },
@@ -522,10 +530,11 @@ export async function saveInventory(db: Db, data: InventoryForm) {
       data: {
         name: product.name,
         uid: generateRandomString(4),
+        productKind,
         description: product.description,
         status: product.status,
         publishedAt: product.status == "published" ? new Date() : null,
-        stockMode,
+        stockMode: productKind === "component" ? "unmonitored" : stockMode,
         primaryStoreFront: product.primaryStoreFront || false,
         inventoryCategory: {
           connect: {
@@ -652,6 +661,7 @@ export async function inventoryForm(db: Db, inventoryId) {
     product: {
       categoryId: inv.inventoryCategoryId,
       name: inv.name,
+      productKind: (inv.productKind || "inventory") as InventoryProductKind,
       status: inv.status as any,
       stockMonitor: (inv.stockMode as StockModes) == "monitored",
       description: inv.description,
@@ -837,6 +847,101 @@ export async function supplierVariantsByInventory(db: Db, inventoryId: number) {
     },
     orderBy: [{ preferred: "desc" }, { supplier: { name: "asc" } }],
   });
+}
+
+export async function backfillInventoryProductKinds(db: Db) {
+  const inventories = await db.inventory.findMany({
+    where: {
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      productKind: true,
+      variants: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          pricing: {
+            select: {
+              costPrice: true,
+              price: true,
+            },
+          },
+          supplierVariants: {
+            where: {
+              deletedAt: null,
+              active: true,
+            },
+            select: {
+              costPrice: true,
+              salesPrice: true,
+            },
+          },
+        },
+      },
+      variantPricings: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          costPrice: true,
+          price: true,
+        },
+      },
+    },
+  });
+
+  let inventoryCount = 0;
+  let componentCount = 0;
+  let unchangedCount = 0;
+
+  for (const inventory of inventories) {
+    const hasMeaningfulPrice =
+      inventory.variantPricings.some(
+        (pricing) =>
+          Number(pricing.costPrice || 0) > 0 || Number(pricing.price || 0) > 0,
+      ) ||
+      inventory.variants.some(
+        (variant) =>
+          Number(variant.pricing?.costPrice || 0) > 0 ||
+          Number(variant.pricing?.price || 0) > 0 ||
+          variant.supplierVariants.some(
+            (supplierVariant) =>
+              Number(supplierVariant.costPrice || 0) > 0 ||
+              Number(supplierVariant.salesPrice || 0) > 0,
+          ),
+      );
+
+    const nextKind: InventoryProductKind = hasMeaningfulPrice
+      ? "inventory"
+      : "component";
+
+    if (inventory.productKind === nextKind) {
+      unchangedCount += 1;
+      continue;
+    }
+
+    await db.inventory.update({
+      where: {
+        id: inventory.id,
+      },
+      data: {
+        productKind: nextKind,
+        stockMode: nextKind === "component" ? "unmonitored" : undefined,
+      },
+    });
+
+    if (nextKind === "inventory") inventoryCount += 1;
+    else componentCount += 1;
+  }
+
+  return {
+    inventoryCount,
+    componentCount,
+    unchangedCount,
+    total: inventories.length,
+  };
 }
 
 export async function saveVariantForm(db: Db, data: VariantForm) {

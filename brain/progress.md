@@ -57,6 +57,28 @@
     - `bun test packages/sales/src/sales-form/domain/workflow-calculators.test.ts` passes with new supplier-variant coverage
     - focused `@gnd/www` / `@gnd/sales` grep checks were started for the touched files; they produced no immediate hits for the import-resolution issue before the long-running workspace typecheck noise kicked in
 
+- Added the first real inventory/component separation in the inventory domain.
+  - extended `Inventory` with a `productKind` field (`inventory` vs `component`) in both Prisma schemas
+  - extended inventory package schemas and save/load/list logic so:
+    - product forms persist `product.productKind`
+    - inventory list queries can filter by `productKind`
+    - component saves force stock mode back to `unmonitored`
+  - updated both handcrafted and optimized Dyke importers so new imported rows default to:
+    - `inventory` when the Dyke step product has meaningful price data
+    - `component` when it is an unpriced dependency/configuration item
+  - added `backfillInventoryProductKinds()` and exposed it through inventories tRPC so existing mixed data can be reclassified with the rule:
+    - meaningful price present => `inventory`
+    - otherwise => `component`
+  - updated the inventory UI to support the split:
+    - inventory/components toggle in the header
+    - backfill action button in the header
+    - new product defaulting from the active tab
+    - inventory form `Product Type` selector
+    - component mode hides variant/pricing and supplier sections plus stock monitoring controls
+    - inventory table now shows the current product kind badge
+  - validation note:
+    - follow-up verification is Prisma generation plus focused inventory/web typecheck on the touched files; full repo type health still includes unrelated pre-existing noise
+
 - Started the inventory demand/allocation groundwork so sales-driven inventory sync can move toward the canonical stock and inbound system instead of a parallel supply layer.
   - added deterministic sales-to-inventory sync foundations in `packages/sales/src/sync-sales-inventory-line-items.ts` so sales items can resolve inventory-backed parent `LineItem` rows and component demand from Dyke step selections, shelf items, HPT products, and HPT door products using stable source UIDs
   - added old-form background task triggering and new-form inline sync wiring so both sales save paths now feed the same shared inventory sync entrypoint

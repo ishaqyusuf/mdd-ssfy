@@ -4,24 +4,83 @@ import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { InventorySearchFilter } from "./inventory-search-filter";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
+import { useInventoryFilterParams } from "@/hooks/use-inventory-filter-params";
+import { useTRPC } from "@/trpc/client";
+import { useMutation } from "@gnd/ui/tanstack";
+import { toast } from "@gnd/ui/use-toast";
 
 export function InventoryHeader({}) {
     const { setParams } = useInventoryParams();
+    const { filters, setFilters } = useInventoryFilterParams();
+    const trpc = useTRPC();
+    const backfillKinds = useMutation(
+        trpc.inventories.backfillInventoryProductKinds.mutationOptions({
+            onSuccess(data) {
+                toast({
+                    title: "Product types updated",
+                    description: `${data.inventoryCount} inventory items, ${data.componentCount} components, ${data.unchangedCount} unchanged.`,
+                    variant: "success",
+                });
+            },
+        }),
+    );
+    const productKind = filters.productKind || "inventory";
     return (
-        <div className="flex justify-between">
-            <InventorySearchFilter />
+        <div className="flex justify-between gap-4">
+            <div className="flex items-center gap-3">
+                <InventorySearchFilter />
+                <div className="flex items-center gap-2 rounded-lg border p-1">
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant={
+                            productKind === "inventory" ? "default" : "ghost"
+                        }
+                        onClick={() => setFilters({ productKind: "inventory" })}
+                    >
+                        Inventories
+                    </Button>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant={
+                            productKind === "component" ? "default" : "ghost"
+                        }
+                        onClick={() => setFilters({ productKind: "component" })}
+                    >
+                        Components
+                    </Button>
+                </div>
+            </div>
             <div className="flex-1"></div>
+            <Button
+                type="button"
+                variant="outline"
+                disabled={backfillKinds.isPending}
+                onClick={() => backfillKinds.mutate()}
+            >
+                <Icons.Refresh className="size-4 mr-2" />
+                <span>Backfill Types</span>
+            </Button>
             <Button
                 onClick={(e) => {
                     setParams({
                         productId: -1,
+                        defaultValues: {
+                            product: {
+                                productKind,
+                            },
+                        } as any,
                     });
                 }}
             >
                 <Icons.Add className="size-4 mr-2" />
-                <span>Add Product</span>
+                <span>
+                    {productKind === "component"
+                        ? "Add Component"
+                        : "Add Inventory"}
+                </span>
             </Button>
         </div>
     );
 }
-

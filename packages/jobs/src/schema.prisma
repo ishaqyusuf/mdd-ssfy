@@ -1964,6 +1964,7 @@ model Inventory {
     name              String
     img               String?
     uid               String
+    productKind       String    @default("inventory")
     stockMode         String?
     status            String?
     publishedAt       DateTime?

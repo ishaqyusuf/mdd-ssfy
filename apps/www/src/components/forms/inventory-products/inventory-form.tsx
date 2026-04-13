@@ -13,6 +13,8 @@ import { InventorySuppliersSection } from "./inventory-suppliers-section";
 export function InventoryForm({}) {
     const form = useInventoryForm();
     const { productId } = useInventoryParams();
+    const productKind = form.watch("product.productKind");
+    const isComponent = productKind === "component";
     const [sections, setSections] = useState<string[]>(
         productId > 0 ? ["variants", "subcategories"] : ["general"],
     );
@@ -28,12 +30,12 @@ export function InventoryForm({}) {
                     <ProductInformationSection />
                     {productId < 0 || (
                         <>
-                            <InventorySuppliersSection />
                             <ProductSubCategorySection />
                             <CategorySubComponentsSection />
+                            {isComponent || <InventorySuppliersSection />}
                         </>
                     )}
-                    <ProductVariantsSection />
+                    {isComponent || <ProductVariantsSection />}
                 </ProductProvider>
             </Accordion>
         </Form>

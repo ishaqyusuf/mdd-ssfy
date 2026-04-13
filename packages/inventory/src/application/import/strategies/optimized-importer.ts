@@ -487,16 +487,22 @@ export class InventoryImportService {
           name: depComponent.name!,
           inventoryCategoryId: inventoryCategoryId!,
           id: inventoryId,
+          productKind: "component",
         } satisfies Prisma.InventoryCreateManyInput);
       }
 
       if (component) {
         const inventoryCategoryId = this.getCategoryId(stepData.step.uid);
+        const hasMeaningfulPrice = stepData.step.priceSystem.some(
+          (pricing) =>
+            pricing.stepProductUid === uid && Number(pricing.price || 0) > 0,
+        );
         this.#addCreateData("inventory", {
           uid,
           name: component.name!,
           inventoryCategoryId: inventoryCategoryId!,
           id: inventoryId,
+          productKind: hasMeaningfulPrice ? "inventory" : "component",
         } satisfies Prisma.InventoryCreateManyInput);
         this.#prepareInventorySubCategories(
           uid,

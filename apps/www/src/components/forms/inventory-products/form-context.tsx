@@ -16,6 +16,7 @@ export function FormContext({ children, data }: FormContextProps) {
             categoryId: null,
             description: "",
             name: "",
+            productKind: "inventory",
             status: "draft",
             stockMonitor: false,
         },
@@ -29,17 +30,19 @@ export function FormContext({ children, data }: FormContextProps) {
     const form = useZodForm(inventoryFormSchema, {
         defaultValues,
     });
-    const { mode } = useInventoryParams();
+    const { mode, defaultValues: paramDefaultValues } = useInventoryParams();
     useEffect(() => {
         if (data) {
             data.product.status = data.product.status || "draft";
             if (!data.product.description) data.product.description = "";
         }
         form.reset({
+            ...defaultValues,
+            ...(paramDefaultValues || {}),
             ...(data ?? defaultValues),
             mode,
         });
-    }, [data, mode]);
+    }, [data, mode, paramDefaultValues]);
 
     return <FormProvider {...form}>{children}</FormProvider>;
 }

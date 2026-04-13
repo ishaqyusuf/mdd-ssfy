@@ -153,6 +153,9 @@ function ProductCell({ item: product }: { item: Item }) {
                     <div className="text-sm text-gray-500">
                         {product.category}
                     </div>
+                    <Badge variant="outline" className="capitalize">
+                        {product.productKind}
+                    </Badge>
                     {!product.stockStatus || (
                         <Badge
                             className="whitespace-nowrap"
@@ -203,4 +206,3 @@ function ItemCard({ item }: ItemProps) {
         </div>
     );
 }
-

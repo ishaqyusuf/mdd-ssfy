@@ -16,6 +16,7 @@ export const { Provider: ProductProvider, useContext: useProduct } =
         const trpc = useTRPC();
         const categoryId = form.watch("product.categoryId");
         const inventoryId = form.watch("product.id");
+        const productKind = form.watch("product.productKind");
         const primaryStoreFront = form.watch("product.primaryStoreFront");
 
         const {
@@ -55,6 +56,7 @@ export const { Provider: ProductProvider, useContext: useProduct } =
             stockMonitor,
             inventoryId,
             categoryId,
+            productKind,
             isPriceEnabled,
             status,
             subComponentsArray,
@@ -182,4 +184,3 @@ export const { Provider: VariantProvider, useContext: useVariant } =
             data,
         };
     });
-

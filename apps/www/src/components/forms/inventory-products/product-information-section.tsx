@@ -22,6 +22,7 @@ import { Badge } from "@gnd/ui/badge";
 import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
 import { useEffect } from "react";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
+import { INVENTORY_PRODUCT_KINDS } from "@gnd/inventory/schema";
 
 export function ProductInformationSection({}) {
     const form = useInventoryForm();
@@ -41,11 +42,13 @@ export function ProductInformationSection({}) {
     const {
         stockMonitor,
         status,
+        productKind,
         primaryStoreFront,
         isPriceEnabled,
         categoryId,
         inventoryId,
     } = useProduct();
+    const isComponent = productKind === "component";
     const category = categoryList?.find((c) => c.id === categoryId);
     return (
         <AccordionItem value="general">
@@ -89,6 +92,20 @@ export function ProductInformationSection({}) {
                             disabled: !!inventoryId,
                         }}
                     />
+                    <FormCombobox
+                        label="Product Type"
+                        control={form.control}
+                        name="product.productKind"
+                        comboProps={{
+                            items: INVENTORY_PRODUCT_KINDS.map((kind) => ({
+                                label:
+                                    kind === "inventory"
+                                        ? "Inventory"
+                                        : "Component",
+                                value: kind,
+                            })),
+                        }}
+                    />
                     <FormInput
                         className="col-span-2"
                         placeholder="Enter product description"
@@ -108,44 +125,55 @@ export function ProductInformationSection({}) {
                             }}
                         />
                     </div>
-                    <div className="">
+                    {isComponent ? (
                         <div className="grid gap-2">
-                            <Label>Stock Monitoring</Label>
-                            <FormCheckbox
-                                switchInput
-                                label={
-                                    <div
-                                        className={cn(
-                                            "flex items-center gap-2",
-                                            stockMonitor
-                                                ? "text-green-500"
-                                                : "text-muted-foreground",
-                                        )}
-                                    >
-                                        {stockMonitor ? (
-                                            <>
-                                                <Icons.Eye className="size-4" />
-                                                <span>Stock Monitored</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Icons.EyeOff className="size-4" />
-                                                <span>Stock Unmonitored</span>
-                                            </>
-                                        )}
-                                    </div>
-                                }
-                                control={form.control}
-                                name="product.stockMonitor"
-                            />
+                            <Label>Component Mode</Label>
                             <FormDescription>
-                                {stockMonitor
-                                    ? `Stock levels will be tracked and displayed`
-                                    : `Stock levels will not be tracked or displayed`}
+                                Components are configuration items. Variant,
+                                pricing, and stock management stay hidden in
+                                this mode.
                             </FormDescription>
                         </div>
-                    </div>
-                    {category?.title !== "Item Type" || (
+                    ) : (
+                        <div className="">
+                            <div className="grid gap-2">
+                                <Label>Stock Monitoring</Label>
+                                <FormCheckbox
+                                    switchInput
+                                    label={
+                                        <div
+                                            className={cn(
+                                                "flex items-center gap-2",
+                                                stockMonitor
+                                                    ? "text-green-500"
+                                                    : "text-muted-foreground",
+                                            )}
+                                        >
+                                            {stockMonitor ? (
+                                                <>
+                                                    <Icons.Eye className="size-4" />
+                                                    <span>Stock Monitored</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Icons.EyeOff className="size-4" />
+                                                    <span>Stock Unmonitored</span>
+                                                </>
+                                            )}
+                                        </div>
+                                    }
+                                    control={form.control}
+                                    name="product.stockMonitor"
+                                />
+                                <FormDescription>
+                                    {stockMonitor
+                                        ? `Stock levels will be tracked and displayed`
+                                        : `Stock levels will not be tracked or displayed`}
+                                </FormDescription>
+                            </div>
+                        </div>
+                    )}
+                    {isComponent || category?.title !== "Item Type" || (
                         <>
                             <Separator className="col-span-2" />
                             <div className="">
@@ -199,4 +227,3 @@ export function ProductInformationSection({}) {
         </AccordionItem>
     );
 }
-
