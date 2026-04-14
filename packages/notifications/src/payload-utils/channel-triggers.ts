@@ -318,6 +318,18 @@ export function createNotificationChannelTriggers(
 				recipients: resolvedRecipients,
 			});
 		},
+		inventoryInbound(input: Input<"inventory_inbound">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("inventory_inbound", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
 		salesItemInfo(input: Input<"sales_item_info">) {
 			const { recipients, author, ...payload } = input;
 			const resolvedRecipients = resolveRecipients(

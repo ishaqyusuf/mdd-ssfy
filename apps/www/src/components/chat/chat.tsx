@@ -1,5 +1,7 @@
 "use client";
 
+import { FileUpload } from "@/components/file-upload";
+import { env } from "@/env.mjs";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
@@ -12,12 +14,15 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@gnd/ui/tooltip";
+import type { BlobPath } from "@gnd/utils/constants";
 import {
 	type ChannelName,
 	getChannelsOptionList,
 	isChannelName,
 } from "@notifications/channels";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { type PutBlobResult, del } from "@vercel/blob";
+import Image from "next/image";
 import {
 	type FormEvent,
 	type ReactNode,
@@ -65,6 +70,7 @@ type ChatState = {
 	message: string;
 	meta: Record<string, string>;
 	payload: Record<string, string>;
+	attachments: string[];
 	errors: Record<string, string>;
 	isSubmitting: boolean;
 	noteColor: string;
@@ -81,12 +87,20 @@ type ChatContextValue = {
 	setNoteColor: (value: string) => void;
 	submit: () => Promise<void>;
 	channelOptions: Array<{ label: string; value: string; description: string }>;
+	attachmentName?: string;
+	attachmentType?: "image";
+	multiAttachmentSupport?: boolean;
+	attachmentChannels?: readonly string[];
+	attachmentPath?: BlobPath;
+	appendAttachments: (pathnames: string[]) => void;
+	removeAttachment: (pathname: string) => Promise<void>;
 };
 
 export type ChatSubmitData = {
 	channel: string;
 	message?: string;
 	payload: Record<string, unknown>;
+	attachments: string[];
 	meta: Record<string, string>;
 	noteColor: string;
 	contacts: InboxContactGroup[];
@@ -112,6 +126,11 @@ export type ChatProps = {
 	transformSubmitData?: TransformSubmitData;
 	onSubmitData?: (data: ChatSubmitData) => void | Promise<void>;
 	onSent?: () => void;
+	attachmentName?: string;
+	attachmentType?: "image";
+	multiAttachmentSupport?: boolean;
+	attachmentChannels?: readonly string[];
+	attachmentPath?: BlobPath;
 };
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -209,6 +228,16 @@ function resolveDefaultPayloadValues(
 			channel
 		] || {}
 	);
+}
+
+function isAttachmentChannelEnabled(
+	channel: string,
+	attachmentName?: string,
+	attachmentChannels?: readonly string[],
+) {
+	if (!attachmentName) return false;
+	if (!attachmentChannels?.length) return true;
+	return attachmentChannels.includes(channel);
 }
 
 export function useChat() {
@@ -494,6 +523,28 @@ export function ChatContent({
 	placeholder = "Write a note...",
 }: ChatContentProps) {
 	const { state, setMessage, submit } = useChat();
+	const context = useContext(ChatContext);
+
+	if (!context) {
+		throw new Error("useChat must be used within <Chat>");
+	}
+
+	const {
+		attachmentName,
+		attachmentType = "image",
+		multiAttachmentSupport = false,
+		attachmentPath = "inbound-documents",
+		attachmentChannels,
+		appendAttachments,
+		removeAttachment,
+	} = context;
+	const attachmentsEnabled = isAttachmentChannelEnabled(
+		state.channel,
+		attachmentName,
+		attachmentChannels,
+	);
+	const canAddMoreAttachments =
+		multiAttachmentSupport || state.attachments.length === 0;
 
 	return (
 		<div className={cn("space-y-1 px-2 py-1", className)}>
@@ -514,6 +565,75 @@ export function ChatContent({
 			) : null}
 			{state.errors.submit ? (
 				<p className="text-xs text-destructive">{state.errors.submit}</p>
+			) : null}
+			{attachmentsEnabled ? (
+				<div className="space-y-2 pt-2">
+					{state.attachments.length ? (
+						<div className="flex flex-wrap gap-2">
+							{state.attachments.map((pathname) => (
+								<div
+									key={pathname}
+									className="relative overflow-hidden rounded-lg border bg-muted/20"
+								>
+									{attachmentType === "image" ? (
+										<Image
+											src={`${env.NEXT_PUBLIC_VERCEL_BLOB_URL}/${pathname}`}
+											alt={pathname}
+											width={72}
+											height={72}
+											className="h-[72px] w-[72px] object-cover"
+										/>
+									) : null}
+									<Button
+										type="button"
+										variant="secondary"
+										size="icon"
+										className="absolute right-1 top-1 h-6 w-6 rounded-full"
+										onClick={() => void removeAttachment(pathname)}
+									>
+										<Icons.X className="size-3.5" />
+										<span className="sr-only">Remove attachment</span>
+									</Button>
+								</div>
+							))}
+						</div>
+					) : null}
+					{canAddMoreAttachments ? (
+						<FileUpload
+							path={attachmentPath}
+							maxFiles={multiAttachmentSupport ? 25 : 1}
+							accept={
+								attachmentType === "image"
+									? {
+											"image/*": [
+												".jpg",
+												".jpeg",
+												".png",
+												".webp",
+												".heic",
+												".heif",
+												".avif",
+											],
+										}
+									: undefined
+							}
+							onUploadComplete={(results: PutBlobResult[]) => {
+								appendAttachments(results.map((result) => result.pathname));
+							}}
+						>
+							<Button
+								type="button"
+								variant="outline"
+								className="h-8 rounded-md border-dashed px-3 text-xs"
+							>
+								<Icons.Camera className="mr-2 size-3.5" />
+								{state.attachments.length
+									? "Add another image"
+									: "Attach image"}
+							</Button>
+						</FileUpload>
+					) : null}
+				</div>
 			) : null}
 		</div>
 	);
@@ -629,6 +749,11 @@ function ChatRoot({
 	transformSubmitData,
 	onSubmitData,
 	onSent,
+	attachmentName,
+	attachmentType,
+	multiAttachmentSupport,
+	attachmentChannels,
+	attachmentPath,
 }: ChatProps) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -653,6 +778,7 @@ function ChatRoot({
 			defaultPayloads,
 			resolvedDefaultChannel,
 		),
+		attachments: [],
 		errors: {},
 		isSubmitting: false,
 		noteColor: "#000000",
@@ -753,8 +879,18 @@ function ChatRoot({
 				state.payload,
 				transformed,
 			);
+			const payloadWithAttachments = {
+				...finalPayload,
+				...(attachmentName && state.attachments.length
+					? {
+							[attachmentName]: multiAttachmentSupport
+								? state.attachments
+								: [state.attachments[0]],
+						}
+					: {}),
+			};
 			const trimmedMessage = state.message.trim();
-			const hasPayload = Object.keys(finalPayload).length > 0;
+			const hasPayload = Object.keys(payloadWithAttachments).length > 0;
 
 			if (!trimmedMessage && !hasPayload) {
 				setState((prev) => ({
@@ -771,7 +907,8 @@ function ChatRoot({
 			const submitData: ChatSubmitData = {
 				channel: state.channel,
 				message: trimmedMessage || undefined,
-				payload: finalPayload,
+				payload: payloadWithAttachments,
+				attachments: state.attachments,
 				meta: state.meta,
 				noteColor: state.noteColor,
 				contacts: normalizedContacts,
@@ -798,6 +935,7 @@ function ChatRoot({
 				message: "",
 				payload: {},
 				meta: {},
+				attachments: [],
 			}));
 			onSent?.();
 			toast.success("Message sent");
@@ -817,9 +955,11 @@ function ChatRoot({
 			setState((prev) => ({ ...prev, isSubmitting: false }));
 		}
 	}, [
+		attachmentName,
 		fallbackMutation,
 		messageRequired,
 		metaFieldConfigs,
+		multiAttachmentSupport,
 		normalizedContacts,
 		onSent,
 		onSubmitData,
@@ -835,10 +975,17 @@ function ChatRoot({
 				...prev,
 				channel: value,
 				payload: resolveDefaultPayloadValues(defaultPayloads, value),
+				attachments: isAttachmentChannelEnabled(
+					value,
+					attachmentName,
+					attachmentChannels,
+				)
+					? prev.attachments
+					: [],
 				errors: { ...prev.errors, channel: "" },
 			}));
 		},
-		[defaultPayloads],
+		[attachmentChannels, attachmentName, defaultPayloads],
 	);
 
 	const setMessage = useCallback((value: string) => {
@@ -901,6 +1048,30 @@ function ChatRoot({
 		setState((prev) => ({ ...prev, noteColor: value }));
 	}, []);
 
+	const appendAttachments = useCallback(
+		(pathnames: string[]) => {
+			if (!pathnames.length) return;
+			setState((prev) => ({
+				...prev,
+				attachments: multiAttachmentSupport
+					? [...prev.attachments, ...pathnames]
+					: [pathnames[0]],
+			}));
+		},
+		[multiAttachmentSupport],
+	);
+
+	const removeAttachment = useCallback(async (pathname: string) => {
+		try {
+			await del(pathname);
+		} catch {}
+
+		setState((prev) => ({
+			...prev,
+			attachments: prev.attachments.filter((value) => value !== pathname),
+		}));
+	}, []);
+
 	const contextValue = useMemo<ChatContextValue>(
 		() => ({
 			state,
@@ -913,9 +1084,23 @@ function ChatRoot({
 			setNoteColor,
 			submit,
 			channelOptions,
+			attachmentName,
+			attachmentType,
+			multiAttachmentSupport,
+			attachmentChannels,
+			attachmentPath,
+			appendAttachments,
+			removeAttachment,
 		}),
 		[
+			appendAttachments,
+			attachmentChannels,
+			attachmentName,
+			attachmentPath,
+			attachmentType,
 			channelOptions,
+			multiAttachmentSupport,
+			removeAttachment,
 			setChannel,
 			setMessage,
 			setMetaFieldConfig,

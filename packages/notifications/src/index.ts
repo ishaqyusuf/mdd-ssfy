@@ -19,6 +19,7 @@ import { dispatchPackingDelay } from "./types/dispatch-packing-delay";
 import { communityUnitProductionBatchUpdated } from "./types/community-unit-production-batch-updated";
 import { communityUnitProductionCompleted } from "./types/community-unit-production-completed";
 import { communityDocuments } from "./types/community-documents";
+import { inventoryInbound } from "./types/inventory-inbound";
 import { inventoryInboundActivity } from "./types/inventory-inbound-activity";
 import { communityUnitProductionStarted } from "./types/community-unit-production-started";
 import { communityUnitProductionStopped } from "./types/community-unit-production-stopped";
@@ -91,6 +92,7 @@ const handlers = {
 	job_task_configured: jobTaskConfigured,
 	employee_document_review: employeeDocumentReview,
 	community_documents: communityDocuments,
+	inventory_inbound: inventoryInbound,
 	inventory_inbound_activity: inventoryInboundActivity,
 	community_unit_production_started: communityUnitProductionStarted,
 	community_unit_production_stopped: communityUnitProductionStopped,

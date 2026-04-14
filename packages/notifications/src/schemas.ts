@@ -539,6 +539,7 @@ export type NotificationTypes = {
 	job_task_configured: JobTaskConfiguredInput;
 	employee_document_review: EmployeeDocumentReviewInput;
 	community_documents: CommunityDocumentsInput;
+	inventory_inbound: InventoryInboundInput;
 	inventory_inbound_activity: InventoryInboundActivityInput;
 	community_unit_production_started: CommunityUnitProductionStartedInput;
 	community_unit_production_stopped: CommunityUnitProductionStoppedInput;
@@ -969,6 +970,21 @@ export const salesInfoTags = actityTagsSchema.extend({
 	salesNo: z.string(),
 });
 export type SalesInfoTags = z.infer<typeof salesInfoTags>;
+export const inventoryInboundSchema = z.object({
+	headline: z.string().optional(),
+	note: z.string().optional(),
+	color: z.string().optional(),
+	salesId: z.number(),
+	salesNo: z.string(),
+	attachment: z.array(z.string()).optional(),
+});
+export type InventoryInboundInput = z.infer<typeof inventoryInboundSchema>;
+export const inventoryInboundTags = actityTagsSchema.extend({
+	salesId: z.number(),
+	salesNo: z.string(),
+	attachment: z.array(z.string()).optional(),
+});
+export type InventoryInboundTags = z.infer<typeof inventoryInboundTags>;
 export const salesItemInfoSchema = z.object({
 	headline: z.string(),
 	note: z.string().optional(),
@@ -1224,6 +1240,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_reminder_schedule_admin_notification"),
 		payload: salesReminderScheduleAdminNotificationSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("inventory_inbound"),
+		payload: inventoryInboundSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_info"),

@@ -14,6 +14,7 @@ export const channelNames = [
 	"job_task_configured",
 	"employee_document_review",
 	"community_documents",
+	"inventory_inbound",
 	"inventory_inbound_activity",
 	"community_unit_production_started",
 	"community_unit_production_stopped",
@@ -116,6 +117,13 @@ export const channelsConfig: Partial<{
 			"Send when documents are uploaded to a community project overview.",
 		priority: 5,
 		category: "Community",
+	},
+	inventory_inbound: {
+		name: "Inventory Inbound",
+		description:
+			"Send when a user adds an inventory inbound note or receipt update.",
+		priority: 5,
+		category: "Inventory",
 	},
 	inventory_inbound_activity: {
 		name: "Inventory Inbound Activity",

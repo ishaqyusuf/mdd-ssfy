@@ -43,6 +43,35 @@ export function NotificationChat() {
 }
 ```
 
+## Attachment Support
+
+```tsx
+import { Chat } from "@/components/chat";
+
+export function InboundChat() {
+  return (
+    <Chat
+      channel="inventory_inbound"
+      payload={{ salesId: 12, salesNo: "SO-12" }}
+      attachmentName="attachment"
+      attachmentType="image"
+      multiAttachmentSupport
+      attachmentChannels={["inventory_inbound"]}
+    >
+      <Chat.Header>
+        <Chat.ChannelsOption names={["inventory_inbound", "sales_info"]} />
+      </Chat.Header>
+      <Chat.Content placeholder="Add inbound context..." />
+      <Chat.Footer>
+        <Chat.ColorPicker />
+        <div className="flex-1" />
+        <Chat.SendButton />
+      </Chat.Footer>
+    </Chat>
+  );
+}
+```
+
 ## Standalone Activity History
 
 ```tsx

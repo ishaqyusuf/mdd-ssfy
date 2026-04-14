@@ -2,6 +2,23 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-04-14
+
+- Added a manual `inventory_inbound` sales-overview chat channel with image attachment support in the shared web chat library.
+  - added `inventory_inbound` to `packages/notifications/src/channels.ts` and introduced a dedicated handler in `packages/notifications/src/types/inventory-inbound.ts`
+  - extended the shared web `Chat` component in `apps/www/src/components/chat/chat.tsx` with attachment props/state:
+    - `attachmentName`
+    - `attachmentType`
+    - `multiAttachmentSupport`
+    - optional channel/path gating for attachment-enabled flows
+  - reused the shared blob uploader in `apps/www/src/components/file-upload.tsx` so chat flows can enforce image-only uploads while preserving the existing default uploader behavior elsewhere
+  - updated `apps/www/src/components/chat/chats/sales-overview-inbox.tsx` so sales overview chat now offers both `sales_info` and `inventory_inbound`, with image attachments enabled only for the inbound channel
+  - updated `apps/www/src/components/chat/activity-history.tsx` so activity timeline rows render image attachments stored on the `attachment` tag
+  - documented the attachment-enabled chat usage in `apps/www/src/components/chat/README.md`
+  - validation note:
+    - `bunx biome check` passes for the touched chat/notification files
+    - workspace `@gnd/www` and `@gnd/notifications` typechecks still fail due unrelated pre-existing repo errors outside this slice
+
 ## 2026-04-13
 
 - Added category-level stock mode so inventory behavior can be defaulted from the category instead of only per-product.
