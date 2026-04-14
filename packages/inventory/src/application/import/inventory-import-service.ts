@@ -7,6 +7,7 @@ import { inventoryImportRunSchema, type InventoryImportRun } from "../../schema"
 import { InventoryImportService as HandcraftedInventoryImportService } from "./strategies/handcrafted-importer";
 import { InventoryImportService as OptimizedInventoryImportService } from "./strategies/optimized-importer";
 import { resolveActiveInventoryImportScope } from "./resolve-active-inventory-import-scope";
+import { syncInventorySuppliersFromDyke } from "../suppliers/suppliers";
 
 type ImporterInstance = {
   importComponents(stepId: number): Promise<void>;
@@ -127,6 +128,8 @@ export async function runInventoryImport(
       };
     }
   }
+
+  await syncInventorySuppliersFromDyke(db);
 
   if (payload.compare) {
     const handcrafted = createImporter(db, "handcrafted");

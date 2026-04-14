@@ -6,11 +6,15 @@ import {
     TableHeader,
     TableRow,
 } from "@gnd/ui/table";
-import { useProductVariants, useVariant, VariantProvider } from "./context";
+import {
+    useProduct,
+    useProductVariants,
+    useVariant,
+    VariantProvider,
+} from "./context";
 import { AnimatedNumber } from "@/components/animated-number";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { capitalize, throttle } from "lodash";
-import { useMutation } from "@gnd/ui/tanstack";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { Icons } from "@gnd/ui/icons";
 import { VariantPricingTab } from "./variant-pricing-tab";
@@ -26,10 +30,13 @@ import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
 
 export function ProductVariants() {
     const ctx = useProductVariants();
+    const product = useProduct();
     const container = useRef(null);
     const containerRef = useRef(null);
+    const loadMoreRef = useRef<HTMLDivElement | null>(null);
     // const { ref: inViewRef, inView } = useInView();
     const [scrolledPast, setScrolledPast] = useState(false);
+    const [visibleCount, setVisibleCount] = useState(10);
     useEffect(() => {
         const handleScroll = throttle(() => {
             if (containerRef?.current) {
@@ -37,20 +44,48 @@ export function ProductVariants() {
                     containerRef.current as Element
                 ).getBoundingClientRect().top;
                 setScrolledPast(top < 45); // when table header goes above 45px, float it
-                console.log(top);
             }
         }, 100);
         window.addEventListener("scroll", handleScroll);
         handleScroll(); // initial check
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
+    useEffect(() => {
+        setVisibleCount(10);
+    }, [ctx.filteredData]);
+    useEffect(() => {
+        if (!loadMoreRef.current) return;
+        if (ctx.filteredData.length <= visibleCount) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0]?.isIntersecting) {
+                    setVisibleCount((count) =>
+                        Math.min(count + 10, ctx.filteredData.length),
+                    );
+                }
+            },
+            {
+                rootMargin: "160px",
+            },
+        );
+
+        observer.observe(loadMoreRef.current);
+        return () => observer.disconnect();
+    }, [ctx.filteredData.length, visibleCount]);
+    const visibleRows = useMemo(
+        () => ctx.filteredData.slice(0, visibleCount),
+        [ctx.filteredData, visibleCount],
+    );
     const VariantHeader = (
         <TableHeader>
             <TableRow>
                 <TableHead>Variant</TableHead>
                 <TableHead>Cost</TableHead>
-                <TableHead>Stock</TableHead>
-                <TableHead>Low Stock</TableHead>
+                {!product.stockMonitor ? null : <TableHead>Stock</TableHead>}
+                {!product.stockMonitor ? null : (
+                    <TableHead>Low Stock</TableHead>
+                )}
                 <TableHead>Status</TableHead>
                 <TableHead></TableHead>
             </TableRow>
@@ -65,6 +100,11 @@ export function ProductVariants() {
                 <EmptyState />
             ) : (
                 <>
+                    <div className="pb-3 text-sm text-muted-foreground">
+                        Showing 1-
+                        {Math.min(visibleRows.length, ctx.filteredData.length)}{" "}
+                        of {ctx.filteredData.length} variants
+                    </div>
                     {scrolledPast && (
                         <div
                             style={{
@@ -78,9 +118,9 @@ export function ProductVariants() {
                     <Table ref={containerRef}>
                         {VariantHeader}
                         <TableBody>
-                            {ctx?.filteredData?.map((fd, i) => (
+                            {visibleRows.map((fd) => (
                                 <VariantProvider
-                                    key={i}
+                                    key={fd.uid}
                                     args={[
                                         {
                                             data: fd,
@@ -92,6 +132,22 @@ export function ProductVariants() {
                             ))}
                         </TableBody>
                     </Table>
+                    {ctx.filteredData.length > visibleRows.length ? (
+                        <div
+                            ref={loadMoreRef}
+                            className="flex justify-center pt-4"
+                        >
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() =>
+                                    setVisibleCount((count) => count + 10)
+                                }
+                            >
+                                Show More Variants
+                            </Button>
+                        </div>
+                    ) : null}
                 </>
             )}
         </div>
@@ -100,8 +156,9 @@ export function ProductVariants() {
 
 function Row({}) {
     const { data, opened } = useVariant();
-    const { setParams, editVariantTab, editVariantUid } = useInventoryParams();
+    const { setParams } = useInventoryParams();
     const invTrpc = useInventoryTrpc();
+    const product = useProduct();
     return (
         <>
             <TableRow
@@ -121,7 +178,9 @@ function Row({}) {
                 }}
                 className={cn(!opened || "bg-accent hover:bg-accent")}
             >
-                <TableCell>{data?.title || "Default"}</TableCell>
+                <TableCell className="uppercase">
+                    {data?.title || "DEFAULT"}
+                </TableCell>
                 <TableCell>
                     {data?.price ? (
                         <AnimatedNumber value={data?.price} currency="USD" />
@@ -130,20 +189,24 @@ function Row({}) {
                     )}
                 </TableCell>
 
-                <TableCell>
-                    {data?.stockCount ? (
-                        <AnimatedNumber value={data?.stockCount} />
-                    ) : (
-                        "-"
-                    )}
-                </TableCell>
-                <TableCell>
-                    {data?.lowStock ? (
-                        <AnimatedNumber value={data?.lowStock} />
-                    ) : (
-                        "-"
-                    )}
-                </TableCell>
+                {!product.stockMonitor ? null : (
+                    <TableCell>
+                        {data?.stockCount ? (
+                            <AnimatedNumber value={data?.stockCount} />
+                        ) : (
+                            "-"
+                        )}
+                    </TableCell>
+                )}
+                {!product.stockMonitor ? null : (
+                    <TableCell>
+                        {data?.lowStock ? (
+                            <AnimatedNumber value={data?.lowStock} />
+                        ) : (
+                            "-"
+                        )}
+                    </TableCell>
+                )}
                 <TableCell onClick={(e) => e.stopPropagation()}>
                     <Menu
                         Trigger={
@@ -188,7 +251,10 @@ function Row({}) {
             </TableRow>
             {!opened || (
                 <TableRow className="hover:bg-transparent border-2 border-t-0s border-b-3s border-muted-foreground bg-muted">
-                    <TableCell colSpan={6} className="bg-white">
+                    <TableCell
+                        colSpan={product.stockMonitor ? 6 : 4}
+                        className="bg-white"
+                    >
                         <Tabs defaultValue="price">
                             <TabsList>
                                 <TabsTrigger value="price">
@@ -208,9 +274,6 @@ function Row({}) {
                                     Stock Overview
                                 </TabsTrigger>
                             </TabsList>
-                            <TabsContent value="price">
-                                <VariantPricingTab />
-                            </TabsContent>
                             <TabsContent value="price">
                                 <VariantPricingTab />
                             </TabsContent>

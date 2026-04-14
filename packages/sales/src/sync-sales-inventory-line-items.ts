@@ -597,8 +597,20 @@ async function syncComponentFulfillment(
 ): Promise<ComponentDemandState> {
   const qtyRequired = Math.max(0, input.qtyRequired);
 
-  const [stocks, existingAllocations, existingInboundDemands] =
+  const [variant, stocks, existingAllocations, existingInboundDemands] =
     await Promise.all([
+      db.inventoryVariant.findUnique({
+        where: {
+          id: input.inventoryVariantId,
+        },
+        select: {
+          inventory: {
+            select: {
+              stockMode: true,
+            },
+          },
+        },
+      }),
       db.inventoryStock.findMany({
         where: {
           inventoryVariantId: input.inventoryVariantId,
@@ -636,8 +648,46 @@ async function syncComponentFulfillment(
       }),
     ]);
 
+  const isMonitored = variant?.inventory?.stockMode === "monitored";
+
+  if (!isMonitored) {
+    if (existingAllocations.length) {
+      await db.stockAllocation.updateMany({
+        where: {
+          id: {
+            in: existingAllocations.map((allocation) => allocation.id),
+          },
+        },
+        data: {
+          status: "released",
+          deletedAt: new Date(),
+        },
+      });
+    }
+
+    if (existingInboundDemands.length) {
+      await db.inboundDemand.updateMany({
+        where: {
+          id: {
+            in: existingInboundDemands.map((demand) => demand.id),
+          },
+        },
+        data: {
+          status: "cancelled",
+          deletedAt: new Date(),
+        },
+      });
+    }
+
+    return {
+      qtyAllocated: 0,
+      qtyInbound: 0,
+      qtyReceived: 0,
+      status: qtyRequired <= 0 ? "cancelled" : "pending",
+    };
+  }
+
   const activeReservedByStockId = new Map<number, number>();
-  const activeStatuses = new Set(["reserved", "picked"]);
 
   const globalAllocations = await db.stockAllocation.findMany({
     where: {

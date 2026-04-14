@@ -9,7 +9,7 @@ import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import FormInput from "@/components/common/controls/form-input";
 import { useTRPC } from "@/trpc/client";
-import { useMutation } from "@gnd/ui/tanstack";
+import { useMutation, useQuery } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 
 export function InventorySuppliersSection() {
@@ -20,6 +20,9 @@ export function InventorySuppliersSection() {
         name: "suppliers",
         keyName: "_id",
     });
+    const supplierReviewQuery = useQuery(
+        trpc.inventories.inventorySupplierDykeReview.queryOptions(),
+    );
 
     const syncSuppliersMutation = useMutation(
         trpc.inventories.syncInventorySuppliersFromDyke.mutationOptions({
@@ -44,6 +47,7 @@ export function InventorySuppliersSection() {
                     title: "Suppliers synced from Dyke",
                     variant: "success",
                 });
+                supplierReviewQuery.refetch();
             },
         }),
     );
@@ -140,6 +144,45 @@ export function InventorySuppliersSection() {
                             or sync the legacy door supplier list from Dyke.
                         </div>
                     )}
+
+                    {supplierReviewQuery.data?.length ? (
+                        <div className="space-y-3">
+                            <div className="text-sm font-medium">
+                                Dyke Supplier Matching
+                            </div>
+                            <div className="rounded-lg border">
+                                <div className="grid grid-cols-4 gap-3 border-b bg-muted/40 px-4 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                                    <span>Dyke Supplier</span>
+                                    <span>Dyke UID</span>
+                                    <span>Matched Inventory Supplier</span>
+                                    <span>Status</span>
+                                </div>
+                                <div className="divide-y">
+                                    {supplierReviewQuery.data.map((row) => (
+                                        <div
+                                            key={`${row.dykeSupplierId}`}
+                                            className="grid grid-cols-4 gap-3 px-4 py-3 text-sm"
+                                        >
+                                            <span>{row.dykeName || "-"}</span>
+                                            <span className="font-mono text-xs text-muted-foreground">
+                                                {row.dykeUid || "-"}
+                                            </span>
+                                            <span>{row.supplierName || "-"}</span>
+                                            <span
+                                                className={
+                                                    row.matched
+                                                        ? "text-emerald-600"
+                                                        : "text-amber-600"
+                                                }
+                                            >
+                                                {row.matched ? "Matched" : "Needs UID match"}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    ) : null}
                 </div>
             </AccordionContent>
         </AccordionItem>

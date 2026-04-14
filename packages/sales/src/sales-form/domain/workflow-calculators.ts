@@ -1,7 +1,4 @@
-import {
-  buildLegacyDoorSupplierPricingKeys,
-  resolveSupplierVariantPricing,
-} from "@gnd/inventory/suppliers";
+import { resolveSupplierVariantPricing } from "@gnd/inventory/suppliers";
 import { normalizeSalesFormTitle } from "./step-engine";
 
 function firstFiniteNumber(...values: Array<number | null | undefined>) {
@@ -135,6 +132,7 @@ export function resolvePricingBucketUnitPrice({
   const source = pricing || {};
   const supplierVariant = resolveSupplierVariantPricing({
     supplierUid,
+    size,
     supplierVariants,
   });
   if (supplierVariant) {
@@ -146,19 +144,8 @@ export function resolvePricingBucketUnitPrice({
     );
     return supplierUnit == null ? 0 : supplierUnit;
   }
-
-  const candidateKeys = supplierUid
-    ? buildLegacyDoorSupplierPricingKeys({
-        supplierUid,
-        size,
-      })
-    : [];
-  const bucket =
-    candidateKeys
-      .map((key) => source[key])
-      .find((value) => value != null) ||
-    source[size] ||
-    null;
+  if (supplierUid) return 0;
+  const bucket = source[size] || null;
   const unit = firstFiniteNumber(
     bucket?.salesPrice,
     bucket?.price,
@@ -191,6 +178,7 @@ export function resolveDoorTierPricing({
   const source = pricing || {};
   const supplierVariant = resolveSupplierVariantPricing({
     supplierUid,
+    size,
     supplierVariants,
   });
   if (supplierVariant) {
@@ -220,16 +208,14 @@ export function resolveDoorTierPricing({
       salesPrice: salesPrice ?? 0,
     };
   }
-
-  const supplierRaw = supplierUid
-    ? buildLegacyDoorSupplierPricingKeys({
-        supplierUid,
-        size,
-      })
-        .map((key) => source[key])
-        .find((value) => value != null) ?? null
-    : null;
-  const raw = supplierUid ? supplierRaw : (source[size] ?? null);
+  if (supplierUid) {
+    return {
+      hasPrice: false,
+      basePrice: 0,
+      salesPrice: 0,
+    };
+  }
+  const raw = source[size] ?? null;
   const bucket = typeof raw === "number" ? { price: raw } : raw;
   const hasPrice =
     raw != null &&

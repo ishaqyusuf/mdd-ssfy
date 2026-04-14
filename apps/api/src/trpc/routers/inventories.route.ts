@@ -58,6 +58,7 @@ import {
   receiveInboundShipment,
   getDykeInventoryDriftReport,
   inventorySuppliers,
+  inventorySupplierDykeReview,
   inventoryProductKindReview,
   backfillInventoryImportSources,
   backfillInventoryProductKinds,
@@ -421,6 +422,9 @@ export const inventoriesRouter = createTRPCRouter({
     .query(async (props) => {
       return inventorySuppliers(props.ctx.db, props.input);
     }),
+  inventorySupplierDykeReview: protectedProcedure.query(async (props) => {
+    return inventorySupplierDykeReview(props.ctx.db);
+  }),
   syncInventorySuppliersFromDyke: protectedProcedure
     .mutation(async (props) => {
       return syncInventorySuppliersFromDyke(props.ctx.db);

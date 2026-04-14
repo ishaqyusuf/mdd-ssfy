@@ -4,6 +4,37 @@
 
 ## 2026-04-13
 
+- Constrained inventory form variant filters to the inventory's configured subcategory values instead of exposing every category value.
+  - updated `packages/inventory/src/inventory.ts` so `inventoryVariantStockForm(...)` now loads the inventory's active `inventoryItemSubCategories` and trims category attribute values to the explicitly configured inventory IDs for matching attribute labels before generating variant combinations and filter params
+  - tightened `apps/www/src/components/forms/inventory-products/context.tsx` so variant attribute filter matching now uses exact equality instead of substring matching
+  - this means if an inventory configures a subcategory such as `Item Type` with only `INTERIOR PRE-HUNG` and `DOOR SLABS ONLY`, the form filter for `Item Type` now only offers those values
+  - validation note:
+    - `bun run --filter @gnd/inventory typecheck` passes
+
+- Reused door size variation rules from Dyke step meta inside the inventory form so width options and visible variants narrow to the same relevant combinations used in sales.
+  - updated `packages/inventory/src/inventory.ts` so `inventoryVariantStockForm(...)` now loads the source Dyke step meta from `Inventory.sourceStepUid`, returns `doorSizeVariation`, and preserves imported value-source metadata (`sourceStepUid`, `sourceComponentUid`) in filter options
+  - updated `apps/www/src/components/forms/inventory-products/context.tsx` so the inventory variant filters build a selected-step map from filter choices, compute allowed width values from `doorSizeVariation`, auto-clear invalid width selections when controlling filters change, and hide non-matching width variants/options from the inventory form
+  - this keeps door inventories aligned with the sales/storefront rule system instead of exposing impossible width combinations after import
+  - validation note:
+    - `bun run --filter @gnd/inventory typecheck` passes
+
+- Canonicalized Dyke door supplier pricing into inventory-native supplier records instead of relying on legacy pricing buckets.
+  - updated `packages/inventory/src/application/jobs/run-full-import.ts` and `packages/inventory/src/application/import/inventory-import-service.ts` so inventory import now auto-runs `syncInventorySuppliersFromDyke(...)` before importing categories/steps
+  - extended both inventory import strategies to parse supplier-specific Dyke pricing keys and upsert canonical `SupplierVariant` rows through shared helpers in `packages/inventory/src/application/suppliers/suppliers.ts`
+  - added size/pricing-key metadata to imported supplier-variant rows so supplier pricing can be matched more safely for door size selections
+  - removed supplier dep-key bucket fallback from the sales pricing resolver in `packages/sales/src/sales-form/domain/workflow-calculators.ts`; supplier-specific door/HPT pricing is now expected to come from `SupplierVariant`
+  - added `inventories.inventorySupplierDykeReview` and surfaced a Dyke supplier matching review panel in `apps/www/src/components/forms/inventory-products/inventory-suppliers-section.tsx` so UID/name mismatches are visible in the inventory UI
+  - validation note:
+    - `bun run --filter @gnd/inventory typecheck` passes
+    - `bun test packages/sales/src/sales-form/domain/workflow-calculators.test.ts` passes
+    - next practical verification is a browser/import rerun with real door data to confirm `SupplierVariant` rows are being populated and unmatched Dyke suppliers are correctly surfaced
+
+- Tightened sales-to-inventory fulfillment so only monitored inventory participates in stock allocation and inbound shortage generation.
+  - updated `packages/sales/src/sync-sales-inventory-line-items.ts` so `syncComponentFulfillment(...)` first checks the parent inventory `stockMode` through the variant
+  - if `stockMode !== "monitored"`, the sync now releases any existing `StockAllocation`, cancels any existing `InboundDemand`, and keeps the demand row out of the inbound workflow
+  - if `stockMode === "monitored"`, allocation and shortage behavior continues as before: allocate from stock first, then create `InboundDemand` for the shortage
+  - this aligns `/inventory/inbounds` with stock-tracked items only instead of all demand rows
+
 - Extended the inventory import pipeline to preserve Dyke custom components without polluting the default inventory workspace.
   - added import-source labeling on `Inventory` with `sourceStepUid`, `sourceComponentUid`, and `sourceCustom` in the DB and jobs Prisma schemas
   - updated both optimized and handcrafted importers to persist those source labels when creating imported inventory rows

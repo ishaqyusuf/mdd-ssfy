@@ -1,6 +1,10 @@
 import { Db, Prisma } from "@gnd/db";
 import { nextId, RenturnTypeAsync } from "@gnd/utils";
 import { StepComponentMeta, StepMeta } from "../../../types";
+import {
+  parseDykeSupplierPricingKey,
+  upsertImportedSupplierVariantPricing,
+} from "../../suppliers/suppliers";
 
 // ─── Table registry ───────────────────────────────────────────────────────────
 
@@ -80,6 +84,14 @@ export class InventoryImportService {
 
   // Fixed: guard against concurrent calls on the same importer instance.
   #running = false;
+  #pendingSupplierVariantUpserts: Array<{
+    supplierUid: string;
+    inventoryVariantId: number;
+    variantUid: string;
+    pricingKey: string;
+    size?: string | null;
+    costPrice?: number | null;
+  }> = [];
 
   constructor(private readonly db: Db) {}
 
@@ -99,6 +111,7 @@ export class InventoryImportService {
       // Fixed: reset all state before any awaited work begins.
       this.#stepData = null;
       this.#inventoryPreData = null;
+      this.#pendingSupplierVariantUpserts = [];
       this.#state = {
         stepId,
         tables: {} as Record<TableName, TableSlot>,
@@ -475,6 +488,18 @@ export class InventoryImportService {
       inventoryCategoryVariantAttributes,
       inventoryItemSubCategories,
       inventoryImages,
+      suppliers: await this.db.supplier.findMany({
+        where: {
+          deletedAt: null,
+          uid: {
+            not: null,
+          },
+        },
+        select: {
+          id: true,
+          uid: true,
+        },
+      }),
     };
     (this.#state as any as Record<string, unknown>).inventoryLoadedData = data;
     return data;
@@ -610,6 +635,7 @@ export class InventoryImportService {
   #variantPricings() {
     const preData = this.#requirePreData();
     const stepData = this.#requireStepData();
+    const supplierUids = preData.suppliers.map((supplier) => supplier.uid);
 
     for (const uid of preData.componentUids) {
       const component = stepData.stepProducts.find((a) => a.uid === uid);
@@ -638,6 +664,31 @@ export class InventoryImportService {
           price: a.price,
           date: a.createdAt,
         }));
+
+        const supplierPricing = parseDykeSupplierPricingKey(
+          m.dependenciesUid!,
+          supplierUids,
+        );
+        if (supplierPricing?.supplierUid) {
+          const normalizedVariantUid = supplierPricing.variantUid || uid;
+          this.#generateInventoryVariants(uid, normalizedVariantUid, []);
+          const inventoryVariantId = this.#inventoryVariantIdByUid(
+            uid,
+            normalizedVariantUid,
+          );
+          const latestPrice = pricingEntries.at(-1)?.price;
+          if (inventoryVariantId && latestPrice != null) {
+            this.#pendingSupplierVariantUpserts.push({
+              supplierUid: supplierPricing.supplierUid,
+              inventoryVariantId,
+              variantUid: normalizedVariantUid,
+              pricingKey: supplierPricing.pricingKey,
+              size: supplierPricing.size,
+              costPrice: latestPrice,
+            });
+          }
+          continue;
+        }
 
         this.#generateInventoryVariants(
           uid,
@@ -848,6 +899,13 @@ export class InventoryImportService {
           slot.tableResult = res;
           this.#log(tableName, "uploadStatus", "completed...");
         }
+
+        if (this.#pendingSupplierVariantUpserts.length) {
+          await upsertImportedSupplierVariantPricing(
+            tx as unknown as Pick<Db, "supplier" | "supplierVariant">,
+            this.#pendingSupplierVariantUpserts,
+          );
+        }
       });
     } catch (error) {
       this.#state.error = error;
@@ -891,6 +949,32 @@ export class InventoryImportService {
   public inventoryIdByUid(uid: string | undefined | null): number | undefined {
     if (!uid) return undefined;
     return this.#allInventories.find((a) => a.uid === uid)?.id;
+  }
+
+  #inventoryVariantIdByUid(
+    inventoryUid: string,
+    variantUid: string,
+  ): number | undefined {
+    const existingInventory = this.#requirePreData().inventories.find(
+      (inventory) => inventory.uid === inventoryUid,
+    );
+    const existingVariant = existingInventory?.variants.find(
+      (variant) => variant.uid === variantUid,
+    );
+    if (existingVariant?.id) return existingVariant.id;
+
+    const inventoryId = this.inventoryIdByUid(inventoryUid);
+    const pendingVariant = (
+      this.#state.tables.inventoryVariant.createMany as Array<{
+        id?: number;
+        inventoryId?: number;
+        uid?: string;
+      }>
+    ).find(
+      (variant) =>
+        variant.inventoryId === inventoryId && variant.uid === variantUid,
+    );
+    return pendingVariant?.id;
   }
 
   #inventoryCategoryIdByInventoryId(

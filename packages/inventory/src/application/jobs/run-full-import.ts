@@ -3,6 +3,7 @@ import { runInventoryImport } from "../import/inventory-import-service";
 import { inventoryImportRunSchema, type InventoryImportRun } from "../../schema";
 import { resetInventorySystem } from "../../inventory";
 import { resolveActiveInventoryImportScope } from "../import/resolve-active-inventory-import-scope";
+import { syncInventorySuppliersFromDyke } from "../suppliers/suppliers";
 
 export async function runFullInventoryImport(
   db: Db,
@@ -14,6 +15,8 @@ export async function runFullInventoryImport(
   if (payload.reset) {
     await resetInventorySystem(db);
   }
+
+  await syncInventorySuppliersFromDyke(db);
 
   const stepIds = payload.categoryId
     ? [payload.categoryId]

@@ -30,6 +30,8 @@ import {
 import { TABLE_NAMES } from "./application/import/strategies/handcrafted-importer";
 import { z } from "zod";
 import { formatDate } from "@gnd/utils/dayjs";
+import type { StepMeta } from "./types";
+import { composeVariantAttributeDisplay } from "./utils/inventory-utils";
 
 export async function inventoryList(db: Db, query: InventoryList) {
   const where = whereInventoryProducts(query);
@@ -96,7 +98,7 @@ export async function inventoryList(db: Db, query: InventoryList) {
           bucket: r?.images?.[0]?.imageGallery?.bucket,
         },
       };
-    })
+    }),
   );
   return response;
 }
@@ -119,7 +121,7 @@ function whereInventoryProducts(query: InventoryList) {
     });
   if (!query.showCustom)
     wheres.push({
-      ...( { sourceCustom: false } as any ),
+      ...({ sourceCustom: false } as any),
     } as any);
   if (query.variantIds)
     wheres.push({
@@ -167,6 +169,12 @@ export async function getInventoryCategoryAttributes(db: Db, categoryId) {
                 where: {
                   deletedAt: null,
                 },
+                select: {
+                  id: true,
+                  name: true,
+                  sourceStepUid: true,
+                  sourceComponentUid: true,
+                },
               },
             },
           },
@@ -181,6 +189,8 @@ export async function getInventoryCategoryAttributes(db: Db, categoryId) {
       values: a.valuesInventoryCategory.inventories.map((i) => ({
         id: i.id,
         label: i.name,
+        sourceStepUid: (i as any).sourceStepUid || null,
+        sourceComponentUid: (i as any).sourceComponentUid || null,
       })),
     };
   });
@@ -190,7 +200,7 @@ export async function getInventoryCategoryAttributes(db: Db, categoryId) {
 }
 export async function getInventoryCategoryForm(
   db: Db,
-  id
+  id,
 ): Promise<InventoryCategoryForm> {
   const categoryRaw = await db.inventoryCategory.findUniqueOrThrow({
     where: {
@@ -201,7 +211,7 @@ export async function getInventoryCategoryForm(
       description: true,
       enablePricing: true,
       img: true,
-      ...( { productKind: true } as any ),
+      ...({ productKind: true } as any),
       title: true,
       categoryVariantAttributes: {
         where: {
@@ -235,19 +245,21 @@ export async function getInventoryCategoryForm(
     productKind: (category.productKind || "inventory") as InventoryProductKind,
     description: category.description || null,
     enablePricing: category.enablePricing ?? false,
-    categoryVariantAttributes: (category.categoryVariantAttributes || []).map((a) => {
-      const { deletedAt, ...cva } = a;
-      return {
-        ...cva,
-        active: !deletedAt,
-      };
-    }),
+    categoryVariantAttributes: (category.categoryVariantAttributes || []).map(
+      (a) => {
+        const { deletedAt, ...cva } = a;
+        return {
+          ...cva,
+          active: !deletedAt,
+        };
+      },
+    ),
     categoryIdSelector: null,
   };
 }
 export async function getInventoryCategories(
   db: Db,
-  data: GetInventoryCategories
+  data: GetInventoryCategories,
 ) {
   const categories = await db.inventoryCategory.findMany({
     where: {
@@ -272,7 +284,7 @@ export const GetVariantCostHistorySchema = z.object({
 export type GetVariantCostHistory = z.infer<typeof GetVariantCostHistorySchema>;
 export async function getVariantCostHistories(
   db: Db,
-  query: GetVariantCostHistory
+  query: GetVariantCostHistory,
 ) {
   const qb = queryBuilder(query, [] as Prisma.PriceHistoryWhereInput[]);
   const where = qb._if("variantId", () => {}).compose();
@@ -291,7 +303,7 @@ export async function getVariantCostHistories(
         cost: h.newCostPrice,
         source: h.source,
       };
-    })
+    }),
   );
 }
 export const inventorySummarySchema = z.object({
@@ -384,7 +396,7 @@ export async function inventorySummary(db: Db, data: InventorySummary) {
       });
       if (data.type == "inventory_value") {
         const value = sum(
-          inv.map((a) => sum(a.logs.map((l) => l.costPrice! * l.qty)))
+          inv.map((a) => sum(a.logs.map((l) => l.costPrice! * l.qty))),
         );
         return {
           value: formatMoney(value),
@@ -412,14 +424,61 @@ export async function inventorySummary(db: Db, data: InventorySummary) {
   }
 }
 export async function inventoryVariantStockForm(db: Db, inventoryId) {
+  const showAllPricedOnly = String(process.env.INVENTORY_SHOW_ALL_PRICED || "")
+    .trim()
+    .toLowerCase() === "true";
   const inventory = await db.inventory.findUniqueOrThrow({
     where: {
       id: inventoryId,
     },
     include: {
+      inventoryItemSubCategories: {
+        where: {
+          deletedAt: null,
+        },
+        include: {
+          value: {
+            select: {
+              inventoryId: true,
+              inventory: {
+                select: {
+                  id: true,
+                  name: true,
+                  inventoryCategory: {
+                    select: {
+                      title: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       variants: {
         include: {
-          attributes: true,
+          attributes: {
+            include: {
+              value: {
+                select: {
+                  id: true,
+                  name: true,
+                  sourceStepUid: true,
+                  sourceComponentUid: true,
+                },
+              },
+              inventoryCategoryVariantAttribute: {
+                select: {
+                  id: true,
+                  inventoryCategory: {
+                    select: {
+                      title: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
           pricing: true,
           supplierVariants: {
             where: {
@@ -442,9 +501,24 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
       },
     },
   });
+  const sourceStep = inventory.sourceStepUid
+    ? await db.dykeSteps.findFirst({
+        where: {
+          uid: inventory.sourceStepUid,
+          deletedAt: null,
+        },
+        select: {
+          meta: true,
+        },
+      })
+    : null;
+  const sourceStepMeta = (sourceStep?.meta || null) as StepMeta | null;
+  const doorSizeVariation = Array.isArray(sourceStepMeta?.doorSizeVariation)
+    ? sourceStepMeta.doorSizeVariation
+    : [];
   const { attributes } = await getInventoryCategoryAttributes(
     db,
-    inventory.inventoryCategoryId
+    inventory.inventoryCategoryId,
   );
   function cartesianProduct<T>(arr: T[][]): T[][] {
     return arr.reduce((a, b) => a.flatMap((x) => b.map((y) => [...x, y])), [
@@ -452,16 +526,36 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
     ] as T[][]);
   }
 
+  const allowedValuesByAttribute = inventory.inventoryItemSubCategories.reduce<
+    Record<string, Set<number>>
+  >((acc, subCategory) => {
+    const attributeLabel =
+      subCategory.value?.inventory?.inventoryCategory?.title?.trim();
+    const valueInventoryId = subCategory.value?.inventoryId;
+    if (!attributeLabel || !valueInventoryId) return acc;
+    if (!acc[attributeLabel]) {
+      acc[attributeLabel] = new Set<number>();
+    }
+    acc[attributeLabel]!.add(valueInventoryId);
+    return acc;
+  }, {});
+
   // Step 1: Get all possible value combos from attributes
   const allCombos = cartesianProduct(
-    attributes.map((attr) =>
-      attr.values.map((v) => ({
+    attributes.map((attr) => {
+      const allowedValues = allowedValuesByAttribute[attr.name || ""];
+      const values = allowedValues?.size
+        ? attr.values.filter((value) => allowedValues.has(value.id))
+        : attr.values;
+      return values.map((v) => ({
         valueId: v.id,
         valueLabel: v.label,
         attributeId: attr.attributeId,
         attributeLabel: attr.name,
-      }))
-    )
+        sourceStepUid: (v as any).sourceStepUid || null,
+        sourceComponentUid: (v as any).sourceComponentUid || null,
+      }));
+    }),
   );
   const variants = inventory.variants;
   const attributeMaps = allCombos
@@ -471,16 +565,16 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
           variant.attributes.some(
             (a) =>
               a.valueId === c.valueId &&
-              a.inventoryCategoryVariantAttributeId === c.attributeId
-          )
-        )
+              a.inventoryCategoryVariantAttributeId === c.attributeId,
+          ),
+        ),
       );
       // Merge width + height for title if present
       const widthAttr = combo.find(
-        (c) => c.attributeLabel?.toLowerCase() === "width"
+        (c) => c.attributeLabel?.toLowerCase() === "width",
       );
       const heightAttr = combo.find(
-        (c) => c.attributeLabel?.toLowerCase() === "height"
+        (c) => c.attributeLabel?.toLowerCase() === "height",
       );
 
       let titleParts: string[];
@@ -490,19 +584,28 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
           ...combo
             .filter(
               (c) =>
-                !["width", "height"].includes(c.attributeLabel?.toLowerCase())
+                !["width", "height"].includes(c.attributeLabel?.toLowerCase()),
             )
             .map((c) => c.valueLabel),
         ];
       } else {
         titleParts = combo.map((c) => c.valueLabel);
       }
+      const preferredSupplierVariant =
+        matchedVariant?.supplierVariants?.find((variant) => variant.preferred) ||
+        matchedVariant?.supplierVariants?.[0];
+      const effectivePrice =
+        matchedVariant?.pricing?.price ??
+        matchedVariant?.pricing?.costPrice ??
+        preferredSupplierVariant?.salesPrice ??
+        preferredSupplierVariant?.costPrice ??
+        null;
       return {
         variantId: matchedVariant?.id ?? null,
         uid: matchedVariant?.uid || generateRandomString(5),
-        price: matchedVariant?.pricing?.costPrice,
+        price: effectivePrice,
         pricingId: matchedVariant?.pricing?.id,
-        status: matchedVariant ? matchedVariant.status ?? "draft" : "draft",
+        status: matchedVariant ? (matchedVariant.status ?? "draft") : "draft",
         attributes: combo,
         title: titleParts.join(" "),
         stockCount: sum(matchedVariant?.stockMovements, "changeQty"),
@@ -512,22 +615,104 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
       };
     })
     .sort((a, b) => a.title.localeCompare(b.title));
-  const filterParams: Record<string, string[]> = {};
-  for (const record of attributeMaps) {
+
+  const matchedVariantIds = new Set(
+    attributeMaps
+      .map((item) => item.variantId)
+      .filter((value): value is number => Number.isFinite(value as number)),
+  );
+
+  const unmatchedPersistedVariants = variants
+    .filter((variant) => !matchedVariantIds.has(variant.id))
+    .map((variant) => {
+      const preferredSupplierVariant =
+        variant.supplierVariants?.find((row) => row.preferred) ||
+        variant.supplierVariants?.[0];
+      const effectivePrice =
+        variant.pricing?.price ??
+        variant.pricing?.costPrice ??
+        preferredSupplierVariant?.salesPrice ??
+        preferredSupplierVariant?.costPrice ??
+        null;
+      const attributes = variant.attributes.map((attribute) => ({
+        valueId: attribute.valueId,
+        valueLabel: attribute.value?.name || "",
+        attributeId: attribute.inventoryCategoryVariantAttributeId,
+        attributeLabel:
+          attribute.inventoryCategoryVariantAttribute?.inventoryCategory?.title ||
+          "",
+        sourceStepUid: attribute.value?.sourceStepUid || null,
+        sourceComponentUid: attribute.value?.sourceComponentUid || null,
+      }));
+      const displayAttributes = composeVariantAttributeDisplay(
+        variant.attributes as any,
+      );
+      const title = displayAttributes.length
+        ? displayAttributes
+            .map((attribute) => attribute.value)
+            .filter(Boolean)
+            .join(" ")
+        : variant.description || variant.uid;
+
+      return {
+        variantId: variant.id,
+        uid: variant.uid || generateRandomString(5),
+        price: effectivePrice,
+        pricingId: variant.pricing?.id,
+        status: variant.status ?? "draft",
+        attributes,
+        title,
+        stockCount: sum(variant.stockMovements, "changeQty"),
+        lowStock: variant.lowStockAlert,
+        supplierVariants: variant.supplierVariants || [],
+        inventoryId,
+      };
+    });
+
+  const finalAttributeMaps = [...attributeMaps, ...unmatchedPersistedVariants].sort(
+    (a, b) => a.title.localeCompare(b.title),
+  );
+  const filterParams: Record<
+    string,
+    Array<{
+      label: string;
+      value: string;
+      sourceStepUid?: string | null;
+      sourceComponentUid?: string | null;
+    }>
+  > = {};
+  for (const record of finalAttributeMaps) {
     for (const attr of record.attributes) {
+      if (!attr.attributeLabel || !attr.valueLabel) continue;
       if (!filterParams[attr.attributeLabel]) {
         filterParams[attr.attributeLabel] = [];
       }
-      if (!filterParams[attr.attributeLabel]!.includes(attr.valueLabel)) {
-        filterParams[attr.attributeLabel]!.push(attr.valueLabel);
+      if (
+        !filterParams[attr.attributeLabel]!.some(
+          (option) => option.value === attr.valueLabel,
+        )
+      ) {
+        filterParams[attr.attributeLabel]!.push({
+          label: attr.valueLabel,
+          value: attr.valueLabel,
+          sourceStepUid: attr.sourceStepUid || null,
+          sourceComponentUid: attr.sourceComponentUid || null,
+        });
       }
     }
   }
 
+  const pricedOnlyAttributeMaps = finalAttributeMaps.filter((item) => {
+    const price = Number(item.price || 0);
+    return Number.isFinite(price) && price > 0;
+  });
+
   return {
-    attributeMaps,
+    attributeMaps: showAllPricedOnly ? pricedOnlyAttributeMaps : finalAttributeMaps,
     inventory,
-    filterParams,
+    filterParams: showAllPricedOnly ? {} : filterParams,
+    doorSizeVariation,
+    showAllPricedOnly,
   };
 }
 export async function lowStockSummary(db: Db) {
@@ -541,7 +726,7 @@ export async function lowStockSummary(db: Db) {
         deletedAt: null,
         stockMode: "monitored" as StockModes,
         productKind: "inventory",
-        ...( { sourceCustom: false } as any ),
+        ...({ sourceCustom: false } as any),
       },
     },
     select: {
@@ -621,7 +806,8 @@ export async function saveInventory(db: Db, data: InventoryForm) {
   let inventoryId = data.product.id;
   let inventoryUid;
   const { product } = data;
-  const productKind = (product.productKind || "inventory") as InventoryProductKind;
+  const productKind = (product.productKind ||
+    "inventory") as InventoryProductKind;
   const stockMode: StockModes = product.stockMonitor
     ? "monitored"
     : "unmonitored";
@@ -635,11 +821,11 @@ export async function saveInventory(db: Db, data: InventoryForm) {
           status: product.status,
           name: product.name,
           productKind,
-          ...( {
+          ...({
             sourceStepUid: null,
             sourceComponentUid: null,
             sourceCustom: false,
-          } as any ),
+          } as any),
           stockMode: productKind === "component" ? "unmonitored" : stockMode,
           description: product.description,
           primaryStoreFront: product.primaryStoreFront,
@@ -652,11 +838,11 @@ export async function saveInventory(db: Db, data: InventoryForm) {
         name: product.name,
         uid: generateRandomString(4),
         productKind,
-        ...( {
+        ...({
           sourceStepUid: null,
           sourceComponentUid: null,
           sourceCustom: false,
-        } as any ),
+        } as any),
         description: product.description,
         status: product.status,
         publishedAt: product.status == "published" ? new Date() : null,
@@ -835,12 +1021,12 @@ export async function inventoryForm(db: Db, inventoryId) {
       .filter(
         (a, ai) =>
           inv.inventoryItemSubCategories.findIndex(
-            (b) => b.inventorySubCategoryId == a.inventorySubCategoryId
-          ) === ai
+            (b) => b.inventorySubCategoryId == a.inventorySubCategoryId,
+          ) === ai,
       )
       .map((s) => {
         const values = inv.inventoryItemSubCategories.filter(
-          (a) => a.inventorySubCategoryId === s.inventorySubCategoryId
+          (a) => a.inventorySubCategoryId === s.inventorySubCategoryId,
         );
         return {
           valueIds: values
@@ -876,7 +1062,10 @@ export async function inventorySuppliers(db: Db, query: InventorySuppliers) {
   });
 }
 
-export async function saveInventorySupplier(db: Db, input: InventorySupplierForm) {
+export async function saveInventorySupplier(
+  db: Db,
+  input: InventorySupplierForm,
+) {
   const payload = {
     uid: input.uid || generateRandomString(5),
     name: input.name,
@@ -900,7 +1089,10 @@ export async function saveInventorySupplier(db: Db, input: InventorySupplierForm
   });
 }
 
-export async function saveSupplierVariantForm(db: Db, input: SupplierVariantForm) {
+export async function saveSupplierVariantForm(
+  db: Db,
+  input: SupplierVariantForm,
+) {
   if (input.preferred) {
     await db.supplierVariant.updateMany({
       where: {
@@ -1078,11 +1270,11 @@ export async function backfillInventoryImportSources(db: Db) {
     select: {
       id: true,
       uid: true,
-      ...( {
+      ...({
         sourceCustom: true,
         sourceStepUid: true,
         sourceComponentUid: true,
-      } as any ),
+      } as any),
     },
   });
 
@@ -1116,11 +1308,14 @@ export async function backfillInventoryImportSources(db: Db) {
     },
   });
 
-  const dykeByUid = new Map<string, {
-    sourceComponentUid: string;
-    sourceStepUid: string | null;
-    sourceCustom: boolean;
-  }>(
+  const dykeByUid = new Map<
+    string,
+    {
+      sourceComponentUid: string;
+      sourceStepUid: string | null;
+      sourceCustom: boolean;
+    }
+  >(
     dykeProducts
       .filter((product) => !!product.uid)
       .map((product) => [
@@ -1163,11 +1358,11 @@ export async function backfillInventoryImportSources(db: Db) {
         id: inventory.id,
       },
       data: {
-        ...( {
+        ...({
           sourceCustom: match.sourceCustom,
           sourceStepUid: match.sourceStepUid,
           sourceComponentUid: match.sourceComponentUid,
-        } as any ),
+        } as any),
       },
     });
 
@@ -1261,7 +1456,8 @@ export async function inventoryProductKindReview(db: Db) {
       uid: inventory.uid,
       name: inventory.name,
       category: inventory.inventoryCategory?.title || null,
-      currentKind: (inventory.productKind || "inventory") as InventoryProductKind,
+      currentKind: (inventory.productKind ||
+        "inventory") as InventoryProductKind,
       suggestedKind,
       hasMeaningfulPrice,
       variantCount: inventory.variants.length,
@@ -1362,7 +1558,7 @@ export async function inventoryCategories(db: Db, query: InventoryCategories) {
       id: true,
       title: true,
       description: true,
-      ...( { productKind: true } as any ),
+      ...({ productKind: true } as any),
       type: true,
       _count: {
         select: {
@@ -1383,7 +1579,7 @@ export async function inventoryCategories(db: Db, query: InventoryCategories) {
   const response = await params.response(
     data.map((item) => {
       return item;
-    })
+    }),
   );
   return response;
 }
@@ -1398,7 +1594,7 @@ function whereInventoryCategories(query: InventoryCategories) {
   }
   if (query.productKind) {
     wheres.push({
-      ...( { productKind: query.productKind } as any ),
+      ...({ productKind: query.productKind } as any),
     });
   }
   return composeQuery(wheres);
@@ -1438,7 +1634,7 @@ export async function deleteInventoryCategory(db: Db, id) {
 
 export async function saveInventoryCategoryForm(
   db: Db,
-  data: InventoryCategoryForm
+  data: InventoryCategoryForm,
 ) {
   let id = data.id;
   if (!id) {
@@ -1446,7 +1642,7 @@ export async function saveInventoryCategoryForm(
       data: {
         title: data.title,
         uid: generateRandomString(5),
-        ...( { productKind: data.productKind } as any ),
+        ...({ productKind: data.productKind } as any),
         enablePricing: data.enablePricing,
         description: data.description,
         type: data.type,
@@ -1468,7 +1664,7 @@ export async function saveInventoryCategoryForm(
       },
       data: {
         title: data.title,
-        ...( { productKind: data.productKind } as any ),
+        ...({ productKind: data.productKind } as any),
         // uid: generateRandomString(5),
         enablePricing: data.enablePricing,
         description: data.description,
@@ -1478,7 +1674,7 @@ export async function saveInventoryCategoryForm(
 }
 export async function updateCategoryVariantAttribute(
   db: Db,
-  data: UpdateCategoryVariantAttribute
+  data: UpdateCategoryVariantAttribute,
 ) {
   if (!data.id)
     return await db.inventoryCategoryVariantAttribute.create({
@@ -1574,13 +1770,46 @@ export async function updateSubComponent(db: Db, data: UpdateSubComponent) {
   }
 }
 export async function resetInventorySystem(db: Db) {
-  const tables = TABLE_NAMES.reverse();
-  // return { tables };
   const resetStatus: any = {};
+  const resetOrder = [
+    "stockAllocation",
+    "inboundDemand",
+    "linePricing",
+    "lineItemComponents",
+    "lineItem",
+    "inboundShipmentExtractionLine",
+    "inboundShipmentExtraction",
+    "stockMovement",
+    "inventoryLog",
+    "inventoryStock",
+    "inboundShipmentItem",
+    "inboundShipment",
+    "supplierVariant",
+    "inventoryImage",
+    "imageGalleryTag",
+    "inventoryVariantAttribute",
+    "inventoryVariantPricing",
+    "priceHistory",
+    "inventoryItemSubCategoryValue",
+    "inventoryItemSubCategory",
+    "inventorySubCategory",
+    "subComponents",
+    "productView",
+    "productReview",
+    "featuredProduct",
+    "productMetric",
+    "inventoryVariant",
+    "inventory",
+    "inventoryCategoryVariantAttribute",
+    "inventoryCategory",
+    "imageGallery",
+    "imageTags",
+    "supplier",
+  ] as const;
+
   try {
     await db.$transaction(async (tx) => {
-      // tx.inventory.deleteMany({})
-      for (const table of tables) {
+      for (const table of resetOrder) {
         resetStatus[table] = "resetting...";
 
         await (tx[table] as any).deleteMany({});
@@ -1610,7 +1839,7 @@ export const updateVariantCostSchema = z.object({
       z.object({
         valueId: z.number(),
         attributeId: z.number(),
-      })
+      }),
     )
     .optional(),
 });
@@ -1702,7 +1931,7 @@ export const updateVariantStatusSchema = z
       variantId: true,
       inventoryId: true,
       uid: true,
-    }).shape
+    }).shape,
   );
 export type UpdateVariantStatus = z.infer<typeof updateVariantStatusSchema>;
 export async function updateVariantStatus(db: Db, data: UpdateVariantStatus) {

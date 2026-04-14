@@ -275,7 +275,7 @@ describe("workflow-calculators domain", () => {
     expect(summary.total).toBe(25);
   });
 
-  it("resolves HPT unit price from supplier/size pricing buckets", () => {
+  it("returns zero when supplier-specific pricing has not been normalized to supplier variants", () => {
     const unit = resolvePricingBucketUnitPrice({
       pricing: {
         "2-8 x 7-0 & SUP-1": { salesUnitCost: 155 },
@@ -284,7 +284,7 @@ describe("workflow-calculators domain", () => {
       supplierUid: "SUP-1",
       fallbackSalesPrice: 99,
     });
-    expect(unit).toBe(155);
+    expect(unit).toBe(0);
   });
 
   it("prefers supplier-variant pricing over legacy pricing buckets when available", () => {
@@ -319,7 +319,7 @@ describe("workflow-calculators domain", () => {
     expect(unit).toBe(0);
   });
 
-  it("derives door tier sales price from base tier price and sales multiplier", () => {
+  it("returns no door tier price when supplier-specific pricing has not been normalized to supplier variants", () => {
     const pricing = resolveDoorTierPricing({
       pricing: {
         "2-8 x 7-0 & SUP-1": { price: 120 },
@@ -330,9 +330,9 @@ describe("workflow-calculators domain", () => {
       fallbackSalesPrice: 99,
       fallbackBasePrice: 88,
     });
-    expect(pricing.hasPrice).toBe(true);
-    expect(pricing.basePrice).toBe(120);
-    expect(pricing.salesPrice).toBe(30);
+    expect(pricing.hasPrice).toBe(false);
+    expect(pricing.basePrice).toBe(0);
+    expect(pricing.salesPrice).toBe(0);
   });
 
   it("derives door tier pricing from supplier-variant cost when present", () => {

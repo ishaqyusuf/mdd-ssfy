@@ -1,6 +1,10 @@
 import { db, Db, Prisma } from "@gnd/db";
 import { nextId, RenturnTypeAsync } from "@gnd/utils";
 import { StepComponentMeta, StepMeta } from "../../../types";
+import {
+  parseDykeSupplierPricingKey,
+  upsertImportedSupplierVariantPricing,
+} from "../../suppliers/suppliers";
 
 interface Data {
   stepId: null;
@@ -48,10 +52,19 @@ export class InventoryImportService {
     tables: {} as any,
     // tableResults: {}
   };
+  #pendingSupplierVariantUpserts: Array<{
+    supplierUid: string;
+    inventoryVariantId: number;
+    variantUid: string;
+    pricingKey: string;
+    size?: string | null;
+    costPrice?: number | null;
+  }> = [];
   constructor(public db: Db) {}
   public async importComponents(stepId) {
     this.#data.stepId = stepId;
     this.#data.tables = {} as any;
+    this.#pendingSupplierVariantUpserts = [];
     await this.#initTables();
     this.#stepData = await this.initStepData();
     this.#inventoryPreData = await this.loadInventoryPreData();
@@ -77,6 +90,12 @@ export class InventoryImportService {
             this.#data.tables[v].tableResult = res;
             this.#log(v, "uploadStatus", "completed...");
           }
+        }
+        if (this.#pendingSupplierVariantUpserts.length) {
+          await upsertImportedSupplierVariantPricing(
+            tx as unknown as Pick<Db, "supplier" | "supplierVariant">,
+            this.#pendingSupplierVariantUpserts,
+          );
         }
         // throw new Error("QUIT!!!");
       });
@@ -170,6 +189,7 @@ export class InventoryImportService {
   #variantPricings() {
     const preData = this.#inventoryPreData;
     const stepData = this.getStepData();
+    const supplierUids = preData.suppliers.map((supplier) => supplier.uid);
     for (const uid of preData.componentUids) {
       const component = stepData.stepProducts.find((a) => a.uid == uid);
       if (!component) continue;
@@ -186,6 +206,30 @@ export class InventoryImportService {
         const priceList = pricings.filter(
           (a) => a.dependenciesUid == m.dependenciesUid,
         );
+        const supplierPricing = parseDykeSupplierPricingKey(
+          m.dependenciesUid!,
+          supplierUids,
+        );
+        if (supplierPricing?.supplierUid) {
+          const normalizedVariantUid = supplierPricing.variantUid || uid;
+          this.#generateInventoryVariants(uid, normalizedVariantUid, []);
+          const inventoryVariantId = this.#inventoryVariantIdByUid(
+            uid,
+            normalizedVariantUid,
+          );
+          const latestPrice = priceList.at(-1)?.price;
+          if (inventoryVariantId && latestPrice != null) {
+            this.#pendingSupplierVariantUpserts.push({
+              supplierUid: supplierPricing.supplierUid,
+              inventoryVariantId,
+              variantUid: normalizedVariantUid,
+              pricingKey: supplierPricing.pricingKey,
+              size: supplierPricing.size,
+              costPrice: latestPrice,
+            });
+          }
+          continue;
+        }
         this.#generateInventoryVariants(
           uid,
           m.dependenciesUid!,
@@ -312,6 +356,17 @@ export class InventoryImportService {
       ...this.#inventories,
       ...this.#data.tables.inventory.createMany,
     ]?.find((a) => a.uid == uid)?.id;
+  }
+  #inventoryVariantIdByUid(inventoryUid, variantUid) {
+    const inventoryId = this.inventoryIdByUid(inventoryUid);
+    const existingVariant = this.#inventories
+      ?.find((a) => a.uid == inventoryUid)
+      ?.variants?.find((variant) => variant.uid === variantUid);
+    if (existingVariant?.id) return existingVariant.id;
+    return this.#data.tables.inventoryVariant.createMany?.find(
+      (variant) =>
+        variant.inventoryId == inventoryId && variant.uid === variantUid,
+    )?.id;
   }
   public prepareInventorySubCategories(uid, depsUids: string[]) {
     const id = this.inventoryIdByUid(uid);
@@ -450,6 +505,18 @@ export class InventoryImportService {
       inventories,
       componentUids,
       inventoryCategories,
+      suppliers: await this.db.supplier.findMany({
+        where: {
+          deletedAt: null,
+          uid: {
+            not: null,
+          },
+        },
+        select: {
+          id: true,
+          uid: true,
+        },
+      }),
     };
     (this.#data as any).inventoryLoadedData = data;
     return data;

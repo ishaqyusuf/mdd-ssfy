@@ -148,9 +148,9 @@ function ProductCell({ item: product }: { item: Item }) {
                 )}
             </div>
             <div>
-                <div className="font-medium">{product.title}</div>
+                <div className="font-medium uppercase">{product.title}</div>
                 <div className="flex gap-4">
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-gray-500 uppercase">
                         {product.category}
                     </div>
                     <Badge variant="outline" className="capitalize">
@@ -192,8 +192,8 @@ export const mobileColumn: ColumnDef<Item>[] = [
 function ItemCard({ item }: ItemProps) {
     return (
         <div className="flex flex-col space-y-2 p-3 border-b">
-            <TCell.Primary>{item.title}</TCell.Primary>
-            <TCell.Secondary>{item.category}</TCell.Secondary>
+            <TCell.Primary className="uppercase">{item.title}</TCell.Primary>
+            <TCell.Secondary className="uppercase">{item.category}</TCell.Secondary>
             <Progress>
                 <Progress.Status>{item.status}</Progress.Status>
             </Progress>
