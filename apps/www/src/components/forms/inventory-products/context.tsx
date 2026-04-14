@@ -78,6 +78,7 @@ export const {
     Provider: ProductVariantsProvider,
     useContext: useProductVariants,
 } = createContextFactory(({ inventoryId }: ProductVariantContextProps) => {
+    const form = useInventoryForm();
     const trpc = useTRPC();
     const inventoryParams = useInventoryParams();
     const { data, error } = useQuery(
@@ -90,13 +91,31 @@ export const {
             },
         ),
     );
+    const inventorySuppliers = form.watch("suppliers") || [];
+    const filterOptions = useMemo(() => {
+        const next = {
+            ...((data?.filterParams || {}) as Record<string, VariantFilterOption[]>),
+        };
+        if (inventorySuppliers.length) {
+            const existing = next.Supplier || [];
+            const seen = new Set(existing.map((option) => String(option.value)));
+            next.Supplier = [
+                ...existing,
+                ...inventorySuppliers
+                    .filter((supplier) => supplier?.id && supplier?.name)
+                    .filter((supplier) => !seen.has(String(supplier.id)))
+                    .map((supplier) => ({
+                        label: supplier.name,
+                        value: String(supplier.id),
+                    })),
+            ];
+        }
+        return next;
+    }, [data?.filterParams, inventorySuppliers]);
     const paramsSchema = {
         _variantShow: parseAsString,
         ...Object.fromEntries(
-            Object.keys(data?.filterParams || {}).map((k) => [
-                k,
-                parseAsString,
-            ]),
+            Object.keys(filterOptions).map((k) => [k, parseAsString]),
         ),
     };
     const [params, setParams] = useQueryStates(paramsSchema, {});
@@ -119,10 +138,6 @@ export const {
         setParams(cleared);
     }, [inventoryParams.productId]);
 
-    const filterOptions = (data?.filterParams || {}) as Record<
-        string,
-        VariantFilterOption[]
-    >;
     const widthFilterKey =
         Object.keys(filterOptions).find(
             (key) => key.trim().toLowerCase() === "width",

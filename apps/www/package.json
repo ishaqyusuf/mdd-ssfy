@@ -146,14 +146,14 @@
     "devDependencies": {
         "@gnd/tsconfig": "workspace:*",
         "@tailwindcss/typography": "^0.5.19",
-        "@tailwindcss/postcss": "^4.1.17",
+        "@tailwindcss/postcss": "catalog:",
         "@types/dot-object": "^2.1.6",
         "@types/mdx": "^2.0.13",
         "@types/node": "^25.2.3",
         "@types/qs": "^6.14.0",
         "@types/react": "~19.1.0",
         "@types/react-dom": "^19.1.9",
-        "tailwindcss": "^4.1.17",
+        "tailwindcss": "catalog:",
         "vercel": "^48.2.9"
     }
 }

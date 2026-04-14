@@ -86,9 +86,9 @@ export function InventoryStockAlertWidgetSkeleton() {
                     <Icons.AlertTriangle className="w-5 h-5" />
                     Low Stock Alert
                 </CardTitle>
-                <CardDescription className="text-orange-700">
+                <div className="text-sm text-orange-700">
                     <Skeleton className="h-4 w-64 bg-orange-100" />
-                </CardDescription>
+                </div>
             </CardHeader>
             <CardContent>
                 <div className="space-y-3">

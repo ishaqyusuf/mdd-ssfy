@@ -13,6 +13,8 @@
     "pino": "^10.1.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "tailwindcss": "^4.1.17",
+    "@tailwindcss/postcss": "^4.1.17",
     "typescript": "^5.9.3",
     "zod": "^4.3.5"
   },

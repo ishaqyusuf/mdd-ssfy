@@ -35,7 +35,10 @@ export const inventoryListSchema = z
   .object({
     categoryId: z.number().nullable().optional(),
     productKind: inventoryProductKindSchema.nullable().optional(),
-    showCustom: z.boolean().optional().default(false),
+    showCustom: z
+      .preprocess((value) => (value == null ? false : value), z.boolean())
+      .optional()
+      .default(false),
     subCategoryInvId: z.number().nullable().optional(),
     subCategoryId: z.number().nullable().optional(),
     ids: z.array(z.number()).optional(),

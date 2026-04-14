@@ -86,10 +86,9 @@ export function InventorySuppliersManager(props: Props) {
     const searchQuery = useQuery(
         trpc.inventories.inventorySuppliers.queryOptions({
             q: search.trim() || null,
-        }),
-        {
+        }, {
             enabled: search.trim().length > 0,
-        },
+        }),
     );
 
     const saveSupplierMutation = useMutation(
@@ -281,13 +280,8 @@ export function InventorySuppliersManager(props: Props) {
                                             setSearch("");
                                         }}
                                     >
-                                        <div className="space-y-1">
-                                            <div className="font-medium">
-                                                {supplier.name}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground">
-                                                {supplier.uid || "No Dyke UID"}
-                                            </div>
+                                        <div className="font-medium">
+                                            {supplier.name}
                                         </div>
                                         <Badge variant="outline">Add</Badge>
                                     </button>
@@ -340,11 +334,6 @@ export function InventorySuppliersManager(props: Props) {
                                                     <span className="truncate">{supplier.name}</span>
                                                     {isDefault ? (
                                                         <Badge>Default</Badge>
-                                                    ) : null}
-                                                    {supplier.uid ? (
-                                                        <Badge variant="outline">
-                                                            {supplier.uid}
-                                                        </Badge>
                                                     ) : null}
                                                 </ItemTitle>
                                                 <ItemActions>

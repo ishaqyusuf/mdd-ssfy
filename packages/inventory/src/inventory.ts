@@ -1449,36 +1449,18 @@ export async function inventoryProductKindReview(db: Db) {
           title: true,
         },
       },
-      variants: {
-        where: {
-          deletedAt: null,
-        },
+      _count: {
         select: {
-          pricing: {
-            select: {
-              costPrice: true,
-              price: true,
-            },
-          },
-          supplierVariants: {
+          variants: {
             where: {
               deletedAt: null,
-              active: true,
-            },
-            select: {
-              costPrice: true,
-              salesPrice: true,
             },
           },
-        },
-      },
-      variantPricings: {
-        where: {
-          deletedAt: null,
-        },
-        select: {
-          costPrice: true,
-          price: true,
+          variantPricings: {
+            where: {
+              deletedAt: null,
+            },
+          },
         },
       },
     },
@@ -1487,22 +1469,54 @@ export async function inventoryProductKindReview(db: Db) {
     },
   });
 
+  const pricedInventoryRows = await db.inventory.findMany({
+    where: {
+      deletedAt: null,
+      OR: [
+        {
+          variantPricings: {
+            some: {
+              deletedAt: null,
+              OR: [{ costPrice: { gt: 0 } }, { price: { gt: 0 } }],
+            },
+          },
+        },
+        {
+          variants: {
+            some: {
+              deletedAt: null,
+              OR: [
+                {
+                  pricing: {
+                    is: {
+                      OR: [{ costPrice: { gt: 0 } }, { price: { gt: 0 } }],
+                    },
+                  },
+                },
+                {
+                  supplierVariants: {
+                    some: {
+                      deletedAt: null,
+                      active: true,
+                      OR: [{ costPrice: { gt: 0 } }, { salesPrice: { gt: 0 } }],
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  const pricedInventoryIds = new Set(pricedInventoryRows.map((item) => item.id));
+
   const rows = inventories.map((inventory) => {
-    const hasMeaningfulPrice =
-      inventory.variantPricings.some(
-        (pricing) =>
-          Number(pricing.costPrice || 0) > 0 || Number(pricing.price || 0) > 0,
-      ) ||
-      inventory.variants.some(
-        (variant) =>
-          Number(variant.pricing?.costPrice || 0) > 0 ||
-          Number(variant.pricing?.price || 0) > 0 ||
-          variant.supplierVariants.some(
-            (supplierVariant) =>
-              Number(supplierVariant.costPrice || 0) > 0 ||
-              Number(supplierVariant.salesPrice || 0) > 0,
-          ),
-      );
+    const hasMeaningfulPrice = pricedInventoryIds.has(inventory.id);
 
     const suggestedKind: InventoryProductKind = hasMeaningfulPrice
       ? "inventory"
@@ -1517,8 +1531,8 @@ export async function inventoryProductKindReview(db: Db) {
         "inventory") as InventoryProductKind,
       suggestedKind,
       hasMeaningfulPrice,
-      variantCount: inventory.variants.length,
-      pricingCount: inventory.variantPricings.length,
+      variantCount: inventory._count.variants,
+      pricingCount: inventory._count.variantPricings,
       needsReview: (inventory.productKind || "inventory") !== suggestedKind,
     };
   });
