@@ -12,7 +12,14 @@ Tracks important schema-level entities and ownership boundaries.
   - `InboundDemand` as the shortage/replenishment row that should link into `InboundShipmentItem` and later post through `StockMovement`
 - The first shared inbound service now exists in `packages/inventory/src/application/inbound/inbound-demand.ts`:
   - `createInboundShipmentFromDemands(...)` converts `InboundDemand` shortages into `InboundShipment` + `InboundShipmentItem`
-  - `receiveInboundShipment(...)` posts receipt into `InventoryStock`, writes `StockMovement`, and rolls progress back up into `LineItemComponents`
+  - `receiveInboundShipment(...)` now splits `qtyGood` vs `qtyIssue`, posts only good qty into `InventoryStock`, writes `StockMovement`, and rolls progress back up into `LineItemComponents`
+- Inventory receiving/issue workflow now has an explicit discrepancy model:
+  - `InboundShipmentItem.qtyGood`
+  - `InboundShipmentItem.qtyIssue`
+  - `InboundShipmentItemIssue` for damaged/missing/wrong-item/quality-hold style discrepancies and their resolution lifecycle
+- Stock allocation now distinguishes review-stage suggestions from committed reservations:
+  - `StockAllocation.status = pending_review` means suggested, not yet committed
+  - committed stock should be derived from approved/picked/consumed allocation states, not from pending review rows
 - Receipt snaps now reuse the shared document platform instead of a bespoke inbound file table:
   - `StoredDocument.ownerType = "inventory_inbound_shipment"`
   - `StoredDocument.kind = "inbound_receipt"`

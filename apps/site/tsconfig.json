@@ -7,11 +7,16 @@
     "paths": {
       "@/*": ["./src/*"],
       "@api/*": ["../api/src/*"],
+      "@auth/*": ["../auth/src/*"],
       "@community/*": ["../../packages/community/src/*"],
+      "@emails/*": ["../../packages/email/emails/*"],
+      "@notifications/*": ["../../packages/notifications/src/*"],
       "@engine/*": ["../engine/src/*"],
+      "@gnd/inventory": ["../../packages/inventory/src/index.ts"],
+      "@gnd/inventory/*": ["../../packages/inventory/src/*"],
       "@jobs/*": ["../../packages/jobs/src/*"],
-      "@trigger/*": ["../../packages/trigger/src/*"],
-      "@sales/*": ["../../packages/sales/src/*"]
+      "@sales/*": ["../../packages/sales/src/*"],
+      "@square/*": ["../../packages/jobs/src/*"]
     },
     "strict": false,
     "noImplicitAny": false

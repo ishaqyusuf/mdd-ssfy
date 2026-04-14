@@ -38,7 +38,9 @@ export type InboundShipmentDetailInput = {
 };
 
 export type InboundShipmentListInput = {
-  status?: Array<"pending" | "in_progress" | "completed" | "cancelled">;
+  status?: Array<
+    "pending" | "in_progress" | "completed" | "issue_open" | "closed" | "cancelled"
+  >;
   supplierId?: number | null;
 };
 
@@ -54,15 +56,32 @@ export type ReceiveInboundShipmentInput = {
   items?: Array<{
     inboundShipmentItemId: number;
     qtyReceived?: number | null;
+    qtyGood?: number | null;
+    qtyIssue?: number | null;
     unitPrice?: number | null;
+    issueType?:
+      | "damaged"
+      | "missing"
+      | "wrong_item"
+      | "over_received"
+      | "quality_hold"
+      | null;
+    issueNotes?: string | null;
   }>;
 };
 
 export type ReceiveInboundShipmentResult = {
   inboundId: number;
-  shipmentStatus: "pending" | "in_progress" | "completed" | "cancelled";
+  shipmentStatus:
+    | "pending"
+    | "in_progress"
+    | "completed"
+    | "issue_open"
+    | "closed"
+    | "cancelled";
   receivedItemCount: number;
   stockMovementCount: number;
+  issueCount: number;
 };
 
 export async function getInboundDemandQueue(
@@ -417,6 +436,8 @@ export async function getInboundShipmentDetail(
           id: true,
           qty: true,
           unitPrice: true,
+          qtyGood: true,
+          qtyIssue: true,
           inventoryVariantId: true,
           inventoryVariant: {
             select: {
@@ -430,6 +451,25 @@ export async function getInboundShipmentDetail(
                   name: true,
                 },
               },
+            },
+          },
+          issues: {
+            where: {
+              deletedAt: null,
+            },
+            orderBy: {
+              createdAt: "asc",
+            },
+            select: {
+              id: true,
+              issueType: true,
+              status: true,
+              resolutionType: true,
+              reportedQty: true,
+              resolvedQty: true,
+              notes: true,
+              createdAt: true,
+              updatedAt: true,
             },
           },
           inboundDemands: {
@@ -546,7 +586,7 @@ async function recomputeLineItemComponentDemandState(
         where: {
           deletedAt: null,
           status: {
-            in: ["reserved", "picked", "consumed"],
+            in: ["approved", "reserved", "picked", "consumed"],
           },
         },
         select: {
@@ -728,6 +768,8 @@ export async function receiveInboundShipment(
           id: true,
           qty: true,
           unitPrice: true,
+          qtyGood: true,
+          qtyIssue: true,
           inventoryVariantId: true,
           inventoryVariant: {
             select: {
@@ -761,23 +803,33 @@ export async function receiveInboundShipment(
       item.inboundShipmentItemId,
       {
         qtyReceived: asPositiveNumber(item.qtyReceived, 0),
+        qtyGood: asPositiveNumber(item.qtyGood, 0),
+        qtyIssue: asPositiveNumber(item.qtyIssue, 0),
         unitPrice:
           item.unitPrice == null ? null : Number(item.unitPrice || 0),
+        issueType: item.issueType ?? null,
+        issueNotes: item.issueNotes ?? null,
       },
     ]),
   );
 
   let receivedItemCount = 0;
   let stockMovementCount = 0;
+  let issueCount = 0;
   let totalPlannedQty = 0;
   let totalReceivedQty = 0;
+  let hasOpenIssues = false;
 
   for (const item of shipment.items) {
     const override = receivedQtyByItemId.get(item.id);
-    const qtyReceived = Math.max(
-      0,
-      override?.qtyReceived ?? Number(item.qty || 0),
-    );
+    const plannedQty = Number(item.qty || 0);
+    const rawQtyReceived = Math.max(0, override?.qtyReceived ?? plannedQty);
+    const qtyIssue = Math.max(0, override?.qtyIssue ?? 0);
+    const qtyGood =
+      override?.qtyGood != null
+        ? Math.max(0, override.qtyGood)
+        : Math.max(0, rawQtyReceived - qtyIssue);
+    const qtyReceived = qtyGood + qtyIssue;
     const unitPrice =
       override?.unitPrice == null
         ? item.unitPrice == null
@@ -785,73 +837,76 @@ export async function receiveInboundShipment(
           : Number(item.unitPrice || 0)
         : override.unitPrice;
 
-    totalPlannedQty += Number(item.qty || 0);
+    totalPlannedQty += plannedQty;
     totalReceivedQty += qtyReceived;
 
     if (qtyReceived <= 0) continue;
 
     receivedItemCount += 1;
 
-    const existingStock = await db.inventoryStock.findFirst({
-      where: {
-        inventoryVariantId: item.inventoryVariantId,
-        supplierId: shipment.supplierId,
-        deletedAt: null,
-      },
-      select: {
-        id: true,
-        qty: true,
-      },
-      orderBy: {
-        createdAt: "asc",
-      },
-    });
+    let stock: { id: number } | null = null;
+    if (qtyGood > 0) {
+      const existingStock = await db.inventoryStock.findFirst({
+        where: {
+          inventoryVariantId: item.inventoryVariantId,
+          supplierId: shipment.supplierId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          qty: true,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      });
 
-    const prevQty = Number(existingStock?.qty || 0);
-    const currentQty = prevQty + qtyReceived;
+      const prevQty = Number(existingStock?.qty || 0);
+      const currentQty = prevQty + qtyGood;
 
-    const stock = existingStock
-      ? await db.inventoryStock.update({
-          where: {
-            id: existingStock.id,
-          },
-          data: {
-            qty: currentQty,
-            price: unitPrice,
-          },
-          select: {
-            id: true,
-          },
-        })
-      : await db.inventoryStock.create({
-          data: {
-            inventoryVariantId: item.inventoryVariantId,
-            supplierId: shipment.supplierId,
-            qty: qtyReceived,
-            price: unitPrice,
-          },
-          select: {
-            id: true,
-          },
-        });
+      stock = existingStock
+        ? await db.inventoryStock.update({
+            where: {
+              id: existingStock.id,
+            },
+            data: {
+              qty: currentQty,
+              price: unitPrice,
+            },
+            select: {
+              id: true,
+            },
+          })
+        : await db.inventoryStock.create({
+            data: {
+              inventoryVariantId: item.inventoryVariantId,
+              supplierId: shipment.supplierId,
+              qty: qtyGood,
+              price: unitPrice,
+            },
+            select: {
+              id: true,
+            },
+          });
 
-    await db.stockMovement.create({
-      data: {
-        inventoryVariantId: item.inventoryVariantId,
-        prevQty,
-        currentQty,
-        changeQty: qtyReceived,
-        type: "stock_in",
-        status: "completed",
-        reference: shipment.reference || `inbound-${shipment.id}`,
-        notes: `Inbound receipt for shipment #${shipment.id}`,
-        authorName: input.authorName ?? null,
-        inboundStockItemId: item.id,
-      },
-    });
-    stockMovementCount += 1;
+      await db.stockMovement.create({
+        data: {
+          inventoryVariantId: item.inventoryVariantId,
+          prevQty,
+          currentQty,
+          changeQty: qtyGood,
+          type: "stock_in",
+          status: "completed",
+          reference: shipment.reference || `inbound-${shipment.id}`,
+          notes: `Inbound receipt for shipment #${shipment.id}`,
+          authorName: input.authorName ?? null,
+          inboundStockItemId: item.id,
+        },
+      });
+      stockMovementCount += 1;
+    }
 
-    let remainingQty = qtyReceived;
+    let remainingQty = qtyGood;
     const touchedComponentIds = new Set<number>();
 
     for (const demand of item.inboundDemands) {
@@ -883,18 +938,45 @@ export async function receiveInboundShipment(
       touchedComponentIds.add(demand.lineItemComponentId);
     }
 
-    await db.inventoryLog.create({
+    await db.inboundShipmentItem.update({
+      where: {
+        id: item.id,
+      },
       data: {
-        action: "inbound-received",
-        qty: qtyReceived,
-        costPrice: unitPrice,
-        inventoryVariantId: item.inventoryVariantId,
-        inventoryId: item.inventoryVariant.inventoryId,
-        inventoryStockId: stock.id,
-        createdBy: input.authorName ?? null,
-        notes: `Inbound shipment #${shipment.id} received`,
+        qtyGood,
+        qtyIssue,
+        unitPrice,
       },
     });
+
+    if (qtyGood > 0 && stock) {
+      await db.inventoryLog.create({
+        data: {
+          action: "inbound-received",
+          qty: qtyGood,
+          costPrice: unitPrice,
+          inventoryVariantId: item.inventoryVariantId,
+          inventoryId: item.inventoryVariant.inventoryId,
+          inventoryStockId: stock.id,
+          createdBy: input.authorName ?? null,
+          notes: `Inbound shipment #${shipment.id} received`,
+        },
+      });
+    }
+
+    if (qtyIssue > 0) {
+      hasOpenIssues = true;
+      issueCount += 1;
+      await db.inboundShipmentItemIssue.create({
+        data: {
+          inboundShipmentItemId: item.id,
+          issueType: override?.issueType || "damaged",
+          reportedQty: qtyIssue,
+          notes: override?.issueNotes || null,
+          status: "open",
+        },
+      });
+    }
 
     for (const componentId of touchedComponentIds) {
       await recomputeLineItemComponentDemandState(db, componentId);
@@ -906,7 +988,9 @@ export async function receiveInboundShipment(
   const shipmentStatus =
     progress <= 0
       ? "pending"
-      : progress >= 100
+      : hasOpenIssues
+        ? "issue_open"
+        : progress >= 100
         ? "completed"
         : "in_progress";
 
@@ -927,5 +1011,6 @@ export async function receiveInboundShipment(
     shipmentStatus,
     receivedItemCount,
     stockMovementCount,
+    issueCount,
   };
 }

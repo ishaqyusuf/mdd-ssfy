@@ -63,10 +63,6 @@ export function SalesFormSave({ type = "button", and }: Props) {
             salesNo: resp.salesNo,
             salesType: resp.salesType,
         } as CreateSalesHistorySchemaTask);
-        tsk.triggerWithAuth("sync-sales-inventory-line-items", {
-            salesOrderId: resp.salesId,
-            source: "old-form",
-        });
         if (resp?.salesType == "order")
             await resetSalesStatAction(resp.salesId, resp?.salesNo);
         if (s?.updateId) triggerEvent("salesUpdated", s?.id);

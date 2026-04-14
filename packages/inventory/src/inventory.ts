@@ -6,12 +6,20 @@ import type {
   InventoryCategoryForm,
   InventoryForm,
   InventoryProductKind,
+  InventoryProductKindReview,
+  StockAllocationReview,
+  ApproveStockAllocation,
+  RejectStockAllocation,
+  BulkApproveStockAllocation,
+  InboundItemIssueForm,
+  ResolveInboundItemIssue,
   InventorySupplierForm,
   InventorySuppliers,
   SupplierVariantForm,
   InventoryList,
   UpdateCategoryVariantAttribute,
   UpdateSubComponent,
+  UpdateCategoryStockMode,
   VariantForm,
 } from "./schema";
 import {
@@ -31,6 +39,88 @@ import { TABLE_NAMES } from "./application/import/strategies/handcrafted-importe
 import { z } from "zod";
 import { formatDate } from "@gnd/utils/dayjs";
 import type { StepMeta } from "./types";
+
+async function recomputeLineItemComponentFromAllocationState(
+  db: Db,
+  lineItemComponentId: number,
+) {
+  const component = await db.lineItemComponents.findUnique({
+    where: {
+      id: lineItemComponentId,
+    },
+    select: {
+      id: true,
+      qty: true,
+      inboundDemands: {
+        where: {
+          deletedAt: null,
+          status: {
+            not: "cancelled",
+          },
+        },
+        select: {
+          qty: true,
+          qtyReceived: true,
+        },
+      },
+      stockAllocations: {
+        where: {
+          deletedAt: null,
+          status: {
+            in: ["approved", "reserved", "picked", "consumed"],
+          },
+        },
+        select: {
+          qty: true,
+        },
+      },
+    },
+  });
+  if (!component) return null;
+
+  const qtyRequired = Number(component.qty || 0);
+  const qtyAllocated = component.stockAllocations.reduce(
+    (sum, allocation) => sum + Number(allocation.qty || 0),
+    0,
+  );
+  const qtyInbound = component.inboundDemands.reduce(
+    (sum, demand) => sum + Number(demand.qty || 0),
+    0,
+  );
+  const qtyReceived = component.inboundDemands.reduce(
+    (sum, demand) => sum + Number(demand.qtyReceived || 0),
+    0,
+  );
+
+  let status: any = "pending";
+  if (qtyRequired <= 0) {
+    status = "cancelled";
+  } else if (qtyAllocated >= qtyRequired && qtyInbound <= 0) {
+    status = "allocated";
+  } else if (qtyAllocated > 0 && qtyInbound > 0) {
+    status = "partially_allocated";
+  } else if (qtyInbound > 0) {
+    status = "inbound_required";
+  }
+  if (qtyReceived > 0 && qtyReceived < qtyInbound) {
+    status = "partially_received";
+  }
+  if (qtyReceived >= qtyInbound && qtyInbound > 0) {
+    status = qtyAllocated + qtyReceived >= qtyRequired ? "fulfilled" : "partially_received";
+  }
+
+  return db.lineItemComponents.update({
+    where: {
+      id: component.id,
+    },
+    data: {
+      qtyAllocated,
+      qtyInbound,
+      qtyReceived,
+      status,
+    },
+  });
+}
 
 export async function inventoryList(db: Db, query: InventoryList) {
   const where = whereInventoryProducts(query);
@@ -72,7 +162,9 @@ export async function inventoryList(db: Db, query: InventoryList) {
   });
   const response = await params.response(
     data.map((r) => {
-      const stockMode = r.stockMode as StockModes;
+      const stockMode = (r.inventoryCategory?.stockMode ||
+        r.stockMode ||
+        "unmonitored") as StockModes;
       return {
         id: r.id,
         title: r.name,
@@ -211,6 +303,7 @@ export async function getInventoryCategoryForm(
       enablePricing: true,
       img: true,
       ...({ productKind: true } as any),
+      stockMode: true,
       title: true,
       categoryVariantAttributes: {
         where: {
@@ -229,6 +322,7 @@ export async function getInventoryCategoryForm(
     id: number;
     title: string;
     productKind?: InventoryProductKind | null;
+    stockMode?: StockModes | null;
     description?: string | null;
     enablePricing?: boolean | null;
     img?: string | null;
@@ -242,6 +336,7 @@ export async function getInventoryCategoryForm(
     id: category.id,
     title: category.title,
     productKind: (category.productKind || "inventory") as InventoryProductKind,
+    stockMode: (category.stockMode || "unmonitored") as StockModes,
     description: category.description || null,
     enablePricing: category.enablePricing ?? false,
     categoryVariantAttributes: (category.categoryVariantAttributes || []).map(
@@ -272,6 +367,7 @@ export async function getInventoryCategories(
     select: {
       id: true,
       title: true,
+      stockMode: true,
       ...(data.productKind ? ({ productKind: true } as any) : {}),
     },
   });
@@ -350,7 +446,9 @@ export async function inventorySummary(db: Db, data: InventorySummary) {
       const inv = await db.inventoryVariant.findMany({
         where: {
           inventory: {
-            stockMode: "monitored" as StockModes,
+            inventoryCategory: {
+              stockMode: "monitored" as StockModes,
+            },
           },
           lowStockAlert:
             data.type == "inventory_value"
@@ -842,9 +940,15 @@ export async function saveInventory(db: Db, data: InventoryForm) {
   const { product } = data;
   const productKind = (product.productKind ||
     "inventory") as InventoryProductKind;
-  const stockMode: StockModes = product.stockMonitor
-    ? "monitored"
-    : "unmonitored";
+  const category = await db.inventoryCategory.findUnique({
+    where: {
+      id: product.categoryId,
+    },
+    select: {
+      stockMode: true,
+    },
+  });
+  const stockMode = (category?.stockMode || "unmonitored") as StockModes;
   if (inventoryId) {
     inventoryUid = (
       await db.inventory.update({
@@ -861,7 +965,7 @@ export async function saveInventory(db: Db, data: InventoryForm) {
             sourceComponentUid: null,
             sourceCustom: false,
           } as any),
-          stockMode: productKind === "component" ? "unmonitored" : stockMode,
+          stockMode,
           description: product.description,
           primaryStoreFront: product.primaryStoreFront,
         },
@@ -882,7 +986,7 @@ export async function saveInventory(db: Db, data: InventoryForm) {
         description: product.description,
         status: product.status,
         publishedAt: product.status == "published" ? new Date() : null,
-        stockMode: productKind === "component" ? "unmonitored" : stockMode,
+        stockMode,
         primaryStoreFront: product.primaryStoreFront || false,
         inventoryCategory: {
           connect: {
@@ -979,6 +1083,7 @@ export async function inventoryForm(db: Db, inventoryId) {
       inventoryCategory: {
         select: {
           enablePricing: true,
+          stockMode: true,
         },
       },
       variants: {
@@ -1021,7 +1126,9 @@ export async function inventoryForm(db: Db, inventoryId) {
       name: inv.name,
       productKind: (inv.productKind || "inventory") as InventoryProductKind,
       status: inv.status as any,
-      stockMonitor: (inv.stockMode as StockModes) == "monitored",
+      stockMonitor:
+        ((inv.inventoryCategory?.stockMode || inv.stockMode || "unmonitored") as StockModes) ==
+        "monitored",
       description: inv.description,
       id: inv?.id!,
       primaryStoreFront: !!inv.primaryStoreFront,
@@ -1434,86 +1541,133 @@ export async function backfillInventoryImportSources(db: Db) {
   };
 }
 
-export async function inventoryProductKindReview(db: Db) {
-  const inventories = await db.inventory.findMany({
-    where: {
-      deletedAt: null,
-    },
-    select: {
-      id: true,
-      uid: true,
-      name: true,
-      productKind: true,
-      inventoryCategory: {
-        select: {
-          title: true,
-        },
-      },
-      _count: {
-        select: {
-          variants: {
-            where: {
-              deletedAt: null,
-            },
-          },
-          variantPricings: {
-            where: {
-              deletedAt: null,
-            },
+function meaningfulPriceWhere(): Prisma.InventoryWhereInput {
+  return {
+    OR: [
+      {
+        variantPricings: {
+          some: {
+            deletedAt: null,
+            OR: [{ costPrice: { gt: 0 } }, { price: { gt: 0 } }],
           },
         },
       },
-    },
-    orderBy: {
-      name: "asc",
+      {
+        variants: {
+          some: {
+            deletedAt: null,
+            OR: [
+              {
+                pricing: {
+                  is: {
+                    OR: [{ costPrice: { gt: 0 } }, { price: { gt: 0 } }],
+                  },
+                },
+              },
+              {
+                supplierVariants: {
+                  some: {
+                    deletedAt: null,
+                    active: true,
+                    OR: [{ costPrice: { gt: 0 } }, { salesPrice: { gt: 0 } }],
+                  },
+                },
+              },
+            ],
+          },
+        },
+      },
+    ],
+  };
+}
+
+export async function inventoryProductKindReview(
+  db: Db,
+  query: InventoryProductKindReview,
+) {
+  const baseWhere: Prisma.InventoryWhereInput = {
+    deletedAt: null,
+  };
+  const params = await composeQueryData(query, baseWhere, db.inventory, {
+    sortFn(sort, sortOrder) {
+      if (sort === "name") {
+        return { name: sortOrder };
+      }
+      return { name: "asc" };
     },
   });
 
-  const pricedInventoryRows = await db.inventory.findMany({
-    where: {
-      deletedAt: null,
-      OR: [
-        {
-          variantPricings: {
-            some: {
-              deletedAt: null,
-              OR: [{ costPrice: { gt: 0 } }, { price: { gt: 0 } }],
+  const [inventories, total, pricedCount, mismatchInventoryCount, mismatchComponentCount] =
+    await Promise.all([
+      db.inventory.findMany({
+        ...params.queryProps,
+        select: {
+          id: true,
+          uid: true,
+          name: true,
+          productKind: true,
+          inventoryCategory: {
+            select: {
+              title: true,
+            },
+          },
+          _count: {
+            select: {
+              variants: {
+                where: {
+                  deletedAt: null,
+                },
+              },
+              variantPricings: {
+                where: {
+                  deletedAt: null,
+                },
+              },
             },
           },
         },
-        {
-          variants: {
-            some: {
-              deletedAt: null,
-              OR: [
-                {
-                  pricing: {
-                    is: {
-                      OR: [{ costPrice: { gt: 0 } }, { price: { gt: 0 } }],
-                    },
-                  },
-                },
-                {
-                  supplierVariants: {
-                    some: {
-                      deletedAt: null,
-                      active: true,
-                      OR: [{ costPrice: { gt: 0 } }, { salesPrice: { gt: 0 } }],
-                    },
-                  },
-                },
-              ],
-            },
-          },
+      }),
+      db.inventory.count({
+        where: baseWhere,
+      }),
+      db.inventory.count({
+        where: {
+          ...baseWhere,
+          ...meaningfulPriceWhere(),
         },
-      ],
-    },
-    select: {
-      id: true,
-    },
-  });
+      }),
+      db.inventory.count({
+        where: {
+          ...baseWhere,
+          productKind: "inventory",
+          NOT: meaningfulPriceWhere(),
+        },
+      }),
+      db.inventory.count({
+        where: {
+          ...baseWhere,
+          productKind: "component",
+          ...meaningfulPriceWhere(),
+        },
+      }),
+    ]);
 
-  const pricedInventoryIds = new Set(pricedInventoryRows.map((item) => item.id));
+  const pageIds = inventories.map((item) => item.id);
+  const pricedPageRows = pageIds.length
+    ? await db.inventory.findMany({
+        where: {
+          id: {
+            in: pageIds,
+          },
+          ...meaningfulPriceWhere(),
+        },
+        select: {
+          id: true,
+        },
+      })
+    : [];
+
+  const pricedInventoryIds = new Set(pricedPageRows.map((item) => item.id));
 
   const rows = inventories.map((inventory) => {
     const hasMeaningfulPrice = pricedInventoryIds.has(inventory.id);
@@ -1538,10 +1692,306 @@ export async function inventoryProductKindReview(db: Db) {
   });
 
   return {
-    total: rows.length,
-    mismatched: rows.filter((row) => row.needsReview).length,
-    rows,
+    ...params.response(rows),
+    summary: {
+      total,
+      priced: pricedCount,
+      componentSuggested: total - pricedCount,
+      mismatched: mismatchInventoryCount + mismatchComponentCount,
+    },
   };
+}
+
+function whereStockAllocationReview(query: StockAllocationReview) {
+  const wheres: Prisma.StockAllocationWhereInput[] = [
+    {
+      deletedAt: null,
+    },
+  ];
+  if (query.saleId) {
+    wheres.push({
+      lineItemComponent: {
+        parent: {
+          saleId: query.saleId,
+        },
+      },
+    });
+  }
+  if (query.inventoryId) {
+    wheres.push({
+      inventoryVariant: {
+        inventoryId: query.inventoryId,
+      },
+    });
+  }
+  if (query.inventoryVariantId) {
+    wheres.push({
+      inventoryVariantId: query.inventoryVariantId,
+    });
+  }
+  if (query.status?.length) {
+    wheres.push({
+      status: {
+        in: query.status as any,
+      },
+    });
+  }
+  return composeQuery(wheres);
+}
+
+export async function pendingStockAllocations(
+  db: Db,
+  query: StockAllocationReview,
+) {
+  const where = whereStockAllocationReview({
+    ...query,
+    status: query.status?.length ? query.status : ["pending_review"],
+  });
+  const params = await composeQueryData(query, where, db.stockAllocation, {
+    sortFn(sort, sortOrder) {
+      if (sort === "createdAt") return { createdAt: sortOrder };
+      return { createdAt: "asc" };
+    },
+  });
+
+  const rows = await db.stockAllocation.findMany({
+    ...params.queryProps,
+    include: {
+      inventoryStock: {
+        select: {
+          id: true,
+          qty: true,
+          supplier: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+      inventoryVariant: {
+        select: {
+          id: true,
+          sku: true,
+          uid: true,
+          inventoryId: true,
+          inventory: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+      lineItemComponent: {
+        select: {
+          id: true,
+          qty: true,
+          status: true,
+          parent: {
+            select: {
+              id: true,
+              title: true,
+              saleId: true,
+              sale: {
+                select: {
+                  id: true,
+                  orderId: true,
+                  slug: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return params.response(
+    rows.map((row) => ({
+      id: row.id,
+      qty: row.qty,
+      status: row.status,
+      notes: row.notes,
+      inventoryStockId: row.inventoryStockId,
+      inventoryStockQty: Number(row.inventoryStock?.qty || 0),
+      supplierName: row.inventoryStock?.supplier?.name || null,
+      inventoryVariant: row.inventoryVariant,
+      lineItemComponent: row.lineItemComponent,
+      shortageQty: Math.max(
+        0,
+        Number(row.lineItemComponent?.qty || 0) - Number(row.qty || 0),
+      ),
+      createdAt: row.createdAt,
+    })),
+  );
+}
+
+export async function approveStockAllocation(
+  db: Db,
+  input: ApproveStockAllocation,
+) {
+  const allocation = await db.stockAllocation.findUniqueOrThrow({
+    where: {
+      id: input.allocationId,
+    },
+    select: {
+      id: true,
+      qty: true,
+      lineItemComponentId: true,
+    },
+  });
+
+  await db.stockAllocation.update({
+    where: {
+      id: allocation.id,
+    },
+    data: {
+      qty: input.approvedQty == null ? allocation.qty : Number(input.approvedQty || 0),
+      status: "approved",
+      notes: input.notes || undefined,
+      deletedAt: null,
+    },
+  });
+
+  await recomputeLineItemComponentFromAllocationState(
+    db,
+    allocation.lineItemComponentId,
+  );
+
+  return {
+    ok: true,
+    allocationId: allocation.id,
+  };
+}
+
+export async function rejectStockAllocation(
+  db: Db,
+  input: RejectStockAllocation,
+) {
+  const allocation = await db.stockAllocation.findUniqueOrThrow({
+    where: {
+      id: input.allocationId,
+    },
+    select: {
+      id: true,
+      lineItemComponentId: true,
+    },
+  });
+
+  await db.stockAllocation.update({
+    where: {
+      id: allocation.id,
+    },
+    data: {
+      status: "cancelled",
+      notes: input.notes || undefined,
+      deletedAt: new Date(),
+    },
+  });
+
+  await recomputeLineItemComponentFromAllocationState(
+    db,
+    allocation.lineItemComponentId,
+  );
+
+  return {
+    ok: true,
+    allocationId: allocation.id,
+  };
+}
+
+export async function approveBulkStockAllocation(
+  db: Db,
+  input: BulkApproveStockAllocation,
+) {
+  const allocations = await db.stockAllocation.findMany({
+    where: {
+      id: {
+        in: input.allocationIds,
+      },
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      lineItemComponentId: true,
+    },
+  });
+
+  if (!allocations.length) {
+    return {
+      ok: true,
+      count: 0,
+    };
+  }
+
+  await db.stockAllocation.updateMany({
+    where: {
+      id: {
+        in: allocations.map((allocation) => allocation.id),
+      },
+    },
+    data: {
+      status: "approved",
+    },
+  });
+
+  const componentIds = Array.from(
+    new Set(allocations.map((allocation) => allocation.lineItemComponentId)),
+  );
+  for (const componentId of componentIds) {
+    await recomputeLineItemComponentFromAllocationState(db, componentId);
+  }
+
+  return {
+    ok: true,
+    count: allocations.length,
+  };
+}
+
+export async function reportInboundItemIssue(
+  db: Db,
+  input: InboundItemIssueForm,
+) {
+  const payload = {
+    inboundShipmentItemId: input.inboundShipmentItemId,
+    issueType: input.issueType,
+    reportedQty: Number(input.reportedQty || 0),
+    notes: input.notes || null,
+    status: input.status || "open",
+    resolutionType: input.resolutionType || null,
+    resolvedQty: Number(input.resolvedQty || 0),
+  };
+
+  if (input.id) {
+    return db.inboundShipmentItemIssue.update({
+      where: {
+        id: input.id,
+      },
+      data: payload,
+    });
+  }
+
+  return db.inboundShipmentItemIssue.create({
+    data: payload,
+  });
+}
+
+export async function resolveInboundItemIssue(
+  db: Db,
+  input: ResolveInboundItemIssue,
+) {
+  return db.inboundShipmentItemIssue.update({
+    where: {
+      id: input.issueId,
+    },
+    data: {
+      status: input.status || "resolved",
+      resolutionType: input.resolutionType || null,
+      resolvedQty: input.resolvedQty == null ? undefined : Number(input.resolvedQty || 0),
+      notes: input.notes || undefined,
+    },
+  });
 }
 
 export async function saveVariantForm(db: Db, data: VariantForm) {
@@ -1630,6 +2080,7 @@ export async function inventoryCategories(db: Db, query: InventoryCategories) {
       title: true,
       description: true,
       ...({ productKind: true } as any),
+      stockMode: true,
       type: true,
       _count: {
         select: {
@@ -1714,6 +2165,7 @@ export async function saveInventoryCategoryForm(
         title: data.title,
         uid: generateRandomString(5),
         ...({ productKind: data.productKind } as any),
+        stockMode: data.stockMode || "unmonitored",
         enablePricing: data.enablePricing,
         description: data.description,
         type: data.type,
@@ -1736,6 +2188,7 @@ export async function saveInventoryCategoryForm(
       data: {
         title: data.title,
         ...({ productKind: data.productKind } as any),
+        stockMode: data.stockMode || "unmonitored",
         // uid: generateRandomString(5),
         enablePricing: data.enablePricing,
         description: data.description,
@@ -1761,6 +2214,24 @@ export async function updateCategoryVariantAttribute(
     },
     data: {
       deletedAt: data.active ? null : new Date(),
+    },
+  });
+}
+
+export async function updateCategoryStockMode(
+  db: Db,
+  data: UpdateCategoryStockMode,
+) {
+  return db.inventoryCategory.update({
+    where: {
+      id: data.id,
+    },
+    data: {
+      stockMode: data.stockMode,
+    },
+    select: {
+      id: true,
+      stockMode: true,
     },
   });
 }

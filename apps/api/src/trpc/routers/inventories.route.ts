@@ -7,12 +7,19 @@ import {
   upsertInventoriesForDykeShelfProductsSchema,
 } from "@api/db/queries/inventory.generate";
 import {
+  approveStockAllocationSchema,
+  bulkApproveStockAllocationSchema,
+  inboundItemIssueFormSchema,
   getInventoryCategoriesSchema,
   dykeInventoryDriftReportSchema,
   deleteInventorySupplierSchema,
   dykeStepComponentSchema,
   inventorySupplierFormSchema,
   inventorySuppliersSchema,
+  inventoryProductKindReviewSchema,
+  resolveInboundItemIssueSchema,
+  rejectStockAllocationSchema,
+  stockAllocationReviewSchema,
   inventoryCategoriesSchema,
   inventoryCategoryFormSchema,
   inventoryFormSchema,
@@ -22,11 +29,14 @@ import {
   updateDykeComponentPricingSchema,
   inventoryListSchema,
   updateCategoryVariantAttributeSchema,
+  updateCategoryStockModeSchema,
   updateSubComponentSchema,
   variantFormSchema,
 } from "@gnd/inventory/schema";
 import { getStoreAddonComponentFormSchema } from "@gnd/sales/schema";
 import {
+  approveBulkStockAllocation,
+  approveStockAllocation,
   deleteInventories,
   deleteInventoryCategory,
   getInventoryCategories,
@@ -44,6 +54,7 @@ import {
   saveInventoryCategoryForm,
   saveVariantForm,
   updateCategoryVariantAttribute,
+  updateCategoryStockMode,
   dykeUpdateFromInventory,
   inventoryUpdateFromDyke,
   updateSubCategory,
@@ -64,6 +75,10 @@ import {
   backfillInventoryImportSources,
   backfillInventoryProductKinds,
   deleteInventorySupplier,
+  pendingStockAllocations,
+  rejectStockAllocation,
+  reportInboundItemIssue,
+  resolveInboundItemIssue,
   saveDykeStepComponent,
   saveInventorySupplier,
   saveSupplierVariantForm,
@@ -109,11 +124,46 @@ import {
 //   zoneBasedFormSchema,
 // } from "@sales/shipping";
 export const inventoriesRouter = createTRPCRouter({
+  pendingAllocations: protectedProcedure
+    .input(stockAllocationReviewSchema)
+    .query(async (props) => {
+      return pendingStockAllocations(props.ctx.db, props.input);
+    }),
+  approveStockAllocation: protectedProcedure
+    .input(approveStockAllocationSchema)
+    .mutation(async (props) => {
+      return approveStockAllocation(props.ctx.db, {
+        ...props.input,
+        authorName: props.input.authorName || String(props.ctx.userId),
+      });
+    }),
+  rejectStockAllocation: protectedProcedure
+    .input(rejectStockAllocationSchema)
+    .mutation(async (props) => {
+      return rejectStockAllocation(props.ctx.db, props.input);
+    }),
+  approveBulkStockAllocation: protectedProcedure
+    .input(bulkApproveStockAllocationSchema)
+    .mutation(async (props) => {
+      return approveBulkStockAllocation(props.ctx.db, {
+        ...props.input,
+        authorName: props.input.authorName || String(props.ctx.userId),
+      });
+    }),
   inboundShipments: protectedProcedure
     .input(
       z.object({
         status: z
-          .array(z.enum(["pending", "in_progress", "completed", "cancelled"]))
+          .array(
+            z.enum([
+              "pending",
+              "in_progress",
+              "completed",
+              "issue_open",
+              "closed",
+              "cancelled",
+            ]),
+          )
           .optional(),
         supplierId: z.number().optional().nullable(),
       }),
@@ -266,7 +316,20 @@ export const inventoriesRouter = createTRPCRouter({
             z.object({
               inboundShipmentItemId: z.number(),
               qtyReceived: z.number().optional().nullable(),
+              qtyGood: z.number().optional().nullable(),
+              qtyIssue: z.number().optional().nullable(),
               unitPrice: z.number().optional().nullable(),
+              issueType: z
+                .enum([
+                  "damaged",
+                  "missing",
+                  "wrong_item",
+                  "over_received",
+                  "quality_hold",
+                ])
+                .optional()
+                .nullable(),
+              issueNotes: z.string().optional().nullable(),
             })
           )
           .optional(),
@@ -277,6 +340,16 @@ export const inventoriesRouter = createTRPCRouter({
         ...props.input,
         authorName: String(props.ctx.userId),
       });
+    }),
+  reportInboundItemIssue: protectedProcedure
+    .input(inboundItemIssueFormSchema)
+    .mutation(async (props) => {
+      return reportInboundItemIssue(props.ctx.db, props.input);
+    }),
+  resolveInboundItemIssue: protectedProcedure
+    .input(resolveInboundItemIssueSchema)
+    .mutation(async (props) => {
+      return resolveInboundItemIssue(props.ctx.db, props.input);
     }),
   saveCommunityInput: publicProcedure
     .input(saveCommunityInputSchema)
@@ -507,9 +580,11 @@ export const inventoriesRouter = createTRPCRouter({
     .query(async (props) => {
       return inventoryList(props.ctx.db, props.input);
     }),
-  inventoryProductKindReview: protectedProcedure.query(async (props) => {
-    return inventoryProductKindReview(props.ctx.db);
-  }),
+  inventoryProductKindReview: protectedProcedure
+    .input(inventoryProductKindReviewSchema)
+    .query(async (props) => {
+      return inventoryProductKindReview(props.ctx.db, props.input);
+    }),
   backfillInventoryProductKinds: protectedProcedure
     .mutation(async (props) => {
       return backfillInventoryProductKinds(props.ctx.db);
@@ -571,6 +646,11 @@ export const inventoriesRouter = createTRPCRouter({
     .input(updateCategoryVariantAttributeSchema)
     .mutation(async (props) => {
       return updateCategoryVariantAttribute(props.ctx.db, props.input);
+    }),
+  updateCategoryStockMode: publicProcedure
+    .input(updateCategoryStockModeSchema)
+    .mutation(async (props) => {
+      return updateCategoryStockMode(props.ctx.db, props.input);
     }),
   updateSubCategory: publicProcedure
     .input(updateSubCategorySchema)

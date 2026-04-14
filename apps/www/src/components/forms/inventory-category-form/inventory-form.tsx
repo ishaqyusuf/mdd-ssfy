@@ -6,6 +6,7 @@ import FormInput from "@/components/common/controls/form-input";
 import FormSwitch from "@/components/common/controls/form-switch";
 import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
 import { FormCombobox } from "@/components/common/controls/form-combobox";
+import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { selectOptions } from "@gnd/utils";
 import { Separator } from "@gnd/ui/separator";
 import { useFieldArray } from "react-hook-form";
@@ -13,6 +14,7 @@ import { Label } from "@gnd/ui/label";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { INVENTORY_PRODUCT_KINDS } from "@gnd/inventory/schema";
+import { STOCK_MODES } from "@gnd/inventory/constants";
 
 export function InventoryCategoryForm({}) {
     //
@@ -54,6 +56,7 @@ export function InventoryCategoryForm({}) {
                             valuesInventoryCategoryId:
                                 data.valuesInventoryCategoryId,
                         });
+                    form.setValue("categoryIdSelector", null);
                 },
             },
         );
@@ -85,6 +88,20 @@ export function InventoryCategoryForm({}) {
                         })),
                     }}
                 />
+                <FormCombobox
+                    control={form.control}
+                    name="stockMode"
+                    label="Default Stock Mode"
+                    comboProps={{
+                        items: STOCK_MODES.map((mode) => ({
+                            label:
+                                mode === "monitored"
+                                    ? "Monitored"
+                                    : "Unmonitored",
+                            value: mode,
+                        })),
+                    }}
+                />
                 <FormInput
                     label="Description"
                     control={form.control}
@@ -105,18 +122,38 @@ export function InventoryCategoryForm({}) {
                     name="enablePricing"
                 />
                 <Separator className="" />
-                <FormCombobox
-                    control={form.control}
-                    name="categoryIdSelector"
-                    label="Variation Categories (Optional)"
-                    comboProps={{
-                        onSelect(item) {
+                <div className="mx-1 space-y-2">
+                    <Label className="text-sm font-medium">
+                        Variation Categories (Optional)
+                    </Label>
+                    <ComboboxDropdown
+                        items={selectOptions(categoryList, "title", "id")}
+                        placeholder="Select Variation Categories"
+                        selectedItem={undefined}
+                        onSelect={(item) => {
                             selectVariantCategory(Number(item.id));
-                        },
-                        items: selectOptions(categoryList, "title", "id"),
-                        placeholder: "Select Variation Categories",
-                    }}
-                />
+                        }}
+                        renderListItem={({ item }) => {
+                            const isChecked = fields.some(
+                                (field) =>
+                                    field.valuesInventoryCategoryId === Number(item.id) &&
+                                    field.active,
+                            );
+                            return (
+                                <>
+                                    <Icons.Check
+                                        className={
+                                            isChecked
+                                                ? "mr-2 h-4 w-4 opacity-100"
+                                                : "mr-2 h-4 w-4 opacity-0"
+                                        }
+                                    />
+                                    {item.label}
+                                </>
+                            );
+                        }}
+                    />
+                </div>
                 {fields.length > 0 && (
                     <div className="space-y-2">
                         <Label className="text-sm font-medium">

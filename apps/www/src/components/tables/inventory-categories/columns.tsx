@@ -6,6 +6,10 @@ import { RouterOutputs } from "@api/trpc/routers/_app";
 import { ActionCell } from "../action-cell";
 import { IconButton } from "@/components/icon-button";
 import { useInventoryCategoryParams } from "@/hooks/use-inventory-category-params";
+import { useTRPC } from "@/trpc/client";
+import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
+import { Button } from "@gnd/ui/button";
+import { toast } from "@gnd/ui/use-toast";
 
 export type Item =
     RouterOutputs["inventories"]["inventoryCategories"]["data"][number];
@@ -31,6 +35,12 @@ const description: Column = {
     cell: ({ row: { original: item } }) => (
         <TCell.Secondary>{item.description}</TCell.Secondary>
     ),
+};
+const stockMode: Column = {
+    header: "Stock Mode",
+    accessorKey: "Stock Mode",
+    meta: {},
+    cell: ({ row: { original: item } }) => <CategoryStockModeCell item={item} />,
 };
 const variationCategory: Column = {
     header: "Variation Categories",
@@ -78,6 +88,7 @@ const action: Column = {
 export const columns: Column[] = [
     category,
     description,
+    stockMode,
     variationCategory,
     inventories,
     action,
@@ -104,6 +115,9 @@ function ItemCard({ item }: ItemProps) {
             <TCell.Secondary>{item.description}</TCell.Secondary>
             <div className="flex items-center gap-4">
                 <TCell.Secondary>
+                    Stock: {(item.stockMode || "unmonitored").toUpperCase()}
+                </TCell.Secondary>
+                <TCell.Secondary>
                     Variations: {item._count?.categoryVariantAttributes || 0}
                 </TCell.Secondary>
                 <TCell.Secondary>
@@ -114,3 +128,49 @@ function ItemCard({ item }: ItemProps) {
     );
 }
 
+function CategoryStockModeCell({ item }: ItemProps) {
+    const trpc = useTRPC();
+    const qc = useQueryClient();
+    const mutation = useMutation(
+        trpc.inventories.updateCategoryStockMode.mutationOptions({
+            onSuccess() {
+                qc.invalidateQueries({
+                    queryKey: trpc.inventories.inventoryCategories.infiniteQueryKey(),
+                });
+                qc.invalidateQueries({
+                    queryKey: trpc.inventories.inventoryCategoryForm.queryKey(item.id),
+                });
+                qc.invalidateQueries({
+                    queryKey: trpc.inventories.getInventoryCategories.queryKey(),
+                });
+                toast({
+                    title: "Category stock mode updated",
+                    variant: "success",
+                });
+            },
+        }),
+    );
+    const stockMode = item.stockMode || "unmonitored";
+    const nextStockMode =
+        stockMode === "monitored" ? "unmonitored" : "monitored";
+
+    return (
+        <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 uppercase"
+            disabled={mutation.isPending}
+            onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                mutation.mutate({
+                    id: item.id,
+                    stockMode: nextStockMode,
+                });
+            }}
+        >
+            {mutation.isPending ? "Updating..." : stockMode}
+        </Button>
+    );
+}

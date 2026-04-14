@@ -52,6 +52,15 @@ export function ProductInformationSection({}) {
     } = useProduct();
     const isComponent = productKind === "component";
     const category = categoryList?.find((c) => c.id === categoryId);
+    useEffect(() => {
+        if (!category || isComponent || inventoryId) return;
+        const nextStockMonitor = category.stockMode === "monitored";
+        if (form.getValues("product.stockMonitor") !== nextStockMonitor) {
+            form.setValue("product.stockMonitor", nextStockMonitor, {
+                shouldDirty: true,
+            });
+        }
+    }, [category?.id, category?.stockMode, isComponent, inventoryId]);
     return (
         <AccordionItem value="general">
             <AccordionTrigger className="">
@@ -61,7 +70,12 @@ export function ProductInformationSection({}) {
                     <Progress>
                         <Progress.Status>{status || "draft"}</Progress.Status>
                     </Progress>
-                    {!stockMonitor || (
+                    {stockMonitor ? (
+                        <Badge variant="outline" className="gap-1">
+                            <Icons.Eye className="h-3 w-3" />
+                            Stock Monitored
+                        </Badge>
+                    ) : (
                         <Badge variant="outline" className="gap-1">
                             <Icons.EyeOff className="h-3 w-3" />
                             Stock Unmonitored
@@ -142,6 +156,7 @@ export function ProductInformationSection({}) {
                                 <Label>Stock Monitoring</Label>
                                 <FormCheckbox
                                     switchInput
+                                    disabled
                                     label={
                                         <div
                                             className={cn(
@@ -168,9 +183,11 @@ export function ProductInformationSection({}) {
                                     name="product.stockMonitor"
                                 />
                                 <FormDescription>
-                                    {stockMonitor
-                                        ? `Stock levels will be tracked and displayed`
-                                        : `Stock levels will not be tracked or displayed`}
+                                    {category
+                                        ? `Driven by category default: ${category.title} is ${category.stockMode === "monitored" ? "monitored" : "unmonitored"}.`
+                                        : stockMonitor
+                                          ? `Stock levels will be tracked and displayed`
+                                          : `Stock levels will not be tracked or displayed`}
                                 </FormDescription>
                             </div>
                         </div>

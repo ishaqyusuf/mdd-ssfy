@@ -4,6 +4,7 @@ import {
   IMPORT_RUN_SOURCES,
   IMPORT_STRATEGIES,
   INVENTORY_STATUS,
+  STOCK_MODES,
 } from "./constants";
 
 export const INVENTORY_PRODUCT_KINDS = ["inventory", "component"] as const;
@@ -54,6 +55,82 @@ export const inventoryCategoriesSchema = z
   })
   .extend(paginationSchema.shape);
 export type InventoryCategories = z.infer<typeof inventoryCategoriesSchema>;
+
+export const inventoryProductKindReviewSchema = z
+  .object({})
+  .extend(paginationSchema.shape);
+export type InventoryProductKindReview = z.infer<
+  typeof inventoryProductKindReviewSchema
+>;
+
+export const stockAllocationReviewSchema = z
+  .object({
+    saleId: z.number().optional().nullable(),
+    inventoryId: z.number().optional().nullable(),
+    inventoryVariantId: z.number().optional().nullable(),
+    status: z
+      .array(
+        z.enum([
+          "pending_review",
+          "approved",
+          "reserved",
+          "picked",
+          "consumed",
+          "released",
+          "cancelled",
+        ]),
+      )
+      .optional()
+      .nullable(),
+  })
+  .extend(paginationSchema.shape);
+export type StockAllocationReview = z.infer<typeof stockAllocationReviewSchema>;
+
+export const approveStockAllocationSchema = z.object({
+  allocationId: z.number(),
+  approvedQty: z.number().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  authorName: z.string().optional().nullable(),
+});
+export type ApproveStockAllocation = z.infer<
+  typeof approveStockAllocationSchema
+>;
+
+export const rejectStockAllocationSchema = z.object({
+  allocationId: z.number(),
+  notes: z.string().optional().nullable(),
+});
+export type RejectStockAllocation = z.infer<typeof rejectStockAllocationSchema>;
+
+export const bulkApproveStockAllocationSchema = z.object({
+  allocationIds: z.array(z.number()).min(1),
+  authorName: z.string().optional().nullable(),
+});
+export type BulkApproveStockAllocation = z.infer<
+  typeof bulkApproveStockAllocationSchema
+>;
+
+export const inboundIssueTypeSchema = z.enum([
+  "damaged",
+  "missing",
+  "wrong_item",
+  "over_received",
+  "quality_hold",
+]);
+export const inboundIssueStatusSchema = z.enum([
+  "open",
+  "supplier_notified",
+  "replacement_pending",
+  "resolved",
+  "cancelled",
+]);
+export const inboundIssueResolutionTypeSchema = z.enum([
+  "return_to_supplier",
+  "replacement_requested",
+  "credit_requested",
+  "write_off",
+  "accepted_with_adjustment",
+]);
 
 export const inventoryFormSchema = z.object({
   mode: z.string().optional().nullable(),
@@ -197,10 +274,36 @@ export const variantFormSchema = z.object({
 });
 export type VariantForm = z.infer<typeof variantFormSchema>;
 
+export const inboundItemIssueFormSchema = z.object({
+  id: z.number().optional().nullable(),
+  inboundShipmentItemId: z.number(),
+  issueType: inboundIssueTypeSchema,
+  reportedQty: z.number(),
+  notes: z.string().optional().nullable(),
+  status: inboundIssueStatusSchema.optional().nullable(),
+  resolutionType: inboundIssueResolutionTypeSchema.optional().nullable(),
+  resolvedQty: z.number().optional().nullable(),
+  authorName: z.string().optional().nullable(),
+});
+export type InboundItemIssueForm = z.infer<typeof inboundItemIssueFormSchema>;
+
+export const resolveInboundItemIssueSchema = z.object({
+  issueId: z.number(),
+  status: inboundIssueStatusSchema.optional().nullable(),
+  resolutionType: inboundIssueResolutionTypeSchema.optional().nullable(),
+  resolvedQty: z.number().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  authorName: z.string().optional().nullable(),
+});
+export type ResolveInboundItemIssue = z.infer<
+  typeof resolveInboundItemIssueSchema
+>;
+
 export const inventoryCategoryFormSchema = z.object({
   id: z.number().optional().nullable(),
   title: z.string(),
   productKind: inventoryProductKindSchema.default("inventory"),
+  stockMode: z.enum(STOCK_MODES).optional().nullable().default("unmonitored"),
   description: z.string().optional().nullable(),
   type: z.string().optional().nullable(),
   enablePricing: z.boolean().optional().nullable().default(false),
@@ -223,6 +326,14 @@ export const updateCategoryVariantAttributeSchema = z.object({
 });
 export type UpdateCategoryVariantAttribute = z.infer<
   typeof updateCategoryVariantAttributeSchema
+>;
+
+export const updateCategoryStockModeSchema = z.object({
+  id: z.number(),
+  stockMode: z.enum(STOCK_MODES),
+});
+export type UpdateCategoryStockMode = z.infer<
+  typeof updateCategoryStockModeSchema
 >;
 
 export const dykeStepComponentSchema = z.object({

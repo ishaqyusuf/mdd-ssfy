@@ -441,7 +441,9 @@ export async function listInboundSuppliers(ctx: TRPCContext) {
 export async function listInboundShipmentsQuery(
   ctx: TRPCContext,
   input: {
-    status?: Array<"pending" | "in_progress" | "completed" | "cancelled">;
+    status?: Array<
+      "pending" | "in_progress" | "completed" | "issue_open" | "closed" | "cancelled"
+    >;
     supplierId?: number | null;
   } = {},
 ) {

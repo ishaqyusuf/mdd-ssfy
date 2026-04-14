@@ -607,6 +607,11 @@ async function syncComponentFulfillment(
           inventory: {
             select: {
               stockMode: true,
+              inventoryCategory: {
+                select: {
+                  stockMode: true,
+                },
+              },
             },
           },
         },
@@ -627,12 +632,14 @@ async function syncComponentFulfillment(
       db.stockAllocation.findMany({
         where: {
           lineItemComponentId: input.lineItemComponentId,
+          deletedAt: null,
         },
         select: {
           id: true,
           inventoryStockId: true,
           qty: true,
           status: true,
+          notes: true,
         },
       }),
       db.inboundDemand.findMany({
@@ -648,7 +655,9 @@ async function syncComponentFulfillment(
       }),
     ]);
 
-  const isMonitored = variant?.inventory?.stockMode === "monitored";
+  const isMonitored =
+    (variant?.inventory?.inventoryCategory?.stockMode ||
+      variant?.inventory?.stockMode) === "monitored";
 
   if (!isMonitored) {
     if (existingAllocations.length) {
@@ -694,7 +703,7 @@ async function syncComponentFulfillment(
       inventoryVariantId: input.inventoryVariantId,
       deletedAt: null,
       status: {
-        in: ["reserved", "picked"],
+        in: ["approved", "reserved", "picked", "consumed"],
       },
     },
     select: {
@@ -743,16 +752,26 @@ async function syncComponentFulfillment(
 
   for (const [inventoryStockId, qty] of desiredAllocations.entries()) {
     const existing = existingAllocationByStockId.get(inventoryStockId) as
-      | { id: number }
+      | {
+          id: number;
+          qty?: number | null;
+          status?: string | null;
+          notes?: string | null;
+        }
       | undefined;
     if (existing) {
+      const shouldKeepApproved =
+        existing.status === "approved" && Number(existing.qty || 0) === qty;
       await db.stockAllocation.update({
         where: {
           id: existing.id,
         },
         data: {
           qty,
-          status: "reserved",
+          status: shouldKeepApproved ? "approved" : "pending_review",
+          notes: shouldKeepApproved
+            ? existing.notes || undefined
+            : "Suggested allocation awaiting manual approval",
           deletedAt: null,
         },
       });
@@ -763,7 +782,8 @@ async function syncComponentFulfillment(
           inventoryStockId,
           inventoryVariantId: input.inventoryVariantId,
           qty,
-          status: "reserved",
+          status: "pending_review",
+          notes: "Suggested allocation awaiting manual approval",
         },
       });
     }
@@ -791,10 +811,18 @@ async function syncComponentFulfillment(
     });
   }
 
-  const qtyAllocated = Array.from(desiredAllocations.values()).reduce(
-    (sum, qty) => sum + qty,
-    0,
-  );
+  const committedAllocationQty = existingAllocations.reduce((sum, allocation) => {
+    const stockId = allocation.inventoryStockId;
+    if (!stockId) return sum;
+    const desiredQty = desiredAllocations.get(stockId);
+    if (!desiredQty) return sum;
+    const isCommitted =
+      allocation.status === "approved" &&
+      Number(allocation.qty || 0) === Number(desiredQty || 0);
+    return sum + (isCommitted ? Number(desiredQty || 0) : 0);
+  }, 0);
+
+  const qtyAllocated = committedAllocationQty;
   const qtyInbound = Math.max(0, qtyRequired - qtyAllocated);
   const qtyReceived = existingInboundDemands.reduce(
     (sum, demand) => sum + Number(demand.qtyReceived || 0),
@@ -1256,6 +1284,13 @@ export async function syncSalesInventoryLineItems(
           status: "released",
         },
       });
+      await db.stockAllocation.deleteMany({
+        where: {
+          lineItemComponentId: {
+            in: staleComponentIds,
+          },
+        },
+      });
       await db.inboundDemand.updateMany({
         where: {
           lineItemComponentId: {
@@ -1265,6 +1300,13 @@ export async function syncSalesInventoryLineItems(
         data: {
           deletedAt: new Date(),
           status: "cancelled",
+        },
+      });
+      await db.inboundDemand.deleteMany({
+        where: {
+          lineItemComponentId: {
+            in: staleComponentIds,
+          },
         },
       });
       await db.lineItemComponents.deleteMany({
@@ -1307,6 +1349,13 @@ export async function syncSalesInventoryLineItems(
           status: "released",
         },
       });
+      await db.stockAllocation.deleteMany({
+        where: {
+          lineItemComponentId: {
+            in: staleComponentIds,
+          },
+        },
+      });
       await db.inboundDemand.updateMany({
         where: {
           lineItemComponentId: {
@@ -1316,6 +1365,13 @@ export async function syncSalesInventoryLineItems(
         data: {
           deletedAt: new Date(),
           status: "cancelled",
+        },
+      });
+      await db.inboundDemand.deleteMany({
+        where: {
+          lineItemComponentId: {
+            in: staleComponentIds,
+          },
         },
       });
     }

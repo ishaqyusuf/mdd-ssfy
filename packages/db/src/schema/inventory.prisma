@@ -5,6 +5,7 @@ model InventoryCategory {
     uid           String
     productKind   String   @default("inventory")
     type          String?
+    stockMode     String?
     description   String?
     enablePricing Boolean?
     primary       Boolean?
@@ -515,7 +516,33 @@ enum InboundStatus {
     pending
     in_progress
     completed
+    issue_open
+    closed
     cancelled
+}
+
+enum InboundShipmentItemIssueType {
+    damaged
+    missing
+    wrong_item
+    over_received
+    quality_hold
+}
+
+enum InboundShipmentItemIssueStatus {
+    open
+    supplier_notified
+    replacement_pending
+    resolved
+    cancelled
+}
+
+enum InboundShipmentItemIssueResolutionType {
+    return_to_supplier
+    replacement_requested
+    credit_requested
+    write_off
+    accepted_with_adjustment
 }
 
 enum StockMovementType {
@@ -565,10 +592,13 @@ model InboundShipmentItem {
 
     qty       Float
     unitPrice Float?
+    qtyGood   Float?
+    qtyIssue  Float?
 
     // NEW: one-to-one link to StockMovement for auditing
     stockMovement StockMovement[]
     inboundDemands InboundDemand[]
+    issues         InboundShipmentItemIssue[]
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
@@ -576,6 +606,30 @@ model InboundShipmentItem {
 
     @@index([inboundId])
     @@index([inventoryVariantId])
+}
+
+model InboundShipmentItemIssue {
+    id Int @id @default(autoincrement())
+
+    inboundShipmentItemId Int
+    inboundShipmentItem   InboundShipmentItem @relation(fields: [inboundShipmentItemId], references: [id])
+
+    issueType      InboundShipmentItemIssueType
+    status         InboundShipmentItemIssueStatus @default(open)
+    resolutionType InboundShipmentItemIssueResolutionType?
+    reportedQty    Float
+    resolvedQty    Float @default(0)
+    notes          String?
+    reportedByUserId Int?
+    resolvedByUserId Int?
+    meta           Json? @db.Json
+
+    createdAt DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt DateTime? @updatedAt
+    deletedAt DateTime? @db.Timestamp(0)
+
+    @@index([inboundShipmentItemId])
+    @@index([status])
 }
 
 model InboundShipmentExtraction {
@@ -830,10 +884,13 @@ enum LineItemComponentStatus {
 }
 
 enum StockAllocationStatus {
+    pending_review
+    approved
     reserved
     picked
     consumed
     released
+    cancelled
 }
 
 enum InboundDemandStatus {

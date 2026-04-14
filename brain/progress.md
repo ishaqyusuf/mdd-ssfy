@@ -4,6 +4,16 @@
 
 ## 2026-04-13
 
+- Added category-level stock mode so inventory behavior can be defaulted from the category instead of only per-product.
+  - extended `InventoryCategory` in both Prisma schemas with `stockMode`
+  - extended `packages/inventory/src/schema.ts` and `packages/inventory/src/inventory.ts` so category forms now save/load `stockMode` and category queries expose it to the web app
+  - updated the inventory category form to let admins choose a default stock mode per category
+  - updated the inventory product form so, when creating/editing a non-component product, selecting a category now applies that category’s stock-mode default to `product.stockMonitor`
+  - this lets categories like `Door` centrally default to monitored stock behavior instead of relying on product-by-product toggles
+  - validation note:
+    - `bun run db:generate` succeeds
+    - `bun run --filter @gnd/inventory typecheck` passes
+
 - Reworked supplier management into a shared compact inventory-domain workspace and threaded supplier choice into variant filtering.
   - supplier filter options from `inventoryVariantStockForm(...)` are now exposed into the inventory variant pills whenever supplier-variant rows exist, and the client-side filter matcher in `apps/www/src/components/forms/inventory-products/context.tsx` treats `Supplier` as a first-class exact-match filter against `supplierVariants`
   - replaced the old raw supplier field-array editor in `apps/www/src/components/forms/inventory-products/inventory-suppliers-section.tsx` with the shared `apps/www/src/components/inventory/inventory-suppliers-manager.tsx` flow: compact item rows, search + add, inline `Create new "Supplier"` action, Dyke sync, and per-supplier `Default / Edit / Delete` actions
@@ -11,6 +21,14 @@
   - added `Inventory.defaultSupplierId` wiring through the inventory form/query/save path and used it as the default supplier when creating new variant supplier-pricing rows
   - validation note:
     - `bun run db:generate` succeeds
+    - `bun run --filter @gnd/inventory typecheck` passes
+
+- Converted inventory kind review from a full dataset load into a paged infinite workflow.
+  - added `inventoryProductKindReviewSchema` in `packages/inventory/src/schema.ts` so the review endpoint now accepts the shared pagination contract
+  - updated `packages/inventory/src/inventory.ts` so `inventoryProductKindReview(...)` uses `composeQueryData(...)` for paged row loading, returns summary counts separately, and computes page-level pricing heuristics from a lightweight priced-ID lookup instead of hydrating every nested variant/pricing row
+  - updated `apps/api/src/trpc/routers/inventories.route.ts` so `inventories.inventoryProductKindReview` now accepts the paged input
+  - updated `apps/www/src/components/inventory/inventory-kind-review-page.tsx` to use `infiniteQueryOptions(...)`, auto-load more on scroll, and keep the summary cards driven by the first page’s summary block
+  - validation note:
     - `bun run --filter @gnd/inventory typecheck` passes
 
 - Constrained inventory form variant filters to the inventory's configured subcategory values instead of exposing every category value.
@@ -282,6 +300,26 @@
     - `bun run db:generate` succeeds after the new extraction models were added
     - focused `@gnd/inventory`, `@gnd/notifications`, and `@gnd/api` greps for the new inbound slice are clean
     - `apps/www` full workspace typecheck remains slower/noisier; no focused inbound-specific grep hits were surfaced in the final web pass before timeout
+
+- Added manual stock-allocation approval and inbound issue resolution on top of the inventory demand pipeline.
+  - extended the inventory/job Prisma schemas so:
+    - `StockAllocationStatus` now includes `pending_review`, `approved`, and `cancelled`
+    - `InboundStatus` now includes `issue_open` and `closed`
+    - `InboundShipmentItem` stores `qtyGood` and `qtyIssue`
+    - `InboundShipmentItemIssue` tracks discrepancy rows with issue type, resolution type, reported qty, resolved qty, and status
+  - updated `packages/sales/src/sync-sales-inventory-line-items.ts` so stock-monitored fulfillment now creates suggested `StockAllocation` rows as `pending_review` instead of silently committing all reservations, while approved allocations remain the only committed stock signal
+  - added allocation review helpers and tRPC endpoints:
+    - `pendingAllocations`
+    - `approveStockAllocation`
+    - `rejectStockAllocation`
+    - `approveBulkStockAllocation`
+  - added `/inventory/allocations` with an infinite review queue and per-row/bulk approve/reject controls
+  - updated `packages/inventory/src/application/inbound/inbound-demand.ts` so receiving can accept `qtyGood`, `qtyIssue`, issue type, and issue notes; only good qty posts to stock while issue qty creates `InboundShipmentItemIssue`
+  - extended `/inventory/inbounds` to capture issue qty/details during receiving and resolve existing issue rows inline with replacement/return/credit/write-off style resolution choices
+  - validation note:
+    - `bun run db:generate` succeeds
+    - `bun run --filter @gnd/inventory typecheck` passes
+    - broader `@gnd/api` and `@gnd/www` workspace typechecks still contain heavy unrelated pre-existing noise, so browser validation is still needed for the new allocation/inbound screens
 
 ## 2026-04-10
 
@@ -1343,3 +1381,4 @@
 - Added a community template v1 history feature backed by the existing `CommunityTemplateHistory` table. Each legacy template save now records a snapshot row with the current slug, author, and copied `design` meta, and the v1 editor header now exposes a `History` action that opens a right-side sheet.
 - Added a dedicated `getCommunityTemplateHistory` query that returns history rows with save date, author name, and computed configured-design count so the v1 history sheet can show compact template version summaries without loading full snapshots into the UI.
 - Hardened the optimized inventory importer to be properly re-runnable on more than just category creation: it now preloads existing `InventoryItemSubCategory` links and `InventoryImage` links, dedupes category-variant attributes against both DB and in-flight rows, skips duplicate same-run variant attribute parts, and avoids re-creating subcategory/image relationships on repeated imports.
+- 2026-04-14: Old sales form saves now run `syncSalesInventoryLineItems` on the server save path immediately after persistence instead of relying on a client-triggered background task. This keeps `lineItems`, `lineItemComponents`, stock allocations, and inbound demand in sync when an existing sales form is edited. Files: `apps/www/src/app/(clean-code)/(sales)/_common/data-access/save-sales/index.dta.ts`, `apps/www/src/components/forms/sales-form/sales-form-save.tsx`.

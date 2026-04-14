@@ -14,7 +14,7 @@ export function FormAction({ onCancel }) {
     const form = useInventoryCategoryForm();
     const isEditing = editCategoryId > 0;
     const trpc = useTRPC();
-    // const qc = useQueryClient();
+    const qc = useQueryClient();
     const iTrpc = useInventoryTrpc();
     const {
         isPending: isSubmitting,
@@ -29,6 +29,11 @@ export function FormAction({ onCancel }) {
                         editCategoryId: data.id,
                     });
                 }
+                qc.invalidateQueries({
+                    queryKey: trpc.inventories.inventoryCategoryForm.queryKey(
+                        isEditing ? editCategoryId : data.id,
+                    ),
+                });
                 iTrpc.refreshKeysInfinite("inventoryCategories");
                 iTrpc.refreshKeys("getInventoryCategories");
 
@@ -77,4 +82,3 @@ export function FormAction({ onCancel }) {
         </div>
     );
 }
-

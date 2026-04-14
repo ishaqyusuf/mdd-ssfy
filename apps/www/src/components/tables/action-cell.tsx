@@ -12,7 +12,8 @@ interface Props {
     children?;
 }
 export function ActionCell(props: Props) {
-    const { tableMeta } = useTable();
+    const tableCtx = useTable();
+    const tableMeta = tableCtx?.tableMeta;
     const deletable = props?.trash && !!tableMeta?.deleteAction;
     return (
         <div className="flex items-center justify-end gap-2">
