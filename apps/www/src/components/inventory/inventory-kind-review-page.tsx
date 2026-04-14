@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { useTRPC } from "@/trpc/client";
-import { useInfiniteQuery, useMutation } from "@gnd/ui/tanstack";
+import { useMutation } from "@gnd/ui/tanstack";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { Card } from "@gnd/ui/card";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -69,7 +70,8 @@ export function InventoryKindReviewPage() {
                     <h2 className="text-lg font-semibold">Kind Review</h2>
                     <p className="text-sm text-muted-foreground">
                         Review current product type against the pricing-based
-                        migration suggestion before or after running the backfill.
+                        migration suggestion before or after running the
+                        backfill.
                     </p>
                 </div>
                 <Button
@@ -87,7 +89,9 @@ export function InventoryKindReviewPage() {
                     <div className="text-xs uppercase text-muted-foreground">
                         Total
                     </div>
-                    <div className="text-2xl font-semibold">{summary?.total || 0}</div>
+                    <div className="text-2xl font-semibold">
+                        {summary?.total || 0}
+                    </div>
                 </Card>
                 <Card className="p-4">
                     <div className="text-xs uppercase text-muted-foreground">
@@ -112,7 +116,8 @@ export function InventoryKindReviewPage() {
                             <div className="space-y-1">
                                 <div className="font-medium">{row.name}</div>
                                 <div className="text-sm text-muted-foreground">
-                                    {row.category || "No category"} • {row.variantCount} variants •{" "}
+                                    {row.category || "No category"} •{" "}
+                                    {row.variantCount} variants •{" "}
                                     {row.pricingCount} pricing rows
                                 </div>
                             </div>
@@ -121,7 +126,11 @@ export function InventoryKindReviewPage() {
                                     current: {row.currentKind}
                                 </Badge>
                                 <Badge
-                                    variant={row.needsReview ? "destructive" : "secondary"}
+                                    variant={
+                                        row.needsReview
+                                            ? "destructive"
+                                            : "secondary"
+                                    }
                                     className="capitalize"
                                 >
                                     suggested: {row.suggestedKind}
@@ -131,10 +140,7 @@ export function InventoryKindReviewPage() {
                     </Card>
                 ))}
                 {review.hasNextPage ? (
-                    <div
-                        ref={loadMoreRef}
-                        className="flex justify-center pt-2"
-                    >
+                    <div ref={loadMoreRef} className="flex justify-center pt-2">
                         <Button
                             type="button"
                             variant="outline"
@@ -151,3 +157,4 @@ export function InventoryKindReviewPage() {
         </div>
     );
 }
+
