@@ -43,9 +43,13 @@ export function FileUpload({
 	const [toastId, setToastId] = useState<string | undefined>(undefined);
 	const { toast, dismiss, update } = useToast();
 	const uploadProgress = useRef<number[]>([]);
+	const toastApiRef = useRef({ toast, dismiss, update });
+
+	toastApiRef.current = { toast, dismiss, update };
+
 	useEffect(() => {
 		if (!toastId && showProgress) {
-			const { id } = toast({
+			const { id } = toastApiRef.current.toast({
 				title: `Uploading ${uploadProgress.current.length} files`,
 				progress,
 				variant: "progress",
@@ -57,13 +61,13 @@ export function FileUpload({
 				setToastId(id);
 			}
 		} else if (toastId) {
-			update(toastId, {
+			toastApiRef.current.update(toastId, {
 				id: toastId,
 				progress,
 				title: `Uploading ${uploadProgress.current.length} files`,
 			});
 		}
-	}, [progress, showProgress, toast, toastId, update]);
+	}, [progress, showProgress, toastId]);
 
 	const onDrop = async (files: File[]) => {
 		// NOTE: If onDropRejected
@@ -141,7 +145,7 @@ export function FileUpload({
 			uploadProgress.current = [];
 
 			setProgress(0);
-			toast({
+			toastApiRef.current.toast({
 				title: "Upload successful.",
 				variant: "success",
 				duration: 2000,
@@ -149,10 +153,10 @@ export function FileUpload({
 
 			setShowProgress(false);
 			setToastId(undefined);
-			dismiss(toastId);
+			toastApiRef.current.dismiss(toastId);
 			onUploadComplete?.(results);
 		} catch (e) {
-			toast({
+			toastApiRef.current.toast({
 				duration: 2500,
 				variant: "error",
 				title: "Something went wrong please try again.",
@@ -160,11 +164,11 @@ export function FileUpload({
 		}
 	};
 
-	const { getRootProps, getInputProps, isDragActive } = useDropzone({
+	const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
 		onDrop,
 		onDropRejected: ([reject]) => {
 			if (reject?.errors.find(({ code }) => code === "file-too-large")) {
-				toast({
+				toastApiRef.current.toast({
 					duration: 2500,
 					variant: "error",
 					title: "File size to large.",
@@ -172,7 +176,7 @@ export function FileUpload({
 			}
 
 			if (reject?.errors.find(({ code }) => code === "file-invalid-type")) {
-				toast({
+				toastApiRef.current.toast({
 					duration: 2500,
 					variant: "error",
 					title: "File type not supported.",
@@ -182,6 +186,7 @@ export function FileUpload({
 		maxSize: 5000000, // 5MB
 		maxFiles,
 		accept,
+		noClick: true,
 	});
 
 	return (
@@ -198,7 +203,6 @@ export function FileUpload({
 							isDragActive && "visible",
 						)}
 					>
-						<input className="" {...getInputProps()} id="upload-files" />
 						<p className="text-xs">
 							Drop your receipts here. <br />
 							Maximum of 25 files at a time.
@@ -206,7 +210,18 @@ export function FileUpload({
 					</div>
 				</div>
 
-				{children}
+				<input className="hidden" {...getInputProps()} id="upload-files" />
+				<button
+					type="button"
+					className="block w-full text-left"
+					onClick={(event) => {
+						event.preventDefault();
+						event.stopPropagation();
+						open();
+					}}
+				>
+					{children}
+				</button>
 			</div>
 		</div>
 	);

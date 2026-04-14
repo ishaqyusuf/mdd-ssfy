@@ -15,15 +15,15 @@ import {
 import { type NotificationTypes, createActivitySchema } from "./schemas";
 import { EmailService } from "./services/email-service";
 import { WhatsAppService } from "./services/whatsapp-service";
-import { dispatchPackingDelay } from "./types/dispatch-packing-delay";
+import { communityDocuments } from "./types/community-documents";
 import { communityUnitProductionBatchUpdated } from "./types/community-unit-production-batch-updated";
 import { communityUnitProductionCompleted } from "./types/community-unit-production-completed";
-import { communityDocuments } from "./types/community-documents";
-import { inventoryInbound } from "./types/inventory-inbound";
-import { inventoryInboundActivity } from "./types/inventory-inbound-activity";
 import { communityUnitProductionStarted } from "./types/community-unit-production-started";
 import { communityUnitProductionStopped } from "./types/community-unit-production-stopped";
+import { dispatchPackingDelay } from "./types/dispatch-packing-delay";
 import { employeeDocumentReview } from "./types/employee-document-review";
+import { inventoryInbound } from "./types/inventory-inbound";
+import { inventoryInboundActivity } from "./types/inventory-inbound-activity";
 import { jobApproved } from "./types/job-approved";
 import { jobAssigned } from "./types/job-assigned";
 import { jobDeleted } from "./types/job-deleted";
@@ -55,6 +55,7 @@ import { salesItemInfo } from "./types/sales-item-info";
 import { salesMarkedAsProductionCompleted } from "./types/sales-marked-as-production-completed";
 import { salesPaymentRecorded } from "./types/sales-payment-recorded";
 import { salesPaymentRefunded } from "./types/sales-payment-refunded";
+import { salesProductionAllCompleted } from "./types/sales-production-all-completed";
 import { salesProductionAssigned } from "./types/sales-production-assigned";
 import { salesReminderScheduleAdminNotification } from "./types/sales-reminder-schedule-admin-notification";
 import { salesRequestPacking } from "./types/sales-request-packing";
@@ -109,6 +110,7 @@ const handlers = {
 	sales_dispatch_date_updated: salesDispatchDateUpdated,
 	sales_dispatch_unassigned: salesDispatchUnassigned,
 	sales_marked_as_production_completed: salesMarkedAsProductionCompleted,
+	sales_production_all_completed: salesProductionAllCompleted,
 	sales_email_reminder: salesEmailReminder,
 	simple_sales_email_reminder: simpleSalesEmailReminder,
 	sales_reminder_schedule_admin_notification:

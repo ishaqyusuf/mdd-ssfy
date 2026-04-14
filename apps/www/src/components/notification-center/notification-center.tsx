@@ -60,9 +60,11 @@ export function NotificationCenter() {
 		},
 		sales_marked_as_production_completed: (data, _notification, context) => {
 			context.close();
-			salesOverview.openSalesAdminPage(
-				String(data.orderNo ?? data.salesId),
-			);
+			salesOverview.openSalesAdminPage(String(data.orderNo ?? data.salesId));
+		},
+		sales_production_all_completed: (data, _notification, context) => {
+			context.close();
+			salesOverview.openSalesAdminPage(String(data.orderNo ?? data.salesId));
 		},
 		sales_dispatch_assigned: (data, _notification, context) => {
 			context.close();
@@ -104,7 +106,9 @@ export function NotificationCenter() {
 		},
 		community_documents: (data, _notification, context) => {
 			context.close();
-			router.push(`/community/projects/${encodeURIComponent(data.projectSlug)}`);
+			router.push(
+				`/community/projects/${encodeURIComponent(data.projectSlug)}`,
+			);
 		},
 		community_unit_production_started: (data, _notification, context) => {
 			context.close();
@@ -128,9 +132,7 @@ export function NotificationCenter() {
 			context.close();
 			const ids = Array.isArray(data.taskId) ? data.taskId.join(",") : "";
 			if (!ids) return;
-			router.push(
-				`/community/unit-productions?ids=${encodeURIComponent(ids)}`,
-			);
+			router.push(`/community/unit-productions?ids=${encodeURIComponent(ids)}`);
 		},
 		dispatch_packing_delay: (data, _notification, context) => {
 			context.close();

@@ -1,34 +1,36 @@
 import {
+	type CommunityDocumentsTags,
 	type CommunityUnitProductionBatchUpdatedTags,
 	type CommunityUnitProductionCompletedTags,
 	type CommunityUnitProductionStartedTags,
 	type CommunityUnitProductionStoppedTags,
 	type DispatchPackingDelayTags,
-	type CommunityDocumentsTags,
-	type InventoryInboundActivityTags,
 	type EmployeeDocumentReviewTags,
+	type InventoryInboundActivityTags,
 	type JobSubmittedTags,
-	type SalesDispatchAssignedTags,
 	type JobTaskConfigureRequestTags,
 	type SalesCheckoutSuccessTags,
+	type SalesDispatchAssignedTags,
 	type SalesDispatchDuplicateAlertTags,
 	type SalesMarkedAsProductionCompletedTags,
 	type SalesPaymentRecordedTags,
+	type SalesProductionAllCompletedTags,
+	communityDocumentsTags,
 	communityUnitProductionBatchUpdatedTags,
 	communityUnitProductionCompletedTags,
-	communityDocumentsTags,
-	inventoryInboundActivityTags,
 	communityUnitProductionStartedTags,
 	communityUnitProductionStoppedTags,
 	dispatchPackingDelayTags,
 	employeeDocumentReviewTags,
+	inventoryInboundActivityTags,
 	jobSubmittedTags,
 	jobTaskConfigureRequestTags,
-	salesDispatchAssignedTags,
 	salesCheckoutSuccessTags,
+	salesDispatchAssignedTags,
 	salesDispatchDuplicateAlertTags,
 	salesMarkedAsProductionCompletedTags,
 	salesPaymentRecordedTags,
+	salesProductionAllCompletedTags,
 } from "./schemas";
 
 export type RawNotificationItem = {
@@ -70,6 +72,7 @@ type NotificationActionPayloadMap = {
 		SalesMarkedAsProductionCompletedTags,
 		"type"
 	>;
+	sales_production_all_completed: Omit<SalesProductionAllCompletedTags, "type">;
 	sales_dispatch_assigned: Omit<SalesDispatchAssignedTags, "type">;
 	community_unit_production_started: Omit<
 		CommunityUnitProductionStartedTags,
@@ -285,6 +288,16 @@ function parseAction(
 		if (!parsed.success) return undefined;
 		return {
 			type: "sales_marked_as_production_completed",
+			label: "Open Sale",
+			data: parsed.data,
+		};
+	}
+
+	if (type === "sales_production_all_completed") {
+		const parsed = salesProductionAllCompletedTags.safeParse(tags);
+		if (!parsed.success) return undefined;
+		return {
+			type: "sales_production_all_completed",
 			label: "Open Sale",
 			data: parsed.data,
 		};

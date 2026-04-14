@@ -4,6 +4,12 @@
 
 ## 2026-04-14
 
+- Wired the `sales_production_all_completed` notification channel end-to-end so production completion can dispatch through its own channel reliably.
+  - added schema/tag definitions and notification job support in `packages/notifications/src/schemas.ts`
+  - added runtime handler implementation in `packages/notifications/src/types/sales-production-all-completed.ts`
+  - registered the channel in `packages/notifications/src/index.ts` and `packages/notifications/src/notification-center.ts`
+  - updated the sales order production-complete trigger in `apps/www/src/components/tables/sales-orders/columns.tsx` to send `sales_production_all_completed`
+
 - Added a manual `inventory_inbound` sales-overview chat channel with image attachment support in the shared web chat library.
   - added `inventory_inbound` to `packages/notifications/src/channels.ts` and introduced a dedicated handler in `packages/notifications/src/types/inventory-inbound.ts`
   - extended the shared web `Chat` component in `apps/www/src/components/chat/chat.tsx` with attachment props/state:

@@ -556,6 +556,7 @@ export type NotificationTypes = {
 	sales_dispatch_date_updated: SalesDispatchDateUpdatedInput;
 	sales_dispatch_unassigned: SalesDispatchUnassignedInput;
 	sales_marked_as_production_completed: SalesMarkedAsProductionCompletedInput;
+	sales_production_all_completed: SalesProductionAllCompletedInput;
 	sales_email_reminder: SalesEmailReminderInput;
 	simple_sales_email_reminder: SimpleSalesEmailReminderInput;
 	sales_reminder_schedule_admin_notification: SalesReminderScheduleAdminNotificationInput;
@@ -814,6 +815,20 @@ export const salesMarkedAsProductionCompletedTags = actityTagsSchema.extend({
 });
 export type SalesMarkedAsProductionCompletedTags = z.infer<
 	typeof salesMarkedAsProductionCompletedTags
+>;
+export const salesProductionAllCompletedSchema = z.object({
+	salesId: z.number(),
+	orderNo: z.string().optional(),
+});
+export type SalesProductionAllCompletedInput = z.infer<
+	typeof salesProductionAllCompletedSchema
+>;
+export const salesProductionAllCompletedTags = actityTagsSchema.extend({
+	salesId: z.number(),
+	orderNo: z.string().optional(),
+});
+export type SalesProductionAllCompletedTags = z.infer<
+	typeof salesProductionAllCompletedTags
 >;
 export const salesEmailReminderSchema = z.object({
 	type: z.enum(["order", "quote"]),
@@ -1228,6 +1243,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_marked_as_production_completed"),
 		payload: salesMarkedAsProductionCompletedSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("sales_production_all_completed"),
+		payload: salesProductionAllCompletedSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_email_reminder"),

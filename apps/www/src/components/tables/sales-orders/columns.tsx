@@ -474,7 +474,7 @@ function Actions({ item }: { item: SalesOrderItem }) {
 			taskName: "update-sales-control",
 			payload,
 		});
-		notification.send("sales_marked_as_production_completed", {
+		notification.send("sales_production_all_completed", {
 			payload: {
 				salesId: item.id,
 				orderNo: item.orderId || undefined,
