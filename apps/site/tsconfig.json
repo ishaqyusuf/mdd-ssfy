@@ -22,7 +22,6 @@
     "../../types",
     "next-env.d.ts",
     "next.config.js",
-    "tailwind.config.ts",
     ".next/types/**/*.ts"
   ],
   "exclude": ["node_modules", ".next"]
@@ -83,7 +82,6 @@
 //         "../../types",
 //         "next-env.d.ts",
 //         "next.config.js",
-//         "tailwind.config.ts",
 //         ".next/types/**/*.ts"
 //     ],
 //     "exclude": ["node_modules"]

@@ -16,6 +16,7 @@ export function FormContext({ children, data }: FormContextProps) {
         product: {
             id: null,
             categoryId: null,
+            defaultSupplierId: null,
             description: "",
             name: "",
             productKind: "inventory",

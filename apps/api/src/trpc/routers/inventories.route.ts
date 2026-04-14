@@ -9,6 +9,7 @@ import {
 import {
   getInventoryCategoriesSchema,
   dykeInventoryDriftReportSchema,
+  deleteInventorySupplierSchema,
   dykeStepComponentSchema,
   inventorySupplierFormSchema,
   inventorySuppliersSchema,
@@ -62,6 +63,7 @@ import {
   inventoryProductKindReview,
   backfillInventoryImportSources,
   backfillInventoryProductKinds,
+  deleteInventorySupplier,
   saveDykeStepComponent,
   saveInventorySupplier,
   saveSupplierVariantForm,
@@ -433,6 +435,11 @@ export const inventoriesRouter = createTRPCRouter({
     .input(inventorySupplierFormSchema)
     .mutation(async (props) => {
       return saveInventorySupplier(props.ctx.db, props.input);
+    }),
+  deleteInventorySupplier: protectedProcedure
+    .input(deleteInventorySupplierSchema)
+    .mutation(async (props) => {
+      return deleteInventorySupplier(props.ctx.db, props.input);
     }),
   supplierVariantsByInventory: protectedProcedure
     .input(

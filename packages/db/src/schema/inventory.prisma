@@ -86,6 +86,8 @@ model Inventory {
 
     inventoryCategory   InventoryCategory? @relation(fields: [inventoryCategoryId], references: [id])
     inventoryCategoryId Int
+    defaultSupplier     Supplier?          @relation(name: "defaultInventorySupplier", fields: [defaultSupplierId], references: [id])
+    defaultSupplierId   Int?
 
     defaultSubComponents       SubComponents[]                 @relation(name: "defaultInventories")
     subComponents              SubComponents[]                 @relation(name: "parent")
@@ -133,6 +135,7 @@ model Inventory {
     @@index([sourceStepUid])
     @@index([sourceComponentUid])
     @@index([sourceCustom])
+    @@index([defaultSupplierId])
 }
 
 model InventoryVariant {
@@ -358,6 +361,7 @@ model Supplier {
     supplies InventoryStock[]
     inbounds InboundShipment[]
     supplierVariants SupplierVariant[]
+    defaultForInventories Inventory[] @relation(name: "defaultInventorySupplier")
 
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt

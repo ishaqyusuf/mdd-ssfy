@@ -31,7 +31,6 @@ import { TABLE_NAMES } from "./application/import/strategies/handcrafted-importe
 import { z } from "zod";
 import { formatDate } from "@gnd/utils/dayjs";
 import type { StepMeta } from "./types";
-import { composeVariantAttributeDisplay } from "./utils/inventory-utils";
 
 export async function inventoryList(db: Db, query: InventoryList) {
   const where = whereInventoryProducts(query);
@@ -463,6 +462,11 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
                 select: {
                   id: true,
                   name: true,
+                  inventoryCategory: {
+                    select: {
+                      title: true,
+                    },
+                  },
                   sourceStepUid: true,
                   sourceComponentUid: true,
                 },
@@ -638,21 +642,33 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
         valueId: attribute.valueId,
         valueLabel: attribute.value?.name || "",
         attributeId: attribute.inventoryCategoryVariantAttributeId,
-        attributeLabel:
-          attribute.inventoryCategoryVariantAttribute?.inventoryCategory?.title ||
-          "",
+        attributeLabel: attribute.value?.inventoryCategory?.title || "",
         sourceStepUid: attribute.value?.sourceStepUid || null,
         sourceComponentUid: attribute.value?.sourceComponentUid || null,
       }));
-      const displayAttributes = composeVariantAttributeDisplay(
-        variant.attributes as any,
+      const widthAttr = attributes.find(
+        (attribute) => attribute.attributeLabel?.toLowerCase() === "width",
       );
-      const title = displayAttributes.length
-        ? displayAttributes
-            .map((attribute) => attribute.value)
+      const heightAttr = attributes.find(
+        (attribute) => attribute.attributeLabel?.toLowerCase() === "height",
+      );
+      const title = widthAttr && heightAttr
+        ? [
+            `${widthAttr.valueLabel} x ${heightAttr.valueLabel}`,
+            ...attributes
+              .filter(
+                (attribute) =>
+                  !["width", "height"].includes(
+                    attribute.attributeLabel?.toLowerCase(),
+                  ),
+              )
+              .map((attribute) => attribute.valueLabel)
+              .filter(Boolean),
+          ].join(" ")
+        : attributes
+            .map((attribute) => attribute.valueLabel)
             .filter(Boolean)
-            .join(" ")
-        : variant.description || variant.uid;
+            .join(" ") || variant.description || variant.uid;
 
       return {
         variantId: variant.id,
@@ -697,6 +713,24 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
           value: attr.valueLabel,
           sourceStepUid: attr.sourceStepUid || null,
           sourceComponentUid: attr.sourceComponentUid || null,
+        });
+      }
+    }
+
+    for (const supplierVariant of record.supplierVariants || []) {
+      const supplier = supplierVariant?.supplier;
+      if (!supplier?.id || !supplier?.name) continue;
+      if (!filterParams.Supplier) {
+        filterParams.Supplier = [];
+      }
+      if (
+        !filterParams.Supplier.some(
+          (option) => option.value === String(supplier.id),
+        )
+      ) {
+        filterParams.Supplier.push({
+          label: supplier.name,
+          value: String(supplier.id),
         });
       }
     }
@@ -820,6 +854,7 @@ export async function saveInventory(db: Db, data: InventoryForm) {
         data: {
           status: product.status,
           name: product.name,
+          defaultSupplierId: product.defaultSupplierId || null,
           productKind,
           ...({
             sourceStepUid: null,
@@ -837,6 +872,7 @@ export async function saveInventory(db: Db, data: InventoryForm) {
       data: {
         name: product.name,
         uid: generateRandomString(4),
+        defaultSupplierId: product.defaultSupplierId || null,
         productKind,
         ...({
           sourceStepUid: null,
@@ -907,7 +943,16 @@ export async function inventoryForm(db: Db, inventoryId) {
     where: {
       id: inventoryId,
     },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      productKind: true,
+      status: true,
+      stockMode: true,
+      primaryStoreFront: true,
+      inventoryCategoryId: true,
+      defaultSupplierId: true,
       subComponents: {
         where: {
           deletedAt: null,
@@ -972,6 +1017,7 @@ export async function inventoryForm(db: Db, inventoryId) {
   const formData = {
     product: {
       categoryId: inv.inventoryCategoryId,
+      defaultSupplierId: inv.defaultSupplierId,
       name: inv.name,
       productKind: (inv.productKind || "inventory") as InventoryProductKind,
       status: inv.status as any,
@@ -1086,6 +1132,17 @@ export async function saveInventorySupplier(
 
   return db.supplier.create({
     data: payload,
+  });
+}
+
+export async function deleteInventorySupplier(db: Db, input: { id: number }) {
+  return db.supplier.update({
+    where: {
+      id: input.id,
+    },
+    data: {
+      deletedAt: new Date(),
+    },
   });
 }
 

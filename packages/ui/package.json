@@ -5,7 +5,7 @@
   "sideEffects": false,
   "files": [
     "tailwind.config.ts",
-    "postcss.config.js",
+    "postcss.config.mjs",
     "globals.css"
   ],
   "typesVersions": {
@@ -22,6 +22,7 @@
     "typecheck": "tsc --noEmit"
   },
   "exports": {
+    "./tailwind.config": "./tailwind.config.ts",
     "./confirm-button": "./src/components/custom/confirm-button.tsx",
     "./custom/icons": "./src/components/custom/icons.tsx",
     "./custom/page-title": "./src/components/custom/page-title.tsx",
@@ -41,6 +42,7 @@
     "./hooks": "./src/hooks/index.ts",
     "./*": "./src/components/*.tsx",
     "./globals.css": "./src/styles/globals.css",
+    "./postcss": "./postcss.config.mjs",
     "./postcss.config": "./postcss.config.mjs"
   },
   "dependencies": {

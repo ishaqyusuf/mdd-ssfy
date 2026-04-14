@@ -127,6 +127,15 @@ export const {
         Object.keys(filterOptions).find(
             (key) => key.trim().toLowerCase() === "width",
         ) || null;
+    const lockedFilterKeys = useMemo(
+        () =>
+            new Set(
+                Object.entries(filterOptions)
+                    .filter(([, options]) => options.length <= 1)
+                    .map(([key]) => key),
+            ),
+        [filterOptions],
+    );
 
     useEffect(() => {
         if (showAllPricedOnly) return;
@@ -236,7 +245,12 @@ export const {
         const variantShow = params._variantShow || "priced";
         // normalize filters from params (ignore empty ones)
         const activeFilters = Object.fromEntries(
-            Object.entries(params).filter(([key, value]) => Boolean(value)),
+            Object.entries(params).filter(
+                ([key, value]) =>
+                    Boolean(value) &&
+                    key !== "_variantShow" &&
+                    !lockedFilterKeys.has(key),
+            ),
         );
 
         const hasSearchFilters =
@@ -282,13 +296,26 @@ export const {
 
             // attribute value filters
             for (const [key, value] of Object.entries(activeFilters)) {
-                if (key === "_variantShow") continue;
+                if (String(key).trim().toLowerCase() === "supplier") {
+                    const supplierMatch = (item.supplierVariants || []).some(
+                        (supplierVariant) =>
+                            String(supplierVariant?.supplierId || "").trim() ===
+                            String(value || "").trim(),
+                    );
+                    if (!supplierMatch) return false;
+                    continue;
+                }
 
                 const attrMatch = item.attributes.some(
                     (attr) =>
-                        attr.attributeLabel.toLowerCase() ===
-                            key.toLowerCase() &&
-                        String(value) === String(attr.valueLabel),
+                        String(attr.attributeLabel || "")
+                            .trim()
+                            .toLowerCase() ===
+                            String(key || "")
+                                .trim()
+                                .toLowerCase() &&
+                        String(value || "").trim().toLowerCase() ===
+                            String(attr.valueLabel || "").trim().toLowerCase(),
                 );
                 if (!attrMatch) return false;
             }
@@ -297,7 +324,7 @@ export const {
         });
 
         return { list, hasSearchFilters };
-    }, [allowedDoorWidthValues, data, params, showAllPricedOnly]);
+    }, [allowedDoorWidthValues, data, lockedFilterKeys, params, showAllPricedOnly]);
     const filterList = [
         {
             label: "Show",

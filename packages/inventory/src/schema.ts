@@ -59,6 +59,7 @@ export const inventoryFormSchema = z.object({
     name: z.string(),
     categoryId: z.number(),
     id: z.number().optional().nullable(),
+    defaultSupplierId: z.number().optional().nullable(),
     productKind: inventoryProductKindSchema.default("inventory"),
     status: z.enum(INVENTORY_STATUS),
     stockMonitor: z.boolean().optional().default(false),
@@ -269,6 +270,11 @@ export const inventorySupplierFormSchema = z.object({
   address: z.string().optional().nullable(),
 });
 export type InventorySupplierForm = z.infer<typeof inventorySupplierFormSchema>;
+
+export const deleteInventorySupplierSchema = z.object({
+  id: z.number(),
+});
+export type DeleteInventorySupplier = z.infer<typeof deleteInventorySupplierSchema>;
 
 export const supplierVariantFormSchema = z.object({
   id: z.number().optional().nullable(),

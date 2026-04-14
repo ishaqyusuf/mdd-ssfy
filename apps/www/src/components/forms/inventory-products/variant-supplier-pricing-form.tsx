@@ -20,6 +20,7 @@ export function VariantSupplierPricingForm() {
         keyName: "_id",
     });
     const suppliers = form.watch("suppliers") || [];
+    const defaultSupplierId = form.watch("product.defaultSupplierId");
     const rows = supplierRows.fields
         .map((field, index) => ({
             field,
@@ -72,7 +73,7 @@ export function VariantSupplierPricingForm() {
                     onClick={() =>
                         supplierRows.append({
                             id: null,
-                            supplierId: undefined as any,
+                            supplierId: defaultSupplierId || undefined,
                             inventoryVariantId: variant.data.variantId,
                             variantUid: variant.data.uid,
                             supplierSku: "",

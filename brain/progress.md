@@ -4,6 +4,15 @@
 
 ## 2026-04-13
 
+- Reworked supplier management into a shared compact inventory-domain workspace and threaded supplier choice into variant filtering.
+  - supplier filter options from `inventoryVariantStockForm(...)` are now exposed into the inventory variant pills whenever supplier-variant rows exist, and the client-side filter matcher in `apps/www/src/components/forms/inventory-products/context.tsx` treats `Supplier` as a first-class exact-match filter against `supplierVariants`
+  - replaced the old raw supplier field-array editor in `apps/www/src/components/forms/inventory-products/inventory-suppliers-section.tsx` with the shared `apps/www/src/components/inventory/inventory-suppliers-manager.tsx` flow: compact item rows, search + add, inline `Create new "Supplier"` action, Dyke sync, and per-supplier `Default / Edit / Delete` actions
+  - added a dedicated `/inventory/suppliers` page via `apps/www/src/app/(sidebar)/inventory/suppliers/page.tsx` and `apps/www/src/components/inventory/inventory-suppliers-page.tsx`, plus the new sidebar link in `apps/www/src/components/sidebar/links.ts`
+  - added `Inventory.defaultSupplierId` wiring through the inventory form/query/save path and used it as the default supplier when creating new variant supplier-pricing rows
+  - validation note:
+    - `bun run db:generate` succeeds
+    - `bun run --filter @gnd/inventory typecheck` passes
+
 - Constrained inventory form variant filters to the inventory's configured subcategory values instead of exposing every category value.
   - updated `packages/inventory/src/inventory.ts` so `inventoryVariantStockForm(...)` now loads the inventory's active `inventoryItemSubCategories` and trims category attribute values to the explicitly configured inventory IDs for matching attribute labels before generating variant combinations and filter params
   - tightened `apps/www/src/components/forms/inventory-products/context.tsx` so variant attribute filter matching now uses exact equality instead of substring matching
