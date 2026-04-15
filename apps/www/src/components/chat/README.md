@@ -54,7 +54,7 @@ export function InboundChat() {
       channel="inventory_inbound"
       payload={{ salesId: 12, salesNo: "SO-12" }}
       attachmentName="attachment"
-      attachmentType="image"
+      attachmentType="mixed"
       multiAttachmentSupport
       attachmentChannels={["inventory_inbound"]}
     >
@@ -71,6 +71,10 @@ export function InboundChat() {
   );
 }
 ```
+
+`attachmentType="image"` restricts uploads to images only.
+
+`attachmentType="mixed"` enables image and PDF uploads, including drag-and-drop support in the composer.
 
 ## Standalone Activity History
 

@@ -2,7 +2,6 @@ import {
     anyDateQuery,
     withDeleted,
 } from "@/app-deps/(clean-code)/_common/utils/db-utils";
-import salesData from "@/app-deps/(clean-code)/(sales)/_common/utils/sales-data";
 import { dateEquals, fixDbTime } from "@/app-deps/(v1)/_actions/action-utils";
 import {
     FilterKeys,
@@ -10,6 +9,7 @@ import {
 } from "@/components/(clean-code)/data-table/search-params";
 import { Prisma, prisma, SalesPriority } from "@/db";
 import { formatDate } from "@/lib/use-day";
+import salesData from "@sales/sales-data";
 import dayjs from "dayjs";
 
 import { ftToIn } from "@/app-deps/(clean-code)/(sales)/_common/utils/sales-utils";

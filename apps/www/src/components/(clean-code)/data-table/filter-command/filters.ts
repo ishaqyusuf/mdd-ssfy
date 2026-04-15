@@ -1,8 +1,8 @@
-import { __filters } from "@/app-deps/(clean-code)/(sales)/_common/utils/contants";
 import { createColumnHelper } from "@tanstack/react-table";
 
 import { FilterKeys } from "../search-params";
 import { DataTableFilterField } from "../type";
+import { __filters } from "./sales-filters";
 
 export const queryKeys = [
     "orders",

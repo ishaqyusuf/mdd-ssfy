@@ -59,26 +59,16 @@ export async function getSalesAccountings(
 
       history: {
         select: {
-          id: true,
-          authorName: true,
-          status: true,
-          createdAt: true,
-          description: true,
           reason: true,
         },
         orderBy: {
           createdAt: "desc",
         },
+        take: 1,
       },
       author: {
         select: {
           name: true,
-          id: true,
-        },
-      },
-      wallet: {
-        select: {
-          accountNo: true,
         },
       },
       salesPayments: {
@@ -92,16 +82,10 @@ export async function getSalesAccountings(
           amount: true,
           status: true,
           meta: true,
-          squarePayments: {
-            select: {
-              paymentId: true,
-            },
-          },
           order: {
             select: {
               subTotal: true,
               orderId: true,
-              id: true,
               grandTotal: true,
               extraCosts: {
                 where: {
@@ -117,7 +101,6 @@ export async function getSalesAccountings(
               salesRep: {
                 select: {
                   name: true,
-                  id: true,
                 },
               },
             },
@@ -147,11 +130,8 @@ export async function getSalesAccountings(
     if (paymentMethod == "link" && status?.toLocaleLowerCase() == "pending")
       status = spStatus!;
     const { history } = item;
-    const orderCount = orderIds?.length;
     const order = item?.salesPayments?.[0]?.order;
     const ordersCount = item?.salesPayments?.length;
-    const multiSales = ordersCount > 1;
-    const squarePaymentId = item?.salesPayments?.[0]?.squarePayments?.paymentId;
     const laborCost = order?.extraCosts?.find((a) => a.type == "Labor")?.amount;
     const deliveryCost = order?.extraCosts?.find(
       (a) => a.type == "Delivery"
@@ -179,7 +159,6 @@ export async function getSalesAccountings(
       deliveryCost,
       grandTotal: order?.grandTotal,
       subTotal: order?.subTotal,
-      squarePaymentId,
     };
   });
   const result = await response(transformedData);

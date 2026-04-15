@@ -23,6 +23,8 @@ type Props = {
 	}[];
 	accept?: Accept;
 	maxFiles?: number;
+	dragDescription?: string;
+	dragActiveDescription?: string;
 };
 const defaultAccept: Accept = {
 	"image/*": [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".avif"],
@@ -36,6 +38,8 @@ export function FileUpload({
 	onUploadComplete,
 	accept = defaultAccept,
 	maxFiles = 25,
+	dragDescription,
+	dragActiveDescription,
 }: Props) {
 	const trpc = useTRPC();
 	const [progress, setProgress] = useState(0);
@@ -204,8 +208,9 @@ export function FileUpload({
 						)}
 					>
 						<p className="text-xs">
-							Drop your receipts here. <br />
-							Maximum of 25 files at a time.
+							{dragActiveDescription || dragDescription || "Drop files here."}
+							<br />
+							Maximum of {maxFiles} file{maxFiles === 1 ? "" : "s"} at a time.
 						</p>
 					</div>
 				</div>

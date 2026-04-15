@@ -3,7 +3,7 @@
 import { Icons } from "@gnd/ui/icons";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { SEPARATOR } from "@/app-deps/(clean-code)/(sales)/_common/utils/contants";
+import { SEPARATOR } from "@sales/filter-constants";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { cn } from "@/lib/utils";
 import { useInfiniteQuery } from "@gnd/ui/tanstack";

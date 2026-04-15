@@ -1,16 +1,12 @@
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
-import {
-	copySalesUseCase,
-	moveOrderUseCase,
-} from "@/app-deps/(clean-code)/(sales)/_common/use-case/sales-book-form-use-case";
 import Link from "@/components/link";
 import { SalesPaymentNotificationsMenu } from "@/components/sales-payment-notifications-menu";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { openLink } from "@/lib/open-link";
-import { newSalesHelper } from "@/lib/sales";
 import { quickPrint } from "@/lib/quick-print";
+import { newSalesHelper } from "@/lib/sales";
 import { useTRPC } from "@/trpc/client";
 import type { SalesPrintProps } from "@/utils/sales-print-utils";
 import { salesFormUrl } from "@/utils/sales-utils";
@@ -99,10 +95,13 @@ function SalesMenuRoot({
 
 	const sq = useSalesQueryClient();
 	const loader = useLoadingToast();
+	const trpc = useTRPC();
+	const copySaleMutation = useMutation(trpc.sales.copySale.mutationOptions());
+	const moveSaleMutation = useMutation(trpc.sales.moveSale.mutationOptions());
 
 	const state = useMemo<SalesMenuState>(() => {
 		const resolvedType = type ?? "order";
-		const resolvedIds = salesIds && salesIds.length ? salesIds : id ? [id] : [];
+		const resolvedIds = salesIds?.length ? salesIds : id ? [id] : [];
 
 		return {
 			id,
@@ -118,42 +117,46 @@ function SalesMenuRoot({
 				setOpen(false);
 			},
 			async copyAs(as) {
-				if (!state.slug) return;
-				loader.display({ title: "Copying..." } as any);
-				const result = await copySalesUseCase(
-					state.slug,
-					as as any,
-					state.type,
-				);
-
+				if (!state.slug || !state.type) return;
+				loader.loading("Copying...");
 				try {
-					if (as === "order") {
+					const result = await copySaleMutation.mutateAsync({
+						salesUid: state.slug,
+						as,
+						type: state.type,
+					});
+
+					if (as === "order" && result.id) {
 						await resetSalesStatAction(result.id, state.slug);
 					}
-				} catch {
-					// reset failure should not block copy completion
-				}
 
-				if (result.link) {
-					loader.success(`Copied as ${as}`, {
-						duration: 3000,
-						action: (
-							<ToastAction
-								onClick={() => {
-									openLink(salesFormUrl(as, result.data?.slug), {}, true);
-								}}
-								altText="edit"
-							>
-								Edit
-							</ToastAction>
-						),
-					});
+					if (result.slug) {
+						loader.success(`Copied as ${as}`, {
+							duration: 3000,
+							action: (
+								<ToastAction
+									onClick={() => {
+										openLink(
+											salesFormUrl(as, result.slug, result.isDyke),
+											{},
+											true,
+										);
+									}}
+									altText="edit"
+								>
+									Edit
+								</ToastAction>
+							),
+						});
+					}
 					if (as === "order") {
 						sq.invalidate.salesList();
 					} else {
 						sq.invalidate.quoteList();
 					}
 					setOpen(false);
+				} catch {
+					loader.error("Unable to complete");
 				}
 			},
 			async move() {
@@ -161,28 +164,46 @@ function SalesMenuRoot({
 
 				loader.loading("Moving...");
 				const to: SalesType = state.type === "order" ? "quote" : "order";
-				const result = await moveOrderUseCase(state.slug, to);
-
-				if (to === "order") {
-					await resetSalesStatAction(result.id, result.slug);
-				}
-
-				if (result.link) {
-					loader.success(`Moved to ${to}`, {
-						duration: 3000,
-						action: (
-							<ToastAction altText="Open" asChild>
-								<Link href={result.link}>Open</Link>
-							</ToastAction>
-						),
+				try {
+					const result = await moveSaleMutation.mutateAsync({
+						salesUid: state.slug,
+						to,
+						type: state.type,
 					});
+
+					if (to === "order" && result.id && result.slug) {
+						await resetSalesStatAction(result.id, result.slug);
+					}
+
+					if (result.slug) {
+						loader.success(`Moved to ${to}`, {
+							duration: 3000,
+							action: (
+								<ToastAction altText="Open" asChild>
+									<Link href={salesFormUrl(to, result.slug, result.isDyke)}>
+										Open
+									</Link>
+								</ToastAction>
+							),
+						});
+					}
 					sq.invalidate.salesList();
 					sq.invalidate.quoteList();
 					setOpen(false);
+				} catch {
+					loader.error("Unable to complete");
 				}
 			},
 		}),
-		[loader, setOpen, sq, state.slug, state.type],
+		[
+			copySaleMutation,
+			loader,
+			moveSaleMutation,
+			setOpen,
+			sq,
+			state.slug,
+			state.type,
+		],
 	);
 
 	const value = useMemo<SalesMenuContextValue>(

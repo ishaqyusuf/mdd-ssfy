@@ -94,6 +94,7 @@ export const salesQueryParamsSchema = z
 		salesNos: z.array(z.string()).optional().nullable(),
 		dateRange: z.array(z.string()).optional().nullable(),
 		salesIds: z.array(z.number()).optional().nullable(),
+		"address.id": z.number().optional().nullable(),
 		salesType: z.enum(salesType).optional().nullable(),
 		"customer.name": z.string().optional().nullable(),
 		phone: z.string().optional().nullable(),
@@ -137,6 +138,34 @@ export const startNewSalesSchema = z.object({
 });
 
 export type StartNewSalesSchema = z.infer<typeof startNewSalesSchema>;
+export const salesMutationTypeSchema = z.enum(["order", "quote"]);
+export type SalesMutationTypeSchema = z.infer<typeof salesMutationTypeSchema>;
+
+export const copySaleSchema = z.object({
+	salesUid: z.string(),
+	as: salesMutationTypeSchema,
+	type: salesMutationTypeSchema,
+});
+export type CopySaleSchema = z.infer<typeof copySaleSchema>;
+
+export const moveSaleSchema = z
+	.object({
+		salesUid: z.string(),
+		to: salesMutationTypeSchema,
+		type: salesMutationTypeSchema,
+	})
+	.refine((data) => data.to !== data.type, {
+		message: "Destination type must differ from source type",
+		path: ["to"],
+	});
+export type MoveSaleSchema = z.infer<typeof moveSaleSchema>;
+
+export const deleteSalesByOrderIdsSchema = z.object({
+	orderIds: z.array(z.string()).min(1),
+});
+export type DeleteSalesByOrderIdsSchema = z.infer<
+	typeof deleteSalesByOrderIdsSchema
+>;
 export const salesDashboardFilterSchema = z.object({
 	from: z.string().optional(),
 	to: z.string().optional(),

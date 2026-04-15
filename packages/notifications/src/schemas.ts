@@ -90,6 +90,23 @@ export const salesCheckoutSuccessTags = actityTagsSchema.extend({
 });
 export type SalesCheckoutSuccessTags = z.infer<typeof salesCheckoutSuccessTags>;
 
+export const quoteAcceptedSchema = z.object({
+	salesId: z.number(),
+	orderNo: z.string(),
+	quoteNo: z.string(),
+	customerName: z.string().optional(),
+	acceptedAt: z.string(),
+});
+export type QuoteAcceptedInput = z.infer<typeof quoteAcceptedSchema>;
+export const quoteAcceptedTags = actityTagsSchema.extend({
+	salesId: z.number(),
+	orderNo: z.string(),
+	quoteNo: z.string(),
+	customerName: z.string().optional(),
+	acceptedAt: z.string(),
+});
+export type QuoteAcceptedTags = z.infer<typeof quoteAcceptedTags>;
+
 export const salesPaymentRecordedSchema = z.object({
 	orderNo: z.string(),
 	customerName: z.string().optional(),
@@ -522,6 +539,7 @@ export type CommunityUnitProductionBatchUpdatedTags = z.infer<
 
 export type NotificationTypes = {
 	sales_checkout_success: SalesCheckoutSuccessInput;
+	quote_accepted: QuoteAcceptedInput;
 	sales_payment_recorded: SalesPaymentRecordedInput;
 	sales_payment_refunded: SalesPaymentRefundedInput;
 	// job_activity: JobActivityInput;
@@ -1126,6 +1144,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_checkout_success"),
 		payload: salesCheckoutSuccessSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("quote_accepted"),
+		payload: quoteAcceptedSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_payment_recorded"),

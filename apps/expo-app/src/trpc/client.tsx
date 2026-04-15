@@ -12,7 +12,7 @@ import { getBaseUrl } from "@/lib/base-url";
 import { getSessionProfile, getToken } from "@/lib/session-store";
 import { consoleLog } from "@gnd/utils";
 // import { generateRandomString } from "@/lib/utils";
-// import { authUser } from "@/app/(v1)/_actions/utils";
+// import { authUser } from "@/app-deps/(v1)/_actions/utils";
 
 export const { TRPCProvider, useTRPC } = createTRPCContext<AppRouter>();
 

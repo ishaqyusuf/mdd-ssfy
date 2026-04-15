@@ -17,85 +17,83 @@ import { InboundSalesModal } from "./inbound-status-modal";
 import { JobOverviewModal } from "./job-overview";
 import { LaborCostModal } from "./labor-cost-modal";
 import { NewJobModal } from "./new-job";
-import { SalesEmailSenderModal } from "./sales-email-sender";
 import { SalesInvoicePreviewModal } from "./sales-invoice-preview-modal";
 import { SalesPreviewModal } from "./sales-preview-modal";
 import { SalesQuickPayModal } from "./sales-quick-pay-modal";
 
-const CommunityTemplateModal = dynamic(
-	() => import("./community-template-modal").then((mod) => mod.CommunityTemplateModal),
+const CommunityTemplateModal = dynamic(() =>
+    import("./community-template-modal").then(
+        (mod) => mod.CommunityTemplateModal,
+    ),
 );
-const CreateCommunityModelCostModal = dynamic(
-	() =>
-		import("./create-community-model-cost-modal").then(
-			(mod) => mod.CreateCommunityModelCostModal,
-		),
+const CreateCommunityModelCostModal = dynamic(() =>
+    import("./create-community-model-cost-modal").then(
+        (mod) => mod.CreateCommunityModelCostModal,
+    ),
 );
-const CommunityModelCostModal = dynamic(
-	() =>
-		import("./community-model-cost-modal").then(
-			(mod) => mod.CommunityModelCostModal,
-		),
+const CommunityModelCostModal = dynamic(() =>
+    import("./community-model-cost-modal").then(
+        (mod) => mod.CommunityModelCostModal,
+    ),
 );
-const WorkOrderFormModal = dynamic(
-	() => import("./work-order-form-modal").then((mod) => mod.WorkOrderFormModal),
+const WorkOrderFormModal = dynamic(() =>
+    import("./work-order-form-modal").then((mod) => mod.WorkOrderFormModal),
 );
-const ModelInstallCostModal = dynamic(
-	() =>
-		import("./model-install-cost-modal").then(
-			(mod) => mod.ModelInstallCostModal,
-		),
+const ModelInstallCostModal = dynamic(() =>
+    import("./model-install-cost-modal").then(
+        (mod) => mod.ModelInstallCostModal,
+    ),
 );
-const CreateCommunityProjectModal = dynamic(
-	() =>
-		import("./create-community-project-modal").then(
-			(mod) => mod.CreateCommunityProjectModal,
-		),
+const CreateCommunityProjectModal = dynamic(() =>
+    import("./create-community-project-modal").then(
+        (mod) => mod.CreateCommunityProjectModal,
+    ),
 );
-const BuilderFormModal = dynamic(
-	() => import("./builder-form-modal").then((mod) => mod.BuilderFormModal),
+const BuilderFormModal = dynamic(() =>
+    import("./builder-form-modal").then((mod) => mod.BuilderFormModal),
 );
 
 export function GlobalModals() {
-	const { createTemplate, templateId } = useCommunityTemplateParams();
-	const { createModelCost, editModelCostTemplateId } =
-		useCommunityModelCostParams();
-	const { openCustomerServiceId } = useCustomerServiceParams();
-	const { opened: projectModalOpen } = useCommunityProjectParams();
-	const { editCommunityModelInstallCostId, openToSide } =
-		useCommunityInstallCostParams();
-	const { opened: builderModalOpen } = useBuilderParams();
+    const { createTemplate, templateId } = useCommunityTemplateParams();
+    const { createModelCost, editModelCostTemplateId } =
+        useCommunityModelCostParams();
+    const { openCustomerServiceId } = useCustomerServiceParams();
+    const { opened: projectModalOpen } = useCommunityProjectParams();
+    const { editCommunityModelInstallCostId, openToSide } =
+        useCommunityInstallCostParams();
+    const { opened: builderModalOpen } = useBuilderParams();
 
-	return (
-		<>
-			<SuperAdminGuard>
-				<LaborCostModal />
-			</SuperAdminGuard>
-			<InboundSalesModal />
-			<DispatchStatusModal />
-			<DocumentReviewModal />
-			<EmployeeFormModal />
-			<SalesPreviewModal />
-			<SalesEmailSenderModal />
-			{createTemplate || !!templateId ? <CommunityTemplateModal /> : null}
-			{createModelCost ? <CreateCommunityModelCostModal /> : null}
-			<SalesInvoicePreviewModal />
-			<SalesQuickPayModal />
-			{!!editModelCostTemplateId ? <CommunityModelCostModal /> : null}
-			<ContractorPayoutOverviewModal />
-			{/* <Env isDev> */}
-			{!!openCustomerServiceId ? <WorkOrderFormModal /> : null}
+    return (
+        <>
+            <SuperAdminGuard>
+                <LaborCostModal />
+            </SuperAdminGuard>
+            <InboundSalesModal />
+            <DispatchStatusModal />
+            <DocumentReviewModal />
+            <EmployeeFormModal />
+            <SalesPreviewModal />
 
-			{/* LEGACY */}
+            {createTemplate || !!templateId ? <CommunityTemplateModal /> : null}
+            {createModelCost ? <CreateCommunityModelCostModal /> : null}
+            <SalesInvoicePreviewModal />
+            <SalesQuickPayModal />
+            {!!editModelCostTemplateId ? <CommunityModelCostModal /> : null}
+            <ContractorPayoutOverviewModal />
+            {/* <Env isDev> */}
+            {!!openCustomerServiceId ? <WorkOrderFormModal /> : null}
 
-			{!!editCommunityModelInstallCostId && !openToSide ? (
-				<ModelInstallCostModal />
-			) : null}
-			{projectModalOpen ? <CreateCommunityProjectModal /> : null}
-			{builderModalOpen ? <BuilderFormModal /> : null}
-			<NewJobModal />
-			<JobOverviewModal />
-			{/* </Env> */}
-		</>
-	);
+            {/* LEGACY */}
+
+            {!!editCommunityModelInstallCostId && !openToSide ? (
+                <ModelInstallCostModal />
+            ) : null}
+            {projectModalOpen ? <CreateCommunityProjectModal /> : null}
+            {builderModalOpen ? <BuilderFormModal /> : null}
+            <NewJobModal />
+            <JobOverviewModal />
+            {/* </Env> */}
+        </>
+    );
 }
+

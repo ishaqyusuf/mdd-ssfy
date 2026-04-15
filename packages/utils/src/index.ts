@@ -7,6 +7,14 @@ import _ from "lodash";
 import dotObject from "dot-object";
 import JsonSearch from "./json-search";
 export { dotObject };
+
+export function textValue<T extends object>(
+  text: string,
+  value?: string,
+  extras: T = {} as T,
+) {
+  return { text, value: value || text, ...extras };
+}
 export function insertAt<T>(array: T[], index: number, item: T) {
   return _.concat(_.slice(array, 0, index), [item], _.slice(array, index));
 }

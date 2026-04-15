@@ -259,7 +259,7 @@ export function SalesOverviewInbox({
 				channel={isInboundOnly ? "inventory_inbound" : "sales_info"}
 				names={isInboundOnly ? ["inventory_inbound"] : channelNames}
 				attachmentName="attachment"
-				attachmentType="image"
+				attachmentType="mixed"
 				attachmentChannels={["inventory_inbound", "sales_info"]}
 				multiAttachmentSupport
 				payload={{

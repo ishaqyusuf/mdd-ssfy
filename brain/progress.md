@@ -4,6 +4,25 @@
 
 ## 2026-04-15
 
+- Moved the sales-book accounting workspace into the sidebar-owned route tree and rebuilt the accounting + resolution pages around the current table/page standard.
+  - added canonical sidebar route ownership for `/sales-book/accounting` and `/sales-book/accounting/resolution-center` under `apps/www/src/app/(sidebar)/(sales)/sales-book/...` and removed the duplicate clean-code route ownership for those URLs
+  - extracted shared server page modules in `apps/www/src/components/sales-book/accounting-page.tsx` and `apps/www/src/components/sales-book/resolution-center-page.tsx` so both pages now stay thin, prefetch only the primary infinite table query, and stop blocking first paint on filter-list fetches
+  - kept the newer `@gnd/ui/data-table` provider as the canonical table path and added standard empty/no-results behavior to the resolution-center table so it matches the accounting table flow
+  - redirected legacy `/sales-book/reports` traffic into `/sales-book/accounting` and updated dashboard deep links that previously targeted the reports alias
+  - follow-up optimization: rewrote `apps/api/src/db/queries/sales-resolution.ts` so the main resolution table no longer materializes the full candidate order set before paginating; it now scans DB-ordered chunks, classifies only enough rows to fill the requested page, and moves the full unresolved-count scan into a separate summary query consumed independently by the UI badge
+  - follow-up optimization: trimmed `apps/api/src/db/queries/sales-accounting.ts` so the accounting list query stops selecting unused wallet/square/id fields and limits transaction history to the latest reason row needed by the table
+  - validation note:
+    - targeted `bunx biome check` passes for the new sidebar routes, shared page modules, resolution-center table, and updated leaderboard link
+    - workspace-wide `bun run --filter @gnd/www typecheck` did not complete within the quick validation window, so only targeted lint/format validation was completed in this session
+
+- Extended the sales activity chat to support mixed image/PDF attachments and clearer drag-and-drop uploads.
+  - widened the shared web chat attachment mode in `apps/www/src/components/chat/chat.tsx` so attachment-enabled chats can accept both images and PDFs, render file chips for non-image uploads, and present a visible dashed dropzone in the composer
+  - updated `apps/www/src/components/chat/activity-history.tsx` so sales activity timeline entries render PDFs/files as linked document cards instead of assuming every attachment is an image thumbnail
+  - updated `apps/www/src/components/chat/chats/sales-overview-inbox.tsx` so the sales activity/inbound composer now allows mixed attachments on the `sales_info` and `inventory_inbound` channels
+  - updated `apps/www/src/components/file-upload.tsx` and `apps/www/src/components/chat/README.md` to document and support chat-specific drag/drop copy for mixed uploads
+  - validation note:
+    - targeted `bunx biome check` is the intended validation step for the touched chat/upload files
+
 - Reworked the pickup packing funnel onto the active sidebar + `/p/sales-invoice-v2` flow.
   - `Send for Pickup` now creates or reuses a pickup delivery in `queue` and records packing-workflow membership on the `sales-packing-list` notification channel
   - the canonical warehouse route now lives at `apps/www/src/app/(sidebar)/sales/packing-list/page.tsx`

@@ -78,6 +78,19 @@ function activityAttachments(node: ActivityNode) {
 	return Array.isArray(attachment) ? attachment : [attachment];
 }
 
+function getAttachmentKind(pathname: string) {
+	const extension = pathname.split(".").pop()?.toLowerCase();
+	if (
+		["png", "jpg", "jpeg", "gif", "webp", "heic", "heif", "avif"].includes(
+			extension ?? "",
+		)
+	) {
+		return "image";
+	}
+	if (extension === "pdf") return "pdf";
+	return "file";
+}
+
 function ActivityTreeItem({
 	node,
 	depth = 0,
@@ -133,13 +146,27 @@ function ActivityTreeItem({
 							rel="noreferrer"
 							className="overflow-hidden rounded-lg border bg-muted/30"
 						>
-							<Image
-								src={`${env.NEXT_PUBLIC_VERCEL_BLOB_URL}/${pathname}`}
-								alt={pathname}
-								width={72}
-								height={72}
-								className="h-[72px] w-[72px] object-cover"
-							/>
+							{getAttachmentKind(pathname) === "image" ? (
+								<Image
+									src={`${env.NEXT_PUBLIC_VERCEL_BLOB_URL}/${pathname}`}
+									alt={pathname}
+									width={72}
+									height={72}
+									className="h-[72px] w-[72px] object-cover"
+								/>
+							) : (
+								<div className="flex h-[72px] w-[180px] items-center gap-2 px-3">
+									<Icons.FileText className="size-5 shrink-0 text-muted-foreground" />
+									<div className="min-w-0">
+										<p className="truncate text-xs font-medium text-foreground">
+											{pathname.split("/").pop()}
+										</p>
+										<p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+											{getAttachmentKind(pathname) === "pdf" ? "PDF" : "File"}
+										</p>
+									</div>
+								</div>
+							)}
 						</a>
 					))}
 				</div>

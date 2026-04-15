@@ -30,7 +30,7 @@ import {
     normalizeSalesFormTitle,
     resolveDoorTierPricing,
 } from "@gnd/sales/sales-form";
-import { widthList } from "@/app-deps/(clean-code)/(sales)/_common/utils/contants";
+import { widthList } from "@sales/filter-constants";
 import { ftToIn } from "@/lib/utils";
 
 type DoorLine = NonNullable<

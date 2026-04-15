@@ -24,7 +24,6 @@ import { AddInput } from "./add-input-block";
 import { BlockInput } from "./block-input-section";
 import { Button } from "@gnd/ui/button";
 import { useCommunityModelStore } from "@/store/community-model";
-import { SalesBlockCtx } from "@/app-deps/(v2)/printer/sales/sales-print-block";
 
 interface Props {
     block?;

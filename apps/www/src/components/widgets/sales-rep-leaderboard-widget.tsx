@@ -61,14 +61,11 @@ export function SalesRepLeaderboardWidget() {
 							className="flex h-[57px] w-full items-center text-left transition-colors hover:bg-muted/50"
 							key={rep.id}
 							onClick={() => {
-								openLink(
-									"/sales-book/reports",
-									{
-										salesRepId: rep.id,
-										from,
-										to,
-									},
-								);
+								openLink("/sales-book/accounting", {
+									salesRepId: rep.id,
+									from,
+									to,
+								});
 							}}
 						>
 							<Avatar

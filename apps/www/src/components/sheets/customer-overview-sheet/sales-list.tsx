@@ -1,79 +1,86 @@
 "use client";
 
-import { getCustomerRecentSales } from "@/actions/get-customer-recent-sales";
 import ProgressStatus from "@/components/_v1/progress-status";
-import { DataSkeleton } from "@/components/data-skeleton";
-import { useDataSkeleton } from "@/hooks/use-data-skeleton";
 import { formatDate } from "@/lib/use-day";
 import { formatMoney } from "@/lib/use-number";
-import { toFnType } from "@/utils/server-data-type";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
+import { Skeleton } from "@gnd/ui/skeleton";
 
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
 } from "@gnd/ui/table";
 
-export function SalesList({ data }) {
-    const skel = useDataSkeleton();
-    let list = toFnType(getCustomerRecentSales, data);
+type SalesListItem = RouterOutputs["sales"]["quotes"]["data"][number];
 
-    return !skel.loading && !list?.length ? (
-        <>
-            <div className="flex h-40 items-center justify-center">
-                <p className="text-muted-foreground">
-                    No customer sales data available
-                </p>
-            </div>
-        </>
-    ) : (
-        <Table className="table-sm">
-            <TableHeader>
-                <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>P.O</TableHead>
-                    <TableHead>Order #</TableHead>
-                    <TableHead align="right" className="text-right">
-                        Amount
-                    </TableHead>
-                    <TableHead>Status</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {skel.renderList(list).map((tx, i) => (
-                    <TableRow key={i}>
-                        <TableCell>
-                            <DataSkeleton pok="date">
-                                {formatDate(tx?.salesDate)}
-                            </DataSkeleton>
-                        </TableCell>
-                        <TableCell>
-                            <DataSkeleton pok="textSm">{tx?.poNo}</DataSkeleton>
-                        </TableCell>
-                        <TableCell>
-                            <DataSkeleton pok="textSm">
-                                {tx?.orderId}
-                            </DataSkeleton>
-                        </TableCell>
-                        <TableCell align="right">
-                            $
-                            <DataSkeleton as="span" pok="moneyLarge">
-                                {formatMoney(tx?.invoice?.total)}
-                            </DataSkeleton>
-                        </TableCell>
-                        <TableCell>
-                            <DataSkeleton as="span" pok="textSm">
-                                <ProgressStatus
-                                    status={tx?.status?.delivery?.status}
-                                />
-                            </DataSkeleton>
-                        </TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
-    );
+type Props = {
+	data?: SalesListItem[];
+	loading?: boolean;
+};
+
+export function SalesList({ data, loading = false }: Props) {
+	const list = data ?? [];
+
+	return !loading && !list.length ? (
+		<>
+			<div className="flex h-40 items-center justify-center">
+				<p className="text-muted-foreground">
+					No customer sales data available
+				</p>
+			</div>
+		</>
+	) : (
+		<Table className="table-sm">
+			<TableHeader>
+				<TableRow>
+					<TableHead>Date</TableHead>
+					<TableHead>P.O</TableHead>
+					<TableHead>Order #</TableHead>
+					<TableHead align="right" className="text-right">
+						Amount
+					</TableHead>
+					<TableHead>Status</TableHead>
+				</TableRow>
+			</TableHeader>
+			<TableBody>
+				{(loading ? Array.from({ length: 5 }) : list).map((tx, i) => (
+					<TableRow key={tx?.id ?? `quote-skeleton-${i}`}>
+						<TableCell>
+							{tx ? (
+								formatDate(tx.salesDate)
+							) : (
+								<Skeleton className="h-4 w-24" />
+							)}
+						</TableCell>
+						<TableCell>
+							{tx ? tx.poNo : <Skeleton className="h-4 w-20" />}
+						</TableCell>
+						<TableCell>
+							{tx ? tx.orderId : <Skeleton className="h-4 w-20" />}
+						</TableCell>
+						<TableCell align="right">
+							{tx ? (
+								<>${formatMoney(tx.invoice?.total)}</>
+							) : (
+								<div className="flex justify-end">
+									<Skeleton className="h-4 w-16" />
+								</div>
+							)}
+						</TableCell>
+						<TableCell>
+							{tx ? (
+								<ProgressStatus status={tx.status?.delivery?.status} />
+							) : (
+								<Skeleton className="h-4 w-24" />
+							)}
+						</TableCell>
+					</TableRow>
+				))}
+			</TableBody>
+		</Table>
+	);
 }

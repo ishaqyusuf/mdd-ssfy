@@ -36,6 +36,7 @@ import { jobTaskConfigureRequest } from "./types/job-tasks-configure-request";
 import { payoutCancelled } from "./types/payout-cancelled";
 import { payoutIssues } from "./types/payout-issues";
 import { payoutReversed } from "./types/payout-reversed";
+import { quoteAccepted } from "./types/quote-accepted";
 import { salesCheckoutSuccess } from "./types/sales-checkout-success";
 import { salesDispatchAssigned } from "./types/sales-dispatch-assigned";
 import { salesDispatchCancelled } from "./types/sales-dispatch-cancelled";
@@ -80,6 +81,7 @@ export {
 } from "./activity-tree";
 const handlers = {
 	sales_checkout_success: salesCheckoutSuccess,
+	quote_accepted: quoteAccepted,
 	job_assigned: jobAssigned,
 	job_submitted: jobSubmitted,
 	job_approved: jobApproved,

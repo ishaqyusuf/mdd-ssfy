@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/db";
-import { hashPassword } from "@/app/(v1)/_actions/utils";
+import { hashPassword } from "@/app-deps/(v1)/_actions/utils";
 import { CreateDealerPasswordSchema } from "./validation";
 import { redirect } from "next/navigation";
 import { DealerStatus } from "@/app/(v2)/(loggedIn)/sales-v2/dealers/action";

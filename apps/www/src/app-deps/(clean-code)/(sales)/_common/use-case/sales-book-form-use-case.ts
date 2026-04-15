@@ -21,7 +21,7 @@ import { composeSalesPricing } from "../utils/sales-pricing-utils";
 import { composeStepRouting } from "../utils/sales-step-utils";
 import { getSalesLaborCost } from "@/actions/sales-labor-cost";
 import { copySales } from "@sales/copy-sales";
-import { authUser } from "@/app/(v1)/_actions/utils";
+import { authUser } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { createNoteAction } from "@/modules/notes/actions/create-note-action";
 import { consoleLog } from "@gnd/utils";

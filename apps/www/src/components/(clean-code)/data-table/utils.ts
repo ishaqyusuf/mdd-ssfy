@@ -7,7 +7,7 @@ import {
     SLIDER_DELIMITER,
 } from "@/lib/delimiters";
 import { DataTableFilterField } from "./type";
-import { SEPARATOR } from "@/app-deps/(clean-code)/(sales)/_common/utils/contants";
+import { SEPARATOR } from "@sales/filter-constants";
 import {
     __filterKeyInSearch,
     __findFilterField,

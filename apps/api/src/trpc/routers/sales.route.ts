@@ -1,59 +1,27 @@
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
 import {
-	getFullSalesDataSchema,
-	getSaleOverviewSchema,
-	inboundQuerySchema,
-	saveOrderProductionGateSchema,
-	salesQueryParamsSchema,
-} from "@api/schemas/sales";
+	accountingIndex,
+	accountingIndexSchema,
+} from "@api/db/queries/accounting";
+import { getCustomers } from "@api/db/queries/customer";
+import { getInboundSummary, getInbounds } from "@api/db/queries/inbound";
+import {
+	getProductReport,
+	productReportSchema,
+} from "@api/db/queries/product-report";
 import {
 	getOrders,
 	getQuotes,
 	getSaleOverview,
 	getSales,
-	saveOrderProductionGate,
 	sales,
+	saveOrderProductionGate,
 	startNewSales,
 } from "@api/db/queries/sales";
-import { getInbounds, getInboundSummary } from "@api/db/queries/inbound";
-import { startNewSalesSchema } from "@api/schemas/sales";
-import { transformSalesFilterQuery } from "@api/utils/sales";
-import { getSaleInformation } from "@gnd/sales/get-sale-information";
 import {
-	getSalesResolutions,
-	getSalesResolutionsSchema,
-} from "@api/db/queries/sales-resolution";
-import { resolvePayment, resolvePaymentSchema } from "@api/db/queries/wallet";
-import {
-	getInvoicePrintData,
-	printInvoiceSchema,
-	productionV2DetailQuerySchema,
-	productionV2ListQuerySchema,
-	salesProductionQueryParamsSchema,
-} from "@sales/exports";
-import { salesPayWithWallet, salesPayWithWalletSchema } from "@sales/wallet";
-import {
-	getSalesProductionDashboard,
-	getSalesProductions,
-} from "@sales/sales-production";
-import {
-	getProductionDashboardV2,
-	getProductionListV2,
-	getProductionOrderDetailV2,
-} from "@sales/production-v2";
-import { z } from "zod";
-import { generateRandomString, timeLog } from "@gnd/utils";
-import { getCustomers } from "@api/db/queries/customer";
-import { getCustomersSchema } from "@api/schemas/customer";
-import {
-	getProductReport,
-	productReportSchema,
-} from "@api/db/queries/product-report";
-import { getSalesHx, getSalesHxSchema } from "@api/db/queries/sales-hx";
-import {
-	accountingIndex,
-	accountingIndexSchema,
-} from "@api/db/queries/accounting";
+	getSalesAccountings,
+	getSalesAccountingsSchema,
+} from "@api/db/queries/sales-accounting";
+import { copySale, moveSale } from "@api/db/queries/sales-actions";
 import { getMobileSalesDashboardOverview } from "@api/db/queries/sales-dashboard";
 import {
 	deleteSupplier,
@@ -69,17 +37,54 @@ import {
 	updateStepMeta,
 	updateStepMetaSchema,
 } from "@api/db/queries/sales-form";
-import {
-	getSalesAccountings,
-	getSalesAccountingsSchema,
-} from "@api/db/queries/sales-accounting";
-import { createNoteAction } from "@notifications/note";
+import { getSalesHx, getSalesHxSchema } from "@api/db/queries/sales-hx";
 import {
 	getOrdersV2,
 	getOrdersV2Schema,
 	getOrdersV2Summary,
 	getOrdersV2SummarySchema,
 } from "@api/db/queries/sales-orders-v2";
+import {
+	getSalesResolutions,
+	getSalesResolutionsSchema,
+	getSalesResolutionsSummary,
+} from "@api/db/queries/sales-resolution";
+import { resolvePayment, resolvePaymentSchema } from "@api/db/queries/wallet";
+import { getCustomersSchema } from "@api/schemas/customer";
+import {
+	copySaleSchema,
+	deleteSalesByOrderIdsSchema,
+	getFullSalesDataSchema,
+	getSaleOverviewSchema,
+	inboundQuerySchema,
+	moveSaleSchema,
+	salesQueryParamsSchema,
+	saveOrderProductionGateSchema,
+	startNewSalesSchema,
+} from "@api/schemas/sales";
+import { transformSalesFilterQuery } from "@api/utils/sales";
+import { getSaleInformation } from "@gnd/sales/get-sale-information";
+import { generateRandomString, timeLog } from "@gnd/utils";
+import { createNoteAction } from "@notifications/note";
+import {
+	getInvoicePrintData,
+	printInvoiceSchema,
+	productionV2DetailQuerySchema,
+	productionV2ListQuerySchema,
+	salesProductionQueryParamsSchema,
+} from "@sales/exports";
+import {
+	getProductionDashboardV2,
+	getProductionListV2,
+	getProductionOrderDetailV2,
+} from "@sales/production-v2";
+import {
+	getSalesProductionDashboard,
+	getSalesProductions,
+} from "@sales/sales-production";
+import { salesPayWithWallet, salesPayWithWalletSchema } from "@sales/wallet";
+import { z } from "zod";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
 export const salesRouter = createTRPCRouter({
 	createStep: publicProcedure
 		.input(
@@ -179,6 +184,11 @@ export const salesRouter = createTRPCRouter({
 			const result = await getSalesResolutions(props.ctx, props.input);
 			return result;
 		}),
+	getSalesResolutionsSummary: publicProcedure
+		.input(getSalesResolutionsSchema)
+		.query(async (props) => {
+			return getSalesResolutionsSummary(props.ctx, props.input);
+		}),
 	getStepComponents: publicProcedure
 		.input(getStepComponentsSchema)
 		.query(async (props) => {
@@ -221,11 +231,9 @@ export const salesRouter = createTRPCRouter({
 		.query(async (props) => {
 			return getOrders(props.ctx, transformSalesFilterQuery(props.input));
 		}),
-	getOrdersV2: publicProcedure
-		.input(getOrdersV2Schema)
-		.query(async (props) => {
-			return getOrdersV2(props.ctx, props.input);
-		}),
+	getOrdersV2: publicProcedure.input(getOrdersV2Schema).query(async (props) => {
+		return getOrdersV2(props.ctx, props.input);
+	}),
 	getOrdersV2Summary: publicProcedure
 		.input(getOrdersV2SummarySchema)
 		.query(async (props) => {
@@ -311,7 +319,31 @@ export const salesRouter = createTRPCRouter({
 		.mutation(async (props) => {
 			return updateStepMeta(props.ctx, props.input);
 		}),
-	deleteSale: publicProcedure
+	copySale: protectedProcedure.input(copySaleSchema).mutation(async (props) => {
+		return copySale(props.ctx, props.input);
+	}),
+	moveSale: protectedProcedure.input(moveSaleSchema).mutation(async (props) => {
+		return moveSale(props.ctx, props.input);
+	}),
+	deleteSalesByOrderIds: protectedProcedure
+		.input(deleteSalesByOrderIdsSchema)
+		.mutation(async (props) => {
+			const result = await props.ctx.db.salesOrders.updateMany({
+				where: {
+					orderId: {
+						in: props.input.orderIds,
+					},
+				},
+				data: {
+					deletedAt: new Date(),
+				},
+			});
+
+			return {
+				count: result.count,
+			};
+		}),
+	deleteSale: protectedProcedure
 		.input(z.object({ salesId: z.number() }))
 		.mutation(async (props) => {
 			const o = await props.ctx.db.salesOrders.update({
@@ -329,7 +361,7 @@ export const salesRouter = createTRPCRouter({
 			});
 			await createNoteAction({
 				db: props.ctx.db,
-				authorId: props.ctx.userId!,
+				authorId: props.ctx.userId,
 				subject: "Sale Deleted",
 				headline: `Sale with # ${o.orderId} was deleted.`, // headline is used for the general activities page
 				note: "", // user input

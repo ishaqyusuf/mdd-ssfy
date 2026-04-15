@@ -4,10 +4,10 @@ import {
     getPageInfo,
     queryFilter,
 } from "@/app-deps/(v1)/_actions/action-utils";
-import salesData from "@/app-deps/(v2)/(loggedIn)/sales/sales-data";
 import { prisma, Prisma } from "@/db";
 import { ftToIn, sum } from "@/lib/utils";
 import { BaseQuery, PageQuery } from "@/types/action";
+import salesData from "@sales/sales-data";
 import {
     DeliveryOption,
     IAddressMeta,

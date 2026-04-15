@@ -74,6 +74,11 @@ export const salesPaymentTokenSchema = z.object({
 	amount: z.number().optional().nullable(),
 	paymentId: z.string().optional().nullable(),
 });
+export const quoteAcceptanceTokenSchema = z.object({
+	salesId: z.number(),
+	orderId: z.string(),
+	expiry: z.string(),
+});
 export const tokenSchemas = {
 	salesPdfToken,
 	jobsPdfToken,
@@ -81,16 +86,21 @@ export const tokenSchemas = {
 	communityInvoiceAgingPdfToken,
 	communityInvoiceTaskDetailPdfToken,
 	salesPaymentTokenSchema,
+	quoteAcceptanceTokenSchema,
 } as const;
 export type TokenSchemaNames = keyof typeof tokenSchemas;
 export type SalesPaymentTokenSchema = z.infer<typeof salesPaymentTokenSchema>;
+export type QuoteAcceptanceTokenSchema = z.infer<
+	typeof quoteAcceptanceTokenSchema
+>;
 type KnownToken =
 	| SalesPdfToken
 	| JobsPdfToken
 	| PayoutPdfToken
 	| CommunityInvoiceAgingPdfToken
 	| CommunityInvoiceTaskDetailPdfToken
-	| SalesPaymentTokenSchema;
+	| SalesPaymentTokenSchema
+	| QuoteAcceptanceTokenSchema;
 export function tokenize<T extends KnownToken>(data: T) {
 	return jwtEncrypt(data);
 }

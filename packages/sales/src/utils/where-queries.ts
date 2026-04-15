@@ -215,18 +215,18 @@ export function whereSales(query: SalesQueryParamsSchema) {
     const val = query?.[k] as any;
     if (!val) return;
     switch (k) {
-      // case "address.id":
-      //   where.push({
-      //     OR: [
-      //       {
-      //         billingAddressId: val,
-      //       },
-      //       {
-      //         shippingAddressId: val,
-      //       },
-      //     ],
-      //   });
-      //   break;
+      case "address.id":
+        where.push({
+          OR: [
+            {
+              billingAddressId: val,
+            },
+            {
+              shippingAddressId: val,
+            },
+          ],
+        });
+        break;
       // case "id":
       //   let id = String(query.id);
       //   if (id?.includes(","))

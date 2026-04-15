@@ -42,6 +42,7 @@ function mapCustomerWorkspaceItem(
   return {
     id: item.id,
     orderId: item.orderId,
+    slug: item.slug || item.orderId,
     uuid: item.slug || item.orderId,
     poNo: (((item.meta || {}) as Record<string, unknown>)?.po as string | undefined) || null,
     displayName:
@@ -49,6 +50,8 @@ function mapCustomerWorkspaceItem(
       item.customer?.businessName ||
       item.customer?.name ||
       null,
+    customerPhone: item.billingAddress?.phoneNo || item.customer?.phoneNo || null,
+    address: item.billingAddress?.address1 || item.customer?.address || null,
     salesDate: item.createdAt?.toISOString?.() || null,
     due: Number(item.amountDue || 0),
     invoice: {
@@ -89,11 +92,15 @@ async function getCustomerWorkspaceSales(
         select: {
           name: true,
           businessName: true,
+          phoneNo: true,
+          address: true,
         },
       },
       billingAddress: {
         select: {
           name: true,
+          phoneNo: true,
+          address1: true,
         },
       },
     },

@@ -1,4 +1,4 @@
-import { SEPARATOR } from "@/app-deps/(clean-code)/(sales)/_common/utils/contants";
+import { SEPARATOR } from "@sales/filter-constants";
 import {
     ARRAY_DELIMITER,
     RANGE_DELIMITER,

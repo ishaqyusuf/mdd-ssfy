@@ -1,5 +1,4 @@
 import { Fragment, useMemo } from "react";
-import salesData from "@/app-deps/(clean-code)/(sales)/_common/utils/sales-data";
 import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { SettingsClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class";
 import { DatePicker } from "@/components/_v1/date-range-picker";
@@ -25,6 +24,7 @@ import ConfirmBtn from "@/components/confirm-button";
 import { deleteSalesExtraCost } from "@/actions/delete-sales-extra-cost";
 import { SalesHistory } from "@/components/sales-hx";
 import { SalesCustomerInput } from "./sales-customer-input";
+import salesData from "@sales/sales-data";
 
 export type SalesMetaTab = "summary" | "history";
 

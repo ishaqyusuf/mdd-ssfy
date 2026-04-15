@@ -3,7 +3,7 @@ import {
     INVOICE_FILTER_OPTIONS,
     PRODUCTION_ASSIGNMENT_FILTER_OPTIONS,
     PRODUCTION_STATUS,
-} from "@/app-deps/(clean-code)/(sales)/_common/utils/contants";
+} from "@sales/filter-constants";
 import { PERMISSIONS } from "@gnd/utils/constants";
 import { ROLES } from "@gnd/utils/constants";
 // Note: import from 'nuqs/server' to avoid the "use client" directive

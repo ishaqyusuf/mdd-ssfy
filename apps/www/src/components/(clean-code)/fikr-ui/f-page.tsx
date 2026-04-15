@@ -1,4 +1,3 @@
-import AuthGuard from "@/app-deps/(v2)/(loggedIn)/_components/auth-guard";
 import { cn } from "@/lib/utils";
 import { ICan } from "@/types/auth";
 import FTitle from "./f-page-title";
@@ -21,11 +20,11 @@ export default function FPage({
     permissionType,
 }: Props) {
     return (
-        <AuthGuard can={can} permissionType={permissionType} roles={roles}>
+        <>
             {title && <FTitle>{title}</FTitle>}
             <div className={cn("pt-6 flex gap-4 flex-col", className)}>
                 {children}
             </div>
-        </AuthGuard>
+        </>
     );
 }

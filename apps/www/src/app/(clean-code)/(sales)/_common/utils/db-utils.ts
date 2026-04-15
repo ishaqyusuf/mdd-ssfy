@@ -4,9 +4,9 @@ import {
     whereNotTrashed,
 } from "@/app-deps/(clean-code)/_common/utils/db-utils";
 import { Prisma } from "@/db";
+import salesData from "@sales/sales-data";
 
 import { GetSalesDispatchListQuery } from "../data-access/sales-dispatch-dta";
-import salesData from "./sales-data";
 
 export function whereDispatch(query: GetSalesDispatchListQuery) {
     const whereAnd: Prisma.OrderDeliveryWhereInput[] = [];

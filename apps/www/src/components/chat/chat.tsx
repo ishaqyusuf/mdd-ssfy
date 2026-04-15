@@ -88,7 +88,7 @@ type ChatContextValue = {
 	submit: () => Promise<void>;
 	channelOptions: Array<{ label: string; value: string; description: string }>;
 	attachmentName?: string;
-	attachmentType?: "image";
+	attachmentType?: "image" | "mixed";
 	multiAttachmentSupport?: boolean;
 	attachmentChannels?: readonly string[];
 	attachmentPath?: BlobPath;
@@ -127,7 +127,7 @@ export type ChatProps = {
 	onSubmitData?: (data: ChatSubmitData) => void | Promise<void>;
 	onSent?: () => void;
 	attachmentName?: string;
-	attachmentType?: "image";
+	attachmentType?: "image" | "mixed";
 	multiAttachmentSupport?: boolean;
 	attachmentChannels?: readonly string[];
 	attachmentPath?: BlobPath;
@@ -238,6 +238,54 @@ function isAttachmentChannelEnabled(
 	if (!attachmentName) return false;
 	if (!attachmentChannels?.length) return true;
 	return attachmentChannels.includes(channel);
+}
+
+function getAttachmentExtension(pathname: string) {
+	const extension = pathname.split(".").pop()?.toLowerCase();
+	return extension || "";
+}
+
+function getAttachmentKind(pathname: string) {
+	const extension = getAttachmentExtension(pathname);
+	if (
+		["jpg", "jpeg", "png", "webp", "heic", "heif", "avif", "gif"].includes(
+			extension,
+		)
+	) {
+		return "image";
+	}
+	if (extension === "pdf") {
+		return "pdf";
+	}
+	return "file";
+}
+
+function getAttachmentAccept(
+	attachmentType: NonNullable<ChatProps["attachmentType"]>,
+) {
+	if (attachmentType === "image") {
+		return {
+			"image/*": [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".avif"],
+		} as const;
+	}
+
+	return {
+		"image/*": [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".avif"],
+		"application/pdf": [".pdf"],
+	} as const;
+}
+
+function attachmentButtonLabel(
+	attachmentType: NonNullable<ChatProps["attachmentType"]>,
+	hasExistingAttachments: boolean,
+) {
+	if (attachmentType === "image") {
+		return hasExistingAttachments ? "Add another image" : "Attach image";
+	}
+
+	return hasExistingAttachments
+		? "Add another image or PDF"
+		: "Attach image or PDF";
 }
 
 export function useChat() {
@@ -575,15 +623,36 @@ export function ChatContent({
 									key={pathname}
 									className="relative overflow-hidden rounded-lg border bg-muted/20"
 								>
-									{attachmentType === "image" ? (
-										<Image
-											src={`${env.NEXT_PUBLIC_VERCEL_BLOB_URL}/${pathname}`}
-											alt={pathname}
-											width={72}
-											height={72}
-											className="h-[72px] w-[72px] object-cover"
-										/>
-									) : null}
+									<a
+										href={`${env.NEXT_PUBLIC_VERCEL_BLOB_URL}/${pathname}`}
+										target="_blank"
+										rel="noreferrer"
+										className="flex min-h-[72px] min-w-[72px] items-center justify-center"
+									>
+										{getAttachmentKind(pathname) === "image" ? (
+											<Image
+												src={`${env.NEXT_PUBLIC_VERCEL_BLOB_URL}/${pathname}`}
+												alt={pathname}
+												width={72}
+												height={72}
+												className="h-[72px] w-[72px] object-cover"
+											/>
+										) : (
+											<div className="flex h-[72px] w-[160px] items-center gap-2 px-3">
+												<Icons.FileText className="size-5 shrink-0 text-muted-foreground" />
+												<div className="min-w-0">
+													<p className="truncate text-xs font-medium text-foreground">
+														{pathname.split("/").pop()}
+													</p>
+													<p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+														{getAttachmentKind(pathname) === "pdf"
+															? "PDF"
+															: "File"}
+													</p>
+												</div>
+											</div>
+										)}
+									</a>
 									<Button
 										type="button"
 										variant="secondary"
@@ -602,35 +671,45 @@ export function ChatContent({
 						<FileUpload
 							path={attachmentPath}
 							maxFiles={multiAttachmentSupport ? 25 : 1}
-							accept={
+							accept={getAttachmentAccept(attachmentType)}
+							dragDescription={
 								attachmentType === "image"
-									? {
-											"image/*": [
-												".jpg",
-												".jpeg",
-												".png",
-												".webp",
-												".heic",
-												".heif",
-												".avif",
-											],
-										}
-									: undefined
+									? "Drop an image here."
+									: "Drop an image or PDF here."
+							}
+							dragActiveDescription={
+								attachmentType === "image"
+									? "Release to attach this image."
+									: "Release to attach this image or PDF."
 							}
 							onUploadComplete={(results: PutBlobResult[]) => {
 								appendAttachments(results.map((result) => result.pathname));
 							}}
 						>
-							<Button
-								type="button"
-								variant="outline"
-								className="h-8 rounded-md border-dashed px-3 text-xs"
-							>
-								<Icons.Camera className="mr-2 size-3.5" />
-								{state.attachments.length
-									? "Add another image"
-									: "Attach image"}
-							</Button>
+							<div className="rounded-lg border border-dashed border-border/70 bg-muted/20 px-3 py-3 transition-colors hover:bg-muted/30">
+								<div className="flex items-center gap-3">
+									<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-background">
+										{attachmentType === "image" ? (
+											<Icons.Camera className="size-4 text-muted-foreground" />
+										) : (
+											<Icons.UploadCloud className="size-4 text-muted-foreground" />
+										)}
+									</div>
+									<div className="min-w-0 flex-1">
+										<p className="text-sm font-medium text-foreground">
+											{attachmentButtonLabel(
+												attachmentType,
+												state.attachments.length > 0,
+											)}
+										</p>
+										<p className="text-xs text-muted-foreground">
+											{attachmentType === "image"
+												? "Drag and drop or browse from your device."
+												: "Drag and drop images or PDFs, or browse from your device."}
+										</p>
+									</div>
+								</div>
+							</div>
 						</FileUpload>
 					) : null}
 				</div>
