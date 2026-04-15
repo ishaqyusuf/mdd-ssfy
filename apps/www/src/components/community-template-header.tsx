@@ -4,11 +4,16 @@ import Link from "next/link";
 import { cn } from "@gnd/ui/cn";
 import { buttonVariants } from "@gnd/ui/button";
 import { SuperAdminGuard } from "./auth-guard";
+import type { PageFilterData } from "@api/type";
 
-export function CommunityTemplateHeader({}) {
+type Props = {
+    initialFilterList?: PageFilterData[];
+};
+
+export function CommunityTemplateHeader({ initialFilterList }: Props) {
     return (
         <div className="flex gap-4">
-            <CommunityTemplateSearchFilter />
+            <CommunityTemplateSearchFilter initialFilterList={initialFilterList} />
             <div className="flex-1"></div>
             <SuperAdminGuard>
                 <Link
@@ -26,4 +31,3 @@ export function CommunityTemplateHeader({}) {
         </div>
     );
 }
-

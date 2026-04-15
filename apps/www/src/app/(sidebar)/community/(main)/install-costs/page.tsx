@@ -1,4 +1,4 @@
-import CommunityInstallCostRate from "@/components/community-install-costs";
+import { InstallCostsClient } from "./install-costs-client";
 import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
 
@@ -21,7 +21,7 @@ export default async function Page() {
 		<PageShell>
 			<HydrateClient>
 				<PageTitle>Install Costs</PageTitle>
-				<CommunityInstallCostRate />
+				<InstallCostsClient />
 			</HydrateClient>
 		</PageShell>
 	);

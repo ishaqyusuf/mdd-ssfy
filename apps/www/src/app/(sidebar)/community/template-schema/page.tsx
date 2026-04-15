@@ -1,15 +1,12 @@
 import { ErrorFallback } from "@/components/error-fallback";
-import { CommunityTemplateForm } from "@/components/forms/community-template/community-template-form";
-import { NewBlockAction } from "@/components/forms/community-template/new-block-action";
 import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
-import Portal from "@gnd/ui/custom/portal";
-import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import type { SearchParams } from "nuqs";
 import { Suspense } from "react";
 
 import PageShell from "@/components/page-shell";
+import { TemplateSchemaClient } from "./template-schema-client";
 export async function generateMetadata(props) {
 	return constructMetadata({
 		title: "Template Schema | GND",
@@ -36,12 +33,8 @@ export default async function Page(props: Props) {
 						<div id="blockAction" />
 					</div>
 					<ErrorBoundary errorComponent={ErrorFallback}>
-						<Suspense fallback={<Skeletons.Dashboard />}>
-							<CommunityTemplateForm>
-								<Portal nodeId="blockAction">
-									<NewBlockAction />
-								</Portal>
-							</CommunityTemplateForm>
+						<Suspense fallback={null}>
+							<TemplateSchemaClient />
 						</Suspense>
 					</ErrorBoundary>
 				</div>

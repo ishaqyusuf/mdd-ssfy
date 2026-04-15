@@ -1,15 +1,22 @@
+import dynamic from "next/dynamic";
 import { useCommunityTemplateParams } from "@/hooks/use-community-template-params";
 import { CustomModal, CustomModalContent } from "./custom-modal";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
-import { CommunityTemplateForm } from "../forms/community-template-form";
+
+const CommunityTemplateForm = dynamic(
+	() =>
+		import("../forms/community-template-form").then(
+			(mod) => mod.CommunityTemplateForm,
+		),
+);
 
 export function CommunityTemplateModal({}) {
     const { createTemplate, templateId, setParams } =
         useCommunityTemplateParams();
     const opened = createTemplate || !!templateId;
     const trpc = useTRPC();
-    const { data, isPending, error } = useQuery(
+    const { data } = useQuery(
         trpc.community.getCommunityTemplateForm.queryOptions(
             {
                 templateId,
@@ -29,10 +36,11 @@ export function CommunityTemplateModal({}) {
                 setParams(null);
             }}
         >
-            <CustomModalContent className="">
-                <CommunityTemplateForm data={data} />
-            </CustomModalContent>
+            {opened ? (
+                <CustomModalContent className="">
+                    <CommunityTemplateForm data={data} />
+                </CustomModalContent>
+            ) : null}
         </CustomModal>
     );
 }
-

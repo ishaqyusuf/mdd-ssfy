@@ -1,6 +1,6 @@
+import dynamic from "next/dynamic";
 import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-params";
 import { CustomModal, CustomModalContent } from "./custom-modal";
-import { CommunityModelCostForm } from "../forms/community-model-cost-form";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
 
@@ -13,7 +13,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@gnd/ui/select";
-import { useDebugConsole } from "@/hooks/use-debug-console";
+
+const CommunityModelCostForm = dynamic(
+	() =>
+		import("../forms/community-model-cost-form").then(
+			(mod) => mod.CommunityModelCostForm,
+		),
+);
 
 export function CommunityModelCostModal() {
     const {
@@ -24,7 +30,7 @@ export function CommunityModelCostModal() {
     } =
         useCommunityModelCostParams();
     const trpc = useTRPC();
-    const { data, error } = useQuery(
+    const { data } = useQuery(
         trpc.community.communityModelCostHistory.queryOptions(
             {
                 id: editModelCostTemplateId,
@@ -47,45 +53,47 @@ export function CommunityModelCostModal() {
             title={`Model Cost (${data?.model?.modelName})`}
             description={data?.model?.project?.title}
         >
-            <div className="flex flex-col gap-4">
-                <div className="flex gap-4">
-                    <Select
-                        value={String(editModelCostId)}
-                        onValueChange={(e) => {
-                            setParams({
-                                editModelCostId: Number(e),
-                            });
-                        }}
-                    >
-                        <SelectTrigger className="h-8">
-                            <SelectValue placeholder="Select Cost" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="-1">New Cost</SelectItem>
-                            {data?.modelCosts?.map((r) => (
-                                <SelectItem
-                                    className=""
-                                    value={String(r.id)}
-                                    key={r.id}
-                                >
-                                    <div className="flex gap-4">
-                                        <span>{r.title}</span>
-                                        <span className="font-semibold">
-                                            <Money
-                                                value={r?.meta?.grandTotal}
-                                            />
-                                        </span>
-                                    </div>
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <div id="cmcAction"></div>
+            {!!editModelCostTemplateId ? (
+                <div className="flex flex-col gap-4">
+                    <div className="flex gap-4">
+                        <Select
+                            value={String(editModelCostId)}
+                            onValueChange={(e) => {
+                                setParams({
+                                    editModelCostId: Number(e),
+                                });
+                            }}
+                        >
+                            <SelectTrigger className="h-8">
+                                <SelectValue placeholder="Select Cost" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="-1">New Cost</SelectItem>
+                                {data?.modelCosts?.map((r) => (
+                                    <SelectItem
+                                        className=""
+                                        value={String(r.id)}
+                                        key={r.id}
+                                    >
+                                        <div className="flex gap-4">
+                                            <span>{r.title}</span>
+                                            <span className="font-semibold">
+                                                <Money
+                                                    value={r?.meta?.grandTotal}
+                                                />
+                                            </span>
+                                        </div>
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <div id="cmcAction"></div>
+                    </div>
+                    <CustomModalContent className="lg:max-h-[55vh] overflow-auto">
+                        <CommunityModelCostForm model={data} />
+                    </CustomModalContent>
                 </div>
-                <CustomModalContent className="lg:max-h-[55vh] overflow-auto">
-                    <CommunityModelCostForm model={data} />
-                </CustomModalContent>
-            </div>
+            ) : null}
         </CustomModal>
     );
 }

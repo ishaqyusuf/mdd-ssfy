@@ -4,10 +4,14 @@ import { SearchFilterProvider } from "@/hooks/use-search-filter";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
 import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";
-import { salesFilterParamsSchema } from "@/hooks/use-sales-filter-params";
 import { communityTemplateFilterParams } from "@/hooks/use-community-template-filter-params";
+import type { PageFilterData } from "@api/type";
 
-export function CommunityTemplateSearchFilter() {
+type Props = {
+    initialFilterList?: PageFilterData[];
+};
+
+export function CommunityTemplateSearchFilter({ initialFilterList }: Props) {
     return (
         <SearchFilterProvider
             args={[
@@ -16,14 +20,15 @@ export function CommunityTemplateSearchFilter() {
                 },
             ]}
         >
-            <Content />
+            <Content initialFilterList={initialFilterList} />
         </SearchFilterProvider>
     );
 }
-function Content({}) {
+function Content({ initialFilterList }: Props) {
     const trpc = useTRPC();
     const { data: trpcFilterData } = useQuery({
         ...trpc.filters.communityTemplateFilters.queryOptions(),
+        initialData: initialFilterList,
     });
 
     return (
@@ -35,4 +40,3 @@ function Content({}) {
         </>
     );
 }
-

@@ -1,13 +1,11 @@
 import { ErrorFallback } from "@/components/error-fallback";
-import { CommunityTemplateForm } from "@/components/forms/community-template/community-template-form";
-import { FormHeader } from "@/components/forms/community-template/form-header";
 import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
-import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import type { SearchParams } from "nuqs";
 import { Suspense } from "react";
 import PageShell from "@/components/page-shell";
+import { ModelTemplateClient } from "./model-template-client";
 export async function generateMetadata(props) {
 	return constructMetadata({
 		title: "Model Template | GND",
@@ -35,10 +33,8 @@ export default async function Page(props: Props) {
 			<HydrateClient>
 				<div className="flex flex-col p-4 gap-6">
 					<ErrorBoundary errorComponent={ErrorFallback}>
-						<Suspense fallback={<Skeletons.Dashboard />}>
-							<CommunityTemplateForm modelSlug={params.slug as any}>
-								<FormHeader />
-							</CommunityTemplateForm>
+						<Suspense fallback={null}>
+							<ModelTemplateClient modelSlug={params.slug as any} />
 						</Suspense>
 					</ErrorBoundary>
 				</div>

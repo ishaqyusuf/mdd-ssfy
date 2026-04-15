@@ -98,3 +98,4 @@ Target behavior:
 ### Remaining Community Follow-up
 - Verify whether Community detail pages that are not directly listed in `linkModules` should stay in `Possibly Stale Pages` or be promoted back into active scope.
 - Add route-level measurements for the active Community surfaces before moving the same pattern into Sales.
+- Apply the guardrails in `brain/engineering/www-performance-guardrails.md` to all follow-up route work so route hydration improvements are not undone by heavy client shells.

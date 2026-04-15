@@ -1,8 +1,12 @@
+import dynamic from "next/dynamic";
 import { CustomModal, CustomModalContent } from "./custom-modal";
 import { useCustomerServiceParams } from "@/hooks/use-customer-service-params";
-import { WorkOrderForm } from "../forms/work-order-form";
 import { useQuery } from "@gnd/ui/tanstack";
 import { useTRPC } from "@/trpc/client";
+
+const WorkOrderForm = dynamic(
+	() => import("../forms/work-order-form").then((mod) => mod.WorkOrderForm),
+);
 
 export function WorkOrderFormModal({}) {
     const { openCustomerServiceId, setParams } = useCustomerServiceParams();
@@ -25,10 +29,11 @@ export function WorkOrderFormModal({}) {
                 setParams(null);
             }}
         >
-            <CustomModalContent className="">
-                <WorkOrderForm data={data} />
-            </CustomModalContent>
+            {opened ? (
+                <CustomModalContent className="">
+                    <WorkOrderForm data={data} />
+                </CustomModalContent>
+            ) : null}
         </CustomModal>
     );
 }
-
