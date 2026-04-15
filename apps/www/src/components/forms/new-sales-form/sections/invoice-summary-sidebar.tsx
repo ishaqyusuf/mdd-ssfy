@@ -1,17 +1,30 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { Icons } from "@gnd/ui/icons";
 
 import { useState } from "react";
 import { Button } from "@gnd/ui/button";
 import { InvoiceOverviewPanel } from "./invoice-overview-panel";
 import { useNewSalesFormStore } from "../store";
-import { SalesHistory } from "@/components/sales-hx";
 
 interface Props {
     mobileOpen: boolean;
     onClose: () => void;
 }
+
+const SalesHistory = dynamic(
+    () => import("@/components/sales-hx").then((mod) => mod.SalesHistory),
+    {
+        loading: () => (
+            <div className="space-y-3">
+                <div className="h-10 w-full animate-pulse rounded bg-muted" />
+                <div className="h-20 w-full animate-pulse rounded bg-muted" />
+                <div className="h-20 w-full animate-pulse rounded bg-muted" />
+            </div>
+        ),
+    },
+);
 
 export function InvoiceSummarySidebar(props: Props) {
     const record = useNewSalesFormStore((s) => s.record);

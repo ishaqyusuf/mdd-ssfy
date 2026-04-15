@@ -118,3 +118,7 @@ A route can be considered done when:
 - HRM
 - Production / Jobs
 - Any future linked workspace in `apps/www`
+
+## Validation Follow-up
+- After a linked-route optimization pass, validate the highest-traffic shortlist before declaring the work stable.
+- Use `brain/engineering/www-performance-validation-checklist.md` as the required follow-up checklist.

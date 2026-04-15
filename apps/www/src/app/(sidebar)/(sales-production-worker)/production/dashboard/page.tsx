@@ -3,6 +3,7 @@ import { authId } from "@/app-deps/(v1)/_actions/utils";
 import { loadSalesProductionFilterParams } from "@/hooks/use-sales-production-filter-params";
 import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import type { Metadata } from "next";
+import { unstable_noStore } from "next/cache";
 
 import PageShell from "@/components/page-shell";
 export const metadata: Metadata = {
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Page(props) {
+    unstable_noStore();
     const searchParams = await props.searchParams;
     const queryClient = getQueryClient();
     const filter = loadSalesProductionFilterParams(searchParams);

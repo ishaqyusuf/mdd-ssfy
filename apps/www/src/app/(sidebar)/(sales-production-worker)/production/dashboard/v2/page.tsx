@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { unstable_noStore } from "next/cache";
 
 import { ProductionWorkerDashboardV2 } from "@/components/production-v2/shared";
 import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
+    unstable_noStore();
     const queryClient = getQueryClient();
     await Promise.all([
         queryClient.fetchQuery(
