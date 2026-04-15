@@ -9,12 +9,10 @@ import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import PageShell from "@/components/page-shell";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import {
-	batchPrefetch,
 	getQueryClient,
 	HydrateClient,
 	trpc,
 } from "@/trpc/server";
-import { RouterInputs } from "@api/trpc/routers/_app";
 import type { InventorySummary } from "@sales/inventory";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import type { SearchParams } from "nuqs";
@@ -30,27 +28,34 @@ type Props = {
 };
 export default async function Page(props: Props) {
 	const searchParams = await props.searchParams;
+	const queryClient = getQueryClient();
 	const filter = {
 		productKind: "inventory" as const,
 		...loadInventoryFilterParams(searchParams),
 	};
-	batchPrefetch([
-		trpc.inventories.inventoryProducts.infiniteQueryOptions({
-			...filter,
-		}),
-		...(
-			[
-				"categories",
-				"inventory_value",
-				"stock_level",
-				"total_products",
-			] as InventorySummary["type"][]
-		).map((type) =>
-			trpc.inventories.inventorySummary.queryOptions({
-				type,
-			}),
+	const summaryTypes = [
+		"categories",
+		"inventory_value",
+		"stock_level",
+		"total_products",
+	] as InventorySummary["type"][];
+
+	await Promise.all([
+		queryClient.fetchInfiniteQuery(
+			trpc.inventories.inventoryProducts.infiniteQueryOptions({
+				...filter,
+			}) as any,
+		),
+		queryClient.fetchQuery(trpc.inventories.lowStockSummary.queryOptions()),
+		...summaryTypes.map((type) =>
+			queryClient.fetchQuery(
+				trpc.inventories.inventorySummary.queryOptions({
+					type,
+				}),
+			),
 		),
 	]);
+
 	return (
 		<PageShell className="gap-6">
 			<PageTitle>Inventory</PageTitle>
