@@ -881,7 +881,12 @@ function ProductionOrderCard({
 
 	return (
 		<Collapsible open={isExpanded} onOpenChange={() => onToggle()}>
-			<Card className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_100%)] shadow-[0_18px_38px_-28px_rgba(15,23,42,0.22)]">
+			<Card
+				className={cn(
+					"overflow-hidden rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_100%)] shadow-[0_18px_38px_-28px_rgba(15,23,42,0.22)] transition-colors",
+					isExpanded && "border-slate-500/90 shadow-[0_22px_44px_-28px_rgba(15,23,42,0.34)]",
+				)}
+			>
 				<div className="flex items-start gap-3 px-4 py-4 sm:px-5">
 					<Checkbox
 						checked={isSelected}

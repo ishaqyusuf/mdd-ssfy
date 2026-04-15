@@ -51,6 +51,14 @@ export function GeneralTab({}) {
             : 0;
     const productionPercentage = saleData?.stats?.prodCompleted?.percentage;
     const assignmentPercentage = saleData?.stats?.prodAssigned?.percentage;
+    const assignmentStatus = saleData?.status?.assignment?.status ?? "pending";
+    const assignmentStatusColor =
+        saleData?.status?.assignment?.color ?? "warmGray";
+    const productionStatus = saleData?.status?.production?.status ?? "pending";
+    const productionStatusColor =
+        saleData?.status?.production?.color ?? "warmGray";
+    const deliveryStatus = saleData?.status?.delivery?.status ?? "pending";
+    const deliveryStatusColor = saleData?.status?.delivery?.color ?? "warmGray";
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -493,8 +501,7 @@ export function GeneralTab({}) {
                                         <div className="flex items-center gap-2">
                                             <div
                                                 className={`h-2 w-2 rounded-full ${getStatusColor(
-                                                    saleData?.status?.assignment
-                                                        ?.color,
+                                                    assignmentStatusColor,
                                                 )}`}
                                             ></div>
                                             <DataSkeleton
@@ -502,10 +509,7 @@ export function GeneralTab({}) {
                                                 placeholder="Completed"
                                             >
                                                 <span className="text-xs font-medium capitalize">
-                                                    {
-                                                        saleData.status
-                                                            .assignment.status
-                                                    }
+                                                    {assignmentStatus}
                                                 </span>
                                             </DataSkeleton>
                                         </div>
@@ -542,8 +546,7 @@ export function GeneralTab({}) {
                                         <div className="flex items-center gap-2">
                                             <div
                                                 className={`h-2 w-2 rounded-full ${getStatusColor(
-                                                    saleData?.status?.production
-                                                        ?.color,
+                                                    productionStatusColor,
                                                 )}`}
                                             ></div>
                                             <DataSkeleton
@@ -551,10 +554,7 @@ export function GeneralTab({}) {
                                                 placeholder="Pending"
                                             >
                                                 <span className="text-xs font-medium capitalize">
-                                                    {
-                                                        saleData.status
-                                                            .production.status
-                                                    }
+                                                    {productionStatus}
                                                 </span>
                                             </DataSkeleton>
                                         </div>
@@ -603,7 +603,7 @@ export function GeneralTab({}) {
                                 <div className="flex items-center gap-2">
                                     <div
                                         className={`h-2 w-2 rounded-full ${getStatusColor(
-                                            saleData.status.delivery.color,
+                                            deliveryStatusColor,
                                         )}`}
                                     ></div>
                                     <DataSkeleton
@@ -611,15 +611,10 @@ export function GeneralTab({}) {
                                         placeholder="Pending"
                                     >
                                         <Badge
-                                            variant={getStatusVariant(
-                                                saleData.status.delivery.status,
-                                            )}
+                                            variant={getStatusVariant(deliveryStatus)}
                                         >
                                             <span className="capitalize">
-                                                {
-                                                    saleData.status.delivery
-                                                        .status
-                                                }
+                                                {deliveryStatus}
                                             </span>
                                         </Badge>
                                     </DataSkeleton>
