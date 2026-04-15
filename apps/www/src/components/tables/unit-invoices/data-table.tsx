@@ -59,6 +59,7 @@ export function DataTable(props: Props) {
           },
           tableScroll,
           tableMeta: {
+            hidePagination: true,
             rowClick(id, rowData) {
               setInvoiceParams({
                 editUnitInvoiceId: rowData.id,

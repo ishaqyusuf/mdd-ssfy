@@ -1,6 +1,5 @@
 "use client";
 
-import { _trpc } from "@/components/static-trpc";
 import { createTableContext, Table, useTableData } from "@gnd/ui/data-table";
 import { columns, mobileColumn } from "./columns";
 import { useBuilderFilterParams } from "@/hooks/use-builder-filter-params";
@@ -12,10 +11,12 @@ import { Button } from "@gnd/ui/button";
 import Link from "next/link";
 import { Icons } from "@gnd/ui/icons";
 import { GetBuildersSchema } from "@community/builder";
+import { useTRPC } from "@/trpc/client";
 interface Props {
     defaultFilters?: GetBuildersSchema;
 }
 export function DataTable(props: Props) {
+    const trpc = useTRPC();
     // const { rowSelection, setRowSelection } = useBuilderStore();
     const { filters, hasFilters, setFilters } = useBuilderFilterParams();
     const {
@@ -28,7 +29,7 @@ export function DataTable(props: Props) {
             ...filters,
             ...(props.defaultFilters || {}),
         },
-        route: _trpc.community.getBuilders,
+        route: trpc.community.getBuilders,
     });
     const tableScroll = useTableScroll({
         useColumnWidths: true,
@@ -69,6 +70,7 @@ export function DataTable(props: Props) {
                     // rowSelection,
                     // setRowSelection,
                     tableMeta: {
+                        hidePagination: true,
                         rowClick(id, rowData) {
                             setParams({
                                 openBuilderId: rowData.id,
@@ -96,4 +98,3 @@ export function DataTable(props: Props) {
         </Table.Provider>
     );
 }
-

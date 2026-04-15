@@ -5,7 +5,7 @@ import { DataTable } from "@/components/tables/community-project/data-table";
 import { TableSkeleton } from "@/components/tables/skeleton";
 import { loadCommunityProjectFilterParams } from "@/hooks/use-community-project-filter-params";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
-import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
+import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import type { SearchParams } from "nuqs";
 import { Suspense } from "react";
@@ -24,18 +24,21 @@ type Props = {
 
 export default async function Page(props: Props) {
 	const searchParams = await props.searchParams;
+	const queryClient = getQueryClient();
 	const filter = loadCommunityProjectFilterParams(searchParams);
 
-	batchPrefetch([
+	await queryClient.fetchInfiniteQuery(
 		trpc.community.getCommunityProjects.infiniteQueryOptions({
 			...filter,
-		}),
+		}) as any,
+	);
+	await queryClient.fetchQuery(
 		trpc.community.communityProjectsOverview.queryOptions({
 			builderId: filter.builderId ?? undefined,
 			refNo: (filter as any).refNo ?? undefined,
 			status: (filter as any).status ?? undefined,
 		}),
-	]);
+	);
 
 	return (
 		<PageShell>

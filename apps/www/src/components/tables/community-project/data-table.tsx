@@ -55,6 +55,7 @@ export function DataTable() {
                     tableScroll,
                     checkbox: true,
                     tableMeta: {
+                        hidePagination: true,
                         rowClick(id, rowData) {
                             router.push(`/community/projects/${rowData?.slug}`);
                         },

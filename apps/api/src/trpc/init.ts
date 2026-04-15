@@ -31,9 +31,14 @@ export const createTRPCContext = async (
     userId = (payload as any).userId;
   }
 
+  const parsedUserId =
+    typeof userId === "string" || typeof userId === "number"
+      ? Number(userId)
+      : undefined;
+
   return {
     db,
-    userId: Number(userId),
+    userId: Number.isFinite(parsedUserId) ? parsedUserId : undefined,
   };
 };
 

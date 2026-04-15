@@ -8,6 +8,9 @@ Grouped route reference for the `apps/www` Next.js App Router surface.
 - Route groups such as `(public)`, `(sidebar)`, `(v1)`, and `(v2)` do not appear in the URL path.
 - Dynamic segments are preserved as filesystem-style route params such as `[slug]`, `[token]`, and `[...slugs]`.
 - API handlers in `route.ts` are excluded from this page list.
+- This file is a filesystem inventory, not the authoritative active-route roadmap.
+- Active optimization and prioritization should use `apps/www/src/components/sidebar/links.ts` (`linkModules`) as the source of truth for current user-facing navigation.
+- Routes listed here but not represented in `linkModules` should be treated as possibly stale until reviewed.
 
 ## Public And Auth
 - `/forgot-password` 

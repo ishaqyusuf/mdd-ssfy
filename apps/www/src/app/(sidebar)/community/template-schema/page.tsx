@@ -1,7 +1,7 @@
 import { ErrorFallback } from "@/components/error-fallback";
 import { CommunityTemplateForm } from "@/components/forms/community-template/community-template-form";
 import { NewBlockAction } from "@/components/forms/community-template/new-block-action";
-import { HydrateClient, batchPrefetch } from "@/trpc/server";
+import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import Portal from "@gnd/ui/custom/portal";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
@@ -20,9 +20,13 @@ type Props = {
 	params: Promise<SearchParams>;
 };
 export default async function Page(props: Props) {
-	const params = await props.params;
+	await props.params;
+	const queryClient = getQueryClient();
 
-	batchPrefetch([]);
+	await Promise.all([
+		queryClient.fetchQuery(trpc.community.getCommunitySchema.queryOptions({})),
+		queryClient.fetchQuery(trpc.community.getBlockInputs.queryOptions({})),
+	]);
 	return (
 		<PageShell>
 			<HydrateClient>

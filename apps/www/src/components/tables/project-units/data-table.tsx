@@ -85,6 +85,7 @@ export function DataTable(props: Props) {
 					rowSelection,
 					setRowSelection,
 					tableMeta: {
+						hidePagination: true,
 						rowClick(id, rowData) {
 							router.push(`/community/project-units/${rowData.slug}`);
 						},

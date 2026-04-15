@@ -38,3 +38,20 @@
 4. Define stored-PDF cache invalidation so sales updates and successful payments clear stale cached documents.
 5. Reuse an existing stored download link when its print type matches the requested output; otherwise render and persist a fresh file.
 6. Evaluate grouped print requests where one sales record may contribute multiple print documents, then merge them into a single PDF in sales order when needed.
+
+## Link Modules Web Optimization
+- Status: In Progress
+- Objective: Optimize `apps/www` active routes using `apps/www/src/components/sidebar/links.ts` as the authoritative scope for current user-facing pages, and track non-linked route pages as possibly stale for later review.
+- Current Phase: Community active pages complete, moving to Sales
+- Next Step: Verify Community route behavior, then apply the same awaited hydration pattern to active Sales link-module routes beginning with orders, quotes, customers, and production/dispatch surfaces.
+- Blockers: None
+- Related Files: brain/link-modules-web-optimization-plan.md, brain/engineering/www-routes.md, apps/www/src/components/sidebar/links.ts, apps/www/src/app/(sidebar)/community/(main)/templates/page.tsx, apps/www/src/app/(sidebar)/community/community-template/[slug]/page.tsx, apps/www/src/app/(sidebar)/community/community-template/[slug]/v1/page.tsx, apps/www/src/app/(sidebar)/community/model-template/[slug]/page.tsx, apps/www/src/app/(sidebar)/community/template-schema/page.tsx, apps/www/src/app/(sidebar)/community/(main)/projects/page.tsx, apps/www/src/app/(sidebar)/community/(main)/project-units/page.tsx, apps/www/src/app/(sidebar)/community/(main)/unit-productions/page.tsx, apps/www/src/app/(sidebar)/community/(main)/unit-invoices/page.tsx, apps/www/src/app/(sidebar)/community/(main)/builders/page.tsx, apps/www/src/app/(sidebar)/community/(main)/install-costs/page.tsx, apps/www/src/app/(sidebar)/community/customer-services/page.tsx
+- Last Updated: 2026-04-15
+
+### Planned Steps
+1. Freeze active optimization scope to routes represented in `linkModules`.
+2. Separate non-linked route pages into a `Possibly Stale Pages` bucket for future action.
+3. ✅ Optimize Community template list/detail/edit/schema pages with awaited server hydration.
+4. ✅ Optimize active Community list and operations pages with awaited server hydration for first-paint-critical data.
+5. Continue by active Sales, HRM, and Production/Jobs workspaces.
+6. Keep sales-form parity/cutover planning separate from route-load optimization.

@@ -6,7 +6,7 @@ import { UnitProductionSummaryWidgets } from "@/components/unit-production-summa
 import { UnitProductionsHeader } from "@/components/unit-productions-header";
 import { loadSortParams } from "@/hooks/use-sort-params";
 import { loadUnitProductionFilterParams } from "@/hooks/use-unit-productions-filter-params";
-import { batchPrefetch, trpc } from "@/trpc/server";
+import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
@@ -26,29 +26,35 @@ type Props = {
 
 export default async function CommunityProductionsPage(props: Props) {
 	const searchParams = await props.searchParams;
+	const queryClient = getQueryClient();
 	const filter = loadUnitProductionFilterParams(searchParams);
 	const { sort } = loadSortParams(searchParams);
 
-	batchPrefetch([
+	await queryClient.fetchInfiniteQuery(
 		trpc.community.getUnitProductions.infiniteQueryOptions({
 			...(filter as any),
 			sort,
-		}),
-	]);
+		}) as any,
+	);
+	await queryClient.fetchQuery(
+		trpc.community.getUnitProductionSummary.queryOptions(filter),
+	);
 
 	return (
 		<PageShell>
-			<div className="flex flex-col gap-6">
-				<PageTitle>Unit Productions</PageTitle>
-				<UnitProductionSummaryWidgets />
-				<UnitProductionsHeader />
-				<OpenUnitProductionSheet />
-				<ErrorBoundary errorComponent={ErrorFallback}>
-					<Suspense fallback={<TableSkeleton />}>
-						<DataTable />
-					</Suspense>
-				</ErrorBoundary>
-			</div>
+			<HydrateClient>
+				<div className="flex flex-col gap-6">
+					<PageTitle>Unit Productions</PageTitle>
+					<UnitProductionSummaryWidgets />
+					<UnitProductionsHeader />
+					<OpenUnitProductionSheet />
+					<ErrorBoundary errorComponent={ErrorFallback}>
+						<Suspense fallback={<TableSkeleton />}>
+							<DataTable />
+						</Suspense>
+					</ErrorBoundary>
+				</div>
+			</HydrateClient>
 		</PageShell>
 	);
 }

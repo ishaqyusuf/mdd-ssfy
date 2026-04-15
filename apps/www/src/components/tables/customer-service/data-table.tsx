@@ -76,6 +76,7 @@ export function DataTable(props: Props) {
 					// rowSelection,
 					// setRowSelection,
 					tableMeta: {
+						hidePagination: true,
 						extras: {
 							employees: employeesResp?.data,
 						},

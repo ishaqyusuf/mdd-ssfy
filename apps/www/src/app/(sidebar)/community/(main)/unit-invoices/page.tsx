@@ -5,7 +5,7 @@ import { DataTable } from "@/components/tables/unit-invoices/data-table";
 import { UnitInvoicesHeader } from "@/components/unit-invoices-header";
 import { loadSortParams } from "@/hooks/use-sort-params";
 import { loadUnitInvoiceFilterParams } from "@/hooks/use-unit-invoices-filter-params";
-import { batchPrefetch, trpc } from "@/trpc/server";
+import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
@@ -25,28 +25,31 @@ type Props = {
 
 export default async function Page(props: Props) {
 	const searchParams = await props.searchParams;
+	const queryClient = getQueryClient();
 	const filter = loadUnitInvoiceFilterParams(searchParams);
 	const { sort } = loadSortParams(searchParams);
 
-	batchPrefetch([
+	await queryClient.fetchInfiniteQuery(
 		trpc.community.getUnitInvoices.infiniteQueryOptions({
 			...(filter as any),
 			sort,
-		}),
-	]);
+		}) as any,
+	);
 
 	return (
 		<PageShell>
-			<div className="flex flex-col gap-6">
-				<PageTitle>Unit Invoices</PageTitle>
-				<UnitInvoicesHeader />
-				<ErrorBoundary errorComponent={ErrorFallback}>
-					<Suspense fallback={<TableSkeleton />}>
-						<DataTable />
-					</Suspense>
-				</ErrorBoundary>
-				<UnitInvoiceModal />
-			</div>
+			<HydrateClient>
+				<div className="flex flex-col gap-6">
+					<PageTitle>Unit Invoices</PageTitle>
+					<UnitInvoicesHeader />
+					<ErrorBoundary errorComponent={ErrorFallback}>
+						<Suspense fallback={<TableSkeleton />}>
+							<DataTable />
+						</Suspense>
+					</ErrorBoundary>
+					<UnitInvoiceModal />
+				</div>
+			</HydrateClient>
 		</PageShell>
 	);
 }

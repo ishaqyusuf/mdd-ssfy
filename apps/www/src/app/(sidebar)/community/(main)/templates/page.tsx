@@ -3,7 +3,7 @@ import { ErrorFallback } from "@/components/error-fallback";
 import { DataTable } from "@/components/tables/community-template/data-table";
 import { TableSkeleton } from "@/components/tables/skeleton";
 import { loadCommunityTemplateFilterParams } from "@/hooks/use-community-template-filter-params";
-import { batchPrefetch, trpc } from "@/trpc/server";
+import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
@@ -21,23 +21,26 @@ type Props = {
 };
 export default async function Page(props: Props) {
 	const searchParams = await props.searchParams;
+	const queryClient = getQueryClient();
 	const filter = loadCommunityTemplateFilterParams(searchParams);
-	batchPrefetch([
+	await queryClient.fetchInfiniteQuery(
 		trpc.community.getCommunityTemplates.infiniteQueryOptions({
 			...filter,
-		}),
-	]);
+		}) as any,
+	);
 	return (
 		<PageShell>
-			<div className="flex flex-col gap-6">
-				<PageTitle>Community Template</PageTitle>
-				<CommunityTemplateHeader />
-				<ErrorBoundary errorComponent={ErrorFallback}>
-					<Suspense fallback={<TableSkeleton />}>
-						<DataTable />
-					</Suspense>
-				</ErrorBoundary>
-			</div>
+			<HydrateClient>
+				<div className="flex flex-col gap-6">
+					<PageTitle>Community Template</PageTitle>
+					<CommunityTemplateHeader />
+					<ErrorBoundary errorComponent={ErrorFallback}>
+						<Suspense fallback={<TableSkeleton />}>
+							<DataTable />
+						</Suspense>
+					</ErrorBoundary>
+				</div>
+			</HydrateClient>
 		</PageShell>
 	);
 }

@@ -61,6 +61,7 @@ export function DataTable(props: Props) {
           tableScroll,
           checkbox: true,
           tableMeta: {
+            hidePagination: true,
             rowClick(id, rowData) {
               setUnitProductionParams({
                 openUnitProductionId: rowData.id,

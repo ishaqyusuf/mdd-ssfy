@@ -1,9 +1,15 @@
+import dynamic from "next/dynamic";
 import { useBuilderParams } from "@/hooks/use-builder-params";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
-import { BuilderForm } from "../builder-form";
-import { BuilderFormAction } from "../builder-form-action";
 import { CustomModal } from "./custom-modal";
+
+const BuilderForm = dynamic(
+	() => import("../builder-form").then((mod) => mod.BuilderForm),
+);
+const BuilderFormAction = dynamic(
+	() => import("../builder-form-action").then((mod) => mod.BuilderFormAction),
+);
 
 export function BuilderFormModal() {
 	const { opened, openBuilderId, onClose } = useBuilderParams();
@@ -30,13 +36,15 @@ export function BuilderFormModal() {
 				onClose();
 			}}
 		>
-			<CustomModal.Content className="bg-muted/10 py-2 pb-16">
-				<BuilderForm defaultValues={formData}>
-					<CustomModal.Footer className="justify-end border-t border-border bg-background/95 pt-4">
-						<BuilderFormAction />
-					</CustomModal.Footer>
-				</BuilderForm>
-			</CustomModal.Content>
+			{opened ? (
+				<CustomModal.Content className="bg-muted/10 py-2 pb-16">
+					<BuilderForm defaultValues={formData}>
+						<CustomModal.Footer className="justify-end border-t border-border bg-background/95 pt-4">
+							<BuilderFormAction />
+						</CustomModal.Footer>
+					</BuilderForm>
+				</CustomModal.Content>
+			) : null}
 		</CustomModal>
 	);
 }

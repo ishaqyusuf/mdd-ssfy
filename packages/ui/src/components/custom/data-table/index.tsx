@@ -264,7 +264,8 @@ export function createTableContext({
 		props?.totalResults || dataMeta?.count || totalRowsFetched || 0,
 	);
 	const pagination = useInfinitePaginationTracker({
-		enabled: !isMobile && totalRowsFetched > 0,
+		enabled:
+			tableMeta?.hidePagination !== true && !isMobile && totalRowsFetched > 0,
 		pageSize: resolvedPageSize,
 		rowCount: totalRowsFetched || 0,
 	});
@@ -368,10 +369,10 @@ export const useTableData = ({ filter, route }) => {
 	}, [data]);
 
 	useEffect(() => {
-		if (inView) {
+		if (inView && hasNextPage && !isFetching) {
 			fetchNextPage();
 		}
-	}, [inView]);
+	}, [fetchNextPage, hasNextPage, inView, isFetching]);
 	return {
 		ref,
 		// data: tableData,

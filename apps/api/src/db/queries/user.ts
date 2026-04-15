@@ -31,10 +31,22 @@ function parseMeta(raw: unknown): UserMeta {
   return {};
 }
 
+function requireAuthUserId(ctx: TRPCContext) {
+  if (!ctx.userId) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Unauthorized",
+    });
+  }
+
+  return ctx.userId;
+}
+
 export async function getAuthUser(ctx: TRPCContext) {
+  const userId = requireAuthUserId(ctx);
   const user = await ctx.db.users.findFirstOrThrow({
     where: {
-      id: ctx.userId,
+      id: userId,
     },
     select: {
       id: true,
