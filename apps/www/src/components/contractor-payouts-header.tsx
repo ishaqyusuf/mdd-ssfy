@@ -4,8 +4,13 @@ import { contractorPayoutFilterParams } from "@/hooks/use-contractor-payout-filt
 import { useTRPC } from "@/trpc/client";
 import { SearchFilter } from "@gnd/ui/search-filter";
 import { useQueryStates } from "nuqs";
+import type { PageFilterData } from "@api/type";
 
-export function ContractorPayoutsHeader() {
+type Props = {
+	initialFilterList?: PageFilterData[];
+};
+
+export function ContractorPayoutsHeader({ initialFilterList }: Props) {
 	const trpc = useTRPC();
 	const [filters, setFilters] = useQueryStates(contractorPayoutFilterParams);
 
@@ -15,6 +20,7 @@ export function ContractorPayoutsHeader() {
 				filterSchema={contractorPayoutFilterParams}
 				placeholder="Search payouts, contractor, payer, method, or check no..."
 				trpcRoute={trpc.filters.contractorPayout}
+				initialFilterList={initialFilterList}
 				{...{ filters, setFilters }}
 			/>
 		</div>

@@ -1,9 +1,9 @@
 "use client";
 
-import { _trpc } from "@/components/static-trpc";
 import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesOrdersStore } from "@/store/sales-orders";
+import { useTRPC } from "@/trpc/client";
 import type { RouterInputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
@@ -24,6 +24,7 @@ interface Props {
     hideFloatingPagination?: boolean;
 }
 export function DataTable(props: Props) {
+    const trpc = useTRPC();
     const { rowSelection, setRowSelection } = useSalesOrdersStore();
     const {
         filters,
@@ -42,7 +43,7 @@ export function DataTable(props: Props) {
             ...(props.defaultFilters || {}),
             bin: props.bin,
         },
-        route: _trpc.sales.getOrders,
+        route: trpc.sales.getOrders,
     });
     const tableScroll = useTableScroll({
         useColumnWidths: true,
@@ -130,4 +131,3 @@ export function DataTable(props: Props) {
         </Table.Provider>
     );
 }
-

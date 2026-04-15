@@ -1,4 +1,5 @@
 import { PaymentPortal } from "@/components/payment-dashboard/payment-portal";
+import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
 
@@ -9,13 +10,18 @@ export async function generateMetadata() {
 	});
 }
 
-export default function ContractorsPaymentPortalPage() {
+export default async function ContractorsPaymentPortalPage() {
+	const queryClient = getQueryClient();
+	await queryClient.fetchQuery(trpc.jobs.paymentDashboard.queryOptions({}));
+
 	return (
 		<PageShell>
-			<>
-				<PageTitle>Contractor Payment Portal</PageTitle>
-				<PaymentPortal />
-			</>
+			<HydrateClient>
+				<>
+					<PageTitle>Contractor Payment Portal</PageTitle>
+					<PaymentPortal />
+				</>
+			</HydrateClient>
 		</PageShell>
 	);
 }

@@ -22,6 +22,7 @@ interface Props {
     defaultFilters?: SalesQueryParamsSchema;
     singlePage?: boolean;
     bin?: boolean;
+    hideFloatingPagination?: boolean;
 }
 export function DataTable(props: Props) {
     const trpc = useTRPC();
@@ -77,6 +78,7 @@ export function DataTable(props: Props) {
                     },
                     // setRowSelection,
                     tableMeta: {
+                        hidePagination: props.hideFloatingPagination,
                         rowClick(id, rowData) {
                             overviewQuery.open2(rowData.uuid, "quote");
                         },
@@ -103,4 +105,3 @@ export function DataTable(props: Props) {
         </Table.Provider>
     );
 }
-

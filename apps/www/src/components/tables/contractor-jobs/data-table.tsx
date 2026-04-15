@@ -1,8 +1,8 @@
 "use client";
 
-import { _trpc } from "@/components/static-trpc";
 import { useJobFilterParams } from "@/hooks/use-contractor-jobs-filter-params";
 import { useJobParams } from "@/hooks/use-contractor-jobs-params";
+import { useTRPC } from "@/trpc/client";
 import type { GetJobsSchema } from "@api/db/queries/jobs";
 import { Button } from "@gnd/ui/button";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
@@ -29,6 +29,7 @@ interface Props {
 	columns?: ColumnDef<JobItem>[];
 }
 export function DataTable(props: Props) {
+	const trpc = useTRPC();
 	// const { rowSelection, setRowSelection } = useJobStore();
 	const { filters, hasFilters, setFilters } = useJobFilterParams();
 	const {
@@ -41,7 +42,7 @@ export function DataTable(props: Props) {
 			...filters,
 			...(props.defaultFilters || {}),
 		},
-		route: _trpc.jobs.getJobs,
+		route: trpc.jobs.getJobs,
 	});
 	const tableScroll = useTableScroll({
 		useColumnWidths: true,
@@ -90,6 +91,7 @@ export function DataTable(props: Props) {
 					},
 					tableScroll,
 					tableMeta: {
+						hidePagination: true,
 						rowClick(id, rowData) {
 							setParams({
 								openJobId: rowData.id,

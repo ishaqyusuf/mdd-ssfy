@@ -16,6 +16,7 @@ import { SummaryCardSkeleton } from "@/components/summary-card";
 import { DataTable } from "@/components/tables/sales-orders/data-table";
 import { DataTable as RecentQuoteDataTable } from "@/components/tables/sales-quotes/data-table";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
+import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import { Badge } from "@gnd/ui/badge";
 import { cn } from "@gnd/ui/cn";
 import { Suspense } from "react";
@@ -37,10 +38,24 @@ export default async function SalesRepProfile(props: {
 }) {
 	const searchParams = await props.searchParams;
 	searchParamsCache.parse(searchParams);
+	const queryClient = getQueryClient();
+	await Promise.all([
+		queryClient.fetchInfiniteQuery(
+			trpc.sales.getOrders.infiniteQueryOptions({
+				size: 5,
+			}) as any,
+		),
+		queryClient.fetchInfiniteQuery(
+			trpc.sales.quotes.infiniteQueryOptions({
+				size: 5,
+			}) as any,
+		),
+	]);
 	const user = await authUser();
 
 	return (
 		<PageShell>
+			<HydrateClient>
 			<PageTitle>Sales Rep Profile</PageTitle>
 			<div className="flex flex-1 flex-col space-y-4 p-4 pt-6 md:p-8">
 				<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -122,6 +137,7 @@ export default async function SalesRepProfile(props: {
 						<TabsContent value="recent-quotes" className="space-y-4">
 							<RecentQuoteDataTable
 								singlePage
+								hideFloatingPagination
 								defaultFilters={{
 									size: 5,
 								}}
@@ -139,6 +155,7 @@ export default async function SalesRepProfile(props: {
 					</Tabs>
 				</div>
 			</div>
+			</HydrateClient>
 		</PageShell>
 	);
 }

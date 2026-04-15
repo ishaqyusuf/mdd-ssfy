@@ -28,6 +28,7 @@ import { useMemo, useState } from "react";
 type Props = {
 	accountNo: string;
 	defaultTab?: "overview" | "sales" | "quotes" | "transactions";
+	initialOverviewData?: CustomerOverviewV2Data;
 };
 
 const TextWithTooltip = textWithTooltip;
@@ -35,10 +36,16 @@ const TextWithTooltip = textWithTooltip;
 export function CustomerOverviewV2Content({
 	accountNo,
 	defaultTab = "overview",
+	initialOverviewData,
 }: Props) {
 	const trpc = useTRPC();
 	const overviewQuery = useQuery(
-		trpc.customer.getCustomerOverviewV2.queryOptions({ accountNo }),
+		trpc.customer.getCustomerOverviewV2.queryOptions(
+			{ accountNo },
+			{
+				initialData: initialOverviewData,
+			},
+		),
 	);
 	const [activeTab, setActiveTab] = useState(defaultTab);
 	const data = overviewQuery.data;

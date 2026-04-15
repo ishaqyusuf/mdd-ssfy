@@ -1,11 +1,15 @@
 import { SalesResoltionSearchFilter } from "./sales-resolution-search-filter";
+import type { PageFilterData } from "@api/type";
 
-export function SalesResolutionHeader({}) {
+type Props = {
+    initialFilterList?: PageFilterData[];
+};
+
+export function SalesResolutionHeader({ initialFilterList }: Props) {
     return (
         <div className="flex justify-between">
-            <SalesResoltionSearchFilter />
+            <SalesResoltionSearchFilter initialFilterList={initialFilterList} />
             <div className="" id="resolutionHeaderActions"></div>
         </div>
     );
 }
-

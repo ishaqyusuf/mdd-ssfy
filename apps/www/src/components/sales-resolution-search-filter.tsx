@@ -5,8 +5,13 @@ import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
 import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";
 import { resolutionCenterFilterParamsSchema } from "@/hooks/use-resolution-center-filter-params";
+import type { PageFilterData } from "@api/type";
 
-export function SalesResoltionSearchFilter() {
+type Props = {
+    initialFilterList?: PageFilterData[];
+};
+
+export function SalesResoltionSearchFilter({ initialFilterList }: Props) {
     return (
         <SearchFilterProvider
             args={[
@@ -15,14 +20,15 @@ export function SalesResoltionSearchFilter() {
                 },
             ]}
         >
-            <Content />
+            <Content initialFilterList={initialFilterList} />
         </SearchFilterProvider>
     );
 }
-function Content({}) {
+function Content({ initialFilterList }: Props) {
     const trpc = useTRPC();
     const { data: trpcFilterData } = useQuery({
         ...trpc.filters.salesResolutions.queryOptions(),
+        initialData: initialFilterList,
     });
     return (
         <>
@@ -33,4 +39,3 @@ function Content({}) {
         </>
     );
 }
-

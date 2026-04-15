@@ -28,7 +28,9 @@ export function ResolutionCenter({}) {
                     columns,
                     data,
                     props: { loadMoreRef, hasNextPage },
-                    tableMeta: {},
+                    tableMeta: {
+                        hidePagination: true,
+                    },
                 },
             ]}
         >

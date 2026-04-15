@@ -18,6 +18,7 @@ import { Skeleton } from "@gnd/ui/skeleton";
 import { useQuery } from "@gnd/ui/tanstack";
 import { format } from "date-fns";
 import Link from "next/link";
+import type { PageFilterData } from "@api/type";
 
 function formatCurrency(value?: number | null) {
     return new Intl.NumberFormat("en-US", {
@@ -26,7 +27,11 @@ function formatCurrency(value?: number | null) {
     }).format(Number(value || 0));
 }
 
-export function PaymentsHistoryView() {
+export function PaymentsHistoryView({
+    initialFilterList,
+}: {
+    initialFilterList?: PageFilterData[];
+}) {
     const trpc = useTRPC();
     const { data, isPending } = useQuery(
         trpc.jobs.paymentDashboard.queryOptions({}),
@@ -115,7 +120,9 @@ export function PaymentsHistoryView() {
                                 </CardDescription>
                             </div>
                             <div className="w-full max-w-md">
-                                <ContractorPayoutsHeader />
+                                <ContractorPayoutsHeader
+                                    initialFilterList={initialFilterList}
+                                />
                             </div>
                         </div>
                     </CardHeader>
@@ -207,4 +214,3 @@ function QuickLink({
         </Link>
     );
 }
-

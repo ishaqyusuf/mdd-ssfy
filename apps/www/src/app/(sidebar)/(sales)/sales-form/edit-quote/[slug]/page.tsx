@@ -1,5 +1,6 @@
 import { NewSalesForm } from "@/components/forms/new-sales-form/new-sales-form";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
+import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 
 import PageShell from "@/components/page-shell";
 import { PageTitle } from "@gnd/ui/custom/page-title";
@@ -12,10 +13,25 @@ export async function generateMetadata(props) {
 
 export default async function Page(props) {
 	const params = await props.params;
+	const queryClient = getQueryClient();
+	await Promise.all([
+		queryClient.fetchQuery(
+			trpc.newSalesForm.get.queryOptions({
+				type: "quote",
+				slug: params.slug,
+			}),
+		),
+		queryClient.fetchQuery(trpc.newSalesForm.getStepRouting.queryOptions({})),
+		queryClient.fetchQuery(trpc.customers.getCustomerProfiles.queryOptions()),
+		queryClient.fetchQuery(trpc.customers.getTaxProfiles.queryOptions()),
+		queryClient.fetchQuery(trpc.sales.getSuppliers.queryOptions({})),
+	]);
 	return (
 		<PageShell>
-			<PageTitle>{`Edit Quote | ${params.slug}`}</PageTitle>
-			<NewSalesForm mode="edit" type="quote" slug={params.slug} />
+			<HydrateClient>
+				<PageTitle>{`Edit Quote | ${params.slug}`}</PageTitle>
+				<NewSalesForm mode="edit" type="quote" slug={params.slug} />
+			</HydrateClient>
 		</PageShell>
 	);
 }

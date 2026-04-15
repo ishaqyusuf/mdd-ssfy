@@ -1,6 +1,6 @@
 "use client";
 
-import { _trpc } from "@/components/static-trpc";
+import { useTRPC } from "@/trpc/client";
 import { createTableContext, Table, useTableData } from "@gnd/ui/data-table";
 import { columns, mobileColumn } from "./columns";
 import { useEmployeeFilterParams } from "@/hooks/use-employee-filter-params";
@@ -17,6 +17,7 @@ interface Props {
     defaultFilters?: GetEmployeesSchema;
 }
 export function DataTable(props: Props) {
+    const trpc = useTRPC();
     // const { rowSelection, setRowSelection } = useEmployeeStore();
     const { filters, hasFilters, setFilters } = useEmployeeFilterParams();
     const {
@@ -29,7 +30,7 @@ export function DataTable(props: Props) {
             ...filters,
             ...(props.defaultFilters || {}),
         },
-        route: _trpc.hrm.getEmployees,
+        route: trpc.hrm.getEmployees,
     });
     const router = useRouter();
     const tableScroll = useTableScroll({
@@ -71,6 +72,7 @@ export function DataTable(props: Props) {
                     // rowSelection,
                     // setRowSelection,
                     tableMeta: {
+                        hidePagination: true,
                         rowClick(id, rowData) {
                             router.push(`/hrm/employees/v2/${rowData.id}`);
                             // setParams({
@@ -99,4 +101,3 @@ export function DataTable(props: Props) {
         </Table.Provider>
     );
 }
-

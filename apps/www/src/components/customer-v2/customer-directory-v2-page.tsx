@@ -32,12 +32,25 @@ type CustomerRow = {
 	address?: string | null;
 };
 
-export function CustomerDirectoryV2Page() {
+type CustomerDirectorySummary = {
+	totalCustomers: number;
+	businessCustomers: number;
+	customersWithEmail: number;
+	openQuotes: number;
+};
+
+export function CustomerDirectoryV2Page({
+	initialSummaryData,
+}: {
+	initialSummaryData?: CustomerDirectorySummary;
+}) {
 	const trpc = useTRPC();
 	const { filter, setFilter } = useCustomerFilterParams();
 	const overviewSheet = useCustomerOverviewV2SheetQuery();
 	const summaryQuery = useQuery(
-		trpc.customer.getCustomerDirectoryV2Summary.queryOptions({}),
+		trpc.customer.getCustomerDirectoryV2Summary.queryOptions({}, {
+			initialData: initialSummaryData,
+		}),
 	);
 	const { data, ref, hasNextPage, total } = useTableData({
 		filter,

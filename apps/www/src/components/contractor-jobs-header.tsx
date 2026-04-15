@@ -4,7 +4,6 @@ import { Icons } from "@gnd/ui/icons";
 import { SearchFilter } from "@gnd/ui/search-filter";
 import { OpenJobSheet } from "./open-contractor-jobs-sheet";
 import { jobFilterParams } from "@/hooks/use-contractor-jobs-filter-params";
-import { _trpc } from "@/components/static-trpc";
 import { useQueryStates } from "nuqs";
 import { Env } from "./env";
 import { SubmitButton } from "@gnd/ui/submit-button";
@@ -16,11 +15,17 @@ import { useJobsKpi } from "@/hooks/use-jobs-kpi";
 import { Badge } from "@gnd/ui/badge";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { NotificationJobInput } from "@notifications/schemas";
+import type { PageFilterData } from "@api/type";
 
-export function JobHeader({}) {
+type Props = {
+    initialFilterList?: PageFilterData[];
+};
+
+export function JobHeader({ initialFilterList }: Props) {
+    const trpc = useTRPC();
     const [filters, setFilters] = useQueryStates(jobFilterParams);
     const { mutate: _testActivity, isPending } = useMutation(
-        useTRPC().jobs.testActivity.mutationOptions({
+        trpc.jobs.testActivity.mutationOptions({
             onError(error, variables, onMutateResult, context) {
                 console.log({
                     error,
@@ -100,7 +105,8 @@ export function JobHeader({}) {
             <SearchFilter
                 filterSchema={jobFilterParams}
                 placeholder="Search Jobs..."
-                trpcRoute={_trpc.filters.job}
+                trpcRoute={trpc.filters.job}
+                initialFilterList={initialFilterList}
                 {...{ filters, setFilters }}
             />
             <div className="flex-1"></div>
@@ -116,4 +122,3 @@ export function JobHeader({}) {
         </div>
     );
 }
-

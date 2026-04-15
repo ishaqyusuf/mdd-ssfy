@@ -5,6 +5,7 @@ import { _perm, _role } from "@/components/sidebar/links";
 import { TableSkeleton } from "@/components/tables/skeleton";
 import { loadResolutionCenterFilterParams } from "@/hooks/use-resolution-center-filter-params";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
+import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { Suspense } from "react";
 import { searchParamsCache } from "./search-params";
@@ -17,18 +18,30 @@ export async function generateMetadata({}) {
 	});
 }
 export default async function Page({ searchParams }) {
-	// loadResolutionCenterFilterParams(await searchParams);
+	const resolvedSearchParams = await searchParams;
+	const queryClient = getQueryClient();
+	const filter = loadResolutionCenterFilterParams(resolvedSearchParams);
+	const [initialFilterList, _initialResolutionRows] = await Promise.all([
+		queryClient.fetchQuery(trpc.filters.salesResolutions.queryOptions()),
+		queryClient.fetchInfiniteQuery(
+			trpc.sales.getSalesResolutions.infiniteQueryOptions({
+				...(filter as any),
+			}) as any,
+		),
+	]);
 	return (
 		<PageShell>
-			<PageTitle>Resolution Center</PageTitle>
-			<div className="flex flex-col gap-6">
-				<SalesResolutionHeader />
-				<ErrorBoundary errorComponent={ErrorFallback}>
-					<Suspense fallback={<TableSkeleton />}>
-						<ResolutionCenter />
-					</Suspense>
-				</ErrorBoundary>
-			</div>
+			<HydrateClient>
+				<PageTitle>Resolution Center</PageTitle>
+				<div className="flex flex-col gap-6">
+					<SalesResolutionHeader initialFilterList={initialFilterList as any} />
+					<ErrorBoundary errorComponent={ErrorFallback}>
+						<Suspense fallback={<TableSkeleton />}>
+							<ResolutionCenter />
+						</Suspense>
+					</ErrorBoundary>
+				</div>
+			</HydrateClient>
 		</PageShell>
 	);
 }

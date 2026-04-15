@@ -1,6 +1,7 @@
 "use client";
 
 import { SearchFilter } from "@gnd/ui/search-filter";
+import type { PageFilterData } from "@api/type";
 
 import { salesAccountingFilterParams } from "@/hooks/use-sales-accounting-filter-params";
 import { useTRPC } from "@/trpc/client";
@@ -10,7 +11,11 @@ import { buttonVariants } from "@gnd/ui/button";
 import { useQueryStates } from "nuqs";
 import { SalesAccountingExport } from "./sales-accounting-export";
 
-export function SalesAccountingHeader({}) {
+type Props = {
+    initialFilterList?: PageFilterData[];
+};
+
+export function SalesAccountingHeader({ initialFilterList }: Props) {
     const trpc = useTRPC();
     const [filters, setFilters] = useQueryStates(salesAccountingFilterParams);
     return (
@@ -19,6 +24,7 @@ export function SalesAccountingHeader({}) {
                 filterSchema={salesAccountingFilterParams}
                 placeholder="Search Sales Accountings..."
                 trpcRoute={trpc.filters.salesAccounting}
+                initialFilterList={initialFilterList}
                 {...{ filters, setFilters }}
             />
             <div className="flex-1"></div>
@@ -36,4 +42,3 @@ export function SalesAccountingHeader({}) {
         </div>
     );
 }
-

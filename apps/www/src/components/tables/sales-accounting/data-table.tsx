@@ -78,6 +78,7 @@ export function DataTable(props: Props) {
                     rowSelection,
                     setRowSelection,
                     tableMeta: {
+                        hidePagination: true,
                         rowClick(id, rowData) {
                             setParams({
                                 openSalesAccountingId: rowData.id,

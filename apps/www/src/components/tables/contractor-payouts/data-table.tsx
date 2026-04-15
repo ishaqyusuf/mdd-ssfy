@@ -53,6 +53,7 @@ export function DataTable() {
 					checkbox: true,
 					tableScroll,
 					tableMeta: {
+						hidePagination: true,
 						rowClick(_, rowData) {
 							router.push(`/contractors/jobs/payments/${rowData.id}`);
 						},

@@ -1,7 +1,7 @@
 import { PaymentsHistoryView } from "@/components/payment-dashboard/payments-history-view";
 import { loadContractorPayoutFilterParams } from "@/hooks/use-contractor-payout-filter-params";
 import { loadSortParams } from "@/hooks/use-sort-params";
-import { batchPrefetch, trpc } from "@/trpc/server";
+import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
 import type { SearchParams } from "nuqs";
 
@@ -19,22 +19,28 @@ type Props = {
 
 export default async function ContractorsPaymentsPage(props: Props) {
 	const searchParams = await props.searchParams;
+	const queryClient = getQueryClient();
 	const filter = loadContractorPayoutFilterParams(searchParams);
 	const { sort } = loadSortParams(searchParams);
 
-	batchPrefetch([
-		trpc.jobs.contractorPayouts.infiniteQueryOptions({
-			...filter,
-			sort,
-		}),
-		trpc.jobs.paymentDashboard.queryOptions({}),
+	const [initialFilterList, _initialPayouts, _dashboard] = await Promise.all([
+		queryClient.fetchQuery(trpc.filters.contractorPayout.queryOptions()),
+		queryClient.fetchInfiniteQuery(
+			trpc.jobs.contractorPayouts.infiniteQueryOptions({
+				...filter,
+				sort,
+			}) as any,
+		),
+		queryClient.fetchQuery(trpc.jobs.paymentDashboard.queryOptions({})),
 	]);
 
 	return (
 		<PageShell>
-			<div className="pt-2">
-				<PaymentsHistoryView />
-			</div>
+			<HydrateClient>
+				<div className="pt-2">
+					<PaymentsHistoryView initialFilterList={initialFilterList as any} />
+				</div>
+			</HydrateClient>
 		</PageShell>
 	);
 }
