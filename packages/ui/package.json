@@ -35,6 +35,7 @@
     "./search-filter/*": "./src/components/custom/search-filter/*.tsx",
     "./search-filter": "./src/components/custom/search-filter/index.tsx",
     "./hooks/*": "./src/hooks/*.ts",
+    "./hooks/theme": "./src/hooks/theme.tsx",
     "./controls/*": "./src/components/controls/*.tsx",
     "./custom/sheet": "./src/components/custom/sheet.tsx",
     "./cn": "./src/utils/cn.ts",

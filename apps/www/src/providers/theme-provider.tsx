@@ -1,8 +1,10 @@
 "use client";
 
-import * as React from "react";
-import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { ThemeProvider as UIThemeProvider } from "@gnd/ui/hooks/theme";
+import type { ComponentProps } from "react";
 
-export function ThemeProvider({ children, ...props }) {
-    return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
+type ThemeProviderProps = ComponentProps<typeof UIThemeProvider>;
+
+export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
+    return <UIThemeProvider {...props}>{children}</UIThemeProvider>;
 }

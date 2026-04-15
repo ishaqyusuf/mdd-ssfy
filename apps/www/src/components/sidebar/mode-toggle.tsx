@@ -1,8 +1,7 @@
 "use client";
 
 import { Icons } from "@gnd/ui/icons";
-
-import { useTheme } from "next-themes";
+import { useTheme } from "@gnd/ui/hooks/theme";
 
 import { Button } from "@gnd/ui/button";
 import {
