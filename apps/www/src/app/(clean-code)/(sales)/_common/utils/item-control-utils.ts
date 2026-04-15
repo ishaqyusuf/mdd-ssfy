@@ -159,10 +159,14 @@ function composeQtyControl(props: ComposeQtyControlProps) {
             const _status =
                 d.status ||
                 deliveries.find((del) => del.id == d.orderDeliveryId)?.status;
-            switch (status) {
-                case "queue":
-                    return _status == status || !_status;
-                    break;
+                switch (status) {
+                    case "queue":
+                        return (
+                            _status == status ||
+                            _status == "packing queue" ||
+                            !_status
+                        );
+                        break;
                 default:
                     return _status == status;
                     break;

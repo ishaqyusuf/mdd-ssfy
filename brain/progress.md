@@ -2,6 +2,20 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-04-15
+
+- Reworked the pickup packing funnel onto the active sidebar + `/p/sales-invoice-v2` flow.
+  - `Send for Pickup` now creates or reuses a pickup delivery in `queue` and records packing-workflow membership on the `sales-packing-list` notification channel
+  - the canonical warehouse route now lives at `apps/www/src/app/(sidebar)/sales/packing-list/page.tsx`
+  - the packing-list UI now has `Current`, `Completed`, and admin-only `Cancelled` tabs, backed by `dispatch.packingList({ tab })`
+  - `Current` is driven by queued pickup deliveries, while `Completed` and `Cancelled` are scoped by `sales-packing-list` notification membership and current dispatch status
+  - admin users can manage packing-list items directly from the card menu, including `Mark Completed`, `Cancel`, and move-back-to-queue actions
+  - packing print now opens through `/p/sales-invoice-v2` in `packing-slip` mode instead of the deprecated `/printer/sales` flow
+  - signing now lives on the v2 print surface only: the floating sign form records `Packed By`, `Received By`, customer signature, packs all items into the delivery, refreshes the page, and renders the saved signature through note-tag-backed print data
+  - validation note:
+    - targeted Biome checks pass for the new sidebar packing page, `packing-slip-sign-fab`, `/p` print viewer wiring, and updated PDF packing-slip blocks
+    - broader API/package lint still reports pre-existing `any` usage and notification-service issues outside the new packing slice, so workspace-wide type/lint output is not yet a clean regression signal
+
 ## 2026-04-14
 
 - Refactored the v2 sales overview system toward a cleaner feature-core contract and cheaper overview loading.

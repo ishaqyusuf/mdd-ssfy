@@ -203,6 +203,7 @@ export async function submitDispatchTask(db: Db, data: UpdateSalesControl) {
 				subject: `Sales Dispatch Completed`,
 				note: task?.note!,
 				tags: [
+					noteTag("packedBy", data.meta.authorName),
 					noteTag("signature", task.signature),
 					noteTag("dispatchRecipient", task.receivedBy),
 					noteTag("salesId", data.meta.salesId),

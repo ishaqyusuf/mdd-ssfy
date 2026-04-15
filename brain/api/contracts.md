@@ -14,6 +14,11 @@ Tracks important request/response contracts and shared schema boundaries.
   - `getCustomerDirectoryV2SummarySchema = {}` for directory stat cards
   - `getCustomerOverviewV2Schema = { accountNo: string }` for the shared page/sheet customer workspace payload
   - `customer.getCustomerOverviewV2` returns normalized `customer`, `addresses`, `walletBalance`, `general`, and `salesWorkspace` sections so the web UI no longer stitches this from server actions
+- Pickup packing contracts now include:
+  - `sendSaleForPickupSchema = { salesId: number }`
+  - `packingListQuerySchema = { tab?: "current" | "completed" | "cancelled" }`
+  - `signPackingSlipSchema = { dispatchId: number, receivedBy?: string | null, signature: string, note?: string | null }`
+  - packing-list history is scoped by `sales-packing-list` notification membership, while live warehouse work uses normal `queue` delivery status
 
 ## TODO
 - Document canonical contracts for sales, checkout, dispatch, notifications, and document workflows.

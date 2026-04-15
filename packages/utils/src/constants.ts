@@ -15,6 +15,7 @@ export const noteTagNames = [
 	"channel",
 	"itemControlUID",
 	"deliveryId",
+	"packedBy",
 	"dispatchRecipient",
 	"salesId",
 	"salesNo",
@@ -53,6 +54,7 @@ export const salesType = ["order", "quote"] as const;
 
 export const salesDispatchStatus = [
 	"queue",
+	"packing queue",
 	"missing items",
 	"packed",
 	"in progress",
@@ -101,6 +103,7 @@ export const PERMISSIONS = [
 	"editDelivery",
 	"viewPickup",
 	"editPickup",
+	"viewPacking",
 	"viewCustomerService",
 	"editCustomerService",
 	"viewTech",
@@ -156,6 +159,7 @@ export const PERMISSION_NAMES_PASCAL = [
 	"PrehungProduction",
 	"Delivery",
 	"Pickup",
+	"Packing",
 	"CustomerService",
 	"Tech",
 	"Installation",
@@ -204,6 +208,7 @@ export const PERMISSION_NAMES = [
 	"orderPayment",
 	"orderProduction",
 	"pickup",
+	"packing",
 	"prehungProduction",
 	"priceList",
 	"production",
@@ -285,6 +290,7 @@ export const INVOICE_FILTER_OPTIONS = [
 ] as const;
 export const DISPATCH_FILTER_OPTIONS = [
 	"queue",
+	"packing queue",
 	"packed",
 	"in progress",
 	"cancelled",

@@ -52,6 +52,7 @@ import { salesDispatchUnassigned } from "./types/sales-dispatch-unassigned";
 import { salesEmailReminder } from "./types/sales-email-reminder";
 import { salesInfo } from "./types/sales-info";
 import { salesItemInfo } from "./types/sales-item-info";
+import { salesPackingList } from "./types/sales-packing-list";
 import { salesMarkedAsProductionCompleted } from "./types/sales-marked-as-production-completed";
 import { salesPaymentRecorded } from "./types/sales-payment-recorded";
 import { salesPaymentRefunded } from "./types/sales-payment-refunded";
@@ -119,6 +120,7 @@ const handlers = {
 	sales_item_info: salesItemInfo,
 	sales_dispatch_info: salesDispatchInfo,
 	sales_request_packing: salesRequestPacking,
+	"sales-packing-list": salesPackingList,
 	dispatch_packing_delay: dispatchPackingDelay,
 	sales_dispatch_duplicate_alert: salesDispatchDuplicateAlert,
 	sales_payment_recorded: salesPaymentRecorded,

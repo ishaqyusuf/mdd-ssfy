@@ -199,6 +199,9 @@ export async function getDispatchCompletetionNotes(db: Db, dispatchId) {
         },
       ],
     },
+    orderBy: {
+      createdAt: "desc",
+    },
     include: {
       tags: true,
     },

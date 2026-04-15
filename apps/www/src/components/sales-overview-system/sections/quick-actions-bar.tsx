@@ -17,6 +17,7 @@ import { Icons } from "@gnd/ui/icons";
 import { toast } from "sonner";
 
 import { useSalesOverviewSystem } from "../provider";
+import { SendForPickupButton } from "@/components/sales/send-for-pickup-button";
 
 export function QuickActionsBar() {
 	const {
@@ -46,6 +47,15 @@ export function QuickActionsBar() {
 	return (
 		<div className="flex flex-wrap gap-2">
 			<SendSalesReminder salesIds={[data.id]} />
+			{!isQuote ? (
+				<AuthGuard rules={[_perm.is("editOrders")]}>
+					<SendForPickupButton
+						salesId={data.id}
+						orderNo={data.orderId}
+						className="flex items-center gap-2"
+					/>
+				</AuthGuard>
+			) : null}
 			<Button
 				onClick={preview}
 				size="sm"

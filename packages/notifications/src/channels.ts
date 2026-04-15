@@ -51,6 +51,7 @@ export const channelNames = [
 	"sales_production_submission_cancelled",
 	"sales_production_all_completed",
 	"sales_request_packing",
+	"sales-packing-list",
 	"dispatch_packing_delay",
 	"sales_dispatch_duplicate_alert",
 ] as const;
@@ -398,6 +399,13 @@ export const channelsConfig: Partial<{
 	sales_request_packing: {
 		name: "Packing Requested",
 		description: "Send when a driver requests unavailable packing items.",
+		priority: 5,
+		category: "Sales",
+	},
+	"sales-packing-list": {
+		name: "Sales Packing List",
+		description:
+			"Tracks deliveries that entered the warehouse packing-list workflow.",
 		priority: 5,
 		category: "Sales",
 	},

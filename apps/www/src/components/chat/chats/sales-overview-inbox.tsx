@@ -1,12 +1,21 @@
 "use client";
 
+import { useTRPC } from "@/trpc/client";
+import { Button } from "@gnd/ui/button";
+import { cn } from "@gnd/ui/cn";
+import { Icons } from "@gnd/ui/icons";
+import { DropdownMenu as Dropdown } from "@gnd/ui/namespace";
 import {
+	type ActivityHistoryNode,
 	activityAnd,
 	activityOr,
 	activityTag,
 } from "@notifications/activity-tree";
+import { getChannelsOptionList, isChannelName } from "@notifications/channels";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { ActivityHistory } from "../activity-history";
 import { Chat, useChat } from "../chat";
-import { Inbox } from "../inbox";
 
 const channelNames = [
 	"sales_info",
@@ -91,8 +100,105 @@ type SalesOverviewInboxProps = {
 		id?: number | string | null;
 		orderId?: number | string | null;
 	} | null;
-	variant?: "all" | "inbound";
+	variant?: "all" | "inbound" | "activity";
 };
+
+function flattenActivityChannels(nodes: ActivityHistoryNode[]): string[] {
+	const channelSet = new Set<string>();
+
+	const visit = (items: ActivityHistoryNode[]) => {
+		for (const item of items) {
+			const value = item.tags?.channel;
+			const channels = Array.isArray(value) ? value : value ? [value] : [];
+			for (const channel of channels) {
+				if (typeof channel === "string") {
+					channelSet.add(channel);
+				}
+			}
+			if (item.children?.length) {
+				visit(item.children as ActivityHistoryNode[]);
+			}
+		}
+	};
+
+	visit(nodes);
+	return Array.from(channelSet);
+}
+
+function filterActivityTreeByChannel(
+	nodes: ActivityHistoryNode[],
+	channel: string | null,
+): ActivityHistoryNode[] {
+	if (!channel) return nodes;
+
+	return nodes.flatMap((node) => {
+		const filteredChildren = filterActivityTreeByChannel(
+			(node.children || []) as ActivityHistoryNode[],
+			channel,
+		);
+		const value = node.tags?.channel;
+		const channels = Array.isArray(value) ? value : value ? [value] : [];
+		const matches = channels.includes(channel);
+
+		if (!matches && !filteredChildren.length) {
+			return [];
+		}
+
+		return [
+			{
+				...node,
+				children: filteredChildren,
+			},
+		];
+	});
+}
+
+function ActivityChannelFilter({
+	value,
+	onChange,
+	channels,
+}: {
+	value: string | null;
+	onChange: (value: string | null) => void;
+	channels: string[];
+}) {
+	const options = channels
+		.filter((channel) => isChannelName(channel))
+		.map((channel) => getChannelsOptionList({ channel })[0])
+		.filter(Boolean);
+	const activeLabel =
+		options.find((option) => option.value === value)?.label || "All channels";
+
+	return (
+		<Dropdown.Root>
+			<Dropdown.Trigger asChild>
+				<Button
+					type="button"
+					variant="outline"
+					className="h-7 w-fit min-w-[150px] justify-between rounded-md px-2 shadow-none"
+				>
+					<span className="truncate">{activeLabel}</span>
+					<Icons.ChevronDown className="size-3.5 text-muted-foreground" />
+				</Button>
+			</Dropdown.Trigger>
+			<Dropdown.Content align="end">
+				<Dropdown.Label>Filter activity</Dropdown.Label>
+				<Dropdown.Separator />
+				<Dropdown.Item onSelect={() => onChange(null)}>
+					All channels
+				</Dropdown.Item>
+				{options.map((option) => (
+					<Dropdown.Item
+						key={option.value}
+						onSelect={() => onChange(option.value)}
+					>
+						{option.label}
+					</Dropdown.Item>
+				))}
+			</Dropdown.Content>
+		</Dropdown.Root>
+	);
+}
 
 export function SalesOverviewInbox({
 	saleData,
@@ -100,11 +206,13 @@ export function SalesOverviewInbox({
 }: SalesOverviewInboxProps) {
 	if (!saleData?.id) return null;
 
+	const trpc = useTRPC();
 	const salesFilter = activityOr([
 		activityTag("salesId", String(saleData.id)),
 		activityTag("salesNo", String(saleData.orderId)),
 	]);
 	const isInboundOnly = variant === "inbound";
+	const isActivityView = variant === "activity";
 	const activityFilter = isInboundOnly
 		? activityAnd([
 				salesFilter,
@@ -114,26 +222,52 @@ export function SalesOverviewInbox({
 				]),
 			])
 		: salesFilter;
+	const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
+	const activityQuery = useQuery(
+		trpc.notes.activityTree.queryOptions({
+			filter: activityFilter,
+			tagFilterMode: "all",
+			includeChildren: true,
+			pageSize: 40,
+			maxDepth: 4,
+		}),
+	);
+	const activityRows = useMemo(
+		() => (activityQuery.data?.data || []) as ActivityHistoryNode[],
+		[activityQuery.data],
+	);
+	const fetchedChannels = useMemo(
+		() => flattenActivityChannels(activityRows),
+		[activityRows],
+	);
+	useEffect(() => {
+		if (selectedChannel && !fetchedChannels.includes(selectedChannel)) {
+			setSelectedChannel(null);
+		}
+	}, [fetchedChannels, selectedChannel]);
+	const filteredActivityRows = useMemo(
+		() =>
+			isActivityView
+				? filterActivityTreeByChannel(activityRows, selectedChannel)
+				: activityRows,
+		[activityRows, isActivityView, selectedChannel],
+	);
 
 	return (
-		<Inbox
-			activityHistoryProps={{
-				emptyText: isInboundOnly ? "No inbound activity yet" : null,
-				filter: activityFilter,
-			}}
-			chatProps={{
-				channel: isInboundOnly ? "inventory_inbound" : "sales_info",
-				names: isInboundOnly ? ["inventory_inbound"] : channelNames,
-				attachmentName: "attachment",
-				attachmentType: "image",
-				attachmentChannels: ["inventory_inbound"],
-				multiAttachmentSupport: true,
-				payload: {
+		<div className="flex flex-col">
+			<Chat
+				channel={isInboundOnly ? "inventory_inbound" : "sales_info"}
+				names={isInboundOnly ? ["inventory_inbound"] : channelNames}
+				attachmentName="attachment"
+				attachmentType="image"
+				attachmentChannels={["inventory_inbound", "sales_info"]}
+				multiAttachmentSupport
+				payload={{
 					salesId: saleData.id,
 					salesNo: saleData.orderId,
-				},
-				defaultPayloads,
-				transformSubmitData: async (payload) => {
+				}}
+				defaultPayloads={defaultPayloads}
+				transformSubmitData={async (payload) => {
 					const paymentLinkOption = payload.paymentLinkOption;
 					const invoiceDownload = payload.invoiceDownload;
 					const isReminderTransform =
@@ -157,13 +291,33 @@ export function SalesOverviewInbox({
 						payPlan: payPlanMap[paymentLinkOption] ?? null,
 						attachInvoice: invoiceDownload === "yes",
 					};
-				},
-				placeholder: isInboundOnly
-					? "Add an inbound update, receipt note, or receiving context..."
-					: "Write a sales activity note...",
-			}}
-		>
-			<SalesInboxComposer />
-		</Inbox>
+				}}
+				placeholder={
+					isInboundOnly
+						? "Add an inbound update, receipt note, or receiving context..."
+						: "Write a sales activity note..."
+				}
+				className="mb-3"
+			>
+				<SalesInboxComposer />
+			</Chat>
+			<ActivityHistory
+				data={filteredActivityRows}
+				isPending={activityQuery.isPending}
+				isError={activityQuery.isError}
+				emptyText={isInboundOnly ? "No inbound activity yet" : null}
+				headerAction={
+					isActivityView && fetchedChannels.length ? (
+						<ActivityChannelFilter
+							value={selectedChannel}
+							onChange={setSelectedChannel}
+							channels={fetchedChannels}
+						/>
+					) : null
+				}
+				title={isActivityView ? "Activity History" : "Activity Timeline"}
+				className={cn("min-h-[180px]")}
+			/>
+		</div>
 	);
 }

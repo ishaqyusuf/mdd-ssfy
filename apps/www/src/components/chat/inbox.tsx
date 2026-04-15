@@ -1,68 +1,59 @@
 "use client";
 
-import { useTRPC } from "@/trpc/client";
-import { Separator } from "@gnd/ui/separator";
 import { cn } from "@gnd/ui/cn";
-import { useQuery } from "@tanstack/react-query";
+import { Separator } from "@gnd/ui/separator";
 import type { ChannelName } from "@notifications/channels";
-import { type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { ActivityHistory, type ActivityHistoryProps } from "./activity-history";
 import { Chat, type ChatProps, type InboxContacts } from "./chat";
 
 export type InboxChatProps = Omit<ChatProps, "children"> & {
-    channel: ChannelName;
-    payload?: Record<string, unknown>;
-    contacts?: InboxContacts;
-    placeholder?: string;
+	channel: ChannelName;
+	payload?: Record<string, unknown>;
+	contacts?: InboxContacts;
+	placeholder?: string;
 };
 
 export interface InboxProps {
-    children?: ReactNode;
-    chatProps: InboxChatProps;
-    activityHistoryProps?: ActivityHistoryProps;
-    className?: string;
+	children?: ReactNode;
+	chatProps: InboxChatProps;
+	activityHistoryProps?: ActivityHistoryProps;
+	className?: string;
 }
 
 export function Inbox({
-    children,
-    chatProps,
-    activityHistoryProps,
-    className,
+	children,
+	chatProps,
+	activityHistoryProps,
+	className,
 }: InboxProps) {
-    const { placeholder = "Write a note...", ...chatComponentProps } =
-        chatProps;
-    const trpc = useTRPC();
+	const { placeholder = "Write a note...", ...chatComponentProps } = chatProps;
 
-    // const { data: notificationAccount } = useQuery(
-    //     trpc.user.notificationAccount.queryOptions(),
-    // );
+	return (
+		<div className={cn("flex flex-col", className)}>
+			<Chat {...chatComponentProps}>
+				{children || (
+					<>
+						<Chat.Header>
+							<div className="text-xs font-medium text-muted-foreground">
+								AI Compose
+							</div>
+						</Chat.Header>
+						<Chat.Content placeholder={placeholder} />
+						<Chat.Footer>
+							<Chat.ColorPicker />
+							<div className="flex-1" />
+							<Chat.SendButton />
+						</Chat.Footer>
+					</>
+				)}
+			</Chat>
 
-    return (
-        <div className={cn("flex flex-col", className)}>
-            <div>
-                <ActivityHistory {...activityHistoryProps} />
-            </div>
+			<Separator className="my-3" />
 
-            <Separator className="my-3" />
-
-            <Chat {...chatComponentProps}>
-                {children || (
-                    <>
-                        <Chat.Header>
-                            <div className="text-xs font-medium text-muted-foreground">
-                                AI Compose
-                            </div>
-                        </Chat.Header>
-                        <Chat.Content placeholder={placeholder} />
-                        <Chat.Footer>
-                            <Chat.ColorPicker />
-                            <div className="flex-1" />
-                            <Chat.SendButton />
-                        </Chat.Footer>
-                    </>
-                )}
-            </Chat>
-        </div>
-    );
+			<div>
+				<ActivityHistory {...activityHistoryProps} />
+			</div>
+		</div>
+	);
 }
-

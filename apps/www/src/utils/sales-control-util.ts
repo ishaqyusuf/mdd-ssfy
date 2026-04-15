@@ -194,7 +194,9 @@ export function composeSalesItemControlStat(
         .flat();
     const dispatch = {
         queued: qtyMatrixSum(
-            ...(deliveries.filter((a) => a.status == "queue") as any)
+            ...(deliveries.filter(
+                (a) => a.status == "queue" || a.status == "packing queue"
+            ) as any)
         ),
         inProgress: qtyMatrixSum(
             ...(deliveries.filter((a) => a.status == "in progress") as any)

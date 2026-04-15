@@ -213,6 +213,20 @@ The stored-document phase should answer these operational rules explicitly:
 4. If no matching stored document exists, generate the PDF, upload/register it, and persist the new snapshot for future reuse.
 5. Support grouped print requests where a single sales record may emit multiple print documents; each document should preserve the intended per-sales order and the final response should merge them into one PDF when the caller requested a combined print.
 
+## Pickup packing signoff
+
+- Packing signoff now lives on `/p/sales-invoice-v2` only, and only when the print payload is in `packing-slip` mode.
+- The UI surface is a floating `Sign` control rendered by `apps/www/src/components/packing-slip-sign-fab.tsx`.
+- The sign form prefills:
+  - `Packed By` from the current logged-in account
+  - `Received By` from the customer/shipping name
+- Submitting the form:
+  - uploads the signature image
+  - saves signature metadata into dispatch completion note tags
+  - packs all items into the delivery
+  - refreshes the print view so the signed packing slip renders immediately
+- Packing print rendering remains single-source-of-truth through dispatch note tags, now including `packedBy`, `dispatchRecipient`, `signature`, and `deliveryId`.
+
 ## Notes
 
 - Templates never touch the database — they receive typed `PrintPage` props only.

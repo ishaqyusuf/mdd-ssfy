@@ -70,6 +70,12 @@ export function SignaturePad({
 
     const stopDrawing = () => {
         setIsDrawing(false);
+        const canvas = document.getElementById(
+            signatureId,
+        ) as HTMLCanvasElement | null;
+        if (canvas) {
+            onSignatureChange(canvas.toDataURL());
+        }
     };
 
     const clearSignature = () => {
@@ -117,4 +123,3 @@ export function SignaturePad({
         </div>
     );
 }
-

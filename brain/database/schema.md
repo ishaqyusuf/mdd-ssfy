@@ -37,6 +37,10 @@ Tracks important schema-level entities and ownership boundaries.
   - `Supplier` remains the vendor entity and now carries the legacy Dyke supplier UID bridge
   - `SupplierVariant` is the inventory-native join between supplier and inventory variant for supplier SKU, cost, sales price, min order qty, lead time, preferred flag, and active state
   - current door pricing still resolves from legacy dependency buckets; the safe bridge is to keep `Supplier.uid` aligned with the old Dyke supplier UID while introducing `SupplierVariant` as the new canonical inventory-side supplier pricing record
+- Sales dispatch / pickup schema notes:
+  - pickup packing now uses normal `OrderDelivery.status` transitions (`queue`, `completed`, `cancelled`) instead of requiring a dedicated live `packing queue` status
+  - membership/history for the packing-list workflow is recorded through the `sales-packing-list` notification/activity channel
+  - pickup packing signatures remain note-backed rather than adding a new `OrderDelivery` signature column; the active lookup still resolves by `deliveryId` tags from `NotePad`
 
 ## TODO
 - Document the canonical schema modules and the most important tables/models.

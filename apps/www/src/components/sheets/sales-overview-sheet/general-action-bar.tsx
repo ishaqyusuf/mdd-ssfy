@@ -14,6 +14,7 @@ import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { toast } from "sonner";
 import { SendSalesReminder } from "@/components/send-sales-reminder";
 import { SalesMenu } from "@/components/sales-menu";
+import { SendForPickupButton } from "@/components/sales/send-for-pickup-button";
 export function GeneralActionBar({ type, salesNo, salesId }) {
 	const { data } = useSaleOverview() as { data?: any };
 	const isQuote = data?.type == "quote";
@@ -42,6 +43,16 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 	return (
 		<div className="flex gap-2">
 			<SendSalesReminder salesIds={[salesId]} />
+			{!isQuote ? (
+				<AuthGuard rules={[_perm.is("editOrders")]}>
+					<SendForPickupButton
+						salesId={salesId}
+						orderNo={data?.orderId}
+						className="flex-1 items-center gap-2"
+						variant="outline"
+					/>
+				</AuthGuard>
+			) : null}
 			<Button
 				onClick={(e) => {
 					preview();

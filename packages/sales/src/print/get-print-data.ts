@@ -1,5 +1,6 @@
 import type { Db, Prisma } from "@gnd/db";
 import { type SalesSetting, getSalesSetting } from "../exports";
+import { getDispatchCompletetionNotes } from "../sales-control/actions";
 import { composeAddresses } from "./compose/addresses";
 import { composeDoorSections } from "./compose/door-sections";
 import { composeFooter } from "./compose/footer";
@@ -11,7 +12,12 @@ import { composeShelfSections } from "./compose/shelf-sections";
 import { getModeConfig } from "./constants";
 import { type PrintSalesData, buildPrintSalesInclude } from "./query";
 import type { PrintSalesV2Input } from "./schema";
-import type { PrintMode, PrintPage, PrintSection } from "./types";
+import type {
+	PrintMode,
+	PrintPage,
+	PrintSection,
+	PrintSigningData,
+} from "./types";
 
 /**
  * Main entry point: DB → typed PrintPage[] payloads.
@@ -49,8 +55,10 @@ export async function getPrintData(
 		},
 	);
 
-	const pages = jobs.map(({ sale, mode }) =>
-		composePage(sale, mode, setting, input.dispatchId),
+	const pages = await Promise.all(
+		jobs.map(({ sale, mode }) =>
+			composePage(db, sale, mode, setting, input.dispatchId),
+		),
 	);
 
 	const first = pages[0];
@@ -62,12 +70,13 @@ export async function getPrintData(
 	return { pages, title, firstOrderId: sales[0]?.orderId ?? null };
 }
 
-function composePage(
+async function composePage(
+	db: Db,
 	sale: PrintSalesData,
 	mode: PrintMode,
 	setting: SalesSetting | null,
 	dispatchId?: number | null,
-): PrintPage {
+): Promise<PrintPage> {
 	const config = getModeConfig(mode);
 	const meta = composeMeta(sale, mode);
 	const { billing, shipping } = composeAddresses(sale, mode);
@@ -89,6 +98,7 @@ function composePage(
 	].sort((a, b) => a.index - b.index);
 
 	const footer = config.showFooter ? composeFooter(sale, mode) : null;
+	const signing = await composeSigningData(db, sale, mode, dispatchId);
 
 	return {
 		meta,
@@ -97,5 +107,35 @@ function composePage(
 		sections,
 		footer,
 		config,
+		signing,
+	};
+}
+
+async function composeSigningData(
+	db: Db,
+	sale: PrintSalesData,
+	mode: PrintMode,
+	dispatchId?: number | null,
+): Promise<PrintSigningData | null> {
+	if (mode !== "packing-slip" || !dispatchId) {
+		return null;
+	}
+
+	const completionNote = await getDispatchCompletetionNotes(db, dispatchId);
+	const customerName =
+		sale.shippingAddress?.name ||
+		sale.customer?.businessName ||
+		sale.customer?.name ||
+		null;
+
+	return {
+		dispatchId,
+		customerName,
+		packedBy: completionNote?.tag?.packedBy?.value || null,
+		receivedBy: completionNote?.tag?.dispatchRecipient?.value || customerName,
+		signatureUrl: completionNote?.tag?.signature?.value || null,
+		signedAt: completionNote?.createdAt
+			? new Date(completionNote.createdAt).toISOString()
+			: null,
 	};
 }

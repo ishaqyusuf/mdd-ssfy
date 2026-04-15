@@ -290,7 +290,11 @@ export function composeSalesItemControlStat({
     .flat();
   const dispatch = {
     queued: qtyMatrixSum(
-      ...(deliveries.filter((a) => a.status == "queue") as any),
+      ...(
+        deliveries.filter(
+          (a) => a.status == "queue" || a.status == "packing queue",
+        ) as any
+      ),
     ),
     inProgress: qtyMatrixSum(
       ...(deliveries.filter((a) => a.status == "in progress") as any),
@@ -530,7 +534,7 @@ function composeQtyControl(props: ComposeQtyControlProps) {
         deliveries.find((del) => del.id == d.orderDeliveryId)?.status;
       switch (status) {
         case "queue":
-          return _status == status || !_status;
+          return _status == status || _status == "packing queue" || !_status;
           break;
         default:
           return _status == status;

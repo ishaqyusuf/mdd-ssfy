@@ -13,6 +13,7 @@ export type LegacySalesOverviewTabId =
 	| "production-notes"
 	| "dispatch-notes"
 	| "transactions"
+	| "activity"
 	| "inbound"
 	| "dispatch"
 	| "packing";

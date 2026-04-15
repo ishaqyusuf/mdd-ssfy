@@ -1,5 +1,6 @@
 export const SALES_DISPATCH_STATUS = [
   "queue",
+  "packing queue",
   "missing items",
   "packed",
   "in progress",

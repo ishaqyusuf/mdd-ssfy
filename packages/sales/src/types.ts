@@ -35,6 +35,7 @@ export type QtyControlByType = {
 };
 export type SalesDispatchStatus =
   | "queue"
+  | "packing queue"
   | "missing items"
   | "packed"
   | "in progress"

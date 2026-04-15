@@ -28,6 +28,8 @@ type ActivityNode = {
 	children: ActivityNode[];
 };
 
+export type ActivityHistoryNode = ActivityNode;
+
 export interface ActivityHistoryProps {
 	channel?: string;
 	tags?: ActivityTagFilter[];
@@ -38,6 +40,11 @@ export interface ActivityHistoryProps {
 	className?: string;
 	emptyText?: string | null;
 	emptyNode?: ReactNode;
+	data?: ActivityNode[];
+	isPending?: boolean;
+	isError?: boolean;
+	title?: ReactNode;
+	headerAction?: ReactNode;
 }
 
 function formatActivityDate(value: Date | string | null | undefined) {
@@ -164,6 +171,11 @@ export function ActivityHistory({
 	className,
 	emptyText = "No activity yet",
 	emptyNode,
+	data,
+	isPending: isPendingOverride,
+	isError: isErrorOverride,
+	title = "Activity Timeline",
+	headerAction,
 }: ActivityHistoryProps) {
 	const trpc = useTRPC();
 
@@ -183,7 +195,7 @@ export function ActivityHistory({
 		return activityAnd(baseFilters);
 	}, [channel, filter, tags]);
 
-	const { data, isPending, isError } = useQuery(
+	const query = useQuery(
 		trpc.notes.activityTree.queryOptions({
 			...(contactId ? { contactIds: [contactId] } : {}),
 			...(activityFilter ? { filter: activityFilter } : {}),
@@ -193,13 +205,23 @@ export function ActivityHistory({
 			maxDepth,
 		}),
 	);
+	const rows = data ?? ((query.data?.data || []) as ActivityNode[]);
+	const isPending = isPendingOverride ?? (!data && query.isPending);
+	const isError = isErrorOverride ?? (!data && query.isError);
+
+	const header = (
+		<div className="mb-6 flex items-center justify-between gap-3">
+			<h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+				{title}
+			</h4>
+			{headerAction}
+		</div>
+	);
 
 	if (isPending) {
 		return (
 			<div className={cn("space-y-6", className)}>
-				<h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-					Activity Timeline
-				</h4>
+				{header}
 				{["timeline-1", "timeline-2", "timeline-3"].map((key) => (
 					<div
 						key={key}
@@ -213,9 +235,7 @@ export function ActivityHistory({
 	if (isError) {
 		return (
 			<div className={cn("py-6", className)}>
-				<h4 className="mb-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-					Activity Timeline
-				</h4>
+				<div className="mb-4">{header}</div>
 				<p className="text-center text-sm text-muted-foreground">
 					Unable to load activity history
 				</p>
@@ -223,17 +243,13 @@ export function ActivityHistory({
 		);
 	}
 
-	const rows = (data?.data || []) as ActivityNode[];
-
 	if (!rows.length) {
 		if (emptyNode) return <>{emptyNode}</>;
 		if (!emptyText) return null;
 
 		return (
 			<div className={cn("py-8", className)}>
-				<h4 className="mb-6 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-					Activity Timeline
-				</h4>
+				{header}
 				<div className="flex flex-col items-center">
 					<div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted">
 						<Icons.Notifications className="size-4 text-muted-foreground" />
@@ -246,9 +262,7 @@ export function ActivityHistory({
 
 	return (
 		<div className={cn(className)}>
-			<h4 className="mb-6 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-				Activity Timeline
-			</h4>
+			{header}
 			<div className="relative space-y-6 before:absolute before:inset-y-0 before:left-[11px] before:w-0.5 before:bg-border">
 				{rows.map((item, index) => (
 					<ActivityTreeItem key={item.id} node={item} isLatest={index === 0} />

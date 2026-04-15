@@ -48,8 +48,12 @@ export function resolveLegacySalesOverviewActiveTab({
 	currentTab?: string | null;
 	tabs: LegacySalesOverviewTabDefinition[];
 }): LegacySalesOverviewTabId {
+	const normalizedCurrentTab =
+		currentTab === "inbound" ? "activity" : currentTab;
+
 	return (
-		tabs.find((tab) => tab.value === currentTab && !tab.hidden)?.value ??
+		tabs.find((tab) => tab.value === normalizedCurrentTab && !tab.hidden)
+			?.value ??
 		tabs.find((tab) => !tab.hidden)?.value ??
 		"general"
 	);
@@ -131,8 +135,8 @@ export function createLegacySalesOverviewTabs({
 					content: <TransactionsTab salesId={orderId || undefined} />,
 				},
 				{
-					value: "inbound",
-					label: "Inbound",
+					value: "activity",
+					label: "Activity",
 					content: (
 						<div className="p-1">
 							<SalesOverviewInbox
@@ -140,7 +144,7 @@ export function createLegacySalesOverviewTabs({
 									id: saleId,
 									orderId,
 								}}
-								variant="inbound"
+								variant="activity"
 							/>
 						</div>
 					),

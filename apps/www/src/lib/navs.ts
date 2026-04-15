@@ -47,6 +47,7 @@ export function nav(
         viewEmployee,
         viewDelivery,
         viewPickup,
+        viewPacking,
         viewPriceList,
         viewCustomerService,
         viewInstallation,
@@ -229,6 +230,11 @@ export function nav(
                 true,
             ),
         );
+    if (viewPacking && session.role?.name === "Super Admin") {
+        routes.Sales.push(
+            _route("Packing List", Icons.packingList, "/sales/packing-list"),
+        );
+    }
     // if (viewPickup && !viewOrders)
     //     routes.Sales.push(
     //         _route("Order Pickup", Icons.delivery, "/sales/pickup")
