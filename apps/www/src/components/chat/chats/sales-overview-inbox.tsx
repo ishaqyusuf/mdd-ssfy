@@ -1,6 +1,10 @@
 "use client";
 
-import { activityOr, activityTag } from "@notifications/activity-tree";
+import {
+	activityAnd,
+	activityOr,
+	activityTag,
+} from "@notifications/activity-tree";
 import { Chat, useChat } from "../chat";
 import { Inbox } from "../inbox";
 
@@ -87,33 +91,39 @@ type SalesOverviewInboxProps = {
 		id?: number | string | null;
 		orderId?: number | string | null;
 	} | null;
+	variant?: "all" | "inbound";
 };
 
-export function SalesOverviewInbox({ saleData }: SalesOverviewInboxProps) {
+export function SalesOverviewInbox({
+	saleData,
+	variant = "all",
+}: SalesOverviewInboxProps) {
 	if (!saleData?.id) return null;
+
+	const salesFilter = activityOr([
+		activityTag("salesId", String(saleData.id)),
+		activityTag("salesNo", String(saleData.orderId)),
+	]);
+	const isInboundOnly = variant === "inbound";
+	const activityFilter = isInboundOnly
+		? activityAnd([
+				salesFilter,
+				activityOr([
+					activityTag("channel", "inventory_inbound"),
+					activityTag("channel", "inventory_inbound_activity"),
+				]),
+			])
+		: salesFilter;
 
 	return (
 		<Inbox
 			activityHistoryProps={{
-				emptyText: null,
-				filter: activityOr([
-					activityTag("salesId", String(saleData.id)),
-					activityTag("salesNo", String(saleData.orderId)),
-				]),
-				// tags: [
-				//     {
-				//         OR: [
-				//             {
-				//                 tagName: "salesId",
-				//                 tagValue: String(saleData.id),
-				//             },
-				//         ],
-				//     },
-				// ],
+				emptyText: isInboundOnly ? "No inbound activity yet" : null,
+				filter: activityFilter,
 			}}
 			chatProps={{
-				channel: "sales_info",
-				names: channelNames,
+				channel: isInboundOnly ? "inventory_inbound" : "sales_info",
+				names: isInboundOnly ? ["inventory_inbound"] : channelNames,
 				attachmentName: "attachment",
 				attachmentType: "image",
 				attachmentChannels: ["inventory_inbound"],
@@ -148,7 +158,9 @@ export function SalesOverviewInbox({ saleData }: SalesOverviewInboxProps) {
 						attachInvoice: invoiceDownload === "yes",
 					};
 				},
-				placeholder: "Write a sales activity note...",
+				placeholder: isInboundOnly
+					? "Add an inbound update, receipt note, or receiving context..."
+					: "Write a sales activity note...",
 			}}
 		>
 			<SalesInboxComposer />

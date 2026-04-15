@@ -118,6 +118,12 @@ export const salesQueryParamsSchema = z
   .extend(paginationSchema.shape);
 export type SalesQueryParamsSchema = z.infer<typeof salesQueryParamsSchema>;
 
+export const getSaleOverviewSchema = salesQueryParamsSchema.pick({
+  orderNo: true,
+  salesType: true,
+});
+export type GetSaleOverviewSchema = z.infer<typeof getSaleOverviewSchema>;
+
 export const inboundQuerySchema = z
   .object({
     status: z.enum(inboundFilterStatus).optional().nullable(),

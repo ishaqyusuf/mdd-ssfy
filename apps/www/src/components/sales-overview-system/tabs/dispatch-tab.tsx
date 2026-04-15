@@ -5,45 +5,22 @@ import { Icons } from "@gnd/ui/icons";
 import { useTRPC } from "@/trpc/client";
 
 import { Badge } from "@gnd/ui/badge";
-import { cn } from "@gnd/ui/cn";
 import { useQuery } from "@gnd/ui/tanstack";
 
 import { useSalesOverviewSystem } from "../provider";
-import { formatPercent, getProgressValue, getStatusLabel } from "../view-model";
+import {
+	OverviewEmptyState,
+	OverviewProgressBar,
+	OverviewSectionCard,
+	OverviewSectionLabel,
+} from "../section-primitives";
+import { formatPercent, getStatusLabel } from "../view-model";
 
-function SectionLabel({
-	icon: Icon,
-	label,
-}: {
-	icon: React.ElementType;
-	label: string;
-}) {
-	return (
-		<div className="flex items-center gap-2 pb-3">
-			<Icon className="size-3.5 text-muted-foreground" />
-			<span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-				{label}
-			</span>
-		</div>
-	);
-}
-
-function ProgressBar({
-	value,
-	colorClass,
-}: {
-	value: number;
-	colorClass: string;
-}) {
-	return (
-		<div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-			<div
-				className={cn("h-full rounded-full transition-all", colorClass)}
-				style={{ width: `${getProgressValue(value)}%` }}
-			/>
-		</div>
-	);
-}
+type DeliveryAddress = {
+	address1?: string | null;
+	city?: string | null;
+	state?: string | null;
+};
 
 function statusVariant(
 	status?: string | null,
@@ -63,7 +40,9 @@ function statusVariant(
 }
 
 export function SalesOverviewDispatchTab() {
-	const { dispatchId, overviewId } = useSalesOverviewSystem();
+	const {
+		state: { dispatchId, overviewId },
+	} = useSalesOverviewSystem();
 	const trpc = useTRPC();
 
 	const { data } = useQuery(
@@ -84,14 +63,14 @@ export function SalesOverviewDispatchTab() {
 	return (
 		<div className="space-y-5 p-1">
 			{/* Overall progress */}
-			<div className="rounded-xl border bg-card p-5">
-				<SectionLabel icon={Icons.Truck} label="Dispatch Overview" />
+			<OverviewSectionCard>
+				<OverviewSectionLabel icon={Icons.Truck} label="Dispatch Overview" />
 				<div className="mb-3 space-y-1.5">
 					<div className="flex justify-between text-sm">
 						<span className="text-muted-foreground">Overall completion</span>
 						<span className="font-semibold">{formatPercent(progressPct)}</span>
 					</div>
-					<ProgressBar
+					<OverviewProgressBar
 						value={progressPct}
 						colorClass={progressPct >= 100 ? "bg-emerald-500" : "bg-blue-500"}
 					/>
@@ -102,77 +81,78 @@ export function SalesOverviewDispatchTab() {
 						{deliveries.length === 1 ? "entry" : "entries"}
 					</p>
 				)}
-			</div>
+			</OverviewSectionCard>
 
 			{/* Delivery entries */}
 			{deliveries.length === 0 ? (
-				<div className="rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
+				<OverviewEmptyState className="py-10">
 					No dispatch data available for this order.
-				</div>
+				</OverviewEmptyState>
 			) : (
 				<div className="space-y-4">
-					{deliveries.map((delivery) => (
-						<div key={delivery.id} className="rounded-xl border bg-card p-5">
-							<div className="mb-4 flex items-start justify-between gap-3">
-								<div>
-									<p className="font-semibold">
-										Dispatch #{delivery.id}
-										{delivery.dispatchNumber
-											? ` · ${delivery.dispatchNumber}`
-											: ""}
-									</p>
-									<div className="mt-1 flex items-center gap-2">
-										<Badge variant={statusVariant(delivery.status)}>
-											<span className="capitalize">
-												{getStatusLabel(delivery.status)}
-											</span>
-										</Badge>
+					{deliveries.map((delivery) => {
+						const address = (delivery as { address?: DeliveryAddress | null })
+							.address;
+
+						return (
+							<OverviewSectionCard key={delivery.id}>
+								<div className="mb-4 flex items-start justify-between gap-3">
+									<div>
+										<p className="font-semibold">
+											Dispatch #{delivery.id}
+											{delivery.dispatchNumber
+												? ` · ${delivery.dispatchNumber}`
+												: ""}
+										</p>
+										<div className="mt-1 flex items-center gap-2">
+											<Badge variant={statusVariant(delivery.status)}>
+												<span className="capitalize">
+													{getStatusLabel(delivery.status)}
+												</span>
+											</Badge>
+										</div>
 									</div>
 								</div>
-							</div>
 
-							<div className="grid gap-3 text-sm md:grid-cols-3">
-								<div>
-									<p className="text-xs text-muted-foreground">Mode</p>
-									<p className="font-medium capitalize">
-										{delivery.deliveryMode || "—"}
-									</p>
-								</div>
-								<div>
-									<p className="text-xs text-muted-foreground">Driver</p>
-									<p className="font-medium">
-										{delivery.driver?.name || "Unassigned"}
-									</p>
-								</div>
-								{delivery.dueDate && (
+								<div className="grid gap-3 text-sm md:grid-cols-3">
 									<div>
-										<p className="text-xs text-muted-foreground">Due Date</p>
-										<p className="font-medium">
-											{new Date(delivery.dueDate).toLocaleDateString("en-US")}
+										<p className="text-xs text-muted-foreground">Mode</p>
+										<p className="font-medium capitalize">
+											{delivery.deliveryMode || "—"}
 										</p>
+									</div>
+									<div>
+										<p className="text-xs text-muted-foreground">Driver</p>
+										<p className="font-medium">
+											{delivery.driver?.name || "Unassigned"}
+										</p>
+									</div>
+									{delivery.dueDate && (
+										<div>
+											<p className="text-xs text-muted-foreground">Due Date</p>
+											<p className="font-medium">
+												{new Date(delivery.dueDate).toLocaleDateString("en-US")}
+											</p>
+										</div>
+									)}
+								</div>
+
+								{/* Delivery address if available */}
+								{address && (
+									<div className="mt-4 border-t border-border/40 pt-3">
+										<div className="flex items-start gap-2">
+											<Icons.MapPin className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+											<p className="text-sm text-muted-foreground">
+												{[address.address1, address.city, address.state]
+													.filter(Boolean)
+													.join(", ") || "Address not set"}
+											</p>
+										</div>
 									</div>
 								)}
-							</div>
-
-							{/* Delivery address if available */}
-							{(delivery as any)?.address && (
-								<div className="mt-4 border-t border-border/40 pt-3">
-									<div className="flex items-start gap-2">
-										<Icons.MapPin className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
-										<p className="text-sm text-muted-foreground">
-											{[
-												(delivery as any).address?.address1,
-												(delivery as any).address?.city,
-												(delivery as any).address?.state,
-											]
-												.filter(Boolean)
-												.join(", ") || "Address not set"}
-										</p>
-									</div>
-								</div>
-							)}
-						</div>
-					))}
+							</OverviewSectionCard>
+						);
+					})}
 				</div>
 			)}
 		</div>

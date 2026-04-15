@@ -18,7 +18,10 @@ import type { SalesOverviewTabId } from "./types";
 
 export function SalesOverviewSheetShell({ onClose }: { onClose?: () => void }) {
 	usePageTitle();
-	const { currentTab, query } = useSalesOverviewSystem();
+	const {
+		state: { currentTab },
+		actions,
+	} = useSalesOverviewSystem();
 	const tabs = useSalesOverviewTabs();
 	const activeTab = useMemo<SalesOverviewTabId>(() => {
 		return resolveSalesOverviewActiveTab({
@@ -27,12 +30,6 @@ export function SalesOverviewSheetShell({ onClose }: { onClose?: () => void }) {
 		});
 	}, [currentTab, tabs]);
 
-	const handleTabChange = (tab: SalesOverviewTabId) => {
-		query.setParams({
-			overviewSheetTab: tab,
-		});
-	};
-
 	return (
 		<CustomSheet
 			sheetName="sales-overview-system-sheet"
@@ -40,7 +37,7 @@ export function SalesOverviewSheetShell({ onClose }: { onClose?: () => void }) {
 			onOpenChange={(open) => {
 				if (!open) {
 					if (onClose) onClose();
-					else query.close();
+					else actions.close();
 				}
 			}}
 			floating
@@ -49,11 +46,13 @@ export function SalesOverviewSheetShell({ onClose }: { onClose?: () => void }) {
 		>
 			<Tabs
 				value={activeTab}
-				onValueChange={(tab) => handleTabChange(tab as SalesOverviewTabId)}
+				onValueChange={(tab) =>
+					actions.setCurrentTab(tab as SalesOverviewTabId)
+				}
 			>
 				<SalesOverviewHeader
 					activeTab={activeTab}
-					onTabChange={handleTabChange}
+					onTabChange={actions.setCurrentTab}
 				/>
 				<CustomSheetContent className="-mt-4">
 					<SalesOverviewPanels activeTab={activeTab} />

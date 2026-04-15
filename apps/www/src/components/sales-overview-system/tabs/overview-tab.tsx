@@ -11,14 +11,37 @@ import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 
 import { useSalesOverviewSystem } from "../provider";
+import {
+	OverviewProgressBar,
+	OverviewSectionCard,
+	OverviewSectionLabel,
+} from "../section-primitives";
 import { QuickActionsBar } from "../sections/quick-actions-bar";
 import {
 	formatAddress,
 	formatCurrency,
 	formatPercent,
 	getPaymentBalance,
-	getProgressValue,
 } from "../view-model";
+
+type AddressEntry = {
+	title?: string | null;
+	lines?: string[] | null;
+	address?: string | null;
+	street?: string | null;
+	city?: string | null;
+	state?: string | null;
+	zipCode?: string | null;
+	country?: string | null;
+};
+
+type CostLine = {
+	id?: number | string | null;
+	label?: string | null;
+	title?: string | null;
+	amount?: number | null;
+	value?: number | null;
+};
 
 function StatPill({
 	label,
@@ -51,23 +74,6 @@ function StatPill({
 	);
 }
 
-function SectionLabel({
-	icon: Icon,
-	label,
-}: {
-	icon: React.ElementType;
-	label: string;
-}) {
-	return (
-		<div className="flex items-center gap-2 pb-2">
-			<Icon className="size-3.5 text-muted-foreground" />
-			<span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-				{label}
-			</span>
-		</div>
-	);
-}
-
 function DataRow({
 	label,
 	value,
@@ -81,27 +87,8 @@ function DataRow({
 		<div className="flex items-start justify-between gap-3 border-b border-border/40 py-2.5 last:border-b-0">
 			<p className="min-w-[110px] text-sm text-muted-foreground">{label}</p>
 			<div className="flex items-center gap-2 text-right">
-				{action ?? (
-					<p className="text-sm font-medium">{value || "—"}</p>
-				)}
+				{action ?? <p className="text-sm font-medium">{value || "—"}</p>}
 			</div>
-		</div>
-	);
-}
-
-function ProgressBar({
-	value,
-	colorClass,
-}: {
-	value: number;
-	colorClass: string;
-}) {
-	return (
-		<div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-			<div
-				className={cn("h-full rounded-full transition-all", colorClass)}
-				style={{ width: `${getProgressValue(value)}%` }}
-			/>
 		</div>
 	);
 }
@@ -125,7 +112,9 @@ function StatusDot({ color }: { color?: string | null }) {
 }
 
 export function SalesOverviewOverviewTab() {
-	const { data, isQuote } = useSalesOverviewSystem();
+	const {
+		state: { data, isQuote },
+	} = useSalesOverviewSystem();
 	const customerQuery = useCustomerOverviewQuery();
 
 	const balance = getPaymentBalance(data?.invoice);
@@ -138,7 +127,8 @@ export function SalesOverviewOverviewTab() {
 	const addressEntries = [
 		data?.addressData?.billing,
 		data?.addressData?.shipping,
-	].filter(Boolean);
+	].filter(Boolean) as AddressEntry[];
+	const costLines = (data?.costLines ?? []) as CostLine[];
 
 	return (
 		<div className="space-y-6 p-1">
@@ -174,8 +164,8 @@ export function SalesOverviewOverviewTab() {
 			{/* Main grid */}
 			<div className="grid gap-6 lg:grid-cols-2">
 				{/* Customer */}
-				<div className="rounded-xl border bg-card p-4">
-					<SectionLabel icon={Icons.User} label="Customer" />
+				<OverviewSectionCard className="p-4">
+					<OverviewSectionLabel icon={Icons.User} label="Customer" />
 					<DataRow
 						label="Name"
 						value={data?.displayName}
@@ -200,11 +190,11 @@ export function SalesOverviewOverviewTab() {
 							Business account
 						</div>
 					)}
-				</div>
+				</OverviewSectionCard>
 
 				{/* Order info */}
-				<div className="rounded-xl border bg-card p-4">
-					<SectionLabel icon={Icons.Calendar} label="Order" />
+				<OverviewSectionCard className="p-4">
+					<OverviewSectionLabel icon={Icons.Calendar} label="Order" />
 					<DataRow
 						label="Order #"
 						action={
@@ -235,12 +225,15 @@ export function SalesOverviewOverviewTab() {
 							value={data?.deliveryOption || data?.status?.delivery?.status}
 						/>
 					)}
-				</div>
+				</OverviewSectionCard>
 			</div>
 
 			{/* Sales rep */}
-			<div className="rounded-xl border bg-card p-4">
-				<SectionLabel icon={Icons.UserCheck} label="Sales Representative" />
+			<OverviewSectionCard className="p-4">
+				<OverviewSectionLabel
+					icon={Icons.UserCheck}
+					label="Sales Representative"
+				/>
 				<div className="flex items-center gap-2">
 					<div className="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-bold uppercase">
 						{data?.salesRepInitial || "?"}
@@ -254,22 +247,20 @@ export function SalesOverviewOverviewTab() {
 						)}
 					</div>
 				</div>
-			</div>
+			</OverviewSectionCard>
 
 			{/* Payment status (non-quote) */}
 			{!isQuote && (
-				<div className="rounded-xl border bg-card p-4">
-					<SectionLabel icon={Icons.CreditCard} label="Payment" />
+				<OverviewSectionCard className="p-4">
+					<OverviewSectionLabel icon={Icons.CreditCard} label="Payment" />
 					<div className="mb-3 space-y-1.5">
 						<div className="flex justify-between text-sm">
 							<span className="text-muted-foreground">Payment progress</span>
 							<span className="font-medium">{formatPercent(paymentPct)}</span>
 						</div>
-						<ProgressBar
+						<OverviewProgressBar
 							value={paymentPct}
-							colorClass={
-								paymentPct >= 100 ? "bg-emerald-500" : "bg-blue-500"
-							}
+							colorClass={paymentPct >= 100 ? "bg-emerald-500" : "bg-blue-500"}
 						/>
 					</div>
 					<div className="grid grid-cols-3 gap-3 text-sm">
@@ -306,13 +297,13 @@ export function SalesOverviewOverviewTab() {
 							)}
 						</div>
 					)}
-				</div>
+				</OverviewSectionCard>
 			)}
 
 			{/* Production status (non-quote) */}
 			{!isQuote && (
-				<div className="rounded-xl border bg-card p-4">
-					<SectionLabel icon={Icons.Factory} label="Production" />
+				<OverviewSectionCard className="p-4">
+					<OverviewSectionLabel icon={Icons.Factory} label="Production" />
 					{data?.stats?.prodAssigned?.total === 0 && data?.id ? (
 						<p className="text-sm text-muted-foreground">
 							Production not applicable for this sale.
@@ -329,7 +320,7 @@ export function SalesOverviewOverviewTab() {
 										</span>
 									</div>
 								</div>
-								<ProgressBar
+								<OverviewProgressBar
 									value={assignedPct}
 									colorClass="bg-blue-500"
 								/>
@@ -348,7 +339,7 @@ export function SalesOverviewOverviewTab() {
 										</span>
 									</div>
 								</div>
-								<ProgressBar
+								<OverviewProgressBar
 									value={completedPct}
 									colorClass={
 										completedPct >= 100 ? "bg-emerald-500" : "bg-violet-500"
@@ -361,21 +352,18 @@ export function SalesOverviewOverviewTab() {
 							</div>
 						</div>
 					)}
-				</div>
+				</OverviewSectionCard>
 			)}
 
 			{/* Delivery status (non-quote) */}
 			{!isQuote && (
-				<div className="rounded-xl border bg-card p-4">
-					<SectionLabel icon={Icons.Truck} label="Delivery" />
+				<OverviewSectionCard className="p-4">
+					<OverviewSectionLabel icon={Icons.Truck} label="Delivery" />
 					<div className="flex items-center justify-between">
 						<p className="text-sm text-muted-foreground">Status</p>
 						<div className="flex items-center gap-1.5">
 							<StatusDot color={data?.status?.delivery?.color} />
-							<Badge
-								variant="outline"
-								className="capitalize"
-							>
+							<Badge variant="outline" className="capitalize">
 								{data?.status?.delivery?.status || "pending"}
 							</Badge>
 						</div>
@@ -385,60 +373,64 @@ export function SalesOverviewOverviewTab() {
 							? `${data.dispatchList.length} dispatch ${data.dispatchList.length === 1 ? "entry" : "entries"}`
 							: "No dispatch entries yet"}
 					</p>
-				</div>
+				</OverviewSectionCard>
 			)}
 
 			{/* Addresses */}
 			{addressEntries.length > 0 && (
-				<div className="rounded-xl border bg-card p-4">
-					<SectionLabel icon={Icons.MapPin} label="Addresses" />
+				<OverviewSectionCard className="p-4">
+					<OverviewSectionLabel icon={Icons.MapPin} label="Addresses" />
 					<div className="grid gap-4 md:grid-cols-2">
 						{addressEntries.map((addr, i) => (
-							<div key={i} className="space-y-1">
+							<div
+								key={`${addr.title ?? "address"}-${addr.address ?? i}`}
+								className="space-y-1"
+							>
 								<p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-									{(addr as any)?.title ||
-										(i === 0 ? "Billing" : "Shipping")}
+									{addr.title || (i === 0 ? "Billing" : "Shipping")}
 								</p>
 								<address className="not-italic text-sm leading-relaxed text-foreground/80">
-									{(addr as any)?.lines?.filter(Boolean).map(
-										(line: string, li: number) => (
-											<span key={li}>
-												{line}
-												<br />
-											</span>
-										),
-									) ||
-										formatAddress(addr as Record<string, unknown>) ||
+									{addr.lines?.filter(Boolean).map((line: string) => (
+										<span key={line}>
+											{line}
+											<br />
+										</span>
+									)) ||
+										formatAddress(addr) ||
 										"—"}
 								</address>
 							</div>
 						))}
 					</div>
-				</div>
+				</OverviewSectionCard>
 			)}
 
 			{/* Cost breakdown */}
-			{!isQuote && data?.costLines?.length ? (
-				<div className="rounded-xl border bg-card p-4">
-					<SectionLabel icon={Icons.Package} label="Invoice Breakdown" />
+			{!isQuote && costLines.length ? (
+				<OverviewSectionCard className="p-4">
+					<OverviewSectionLabel
+						icon={Icons.Package}
+						label="Invoice Breakdown"
+					/>
 					<div className="divide-y divide-border/40">
-						{data.costLines.map((c, ci) => (
+						{costLines.map((c, ci) => (
 							<div
-								key={ci}
+								key={String(
+									c.id ??
+										`${c.label ?? c.title ?? "line"}-${c.amount ?? c.value ?? ci}`,
+								)}
 								className="flex items-center justify-between py-2 text-sm"
 							>
 								<span className="text-muted-foreground">
-									{(c as any)?.label || (c as any)?.title || `Line ${ci + 1}`}
+									{c.label || c.title || `Line ${ci + 1}`}
 								</span>
 								<span className="font-medium">
-									{formatCurrency(
-										Number((c as any)?.amount || (c as any)?.value || 0),
-									)}
+									{formatCurrency(Number(c.amount || c.value || 0))}
 								</span>
 							</div>
 						))}
 					</div>
-				</div>
+				</OverviewSectionCard>
 			) : null}
 		</div>
 	);

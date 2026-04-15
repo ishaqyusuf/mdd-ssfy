@@ -18,13 +18,16 @@ export function SalesOverviewHeader({
 	activeTab: SalesOverviewTabId;
 	onTabChange: (tab: SalesOverviewTabId) => void;
 }) {
-	const { data, title } = useSalesOverviewSystem();
+	const {
+		state: { data, title },
+		meta: { isLoading },
+	} = useSalesOverviewSystem();
 	const tabs = useSalesOverviewTabs();
 	const activeTabDef = tabs.find((tab) => tab.value === activeTab);
 
 	return (
 		<SheetHeader>
-			<DataSkeletonProvider value={{ loading: !data?.id }}>
+			<DataSkeletonProvider value={{ loading: isLoading && !data?.id }}>
 				<SheetTitle>
 					<DataSkeleton pok="textLg">
 						<div className="flex flex-wrap items-center gap-3">

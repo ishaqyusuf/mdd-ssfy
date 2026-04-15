@@ -37,6 +37,7 @@ export function useSalesOverviewQuery() {
 			"general",
 			"production",
 			"transaction",
+			"inbound",
 			"dispatch",
 			"notification",
 			"packing",

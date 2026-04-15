@@ -14,7 +14,10 @@ import type { SalesOverviewTabId } from "./types";
 
 export function SalesOverviewPageShell() {
 	usePageTitle();
-	const { currentTab, query } = useSalesOverviewSystem();
+	const {
+		state: { currentTab },
+		actions,
+	} = useSalesOverviewSystem();
 	const tabs = useSalesOverviewTabs();
 	const activeTab = useMemo<SalesOverviewTabId>(() => {
 		return resolveSalesOverviewActiveTab({
@@ -23,21 +26,17 @@ export function SalesOverviewPageShell() {
 		});
 	}, [currentTab, tabs]);
 
-	const handleTabChange = (tab: SalesOverviewTabId) => {
-		query.setParams({
-			overviewTab: tab,
-		});
-	};
-
 	return (
 		<div className="flex h-full flex-col gap-6 bg-[radial-gradient(circle_at_top,_rgba(148,163,184,0.18),_transparent_40%),linear-gradient(180deg,_rgba(248,250,252,1),_rgba(241,245,249,0.7))] p-4 md:p-6">
 			<Tabs
 				value={activeTab}
-				onValueChange={(tab) => handleTabChange(tab as SalesOverviewTabId)}
+				onValueChange={(tab) =>
+					actions.setCurrentTab(tab as SalesOverviewTabId)
+				}
 			>
 				<SalesOverviewHeader
 					activeTab={activeTab}
-					onTabChange={handleTabChange}
+					onTabChange={actions.setCurrentTab}
 				/>
 				<div className="flex flex-1 flex-col">
 					<SalesOverviewPanels activeTab={activeTab} />

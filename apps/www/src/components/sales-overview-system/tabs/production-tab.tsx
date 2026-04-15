@@ -2,48 +2,19 @@
 
 import { Icons } from "@gnd/ui/icons";
 
-import { useAuth } from "@/hooks/use-auth";
 import { useTRPC } from "@/trpc/client";
 
 import { cn } from "@gnd/ui/cn";
 import { useQuery } from "@gnd/ui/tanstack";
 
 import { useSalesOverviewSystem } from "../provider";
-import { formatPercent, getProgressValue } from "../view-model";
-
-function SectionLabel({
-	icon: Icon,
-	label,
-}: {
-	icon: React.ElementType;
-	label: string;
-}) {
-	return (
-		<div className="flex items-center gap-2 pb-3">
-			<Icon className="size-3.5 text-muted-foreground" />
-			<span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-				{label}
-			</span>
-		</div>
-	);
-}
-
-function ProgressBar({
-	value,
-	colorClass,
-}: {
-	value: number;
-	colorClass: string;
-}) {
-	return (
-		<div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-			<div
-				className={cn("h-full rounded-full transition-all", colorClass)}
-				style={{ width: `${getProgressValue(value)}%` }}
-			/>
-		</div>
-	);
-}
+import {
+	OverviewEmptyState,
+	OverviewProgressBar,
+	OverviewSectionCard,
+	OverviewSectionLabel,
+} from "../section-primitives";
+import { formatPercent } from "../view-model";
 
 function StatPill({
 	label,
@@ -65,8 +36,9 @@ function StatPill({
 }
 
 export function SalesOverviewProductionTab() {
-	const { accessView, data, isAdmin, overviewId } = useSalesOverviewSystem();
-	const auth = useAuth();
+	const {
+		state: { accessView, auth, data, isAdmin, overviewId },
+	} = useSalesOverviewSystem();
 	const trpc = useTRPC();
 
 	const { data: productionData } = useQuery(
@@ -75,7 +47,7 @@ export function SalesOverviewProductionTab() {
 				salesNo: overviewId,
 				assignedToId:
 					accessView === "production" && !isAdmin
-						? Number(auth.id || 0)
+						? Number(auth?.id || 0)
 						: null,
 			},
 			{ enabled: !!overviewId },
@@ -91,13 +63,15 @@ export function SalesOverviewProductionTab() {
 	return (
 		<div className="space-y-5 p-1">
 			{/* Summary stats */}
-			<div className="rounded-xl border bg-card p-5">
-				<SectionLabel icon={Icons.Factory} label="Production Summary" />
+			<OverviewSectionCard>
+				<OverviewSectionLabel icon={Icons.Factory} label="Production Summary" />
 				<div className="mb-4 grid grid-cols-3 gap-3">
 					<StatPill
 						label="Assigned"
 						value={formatPercent(assignedPct)}
-						colorClass={assignedPct >= 100 ? "text-emerald-600" : "text-blue-600"}
+						colorClass={
+							assignedPct >= 100 ? "text-emerald-600" : "text-blue-600"
+						}
 					/>
 					<StatPill
 						label="Completed"
@@ -118,14 +92,14 @@ export function SalesOverviewProductionTab() {
 							<span>Assignment coverage</span>
 							<span>{formatPercent(assignedPct)}</span>
 						</div>
-						<ProgressBar value={assignedPct} colorClass="bg-blue-500" />
+						<OverviewProgressBar value={assignedPct} colorClass="bg-blue-500" />
 					</div>
 					<div className="space-y-1.5">
 						<div className="flex justify-between text-xs text-muted-foreground">
 							<span>Completion progress</span>
 							<span>{formatPercent(completedPct)}</span>
 						</div>
-						<ProgressBar
+						<OverviewProgressBar
 							value={completedPct}
 							colorClass={
 								completedPct >= 100 ? "bg-emerald-500" : "bg-violet-500"
@@ -133,15 +107,15 @@ export function SalesOverviewProductionTab() {
 						/>
 					</div>
 				</div>
-			</div>
+			</OverviewSectionCard>
 
 			{/* Item list */}
-			<div className="rounded-xl border bg-card p-5">
-				<SectionLabel icon={Icons.Layers} label="Production Items" />
+			<OverviewSectionCard>
+				<OverviewSectionLabel icon={Icons.Layers} label="Production Items" />
 				{items.length === 0 ? (
-					<div className="rounded-lg border border-dashed py-8 text-center text-sm text-muted-foreground">
+					<OverviewEmptyState className="rounded-lg">
 						No production items visible for this view.
-					</div>
+					</OverviewEmptyState>
 				) : (
 					<div className="space-y-3">
 						{items.map((item) => {
@@ -180,7 +154,7 @@ export function SalesOverviewProductionTab() {
 										</span>
 									</div>
 									<div className="space-y-1.5">
-										<ProgressBar
+										<OverviewProgressBar
 											value={itemPct}
 											colorClass={
 												itemPct >= 100
@@ -199,7 +173,7 @@ export function SalesOverviewProductionTab() {
 						})}
 					</div>
 				)}
-			</div>
+			</OverviewSectionCard>
 		</div>
 	);
 }

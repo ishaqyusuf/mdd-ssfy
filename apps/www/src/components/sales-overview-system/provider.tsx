@@ -14,7 +14,11 @@ import {
 	normalizeSalesOverviewTab,
 	resolveSalesOverviewAccessView,
 } from "./controller";
-import type { SalesOverviewSurface } from "./types";
+import type {
+	SalesOverviewContextValue,
+	SalesOverviewSurface,
+	SalesOverviewTabId,
+} from "./types";
 
 const {
 	Provider: SalesOverviewSystemContextProvider,
@@ -24,7 +28,7 @@ const {
 		surface,
 	}: {
 		surface: SalesOverviewSurface;
-	}) => {
+	}): SalesOverviewContextValue => {
 		const pageQuery = useSalesOverviewV2PageQuery();
 		const sheetQuery = useSalesOverviewV2SheetQuery();
 		const query = surface === "page" ? pageQuery : sheetQuery;
@@ -50,7 +54,7 @@ const {
 				? query.params.dispatchId
 				: query.params.overviewSheetDispatchId;
 		const trpc = useTRPC();
-		const { data } = useQuery(
+		const { data, isPending } = useQuery(
 			trpc.sales.getSaleOverview.queryOptions(
 				{
 					orderNo: overviewId,
@@ -74,21 +78,41 @@ const {
 		const title = [data?.orderId, data?.displayName]
 			.filter(Boolean)
 			.join(" | ");
+		const setCurrentTab = (tab: SalesOverviewTabId) => {
+			query.setParams(
+				surface === "page"
+					? {
+							overviewTab: tab,
+						}
+					: {
+							overviewSheetTab: tab,
+						},
+			);
+		};
 
 		return {
-			surface,
-			query,
-			overviewId,
-			dispatchId,
-			currentTab: normalizedTab || "overview",
-			accessView,
-			isAdmin,
-			auth,
-			mode,
-			data,
-			prodQty: prodQty || 0,
-			isQuote: data?.type === "quote",
-			title,
+			state: {
+				surface,
+				overviewId: overviewId || null,
+				dispatchId: dispatchId || null,
+				currentTab: normalizedTab || "overview",
+				accessView,
+				isAdmin,
+				auth,
+				mode,
+				data,
+				prodQty: prodQty || 0,
+				isQuote: data?.type === "quote",
+				title,
+			},
+			actions: {
+				setCurrentTab,
+				close: () => query.close(),
+			},
+			meta: {
+				isLoading: isPending,
+				hasOverview: !!overviewId,
+			},
 		};
 	},
 );

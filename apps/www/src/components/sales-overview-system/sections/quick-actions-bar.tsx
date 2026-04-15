@@ -4,13 +4,13 @@ import { useTransition } from "react";
 
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { AuthGuard } from "@/components/auth-guard";
-import { SendSalesReminder } from "@/components/send-sales-reminder";
 import { SalesMenu } from "@/components/sales-menu";
-import { useSalesPreview } from "@/hooks/use-sales-preview";
+import { SendSalesReminder } from "@/components/send-sales-reminder";
+import { _perm } from "@/components/sidebar/links";
 import { useBatchSales } from "@/hooks/use-batch-sales";
+import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { openLink } from "@/lib/open-link";
 import { salesFormUrl } from "@/utils/sales-utils";
-import { _perm } from "@/components/sidebar/links";
 
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
@@ -19,7 +19,9 @@ import { toast } from "sonner";
 import { useSalesOverviewSystem } from "../provider";
 
 export function QuickActionsBar() {
-	const { data, isQuote } = useSalesOverviewSystem();
+	const {
+		state: { data, isQuote },
+	} = useSalesOverviewSystem();
 	const sPreview = useSalesPreview();
 	const batchSales = useBatchSales();
 	const [loading, startTransition] = useTransition();
@@ -118,7 +120,7 @@ export function QuickActionsBar() {
 								onSelect={(e) => {
 									e.preventDefault();
 									openLink(
-										`/sales-book/accounting/resolution-center`,
+										"/sales-book/accounting/resolution-center",
 										{ salesNo: data.orderId },
 										true,
 									);

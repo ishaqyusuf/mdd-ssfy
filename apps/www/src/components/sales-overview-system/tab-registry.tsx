@@ -22,7 +22,9 @@ type TabDefinition = {
 };
 
 export function useSalesOverviewTabs() {
-	const { accessView, isAdmin, isQuote } = useSalesOverviewSystem();
+	const {
+		state: { accessView, isAdmin, isQuote },
+	} = useSalesOverviewSystem();
 
 	const tabs: TabDefinition[] = [
 		{

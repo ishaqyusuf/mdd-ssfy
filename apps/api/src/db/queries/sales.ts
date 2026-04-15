@@ -3,6 +3,7 @@ import { whereSales } from "@api/prisma-where";
 import { composeQueryData } from "@gnd/utils/query-response";
 import type {
   GetFullSalesDataSchema,
+  GetSaleOverviewSchema,
   SaveOrderProductionGateSchema,
   SalesQueryParamsSchema,
 } from "@api/schemas/sales";
@@ -220,6 +221,36 @@ export async function getQuotes(
         ...d,
       })),
   );
+}
+
+export async function getSaleOverview(
+  ctx: TRPCContext,
+  query: GetSaleOverviewSchema,
+) {
+  const { db } = ctx;
+  const where = whereSales({
+    ...query,
+    showing: "all sales",
+  });
+
+  const sale = await db.salesOrders.findFirst({
+    where,
+    include: SalesListInclude,
+  });
+
+  if (!sale) return null;
+
+  const salesType = (query.salesType ?? sale.type) as SalesType;
+  const overview =
+    salesType === "quote" ? salesQuoteDto(sale) : salesOrderDto(sale);
+
+  if (salesType === "quote") return overview;
+
+  const [saleWithControl] = isControlReadV2Enabled()
+    ? await withSalesListControl([overview], db)
+    : await withSalesControl([overview], db);
+
+  return saleWithControl ?? overview;
 }
 
 export async function salesNotesCount(salesIds: number[], prisma) {

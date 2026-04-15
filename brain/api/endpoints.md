@@ -10,6 +10,8 @@ Tracks notable API surfaces and where they are implemented.
   - `sales.productions`: admin-facing production queue list with due-date/status filtering
   - `sales.productionTasks`: worker-scoped production queue list using the authenticated user as `workerId`
   - `sales.productionDashboard`: production workspace summary query for alert buckets, queue counts, and compact due-date calendar data
+- Sales overview routes now include:
+  - `sales.getSaleOverview`: dedicated single-sale overview query used by the v2 sales overview system; loads one order/quote directly instead of routing through the broader sales list query
 - Community production routes now include:
   - `community.getUnitProductions`: community unit-production task list with builder/project/task/status/due-date filtering and `ids` deep-link filtering
   - `community.getUnitProductionSummary`: lightweight summary query powering unit-production widgets for total tasks, units covered, queued, started, completed, and past-due counts

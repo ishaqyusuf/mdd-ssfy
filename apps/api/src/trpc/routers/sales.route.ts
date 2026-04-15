@@ -1,6 +1,7 @@
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
 import {
 	getFullSalesDataSchema,
+	getSaleOverviewSchema,
 	inboundQuerySchema,
 	saveOrderProductionGateSchema,
 	salesQueryParamsSchema,
@@ -8,6 +9,7 @@ import {
 import {
 	getOrders,
 	getQuotes,
+	getSaleOverview,
 	getSales,
 	saveOrderProductionGate,
 	sales,
@@ -167,14 +169,9 @@ export const salesRouter = createTRPCRouter({
 		return getSalesHx(props.ctx, props.input);
 	}),
 	getSaleOverview: publicProcedure
-		.input(salesQueryParamsSchema)
+		.input(getSaleOverviewSchema)
 		.query(async (props) => {
-			const result = await getSales(props.ctx, {
-				...props.input,
-				showing: "all sales",
-			});
-			const [sale] = result.data;
-			return sale || null;
+			return getSaleOverview(props.ctx, props.input);
 		}),
 	getSalesResolutions: publicProcedure
 		.input(getSalesResolutionsSchema)

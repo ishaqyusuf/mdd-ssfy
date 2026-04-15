@@ -4,6 +4,30 @@
 
 ## 2026-04-14
 
+- Refactored the v2 sales overview system toward a cleaner feature-core contract and cheaper overview loading.
+  - replaced the old `sales.getSaleOverview` implementation that routed through the broader sales list query with a dedicated overview query path in `apps/api/src/db/queries/sales.ts`
+  - narrowed the route contract in `apps/api/src/trpc/routers/sales.route.ts` to a dedicated `getSaleOverviewSchema` so the overview surface no longer pays list-query composition cost just to open one order
+  - reshaped `apps/www/src/components/sales-overview-system/provider.tsx` into an explicit `state / actions / meta` context contract and moved tab changes onto provider actions instead of leaking raw query-state wiring through the surface shells
+  - added shared section primitives for cards, section labels, empty states, and progress bars so the overview, finance, production, dispatch, and details tabs reuse the same composition building blocks instead of duplicating local UI helpers
+  - validation note:
+    - `bunx biome check` passes for the touched `sales-overview-system` web files
+    - `bunx tsc -p apps/api/tsconfig.json --noEmit --pretty false` still reports broad pre-existing repo errors outside this slice, so API typecheck could not be used as a clean regression signal for this change alone
+
+- Cleaned up the legacy `sales-overview-sheet` orchestration layer so the old sheet is more maintainable while it still exists as a compatibility surface.
+  - extracted legacy sheet mode resolution, tab registration, and active-tab fallback into dedicated `controller.tsx` and `types.ts`
+  - extracted the header/tab chrome and panel rendering into `layout.tsx`, leaving `index.tsx` focused on sheet mounting and query-state updates
+  - removed the overview-provider debug log and clarified provider state naming in `context.tsx` by using `query` consistently instead of the older ambiguous `ctx` field
+  - tightened a few legacy rough edges in `production-tab.tsx` and `dispatch-tab.tsx` while touching the architecture: removed empty prop patterns, replaced loose equality checks, improved clickable item accessibility, and dropped a couple of `any` casts
+  - validation note:
+    - `bunx biome check` passes for the touched `sales-overview-sheet` files
+
+- Added a dedicated `Inbound` tab to the legacy sales overview sheet.
+  - extended the legacy sheet tab contract and query-state parsing to recognize `inbound`
+  - updated `SalesOverviewInbox` with an `inbound` variant so the activity timeline can be filtered down to inbound-only channels while the composer stays focused on `inventory_inbound`
+  - registered the new tab in the legacy sheet controller so it shows inbound-related notification activity plus the chat input for updates
+  - validation note:
+    - `bunx biome check` passes for the touched inbox, hook, and legacy-sheet controller files
+
 - Wired the `sales_production_all_completed` notification channel end-to-end so production completion can dispatch through its own channel reliably.
   - added schema/tag definitions and notification job support in `packages/notifications/src/schemas.ts`
   - added runtime handler implementation in `packages/notifications/src/types/sales-production-all-completed.ts`
