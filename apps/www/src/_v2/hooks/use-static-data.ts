@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { staticProjectsAction } from "@/app-deps/(v1)/_actions/community/projects";
 import { getStaticEmployeeProfiles } from "@/app-deps/(v1)/_actions/hrm/employee-profiles";
 import { staticRolesAction } from "@/app-deps/(v1)/_actions/hrm/static-roles";
 import {
@@ -33,7 +32,7 @@ export default function useStaticData<T>(key, loader, __load = true) {
             updateStaticData({
                 key,
                 data: _data,
-            })
+            }),
         );
         // dispatchSlice(key, deepCopy(_data));
     }
@@ -57,27 +56,25 @@ export const useStaticContractors = () =>
 export const useStaticProducers = () =>
     useStaticData<Awaited<ReturnType<typeof getStaticProductionUsersAction>>>(
         "staticProductionUsers",
-        getStaticProductionUsersAction
+        getStaticProductionUsersAction,
     );
 export const useBuilders = () =>
     useStaticData<Builders[]>("staticBuilders", staticBuildersAction);
 
-export const useStaticProjects = (load = true) =>
-    useStaticData<Projects[]>("staticProjects", staticProjectsAction, load);
 export const useJobCostList = (type: IJobType) =>
     useStaticData<InstallCostLine[]>(
         "staticJobCostList",
-        async () => await getJobCostList(type)
+        async () => await getJobCostList(type),
     );
 export const useEmployeeProfiles = () =>
     useStaticData<EmployeeProfile[]>(
         "employeeProfiles",
-        getStaticEmployeeProfiles
+        getStaticEmployeeProfiles,
     );
 export const useCustomerProfiles = () =>
     useStaticData<CustomerTypes[]>(
         "customerProfiles",
-        staticCustomerProfilesAction
+        staticCustomerProfilesAction,
     );
 
 export const useStaticProductCategories = () =>

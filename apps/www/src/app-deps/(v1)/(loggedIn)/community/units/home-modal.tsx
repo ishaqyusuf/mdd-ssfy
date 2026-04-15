@@ -11,7 +11,6 @@ import {
     _updateCommunityHome,
     createHomesAction,
 } from "@/app/(v1)/_actions/community/create-homes";
-import { staticProjectsAction } from "@/app/(v1)/_actions/community/projects";
 import Modal from "@/components/common/modal";
 import { useModal } from "@/components/common/modal/provider";
 import { homeSearchMeta } from "@/lib/community/community-utils";
@@ -132,7 +131,7 @@ export default function HomeModal({ home }: Props) {
     const [isReady, setIsReady] = useState(false);
     useEffect(() => {
         async function loadStatics() {
-            setProjects((await staticProjectsAction()) as any);
+            // setProjects((await staticProjectsAction()) as any);
             const cTemplates = (await staticCommunity()) as any;
 
             setCommunityTemplates(cTemplates);
