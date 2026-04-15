@@ -9,6 +9,7 @@ import { useTRPC } from "@/trpc/client";
 import createContextFactory from "@/utils/context-factory";
 
 import { useQuery } from "@gnd/ui/tanstack";
+import { useSession } from "next-auth/react";
 
 import {
 	normalizeSalesOverviewTab,
@@ -54,6 +55,7 @@ const {
 				? query.params.dispatchId
 				: query.params.overviewSheetDispatchId;
 		const trpc = useTRPC();
+		const { status } = useSession();
 		const { data, isPending } = useQuery(
 			trpc.sales.getSaleOverview.queryOptions(
 				{
@@ -61,7 +63,7 @@ const {
 					salesType: salesType === "quote" ? "quote" : "order",
 				},
 				{
-					enabled: !!overviewId,
+					enabled: !!overviewId && status === "authenticated",
 				},
 			),
 		);

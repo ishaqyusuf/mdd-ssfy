@@ -12,6 +12,7 @@ import { timeout } from "@/lib/timeout";
 import { useTRPC } from "@/trpc/client";
 import createContextFactory from "@/utils/context-factory";
 import { useQuery } from "@gnd/ui/tanstack";
+import { useSession } from "next-auth/react";
 import { useAsyncMemo } from "use-async-memo";
 import z from "zod";
 
@@ -19,6 +20,7 @@ const { useContext: useSaleOverview, Provider: SalesOverviewProvider } =
 	createContextFactory(() => {
 		const query = useSalesOverviewQuery();
 		const trpc = useTRPC();
+		const { status } = useSession();
 		const { data } = useQuery(
 			trpc.sales.getSaleOverview.queryOptions(
 				{
@@ -26,7 +28,9 @@ const { useContext: useSaleOverview, Provider: SalesOverviewProvider } =
 					salesType: query.params["sales-type"] === "quote" ? "quote" : "order",
 				},
 				{
-					enabled: !!query.params["sales-overview-id"],
+					enabled:
+						!!query.params["sales-overview-id"] &&
+						status === "authenticated",
 				},
 			),
 		);

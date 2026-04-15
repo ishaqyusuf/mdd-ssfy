@@ -42,6 +42,7 @@ export function GeneralTab({}) {
         dispatchList: [],
         stats: {
             prodAssigned: {},
+            prodCompleted: {},
         },
     } as Partial<typeof data>;
     const saleData = data || ph;
@@ -59,6 +60,7 @@ export function GeneralTab({}) {
         saleData?.status?.production?.color ?? "warmGray";
     const deliveryStatus = saleData?.status?.delivery?.status ?? "pending";
     const deliveryStatusColor = saleData?.status?.delivery?.color ?? "warmGray";
+    const dispatchCount = saleData?.dispatchList?.length ?? 0;
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -339,7 +341,7 @@ export function GeneralTab({}) {
                                             >
                                                 <p className="text-sm font-medium">
                                                     $
-                                                    {saleData.invoice.pending?.toFixed(
+                                                    {saleData?.invoice?.pending?.toFixed(
                                                         2,
                                                     )}
                                                 </p>
@@ -528,9 +530,9 @@ export function GeneralTab({}) {
                                         placeholder="7/7 items assigned"
                                     >
                                         <p className="text-sm text-muted-foreground">
-                                            {saleData.stats.prodAssigned?.score}
+                                            {saleData?.stats?.prodAssigned?.score}
                                             /
-                                            {saleData.stats.prodAssigned?.total}{" "}
+                                            {saleData?.stats?.prodAssigned?.total}{" "}
                                             items assigned
                                         </p>
                                     </DataSkeleton>
@@ -625,8 +627,8 @@ export function GeneralTab({}) {
                                 placeholder="No dispatch information available"
                             >
                                 <p className="text-sm text-muted-foreground">
-                                    {saleData.dispatchList.length > 0
-                                        ? `${saleData.dispatchList.length} dispatch entries available`
+                                    {dispatchCount > 0
+                                        ? `${dispatchCount} dispatch entries available`
                                         : "No dispatch information available"}
                                 </p>
                             </DataSkeleton>
