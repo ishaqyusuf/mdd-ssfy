@@ -42,8 +42,8 @@
 ## Link Modules Web Optimization
 - Status: In Progress
 - Objective: Optimize `apps/www` active routes using `apps/www/src/components/sidebar/links.ts` as the authoritative scope for current user-facing pages, and track non-linked route pages as possibly stale for later review.
-- Current Phase: Sales list-route optimization in progress
-- Next Step: Continue Sales optimization after the first list-route pass, with production/workspace surfaces and search/filter chrome as the next heavier follow-up targets.
+- Current Phase: Linked route implementation pass complete, pending validation on the highest-traffic shortlist
+- Next Step: Validate the highest-traffic shortlist in live usage and do only residual hotspot cleanup if one still feels meaningfully slow.
 - Blockers: None
 - Related Files: brain/link-modules-web-optimization-plan.md, brain/engineering/www-routes.md, brain/engineering/www-performance-guardrails.md, apps/www/src/components/sidebar/links.ts, apps/www/src/app/(sidebar)/community/(main)/templates/page.tsx, apps/www/src/app/(sidebar)/community/community-template/[slug]/page.tsx, apps/www/src/app/(sidebar)/community/community-template/[slug]/v1/page.tsx, apps/www/src/app/(sidebar)/community/model-template/[slug]/page.tsx, apps/www/src/app/(sidebar)/community/template-schema/page.tsx, apps/www/src/app/(sidebar)/community/(main)/projects/page.tsx, apps/www/src/app/(sidebar)/community/(main)/project-units/page.tsx, apps/www/src/app/(sidebar)/community/(main)/unit-productions/page.tsx, apps/www/src/app/(sidebar)/community/(main)/unit-invoices/page.tsx, apps/www/src/app/(sidebar)/community/(main)/builders/page.tsx, apps/www/src/app/(sidebar)/community/(main)/install-costs/page.tsx, apps/www/src/app/(sidebar)/community/customer-services/page.tsx, apps/www/src/components/modals/global-modals.tsx, apps/www/src/app/(sidebar)/(sales)/sales-book/orders/page.tsx, apps/www/src/app/(sidebar)/(sales)/sales-book/orders/bin/page.tsx, apps/www/src/app/(sidebar)/(sales)/sales-book/quotes/page.tsx, apps/www/src/app/(sidebar)/(sales)/sales-book/quotes/bin/page.tsx, apps/www/src/app/(sidebar)/(sales)/sales-book/customers/page.tsx, apps/www/src/app/(sidebar)/(sales)/sales-book/dispatch-admin/page.tsx, apps/www/src/components/tables/sales-orders/data-table.tsx, apps/www/src/components/tables/sales-quotes/data-table.tsx, apps/www/src/components/tables/customers/data-table.tsx, apps/www/src/components/tables/sales-dispatch/data-table.tsx
 - Last Updated: 2026-04-15
@@ -59,3 +59,18 @@
 8. In progress: move the same server-first route hydration pattern into active HRM employees, contractor jobs, payments, and worker jobs-dashboard surfaces from the linked navigation model.
 9. In progress: finish the remaining linked production dashboard surfaces with auth-aware server preloading for worker views and hydrated analytics for dashboard-first pages.
 10. Keep sales-form parity/cutover planning separate from route-load optimization.
+
+### Highest-Traffic Validation Shortlist
+- `/community/templates`
+- `/community/builders`
+- `/sales-book/orders`
+- `/sales-book/productions`
+- `/sales-form/create-order`
+- `/hrm/employees`
+- `/contractors/jobs/payments`
+
+### Next Execution Order
+1. Validate the highest-traffic shortlist in live navigation and note any residual slow routes.
+2. Do a client-runtime pass only on the routes that still feel slow after hydration changes.
+3. Hotspot implementation already landed for `sales-form/create-order`, `sales-book/productions`, and `community/builders`; only revisit them if live validation still shows a real issue.
+4. After shortlist validation, move to measurement and cleanup rather than more broad route rewrites.

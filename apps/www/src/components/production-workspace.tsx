@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { Icons } from "@gnd/ui/icons";
 
 import { useQuery } from "@gnd/ui/tanstack";
@@ -23,14 +24,14 @@ import {
     CardTitle,
 } from "@gnd/ui/card";
 import { Skeleton } from "@gnd/ui/skeleton";
-import { SalesProductionSearchFilter } from "./sales-production-search-filter";
-import { DataTable } from "./tables/sales-production/data-table";
-import { TableSkeleton } from "./tables/skeleton";
+import type { PageFilterData } from "@api/type";
 
 type WorkspaceMode = "admin" | "worker";
 
 interface Props {
     mode: WorkspaceMode;
+    initialDashboardData?: DashboardResponse;
+    initialFilterList?: PageFilterData[];
 }
 
 type DashboardResponse = {
@@ -69,7 +70,50 @@ type CalendarItem = {
     isTomorrow: boolean;
 };
 
-export function ProductionWorkspace({ mode }: Props) {
+const SalesProductionSearchFilter = dynamic(
+    () =>
+        import("./sales-production-search-filter").then(
+            (mod) => mod.SalesProductionSearchFilter,
+        ),
+    {
+        loading: () => <FilterCardSkeleton />,
+    },
+);
+
+const DataTable = dynamic(
+    () =>
+        import("./tables/sales-production/data-table").then(
+            (mod) => mod.DataTable,
+        ),
+    {
+        loading: () => <ProductionTableSkeleton />,
+    },
+);
+
+function FilterCardSkeleton() {
+    return (
+        <div className="rounded-2xl border bg-background/80 p-4 shadow-sm backdrop-blur sm:min-w-[320px]">
+            <Skeleton className="h-10 w-full rounded-xl" />
+        </div>
+    );
+}
+
+function ProductionTableSkeleton() {
+    return (
+        <div className="space-y-3">
+            <Skeleton className="h-10 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-xl" />
+        </div>
+    );
+}
+
+export function ProductionWorkspace({
+    mode,
+    initialDashboardData,
+    initialFilterList,
+}: Props) {
     const workerMode = mode === "worker";
     const auth = useAuth();
     const trpc = useTRPC();
@@ -82,6 +126,7 @@ export function ProductionWorkspace({ mode }: Props) {
             workerMode && workerId ? { workerId } : undefined,
             {
                 enabled: workerMode ? !!workerId : true,
+                initialData: initialDashboardData,
             },
         ),
     );
@@ -176,9 +221,10 @@ export function ProductionWorkspace({ mode }: Props) {
                             {pageCopy.helper}
                         </p>
                     </div>
-                    <div className="rounded-2xl border bg-background/80 p-4 shadow-sm backdrop-blur sm:min-w-[320px]">
-                        <SalesProductionSearchFilter workerMode={workerMode} />
-                    </div>
+                    <SalesProductionSearchFilter
+                        workerMode={workerMode}
+                        initialFilterList={initialFilterList}
+                    />
                 </div>
             </section>
 
@@ -430,7 +476,7 @@ export function ProductionWorkspace({ mode }: Props) {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <Suspense fallback={<TableSkeleton />}>
+                    <Suspense fallback={<ProductionTableSkeleton />}>
                         <DataTable workerMode={workerMode} />
                     </Suspense>
                 </CardContent>
@@ -645,4 +691,3 @@ function formatCalendarDate(date: Date) {
     const day = `${date.getDate()}`.padStart(2, "0");
     return `${year}-${month}-${day}`;
 }
-

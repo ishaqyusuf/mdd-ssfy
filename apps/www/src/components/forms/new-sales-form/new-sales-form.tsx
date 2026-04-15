@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "@gnd/ui/use-toast";
 import { Button } from "@gnd/ui/button";
@@ -12,11 +13,8 @@ import {
 } from "./api";
 import { useNewSalesFormAutoSave } from "./use-auto-save";
 import { HeaderActions } from "./sections/header-actions";
-import { ItemWorkflowPanel } from "./sections/item-workflow-panel";
-import { InvoiceSummarySidebar } from "./sections/invoice-summary-sidebar";
 import { useRouter } from "next/navigation";
 import { _modal } from "@/components/common/modal/provider";
-import NewSalesFormSettingsModal from "@/components/modals/new-sales-form-settings-modal";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { triggerEvent } from "@/actions/events";
@@ -35,11 +33,50 @@ interface Props {
     slug?: string;
 }
 
+const ItemWorkflowPanel = dynamic(
+    () =>
+        import("./sections/item-workflow-panel").then(
+            (mod) => mod.ItemWorkflowPanel,
+        ),
+    {
+        loading: () => <WorkflowPanelSkeleton />,
+    },
+);
+
+const InvoiceSummarySidebar = dynamic(
+    () =>
+        import("./sections/invoice-summary-sidebar").then(
+            (mod) => mod.InvoiceSummarySidebar,
+        ),
+    {
+        loading: () => null,
+    },
+);
+
 function currency(value?: number | null) {
     return new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD",
     }).format(Number(value || 0));
+}
+
+function WorkflowPanelSkeleton() {
+    return (
+        <div className="grid gap-4">
+            <div className="rounded-xl border bg-card p-4">
+                <div className="h-5 w-44 animate-pulse rounded bg-muted" />
+                <div className="mt-3 h-4 w-72 animate-pulse rounded bg-muted" />
+            </div>
+            <div className="rounded-xl border bg-card p-4">
+                <div className="h-10 w-full animate-pulse rounded bg-muted" />
+                <div className="mt-4 grid gap-3">
+                    <div className="h-20 w-full animate-pulse rounded bg-muted" />
+                    <div className="h-20 w-full animate-pulse rounded bg-muted" />
+                    <div className="h-20 w-full animate-pulse rounded bg-muted" />
+                </div>
+            </div>
+        </div>
+    );
 }
 
 export function NewSalesForm(props: Props) {
@@ -414,7 +451,10 @@ export function NewSalesForm(props: Props) {
                     onSaveClose={saveClose}
                     onSaveNew={saveNew}
                     onSaveFinal={saveFinal}
-                    onOpenSettings={() => {
+                    onOpenSettings={async () => {
+                        const { default: NewSalesFormSettingsModal } = await import(
+                            "@/components/modals/new-sales-form-settings-modal"
+                        );
                         _modal.openSheet(<NewSalesFormSettingsModal />);
                     }}
                 />

@@ -23,17 +23,20 @@ export default async function Page(props: Props) {
 	const searchParams = await props.searchParams;
 	const queryClient = getQueryClient();
 	const filter = loadBuilderFilterParams(searchParams);
-	await queryClient.fetchInfiniteQuery(
-		trpc.community.getBuilders.infiniteQueryOptions({
-			...filter,
-		}) as any,
-	);
+	const [initialFilterList, _initialBuilders] = await Promise.all([
+		queryClient.fetchQuery(trpc.filters.builder.queryOptions()),
+		queryClient.fetchInfiniteQuery(
+			trpc.community.getBuilders.infiniteQueryOptions({
+				...filter,
+			}) as any,
+		),
+	]);
 	return (
 		<PageShell>
 			<HydrateClient>
 				<div className="flex flex-col gap-6 pt-6">
 					<PageTitle>Builder</PageTitle>
-					<BuilderHeader />
+					<BuilderHeader initialFilterList={initialFilterList as any} />
 					<ErrorBoundary errorComponent={ErrorFallback}>
 						<Suspense fallback={<TableSkeleton />}>
 							<DataTable />
