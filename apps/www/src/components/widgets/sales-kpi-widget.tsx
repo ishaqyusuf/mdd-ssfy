@@ -6,34 +6,40 @@ import { useTRPC } from "@/trpc/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useQuery } from "@gnd/ui/tanstack";
+import type { SalesDashboardParamsState } from "@/hooks/use-sales-dashboard-params";
 
-export function SalesKpiWidgets() {
+type SalesKpiData = {
+    totalRevenue: number;
+    totalDue: number;
+    newSales: number;
+    newQuotes: number;
+};
+
+export function SalesKpiWidgets({
+    initialData,
+    initialParams,
+}: {
+    initialData?: SalesKpiData;
+    initialParams?: Pick<SalesDashboardParamsState, "from" | "to">;
+}) {
     const { params } = useSalesDashboardParams();
+    const effectiveParams = initialParams ?? params;
     const trpc = useTRPC();
     const { data, isLoading } = useQuery(
-        trpc.salesDashboard.getKpis.queryOptions({
-            from: params.from,
-            to: params.to,
-        }),
+        trpc.salesDashboard.getKpis.queryOptions(
+            {
+                from: effectiveParams.from,
+                to: effectiveParams.to,
+            },
+            initialData
+                ? {
+                      initialData,
+                  }
+                : undefined,
+        ),
     );
     if (isLoading) {
-        return (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {[...Array(4)].map((a, i) => (
-                    <Card key={i}>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                <Skeleton className="h-[20px] w-24"></Skeleton>
-                            </CardTitle>
-                            <Icons.CreditCard className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <Skeleton className="h-[32px] w-24"></Skeleton>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
-        );
+        return <SalesKpiWidgetsSkeleton />;
     }
 
     return (
@@ -90,3 +96,22 @@ export function SalesKpiWidgets() {
     );
 }
 
+export function SalesKpiWidgetsSkeleton() {
+    return (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {[...Array(4)].map((a, i) => (
+                <Card key={i}>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">
+                            <Skeleton className="h-[20px] w-24"></Skeleton>
+                        </CardTitle>
+                        <Icons.CreditCard className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <Skeleton className="h-[32px] w-24"></Skeleton>
+                    </CardContent>
+                </Card>
+            ))}
+        </div>
+    );
+}

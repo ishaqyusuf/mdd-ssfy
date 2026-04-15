@@ -72,22 +72,55 @@ export const chartPeriodOptions = [
     },
 ];
 
+export const defaultSalesDashboardPeriod = chartPeriodOptions[1];
+export const defaultSalesDashboardParams = {
+    from: formatISO(defaultSalesDashboardPeriod.range.from, {
+        representation: "date",
+    }),
+    to: formatISO(defaultSalesDashboardPeriod.range.to, {
+        representation: "date",
+    }),
+    period: defaultSalesDashboardPeriod.value,
+    chart: "revenue",
+} as const;
+
+export type SalesDashboardParamsState = {
+    from: string;
+    to: string;
+    period: string;
+    chart: string;
+};
+
+export function resolveSalesDashboardParams(
+    raw?: Record<string, string | string[] | undefined> | null,
+): SalesDashboardParamsState {
+    const from = raw?.from;
+    const to = raw?.to;
+    const period = raw?.period;
+    const chart = raw?.chart;
+
+    return {
+        from:
+            (typeof from === "string" && from) || defaultSalesDashboardParams.from,
+        to: (typeof to === "string" && to) || defaultSalesDashboardParams.to,
+        period:
+            (typeof period === "string" && period) ||
+            defaultSalesDashboardParams.period,
+        chart:
+            (typeof chart === "string" && chart) ||
+            defaultSalesDashboardParams.chart,
+    };
+}
+
 export const useSalesDashboardParams = () => {
     const [params, setParams] = useQueryStates({
         from: parseAsString.withDefault(
-            formatISO(chartPeriodOptions[1].range.from, {
-                representation: "date",
-            }),
+            defaultSalesDashboardParams.from,
         ),
-        to: parseAsString.withDefault(
-            formatISO(chartPeriodOptions[1].range.to, {
-                representation: "date",
-            }),
-        ),
-        period: parseAsString.withDefault("last_30d"),
-        chart: parseAsString.withDefault("revenue"),
+        to: parseAsString.withDefault(defaultSalesDashboardParams.to),
+        period: parseAsString.withDefault(defaultSalesDashboardParams.period),
+        chart: parseAsString.withDefault(defaultSalesDashboardParams.chart),
     });
 
     return { params, setParams };
 };
-
