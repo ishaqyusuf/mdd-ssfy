@@ -39,74 +39,7 @@ async function composeBookForm<T>(data: T) {
         laborConfig,
     };
 }
-export async function createSalesBookFormUseCase(
-    data: GetSalesBookFormDataProps
-) {
-    const resp = await createSalesBookFormDataDta(data);
-    return await composeBookForm(resp);
-}
+
 export async function saveSalesSettingUseCase(meta) {
     await saveSalesSettingData(meta);
-}
-
-export async function saveFormUseCase(
-    data: SalesFormFields,
-    oldFormState?: SalesFormFields,
-    query?: SaveQuery
-    // allowRedirect = true
-) {
-    if (!oldFormState)
-        oldFormState = {
-            kvFormItem: {},
-            kvStepForm: {},
-            sequence: {
-                formItem: [],
-                multiComponent: {},
-                stepComponent: {},
-            },
-            metaData: {} as any,
-        };
-
-    return await saveSalesFormDta(data, oldFormState, query);
-}
-export async function moveOrderUseCase(orderId, to) {
-    const resp = await copySalesUseCase(orderId, to);
-    if (!resp?.error) await deleteSalesByOrderId(orderId);
-    return resp;
-}
-export async function copySalesUseCase(orderId, as: SalesType) {
-    const resp2 = await copySales({
-        db: prisma,
-        as,
-        salesUid: orderId,
-        author: await authUser(),
-    });
-    await createNoteAction({
-        note: `Copied from ${orderId}`,
-        headline: "Copy Action",
-        type: "general",
-        tags: [
-            {
-                tagName: "salesId",
-                tagValue: String(resp2?.id),
-            },
-            {
-                tagName: "type",
-                tagValue: "general",
-            },
-            {
-                tagName: "status",
-                tagValue: "public",
-            },
-        ],
-    });
-    const link = resp2?.isDyke ? `/sales-book/edit-${as}/${resp2.slug}` : ``;
-
-    return {
-        error: resp2?.error,
-        link,
-        id: resp2.id,
-        slug: resp2.slug,
-        data: resp2,
-    };
 }
