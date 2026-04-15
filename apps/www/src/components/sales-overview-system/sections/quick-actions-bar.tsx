@@ -6,7 +6,7 @@ import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { AuthGuard } from "@/components/auth-guard";
 import { SalesMenu } from "@/components/sales-menu";
 import { SendSalesReminder } from "@/components/send-sales-reminder";
-import { _perm } from "@/components/sidebar/links";
+import { _perm, _role } from "@/components/sidebar/links";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { openLink } from "@/lib/open-link";
@@ -48,7 +48,7 @@ export function QuickActionsBar() {
 		<div className="flex flex-wrap gap-2">
 			<SendSalesReminder salesIds={[data.id]} />
 			{!isQuote ? (
-				<AuthGuard rules={[_perm.is("editOrders")]}>
+				<AuthGuard rules={[_perm.is("editOrders"), _role.is("Super Admin")]}>
 					<SendForPickupButton
 						salesId={data.id}
 						orderNo={data.orderId}

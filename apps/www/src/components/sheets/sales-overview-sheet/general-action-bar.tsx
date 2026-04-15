@@ -6,7 +6,7 @@ import { salesFormUrl } from "@/utils/sales-utils";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { AuthGuard } from "@/components/auth-guard";
-import { _perm } from "@/components/sidebar/links";
+import { _perm, _role } from "@/components/sidebar/links";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useTransition } from "react";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
@@ -44,7 +44,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 		<div className="flex gap-2">
 			<SendSalesReminder salesIds={[salesId]} />
 			{!isQuote ? (
-				<AuthGuard rules={[_perm.is("editOrders")]}>
+				<AuthGuard rules={[_perm.is("editOrders"), _role.is("Super Admin")]}>
 					<SendForPickupButton
 						salesId={salesId}
 						orderNo={data?.orderId}
