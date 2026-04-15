@@ -8,6 +8,8 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
+export const dynamic = "force-dynamic";
+
 export default async function Layout({ children }) {
     const session = await getServerSession(authOptions);
 

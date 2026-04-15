@@ -4,6 +4,8 @@ import { constructMetadata } from "@gnd/utils/construct-metadata";
 
 import PageShell from "@/components/page-shell";
 import { PageTitle } from "@gnd/ui/custom/page-title";
+export const dynamic = "force-dynamic";
+
 export function generateMetadata() {
 	return constructMetadata({
 		title: "Install Costs | GND",

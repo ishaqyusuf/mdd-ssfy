@@ -3,6 +3,8 @@ import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
 
 import PageShell from "@/components/page-shell";
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata() {
 	return constructMetadata({
 		title: "Job Dashboard | GND",

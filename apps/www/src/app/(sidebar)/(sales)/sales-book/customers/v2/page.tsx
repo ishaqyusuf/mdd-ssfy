@@ -8,6 +8,8 @@ import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import type { SearchParams } from "nuqs";
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata() {
 	return constructMetadata({
 		title: "Sales Customers V2 | GND",

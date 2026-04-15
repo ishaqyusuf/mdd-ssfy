@@ -28,6 +28,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 
 import { searchParamsCache } from "./search-params";
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata() {
 	return constructMetadata({
 		title: "My Dashboard | GND",

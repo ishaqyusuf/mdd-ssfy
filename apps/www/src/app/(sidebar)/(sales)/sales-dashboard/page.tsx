@@ -6,6 +6,8 @@ import { PageTitle } from "@gnd/ui/custom/page-title";
 import PageShell from "@/components/page-shell";
 import { DashboardDeferredSections } from "./dashboard-deferred-sections";
 
+export const dynamic = "force-dynamic";
+
 export default async function SalesDashboardPage(props) {
     const searchParams = await props.searchParams;
     const dashboardParams = resolveSalesDashboardParams(searchParams);

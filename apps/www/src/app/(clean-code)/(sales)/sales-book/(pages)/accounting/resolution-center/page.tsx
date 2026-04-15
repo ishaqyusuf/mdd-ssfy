@@ -12,6 +12,8 @@ import { searchParamsCache } from "./search-params";
 
 import PageShell from "@/components/page-shell";
 import { PageTitle } from "@gnd/ui/custom/page-title";
+
+export const dynamic = "force-dynamic";
 export async function generateMetadata({}) {
 	return constructMetadata({
 		title: `Payment Resolution - gndprodesk.com`,

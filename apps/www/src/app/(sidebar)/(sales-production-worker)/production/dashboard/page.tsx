@@ -6,6 +6,8 @@ import type { Metadata } from "next";
 import { unstable_noStore } from "next/cache";
 
 import PageShell from "@/components/page-shell";
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
     title: "Production Worker Dashboard",
     description:

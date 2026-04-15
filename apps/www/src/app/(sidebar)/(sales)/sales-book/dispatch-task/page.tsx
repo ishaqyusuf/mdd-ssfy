@@ -9,6 +9,8 @@ import { Suspense } from "react";
 
 import PageShell from "@/components/page-shell";
 import { PageTitle } from "@gnd/ui/custom/page-title";
+
+export const dynamic = "force-dynamic";
 export async function generateMetadata(props) {
 	return constructMetadata({
 		title: "Dispatch Management | GND",

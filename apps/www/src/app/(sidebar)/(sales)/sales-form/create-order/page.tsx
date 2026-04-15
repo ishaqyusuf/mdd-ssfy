@@ -5,6 +5,8 @@ import { unstable_noStore } from "next/cache";
 
 import PageShell from "@/components/page-shell";
 import { PageTitle } from "@gnd/ui/custom/page-title";
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata() {
 	return constructMetadata({
 		title: "Create Order - gndprodesk.com",

@@ -9,6 +9,8 @@ import { SalesQuickAction } from "@/components/sales-quick-action";
 import { SalesNav } from "@/components/sales-nav";
 import { TransactionOverviewModal } from "@/components/modals/transaction-overview-modal";
 // export default
+export const dynamic = "force-dynamic";
+
 export default async function Layout({ children }) {
     // return <>{children}</>;
     return (
@@ -39,4 +41,3 @@ export default async function Layout({ children }) {
         </HydrateClient>
     );
 }
-

@@ -6,6 +6,8 @@ import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 
 import PageShell from "@/components/page-shell";
 import { PageTitle } from "@gnd/ui/custom/page-title";
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
     title: "Production Dashboard v2",
     description:

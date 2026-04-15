@@ -4,6 +4,8 @@ import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 
 import PageShell from "@/components/page-shell";
 import { PageTitle } from "@gnd/ui/custom/page-title";
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(props) {
 	const params = await props.params;
 	return constructMetadata({

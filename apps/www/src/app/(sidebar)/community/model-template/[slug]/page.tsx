@@ -6,6 +6,8 @@ import type { SearchParams } from "nuqs";
 import { Suspense } from "react";
 import PageShell from "@/components/page-shell";
 import { ModelTemplateClient } from "./model-template-client";
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(props) {
 	return constructMetadata({
 		title: "Model Template | GND",

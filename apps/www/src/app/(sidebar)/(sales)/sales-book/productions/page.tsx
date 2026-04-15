@@ -5,6 +5,7 @@ import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { redirect } from "next/navigation";
 
 import PageShell from "@/components/page-shell";
+export const dynamic = "force-dynamic";
 export async function generateMetadata() {
     return constructMetadata({
         title: "Sales Production - gndprodesk.com",

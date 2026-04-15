@@ -6,6 +6,8 @@ import { HydrateClient } from "@/trpc/server";
 import { Suspense } from "react";
 
 // export default
+export const dynamic = "force-dynamic";
+
 export default async function Layout({ children }) {
     // return <>{children}</>;
     return (

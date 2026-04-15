@@ -12,6 +12,8 @@ import type { SearchParams } from "nuqs";
 import { Suspense } from "react";
 
 import PageShell from "@/components/page-shell";
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(props) {
 	return constructMetadata({
 		title: "Job | GND",

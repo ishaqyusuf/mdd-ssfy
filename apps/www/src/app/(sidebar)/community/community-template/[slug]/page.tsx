@@ -56,6 +56,8 @@ import { Suspense } from "react";
 
 import PageShell from "@/components/page-shell";
 import { CommunityTemplateV1Client } from "./community-template-v1-client";
+export const dynamic = "force-dynamic";
+
 export const metadata = constructMetadata({
     title: "Edit Community Template | GND",
 });

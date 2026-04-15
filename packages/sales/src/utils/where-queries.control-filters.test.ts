@@ -77,4 +77,15 @@ describe("whereSales stat filters", () => {
 		expect(json).toContain('"type":"dispatchCompleted"');
 		expect(json).not.toContain('"qtyControls"');
 	});
+
+	it("builds past due production filter from prodCompleted instead of dispatchCompleted", () => {
+		const where = whereSales({
+			"production.status": "past due",
+		} as any);
+		const json = JSON.stringify(toClauses(where));
+
+		expect(json).toContain('"type":"prodCompleted"');
+		expect(json).not.toContain('"type":"dispatchCompleted"');
+		expect(json).toContain('"dueDate":{"lt":');
+	});
 });

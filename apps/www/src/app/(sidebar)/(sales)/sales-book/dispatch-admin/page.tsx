@@ -24,6 +24,8 @@ import {
 	DispatchCalendarSkeleton,
 } from "@/components/dispatch-admin/dispatch-calendar-view";
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata() {
 	return constructMetadata({
 		title: "Admin Dispatch Dashboard | GND",

@@ -7,6 +7,8 @@ import type { SearchParams } from "nuqs";
 import { Suspense } from "react";
 
 import PageShell from "@/components/page-shell";
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata() {
 	return constructMetadata({
 		title: "Employees v2 | GND",

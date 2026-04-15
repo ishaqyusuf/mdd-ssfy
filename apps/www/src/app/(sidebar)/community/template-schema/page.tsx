@@ -7,6 +7,8 @@ import { Suspense } from "react";
 
 import PageShell from "@/components/page-shell";
 import { TemplateSchemaClient } from "./template-schema-client";
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(props) {
 	return constructMetadata({
 		title: "Template Schema | GND",

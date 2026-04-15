@@ -473,7 +473,7 @@ export function whereSales(query: SalesQueryParamsSchema) {
       break;
     case "past due":
       where.push({
-        ...salesStatSome("dispatchCompleted" as QtyControlType, {
+        ...salesStatSome("prodCompleted" as QtyControlType, {
           total: {
             gt: 0,
           },

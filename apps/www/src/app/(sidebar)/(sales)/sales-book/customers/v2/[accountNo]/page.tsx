@@ -6,6 +6,8 @@ import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata() {
 	return constructMetadata({
 		title: "Customer Overview V2 | GND",

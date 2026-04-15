@@ -95,6 +95,12 @@ When working on `apps/www`, use Midday as the reference shape:
   - globally mounted modal/editor chunks
   - duplicate post-hydration queries
 
+### 11. Protected Server Pages Must Opt Out Of Prerender
+- If a page is inside a logged-in route group and awaits server queries tied to auth, permissions, user profile, or protected business data, do not let Next/Vercel treat it as a static page.
+- Add `export const dynamic = "force-dynamic";` at the page level for protected route entries that perform awaited server fetches.
+- Do not rely only on a parent layout being dynamic when the page itself has protected server data work.
+- This prevents build-time prerender from executing authenticated tRPC/Prisma reads without a real request/session context.
+
 ## Community Lessons
 These issues were specifically observed in Community:
 - template pages had route hydration but still mounted large client editor systems immediately

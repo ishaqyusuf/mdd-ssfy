@@ -68,6 +68,7 @@ Provide a cleaner production operations surface for both admins and production w
 - `sales.productionOrderDetailV2`: lazy inline detail payload for expanded order sections
 - `sales.productionOrderDetailV2.items[].noteContext`: normalized note identity used by the new inbox/chat note system
 - Worker scoping remains server-enforced in v2 through authenticated `workerId` injection at the router layer.
+- The `show: "past-due"` production alert/query only includes orders with incomplete production work; production-completed orders are excluded even if dispatch is still pending.
 - Worker expanded-order item grids now apply a client-side safety filter too, so only production items assigned to the logged-in worker render in worker mode.
 - `completed` semantics now differ by scope in the shared production list pipeline:
   - worker mode treats an order as completed only when that worker's related assignments are fully submitted
