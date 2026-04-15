@@ -1,39 +1,24 @@
 "use client";
 
+import { AuthStateProvider, type InitialAuthState } from "@/hooks/use-auth";
 import { useAuth } from "@/hooks/use-auth";
-import { SidebarProvider, useLinks } from "@/hooks/use-sidebar";
-import { Sidebar } from "./sidebar";
-import { cn } from "@gnd/ui/cn";
 import { Header } from "./header";
 import { usePathname } from "next/dist/client/components/navigation";
 import { createSiteNavContext, SiteNav } from "@gnd/site-nav";
 import Link from "next/link";
 import { linkModules } from "./sidebar/links";
 import { Icons } from "@gnd/ui/icons";
-export function SidebarContent({ children }) {
-    const auth = useAuth();
-    if (!auth.id) return null;
-    // if (
-    // process.env.NODE_ENV === "development" ||
-    // auth.roleTitle === "Super Admin"
-    // ) {
-    return <NavLayoutClient>{children}</NavLayoutClient>;
-    // }
-    // return (
-    //     <SidebarProvider args={[{}]}>
-    //         <Sidebar />
-    //         <Content>{children}</Content>
-    //     </SidebarProvider>
-    // );
-}
-
-function Content({ children }) {
-    const links = useLinks();
+export function SidebarContent({
+    children,
+    initialAuth = null,
+}: {
+    children: React.ReactNode;
+    initialAuth?: InitialAuthState | null;
+}) {
     return (
-        <div className={cn("pb-8", links?.noSidebar || "md:ml-[70px]")}>
-            <Header />
-            <div className="flex flex-col">{children}</div>
-        </div>
+        <AuthStateProvider value={initialAuth}>
+            <NavLayoutClient>{children}</NavLayoutClient>
+        </AuthStateProvider>
     );
 }
 
@@ -74,4 +59,3 @@ function NavLayoutClient({ children }) {
         </SiteNav.Provider>
     );
 }
-
