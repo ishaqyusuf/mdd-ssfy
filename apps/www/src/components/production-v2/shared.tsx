@@ -878,13 +878,13 @@ function ProductionOrderCard({
 				fallbackCompleted={!!item.completed}
 			/>
 		) : null;
-
 	return (
 		<Collapsible open={isExpanded} onOpenChange={() => onToggle()}>
 			<Card
 				className={cn(
 					"overflow-hidden rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_100%)] shadow-[0_18px_38px_-28px_rgba(15,23,42,0.22)] transition-colors",
-					isExpanded && "border-slate-500/90 shadow-[0_22px_44px_-28px_rgba(15,23,42,0.34)]",
+					isExpanded &&
+						"border-slate-500/90 shadow-[0_22px_44px_-28px_rgba(15,23,42,0.34)]",
 				)}
 			>
 				<div className="flex items-start gap-3 px-4 py-4 sm:px-5">
@@ -897,29 +897,65 @@ function ProductionOrderCard({
 					<div className="min-w-0 flex-1">
 						<div className="flex flex-col gap-4">
 							<div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-								<div className="space-y-2">
-									<div className="flex flex-wrap items-center gap-2">
-										<p className="text-lg font-semibold tracking-tight text-slate-950">
-											{item.orderId}
-										</p>
-										{scope === "admin" ? (
-											<Badge
-												variant="outline"
-												className={cn(
-													"rounded-full border font-medium",
-													orderStatus.className,
+								<button
+									type="button"
+									className="min-w-0 flex-1 rounded-[20px] p-1 text-left outline-none transition-transform hover:translate-y-[-1px] focus-visible:ring-2 focus-visible:ring-slate-400/70"
+									aria-expanded={isExpanded}
+									aria-label={`Toggle details for ${item.orderId}`}
+									onClick={onToggle}
+								>
+									<div className="space-y-4">
+										<div className="space-y-2">
+											<div className="flex flex-wrap items-center gap-2">
+												<p className="text-lg font-semibold tracking-tight text-slate-950">
+													{item.orderId}
+												</p>
+												{scope === "admin" ? (
+													<Badge
+														variant="outline"
+														className={cn(
+															"rounded-full border font-medium",
+															orderStatus.className,
+														)}
+													>
+														{orderStatus.label}
+													</Badge>
+												) : (
+													workerStatus
 												)}
-											>
-												{orderStatus.label}
-											</Badge>
-										) : (
-											workerStatus
-										)}
+											</div>
+											<p className="text-sm text-slate-600">
+												{item.customer || "Customer unavailable"}
+											</p>
+										</div>
+
+										<div className="grid min-w-0 gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3 text-left transition-colors hover:bg-slate-100/80 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.9fr)]">
+											<OrderMetaBlock
+												label="Sales Rep"
+												value={
+													item.salesRep
+														? item.salesRep
+														: "Sales rep unavailable"
+												}
+											/>
+											<OrderMetaBlock
+												label="Assigned To"
+												value={item.assignedTo || "Unassigned"}
+											/>
+											<OrderMetaBlock
+												label="Due"
+												value={
+													item.dueDateLabel || item.alert?.dateString || "N/A"
+												}
+												tone={
+													orderStatus.label === "Past Due"
+														? "text-rose-700"
+														: undefined
+												}
+											/>
+										</div>
 									</div>
-									<p className="text-sm text-slate-600">
-										{item.customer || "Customer unavailable"}
-									</p>
-								</div>
+								</button>
 								<div className="flex flex-wrap items-center gap-2">
 									<Button
 										size="sm"
@@ -942,6 +978,11 @@ function ProductionOrderCard({
 											size="sm"
 											variant="secondary"
 											className="rounded-xl"
+											onClick={(event) => {
+												event.preventDefault();
+												event.stopPropagation();
+												onToggle();
+											}}
 										>
 											Details
 											<Icons.ChevronDown
@@ -954,37 +995,10 @@ function ProductionOrderCard({
 									</CollapsibleTrigger>
 								</div>
 							</div>
-
-							<CollapsibleTrigger asChild>
-								<button
-									type="button"
-									className="grid min-w-0 gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3 text-left transition-colors hover:bg-slate-100/80 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.9fr)]"
-								>
-									<OrderMetaBlock
-										label="Sales Rep"
-										value={
-											item.salesRep ? item.salesRep : "Sales rep unavailable"
-										}
-									/>
-									<OrderMetaBlock
-										label="Assigned To"
-										value={item.assignedTo || "Unassigned"}
-									/>
-									<OrderMetaBlock
-										label="Due"
-										value={item.dueDateLabel || item.alert?.dateString || "N/A"}
-										tone={
-											orderStatus.label === "Past Due"
-												? "text-rose-700"
-												: undefined
-										}
-									/>
-								</button>
-							</CollapsibleTrigger>
 						</div>
 					</div>
 				</div>
-				<CollapsibleContent className="border-t bg-muted/20">
+				<CollapsibleContent className="overflow-hidden border-t bg-muted/20 transition-all duration-300 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-1 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-top-1">
 					<ProductionOrderDetailInline
 						scope={scope}
 						salesNo={item.orderId}
