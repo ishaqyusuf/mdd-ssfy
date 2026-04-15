@@ -408,240 +408,107 @@ function ProductionV2Board({
 
 	return (
 		<div className="grid gap-6">
-			<section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
-				<div className="grid gap-4">
-					<section className="rounded-[28px] border bg-[linear-gradient(135deg,#0f172a_0%,#1f2937_55%,#0f766e_100%)] px-6 py-7 text-white shadow-xl shadow-slate-300/30">
-						<div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-							<div className="space-y-3">
-								<Badge className="w-fit rounded-full bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-white hover:bg-white/10">
-									{scope === "worker" ? "Worker v2" : "Admin v2"}
-								</Badge>
-								<div className="space-y-2">
-									<h1 className="text-3xl font-semibold tracking-tight">
-										{title}
-									</h1>
-									<p className="max-w-2xl text-sm leading-6 text-slate-200">
-										{description}
-									</p>
-								</div>
-							</div>
-							<div className="grid gap-3 sm:grid-cols-2 lg:w-[520px]">
-								<div className="relative">
-									<Icons.Search className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
-									<Input
-										value={search}
-										onChange={(event) =>
-											void setFilters({
-												q: event.target.value || null,
-											})
-										}
-										placeholder="Search production order or customer"
-										className="h-11 rounded-2xl border-white/10 bg-white/10 pl-10 text-white placeholder:text-slate-300"
-									/>
-								</div>
-								<Select value={activeLabel} onValueChange={setActiveLabel}>
-									<SelectTrigger className="h-11 rounded-2xl border-white/10 bg-white/10 text-white">
-										<SelectValue placeholder="Choose label" />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="pending">Pending</SelectItem>
-										<SelectItem value="due-today">Due Today</SelectItem>
-										<SelectItem value="due-tomorrow">Due Tomorrow</SelectItem>
-										<SelectItem value="past-due">Past Due</SelectItem>
-										<SelectItem value="completed">Completed</SelectItem>
-									</SelectContent>
-								</Select>
-							</div>
-						</div>
-					</section>
-
-					<section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-						<SummaryCard
-							label={scope === "worker" ? "Assigned Queue" : "Open Queue"}
-							value={dashboard?.summary.queueCount}
-							icon={<Icons.Package className="h-4 w-4" />}
-							active={activeLabel === "pending" && !selectedDate}
-							onClick={() => setActiveLabel("pending")}
-						/>
-						<SummaryCard
-							label="Past Due"
-							value={dashboard?.summary.pastDueCount}
-							icon={<Icons.AlertTriangle className="h-4 w-4" />}
-							active={activeLabel === "past-due" && !selectedDate}
-							onClick={() => setActiveLabel("past-due")}
-						/>
-						<SummaryCard
-							label="Due Today"
-							value={dashboard?.summary.dueTodayCount}
-							icon={<Icons.Clock3 className="h-4 w-4" />}
-							active={activeLabel === "due-today" && !selectedDate}
-							onClick={() => setActiveLabel("due-today")}
-						/>
-						<SummaryCard
-							label="Due Tomorrow"
-							value={dashboard?.summary.dueTomorrowCount}
-							icon={<Icons.CalendarDays className="h-4 w-4" />}
-							active={activeLabel === "due-tomorrow" && !selectedDate}
-							onClick={() => setActiveLabel("due-tomorrow")}
-						/>
-						<SummaryCard
-							label="Completed"
-							value={dashboard?.summary.completedCount}
-							icon={<Icons.CheckCircle2 className="h-4 w-4" />}
-							active={activeLabel === "completed" && !selectedDate}
-							onClick={() => setActiveLabel("completed")}
-						/>
-					</section>
-				</div>
-
-				<Card className="overflow-hidden rounded-[28px] border-slate-200/80 bg-gradient-to-br from-white via-slate-50 to-sky-50/60 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.22)] xl:sticky xl:top-4">
-					<CardHeader className="space-y-4 px-5 pb-4 pt-5">
-						<div className="flex items-start justify-between gap-4">
-							<div className="space-y-1">
-								<CardTitle className="mb-1 flex items-center gap-2 text-lg">
-									<Icons.CalendarDays className="h-5 w-5 text-sky-600" />
-									Due Calendar
-								</CardTitle>
-								<CardDescription className="leading-6">
-									Track production load by day and tap any date to filter
-									inline.
-								</CardDescription>
-							</div>
-							<div className="rounded-2xl border border-slate-200 bg-white/90 px-3 py-2 text-right shadow-sm">
-								<p className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">
-									Selected
-								</p>
-								<p className="mt-1 text-sm font-semibold text-slate-900">
-									{selectedDate
-										? formatDateValue(new Date(`${selectedDate}T00:00:00`))
-										: "All dates"}
-								</p>
-								<p className="mt-1 text-xs text-slate-500">
-									{selectedDate
-										? `${dueDateCalendarMap.get(selectedDate)?.count || 0} due`
-										: `${dashboard?.summary.queueCount || 0} open`}
-								</p>
-							</div>
-						</div>
-						<div className="flex flex-wrap gap-2">
-							<div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-xs text-slate-600">
-								<span className="h-2 w-2 rounded-full bg-rose-500" />
-								Past due
-							</div>
-							<div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-xs text-slate-600">
-								<span className="h-2 w-2 rounded-full bg-amber-500" />
-								Today
-							</div>
-							<div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-xs text-slate-600">
-								<span className="h-2 w-2 rounded-full bg-sky-500" />
-								Tomorrow
-							</div>
+			<section className="overflow-hidden rounded-[32px] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.18),_transparent_28%),linear-gradient(135deg,#fffdf7_0%,#f8fafc_48%,#eef6ff_100%)] shadow-[0_20px_55px_-30px_rgba(15,23,42,0.28)]">
+				<div className="grid gap-6 px-5 py-6 lg:px-7 lg:py-7 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-end">
+					<div className="space-y-4">
+						<div className="flex flex-wrap items-center gap-3">
+							<Badge className="rounded-full border border-slate-300 bg-white/90 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-slate-700 hover:bg-white">
+								{scope === "worker" ? "Worker queue" : "Admin command"}
+							</Badge>
 							<div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-xs text-slate-600">
 								<span className="h-2 w-2 rounded-full bg-emerald-500" />
-								Upcoming
+								{dashboard?.summary.queueCount ?? 0} open now
 							</div>
 						</div>
-					</CardHeader>
-					<CardContent className="px-5 pb-5 pt-0">
-						<div className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white/90 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
-							<Calendar
-								mode="single"
-								selected={
-									selectedDate
-										? new Date(`${selectedDate}T00:00:00`)
-										: undefined
-								}
-								onSelect={(date) =>
+						<div className="space-y-2">
+							<h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-slate-950 lg:text-4xl">
+								{title}
+							</h1>
+							<p className="max-w-2xl text-sm leading-6 text-slate-600">
+								{description}
+							</p>
+						</div>
+					</div>
+					<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+						<div className="relative">
+							<Icons.Search className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+							<Input
+								value={search}
+								onChange={(event) =>
 									void setFilters({
-										date: date ? formatCalendarDate(date) : null,
+										q: event.target.value || null,
 									})
 								}
-								modifiers={{
-									hasDue: dueDatesWithLoad,
-									pastDue: pastDueDates,
-									dueToday: dueTodayDates,
-									dueTomorrow: dueTomorrowDates,
-									upcomingDue: upcomingDueDates,
-								}}
-								modifiersClassNames={{
-									hasDue:
-										"border-sky-200 bg-sky-50/90 font-semibold text-sky-950 shadow-[inset_0_0_0_1px_rgba(14,165,233,0.08)]",
-								}}
-								components={{
-									DayButton: (props) => {
-										const dateKey = formatCalendarDate(props.day.date);
-										const entry = dueDateCalendarMap.get(dateKey);
-										return (
-											<CalendarDayButton
-												{...props}
-												className={cn(
-													"relative flex h-full min-h-[74px] w-full flex-col items-start justify-between rounded-2xl px-2 py-2 text-left transition-all duration-200",
-													entry?.count && "shadow-sm",
-												)}
-											>
-												<span className="text-sm font-semibold">
-													{props.day.date.getDate()}
-												</span>
-												{entry?.count ? (
-													<span className="flex w-full items-end justify-between gap-2">
-														<span
-															className={cn(
-																"h-1.5 w-7 rounded-full",
-																entry.isToday
-																	? "bg-amber-500"
-																	: entry.isTomorrow
-																		? "bg-sky-500"
-																		: isPastDueCalendarItem(entry)
-																			? "bg-rose-500"
-																			: "bg-emerald-500",
-															)}
-														/>
-														<span className="text-[11px] font-medium text-slate-500">
-															{entry.count}
-														</span>
-													</span>
-												) : null}
-											</CalendarDayButton>
-										);
-									},
-								}}
-								className="w-full bg-transparent p-1 [--cell-size:4.6rem]"
-								classNames={{
-									root: "w-full",
-									month: "w-full gap-4",
-									table: "w-full table-fixed border-collapse",
-									month_caption:
-										"mb-3 flex h-10 w-full items-center justify-center px-10",
-									caption_label:
-										"text-sm font-semibold uppercase tracking-[0.16em] text-slate-700",
-									nav: "absolute inset-x-0 top-1 flex w-full items-center justify-between gap-1 px-1",
-									button_previous:
-										"h-8 w-8 rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm",
-									button_next:
-										"h-8 w-8 rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm",
-									weekdays: "grid w-full grid-cols-7 gap-2 px-1",
-									weekday:
-										"flex h-8 items-center justify-center text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500",
-									week: "mt-2 grid w-full grid-cols-7 gap-2 px-1",
-									day: "flex items-center justify-center p-0",
-								}}
+								placeholder="Search order or customer"
+								className="h-11 rounded-2xl border-slate-200 bg-white/90 pl-10 shadow-sm"
 							/>
 						</div>
-					</CardContent>
-				</Card>
+						<Select value={activeLabel} onValueChange={setActiveLabel}>
+							<SelectTrigger className="h-11 rounded-2xl border-slate-200 bg-white/90 shadow-sm">
+								<SelectValue placeholder="Choose label" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="pending">Pending</SelectItem>
+								<SelectItem value="due-today">Due Today</SelectItem>
+								<SelectItem value="due-tomorrow">Due Tomorrow</SelectItem>
+								<SelectItem value="past-due">Past Due</SelectItem>
+								<SelectItem value="completed">Completed</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
+				</div>
 			</section>
 
-			<section>
-				<Card className="w-full rounded-[28px]">
+			<section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+				<SummaryCard
+					label={scope === "worker" ? "Assigned Queue" : "Open Queue"}
+					value={dashboard?.summary.queueCount}
+					icon={<Icons.Package className="h-4 w-4" />}
+					active={activeLabel === "pending" && !selectedDate}
+					onClick={() => setActiveLabel("pending")}
+				/>
+				<SummaryCard
+					label="Past Due"
+					value={dashboard?.summary.pastDueCount}
+					icon={<Icons.AlertTriangle className="h-4 w-4" />}
+					active={activeLabel === "past-due" && !selectedDate}
+					onClick={() => setActiveLabel("past-due")}
+				/>
+				<SummaryCard
+					label="Due Today"
+					value={dashboard?.summary.dueTodayCount}
+					icon={<Icons.Clock3 className="h-4 w-4" />}
+					active={activeLabel === "due-today" && !selectedDate}
+					onClick={() => setActiveLabel("due-today")}
+				/>
+				<SummaryCard
+					label="Due Tomorrow"
+					value={dashboard?.summary.dueTomorrowCount}
+					icon={<Icons.CalendarDays className="h-4 w-4" />}
+					active={activeLabel === "due-tomorrow" && !selectedDate}
+					onClick={() => setActiveLabel("due-tomorrow")}
+				/>
+				<SummaryCard
+					label="Completed"
+					value={dashboard?.summary.completedCount}
+					icon={<Icons.CheckCircle2 className="h-4 w-4" />}
+					active={activeLabel === "completed" && !selectedDate}
+					onClick={() => setActiveLabel("completed")}
+				/>
+			</section>
+
+			<section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
+				<Card className="w-full rounded-[28px] border-slate-200/80 bg-white shadow-[0_18px_40px_-24px_rgba(15,23,42,0.18)]">
 					<CardHeader className="gap-3 lg:flex-row lg:items-center lg:justify-between">
 						<div>
-							<CardTitle className="text-lg">
+							<CardTitle className="text-xl tracking-tight">
 								{scope === "worker"
 									? "Assigned Productions"
 									: "Production Orders"}
 							</CardTitle>
-							<CardDescription>
-								Inline expansion replaces the old production modal in v2.
+							<CardDescription className="mt-1">
+								A cleaner production feed with compact order cards and inline
+								expansion.
 							</CardDescription>
 						</div>
 						<div className="flex flex-wrap items-center gap-2">
@@ -739,6 +606,164 @@ function ProductionV2Board({
 						) : null}
 					</CardContent>
 				</Card>
+
+				<div className="grid gap-4 xl:sticky xl:top-4">
+					<Card className="overflow-hidden rounded-[28px] border-slate-200/80 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] shadow-[0_18px_40px_-24px_rgba(15,23,42,0.2)]">
+						<CardHeader className="space-y-4 px-5 pb-4 pt-5">
+							<div className="space-y-1">
+								<CardTitle className="flex items-center gap-2 text-base">
+									<Icons.CalendarDays className="h-4 w-4 text-sky-600" />
+									Due Calendar
+								</CardTitle>
+								<CardDescription className="text-sm leading-6">
+									Compact date picker for quick queue filtering.
+								</CardDescription>
+							</div>
+							<div className="grid gap-2 rounded-2xl border border-slate-200 bg-white/90 p-3 shadow-sm">
+								<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+									Current Focus
+								</p>
+								<p className="text-sm font-semibold text-slate-900">
+									{selectedDate
+										? formatDateValue(new Date(`${selectedDate}T00:00:00`))
+										: activeLabel === "pending"
+											? "All open orders"
+											: activeLabel.replace("-", " ")}
+								</p>
+								<p className="text-xs text-slate-500">
+									{selectedDate
+										? `${dueDateCalendarMap.get(selectedDate)?.count || 0} orders due`
+										: `${dashboard?.summary.queueCount || 0} orders in queue`}
+								</p>
+							</div>
+							<div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
+								<LegendPill color="bg-rose-500" label="Past due" />
+								<LegendPill color="bg-amber-500" label="Today" />
+								<LegendPill color="bg-sky-500" label="Tomorrow" />
+								<LegendPill color="bg-emerald-500" label="Upcoming" />
+							</div>
+						</CardHeader>
+						<CardContent className="px-4 pb-4 pt-0">
+							<div className="overflow-hidden rounded-[22px] border border-slate-200 bg-white p-2">
+								<Calendar
+									mode="single"
+									selected={
+										selectedDate
+											? new Date(`${selectedDate}T00:00:00`)
+											: undefined
+									}
+									onSelect={(date) =>
+										void setFilters({
+											date: date ? formatCalendarDate(date) : null,
+										})
+									}
+									modifiers={{
+										hasDue: dueDatesWithLoad,
+										pastDue: pastDueDates,
+										dueToday: dueTodayDates,
+										dueTomorrow: dueTomorrowDates,
+										upcomingDue: upcomingDueDates,
+									}}
+									modifiersClassNames={{
+										hasDue:
+											"border-sky-200 bg-sky-50/90 font-semibold text-sky-950 shadow-[inset_0_0_0_1px_rgba(14,165,233,0.08)]",
+									}}
+									components={{
+										DayButton: (props) => {
+											const dateKey = formatCalendarDate(props.day.date);
+											const entry = dueDateCalendarMap.get(dateKey);
+											return (
+												<CalendarDayButton
+													{...props}
+													className={cn(
+														"relative flex h-full min-h-[52px] w-full flex-col items-start justify-between rounded-xl px-1.5 py-1.5 text-left transition-all duration-200",
+														entry?.count && "shadow-sm",
+													)}
+												>
+													<span className="text-xs font-semibold">
+														{props.day.date.getDate()}
+													</span>
+													{entry?.count ? (
+														<span className="flex w-full items-center justify-between gap-1">
+															<span
+																className={cn(
+																	"h-1.5 w-4 rounded-full",
+																	entry.isToday
+																		? "bg-amber-500"
+																		: entry.isTomorrow
+																			? "bg-sky-500"
+																			: isPastDueCalendarItem(entry)
+																				? "bg-rose-500"
+																				: "bg-emerald-500",
+																)}
+															/>
+															<span className="text-[10px] font-medium text-slate-500">
+																{entry.count}
+															</span>
+														</span>
+													) : null}
+												</CalendarDayButton>
+											);
+										},
+									}}
+									className="w-full bg-transparent p-1 [--cell-size:3.15rem]"
+									classNames={{
+										root: "w-full",
+										month: "w-full gap-3",
+										table: "w-full table-fixed border-collapse",
+										month_caption:
+											"mb-2 flex h-8 w-full items-center justify-center px-9",
+										caption_label:
+											"text-xs font-semibold uppercase tracking-[0.16em] text-slate-700",
+										nav: "absolute inset-x-0 top-0 flex w-full items-center justify-between gap-1 px-0",
+										button_previous:
+											"h-7 w-7 rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm",
+										button_next:
+											"h-7 w-7 rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm",
+										weekdays: "grid w-full grid-cols-7 gap-1 px-0.5",
+										weekday:
+											"flex h-6 items-center justify-center text-center text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500",
+										week: "mt-1 grid w-full grid-cols-7 gap-1 px-0.5",
+										day: "flex items-center justify-center p-0",
+									}}
+								/>
+							</div>
+						</CardContent>
+					</Card>
+
+					<Card className="rounded-[24px] border-slate-200/80 bg-slate-950 text-slate-50 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.45)]">
+						<CardContent className="grid gap-3 p-5">
+							<div className="flex items-center justify-between gap-3">
+								<p className="text-sm font-semibold tracking-tight">
+									Queue Snapshot
+								</p>
+								<Icons.Activity className="h-4 w-4 text-emerald-300" />
+							</div>
+							<div className="grid grid-cols-2 gap-3 text-sm">
+								<div className="rounded-2xl bg-white/10 p-3">
+									<p className="text-[11px] uppercase tracking-[0.16em] text-slate-300">
+										Open
+									</p>
+									<p className="mt-1 text-2xl font-semibold">
+										{dashboard?.summary.queueCount ?? 0}
+									</p>
+								</div>
+								<div className="rounded-2xl bg-white/10 p-3">
+									<p className="text-[11px] uppercase tracking-[0.16em] text-slate-300">
+										Past Due
+									</p>
+									<p className="mt-1 text-2xl font-semibold">
+										{dashboard?.summary.pastDueCount ?? 0}
+									</p>
+								</div>
+							</div>
+							<p className="text-xs leading-5 text-slate-300">
+								Use the cards for broad queue states and the calendar for
+								exact-date cuts. The feed on the left stays focused on action.
+							</p>
+						</CardContent>
+					</Card>
+				</div>
 			</section>
 
 			{selectedItems.length ? (
@@ -856,80 +881,103 @@ function ProductionOrderCard({
 
 	return (
 		<Collapsible open={isExpanded} onOpenChange={() => onToggle()}>
-			<Card className="overflow-hidden rounded-2xl border border-slate-200/80">
-				<div className="flex items-start gap-3 px-5 py-4">
+			<Card className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_100%)] shadow-[0_18px_38px_-28px_rgba(15,23,42,0.22)]">
+				<div className="flex items-start gap-3 px-4 py-4 sm:px-5">
 					<Checkbox
 						checked={isSelected}
 						onCheckedChange={(checked) => onSelectionChange(checked === true)}
 						className="mt-1"
 						aria-label={`Select ${item.orderId}`}
 					/>
-					<CollapsibleTrigger asChild>
-						<button
-							type="button"
-							className="flex min-w-0 flex-1 flex-col gap-4 text-left md:flex-row md:items-start md:justify-between"
-						>
-							<div className="space-y-1">
+					<div className="min-w-0 flex-1">
+						<div className="flex flex-col gap-4">
+							<div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+								<div className="space-y-2">
+									<div className="flex flex-wrap items-center gap-2">
+										<p className="text-lg font-semibold tracking-tight text-slate-950">
+											{item.orderId}
+										</p>
+										{scope === "admin" ? (
+											<Badge
+												variant="outline"
+												className={cn(
+													"rounded-full border font-medium",
+													orderStatus.className,
+												)}
+											>
+												{orderStatus.label}
+											</Badge>
+										) : (
+											workerStatus
+										)}
+									</div>
+									<p className="text-sm text-slate-600">
+										{item.customer || "Customer unavailable"}
+									</p>
+								</div>
 								<div className="flex flex-wrap items-center gap-2">
-									<p className="text-lg font-semibold tracking-tight">
-										{item.orderId}
-									</p>
-									{scope === "admin" ? (
-										<Badge
-											variant="outline"
-											className={cn(
-												"rounded-full border font-medium",
-												orderStatus.className,
-											)}
+									<Button
+										size="sm"
+										variant="outline"
+										className="rounded-xl"
+										onClick={(event) => {
+											event.preventDefault();
+											event.stopPropagation();
+											void printProduction({
+												salesIds: [item.id],
+											});
+										}}
+									>
+										<Icons.Printer className="h-4 w-4" />
+										Print
+									</Button>
+									<CollapsibleTrigger asChild>
+										<Button
+											type="button"
+											size="sm"
+											variant="secondary"
+											className="rounded-xl"
 										>
-											{orderStatus.label}
-										</Badge>
-									) : (
-										workerStatus
-									)}
+											Details
+											<Icons.ChevronDown
+												className={cn(
+													"h-4 w-4 shrink-0 transition-transform",
+													isExpanded && "rotate-180",
+												)}
+											/>
+										</Button>
+									</CollapsibleTrigger>
 								</div>
-								<p className="text-sm text-muted-foreground">
-									{item.customer || "Customer unavailable"}
-								</p>
-								<p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-									{item.salesRep
-										? `Sales Rep: ${item.salesRep}`
-										: "Sales rep unavailable"}
-								</p>
 							</div>
-							<div className="flex items-start gap-3 self-end md:self-start">
-								<div className="text-right">
-									<p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-										Due
-									</p>
-									<p className="text-sm font-medium">
-										{item.dueDateLabel || item.alert?.dateString || "N/A"}
-									</p>
-								</div>
-								<Icons.ChevronDown
-									className={cn(
-										"mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform",
-										isExpanded && "rotate-180",
-									)}
-								/>
-							</div>
-						</button>
-					</CollapsibleTrigger>
-					<Button
-						size="sm"
-						variant="outline"
-						className="rounded-xl"
-						onClick={(event) => {
-							event.preventDefault();
-							event.stopPropagation();
-							void printProduction({
-								salesIds: [item.id],
-							});
-						}}
-					>
-						<Icons.Printer className="h-4 w-4" />
-						Print
-					</Button>
+
+							<CollapsibleTrigger asChild>
+								<button
+									type="button"
+									className="grid min-w-0 gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3 text-left transition-colors hover:bg-slate-100/80 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.9fr)]"
+								>
+									<OrderMetaBlock
+										label="Sales Rep"
+										value={
+											item.salesRep ? item.salesRep : "Sales rep unavailable"
+										}
+									/>
+									<OrderMetaBlock
+										label="Assigned To"
+										value={item.assignedTo || "Unassigned"}
+									/>
+									<OrderMetaBlock
+										label="Due"
+										value={item.dueDateLabel || item.alert?.dateString || "N/A"}
+										tone={
+											orderStatus.label === "Past Due"
+												? "text-rose-700"
+												: undefined
+										}
+									/>
+								</button>
+							</CollapsibleTrigger>
+						</div>
+					</div>
 				</div>
 				<CollapsibleContent className="border-t bg-muted/20">
 					<ProductionOrderDetailInline
@@ -1485,36 +1533,76 @@ function SummaryCard({
 	return (
 		<Card
 			className={cn(
-				"rounded-2xl transition-all",
-				onClick && "cursor-pointer hover:border-slate-300 hover:shadow-sm",
-				active && "border-sky-300 bg-sky-50/60 shadow-sm",
+				"rounded-[24px] border-slate-200/80 bg-white/90 transition-all duration-200",
+				onClick &&
+					"cursor-pointer hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_14px_28px_-20px_rgba(15,23,42,0.35)]",
+				active &&
+					"border-emerald-300 bg-[linear-gradient(180deg,rgba(240,253,244,1),rgba(236,253,245,0.7))] shadow-[0_16px_32px_-24px_rgba(22,163,74,0.55)]",
 			)}
 			onClick={onClick}
 		>
-			<CardContent className="flex items-center justify-between gap-4 p-5">
-				<div>
+			<CardContent className="flex items-start justify-between gap-4 p-4">
+				<div className="space-y-2">
 					<p
 						className={cn(
-							"text-sm text-muted-foreground",
-							active && "text-sky-700",
+							"text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500",
+							active && "text-emerald-700",
 						)}
 					>
 						{label}
 					</p>
-					<p className="mt-1 text-3xl font-semibold tracking-tight">
+					<p className="text-3xl font-semibold tracking-tight text-slate-950">
 						{value ?? 0}
 					</p>
 				</div>
 				<div
 					className={cn(
-						"rounded-full border bg-muted/40 p-3",
-						active && "border-sky-200 bg-sky-100 text-sky-700",
+						"rounded-2xl border border-slate-200 bg-slate-50 p-3 text-slate-600",
+						active && "border-emerald-200 bg-emerald-100 text-emerald-700",
 					)}
 				>
 					{icon}
 				</div>
 			</CardContent>
 		</Card>
+	);
+}
+
+function LegendPill({
+	color,
+	label,
+}: {
+	color: string;
+	label: string;
+}) {
+	return (
+		<div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5">
+			<span className={cn("h-2 w-2 rounded-full", color)} />
+			<span>{label}</span>
+		</div>
+	);
+}
+
+function OrderMetaBlock({
+	label,
+	value,
+	tone,
+}: {
+	label: string;
+	value: string;
+	tone?: string;
+}) {
+	return (
+		<div className="min-w-0">
+			<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+				{label}
+			</p>
+			<p
+				className={cn("mt-1 truncate text-sm font-medium text-slate-900", tone)}
+			>
+				{value}
+			</p>
+		</div>
 	);
 }
 
