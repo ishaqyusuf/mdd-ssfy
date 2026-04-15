@@ -7,6 +7,7 @@ export { HydrationBoundary } from "@tanstack/react-query";
 
 export {
   dehydrate,
+  useInfiniteQuery,
   useMutation,
   useQueryClient,
   MutationCache,
