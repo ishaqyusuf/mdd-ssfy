@@ -208,7 +208,10 @@ export async function submitDispatchTask(db: Db, data: UpdateSalesControl) {
 					noteTag("dispatchRecipient", task.receivedBy),
 					noteTag("salesId", data.meta.salesId),
 					noteTag("deliveryId", task.dispatchId),
-					noteTag("type", "dispatch" as NoteTagTypes),
+					noteTag(
+						"type",
+						(task.noteType || "dispatch") as NoteTagTypes,
+					),
 					...attachmentTags,
 				],
 			};

@@ -47,6 +47,7 @@ export const dispatchForm = z.object({
 	receivedBy: z.string().optional().nullable(),
 	receivedDate: z.date().optional().nullable(),
 	note: z.string().optional(),
+	noteType: z.enum(["dispatch", "pickup"]).optional().nullable(),
 	signature: z.string().optional().nullable(),
 	attachments: z
 		.array(

@@ -217,6 +217,7 @@ export function PackingSlipSignFab({
 								await mutation.mutateAsync({
 									dispatchId,
 									receivedBy: receivedBy.trim(),
+									noteType: "pickup",
 									signature: pathname,
 								});
 							}}

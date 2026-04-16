@@ -15,6 +15,7 @@ type SubmitDispatchInput = DispatchMeta & {
   receivedBy?: string | null;
   receivedDate?: Date | null;
   note?: string;
+  noteType?: "dispatch" | "pickup" | null;
   signature?: string | null;
   attachments?: { pathname: string }[] | null;
 };
@@ -142,6 +143,7 @@ export function useDispatchActions() {
             receivedBy: input.receivedBy,
             receivedDate: input.receivedDate,
             note: input.note,
+            noteType: input.noteType,
             signature: input.signature,
             attachments: input.attachments,
           },

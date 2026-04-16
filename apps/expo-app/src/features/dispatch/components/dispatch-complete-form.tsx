@@ -14,12 +14,14 @@ import { Icon } from "@/components/ui/icon";
 import * as ImagePicker from "expo-image-picker";
 
 type Props = {
+  defaultNoteType?: "dispatch" | "pickup";
   defaultReceivedBy?: string;
   isSubmitting?: boolean;
   onCancel: () => void;
   onSubmit: (input: {
     receivedBy?: string;
     note?: string;
+    noteType?: "dispatch" | "pickup";
     receivedDate?: Date;
     signature?: string;
     signaturePath?: string;
@@ -33,6 +35,7 @@ type Props = {
 };
 
 export function DispatchCompleteForm({
+  defaultNoteType = "dispatch",
   defaultReceivedBy,
   isSubmitting,
   onCancel,
@@ -40,6 +43,9 @@ export function DispatchCompleteForm({
 }: Props) {
   const [receivedBy, setReceivedBy] = useState(defaultReceivedBy || "");
   const [note, setNote] = useState("");
+  const [noteType, setNoteType] = useState<"dispatch" | "pickup">(
+    defaultNoteType,
+  );
   const [signaturePath, setSignaturePath] = useState("");
   const [attachments, setAttachments] = useState<
     {
@@ -56,6 +62,10 @@ export function DispatchCompleteForm({
       setReceivedBy(defaultReceivedBy);
     }
   }, [defaultReceivedBy, receivedBy]);
+
+  useEffect(() => {
+    setNoteType(defaultNoteType);
+  }, [defaultNoteType]);
 
   const appendSignaturePoint = (evt: GestureResponderEvent) => {
     const { locationX, locationY } = evt.nativeEvent;
@@ -134,6 +144,37 @@ export function DispatchCompleteForm({
                 className="flex-1 text-foreground"
               />
             </View>
+          </View>
+        </View>
+
+        <View>
+          <Text className="mb-2 text-xs font-semibold uppercase tracking-[1px] text-muted-foreground">
+            Completion Type
+          </Text>
+          <View className="flex-row gap-2">
+            {(["dispatch", "pickup"] as const).map((option) => {
+              const active = noteType === option;
+              return (
+                <Pressable
+                  key={option}
+                  disabled={isSubmitting}
+                  onPress={() => setNoteType(option)}
+                  className={`flex-1 rounded-xl border px-3 py-3 ${
+                    active
+                      ? "border-primary bg-primary/10"
+                      : "border-input bg-background"
+                  }`}
+                >
+                  <Text
+                    className={`text-center text-sm font-semibold ${
+                      active ? "text-primary" : "text-foreground"
+                    }`}
+                  >
+                    {option === "dispatch" ? "Dispatch" : "Pickup"}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
 
@@ -267,6 +308,7 @@ export function DispatchCompleteForm({
             onSubmit({
               receivedBy: receivedBy || undefined,
               note: note || undefined,
+              noteType,
               receivedDate: new Date(),
               signature: signaturePath,
               signaturePath,

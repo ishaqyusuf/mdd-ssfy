@@ -209,6 +209,40 @@ export async function getDispatchCompletetionNotes(db: Db, dispatchId) {
   if (!note) return null;
   return transformNote(note);
 }
+
+export async function getDispatchCompletedActivity(db: Db, dispatchId: number) {
+  const note = await db.notePad.findFirst({
+    where: {
+      deletedAt: null,
+      AND: [
+        {
+          tags: {
+            some: {
+              tagName: "channel" as NoteTagNames,
+              tagValue: "sales_dispatch_completed",
+            },
+          },
+        },
+        {
+          tags: {
+            some: {
+              tagName: "dispatchId" as NoteTagNames,
+              tagValue: String(dispatchId),
+            },
+          },
+        },
+      ],
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    include: {
+      tags: true,
+    },
+  });
+  if (!note) return null;
+  return transformNote(note);
+}
 export async function packDispatchItemsAction(
   db: Db,
   props: PackDispatchItemsAction,

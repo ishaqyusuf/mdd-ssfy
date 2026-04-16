@@ -236,6 +236,7 @@ export const signPackingSlipSchema = z.object({
 	receivedBy: z.string().optional().nullable(),
 	signature: z.string().min(1),
 	note: z.string().optional().nullable(),
+	noteType: z.enum(["dispatch", "pickup"]).optional().nullable(),
 });
 export type SignPackingSlipSchema = z.infer<typeof signPackingSlipSchema>;
 

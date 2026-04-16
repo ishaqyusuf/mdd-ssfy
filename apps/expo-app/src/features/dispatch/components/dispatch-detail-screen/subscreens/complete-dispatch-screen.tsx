@@ -4,6 +4,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 
 type Props = {
   insetsTop: number;
+  defaultNoteType?: "dispatch" | "pickup";
   defaultReceivedBy: string;
   isSubmitting: boolean;
   onClose: () => void;
@@ -12,6 +13,7 @@ type Props = {
 
 export function CompleteDispatchScreen({
   insetsTop,
+  defaultNoteType,
   defaultReceivedBy,
   isSubmitting,
   onClose,
@@ -38,6 +40,7 @@ export function CompleteDispatchScreen({
 
       <ScrollView className="flex-1" contentContainerClassName="px-4 pb-8 pt-5">
         <DispatchCompleteForm
+          defaultNoteType={defaultNoteType}
           defaultReceivedBy={defaultReceivedBy}
           isSubmitting={isSubmitting}
           onCancel={onClose}

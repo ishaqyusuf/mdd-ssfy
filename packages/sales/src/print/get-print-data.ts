@@ -1,6 +1,9 @@
 import type { Db, Prisma } from "@gnd/db";
 import { type SalesSetting, getSalesSetting } from "../exports";
-import { getDispatchCompletetionNotes } from "../sales-control/actions";
+import {
+	getDispatchCompletedActivity,
+	getDispatchCompletetionNotes,
+} from "../sales-control/actions";
 import { composeAddresses } from "./compose/addresses";
 import { composeDoorSections } from "./compose/door-sections";
 import { composeFooter } from "./compose/footer";
@@ -121,7 +124,10 @@ async function composeSigningData(
 		return null;
 	}
 
-	const completionNote = await getDispatchCompletetionNotes(db, dispatchId);
+	const completionActivity =
+		await getDispatchCompletedActivity(db, dispatchId);
+	const completionNote =
+		completionActivity || (await getDispatchCompletetionNotes(db, dispatchId));
 	const customerName =
 		sale.shippingAddress?.name ||
 		sale.customer?.businessName ||
@@ -132,7 +138,10 @@ async function composeSigningData(
 		dispatchId,
 		customerName,
 		packedBy: completionNote?.tag?.packedBy?.value || null,
-		receivedBy: completionNote?.tag?.dispatchRecipient?.value || customerName,
+		receivedBy:
+			completionNote?.tag?.receivedBy?.value ||
+			completionNote?.tag?.dispatchRecipient?.value ||
+			customerName,
 		signatureUrl: completionNote?.tag?.signature?.value || null,
 		signedAt: completionNote?.createdAt
 			? new Date(completionNote.createdAt).toISOString()

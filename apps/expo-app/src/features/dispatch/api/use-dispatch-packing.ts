@@ -40,6 +40,10 @@ type PackItemsSelectionInput = PackingMetaInput & {
   replaceExisting?: boolean;
 };
 
+type PackAllInput = PackingMetaInput & {
+  dispatchStatus: DispatchStatus;
+};
+
 type DeletePackingInput = {
   salesId: number;
   packingId?: number | null;
@@ -138,6 +142,24 @@ export function useDispatchPacking() {
           packingLines: input.packingLines,
         },
       },
+      });
+    },
+    async onPackAll(input: PackAllInput) {
+      const author = getAuthor(auth.profile);
+      return packingTask.startAndWait({
+        payload: {
+          meta: {
+            salesId: input.salesId,
+            authorId: author.id,
+            authorName: author.name,
+          },
+          packItems: {
+            dispatchId: input.dispatchId,
+            dispatchStatus: input.dispatchStatus,
+            packMode: "all",
+            replaceExisting: true,
+          },
+        },
       });
     },
     async onClearPackings(input: PackingMetaInput) {

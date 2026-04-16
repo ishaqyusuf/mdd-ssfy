@@ -208,6 +208,8 @@ async function sendDispatchCompletedNotification(input: UpdateSalesControl) {
 			deliveryMode: dispatch.deliveryMode || undefined,
 			dueDate: dispatch.dueDate || undefined,
 			driverId: dispatch.driverId || undefined,
+			packedBy: input.meta.authorName || undefined,
+			receivedBy: input.submitDispatch?.receivedBy || undefined,
 			signature: input.submitDispatch?.signature || undefined,
 			attachments: (input.submitDispatch?.attachments || [])
 				.map((item) => String(item.pathname || "").trim())

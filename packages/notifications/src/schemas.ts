@@ -685,6 +685,8 @@ export const salesDispatchCompletedSchema = z.object({
 	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
 	dueDate: z.date().optional(),
 	driverId: z.number().optional(),
+	packedBy: z.string().optional(),
+	receivedBy: z.string().optional(),
 	signature: z.string().optional(),
 	attachments: z.array(z.string()).optional(),
 });
@@ -697,6 +699,8 @@ export const salesDispatchCompletedTags = actityTagsSchema.extend({
 	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
 	dueDate: z.date().optional(),
 	driverId: z.number().optional(),
+	packedBy: z.string().optional(),
+	receivedBy: z.string().optional(),
 	signature: z.string().optional(),
 	attachments: z.array(z.string()).optional(),
 });

@@ -60,7 +60,10 @@ export function transformActivityTags(
 export const noteTagNames = [
   "channel",
   "itemControlUID",
+  "dispatchId",
   "deliveryId",
+  "packedBy",
+  "receivedBy",
   "dispatchRecipient",
   "salesId",
   "salesNo",

@@ -1125,6 +1125,9 @@ export async function signPackingSlip(
 			select: {
 				id: true,
 				status: true,
+				dueDate: true,
+				deliveryMode: true,
+				driverId: true,
 				salesOrderId: true,
 				order: {
 					select: {
@@ -1195,8 +1198,26 @@ export async function signPackingSlip(
 			receivedDate: new Date(),
 			signature: input.signature,
 			note: input.note || "",
+			noteType: input.noteType || "pickup",
 		},
 	} as UpdateSalesControl);
+
+	await getDispatchNotificationService(ctx).send("sales_dispatch_completed", {
+		author: {
+			id: ctx.userId,
+			role: "employee",
+		},
+		payload: {
+			orderNo: dispatch.order?.orderId || undefined,
+			dispatchId: dispatch.id,
+			deliveryMode: dispatch.deliveryMode || undefined,
+			dueDate: dispatch.dueDate || undefined,
+			driverId: dispatch.driverId || undefined,
+			packedBy,
+			receivedBy,
+			signature: input.signature || undefined,
+		},
+	});
 
 	return {
 		ok: true,

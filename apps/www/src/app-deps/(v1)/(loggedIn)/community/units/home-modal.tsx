@@ -7,6 +7,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { _revalidate } from "@/app-deps/(v1)/_actions/_revalidate";
 import { staticCommunity } from "@/app-deps/(v1)/_actions/community/community-template";
+import { staticProjectsAction } from "@/app-deps/(v1)/_actions/community/projects";
 import {
     _updateCommunityHome,
     createHomesAction,
@@ -131,9 +132,10 @@ export default function HomeModal({ home }: Props) {
     const [isReady, setIsReady] = useState(false);
     useEffect(() => {
         async function loadStatics() {
-            // setProjects((await staticProjectsAction()) as any);
+            const projectList = (await staticProjectsAction()) as any;
             const cTemplates = (await staticCommunity()) as any;
 
+            setProjects(projectList);
             setCommunityTemplates(cTemplates);
         }
 
@@ -142,9 +144,7 @@ export default function HomeModal({ home }: Props) {
         setTimeout(() => {
             setIsReady(true);
         }, 50);
-        // form.setValue("units", home ? [home] : ([{ meta: {} }] as any));
-
-        // if (home?.projectId) form.setValue("projectId", home.projectId);
+        if (home?.projectId) form.setValue("projectId", home.projectId);
     }, []);
 
     return (

@@ -18,6 +18,8 @@ export const salesDispatchCompleted: NotificationHandler = {
 			deliveryMode,
 			dueDate,
 			driverId,
+			packedBy,
+			receivedBy,
 			signature,
 			attachments,
 		} = data;
@@ -30,6 +32,8 @@ export const salesDispatchCompleted: NotificationHandler = {
 			deliveryMode,
 			dueDate,
 			driverId,
+			packedBy,
+			receivedBy,
 			signature,
 			attachments,
 		};

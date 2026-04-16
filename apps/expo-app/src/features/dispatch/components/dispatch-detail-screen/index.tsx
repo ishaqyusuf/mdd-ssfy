@@ -1118,14 +1118,27 @@ function DispatchDetailScreenInner({
         {ui.isCompleteSheetOpen ? (
           <CompleteDispatchScreen
             insetsTop={insets.top}
+            defaultNoteType={
+              dispatch?.deliveryMode === "pickup" ? "pickup" : "dispatch"
+            }
             defaultReceivedBy={customerName || ""}
             isSubmitting={
-              actions.submitDispatch.isPending || documents.uploadDocument.isPending
+              actions.submitDispatch.isPending ||
+              packing.taskTrigger.isPending ||
+              documents.uploadDocument.isPending
             }
             onClose={() => ui.setCompleteSheetOpen(false)}
             onSubmit={async (input) => {
               if (!order?.id || !dispatch?.id) return;
               try {
+                if (dispatch.deliveryMode === "pickup") {
+                  await packing.onPackAll({
+                    salesId: order.id,
+                    dispatchId: dispatch.id,
+                    dispatchStatus: (dispatch.status as any) || "queue",
+                  });
+                }
+
                 const attachmentPaths: { pathname: string }[] = [];
                 const files = (input as any)?.attachments || [];
                 for (const file of files) {
@@ -1158,6 +1171,9 @@ function DispatchDetailScreenInner({
                   salesId: order.id,
                   dispatchId: dispatch.id,
                   ...input,
+                  noteType:
+                    (input as any)?.noteType ||
+                    (dispatch.deliveryMode === "pickup" ? "pickup" : "dispatch"),
                   signature: signaturePathname || undefined,
                   attachments: attachmentPaths,
                 });
