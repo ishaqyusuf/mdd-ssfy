@@ -75,3 +75,21 @@
 2. Do a client-runtime pass only on the routes that still feel slow after hydration changes.
 3. Hotspot implementation already landed for `sales-form/create-order`, `sales-book/productions`, and `community/builders`; only revisit them if live validation still shows a real issue.
 4. After shortlist validation, move to measurement and cleanup rather than more broad route rewrites.
+
+## Legacy Sales Form Mobile + Architecture Refactor
+- Status: Planned
+- Objective: modernize the active legacy sales form with a cleaner mobile UX, a canonical `domains/sales-form/legacy` folder boundary, centralized legacy controllers/helpers, and cleaner save-flow architecture without a big-bang rewrite.
+- Current Phase: Planning locked in Brain
+- Next Step: create the domain root and stable entrypoint, then re-home shell files and legacy controller imports without changing behavior.
+- Blockers: None
+- Related Files: brain/legacy-sales-form-mobile-architecture-plan.md, brain/sales-form-system-hardening-plan.md, brain/decisions/ADR-005-legacy-sales-form-domain-and-mobile-architecture.md, apps/www/src/components/forms/sales-form/sales-form.tsx, apps/www/src/components/forms/sales-form/sales-form-sidebar.tsx, apps/www/src/components/forms/sales-form/sales-form-save.tsx, apps/www/src/components/forms/sales-form/sales-meta-form.tsx, apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/item-section.tsx, apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/step-section.tsx
+- Last Updated: 2026-04-16
+
+### Planned Steps
+1. Create `apps/www/src/domains/sales-form/legacy/*` and route the current shell through one canonical entrypoint.
+2. Re-home shell files, then centralize legacy classes/helpers into explicit controller/helper folders.
+3. Introduce adapters/hooks so touched UI components stop instantiating legacy classes directly.
+4. Flatten the shell UI and switch mobile to single-active-item editing with top-level invoice item selector.
+5. Replace bulky step header chrome with wrapped step CTA buttons and value-only component previews.
+6. Refactor summary/history into a flatter sheet layout and make HPT, moulding, service, and shelf-items mobile-native within their own step-family folders.
+7. Extract save orchestration from the button component into application/server save boundaries while preserving hardening constraints and server-authoritative pricing.

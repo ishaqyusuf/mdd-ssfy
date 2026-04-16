@@ -15,6 +15,7 @@ export const salesInfo: NotificationHandler = {
       priority: 5,
       salesId: data.salesId,
       salesNo: data.salesNo,
+      ...(data.attachment?.length ? { attachment: data.attachment } : {}),
     };
 
     return {

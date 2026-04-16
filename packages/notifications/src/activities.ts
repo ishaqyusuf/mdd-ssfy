@@ -127,8 +127,10 @@ export async function getActivties(db: Db, params: GetActivitiesParams) {
   const { contactIds, status } = params;
   const activities = await db.notePad.findMany({
     where: {
+      deletedAt: null,
       recipients: {
         some: {
+          deletedAt: null,
           notePadContactId: {
             in: contactIds,
           },
@@ -154,6 +156,9 @@ export async function getActivties(db: Db, params: GetActivitiesParams) {
         },
       },
       tags: {
+        where: {
+          deletedAt: null,
+        },
         select: {
           tagName: true,
           tagValue: true,
@@ -161,6 +166,7 @@ export async function getActivties(db: Db, params: GetActivitiesParams) {
       },
       recipients: {
         where: {
+          deletedAt: null,
           notePadContactId: {
             in: contactIds,
           },

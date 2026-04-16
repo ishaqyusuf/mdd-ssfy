@@ -14,6 +14,26 @@ Stabilize legacy sales-form runtime correctness (pricing, save consistency, and 
 - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/*`
 - `apps/www/src/app-deps/(clean-code)/(sales)/_common/data-access/save-sales/*`
 
+## Coordination Note
+
+This hardening stream remains the authority for save/pricing correctness and transaction safety.
+
+Related but separate work now lives in:
+
+- `brain/legacy-sales-form-mobile-architecture-plan.md`
+
+That plan owns:
+
+- mobile UX cleanup
+- domain/folder re-architecture
+- legacy class/helper centralization
+- save-flow separation at the frontend application/server boundary
+
+Hard rule:
+
+- UX/architecture refactors must not weaken Phase 0/1 hardening requirements.
+- Save-path extraction should preserve server-authoritative pricing and transaction safety as non-negotiable constraints.
+
 ## Priority Findings (From System Audit)
 
 1. `P0` Save path transaction integrity is unsafe.

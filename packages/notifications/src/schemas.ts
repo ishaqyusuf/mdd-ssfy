@@ -997,11 +997,13 @@ export const salesInfoSchema = z.object({
 	color: z.string().optional(),
 	salesId: z.number(),
 	salesNo: z.string(),
+	attachment: z.array(z.string()).optional(),
 });
 export type SalesInfoInput = z.infer<typeof salesInfoSchema>;
 export const salesInfoTags = actityTagsSchema.extend({
 	salesId: z.number(),
 	salesNo: z.string(),
+	attachment: z.array(z.string()).optional(),
 });
 export type SalesInfoTags = z.infer<typeof salesInfoTags>;
 export const inventoryInboundSchema = z.object({

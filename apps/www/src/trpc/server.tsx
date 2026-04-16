@@ -14,9 +14,9 @@ import { cache } from "react";
 import superjson from "superjson";
 import { makeQueryClient } from "./query-client";
 import { AppRouter } from "@gnd/api/trpc/routers/_app";
-// import { authUser } from "@/app-deps/(v1)/_actions/utils";
 import { generateRandomString } from "@gnd/utils";
-// import { AppRouter } from "./routers/_app";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 
 // IMPORTANT: Create a stable getter for the query client that
 //            will return the same client during the same request.
@@ -34,10 +34,15 @@ export const trpc = createTRPCOptionsProxy<AppRouter>({
                 //         : `${process.env.NEXT_PUBLIC_API_URL}/api/trpc`,
                 transformer: superjson as any,
                 async headers() {
-                    // const auth = await authUser();
+                    const session = await getServerSession(authOptions);
+                    const userId = session?.user?.id;
+
+                    if (!userId) {
+                        return {};
+                    }
 
                     return {
-                        // Authorization: `Bearer ${generateRandomString(16)}|${auth?.id}`,
+                        Authorization: `Bearer ${generateRandomString(16)}|${userId}`,
                     };
                 },
             }),
@@ -85,4 +90,3 @@ export function batchPrefetch<T extends ReturnType<TRPCQueryOptions<any>>>(
         }
     }
 }
-

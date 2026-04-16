@@ -4,6 +4,18 @@
 
 ## 2026-04-16
 
+- Started the new sales form resilience slice so the next parity pass reduces silent draft loss instead of only documenting it.
+  - defaulted `apps/www/src/components/forms/new-sales-form/store.ts` autosave back to `true` for newly hydrated sessions
+  - updated `apps/www/src/components/forms/new-sales-form/new-sales-form.tsx` to persist local recovery snapshots on `pagehide` / `beforeunload`, not just the debounced timer path
+  - added a risky-leave warning for same-tab navigation when the draft is dirty and autosave is off or the form is already in `error` / `stale` state
+  - kept the existing recovery banner flow, but dismissal now confirms the user is intentionally keeping the latest server version instead of silently clearing the snapshot
+  - added a narrow capability guard in `apps/api/src/db/queries/new-sales-form.ts` so `saveDraftNewSalesForm` only runs inventory-line sync when the DB client exposes the full sync surface, which restores lightweight query-test compatibility without changing production behavior
+  - validation note:
+    - targeted `bunx biome format --write` was run for the touched new-sales-form files
+    - targeted `bunx biome check` passes for the touched `new-sales-form` web files and Brain docs
+    - `bun test apps/api/src/db/queries/new-sales-form.test.ts` passes (`4 pass, 0 fail`)
+    - `bun test apps/api/src/db/queries/new-sales-form.multi-line.test.ts` passes (`1 pass, 0 fail`)
+
 - Added organized per-tab versioning to the v2 sales overview system and shipped a redesigned overview/general tab as the default `v2` experience.
   - added `apps/www/src/components/sales-overview-system/tab-versions.tsx` as the version resolver layer so tabs can switch between versions without changing the provider, shells, or access policy
   - introduced version-folder ownership for all current tabs:

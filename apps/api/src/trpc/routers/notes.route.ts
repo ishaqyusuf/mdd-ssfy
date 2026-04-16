@@ -2,6 +2,7 @@ import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
 import { saveInboundNoteSchema } from "@api/schemas/notes";
 import {
 	addNotificationChannelSubscriber,
+	deleteNotification,
 	getNotificationChannels,
 	removeNotificationChannelSubscriber,
 	saveInboundNote,
@@ -218,6 +219,15 @@ export const notesRouter = createTRPCRouter({
 				recipientCount,
 				noContact: recipientCount === 0,
 			};
+		}),
+	deleteNotification: protectedProcedure
+		.input(
+			z.object({
+				activityId: z.number(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			return deleteNotification(ctx, input);
 		}),
 	list: publicProcedure
 		.input(

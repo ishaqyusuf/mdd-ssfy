@@ -1,7 +1,12 @@
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
+import ConfirmBtn from "@/components/confirm-button";
+import { useAuth } from "@/hooks/use-auth";
+import { useTRPC } from "@/trpc/client";
 import type { TransformedNotification } from "@notifications/notification-center";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { NotificationLink } from "./notification-link";
 
 interface Props {
@@ -29,7 +34,30 @@ function resolveNotificationDate(activity: TransformedNotification) {
 }
 
 export function NotificationItem({ setOpen, activity, onAction }: Props) {
+    const auth = useAuth();
+    const trpc = useTRPC();
+    const queryClient = useQueryClient();
     const notificationDate = resolveNotificationDate(activity);
+    const isSuperAdmin =
+        auth.roleTitle?.toLowerCase() === "super admin";
+    const deleteMutation = useMutation(
+        trpc.notes.deleteNotification.mutationOptions({
+            onSuccess: async () => {
+                await Promise.all([
+                    queryClient.invalidateQueries({
+                        queryKey: trpc.notes.list.pathKey(),
+                    }),
+                    queryClient.invalidateQueries({
+                        queryKey: trpc.notes.activityTree.pathKey(),
+                    }),
+                ]);
+                toast.success("Notification deleted");
+            },
+            onError: (error) => {
+                toast.error(error.message || "Failed to delete notification");
+            },
+        }),
+    );
 
     const notificationContent = (
         <div className="flex flex-1 items-start gap-4">
@@ -105,6 +133,24 @@ export function NotificationItem({ setOpen, activity, onAction }: Props) {
         </div>
     );
 
+    const deleteButton = isSuperAdmin ? (
+        <div>
+            <ConfirmBtn
+                trash
+                size="icon"
+                isDeleting={deleteMutation.isPending}
+                onClick={async (event) => {
+                    event.stopPropagation();
+                    await deleteMutation.mutateAsync({
+                        activityId: Number(activity.id),
+                    });
+                }}
+                aria-label="Delete notification"
+                title="Delete notification"
+            />
+        </div>
+    ) : null;
+
     return (
         <NotificationLink
             onNavigate={() => {
@@ -113,7 +159,14 @@ export function NotificationItem({ setOpen, activity, onAction }: Props) {
             }}
             isClickable={activity.isClickable}
             className="flex flex-1 items-start gap-4 text-left"
-            actionButton={actionButton}
+            actionButton={
+                actionButton || deleteButton ? (
+                    <div className="flex items-center gap-1">
+                        {deleteButton}
+                        {actionButton}
+                    </div>
+                ) : undefined
+            }
         >
             {notificationContent}
         </NotificationLink>

@@ -1038,24 +1038,29 @@ export async function getPackingList(
 		});
 	}
 
-	const dispatchIds = await getPackingListDispatchIds(ctx.db);
-	if (!dispatchIds.length) return [];
-
 	const status =
 		input.tab === "completed"
 			? "completed"
 			: input.tab === "cancelled"
 				? "cancelled"
 				: "queue";
+	const dispatchIds =
+		input.tab === "current" ? [] : await getPackingListDispatchIds(ctx.db);
+
+	if (input.tab !== "current" && !dispatchIds.length) return [];
 
 	const rows = await ctx.db.orderDelivery.findMany({
 		where: {
 			deletedAt: null,
 			deliveryMode: "pickup",
-			id: {
-				in: dispatchIds,
-			},
 			status,
+			...(input.tab === "current"
+				? {}
+				: {
+						id: {
+							in: dispatchIds,
+						},
+					}),
 		},
 		orderBy: {
 			createdAt: "desc",

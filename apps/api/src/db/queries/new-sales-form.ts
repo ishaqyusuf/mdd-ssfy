@@ -80,6 +80,22 @@ function roundCurrency(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
+function supportsInventorySync(db: unknown): db is Parameters<
+  typeof syncSalesInventoryLineItems
+>[0] {
+  const candidate = db as {
+    salesOrders?: { findFirstOrThrow?: unknown };
+    lineItem?: { findUnique?: unknown; create?: unknown; update?: unknown; updateMany?: unknown };
+  } | null;
+  return Boolean(
+    candidate &&
+      typeof candidate.salesOrders?.findFirstOrThrow === "function" &&
+      typeof candidate.lineItem?.findUnique === "function" &&
+      typeof candidate.lineItem?.create === "function" &&
+      typeof candidate.lineItem?.update === "function",
+  );
+}
+
 function deriveNewSalesFormSettings(settingMeta?: unknown): NewSalesFormSettings {
   const settingsMeta = safeRecord(settingMeta);
   const nestedSettingsMeta = safeRecord(settingsMeta.data);
@@ -1444,10 +1460,12 @@ async function saveNewSalesFormInternal(
       });
     }
 
-    await syncSalesInventoryLineItems(tx, {
-      salesOrderId: currentId,
-      source: "new-form",
-    });
+    if (supportsInventorySync(tx)) {
+      await syncSalesInventoryLineItems(tx, {
+        salesOrderId: currentId,
+        source: "new-form",
+      });
+    }
 
     return {
       salesId: currentId,

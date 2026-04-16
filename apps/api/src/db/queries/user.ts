@@ -61,6 +61,7 @@ export async function getAuthUser(ctx: TRPCContext) {
           role: {
             select: {
               id: true,
+              name: true,
             },
           },
         },

@@ -426,6 +426,7 @@ function createRecipientsWhere(query: GetActivityTreeQuery) {
 
 	return {
 		some: {
+			deletedAt: null,
 			...(query.contactIds?.length
 				? {
 						notePadContactId: {
@@ -447,18 +448,21 @@ async function fetchActivitiesByIds(
 
 	const recipientsWhere = query.contactIds?.length
 		? {
+				deletedAt: null,
 				notePadContactId: {
 					in: query.contactIds,
 				},
 				...(query.status?.length ? { status: { in: query.status } } : {}),
 			}
 		: {
+				deletedAt: null,
 				...(query.status?.length ? { status: { in: query.status } } : {}),
 			};
 
 	const rows = await db.notePad.findMany({
 		where: {
 			id: { in: ids },
+			deletedAt: null,
 		},
 		select: {
 			id: true,
@@ -475,6 +479,9 @@ async function fetchActivitiesByIds(
 				},
 			},
 			tags: {
+				where: {
+					deletedAt: null,
+				},
 				select: {
 					tagName: true,
 					tagValue: true,
@@ -509,6 +516,7 @@ export async function getActivityTree(db: Db, query: GetActivityTreeQuery) {
 
 	const rootRows = await db.notePad.findMany({
 		where: {
+			deletedAt: null,
 			...channelWhere,
 			...(recipientsWhere ? { recipients: recipientsWhere } : {}),
 			...(tagWhere || {}),
@@ -532,6 +540,9 @@ export async function getActivityTree(db: Db, query: GetActivityTreeQuery) {
 				},
 			},
 			tags: {
+				where: {
+					deletedAt: null,
+				},
 				select: {
 					tagName: true,
 					tagValue: true,
@@ -540,6 +551,7 @@ export async function getActivityTree(db: Db, query: GetActivityTreeQuery) {
 			recipients: {
 				where: query.contactIds?.length
 					? {
+							deletedAt: null,
 							notePadContactId: {
 								in: query.contactIds,
 							},
@@ -548,6 +560,7 @@ export async function getActivityTree(db: Db, query: GetActivityTreeQuery) {
 								: {}),
 						}
 					: {
+							deletedAt: null,
 							...(query.status?.length
 								? { status: { in: query.status } }
 								: {}),
@@ -582,6 +595,7 @@ export async function getActivityTree(db: Db, query: GetActivityTreeQuery) {
 			where: {
 				notePadId: { in: frontier },
 				commentNotePadId: { not: null },
+				deletedAt: null,
 			},
 			select: {
 				notePadId: true,
@@ -671,6 +685,7 @@ export async function getActivityTagSuggestions(
 				: {}),
 			notePad: {
 				is: {
+					deletedAt: null,
 					...channelWhere,
 					...(recipientsWhere ? { recipients: recipientsWhere } : {}),
 					...(tagWhere || {}),

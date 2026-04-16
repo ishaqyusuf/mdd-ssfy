@@ -157,3 +157,87 @@ export async function getSenderId(ctx: TRPCContext) {
 	const senderContactId = (await getSubscriberAccount(ctx.db, user.id))?.id!;
 	return senderContactId;
 }
+
+export async function deleteNotification(
+	ctx: TRPCContext,
+	input: {
+		activityId: number;
+	},
+) {
+	const user = await getAuthUser(ctx);
+	const roleName = user.role?.name?.trim().toLowerCase();
+
+	if (roleName !== "super admin") {
+		throw new Error("Only super admin can delete notifications.");
+	}
+
+	const now = new Date();
+
+	await ctx.db.$transaction([
+		ctx.db.noteRecipients.updateMany({
+			where: {
+				notePadId: input.activityId,
+				deletedAt: null,
+			},
+			data: {
+				deletedAt: now,
+			},
+		}),
+		ctx.db.notePadEvent.updateMany({
+			where: {
+				notePadId: input.activityId,
+				deletedAt: null,
+			},
+			data: {
+				deletedAt: now,
+			},
+		}),
+		ctx.db.notePadReadReceipt.updateMany({
+			where: {
+				notePadId: input.activityId,
+				deletedAt: null,
+			},
+			data: {
+				deletedAt: now,
+			},
+		}),
+		ctx.db.noteTags.updateMany({
+			where: {
+				notePadId: input.activityId,
+				deletedAt: null,
+			},
+			data: {
+				deletedAt: now,
+			},
+		}),
+		ctx.db.noteComments.updateMany({
+			where: {
+				OR: [
+					{
+						notePadId: input.activityId,
+					},
+					{
+						commentNotePadId: input.activityId,
+					},
+				],
+				deletedAt: null,
+			},
+			data: {
+				deletedAt: now,
+			},
+		}),
+		ctx.db.notePad.updateMany({
+			where: {
+				id: input.activityId,
+				deletedAt: null,
+			},
+			data: {
+				deletedAt: now,
+			},
+		}),
+	]);
+
+	return {
+		success: true,
+	};
+}

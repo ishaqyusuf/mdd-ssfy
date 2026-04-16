@@ -22,7 +22,7 @@ export function OverviewV2HeroCard({
 	return (
 		<div
 			className={cn(
-				"overflow-hidden rounded-3xl border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(241,245,249,0.95))] shadow-sm",
+				"overflow-hidden rounded-xl border-b border-slate-200/80 bg-transparent",
 				className,
 			)}
 		>
@@ -51,13 +51,13 @@ export function OverviewV2Metric({
 	};
 
 	return (
-		<div className={cn("rounded-2xl border p-4", toneMap[tone])}>
+		<div className={cn("rounded-lg px-0 py-1", toneMap[tone])}>
 			<p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
 				{label}
 			</p>
-			<p className="mt-2 text-2xl font-semibold tracking-tight">{value}</p>
+			<p className="mt-1 text-lg font-semibold tracking-tight">{value}</p>
 			{helper ? (
-				<p className="mt-2 text-xs text-muted-foreground">{helper}</p>
+				<p className="mt-1 text-[11px] text-muted-foreground">{helper}</p>
 			) : null}
 		</div>
 	);
@@ -77,19 +77,24 @@ export function OverviewV2InfoCard({
 	className?: string;
 }) {
 	return (
-		<OverviewSectionCard className={cn("rounded-3xl p-5", className)}>
+		<OverviewSectionCard
+			className={cn(
+				"rounded-none border-0 bg-transparent p-0 shadow-none",
+				className,
+			)}
+		>
 			<div className="flex items-start justify-between gap-3">
 				<OverviewSectionLabel icon={icon} label={label} />
 				{eyebrow ? (
 					<Badge
 						variant="outline"
-						className="rounded-full px-2.5 py-1 text-[11px]"
+						className="rounded-full px-2 py-0.5 text-[10px]"
 					>
 						{eyebrow}
 					</Badge>
 				) : null}
 			</div>
-			<div className="-mt-1 space-y-3">{children}</div>
+			<div className="-mt-1 space-y-2">{children}</div>
 		</OverviewSectionCard>
 	);
 }
@@ -143,35 +148,35 @@ export function OverviewV2StatusCard({
 	};
 
 	return (
-		<OverviewSectionCard className="rounded-3xl p-5">
+		<OverviewSectionCard className="rounded-none border-0 bg-transparent p-0 shadow-none">
 			<div className="flex items-start justify-between gap-3">
 				<OverviewSectionLabel icon={icon} label={label} />
 				<Badge
 					variant="outline"
 					className={cn(
-						"rounded-full px-2.5 py-1 capitalize",
+						"rounded-full px-2 py-0.5 capitalize",
 						toneMap[statusTone],
 					)}
 				>
 					{status}
 				</Badge>
 			</div>
-			<p className="-mt-1 text-lg font-semibold tracking-tight">{summary}</p>
+			<p className="-mt-1 text-sm font-semibold tracking-tight">{summary}</p>
 			{detail ? (
-				<p className="text-sm text-muted-foreground">{detail}</p>
+				<p className="text-xs text-muted-foreground">{detail}</p>
 			) : null}
 			{typeof progressValue === "number" && progressColorClass ? (
-				<div className="space-y-2 pt-2">
+				<div className="space-y-1 pt-1">
 					<OverviewProgressBar
 						value={progressValue}
 						colorClass={progressColorClass}
 					/>
-					<p className="text-xs text-muted-foreground">
+					<p className="text-[11px] text-muted-foreground">
 						{Math.round(progressValue)}% complete
 					</p>
 				</div>
 			) : null}
-			{children ? <div className="pt-3">{children}</div> : null}
+			{children ? <div className="pt-1.5">{children}</div> : null}
 		</OverviewSectionCard>
 	);
 }
