@@ -1,25 +1,35 @@
-import { Button } from "@gnd/ui/button";
-import { Icons } from "@gnd/ui/icons";
-import { useSaleOverview } from "./context";
+import { resetSalesStatAction } from "@/actions/reset-sales-stat";
+import { SalesMenu } from "@/components/sales-menu";
+import { SendForPackingButton } from "@/components/sales/send-for-packing-button";
+import { SendSalesReminder } from "@/components/send-sales-reminder";
+import { useAuth } from "@/hooks/use-auth";
+import { useBatchSales } from "@/hooks/use-batch-sales";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { openLink } from "@/lib/open-link";
 import { salesFormUrl } from "@/utils/sales-utils";
-import { useBatchSales } from "@/hooks/use-batch-sales";
-import { useSalesPreview } from "@/hooks/use-sales-preview";
-import { AuthGuard } from "@/components/auth-guard";
-import { _perm, _role } from "@/components/sidebar/links";
-import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { Button } from "@gnd/ui/button";
+import { Icons } from "@gnd/ui/icons";
 import { useTransition } from "react";
-import { resetSalesStatAction } from "@/actions/reset-sales-stat";
-
 import { toast } from "sonner";
-import { SendSalesReminder } from "@/components/send-sales-reminder";
-import { SalesMenu } from "@/components/sales-menu";
-import { SendForPickupButton } from "@/components/sales/send-for-pickup-button";
+import { useSaleOverview } from "./context";
 export function GeneralActionBar({ type, salesNo, salesId }) {
-	const { data } = useSaleOverview() as { data?: any };
-	const isQuote = data?.type == "quote";
+	const { data } = useSaleOverview() as {
+		data?: {
+			type?: string | null;
+			id?: number | null;
+			orderId?: string | null;
+			uuid?: string | null;
+		};
+	};
+	const isQuote = data?.type === "quote";
 	const batchSales = useBatchSales();
 	const sPreview = useSalesPreview();
+	const auth = useAuth();
+	const canSendForPacking =
+		Boolean(auth.can?.editOrders) &&
+		auth.roleTitle?.toLowerCase() === "super admin" &&
+		!isQuote;
 	function preview() {
 		void sPreview.preview(data?.id, data?.type);
 	}
@@ -43,15 +53,13 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 	return (
 		<div className="flex gap-2">
 			<SendSalesReminder salesIds={[salesId]} />
-			{!isQuote ? (
-				<AuthGuard rules={[_perm.is("editOrders"), _role.is("Super Admin")]}>
-					<SendForPickupButton
-						salesId={salesId}
-						orderNo={data?.orderId}
-						className="flex-1 items-center gap-2"
-						variant="outline"
-					/>
-				</AuthGuard>
+			{canSendForPacking ? (
+				<SendForPackingButton
+					salesId={salesId}
+					orderNo={data?.orderId}
+					className="flex-1 items-center gap-2"
+					variant="outline"
+				/>
 			) : null}
 			<Button
 				onClick={(e) => {
@@ -126,7 +134,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 								onSelect={(e) => {
 									e.preventDefault();
 									openLink(
-										`/sales-book/accounting/resolution-center`,
+										"/sales-book/accounting/resolution-center",
 										{
 											salesNo: data.orderId,
 										},

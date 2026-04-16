@@ -307,51 +307,90 @@ const SalesEmail = ({
 						</tbody>
 					</table>
 
-					<Section
-						className="mt-[22px] p-[16px]"
-						style={{
-							borderStyle: "solid",
-							borderWidth: 1,
-							borderColor: lightStyles.container.borderColor,
-							borderRadius: 10,
-							backgroundColor: "#f8fafc",
-						}}
-					>
-						<Text className={`m-0 text-[14px] ${themeClasses.text}`}>
-							{props.isQuote
-								? "Open your quote to review details and respond quickly."
-								: "Open your invoice for the full breakdown and downloadable PDF."}
-						</Text>
-					</Section>
-
-					<Section className="text-center mt-[22px] mb-[26px]">
-						{props.isQuote && props.acceptQuoteLink ? (
-							<Button href={props.acceptQuoteLink}>Accept Quote</Button>
-						) : props.pdfLink ? (
-							<Button href={props.pdfLink}>
-								View {props.isQuote ? "Quote" : "Invoice"}
-							</Button>
-						) : null}
-					</Section>
-
-					{props.isQuote && props.acceptQuoteLink && props.pdfLink ? (
-						<Section className="text-center mt-[-10px] mb-[26px]">
-							<Button href={props.pdfLink}>View Quote</Button>
-						</Section>
-					) : null}
-
-					{props.paymentLink && (
-						<>
+					{props.isQuote ? (
+						<Section
+							className="mt-[22px] p-[18px]"
+							style={{
+								borderStyle: "solid",
+								borderWidth: 1,
+								borderColor: lightStyles.container.borderColor,
+								borderRadius: 12,
+								backgroundColor: "#f8fafc",
+							}}
+						>
 							<Text
-								className={`text-[14px] text-center ${themeClasses.text}`}
+								className={`m-0 text-[12px] uppercase tracking-[0.8px] ${themeClasses.mutedText}`}
+								style={{ color: "#64748b" }}
+							>
+								Next Step
+							</Text>
+							<Text
+								className={`m-0 mt-[8px] text-[15px] leading-[24px] ${themeClasses.text}`}
 								style={{ color: lightStyles.text.color }}
 							>
-								Make payment securely online from any device.
+								Accept this quote to confirm the scope and pricing. Once
+								accepted, you will be taken to the next step to make payment.
 							</Text>
 
-							<Section className="text-center mt-[16px] mb-[26px]">
-								<Button href={props.paymentLink}>Make Payment</Button>
+							{props.acceptQuoteLink ? (
+								<Section className="text-center mt-[18px]">
+									<Button href={props.acceptQuoteLink}>Accept Quote</Button>
+								</Section>
+							) : null}
+
+							{props.pdfLink ? (
+								<Section className="text-center mt-[12px]">
+									<Button href={props.pdfLink}>Download Quote</Button>
+								</Section>
+							) : null}
+						</Section>
+					) : (
+						<>
+							<Section
+								className="mt-[22px] p-[18px]"
+								style={{
+									borderStyle: "solid",
+									borderWidth: 1,
+									borderColor: lightStyles.container.borderColor,
+									borderRadius: 12,
+									backgroundColor: "#f8fafc",
+								}}
+							>
+								<Text
+									className={`m-0 text-[12px] uppercase tracking-[0.8px] ${themeClasses.mutedText}`}
+									style={{ color: "#64748b" }}
+								>
+									Actions
+								</Text>
+								<Text
+									className={`m-0 mt-[8px] text-[15px] leading-[24px] ${themeClasses.text}`}
+									style={{ color: lightStyles.text.color }}
+								>
+									Review the invoice copy below and use the secure payment
+									button when you are ready.
+								</Text>
 							</Section>
+
+							<Section className="text-center mt-[22px] mb-[18px]">
+								{props.pdfLink ? (
+									<Button href={props.pdfLink}>View Invoice</Button>
+								) : null}
+							</Section>
+
+							{props.paymentLink ? (
+								<>
+									<Text
+										className={`text-[14px] text-center ${themeClasses.text}`}
+										style={{ color: lightStyles.text.color }}
+									>
+										Make payment securely online from any device.
+									</Text>
+
+									<Section className="text-center mt-[16px] mb-[26px]">
+										<Button href={props.paymentLink}>Make Payment</Button>
+									</Section>
+								</>
+							) : null}
 						</>
 					)}
 

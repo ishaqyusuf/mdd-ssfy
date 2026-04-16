@@ -1,7 +1,7 @@
 import { whereTrashed } from "@/app/(clean-code)/_common/utils/db-utils";
 import { AsyncFnType } from "@/app/(clean-code)/type";
 import { dealerSession, user, userId } from "@/app-deps/(v1)/_actions/utils";
-import { salesFormData } from "@/app/(v1)/(loggedIn)/sales/_actions/get-sales-form";
+import { salesFormData } from "@/app-deps/(v1)/(loggedIn)/sales/_actions/get-sales-form";
 import { ComponentPrice, prisma, Prisma } from "@/db";
 import dayjs from "dayjs";
 

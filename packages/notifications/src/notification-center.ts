@@ -9,6 +9,7 @@ import {
 	type InventoryInboundActivityTags,
 	type JobSubmittedTags,
 	type JobTaskConfigureRequestTags,
+	type QuoteAcceptedTags,
 	type SalesCheckoutSuccessTags,
 	type SalesDispatchAssignedTags,
 	type SalesDispatchDuplicateAlertTags,
@@ -25,6 +26,7 @@ import {
 	inventoryInboundActivityTags,
 	jobSubmittedTags,
 	jobTaskConfigureRequestTags,
+	quoteAcceptedTags,
 	salesCheckoutSuccessTags,
 	salesDispatchAssignedTags,
 	salesDispatchDuplicateAlertTags,
@@ -65,6 +67,7 @@ type NotificationActionPayloadMap = {
 	community_documents: Omit<CommunityDocumentsTags, "type">;
 	inventory_inbound_activity: Omit<InventoryInboundActivityTags, "type">;
 	dispatch_packing_delay: Omit<DispatchPackingDelayTags, "type">;
+	quote_accepted: Omit<QuoteAcceptedTags, "type">;
 	sales_dispatch_duplicate_alert: Omit<SalesDispatchDuplicateAlertTags, "type">;
 	sales_checkout_success: Omit<SalesCheckoutSuccessTags, "type">;
 	sales_payment_recorded: Omit<SalesPaymentRecordedTags, "type">;
@@ -259,6 +262,16 @@ function parseAction(
 		return {
 			type: "sales_dispatch_duplicate_alert",
 			label: "Open Dispatch",
+			data: parsed.data,
+		};
+	}
+
+	if (type === "quote_accepted") {
+		const parsed = quoteAcceptedTags.safeParse(tags);
+		if (!parsed.success) return undefined;
+		return {
+			type: "quote_accepted",
+			label: "Open Sale",
 			data: parsed.data,
 		};
 	}

@@ -230,7 +230,10 @@ export function nav(
                 true,
             ),
         );
-    if (viewPacking && session.role?.name === "Super Admin") {
+    if (
+        viewPacking &&
+        String(session.role?.name || "").trim().toLowerCase() === "super admin"
+    ) {
         routes.Sales.push(
             _route("Packing List", Icons.packingList, "/sales/packing-list"),
         );

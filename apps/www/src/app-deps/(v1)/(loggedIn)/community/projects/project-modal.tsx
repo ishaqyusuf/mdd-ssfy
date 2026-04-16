@@ -1,6 +1,6 @@
 import { useBuilders } from "@/_v2/hooks/use-static-data";
-import { _revalidate } from "@/app/(v1)/_actions/_revalidate";
-import { saveProject } from "@/app/(v1)/_actions/community/projects";
+import { _revalidate } from "@/app-deps/(v1)/_actions/_revalidate";
+import { saveProject } from "@/app-deps/(v1)/_actions/community/projects";
 import FormInput from "@/components/common/controls/form-input";
 import FormSelect from "@/components/common/controls/form-select";
 import Modal from "@/components/common/modal";

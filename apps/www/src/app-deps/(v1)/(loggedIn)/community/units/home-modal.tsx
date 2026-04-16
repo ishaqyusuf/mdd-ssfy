@@ -5,12 +5,12 @@ import { Icons } from "@gnd/ui/icons";
 import React, { useEffect, useState } from "react";
 
 import { useRouter } from "next/navigation";
-import { _revalidate } from "@/app/(v1)/_actions/_revalidate";
-import { staticCommunity } from "@/app/(v1)/_actions/community/community-template";
+import { _revalidate } from "@/app-deps/(v1)/_actions/_revalidate";
+import { staticCommunity } from "@/app-deps/(v1)/_actions/community/community-template";
 import {
     _updateCommunityHome,
     createHomesAction,
-} from "@/app/(v1)/_actions/community/create-homes";
+} from "@/app-deps/(v1)/_actions/community/create-homes";
 import Modal from "@/components/common/modal";
 import { useModal } from "@/components/common/modal/provider";
 import { homeSearchMeta } from "@/lib/community/community-utils";

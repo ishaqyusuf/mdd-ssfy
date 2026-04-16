@@ -41,6 +41,10 @@ type SalesEmailTemplateProps = {
 	}[];
 };
 
+function normalizeText(value: string | null | undefined) {
+	return value?.trim() || null;
+}
+
 async function loadSales(props: SendSalesEmailPayload) {
 	const { db } = await import("@gnd/db");
 	const { salesIds, salesNos } = props;
@@ -87,7 +91,14 @@ async function loadSales(props: SendSalesEmailPayload) {
 		})
 	).map((sale) => {
 		const po = (sale.meta as { po?: string | null } | null)?.po;
-		const customerEmail = sale.customer?.email || sale.billingAddress?.email;
+		const customerEmail =
+			normalizeText(sale.customer?.email) ||
+			normalizeText(sale.billingAddress?.email);
+		const businessName = normalizeText(sale.customer?.businessName);
+		const customerName =
+			normalizeText(sale.customer?.name) ||
+			businessName ||
+			normalizeText(sale.billingAddress?.name);
 
 		return {
 			customerEmail,
@@ -99,26 +110,57 @@ async function loadSales(props: SendSalesEmailPayload) {
 			total: sale.grandTotal || 0,
 			date: sale.createdAt || new Date(),
 			orderId: sale.orderId,
-			salesRep: sale.salesRep?.name,
-			salesRepEmail: sale.salesRep?.email,
-			customerName: sale.customer?.name || sale.billingAddress?.name,
-			businessName: sale.customer?.businessName,
+			salesRep: normalizeText(sale.salesRep?.name),
+			salesRepEmail: normalizeText(sale.salesRep?.email),
+			customerName,
+			businessName,
 		} satisfies SalesRecord;
 	});
 
 	logger.log(`Sending ${sales.length} emails...`);
 
 	const grouped: Record<string, SalesRecord[]> = {};
+	const skippedSales: {
+		id: number;
+		orderId: string;
+		customerEmail: string | null | undefined;
+		customerName: string | null | undefined;
+		salesRepEmail: string | null | undefined;
+		reasons: string[];
+	}[] = [];
 	for (const sale of sales) {
-		if (!sale.customerEmail) {
-			return;
+		const reasons: string[] = [];
+
+		if (!sale.customerEmail) reasons.push("missing_customer_email");
+		if (!sale.customerName) reasons.push("missing_customer_name");
+		if (!sale.salesRepEmail) reasons.push("missing_sales_rep_email");
+
+		if (reasons.length) {
+			skippedSales.push({
+				id: sale.id,
+				orderId: sale.orderId,
+				customerEmail: sale.customerEmail,
+				customerName: sale.customerName,
+				salesRepEmail: sale.salesRepEmail,
+				reasons,
+			});
+			continue;
 		}
 
-		if (!grouped[sale.customerEmail]) {
-			grouped[sale.customerEmail] = [];
+		const recipientEmail = sale.customerEmail as string;
+
+		if (!grouped[recipientEmail]) {
+			grouped[recipientEmail] = [];
 		}
 
-		grouped[sale.customerEmail]?.push(sale);
+		grouped[recipientEmail]?.push(sale);
+	}
+
+	if (skippedSales.length) {
+		logger.warn("Skipping sales emails with incomplete recipient metadata", {
+			skippedCount: skippedSales.length,
+			skippedSales,
+		});
 	}
 
 	return {
@@ -193,12 +235,12 @@ export function createSendSalesEmailTask(id: SalesEmailTaskId) {
 				await Promise.all(
 					batch.map(async (matchingSales: SalesRecord[]) => {
 						logger.log(`Processing sales: ${matchingSales[0]?.id}`);
-						const email = matchingSales[0]?.customerEmail;
-						const customerName = matchingSales[0]?.customerName;
+						const email = matchingSales[0]?.customerEmail as string;
+						const customerName = matchingSales[0]?.customerName as string;
 						const isQuote = matchingSales[0]?.isQuote;
-						const emailSlug = email?.split("@")[0];
-						const salesRepEmail = matchingSales[0]?.salesRepEmail;
-						const salesRep = matchingSales[0]?.salesRep;
+						const emailSlug = email.split("@")[0];
+						const salesRepEmail = matchingSales[0]?.salesRepEmail as string;
+						const salesRep = matchingSales[0]?.salesRep || "Sales Team";
 						const pendingAmountSales = matchingSales.filter((s) => s.due > 0);
 						const totalDueAmount = sum(pendingAmountSales, "due");
 
@@ -250,15 +292,9 @@ export function createSendSalesEmailTask(id: SalesEmailTaskId) {
 						});
 
 						logger.log(`Sending email to ${email}`, { sales });
-						if (!email || !customerName || !salesRepEmail) {
-							throw new Error("Missing sales email recipient metadata");
-						}
-
 						await sendEmail({
 							subject: `${salesRep} sent you ${isQuote ? "a quote" : "an invoice"}`,
-							from: `GND Millwork <${
-								salesRepEmail?.split("@")[0]
-							}@gndprodesk.com>`,
+							from: `GND Millwork <${salesRepEmail.split("@")[0]}@gndprodesk.com>`,
 							to: email,
 							content: SalesEmail({
 								isQuote,

@@ -3,10 +3,9 @@
 import { useTransition } from "react";
 
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
-import { AuthGuard } from "@/components/auth-guard";
 import { SalesMenu } from "@/components/sales-menu";
 import { SendSalesReminder } from "@/components/send-sales-reminder";
-import { _perm, _role } from "@/components/sidebar/links";
+import { useAuth } from "@/hooks/use-auth";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { openLink } from "@/lib/open-link";
@@ -16,8 +15,8 @@ import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { toast } from "sonner";
 
+import { SendForPackingButton } from "@/components/sales/send-for-packing-button";
 import { useSalesOverviewSystem } from "../provider";
-import { SendForPickupButton } from "@/components/sales/send-for-pickup-button";
 
 export function QuickActionsBar() {
 	const {
@@ -25,7 +24,12 @@ export function QuickActionsBar() {
 	} = useSalesOverviewSystem();
 	const sPreview = useSalesPreview();
 	const batchSales = useBatchSales();
+	const auth = useAuth();
 	const [loading, startTransition] = useTransition();
+	const canSendForPacking =
+		auth.can?.editOrders &&
+		auth.roleTitle?.toLowerCase() === "super admin" &&
+		!isQuote;
 
 	if (!data?.id) return null;
 
@@ -47,14 +51,12 @@ export function QuickActionsBar() {
 	return (
 		<div className="flex flex-wrap gap-2">
 			<SendSalesReminder salesIds={[data.id]} />
-			{!isQuote ? (
-				<AuthGuard rules={[_perm.is("editOrders"), _role.is("Super Admin")]}>
-					<SendForPickupButton
-						salesId={data.id}
-						orderNo={data.orderId}
-						className="flex items-center gap-2"
-					/>
-				</AuthGuard>
+			{canSendForPacking ? (
+				<SendForPackingButton
+					salesId={data.id}
+					orderNo={data.orderId}
+					className="flex items-center gap-2"
+				/>
 			) : null}
 			<Button
 				onClick={preview}

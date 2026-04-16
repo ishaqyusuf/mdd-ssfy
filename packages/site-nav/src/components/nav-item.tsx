@@ -8,6 +8,8 @@ import { NavLink } from "./nav-link";
 import { NavChildItem } from "./nav-child-item";
 import { useSiteNav } from "./use-site-nav";
 
+const HOVER_EXPAND_DELAY_MS = 1200;
+
 export interface NavItemProps {
   module: NavModule;
   item: NavLinkType;
@@ -28,7 +30,9 @@ export const NavItem = ({
   const {
     props: { pathName },
   } = useSiteNav();
-  const normalizedPathName = normalizeNavPath(pathName?.toLocaleLowerCase() || "");
+  const normalizedPathName = normalizeNavPath(
+    pathName?.toLocaleLowerCase() || "",
+  );
   const hasChildren = item.subLinks && item.subLinks.length > 0;
   const [isHovered, setIsHovered] = useState(false);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -43,7 +47,7 @@ export const NavItem = ({
     if (hasChildren && !hasActiveChild && !isActive) {
       hoverTimeoutRef.current = setTimeout(() => {
         setIsHovered(true);
-      }, 250);
+      }, HOVER_EXPAND_DELAY_MS);
     } else {
       setIsHovered(true);
     }

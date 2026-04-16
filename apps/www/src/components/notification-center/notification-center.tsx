@@ -47,6 +47,10 @@ export function NotificationCenter() {
 			context.close();
 			setJobParams({ openJobId: Number(data.jobId) });
 		},
+		quote_accepted: (data, _notification, context) => {
+			context.close();
+			salesOverview.openSalesAdminPage(String(data.orderNo));
+		},
 		sales_checkout_success: (data, _notification, context) => {
 			const firstOrderNo = data.orderNos[0];
 			if (!firstOrderNo) return;

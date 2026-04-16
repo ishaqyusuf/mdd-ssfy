@@ -84,6 +84,14 @@ export function NotificationCenterScreen() {
     job_submitted: (data) => {
       router.push(`/job/${data.jobId}` as any);
     },
+    quote_accepted: (data) => {
+      router.push({
+        pathname: "/(sales)/orders/[orderNo]",
+        params: {
+          orderNo: String(data.orderNo),
+        },
+      });
+    },
     sales_checkout_success: (data) => {
       const firstOrderNo = data.orderNos[0];
       if (!firstOrderNo) return;

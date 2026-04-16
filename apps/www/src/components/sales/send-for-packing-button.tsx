@@ -6,7 +6,7 @@ import { Icons } from "@gnd/ui/icons";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "sonner";
 
-export function SendForPickupButton({
+export function SendForPackingButton({
 	salesId,
 	orderNo,
 	className,
@@ -47,7 +47,7 @@ export function SendForPickupButton({
 
 				if (!result.hasRemainingItems) {
 					toast.info(
-						`No remaining items are available to send ${orderNo ? `for ${orderNo}` : "for pickup"}.`,
+						`No remaining items are available to send ${orderNo ? `for ${orderNo}` : "for packing"}.`,
 					);
 					return;
 				}
@@ -59,7 +59,7 @@ export function SendForPickupButton({
 				);
 			},
 			onError(error) {
-				toast.error(error.message || "Unable to send sale for pickup.");
+				toast.error(error.message || "Unable to send sale for packing.");
 			},
 		}),
 	);
@@ -77,7 +77,7 @@ export function SendForPickupButton({
 			}}
 		>
 			<Icons.packingList className="size-3.5" />
-			<span>{mutation.isPending ? "Sending..." : "Send for Pickup"}</span>
+			<span>{mutation.isPending ? "Sending..." : "Send for Packing"}</span>
 		</Button>
 	);
 }

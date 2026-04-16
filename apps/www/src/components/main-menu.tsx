@@ -241,6 +241,8 @@ const ChildItem = ({
     );
 };
 
+const HOVER_EXPAND_DELAY_MS = 750;
+
 const Item = ({
     item,
     isActive,
@@ -265,7 +267,7 @@ const Item = ({
         if (hasChildren && !hasActiveChild && !isActive) {
             hoverTimeoutRef.current = setTimeout(() => {
                 setIsHovered(true);
-            }, 250);
+            }, HOVER_EXPAND_DELAY_MS);
         } else {
             setIsHovered(true);
         }
@@ -371,4 +373,3 @@ const Item = ({
         </div>
     );
 };
-

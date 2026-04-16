@@ -22,7 +22,6 @@ import type { QtyControlType } from "@api/type";
 import type { Prisma } from "@gnd/db";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
 import {
-	getSaleInformation,
 	isControlOverviewReadV2Enabled,
 	isControlReadV2Enabled,
 	projectDispatchListControl,
@@ -189,14 +188,6 @@ function formatPackingAddress(address?: {
 	]
 		.filter(Boolean)
 		.join(", ");
-}
-
-function hasRemainingDeliverables(
-	info: Awaited<ReturnType<typeof getSaleInformation>>,
-) {
-	return info.items.some((item) =>
-		(item.deliverables ?? []).some((deliverable) => hasQty(deliverable.qty)),
-	);
 }
 
 async function userHasPackingAdminAccess(ctx: TRPCContext) {
@@ -939,25 +930,6 @@ export async function sendSaleForPickup(
 			created: false,
 			reused: true,
 			hasRemainingItems: true,
-		};
-	}
-
-	const info = await getSaleInformation(ctx.db as any, {
-		salesId: sale.id,
-	});
-	const hasRemainingItems = hasRemainingDeliverables(info);
-
-	if (!hasRemainingItems) {
-		const lastCompleted = sale.deliveries.find(
-			(delivery) => delivery.status === "completed",
-		);
-		return {
-			dispatchId: lastCompleted?.id ?? null,
-			status: lastCompleted?.status ?? null,
-			orderNo: sale.orderId,
-			created: false,
-			reused: false,
-			hasRemainingItems: false,
 		};
 	}
 

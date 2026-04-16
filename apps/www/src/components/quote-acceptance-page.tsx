@@ -1,6 +1,7 @@
 "use client";
 
 import { openLink } from "@/lib/open-link";
+import { quickPrint } from "@/lib/quick-print";
 import { useTRPC } from "@/trpc/client";
 import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
 import { Badge } from "@gnd/ui/badge";
@@ -31,6 +32,7 @@ export function QuoteAcceptancePage({ orderId, token }: Props) {
 	const trpc = useTRPC();
 	const [acceptedOrder, setAcceptedOrder] = useState<{
 		type: "order";
+		salesId: number;
 		orderId: string;
 		originalQuoteOrderId: string;
 		customerName: string;
@@ -209,23 +211,38 @@ export function QuoteAcceptancePage({ orderId, token }: Props) {
 
 						<div className="flex flex-col gap-3 sm:flex-row">
 							{isAccepted ? (
-								<Button
-									size="lg"
-									className="h-12 flex-1"
-									disabled={
-										!hasBalance ||
-										!paymentToken ||
-										paymentLinkMutation.isPending
-									}
-									onClick={() => {
-										if (!paymentToken) return;
-										paymentLinkMutation.mutate({ token: paymentToken });
-									}}
-								>
-									{paymentLinkMutation.isPending
-										? "Opening payment..."
-										: "Pay Now"}
-								</Button>
+								<>
+									<Button
+										size="lg"
+										className="h-12 flex-1"
+										disabled={
+											!hasBalance ||
+											!paymentToken ||
+											paymentLinkMutation.isPending
+										}
+										onClick={() => {
+											if (!paymentToken) return;
+											paymentLinkMutation.mutate({ token: paymentToken });
+										}}
+									>
+										{paymentLinkMutation.isPending
+											? "Opening payment..."
+											: "Pay Now"}
+									</Button>
+									<Button
+										size="lg"
+										variant="outline"
+										className="h-12"
+										onClick={() =>
+											void quickPrint({
+												salesIds: [currentOrder.salesId],
+												mode: "invoice",
+											})
+										}
+									>
+										View Invoice
+									</Button>
+								</>
 							) : (
 								<Button
 									size="lg"
