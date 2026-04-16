@@ -61,6 +61,10 @@ export default function HomeModal({ home }: Props) {
         control: form.control,
         name: "units",
     });
+    const [projects, setProjects] = useState<IProject[]>([]);
+    const [communityTemplates, setCommunityTemplates] = useState<
+        ICommunityTemplate[]
+    >([]);
     const projectId = form.watch("projectId");
     const projectModels = communityTemplates
         ?.filter((model) => model.projectId == projectId)
@@ -148,10 +152,6 @@ export default function HomeModal({ home }: Props) {
     function register(i, key: keyof IHome) {
         return form.register(`units.${i}.${key}` as any);
     }
-    const [projects, setProjects] = useState<IProject[]>([]);
-    const [communityTemplates, setCommunityTemplates] = useState<
-        ICommunityTemplate[]
-    >([]);
     useEffect(() => {
         async function loadStatics() {
             const projectList = (await staticProjectsAction()) as any;
