@@ -1,6 +1,6 @@
 import type { PrintSigningData } from "@gnd/sales/print/types";
 import { Image, Text, View } from "@react-pdf/renderer";
-import { resolveImageSrc } from "../../../shared/utils";
+import { resolveDocumentImageSrc } from "../../../shared/utils";
 
 // ─── Design tokens ─────────────────────────────────────────
 const BORDER = "#d1dae8";
@@ -17,26 +17,34 @@ export function SignatureBlock({
 	signing,
 	baseUrl,
 }: SignatureBlockProps) {
-	const signatureUrl = resolveImageSrc(signing?.signatureUrl, baseUrl);
+	const signatureUrl = resolveDocumentImageSrc(signing?.signatureUrl, baseUrl);
+	const lineHeight = 52;
 
 	return (
 		<View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 }}>
-			<View style={{ flexDirection: "row", gap: 24, alignItems: "flex-end" }}>
-				<View style={{ flex: 2 }}>
+			<View style={{ flexDirection: "row", alignItems: "flex-end" }}>
+				<View style={{ width: "33.3333%" }}>
 					<View
 						style={{
-							height: 36,
+							height: lineHeight,
 							borderBottomWidth: 1,
 							borderBottomColor: BORDER,
 							borderStyle: "dashed",
 							marginBottom: 4,
-							justifyContent: "flex-end",
+							position: "relative",
 						}}
 					>
 						{signatureUrl ? (
 							<Image
 								src={signatureUrl}
-								style={{ height: 30, width: "100%", objectFit: "contain" }}
+								style={{
+									position: "absolute",
+									left: 0,
+									bottom: 2,
+									height: 44,
+									width: "100%",
+									objectFit: "contain",
+								}}
 							/>
 						) : null}
 					</View>
@@ -45,38 +53,48 @@ export function SignatureBlock({
 					>
 						{label}
 					</Text>
-					{signing?.receivedBy ? (
-						<Text style={{ fontSize: 8, marginTop: 2 }}>
-							Received by: {signing.receivedBy}
-						</Text>
-					) : null}
-					{signing?.packedBy ? (
-						<Text style={{ fontSize: 8, marginTop: 2 }}>
-							Packed by: {signing.packedBy}
-						</Text>
-					) : null}
 				</View>
-				<View style={{ flex: 1 }}>
+				<View style={{ width: "33.3333%" }} />
+				<View style={{ width: "33.3333%" }}>
 					<View
 						style={{
-							height: 36,
+							height: lineHeight,
 							borderBottomWidth: 1,
 							borderBottomColor: BORDER,
 							borderStyle: "dashed",
 							marginBottom: 4,
+							justifyContent: "flex-end",
 						}}
-					/>
+					>
+						{signing?.signedAt ? (
+							<Text
+								style={{
+									fontSize: 16,
+									fontFamily: "GreatVibes",
+								}}
+							>
+								{new Date(signing.signedAt).toLocaleDateString("en-US")}
+							</Text>
+						) : null}
+					</View>
 					<Text
 						style={{ fontSize: 7.5, color: TEXT_MUTED, fontStyle: "italic" }}
 					>
 						Date
 					</Text>
-					{signing?.signedAt ? (
-						<Text style={{ fontSize: 8, marginTop: 2 }}>
-							{new Date(signing.signedAt).toLocaleDateString("en-US")}
-						</Text>
-					) : null}
 				</View>
+			</View>
+			<View style={{ marginTop: 10 }}>
+				{signing?.receivedBy ? (
+					<Text style={{ fontSize: 8, marginTop: 2 }}>
+						Received by: {signing.receivedBy}
+					</Text>
+				) : null}
+				{signing?.packedBy ? (
+					<Text style={{ fontSize: 8, marginTop: 2 }}>
+						Packed by: {signing.packedBy}
+					</Text>
+				) : null}
 			</View>
 		</View>
 	);

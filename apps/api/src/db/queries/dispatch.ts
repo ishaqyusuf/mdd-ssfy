@@ -1202,7 +1202,10 @@ export async function signPackingSlip(
 		},
 	} as UpdateSalesControl);
 
-	await getDispatchNotificationService(ctx).send("sales_dispatch_completed", {
+	await new NotificationService(tasks, {
+		db: ctx.db,
+		userId: ctx.userId,
+	}).send("sales_dispatch_completed", {
 		author: {
 			id: ctx.userId,
 			role: "employee",

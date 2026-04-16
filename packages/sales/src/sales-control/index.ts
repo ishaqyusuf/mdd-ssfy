@@ -285,18 +285,45 @@ export async function updateSalesItemControlAction(db: Db, salesId) {
       },
     },
   });
-  const arr = await Promise.all(
-    controls.map(async (c) => {
-      if (c.create) return await tx.salesItemControl.create({ data: c.create });
-      if (c.update)
-        return await tx.salesItemControl.update({
-          data: c.update,
-          where: {
-            uid: c.uid,
+  const arr = [];
+  for (const c of controls) {
+    await tx.qtyControl.deleteMany({
+      where: {
+        itemControlUid: c.uid,
+      },
+    });
+
+    arr.push(
+      await tx.salesItemControl.upsert({
+        where: {
+          uid: c.uid,
+        },
+        create: {
+          uid: c.uid,
+          ...(c.controlData as any),
+          item: {
+            connect: { id: c.itemId },
           },
-        });
-    })
-  );
+          sales: {
+            connect: { id: c.orderId },
+          },
+          qtyControls: {
+            createMany: {
+              data: c.qtyControlData as any,
+            },
+          },
+        },
+        update: {
+          ...(c.controlData as any),
+          qtyControls: {
+            createMany: {
+              data: c.qtyControlData as any,
+            },
+          },
+        },
+      }),
+    );
+  }
   return { del, arr };
   // }) as any);
 

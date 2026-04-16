@@ -44,6 +44,11 @@ Font.register({
 	],
 });
 
+Font.register({
+	family: "GreatVibes",
+	src: "https://raw.githubusercontent.com/google/fonts/main/ofl/greatvibes/GreatVibes-Regular.ttf",
+});
+
 interface SalesPdfDocumentProps {
 	pages: PrintPage[];
 	templateId?: string;

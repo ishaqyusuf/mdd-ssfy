@@ -1164,7 +1164,8 @@ function DispatchDetailScreenInner({
                     folder: `dispatch/${dispatch.id}/signature`,
                     text: buildSignatureSvg(signaturePathRaw),
                   });
-                  signaturePathname = uploadedSignature.pathname;
+                  signaturePathname =
+                    uploadedSignature.url || uploadedSignature.pathname;
                 }
 
                 await actions.onSubmitDispatch({

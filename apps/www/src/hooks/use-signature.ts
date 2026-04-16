@@ -23,7 +23,7 @@ export function useSignature({ id }: Props) {
                     token,
                 },
             );
-            return result?.pathname;
+            return result?.url || result?.pathname;
         }
         return null;
     };
@@ -32,4 +32,3 @@ export function useSignature({ id }: Props) {
         saveSignature,
     };
 }
-

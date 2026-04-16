@@ -477,6 +477,15 @@ interface ComposeQtyControlProps {
   shippable;
 }
 
+function dedupeQtyControlsByType<T extends { type: string }>(qtyControls: T[]) {
+  return Array.from(
+    qtyControls.reduce((map, qtyControl) => {
+      map.set(qtyControl.type, qtyControl);
+      return map;
+    }, new Map<string, T>()),
+  ).map(([, qtyControl]) => qtyControl);
+}
+
 function composeQtyControl(props: ComposeQtyControlProps) {
   const { produceable, shippable } = props;
   const totalQty = props.qty ? props.qty : sum([props.lh, props.rh]);
@@ -694,6 +703,10 @@ export function composeControls(order: GetSalesItemControllables) {
   ).map(([, control]) => control);
   let response: {
     uid;
+    itemId;
+    orderId;
+    controlData: Prisma.SalesItemControlUpdateInput;
+    qtyControlData: Omit<QtyControlByType["qty"][number], "itemControlUid">[];
     create?: Prisma.SalesItemControlCreateInput;
     update?: Prisma.SalesItemControlUpdateInput;
     // qtyControls: Prisma.QtyControlCreateManyInput[];
@@ -711,8 +724,22 @@ export function composeControls(order: GetSalesItemControllables) {
         ...rest
       } = prevControl;
       const equals = isEqual(rest, control.data);
+      const qtyControlData = dedupeQtyControlsByType(control.qtyControls).map(
+        (qty) => {
+          const prevQty = qtyControls.find((c) => c.type == qty.type);
+
+          qty.autoComplete = prevQty?.autoComplete;
+          if (prevQty?.autoComplete) qty.percentage = 100;
+          const { itemControlUid, ...createData } = qty;
+          return createData;
+        },
+      );
       response.push({
         uid: control.uid,
+        itemId: control.itemId,
+        orderId: control.orderId,
+        controlData: control.data,
+        qtyControlData,
 
         update: {
           // uid: control.uid,
@@ -722,21 +749,25 @@ export function composeControls(order: GetSalesItemControllables) {
           shippable: control.data.shippable,
           qtyControls: {
             createMany: {
-              data: control.qtyControls.map((qty) => {
-                const prevQty = qtyControls.find((c) => c.type == qty.type);
-
-                qty.autoComplete = prevQty?.autoComplete;
-                if (prevQty?.autoComplete) qty.percentage = 100;
-                const { itemControlUid, ...createData } = qty;
-                return createData;
-              }),
+              data: qtyControlData,
             },
           },
         },
       });
     } else
+      {
+      const qtyControlData = dedupeQtyControlsByType(control.qtyControls).map(
+        (cont) => {
+          const { itemControlUid, ...rest } = cont;
+          return rest;
+        },
+      );
       response.push({
         uid: control.uid,
+        itemId: control.itemId,
+        orderId: control.orderId,
+        controlData: control.data,
+        qtyControlData,
         create: {
           uid: control.uid,
           ...(control.data as any),
@@ -748,14 +779,12 @@ export function composeControls(order: GetSalesItemControllables) {
           },
           qtyControls: {
             createMany: {
-              data: control.qtyControls.map((cont) => {
-                const { itemControlUid, ...rest } = cont;
-                return rest;
-              }),
+              data: qtyControlData,
             },
           },
         },
       });
+    }
   });
   return response;
 }
