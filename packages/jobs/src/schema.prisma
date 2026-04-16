@@ -4500,6 +4500,7 @@ model OrderDelivery {
     createdById  Int?
     status       String?
     dueDate      DateTime?
+    deliveredAt  DateTime?           @db.Timestamp(0)
     meta         Json?               @db.Json
     createdAt    DateTime?           @default(now()) @db.Timestamp(0)
     updatedAt    DateTime            @updatedAt
@@ -4511,6 +4512,7 @@ model OrderDelivery {
     @@index([salesOrderId])
     @@index([driverId])
     @@index([createdById])
+    @@index([deliveredAt])
 }
 
 model DispatchRegion {
