@@ -128,6 +128,15 @@ async function composeSigningData(
 		await getDispatchCompletedActivity(db, dispatchId);
 	const completionNote =
 		completionActivity || (await getDispatchCompletetionNotes(db, dispatchId));
+	const dispatch = await db.orderDelivery.findFirst({
+		where: {
+			id: dispatchId,
+			deletedAt: null,
+		},
+		select: {
+			deliveredAt: true,
+		},
+	});
 	const customerName =
 		sale.shippingAddress?.name ||
 		sale.customer?.businessName ||
@@ -145,6 +154,9 @@ async function composeSigningData(
 		signatureUrl: completionNote?.tag?.signature?.value || null,
 		signedAt: completionNote?.createdAt
 			? new Date(completionNote.createdAt).toISOString()
+			: null,
+		deliveredAt: dispatch?.deliveredAt
+			? new Date(dispatch.deliveredAt).toISOString()
 			: null,
 	};
 }

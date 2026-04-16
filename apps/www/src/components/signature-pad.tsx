@@ -1,125 +1,92 @@
 "use client";
 
-import type React from "react";
-import { useState } from "react";
+import React from "react";
+import SignaturePadCanvas from "react-signature-pad-wrapper";
 import { Button } from "@gnd/ui/button";
 import { Label } from "@gnd/ui/label";
 
 interface SignaturePadProps {
-    onSignatureChange: (signature: string) => void;
-    signatureId: string;
+	onSignatureChange: (signature: string) => void;
+	signatureId: string;
 }
 
 export function SignaturePad({
-    onSignatureChange,
-    signatureId,
+	onSignatureChange,
+	signatureId,
 }: SignaturePadProps) {
-    const [isDrawing, setIsDrawing] = useState(false);
+	const padRef = React.useRef<SignaturePadCanvas | null>(null);
 
-    const startDrawing = (
-        e:
-            | React.MouseEvent<HTMLCanvasElement>
-            | React.TouchEvent<HTMLCanvasElement>,
-    ) => {
-        setIsDrawing(true);
-        const canvas = e.currentTarget;
-        const rect = canvas.getBoundingClientRect();
-        const x =
-            "touches" in e
-                ? e.touches[0].clientX - rect.left
-                : e.clientX - rect.left;
-        const y =
-            "touches" in e
-                ? e.touches[0].clientY - rect.top
-                : e.clientY - rect.top;
+	const syncSignatureValue = React.useCallback(() => {
+		const pad = padRef.current;
+		if (!pad || pad.isEmpty()) {
+			onSignatureChange("");
+			return;
+		}
+		onSignatureChange(pad.toDataURL("image/png"));
+	}, [onSignatureChange]);
 
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-        }
-    };
+	React.useEffect(() => {
+		const canvas = padRef.current?.canvas.current;
+		if (!canvas) return;
 
-    const draw = (
-        e:
-            | React.MouseEvent<HTMLCanvasElement>
-            | React.TouchEvent<HTMLCanvasElement>,
-    ) => {
-        if (!isDrawing) return;
+		const handlePointerEnd = () => {
+			syncSignatureValue();
+		};
 
-        const canvas = e.currentTarget;
-        const rect = canvas.getBoundingClientRect();
-        const x =
-            "touches" in e
-                ? e.touches[0].clientX - rect.left
-                : e.clientX - rect.left;
-        const y =
-            "touches" in e
-                ? e.touches[0].clientY - rect.top
-                : e.clientY - rect.top;
+		canvas.addEventListener("pointerup", handlePointerEnd);
+		canvas.addEventListener("mouseup", handlePointerEnd);
+		canvas.addEventListener("touchend", handlePointerEnd);
 
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-            ctx.lineWidth = 2;
-            ctx.lineCap = "round";
-            ctx.strokeStyle = "#000";
-            ctx.lineTo(x, y);
-            ctx.stroke();
-        }
-    };
+		return () => {
+			canvas.removeEventListener("pointerup", handlePointerEnd);
+			canvas.removeEventListener("mouseup", handlePointerEnd);
+			canvas.removeEventListener("touchend", handlePointerEnd);
+		};
+	}, [syncSignatureValue]);
 
-    const stopDrawing = () => {
-        setIsDrawing(false);
-        const canvas = document.getElementById(
-            signatureId,
-        ) as HTMLCanvasElement | null;
-        if (canvas) {
-            onSignatureChange(canvas.toDataURL());
-        }
-    };
+	const clearSignature = () => {
+		padRef.current?.clear();
+		onSignatureChange("");
+	};
 
-    const clearSignature = () => {
-        const canvas = document.getElementById(
-            signatureId,
-        ) as HTMLCanvasElement;
-        if (canvas) {
-            const ctx = canvas.getContext("2d");
-            if (ctx) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-            }
-        }
-        onSignatureChange("");
-    };
-
-    return (
-        <div className="space-y-2">
-            <Label>Digital Signature</Label>
-            <div className="border rounded-lg p-4 bg-white">
-                <canvas
-                    id={signatureId}
-                    width={400}
-                    height={200}
-                    className="border border-dashed border-gray-300 w-full h-32 cursor-crosshair"
-                    onMouseDown={startDrawing}
-                    onMouseMove={draw}
-                    onMouseUp={stopDrawing}
-                    onMouseLeave={stopDrawing}
-                    onTouchStart={startDrawing}
-                    onTouchMove={draw}
-                    onTouchEnd={stopDrawing}
-                />
-                <div className="flex justify-between mt-2">
-                    <p className="text-xs text-muted-foreground">Sign above</p>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={clearSignature}
-                    >
-                        Clear
-                    </Button>
-                </div>
-            </div>
-        </div>
-    );
+	return (
+		<div className="space-y-2">
+			<Label>Digital Signature</Label>
+			<div className="space-y-2 rounded-lg border bg-white p-4">
+				<div className="rounded-md border border-dashed border-gray-300 bg-white">
+					<SignaturePadCanvas
+						ref={padRef}
+						redrawOnResize
+						options={{
+							minWidth: 1.2,
+							maxWidth: 2.4,
+							throttle: 12,
+							penColor: "#111111",
+						}}
+						canvasProps={{
+							id: signatureId,
+							className: "block h-40 w-full cursor-crosshair touch-none",
+							style: {
+								width: "100%",
+								height: "160px",
+								touchAction: "none",
+								userSelect: "none",
+							},
+						}}
+					/>
+				</div>
+				<div className="flex justify-between">
+					<p className="text-xs text-muted-foreground">Sign above</p>
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={clearSignature}
+					>
+						Clear
+					</Button>
+				</div>
+			</div>
+		</div>
+	);
 }

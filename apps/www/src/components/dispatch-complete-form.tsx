@@ -141,16 +141,7 @@ export function DispatchCompleteForm({}) {
                             {/* Signature Pad */}
                             <SignaturePad
                                 signatureId={sig.id}
-                                onSignatureChange={
-                                    async (signature) => {
-                                        const blobData = await fetch(
-                                            signature,
-                                        ).then((res) => res.blob());
-                                        console.log(blobData);
-                                    }
-
-                                    // onCompletionDataChange({ signature })
-                                }
+                                onSignatureChange={() => {}}
                             />
 
                             {/* Photo Upload */}
@@ -223,4 +214,3 @@ export function DispatchCompleteForm({}) {
         </div>
     );
 }
-

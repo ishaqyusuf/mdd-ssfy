@@ -118,6 +118,17 @@ export function PackingSlipSignFab({
 
 	const packedBy = auth.name || signing?.packedBy || "Current user";
 	const isBusy = mutation.isPending || isRefreshingSlip;
+	const deliveredAtMs = signing?.deliveredAt
+		? new Date(signing.deliveredAt).getTime()
+		: null;
+	const isResignExpired =
+		!!signing?.signatureUrl &&
+		!!deliveredAtMs &&
+		Date.now() - deliveredAtMs > 5 * 60 * 1000;
+
+	if (isResignExpired) {
+		return null;
+	}
 
 	return (
 		<>

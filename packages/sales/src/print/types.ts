@@ -60,6 +60,7 @@ export interface PrintSigningData {
 	receivedBy: string | null;
 	signatureUrl: string | null;
 	signedAt: string | null;
+	deliveredAt: string | null;
 }
 
 // ─── Sections (discriminated union) ──────────────────────────
