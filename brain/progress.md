@@ -2,6 +2,27 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-04-16
+
+- Added organized per-tab versioning to the v2 sales overview system and shipped a redesigned overview/general tab as the default `v2` experience.
+  - added `apps/www/src/components/sales-overview-system/tab-versions.tsx` as the version resolver layer so tabs can switch between versions without changing the provider, shells, or access policy
+  - introduced version-folder ownership for all current tabs:
+    - `tabs/overview/v1.tsx`
+    - `tabs/overview/v2.tsx`
+    - `tabs/finance/v1.tsx`
+    - `tabs/production/v1.tsx`
+    - `tabs/dispatch/v1.tsx`
+    - `tabs/packing/v1.tsx`
+    - `tabs/transactions/v1.tsx`
+    - `tabs/details/v1.tsx`
+  - updated `apps/www/src/components/sales-overview-system/tab-registry.tsx` so content now resolves through the version registry while preserving the existing role-based visibility and quote gating
+  - added reusable overview-v2 section components in `apps/www/src/components/sales-overview-system/sections/overview/overview-v2-sections.tsx`
+  - rebuilt the overview tab as `tabs/overview/v2.tsx` with a clearer summary hero, health-status cards, better customer/order grouping, and separate address and invoice-breakdown sections
+  - left the previous overview implementation available as `overview/v1` for low-risk fallback and future comparison
+  - validation note:
+    - targeted `bunx biome check` passes for the touched `sales-overview-system` files
+    - workspace `apps/www` typecheck was started, but it did not finish within the quick validation window, so no clean full-slice TypeScript result was available in-session
+
 ## 2026-04-15
 
 - Moved the sales-book accounting workspace into the sidebar-owned route tree and rebuilt the accounting + resolution pages around the current table/page standard.

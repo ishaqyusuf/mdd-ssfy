@@ -1,5 +1,7 @@
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
+import { AuthGuard } from "@/components/auth-guard";
 import { SalesMenu } from "@/components/sales-menu";
+import { _perm } from "@/components/sidebar/links";
 import { SendForPackingButton } from "@/components/sales/send-for-packing-button";
 import { SendSalesReminder } from "@/components/send-sales-reminder";
 import { useAuth } from "@/hooks/use-auth";

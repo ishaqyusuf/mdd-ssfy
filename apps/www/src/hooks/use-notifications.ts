@@ -1,25 +1,33 @@
 "use client";
 
+import { useAuth } from "@/hooks/use-auth";
 import { useTRPC } from "@/trpc/client";
 import { transformNotifications } from "@notifications/notification-center";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useUserNotificationAccount } from "./use-user-notification-account";
 
 export function useNotifications() {
+	const auth = useAuth();
 	const trpc = useTRPC();
-	const queryClient = useQueryClient();
-	const { data: notificationAccount } = useUserNotificationAccount();
+	const {
+		data: notificationAccount,
+		isLoading: notificationAccountLoading,
+		error: notificationAccountError,
+	} = useUserNotificationAccount();
+	const notificationAccountId = notificationAccount?.id;
 	const {
 		data: activitiesData,
 		isLoading,
 		error,
 	} = useQuery(
 		trpc.notes.list.queryOptions({
-			contactIds: [notificationAccount?.id || 0],
+			contactIds: notificationAccountId ? [notificationAccountId] : [],
 			maxPriority: 3, // Only fetch notifications (priority <= 3)
 			pageSize: 20,
 			status: ["unread", "read"], // Exclude archived notifications from query
+		}, {
+			enabled: auth.enabled && !!notificationAccountId,
 		}),
 	);
 	// Separate query for archived notifications
@@ -29,7 +37,9 @@ export function useNotifications() {
 				maxPriority: 3,
 				pageSize: 20,
 				status: ["archived"], // Only archived notifications
-				contactIds: [notificationAccount?.id || 0],
+				contactIds: notificationAccountId ? [notificationAccountId] : [],
+			}, {
+				enabled: auth.enabled && !!notificationAccountId,
 			}),
 		);
 	const notifications = useMemo(
@@ -47,8 +57,9 @@ export function useNotifications() {
 	);
 	const markMessageAsRead = (messageId: number) => {};
 	return {
-		isLoading: isLoading || archivedIsLoading,
-		error,
+		isLoading:
+			auth.isPending || notificationAccountLoading || isLoading || archivedIsLoading,
+		error: notificationAccountError ?? error,
 		notifications,
 		archived: archivedNotifications,
 		hasUnseenNotifications,

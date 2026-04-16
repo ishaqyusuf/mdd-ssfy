@@ -6,6 +6,27 @@ Design a new sales overview system that replaces the current noisy sheet with a 
 
 ## Current Status
 
+### 2026-04-16
+
+- Added a tab-version registry at `apps/www/src/components/sales-overview-system/tab-versions.tsx` so each tab can resolve a default version without changing the provider, shell, or access-policy flow.
+- Organized the tab file shape for future redesigns by adding version folders such as:
+  - `tabs/overview/v1.tsx`
+  - `tabs/overview/v2.tsx`
+  - `tabs/finance/v1.tsx`
+  - `tabs/production/v1.tsx`
+  - `tabs/dispatch/v1.tsx`
+  - `tabs/packing/v1.tsx`
+  - `tabs/transactions/v1.tsx`
+  - `tabs/details/v1.tsx`
+- Redesigned the overview/general tab as `overview` `v2` with:
+  - a stronger hero summary block
+  - explicit payment, production, and delivery health cards
+  - cleaner customer/order grouping
+  - separate address and invoice breakdown sections
+- `tab-registry.tsx` now resolves content through the shared version registry while preserving the existing role filters and quote gating.
+- Default active versions now map `overview -> v2` and all other tabs to `v1`, making version switching a config change rather than a registry rewrite.
+- Phase 4 is now materially complete for the overview tab, and a reusable versioning seam exists for later redesigns across the remaining tabs.
+
 ### 2026-03-18
 
 - All 7 tabs built and registered: overview, finance, production, dispatch, packing, transactions, details.

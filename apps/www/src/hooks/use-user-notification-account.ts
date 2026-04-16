@@ -1,9 +1,18 @@
 "use client";
 
+import { useAuth } from "@/hooks/use-auth";
 import { useTRPC } from "@/trpc/client";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 export function useUserNotificationAccount() {
-    const trpc = useTRPC();
-    return useSuspenseQuery(trpc.user.notificationAccount.queryOptions());
+	const trpc = useTRPC();
+	const auth = useAuth();
+
+	return useQuery(
+		trpc.user.notificationAccount.queryOptions(undefined, {
+			enabled: auth.enabled && !auth.isPending,
+			retry: false,
+			staleTime: 5 * 60 * 1000,
+		}),
+	);
 }

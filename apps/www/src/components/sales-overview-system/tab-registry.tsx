@@ -3,19 +3,15 @@
 import type { ReactNode } from "react";
 
 import { useSalesOverviewSystem } from "./provider";
-import { SalesOverviewDetailsTab } from "./tabs/details-tab";
-import { SalesOverviewDispatchTab } from "./tabs/dispatch-tab";
-import { SalesOverviewFinanceTab } from "./tabs/finance-tab";
-import { SalesOverviewOverviewTab } from "./tabs/overview-tab";
-import { SalesOverviewPackingTab } from "./tabs/packing-tab";
-import { SalesOverviewProductionTab } from "./tabs/production-tab";
-import { SalesOverviewTransactionsTab } from "./tabs/transactions-tab";
+import { resolveSalesOverviewTabVersion } from "./tab-versions";
 import type { SalesOverviewTabId } from "./types";
 
 type TabDefinition = {
 	value: SalesOverviewTabId;
 	label: string;
 	description: string;
+	version: string;
+	availableVersions: string[];
 	access: Array<"salesAdmin" | "production" | "dispatch">;
 	hideForQuote?: boolean;
 	content: ReactNode;
@@ -30,55 +26,55 @@ export function useSalesOverviewTabs() {
 		{
 			value: "overview",
 			label: "Overview",
+			...resolveSalesOverviewTabVersion("overview"),
 			description: "Customer, order, payment, and status at a glance",
 			access: ["salesAdmin"],
-			content: <SalesOverviewOverviewTab />,
 		},
 		{
 			value: "finance",
 			label: "Finance",
+			...resolveSalesOverviewTabVersion("finance"),
 			description: "Invoice totals, payment collection, and cost lines",
 			access: ["salesAdmin"],
-			content: <SalesOverviewFinanceTab />,
 		},
 		{
 			value: "production",
 			label: "Production",
+			...resolveSalesOverviewTabVersion("production"),
 			description: "Assignment coverage and item-level progress",
 			access: ["salesAdmin", "production"],
 			hideForQuote: true,
-			content: <SalesOverviewProductionTab />,
 		},
 		{
 			value: "dispatch",
 			label: "Dispatch",
+			...resolveSalesOverviewTabVersion("dispatch"),
 			description: "Active deliveries and driver assignment",
 			access: ["salesAdmin", "dispatch"],
 			hideForQuote: true,
-			content: <SalesOverviewDispatchTab />,
 		},
 		{
 			value: "packing",
 			label: "Packing",
+			...resolveSalesOverviewTabVersion("packing"),
 			description: "Packing list and dispatch item management",
 			access: ["salesAdmin", "dispatch"],
 			hideForQuote: true,
-			content: <SalesOverviewPackingTab />,
 		},
 		{
 			value: "transactions",
 			label: "Transactions",
+			...resolveSalesOverviewTabVersion("transactions"),
 			description: "Payment history and transaction records",
 			access: ["salesAdmin"],
 			hideForQuote: true,
-			content: <SalesOverviewTransactionsTab />,
 		},
 		{
 			value: "details",
 			label: "Details",
+			...resolveSalesOverviewTabVersion("details"),
 			description: "Internal IDs, dates, and raw status snapshot",
 			access: ["salesAdmin"],
-			content: <SalesOverviewDetailsTab />,
 		},
 	];
 

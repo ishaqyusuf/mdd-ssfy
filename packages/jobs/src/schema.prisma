@@ -4566,3 +4566,4 @@ model SalesPickup {
 
     @@index([pickupApprovedBy])
 }
+
