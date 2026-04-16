@@ -11,6 +11,7 @@ export interface FormComboboxProps<T> {
     comboProps: Partial<ComboboxProps<T>>;
     transformSelectionValue?: (data: any) => any;
     handleSelect?: (value, selected: T, callback) => void;
+    handleCreate?: (value: string, callback: () => void) => void;
 }
 
 export function FormCombobox<
@@ -26,6 +27,7 @@ export function FormCombobox<
     disabled,
     comboProps,
     handleSelect,
+    handleCreate,
     transformSelectionValue,
     // ...props
 }: Partial<ControllerProps<TFieldValues, TName>> &
@@ -57,6 +59,15 @@ export function FormCombobox<
                                     ) as any
                                 }
                                 {...(comboProps as any)}
+                                onCreate={(value) => {
+                                    const cb = () => {
+                                        comboProps?.onCreate?.(value);
+                                        field.onChange(value);
+                                    };
+                                    handleCreate
+                                        ? handleCreate(value, cb)
+                                        : cb();
+                                }}
                                 onSelect={(data) => {
                                     const cb = () => {
                                         comboProps?.onSelect?.(data as any);
@@ -81,4 +92,3 @@ export function FormCombobox<
         />
     );
 }
-

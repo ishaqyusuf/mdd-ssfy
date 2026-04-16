@@ -4,8 +4,6 @@ import { Icons } from "@gnd/ui/icons";
 
 import React, { useEffect, useState } from "react";
 
-import { useRouter } from "next/navigation";
-import { _revalidate } from "@/app-deps/(v1)/_actions/_revalidate";
 import { staticCommunity } from "@/app-deps/(v1)/_actions/community/community-template";
 import { staticProjectsAction } from "@/app-deps/(v1)/_actions/community/projects";
 import {
@@ -15,7 +13,6 @@ import {
 import Modal from "@/components/common/modal";
 import { useModal } from "@/components/common/modal/provider";
 import { homeSearchMeta } from "@/lib/community/community-utils";
-import { _useAsync } from "@/lib/use-async";
 import { getModelNumber } from "@/lib/utils";
 import { homeSchema } from "@/lib/validations/community-validations";
 import { ICommunityTemplate, IHome, IProject } from "@/types/community";
@@ -35,7 +32,7 @@ import { toast } from "@gnd/ui/use-toast";
 
 interface FormProps {
     units: IHome[];
-    projectId: null;
+    projectId: number | null;
 }
 
 export function useHomeModal() {
@@ -51,9 +48,8 @@ interface Props {
     home?;
 }
 export default function HomeModal({ home }: Props) {
-    const route = useRouter();
     const modal = useModal();
-    const [isSaving, startTransition] = useTransition();
+    const [, startTransition] = useTransition();
     const form = useForm<FormProps>({
         defaultValues: home
             ? { ...home, units: [home] }
@@ -66,6 +62,29 @@ export default function HomeModal({ home }: Props) {
         name: "units",
     });
     const projectId = form.watch("projectId");
+    const projectModels = communityTemplates
+        ?.filter((model) => model.projectId == projectId)
+        ?.map((model) => ({
+            id: model.modelName,
+            label: model.modelName,
+            data: model,
+        }));
+    const getModelOptions = (currentModelName?: string | null) => {
+        const options = [...(projectModels || [])];
+
+        if (
+            currentModelName &&
+            !options.some((option) => option.id === currentModelName)
+        ) {
+            options.unshift({
+                id: currentModelName,
+                label: currentModelName,
+                data: null,
+            });
+        }
+
+        return options;
+    };
     async function submit(data) {
         startTransition(async () => {
             // if(!form.getValues)
@@ -75,9 +94,11 @@ export default function HomeModal({ home }: Props) {
 
                 if (home?.id) {
                     const unit = formData.units[0] as any;
-                    unit.modelName = communityTemplates.find(
-                        (f) => f.id == unit.communityTemplateId,
-                    )?.modelName as any;
+                    if (unit.communityTemplateId) {
+                        unit.modelName = communityTemplates.find(
+                            (f) => f.id == unit.communityTemplateId,
+                        )?.modelName as any;
+                    }
                     await _updateCommunityHome(unit);
                     msg = "Unit updated!";
                 } else {
@@ -86,9 +107,11 @@ export default function HomeModal({ home }: Props) {
                     if (!formData.units) return;
                     const unitForms = formData.units?.map((u) => {
                         const pid = (u.projectId = Number(formData.projectId));
-                        u.modelName = communityTemplates.find(
-                            (f) => f.id == u.communityTemplateId,
-                        )?.modelName as any;
+                        if (u.communityTemplateId) {
+                            u.modelName = communityTemplates.find(
+                                (f) => f.id == u.communityTemplateId,
+                            )?.modelName as any;
+                        }
                         u.modelNo = getModelNumber(u.modelName);
                         u.builderId = Number(
                             projects.find((p) => p.id == pid)?.builderId,
@@ -129,7 +152,6 @@ export default function HomeModal({ home }: Props) {
     const [communityTemplates, setCommunityTemplates] = useState<
         ICommunityTemplate[]
     >([]);
-    const [isReady, setIsReady] = useState(false);
     useEffect(() => {
         async function loadStatics() {
             const projectList = (await staticProjectsAction()) as any;
@@ -140,10 +162,6 @@ export default function HomeModal({ home }: Props) {
         }
 
         loadStatics();
-
-        setTimeout(() => {
-            setIsReady(true);
-        }, 50);
         if (home?.projectId) form.setValue("projectId", home.projectId);
     }, []);
 
@@ -161,6 +179,19 @@ export default function HomeModal({ home }: Props) {
                             name={`projectId`}
                             label="Select Project"
                             transformSelectionValue={(data) => Number(data.id)}
+                            handleSelect={(_, __, callback) => {
+                                fields.forEach((__, index) => {
+                                    form.setValue(
+                                        `units.${index}.communityTemplateId`,
+                                        null as any,
+                                    );
+                                    form.setValue(
+                                        `units.${index}.modelName`,
+                                        "" as any,
+                                    );
+                                });
+                                callback();
+                            }}
                             comboProps={{
                                 items: projects?.map((i) => ({
                                     id: String(i.id),
@@ -188,24 +219,38 @@ export default function HomeModal({ home }: Props) {
                                     <div className="col-span-2">
                                         <FormCombobox
                                             control={form.control}
-                                            name={`units.${i}.communityTemplateId`}
-                                            // label="Builder"
-
-                                            transformSelectionValue={(data) =>
-                                                Number(data.id)
-                                            }
+                                            name={`units.${i}.modelName`}
+                                            handleSelect={(_, selected, callback) => {
+                                                form.setValue(
+                                                    `units.${i}.communityTemplateId`,
+                                                    selected?.data?.id ?? null,
+                                                );
+                                                callback();
+                                            }}
+                                            handleCreate={(value, callback) => {
+                                                form.setValue(
+                                                    `units.${i}.communityTemplateId`,
+                                                    null,
+                                                );
+                                                callback();
+                                            }}
                                             comboProps={{
-                                                items: communityTemplates
-                                                    ?.filter(
-                                                        (m) =>
-                                                            m.projectId ==
-                                                            projectId,
-                                                    )
-                                                    ?.map((i) => ({
-                                                        id: String(i.id),
-                                                        label: i.modelName,
-                                                        data: i,
-                                                    })),
+                                                items: getModelOptions(
+                                                    form.getValues(
+                                                        `units.${i}.modelName`,
+                                                    ),
+                                                ),
+                                                searchPlaceholder:
+                                                    projectId
+                                                        ? "Search or create model..."
+                                                        : "Select a project first",
+                                                emptyResults: projectId
+                                                    ? "No models found for this project"
+                                                    : "Select a project first",
+                                                disabled: !projectId,
+                                                onCreate: () => {},
+                                                renderOnCreate: (value) =>
+                                                    `Create "${value}"`,
                                             }}
                                         />
                                     </div>

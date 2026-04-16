@@ -666,13 +666,39 @@ export function composeControls(order: GetSalesItemControllables) {
       });
     }
   });
+  const dedupedControls = Array.from(
+    controls.reduce((map, control) => {
+      const existing = map.get(control.uid);
+      if (!existing) {
+        map.set(control.uid, control);
+        return map;
+      }
+
+      const qtyControlsByType = new Map(
+        [...existing.qtyControls, ...control.qtyControls].map((qty) => [
+          qty.type,
+          qty,
+        ]),
+      );
+
+      map.set(control.uid, {
+        ...existing,
+        data: {
+          ...existing.data,
+          ...control.data,
+        },
+        qtyControls: Array.from(qtyControlsByType.values()),
+      });
+      return map;
+    }, new Map<string, (typeof controls)[number]>()),
+  ).map(([, control]) => control);
   let response: {
     uid;
     create?: Prisma.SalesItemControlCreateInput;
     update?: Prisma.SalesItemControlUpdateInput;
     // qtyControls: Prisma.QtyControlCreateManyInput[];
   }[] = [];
-  controls.map((control) => {
+  dedupedControls.map((control) => {
     const prevControl = order.itemControls.find((c) => c.uid == control.uid);
     if (prevControl) {
       let {

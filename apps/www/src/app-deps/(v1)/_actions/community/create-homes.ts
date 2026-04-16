@@ -13,7 +13,9 @@ export async function _updateCommunityHome(home: IHome) {
             id: home.id,
         },
         data: {
-            communityTemplateId: Number(home.communityTemplateId),
+            communityTemplateId: home.communityTemplateId
+                ? Number(home.communityTemplateId)
+                : null,
             modelName: home.modelName,
             lot: home.lot,
             block: home.block,

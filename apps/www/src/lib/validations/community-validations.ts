@@ -21,7 +21,8 @@ export const homeSchema = z.object({
     projectId: z.number(),
     units: z
         .object({
-            communityTemplateId: z.number(),
+            communityTemplateId: z.number().nullable().optional(),
+            modelName: z.string().min(1, "Model name is required"),
             lot: z.string().optional(),
             block: z.string().optional(),
             createdAt: z.date().optional(),
