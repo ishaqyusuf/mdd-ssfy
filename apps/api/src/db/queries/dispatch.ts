@@ -852,6 +852,8 @@ export async function updateSalesDeliveryOption(
 					break;
 				case "status":
 					updateData.status = value;
+					updateData.deliveredAt =
+						value === "completed" ? new Date() : null;
 					break;
 			}
 		});
@@ -919,6 +921,7 @@ export async function sendSaleForPickup(
 			data: {
 				deliveryMode: "pickup",
 				status: "queue" as SalesDispatchStatus,
+				deliveredAt: null,
 			},
 			select: {
 				id: true,
@@ -996,7 +999,9 @@ export async function getPackingQueue(ctx: TRPCContext) {
 			},
 		},
 		orderBy: {
-			createdAt: "desc",
+			...(input.tab === "completed"
+				? [{ deliveredAt: "desc" as const }, { createdAt: "desc" as const }]
+				: [{ createdAt: "desc" as const }]),
 		},
 		select: {
 			id: true,
@@ -1068,22 +1073,24 @@ export async function getPackingList(
 			deletedAt: null,
 			deliveryMode: "pickup",
 			status,
-				...(input.tab === "current" || input.tab === "completed"
-					? {}
-					: {
-							id: {
+			...(input.tab === "current" || input.tab === "completed"
+				? {}
+				: {
+						id: {
 							in: dispatchIds,
 						},
 					}),
 		},
-		orderBy: {
-			createdAt: "desc",
-		},
+		orderBy:
+			input.tab === "completed"
+				? [{ deliveredAt: "desc" }, { createdAt: "desc" }]
+				: { createdAt: "desc" },
 		select: {
 			id: true,
 			salesOrderId: true,
 			status: true,
 			createdAt: true,
+			deliveredAt: true,
 			dueDate: true,
 			order: {
 				select: {
@@ -1197,8 +1204,7 @@ export async function signPackingSlip(
 		meta,
 		packItems: {
 			dispatchId: dispatch.id,
-			dispatchStatus:
-				(dispatch.status as SalesDispatchStatus | null | undefined) || "queue",
+			dispatchStatus: "completed",
 			packMode: "all",
 			replaceExisting: true,
 		},
@@ -1574,6 +1580,7 @@ export async function updateDispatchStatus(
 		},
 		data: {
 			status: newStatus as SalesDispatchStatus,
+			deliveredAt: newStatus === "completed" ? new Date() : null,
 		},
 	});
 
@@ -2365,6 +2372,7 @@ export async function bulkCancelDispatches(
 		},
 		data: {
 			status: "cancelled",
+			deliveredAt: null,
 			updatedAt: now,
 		},
 	});
@@ -2461,7 +2469,7 @@ export async function restoreDispatch(ctx: TRPCContext, dispatchId: number) {
 
 	await db.orderDelivery.update({
 		where: { id: dispatchId },
-		data: { deletedAt: null, status: "queue" },
+		data: { deletedAt: null, status: "queue", deliveredAt: null },
 	});
 	return { ok: true, dispatchId };
 }

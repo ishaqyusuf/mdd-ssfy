@@ -162,6 +162,7 @@ export async function cancelDispatchTask(db: Db, data: UpdateSalesControl) {
 			},
 			data: {
 				status: "cancelled" as SalesDispatchStatus,
+				deliveredAt: null,
 			},
 		});
 		await resetSalesAction(tx as any, data.meta.salesId);
@@ -175,6 +176,7 @@ export async function startDispatchTask(db: Db, data: UpdateSalesControl) {
 			},
 			data: {
 				status: "in progress" as SalesDispatchStatus,
+				deliveredAt: null,
 			},
 		});
 		await resetSalesAction(tx as any, data.meta.salesId);
@@ -193,6 +195,7 @@ export async function submitDispatchTask(db: Db, data: UpdateSalesControl) {
 				},
 				data: {
 					status: "completed" as SalesDispatchStatus,
+					deliveredAt: task?.receivedDate ?? new Date(),
 				},
 			});
 			// await resetSalesTask(tx as any, data.meta.salesId);
@@ -418,6 +421,7 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
 					},
 					data: {
 						status: "packed" as SalesDispatchStatus,
+						deliveredAt: null,
 					},
 				});
 			}
