@@ -4,6 +4,7 @@ import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cos
 import { useJobParams } from "@/hooks/use-contractor-jobs-params";
 import { useDocumentReviewParams } from "@/hooks/use-document-review-params";
 import { useNotifications } from "@/hooks/use-notifications";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesOverviewOpen } from "@/hooks/use-sales-overview-open";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
@@ -42,6 +43,7 @@ export function NotificationCenter() {
 	const { setParams: setJobParams } = useJobParams();
 	const { setParams: setDocumentReviewParams } = useDocumentReviewParams();
 	const salesOverview = useSalesOverviewOpen();
+	const legacySalesOverview = useSalesOverviewQuery();
 	const handlers = createNotificationHandlers<{ close: () => void }>({
 		job_submitted: (data, _notification, context) => {
 			context.close();
@@ -49,7 +51,7 @@ export function NotificationCenter() {
 		},
 		quote_accepted: (data, _notification, context) => {
 			context.close();
-			salesOverview.openSalesAdminPage(String(data.orderNo));
+			legacySalesOverview.open2(String(data.orderNo), "sales");
 		},
 		sales_checkout_success: (data, _notification, context) => {
 			const firstOrderNo = data.orderNos[0];
