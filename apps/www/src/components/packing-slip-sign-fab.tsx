@@ -46,6 +46,7 @@ export function PackingSlipSignFab({
 		signing?.receivedBy || signing?.customerName || "",
 	);
 	const [signatureValue, setSignatureValue] = useState("");
+	const [isRefreshingSlip, setIsRefreshingSlip] = useState(false);
 	const signature = useSignature({
 		id: `packing-slip-signature-${dispatchId || "new"}`,
 		title: `packing-slip-${dispatchId || "signature"}`,
@@ -58,6 +59,7 @@ export function PackingSlipSignFab({
 	const mutation = useMutation(
 		trpc.dispatch.signPackingSlip.mutationOptions({
 			async onSuccess() {
+				setIsRefreshingSlip(true);
 				await Promise.all([
 					queryClient.invalidateQueries({
 						queryKey: trpc.print.salesV2.queryKey({
@@ -76,6 +78,27 @@ export function PackingSlipSignFab({
 						queryKey: trpc.dispatch.orderDispatchOverview.pathKey(),
 					}),
 					queryClient.invalidateQueries({
+					queryKey: trpc.sales.getSaleOverview.pathKey(),
+					}),
+				]);
+				await Promise.all([
+					queryClient.refetchQueries({
+						queryKey: trpc.print.salesV2.queryKey({
+							token,
+							preview,
+							templateId,
+						}),
+					}),
+					queryClient.refetchQueries({
+						queryKey: trpc.dispatch.packingList.pathKey(),
+					}),
+					queryClient.refetchQueries({
+						queryKey: trpc.dispatch.dispatchOverviewV2.pathKey(),
+					}),
+					queryClient.refetchQueries({
+						queryKey: trpc.dispatch.orderDispatchOverview.pathKey(),
+					}),
+					queryClient.refetchQueries({
 						queryKey: trpc.sales.getSaleOverview.pathKey(),
 					}),
 				]);
@@ -83,6 +106,7 @@ export function PackingSlipSignFab({
 				window.location.reload();
 			},
 			onError(error) {
+				setIsRefreshingSlip(false);
 				toast.error(error.message || "Unable to sign packing slip.");
 			},
 		}),
@@ -93,25 +117,43 @@ export function PackingSlipSignFab({
 	}
 
 	const packedBy = auth.name || signing?.packedBy || "Current user";
+	const isBusy = mutation.isPending || isRefreshingSlip;
 
 	return (
 		<>
 			<Button
 				type="button"
-				onClick={() => setOpen(true)}
+				onClick={() => {
+					if (isBusy) return;
+					setOpen(true);
+				}}
 				className="fixed bottom-6 right-6 z-50 rounded-full px-5 shadow-xl"
+				disabled={isBusy}
 			>
 				<Icons.Edit className="mr-2 size-4" />
-				<span>{signing?.signatureUrl ? "Re-sign" : "Sign"}</span>
+				<span>
+					{isBusy
+						? "Updating packing slip..."
+						: signing?.signatureUrl
+							? "Re-sign"
+							: "Sign"}
+				</span>
 			</Button>
 
-			<Dialog open={open} onOpenChange={setOpen}>
+			<Dialog
+				open={open}
+				onOpenChange={(nextOpen) => {
+					if (isBusy) return;
+					setOpen(nextOpen);
+				}}
+			>
 				<DialogContent className="sm:max-w-2xl">
 					<DialogHeader>
 						<DialogTitle>Sign Packing Slip</DialogTitle>
 						<DialogDescription>
 							Submitting will save the signature, pack all items into this
-							delivery, and refresh the packing slip.
+							delivery, complete the dispatch, and reload the packing slip
+							once the updated quantities are ready.
 						</DialogDescription>
 					</DialogHeader>
 
@@ -149,13 +191,14 @@ export function PackingSlipSignFab({
 							type="button"
 							variant="outline"
 							onClick={() => setOpen(false)}
+							disabled={isBusy}
 						>
 							Cancel
 						</Button>
 						<Button
 							type="button"
 							disabled={
-								mutation.isPending ||
+								isBusy ||
 								!dispatchId ||
 								!auth.id ||
 								!receivedBy.trim() ||
@@ -178,7 +221,11 @@ export function PackingSlipSignFab({
 								});
 							}}
 						>
-							{mutation.isPending ? "Submitting..." : "Submit"}
+							{isRefreshingSlip
+								? "Reloading slip..."
+								: mutation.isPending
+									? "Completing packing..."
+									: "Submit"}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
