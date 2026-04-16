@@ -91,6 +91,7 @@ export type NotificationOptions = {
 export interface NotificationResult {
   type: string;
   activities: number;
+  activityIds?: number[];
   emails: {
     sent: number;
     skipped: number;

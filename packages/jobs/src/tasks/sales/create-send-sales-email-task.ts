@@ -221,7 +221,6 @@ export function createSendSalesEmailTask(id: SalesEmailTaskId) {
 				]);
 
 			const baseAppUrl = getAppUrl();
-			const { default: QueryString } = await import("qs");
 			const { composePaymentOrderIdsParam } = await import("@gnd/utils/sales");
 			const { tokenize } = await import("@gnd/utils/tokenizer");
 			const { addDays } = await import("date-fns");
@@ -245,13 +244,14 @@ export function createSendSalesEmailTask(id: SalesEmailTaskId) {
 						const totalDueAmount = sum(pendingAmountSales, "due");
 
 						const slugs = matchingSales.map((s) => s.orderId).join(",");
-						const pdfLink = `${baseAppUrl}/api/pdf/download?${QueryString.stringify(
-							{
-								slugs,
-								mode: props.printType,
-								preview: false,
-							},
-						)}`;
+						const pdfToken = tokenize({
+							salesIds: matchingSales.map((sale) => sale.id),
+							expiry: addDays(new Date(), 7).toISOString(),
+							mode: props.printType,
+						});
+						const pdfLink = `${baseAppUrl}/api/download/sales?token=${encodeURIComponent(
+							pdfToken,
+						)}&preview=false`;
 
 						let pid = null;
 						const orderIdParams = composePaymentOrderIdsParam(

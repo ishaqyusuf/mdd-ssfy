@@ -35,7 +35,7 @@ export function SignatureBlock({
 								style={{
 									position: "absolute",
 									left: 0,
-									bottom: 2,
+									bottom: 0,
 									height: 44,
 									width: "100%",
 									objectFit: "contain",

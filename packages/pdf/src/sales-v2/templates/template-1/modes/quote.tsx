@@ -11,7 +11,6 @@ import {
   LineItemBlock,
   ImageGalleryBlock,
   FooterBlock,
-  SignatureBlock,
 } from "../blocks";
 
 interface QuoteModeProps {
@@ -109,7 +108,6 @@ export function QuoteMode({
           borderColor: "#9ca3af",
         }}
       >
-        <SignatureBlock />
         {page.footer && <FooterBlock footer={page.footer} />}
       </View>
     </>

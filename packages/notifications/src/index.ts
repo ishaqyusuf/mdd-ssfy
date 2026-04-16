@@ -103,6 +103,7 @@ const handlers = {
 	community_unit_production_completed: communityUnitProductionCompleted,
 	community_unit_production_batch_updated: communityUnitProductionBatchUpdated,
 	sales_dispatch_assigned: salesDispatchAssigned,
+	sales_dispatch_created: salesDispatchAssigned,
 	sales_dispatch_queued: salesDispatchQueued,
 	sales_dispatch_cancelled: salesDispatchCancelled,
 	sales_dispatch_completed: salesDispatchCompleted,
@@ -271,7 +272,10 @@ export class Notifications {
 	) {
 		return handler.createWhatsApp(validatedData, author, user);
 	}
-	async saveNote(data, authId) {
+	async saveNote(
+		data: Parameters<typeof createNote>[1],
+		authId: Parameters<typeof createNote>[2],
+	) {
 		return createNote(this.#db, data, authId);
 	}
 	async create<T extends keyof NotificationTypes>(
@@ -374,7 +378,8 @@ export class Notifications {
 		// const users = teamMembers;
 
 		const rawData = { ...payload } as NotificationTypes[T];
-		const data = ((await handlers[type as any]?.extendData?.(
+		const handler = handlers[type as keyof typeof handlers];
+		const data = ((await handler?.extendData?.(
 			this.#db,
 			rawData,
 			author!,
@@ -400,7 +405,7 @@ export class Notifications {
 		contacts?: UserData[],
 		// teamInfo?: { id: string; name: string | null; inboxId: string | null },
 	): Promise<NotificationResult> {
-		const handler = handlers[type as any];
+		const handler = handlers[type as keyof typeof handlers];
 		// const { author, contacts } = options;
 		if (!handler) {
 			throw new Error(`Unknown notification type: ${type}`);
@@ -525,6 +530,7 @@ export class Notifications {
 			return {
 				type: type as string,
 				activities: activities.length,
+				activityIds: activities.map((activity) => activity.id),
 				emails,
 				whatsapp,
 			};

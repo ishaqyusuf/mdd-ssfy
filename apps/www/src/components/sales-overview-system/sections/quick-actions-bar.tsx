@@ -4,7 +4,6 @@ import { useTransition } from "react";
 
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { SalesMenu } from "@/components/sales-menu";
-import { SendSalesReminder } from "@/components/send-sales-reminder";
 import { useAuth } from "@/hooks/use-auth";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
@@ -52,7 +51,6 @@ export function QuickActionsBar() {
 
     return (
         <div className="flex flex-wrap gap-2">
-            <SendSalesReminder salesIds={[data.id]} />
             {canSendForPacking ? (
                 <SendForPackingButton
                     salesId={data.id}
@@ -152,4 +150,3 @@ export function QuickActionsBar() {
         </div>
     );
 }
-

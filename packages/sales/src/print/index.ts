@@ -1,4 +1,5 @@
 export { getPrintData } from "./get-print-data";
+export { getPrintDocumentData, resolveSalesCompanyAddress } from "./get-print-document-data";
 export { printSalesV2Schema } from "./schema";
 export type { PrintSalesV2Input } from "./schema";
 

@@ -564,6 +564,7 @@ export type NotificationTypes = {
 	community_unit_production_completed: CommunityUnitProductionCompletedInput;
 	community_unit_production_batch_updated: CommunityUnitProductionBatchUpdatedInput;
 	sales_dispatch_assigned: SalesDispatchAssignedInput;
+	sales_dispatch_created: SalesDispatchAssignedInput;
 	sales_dispatch_queued: SalesDispatchQueuedInput;
 	sales_dispatch_cancelled: SalesDispatchCancelledInput;
 	sales_dispatch_completed: SalesDispatchCompletedInput;
@@ -680,6 +681,7 @@ export type SalesDispatchCancelledTags = z.infer<
 	typeof salesDispatchCancelledTags
 >;
 export const salesDispatchCompletedSchema = z.object({
+	salesId: z.number().optional(),
 	orderNo: z.string().optional(),
 	dispatchId: z.number(),
 	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
@@ -688,12 +690,14 @@ export const salesDispatchCompletedSchema = z.object({
 	packedBy: z.string().optional(),
 	receivedBy: z.string().optional(),
 	signature: z.string().optional(),
+	attachment: z.array(z.string()).optional(),
 	attachments: z.array(z.string()).optional(),
 });
 export type SalesDispatchCompletedInput = z.infer<
 	typeof salesDispatchCompletedSchema
 >;
 export const salesDispatchCompletedTags = actityTagsSchema.extend({
+	salesId: z.number().optional(),
 	dispatchId: z.number(),
 	orderNo: z.string().optional(),
 	deliveryMode: z.enum(["pickup", "delivery"]).optional(),
@@ -702,6 +706,7 @@ export const salesDispatchCompletedTags = actityTagsSchema.extend({
 	packedBy: z.string().optional(),
 	receivedBy: z.string().optional(),
 	signature: z.string().optional(),
+	attachment: z.array(z.string()).optional(),
 	attachments: z.array(z.string()).optional(),
 });
 export type SalesDispatchCompletedTags = z.infer<

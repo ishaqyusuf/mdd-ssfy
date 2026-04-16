@@ -7,6 +7,13 @@ import {
 import type { CreateActivityInput } from "./schemas";
 import { explodeTagEntries, mergeTagRows } from "./tag-values";
 
+export type CreateNoteInput = Omit<CreateActivityInput, "tags"> & {
+	tags: {
+		tagName: string;
+		tagValue: string;
+	}[];
+};
+
 function collectDocumentIds(tags: Record<string, unknown>) {
   const values = [tags.documentId, tags.documentIds].flatMap((value) =>
     Array.isArray(value) ? value : value === undefined ? [] : [value],
@@ -58,7 +65,7 @@ const activityStatus = [] as const;
 //   groupId?: string;
 //   tags: Record<string, any>;
 // };
-export async function createNote(db: Db, data, authId) {
+export async function createNote(db: Db, data: CreateNoteInput, authId: number) {
   const authorId = (await getSubscribersAccount(db, [authId]))?.[0]?.id;
   const tags = Object.fromEntries(
     data.tags.map((t) => [t.tagName, t.tagValue]),
@@ -118,6 +125,58 @@ export async function createActivity(
     },
   });
   return activity;
+}
+
+export async function appendActivityTags(
+	db: Db,
+	notePadId: number,
+	tags: Record<string, unknown>,
+) {
+	const entries = explodeTagEntries(tags);
+	if (!entries.length) {
+		return db.notePad.findUnique({
+			where: { id: notePadId },
+			include: { tags: true },
+		});
+	}
+
+	const existing = await db.noteTags.findMany({
+		where: {
+			notePadId,
+			deletedAt: null,
+			OR: entries.map((entry) => ({
+				tagName: entry.tagName,
+				tagValue: entry.tagValue,
+			})),
+		},
+		select: {
+			tagName: true,
+			tagValue: true,
+		},
+	});
+
+	const existingKeys = new Set(
+		existing.map((entry) => `${entry.tagName}::${entry.tagValue}`),
+	);
+	const createData = entries
+		.filter(
+			(entry) => !existingKeys.has(`${entry.tagName}::${entry.tagValue}`),
+		)
+		.map((entry) => ({
+			...entry,
+			notePadId,
+		}));
+
+	if (createData.length) {
+		await db.noteTags.createMany({
+			data: createData,
+		});
+	}
+
+	return db.notePad.findUnique({
+		where: { id: notePadId },
+		include: { tags: true },
+	});
 }
 export type GetActivitiesParams = {
   contactIds: number[];

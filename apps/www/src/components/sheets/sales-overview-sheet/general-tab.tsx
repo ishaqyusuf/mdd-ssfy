@@ -1,7 +1,6 @@
 import React from "react";
 import { Icons } from "@gnd/ui/icons";
 import Money from "@/components/_v1/money";
-import { SalesOverviewInbox } from "@/components/chat";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { DataSkeleton } from "@/components/data-skeleton";
@@ -635,7 +634,6 @@ export function GeneralTab({}) {
                         </CardContent>
                     </Card>
                 </div>
-                <SalesOverviewInbox saleData={saleData} />
                 <GeneralFooter />
             </div>
         </DataSkeletonProvider>

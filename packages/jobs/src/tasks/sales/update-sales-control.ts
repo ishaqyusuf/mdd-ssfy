@@ -14,20 +14,23 @@ import {
 	startDispatchTask,
 	submitAllTask,
 	submitDispatchTask,
-	updateSubmissionsTask,
 	updateSalesControlSchema,
+	updateSubmissionsTask,
 } from "@gnd/sales";
-import type { TaskName } from "../../schema";
 import type { NotificationJobInput } from "@notifications/schemas";
 import { NotificationService } from "@notifications/services/triggers";
 import { schemaTask, tasks } from "@trigger.dev/sdk/v3";
+import type { TaskName } from "../../schema";
 
 type SalesControlActionHandler = (
 	db: typeof db,
 	input: UpdateSalesControl,
 ) => Promise<unknown>;
 
-const actionMaps: Record<LegacyUpdateSalesControlAction, SalesControlActionHandler> = {
+const actionMaps: Record<
+	LegacyUpdateSalesControlAction,
+	SalesControlActionHandler
+> = {
 	submitAll: submitAllTask,
 	packItems: packDispatchItemTask,
 	clearPackings: clearPackingTask,
@@ -203,6 +206,7 @@ async function sendDispatchCompletedNotification(input: UpdateSalesControl) {
 			role: "employee",
 		},
 		payload: {
+			salesId: input.meta.salesId,
 			orderNo: dispatch.order?.orderId || undefined,
 			dispatchId: dispatch.id,
 			deliveryMode: dispatch.deliveryMode || undefined,
@@ -295,9 +299,7 @@ export const updateSalesControl = schemaTask({
 				await sendDispatchCompletedNotification(input as UpdateSalesControl);
 			}
 			if (input.createAssignments) {
-				await sendProductionAssignedNotification(
-					input as UpdateSalesControl,
-				);
+				await sendProductionAssignedNotification(input as UpdateSalesControl);
 			}
 			return response;
 		}

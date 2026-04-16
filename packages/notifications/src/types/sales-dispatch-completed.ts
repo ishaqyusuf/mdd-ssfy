@@ -13,6 +13,7 @@ export const salesDispatchCompleted: NotificationHandler = {
 		_contact: UserData,
 	) {
 		const {
+			salesId,
 			orderNo,
 			dispatchId,
 			deliveryMode,
@@ -21,12 +22,15 @@ export const salesDispatchCompleted: NotificationHandler = {
 			packedBy,
 			receivedBy,
 			signature,
+			attachment,
 			attachments,
 		} = data;
+		const resolvedAttachments = attachment?.length ? attachment : attachments;
 		const payload: SalesDispatchCompletedTags = {
 			type: "sales_dispatch_completed",
 			source: "user",
 			priority: 5,
+			salesId,
 			dispatchId,
 			orderNo,
 			deliveryMode,
@@ -35,7 +39,12 @@ export const salesDispatchCompleted: NotificationHandler = {
 			packedBy,
 			receivedBy,
 			signature,
-			attachments,
+			...(resolvedAttachments?.length
+				? {
+						attachment: resolvedAttachments,
+						attachments: resolvedAttachments,
+					}
+				: {}),
 		};
 
 		return {

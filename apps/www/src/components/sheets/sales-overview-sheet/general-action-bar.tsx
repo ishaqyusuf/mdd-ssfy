@@ -3,7 +3,6 @@ import { AuthGuard } from "@/components/auth-guard";
 import { SalesMenu } from "@/components/sales-menu";
 import { _perm } from "@/components/sidebar/links";
 import { SendForPackingButton } from "@/components/sales/send-for-packing-button";
-import { SendSalesReminder } from "@/components/send-sales-reminder";
 import { useAuth } from "@/hooks/use-auth";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
@@ -54,7 +53,6 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 	}
 	return (
 		<div className="flex gap-2">
-			<SendSalesReminder salesIds={[salesId]} />
 			{canSendForPacking ? (
 				<SendForPackingButton
 					salesId={salesId}

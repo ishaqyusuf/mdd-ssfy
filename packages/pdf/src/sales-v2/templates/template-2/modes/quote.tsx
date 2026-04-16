@@ -9,7 +9,6 @@ import {
   ShelfBlock,
   LineItemBlock,
   FooterBlock,
-  SignatureBlock,
 } from "../blocks";
 
 interface QuoteModeProps {
@@ -98,7 +97,6 @@ export function QuoteMode({
           justifyContent: "flex-end",
         }}
       >
-        <SignatureBlock />
         {page.footer && <FooterBlock footer={page.footer} />}
       </View>
     </>

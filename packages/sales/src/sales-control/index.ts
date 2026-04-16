@@ -278,6 +278,33 @@ export async function updateSalesItemControlAction(db: Db, salesId) {
 
   // const resp = await prisma.$transaction((async (tx: typeof prisma) => {
   const tx = db;
+  const assignmentLinks = await tx.orderItemProductionAssignments.findMany({
+    where: {
+      orderId: order.id,
+      deletedAt: null,
+      salesItemControlUid: {
+        not: null,
+      },
+    },
+    select: {
+      id: true,
+      salesItemControlUid: true,
+    },
+  });
+
+  await tx.orderItemProductionAssignments.updateMany({
+    where: {
+      orderId: order.id,
+      deletedAt: null,
+      salesItemControlUid: {
+        not: null,
+      },
+    },
+    data: {
+      salesItemControlUid: null,
+    },
+  });
+
   const del = await tx.qtyControl.deleteMany({
     where: {
       itemControl: {
@@ -285,20 +312,24 @@ export async function updateSalesItemControlAction(db: Db, salesId) {
       },
     },
   });
+  await tx.salesItemControl.deleteMany({
+    where: {
+      salesId: order.id,
+    },
+  });
+
   const arr = [];
   for (const c of controls) {
-    await tx.qtyControl.deleteMany({
-      where: {
-        itemControlUid: c.uid,
-      },
-    });
+    const qtyControlData = Array.from(
+      c.qtyControlData.reduce((map, row) => {
+        map.set(String(row.type), row);
+        return map;
+      }, new Map<string, (typeof c.qtyControlData)[number]>()),
+    ).map(([, row]) => row);
 
     arr.push(
-      await tx.salesItemControl.upsert({
-        where: {
-          uid: c.uid,
-        },
-        create: {
+      await tx.salesItemControl.create({
+        data: {
           uid: c.uid,
           ...(c.controlData as any),
           item: {
@@ -307,22 +338,30 @@ export async function updateSalesItemControlAction(db: Db, salesId) {
           sales: {
             connect: { id: c.orderId },
           },
-          qtyControls: {
-            createMany: {
-              data: c.qtyControlData as any,
-            },
-          },
-        },
-        update: {
-          ...(c.controlData as any),
-          qtyControls: {
-            createMany: {
-              data: c.qtyControlData as any,
-            },
-          },
         },
       }),
     );
+
+    if (qtyControlData.length) {
+      await tx.qtyControl.createMany({
+        data: qtyControlData.map((row) => ({
+          ...row,
+          itemControlUid: c.uid,
+        })) as any,
+        skipDuplicates: true,
+      });
+    }
+  }
+
+  for (const assignment of assignmentLinks) {
+    await tx.orderItemProductionAssignments.update({
+      where: {
+        id: assignment.id,
+      },
+      data: {
+        salesItemControlUid: assignment.salesItemControlUid,
+      },
+    });
   }
   return { del, arr };
   // }) as any);

@@ -250,7 +250,15 @@ async function emitPackingListActivity(
 	);
 }
 
-async function getPackingListDispatchIds(db: TRPCContext["db"]) {
+async function getPackingListDispatchIds(
+	db: TRPCContext["db"],
+	options?: {
+		includeCompleted?: boolean;
+	},
+) {
+	const channels = options?.includeCompleted
+		? ["sales-packing-list", "sales_dispatch_completed"]
+		: ["sales-packing-list"];
 	const notes = await db.notePad.findMany({
 		where: {
 			deletedAt: null,
@@ -259,7 +267,9 @@ async function getPackingListDispatchIds(db: TRPCContext["db"]) {
 					tags: {
 						some: {
 							tagName: "channel",
-							tagValue: "sales-packing-list",
+							tagValue: {
+								in: channels,
+							},
 						},
 					},
 				},
@@ -1045,19 +1055,23 @@ export async function getPackingList(
 				? "cancelled"
 				: "queue";
 	const dispatchIds =
-		input.tab === "current" ? [] : await getPackingListDispatchIds(ctx.db);
+		input.tab === "current" || input.tab === "completed"
+			? []
+			: await getPackingListDispatchIds(ctx.db, {
+					includeCompleted: input.tab === "completed",
+				});
 
-	if (input.tab !== "current" && !dispatchIds.length) return [];
+	if (input.tab === "cancelled" && !dispatchIds.length) return [];
 
 	const rows = await ctx.db.orderDelivery.findMany({
 		where: {
 			deletedAt: null,
 			deliveryMode: "pickup",
 			status,
-			...(input.tab === "current"
-				? {}
-				: {
-						id: {
+				...(input.tab === "current" || input.tab === "completed"
+					? {}
+					: {
+							id: {
 							in: dispatchIds,
 						},
 					}),
@@ -1211,6 +1225,7 @@ export async function signPackingSlip(
 			role: "employee",
 		},
 		payload: {
+			salesId: dispatch.salesOrderId,
 			orderNo: dispatch.order?.orderId || undefined,
 			dispatchId: dispatch.id,
 			deliveryMode: dispatch.deliveryMode || undefined,

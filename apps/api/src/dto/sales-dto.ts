@@ -26,8 +26,14 @@ export type Item = Prisma.SalesOrdersGetPayload<{
 export function salesOrderDto(data: Item, bin?: boolean) {
   const deliveryOption: DeliveryOption =
     (data?.deliveryOption as any) || "pickup";
-  let deliveryStatus = data?.deliveries?.find((a) => !!a?._count?.items)?.[0]
-    ?.status as SalesDispatchStatus;
+  const deliveriesWithItems =
+    data?.deliveries?.filter((delivery) => !!delivery?._count?.items) || [];
+  const prioritizedDelivery =
+    deliveriesWithItems.find((delivery) => delivery.status === "completed") ||
+    deliveriesWithItems[0];
+  let deliveryStatus = prioritizedDelivery?.status as
+    | SalesDispatchStatus
+    | undefined;
   const d = data?.stat?.find(
     (d) => d.type == ("dispatchCompleted" as QtyControlType),
   );

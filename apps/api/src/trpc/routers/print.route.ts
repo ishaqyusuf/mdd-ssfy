@@ -13,7 +13,7 @@ import {
 	generatePrintData,
 	modelPrintSchema,
 } from "@community/generate-print-data";
-import { getPrintData } from "@gnd/sales/print";
+import { getPrintDocumentData } from "@gnd/sales/print";
 import type { PrintMode } from "@gnd/sales/print/types";
 import { tokenSchemas, validateToken } from "@gnd/utils/tokenizer";
 import { generateLegacyPrintData } from "@sales/print-legacy-format";
@@ -28,18 +28,6 @@ const LEGACY_TO_V2_MODE: Record<string, PrintMode> = {
 	"order-packing": "order-packing",
 	invoice: "invoice",
 	"packing-slip": "packing-slip",
-};
-
-const MIAMI_ADDRESS = {
-	address1: "13285 SW 131 ST",
-	address2: "Miami, Fl 33186",
-	phone: "305-278-6555",
-	fax: "305-278-2003",
-};
-const LAKE_WALES_ADDRESS = {
-	address1: "1750 Longleaf Blvd, Suite11",
-	address2: "Lake Wales FL 33859",
-	phone: "863-275-1011",
 };
 
 const requireFromHere = createRequire(import.meta.url);
@@ -152,17 +140,14 @@ export const printRouter = createTRPCRouter({
 
 			const mode: PrintMode = LEGACY_TO_V2_MODE[payload.mode] ?? "invoice";
 
-			const { pages, title, firstOrderId } = await getPrintData(props.ctx.db, {
-				ids: payload.salesIds,
-				mode,
-				dispatchId: payload.dispatchId ?? null,
-			});
-
-			// Resolve company address from the first composed sale instead of re-querying.
-			const orderId = firstOrderId?.toLowerCase() ?? "";
-			const companyAddress = ["lrg", "vc"].some((s) => orderId.endsWith(s))
-				? LAKE_WALES_ADDRESS
-				: MIAMI_ADDRESS;
+			const { pages, title, companyAddress } = await getPrintDocumentData(
+				props.ctx.db,
+				{
+					ids: payload.salesIds,
+					mode,
+					dispatchId: payload.dispatchId ?? null,
+				},
+			);
 
 			return {
 				pages,

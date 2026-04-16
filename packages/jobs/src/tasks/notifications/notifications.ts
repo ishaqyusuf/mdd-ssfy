@@ -1,29 +1,14 @@
 import { db } from "@gnd/db";
-import type { NotificationJobInput } from "@notifications/schemas";
-import { logger, schemaTask } from "@trigger.dev/sdk";
-import { z } from "zod";
-
-const notificationTaskSchema = z.object({
-	channel: z.string().min(1),
-	author: z.object({
-		id: z.number(),
-		role: z.enum(["customer", "employee"]).default("employee"),
-	}),
-	recipients: z
-		.array(
-			z.object({
-				ids: z.array(z.number()),
-				role: z.enum(["customer", "employee", "address"]).optional(),
-			}),
-		)
-		.optional()
-		.nullable(),
-	payload: z.record(z.string(), z.unknown()),
-});
+import type { NotificationOptions } from "@notifications/base";
+import {
+	type NotificationJobInput,
+	notificationJobSchema,
+} from "@notifications/schemas";
+import { logger, schemaTask, tasks } from "@trigger.dev/sdk/v3";
 
 export const notification = schemaTask({
 	id: "notification",
-	schema: notificationTaskSchema,
+	schema: notificationJobSchema,
 	machine: "micro",
 	maxDuration: 60,
 	queue: {
@@ -32,8 +17,7 @@ export const notification = schemaTask({
 	run: async (data) => {
 		const { Notifications } = await import("@gnd/notifications");
 		const notifications = new Notifications(db);
-		const notificationInput = data as NotificationJobInput;
-		const { channel, author, recipients, payload } = notificationInput;
+		const { channel, author, recipients, payload } = data as NotificationJobInput;
 		if (channel === "job_task_configured") {
 			const jobId = Number((payload as { jobId?: number })?.jobId);
 			if (Number.isFinite(jobId) && jobId > 0) {
@@ -55,9 +39,38 @@ export const notification = schemaTask({
 			recipients,
 			payload,
 		});
-		return notifications.create(channel, payload, {
-			author,
-			recipients,
+		const notificationOptions: NotificationOptions = {
+			author: {
+				id: author.id,
+				role: author.role === "customer" ? "customer" : "employee",
+			},
+			recipients:
+				recipients?.map((recipient) => ({
+					ids: recipient.ids,
+					role: recipient.role,
+				})) ?? undefined,
+		};
+		const result = await notifications.create(channel, payload, {
+			...notificationOptions,
 		});
+		if (
+			channel === "sales_dispatch_completed" &&
+			(payload as { signature?: unknown }).signature
+		) {
+			const dispatchId = Number(
+				(payload as { dispatchId?: number }).dispatchId,
+			);
+			const salesId = Number((payload as { salesId?: number }).salesId);
+			if (Number.isFinite(dispatchId) && Number.isFinite(salesId)) {
+				await tasks.trigger("attach-signed-dispatch-pdf", {
+					dispatchId,
+					salesId,
+					notificationIds: result.activityIds || [],
+					notificationId: result.activityIds?.[0] ?? null,
+					authorId: author?.id ?? null,
+				});
+			}
+		}
+		return result;
 	},
 });

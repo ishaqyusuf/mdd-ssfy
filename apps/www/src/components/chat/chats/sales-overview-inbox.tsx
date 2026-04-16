@@ -254,70 +254,80 @@ export function SalesOverviewInbox({
 	);
 
 	return (
-		<div className="flex flex-col">
-			<Chat
-				channel={isInboundOnly ? "inventory_inbound" : "sales_info"}
-				names={isInboundOnly ? ["inventory_inbound"] : channelNames}
-				attachmentName="attachment"
-				attachmentType="mixed"
-				attachmentChannels={["inventory_inbound", "sales_info"]}
-				multiAttachmentSupport
-				payload={{
-					salesId: saleData.id,
-					salesNo: saleData.orderId,
-				}}
-				defaultPayloads={defaultPayloads}
-				transformSubmitData={async (payload) => {
-					const paymentLinkOption = payload.paymentLinkOption;
-					const invoiceDownload = payload.invoiceDownload;
-					const isReminderTransform =
-						typeof paymentLinkOption === "string" ||
-						typeof invoiceDownload === "string";
-
-					if (!isReminderTransform || !saleData?.id) {
-						return {};
-					}
-
-					const payPlanMap: Record<string, 25 | 50 | 75 | 100 | null> = {
-						none: null,
-						"25": 25,
-						"50": 50,
-						"75": 75,
-						full: 100,
-					};
-
-					return {
+		<div
+			className={cn(
+				"flex flex-col",
+				isActivityView &&
+					"h-[calc(100svh-15rem)] min-h-[28rem] overflow-hidden",
+			)}
+		>
+			<div className={cn(isActivityView && "shrink-0 pb-3")}>
+				<Chat
+					channel={isInboundOnly ? "inventory_inbound" : "sales_info"}
+					names={isInboundOnly ? ["inventory_inbound"] : channelNames}
+					attachmentName="attachment"
+					attachmentType="mixed"
+					attachmentChannels={["inventory_inbound", "sales_info"]}
+					multiAttachmentSupport
+					payload={{
 						salesId: saleData.id,
-						payPlan: payPlanMap[paymentLinkOption] ?? null,
-						attachInvoice: invoiceDownload === "yes",
-					};
-				}}
-				placeholder={
-					isInboundOnly
-						? "Add an inbound update, receipt note, or receiving context..."
-						: "Write a sales activity note..."
-				}
-				className="mb-3"
-			>
-				<SalesInboxComposer />
-			</Chat>
-			<ActivityHistory
-				data={filteredActivityRows}
-				isPending={activityQuery.isPending}
-				isError={activityQuery.isError}
-				emptyText={isInboundOnly ? "No inbound activity yet" : null}
-				headerAction={
-					isActivityView && fetchedChannels.length ? (
-						<ActivityChannelFilter
-							value={selectedChannel}
-							onChange={setSelectedChannel}
-							channels={fetchedChannels}
-						/>
-					) : null
-				}
-				title={isActivityView ? "Activity History" : "Activity Timeline"}
-				className={cn("min-h-[180px]")}
-			/>
+						salesNo: saleData.orderId,
+					}}
+					defaultPayloads={defaultPayloads}
+					transformSubmitData={async (payload) => {
+						const paymentLinkOption = payload.paymentLinkOption;
+						const invoiceDownload = payload.invoiceDownload;
+						const isReminderTransform =
+							typeof paymentLinkOption === "string" ||
+							typeof invoiceDownload === "string";
+
+						if (!isReminderTransform || !saleData?.id) {
+							return {};
+						}
+
+						const payPlanMap: Record<string, 25 | 50 | 75 | 100 | null> = {
+							none: null,
+							"25": 25,
+							"50": 50,
+							"75": 75,
+							full: 100,
+						};
+
+						return {
+							salesId: saleData.id,
+							payPlan: payPlanMap[paymentLinkOption] ?? null,
+							attachInvoice: invoiceDownload === "yes",
+						};
+					}}
+					placeholder={
+						isInboundOnly
+							? "Add an inbound update, receipt note, or receiving context..."
+							: "Write a sales activity note..."
+					}
+					className={cn(!isActivityView && "mb-3")}
+				>
+					<SalesInboxComposer />
+				</Chat>
+			</div>
+			<div className={cn(isActivityView && "min-h-0 flex-1 overflow-y-auto pr-1")}>
+				<ActivityHistory
+					data={filteredActivityRows}
+					isPending={activityQuery.isPending}
+					isError={activityQuery.isError}
+					emptyText={isInboundOnly ? "No inbound activity yet" : null}
+					headerAction={
+						isActivityView && fetchedChannels.length ? (
+							<ActivityChannelFilter
+								value={selectedChannel}
+								onChange={setSelectedChannel}
+								channels={fetchedChannels}
+							/>
+						) : null
+					}
+					title={isActivityView ? "Activity History" : "Activity Timeline"}
+					className={cn("min-h-[180px]")}
+				/>
+			</div>
 		</div>
 	);
 }
