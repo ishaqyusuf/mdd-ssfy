@@ -1,7 +1,11 @@
 import type { Db } from "@gnd/db";
 import { getAppApiUrl, getAppUrl } from "@gnd/utils/envs";
-import { composePaymentOrderIdsParam } from "@gnd/utils/sales";
-import { type SalesPdfToken, tryTokenize } from "@gnd/utils/tokenizer";
+import { getCustomerWallet } from "@gnd/sales/wallet";
+import {
+	type SalesPaymentTokenSchema,
+	type SalesPdfToken,
+	tryTokenize,
+} from "@gnd/utils/tokenizer";
 import { addDays } from "date-fns";
 import { z } from "zod";
 import type { NotificationHandler, UserData } from "../base";
@@ -24,6 +28,9 @@ type LoadedSale = {
 	customerName: string;
 	salesRep: string;
 	salesRepEmail: string;
+	customerId: number | null;
+	customerPhone: string | null;
+	customerWalletId: number | null;
 	po: string | null | undefined;
 	date: Date;
 	total: number;
@@ -52,9 +59,12 @@ async function loadSales(db: Db, input: SendSalesEmailPayloadInput) {
 			meta: true,
 			customer: {
 				select: {
+					id: true,
 					email: true,
 					name: true,
 					businessName: true,
+					phoneNo: true,
+					walletId: true,
 				},
 			},
 			billingAddress: {
@@ -96,6 +106,9 @@ async function loadSales(db: Db, input: SendSalesEmailPayloadInput) {
 				customerName,
 				salesRep,
 				salesRepEmail,
+				customerId: sale.customer?.id ?? null,
+				customerPhone: sale.customer?.phoneNo ?? null,
+				customerWalletId: sale.customer?.walletId ?? null,
 				po: (sale.meta as { po?: string | null } | null)?.po,
 				date: sale.createdAt || new Date(),
 				total: sale.grandTotal || 0,
@@ -131,12 +144,6 @@ async function buildSalesDocumentEmailData(
 
 	const appUrl = getAppUrl();
 	const apiUrl = getAppApiUrl();
-	const isDev = process.env.NODE_ENV === "development";
-	const requestedEmailType = input.emailType ?? "with payment";
-	const emailType =
-		input.printType === "order" && requestedEmailType === "without payment"
-			? "with payment"
-			: requestedEmailType;
 	const expiry = addDays(new Date(), 7).toISOString();
 	const pdfToken = tryTokenize({
 		salesIds: sales.map((sale) => sale.id),
@@ -148,22 +155,27 @@ async function buildSalesDocumentEmailData(
 		input.printType === "quote" || !paymentEligibleSales.length
 			? null
 			: await (async () => {
-					const orderIdParams = composePaymentOrderIdsParam(
-						sales.map((sale) => sale.orderId),
-					);
-					const link = await db.squarePaymentLink.create({
-						data: {
-							option: emailType,
-							orderIdParams,
-						},
-						select: {
-							id: true,
-						},
-					});
-					const emailSlug = primarySale.customerEmail.split("@")[0];
-					return isDev
-						? `${appUrl}/square-payment/checkout?uid=${link.id}&slugs=${sales.map((sale) => sale.orderId).join(",")}&tok=${emailSlug}`
-						: `${appUrl}/square-payment/${emailSlug}/${orderIdParams}?uid=${link.id}`;
+					const accountNo =
+						primarySale.customerPhone ||
+						(primarySale.customerId
+							? `cust-${primarySale.customerId}`
+							: null);
+					const walletId =
+						primarySale.customerWalletId ||
+						(accountNo ? (await getCustomerWallet(db, accountNo)).id : null);
+					if (!walletId) {
+						throw new Error(
+							`Missing walletId for document email, salesId=${primarySale.id}`,
+						);
+					}
+					const paymentToken = tryTokenize({
+						salesIds: paymentEligibleSales.map((sale) => sale.id),
+						expiry,
+						walletId,
+					} satisfies SalesPaymentTokenSchema);
+					return paymentToken && appUrl
+						? `${appUrl}/checkout/${paymentToken}/v2`
+						: null;
 				})();
 	const acceptQuoteLink =
 		input.printType !== "quote" || sales.length !== 1

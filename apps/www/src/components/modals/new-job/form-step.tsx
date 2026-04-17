@@ -17,6 +17,7 @@ import { Skeleton } from "@gnd/ui/skeleton";
 import { handleNumberInput, percentageValue, sum } from "@gnd/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Controller, useFieldArray } from "react-hook-form";
+import { useEffect } from "react";
 import { AdminJobFormContent } from "./admin-job-form-content";
 import { InstallTasksList } from "./install-tasks-list";
 import { JobSubmitButton } from "./job-submit-button";
@@ -64,7 +65,7 @@ export function FormStep() {
 	);
 }
 function FormContent() {
-	const { defaultValues, markAsComplete, setMarkAsComplete } =
+	const { defaultValues, markAsComplete, setMarkAsComplete, state } =
 		useJobFormContext();
 	const { setParams: setJobFormParams, ...params } = useJobFormParams();
 	const { formType } = useJobStepInfo();
@@ -153,6 +154,23 @@ function FormContent() {
 		});
 	};
 
+	useEffect(() => {
+		if (state.allowCustomJobs) return;
+		if (params.builderTaskId === -1) {
+			void setJobFormParams({
+				builderTaskId: null,
+				step: Math.max(1, (params.step || 1) - 1),
+			});
+		}
+		form.setValue("job.isCustom", false);
+	}, [
+		form,
+		params.builderTaskId,
+		params.step,
+		setJobFormParams,
+		state.allowCustomJobs,
+	]);
+
 	return (
 		<>
 			<div className="space-y-6 h-full flex flex-col">
@@ -171,7 +189,7 @@ function FormContent() {
 					</span>
 				</div>
 				<div className="flex-1 overflow-y-auto pr-2 space-y-6">
-					{params.builderTaskId === -1 ? null : (
+					{params.builderTaskId === -1 || !state.allowCustomJobs ? null : (
 						<div className="space-y-2">
 							<Controller
 								control={form.control}

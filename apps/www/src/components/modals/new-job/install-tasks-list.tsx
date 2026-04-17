@@ -3,16 +3,22 @@ import { useJobRole } from "@/hooks/use-job-role";
 import { cn } from "@/lib/utils";
 import { InputGroup } from "@gnd/ui/namespace";
 import { Controller } from "react-hook-form";
-import { AdminJobFormContent } from "./admin-job-form-content";
 import NumberFlow from "@number-flow/react";
+import type { ReactNode } from "react";
 import { MissingTasksConfig } from "./missing-tasks-config";
 
 export function InstallTasksList({ form }) {
-    const { defaultValues } = useJobFormContext();
+    const { defaultValues, state } = useJobFormContext();
     const jobRole = useJobRole();
     if (!defaultValues?.builderTaskId) return null;
     const tasks = defaultValues?.job?.tasks;
     if (!tasks?.length) return <MissingTasksConfig form={form} />;
+
+    function ShowTaskQty({ children }: { children: ReactNode }) {
+        if (!state.showTaskQty && !jobRole.isAdmin) return null;
+        return <>{children}</>;
+    }
+
     return (
         <div className="space-y-3">
             <h3 className="text-sm font-bold text-foreground">Install Costs</h3>
@@ -21,9 +27,13 @@ export function InstallTasksList({ form }) {
                     <thead className="bg-muted/50 text-xs font-bold text-muted-foreground uppercase border-b border-border">
                         <tr>
                             <th className="px-4 py-3">Item</th>
-                            <th className="px-4 py-3 text-right">Rate</th>
+                            <ShowTaskQty>
+                                <th className="px-4 py-3 text-right">Rate</th>
+                            </ShowTaskQty>
                             <th className="px-4 py-3 w-28 text-center">Qty</th>
-                            <th className="px-4 py-3 text-right">Total</th>
+                            <ShowTaskQty>
+                                <th className="px-4 py-3 text-right">Total</th>
+                            </ShowTaskQty>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -42,10 +52,17 @@ export function InstallTasksList({ form }) {
                                         <tr className="bg-card align-top">
                                             <td className="px-4 py-3 font-medium text-foreground uppercase">
                                                 {cost.installCostModel.title}
+                                                <ShowTaskQty>
+                                                    <p className="mt-1 text-[11px] text-muted-foreground">
+                                                        Max: {maxQty}
+                                                    </p>
+                                                </ShowTaskQty>
                                             </td>
-                                            <td className="px-4 py-3 text-right text-muted-foreground">
-                                                ${cost.rate.toFixed(2)}
-                                            </td>
+                                            <ShowTaskQty>
+                                                <td className="px-4 py-3 text-right text-muted-foreground">
+                                                    ${cost.rate.toFixed(2)}
+                                                </td>
+                                            </ShowTaskQty>
                                             <td className="px-4 py-2">
                                                 <InputGroup
                                                     className={cn(
@@ -74,13 +91,13 @@ export function InstallTasksList({ form }) {
                                                         }}
                                                         placeholder="0"
                                                     />
-                                                    <AdminJobFormContent>
+                                                    <ShowTaskQty>
                                                         <InputGroup.Addon align="inline-end">
                                                             <span className="text-muted-foreground">
                                                                 {` / ${maxQty} `}
                                                             </span>
                                                         </InputGroup.Addon>
-                                                    </AdminJobFormContent>
+                                                    </ShowTaskQty>
                                                 </InputGroup>
                                                 {fieldState.error?.message ? (
                                                     <p className="mt-1 text-center text-xs text-destructive">
@@ -88,17 +105,19 @@ export function InstallTasksList({ form }) {
                                                     </p>
                                                 ) : null}
                                             </td>
-                                            <td className="px-4 py-3 text-right font-bold">
-                                                <NumberFlow
-                                                    prefix="$"
-                                                    value={
-                                                        +(
-                                                            (cost.rate || 0) *
-                                                                +value || 0
-                                                        ).toFixed(2)
-                                                    }
-                                                />
-                                            </td>
+                                            <ShowTaskQty>
+                                                <td className="px-4 py-3 text-right font-bold">
+                                                    <NumberFlow
+                                                        prefix="$"
+                                                        value={
+                                                            +(
+                                                                (cost.rate || 0) *
+                                                                    +value || 0
+                                                            ).toFixed(2)
+                                                        }
+                                                    />
+                                                </td>
+                                            </ShowTaskQty>
                                         </tr>
                                     )}
                                 />

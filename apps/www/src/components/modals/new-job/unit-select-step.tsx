@@ -10,6 +10,23 @@ import { toast } from "sonner";
 import { StepTitle } from "./step-title";
 import { SubHeader } from "./sub-header";
 
+function compareBlockLot(
+	a: { block?: string | number | null; lot?: string | number | null },
+	b: { block?: string | number | null; lot?: string | number | null },
+) {
+	const blockCompare = String(a.block ?? "").localeCompare(
+		String(b.block ?? ""),
+		undefined,
+		{ numeric: true, sensitivity: "base" },
+	);
+	if (blockCompare !== 0) return blockCompare;
+
+	return String(a.lot ?? "").localeCompare(String(b.lot ?? ""), undefined, {
+		numeric: true,
+		sensitivity: "base",
+	});
+}
+
 export function UnitSelectStep() {
 	const { setParams, ...params } = useJobFormParams();
 	const trpc = useTRPC();
@@ -31,7 +48,10 @@ export function UnitSelectStep() {
 		trpc.community.generateModelForUnit.mutationOptions(),
 	);
 
-	const units = data || [];
+	const units = useMemo(
+		() => [...(data || [])].sort(compareBlockLot),
+		[data],
+	);
 	const normalizedQuery = query.trim().toLowerCase();
 	const results = useMemo(() => {
 		if (!normalizedQuery) return units;

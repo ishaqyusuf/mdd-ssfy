@@ -1,8 +1,9 @@
 import { useJobFormParams } from "@/hooks/use-job-form-params";
+import { useJobRole } from "@/hooks/use-job-role";
 import { useJobStepInfo } from "@/hooks/use-job-step-info";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 
 type JobFormContextProps = ReturnType<typeof useCreateJobFormContext>;
 export const JobFormContext = createContext<JobFormContextProps>(
@@ -10,15 +11,17 @@ export const JobFormContext = createContext<JobFormContextProps>(
 );
 export const JobFormProvider = JobFormContext.Provider;
 export const useCreateJobFormContext = () => {
-	const { setParams, ...params } = useJobFormParams();
+	const { ...params } = useJobFormParams();
 	const { formType } = useJobStepInfo();
+	const { isAdmin } = useJobRole();
+	const trpc = useTRPC();
 	const canLoadForm =
 		!!params.unitId &&
 		!!params.builderTaskId &&
 		!!params.modelId &&
 		(formType === "submit" || !!params.userId);
 	const { data: defaultValues, isPending } = useQuery(
-		useTRPC().community.getJobForm.queryOptions(
+		trpc.community.getJobForm.queryOptions(
 			{
 				unitId: params.unitId,
 				builderTaskId:
@@ -32,10 +35,21 @@ export const useCreateJobFormContext = () => {
 			},
 		),
 	);
+	const { data: jobSettings } = useQuery(trpc.settings.getJobSettings.queryOptions());
 	const [markAsComplete, setMarkAsComplete] = useState(false);
+	const state = useMemo(
+		() => ({
+			showTaskQty: isAdmin || !!jobSettings?.meta?.showTaskQty,
+			allowCustomJobs: isAdmin || !!jobSettings?.meta?.allowCustomJobs,
+		}),
+		[isAdmin, jobSettings?.meta?.allowCustomJobs, jobSettings?.meta?.showTaskQty],
+	);
+
 	return {
 		defaultValues,
 		isPending,
+		jobSettings,
+		state,
 		markAsComplete,
 		setMarkAsComplete,
 	};

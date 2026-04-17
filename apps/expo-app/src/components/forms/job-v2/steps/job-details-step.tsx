@@ -398,7 +398,7 @@ export function JobDetailsStep() {
                       <Controller
                         control={form.control}
                         name={qtyFieldName as any}
-                        render={({ field }) => (
+                        render={({ field, fieldState }) => (
                           <View className="w-24 px-1">
                             <TextInput
                               value={
@@ -406,17 +406,23 @@ export function JobDetailsStep() {
                                   ? ""
                                   : String(field.value)
                               }
-                              onChangeText={(text) =>
+                              onChangeText={(text) => {
                                 field.onChange(
                                   parseQty(
                                     text.replace(/[^0-9.]/g, ""),
                                     admin ? task?.maxQty : null,
                                   ),
-                                )
-                              }
+                                );
+                                void form.trigger(qtyFieldName as any);
+                              }}
                               keyboardType="decimal-pad"
                               editable={!admin || Number(task?.maxQty || 0) > 0}
-                              className="h-10 rounded-xl border border-border bg-card px-2 text-xs text-foreground"
+                              className={cn(
+                                "h-10 rounded-xl border bg-card px-2 text-xs text-foreground",
+                                fieldState.error
+                                  ? "border-destructive"
+                                  : "border-border",
+                              )}
                               style={{ textAlign: "center" }}
                               placeholder="0"
                               placeholderTextColor="hsl(var(--muted-foreground))"
@@ -424,6 +430,11 @@ export function JobDetailsStep() {
                             {state.showTaskQty && admin ? (
                               <Text className="mt-1 text-center text-[10px] text-muted-foreground">
                                 / {task?.maxQty || 0}
+                              </Text>
+                            ) : null}
+                            {fieldState.error?.message ? (
+                              <Text className="mt-1 text-center text-[10px] text-destructive">
+                                {fieldState.error.message}
                               </Text>
                             ) : null}
                           </View>

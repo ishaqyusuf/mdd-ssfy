@@ -2,6 +2,7 @@
 
 import { Icons } from "@gnd/ui/icons";
 import { SearchFilter } from "@gnd/ui/search-filter";
+import { JobSettingsSheet } from "./job-settings-sheet";
 import { OpenJobSheet } from "./open-contractor-jobs-sheet";
 import { jobFilterParams } from "@/hooks/use-contractor-jobs-filter-params";
 import { useQueryStates } from "nuqs";
@@ -110,6 +111,7 @@ export function JobHeader({ initialFilterList }: Props) {
                 {...{ filters, setFilters }}
             />
             <div className="flex-1"></div>
+            <JobSettingsSheet />
             <OpenJobSheet />
             <Env isDev>
                 <SubmitButton
