@@ -457,14 +457,6 @@ export function CustomerSalesWorkspace({ accountNo }: Props) {
 										<DropdownMenu.Item
 											onSelect={(event) => {
 												event.preventDefault();
-												void sendEmail("order", "without payment");
-											}}
-										>
-											Send without payment
-										</DropdownMenu.Item>
-										<DropdownMenu.Item
-											onSelect={(event) => {
-												event.preventDefault();
 												void sendEmail("order", "with payment");
 											}}
 										>

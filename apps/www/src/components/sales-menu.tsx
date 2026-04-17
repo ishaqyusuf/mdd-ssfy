@@ -283,7 +283,7 @@ function useSendSalesEmailAction() {
 					? options.partPayment
 						? "with part payment"
 						: "with payment"
-					: "without payment",
+					: "with payment",
 				printType: isQuote ? "quote" : "order",
 				salesIds: state.id ? [state.id] : state.salesIds,
 			});
@@ -575,7 +575,7 @@ function SalesMenuNotifications({ disabled }: ActionProps) {
 			disabled={disabled || !state.salesIds.length || isPending}
 			onSelect={(e) => {
 				e.preventDefault();
-				sendEmail({ withPayment: false });
+				sendEmail({ withPayment: true });
 			}}
 		>
 			{isPending ? (

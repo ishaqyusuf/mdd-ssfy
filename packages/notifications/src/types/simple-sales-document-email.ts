@@ -132,7 +132,11 @@ async function buildSalesDocumentEmailData(
 	const appUrl = getAppUrl();
 	const apiUrl = getAppApiUrl();
 	const isDev = process.env.NODE_ENV === "development";
-	const emailType = input.emailType ?? "without payment";
+	const requestedEmailType = input.emailType ?? "with payment";
+	const emailType =
+		input.printType === "order" && requestedEmailType === "without payment"
+			? "with payment"
+			: requestedEmailType;
 	const expiry = addDays(new Date(), 7).toISOString();
 	const pdfToken = tryTokenize({
 		salesIds: sales.map((sale) => sale.id),
@@ -184,7 +188,7 @@ async function buildSalesDocumentEmailData(
 		customerName: primarySale.customerName,
 		salesRep: primarySale.salesRep,
 		salesRepEmail: primarySale.salesRepEmail,
-		paymentLink: emailType === "without payment" ? null : paymentLink,
+		paymentLink,
 		pdfLink:
 			pdfToken && apiUrl != null
 				? `${apiUrl}/download/sales?token=${encodeURIComponent(pdfToken)}&download=true`

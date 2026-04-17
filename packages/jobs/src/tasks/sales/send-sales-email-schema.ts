@@ -3,7 +3,7 @@ import { z } from "zod";
 export const sendSalesEmailSchema = z.object({
   emailType: z
     .enum(["with payment", "with part payment", "without payment"])
-    .default("without payment")
+    .default("with payment")
     .optional()
     .nullable(),
   printType: z.enum(["order", "quote"]),
