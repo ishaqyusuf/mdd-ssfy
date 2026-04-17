@@ -262,7 +262,7 @@ export const linkModules = [
                 )
                 .level(1).data,
             _link("Accounting", "accounting", "/sales-book/accounting").access(
-                _perm.is("editSales"),
+                _perm.in("viewOrderPayment", "editOrderPayment", "editSales"),
             ).data,
             _link("Product Report", "report", "/product-report").access(
                 _role.in("Super Admin"),
@@ -794,4 +794,3 @@ export function getActiveLinkFromMap(
         )
         .sort(([hrefA], [hrefB]) => hrefB.length - hrefA.length)?.[0]?.[1];
 }
-
