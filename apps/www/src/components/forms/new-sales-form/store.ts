@@ -84,7 +84,7 @@ const initialEditorState: NewSalesFormEditorState = {
 	mouldingViewMode: "selection",
 	isOverviewOpen: false,
 	showMobileSummary: false,
-	autosaveEnabled: true,
+	autosaveEnabled: false,
 };
 
 const initialState: NewSalesFormState = {
@@ -145,6 +145,13 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 	setMeta: (patch) =>
 		set((state) => {
 			if (!state.record) return state;
+			const unchanged = Object.entries(patch).every(
+				([key, value]) =>
+					state.record?.form?.[key as keyof NewSalesFormMeta] === value,
+			);
+			if (unchanged) {
+				return state;
+			}
 			return {
 				...state,
 				record: withDirty({
@@ -161,13 +168,20 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 	setLineItems: (lineItems) =>
 		set((state) => {
 			if (!state.record) return state;
+			const normalizedLineItems = lineItems.map((line, index) =>
+				normalizeLineItem(line, index),
+			);
+			if (
+				JSON.stringify(state.record.lineItems || []) ===
+				JSON.stringify(normalizedLineItems)
+			) {
+				return state;
+			}
 			return {
 				...state,
 				record: withDirty({
 					...state.record,
-					lineItems: lineItems.map((line, index) =>
-						normalizeLineItem(line, index),
-					),
+					lineItems: normalizedLineItems,
 				}),
 				dirty: true,
 				saveStatus: state.saveStatus === "error" ? "idle" : state.saveStatus,
@@ -382,6 +396,20 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 	setSummary: (summary) =>
 		set((state) => {
 			if (!state.record) return state;
+			const currentSummary = state.record.summary || ({} as NewSalesFormSummary);
+			const nextSummary = summary || ({} as NewSalesFormSummary);
+			const unchanged =
+				Number(currentSummary.subTotal || 0) === Number(nextSummary.subTotal || 0) &&
+				Number(currentSummary.adjustedSubTotal || 0) ===
+					Number(nextSummary.adjustedSubTotal || 0) &&
+				Number(currentSummary.taxRate || 0) === Number(nextSummary.taxRate || 0) &&
+				Number(currentSummary.taxTotal || 0) === Number(nextSummary.taxTotal || 0) &&
+				Number(currentSummary.ccc || 0) === Number(nextSummary.ccc || 0) &&
+				Number(currentSummary.grandTotal || 0) ===
+					Number(nextSummary.grandTotal || 0);
+			if (unchanged) {
+				return state;
+			}
 			return {
 				...state,
 				record: {
@@ -395,6 +423,13 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 	patchRecord: (patch) =>
 		set((state) => {
 			if (!state.record) return state;
+			const unchanged = Object.entries(patch).every(
+				([key, value]) =>
+					state.record?.[key as keyof NewSalesFormRecord] === value,
+			);
+			if (unchanged) {
+				return state;
+			}
 			return {
 				...state,
 				record: {
@@ -442,11 +477,20 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 			dirty: false,
 		})),
 	setEditor: (patch) =>
-		set((state) => ({
-			...state,
-			editor: {
-				...state.editor,
-				...patch,
-			},
-		})),
+		set((state) => {
+			const unchanged = Object.entries(patch).every(
+				([key, value]) =>
+					state.editor[key as keyof NewSalesFormEditorState] === value,
+			);
+			if (unchanged) {
+				return state;
+			}
+			return {
+				...state,
+				editor: {
+					...state.editor,
+					...patch,
+				},
+			};
+		}),
 }));

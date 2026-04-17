@@ -66,11 +66,33 @@ export function normalizeLineItems(
 }
 
 export function normalizeMeta(meta: Partial<NewSalesFormMeta>): NewSalesFormMeta {
+    const customerId =
+        meta.customerId == null || meta.customerId === ""
+            ? null
+            : Number(meta.customerId);
+    const customerProfileId =
+        meta.customerProfileId == null || meta.customerProfileId === ""
+            ? null
+            : Number(meta.customerProfileId);
+    const billingAddressId =
+        meta.billingAddressId == null || meta.billingAddressId === ""
+            ? null
+            : Number(meta.billingAddressId);
+    const shippingAddressId =
+        meta.shippingAddressId == null || meta.shippingAddressId === ""
+            ? null
+            : Number(meta.shippingAddressId);
     return {
-        customerId: meta.customerId ?? null,
-        customerProfileId: meta.customerProfileId ?? null,
-        billingAddressId: meta.billingAddressId ?? null,
-        shippingAddressId: meta.shippingAddressId ?? null,
+        customerId: Number.isFinite(customerId) ? customerId : null,
+        customerProfileId: Number.isFinite(customerProfileId)
+            ? customerProfileId
+            : null,
+        billingAddressId: Number.isFinite(billingAddressId)
+            ? billingAddressId
+            : null,
+        shippingAddressId: Number.isFinite(shippingAddressId)
+            ? shippingAddressId
+            : null,
         paymentTerm: meta.paymentTerm ?? "None",
         goodUntil: meta.goodUntil ?? null,
         prodDueDate: meta.prodDueDate ?? null,

@@ -9,8 +9,8 @@ import superjson from "superjson";
 import { makeQueryClient } from "./query-client";
 import type { AppRouter } from "@gnd/api/trpc/routers/_app";
 import { generateRandomString } from "@/lib/utils";
-import { authUser } from "@/app-deps/(v1)/_actions/utils";
 import { getBaseUrl } from "@/lib/base-url";
+import { getSession } from "next-auth/react";
 export const { TRPCProvider, useTRPC } = createTRPCContext<AppRouter>();
 
 let browserQueryClient: QueryClient;
@@ -48,14 +48,11 @@ export function TRPCReactProvider(
                     transformer: superjson as any,
                     async headers() {
                         try {
-                            const auth = await authUser();
-                            const id = auth?.id;
-                            // const s = await getServerSession(authOptions);
-                            // console.log
-                            // const id = s?.user?.id;
-                            // if (!id) {
-                            //     return {};
-                            // }
+                            const session = await getSession();
+                            const id = session?.user?.id;
+                            if (!id) {
+                                return {};
+                            }
                             return {
                                 Authorization: `Bearer ${generateRandomString(
                                     16,

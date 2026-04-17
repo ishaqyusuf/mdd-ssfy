@@ -79,6 +79,21 @@ export function InvoiceOverviewPanel() {
     const customerSearch = useNewSalesFormSearchCustomersQuery(debounced);
     const customerProfiles = useCustomerProfilesQuery(true);
     const customerTaxProfiles = useCustomerTaxProfilesQuery(true);
+    const profileOptions = useMemo(
+        () => customerProfiles.data || [],
+        [customerProfiles.data],
+    );
+    const taxOptions = useMemo(
+        () =>
+            (customerTaxProfiles.data || []).map((tax: any) => ({
+                taxCode: String(tax?.taxCode || ""),
+                title: String(tax?.title || tax?.taxCode || "Tax"),
+                percentage: Number(
+                    tax?.percentage ?? tax?.tax ?? tax?.rate ?? 0,
+                ),
+            })),
+        [customerTaxProfiles.data],
+    );
     const resolvedCustomer = useNewSalesFormResolveCustomerQuery(
         {
             customerId: Number(record?.form.customerId || 0),
@@ -87,35 +102,47 @@ export function InvoiceOverviewPanel() {
         },
         !!record?.form.customerId,
     );
+    const customerId = record?.form.customerId ?? null;
+    const customerProfileId = record?.form.customerProfileId ?? null;
+    const billingAddressId = record?.form.billingAddressId ?? null;
+    const shippingAddressId = record?.form.shippingAddressId ?? null;
+    const paymentTerm = record?.form.paymentTerm ?? "None";
+    const taxCode = record?.form.taxCode ?? null;
+    const summaryTaxRate = Number(record?.summary?.taxRate || 0);
+    const summarySubTotal = Number(record?.summary?.subTotal || 0);
+    const summaryAdjustedSubTotal = Number(record?.summary?.adjustedSubTotal || 0);
+    const summaryTaxTotal = Number(record?.summary?.taxTotal || 0);
+    const summaryGrandTotal = Number(record?.summary?.grandTotal || 0);
+    const summaryCcc = Number(record?.summary?.ccc || 0);
 
     useEffect(() => {
         const data = resolvedCustomer.data as any;
-        if (!record || !data || !record.form.customerId) return;
+        if (!record || !data || !customerId) return;
         const nextMeta = {
-            customerId: Number(data.customerId || record.form.customerId || 0) || null,
-            customerProfileId: data.profileId ?? record.form.customerProfileId ?? null,
+            customerId: Number(data.customerId || customerId || 0) || null,
+            customerProfileId: data.profileId ?? customerProfileId,
             billingAddressId: data.billing?.id ?? data.billingId ?? null,
             shippingAddressId: data.shipping?.id ?? data.shippingId ?? null,
             paymentTerm: (data.netTerm as string) || "None",
             taxCode: (data.taxCode as string) || null,
         };
         const changed =
-            nextMeta.customerId !== (record.form.customerId ?? null) ||
-            nextMeta.customerProfileId !== (record.form.customerProfileId ?? null) ||
-            nextMeta.billingAddressId !== (record.form.billingAddressId ?? null) ||
-            nextMeta.shippingAddressId !== (record.form.shippingAddressId ?? null) ||
-            nextMeta.paymentTerm !== (record.form.paymentTerm ?? "None") ||
-            nextMeta.taxCode !== (record.form.taxCode ?? null);
+            nextMeta.customerId !== customerId ||
+            nextMeta.customerProfileId !== customerProfileId ||
+            nextMeta.billingAddressId !== billingAddressId ||
+            nextMeta.shippingAddressId !== shippingAddressId ||
+            nextMeta.paymentTerm !== paymentTerm ||
+            nextMeta.taxCode !== taxCode;
         if (changed) setMeta(nextMeta);
     }, [
-        record?.form.billingAddressId,
-        record?.form.customerId,
-        record?.form.customerProfileId,
-        record?.form.paymentTerm,
-        record?.form.shippingAddressId,
-        record?.form.taxCode,
+        billingAddressId,
+        customerId,
+        customerProfileId,
+        paymentTerm,
         resolvedCustomer.data,
+        shippingAddressId,
         setMeta,
+        taxCode,
     ]);
 
     if (!record) return null;
@@ -186,23 +213,31 @@ export function InvoiceOverviewPanel() {
             taxTotal: liveSummary?.taxTotal,
             grandTotal: liveSummary?.grandTotal,
         });
-    }, [liveSummary, record]);
+    }, [liveSummary, record?.lineItems]);
 
     useEffect(() => {
         if (!record) return;
         const hasDrift =
-            Number(record.summary?.subTotal || 0) !== Number(liveSummary.subTotal || 0) ||
-            Number(record.summary?.adjustedSubTotal || 0) !==
-                Number(liveSummary.adjustedSubTotal || 0) ||
-            Number(record.summary?.taxTotal || 0) !== Number(liveSummary.taxTotal || 0) ||
-            Number(record.summary?.grandTotal || 0) !== Number(liveSummary.grandTotal || 0) ||
-            Number(record.summary?.ccc || 0) !== Number(liveSummary.ccc || 0);
+            summarySubTotal !== Number(liveSummary.subTotal || 0) ||
+            summaryAdjustedSubTotal !== Number(liveSummary.adjustedSubTotal || 0) ||
+            summaryTaxTotal !== Number(liveSummary.taxTotal || 0) ||
+            summaryGrandTotal !== Number(liveSummary.grandTotal || 0) ||
+            summaryCcc !== Number(liveSummary.ccc || 0);
         if (!hasDrift) return;
         setSummary({
             ...record.summary,
             ...liveSummary,
         });
-    }, [liveSummary, record, setSummary]);
+    }, [
+        liveSummary,
+        record,
+        setSummary,
+        summaryAdjustedSubTotal,
+        summaryCcc,
+        summaryGrandTotal,
+        summarySubTotal,
+        summaryTaxTotal,
+    ]);
 
     const creditUsed = Number(liveSummary.grandTotal || 0);
     const usagePct = creditLimit > 0 ? Math.min(100, Math.max(0, (creditUsed / creditLimit) * 100)) : 0;
@@ -216,15 +251,6 @@ export function InvoiceOverviewPanel() {
             .join("")
             .toUpperCase();
     }, [record.customer?.name, record.customer?.businessName]);
-    const profileOptions = customerProfiles.data || [];
-    const taxOptions = (customerTaxProfiles.data || []).map((tax: any) => ({
-        taxCode: String(tax?.taxCode || ""),
-        title: String(tax?.title || tax?.taxCode || "Tax"),
-        percentage: Number(
-            tax?.percentage ?? tax?.tax ?? tax?.rate ?? 0,
-        ),
-    }));
-
     function resolveTaxRateByCode(taxCode?: string | null) {
         if (!taxCode) return 0;
         const match = taxOptions.find((tax) => tax.taxCode === taxCode);
@@ -234,14 +260,14 @@ export function InvoiceOverviewPanel() {
     useEffect(() => {
         if (!record) return;
         const currentProfile = profileOptions.find(
-            (profile: any) => Number(profile?.id) === Number(record.form.customerProfileId || 0),
+            (profile: any) => Number(profile?.id) === Number(customerProfileId || 0),
         ) as any;
         const currentCoefficient = Number(currentProfile?.coefficient);
         const normalizedCurrent = Number.isFinite(currentCoefficient)
             ? currentCoefficient
             : null;
-        const currentProfileId = record.form.customerProfileId
-            ? Number(record.form.customerProfileId)
+        const currentProfileId = customerProfileId
+            ? Number(customerProfileId)
             : null;
         if (lastProfileCoefficientRef.current === undefined) {
             lastProfileCoefficientRef.current = normalizedCurrent;
@@ -264,11 +290,11 @@ export function InvoiceOverviewPanel() {
         );
         lastProfileCoefficientRef.current = normalizedCurrent;
         lastProfileIdRef.current = currentProfileId;
-    }, [profileOptions, record, setLineItems]);
+    }, [customerProfileId, profileOptions, record?.lineItems, setLineItems]);
 
     useEffect(() => {
         if (!record) return;
-        if (record.form.customerProfileId != null) return;
+        if (customerProfileId != null) return;
         const defaultProfile = getDefaultCustomerProfile(profileOptions);
         if (!defaultProfile?.id) return;
         const profileMeta = defaultProfile?.meta || {};
@@ -277,25 +303,27 @@ export function InvoiceOverviewPanel() {
             paymentTerm:
                 profileMeta?.netTerm ||
                 profileMeta?.net ||
-                record.form.paymentTerm ||
+                paymentTerm ||
                 "None",
         });
-    }, [profileOptions, record, setMeta]);
+    }, [customerProfileId, paymentTerm, profileOptions, record, setMeta]);
 
     useEffect(() => {
         if (!record) return;
-        const nextRate = resolveTaxRateByCode(record.form.taxCode);
-        if (Number(record.summary?.taxRate || 0) !== Number(nextRate || 0)) {
+        const nextRate = resolveTaxRateByCode(taxCode);
+        if (summaryTaxRate !== Number(nextRate || 0)) {
             setTaxRate(nextRate);
         }
-    }, [record, setTaxRate, customerTaxProfiles.data]);
+    }, [setTaxRate, summaryTaxRate, taxCode, taxOptions]);
 
     function applyCustomerProfile(value: string) {
         if (value === "none") {
+            if (customerProfileId == null) return;
             setMeta({ customerProfileId: null });
             return;
         }
         const selectedId = Number(value);
+        if (selectedId === Number(customerProfileId || 0)) return;
         const profile = profileOptions.find(
             (p: any) => Number(p.id) === selectedId,
         ) as any;
@@ -305,7 +333,7 @@ export function InvoiceOverviewPanel() {
             paymentTerm:
                 profileMeta?.netTerm ||
                 profileMeta?.net ||
-                record.form.paymentTerm ||
+                paymentTerm ||
                 "None",
         });
     }
