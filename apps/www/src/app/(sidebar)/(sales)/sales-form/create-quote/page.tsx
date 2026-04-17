@@ -5,6 +5,7 @@ import { unstable_noStore } from "next/cache";
 
 import PageShell from "@/components/page-shell";
 import { PageTitle } from "@gnd/ui/custom/page-title";
+import type { SearchParams } from "nuqs";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
@@ -13,14 +14,29 @@ export async function generateMetadata() {
 	});
 }
 
-export default async function Page() {
+type Props = {
+	searchParams: Promise<SearchParams>;
+};
+
+export default async function Page(props: Props) {
 	unstable_noStore();
+	const searchParams = await props.searchParams;
+	const selectedCustomerId =
+		typeof searchParams.selectedCustomerId === "string"
+			? Number(searchParams.selectedCustomerId)
+			: Array.isArray(searchParams.selectedCustomerId)
+				? Number(searchParams.selectedCustomerId[0])
+				: null;
+	const customerId =
+		selectedCustomerId && Number.isFinite(selectedCustomerId)
+			? selectedCustomerId
+			: null;
 	const queryClient = getQueryClient();
 	await Promise.all([
 		queryClient.fetchQuery(
 			trpc.newSalesForm.bootstrap.queryOptions({
 				type: "quote",
-				customerId: null,
+				customerId,
 			}),
 		),
 		queryClient.fetchQuery(trpc.newSalesForm.getStepRouting.queryOptions({})),

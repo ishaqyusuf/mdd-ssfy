@@ -3,8 +3,13 @@
 import { triggerEvent } from "@/actions/events";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { _modal } from "@/components/common/modal/provider";
+import { useAuth } from "@/hooks/use-auth";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
+import { printOrder, printQuote } from "@/lib/quick-print";
+import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
+import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import type { CreateSalesHistorySchemaTask } from "@jobs/schema";
 import dynamic from "next/dynamic";
@@ -24,9 +29,11 @@ import {
 	writeRecoverySnapshot,
 } from "./local-recovery";
 import { toSaveDraftInput } from "./mappers";
+import { CustomerSelectorDialog } from "./sections/customer-selector-dialog";
 import { HeaderActions } from "./sections/header-actions";
 import { useNewSalesFormStore } from "./store";
 import { useNewSalesFormAutoSave } from "./use-auto-save";
+import { useCreateFormQueryParams } from "./use-create-form-query-params";
 
 interface Props {
 	mode: "create" | "edit";
@@ -66,6 +73,33 @@ function getErrorMessage(error: unknown, fallback: string) {
 	return fallback;
 }
 
+type DispatchStatus =
+	| "queue"
+	| "packing queue"
+	| "packed"
+	| "in progress"
+	| "completed"
+	| "cancelled";
+
+type PackingDispatch = {
+	id: number;
+	status?: string | null;
+	deliveryMode?: string | null;
+};
+
+function normalizeDispatchStatus(status?: string | null): DispatchStatus {
+	switch (status) {
+		case "packing queue":
+		case "packed":
+		case "in progress":
+		case "completed":
+		case "cancelled":
+			return status;
+		default:
+			return "queue";
+	}
+}
+
 function WorkflowPanelSkeleton() {
 	return (
 		<div className="grid gap-4">
@@ -87,6 +121,11 @@ function WorkflowPanelSkeleton() {
 
 export function NewSalesForm(props: Props) {
 	const router = useRouter();
+	const overviewQuery = useSalesOverviewQuery();
+	const trpc = useTRPC();
+	const queryClient = useQueryClient();
+	const auth = useAuth();
+	const [draftParams, setDraftParams] = useCreateFormQueryParams();
 	const record = useNewSalesFormStore((s) => s.record);
 	const dirty = useNewSalesFormStore((s) => s.dirty);
 	const saveStatus = useNewSalesFormStore((s) => s.saveStatus);
@@ -104,13 +143,16 @@ export function NewSalesForm(props: Props) {
 	const setEditor = useNewSalesFormStore((s) => s.setEditor);
 	const [recoverySnapshot, setRecoverySnapshot] =
 		useState<NewSalesFormRecoverySnapshot | null>(null);
+	const [bootstrapCustomerId] = useState<number | null>(
+		draftParams.selectedCustomerId ?? null,
+	);
 	const lastHydratedLoadKeyRef = useRef<string | null>(null);
 	const leaveWarningBypassedRef = useRef(false);
 
 	const bootstrapQuery = useNewSalesFormBootstrapQuery(
 		{
 			type: props.type,
-			customerId: null,
+			customerId: bootstrapCustomerId,
 		},
 		props.mode === "create",
 	);
@@ -128,6 +170,130 @@ export function NewSalesForm(props: Props) {
 		props.mode === "create" ? bootstrapQuery.isPending : getQuery.isPending;
 	const loadError =
 		props.mode === "create" ? bootstrapQuery.error : getQuery.error;
+	const customerSelectionRequired =
+		props.mode === "create" && !!record && !record.form.customerId;
+	const isSaved = Boolean(record?.salesId && record?.orderId);
+	const isOrder = props.type === "order";
+	const actorId = Number(auth.id || 0) > 0 ? Number(auth.id) : 1;
+	const actorName = auth.name || "System";
+
+	const dispatchOverview = useQuery(
+		trpc.dispatch.orderDispatchOverview.queryOptions(
+			{
+				salesId: record?.salesId || 0,
+			},
+			{
+				enabled: isOrder && !!record?.salesId,
+			},
+		),
+	);
+	const packingDispatches = useMemo(
+		() =>
+			(
+				((dispatchOverview.data?.deliveries as PackingDispatch[] | undefined) ||
+					[]) as PackingDispatch[]
+			)
+				.filter(
+					(dispatch) =>
+						!dispatch.deliveryMode ||
+						String(dispatch.deliveryMode).toLowerCase() === "pickup",
+				)
+				.sort((left, right) => right.id - left.id),
+		[dispatchOverview.data?.deliveries],
+	);
+	const activePackingDispatch = useMemo(
+		() =>
+			packingDispatches.find(
+				(dispatch) =>
+					dispatch.status !== "completed" && dispatch.status !== "cancelled",
+			) || null,
+		[packingDispatches],
+	);
+	const currentPackingDispatch =
+		activePackingDispatch || packingDispatches[0] || null;
+	const packingIsCompleted = currentPackingDispatch?.status === "completed";
+
+	const buildEditHref = useCallback(
+		(next: { slug?: string | null; orderId?: string | null }) => {
+			const slug = next.slug || record?.slug;
+			const orderId = next.orderId || record?.orderId;
+			if (!slug || !orderId) return null;
+			const path =
+				props.type === "order"
+					? `/sales-form/edit-order/${slug}`
+					: `/sales-form/edit-quote/${slug}`;
+			const search = new URLSearchParams({
+				"sales-overview-id": orderId,
+				"sales-type": props.type,
+				mode: props.type === "order" ? "sales" : "quote",
+				salesTab: "general",
+			});
+			return `${path}?${search.toString()}`;
+		},
+		[props.type, record?.orderId, record?.slug],
+	);
+
+	const clearSelectedCustomerQuery = useCallback(async () => {
+		if (draftParams.selectedCustomerId == null) return;
+		await setDraftParams({
+			selectedCustomerId: null,
+		});
+	}, [draftParams.selectedCustomerId, setDraftParams]);
+
+	const invalidatePackingQueries = useCallback(
+		async (salesId?: number | null) => {
+			await Promise.all([
+				queryClient.invalidateQueries({
+					queryKey: trpc.dispatch.packingList.pathKey(),
+				}),
+				queryClient.invalidateQueries({
+					queryKey: trpc.dispatch.packingQueue.queryKey(),
+				}),
+				queryClient.invalidateQueries({
+					queryKey: trpc.dispatch.orderDispatchOverview.pathKey(),
+				}),
+				queryClient.invalidateQueries({
+					queryKey: trpc.dispatch.dispatchOverview.queryKey(),
+				}),
+				queryClient.invalidateQueries({
+					queryKey: trpc.dispatch.dispatchOverviewV2.queryKey(),
+				}),
+				queryClient.invalidateQueries({
+					queryKey: trpc.sales.getSaleOverview.pathKey(),
+				}),
+				...(salesId
+					? [
+							queryClient.invalidateQueries({
+								queryKey: trpc.dispatch.orderDispatchOverview.queryKey({
+									salesId,
+								}),
+							}),
+						]
+					: []),
+			]);
+		},
+		[queryClient, trpc],
+	);
+	const sendForPackingMutation = useMutation(
+		trpc.dispatch.sendSaleForPickup.mutationOptions(),
+	);
+	const updateDispatchStatusMutation = useMutation(
+		trpc.dispatch.updateDispatchStatus.mutationOptions(),
+	);
+	const submitDispatchMutation = useMutation(
+		trpc.dispatch.submitDispatch.mutationOptions(),
+	);
+	const packingTaskTrigger = useTaskTrigger({
+		silent: true,
+		onSuccess() {
+			void invalidatePackingQueries(record?.salesId);
+		},
+	});
+	const isPackingBusy =
+		sendForPackingMutation.isPending ||
+		updateDispatchStatusMutation.isPending ||
+		submitDispatchMutation.isPending ||
+		packingTaskTrigger.isActionPending;
 
 	useEffect(() => {
 		if (!loadData) return;
@@ -219,6 +385,150 @@ export function NewSalesForm(props: Props) {
 	const taskTrigger = useTaskTrigger({
 		silent: true,
 	});
+	const ensurePackingDispatch = useCallback(async () => {
+		if (activePackingDispatch?.id) {
+			return {
+				id: activePackingDispatch.id,
+				status: normalizeDispatchStatus(activePackingDispatch.status),
+			};
+		}
+		if (!record?.salesId) {
+			throw new Error("Save the order before sending it for packing.");
+		}
+		const result = await sendForPackingMutation.mutateAsync({
+			salesId: record.salesId,
+		});
+		await invalidatePackingQueries(record.salesId);
+		return {
+			id: result.dispatchId,
+			status: normalizeDispatchStatus(result.status),
+		};
+	}, [
+		activePackingDispatch,
+		invalidatePackingQueries,
+		record?.salesId,
+		sendForPackingMutation,
+	]);
+	const handleSendForPacking = useCallback(async () => {
+		if (!record?.salesId || !record?.orderId) return;
+		try {
+			const result = await sendForPackingMutation.mutateAsync({
+				salesId: record.salesId,
+			});
+			await invalidatePackingQueries(record.salesId);
+			if (!result.hasRemainingItems) {
+				toast({
+					title: "Nothing left to send",
+					description: `No remaining items are available for ${record.orderId}.`,
+				});
+				return;
+			}
+			toast({
+				title: result.created ? "Packing created" : "Sent for packing",
+				description: `${result.orderNo || record.orderId} is ready in the packing queue.`,
+				variant: "success",
+			});
+		} catch (error) {
+			toast({
+				title: "Unable to send for packing",
+				description: getErrorMessage(error, "Please try again."),
+				variant: "destructive",
+			});
+		}
+	}, [
+		invalidatePackingQueries,
+		record?.orderId,
+		record?.salesId,
+		sendForPackingMutation,
+	]);
+	const handleCancelPacking = useCallback(async () => {
+		if (!currentPackingDispatch?.id) return;
+		try {
+			await updateDispatchStatusMutation.mutateAsync({
+				dispatchId: currentPackingDispatch.id,
+				oldStatus: normalizeDispatchStatus(currentPackingDispatch.status),
+				newStatus: "cancelled",
+			});
+			await invalidatePackingQueries(record?.salesId);
+			toast({
+				title: "Packing cancelled",
+				description: `${record?.orderId || "Order"} was removed from packing.`,
+				variant: "success",
+			});
+		} catch (error) {
+			toast({
+				title: "Unable to cancel packing",
+				description: getErrorMessage(error, "Please try again."),
+				variant: "destructive",
+			});
+		}
+	}, [
+		currentPackingDispatch,
+		invalidatePackingQueries,
+		record?.orderId,
+		record?.salesId,
+		updateDispatchStatusMutation,
+	]);
+	const handleCompletePacking = useCallback(async () => {
+		if (!record?.salesId) return;
+		try {
+			const dispatch = await ensurePackingDispatch();
+			packingTaskTrigger.trigger({
+				taskName: "update-sales-control",
+				payload: {
+					meta: {
+						authorId: actorId,
+						salesId: record.salesId,
+						authorName: actorName,
+					},
+					packItems: {
+						dispatchId: dispatch.id,
+						dispatchStatus: "completed",
+						packMode: "all",
+						replaceExisting: true,
+					},
+				},
+			});
+			await submitDispatchMutation.mutateAsync({
+				meta: {
+					salesId: record.salesId,
+					authorId: actorId,
+					authorName: actorName,
+				},
+				submitDispatch: {
+					dispatchId: dispatch.id,
+					receivedBy: actorName,
+					receivedDate: new Date(),
+				},
+			});
+			await invalidatePackingQueries(record.salesId);
+			toast({
+				title: "Packing completed",
+				description: `${record.orderId || "Order"} was auto-packed and completed.`,
+				variant: "success",
+			});
+		} catch (error) {
+			toast({
+				title: "Unable to complete packing",
+				description: getErrorMessage(error, "Please try again."),
+				variant: "destructive",
+			});
+		}
+	}, [
+		actorId,
+		actorName,
+		ensurePackingDispatch,
+		invalidatePackingQueries,
+		packingTaskTrigger,
+		record?.orderId,
+		record?.salesId,
+		submitDispatchMutation,
+	]);
+	const handleOpenPacking = useCallback(() => {
+		if (!record?.orderId) return;
+		const href = `/sales/packing-list?q=${encodeURIComponent(record.orderId)}`;
+		window.open(href, "_blank", "noopener,noreferrer");
+	}, [record?.orderId]);
 
 	const handlePostSaveSuccess = useCallback(
 		async (resp: {
@@ -422,6 +732,14 @@ export function NewSalesForm(props: Props) {
 			return;
 		}
 		await handlePostSaveSuccess(resp);
+		await clearSelectedCustomerQuery();
+		if (props.mode === "create") {
+			const editHref = buildEditHref(resp);
+			if (editHref) {
+				router.push(editHref);
+				return;
+			}
+		}
 		toast({
 			title: "Draft saved",
 			variant: "success",
@@ -444,6 +762,14 @@ export function NewSalesForm(props: Props) {
 				description: `${props.type} ${resp?.orderId} has been finalized.`,
 				variant: "success",
 			});
+			await clearSelectedCustomerQuery();
+			if (props.mode === "create") {
+				const editHref = buildEditHref(resp);
+				if (editHref) {
+					router.push(editHref);
+					return;
+				}
+			}
 		} catch (error) {
 			const message = getErrorMessage(error, "Unable to save.");
 			if (
@@ -467,6 +793,7 @@ export function NewSalesForm(props: Props) {
 			const resp = await autosave.flush("manual-flush");
 			if (!resp) return;
 			await handlePostSaveSuccess(resp);
+			await clearSelectedCustomerQuery();
 		}
 		router.push(`/sales-book/${props.type === "order" ? "orders" : "quotes"}`);
 	}
@@ -477,9 +804,27 @@ export function NewSalesForm(props: Props) {
 			const resp = await autosave.flush("manual-flush");
 			if (!resp) return;
 			await handlePostSaveSuccess(resp);
+			await clearSelectedCustomerQuery();
 		}
 		router.push(
 			`/sales-form/${props.type === "order" ? "create-order" : "create-quote"}`,
+		);
+	}
+
+	async function handlePrint() {
+		if (!record?.salesId) return;
+		if (props.type === "order") {
+			await printOrder({ salesIds: [record.salesId] });
+			return;
+		}
+		await printQuote({ salesIds: [record.salesId] });
+	}
+
+	function handleOpenOverview() {
+		if (!record?.orderId) return;
+		overviewQuery.open2(
+			record.orderId,
+			props.type === "order" ? "sales" : "quote",
 		);
 	}
 
@@ -510,118 +855,162 @@ export function NewSalesForm(props: Props) {
 	}
 
 	return (
-		<div className="relative flex min-h-0 h-[calc(100dvh-var(--header-height,5rem)-1.5rem)] max-h-[calc(100dvh-var(--header-height,5rem)-1.5rem)] overflow-hidden rounded-xl border bg-background">
-			<main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-				<HeaderActions
-					type={props.type}
-					orderId={record.orderId}
-					saveStatus={saveStatus}
-					dirty={dirty}
-					lastSavedAt={lastSavedAt}
-					statusMessage={lastSaveError}
-					isSaving={autosave.isSaving || finalSave.isPending}
-					autosaveEnabled={editor.autosaveEnabled}
-					stepDisplayMode={editor.stepDisplayMode}
-					onAddItem={() => addLineItem()}
-					onToggleStepDisplay={() =>
-						setEditor({
-							stepDisplayMode:
-								editor.stepDisplayMode === "extended" ? "compact" : "extended",
-						})
-					}
-					onOpenMobileSummary={() =>
-						setEditor({
-							showMobileSummary: !editor.showMobileSummary,
-						})
-					}
-					onToggleAutosave={() =>
-						setEditor({
-							autosaveEnabled: !editor.autosaveEnabled,
-						})
-					}
-					onSaveDraft={saveDraftNow}
-					onSaveClose={saveClose}
-					onSaveNew={saveNew}
-					onSaveFinal={saveFinal}
-					onOpenSettings={async () => {
-						const { default: NewSalesFormSettingsModal } = await import(
-							"@/components/modals/new-sales-form-settings-modal"
-						);
-						_modal.openSheet(<NewSalesFormSettingsModal />);
-					}}
-				/>
-
-				<div className="flex-1 overflow-y-auto p-4 pb-28 sm:p-6 lg:p-8 lg:pb-8">
-					<div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
-						{recoverySnapshot ? (
-							<div className="flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 md:flex-row md:items-center md:justify-between">
-								<p>
-									Unsaved local edits were found from{" "}
-									{new Date(recoverySnapshot.savedAt).toLocaleString()}.
-								</p>
-								<div className="flex items-center gap-2">
-									<Button
-										size="sm"
-										variant="outline"
-										onClick={() => {
-											clearRecoveryKeys();
-											toast({
-												title: "Using latest saved version",
-												description:
-													"Local recovery was dismissed for this draft.",
-												variant: "success",
-											});
-										}}
-									>
-										Dismiss
-									</Button>
-									<Button size="sm" onClick={applyRecoverySnapshot}>
-										Restore
-									</Button>
-								</div>
-							</div>
-						) : null}
-						<ItemWorkflowPanel />
-					</div>
-				</div>
-			</main>
-
-			<InvoiceSummarySidebar
-				mobileOpen={editor.showMobileSummary}
-				onClose={() =>
-					setEditor({
-						showMobileSummary: false,
-					})
-				}
+		<>
+			<CustomerSelectorDialog
+				mode={props.mode}
+				open={customerSelectionRequired}
+				required
+				type={props.type}
 			/>
-
-			<div className="fixed inset-x-0 bottom-0 z-20 border-t bg-card p-3 shadow-[0_-4px_18px_rgba(0,0,0,0.08)] lg:hidden">
-				<div className="mx-auto flex w-full max-w-lg items-center gap-3">
-					<button
-						type="button"
-						className="flex flex-1 flex-col items-start"
-						onClick={() =>
+			<div className="relative flex min-h-0 h-[calc(100dvh-var(--header-height,5rem)-1.5rem)] max-h-[calc(100dvh-var(--header-height,5rem)-1.5rem)] overflow-hidden rounded-xl border bg-background">
+				<main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+					<HeaderActions
+						type={props.type}
+						orderId={record.orderId}
+						saveStatus={saveStatus}
+						dirty={dirty}
+						lastSavedAt={lastSavedAt}
+						statusMessage={lastSaveError}
+						isSaving={autosave.isSaving || finalSave.isPending}
+						autosaveEnabled={editor.autosaveEnabled}
+						stepDisplayMode={editor.stepDisplayMode}
+						onAddItem={() => addLineItem()}
+						onToggleStepDisplay={() =>
 							setEditor({
-								showMobileSummary: true,
+								stepDisplayMode:
+									editor.stepDisplayMode === "extended"
+										? "compact"
+										: "extended",
 							})
 						}
-					>
-						<span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-							Review Totals
-						</span>
-						<span className="text-lg font-bold text-foreground">
-							{currency(record.summary.grandTotal)}
-						</span>
-					</button>
-					<Button
-						className="h-11 px-4"
-						onClick={() => void saveFinal()}
-						disabled={autosave.isSaving || finalSave.isPending}
-					>
-						Finalize
-					</Button>
+						onOpenMobileSummary={() =>
+							customerSelectionRequired
+								? undefined
+								: setEditor({
+										showMobileSummary: !editor.showMobileSummary,
+									})
+						}
+						onToggleAutosave={() =>
+							setEditor({
+								autosaveEnabled: !editor.autosaveEnabled,
+							})
+						}
+						onSaveDraft={saveDraftNow}
+						onSaveClose={saveClose}
+						onSaveNew={saveNew}
+						onSaveFinal={saveFinal}
+						onOpenOverview={handleOpenOverview}
+						onPrint={handlePrint}
+						isSaved={isSaved}
+						showPackingControls={isOrder}
+						packingButtonLabel={
+							activePackingDispatch ? "Sent for Packing" : "Send for Packing"
+						}
+						packingBusy={isPackingBusy}
+						onSendForPacking={handleSendForPacking}
+						onCancelPacking={handleCancelPacking}
+						cancelPackingDisabled={
+							!currentPackingDispatch ||
+							packingIsCompleted ||
+							currentPackingDispatch.status === "cancelled" ||
+							isPackingBusy
+						}
+						onCompletePacking={handleCompletePacking}
+						completePackingDisabled={
+							!record.salesId || packingIsCompleted || isPackingBusy
+						}
+						onOpenPacking={handleOpenPacking}
+						openPackingDisabled={!record.orderId}
+						onOpenSettings={async () => {
+							const { default: NewSalesFormSettingsModal } = await import(
+								"@/components/modals/new-sales-form-settings-modal"
+							);
+							_modal.openSheet(<NewSalesFormSettingsModal />);
+						}}
+					/>
+
+					<div className="flex-1 overflow-y-auto p-4 pb-28 sm:p-6 lg:p-8 lg:pb-8">
+						<div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
+							{recoverySnapshot ? (
+								<div className="flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 md:flex-row md:items-center md:justify-between">
+									<p>
+										Unsaved local edits were found from{" "}
+										{new Date(recoverySnapshot.savedAt).toLocaleString()}.
+									</p>
+									<div className="flex items-center gap-2">
+										<Button
+											size="sm"
+											variant="outline"
+											onClick={() => {
+												clearRecoveryKeys();
+												toast({
+													title: "Using latest saved version",
+													description:
+														"Local recovery was dismissed for this draft.",
+													variant: "success",
+												});
+											}}
+										>
+											Dismiss
+										</Button>
+										<Button size="sm" onClick={applyRecoverySnapshot}>
+											Restore
+										</Button>
+									</div>
+								</div>
+							) : null}
+							<ItemWorkflowPanel />
+						</div>
+					</div>
+				</main>
+
+				<InvoiceSummarySidebar
+					mode={props.mode}
+					type={props.type}
+					isSaved={isSaved}
+					isSaving={autosave.isSaving || finalSave.isPending}
+					mobileOpen={editor.showMobileSummary}
+					onSave={() => void saveDraftNow()}
+					onSaveClose={() => void saveClose()}
+					onSaveNew={() => void saveNew()}
+					onSaveFinal={() => void saveFinal()}
+					onClose={() =>
+						setEditor({
+							showMobileSummary: false,
+						})
+					}
+				/>
+
+				<div className="fixed inset-x-0 bottom-0 z-20 border-t bg-card p-3 shadow-[0_-4px_18px_rgba(0,0,0,0.08)] lg:hidden">
+					<div className="mx-auto flex w-full max-w-lg items-center gap-3">
+						<button
+							type="button"
+							className="flex flex-1 flex-col items-start"
+							onClick={() =>
+								customerSelectionRequired
+									? undefined
+									: setEditor({
+											showMobileSummary: true,
+										})
+							}
+						>
+							<span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+								Review Totals
+							</span>
+							<span className="text-lg font-bold text-foreground">
+								{currency(record.summary.grandTotal)}
+							</span>
+						</button>
+						<Button
+							className="h-11 px-4"
+							onClick={() => void saveFinal()}
+							disabled={autosave.isSaving || finalSave.isPending}
+						>
+							Finalize
+						</Button>
+					</div>
 				</div>
 			</div>
-		</div>
+		</>
 	);
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/hooks/use-auth";
 import { printPackingSlip } from "@/lib/quick-print";
@@ -242,7 +242,7 @@ export function PackingListClient() {
 	const router = useRouter();
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
-	const [query, setQuery] = useState("");
+	const [query, setQuery] = useState(() => searchParams.get("q") || "");
 	const rawTab = searchParams.get("tab");
 	const isAdmin =
 		auth.roleTitle?.toLowerCase() === "admin" ||
@@ -319,6 +319,23 @@ export function PackingListClient() {
 		);
 	}
 
+	function updateQuery(nextQuery: string) {
+		setQuery(nextQuery);
+		const params = new URLSearchParams(searchParams.toString());
+		if (nextQuery.trim()) params.set("q", nextQuery);
+		else params.delete("q");
+		router.replace(
+			params.toString() ? `${pathname}?${params.toString()}` : pathname,
+		);
+	}
+
+	useEffect(() => {
+		const nextQuery = searchParams.get("q") || "";
+		if (nextQuery !== query) {
+			setQuery(nextQuery);
+		}
+	}, [query, searchParams]);
+
 	return (
 		<div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 md:px-6">
 			<div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-3 text-center">
@@ -353,7 +370,7 @@ export function PackingListClient() {
 					<Icons.Search className="pointer-events-none absolute left-5 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
 					<input
 						value={query}
-						onChange={(event) => setQuery(event.target.value)}
+						onChange={(event) => updateQuery(event.target.value)}
 						placeholder={`Search ${getTabLabel(tab)} orders by order #, customer, sales rep, phone, or address`}
 						className="h-16 w-full rounded-full border border-border bg-background pl-14 pr-6 text-base shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
 					/>

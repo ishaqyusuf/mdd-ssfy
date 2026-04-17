@@ -2,6 +2,7 @@
 
 import type { createCustomerSchema } from "@/actions/schema";
 import AddressAutoComplete from "@/components/address-autocomplete";
+import { QuickFill } from "@/components/dev/quick-fill";
 import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
 import { useTRPC } from "@/trpc/client";
 import {
@@ -108,6 +109,18 @@ export function CustomerForm() {
 	return (
 		<Form {...form}>
 			<div className="flex flex-col overflow-x-hidden pb-32">
+				<div className="mb-4 flex justify-end">
+					<QuickFill
+						name="customerForm"
+						args={{
+							addressOnly: !!params.address,
+							defaultProfileId: salesProfiles?.[0]
+								? String(salesProfiles[0].id)
+								: undefined,
+							defaultTaxCode: taxProfiles?.[0]?.taxCode,
+						}}
+					/>
+				</div>
 				<div className="">
 					<Accordion
 						key={sections?.join("-")}
