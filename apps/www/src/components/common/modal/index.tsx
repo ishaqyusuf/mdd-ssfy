@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { PrimitiveDivProps } from "@/types/type";
 import { cva, VariantProps } from "class-variance-authority";
 import { useFormContext } from "react-hook-form";
+import { useState } from "react";
 
 import { Button, ButtonProps } from "@gnd/ui/button";
 import {
@@ -211,6 +212,7 @@ function Footer({
     const isModal = _modal?.data?.type == "modal";
     const [Footer] = isModal ? [DialogFooter] : [SheetFooter];
     const form = useFormContext();
+    const [isSubmitting, setIsSubmitting] = useState(false);
     return (
         <Footer className={cn("shadow-lgs flex space-x-4", className)}>
             {children}
@@ -230,15 +232,21 @@ function Footer({
                     {onSubmit && (
                         <Btn
                             variant={submitVariant}
-                            isLoading={_modal?.loading}
+                            isLoading={isSubmitting || _modal?.loading}
                             size={size}
                             onClick={async () => {
+                                if (isSubmitting) return;
                                 if (form) {
                                     const resp = await form.trigger();
 
                                     if (!resp) return;
                                 }
-                                _modal?.startTransition(() => onSubmit(_modal));
+                                setIsSubmitting(true);
+                                try {
+                                    await onSubmit(_modal);
+                                } finally {
+                                    setIsSubmitting(false);
+                                }
                             }}
                         >
                             {submitText}

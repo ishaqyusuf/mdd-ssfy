@@ -112,6 +112,7 @@ export async function saveEmployee(ctx: TRPCContext, data: EmployeeFormSchema) {
           name: formData.name,
           email: formData.email,
           phoneNo: formData.phoneNo,
+          employeeProfileId: formData.profileId ?? null,
         },
       })
     : await ctx.db.users.create({
@@ -120,25 +121,20 @@ export async function saveEmployee(ctx: TRPCContext, data: EmployeeFormSchema) {
           email: formData.email!,
           phoneNo: formData.phoneNo,
           password,
+          employeeProfileId: formData.profileId ?? null,
         },
       });
   if (user?.id && formData.roleId) {
-    await ctx.db.modelHasRoles.upsert({
+    await ctx.db.modelHasRoles.deleteMany({
       where: {
-        roleId_modelId_organizationId: {
-          roleId: formData.roleId,
-          modelId: user.id,
-          organizationId: formData.organizationId,
-        },
+        modelId: user.id,
       },
-      create: {
+    });
+    await ctx.db.modelHasRoles.create({
+      data: {
         roleId: formData.roleId,
         modelId: user.id,
         organizationId: formData.organizationId,
-      },
-      update: {
-        roleId: formData.roleId,
-        modelId: user.id,
       },
     });
     await ctx.db.session.deleteMany({
@@ -197,6 +193,23 @@ export async function resetEmployeePassword(ctx: TRPCContext, userId) {
   });
 
   return user;
+}
+
+export async function deleteEmployee(ctx: TRPCContext, userId: number) {
+  await ctx.db.users.update({
+    where: {
+      id: userId,
+    },
+    data: {
+      deletedAt: new Date(),
+    },
+  });
+
+  await ctx.db.session.deleteMany({
+    where: {
+      userId,
+    },
+  });
 }
 
 export async function getEmployeeOverview(ctx: TRPCContext, id: number) {

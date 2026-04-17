@@ -161,21 +161,28 @@ function SalesMenuRoot({
 			async move() {
 				if (!state.slug || !state.type) return;
 
-				loader.loading("Moving...");
-				const to: SalesType = state.type === "order" ? "quote" : "order";
+				const isQuote = state.type === "quote";
+				const to: SalesType = isQuote ? "order" : "quote";
 				try {
-					const result = await moveSaleMutation.mutateAsync({
-						salesUid: state.slug,
-						to,
-						type: state.type,
-					});
+					loader.loading(isQuote ? "Creating invoice..." : "Moving...");
+					const result = isQuote
+						? await copySaleMutation.mutateAsync({
+								salesUid: state.slug,
+								as: "order",
+								type: state.type,
+							})
+						: await moveSaleMutation.mutateAsync({
+								salesUid: state.slug,
+								to,
+								type: state.type,
+							});
 
 					if (to === "order" && result.id && result.slug) {
 						await resetSalesStatAction(result.id, result.slug);
 					}
 
 					if (result.slug) {
-						loader.success(`Moved to ${to}`, {
+						loader.success(isQuote ? "Invoice created" : `Moved to ${to}`, {
 							duration: 3000,
 							action: (
 								<ToastAction altText="Open" asChild>
@@ -255,12 +262,11 @@ function useSendSalesEmailAction() {
 		errorToast: "Failed",
 		successToast: "Sent!",
 		debug: true,
+		onStarted() {
+			actions.closeMenu();
+		},
 		onSuccess() {
 			setDidSucceed(true);
-			window.setTimeout(() => {
-				setDidSucceed(false);
-				actions.closeMenu();
-			}, 900);
 		},
 		onError() {
 			actions.closeMenu();
@@ -269,7 +275,7 @@ function useSendSalesEmailAction() {
 
 	return {
 		didSucceed,
-		isPending: notification.isActionPending || notification.isLoading,
+		isPending: notification.isActionPending,
 		sendEmail(options: EmailOptions = {}) {
 			setDidSucceed(false);
 			notification.simpleSalesDocumentEmail({
@@ -281,6 +287,7 @@ function useSendSalesEmailAction() {
 				printType: isQuote ? "quote" : "order",
 				salesIds: state.id ? [state.id] : state.salesIds,
 			});
+			actions.closeMenu();
 		},
 	};
 }
@@ -318,6 +325,7 @@ function SalesMenuCopy({ disabled }: ActionProps) {
 
 function SalesMenuMove({ disabled }: ActionProps) {
 	const { actions, state } = useSalesMenuContext();
+	const isQuote = state.type === "quote";
 
 	return (
 		<DropdownMenu.Item
@@ -328,7 +336,7 @@ function SalesMenuMove({ disabled }: ActionProps) {
 			}}
 		>
 			<Icons.Move className="mr-2 size-4 text-muted-foreground/70" />
-			{state.type === "order" ? "Move to Quote" : "Move to Sales"}
+			{isQuote ? "Create Invoice" : "Move to Quote"}
 		</DropdownMenu.Item>
 	);
 }

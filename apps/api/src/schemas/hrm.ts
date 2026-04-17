@@ -19,9 +19,9 @@ export const employeeFormSchema = z
     id: z.number().nullable().optional(),
     name: z.string(),
     email: z.string().optional(), // initially optional
-    roleId: z.number(),
-    organizationId: z.number(),
-    profileId: z.number().optional().nullable(),
+    roleId: z.coerce.number(),
+    organizationId: z.coerce.number(),
+    profileId: z.coerce.number().optional().nullable(),
     phoneNo: z.string().optional().nullable(),
     username: z.string().optional().nullable(),
     password: z.string().nullable().optional().default("Millwork"),

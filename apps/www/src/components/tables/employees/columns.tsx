@@ -26,6 +26,8 @@ import { useProfilesList, useRolesList } from "@/hooks/use-data-list";
 import { useState } from "react";
 import { invalidateInfiniteQueries } from "@/hooks/use-invalidate-query";
 import { EditButton } from "@/components/edit-button";
+import { AlertDialog } from "@gnd/ui/namespace";
+import { useAuth } from "@/hooks/use-auth";
 
 export type Item = RouterOutputs["hrm"]["getEmployees"]["data"][number];
 interface ItemProps {
@@ -111,9 +113,12 @@ function Office({ item }: { item: Item }) {
     );
 }
 function Action({ item }: { item: Item }) {
-    const { params, setParams } = useEmployeeParams();
+    const { setParams } = useEmployeeParams();
     const trpc = useTRPC();
     const toast = useLoadingToast();
+    const auth = useAuth();
+    const canDeleteEmployee = Boolean(auth.can?.deleteEmployee);
+    const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
     const submitAction = useMutation(
         trpc.hrm.resetEmployeePassword.mutationOptions({
             async onSuccess(data, variables, context) {
@@ -129,6 +134,18 @@ function Action({ item }: { item: Item }) {
             },
         }),
     );
+    const deleteAction = useMutation(
+        trpc.hrm.deleteEmployee.mutationOptions({
+            onSuccess() {
+                invalidateInfiniteQueries("hrm.getEmployees");
+                setConfirmDeleteOpen(false);
+                toast.success("Employee deleted");
+            },
+            onError() {
+                toast.error("Unable to delete employee");
+            },
+        }),
+    );
     function onSubmit() {
         submitAction.mutate({
             userId: item.id,
@@ -136,25 +153,63 @@ function Action({ item }: { item: Item }) {
         toast.loading("Resetting password");
     }
     return (
-        <div className="relative flex items-center gap-2 z-10">
-            <EditButton
-                onClick={(e) => {
-                    setParams({
-                        editEmployeeId: item.id,
-                    });
-                }}
-            />
-            <Menu>
-                <Menu.Item
+        <>
+            <div className="relative flex items-center gap-2 z-10">
+                <EditButton
                     onClick={(e) => {
-                        onSubmit();
+                        setParams({
+                            editEmployeeId: item.id,
+                        });
                     }}
-                    icon="packingList"
-                >
-                    Reset Password
-                </Menu.Item>
-            </Menu>
-        </div>
+                />
+                <Menu>
+                    <Menu.Item
+                        onClick={(e) => {
+                            onSubmit();
+                        }}
+                        icon="packingList"
+                    >
+                        Reset Password
+                    </Menu.Item>
+                    {canDeleteEmployee ? (
+                        <Menu.Item
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => {
+                                setConfirmDeleteOpen(true);
+                            }}
+                        >
+                            Delete Employee
+                        </Menu.Item>
+                    ) : null}
+                </Menu>
+            </div>
+            <AlertDialog
+                open={confirmDeleteOpen}
+                onOpenChange={setConfirmDeleteOpen}
+            >
+                <AlertDialog.Content>
+                    <AlertDialog.Header>
+                        <AlertDialog.Title>Delete Employee</AlertDialog.Title>
+                        <AlertDialog.Description>
+                            Delete {item.name}? This will remove the employee
+                            from active lists and sign them out.
+                        </AlertDialog.Description>
+                    </AlertDialog.Header>
+                    <AlertDialog.Footer>
+                        <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+                        <AlertDialog.Action
+                            onClick={() => {
+                                deleteAction.mutate({
+                                    userId: item.id,
+                                });
+                            }}
+                        >
+                            Delete
+                        </AlertDialog.Action>
+                    </AlertDialog.Footer>
+                </AlertDialog.Content>
+            </AlertDialog>
+        </>
     );
 }
 function Profile({ item }: { item: Item }) {

@@ -57,7 +57,7 @@ function SummaryCard(props: {
         props.tone === "success"
             ? "border-emerald-200 bg-emerald-50 text-emerald-900"
             : props.tone === "warning"
-              ? "border-amber-200 bg-amber-50 text-amber-950"
+              ? "border-red-200 bg-red-50 text-red-950"
               : "border-border bg-muted/30";
     return (
         <div className={cn("rounded-xl border px-3 py-3", toneClass)}>
@@ -487,4 +487,3 @@ export function useProjectUnitsPrintFlow() {
     }
     return context;
 }
-

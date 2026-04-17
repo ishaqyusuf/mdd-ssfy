@@ -1,4 +1,5 @@
 import {
+  deleteEmployee,
   getEmployeeFormData,
   getEmployees,
   getEmployeeOverview,
@@ -61,6 +62,15 @@ export const hrmRoutes = createTRPCRouter({
     )
     .mutation(async (props) => {
       return resetEmployeePassword(props.ctx, props.input.userId);
+    }),
+  deleteEmployee: publicProcedure
+    .input(
+      z.object({
+        userId: z.number(),
+      }),
+    )
+    .mutation(async (props) => {
+      return deleteEmployee(props.ctx, props.input.userId);
     }),
   saveEmployee: publicProcedure
     .input(employeeFormSchema)
