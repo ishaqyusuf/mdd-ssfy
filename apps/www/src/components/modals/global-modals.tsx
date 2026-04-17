@@ -7,7 +7,7 @@ import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-pa
 import { useCommunityProjectParams } from "@/hooks/use-community-project-params";
 import { useCommunityTemplateParams } from "@/hooks/use-community-template-params";
 import { useCustomerServiceParams } from "@/hooks/use-customer-service-params";
-import { isCommunityUnitRole } from "@gnd/utils/constants";
+import { isCommunityUnitRestrictedAccess } from "@gnd/utils/constants";
 import dynamic from "next/dynamic";
 import { SuperAdminGuard } from "../auth-guard";
 
@@ -55,7 +55,7 @@ const BuilderFormModal = dynamic(() =>
 
 export function GlobalModals() {
 	const auth = useAuth();
-	const isCommunityUnit = isCommunityUnitRole(auth.role?.name);
+	const isCommunityUnit = isCommunityUnitRestrictedAccess(auth.can);
 	const { createTemplate, templateId } = useCommunityTemplateParams();
 	const { createModelCost, editModelCostTemplateId } =
 		useCommunityModelCostParams();

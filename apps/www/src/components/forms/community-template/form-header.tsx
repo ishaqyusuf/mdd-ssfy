@@ -11,7 +11,7 @@ import { extractCommunityFormValueData } from "@community/utils/template-form";
 import { Button, buttonVariants } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 import { useMutation } from "@gnd/ui/tanstack";
-import { isCommunityUnitRole } from "@gnd/utils/constants";
+import { isCommunityUnitRestrictedAccess } from "@gnd/utils/constants";
 import Link from "next/link";
 import { useTemplateSchemaContext } from "./context";
 
@@ -19,7 +19,7 @@ export function FormHeader() {
 	const store = useCommunityModelStore();
 	const ctx = useTemplateSchemaContext();
 	const auth = useAuth();
-	const isCommunityUnit = isCommunityUnitRole(auth.role?.name);
+	const isCommunityUnit = isCommunityUnitRestrictedAccess(auth.can);
 	const templateId = ctx.communityTemplate?.id;
 	if (!templateId) return null;
 

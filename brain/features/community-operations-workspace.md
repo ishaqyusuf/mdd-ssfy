@@ -31,7 +31,7 @@
 - Supervisor is editable inline from the table via a popover editor.
 - Project and unit pages use card-based analytics and activity sections built from Community-specific tRPC summaries.
 - The project-units table exposes lightweight readiness columns for install cost and template configuration so operators can spot missing setup before entering the print flow.
-- `CommunityUnit` is the restricted units/template role:
+- `CommunityUnit` is the restricted units/template permission slice:
   - sidebar access is limited to community projects, units, and templates
   - the unit index is reduced to `Project`, `Builder`, `Model`, `Lot`, and `Block`
   - users can create units and edit templates, but install-cost data/actions are hidden and blocked

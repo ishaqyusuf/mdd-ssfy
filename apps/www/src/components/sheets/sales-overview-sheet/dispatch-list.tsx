@@ -1,11 +1,13 @@
 "use client";
 
 import { Icons } from "@gnd/ui/icons";
+import { Button } from "@gnd/ui/button";
 import StatusBadge from "@/components/_v1/status-badge";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { formatDate } from "@/lib/use-day";
 import { skeletonListData } from "@/utils/format";
+import { newSalesHelper } from "@/lib/sales";
 
 import { useDispatch } from "./context";
 import { Item } from "@gnd/ui/namespace";
@@ -13,6 +15,13 @@ import { DispatchListMenu } from "./dispatch-list-menu";
 export function DispatchList({}) {
     const ctx = useDispatch();
     const sq = useSalesOverviewQuery();
+    const sh = newSalesHelper();
+
+    const previewDispatch = async (dispatchId: number) => {
+        if (!ctx.data?.id) return;
+        await sh.generateTokenDispatchId(ctx.data.id, dispatchId);
+        sh.openPrintLink();
+    };
 
     return (
         <div className="rounded-md border">
@@ -21,84 +30,107 @@ export function DispatchList({}) {
             ) : (
                 <Item.Group role="list" className="divide-y">
                     {skeletonListData(ctx?.data?.deliveries, 2, {})?.map(
-                        (dispatch, index) => (
-                            <Item
-                                key={index}
-                                role="listitem"
-                                className="cursor-pointer"
-                                onClick={() =>
-                                    sq.setParams({
-                                        dispatchId: dispatch.id,
-                                        salesTab: "packing",
-                                    })
-                                }
-                            >
-                                {/* LEFT */}
-                                <Item.Content className="gap-1">
-                                    <Item.Title className="flex items-center gap-3">
-                                        <DataSkeleton pok="textSm">
-                                            Dispatch #{dispatch.id}
-                                        </DataSkeleton>
+                        (dispatch, index) => {
+                            const isCompleted =
+                                dispatch.status === "completed" ||
+                                dispatch.status === "delivered";
 
-                                        <StatusBadge status={dispatch.status} />
-                                    </Item.Title>
-
-                                    <Item.Description className="flex flex-wrap gap-x-4 gap-y-1">
-                                        <span>
-                                            <DataSkeleton pok="date">
-                                                📅{" "}
-                                                {formatDate(dispatch.dueDate) ||
-                                                    "No due date"}
-                                            </DataSkeleton>
-                                        </span>
-
-                                        <span>
+                            return (
+                                <Item
+                                    key={index}
+                                    role="listitem"
+                                    className="cursor-pointer"
+                                    onClick={() =>
+                                        sq.setParams({
+                                            dispatchId: dispatch.id,
+                                            salesTab: "packing",
+                                        })
+                                    }
+                                >
+                                    {/* LEFT */}
+                                    <Item.Content className="gap-1">
+                                        <Item.Title className="flex items-center gap-3">
                                             <DataSkeleton pok="textSm">
-                                                👤 {dispatch?.createdBy?.name}
+                                                Dispatch #{dispatch.id}
                                             </DataSkeleton>
-                                        </span>
 
-                                        <span>
-                                            <DataSkeleton pok="textSm">
-                                                🚚{" "}
-                                                {dispatch.driver?.name || (
-                                                    <span className="italic text-muted-foreground">
-                                                        Not assigned
-                                                    </span>
-                                                )}
-                                            </DataSkeleton>
-                                        </span>
-                                        {dispatch.deliveredAt ? (
+                                            <StatusBadge status={dispatch.status} />
+                                        </Item.Title>
+
+                                        <Item.Description className="flex flex-wrap gap-x-4 gap-y-1">
                                             <span>
                                                 <DataSkeleton pok="date">
-                                                    ✅ Completed{" "}
-                                                    {formatDate(
-                                                        dispatch.deliveredAt,
-                                                    ) || "Unknown date"}
+                                                    📅{" "}
+                                                    {formatDate(dispatch.dueDate) ||
+                                                        "No due date"}
                                                 </DataSkeleton>
                                             </span>
-                                        ) : null}
-                                        <span>
-                                            <DataSkeleton pok="textSm">
-                                                📦{" "}
-                                                {dispatch.packPercentage ?? 0}%
-                                                packed
-                                            </DataSkeleton>
-                                        </span>
-                                    </Item.Description>
-                                </Item.Content>
 
-                                {/* ACTIONS */}
-                                <Item.Actions
-                                    className="self-start"
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    <DataSkeleton pok="date">
-                                        <DispatchListMenu dispatch={dispatch} />
-                                    </DataSkeleton>
-                                </Item.Actions>
-                            </Item>
-                        ),
+                                            <span>
+                                                <DataSkeleton pok="textSm">
+                                                    👤 {dispatch?.createdBy?.name}
+                                                </DataSkeleton>
+                                            </span>
+
+                                            <span>
+                                                <DataSkeleton pok="textSm">
+                                                    🚚{" "}
+                                                    {dispatch.driver?.name || (
+                                                        <span className="italic text-muted-foreground">
+                                                            Not assigned
+                                                        </span>
+                                                    )}
+                                                </DataSkeleton>
+                                            </span>
+                                            {dispatch.deliveredAt ? (
+                                                <span>
+                                                    <DataSkeleton pok="date">
+                                                        ✅ Completed{" "}
+                                                        {formatDate(
+                                                            dispatch.deliveredAt,
+                                                        ) || "Unknown date"}
+                                                    </DataSkeleton>
+                                                </span>
+                                            ) : null}
+                                            <span>
+                                                <DataSkeleton pok="textSm">
+                                                    📦{" "}
+                                                    {dispatch.packPercentage ?? 0}%
+                                                    packed
+                                                </DataSkeleton>
+                                            </span>
+                                        </Item.Description>
+                                    </Item.Content>
+
+                                    {/* ACTIONS */}
+                                    <Item.Actions
+                                        className="self-start"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <div className="flex items-center gap-1">
+                                            <DataSkeleton pok="date">
+                                                <Button
+                                                    type="button"
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="size-8"
+                                                    onClick={() =>
+                                                        void previewDispatch(dispatch.id)
+                                                    }
+                                                >
+                                                    <Icons.Printer className="size-4" />
+                                                </Button>
+                                            </DataSkeleton>
+                                            {!isCompleted ? (
+                                                <DataSkeleton pok="date">
+                                                    <DispatchListMenu dispatch={dispatch} />
+                                                </DataSkeleton>
+                                            ) : null}
+                                        </div>
+                                    </Item.Actions>
+                                </Item>
+                            );
+                        },
                     )}
                 </Item.Group>
             )}

@@ -118,7 +118,6 @@ type Role =
 	| "Production"
 	| "Admin"
 	| "1099 Contractor"
-	| "CommunityUnit"
 	| "Production"
 	| "Deco Shutters"
 	| "Super Admin"
@@ -247,6 +246,8 @@ const canViewCommunityUnits = _perm.in(
 	"editProject",
 	"editCommunity",
 	"viewCommunity",
+	"viewCommunityUnit",
+	"editCommunityUnit",
 );
 const isDev = process.env.NODE_ENV !== "production";
 export const linkModules = [

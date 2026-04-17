@@ -10,7 +10,6 @@ import {
 	linkLegacySalesCheckoutSquareOrder,
 	resolveSalesCheckoutToken,
 } from "@gnd/sales/payment-system";
-import { generateSalesSlug } from "@gnd/sales/utils";
 import { getCustomerWallet } from "@gnd/sales/wallet";
 import { SQUARE_LOCATION_ID, squareClient } from "@gnd/square";
 import { timeout } from "@gnd/utils";
@@ -26,7 +25,8 @@ import type {
 	SalesPaymentMethods,
 	SalesPaymentStatus,
 } from "@sales/constants";
-import type { CustomerTransactionType, SalesType } from "@sales/types";
+import { copySales } from "@sales/copy-sales";
+import type { CustomerTransactionType } from "@sales/types";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { addDays } from "date-fns";
 import z from "zod";
@@ -42,6 +42,128 @@ function isTokenExpired(expiry?: string | null) {
 
 function resolveQuoteAcceptanceToken(token: string) {
 	return validateToken(token, quoteAcceptanceTokenSchema);
+}
+
+const quoteAcceptanceSaleSelect = {
+	id: true,
+	orderId: true,
+	type: true,
+	status: true,
+	grandTotal: true,
+	amountDue: true,
+	customerId: true,
+	salesRepId: true,
+	customer: {
+		select: {
+			name: true,
+			businessName: true,
+			phoneNo: true,
+			email: true,
+		},
+	},
+	billingAddress: {
+		select: {
+			name: true,
+			email: true,
+		},
+	},
+	salesRep: {
+		select: {
+			id: true,
+			name: true,
+			email: true,
+		},
+	},
+	meta: true,
+} as const;
+
+const quoteAcceptanceOrderSelect = {
+	id: true,
+	orderId: true,
+	status: true,
+	amountDue: true,
+	customerId: true,
+	customer: {
+		select: {
+			name: true,
+			businessName: true,
+			phoneNo: true,
+			email: true,
+		},
+	},
+	billingAddress: {
+		select: {
+			name: true,
+			email: true,
+		},
+	},
+	salesRep: {
+		select: {
+			id: true,
+			name: true,
+			email: true,
+		},
+	},
+	meta: true,
+} as const;
+
+function getQuoteAcceptanceCustomerName(data: {
+	customer?: {
+		businessName?: string | null;
+		name?: string | null;
+	} | null;
+	billingAddress?: {
+		name?: string | null;
+	} | null;
+}) {
+	return (
+		data.customer?.businessName ||
+		data.customer?.name ||
+		data.billingAddress?.name ||
+		"Customer"
+	);
+}
+
+function getQuoteAcceptanceSalesRep(data: {
+	salesRep?: {
+		name?: string | null;
+		email?: string | null;
+		id?: number | null;
+	} | null;
+}) {
+	return {
+		name: data.salesRep?.name || "Sales Rep",
+		email: data.salesRep?.email || null,
+		id: data.salesRep?.id || null,
+	};
+}
+
+async function getAcceptedQuoteOrder(
+	tx: TRPCContext["db"] | TransactionClient,
+	orderId: string | null | undefined,
+	originalQuoteOrderId: string,
+) {
+	if (!orderId) return null;
+
+	const order = await tx.salesOrders.findFirst({
+		where: {
+			orderId,
+			type: "order",
+			deletedAt: null,
+		},
+		select: quoteAcceptanceOrderSelect,
+	});
+
+	if (!order) return null;
+
+	const meta = (order.meta || {}) as Record<string, unknown>;
+	const acceptanceMeta = (meta.quoteAcceptance || {}) as Record<
+		string,
+		unknown
+	>;
+	return acceptanceMeta.originalQuoteOrderId === originalQuoteOrderId
+		? order
+		: null;
 }
 
 async function buildFullPaymentToken(
@@ -96,6 +218,7 @@ export async function initializeCheckout(
 export const initializeQuoteAcceptanceSchema = z.object({
 	orderId: z.string(),
 	token: z.string(),
+	acceptedOrderId: z.string().optional().nullable(),
 });
 export type InitializeQuoteAcceptanceSchema = z.infer<
 	typeof initializeQuoteAcceptanceSchema
@@ -118,37 +241,7 @@ export async function initializeQuoteAcceptance(
 			id: payload.salesId,
 			deletedAt: null,
 		},
-		select: {
-			id: true,
-			orderId: true,
-			type: true,
-			status: true,
-			grandTotal: true,
-			amountDue: true,
-			customerId: true,
-			salesRepId: true,
-			customer: {
-				select: {
-					name: true,
-					businessName: true,
-					phoneNo: true,
-					email: true,
-				},
-			},
-			billingAddress: {
-				select: {
-					name: true,
-					email: true,
-				},
-			},
-			salesRep: {
-				select: {
-					name: true,
-					email: true,
-				},
-			},
-			meta: true,
-		},
+		select: quoteAcceptanceSaleSelect,
 	});
 
 	if (!sale) {
@@ -165,39 +258,51 @@ export async function initializeQuoteAcceptance(
 	);
 	const canViewAcceptedOrder =
 		sale.type === "order" && originalQuoteOrderId === payload.orderId;
+	const acceptedOrderId =
+		typeof query.acceptedOrderId === "string" && query.acceptedOrderId
+			? query.acceptedOrderId
+			: typeof acceptanceMeta.acceptedOrderId === "string"
+				? acceptanceMeta.acceptedOrderId
+				: canViewAcceptedOrder
+					? sale.orderId
+					: null;
 
 	if (sale.type !== "quote" && !canViewAcceptedOrder) {
 		throw new Error("This quote is no longer available for acceptance.");
 	}
 
-	const paymentToken =
-		sale.type === "order"
-			? await buildFullPaymentToken(ctx, {
-					salesId: sale.id,
-					customerId: sale.customerId,
-					customerPhone: sale.customer?.phoneNo,
-					amountDue: sale.amountDue,
-				})
-			: null;
+	const acceptedOrder =
+		canViewAcceptedOrder && sale.type === "order"
+			? sale
+			: await getAcceptedQuoteOrder(ctx.db, acceptedOrderId, payload.orderId);
+	const paymentToken = acceptedOrder
+		? await buildFullPaymentToken(ctx, {
+				salesId: acceptedOrder.id,
+				customerId: acceptedOrder.customerId,
+				customerPhone: acceptedOrder.customer?.phoneNo,
+				amountDue: acceptedOrder.amountDue,
+			})
+		: null;
+	const currentOrder = acceptedOrder || sale;
+	const currentSalesRep = getQuoteAcceptanceSalesRep(currentOrder);
 
 	return {
 		payload,
 		sale: {
-			id: sale.id,
-			orderId: sale.orderId,
+			id: currentOrder.id,
+			orderId: currentOrder.orderId,
 			originalQuoteOrderId,
-			type: sale.type,
-			status: sale.status,
+			type: acceptedOrder ? "order" : sale.type,
+			status: currentOrder.status,
 			total: Number(sale.grandTotal || 0),
-			due: Number(sale.amountDue || 0),
-			customerName:
-				sale.customer?.businessName ||
-				sale.customer?.name ||
-				sale.billingAddress?.name ||
-				"Customer",
-			customerEmail: sale.customer?.email || sale.billingAddress?.email || null,
-			salesRep: sale.salesRep?.name || "Sales Rep",
-			salesRepEmail: sale.salesRep?.email || null,
+			due: Number(currentOrder.amountDue || 0),
+			customerName: getQuoteAcceptanceCustomerName(currentOrder),
+			customerEmail:
+				currentOrder.customer?.email ||
+				currentOrder.billingAddress?.email ||
+				null,
+			salesRep: currentSalesRep.name,
+			salesRepEmail: currentSalesRep.email,
 			acceptedAt:
 				typeof acceptanceMeta.acceptedAt === "string"
 					? acceptanceMeta.acceptedAt
@@ -229,37 +334,7 @@ export async function acceptQuote(ctx: TRPCContext, data: AcceptQuoteSchema) {
 				id: payload.salesId,
 				deletedAt: null,
 			},
-			select: {
-				id: true,
-				orderId: true,
-				type: true,
-				status: true,
-				salesRepId: true,
-				customerId: true,
-				amountDue: true,
-				meta: true,
-				customer: {
-					select: {
-						name: true,
-						businessName: true,
-						phoneNo: true,
-						email: true,
-					},
-				},
-				billingAddress: {
-					select: {
-						name: true,
-						email: true,
-					},
-				},
-				salesRep: {
-					select: {
-						id: true,
-						name: true,
-						email: true,
-					},
-				},
-			},
+			select: quoteAcceptanceSaleSelect,
 		});
 
 		if (!sale) {
@@ -274,6 +349,15 @@ export async function acceptQuote(ctx: TRPCContext, data: AcceptQuoteSchema) {
 		const originalQuoteOrderId = String(
 			acceptanceMeta.originalQuoteOrderId || payload.orderId,
 		);
+		const acceptedAt =
+			typeof acceptanceMeta.acceptedAt === "string"
+				? acceptanceMeta.acceptedAt
+				: new Date().toISOString();
+		const acceptedOrderId =
+			typeof acceptanceMeta.acceptedOrderId === "string"
+				? acceptanceMeta.acceptedOrderId
+				: null;
+
 		if (sale.type === "order") {
 			const paymentToken = await buildFullPaymentToken(ctx, {
 				salesId: sale.id,
@@ -288,17 +372,17 @@ export async function acceptQuote(ctx: TRPCContext, data: AcceptQuoteSchema) {
 					salesId: sale.id,
 					orderId: sale.orderId,
 					originalQuoteOrderId,
-					customerName:
-						sale.customer?.businessName ||
-						sale.customer?.name ||
-						sale.billingAddress?.name ||
-						"Customer",
-					salesRep: sale.salesRep?.name || "Sales Rep",
+					customerName: getQuoteAcceptanceCustomerName(sale),
+					salesRep: getQuoteAcceptanceSalesRep(sale).name,
 					due: Number(sale.amountDue || 0),
 					status: sale.status || "Active",
+					acceptedAt,
 					paymentToken,
 				},
 				notify: null,
+				sendCustomerEmail: false,
+				emailAuthorId: null,
+				paymentContext: null,
 			};
 		}
 
@@ -306,121 +390,187 @@ export async function acceptQuote(ctx: TRPCContext, data: AcceptQuoteSchema) {
 			throw new Error("This quote is no longer available for acceptance.");
 		}
 
-		const nextSalesType: SalesType = "order";
-		const newOrderId = await generateSalesSlug(
-			nextSalesType,
-			tx.salesOrders,
-			sale.salesRep?.name || "",
+		const existingAcceptedOrder = await getAcceptedQuoteOrder(
+			tx,
+			acceptedOrderId,
+			payload.orderId,
 		);
-		const acceptedAt = new Date().toISOString();
-		const updated = await tx.salesOrders.update({
+		if (existingAcceptedOrder) {
+			const paymentToken = await buildFullPaymentToken(ctx, {
+				salesId: existingAcceptedOrder.id,
+				customerId: existingAcceptedOrder.customerId,
+				customerPhone: existingAcceptedOrder.customer?.phoneNo,
+				amountDue: existingAcceptedOrder.amountDue,
+			});
+
+			return {
+				ok: true,
+				alreadyAccepted: true,
+				order: {
+					salesId: existingAcceptedOrder.id,
+					orderId: existingAcceptedOrder.orderId,
+					originalQuoteOrderId,
+					customerName: getQuoteAcceptanceCustomerName(existingAcceptedOrder),
+					salesRep: getQuoteAcceptanceSalesRep(existingAcceptedOrder).name,
+					due: Number(existingAcceptedOrder.amountDue || 0),
+					status: existingAcceptedOrder.status || "Active",
+					acceptedAt,
+					paymentToken,
+				},
+				notify: null,
+				sendCustomerEmail: false,
+				emailAuthorId: null,
+				paymentContext: null,
+			};
+		}
+
+		const copied = await copySales({
+			db: tx as unknown as TRPCContext["db"],
+			salesUid: sale.orderId,
+			as: "order",
+			type: "quote",
+			author: {
+				id: sale.salesRep?.id || sale.salesRepId || sale.customerId || 1,
+				name: sale.salesRep?.name || "Sales Rep",
+			},
+		});
+
+		if (copied.error || !copied.id || !copied.slug) {
+			throw new Error(
+				copied.error || "Unable to create an order from this quote.",
+			);
+		}
+
+		const updatedQuote = await tx.salesOrders.update({
 			where: {
 				id: sale.id,
 			},
 			data: {
-				type: "order",
-				status: "Active",
-				orderId: newOrderId,
-				slug: `order-${newOrderId.toLowerCase()}`,
 				meta: {
 					...meta,
 					quoteAcceptance: {
 						...acceptanceMeta,
 						acceptedAt,
 						originalQuoteOrderId: payload.orderId,
+						acceptedOrderId: copied.slug,
 						acceptedFrom: "public-link",
 					},
 				} as Prisma.InputJsonValue,
 			},
-			select: {
-				id: true,
-				orderId: true,
-				status: true,
-				amountDue: true,
-				customerId: true,
-				customer: {
-					select: {
-						name: true,
-						businessName: true,
-						phoneNo: true,
-					},
-				},
-				billingAddress: {
-					select: {
-						name: true,
-					},
-				},
-				salesRep: {
-					select: {
-						id: true,
-						name: true,
-					},
-				},
-			},
+			select: quoteAcceptanceSaleSelect,
 		});
 
-		const paymentToken = await buildFullPaymentToken(ctx, {
-			salesId: updated.id,
-			customerId: updated.customerId,
-			customerPhone: updated.customer?.phoneNo,
-			amountDue: updated.amountDue,
+		const copiedOrder = await tx.salesOrders.update({
+			where: {
+				id: copied.id,
+			},
+			data: {
+				status: "Active",
+				meta: {
+					...((updatedQuote.meta || {}) as Record<string, unknown>),
+					quoteAcceptance: {
+						...acceptanceMeta,
+						acceptedAt,
+						originalQuoteOrderId: payload.orderId,
+						acceptedOrderId: copied.slug,
+						acceptedFrom: "public-link",
+					},
+				} as Prisma.InputJsonValue,
+			},
+			select: quoteAcceptanceOrderSelect,
 		});
 
 		return {
 			ok: true,
 			alreadyAccepted: false,
 			order: {
-				salesId: updated.id,
-				orderId: updated.orderId,
+				salesId: copiedOrder.id,
+				orderId: copiedOrder.orderId,
 				originalQuoteOrderId: payload.orderId,
-				customerName:
-					updated.customer?.businessName ||
-					updated.customer?.name ||
-					updated.billingAddress?.name ||
-					"Customer",
-				salesRep: updated.salesRep?.name || "Sales Rep",
-				due: Number(updated.amountDue || 0),
-				status: updated.status || "Active",
+				customerName: getQuoteAcceptanceCustomerName(copiedOrder),
+				salesRep: getQuoteAcceptanceSalesRep(copiedOrder).name,
+				due: Number(copiedOrder.amountDue || 0),
+				status: copiedOrder.status || "Active",
 				acceptedAt,
-				paymentToken,
+				paymentToken: null,
 			},
 			notify: {
-				recipients: updated.salesRep?.id ? [updated.salesRep.id] : [],
+				recipients: copiedOrder.salesRep?.id ? [copiedOrder.salesRep.id] : [],
 				author: sale.customerId
 					? ({
 							id: sale.customerId,
 							role: "customer",
 						} as const)
 					: ({
-							id: sale.salesRepId || updated.salesRep?.id || 1,
+							id: sale.salesRepId || copiedOrder.salesRep?.id || 1,
 							role: "employee",
 						} as const),
 				payload: {
-					salesId: updated.id,
-					orderNo: updated.orderId,
+					salesId: copiedOrder.id,
+					orderNo: copiedOrder.orderId,
 					quoteNo: payload.orderId,
-					customerName:
-						updated.customer?.businessName ||
-						updated.customer?.name ||
-						updated.billingAddress?.name ||
-						"Customer",
+					customerName: getQuoteAcceptanceCustomerName(copiedOrder),
 					acceptedAt,
 				},
 			},
+			sendCustomerEmail: true,
+			emailAuthorId: copiedOrder.salesRep?.id || sale.salesRepId || null,
+			paymentContext: {
+				customerId: copiedOrder.customerId,
+				customerPhone: copiedOrder.customer?.phoneNo,
+				amountDue: copiedOrder.amountDue,
+			},
 		};
 	});
-	if (!result.alreadyAccepted && result.notify) {
+	const response = {
+		...result,
+		order: {
+			...result.order,
+			paymentToken:
+				result.order.paymentToken ||
+				(await buildFullPaymentToken(ctx, {
+					salesId: result.order.salesId,
+					customerId: result.paymentContext?.customerId,
+					customerPhone: result.paymentContext?.customerPhone,
+					amountDue: result.paymentContext?.amountDue,
+				})),
+		},
+	};
+	if (!response.alreadyAccepted && response.notify) {
 		const notificationService = new NotificationService(tasks, ctx);
-		if (result.notify.recipients.length) {
-			notificationService.setEmployeeRecipients(...result.notify.recipients);
+		if (response.notify.recipients.length) {
+			notificationService.setEmployeeRecipients(...response.notify.recipients);
 		}
 		await notificationService.send("quote_accepted", {
-			author: result.notify.author,
-			payload: result.notify.payload,
+			author: response.notify.author,
+			payload: response.notify.payload,
 		});
 	}
-	const { notify: _notify, ...response } = result;
-	return response;
+	if (
+		!response.alreadyAccepted &&
+		response.sendCustomerEmail &&
+		result.emailAuthorId
+	) {
+		const notificationService = new NotificationService(tasks, ctx);
+		await notificationService.send("simple_sales_document_email", {
+			author: {
+				id: result.emailAuthorId,
+				role: "employee",
+			},
+			payload: {
+				printType: "order",
+				salesIds: [response.order.salesId],
+			},
+		});
+	}
+	const {
+		notify: _notify,
+		sendCustomerEmail: _sendCustomerEmail,
+		emailAuthorId: _emailAuthorId,
+		paymentContext: _paymentContext,
+		...cleanResponse
+	} = response;
+	return cleanResponse;
 }
 
 export const createSalesCheckoutLinkSchema = z.object({

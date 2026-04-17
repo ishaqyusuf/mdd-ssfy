@@ -2,6 +2,19 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-04-17
+
+- Reworked public quote acceptance to preserve the original quote and create a payable order through the existing send-to-invoice copy path.
+  - updated `apps/api/src/db/queries/checkout.ts` so `acceptQuote` now reuses `copySales(... as: "order")` semantics instead of converting the quote row in place
+  - persisted quote-acceptance metadata on both the original quote and the created order so repeat visits can resolve the accepted order without creating duplicates
+  - updated `initializeQuoteAcceptance` to hydrate accepted-order state from the stored accepted order id and generate payment tokens from that created order
+  - updated `apps/www/src/components/quote-acceptance-page.tsx` to store the accepted order id in `nuqs` query state and keep the public page anchored to the new order after acceptance/refresh
+  - triggered the shared `simple_sales_document_email` notification flow after first-time acceptance so customers receive the new order/invoice email automatically
+  - validation note:
+    - `bunx biome format --write` ran for the touched checkout and quote-acceptance files
+    - `bunx biome check` passes for the touched files
+    - filtered API typecheck still reports existing baseline errors inside `apps/api/src/db/queries/checkout.ts` and broader workspace noise unrelated to this acceptance-flow slice, so no clean repo-wide TypeScript pass was available in-session
+
 ## 2026-04-16
 
 - Started the new sales form resilience slice so the next parity pass reduces silent draft loss instead of only documenting it.

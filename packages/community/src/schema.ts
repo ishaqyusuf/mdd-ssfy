@@ -109,6 +109,30 @@ export const jobFormSchema = z
       //     path: ["job.description"],
       //   });
     }
+
+    if (data.job.isCustom) return;
+
+    data.job.tasks?.forEach((task, index) => {
+      if (task?.qty == null) return;
+
+      if (task.maxQty == null) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Qty cannot be entered without a max qty",
+          path: ["job", "tasks", index, "qty"],
+        });
+        return;
+      }
+
+      if (task.qty > task.maxQty) {
+        ctx.addIssue({
+          code: "custom",
+          message: "",
+          // message: "Qty cannot be greater than max qty",
+          path: ["job", "tasks", index, "qty"],
+        });
+      }
+    });
   });
 export type JobFormSchema = z.infer<typeof jobFormSchema>;
 

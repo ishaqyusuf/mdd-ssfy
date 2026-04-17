@@ -95,8 +95,18 @@ export function getMenuList(pathname: string, session): any[] {
         .commit();
 
     addGroup("Community")
-        .menu("Projects", "/community/projects", "project", and("viewProject"))
-        .menu("Units", "/community/units", "units", and("viewCommunity"))
+        .menu(
+            "Projects",
+            "/community/projects",
+            "project",
+            or("viewProject", "viewCommunityUnit", "editCommunityUnit")
+        )
+        .menu(
+            "Units",
+            "/community/units",
+            "units",
+            or("viewCommunity", "viewCommunityUnit", "editCommunityUnit")
+        )
         .commit();
     addGroup("Jobs")
         .menu(

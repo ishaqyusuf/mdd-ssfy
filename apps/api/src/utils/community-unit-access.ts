@@ -1,8 +1,11 @@
 import type { TRPCContext } from "@api/trpc/init";
-import { isCommunityUnitRole } from "@gnd/utils/constants";
+import {
+	generatePermissions,
+	isCommunityUnitRestrictedAccess,
+} from "@gnd/utils/constants";
 import { TRPCError } from "@trpc/server";
 
-export async function getAuthRoleName(ctx: TRPCContext) {
+export async function getAuthCan(ctx: TRPCContext) {
 	if (!ctx.userId) return null;
 
 	const user = await ctx.db.users.findFirst({
@@ -19,6 +22,18 @@ export async function getAuthRoleName(ctx: TRPCContext) {
 					role: {
 						select: {
 							name: true,
+							RoleHasPermissions: {
+								where: {
+									deletedAt: null,
+								},
+								select: {
+									permission: {
+										select: {
+											name: true,
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -26,11 +41,17 @@ export async function getAuthRoleName(ctx: TRPCContext) {
 		},
 	});
 
-	return user?.roles?.[0]?.role?.name ?? null;
+	const role = user?.roles?.[0]?.role;
+	if (!role) return null;
+
+	return generatePermissions(
+		role.name,
+		role.RoleHasPermissions.map((item) => item.permission),
+	);
 }
 
 export async function isCommunityUnitRequest(ctx: TRPCContext) {
-	return isCommunityUnitRole(await getAuthRoleName(ctx));
+	return isCommunityUnitRestrictedAccess(await getAuthCan(ctx));
 }
 
 export async function assertInstallCostAccess(ctx: TRPCContext) {

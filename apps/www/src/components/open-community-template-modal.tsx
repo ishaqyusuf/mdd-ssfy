@@ -4,13 +4,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { useCommunityTemplateParams } from "@/hooks/use-community-template-params";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
-import { isCommunityUnitRole } from "@gnd/utils/constants";
+import { isCommunityUnitRestrictedAccess } from "@gnd/utils/constants";
 
 export function OpenCommunityTemplateModal() {
 	const { setParams } = useCommunityTemplateParams();
 	const auth = useAuth();
 
-	if (isCommunityUnitRole(auth.role?.name)) return null;
+	if (isCommunityUnitRestrictedAccess(auth.can)) return null;
 
 	return (
 		<>

@@ -10,7 +10,7 @@ import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { DropdownMenu, Field, Select } from "@gnd/ui/namespace";
 import { Switch } from "@gnd/ui/switch";
-import { isCommunityUnitRole } from "@gnd/utils/constants";
+import { isCommunityUnitRestrictedAccess } from "@gnd/utils/constants";
 import z from "zod";
 
 interface Props {
@@ -23,7 +23,7 @@ interface Props {
 }
 export function ModelTemplateSetting(props: Props) {
 	const auth = useAuth();
-	const isCommunityUnit = isCommunityUnitRole(auth.role?.name);
+	const isCommunityUnit = isCommunityUnitRestrictedAccess(auth.can);
 	const { autocompleteEnabled, setAutocompleteEnabled } =
 		useCommunityTemplateV1();
 	const form = useZodForm(

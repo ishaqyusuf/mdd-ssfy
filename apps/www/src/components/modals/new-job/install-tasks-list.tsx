@@ -1,5 +1,6 @@
 import { useJobFormContext } from "@/contexts/job-form-context";
 import { useJobRole } from "@/hooks/use-job-role";
+import { cn } from "@/lib/utils";
 import { InputGroup } from "@gnd/ui/namespace";
 import { Controller } from "react-hook-form";
 import { AdminJobFormContent } from "./admin-job-form-content";
@@ -36,8 +37,9 @@ export function InstallTasksList({ form }) {
                                     key={index}
                                     render={({
                                         field: { onChange, value },
+                                        fieldState,
                                     }) => (
-                                        <tr className="bg-card">
+                                        <tr className="bg-card align-top">
                                             <td className="px-4 py-3 font-medium text-foreground uppercase">
                                                 {cost.installCostModel.title}
                                             </td>
@@ -45,7 +47,12 @@ export function InstallTasksList({ form }) {
                                                 ${cost.rate.toFixed(2)}
                                             </td>
                                             <td className="px-4 py-2">
-                                                <InputGroup>
+                                                <InputGroup
+                                                    className={cn(
+                                                        fieldState.error &&
+                                                            "border-destructive",
+                                                    )}
+                                                >
                                                     <InputGroup.Input
                                                         type="number"
                                                         className="w-full bg-transparent text-center font-bold text-foreground outline-none p-0 text-sm [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
@@ -75,6 +82,11 @@ export function InstallTasksList({ form }) {
                                                         </InputGroup.Addon>
                                                     </AdminJobFormContent>
                                                 </InputGroup>
+                                                {fieldState.error?.message ? (
+                                                    <p className="mt-1 text-center text-xs text-destructive">
+                                                        {fieldState.error.message}
+                                                    </p>
+                                                ) : null}
                                             </td>
                                             <td className="px-4 py-3 text-right font-bold">
                                                 <NumberFlow
@@ -98,4 +110,3 @@ export function InstallTasksList({ form }) {
         </div>
     );
 }
-

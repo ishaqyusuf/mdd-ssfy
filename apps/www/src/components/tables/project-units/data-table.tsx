@@ -12,7 +12,7 @@ import { NoResults } from "@gnd/ui/custom/no-results";
 import { Table, useTableData } from "@gnd/ui/data-table";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { Icons } from "@gnd/ui/icons";
-import { isCommunityUnitRole } from "@gnd/utils/constants";
+import { isCommunityUnitRestrictedAccess } from "@gnd/utils/constants";
 import type { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -33,7 +33,7 @@ interface Props {
 export function DataTable(props: Props) {
 	const trpc = useTRPC();
 	const auth = useAuth();
-	const isCommunityUnit = isCommunityUnitRole(auth.role?.name);
+	const isCommunityUnit = isCommunityUnitRestrictedAccess(auth.can);
 	const { rowSelection, setRowSelection } = useProjectUnitsStore();
 	const { filters, hasFilters, setFilters } = useProjectUnitFilterParams();
 	const { params, setParams } = useSortParams();

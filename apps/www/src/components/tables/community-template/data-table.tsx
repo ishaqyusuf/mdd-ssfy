@@ -11,7 +11,7 @@ import { NoResults } from "@gnd/ui/custom/no-results";
 import { Table, useTableData } from "@gnd/ui/data-table";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { Icons } from "@gnd/ui/icons";
-import { isCommunityUnitRole } from "@gnd/utils/constants";
+import { isCommunityUnitRestrictedAccess } from "@gnd/utils/constants";
 import Link from "next/link";
 import { columns, communityUnitColumns, mobileColumn } from "./columns";
 interface Props {
@@ -20,7 +20,7 @@ interface Props {
 export function DataTable(props: Props) {
 	const trpc = useTRPC();
 	const auth = useAuth();
-	const isCommunityUnit = isCommunityUnitRole(auth.role?.name);
+	const isCommunityUnit = isCommunityUnitRestrictedAccess(auth.can);
 	// const { rowSelection, setRowSelection } = useCommunityTemplateStore();
 	const { filters, hasFilters, setFilters } =
 		useCommunityTemplateFilterParams();

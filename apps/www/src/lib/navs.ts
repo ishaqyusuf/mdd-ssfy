@@ -38,6 +38,8 @@ export function nav(
 	const {
 		viewProject,
 		viewCommunity,
+		viewCommunityUnit,
+		editCommunityUnit,
 		viewProduction,
 		viewBuilders,
 		viewInvoice,
@@ -87,7 +89,7 @@ export function nav(
 	if (editOrders) {
 		routes.Settings.push(_route("Email", Icons.Email, "/settings/email"));
 	}
-	if (viewProject || viewCommunity) {
+	if (viewProject || viewCommunity || viewCommunityUnit || editCommunityUnit) {
 		routes.Community.push(
 			...[
 				_route("Projects", Icons.project, "/community/projects"),

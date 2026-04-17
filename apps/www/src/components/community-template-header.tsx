@@ -5,7 +5,7 @@ import Link from "next/link";
 import { AuthGuard } from "./auth-guard";
 import { CommunityTemplateSearchFilter } from "./community-template-search-filter";
 import { OpenCommunityTemplateModal } from "./open-community-template-modal";
-import { _role } from "./sidebar/links";
+import { _perm } from "./sidebar/links";
 
 type Props = {
 	initialFilterList?: PageFilterData[];
@@ -16,7 +16,7 @@ export function CommunityTemplateHeader({ initialFilterList }: Props) {
 		<div className="flex gap-4">
 			<CommunityTemplateSearchFilter initialFilterList={initialFilterList} />
 			<div className="flex-1" />
-			<AuthGuard rules={[_role.some("Super Admin", "CommunityUnit")]}>
+			<AuthGuard rules={[_perm.is("editCommunityUnit")]}>
 				<Link
 					className={cn(
 						buttonVariants({

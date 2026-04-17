@@ -4,6 +4,7 @@ import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { AuthGuard } from "@/components/auth-guard";
 import { _perm } from "@/components/sidebar/links";
 import { _qc, _trpc } from "@/components/static-trpc";
+import { useAuth } from "@/hooks/use-auth";
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { openLink } from "@/lib/open-link";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
@@ -16,6 +17,7 @@ import { Menu } from "@gnd/ui/custom/menu";
 import { Progress } from "@gnd/ui/custom/progress";
 import { toast } from "@gnd/ui/use-toast";
 import { colorsObject } from "@gnd/utils/colors";
+import { isCommunityUnitRestrictedAccess } from "@gnd/utils/constants";
 import { formatDate } from "@gnd/utils/dayjs";
 import { useMutation } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -322,7 +324,9 @@ export const communityUnitColumns: Column[] = [
 ];
 
 function Actions({ item }: ItemProps) {
+	const auth = useAuth();
 	const ctx = useHomeModal();
+	const isCommunityUnit = isCommunityUnitRestrictedAccess(auth.can);
 	const { startPrint } = useProjectUnitsPrintFlow();
 	const { mutateAsync } = useMutation(
 		_trpc.community.deleteUnits.mutationOptions({
@@ -357,19 +361,21 @@ function Actions({ item }: ItemProps) {
 	};
 	return (
 		<div className="relative items-center gap-2 flex justify-end z-10">
-			<AuthGuard rules={[_perm.is("editProject")]}>
-				<ConfirmBtn
-					onClick={async (e) => {
-						await mutateAsync({
-							unitIds: [item.id],
-						});
-					}}
-					trash
-					variant="outline"
-					className="px-2"
-					size="sm"
-				/>
-			</AuthGuard>
+			{isCommunityUnit ? null : (
+				<AuthGuard rules={[_perm.is("editProject")]}>
+					<ConfirmBtn
+						onClick={async (e) => {
+							await mutateAsync({
+								unitIds: [item.id],
+							});
+						}}
+						trash
+						variant="outline"
+						className="px-2"
+						size="sm"
+					/>
+				</AuthGuard>
+			)}
 			<Menu>
 				<Menu.Item
 					Icon={"check"}

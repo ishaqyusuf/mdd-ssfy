@@ -24,7 +24,7 @@ import {
 	TooltipTrigger,
 } from "@gnd/ui/tooltip";
 import { toast } from "@gnd/ui/use-toast";
-import { isCommunityUnitRole } from "@gnd/utils/constants";
+import { isCommunityUnitRestrictedAccess } from "@gnd/utils/constants";
 import { formatDate } from "@gnd/utils/dayjs";
 import type { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
@@ -270,7 +270,7 @@ export const communityUnitColumns: Column[] = [
 
 function Actions({ item }: ItemProps) {
 	const auth = useAuth();
-	const isCommunityUnit = isCommunityUnitRole(auth.role?.name);
+	const isCommunityUnit = isCommunityUnitRestrictedAccess(auth.can);
 	const isMobile = useIsMobile();
 	const trpc = useTRPC();
 	const qc = useQueryClient();
@@ -392,7 +392,7 @@ export const mobileColumn: ColumnDef<Item>[] = [
 ];
 function ItemCard({ item }: ItemProps) {
 	const auth = useAuth();
-	const isCommunityUnit = isCommunityUnitRole(auth.role?.name);
+	const isCommunityUnit = isCommunityUnitRestrictedAccess(auth.can);
 	const { setParams: setModelCostParams } = useCommunityModelCostParams();
 	const { setParams: setInstallCostParams } = useCommunityInstallCostParams();
 	const cost = item.costs?.find((c) => c.current);

@@ -12,4 +12,4 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 - [x] Rebuilt the sales production admin/worker workspace around shared dashboard UI, due-today/tomorrow alerts, and compact due-date filtering (2026-03-26).
 - [x] Refined the sales production worker dashboard v2 with row-injected item detail, simplified worker progress status, compact handle-aware submission controls, worker-only item visibility, and scope-aware completion filtering for past-due/pending queues (2026-04-02).
 - [x] Restored missing worker notification delivery for production assignments in the v2 `update-sales-control` path (2026-04-03).
-- [x] Added the restricted `CommunityUnit` access slice for community projects/units/templates, narrowed the units grid to `Project` / `Builder` / `Model` / `Lot` / `Block`, and blocked install-cost UI/API access for that role (2026-04-17).
+- [x] Added the restricted `CommunityUnit` permission slice for community projects/units/templates, narrowed the units grid to `Project` / `Builder` / `Model` / `Lot` / `Block`, and blocked install-cost UI/API access for that permission path (2026-04-17).

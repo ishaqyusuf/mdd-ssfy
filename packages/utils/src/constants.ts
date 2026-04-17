@@ -71,18 +71,15 @@ export const ROLES = [
 	"Production",
 	"Admin",
 	"1099 Contractor",
-	"CommunityUnit",
 	"Super Admin",
 	"Punchout",
 ] as const;
 export type Roles = (typeof ROLES)[number];
-export const COMMUNITY_UNIT_ROLE = "CommunityUnit" as const;
-export function isCommunityUnitRole(role?: string | null) {
-	return role?.trim().toLowerCase() === COMMUNITY_UNIT_ROLE.toLowerCase();
-}
 export const PERMISSIONS = [
 	"viewProject",
 	"editProject",
+	"viewCommunityUnit",
+	"editCommunityUnit",
 	"viewCommission",
 	"editCommission",
 	"viewAssignTasks",
@@ -153,6 +150,7 @@ export const PERMISSIONS = [
 ] as const;
 export const PERMISSION_NAMES_PASCAL = [
 	"Project",
+	"CommunityUnit",
 	"Commission",
 	"AssignTasks",
 	"Documents",
@@ -196,6 +194,7 @@ export const PERMISSION_NAMES = [
 	"assignTasks",
 	"builders",
 	"community",
+	"communityUnit",
 	"commission",
 	"cost",
 	"customerService",
@@ -237,6 +236,22 @@ export type PermissionScope = `${Action}${PascalResource}`;
 
 export type ICan = { [permission in PermissionScope]: boolean };
 export const allPermissions = () => [...PERMISSIONS];
+export function hasCommunityUnitPermission(
+	can?: Partial<ICan> | Record<string, boolean> | null,
+) {
+	return !!(can?.viewCommunityUnit || can?.editCommunityUnit);
+}
+export function isCommunityUnitRestrictedAccess(
+	can?: Partial<ICan> | Record<string, boolean> | null,
+) {
+	if (!hasCommunityUnitPermission(can)) return false;
+	return !(
+		can?.editProject ||
+		can?.editCommunity ||
+		can?.viewCost ||
+		can?.editCost
+	);
+}
 function normalizePermissionName(permission: string) {
 	const normalized = camel(permission);
 	if (normalized === "reviewEmployeeDocument") {
@@ -247,7 +262,6 @@ function normalizePermissionName(permission: string) {
 export const generatePermissions = (role, permissions?) => {
 	const can: ICan = {} as ICan;
 	const isSuperAdmin = role?.toLocaleLowerCase() === "super admin";
-	const isCommunityUnit = isCommunityUnitRole(role);
 	const permissionNames = Array.isArray(permissions)
 		? permissions.map((permission) =>
 				typeof permission === "string" ? permission : permission.name,
@@ -263,10 +277,6 @@ export const generatePermissions = (role, permissions?) => {
 			isSuperAdmin || normalizedPermissions.includes(viewPermission);
 		can[editPermission] =
 			isSuperAdmin || normalizedPermissions.includes(editPermission);
-	}
-	if (isCommunityUnit) {
-		can.viewCommunity = true;
-		can.viewProject = true;
 	}
 	return can;
 };

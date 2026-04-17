@@ -36,9 +36,19 @@
 ## UI Screens
 
 - Public checkout v2 page for token-based payment.
+- Public quote-acceptance page that converts an approved quote into a payable order experience.
 - Logged-in checkout variant that shows wallet information.
 - Quick create-password/login affordance within checkout.
 - Customer dashboard entry screen after login/checkout.
+
+## Quote Acceptance Flow
+
+1. Customer opens the public quote-acceptance link from the sales email.
+2. Accepting the quote reuses the existing `sendToInvoice` copy behavior instead of mutating the quote in place.
+3. The original quote remains in the system, and a new order copy is created for payment.
+4. The accept page stores the new order number in URL query state so refreshes and repeat visits stay anchored to the created order.
+5. Payment token generation uses the accepted order record.
+6. Acceptance also triggers the shared sales document email flow for the newly created order.
 
 ## Edge Cases
 
