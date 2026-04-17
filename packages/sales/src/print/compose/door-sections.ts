@@ -9,9 +9,13 @@ import type {
 import type { PrintSalesData, PrintSalesItem } from "../query";
 import { formatCurrency } from "@gnd/utils";
 import { isComponentType, ftToIn } from "../../utils/utils";
-import type { SalesItemMeta, StepComponentMeta } from "../../types";
+import type { StepComponentMeta } from "../../types";
 import { getSalesSetting, type SalesSetting } from "../../exports";
 import { packingInfo } from "./packing";
+import {
+  getSalesItemType,
+  getSectionIndex,
+} from "./grouped-item-helpers";
 
 /**
  * Compose door sections from sales items.
@@ -26,12 +30,11 @@ export function composeDoorSections(
   const sections: DoorSection[] = [];
   const seen = new Set<number>();
 
-  for (const item of sale.items) {
+  for (const [itemIndex, item] of sale.items.entries()) {
     if (!item.housePackageTool) continue;
     if (seen.has(item.id)) continue;
 
-    const itemMeta = item.meta as any as SalesItemMeta;
-    const doorType = itemMeta?.doorType;
+    const doorType = getSalesItemType(item);
     if (!doorType) continue;
 
     const is = isComponentType(doorType);
@@ -213,7 +216,7 @@ export function composeDoorSections(
 
     sections.push({
       kind: "door",
-      index: itemMeta?.lineIndex ?? 0,
+      index: getSectionIndex(item, itemIndex),
       title: item.dykeDescription || doorType,
       details,
       headers,

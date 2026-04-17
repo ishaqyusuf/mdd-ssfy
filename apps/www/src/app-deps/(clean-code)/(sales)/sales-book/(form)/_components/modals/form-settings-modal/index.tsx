@@ -65,6 +65,7 @@ export default function FormSettingsModal({}) {
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild className="flex">
                                     <Button
+                                        type="button"
                                         variant="outline"
                                         className="items-center justify-center gap-2"
                                     >
@@ -185,7 +186,7 @@ function RouteSection({ uid }) {
                         arr.move(activeIndex, overIndex)
                     }
                     overlay={
-                        <div className="grid grid-cols-[1fr,auto,auto] items-center gap-2">
+                        <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2">
                             {/* <div className="h-8 w-full rounded-sm bg-primary/10" /> */}
                             <div className="h-8 w-full rounded-sm bg-primary/10" />
                             <div className="size-8 shrink-0 rounded-sm bg-primary/10" />
@@ -200,7 +201,7 @@ function RouteSection({ uid }) {
                                 value={field.id}
                                 asChild
                             >
-                                <div className="grid grid-cols-[1fr,auto,auto] items-center gap-2">
+                                <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2">
                                     {/* <div>{index}</div> */}
                                     <FormSelect
                                         size="sm"
@@ -212,9 +213,10 @@ function RouteSection({ uid }) {
                                     />
 
                                     <SortableDragHandle
+                                        type="button"
                                         variant="outline"
                                         size="icon"
-                                        className="size-4 shrink-0"
+                                        className="size-8 shrink-0 self-center"
                                     >
                                         <Icons.GripIcon
                                             className="size-4"
@@ -222,6 +224,7 @@ function RouteSection({ uid }) {
                                         />
                                     </SortableDragHandle>
                                     <ConfirmBtn
+                                        className="self-center"
                                         onClick={() => {
                                             arr.remove(index);
                                         }}
@@ -241,6 +244,7 @@ function RouteSection({ uid }) {
                             control={ctx.form.control}
                         />
                         <Button
+                            type="button"
                             onClick={(e) => {
                                 m.mutate({
                                     title: newStepTitle,
@@ -252,6 +256,7 @@ function RouteSection({ uid }) {
                         </Button>
                     </div>
                     <Button
+                        type="button"
                         onClick={() => {
                             arr.append({ uid: "" });
                         }}

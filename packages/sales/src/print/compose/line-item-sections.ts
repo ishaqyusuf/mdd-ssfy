@@ -8,45 +8,17 @@ import type {
 	RowCell,
 } from "../types";
 import { packingInfo } from "./packing";
+import {
+	getLegacyUid,
+	getSectionIndex as getGroupedSectionIndex,
+	isMetadataBackedMouldingItem,
+	isMetadataBackedServiceItem,
+} from "./grouped-item-helpers";
 
-function getMetaNumber(
-	item: PrintSalesItem,
-	key: "lineIndex" | "line_index" | "uid",
-): number | null {
-	const meta = (item.meta ?? {}) as Record<string, unknown>;
-	const raw = meta[key];
-	if (typeof raw === "number" && Number.isFinite(raw)) return raw;
-	if (typeof raw === "string" && raw.trim() !== "") {
-		const parsed = Number(raw);
-		if (Number.isFinite(parsed)) return parsed;
-	}
-	return null;
-}
-
-function getOrderIndex(item: PrintSalesItem, fallback: number): number {
-	return (
-		getMetaNumber(item, "uid") ??
-		getMetaNumber(item, "lineIndex") ??
-		getMetaNumber(item, "line_index") ??
-		fallback
-	);
-}
-
-function getLegacyUid(item: PrintSalesItem, fallback: number): number {
-	const uid = getMetaNumber(item, "uid");
-	if (uid != null) return uid;
-
-	const lineIndex =
-		getMetaNumber(item, "line_index") ?? getMetaNumber(item, "lineIndex");
-	if (lineIndex != null && lineIndex >= 0) return lineIndex;
-
-	return fallback;
-}
-
-function getSectionIndex(items: PrintSalesItem[]): number {
+function getSectionStartIndex(items: PrintSalesItem[]): number {
 	return Math.min(
 		...items
-			.map((item, index) => getOrderIndex(item, index))
+			.map((item, index) => getGroupedSectionIndex(item, index))
 			.filter(Number.isFinite),
 	);
 }
@@ -67,9 +39,11 @@ export function composeLineItemSections(
 	const items = sale.items
 		.filter((item) => !item.housePackageTool)
 		.filter((item) => !item.shelfItems?.length)
+		.filter((item) => !isMetadataBackedMouldingItem(item))
+		.filter((item) => !isMetadataBackedServiceItem(item))
 		.map((item, index) => ({
 			item,
-			orderIndex: getOrderIndex(item, index),
+			orderIndex: getGroupedSectionIndex(item, index),
 			uid: getLegacyUid(item, index),
 			fallbackIndex: index,
 		}))
@@ -168,7 +142,7 @@ export function composeLineItemSections(
 	return [
 		{
 			kind: "line-item",
-			index: getSectionIndex(items.map(({ item }) => item)),
+			index: getSectionStartIndex(items.map(({ item }) => item)),
 			title: "",
 			headers,
 			rows,

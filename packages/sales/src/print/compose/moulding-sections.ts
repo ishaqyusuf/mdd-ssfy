@@ -8,8 +8,14 @@ import type {
 import type { PrintSalesData } from "../query";
 import { formatCurrency } from "@gnd/utils";
 import { isComponentType } from "../../utils/utils";
-import type { SalesItemMeta } from "../../types";
 import { packingInfo } from "./packing";
+import {
+  findSelectedStepComponent,
+  getMetaRows,
+  getSalesItemType,
+  getSectionIndex,
+  isMetadataBackedMouldingItem,
+} from "./grouped-item-helpers";
 
 export function composeMouldingSections(
   sale: PrintSalesData,
@@ -19,12 +25,12 @@ export function composeMouldingSections(
   const sections: MouldingSection[] = [];
   const seen = new Set<number>();
 
-  for (const item of sale.items) {
-    if (!item.housePackageTool) continue;
+  for (const [itemIndex, item] of sale.items.entries()) {
+    const isMetadataBacked = isMetadataBackedMouldingItem(item);
+    if (!item.housePackageTool && !isMetadataBacked) continue;
     if (seen.has(item.id)) continue;
 
-    const itemMeta = item.meta as any as SalesItemMeta;
-    const doorType = itemMeta?.doorType;
+    const doorType = getSalesItemType(item);
     if (!doorType) continue;
 
     const is = isComponentType(doorType);
@@ -61,6 +67,86 @@ export function composeMouldingSections(
     const rows: MouldingRow[] = [];
     let rowNum = 0;
     for (const m of multis) {
+      const metadataRows = isMetadataBackedMouldingItem(m)
+        ? getMetaRows<{
+            uid?: string | null;
+            title?: string | null;
+            description?: string | null;
+            qty?: number | null;
+            salesPrice?: number | null;
+            lineTotal?: number | null;
+            addon?: number | null;
+            customPrice?: number | null;
+          }>(m, "mouldingRows")
+        : [];
+
+      if (metadataRows.length) {
+        for (const row of metadataRows) {
+          const qty = Number(row?.qty || 0);
+          const salesPrice = Number(row?.salesPrice || 0);
+          const addon = Number(row?.addon || 0);
+          const customPrice =
+            row?.customPrice == null ? null : Number(row.customPrice || 0);
+          const lineTotal =
+            row?.lineTotal == null
+              ? Number(
+                  (
+                    qty *
+                    (customPrice == null ? salesPrice + addon : customPrice + addon)
+                  ).toFixed(2),
+                )
+              : Number(row.lineTotal || 0);
+          const unitPrice =
+            qty > 0 ? Number((lineTotal / qty).toFixed(2)) : 0;
+          const component = findSelectedStepComponent(m, "Moulding", row?.uid);
+          rowNum++;
+
+          const cells: RowCell[] = [
+            { value: rowNum, colSpan: 1, align: "center" },
+            {
+              value:
+                String(component?.title || "").trim() ||
+                String(row?.title || "").trim() ||
+                String(row?.description || "").trim() ||
+                m.description ||
+                "",
+              colSpan: 4,
+              align: "left",
+              image: (component?.img as string | null | undefined) || null,
+            },
+            { value: qty, colSpan: 1.2, align: "center" },
+          ];
+
+          if (config.showPrices) {
+            cells.push(
+              {
+                value: `$${formatCurrency(unitPrice)}`,
+                colSpan: 2.5,
+                align: "right",
+              },
+              {
+                value: `$${formatCurrency(lineTotal)}`,
+                colSpan: 2.5,
+                align: "right",
+                bold: true,
+              },
+            );
+          }
+
+          if (config.showPackingCol) {
+            cells.push({
+              value: packingInfo(sale, m.id, undefined, dispatchId),
+              colSpan: 3,
+              align: "center",
+              bold: true,
+            });
+          }
+
+          rows.push({ cells });
+        }
+        continue;
+      }
+
       if (!m.total) continue;
       rowNum++;
 
@@ -119,7 +205,7 @@ export function composeMouldingSections(
     if (rows.length > 0) {
       sections.push({
         kind: "moulding",
-        index: itemMeta?.lineIndex ?? 0,
+        index: getSectionIndex(item, itemIndex),
         title: item.dykeDescription || doorType,
         headers,
         rows,

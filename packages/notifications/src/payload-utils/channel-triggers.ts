@@ -294,6 +294,18 @@ export function createNotificationChannelTriggers(
 				recipients: resolvedRecipients,
 			});
 		},
+		simpleSalesDocumentEmail(input: Input<"simple_sales_document_email">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("simple_sales_document_email", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
 		simpleSalesEmailReminder(input: Input<"simple_sales_email_reminder">) {
 			const { recipients, author, ...payload } = input;
 			const resolvedRecipients = resolveRecipients(

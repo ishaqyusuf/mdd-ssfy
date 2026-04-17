@@ -577,6 +577,7 @@ export type NotificationTypes = {
 	sales_marked_as_production_completed: SalesMarkedAsProductionCompletedInput;
 	sales_production_all_completed: SalesProductionAllCompletedInput;
 	sales_email_reminder: SalesEmailReminderInput;
+	simple_sales_document_email: SendSalesEmailPayloadInput;
 	simple_sales_email_reminder: SimpleSalesEmailReminderInput;
 	sales_reminder_schedule_admin_notification: SalesReminderScheduleAdminNotificationInput;
 	sales_info: SalesInfoInput;
@@ -890,6 +891,19 @@ export const salesEmailReminderTags = actityTagsSchema.extend({
 	hasPdfLink: z.boolean().optional(),
 });
 export type SalesEmailReminderTags = z.infer<typeof salesEmailReminderTags>;
+export const simpleSalesDocumentEmailSchema = z.object({
+	emailType: z
+		.enum(["with payment", "with part payment", "without payment"])
+		.default("without payment")
+		.optional()
+		.nullable(),
+	printType: z.enum(["order", "quote"]),
+	salesIds: z.array(z.number()).optional().nullable(),
+	salesNos: z.array(z.string()).optional().nullable(),
+});
+export type SendSalesEmailPayloadInput = z.infer<
+	typeof simpleSalesDocumentEmailSchema
+>;
 export const simpleSalesEmailReminderSchema = z
 	.object({
 		salesId: z.number(),
@@ -1299,6 +1313,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_email_reminder"),
 		payload: salesEmailReminderSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("simple_sales_document_email"),
+		payload: simpleSalesDocumentEmailSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("simple_sales_email_reminder"),

@@ -2,13 +2,46 @@
 
 import { Icons } from "@gnd/ui/icons";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { FileUploader } from "@/components/common/file-uploader";
+import { MouldingCalculator } from "@/components/moulding-calculator";
+import { env } from "@/env.mjs";
+import { endFlow, logStage, startFlow } from "@/lib/dev-flow-logger";
+import {
+	applyMultiSelectStepMutation,
+	applySingleSelectStepMutation,
+	buildConfiguredRouteSteps,
+	buildSelectedByStepUid,
+	buildSelectedProdUidsByStepUid,
+	buildShelfSections,
+	compactStepValue,
+	deriveDoorSizeCandidates,
+	deriveMouldingRows,
+	deriveServiceRows,
+	findLineStepByTitle,
+	flattenShelfSections,
+	getRedirectableRoutes,
+	getSelectedDoorComponentsForLine,
+	getSelectedMouldingComponentsForLine,
+	getSelectedProdUids,
+	isComponentVisibleByRules,
+	isMouldingItem,
+	isServiceItem,
+	isShelfItem,
+	mergeConfiguredSeriesWithExisting,
+	normalizeSalesFormTitle as normalizeTitle,
+	rebuildStepsFromSelection,
+	resolveComponentPriceByDeps,
+	resolveDoorTierPricing,
+	getRouteConfigForLine as resolveRouteConfigForLine,
+	sharedMouldingComponentPrice,
+	summarizeDoors,
+	summarizeMouldingPersistRows,
+	summarizeServiceRows,
+	summarizeShelfRows,
+} from "@gnd/sales/sales-form";
 import { Button } from "@gnd/ui/button";
-import { Menu } from "@gnd/ui/custom/menu";
-import { Input } from "@gnd/ui/input";
 import { Checkbox } from "@gnd/ui/checkbox";
-import { Skeleton } from "@gnd/ui/skeleton";
-import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
+import { Menu } from "@gnd/ui/custom/menu";
 import {
 	Dialog,
 	DialogContent,
@@ -17,67 +50,24 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@gnd/ui/dialog";
+import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
-import { env } from "@/env.mjs";
-import { endFlow, logStage, startFlow } from "@/lib/dev-flow-logger";
-import { MouldingCalculator } from "@/components/moulding-calculator";
-import { FileUploader } from "@/components/common/file-uploader";
-import type { NewSalesFormLineItem } from "../schema";
-import { useNewSalesFormStore } from "../store";
+import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
+import { Skeleton } from "@gnd/ui/skeleton";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	useCustomerProfilesQuery,
 	useNewSalesFormShelfCategoriesQuery,
 	useNewSalesFormShelfProductsQuery,
+	useNewSalesFormStepRoutingQuery,
 	useSalesDeleteSupplierMutation,
 	useSalesSaveSupplierMutation,
+	useSalesStepComponentsQuery,
 	useSalesSuppliersQuery,
 	useSalesUpdateStepMetaMutation,
-	useNewSalesFormStepRoutingQuery,
-	useSalesStepComponentsQuery,
 } from "../api";
-import {
-	DoorPriceCell,
-	DoorSizeQtyDialog,
-	DoorSizeVariantDialog,
-	MouldingCalculatorDialog,
-	profileAdjustedDoorSalesPrice,
-	updateDoorRowBasePrice,
-} from "./workflow-modals";
-import {
-	applyMultiSelectStepMutation,
-	applySingleSelectStepMutation,
-	buildShelfSections,
-	buildConfiguredRouteSteps,
-	buildSelectedByStepUid,
-	buildSelectedProdUidsByStepUid,
-	compactStepValue,
-	flattenShelfSections,
-	getSelectedProdUids,
-	isComponentVisibleByRules,
-	mergeConfiguredSeriesWithExisting,
-	normalizeSalesFormTitle as normalizeTitle,
-	rebuildStepsFromSelection,
-	deriveMouldingRows,
-	deriveServiceRows,
-	getRouteConfigForLine as resolveRouteConfigForLine,
-	getSelectedDoorComponentsForLine,
-	getSelectedMouldingComponentsForLine,
-	isMouldingItem,
-	isServiceItem,
-	isShelfItem,
-	findLineStepByTitle,
-	getRedirectableRoutes,
-	resolveDoorTierPricing,
-	resolveComponentPriceByDeps,
-	sharedMouldingComponentPrice,
-	summarizeDoors,
-	summarizeMouldingPersistRows,
-	summarizeShelfRows,
-	summarizeServiceRows,
-	deriveDoorSizeCandidates,
-} from "@gnd/sales/sales-form";
-import { InvoiceItemCard } from "./item-workflow/invoice-item-card";
-import { ItemWorkflowHeader } from "./item-workflow/item-workflow-header";
+import type { NewSalesFormLineItem } from "../schema";
+import { useNewSalesFormStore } from "../store";
 import { snapshotSelectedComponent } from "./item-workflow/component-utils";
 import {
 	applySharedDoorSurcharge,
@@ -86,19 +76,29 @@ import {
 	normalizeStoredDoorRows,
 	repricePersistedDoorRowsForSupplier,
 } from "./item-workflow/door-utils";
+import { InvoiceItemCard } from "./item-workflow/invoice-item-card";
+import { ItemWorkflowHeader } from "./item-workflow/item-workflow-header";
 import {
+	ShelfCategoryPathInput,
+	ShelfProductCombobox,
 	buildShelfProductsById,
 	getShelfLeafCategoryIds,
 	getShelfRowBasePrice,
 	getShelfRowDisplayTotal,
 	getShelfRowDisplayUnitPrice,
 	getShelfRowSalesPrice,
-	ShelfCategoryPathInput,
-	ShelfProductCombobox,
 } from "./item-workflow/shelf-inputs";
 import { getItemWorkflowStepFamily } from "./item-workflow/step-family";
 import { useItemWorkflowController } from "./item-workflow/use-item-workflow-controller";
 import { useMouldingWorkflow } from "./item-workflow/use-moulding-workflow";
+import {
+	DoorPriceCell,
+	DoorSizeQtyDialog,
+	DoorSizeVariantDialog,
+	MouldingCalculatorDialog,
+	profileAdjustedDoorSalesPrice,
+	updateDoorRowBasePrice,
+} from "./workflow-modals";
 const MULTI_SELECT_STEP_TITLES = new Set([
 	"door",
 	"moulding",
@@ -178,6 +178,44 @@ type ServiceRow = {
 	unitPrice?: number | null;
 	lineTotal?: number | null;
 	[key: string]: unknown;
+};
+type ShelfRowDraft = {
+	uid: string;
+	id: number | null;
+	categoryId: number | null;
+	productId: number | null;
+	description: string;
+	qty: number;
+	unitPrice: number;
+	totalPrice: number;
+	basePrice?: number;
+	salesPrice?: number;
+	customPrice?: number | null;
+	meta?: {
+		categoryIds?: number[];
+		shelfParentCategoryId?: number | null;
+		basePrice?: number;
+		salesPrice?: number;
+		customPrice?: number | null;
+		unitPrice?: number;
+		[key: string]: unknown;
+	};
+	[key: string]: unknown;
+};
+type ShelfSectionDraft = {
+	uid: string;
+	categoryIds: number[];
+	parentCategoryId: number | null;
+	categoryId: number | null;
+	rows: ShelfRowDraft[];
+	subTotal: number;
+	[key: string]: unknown;
+};
+type ShelfProductOption = ShelfProductRecord & {
+	id?: number | null;
+	title?: string | null;
+	unitPrice?: number | null;
+	img?: string | null;
 };
 type CustomerProfileRecord = {
 	id?: number | null;
@@ -323,13 +361,14 @@ function resolveInteractiveStepIndex(
 	return clampedIndex;
 }
 function ComponentCardSkeletonGrid({ count = 6 }: { count?: number }) {
+	const skeletonKeys = Array.from(
+		{ length: count },
+		(_, index) => `component-skeleton-${count}-${index}`,
+	);
 	return (
 		<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-			{Array.from({ length: count }).map((_, index) => (
-				<div
-					key={`component-skeleton-${index}`}
-					className="overflow-hidden rounded-xl border bg-card"
-				>
+			{skeletonKeys.map((key) => (
+				<div key={key} className="overflow-hidden rounded-xl border bg-card">
 					<Skeleton className="h-32 w-full" />
 					<div className="space-y-2 p-3">
 						<Skeleton className="h-4 w-4/5" />
@@ -519,21 +558,6 @@ export function ItemWorkflowPanel() {
 	const activeDoorStepIndex = activeLineSteps.findIndex((step) =>
 		isDoorStepTitle(step?.step?.title),
 	);
-	const {
-		mouldingSelectionPopover,
-		mouldingQtyInputRef,
-		openMouldingSelectionQtyPopover,
-		saveMouldingSelectionWithQty,
-		setMouldingSelectionQty,
-		closeMouldingSelectionPopover,
-	} = useMouldingWorkflow({
-		activeLine,
-		activeStep,
-		activeStepIndex,
-		normalizeTitle,
-		visibleComponents,
-		updateLineItem,
-	});
 	const activeStepComponentOverrides = useMemo(() => {
 		const overrides = new Map<string, WorkflowComponent>();
 		const selected = Array.isArray(activeStep?.meta?.selectedComponents)
@@ -846,6 +870,7 @@ export function ItemWorkflowPanel() {
 			});
 	}, [
 		stepComponentsQuery.data,
+		activeStep,
 		activeLineSteps,
 		includeCustomComponents,
 		activeProfileCoefficient,
@@ -977,11 +1002,29 @@ export function ItemWorkflowPanel() {
 		includeCustomComponents,
 		activeProfileCoefficient,
 		activeStepComponentOverrides,
+		activeStep,
 	]);
+	const {
+		mouldingSelectionPopover,
+		mouldingQtyInputRef,
+		openMouldingSelectionQtyPopover,
+		saveMouldingSelectionWithQty,
+		setMouldingSelectionQty,
+		closeMouldingSelectionPopover,
+	} = useMouldingWorkflow({
+		activeLine,
+		activeStep,
+		activeStepIndex,
+		normalizeTitle,
+		visibleComponents,
+		updateLineItem,
+	});
 	const activeDoorSupplier = getDoorSupplierMeta(activeDoorStep || activeStep);
+	const componentSearchResetKey = `${activeLine?.uid || ""}:${activeStep?.stepId || ""}:${activeStep?.step?.title || ""}`;
 	useEffect(() => {
+		void componentSearchResetKey;
 		setComponentSearch("");
-	}, [activeLine?.uid, activeStep?.stepId, activeStep?.step?.title]);
+	}, [componentSearchResetKey]);
 	if (!record) return null;
 
 	function saveSelectedComponent({
@@ -2173,9 +2216,9 @@ export function ItemWorkflowPanel() {
 												</tr>
 											</thead>
 											<tbody>
-												{rowsForComponent.map((row, index) => (
+												{rowsForComponent.map((row) => (
 													<tr
-														key={`hpt-row-${componentId}-${index}`}
+														key={`hpt-row-${componentId}-${row.stepProductId || row.dimension || "row"}-${row.swing || "noswing"}-${row.totalQty || 0}`}
 														className="border-b border-slate-100 last:border-0"
 													>
 														<td className="px-3 py-2 font-medium text-slate-800">
@@ -3086,8 +3129,8 @@ export function ItemWorkflowPanel() {
 							const sections = buildShelfSections(
 								currentRows,
 								activeProfileCoefficient,
-							);
-							const persistSections = (nextSections: any[]) => {
+							) as ShelfSectionDraft[];
+							const persistSections = (nextSections: ShelfSectionDraft[]) => {
 								const flow = startFlow({
 									feature: "new-sales-form/shelf",
 									threadContext: "persist-sections",
@@ -3105,7 +3148,7 @@ export function ItemWorkflowPanel() {
 									stage: "transform",
 									eventType: "payload.transformed",
 									derived: {
-										flatRows: flatRows.map((row: any) => ({
+										flatRows: flatRows.map((row) => ({
 											uid: row?.uid,
 											productId: row?.productId,
 											qty: row?.qty,
@@ -3134,7 +3177,7 @@ export function ItemWorkflowPanel() {
 									qty: next.qtyTotal,
 									unitPrice: next.unitPrice,
 									lineTotal: next.lineTotal,
-								} as any);
+								});
 								endFlow(flow, {
 									lineUid: line.uid,
 									qtyTotal: next.qtyTotal,
@@ -3164,7 +3207,7 @@ export function ItemWorkflowPanel() {
 									</div>
 									{sections.length ? (
 										<div className="space-y-2">
-											{sections.map((section: any, sectionIndex: number) => {
+											{sections.map((section, sectionIndex: number) => {
 												const categoryIds = Array.isArray(section?.categoryIds)
 													? section.categoryIds
 													: [];
@@ -3183,24 +3226,26 @@ export function ItemWorkflowPanel() {
 																		Number(categoryId || 0),
 																	) || [],
 															)
-															.map((product: any) => [
+															.map((product) => [
 																Number(product?.id || 0),
 																product,
 															]),
 													).values(),
-												);
+												) as ShelfProductOption[];
 												const productsById =
 													buildShelfProductsById(productOptions);
 												const sectionHasSelectedProducts = (
 													section?.rows || []
-												).some((row: any) => Number(row?.productId || 0) > 0);
+												).some((row) => Number(row?.productId || 0) > 0);
 												const patchSection = (
 													patch:
-														| Record<string, unknown>
-														| ((section: any) => any),
+														| Partial<ShelfSectionDraft>
+														| ((
+																section: ShelfSectionDraft,
+														  ) => ShelfSectionDraft),
 												) => {
 													persistSections(
-														sections.map((item: any, i: number) =>
+														sections.map((item, i: number) =>
 															i === sectionIndex
 																? typeof patch === "function"
 																	? patch(item)
@@ -3296,7 +3341,7 @@ export function ItemWorkflowPanel() {
 																onClick={() =>
 																	persistSections(
 																		sections.filter(
-																			(_: any, i: number) => i !== sectionIndex,
+																			(_, i: number) => i !== sectionIndex,
 																		),
 																	)
 																}
@@ -3323,7 +3368,7 @@ export function ItemWorkflowPanel() {
 																			parentCategoryId: null,
 																			categoryId: null,
 																			rows: (section?.rows || []).map(
-																				(row: any) => ({
+																				(row) => ({
 																					...row,
 																					categoryId: null,
 																					productId: null,
@@ -3353,7 +3398,7 @@ export function ItemWorkflowPanel() {
 																					]
 																				: null,
 																			rows: (section?.rows || []).map(
-																				(row: any) => ({
+																				(row) => ({
 																					...row,
 																					categoryId: nextCategoryIds.length
 																						? nextCategoryIds[
@@ -3384,7 +3429,7 @@ export function ItemWorkflowPanel() {
 																	size="sm"
 																	variant="outline"
 																	onClick={() =>
-																		patchSection((current: any) => ({
+																		patchSection((current) => ({
 																			...current,
 																			rows: [
 																				...(current?.rows || []),
@@ -3413,7 +3458,7 @@ export function ItemWorkflowPanel() {
 																<span className="md:col-span-1" />
 															</div>
 															{(section?.rows || []).map(
-																(row: any, rowIndex: number) => (
+																(row, rowIndex: number) => (
 																	<div
 																		key={`shelf-row-${section.uid}-${row.uid || rowIndex}`}
 																		className="grid gap-2 rounded-lg border border-white/80 bg-white p-2 md:grid-cols-12"
@@ -3425,10 +3470,10 @@ export function ItemWorkflowPanel() {
 																				disabled={!categoryIds.length}
 																				formatMoney={money}
 																				onClearRequest={() =>
-																					patchSection((current: any) => ({
+																					patchSection((current) => ({
 																						...current,
 																						rows: (current?.rows || []).map(
-																							(item: any, i: number) =>
+																							(item, i: number) =>
 																								i === rowIndex
 																									? {
 																											...item,
@@ -3488,10 +3533,10 @@ export function ItemWorkflowPanel() {
 																						resolvedCustomPrice != null
 																							? Number(resolvedCustomPrice)
 																							: Number(resolvedSalesPrice || 0);
-																					patchSection((current: any) => ({
+																					patchSection((current) => ({
 																						...current,
 																						rows: (current?.rows || []).map(
-																							(item: any, i: number) =>
+																							(item, i: number) =>
 																								i === rowIndex
 																									? {
 																											...item,
@@ -3581,63 +3626,54 @@ export function ItemWorkflowPanel() {
 																							step="0.01"
 																							value={getShelfRowBasePrice(row)}
 																							onChange={(e) =>
-																								patchSection(
-																									(current: any) => ({
-																										...current,
-																										rows: (
-																											current?.rows || []
-																										).map(
-																											(
-																												item: any,
-																												i: number,
-																											) => {
-																												if (i !== rowIndex)
-																													return item;
-																												const nextBase = Number(
-																													e.target.value || 0,
-																												);
-																												return {
-																													...item,
-																													basePrice: nextBase,
-																													salesPrice:
-																														profileAdjustedDoorSalesPrice(
+																								patchSection((current) => ({
+																									...current,
+																									rows: (
+																										current?.rows || []
+																									).map((item, i: number) => {
+																										if (i !== rowIndex)
+																											return item;
+																										const nextBase = Number(
+																											e.target.value || 0,
+																										);
+																										return {
+																											...item,
+																											basePrice: nextBase,
+																											salesPrice:
+																												profileAdjustedDoorSalesPrice(
+																													null,
+																													nextBase,
+																													activeProfileCoefficient,
+																												),
+																											unitPrice:
+																												item?.customPrice !=
+																													null ||
+																												item?.meta
+																													?.customPrice != null
+																													? Number(
+																															item?.customPrice ??
+																																item?.meta
+																																	?.customPrice ??
+																																0,
+																														)
+																													: profileAdjustedDoorSalesPrice(
 																															null,
 																															nextBase,
 																															activeProfileCoefficient,
 																														),
-																													unitPrice:
-																														item?.customPrice !=
-																															null ||
-																														item?.meta
-																															?.customPrice !=
-																															null
-																															? Number(
-																																	item?.customPrice ??
-																																		item?.meta
-																																			?.customPrice ??
-																																		0,
-																																)
-																															: profileAdjustedDoorSalesPrice(
-																																	null,
-																																	nextBase,
-																																	activeProfileCoefficient,
-																																),
-																													meta: {
-																														...(item?.meta ||
-																															{}),
-																														basePrice: nextBase,
-																														salesPrice:
-																															profileAdjustedDoorSalesPrice(
-																																null,
-																																nextBase,
-																																activeProfileCoefficient,
-																															),
-																													},
-																												};
+																											meta: {
+																												...(item?.meta || {}),
+																												basePrice: nextBase,
+																												salesPrice:
+																													profileAdjustedDoorSalesPrice(
+																														null,
+																														nextBase,
+																														activeProfileCoefficient,
+																													),
 																											},
-																										),
+																										};
 																									}),
-																								)
+																								}))
 																							}
 																						/>
 																					</div>
@@ -3662,60 +3698,53 @@ export function ItemWorkflowPanel() {
 																								row?.meta?.customPrice ?? ""
 																							}
 																							onChange={(e) =>
-																								patchSection(
-																									(current: any) => ({
-																										...current,
-																										rows: (
-																											current?.rows || []
-																										).map(
-																											(item: any, i: number) =>
-																												i === rowIndex
-																													? {
-																															...item,
-																															customPrice:
-																																e.target
-																																	.value === ""
-																																	? null
-																																	: Number(
-																																			e.target
-																																				.value ||
-																																				0,
-																																		),
-																															unitPrice:
-																																e.target
-																																	.value === ""
-																																	? Number(
-																																			item?.salesPrice ??
-																																				item
-																																					?.meta
-																																					?.salesPrice ??
-																																				item?.unitPrice ??
-																																				0,
-																																		)
-																																	: Number(
-																																			e.target
-																																				.value ||
-																																				0,
-																																		),
-																															meta: {
-																																...(item?.meta ||
-																																	{}),
-																																customPrice:
+																								patchSection((current) => ({
+																									...current,
+																									rows: (
+																										current?.rows || []
+																									).map((item, i: number) =>
+																										i === rowIndex
+																											? {
+																													...item,
+																													customPrice:
+																														e.target.value ===
+																														""
+																															? null
+																															: Number(
 																																	e.target
-																																		.value ===
-																																	""
-																																		? null
-																																		: Number(
-																																				e.target
-																																					.value ||
-																																					0,
-																																			),
-																															},
-																														}
-																													: item,
-																										),
-																									}),
-																								)
+																																		.value || 0,
+																																),
+																													unitPrice:
+																														e.target.value ===
+																														""
+																															? Number(
+																																	item?.salesPrice ??
+																																		item?.meta
+																																			?.salesPrice ??
+																																		item?.unitPrice ??
+																																		0,
+																																)
+																															: Number(
+																																	e.target
+																																		.value || 0,
+																																),
+																													meta: {
+																														...(item?.meta ||
+																															{}),
+																														customPrice:
+																															e.target.value ===
+																															""
+																																? null
+																																: Number(
+																																		e.target
+																																			.value ||
+																																			0,
+																																	),
+																													},
+																												}
+																											: item,
+																									),
+																								}))
 																							}
 																						/>
 																					</div>
@@ -3727,10 +3756,10 @@ export function ItemWorkflowPanel() {
 																			type="number"
 																			value={row.qty || 0}
 																			onChange={(e) =>
-																				patchSection((current: any) => ({
+																				patchSection((current) => ({
 																					...current,
 																					rows: (current?.rows || []).map(
-																						(item: any, i: number) =>
+																						(item, i: number) =>
 																							i === rowIndex
 																								? {
 																										...item,
@@ -3756,10 +3785,10 @@ export function ItemWorkflowPanel() {
 																			className="md:col-span-1"
 																			variant="destructive"
 																			onClick={() =>
-																				patchSection((current: any) => ({
+																				patchSection((current) => ({
 																					...current,
 																					rows: (current?.rows || []).filter(
-																						(_: any, i: number) =>
+																						(_item, i: number) =>
 																							i !== rowIndex,
 																					),
 																				}))
@@ -3998,7 +4027,7 @@ export function ItemWorkflowPanel() {
 														>
 															Cancel Redirect
 														</Menu.Item>,
-														...redirectRoutes.map((step: any) => (
+														...redirectRoutes.map((step) => (
 															<Menu.Item
 																key={`redirect-${component.uid}-${step.uid}`}
 																onClick={() =>
@@ -4240,7 +4269,7 @@ export function ItemWorkflowPanel() {
 									<Menu.Item
 										SubMenu={(steps || []).map((step, idx) => (
 											<Menu.Item
-												key={`jump-step-${idx}`}
+												key={`jump-step-${line.uid}-${step?.uid || step?.stepId || step?.step?.id || step?.step?.title || "step"}`}
 												onClick={() =>
 													setActiveStepByLine((prev) => ({
 														...prev,
@@ -4262,8 +4291,7 @@ export function ItemWorkflowPanel() {
 											const step = nextSteps[activeIndex];
 											if (!step) return;
 											const selectedComponents = visibleComponents.map(
-												(component: any) =>
-													snapshotSelectedComponent(component),
+												(component) => snapshotSelectedComponent(component),
 											);
 											const selectedProdUids = selectedComponents
 												.map((component) => component.uid)
@@ -4301,7 +4329,7 @@ export function ItemWorkflowPanel() {
 									<Menu.Item
 										onClick={() => {
 											const selectedComponent =
-												visibleComponents.find((component: any) =>
+												visibleComponents.find((component) =>
 													selectedUids.has(component.uid),
 												) || visibleComponents[0];
 											if (!selectedComponent) return;
@@ -4584,10 +4612,10 @@ export function ItemWorkflowPanel() {
 								doors: nextDoors,
 								totalDoors,
 								totalPrice,
-							} as any,
+							},
 							qty: totalDoors || activeLine.qty,
 							lineTotal: totalPrice || activeLine.lineTotal,
-						} as any);
+						});
 
 						if (isDoorStepTitle(activeStep?.step?.title)) {
 							const firstResolvedRow = nextRows.find(
@@ -4598,7 +4626,7 @@ export function ItemWorkflowPanel() {
 										...doorStepModal.component,
 										salesPrice: Number(firstResolvedRow.unitPrice || 0),
 										basePrice: Number(
-											(firstResolvedRow as any)?.meta?.baseUnitPrice || 0,
+											firstResolvedRow?.meta?.baseUnitPrice || 0,
 										),
 									}
 								: doorStepModal.component;
@@ -4618,7 +4646,7 @@ export function ItemWorkflowPanel() {
 				? (() => {
 						const doorStep = findLineStepByTitle(activeLine, "Door");
 						const doorStepIndex = (activeLine.formSteps || []).findIndex(
-							(step: any) => isDoorStepTitle(step?.step?.title),
+							(step) => isDoorStepTitle(step?.step?.title),
 						);
 						const sourceUid = String(doorSwapModal.sourceUid || "");
 						const selectedDoors = getSelectedDoorComponentsForLine(activeLine);
@@ -4626,7 +4654,7 @@ export function ItemWorkflowPanel() {
 							(component) => String(component?.uid || "") === sourceUid,
 						);
 						const candidates = visibleDoorComponents.filter(
-							(component: any) => String(component?.uid || "") !== sourceUid,
+							(component) => String(component?.uid || "") !== sourceUid,
 						);
 
 						return (
@@ -4662,7 +4690,7 @@ export function ItemWorkflowPanel() {
 									</div>
 									<div className="max-h-[70vh] overflow-y-auto pr-1">
 										<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-											{candidates.map((component: any) => (
+											{candidates.map((component) => (
 												<button
 													key={`swap-door-${component.uid}`}
 													type="button"
@@ -4848,7 +4876,7 @@ export function ItemWorkflowPanel() {
 								/>
 							</div>
 							<div className="grid grid-cols-2 gap-3">
-								<label className="flex items-center justify-between rounded border px-3 py-2 text-sm">
+								<div className="flex items-center justify-between rounded border px-3 py-2 text-sm">
 									<span>No Handle</span>
 									<Checkbox
 										checked={componentEditModal.noHandle}
@@ -4860,8 +4888,8 @@ export function ItemWorkflowPanel() {
 											}))
 										}
 									/>
-								</label>
-								<label className="flex items-center justify-between rounded border px-3 py-2 text-sm">
+								</div>
+								<div className="flex items-center justify-between rounded border px-3 py-2 text-sm">
 									<span>Has Swing</span>
 									<Checkbox
 										checked={componentEditModal.hasSwing}
@@ -4873,7 +4901,7 @@ export function ItemWorkflowPanel() {
 											}))
 										}
 									/>
-								</label>
+								</div>
 							</div>
 						</div>
 					</div>

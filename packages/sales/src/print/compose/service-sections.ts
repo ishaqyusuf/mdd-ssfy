@@ -8,8 +8,13 @@ import type {
 import type { PrintSalesData } from "../query";
 import { formatCurrency } from "@gnd/utils";
 import { isComponentType } from "../../utils/utils";
-import type { SalesItemMeta } from "../../types";
 import { packingInfo } from "./packing";
+import {
+  getMetaRows,
+  getSalesItemType,
+  getSectionIndex,
+  isMetadataBackedServiceItem,
+} from "./grouped-item-helpers";
 
 export function composeServiceSections(
   sale: PrintSalesData,
@@ -19,12 +24,12 @@ export function composeServiceSections(
   const sections: ServiceSection[] = [];
   const seen = new Set<number>();
 
-  for (const item of sale.items) {
-    if (!item.housePackageTool) continue;
+  for (const [itemIndex, item] of sale.items.entries()) {
+    const isMetadataBacked = isMetadataBackedServiceItem(item);
+    if (!item.housePackageTool && !isMetadataBacked) continue;
     if (seen.has(item.id)) continue;
 
-    const itemMeta = item.meta as any as SalesItemMeta;
-    const doorType = itemMeta?.doorType;
+    const doorType = getSalesItemType(item);
     if (!doorType) continue;
 
     const is = isComponentType(doorType);
@@ -60,6 +65,64 @@ export function composeServiceSections(
     const rows: ServiceRow[] = [];
     let rowNum = 0;
     for (const m of multis) {
+      const metadataRows = isMetadataBackedServiceItem(m)
+        ? getMetaRows<{
+            service?: string | null;
+            qty?: number | null;
+            unitPrice?: number | null;
+            lineTotal?: number | null;
+          }>(m, "serviceRows")
+        : [];
+
+      if (metadataRows.length) {
+        for (const row of metadataRows) {
+          rowNum++;
+          const qty = Number(row?.qty || 0);
+          const unitPrice = Number(row?.unitPrice || 0);
+          const lineTotal =
+            row?.lineTotal == null
+              ? Number((qty * unitPrice).toFixed(2))
+              : Number(row.lineTotal || 0);
+          const cells: RowCell[] = [
+            { value: rowNum, colSpan: 1, align: "center" },
+            {
+              value: String(row?.service || "").trim() || m.description,
+              colSpan: 4,
+              align: "left",
+            },
+            { value: qty, colSpan: 1.2, align: "center" },
+          ];
+
+          if (config.showPrices) {
+            cells.push(
+              {
+                value: `$${formatCurrency(unitPrice)}`,
+                colSpan: 2.5,
+                align: "right",
+              },
+              {
+                value: `$${formatCurrency(lineTotal)}`,
+                colSpan: 2.5,
+                align: "right",
+                bold: true,
+              },
+            );
+          }
+
+          if (config.showPackingCol) {
+            cells.push({
+              value: packingInfo(sale, m.id, undefined, dispatchId),
+              colSpan: 3,
+              align: "center",
+              bold: true,
+            });
+          }
+
+          rows.push({ cells });
+        }
+        continue;
+      }
+
       rowNum++;
       const cells: RowCell[] = [
         { value: rowNum, colSpan: 1, align: "center" },
@@ -98,7 +161,7 @@ export function composeServiceSections(
     if (rows.length > 0) {
       sections.push({
         kind: "service",
-        index: itemMeta?.lineIndex ?? 0,
+        index: getSectionIndex(item, itemIndex),
         title: item.dykeDescription || "Services",
         headers,
         rows,

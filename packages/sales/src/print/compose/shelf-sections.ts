@@ -7,7 +7,7 @@ import type {
 } from "../types";
 import type { PrintSalesData } from "../query";
 import { formatCurrency } from "@gnd/utils";
-import type { SalesItemMeta } from "../../types";
+import { getSectionIndex } from "./grouped-item-helpers";
 
 export function composeShelfSections(
   sale: PrintSalesData,
@@ -15,10 +15,8 @@ export function composeShelfSections(
 ): ShelfSection[] {
   const sections: ShelfSection[] = [];
 
-  for (const item of sale.items) {
+  for (const [itemIndex, item] of sale.items.entries()) {
     if (!item.shelfItems?.length) continue;
-
-    const itemMeta = item.meta as any as SalesItemMeta;
 
     const headers: CellHeader[] = [
       { title: "#", key: null, colSpan: 1, align: "center" },
@@ -67,7 +65,7 @@ export function composeShelfSections(
 
     sections.push({
       kind: "shelf",
-      index: itemMeta?.lineIndex ?? 0,
+      index: getSectionIndex(item, itemIndex),
       title: item.dykeDescription || "Shelf Items",
       headers,
       rows,

@@ -61,6 +61,7 @@ import { salesProductionAllCompleted } from "./types/sales-production-all-comple
 import { salesProductionAssigned } from "./types/sales-production-assigned";
 import { salesReminderScheduleAdminNotification } from "./types/sales-reminder-schedule-admin-notification";
 import { salesRequestPacking } from "./types/sales-request-packing";
+import { simpleSalesDocumentEmail } from "./types/simple-sales-document-email";
 import { simpleSalesEmailReminder } from "./types/simple-sales-email-reminder";
 export {
 	activityAnd,
@@ -116,6 +117,7 @@ const handlers = {
 	sales_marked_as_production_completed: salesMarkedAsProductionCompleted,
 	sales_production_all_completed: salesProductionAllCompleted,
 	sales_email_reminder: salesEmailReminder,
+	simple_sales_document_email: simpleSalesDocumentEmail,
 	simple_sales_email_reminder: simpleSalesEmailReminder,
 	sales_reminder_schedule_admin_notification:
 		salesReminderScheduleAdminNotification,

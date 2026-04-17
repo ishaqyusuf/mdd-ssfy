@@ -2,8 +2,8 @@ import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import Link from "@/components/link";
 import { SalesPaymentNotificationsMenu } from "@/components/sales-payment-notifications-menu";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
+import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
-import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { openLink } from "@/lib/open-link";
 import { quickPrint } from "@/lib/quick-print";
 import { newSalesHelper } from "@/lib/sales";
@@ -15,7 +15,6 @@ import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { DropdownMenu } from "@gnd/ui/namespace";
 import { ToastAction } from "@gnd/ui/toast";
-import type { SendSalesEmailPayload, TaskName } from "@jobs/schema";
 import type { SalesType } from "@sales/types";
 import { useMutation } from "@tanstack/react-query";
 import {
@@ -250,34 +249,39 @@ type EmailOptions = {
 function useSendSalesEmailAction() {
 	const { state, actions } = useSalesMenuContext();
 	const isQuote = state.type === "quote";
-	const trig = useTaskTrigger({
+	const [didSucceed, setDidSucceed] = useState(false);
+	const notification = useNotificationTrigger({
 		executingToast: "Sending email...",
 		errorToast: "Failed",
 		successToast: "Sent!",
 		debug: true,
 		onSuccess() {
-			actions.closeMenu();
+			setDidSucceed(true);
+			window.setTimeout(() => {
+				setDidSucceed(false);
+				actions.closeMenu();
+			}, 900);
 		},
 		onError() {
 			actions.closeMenu();
 		},
 	});
 
-	return function sendEmail(options: EmailOptions = {}) {
-		const payload: SendSalesEmailPayload = {
-			emailType: options.withPayment
-				? options.partPayment
-					? "with part payment"
-					: "with payment"
-				: "without payment",
-			printType: isQuote ? "quote" : "order",
-			salesIds: state.id ? [state.id] : state.salesIds,
-		};
-
-		trig.trigger({
-			taskName: "send-sales-email" as TaskName,
-			payload,
-		});
+	return {
+		didSucceed,
+		isPending: notification.isActionPending || notification.isLoading,
+		sendEmail(options: EmailOptions = {}) {
+			setDidSucceed(false);
+			notification.simpleSalesDocumentEmail({
+				emailType: options.withPayment
+					? options.partPayment
+						? "with part payment"
+						: "with payment"
+					: "without payment",
+				printType: isQuote ? "quote" : "order",
+				salesIds: state.id ? [state.id] : state.salesIds,
+			});
+		},
 	};
 }
 
@@ -554,20 +558,32 @@ function SalesMenuPDF({ disabled }: ActionProps) {
 }
 
 function SalesMenuNotifications({ disabled }: ActionProps) {
-	const sendEmail = useSendSalesEmailAction();
+	const { didSucceed, isPending, sendEmail } = useSendSalesEmailAction();
 	const { state } = useSalesMenuContext();
 	const isQuote = state.type === "quote";
 
 	return (
 		<DropdownMenu.Item
-			disabled={disabled || !state.salesIds.length}
+			disabled={disabled || !state.salesIds.length || isPending}
 			onSelect={(e) => {
 				e.preventDefault();
 				sendEmail({ withPayment: false });
 			}}
 		>
-			<Icons.Mail className="mr-2 size-4 text-muted-foreground/70" />
-			{isQuote ? "Quote Email" : "Invoice Email"}
+			{isPending ? (
+				<Icons.Loader2 className="mr-2 size-4 animate-spin text-muted-foreground/70" />
+			) : didSucceed ? (
+				<Icons.Check className="mr-2 size-4 text-emerald-600" />
+			) : (
+				<Icons.Mail className="mr-2 size-4 text-muted-foreground/70" />
+			)}
+			{isPending
+				? "Sending..."
+				: didSucceed
+					? "Sent!"
+					: isQuote
+						? "Quote Email"
+						: "Invoice Email"}
 		</DropdownMenu.Item>
 	);
 }
