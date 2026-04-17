@@ -2,7 +2,7 @@
 
 import { useTRPC } from "@/trpc/client";
 import { Table, useTableData } from "@gnd/ui/data-table";
-import { columns, mobileColumn } from "./columns";
+import { columns, communityUnitColumns, mobileColumn } from "./columns";
 import { useCommunityTemplateFilterParams } from "@/hooks/use-community-template-filter-params";
 import { useCommunityTemplateParams } from "@/hooks/use-community-template-params";
 import { NoResults } from "@gnd/ui/custom/no-results";
@@ -12,11 +12,15 @@ import { Button } from "@gnd/ui/button";
 import Link from "next/link";
 import { Icons } from "@gnd/ui/icons";
 import { GetCommunityTemplatesSchema } from "@api/db/queries/community-template";
+import { useAuth } from "@/hooks/use-auth";
+import { isCommunityUnitRole } from "@gnd/utils/constants";
 interface Props {
     defaultFilters?: GetCommunityTemplatesSchema;
 }
 export function DataTable(props: Props) {
     const trpc = useTRPC();
+    const auth = useAuth();
+    const isCommunityUnit = isCommunityUnitRole(auth.role?.name);
     // const { rowSelection, setRowSelection } = useCommunityTemplateStore();
     const { filters, hasFilters, setFilters } =
         useCommunityTemplateFilterParams();
@@ -61,7 +65,7 @@ export function DataTable(props: Props) {
             // value={createTableContext({
             args={[
                 {
-                    columns,
+                    columns: isCommunityUnit ? communityUnitColumns : columns,
                     mobileColumn,
                     data,
                     props: {
@@ -100,4 +104,3 @@ export function DataTable(props: Props) {
         </Table.Provider>
     );
 }
-

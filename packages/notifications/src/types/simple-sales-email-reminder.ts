@@ -1,17 +1,17 @@
 import type { Db } from "@gnd/db";
-import { getCustomerWallet } from "@gnd/sales/wallet";
 import {
   type ReminderPayPlan,
   SALES_REMINDER_EXPIRY_DAYS,
   resolveReminderAmount,
   resolveReminderPlanLabel,
 } from "@gnd/sales/utils";
+import { getCustomerWallet } from "@gnd/sales/wallet";
+import { getAppApiUrl, getAppUrl } from "@gnd/utils/envs";
 import {
   type SalesPaymentTokenSchema,
   type SalesPdfToken,
-  tokenize,
+  tryTokenize,
 } from "@gnd/utils/tokenizer";
-import { getAppApiUrl, getAppUrl } from "@gnd/utils/envs";
 import { addDays } from "date-fns";
 import { z } from "zod";
 import type { NotificationHandler, UserData } from "../base";
@@ -109,7 +109,7 @@ async function buildReminderData(
   const { appUrl, apiUrl } = resolveBaseUrls();
   const expiry = addDays(new Date(), SALES_REMINDER_EXPIRY_DAYS).toISOString();
   const pdfToken = input.attachInvoice
-    ? tokenize({
+    ? tryTokenize({
         salesIds: [sale.id],
         expiry,
         mode: saleType,
@@ -140,7 +140,7 @@ async function buildReminderData(
         `Missing walletId for payment reminder, salesId=${input.salesId}`,
       );
     }
-    paymentToken = tokenize({
+    paymentToken = tryTokenize({
       salesIds: [sale.id],
       expiry,
       percentage: typeof input.payPlan === "number" ? input.payPlan : null,

@@ -37,6 +37,7 @@ export function nav(
         | "Customer Service" = session?.role?.name as any;
     const {
         viewProject,
+        viewCommunity,
         viewProduction,
         viewBuilders,
         viewInvoice,
@@ -88,7 +89,7 @@ export function nav(
     if (editOrders) {
         routes.Settings.push(_route("Email", Icons.Email, "/settings/email"));
     }
-    if (viewProject) {
+    if (viewProject || viewCommunity) {
         routes.Community.push(
             ...[
                 _route("Projects", Icons.project, "/community/projects"),

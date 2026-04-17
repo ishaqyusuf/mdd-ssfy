@@ -1,4 +1,5 @@
 import type { TRPCContext } from "@api/trpc/init";
+import { isCommunityUnitRequest } from "@api/utils/community-unit-access";
 import type { CommunityTemplateMeta } from "@community/types";
 import { getUnitProductionStatus, projectUnitsSelect } from "@community/utils";
 import type { Prisma } from "@gnd/db";
@@ -151,6 +152,7 @@ export async function getProjectUnits(
 	query: GetProjectUnitsSchema,
 ) {
 	const { db } = ctx;
+	const hideInstallCost = await isCommunityUnitRequest(ctx);
 	const model = db.homes;
 	const { response, searchMeta, where } = await composeQueryData(
 		query,
@@ -172,7 +174,9 @@ export async function getProjectUnits(
 		data.map((d) => {
 			const { tasks, _count, communityTemplate, ...unitData } = d;
 			const production = getUnitProductionStatus(d);
-			const installCostSummary = getInstallCostSummary(communityTemplate);
+			const installCostSummary = hideInstallCost
+				? null
+				: getInstallCostSummary(communityTemplate);
 			const templateSummary = getTemplateSummary(communityTemplate);
 
 			return {

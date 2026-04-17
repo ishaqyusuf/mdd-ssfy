@@ -7,6 +7,7 @@ import { sum } from "@/lib/utils";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { AnimatedNumber } from "@/components/animated-number";
 import { printOrder, printQuote } from "@/lib/quick-print";
+import { SalesMenu } from "@/components/sales-menu";
 
 export function Footer({}) {
     const zus = useFormDataStore();
@@ -60,6 +61,23 @@ export function Footer({}) {
 
                 {!isSaved || (
                     <>
+                        <SalesMenu
+                            id={zus?.metaData?.id}
+                            salesIds={previewId ? [previewId] : []}
+                            type={zus?.metaData?.type}
+                            trigger={
+                                <Button type="button" size="sm" variant="outline">
+                                    <Icons.Mail className="mr-1 h-4 w-4" />
+                                    Email
+                                </Button>
+                            }
+                        >
+                            {isOrder ? (
+                                <SalesMenu.SalesEmailMenuItems />
+                            ) : (
+                                <SalesMenu.QuoteEmailMenuItems />
+                            )}
+                        </SalesMenu>
                         <Button
                             type="button"
                             size="sm"

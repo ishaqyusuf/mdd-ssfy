@@ -1,16 +1,16 @@
 import { db } from "@gnd/db";
 import { whereSales } from "@gnd/sales/utils/where-queries";
 import { getSettingAction } from "@gnd/settings";
-import { type SalesPdfToken, tokenize } from "@gnd/utils/tokenizer";
+import type { NotificationJobInput } from "@notifications/schemas";
+import { logger, schedules, task, tasks } from "@trigger.dev/sdk/v3";
+import { getAppApiUrl } from "@utils/envs";
+import { addDays } from "date-fns";
+import { type SalesPdfToken, tryTokenize } from "@gnd/utils/tokenizer";
 import type { TaskName } from "../../schema";
 import {
   getTaskEventConfigFromMeta,
   getTaskEventDefaultConfig,
 } from "../../task-events/registry";
-import type { NotificationJobInput } from "@notifications/schemas";
-import { logger, schedules, task, tasks } from "@trigger.dev/sdk/v3";
-import { getAppApiUrl } from "@utils/envs";
-import { addDays } from "date-fns";
 
 const baseApiUrl = getAppApiUrl();
 const MAX_HISTORY_BREAKDOWN_ITEMS = 50;
@@ -528,7 +528,7 @@ async function runPendingBillReminder(runType: RunType) {
 
   for (const group of groupsToSend) {
     try {
-      const downloadToken = tokenize({
+      const downloadToken = tryTokenize({
         salesIds: group.salesIds,
         expiry,
         mode: "order",
@@ -552,7 +552,9 @@ async function runPendingBillReminder(runType: RunType) {
           customerName: group.customerName,
           salesRep: group.salesRep,
           salesRepEmail: group.salesRepEmail,
-          pdfLink: `${baseApiUrl}/download/sales?token=${downloadToken}&download=true`,
+          pdfLink: downloadToken
+            ? `${baseApiUrl}/download/sales?token=${downloadToken}&download=true`
+            : null,
           paymentLink: null,
           sales: group.sales,
         },

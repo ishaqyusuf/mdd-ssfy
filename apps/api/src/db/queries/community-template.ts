@@ -1,4 +1,5 @@
 import type { TRPCContext } from "@api/trpc/init";
+import { isCommunityUnitRequest } from "@api/utils/community-unit-access";
 import type {
   CommunityPivotMeta,
   CommunityTemplateMeta,
@@ -25,6 +26,7 @@ export async function getCommunityTemplates(
   query: GetCommunityTemplatesSchema
 ) {
   const { db } = ctx;
+  const hideInstallCost = await isCommunityUnitRequest(ctx);
   const model = db.communityModels;
   const { response, searchMeta, where } = await composeQueryData(
     query,
@@ -149,20 +151,22 @@ export async function getCommunityTemplates(
           status: configuredCount > 0 ? ("ready" as const) : ("missing" as const),
           configuredCount,
         },
-        installCostV2Summary: {
-          totalBuilderTasks,
-          configuredBuilderTasks,
-          totalQty,
-          totalEstimate,
-          completionRatio,
-          tasks: configuredTasks.map((task) => ({
-            taskId: task.taskId,
-            taskName: task.taskName,
-            lineCount: task.lineCount,
-            totalQty: task.totalQty,
-            totalEstimate: task.totalEstimate,
-          })),
-        },
+        installCostV2Summary: hideInstallCost
+          ? null
+          : {
+              totalBuilderTasks,
+              configuredBuilderTasks,
+              totalQty,
+              totalEstimate,
+              completionRatio,
+              tasks: configuredTasks.map((task) => ({
+                taskId: task.taskId,
+                taskName: task.taskName,
+                lineCount: task.lineCount,
+                totalQty: task.totalQty,
+                totalEstimate: task.totalEstimate,
+              })),
+            },
         costs: d.costs.map((c) => ({
           ...c,
           meta: c.meta as any as CostChartMeta,

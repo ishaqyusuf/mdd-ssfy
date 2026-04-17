@@ -118,6 +118,7 @@ type Role =
     | "Production"
     | "Admin"
     | "1099 Contractor"
+    | "CommunityUnit"
     | "Production"
     | "Deco Shutters"
     | "Super Admin"
@@ -244,6 +245,11 @@ const profileSection = _section("settings", null, [
 ]);
 
 const canEditProject = _perm.in("editProject", "editCommunity");
+const canViewCommunityUnits = _perm.in(
+    "editProject",
+    "editCommunity",
+    "viewCommunity",
+);
 const isDev = process.env.NODE_ENV !== "production";
 export const linkModules = [
     _module("Sales", "salesDashboard", "GND Sales", [
@@ -478,10 +484,10 @@ export const linkModules = [
             // _link("Dashboard", "dashbord2", "/community").access(canEditProject)
             // .data,
             _link("Projects", "project", "/community/projects").access(
-                canEditProject,
+                canViewCommunityUnits,
             ).data,
             _link("Units", "home", "/community/project-units").access(
-                canEditProject,
+                canViewCommunityUnits,
             ).data,
             _link(
                 "Productions",
@@ -492,7 +498,7 @@ export const linkModules = [
                 _perm.in("viewInvoice"),
             ).data,
             _link("Templates", "template", "/community/templates")
-                .access(canEditProject)
+                .access(canViewCommunityUnits)
                 .childPaths(
                     "/settings/community/community-template/slug",
                     "/community/community-template/slug",

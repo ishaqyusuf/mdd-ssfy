@@ -1,7 +1,7 @@
 import type { Db } from "@gnd/db";
-import { composePaymentOrderIdsParam } from "@gnd/utils/sales";
 import { getAppApiUrl, getAppUrl } from "@gnd/utils/envs";
-import { type SalesPdfToken, tokenize } from "@gnd/utils/tokenizer";
+import { composePaymentOrderIdsParam } from "@gnd/utils/sales";
+import { type SalesPdfToken, tryTokenize } from "@gnd/utils/tokenizer";
 import { addDays } from "date-fns";
 import { z } from "zod";
 import type { NotificationHandler, UserData } from "../base";
@@ -134,7 +134,7 @@ async function buildSalesDocumentEmailData(
 	const isDev = process.env.NODE_ENV === "development";
 	const emailType = input.emailType ?? "without payment";
 	const expiry = addDays(new Date(), 7).toISOString();
-	const pdfToken = tokenize({
+	const pdfToken = tryTokenize({
 		salesIds: sales.map((sale) => sale.id),
 		expiry,
 		mode: input.printType,
@@ -164,13 +164,19 @@ async function buildSalesDocumentEmailData(
 	const acceptQuoteLink =
 		input.printType !== "quote" || sales.length !== 1
 			? null
-			: `${appUrl}/sales/accept-quote/${primarySale.orderId}?token=${encodeURIComponent(
-					tokenize({
+			: (() => {
+					const quoteToken = tryTokenize({
 						salesId: primarySale.id,
 						orderId: primarySale.orderId,
 						expiry: addDays(new Date(), 14).toISOString(),
-					}),
-				)}`;
+					});
+
+					return quoteToken
+						? `${appUrl}/sales/accept-quote/${primarySale.orderId}?token=${encodeURIComponent(
+								quoteToken,
+							)}`
+						: null;
+				})();
 
 	return {
 		type: input.printType,
@@ -180,7 +186,7 @@ async function buildSalesDocumentEmailData(
 		salesRepEmail: primarySale.salesRepEmail,
 		paymentLink: emailType === "without payment" ? null : paymentLink,
 		pdfLink:
-			apiUrl != null
+			pdfToken && apiUrl != null
 				? `${apiUrl}/download/sales?token=${encodeURIComponent(pdfToken)}&download=true`
 				: null,
 		acceptQuoteLink,

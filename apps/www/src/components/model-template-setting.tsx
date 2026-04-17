@@ -5,10 +5,12 @@ import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cos
 import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-params";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { useCommunityTemplateV1 } from "@/components/forms/community-template-v1/context";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@gnd/ui/button";
 import { DropdownMenu, Field, Select } from "@gnd/ui/namespace";
 import { Icons } from "@gnd/ui/icons";
 import { Switch } from "@gnd/ui/switch";
+import { isCommunityUnitRole } from "@gnd/utils/constants";
 import z from "zod";
 
 interface Props {
@@ -20,6 +22,8 @@ interface Props {
     };
 }
 export function ModelTemplateSetting(props: Props) {
+    const auth = useAuth();
+    const isCommunityUnit = isCommunityUnitRole(auth.role?.name);
     const { autocompleteEnabled, setAutocompleteEnabled } =
         useCommunityTemplateV1();
     const form = useZodForm(
@@ -89,17 +93,19 @@ export function ModelTemplateSetting(props: Props) {
                     </Field>
                 </div>
                 <DropdownMenu.Separator />
-                <DropdownMenu.Item
-                    onClick={(e) => {
-                        setParams({
-                            editCommunityModelInstallCostId: props.id,
-                        });
-                    }}
-                    className="justify-start gap-2"
-                >
-                    <Icons.Settings className="size-4" />
-                    Install Cost
-                </DropdownMenu.Item>
+                {isCommunityUnit ? null : (
+                    <DropdownMenu.Item
+                        onClick={(e) => {
+                            setParams({
+                                editCommunityModelInstallCostId: props.id,
+                            });
+                        }}
+                        className="justify-start gap-2"
+                    >
+                        <Icons.Settings className="size-4" />
+                        Install Cost
+                    </DropdownMenu.Item>
+                )}
                 <DropdownMenu.Item
                     onClick={() => {
                         setModelCostParams({

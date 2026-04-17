@@ -272,6 +272,73 @@ export const projectTabColumns: Column[] = [
     actionColumn,
 ];
 
+const projectNameColumn: Column = {
+    header: "Project",
+    accessorKey: "projectName",
+    meta: { sortable: true },
+    cell: ({ row: { original: item } }) => (
+        <TCell.Primary>{item.project?.title || "-"}</TCell.Primary>
+    ),
+};
+
+const builderColumn: Column = {
+    header: "Builder",
+    accessorKey: "builder",
+    meta: { sortable: true },
+    cell: ({ row: { original: item } }) => (
+        <TCell.Primary>{item.project?.builder?.name || "-"}</TCell.Primary>
+    ),
+};
+
+const modelColumn: Column = {
+    header: "Model",
+    accessorKey: "model",
+    meta: { sortable: true, preventDefault: true },
+    cell: ({ row: { original: item } }) => {
+        const path =
+            item.template?.version === "v2"
+                ? "model-template"
+                : "community-template";
+        const href = item.template?.slug
+            ? `/community/${path}/${item.template.slug?.toLowerCase()}`
+            : null;
+
+        return href ? (
+            <Link href={href} className="hover:underline">
+                <TCell.Primary>{item.modelName || "-"}</TCell.Primary>
+            </Link>
+        ) : (
+            <TCell.Primary>{item.modelName || "-"}</TCell.Primary>
+        );
+    },
+};
+
+const lotColumn: Column = {
+    header: "Lot",
+    accessorKey: "lot",
+    meta: { sortable: true },
+    cell: ({ row: { original: item } }) => (
+        <TCell.Primary>{item.lot || "-"}</TCell.Primary>
+    ),
+};
+
+const blockColumn: Column = {
+    header: "Block",
+    accessorKey: "block",
+    meta: { sortable: true },
+    cell: ({ row: { original: item } }) => (
+        <TCell.Primary>{item.block || "-"}</TCell.Primary>
+    ),
+};
+
+export const communityUnitColumns: Column[] = [
+    projectNameColumn,
+    builderColumn,
+    modelColumn,
+    lotColumn,
+    blockColumn,
+];
+
 function Actions({ item }: ItemProps) {
     const ctx = useHomeModal();
     const { startPrint } = useProjectUnitsPrintFlow();
@@ -375,6 +442,19 @@ export const mobileColumn: ColumnDef<Item>[] = [
         cell: ({ row: { original: item } }) => {
             return <ItemCard item={item} />;
         },
+    },
+];
+
+export const communityUnitMobileColumn: ColumnDef<Item>[] = [
+    {
+        header: "",
+        accessorKey: "communityUnitRow",
+        meta: {
+            className: "flex-1 p-0",
+        },
+        cell: ({ row: { original: item } }) => (
+            <CommunityUnitItemCard item={item} />
+        ),
     },
 ];
 
@@ -511,3 +591,68 @@ function ItemCard({ item }: ItemProps) {
     );
 }
 
+function CommunityUnitItemCard({ item }: ItemProps) {
+    const path =
+        item.template?.version === "v2"
+            ? "model-template"
+            : "community-template";
+    const templateHref = item.template?.slug
+        ? `/community/${path}/${item.template.slug?.toLowerCase()}`
+        : null;
+
+    return (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl bg-slate-50 px-3 py-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Project
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">
+                        {item.project?.title || "-"}
+                    </p>
+                </div>
+                <div className="rounded-2xl bg-slate-50 px-3 py-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Builder
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">
+                        {item.project?.builder?.name || "-"}
+                    </p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 px-3 py-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Model
+                    </p>
+                    {templateHref ? (
+                        <Link
+                            href={templateHref}
+                            className="mt-1 block text-sm font-semibold text-slate-900 hover:underline"
+                        >
+                            {item.modelName || "-"}
+                        </Link>
+                    ) : (
+                        <p className="mt-1 text-sm font-semibold text-slate-900">
+                            {item.modelName || "-"}
+                        </p>
+                    )}
+                </div>
+                <div className="rounded-2xl border border-slate-200 px-3 py-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Lot
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">
+                        {item.lot || "-"}
+                    </p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 px-3 py-3 sm:col-span-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Block
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">
+                        {item.block || "-"}
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+}

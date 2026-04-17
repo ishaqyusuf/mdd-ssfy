@@ -27,6 +27,8 @@ import { useTRPC } from "@/trpc/client";
 import { toast } from "@gnd/ui/use-toast";
 import { AlertDialog } from "@gnd/ui/namespace";
 import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { isCommunityUnitRole } from "@gnd/utils/constants";
 
 export type Item =
     RouterOutputs["community"]["getCommunityTemplates"]["data"][number];
@@ -250,7 +252,31 @@ export const columns: Column[] = [
     },
 ];
 
+export const communityUnitColumns: Column[] = [
+    column1,
+    project,
+    model,
+    units,
+    modelCost,
+    {
+        header: "",
+        accessorKey: "action",
+        meta: {
+            actionCell: true,
+            preventDefault: true,
+            className: "w-[100px]",
+        },
+        cell: ({ row: { original: item } }) => (
+            <>
+                <Actions item={item} />
+            </>
+        ),
+    },
+];
+
 function Actions({ item }: ItemProps) {
+    const auth = useAuth();
+    const isCommunityUnit = isCommunityUnitRole(auth.role?.name);
     const isMobile = useIsMobile();
     const trpc = useTRPC();
     const qc = useQueryClient();
@@ -319,17 +345,22 @@ function Actions({ item }: ItemProps) {
                     >
                         Preview
                     </Menu.Item>
-                    <Menu.Item
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => {
-                            setConfirmOpen(true);
-                        }}
-                    >
-                        Delete
-                    </Menu.Item>
+                    {isCommunityUnit ? null : (
+                        <Menu.Item
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => {
+                                setConfirmOpen(true);
+                            }}
+                        >
+                            Delete
+                        </Menu.Item>
+                    )}
                 </Menu>
             </div>
-            <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <AlertDialog
+                open={!isCommunityUnit && confirmOpen}
+                onOpenChange={setConfirmOpen}
+            >
                 <AlertDialog.Content>
                     <AlertDialog.Header>
                         <AlertDialog.Title>Delete Community Template</AlertDialog.Title>
@@ -369,6 +400,8 @@ export const mobileColumn: ColumnDef<Item>[] = [
     },
 ];
 function ItemCard({ item }: ItemProps) {
+    const auth = useAuth();
+    const isCommunityUnit = isCommunityUnitRole(auth.role?.name);
     const { setParams: setModelCostParams } = useCommunityModelCostParams();
     const { setParams: setInstallCostParams } = useCommunityInstallCostParams();
     const cost = item.costs?.find((c) => c.current);
@@ -445,26 +478,28 @@ function ItemCard({ item }: ItemProps) {
                         </p>
                     )}
                 </button>
-                <button
-                    type="button"
-                    className="rounded-2xl border border-slate-200 px-3 py-3 text-left hover:bg-slate-50"
-                    onClick={() => {
-                        setInstallCostParams({
-                            editCommunityModelInstallCostId: item.id,
-                            mode: "v2",
-                        });
-                    }}
-                >
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        Install Cost
-                    </p>
-                    <p className="mt-2 text-sm font-semibold text-emerald-700">
-                        {formatCurrency.format(totalEstimate)}
-                    </p>
-                    <p className="mt-1 text-[10px] text-muted-foreground">
-                        {configuredTasks}/{totalTasks} tasks
-                    </p>
-                </button>
+                {isCommunityUnit ? null : (
+                    <button
+                        type="button"
+                        className="rounded-2xl border border-slate-200 px-3 py-3 text-left hover:bg-slate-50"
+                        onClick={() => {
+                            setInstallCostParams({
+                                editCommunityModelInstallCostId: item.id,
+                                mode: "v2",
+                            });
+                        }}
+                    >
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            Install Cost
+                        </p>
+                        <p className="mt-2 text-sm font-semibold text-emerald-700">
+                            {formatCurrency.format(totalEstimate)}
+                        </p>
+                        <p className="mt-1 text-[10px] text-muted-foreground">
+                            {configuredTasks}/{totalTasks} tasks
+                        </p>
+                    </button>
+                )}
             </div>
         </div>
     );

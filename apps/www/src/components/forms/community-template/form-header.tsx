@@ -13,12 +13,17 @@ import Link from "next/link";
 import { cn } from "@gnd/ui/cn";
 import Btn from "@/components/_v1/btn";
 import { InstallCostBtn } from "@/components/install-cost-btn";
+import { isCommunityUnitRole } from "@gnd/utils/constants";
 
 export function FormHeader() {
     const store = useCommunityModelStore();
     const ctx = useTemplateSchemaContext();
     const auth = useAuth();
-    const { data, isPending, error, mutate } = useMutation(
+    const isCommunityUnit = isCommunityUnitRole(auth.role?.name);
+    const templateId = ctx.communityTemplate?.id;
+    if (!templateId) return null;
+
+    const { isPending, mutate } = useMutation(
         _trpc.community.saveCommunityModel.mutationOptions({
             meta: {
                 toastTitle: {
@@ -39,14 +44,14 @@ export function FormHeader() {
         const data = extractCommunityFormValueData(Object.values(store.blocks));
         mutate({
             ...data,
-            modelId: ctx.communityTemplate.id!,
+            modelId: templateId,
             authorName: auth?.name,
-        } as any);
+        });
     };
 
     return (
         <div className="flex gap-4 justify-end">
-            <div className="flex-1"></div>
+            <div className="flex-1" />
             <Button
                 onClick={(e) => {
                     openLink(
@@ -74,10 +79,12 @@ export function FormHeader() {
             >
                 V1
             </Link>
-            <InstallCostBtn id={ctx?.communityTemplate?.id!} />
+            {isCommunityUnit ? null : (
+                <InstallCostBtn id={templateId} />
+            )}
             <ModelTemplateSetting
-                id={ctx?.communityTemplate?.id!}
-                pivotModelCostId={ctx?.communityTemplate?.pivotModelCostId!}
+                id={templateId}
+                pivotModelCostId={ctx?.communityTemplate?.pivotModelCostId}
                 defaultValues={{
                     version: ctx?.communityTemplate?.version,
                 }}
@@ -89,4 +96,3 @@ export function FormHeader() {
         </div>
     );
 }
-

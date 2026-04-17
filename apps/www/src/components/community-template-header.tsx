@@ -3,7 +3,8 @@ import { CommunityTemplateSearchFilter } from "./community-template-search-filte
 import Link from "next/link";
 import { cn } from "@gnd/ui/cn";
 import { buttonVariants } from "@gnd/ui/button";
-import { SuperAdminGuard } from "./auth-guard";
+import { AuthGuard } from "./auth-guard";
+import { _role } from "./sidebar/links";
 import type { PageFilterData } from "@api/type";
 
 type Props = {
@@ -14,8 +15,8 @@ export function CommunityTemplateHeader({ initialFilterList }: Props) {
     return (
         <div className="flex gap-4">
             <CommunityTemplateSearchFilter initialFilterList={initialFilterList} />
-            <div className="flex-1"></div>
-            <SuperAdminGuard>
+            <div className="flex-1" />
+            <AuthGuard rules={[_role.some("Super Admin", "CommunityUnit")]}>
                 <Link
                     className={cn(
                         buttonVariants({
@@ -26,7 +27,7 @@ export function CommunityTemplateHeader({ initialFilterList }: Props) {
                 >
                     Edit Template
                 </Link>
-            </SuperAdminGuard>
+            </AuthGuard>
             <OpenCommunityTemplateModal />
         </div>
     );

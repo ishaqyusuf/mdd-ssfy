@@ -47,6 +47,7 @@ import {
   sortBuilderTasks,
   sortInstallCosts,
 } from "@api/utils/install-cost-sort";
+import { assertInstallCostAccess } from "@api/utils/community-unit-access";
 import {
   getCommunityTemplates,
   getCommunityTemplatesSchema,
@@ -284,12 +285,14 @@ export const communityRouters = createTRPCRouter({
   communityInstallCostForm: publicProcedure
     .input(communityInstallCostFormSchema)
     .query(async (props) => {
+      await assertInstallCostAccess(props.ctx);
       const result = await communityInstallCostForm(props.ctx, props.input);
       return result;
     }),
   updateInstallCost: publicProcedure
     .input(updateInstallCostSchema)
     .mutation(async (props) => {
+      await assertInstallCostAccess(props.ctx);
       return updateInstallCost(props.ctx, props.input);
     }),
   communitySummary: publicProcedure
@@ -402,6 +405,7 @@ export const communityRouters = createTRPCRouter({
    */
 
   getCommunityInstallCostRates: publicProcedure.query(async (props) => {
+    await assertInstallCostAccess(props.ctx);
     const r = await props.ctx.db.installCostModel.findMany({
       where: {
         // status: "active",
@@ -882,6 +886,7 @@ export const communityRouters = createTRPCRouter({
       }),
     )
     .query(async (props) => {
+      await assertInstallCostAccess(props.ctx);
       const suggestions = await props.ctx.db.installCostModel.findMany({
         where: {
           status: "active",
@@ -910,6 +915,7 @@ export const communityRouters = createTRPCRouter({
       // Implementation for getInstallCostRatesSuggestions
     }),
   getInstallCostRateUnits: publicProcedure.query(async (props) => {
+    await assertInstallCostAccess(props.ctx);
     const r = await props.ctx.db.installCostModel.findMany({
       where: {
         status: "active",
@@ -928,6 +934,7 @@ export const communityRouters = createTRPCRouter({
     return units;
   }),
   importLegacyInstallCosts: publicProcedure.mutation(async (props) => {
+    await assertInstallCostAccess(props.ctx);
     const ss = await getSettingAction("install-price-chart", props.ctx.db);
     const s = ss?.meta?.list || [];
     const existingCosts = await props.ctx.db.installCostModel.findMany({
@@ -962,6 +969,7 @@ export const communityRouters = createTRPCRouter({
       }),
     )
     .mutation(async (props) => {
+      await assertInstallCostAccess(props.ctx);
       if (!props.input.builderTaskInstallCostId) {
         const lastInstallCost =
           await props.ctx.db.builderTaskInstallCost.findFirst({
@@ -1042,6 +1050,7 @@ export const communityRouters = createTRPCRouter({
       }),
     )
     .mutation(async (props) => {
+      await assertInstallCostAccess(props.ctx);
       const { db } = props.ctx;
       const { builderTaskInstallCostId } = props.input;
       await db.$transaction(async (tx) => {
@@ -1138,6 +1147,7 @@ export const communityRouters = createTRPCRouter({
   updateInstallCostRate: publicProcedure
     .input(communityInstallCostRateSchema)
     .mutation(async (props) => {
+      await assertInstallCostAccess(props.ctx);
       const { id, title, unit, unitCost } = props.input;
       if (id) {
         return props.ctx.db.installCostModel.update({
@@ -1809,6 +1819,7 @@ export const communityRouters = createTRPCRouter({
   getModelInstallTasksByBuilderTask: publicProcedure
     .input(z.object({ builderTaskId: z.number(), modelId: z.number() }))
     .query(async (props) => {
+      await assertInstallCostAccess(props.ctx);
       const { db } = props.ctx;
       const { modelId: communityModelId, builderTaskId } = props.input;
       // const tasks = await db.communityModelInstallTask.findMany({
@@ -1904,6 +1915,7 @@ export const communityRouters = createTRPCRouter({
       }),
     )
     .mutation(async (props) => {
+      await assertInstallCostAccess(props.ctx);
       const { db } = props.ctx;
       const { id, modelId, qty, installCostModelId, builderTaskId, status } =
         props.input;

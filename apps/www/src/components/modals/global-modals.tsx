@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useAuth } from "@/hooks/use-auth";
 import { useBuilderParams } from "@/hooks/use-builder-params";
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-params";
@@ -8,6 +9,7 @@ import { useCommunityProjectParams } from "@/hooks/use-community-project-params"
 import { useCommunityTemplateParams } from "@/hooks/use-community-template-params";
 import { useCustomerServiceParams } from "@/hooks/use-customer-service-params";
 import { SuperAdminGuard } from "../auth-guard";
+import { isCommunityUnitRole } from "@gnd/utils/constants";
 
 import { ContractorPayoutOverviewModal } from "./contractor-payout-overview-modal";
 import { DispatchStatusModal } from "./dispatch-status-modal";
@@ -54,6 +56,8 @@ const BuilderFormModal = dynamic(() =>
 );
 
 export function GlobalModals() {
+    const auth = useAuth();
+    const isCommunityUnit = isCommunityUnitRole(auth.role?.name);
     const { createTemplate, templateId } = useCommunityTemplateParams();
     const { createModelCost, editModelCostTemplateId } =
         useCommunityModelCostParams();
@@ -85,7 +89,7 @@ export function GlobalModals() {
 
             {/* LEGACY */}
 
-            {!!editCommunityModelInstallCostId && !openToSide ? (
+            {!!editCommunityModelInstallCostId && !openToSide && !isCommunityUnit ? (
                 <ModelInstallCostModal />
             ) : null}
             {projectModalOpen ? <CreateCommunityProjectModal /> : null}
@@ -96,4 +100,3 @@ export function GlobalModals() {
         </>
     );
 }
-

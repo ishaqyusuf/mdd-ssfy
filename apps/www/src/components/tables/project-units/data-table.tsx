@@ -5,6 +5,7 @@ import { useSortParams } from "@/hooks/use-sort-params";
 import { useProjectUnitsStore } from "@/store/project-units";
 import { useTRPC } from "@/trpc/client";
 import type { GetProjectUnitsSchema } from "@api/db/queries/project-units";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@gnd/ui/button";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { NoResults } from "@gnd/ui/custom/no-results";
@@ -12,10 +13,17 @@ import { Table, useTableData } from "@gnd/ui/data-table";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { Icons } from "@gnd/ui/icons";
 import type { ColumnDef } from "@tanstack/react-table";
+import { isCommunityUnitRole } from "@gnd/utils/constants";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BatchActions } from "./batch-actions";
-import { type Item, columns, mobileColumn } from "./columns";
+import {
+	type Item,
+	columns,
+	communityUnitColumns,
+	communityUnitMobileColumn,
+	mobileColumn,
+} from "./columns";
 import { ProjectUnitsPrintFlowProvider } from "./print-flow";
 interface Props {
 	defaultFilters?: GetProjectUnitsSchema;
@@ -24,6 +32,8 @@ interface Props {
 }
 export function DataTable(props: Props) {
 	const trpc = useTRPC();
+	const auth = useAuth();
+	const isCommunityUnit = isCommunityUnitRole(auth.role?.name);
 	const { rowSelection, setRowSelection } = useProjectUnitsStore();
 	const { filters, hasFilters, setFilters } = useProjectUnitFilterParams();
 	const { params, setParams } = useSortParams();
@@ -71,8 +81,12 @@ export function DataTable(props: Props) {
 		<Table.Provider
 			args={[
 				{
-					columns: props.columns || columns,
-					mobileColumn,
+					columns:
+						props.columns ||
+						(isCommunityUnit ? communityUnitColumns : columns),
+					mobileColumn: isCommunityUnit
+						? communityUnitMobileColumn
+						: mobileColumn,
 					data,
 					params,
 					setParams,
@@ -81,7 +95,7 @@ export function DataTable(props: Props) {
 						hasNextPage,
 					},
 					tableScroll,
-					checkbox: true,
+					checkbox: !isCommunityUnit,
 					rowSelection,
 					setRowSelection,
 					tableMeta: {
@@ -107,7 +121,7 @@ export function DataTable(props: Props) {
 						</Table>
 					</div>
 					<Table.LoadMore />
-					{!props.embedded ? <BatchActions /> : null}
+					{!props.embedded && !isCommunityUnit ? <BatchActions /> : null}
 				</div>
 			</ProjectUnitsPrintFlowProvider>
 		</Table.Provider>

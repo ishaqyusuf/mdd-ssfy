@@ -71,10 +71,15 @@ export const ROLES = [
 	"Production",
 	"Admin",
 	"1099 Contractor",
+	"CommunityUnit",
 	"Super Admin",
 	"Punchout",
 ] as const;
 export type Roles = (typeof ROLES)[number];
+export const COMMUNITY_UNIT_ROLE = "CommunityUnit" as const;
+export function isCommunityUnitRole(role?: string | null) {
+	return role?.trim().toLowerCase() === COMMUNITY_UNIT_ROLE.toLowerCase();
+}
 export const PERMISSIONS = [
 	"viewProject",
 	"editProject",
@@ -242,6 +247,7 @@ function normalizePermissionName(permission: string) {
 export const generatePermissions = (role, permissions?) => {
 	const can: ICan = {} as ICan;
 	const isSuperAdmin = role?.toLocaleLowerCase() === "super admin";
+	const isCommunityUnit = isCommunityUnitRole(role);
 	const permissionNames = Array.isArray(permissions)
 		? permissions.map((permission) =>
 				typeof permission === "string" ? permission : permission.name,
@@ -257,6 +263,10 @@ export const generatePermissions = (role, permissions?) => {
 			isSuperAdmin || normalizedPermissions.includes(viewPermission);
 		can[editPermission] =
 			isSuperAdmin || normalizedPermissions.includes(editPermission);
+	}
+	if (isCommunityUnit) {
+		can.viewCommunity = true;
+		can.viewProject = true;
 	}
 	return can;
 };

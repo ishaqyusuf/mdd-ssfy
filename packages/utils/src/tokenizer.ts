@@ -1,5 +1,5 @@
 import z from "zod";
-import { jwtDecrypt, jwtEncrypt } from "./jwt";
+import { hasJwtSecret, jwtDecrypt, jwtEncrypt } from "./jwt";
 
 type XOR<T, U> = T | U extends object
 	? Exclude<keyof T, keyof U> extends never
@@ -102,6 +102,14 @@ type KnownToken =
 	| SalesPaymentTokenSchema
 	| QuoteAcceptanceTokenSchema;
 export function tokenize<T extends KnownToken>(data: T) {
+	return jwtEncrypt(data);
+}
+
+export function tryTokenize<T extends KnownToken>(data: T) {
+	if (!hasJwtSecret()) {
+		return null;
+	}
+
 	return jwtEncrypt(data);
 }
 export function validateToken<T>(
