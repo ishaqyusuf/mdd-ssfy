@@ -22,6 +22,7 @@ import { env } from "@/env.mjs";
 import { endFlow, logStage, startFlow } from "@/lib/dev-flow-logger";
 import { MouldingCalculator } from "@/components/moulding-calculator";
 import { FileUploader } from "@/components/common/file-uploader";
+import type { NewSalesFormLineItem } from "../schema";
 import { useNewSalesFormStore } from "../store";
 import {
 	useCustomerProfilesQuery,
@@ -43,6 +44,7 @@ import {
 	updateDoorRowBasePrice,
 } from "./workflow-modals";
 import {
+	applyMultiSelectStepMutation,
 	applySingleSelectStepMutation,
 	buildShelfSections,
 	buildConfiguredRouteSteps,
@@ -76,6 +78,14 @@ import {
 } from "@gnd/sales/sales-form";
 import { InvoiceItemCard } from "./item-workflow/invoice-item-card";
 import { ItemWorkflowHeader } from "./item-workflow/item-workflow-header";
+import { snapshotSelectedComponent } from "./item-workflow/component-utils";
+import {
+	applySharedDoorSurcharge,
+	computeSharedDoorSurcharge,
+	getDoorSupplierMeta,
+	normalizeStoredDoorRows,
+	repricePersistedDoorRowsForSupplier,
+} from "./item-workflow/door-utils";
 import {
 	buildShelfProductsById,
 	getShelfLeafCategoryIds,
@@ -94,6 +104,92 @@ const MULTI_SELECT_STEP_TITLES = new Set([
 	"moulding",
 	"weatherstrip color",
 ]);
+type WorkflowStep = NonNullable<NewSalesFormLineItem["formSteps"]>[number];
+type WorkflowComponent = {
+	id?: number | null;
+	uid?: string | null;
+	title?: string | null;
+	img?: string | null;
+	salesPrice?: number | null;
+	basePrice?: number | null;
+	redirectUid?: string | null;
+	sectionOverride?: {
+		overrideMode?: boolean;
+		noHandle?: boolean;
+		hasSwing?: boolean;
+	} | null;
+	[key: string]: unknown;
+};
+type ShelfItemRow = {
+	categoryId?: number | null;
+	meta?: {
+		shelfParentCategoryId?: number | null;
+		categoryIds?: number[];
+		[key: string]: unknown;
+	} | null;
+	[key: string]: unknown;
+};
+type ShelfProductRecord = {
+	categoryId?: number | null;
+	parentCategoryId?: number | null;
+	[key: string]: unknown;
+};
+type ShelfCategoryRecord = {
+	type?: string | null;
+	[key: string]: unknown;
+};
+type DoorStoredRow = {
+	stepProductId?: number | null;
+	dimension?: string | null;
+	swing?: string | null;
+	lhQty?: number | null;
+	rhQty?: number | null;
+	totalQty?: number | null;
+	unitPrice?: number | null;
+	lineTotal?: number | null;
+	addon?: number | string | null;
+	customPrice?: number | string | null;
+	meta?: {
+		baseUnitPrice?: number | null;
+		priceMissing?: boolean | null;
+		[key: string]: unknown;
+	} | null;
+	[key: string]: unknown;
+};
+type MouldingRow = {
+	uid?: string | null;
+	title?: string | null;
+	description?: string | null;
+	qty?: number | null;
+	addon?: number | null;
+	customPrice?: number | string | null;
+	salesPrice?: number | null;
+	basePrice?: number | null;
+	estimateUnit?: number | null;
+	lineTotal?: number | null;
+	[key: string]: unknown;
+};
+type ServiceRow = {
+	uid?: string | null;
+	service?: string | null;
+	taxxable?: boolean | null;
+	produceable?: boolean | null;
+	qty?: number | null;
+	unitPrice?: number | null;
+	lineTotal?: number | null;
+	[key: string]: unknown;
+};
+type CustomerProfileRecord = {
+	id?: number | null;
+	coefficient?: number | null;
+};
+type StepComponentLike = WorkflowComponent & {
+	isDeleted?: boolean;
+	custom?: boolean;
+	_metaData?: {
+		custom?: boolean;
+	} | null;
+};
 
 function stepKey(lineUid: string, stepIndex: number) {
 	return `${lineUid}:${stepIndex}`;
@@ -134,147 +230,6 @@ function isHousePackageToolStepTitle(title?: string | null) {
 	const normalized = normalizeTitle(title);
 	return normalized === "house package tool" || normalized === "hpt";
 }
-function getDoorSupplierMeta(step: any) {
-	const meta = step?.meta || {};
-	const formStepMeta = meta?.formStepMeta || {};
-	const supplierUid = formStepMeta?.supplierUid || meta?.supplierUid || null;
-	const supplierName = formStepMeta?.supplierName || meta?.supplierName || null;
-	return {
-		supplierUid: supplierUid ? String(supplierUid) : null,
-		supplierName: supplierName ? String(supplierName) : null,
-	};
-}
-function computeSharedDoorSurcharge(line: any) {
-	return Number(
-		((line?.formSteps || []) as any[])
-			.filter((step: any) => {
-				const title = normalizeTitle(step?.step?.title);
-				return (
-					title &&
-					title !== "item type" &&
-					title !== "door" &&
-					title !== "house package tool" &&
-					title !== "hpt"
-				);
-			})
-			.reduce((sum: number, step: any) => sum + Number(step?.price || 0), 0)
-			.toFixed(2),
-	);
-}
-function applySharedDoorSurcharge(
-	rows: any[],
-	surcharge: number,
-	profileCoefficient?: number | null,
-) {
-	return (rows || []).map((row: any) => {
-		const baseUnitPrice =
-			row?.meta?.baseUnitPrice == null
-				? Number(row?.unitPrice || 0) - surcharge
-				: Number(row.meta.baseUnitPrice || 0);
-		const calculatedSalesUnit =
-			row?.meta?.baseUnitPrice == null
-				? Math.max(0, Number(row?.unitPrice || 0) - surcharge)
-				: profileAdjustedDoorSalesPrice(
-						null,
-						Math.max(0, baseUnitPrice),
-						profileCoefficient,
-					);
-		const effectiveUnitPrice = Number(
-			(Math.max(0, calculatedSalesUnit) + surcharge).toFixed(2),
-		);
-		const totalQty = Number(row?.totalQty || 0);
-		return {
-			...row,
-			unitPrice: effectiveUnitPrice,
-			lineTotal: Number((totalQty * effectiveUnitPrice).toFixed(2)),
-			meta: {
-				...(row?.meta || {}),
-				baseUnitPrice: Math.max(0, baseUnitPrice),
-			},
-		};
-	});
-}
-function repricePersistedDoorRowsForSupplier(
-	line: any,
-	nextSteps: any[],
-	supplierUid?: string | null,
-	salesMultiplier?: number | null,
-) {
-	const existingDoors = Array.isArray(line?.housePackageTool?.doors)
-		? line.housePackageTool.doors
-		: [];
-	if (!existingDoors.length) return null;
-
-	const selectedDoorComponents = getSelectedDoorComponentsForLine({
-		...line,
-		formSteps: nextSteps,
-	});
-	if (!selectedDoorComponents.length) return null;
-
-	const componentById = new Map<number, any>();
-	selectedDoorComponents.forEach((component: any) => {
-		const componentId = Number(component?.id || 0);
-		if (componentId > 0) componentById.set(componentId, component);
-	});
-
-	const sharedDoorSurcharge = computeSharedDoorSurcharge({
-		...line,
-		formSteps: nextSteps,
-	});
-	const repricedRows = existingDoors.map((row: any) => {
-		const component = componentById.get(Number(row?.stepProductId || 0));
-		const size = String(row?.dimension || "").trim();
-		if (!component || !size) return row;
-
-		const tierPricing = resolveDoorTierPricing({
-			pricing: component?.pricing || {},
-			size,
-			supplierUid,
-			supplierVariants: component?.supplierVariants || [],
-			salesMultiplier,
-			fallbackSalesPrice: component?.salesPrice,
-			fallbackBasePrice: component?.basePrice,
-		});
-		const hasResolvedPrice = Boolean(tierPricing.hasPrice);
-		const baseUnitPrice = hasResolvedPrice
-			? Number((tierPricing.basePrice || 0).toFixed(2))
-			: 0;
-		const unitPrice = hasResolvedPrice
-			? Number(
-					(Number(tierPricing.salesPrice || 0) + sharedDoorSurcharge).toFixed(
-						2,
-					),
-				)
-			: 0;
-		const totalQty = Number(row?.totalQty || 0);
-		return {
-			...row,
-			unitPrice,
-			lineTotal: Number((totalQty * unitPrice).toFixed(2)),
-			meta: {
-				...(row?.meta || {}),
-				baseUnitPrice,
-				priceMissing: !hasResolvedPrice,
-			},
-		};
-	});
-
-	const totalDoors = repricedRows.reduce(
-		(sum: number, row: any) => sum + Number(row?.totalQty || 0),
-		0,
-	);
-	const totalPrice = Number(
-		repricedRows
-			.reduce((sum: number, row: any) => sum + Number(row?.lineTotal || 0), 0)
-			.toFixed(2),
-	);
-
-	return {
-		doors: repricedRows,
-		totalDoors,
-		totalPrice,
-	};
-}
 function money(value?: number | null) {
 	const amount = Number(value || 0);
 	if (!Number.isFinite(amount) || amount <= 0) return null;
@@ -297,66 +252,6 @@ function firstFiniteNumber(...values: Array<number | null | undefined>) {
 		if (Number.isFinite(candidate)) return candidate;
 	}
 	return null;
-}
-function snapshotSelectedComponent(component: any) {
-	return {
-		id: component?.id ?? null,
-		uid: component?.uid || "",
-		title: component?.title || "",
-		img: component?.img || null,
-		inventoryId: component?.inventoryId ?? null,
-		inventoryVariantId: component?.inventoryVariantId ?? null,
-		salesPrice:
-			component?.salesPrice == null ? null : Number(component.salesPrice || 0),
-		basePrice:
-			component?.basePrice == null ? null : Number(component.basePrice || 0),
-		pricing: component?.pricing || null,
-		supplierVariants: Array.isArray(component?.supplierVariants)
-			? component.supplierVariants
-			: [],
-		redirectUid: component?.redirectUid || null,
-		sectionOverride: component?.sectionOverride || null,
-	};
-}
-function normalizeMouldingStoredRows(rows: any[]) {
-	return (rows || []).map((row: any) => ({
-		uid: String(row?.uid || ""),
-		title: String(row?.title || ""),
-		description: String(row?.description || ""),
-		qty: Number(row?.qty || 0),
-		addon: Number(row?.addon || 0),
-		customPrice:
-			row?.customPrice == null || row?.customPrice === ""
-				? null
-				: Number(row.customPrice || 0),
-		salesPrice: Number(row?.salesPrice || 0),
-		basePrice: Number(row?.basePrice || 0),
-	}));
-}
-function normalizeStoredDoorRows(rows: any[]) {
-	return (rows || []).map((row: any) => ({
-		id: row?.id ?? null,
-		dimension: String(row?.dimension || ""),
-		swing: String(row?.swing || ""),
-		stepProductId: Number(row?.stepProductId || 0),
-		lhQty: Number(row?.lhQty || 0),
-		rhQty: Number(row?.rhQty || 0),
-		totalQty: Number(row?.totalQty || 0),
-		unitPrice: Number(Number(row?.unitPrice || 0).toFixed(2)),
-		lineTotal: Number(Number(row?.lineTotal || 0).toFixed(2)),
-		addon:
-			row?.addon == null || row?.addon === ""
-				? null
-				: Number(Number(row.addon || 0).toFixed(2)),
-		customPrice:
-			row?.customPrice == null || row?.customPrice === ""
-				? null
-				: Number(Number(row.customPrice || 0).toFixed(2)),
-		meta: {
-			baseUnitPrice: Number(Number(row?.meta?.baseUnitPrice || 0).toFixed(2)),
-			priceMissing: Boolean(row?.meta?.priceMissing),
-		},
-	}));
 }
 function profileAdjustedSalesPrice(
 	salesPrice: number | null | undefined,
@@ -400,16 +295,19 @@ function resolveComponentImageSrc(src?: string | null) {
 	if (normalized.startsWith("dyke/")) return `${base}/${normalized}`;
 	return `${base}/dyke/${normalized}`;
 }
-function firstPendingStepIndex(steps: any[]) {
+function firstPendingStepIndex(steps: WorkflowStep[]) {
 	const pending = steps.findIndex(
 		(step) => !String(step?.prodUid || "").trim(),
 	);
 	return pending >= 0 ? pending : Math.max(0, steps.length - 1);
 }
-function isRedirectDisabledStep(step: any) {
+function isRedirectDisabledStep(step: WorkflowStep) {
 	return Boolean(step?.meta?.redirectDisabled);
 }
-function resolveInteractiveStepIndex(steps: any[], preferredIndex: number) {
+function resolveInteractiveStepIndex(
+	steps: WorkflowStep[],
+	preferredIndex: number,
+) {
 	if (!steps.length) return 0;
 	const clampedIndex = Math.max(
 		0,
@@ -449,11 +347,11 @@ function componentLabel(value?: string | null) {
 		.toUpperCase();
 }
 
-function lineItemPickerLabel(line: any, index: number) {
+function lineItemPickerLabel(line: NewSalesFormLineItem, index: number) {
 	const explicitTitle = String(line?.title || "").trim();
 	if (explicitTitle) return explicitTitle;
 	const itemTypeStep = (line?.formSteps || []).find(
-		(step: any) => normalizeTitle(step?.step?.title) === "item type",
+		(step) => normalizeTitle(step?.step?.title) === "item type",
 	);
 	const itemTypeLabel = String(
 		itemTypeStep?.value || itemTypeStep?.title || itemTypeStep?.prodUid || "",
@@ -461,6 +359,62 @@ function lineItemPickerLabel(line: any, index: number) {
 	return itemTypeLabel
 		? `Item ${index + 1} (${itemTypeLabel})`
 		: `Item ${index + 1}`;
+}
+
+function getStoredMouldingRows(line: NewSalesFormLineItem): MouldingRow[] {
+	const meta = line.meta as NewSalesFormLineItem["meta"] & {
+		mouldingRows?: MouldingRow[];
+	};
+	return Array.isArray(meta?.mouldingRows) ? meta.mouldingRows : [];
+}
+
+function getStoredServiceRows(line: NewSalesFormLineItem): ServiceRow[] {
+	const meta = line.meta as NewSalesFormLineItem["meta"] & {
+		serviceRows?: ServiceRow[];
+		taxxable?: boolean;
+		produceable?: boolean;
+	};
+	return Array.isArray(meta?.serviceRows) ? meta.serviceRows : [];
+}
+
+function isComponentEnabledForView(
+	component: StepComponentLike,
+	includeCustom: boolean,
+) {
+	if (includeCustom) return true;
+	return !component?._metaData?.custom && !component?.custom;
+}
+
+function getStepPriceDeps(step?: WorkflowStep | null) {
+	return Array.isArray(step?.meta?.priceStepDeps)
+		? (step.meta.priceStepDeps as string[])
+		: null;
+}
+
+function buildStepComponentOverrideMap(step?: WorkflowStep | null) {
+	const overrides = new Map<string, WorkflowComponent>();
+	const selected = Array.isArray(step?.meta?.selectedComponents)
+		? (step.meta.selectedComponents as WorkflowComponent[])
+		: [];
+	for (const component of selected) {
+		const uid = String(component?.uid || "").trim();
+		if (!uid) continue;
+		overrides.set(uid, component);
+	}
+	if (String(step?.prodUid || "").trim()) {
+		const uid = String(step?.prodUid || "").trim();
+		if (!overrides.has(uid)) {
+			overrides.set(uid, {
+				uid,
+				title: step?.value || null,
+				salesPrice: step?.price ?? null,
+				basePrice: step?.basePrice ?? null,
+				redirectUid: step?.meta?.redirectUid || null,
+				sectionOverride: step?.meta?.sectionOverride || null,
+			});
+		}
+	}
+	return overrides;
 }
 
 export function ItemWorkflowPanel() {
@@ -476,7 +430,7 @@ export function ItemWorkflowPanel() {
 	const [isMouldingDialogOpen, setIsMouldingDialogOpen] = useState(false);
 	const [doorStepModal, setDoorStepModal] = useState<{
 		open: boolean;
-		component: any | null;
+		component: WorkflowComponent | null;
 	}>({
 		open: false,
 		component: null,
@@ -562,7 +516,7 @@ export function ItemWorkflowPanel() {
 	const activeDoorStep = activeLine
 		? findLineStepByTitle(activeLine, "Door")
 		: null;
-	const activeDoorStepIndex = activeLineSteps.findIndex((step: any) =>
+	const activeDoorStepIndex = activeLineSteps.findIndex((step) =>
 		isDoorStepTitle(step?.step?.title),
 	);
 	const {
@@ -581,15 +535,15 @@ export function ItemWorkflowPanel() {
 		updateLineItem,
 	});
 	const activeStepComponentOverrides = useMemo(() => {
-		const overrides = new Map<string, any>();
+		const overrides = new Map<string, WorkflowComponent>();
 		const selected = Array.isArray(activeStep?.meta?.selectedComponents)
-			? activeStep.meta.selectedComponents
+			? (activeStep.meta.selectedComponents as WorkflowComponent[])
 			: [];
-		selected.forEach((component: any) => {
+		for (const component of selected) {
 			const uid = String(component?.uid || "").trim();
-			if (!uid) return;
+			if (!uid) continue;
 			overrides.set(uid, component);
-		});
+		}
 		if (String(activeStep?.prodUid || "").trim()) {
 			const uid = String(activeStep?.prodUid || "").trim();
 			if (!overrides.has(uid)) {
@@ -609,12 +563,12 @@ export function ItemWorkflowPanel() {
 		() =>
 			Array.from(
 				new Set(
-					(activeLine?.shelfItems || [])
-						.flatMap((row: any) => [
+					((activeLine?.shelfItems || []) as ShelfItemRow[])
+						.flatMap((row) => [
 							Number(row?.categoryId || 0),
-							Number((row?.meta as any)?.shelfParentCategoryId || 0),
-							...(((row?.meta as any)?.categoryIds || []) as any[]).map(
-								(value: any) => Number(value || 0),
+							Number(row?.meta?.shelfParentCategoryId || 0),
+							...(row?.meta?.categoryIds || []).map((value) =>
+								Number(value || 0),
 							),
 						])
 						.filter((id) => id > 0),
@@ -628,18 +582,19 @@ export function ItemWorkflowPanel() {
 		shelfCategoryIds.length > 0,
 	);
 	const shelfProductsByCategory = useMemo(() => {
-		const bucket = new Map<number, any[]>();
-		(shelfProductsQuery.data || []).forEach((product: any) => {
+		const bucket = new Map<number, ShelfProductRecord[]>();
+		for (const product of (shelfProductsQuery.data ||
+			[]) as ShelfProductRecord[]) {
 			const keys = [
 				Number(product?.categoryId || 0),
 				Number(product?.parentCategoryId || 0),
 			].filter((id) => id > 0);
-			keys.forEach((key) => {
+			for (const key of keys) {
 				const list = bucket.get(key) || [];
 				list.push(product);
 				bucket.set(key, list);
-			});
-		});
+			}
+		}
 		return bucket;
 	}, [shelfProductsQuery.data]);
 	const shelfCategories = useMemo(
@@ -654,7 +609,7 @@ export function ItemWorkflowPanel() {
 	const shelfParentCategories = useMemo(
 		() =>
 			shelfCategories.filter(
-				(category: any) =>
+				(category: ShelfCategoryRecord) =>
 					String(category?.type || "").toLowerCase() === "parent",
 			),
 		[shelfCategories],
@@ -662,9 +617,9 @@ export function ItemWorkflowPanel() {
 	const activeProfileCoefficient = useMemo(() => {
 		const selectedProfileId = Number(record?.form?.customerProfileId || 0);
 		if (!selectedProfileId) return 1;
-		const profile = (customerProfilesQuery.data || []).find(
-			(cp: any) => Number(cp?.id || 0) === selectedProfileId,
-		);
+		const profile = (
+			(customerProfilesQuery.data || []) as CustomerProfileRecord[]
+		).find((cp) => Number(cp?.id || 0) === selectedProfileId);
 		const coefficient = Number(profile?.coefficient || 0);
 		return Number.isFinite(coefficient) && coefficient > 0 ? coefficient : 1;
 	}, [customerProfilesQuery.data, record?.form?.customerProfileId]);
@@ -743,7 +698,7 @@ export function ItemWorkflowPanel() {
 			qty: summary.qtyTotal,
 			unitPrice: summary.unitPrice,
 			lineTotal: summary.lineTotal,
-		} as any);
+		});
 	}, [activeLine, activeProfileCoefficient, updateLineItem]);
 	const activeDoorSync = useMemo(() => {
 		if (!activeLine) return null;
@@ -801,10 +756,10 @@ export function ItemWorkflowPanel() {
 				doors: activeDoorSync.rows,
 				totalDoors: activeDoorSync.totalDoors,
 				totalPrice: activeDoorSync.totalPrice,
-			} as any,
+			},
 			qty: activeDoorSync.totalDoors,
 			lineTotal: activeDoorSync.totalPrice,
-		} as any);
+		});
 	}, [activeDoorSync, activeLine?.housePackageTool, updateLineItem]);
 
 	const stepComponentsQuery = useSalesStepComponentsQuery(
@@ -831,31 +786,10 @@ export function ItemWorkflowPanel() {
 		},
 		!!activeDoorStep,
 	);
-	const activeDoorStepComponentOverrides = useMemo(() => {
-		const overrides = new Map<string, any>();
-		const selected = Array.isArray(activeDoorStep?.meta?.selectedComponents)
-			? activeDoorStep.meta.selectedComponents
-			: [];
-		selected.forEach((component: any) => {
-			const uid = String(component?.uid || "").trim();
-			if (!uid) return;
-			overrides.set(uid, component);
-		});
-		if (String(activeDoorStep?.prodUid || "").trim()) {
-			const uid = String(activeDoorStep?.prodUid || "").trim();
-			if (!overrides.has(uid)) {
-				overrides.set(uid, {
-					uid,
-					title: activeDoorStep?.value || null,
-					salesPrice: activeDoorStep?.price ?? null,
-					basePrice: activeDoorStep?.basePrice ?? null,
-					redirectUid: activeDoorStep?.meta?.redirectUid || null,
-					sectionOverride: activeDoorStep?.meta?.sectionOverride || null,
-				});
-			}
-		}
-		return overrides;
-	}, [activeDoorStep]);
+	const activeDoorStepComponentOverrides = useMemo(
+		() => buildStepComponentOverrideMap(activeDoorStep || null),
+		[activeDoorStep],
+	);
 
 	const visibleComponents = useMemo(() => {
 		const selectedByStepUid = buildSelectedByStepUid(activeLineSteps);
@@ -863,12 +797,9 @@ export function ItemWorkflowPanel() {
 			buildSelectedProdUidsByStepUid(activeLineSteps);
 		return (stepComponentsQuery.data || [])
 			.filter((component) => !component.isDeleted)
-			.filter((component) => {
-				if (includeCustomComponents) return true;
-				return (
-					!(component as any)?._metaData?.custom && !(component as any)?.custom
-				);
-			})
+			.filter((component) =>
+				isComponentEnabledForView(component, includeCustomComponents),
+			)
 			.filter((component) =>
 				isComponentVisibleByRules(
 					component,
@@ -878,7 +809,7 @@ export function ItemWorkflowPanel() {
 			)
 			.map((component) => {
 				const override = activeStepComponentOverrides.get(
-					String((component as any)?.uid || ""),
+					String(component?.uid || ""),
 				);
 				const price = resolveComponentPriceByDeps(
 					{
@@ -887,11 +818,7 @@ export function ItemWorkflowPanel() {
 					},
 					selectedByStepUid,
 					{
-						priceStepDeps: Array.isArray(
-							(activeStep as any)?.meta?.priceStepDeps,
-						)
-							? ((activeStep as any).meta.priceStepDeps as string[])
-							: null,
+						priceStepDeps: getStepPriceDeps(activeStep || null),
 						selectedProdUidsByStepUid,
 					},
 				);
@@ -930,12 +857,9 @@ export function ItemWorkflowPanel() {
 			buildSelectedProdUidsByStepUid(activeLineSteps);
 		return (doorStepComponentsQuery.data || [])
 			.filter((component) => !component.isDeleted)
-			.filter((component) => {
-				if (includeCustomComponents) return true;
-				return (
-					!(component as any)?._metaData?.custom && !(component as any)?.custom
-				);
-			})
+			.filter((component) =>
+				isComponentEnabledForView(component, includeCustomComponents),
+			)
 			.filter((component) =>
 				isComponentVisibleByRules(
 					component,
@@ -945,7 +869,7 @@ export function ItemWorkflowPanel() {
 			)
 			.map((component) => {
 				const override = activeDoorStepComponentOverrides.get(
-					String((component as any)?.uid || ""),
+					String(component?.uid || ""),
 				);
 				const price = resolveComponentPriceByDeps(
 					{
@@ -954,11 +878,7 @@ export function ItemWorkflowPanel() {
 					},
 					selectedByStepUid,
 					{
-						priceStepDeps: Array.isArray(
-							(activeDoorStep as any)?.meta?.priceStepDeps,
-						)
-							? ((activeDoorStep as any).meta.priceStepDeps as string[])
-							: null,
+						priceStepDeps: getStepPriceDeps(activeDoorStep || null),
 						selectedProdUidsByStepUid,
 					},
 				);
@@ -1000,19 +920,20 @@ export function ItemWorkflowPanel() {
 		const selectedProdUidsByStepUid =
 			buildSelectedProdUidsByStepUid(activeLineSteps);
 		return roots
-			.filter((component: any) => configured.has(component.uid))
-			.filter((component: any) => {
-				if (includeCustomComponents) return true;
-				return !component?._metaData?.custom && !component?.custom;
-			})
-			.filter((component: any) =>
+			.filter((component: StepComponentLike) =>
+				configured.has(component.uid || ""),
+			)
+			.filter((component: StepComponentLike) =>
+				isComponentEnabledForView(component, includeCustomComponents),
+			)
+			.filter((component: StepComponentLike) =>
 				isComponentVisibleByRules(
 					component,
 					selectedByStepUid,
 					selectedProdUidsByStepUid,
 				),
 			)
-			.map((component: any) => {
+			.map((component: StepComponentLike) => {
 				const override = activeStepComponentOverrides.get(
 					String(component?.uid || ""),
 				);
@@ -1023,11 +944,7 @@ export function ItemWorkflowPanel() {
 					},
 					selectedByStepUid,
 					{
-						priceStepDeps: Array.isArray(
-							(activeStep as any)?.meta?.priceStepDeps,
-						)
-							? ((activeStep as any).meta.priceStepDeps as string[])
-							: null,
+						priceStepDeps: getStepPriceDeps(activeStep || null),
 						selectedProdUidsByStepUid,
 					},
 				);
@@ -1075,9 +992,9 @@ export function ItemWorkflowPanel() {
 		selectedOverride,
 	}: {
 		line: (typeof record.lineItems)[number];
-		steps: any[];
+		steps: WorkflowStep[];
 		currentStepIndex: number;
-		component: any;
+		component: WorkflowComponent;
 		selectedOverride?: boolean;
 	}) {
 		const nextSteps = [...steps];
@@ -1165,7 +1082,7 @@ export function ItemWorkflowPanel() {
 				uid: component.uid,
 				title: component.title,
 				redirectUid:
-					(singleMutationSteps[currentStepIndex]?.meta as any)?.redirectUid ||
+					singleMutationSteps[currentStepIndex]?.meta?.redirectUid ||
 					component.redirectUid,
 			},
 		});
@@ -1196,9 +1113,9 @@ export function ItemWorkflowPanel() {
 		const candidates = selectedUids
 			.map(
 				(uid) =>
-					visibleComponents.find((component: any) => component.uid === uid) ||
+					visibleComponents.find((component) => component.uid === uid) ||
 					step?.meta?.selectedComponents?.find(
-						(component: any) => component.uid === uid,
+						(component: WorkflowComponent) => component.uid === uid,
 					),
 			)
 			.filter(Boolean);
@@ -1212,13 +1129,13 @@ export function ItemWorkflowPanel() {
 			selectedComponent: {
 				uid: primary.uid,
 				title: primary.title,
-				redirectUid: (step?.meta as any)?.redirectUid || primary.redirectUid,
+				redirectUid: step?.meta?.redirectUid || primary.redirectUid,
 			},
 		});
 		updateLineItem(line.uid, {
 			formSteps: routed.steps,
 		});
-		const lineItemStepIndex = routed.steps.findIndex((step: any) =>
+		const lineItemStepIndex = routed.steps.findIndex((step) =>
 			normalizeTitle(step?.step?.title).includes("line item"),
 		);
 		const nextIndex =
@@ -1238,7 +1155,7 @@ export function ItemWorkflowPanel() {
 
 	function selectRootComponent(
 		line: (typeof record.lineItems)[number],
-		component: any,
+		component: WorkflowComponent,
 	) {
 		const rootStep = routeData?.rootStepUid
 			? routeData?.stepsByUid?.[routeData.rootStepUid]
@@ -1288,15 +1205,17 @@ export function ItemWorkflowPanel() {
 				},
 			},
 		};
-		const repricedDoors = repricePersistedDoorRowsForSupplier(
+		const repricedDoors = repricePersistedDoorRowsForSupplier({
 			line,
-			steps,
-			supplier?.uid || null,
-			Number.isFinite(activeProfileCoefficient) && activeProfileCoefficient > 0
-				? Number((1 / activeProfileCoefficient).toFixed(2))
-				: 1,
-		);
-		const linePatch: Record<string, unknown> = {
+			nextSteps: steps,
+			supplierUid: supplier?.uid || null,
+			salesMultiplier:
+				Number.isFinite(activeProfileCoefficient) &&
+				activeProfileCoefficient > 0
+					? Number((1 / activeProfileCoefficient).toFixed(2))
+					: 1,
+		});
+		const linePatch: Partial<NewSalesFormLineItem> = {
 			formSteps: steps,
 		};
 		if (repricedDoors) {
@@ -1309,7 +1228,7 @@ export function ItemWorkflowPanel() {
 			linePatch.qty = repricedDoors.totalDoors || line.qty;
 			linePatch.lineTotal = repricedDoors.totalPrice || line.lineTotal;
 		}
-		updateLineItem(line.uid, linePatch as any);
+		updateLineItem(line.uid, linePatch);
 	}
 	function setStepRedirectUid(
 		line: (typeof record.lineItems)[number],
@@ -1338,9 +1257,9 @@ export function ItemWorkflowPanel() {
 		const step = steps[stepIndex];
 		if (!step) return;
 		const selectedComponents = Array.isArray(step?.meta?.selectedComponents)
-			? step.meta.selectedComponents
+			? (step.meta.selectedComponents as WorkflowComponent[])
 			: [];
-		const nextSelectedComponents = selectedComponents.map((component: any) =>
+		const nextSelectedComponents = selectedComponents.map((component) =>
 			String(component?.uid || "") === String(componentUid || "")
 				? {
 						...component,
@@ -1362,7 +1281,7 @@ export function ItemWorkflowPanel() {
 		const selectedForRouting =
 			String(step?.prodUid || "") === String(componentUid || "")
 				? nextSelectedComponents.find(
-						(component: any) =>
+						(component) =>
 							String(component?.uid || "") === String(componentUid || ""),
 					) || {
 						uid: componentUid,
@@ -1398,7 +1317,7 @@ export function ItemWorkflowPanel() {
 	async function saveDoorSizeVariants(
 		line: (typeof record.lineItems)[number],
 		stepIndex: number,
-		variations: any[],
+		variations: unknown[],
 	) {
 		const steps = [...(line.formSteps || [])];
 		const step = steps[stepIndex];
@@ -1425,8 +1344,8 @@ export function ItemWorkflowPanel() {
 	function swapDoorComponentAtStep(
 		line: (typeof record.lineItems)[number],
 		stepIndex: number,
-		sourceComponent: any,
-		targetComponent: any,
+		sourceComponent: WorkflowComponent,
+		targetComponent: WorkflowComponent,
 	) {
 		const steps = [...(line.formSteps || [])];
 		const step = steps[stepIndex];
@@ -1436,9 +1355,9 @@ export function ItemWorkflowPanel() {
 		if (!sourceUid || !targetUid || sourceUid === targetUid) return;
 
 		const selectedComponents = Array.isArray(step?.meta?.selectedComponents)
-			? step.meta.selectedComponents
+			? (step.meta.selectedComponents as WorkflowComponent[])
 			: [];
-		const nextSelectedComponents = selectedComponents.map((component: any) =>
+		const nextSelectedComponents = selectedComponents.map((component) =>
 			String(component?.uid || "") === sourceUid
 				? {
 						...snapshotSelectedComponent(targetComponent),
@@ -1470,7 +1389,7 @@ export function ItemWorkflowPanel() {
 		const sourceId = Number(sourceComponent?.id || 0);
 		const targetId = Number(targetComponent?.id || 0);
 		const remappedDoors = (line.housePackageTool?.doors || []).map(
-			(row: any) =>
+			(row: DoorStoredRow) =>
 				Number(row?.stepProductId || 0) === sourceId
 					? {
 							...row,
@@ -1486,19 +1405,21 @@ export function ItemWorkflowPanel() {
 				doors: remappedDoors,
 			},
 		};
-		const repricedDoors = repricePersistedDoorRowsForSupplier(
-			lineWithRemappedDoors,
-			steps,
-			getDoorSupplierMeta(nextStep).supplierUid,
-			Number.isFinite(activeProfileCoefficient) && activeProfileCoefficient > 0
-				? Number((1 / activeProfileCoefficient).toFixed(2))
-				: 1,
-		);
+		const repricedDoors = repricePersistedDoorRowsForSupplier({
+			line: lineWithRemappedDoors,
+			nextSteps: steps,
+			supplierUid: getDoorSupplierMeta(nextStep).supplierUid,
+			salesMultiplier:
+				Number.isFinite(activeProfileCoefficient) &&
+				activeProfileCoefficient > 0
+					? Number((1 / activeProfileCoefficient).toFixed(2))
+					: 1,
+		});
 
-		updateLineItem(line.uid, {
+		const nextLinePatch: Partial<NewSalesFormLineItem> = {
 			formSteps: steps,
 			...(repricedDoors
-				? ({
+				? {
 						housePackageTool: {
 							...(line.housePackageTool || { id: null }),
 							doors: repricedDoors.doors,
@@ -1507,9 +1428,10 @@ export function ItemWorkflowPanel() {
 						},
 						qty: repricedDoors.totalDoors,
 						lineTotal: repricedDoors.totalPrice,
-					} as any)
+					}
 				: {}),
-		} as any);
+		};
+		updateLineItem(line.uid, nextLinePatch);
 		setActiveHptDoorUidByLine((prev) => ({
 			...prev,
 			[line.uid]: targetUid,
@@ -1518,16 +1440,16 @@ export function ItemWorkflowPanel() {
 	function openComponentEditForm(
 		line: (typeof record.lineItems)[number],
 		stepIndex: number,
-		component: any,
+		component: WorkflowComponent,
 		mode: "edit" | "sectionOverride" = "edit",
 	) {
 		const step = (line.formSteps || [])[stepIndex];
 		if (!step) return;
 		const selected = Array.isArray(step?.meta?.selectedComponents)
-			? step.meta.selectedComponents
+			? (step.meta.selectedComponents as WorkflowComponent[])
 			: [];
 		const current = selected.find(
-			(entry: any) => String(entry?.uid || "") === String(component?.uid || ""),
+			(entry) => String(entry?.uid || "") === String(component?.uid || ""),
 		);
 		const sectionOverride =
 			current?.sectionOverride || component?.sectionOverride || {};
@@ -1586,15 +1508,15 @@ export function ItemWorkflowPanel() {
 		}
 		const salesPrice = Number(componentEditModal.salesPrice || 0);
 		const selected = Array.isArray(step?.meta?.selectedComponents)
-			? step.meta.selectedComponents
+			? (step.meta.selectedComponents as WorkflowComponent[])
 			: [];
 		const hasTarget = selected.some(
-			(entry: any) =>
+			(entry) =>
 				String(entry?.uid || "") === String(componentEditModal.componentUid),
 		);
 		const nextSelectedComponents = (
-			hasTarget ? selected : [...selected, {}]
-		).map((entry: any, index: number) => {
+			hasTarget ? selected : [...selected, {} as WorkflowComponent]
+		).map((entry, index: number) => {
 			const isPlaceholder = !hasTarget && index === selected.length;
 			const uid = isPlaceholder
 				? String(componentEditModal.componentUid)
@@ -1662,17 +1584,15 @@ export function ItemWorkflowPanel() {
 			);
 			const selectedComponents = (
 				Array.isArray(step?.meta?.selectedComponents)
-					? step.meta.selectedComponents
+					? (step.meta.selectedComponents as WorkflowComponent[])
 					: []
-			).filter((component: any) => String(component?.uid) !== componentUid);
+			).filter((component) => String(component?.uid) !== componentUid);
 			const totalSales = selectedComponents.reduce(
-				(sum: number, component: any) =>
-					sum + Number(component?.salesPrice || 0),
+				(sum: number, component) => sum + Number(component?.salesPrice || 0),
 				0,
 			);
 			const totalBase = selectedComponents.reduce(
-				(sum: number, component: any) =>
-					sum + Number(component?.basePrice || 0),
+				(sum: number, component) => sum + Number(component?.basePrice || 0),
 				0,
 			);
 			steps[stepIndex] = {
@@ -1716,7 +1636,7 @@ export function ItemWorkflowPanel() {
 	function quickEditComponentPrice(
 		line: (typeof record.lineItems)[number],
 		stepIndex: number,
-		component: any,
+		component: WorkflowComponent,
 	) {
 		if (typeof window === "undefined") return;
 		const currentPrice = Number(component?.salesPrice ?? 0);
@@ -1731,9 +1651,9 @@ export function ItemWorkflowPanel() {
 		const step = steps[stepIndex];
 		if (!step) return;
 		const selectedComponents = Array.isArray(step?.meta?.selectedComponents)
-			? step.meta.selectedComponents
+			? (step.meta.selectedComponents as WorkflowComponent[])
 			: [];
-		const nextSelectedComponents = selectedComponents.map((entry: any) =>
+		const nextSelectedComponents = selectedComponents.map((entry) =>
 			String(entry?.uid) === String(component?.uid)
 				? {
 						...entry,
@@ -1762,7 +1682,7 @@ export function ItemWorkflowPanel() {
 	function removeDoorOptionFromHpt(
 		line: (typeof record.lineItems)[number],
 		stepIndex: number,
-		component: any,
+		component: WorkflowComponent,
 	) {
 		const componentUid = String(component?.uid || "");
 		const componentId = Number(component?.id || 0);
@@ -1777,15 +1697,15 @@ export function ItemWorkflowPanel() {
 		);
 		const selectedComponents = (
 			Array.isArray(step?.meta?.selectedComponents)
-				? step.meta.selectedComponents
+				? (step.meta.selectedComponents as WorkflowComponent[])
 				: []
-		).filter((entry: any) => String(entry?.uid || "") !== componentUid);
+		).filter((entry) => String(entry?.uid || "") !== componentUid);
 		const totalSales = selectedComponents.reduce(
-			(sum: number, entry: any) => sum + Number(entry?.salesPrice || 0),
+			(sum: number, entry) => sum + Number(entry?.salesPrice || 0),
 			0,
 		);
 		const totalBase = selectedComponents.reduce(
-			(sum: number, entry: any) => sum + Number(entry?.basePrice || 0),
+			(sum: number, entry) => sum + Number(entry?.basePrice || 0),
 			0,
 		);
 		steps[stepIndex] = {
@@ -1803,14 +1723,14 @@ export function ItemWorkflowPanel() {
 		};
 
 		const existingRows = Array.isArray(line.housePackageTool?.doors)
-			? line.housePackageTool.doors
+			? (line.housePackageTool.doors as DoorStoredRow[])
 			: [];
 		const nextRows = existingRows.filter(
-			(row: any) => Number(row?.stepProductId || 0) !== componentId,
+			(row) => Number(row?.stepProductId || 0) !== componentId,
 		);
 		const nextActiveDoor =
 			selectedComponents.find(
-				(entry: any) => String(entry?.uid || "") !== componentUid,
+				(entry) => String(entry?.uid || "") !== componentUid,
 			) || null;
 		const nextRouteConfig = resolveRouteConfigForLine({
 			routeData,
@@ -1833,10 +1753,10 @@ export function ItemWorkflowPanel() {
 				doors: nextSummary.rows,
 				totalDoors: nextSummary.totalDoors,
 				totalPrice: nextSummary.totalPrice,
-			} as any,
+			},
 			qty: nextSummary.totalDoors,
 			lineTotal: nextSummary.totalPrice,
-		} as any);
+		});
 		setActiveHptDoorUidByLine((prev) => {
 			const next = { ...prev };
 			if (nextActiveDoor?.uid) {
@@ -1849,11 +1769,11 @@ export function ItemWorkflowPanel() {
 	}
 	function renderHousePackageToolPanel(
 		line: (typeof record.lineItems)[number],
-		activeItemStep: any,
+		activeItemStep: WorkflowStep,
 	) {
 		const rows = line.housePackageTool?.doors || [];
 		const selectedDoorComponents = getSelectedDoorComponentsForLine(line);
-		const doorStepIndex = (line.formSteps || []).findIndex((step: any) =>
+		const doorStepIndex = (line.formSteps || []).findIndex((step) =>
 			isDoorStepTitle(step?.step?.title),
 		);
 		const activeDoorUid =
@@ -1886,7 +1806,7 @@ export function ItemWorkflowPanel() {
 		const availableSizes = (() => {
 			if (!activeDoorComponent) return [] as string[];
 			const sizes = deriveDoorSizeCandidates(
-				line as any,
+				line,
 				activeDoorComponent?.pricing || {},
 				routeData,
 			);
@@ -1898,7 +1818,7 @@ export function ItemWorkflowPanel() {
 		})();
 		const swapDoorCandidates = (() => {
 			return visibleDoorComponents.filter(
-				(component: any) =>
+				(component) =>
 					String(component?.uid || "") !==
 					String(activeDoorComponent?.uid || ""),
 			);
@@ -1908,7 +1828,7 @@ export function ItemWorkflowPanel() {
 			number,
 			{ title: string; img?: string | null }
 		>();
-		(line.formSteps || []).forEach((step: any) => {
+		for (const step of line.formSteps || []) {
 			const componentId = Number(step?.componentId || 0);
 			if (componentId > 0) {
 				componentLookupById.set(componentId, {
@@ -1917,9 +1837,9 @@ export function ItemWorkflowPanel() {
 				});
 			}
 			const selected = Array.isArray(step?.meta?.selectedComponents)
-				? step.meta.selectedComponents
+				? (step.meta.selectedComponents as WorkflowComponent[])
 				: [];
-			selected.forEach((component: any) => {
+			for (const component of selected) {
 				const selectedId = Number(component?.id || 0);
 				if (selectedId > 0) {
 					componentLookupById.set(selectedId, {
@@ -1930,10 +1850,10 @@ export function ItemWorkflowPanel() {
 						img: component?.img || null,
 					});
 				}
-			});
-		});
+			}
+		}
 
-		function applyRows(nextRows: any[]) {
+		function applyRows(nextRows: typeof summary.rows) {
 			const normalizedRows = applySharedDoorSurcharge(
 				nextRows,
 				sharedDoorSurcharge,
@@ -1946,13 +1866,16 @@ export function ItemWorkflowPanel() {
 					doors: next.rows,
 					totalDoors: next.totalDoors,
 					totalPrice: next.totalPrice,
-				} as any,
+				},
 				qty: next.totalDoors || line.qty,
 				lineTotal: next.totalPrice || line.lineTotal,
-			} as any);
+			});
 		}
 
-		function patchRow(sourceRow: any, patch: Record<string, unknown>) {
+		function patchRow(
+			sourceRow: DoorStoredRow,
+			patch: Record<string, unknown>,
+		) {
 			const nextRows = summary.rows.map((row) =>
 				row === sourceRow ? { ...row, ...patch } : row,
 			);
@@ -2003,7 +1926,7 @@ export function ItemWorkflowPanel() {
 			];
 			applyRows(nextRows);
 		}
-		function removeSizeRow(sourceRow: any) {
+		function removeSizeRow(sourceRow: DoorStoredRow) {
 			const nextRows = summary.rows.filter((row) => row !== sourceRow);
 			applyRows(nextRows);
 		}
@@ -2152,7 +2075,7 @@ export function ItemWorkflowPanel() {
 							const component =
 								componentLookupById.get(componentId) || activeDoorComponent;
 							const rowsForComponent = focusedRows;
-							const pricedSteps = (line.formSteps || []).filter((step: any) => {
+							const pricedSteps = (line.formSteps || []).filter((step) => {
 								const title = normalizeTitle(step?.step?.title);
 								return (
 									Number(step?.price || 0) > 0 &&
@@ -2332,7 +2255,7 @@ export function ItemWorkflowPanel() {
 														)}
 														<td className="px-3 py-2">
 															<DoorPriceCell
-																row={row as any}
+																row={row}
 																profileCoefficient={activeProfileCoefficient}
 																onSave={(nextBase) =>
 																	patchRow(
@@ -2341,7 +2264,7 @@ export function ItemWorkflowPanel() {
 																			{
 																				...row,
 																				unitPrice: Number(row?.unitPrice || 0),
-																			} as any,
+																			},
 																			nextBase,
 																			activeProfileCoefficient,
 																		),
@@ -2363,7 +2286,7 @@ export function ItemWorkflowPanel() {
 																	<p className="font-bold uppercase text-muted-foreground">
 																		Estimate Breakdown
 																	</p>
-																	{pricedSteps.map((step: any) => (
+																	{pricedSteps.map((step) => (
 																		<div
 																			key={`priced-step-${row.dimension}-${step.stepId}-${step.value}`}
 																			className="flex justify-between gap-3"
@@ -2506,9 +2429,7 @@ export function ItemWorkflowPanel() {
 		line: (typeof record.lineItems)[number],
 	) {
 		const selectedMouldings = getSelectedMouldingComponentsForLine(line);
-		const existingRows = Array.isArray((line.meta as any)?.mouldingRows)
-			? ((line.meta as any)?.mouldingRows as any[])
-			: [];
+		const existingRows = getStoredMouldingRows(line);
 		const sharedComponentPrice = sharedMouldingComponentPrice(
 			line.formSteps || [],
 		);
@@ -2518,15 +2439,13 @@ export function ItemWorkflowPanel() {
 			sharedComponentPrice,
 		});
 		const aggregatedQty = rows.reduce(
-			(sum, row: any) => sum + Number(row.qty || 0),
+			(sum, row) => sum + Number(row.qty || 0),
 			0,
 		);
 		const aggregatedTotal = Number(
-			rows
-				.reduce((sum, row: any) => sum + Number(row.lineTotal || 0), 0)
-				.toFixed(2),
+			rows.reduce((sum, row) => sum + Number(row.lineTotal || 0), 0).toFixed(2),
 		);
-		function persistRows(nextRowsRaw: any[]) {
+		function persistRows(nextRowsRaw: MouldingRow[]) {
 			const next = summarizeMouldingPersistRows(
 				nextRowsRaw,
 				sharedComponentPrice,
@@ -2535,18 +2454,18 @@ export function ItemWorkflowPanel() {
 				meta: {
 					...(line.meta || {}),
 					mouldingRows: next.storedRows,
-				} as any,
+				},
 				qty: next.qtyTotal,
 				lineTotal: next.total,
 				unitPrice: next.unitPrice,
-			} as any);
+			});
 		}
 		function removeSelectedMoulding(mouldingUid: string) {
 			const mouldingStepIndex = (line.formSteps || []).findIndex(
-				(step: any) => normalizeTitle(step?.step?.title) === "moulding",
+				(step) => normalizeTitle(step?.step?.title) === "moulding",
 			);
 			if (mouldingStepIndex < 0) {
-				persistRows(rows.filter((row: any) => String(row.uid) !== mouldingUid));
+				persistRows(rows.filter((row) => String(row.uid) !== mouldingUid));
 				return;
 			}
 			const steps = [...(line.formSteps || [])];
@@ -2563,22 +2482,20 @@ export function ItemWorkflowPanel() {
 				.map(
 					(uid) =>
 						selectedMouldings.find(
-							(component: any) => String(component.uid) === uid,
+							(component) => String(component.uid) === uid,
 						) ||
 						selectedComponentsSource.find(
-							(component: any) => String(component?.uid) === uid,
+							(component: WorkflowComponent) => String(component?.uid) === uid,
 						),
 				)
 				.filter(Boolean);
 			const primary = remainingComponents[0] || null;
 			const totalSales = remainingComponents.reduce(
-				(sum: number, component: any) =>
-					sum + Number(component?.salesPrice || 0),
+				(sum: number, component) => sum + Number(component?.salesPrice || 0),
 				0,
 			);
 			const totalBase = remainingComponents.reduce(
-				(sum: number, component: any) =>
-					sum + Number(component?.basePrice || 0),
+				(sum: number, component) => sum + Number(component?.basePrice || 0),
 				0,
 			);
 			steps[mouldingStepIndex] = {
@@ -2591,12 +2508,12 @@ export function ItemWorkflowPanel() {
 				meta: {
 					...(mouldingStep?.meta || {}),
 					selectedProdUids: selectedUids,
-					selectedComponents: remainingComponents.map((component: any) =>
+					selectedComponents: remainingComponents.map((component) =>
 						snapshotSelectedComponent(component),
 					),
 				},
 			};
-			persistRows(rows.filter((row: any) => String(row.uid) !== mouldingUid));
+			persistRows(rows.filter((row) => String(row.uid) !== mouldingUid));
 			updateLineItem(line.uid, {
 				formSteps: steps,
 			});
@@ -2623,7 +2540,7 @@ export function ItemWorkflowPanel() {
 								</tr>
 							</thead>
 							<tbody>
-								{rows.map((row: any, index: number) => (
+								{rows.map((row, index: number) => (
 									<tr
 										key={`moulding-row-${row.uid}-${index}`}
 										className="border-t"
@@ -2641,7 +2558,7 @@ export function ItemWorkflowPanel() {
 													qty={Number(row.qty || 0)}
 													onCalculate={(qty) =>
 														persistRows(
-															rows.map((item: any, i: number) =>
+															rows.map((item, i: number) =>
 																i === index
 																	? {
 																			...item,
@@ -2657,7 +2574,7 @@ export function ItemWorkflowPanel() {
 													value={row.qty}
 													onChange={(e) =>
 														persistRows(
-															rows.map((item: any, i: number) =>
+															rows.map((item, i: number) =>
 																i === index
 																	? {
 																			...item,
@@ -2681,7 +2598,7 @@ export function ItemWorkflowPanel() {
 												value={row.addon}
 												onChange={(e) =>
 													persistRows(
-														rows.map((item: any, i: number) =>
+														rows.map((item, i: number) =>
 															i === index
 																? {
 																		...item,
@@ -2701,7 +2618,7 @@ export function ItemWorkflowPanel() {
 												value={row.customPrice ?? ""}
 												onChange={(e) =>
 													persistRows(
-														rows.map((item: any, i: number) =>
+														rows.map((item, i: number) =>
 															i === index
 																? {
 																		...item,
@@ -2755,20 +2672,22 @@ export function ItemWorkflowPanel() {
 		);
 	}
 	function renderServiceLineItemPanel(line: (typeof record.lineItems)[number]) {
-		const existingRows = Array.isArray((line.meta as any)?.serviceRows)
-			? ((line.meta as any)?.serviceRows as any[])
-			: [];
+		const existingRows = getStoredServiceRows(line);
+		const lineMeta = (line.meta || {}) as NewSalesFormLineItem["meta"] & {
+			taxxable?: boolean;
+			produceable?: boolean;
+		};
 		const rows = deriveServiceRows({
 			lineUid: line.uid,
 			existingRows,
 			lineDescription: line.description,
 			lineQty: line.qty,
 			lineUnitPrice: line.unitPrice,
-			lineTaxxable: Boolean((line.meta as any)?.taxxable),
-			lineProduceable: Boolean((line.meta as any)?.produceable),
+			lineTaxxable: Boolean(lineMeta?.taxxable),
+			lineProduceable: Boolean(lineMeta?.produceable),
 		});
 
-		function persistRows(nextRowsRaw: any[]) {
+		function persistRows(nextRowsRaw: ServiceRow[]) {
 			const next = summarizeServiceRows(line.uid, nextRowsRaw);
 			updateLineItem(line.uid, {
 				meta: {
@@ -2776,12 +2695,12 @@ export function ItemWorkflowPanel() {
 					serviceRows: next.rows,
 					taxxable: next.taxxable,
 					produceable: next.produceable,
-				} as any,
+				},
 				qty: next.qtyTotal,
 				unitPrice: next.unitPrice,
 				lineTotal: next.lineTotal,
 				description: next.description,
-			} as any);
+			});
 		}
 
 		return (
@@ -2804,7 +2723,7 @@ export function ItemWorkflowPanel() {
 							</tr>
 						</thead>
 						<tbody>
-							{rows.map((row: any, index: number) => (
+							{rows.map((row, index: number) => (
 								<tr
 									key={`service-row-${row.uid}-${index}`}
 									className="border-t"
@@ -2817,7 +2736,7 @@ export function ItemWorkflowPanel() {
 											value={row.service}
 											onChange={(e) =>
 												persistRows(
-													rows.map((item: any, i: number) =>
+													rows.map((item, i: number) =>
 														i === index
 															? {
 																	...item,
@@ -2837,7 +2756,7 @@ export function ItemWorkflowPanel() {
 											value={row.qty}
 											onChange={(e) =>
 												persistRows(
-													rows.map((item: any, i: number) =>
+													rows.map((item, i: number) =>
 														i === index
 															? {
 																	...item,
@@ -2857,7 +2776,7 @@ export function ItemWorkflowPanel() {
 											value={row.unitPrice}
 											onChange={(e) =>
 												persistRows(
-													rows.map((item: any, i: number) =>
+													rows.map((item, i: number) =>
 														i === index
 															? {
 																	...item,
@@ -2875,7 +2794,7 @@ export function ItemWorkflowPanel() {
 											checked={Boolean(row.taxxable)}
 											onCheckedChange={(checked) =>
 												persistRows(
-													rows.map((item: any, i: number) =>
+													rows.map((item, i: number) =>
 														i === index
 															? {
 																	...item,
@@ -2892,7 +2811,7 @@ export function ItemWorkflowPanel() {
 											checked={Boolean(row.produceable)}
 											onCheckedChange={(checked) =>
 												persistRows(
-													rows.map((item: any, i: number) =>
+													rows.map((item, i: number) =>
 														i === index
 															? {
 																	...item,
@@ -2923,7 +2842,7 @@ export function ItemWorkflowPanel() {
 												className="text-red-600"
 												onClick={() =>
 													persistRows(
-														rows.filter((_: any, i: number) => i !== index),
+														rows.filter((_, i: number) => i !== index),
 													)
 												}
 											>
@@ -2960,9 +2879,9 @@ export function ItemWorkflowPanel() {
 	}
 	function renderItemComponentPanel(
 		line: (typeof record.lineItems)[number],
-		steps: any[],
+		steps: WorkflowStep[],
 		activeIndex: number,
-		activeItemStep: any,
+		activeItemStep: WorkflowStep,
 	) {
 		const stepFamily = getItemWorkflowStepFamily(line, activeItemStep);
 		const isHptStep = isHousePackageToolStepTitle(activeItemStep?.step?.title);
@@ -2971,7 +2890,7 @@ export function ItemWorkflowPanel() {
 		const normalizedComponentSearch = componentSearch.trim().toLowerCase();
 		const filteredVisibleComponents = !normalizedComponentSearch
 			? visibleComponents
-			: visibleComponents.filter((component: any) => {
+			: visibleComponents.filter((component) => {
 					const haystack = [component?.title, component?.uid, component?.value]
 						.filter(Boolean)
 						.join(" ")
@@ -2980,7 +2899,7 @@ export function ItemWorkflowPanel() {
 				});
 		const filteredRootComponents = !normalizedComponentSearch
 			? activeRootComponents
-			: activeRootComponents.filter((component: any) => {
+			: activeRootComponents.filter((component) => {
 					const haystack = [component?.title, component?.uid, component?.value]
 						.filter(Boolean)
 						.join(" ")
@@ -3002,7 +2921,7 @@ export function ItemWorkflowPanel() {
 					) : (
 						<>
 							<div className="grid gap-3 pb-24 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-								{filteredRootComponents.map((component: any) => (
+								{filteredRootComponents.map((component) => (
 									<button
 										key={component.uid}
 										type="button"
