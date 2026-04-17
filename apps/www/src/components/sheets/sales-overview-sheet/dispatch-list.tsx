@@ -68,6 +68,16 @@ export function DispatchList({}) {
                                                 )}
                                             </DataSkeleton>
                                         </span>
+                                        {dispatch.deliveredAt ? (
+                                            <span>
+                                                <DataSkeleton pok="date">
+                                                    ✅ Completed{" "}
+                                                    {formatDate(
+                                                        dispatch.deliveredAt,
+                                                    ) || "Unknown date"}
+                                                </DataSkeleton>
+                                            </span>
+                                        ) : null}
                                         <span>
                                             <DataSkeleton pok="textSm">
                                                 📦{" "}

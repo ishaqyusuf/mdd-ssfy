@@ -1,19 +1,19 @@
 "use client";
 
+import { useAuth } from "@/hooks/use-auth";
 import { useProjectUnitFilterParams } from "@/hooks/use-project-units-filter-params";
 import { useSortParams } from "@/hooks/use-sort-params";
 import { useProjectUnitsStore } from "@/store/project-units";
 import { useTRPC } from "@/trpc/client";
 import type { GetProjectUnitsSchema } from "@api/db/queries/project-units";
-import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@gnd/ui/button";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { NoResults } from "@gnd/ui/custom/no-results";
 import { Table, useTableData } from "@gnd/ui/data-table";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { Icons } from "@gnd/ui/icons";
-import type { ColumnDef } from "@tanstack/react-table";
 import { isCommunityUnitRole } from "@gnd/utils/constants";
+import type { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BatchActions } from "./batch-actions";
@@ -82,8 +82,7 @@ export function DataTable(props: Props) {
 			args={[
 				{
 					columns:
-						props.columns ||
-						(isCommunityUnit ? communityUnitColumns : columns),
+						props.columns || (isCommunityUnit ? communityUnitColumns : columns),
 					mobileColumn: isCommunityUnit
 						? communityUnitMobileColumn
 						: mobileColumn,

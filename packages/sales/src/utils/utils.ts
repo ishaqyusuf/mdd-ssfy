@@ -364,6 +364,7 @@ export const FullSalesSelect = {
       status: true,
       deliveryMode: true,
       id: true,
+      deliveredAt: true,
       createdBy: {
         select: {
           name: true,

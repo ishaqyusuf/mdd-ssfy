@@ -103,10 +103,10 @@ function PackingListCard({
 				<div className="flex items-start justify-between gap-3">
 					<button type="button" onClick={onOpen} className="min-w-0 text-left">
 						<p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-							Order
+							Customer
 						</p>
 						<p className="mt-1 truncate text-2xl font-semibold">
-							{item.orderNo}
+							{item.customerName || "Unknown customer"}
 						</p>
 					</button>
 
@@ -199,9 +199,7 @@ function PackingListCard({
 						<div className="flex items-start gap-2">
 							<Icons.User className="mt-0.5 size-4 text-muted-foreground" />
 							<div className="min-w-0">
-								<p className="truncate font-medium">
-									{item.customerName || "Unknown customer"}
-								</p>
+								<p className="truncate font-medium">{item.orderNo}</p>
 								<p className="truncate text-muted-foreground">
 									Sales Rep: {item.salesRep || "Unassigned"}
 								</p>

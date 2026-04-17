@@ -109,6 +109,7 @@ export async function createSalesBookFormDataDta(
             meta: {
                 sales_percentage: ctx.defaultProfile?.coefficient,
                 ccc_percentage: +(ctx?.settings?.ccc || 3.5),
+                payment_option: "Credit Card",
                 tax: true,
                 calculatedPriceMode: true,
             },

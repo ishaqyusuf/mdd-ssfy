@@ -31,6 +31,10 @@
 - Supervisor is editable inline from the table via a popover editor.
 - Project and unit pages use card-based analytics and activity sections built from Community-specific tRPC summaries.
 - The project-units table exposes lightweight readiness columns for install cost and template configuration so operators can spot missing setup before entering the print flow.
+- `CommunityUnit` is the restricted units/template role:
+  - sidebar access is limited to community projects, units, and templates
+  - the unit index is reduced to `Project`, `Builder`, `Model`, `Lot`, and `Block`
+  - users can create units and edit templates, but install-cost data/actions are hidden and blocked
 - The project-units print modal is a unit-by-unit review gate: each selected unit appears with its own checkbox, install-cost summary, template-printability status, submitted-job count with jobs CTA, and production status, while `Print` and `Production` act only on the checked eligible rows and keep the modal open.
 - Project overview activity content is organized inside the `components/widgets/project-overview` tabbed widget with Units, Production, Invoices, and Jobs panes.
 

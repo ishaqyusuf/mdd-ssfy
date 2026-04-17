@@ -22,6 +22,10 @@ type DeliveryAddress = {
 	state?: string | null;
 };
 
+type DeliveryWithCompletion = {
+	deliveredAt?: string | Date | null;
+};
+
 function statusVariant(
 	status?: string | null,
 ): "default" | "secondary" | "destructive" | "outline" {
@@ -132,6 +136,18 @@ export function SalesOverviewDispatchTab() {
 											<p className="text-xs text-muted-foreground">Due Date</p>
 											<p className="font-medium">
 												{new Date(delivery.dueDate).toLocaleDateString("en-US")}
+											</p>
+										</div>
+									)}
+									{(delivery as DeliveryWithCompletion).deliveredAt && (
+										<div>
+											<p className="text-xs text-muted-foreground">
+												Date Completed
+											</p>
+											<p className="font-medium">
+												{new Date(
+													(delivery as DeliveryWithCompletion).deliveredAt!,
+												).toLocaleDateString("en-US")}
 											</p>
 										</div>
 									)}
