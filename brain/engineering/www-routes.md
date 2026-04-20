@@ -36,6 +36,7 @@ Grouped route reference for the `apps/www` Next.js App Router surface.
 - `/checkout/[token]`
 - `/checkout/[token]/v2`
 - `/square-payment/[emailToken]/[orderIds]`
+  Legacy shim: redirects to `/checkout/[token]/v2` when `?uid=<token>` is present; otherwise renders the legacy payment page.
 - `/square-payment/[emailToken]/[orderIds]/payment-response/[paymentId]`
 - `/square-payment-response/[paymentId]`
 - `/payments`

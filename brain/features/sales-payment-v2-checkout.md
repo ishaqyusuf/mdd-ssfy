@@ -11,12 +11,13 @@
 ## User Flow
 
 1. Customer opens a checkout v2 link from a payment token.
-2. Checkout resolves the order, customer context, token validity, and available payment options.
-3. Customer can continue as a guest or quickly create a password to enable login.
-4. Customer selects a preferred payment option.
-5. If logged in, checkout also shows wallet information relevant to the order/payment journey.
-6. Customer completes payment or uses wallet-assisted flows when available.
-7. After authentication/payment, customer can continue into a customer dashboard experience.
+2. Legacy `/square-payment/[emailToken]/[orderIds]?uid=<token>` links server-redirect into `/checkout/[token]/v2` when the `uid` query param is present.
+3. Checkout resolves the order, customer context, token validity, and available payment options.
+4. Customer can continue as a guest or quickly create a password to enable login.
+5. Customer selects a preferred payment option.
+6. If logged in, checkout also shows wallet information relevant to the order/payment journey.
+7. Customer completes payment or uses wallet-assisted flows when available.
+8. After authentication/payment, customer can continue into a customer dashboard experience.
 
 ## Data Model
 
@@ -36,6 +37,7 @@
 ## UI Screens
 
 - Public checkout v2 page for token-based payment.
+- Legacy payment route shim that forwards `uid`-backed links into checkout v2 while preserving the fallback legacy page for older links without a checkout token.
 - Public quote-acceptance page that converts an approved quote into a payable order experience.
 - Logged-in checkout variant that shows wallet information.
 - Quick create-password/login affordance within checkout.
