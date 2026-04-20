@@ -1,4 +1,5 @@
 import type { TRPCContext } from "@api/trpc/init";
+import { expireCurrentSalesDocumentSnapshots } from "@api/utils/sales-document-access";
 import {
 	bootstrapNewSalesFormSchema,
 	deleteNewSalesFormLineItemSchema,
@@ -1692,7 +1693,14 @@ export async function saveDraftNewSalesForm(
 	input: SaveDraftNewSalesFormSchema,
 ) {
 	const payload = saveDraftNewSalesFormSchema.parse(input);
-	return saveNewSalesFormInternal(ctx, payload, "Draft");
+	const result = await saveNewSalesFormInternal(ctx, payload, "Draft");
+	await expireCurrentSalesDocumentSnapshots({
+		db: ctx.db,
+		salesOrderId: result.salesId,
+		reason: "invoice_updated",
+		documentPrefixes: ["invoice_pdf", "production_pdf", "packing_slip_pdf", "order_packing_pdf"],
+	});
+	return result;
 }
 
 export async function saveFinalNewSalesForm(
@@ -1700,7 +1708,14 @@ export async function saveFinalNewSalesForm(
 	input: SaveFinalNewSalesFormSchema,
 ) {
 	const payload = saveFinalNewSalesFormSchema.parse(input);
-	return saveNewSalesFormInternal(ctx, payload, "Active");
+	const result = await saveNewSalesFormInternal(ctx, payload, "Active");
+	await expireCurrentSalesDocumentSnapshots({
+		db: ctx.db,
+		salesOrderId: result.salesId,
+		reason: "invoice_updated",
+		documentPrefixes: ["invoice_pdf", "production_pdf", "packing_slip_pdf", "order_packing_pdf"],
+	});
+	return result;
 }
 
 export async function deleteNewSalesFormLineItem(

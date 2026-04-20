@@ -84,6 +84,25 @@ const registry = {
 			filter: {},
 		},
 	},
+	"app-download-expiry-reminder-schedule": {
+		eventName: "app-download-expiry-reminder-schedule",
+		title: "App Download Expiry Reminder",
+		description:
+			"Checks the mobile app download expiry and emails DEV_EMAIL one day before it expires.",
+		runNowTaskId: buildRunTaskName(
+			"app-download-expiry-reminder-schedule",
+			"now",
+		),
+		runTestTaskId: buildRunTaskName(
+			"app-download-expiry-reminder-schedule",
+			"test",
+		),
+		filterSchema: dispatchDuplicateSweeperFilterSchema,
+		defaultConfig: {
+			status: "active" as TaskEventStatus,
+			filter: {},
+		},
+	},
 	"sales-pending-bill-reminder-schedule": {
 		eventName: "sales-pending-bill-reminder-schedule",
 		title: "Sales Pending Bill Reminder",

@@ -18,6 +18,7 @@ import type {
 	ExportDispatchesSchema,
 } from "@api/schemas/sales";
 import type { TRPCContext } from "@api/trpc/init";
+import { expireCurrentSalesDocumentSnapshots } from "@api/utils/sales-document-access";
 import type { QtyControlType } from "@api/type";
 import type { Prisma } from "@gnd/db";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
@@ -1241,6 +1242,13 @@ export async function signPackingSlip(
 			receivedBy,
 			signature: input.signature || undefined,
 		},
+	});
+
+	await expireCurrentSalesDocumentSnapshots({
+		db: ctx.db,
+		salesOrderId: dispatch.salesOrderId,
+		reason: "manual_regeneration",
+		documentPrefixes: ["packing_slip_pdf", "order_packing_pdf"],
 	});
 
 	return {

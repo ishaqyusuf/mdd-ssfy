@@ -21,6 +21,8 @@ export const taskNames = [
 	"run-dispatch-duplicate-sweeper-now",
 	"run-dispatch-duplicate-sweeper-test",
 	"run-unit-invoice-duplicate-sweeper-now",
+	"run-app-download-expiry-reminder-now",
+	"run-app-download-expiry-reminder-test",
 	"run-sales-pending-bill-reminder-now",
 	"run-sales-pending-bill-reminder-test",
 	"sales-rep-payment-received-notification",

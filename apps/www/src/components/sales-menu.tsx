@@ -5,7 +5,7 @@ import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { openLink } from "@/lib/open-link";
-import { quickPrint } from "@/lib/quick-print";
+import { downloadSalesDocument, quickPrint } from "@/lib/quick-print";
 import { newSalesHelper } from "@/lib/sales";
 import { useTRPC } from "@/trpc/client";
 import type { SalesPrintProps } from "@/utils/sales-print-utils";
@@ -370,7 +370,23 @@ function useSalesPrintAction() {
 			return;
 		}
 
-		await quickPrint({ salesIds: state.salesIds, mode });
+		const dispatchId =
+			params?.mode === "packing list" && params?.dispatchId !== "all"
+				? Number(params?.dispatchId)
+				: null;
+		if (options?.pdf) {
+			await downloadSalesDocument({
+				salesIds: state.salesIds,
+				mode,
+				dispatchId,
+			});
+		} else {
+			await quickPrint({
+				salesIds: state.salesIds,
+				mode,
+				dispatchId,
+			});
+		}
 		actions.closeMenu();
 	};
 }

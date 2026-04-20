@@ -5,6 +5,7 @@ export const settingsSchema = z.object({
   type: z.enum([
     "sales-settings",
     "install-price-chart",
+    "app-download-apk",
     "jobs-settings",
     "unit-invoice-sweeper-settings",
     "task-events-settings",
@@ -36,6 +37,29 @@ export const installCostSettings = settingsSchema.omit({ meta: true }).extend({
   }),
 });
 export type InstallCostSettings = z.infer<typeof installCostSettings>;
+export const appDownloadSettings = settingsSchema.omit({ meta: true }).extend({
+  meta: z.object({
+    fileName: z.string().nullable().optional(),
+    version: z.string().nullable().optional(),
+    downloadUrl: z.string().nullable().optional(),
+    publicId: z.string().nullable().optional(),
+    assetId: z.string().nullable().optional(),
+    uploadedAt: z.string().nullable().optional(),
+    uploadedBy: z
+      .object({
+        id: z.number().nullable().optional(),
+        name: z.string().nullable().optional(),
+        email: z.string().nullable().optional(),
+      })
+      .nullable()
+      .optional(),
+    notes: z.string().nullable().optional(),
+    expiresAt: z.string().nullable().optional(),
+    reminderSentAt: z.string().nullable().optional(),
+    reminderSentForExpiry: z.string().nullable().optional(),
+  }),
+});
+export type AppDownloadSettings = z.infer<typeof appDownloadSettings>;
 export type JobsSettings = z.infer<typeof jobsSettings>;
 export const unitInvoiceSweeperSettings = settingsSchema.extend({
   meta: z.object({
@@ -79,6 +103,7 @@ export type TaskEventsSettings = z.infer<typeof taskEventsSettings>;
 export type SettingsTypes = {
   // "sales-settings": SettingsSchema;
   "install-price-chart": InstallCostSettings;
+  "app-download-apk": AppDownloadSettings;
   "jobs-settings": JobsSettings;
   "unit-invoice-sweeper-settings": UnitInvoiceSweeperSettings;
   "task-events-settings": TaskEventsSettings;

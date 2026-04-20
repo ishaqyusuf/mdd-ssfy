@@ -63,6 +63,10 @@ export function getTestEmail() {
   return process.env.TEST_EMAIL?.trim() || null;
 }
 
+export function getDevEmail() {
+  return process.env.DEV_EMAIL?.trim() || null;
+}
+
 export function getRecipient(email: string | string[]): string | string[] {
   const isDev = process.env.NODE_ENV === "development";
   const testEmail = getTestEmail();

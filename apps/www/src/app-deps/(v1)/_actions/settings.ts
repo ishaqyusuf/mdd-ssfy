@@ -80,6 +80,8 @@ export async function saveAppDownloadSettingAction(meta: AppDownloadMeta) {
             meta: {
                 ...meta,
                 uploadedAt: meta?.uploadedAt || new Date().toISOString(),
+                reminderSentAt: meta?.reminderSentAt || null,
+                reminderSentForExpiry: meta?.reminderSentForExpiry || null,
                 uploadedBy: {
                     id: session?.user?.id ?? null,
                     name: session?.user?.name ?? null,

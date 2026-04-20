@@ -1,8 +1,6 @@
-import { generateToken } from "@/actions/token-action";
+import { resolveSalesDocumentAccessAction } from "@/actions/resolve-sales-document-access";
 import type { SalesType } from "@/app-deps/(clean-code)/(sales)/types";
 import type { IOrderPrintMode } from "@/types/sales";
-import type { SalesPdfToken } from "@gnd/utils/tokenizer";
-import { addDays } from "date-fns";
 import {
 	parseAsInteger,
 	parseAsString,
@@ -10,18 +8,11 @@ import {
 	useQueryStates,
 } from "nuqs";
 
-const PREVIEW_MODE_TO_TOKEN_MODE: Record<IOrderPrintMode, string> = {
-	order: "order",
-	"order-packing": "order-packing",
-	"packing list": "packing list",
-	production: "production",
-	quote: "quote",
-};
-
 export function useSalesPreview() {
 	const [params, setParams] = useQueryStates({
 		salesPreviewId: parseAsInteger,
 		salesPreviewToken: parseAsString,
+		salesPreviewUrl: parseAsString,
 		salesPreviewType: parseAsStringEnum(["order", "quote"] as SalesType[]),
 		previewMode: parseAsStringEnum([
 			"order",
@@ -32,7 +23,7 @@ export function useSalesPreview() {
 		] as IOrderPrintMode[]),
 		dispatchId: parseAsInteger,
 	});
-	const opened = !!params.salesPreviewToken;
+	const opened = !!params.salesPreviewUrl;
 	return {
 		params,
 		opened,
@@ -52,20 +43,37 @@ export function useSalesPreview() {
 
 			const previewMode =
 				options?.mode ?? (salesPreviewType as IOrderPrintMode);
-			const token = await generateToken({
+			const access = await resolveSalesDocumentAccessAction({
 				salesIds: [salesId],
-				expiry: addDays(new Date(), 7).toISOString(),
-				mode: PREVIEW_MODE_TO_TOKEN_MODE[previewMode] ?? previewMode,
+				mode: toPrintMode(previewMode),
 				dispatchId: options?.dispatchId ?? null,
-			} satisfies SalesPdfToken);
+			});
 
 			setParams({
 				salesPreviewId: salesId,
-				salesPreviewToken: token,
+				salesPreviewToken: access.accessToken,
+				salesPreviewUrl: access.previewUrl,
 				salesPreviewType,
 				previewMode,
 				dispatchId: options?.dispatchId ?? null,
 			});
 		},
 	};
+}
+
+function toPrintMode(mode: IOrderPrintMode) {
+	switch (mode) {
+		case "order":
+			return "invoice" as const;
+		case "order-packing":
+			return "order-packing" as const;
+		case "packing list":
+			return "packing-slip" as const;
+		case "production":
+			return "production" as const;
+		case "quote":
+			return "quote" as const;
+		default:
+			return "invoice" as const;
+	}
 }

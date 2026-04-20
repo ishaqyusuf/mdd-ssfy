@@ -1,3 +1,4 @@
+import { getSalesSnapshotDocumentByAccessToken } from "@gnd/api/utils/sales-document-access";
 import { db } from "@gnd/db";
 import { renderSalesPdfBuffer } from "@gnd/pdf/sales-v2";
 import { getPrintDocumentData } from "@gnd/sales/print";
@@ -8,7 +9,8 @@ import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const paramsSchema = z.object({
-	token: z.string(),
+	token: z.string().optional(),
+	accessToken: z.string().optional(),
 	preview: z.preprocess((val) => val === "true", z.boolean().default(false)),
 	templateId: z.string().optional().default("template-2"),
 });
@@ -36,7 +38,48 @@ export async function GET(req: NextRequest) {
 		);
 	}
 
-	const payload = validateToken(result.data.token, tokenSchemas.salesPdfToken);
+	if (result.data.accessToken) {
+		const snapshotLookup = await getSalesSnapshotDocumentByAccessToken({
+			db,
+			accessToken: result.data.accessToken,
+		});
+		if (!snapshotLookup) notFound();
+
+		const sourceUrl =
+			snapshotLookup.storedDocument.url ||
+			snapshotLookup.storedDocument.pathname;
+		const absoluteSourceUrl = sourceUrl.startsWith("http")
+			? sourceUrl
+			: new URL(sourceUrl, requestUrl.origin).toString();
+		const upstream = await fetch(absoluteSourceUrl);
+		if (!upstream.ok) {
+			return NextResponse.json(
+				{ error: "Unable to load stored PDF snapshot" },
+				{ status: 502 },
+			);
+		}
+
+		const headers: Record<string, string> = {
+			"Content-Type":
+				snapshotLookup.storedDocument.mimeType || "application/pdf",
+			"Cache-Control": "no-store, max-age=0",
+		};
+		const filename =
+			snapshotLookup.storedDocument.filename ||
+			`${snapshotLookup.snapshot.documentType}.pdf`;
+		headers["Content-Disposition"] = result.data.preview
+			? `inline; filename="${filename}"`
+			: `attachment; filename="${filename}"`;
+
+		return new Response(upstream.body, {
+			headers,
+			status: upstream.status,
+		});
+	}
+
+	const payload = result.data.token
+		? validateToken(result.data.token, tokenSchemas.salesPdfToken)
+		: null;
 
 	if (!payload) notFound();
 

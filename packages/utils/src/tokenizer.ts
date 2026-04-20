@@ -15,6 +15,13 @@ export const salesPdfToken = z.object({
 	dispatchId: z.number().optional().nullable(),
 });
 export type SalesPdfToken = z.infer<typeof salesPdfToken>;
+export const salesDocumentAccessToken = z.object({
+	snapshotId: z.string(),
+	salesOrderId: z.number(),
+	documentType: z.string(),
+	expiry: z.string(),
+});
+export type SalesDocumentAccessToken = z.infer<typeof salesDocumentAccessToken>;
 export const jobsPdfToken = z.object({
 	jobIds: z.array(z.number()).min(1).optional().nullable(),
 	expiry: z.string(),
@@ -81,6 +88,7 @@ export const quoteAcceptanceTokenSchema = z.object({
 });
 export const tokenSchemas = {
 	salesPdfToken,
+	salesDocumentAccessToken,
 	jobsPdfToken,
 	payoutPdfToken,
 	communityInvoiceAgingPdfToken,
@@ -95,6 +103,7 @@ export type QuoteAcceptanceTokenSchema = z.infer<
 >;
 type KnownToken =
 	| SalesPdfToken
+	| SalesDocumentAccessToken
 	| JobsPdfToken
 	| PayoutPdfToken
 	| CommunityInvoiceAgingPdfToken

@@ -14,7 +14,8 @@
     "test:watch": "bun test --watch"
   },
   "exports": {
-    "./trpc/routers/_app": "./src/trpc/routers/_app.ts"
+    "./trpc/routers/_app": "./src/trpc/routers/_app.ts",
+    "./utils/sales-document-access": "./src/utils/sales-document-access.ts"
   },
   "dependencies": {
     "@date-fns/utc": "^2.1.0",
@@ -33,6 +34,7 @@
     "@gnd/utils": "workspace:*",
     "@gnd/jobs": "workspace:*",
     "@gnd/notifications": "workspace:*",
+    "@gnd/pdf": "workspace:*",
     "@gnd/sales": "workspace:*",
     "@gnd/settings": "workspace:*",
     "@gnd/square": "workspace:*",

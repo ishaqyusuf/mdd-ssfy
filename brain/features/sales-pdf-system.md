@@ -240,3 +240,4 @@ The stored-document phase should answer these operational rules explicitly:
 - V2 now mirrors the legacy three-bucket content split: door-like sections (doors, mouldings, HPT services), shelf sections, and generic line-item sections. Generic invoice lines are composed separately from non-HPT, non-shelf sales items and then merged into `page.sections` by line order.
 - Template 1 now appends a deduplicated end-of-document image reference block that collects unique row images, renders them in a larger grid, and labels each image with its row title.
 - Existing public tokenized download URLs remain stable while internals migrate.
+- Shared JWT signing for tokenized sales document links now uses each token payload's own `expiry` timestamp for the JWT `exp` claim, preventing emailed quote/invoice download links from expiring after a blanket 1-hour window.

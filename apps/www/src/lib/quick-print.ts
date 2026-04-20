@@ -1,23 +1,13 @@
-import { generateToken } from "@/actions/token-action";
-import { openLink } from "./open-link";
-import type { SalesPdfToken } from "@gnd/utils/tokenizer";
+import { resolveSalesDocumentAccessAction } from "@/actions/resolve-sales-document-access";
 import type { PrintMode } from "@gnd/sales/print/types";
-import { addDays } from "date-fns";
-
-const V2_TO_LEGACY_MODE: Record<PrintMode, string> = {
-    invoice: "order",
-    quote: "quote",
-    production: "production",
-    "packing-slip": "packing list",
-    "order-packing": "order-packing",
-};
+import { openLink } from "./open-link";
 
 export interface QuickPrintOptions {
-    salesIds: number[];
-    mode: PrintMode;
-    dispatchId?: number | null;
-    /** Open the v2 PDF viewer (default: true) */
-    v2?: boolean;
+	salesIds: number[];
+	mode: PrintMode;
+	dispatchId?: number | null;
+	/** Open the v2 PDF viewer (default: true) */
+	v2?: boolean;
 }
 
 export type SalesPrintHelperOptions = Omit<QuickPrintOptions, "mode">;
@@ -27,46 +17,65 @@ export type SalesPrintHelperOptions = Omit<QuickPrintOptions, "mode">;
  * Pass v2=false to open the legacy invoice page instead.
  */
 export async function quickPrint({
-    salesIds,
-    mode,
-    dispatchId,
-    v2 = true,
+	salesIds,
+	mode,
+	dispatchId,
+	v2 = true,
 }: QuickPrintOptions): Promise<void> {
-    const token = await generateToken({
-        salesIds,
-        expiry: addDays(new Date(), 7).toISOString(),
-        mode: V2_TO_LEGACY_MODE[mode] ?? mode,
-        dispatchId: dispatchId ?? null,
-    } satisfies SalesPdfToken);
+	const access = await resolveSalesDocumentAccessAction({
+		salesIds,
+		mode,
+		dispatchId: dispatchId ?? null,
+	});
 
-    const path = v2 ? "p/sales-invoice-v2" : "p/sales-invoice";
-    openLink(path, { token, preview: true }, true);
+	if (access.kind === "legacy") {
+		const path = v2 ? "p/sales-invoice-v2" : "p/sales-invoice";
+		openLink(path, { token: access.accessToken, preview: true }, true);
+		return;
+	}
+
+	openLink(access.previewUrl, null, true);
+}
+
+export async function downloadSalesDocument({
+	salesIds,
+	mode,
+	dispatchId,
+}: Omit<QuickPrintOptions, "v2">): Promise<void> {
+	const access = await resolveSalesDocumentAccessAction({
+		salesIds,
+		mode,
+		dispatchId: dispatchId ?? null,
+	});
+
+	openLink(access.downloadUrl, null, true);
 }
 
 export function printOrder(options: SalesPrintHelperOptions) {
-    return quickPrint({ ...options, mode: "invoice" });
+	return quickPrint({ ...options, mode: "invoice" });
 }
 
 export function printOrderWithPacking(options: SalesPrintHelperOptions) {
-    return quickPrint({ ...options, mode: "order-packing" });
+	return quickPrint({ ...options, mode: "order-packing" });
 }
 
 export function printPackingSlip(options: SalesPrintHelperOptions) {
-    return quickPrint({ ...options, mode: "packing-slip" });
+	return quickPrint({ ...options, mode: "packing-slip" });
 }
 
 export function printProduction(options: SalesPrintHelperOptions) {
-    return quickPrint({ ...options, mode: "production" });
+	return quickPrint({ ...options, mode: "production" });
 }
 
 export function printQuote(options: SalesPrintHelperOptions) {
-    return quickPrint({ ...options, mode: "quote" });
+	return quickPrint({ ...options, mode: "quote" });
 }
 
 export const salesPrintHelper = {
-    printOrder,
-    printOrderWithPacking,
-    printPackingSlip,
-    printProduction,
-    printQuote,
+	printOrder,
+	printOrderWithPacking,
+	printPackingSlip,
+	printProduction,
+	printQuote,
+	downloadSalesDocument,
 };

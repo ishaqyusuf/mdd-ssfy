@@ -18,6 +18,9 @@ export interface AppDownloadMeta {
     publicId?: string | null;
     assetId?: string | null;
     uploadedAt?: string | null;
+    expiresAt?: string | null;
+    reminderSentAt?: string | null;
+    reminderSentForExpiry?: string | null;
     uploadedBy?: {
         id?: number | null;
         name?: string | null;
