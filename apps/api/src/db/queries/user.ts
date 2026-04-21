@@ -3,7 +3,12 @@ import type {
   UpdateUserProfileSchema,
 } from "@api/schemas/hrm";
 import type { TRPCContext } from "@api/trpc/init";
-import { checkPassword, loginAction } from "@gnd/auth/utils";
+import {
+  checkPassword,
+  getUserSpecificPermissions,
+  loginAction,
+  mergePermissionRecords,
+} from "@gnd/auth/utils";
 import { Notifications } from "@gnd/notifications";
 import { camel, consoleLog } from "@gnd/utils";
 import {
@@ -11,12 +16,12 @@ import {
   allPermissions,
   generatePermissions,
 } from "@gnd/utils/constants";
-import { noteTag, saveNote } from "@gnd/utils/note";
 import { hashPassword } from "@gnd/utils/crypto";
 import {
   isInsuranceDocumentTitle,
   parseInsuranceDocumentMeta,
 } from "@gnd/utils/insurance-documents";
+import { noteTag, saveNote } from "@gnd/utils/note";
 import { TRPCError } from "@trpc/server";
 import z from "zod";
 
@@ -513,6 +518,7 @@ export async function auth(ctx: TRPCContext) {
   };
 }
 async function userPermissions(ctx: TRPCContext, roleId) {
+  const userId = ctx.userId;
   const role = await ctx.db.roles.findFirstOrThrow({
     where: {
       id: roleId,
@@ -531,7 +537,11 @@ async function userPermissions(ctx: TRPCContext, roleId) {
     },
   });
   const permissions = role.RoleHasPermissions.flatMap((a) => a.permission);
-  const can = generatePermissions(role?.name, permissions);
+  const specificPermissions = await getUserSpecificPermissions(ctx.db, userId);
+  const can = generatePermissions(
+    role?.name,
+    mergePermissionRecords(permissions, specificPermissions),
+  );
 
   return can;
 }

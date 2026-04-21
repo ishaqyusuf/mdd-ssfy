@@ -2,17 +2,16 @@
 
 import { Icons } from "@gnd/ui/icons";
 
-import { GuardedOpenJobSheet } from "@/components/guarded-open-job-sheet";
+import {
+	GuardedOpenJobSheet,
+	useGuardedOpenJobState,
+} from "@/components/guarded-open-job-sheet";
 import { InsuranceWarningBanner } from "@/components/insurance-warning-banner";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { useQuery } from "@gnd/ui/tanstack";
 import { formatDate } from "@gnd/utils/dayjs";
-import {
-	type InsuranceRequirement,
-	getInsuranceRequirement,
-} from "@gnd/utils/insurance-documents";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useMemo } from "react";
@@ -33,24 +32,10 @@ function formatCurrency(value?: number | null) {
 	}).format(value || 0);
 }
 
-function getFallbackInsuranceStatus(): InsuranceRequirement {
-	return {
-		blocking: true,
-		expiresAt: null,
-		message: "Upload your insurance document before submitting a new job.",
-		state: "missing",
-	};
-}
-
 export function WorkerOverview() {
 	const trpc = useTRPC();
 	const { data: session, status } = useSession();
 	const enabled = status === "authenticated";
-	const { data: profile } = useQuery(
-		trpc.user.getProfile.queryOptions(undefined, {
-			enabled,
-		}),
-	);
 	const { data: jobAnalytics } = useQuery(
 		trpc.jobs.getJobAnalytics.queryOptions(
 			{},
@@ -67,6 +52,7 @@ export function WorkerOverview() {
 			},
 		),
 	);
+	const guardedOpenJobState = useGuardedOpenJobState();
 
 	const chartData = useMemo(() => {
 		const values = earningAnalytics?.data || [];
@@ -76,10 +62,6 @@ export function WorkerOverview() {
 			value,
 		}));
 	}, [earningAnalytics?.data]);
-
-	const insuranceStatus = profile?.documents?.length
-		? getInsuranceRequirement(profile.documents)
-		: getFallbackInsuranceStatus();
 
 	const summaryCards = [
 		{
@@ -154,6 +136,11 @@ export function WorkerOverview() {
 										size="lg"
 										className="w-full rounded-2xl border-0 bg-white text-slate-900 shadow-lg shadow-black/10 hover:bg-slate-100"
 									/>
+									{guardedOpenJobState.disabledReason ? (
+										<p className="text-xs text-slate-200">
+											{guardedOpenJobState.disabledReason}
+										</p>
+									) : null}
 								</div>
 							</div>
 
@@ -188,14 +175,24 @@ export function WorkerOverview() {
 					</CardContent>
 				</Card>
 
-				<InsuranceWarningBanner
-					status={insuranceStatus}
-					showWhenValid
-					className="h-full rounded-[28px] border-0 shadow-lg shadow-slate-200/60"
-					ctaLabel={
-						insuranceStatus.blocking ? "Open documents" : "Review document"
-					}
-				/>
+				{guardedOpenJobState.insuranceStatus ? (
+					<InsuranceWarningBanner
+						status={guardedOpenJobState.insuranceStatus}
+						showWhenValid
+						className="h-full rounded-[28px] border-0 shadow-lg shadow-slate-200/60"
+						ctaLabel={
+							guardedOpenJobState.insuranceStatus.blocking
+								? "Open documents"
+								: "Review document"
+						}
+					/>
+				) : (
+					<Card className="rounded-[28px] border border-slate-200/80 bg-white shadow-lg shadow-slate-200/60">
+						<CardContent className="flex h-full min-h-[220px] items-center justify-center p-6 text-sm text-slate-500">
+							Checking insurance status...
+						</CardContent>
+					</Card>
+				)}
 			</section>
 
 			<section className="grid gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(320px,1fr)]">

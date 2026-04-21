@@ -232,7 +232,9 @@ export const PERMISSION_NAMES = [
 ] as const;
 export type PascalResource = (typeof PERMISSION_NAMES_PASCAL)[number];
 type Action = "edit" | "view";
-export type PermissionScope = `${Action}${PascalResource}`;
+export const EXTRA_PERMISSION_SCOPES = ["submitCustomJob"] as const;
+export type ExtraPermissionScope = (typeof EXTRA_PERMISSION_SCOPES)[number];
+export type PermissionScope = `${Action}${PascalResource}` | ExtraPermissionScope;
 
 export type ICan = { [permission in PermissionScope]: boolean };
 export const allPermissions = () => [...PERMISSIONS];
@@ -257,6 +259,9 @@ function normalizePermissionName(permission: string) {
 	if (normalized === "reviewEmployeeDocument") {
 		return ["viewEmployeeDocument", "editEmployeeDocument"];
 	}
+	if (normalized === "submitCustomJob") {
+		return ["submitCustomJob"];
+	}
 	return [normalized];
 }
 export const generatePermissions = (role, permissions?) => {
@@ -277,6 +282,10 @@ export const generatePermissions = (role, permissions?) => {
 			isSuperAdmin || normalizedPermissions.includes(viewPermission);
 		can[editPermission] =
 			isSuperAdmin || normalizedPermissions.includes(editPermission);
+	}
+	for (const permission of EXTRA_PERMISSION_SCOPES) {
+		can[permission] =
+			isSuperAdmin || normalizedPermissions.includes(permission);
 	}
 	return can;
 };

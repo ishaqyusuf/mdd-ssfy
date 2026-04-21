@@ -1,14 +1,14 @@
-// apps/expo-app/src/components/forms/job/job-select-project-list.tsx
-import { Text, View, TouchableOpacity } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { useJobFormContext } from "@/hooks/use-job-form-2";
-import { RouterOutputs } from "@api/trpc/routers/_app";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { LegendList } from "@legendapp/list";
+import { Text, TouchableOpacity, View } from "react-native";
 
 // 1. Make ProjectListItem a "dumb" component that only receives props.
+type ProjectItem = RouterOutputs["community"]["projectsList"][number];
 type ProjectListItemProps = {
-  item: RouterOutputs["community"]["projectsList"][number];
+  item: ProjectItem;
 };
 
 function ProjectListItem({ item }: ProjectListItemProps) {
@@ -86,23 +86,23 @@ function ProjectListItem({ item }: ProjectListItemProps) {
 }
 
 // 2. Move the state management and logic to the parent component.
-export function JobSelectProjectList({ items }) {
-  const { projectList } = useJobFormContext();
+export function JobSelectProjectList({ items = [] }: { items?: ProjectItem[] }) {
+  const { state } = useJobFormContext();
 
-  const customProjectItem = {
+  const customProjectItem: ProjectItem = {
     id: -1,
     title: "Custom",
     builder: {
       name: "Custom Project",
     },
-  } as any;
+  };
 
   return (
     <View className="flex flex-1 flex-col px-4 space-y-3">
-      <ProjectListItem item={customProjectItem} />
+      {state?.allowCustomJobs ? <ProjectListItem item={customProjectItem} /> : null}
 
       <LegendList
-        data={items!}
+        data={items}
         ListHeaderComponent={
           <View className="mt-4">
             <Text className="px-4 text-xs font-bold text-foreground uppercase tracking-wider mb-1">

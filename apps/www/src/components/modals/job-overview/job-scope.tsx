@@ -7,6 +7,8 @@ export function JobScope() {
     const ctx = useJobOverviewContext();
     const { overview: job } = ctx;
     const tasks = job?.tasks || [];
+    const description = String(job?.description || "").trim();
+
     return (
         <Card className="overflow-hidden">
             {/* Header */}
@@ -26,10 +28,24 @@ export function JobScope() {
             </Card.Header>
 
             {/* Description */}
-            <Card.Content className="border-b">
-                <p className="text-sm italic text-muted-foreground">
-                    “{job.description}”
-                </p>
+            <Card.Content className="border-b bg-muted/10">
+                <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        <Icons.FileText className="h-3.5 w-3.5" />
+                        Work Description
+                    </div>
+                    <div className="rounded-lg border bg-background px-4 py-3">
+                        {description ? (
+                            <p className="whitespace-pre-wrap text-sm leading-6 text-foreground">
+                                {description}
+                            </p>
+                        ) : (
+                            <p className="text-sm italic text-muted-foreground">
+                                No scope description was added to this job.
+                            </p>
+                        )}
+                    </div>
+                </div>
             </Card.Content>
 
             {/* Table */}
@@ -109,4 +125,3 @@ export function JobScope() {
         </Card>
     );
 }
-

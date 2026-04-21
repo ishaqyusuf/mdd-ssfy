@@ -50,7 +50,7 @@ export const jobFormSchema = z
       })
       .optional(),
     builderTaskId: z.number().optional(),
-    modelId: z.number(),
+    modelId: z.number().optional().nullable(),
     requestTaskConfig: z.boolean().optional(),
     job: z.object({
       id: z.number().optional(),

@@ -5,15 +5,17 @@ import type { ResetPasswordRequestInputs } from "@/components/_v1/forms/reset-pa
 import type { ResetPasswordFormInputs } from "@/components/_v1/forms/reset-password-form-step2";
 import { type Prisma, prisma } from "@/db";
 import { env } from "@/env.mjs";
-import { camel } from "@/lib/utils";
 import va from "@/lib/va";
-import type { ICan } from "@/types/auth";
 import { compare, hash } from "bcrypt-ts";
 import dayjs from "dayjs";
 
 import { validateAuthToken } from "@/actions/validate-auth-token";
 import { buildWebSessionExpiry } from "@/lib/auth-session-policy";
-import { PERMISSIONS } from "@gnd/utils/constants";
+import {
+	getUserSpecificPermissions,
+	mergePermissionRecords,
+} from "@gnd/auth/utils";
+import { generatePermissions } from "@gnd/utils/constants";
 // import PasswordResetRequestEmail from "@/components/_v1/emails/password-reset-request-email";
 import { _email } from "./_email";
 
@@ -182,13 +184,11 @@ export async function loginAction({
 		const pword = await checkPassword(user.password, password, true);
 
 		const _role = user?.roles[0]?.role;
-		const permissionIds =
-			_role?.RoleHasPermissions?.map((i) => i.permissionId) || [];
 		const { RoleHasPermissions = [], ...role } = _role || ({} as any);
-		const permissions = await prisma.permissions.findMany({
+		const rolePermissions = await prisma.permissions.findMany({
 			where: {
 				id: {
-					// in: permissionIds,
+					in: RoleHasPermissions.map((item) => item.permissionId),
 				},
 			},
 			select: {
@@ -196,15 +196,11 @@ export async function loginAction({
 				name: true,
 			},
 		});
-		let can: ICan = {} as any;
-		if (role.name?.toLocaleLowerCase() == "super admin") {
-			can = Object.fromEntries(
-				PERMISSIONS.map((permission) => [permission as any, true]),
-			);
-		} else
-			permissions.map((p) => {
-				can[camel(p.name) as any] = permissionIds.includes(p.id);
-			});
+		const specificPermissions = await getUserSpecificPermissions(prisma, user.id);
+		const can = generatePermissions(
+			role?.name,
+			mergePermissionRecords(rolePermissions, specificPermissions),
+		);
 		const newSession = await prisma.session.create({
 			data: {
 				sessionToken: crypto.randomUUID(),

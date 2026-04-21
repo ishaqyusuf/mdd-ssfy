@@ -250,9 +250,17 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 	const state = useMemo(
 		() => ({
 			showTaskQty: admin || !!jobSettings?.meta?.showTaskQty,
-			allowCustomJobs: admin || !!jobSettings?.meta?.allowCustomJobs,
+			allowCustomJobs:
+				admin ||
+				!!jobSettings?.meta?.allowCustomJobs ||
+				!!auth?.profile?.can?.submitCustomJob,
 		}),
-		[admin, jobSettings?.meta?.allowCustomJobs, jobSettings?.meta?.showTaskQty],
+		[
+			admin,
+			auth?.profile?.can?.submitCustomJob,
+			jobSettings?.meta?.allowCustomJobs,
+			jobSettings?.meta?.showTaskQty,
+		],
 	);
 
 	const formData = useWatch({ control: form.control }) as any;

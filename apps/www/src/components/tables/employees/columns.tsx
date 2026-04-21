@@ -88,6 +88,15 @@ export const columns: Column[] = [
         cell: ({ row: { original: item } }) => <Profile item={item} />,
     },
     {
+        header: "Specific Permissions",
+        accessorKey: "specificPermissionCount",
+        cell: ({ row: { original: item } }) => (
+            <Badge variant="outline">
+                {item.specificPermissionCount || 0} permissions
+            </Badge>
+        ),
+    },
+    {
         header: "",
         accessorKey: "actions",
         meta: {
@@ -363,6 +372,9 @@ function ItemCard({ item }: ItemProps) {
                 {item.profile?.name && (
                     <Badge variant="outline">{item.profile.name}</Badge>
                 )}
+                <Badge variant="outline">
+                    {item.specificPermissionCount || 0} permissions
+                </Badge>
             </div>
         </div>
     );

@@ -38,11 +38,16 @@ export function EmployeeOverviewPage({ data }: Props) {
 				profile={data.user.profile}
 			/>
 
-			<div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+			<div className="grid grid-cols-2 gap-4 md:grid-cols-5">
 				<OverviewStatCard
 					label="Roles"
 					value={data.user.roles.length}
 					icon={Icons.Users}
+				/>
+				<OverviewStatCard
+					label="Specific Permissions"
+					value={data.user.specificPermissionCount}
+					icon={Icons.Key}
 				/>
 				<OverviewStatCard
 					label="Records"

@@ -4,7 +4,6 @@ import * as React from "react";
 
 import { useTable } from ".";
 import { cn } from "../../../utils";
-import { TableBody as BaseTableBody } from "../../table";
 
 export const TableBody = React.forwardRef<
 	HTMLTableSectionElement,
@@ -12,11 +11,14 @@ export const TableBody = React.forwardRef<
 >(({ className, ...props }, ref) => {
 	const ctx = useTable();
 	const mobileMode = ctx?.mobileMode;
+	const resolvedClassName = mobileMode?.borderless
+		? cn("[&_tr:last-child]:border-0", className)
+		: cn("border [&_tr:last-child]:border-0", className);
 
 	return (
-		<BaseTableBody
+		<tbody
 			ref={ref}
-			className={cn(mobileMode?.borderless && "border-0", className)}
+			className={resolvedClassName}
 			{...props}
 		/>
 	);

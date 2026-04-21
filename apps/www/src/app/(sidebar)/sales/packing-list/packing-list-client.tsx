@@ -1,10 +1,11 @@
 "use client";
 
+import { generateToken } from "@/actions/token-action";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/hooks/use-auth";
-import { printPackingSlip } from "@/lib/quick-print";
+import { openLink } from "@/lib/open-link";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent } from "@gnd/ui/card";
@@ -19,6 +20,7 @@ import {
 import { Icons } from "@gnd/ui/icons";
 import { Tabs, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
+import { addDays } from "date-fns";
 import { toast } from "sonner";
 
 type PackingListTab = "current" | "completed" | "cancelled";
@@ -405,11 +407,24 @@ export function PackingListClient() {
 								statusMutation.variables?.dispatchId === item.dispatchId
 							}
 							onOpen={() => {
-								void printPackingSlip({
-									salesIds: [item.salesId],
-									dispatchId: item.dispatchId,
-									v2: true,
-								});
+								void (async () => {
+									try {
+										const token = await generateToken({
+											salesIds: [item.salesId],
+											dispatchId: item.dispatchId,
+											expiry: addDays(new Date(), 7).toISOString(),
+											mode: "packing list",
+										});
+
+										openLink(
+											"p/sales-invoice-v2",
+											{ token, preview: true },
+											true,
+										);
+									} catch (error) {
+										toast.error("Unable to open packing slip.");
+									}
+								})();
 							}}
 							onStatusChange={(newStatus) => {
 								statusMutation.mutate({

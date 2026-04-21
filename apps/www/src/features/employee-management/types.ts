@@ -56,6 +56,7 @@ export interface EmployeeOverview {
 		roles: string[];
 		profile?: string;
 		createdAt: string;
+		specificPermissionCount: number;
 	};
 	analytics: {
 		sales?: SalesAnalytics;
@@ -63,6 +64,12 @@ export interface EmployeeOverview {
 		production?: ProductionAnalytics;
 	};
 	records: EmployeeRecord[];
+	specificPermissions: {
+		id: number;
+		name: string;
+		label: string;
+		enabled: boolean;
+	}[];
 	insuranceStatus:
 		| "valid"
 		| "expiring_soon"

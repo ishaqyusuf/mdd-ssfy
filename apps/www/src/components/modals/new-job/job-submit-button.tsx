@@ -81,6 +81,7 @@ export function JobSubmitButton({
 				(values: JobFormSchema) => {
 					if (isConfigRequestedStatus) return;
 					const normalizedValues = structuredClone(values) as JobFormSchema;
+					const isCustom = !!normalizedValues.job?.isCustom;
 					normalizedValues.user = {
 						id:
 							normalizedValues.user?.id ??
@@ -88,17 +89,22 @@ export function JobSubmitButton({
 							defaultValues?.user?.id ??
 							null,
 					};
-					normalizedValues.unit = {
-						id: normalizedValues.unit?.id ?? unitId ?? 0,
-						projectId: normalizedValues.unit?.projectId ?? projectId ?? 0,
-					};
+					normalizedValues.unit = isCustom
+						? undefined
+						: {
+								id: normalizedValues.unit?.id ?? unitId ?? 0,
+								projectId:
+									normalizedValues.unit?.projectId ?? projectId ?? 0,
+							};
 					const resolvedBuilderTaskId =
 						normalizedValues.builderTaskId ?? builderTaskId ?? undefined;
 					normalizedValues.builderTaskId =
 						resolvedBuilderTaskId && resolvedBuilderTaskId > 0
 							? resolvedBuilderTaskId
 							: undefined;
-					normalizedValues.modelId = normalizedValues.modelId ?? modelId ?? 0;
+					normalizedValues.modelId = isCustom
+						? undefined
+						: (normalizedValues.modelId ?? modelId ?? 0);
 					const defaultMeta = defaultValues?.job?.meta || {};
 					const addonPercent =
 						Number(normalizedValues.job?.meta?.addonPercent) ||
@@ -107,7 +113,6 @@ export function JobSubmitButton({
 					const projectAddon =
 						Number(defaultValues?.unit?.projectAddon || 0) || 0;
 					const addon = percentageValue(projectAddon, addonPercent) || 0;
-					const isCustom = !!normalizedValues.job?.isCustom;
 					const taskTotal = sum(
 						(normalizedValues.job?.tasks || []).map(
 							(task) => Number(task?.qty || 0) * Number(task?.rate || 0),

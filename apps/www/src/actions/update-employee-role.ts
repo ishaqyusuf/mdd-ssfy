@@ -43,6 +43,11 @@ export async function updateEmployeeRole(id, roleId) {
             },
         },
     });
+    await prisma.session.deleteMany({
+        where: {
+            userId: id,
+        },
+    });
     createSiteActionTicket({
         event: "edited",
         type: "employee-role",

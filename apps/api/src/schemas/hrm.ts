@@ -25,6 +25,7 @@ export const employeeFormSchema = z
     phoneNo: z.string().optional().nullable(),
     username: z.string().optional().nullable(),
     password: z.string().nullable().optional().default("Millwork"),
+    permissionIds: z.array(z.number()).default([]),
   })
 
   .superRefine((data, ctx) => {

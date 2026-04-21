@@ -442,8 +442,8 @@ export const communityRouters = createTRPCRouter({
 			z.object({
 				jobId: z.number().optional().nullable(),
 				builderTaskId: z.number().optional().nullable(),
-				modelId: z.number(),
-				unitId: z.number(),
+				modelId: z.number().optional().nullable(),
+				unitId: z.number().optional().nullable(),
 				userId: z.number().optional().nullable(),
 			}),
 		)

@@ -201,6 +201,8 @@ interface EmployeeRecord {
 - The employee overview page only shows the admin upload modal to users with `auth.can.editEmployeeDocument`.
 - The document approvals page is also guarded by `editEmployeeDocument`; the legacy `reviewEmployeeDocument` permission is no longer used.
 - Regular employees continue to manage their own insurance uploads from their profile document flow.
+- Employee records now include per-user permission overrides stored in `ModelHasPermissions`; those permissions are merged with the assigned role on login/session refresh.
+- The employee list and overview surface the count of employee-specific permissions so admins can spot overrides quickly.
 
 ---
 

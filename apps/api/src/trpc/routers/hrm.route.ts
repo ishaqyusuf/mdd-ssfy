@@ -1,19 +1,20 @@
 import {
   deleteEmployee,
   getEmployeeFormData,
-  getEmployees,
   getEmployeeOverview,
+  getEmployeePermissionOptions,
+  getEmployees,
   resetEmployeePassword,
   saveEmployee,
 } from "@api/db/queries/hrm";
-import { createTRPCRouter, publicProcedure } from "../init";
+import { createSiteAction } from "@api/db/queries/site-action";
 import {
   employeeFormSchema,
   employeesQueryParamsSchema,
   getEmployeeFormDataSchema,
 } from "@api/schemas/hrm";
+import { createTRPCRouter, publicProcedure } from "../init";
 import { z } from "zod";
-import { createSiteAction } from "@api/db/queries/site-action";
 
 export const hrmRoutes = createTRPCRouter({
   getEmployees: publicProcedure
@@ -53,6 +54,9 @@ export const hrmRoutes = createTRPCRouter({
         name: "asc",
       },
     });
+  }),
+  getPermissions: publicProcedure.query(async (props) => {
+    return getEmployeePermissionOptions(props.ctx);
   }),
   resetEmployeePassword: publicProcedure
     .input(
@@ -163,6 +167,11 @@ export const hrmRoutes = createTRPCRouter({
               },
             },
           },
+        },
+      });
+      await prisma.session.deleteMany({
+        where: {
+          userId: id,
         },
       });
       await createSiteAction(props.ctx, {

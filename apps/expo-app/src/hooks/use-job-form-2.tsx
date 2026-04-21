@@ -313,7 +313,10 @@ export const useCreateJobFormContext = (props: JobFormProps) => {
     ...props,
     state: {
       showTaskQty: props.admin || jobSettings?.meta?.showTaskQty,
-      allowCustomJobs: props.admin || jobSettings?.meta?.allowCustomJobs,
+      allowCustomJobs:
+        props.admin ||
+        jobSettings?.meta?.allowCustomJobs ||
+        auth?.profile?.can?.submitCustomJob,
     },
     form,
     costData: costData?.data,

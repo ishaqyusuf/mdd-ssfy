@@ -27,11 +27,11 @@ export function FormStep() {
 	const { ...params } = useJobFormParams();
 	const { formType } = useJobStepInfo();
 	const { defaultValues, isPending } = useJobFormContext();
+	const isDirectCustomJob = params.builderTaskId === -1;
 	const isReadyToLoadForm =
-		!!params.unitId &&
-		!!params.builderTaskId &&
-		(formType === "submit" || !!params.userId) &&
-		!!params.modelId;
+		(isDirectCustomJob ||
+			(!!params.unitId && !!params.builderTaskId && !!params.modelId)) &&
+		(formType === "submit" || !!params.userId);
 
 	if (!isReadyToLoadForm) {
 		return (
@@ -77,14 +77,26 @@ function FormContent() {
 	const form = useZodForm(jobFormSchema, {
 		defaultValues: {
 			...resolvedDefaultValues,
-			unit: {
-				id: params.unitId,
-				projectId: params.projectId,
-			},
+			unit:
+				params.unitId && params.projectId
+					? {
+							id: params.unitId,
+							projectId: params.projectId,
+						}
+					: undefined,
 			user: {
 				id: params.userId ?? defaultValues?.user?.id,
 			},
-			modelId: params.modelId,
+			modelId: params.modelId ?? undefined,
+			builderTaskId:
+				params.builderTaskId && params.builderTaskId > 0
+					? params.builderTaskId
+					: undefined,
+			job: {
+				...resolvedDefaultValues.job,
+				isCustom:
+					resolvedDefaultValues.job?.isCustom || params.builderTaskId === -1,
+			},
 		},
 	});
 	if (!defaultValues) return null;
@@ -112,6 +124,7 @@ function FormContent() {
 		addonPercentage,
 	);
 	const isAdminMode = formType === "assign";
+	const isSubmitMode = formType === "submit";
 	const selectedProject = projects?.find(
 		(project) => project.id === params.projectId,
 	);
@@ -181,12 +194,16 @@ function FormContent() {
 					</span>
 					<span className="px-2 py-1 bg-muted rounded border border-border text-muted-foreground flex items-center gap-1">
 						<Icons.Building2 className="size-3" />{" "}
-						{defaultValues?.unit?.projectTitle || "Unknown Project"}
+						{params.builderTaskId === -1
+							? "Custom"
+							: defaultValues?.unit?.projectTitle || "Unknown Project"}
 					</span>
-					<span className="px-2 py-1 bg-muted rounded border border-border text-muted-foreground flex items-center gap-1">
-						<Icons.Home className="size-3" />
-						{`${defaultValues?.unit?.modelName} ${defaultValues?.unit?.lotBlock}`}
-					</span>
+					{params.builderTaskId === -1 ? null : (
+						<span className="px-2 py-1 bg-muted rounded border border-border text-muted-foreground flex items-center gap-1">
+							<Icons.Home className="size-3" />
+							{`${defaultValues?.unit?.modelName} ${defaultValues?.unit?.lotBlock}`}
+						</span>
+					)}
 				</div>
 				<div className="flex-1 overflow-y-auto pr-2 space-y-6">
 					{params.builderTaskId === -1 || !state.allowCustomJobs ? null : (
@@ -356,10 +373,14 @@ function FormContent() {
 								/>
 								<Field.Content>
 									<Field.Label htmlFor="finder-pref-9k2-sync-folders-nep">
-										Mark job as completed.
+										{isSubmitMode
+											? "Mark job as submitted for review."
+											: "Mark job as completed."}
 									</Field.Label>
 									<Field.Description>
-										This will set the job status to completed
+										{isSubmitMode
+											? "This will submit the job for admin review."
+											: "This will set the job status to completed"}
 									</Field.Description>
 								</Field.Content>
 							</Field>

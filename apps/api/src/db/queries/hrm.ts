@@ -7,13 +7,102 @@ import type {
 } from "@api/schemas/hrm";
 import type { TRPCContext } from "@api/trpc/init";
 import { hash } from "bcrypt-ts";
-import { padStart, formatMoney } from "@gnd/utils";
+import { formatMoney, padStart } from "@gnd/utils";
+import {
+  USER_PERMISSION_MODEL_TYPE,
+  USER_PERMISSION_MODEL_TYPE_ALIASES,
+  getUserSpecificPermissions,
+} from "@gnd/auth/utils";
 import { formatDate } from "@gnd/utils/dayjs";
 import {
   getInsuranceRequirement,
   isInsuranceDocumentTitle,
   parseInsuranceDocumentMeta,
 } from "@gnd/utils/insurance-documents";
+
+const EMPLOYEE_SPECIFIC_PERMISSION_NAMES = ["submit custom job"] as const;
+
+async function ensureEmployeeSpecificPermissions(ctx: TRPCContext) {
+  const existing = await ctx.db.permissions.findMany({
+    where: {
+      name: {
+        in: [...EMPLOYEE_SPECIFIC_PERMISSION_NAMES],
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+  const existingNames = new Set(existing.map((permission) => permission.name));
+  const missing = EMPLOYEE_SPECIFIC_PERMISSION_NAMES.filter(
+    (name) => !existingNames.has(name),
+  );
+
+  if (missing.length) {
+    await ctx.db.permissions.createMany({
+      data: missing.map((name) => ({ name })),
+    });
+  }
+
+  return ctx.db.permissions.findMany({
+    where: {
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
+}
+
+function formatPermissionLabel(name: string) {
+  return name
+    .split(" ")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+export async function getEmployeePermissionOptions(ctx: TRPCContext) {
+  const permissions = await ensureEmployeeSpecificPermissions(ctx);
+  const grouped = new Map<
+    string,
+    {
+      key: string;
+      viewPermissionId?: number;
+      editPermissionId?: number;
+    }
+  >();
+
+  permissions.forEach((permission) => {
+    const normalizedName = permission.name.toLowerCase();
+    const baseName = normalizedName
+      .replace(/^edit /, "")
+      .replace(/^view /, "")
+      .replace(/^review /, "");
+    const current = grouped.get(baseName) ?? {
+      key: baseName,
+    };
+
+    if (normalizedName.startsWith("view ")) {
+      current.viewPermissionId = permission.id;
+    } else if (normalizedName.startsWith("edit ")) {
+      current.editPermissionId = permission.id;
+    } else {
+      current.viewPermissionId = permission.id;
+    }
+
+    grouped.set(baseName, current);
+  });
+
+  return Array.from(grouped.values()).sort((a, b) =>
+    a.key.localeCompare(b.key),
+  );
+}
+
 export async function getEmployees(
   ctx: TRPCContext,
   query: EmployeesQueryParams,
@@ -74,6 +163,29 @@ export async function getEmployees(
       },
     },
   });
+  const userPermissionCounts = data.length
+    ? await ctx.db.modelHasPermissions.groupBy({
+        by: ["modelId"],
+        where: {
+          deletedAt: null,
+          modelId: {
+            in: data.map((user) => BigInt(user.id)),
+          },
+          modelType: {
+            in: [...USER_PERMISSION_MODEL_TYPE_ALIASES],
+          },
+        },
+        _count: {
+          permissionId: true,
+        },
+      })
+    : [];
+  const specificPermissionCountByUserId = new Map(
+    userPermissionCounts.map((item) => [
+      Number(item.modelId),
+      item._count.permissionId,
+    ]),
+  );
   return await response(
     data.map((user) => ({
       uid: `GND-${formatDate(user.createdAt!, `YYMM`)}-${padStart(
@@ -89,6 +201,8 @@ export async function getEmployees(
       date: formatDate(user.createdAt),
       documents: user.documents,
       profile: user.employeeProfile,
+      specificPermissionCount:
+        specificPermissionCountByUserId.get(user.id) ?? 0,
       username: user.username,
     })),
   );
@@ -101,7 +215,7 @@ export async function getEmployeesList(
   return resp.data;
 }
 export async function saveEmployee(ctx: TRPCContext, data: EmployeeFormSchema) {
-  const { id, password: passwordString, ...formData } = data;
+  const { id, password: passwordString, permissionIds, ...formData } = data;
   const password = await hashPassword(passwordString);
   const user = id
     ? await ctx.db.users.update({
@@ -124,6 +238,7 @@ export async function saveEmployee(ctx: TRPCContext, data: EmployeeFormSchema) {
           employeeProfileId: formData.profileId ?? null,
         },
       });
+  await ensureEmployeeSpecificPermissions(ctx);
   if (user?.id && formData.roleId) {
     await ctx.db.modelHasRoles.deleteMany({
       where: {
@@ -143,6 +258,23 @@ export async function saveEmployee(ctx: TRPCContext, data: EmployeeFormSchema) {
       },
     });
   }
+  await ctx.db.modelHasPermissions.deleteMany({
+    where: {
+      modelId: BigInt(user.id),
+      modelType: {
+        in: [...USER_PERMISSION_MODEL_TYPE_ALIASES],
+      },
+    },
+  });
+  if (permissionIds.length) {
+    await ctx.db.modelHasPermissions.createMany({
+      data: Array.from(new Set(permissionIds)).map((permissionId) => ({
+        permissionId,
+        modelId: BigInt(user.id),
+        modelType: USER_PERMISSION_MODEL_TYPE,
+      })),
+    });
+  }
 }
 async function hashPassword(pwrd) {
   return await hash(pwrd, 10);
@@ -151,6 +283,7 @@ export async function getEmployeeFormData(
   ctx: TRPCContext,
   { id }: GetEmployeeFormDataSchema,
 ): Promise<EmployeeFormSchema> {
+  await ensureEmployeeSpecificPermissions(ctx);
   const employee = await ctx.db.users.findUniqueOrThrow({
     where: {
       id,
@@ -170,6 +303,18 @@ export async function getEmployeeFormData(
       },
     },
   });
+  const specificPermissions = await ctx.db.modelHasPermissions.findMany({
+    where: {
+      deletedAt: null,
+      modelId: BigInt(id),
+      modelType: {
+        in: [...USER_PERMISSION_MODEL_TYPE_ALIASES],
+      },
+    },
+    select: {
+      permissionId: true,
+    },
+  });
   return {
     id: employee.id,
     name: employee.name as any,
@@ -180,6 +325,7 @@ export async function getEmployeeFormData(
     roleId: employee?.roles?.[0]?.roleId!,
     organizationId: employee?.roles?.[0]?.organizationId!,
     password: undefined as any,
+    permissionIds: specificPermissions.map((permission) => permission.permissionId),
   };
 }
 export async function resetEmployeePassword(ctx: TRPCContext, userId) {
@@ -213,6 +359,7 @@ export async function deleteEmployee(ctx: TRPCContext, userId: number) {
 }
 
 export async function getEmployeeOverview(ctx: TRPCContext, id: number) {
+  await ensureEmployeeSpecificPermissions(ctx);
   const user = await ctx.db.users.findUniqueOrThrow({
     where: { id },
     select: {
@@ -295,6 +442,7 @@ export async function getEmployeeOverview(ctx: TRPCContext, id: number) {
       },
     },
   });
+  const specificPermissions = await getUserSpecificPermissions(ctx.db, user.id);
 
   const roles = user.roles.map((r) => r.role.name);
   const insuranceRequirement = getInsuranceRequirement(user.documents);
@@ -411,6 +559,7 @@ export async function getEmployeeOverview(ctx: TRPCContext, id: number) {
       roles,
       profile: user.employeeProfile?.name,
       createdAt: user.createdAt?.toISOString() || new Date().toISOString(),
+      specificPermissionCount: specificPermissions.length,
     },
     analytics: {
       sales: salesAnalytics,
@@ -419,5 +568,11 @@ export async function getEmployeeOverview(ctx: TRPCContext, id: number) {
     },
     records,
     insuranceStatus: insuranceRequirement.state,
+    specificPermissions: specificPermissions.map((permission) => ({
+      id: permission.id,
+      name: permission.name,
+      label: formatPermissionLabel(permission.name),
+      enabled: true,
+    })),
   };
 }

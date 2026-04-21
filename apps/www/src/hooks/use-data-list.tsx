@@ -18,6 +18,14 @@ export function useProfilesList(enabled = false) {
     );
     return profiles || [];
 }
+export function usePermissionsList(enabled = false) {
+    const { data: permissions } = useQuery(
+        useTRPC().hrm.getPermissions.queryOptions(undefined, {
+            enabled,
+        }),
+    );
+    return permissions || [];
+}
 export function useOrganizationList(enabled = false) {
     const { data: organizations } = useQuery(
         useTRPC().orgs.getOrganizationProfile.queryOptions(undefined, {
@@ -53,4 +61,3 @@ export function useDriversList(enabled = false) {
     );
     return drivers?.data || [];
 }
-

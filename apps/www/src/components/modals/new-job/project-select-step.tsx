@@ -1,6 +1,8 @@
 import { Icons } from "@gnd/ui/icons";
 import { _trpc } from "@/components/static-trpc";
+import { useJobFormContext } from "@/contexts/job-form-context";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
+import { useJobStepInfo } from "@/hooks/use-job-step-info";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { SearchInput } from "@/components/search-input";
@@ -9,6 +11,8 @@ import { StepTitle } from "./step-title";
 import { SubHeader } from "./sub-header";
 export function ProjectSelectStep({}) {
 	const { setParams, ...params } = useJobFormParams();
+	const { state } = useJobFormContext();
+	const { stepCount } = useJobStepInfo();
 	const [query, setQuery] = useState("");
 	const { data, isPending } = useQuery(
 		_trpc.community.projectsList.queryOptions(null, {
@@ -41,6 +45,35 @@ export function ProjectSelectStep({}) {
 			</SubHeader>
 			<LoadingSkeleton isPending={isPending}>
 				<div className="space-y-2">
+					{state.allowCustomJobs ? (
+						<button
+							onClick={() => {
+								setParams({
+									projectId: null,
+									unitId: null,
+									modelId: null,
+									builderTaskId: -1,
+									step: stepCount,
+									redirectStep: null,
+								});
+							}}
+							className={`w-full flex items-center gap-4 p-3 rounded-xl border text-left transition-all hover:shadow-md ${params.builderTaskId === -1 ? "border-primary bg-primary/5" : "border-border bg-card hover:bg-muted/50"}`}
+						>
+							<div className="p-2 bg-primary/10 rounded-lg text-primary">
+								<Icons.PenTool className="size-6" />
+							</div>
+							<div className="flex-1">
+								<p className="text-sm font-bold text-foreground">Custom</p>
+								<p className="text-xs text-muted-foreground">
+									Create a one-off job and jump straight to the final step
+								</p>
+							</div>
+							<Icons.ChevronRight
+								size={16}
+								className="text-muted-foreground"
+							/>
+						</button>
+					) : null}
 					{results.map((item) => (
 						<button
 							key={item.id}

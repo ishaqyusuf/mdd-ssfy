@@ -6,12 +6,14 @@ import {
     serverSession,
     user,
 } from "@/app-deps/(v1)/_actions/utils";
-import { PERMISSIONS } from "@gnd/utils/constants";
 import { prisma } from "@/db";
-import { env } from "@/env.mjs";
-import { camel } from "@/lib/utils";
 import { ICan } from "@/types/auth";
 import { cookies } from "next/headers";
+import {
+    getUserSpecificPermissions,
+    mergePermissionRecords,
+} from "@gnd/auth/utils";
+import { generatePermissions } from "@gnd/utils/constants";
 
 export async function getLoggedInProfile(debugMode = false) {
     let id = await authId();
@@ -64,12 +66,10 @@ export async function getLoggedInProfile(debugMode = false) {
             },
         });
         const role = user?.roles?.[0]?.role;
-        const permissionIds =
-            role?.RoleHasPermissions?.map((i) => i.permissionId) || [];
-        const permissions = await prisma.permissions.findMany({
+        const rolePermissions = await prisma.permissions.findMany({
             where: {
                 id: {
-                    // in: permissionIds,
+                    in: role?.RoleHasPermissions?.map((i) => i.permissionId) || [],
                 },
             },
             select: {
@@ -77,12 +77,14 @@ export async function getLoggedInProfile(debugMode = false) {
                 name: true,
             },
         });
-        if (role?.name?.toLocaleLowerCase() == "super admin") {
-            can = Object.fromEntries(PERMISSIONS?.map((p) => [p as any, true]));
-        } else
-            permissions.map((p) => {
-                can[camel(p.name) as any] = permissionIds.includes(p.id);
-            });
+        const specificPermissions = await getUserSpecificPermissions(
+            prisma,
+            user?.id,
+        );
+        can = generatePermissions(
+            role?.name,
+            mergePermissionRecords(rolePermissions, specificPermissions),
+        );
         return {
             role: role?.name,
             roleId: role?.id,

@@ -1,6 +1,6 @@
 import { Db, Prisma } from "@gnd/db";
-import { camel } from "@gnd/utils";
 import {
+  type ExtraPermissionScope,
   generatePermissions,
   PERMISSION_NAMES,
   PERMISSION_NAMES_PASCAL,
@@ -13,13 +13,51 @@ export type PascalResource = (typeof PERMISSION_NAMES_PASCAL)[number];
 export type Resource = (typeof PERMISSION_NAMES)[number];
 type Action = "edit" | "view";
 // type PermissionScopeDot = `${Action}.${Resource}`;
-export type PermissionScope = `${Action}${PascalResource}`;
+export type PermissionScope = `${Action}${PascalResource}` | ExtraPermissionScope;
 export type ICan = { [permission in PermissionScope]: boolean };
 export const AUTH_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 export const AUTH_SESSION_MAX_AGE_MS = AUTH_SESSION_MAX_AGE_SECONDS * 1000;
+export const USER_PERMISSION_MODEL_TYPE = "users";
+export const USER_PERMISSION_MODEL_TYPE_ALIASES = [
+  USER_PERMISSION_MODEL_TYPE,
+  "user",
+  "App\\Models\\User",
+] as const;
 
 export function buildSessionExpiry(from = Date.now()) {
   return new Date(from + AUTH_SESSION_MAX_AGE_MS);
+}
+
+export async function getUserSpecificPermissions(db: Db, userId?: number | null) {
+  if (!userId) return [];
+  const permissions = await db.modelHasPermissions.findMany({
+    where: {
+      deletedAt: null,
+      modelId: BigInt(userId),
+      modelType: {
+        in: [...USER_PERMISSION_MODEL_TYPE_ALIASES],
+      },
+    },
+    select: {
+      permissions: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  return permissions.map((item) => item.permissions);
+}
+
+export function mergePermissionRecords(...collections: Array<Array<{ id?: number; name: string }>>) {
+  const map = new Map<string, { id?: number; name: string }>();
+  collections.flat().forEach((permission) => {
+    if (!permission?.name) return;
+    map.set(permission.name, permission);
+  });
+  return Array.from(map.values());
 }
 
 interface Props {
@@ -68,13 +106,11 @@ export async function loginAction(
     const pword = await checkPassword(user.password, password, true);
 
     const _role = user?.roles[0]?.role;
-    const permissionIds =
-      _role?.RoleHasPermissions?.map((i) => i.permissionId) || [];
     const { RoleHasPermissions = [], ...role } = _role || ({} as any);
-    const permissions = await db.permissions.findMany({
+    const rolePermissions = await db.permissions.findMany({
       where: {
         id: {
-          // in: permissionIds,
+          in: RoleHasPermissions.map((item) => item.permissionId),
         },
       },
       select: {
@@ -82,7 +118,11 @@ export async function loginAction(
         name: true,
       },
     });
-    let can = generatePermissions(role?.name, permissions);
+    const specificPermissions = await getUserSpecificPermissions(db, user.id);
+    const can = generatePermissions(
+      role?.name,
+      mergePermissionRecords(rolePermissions, specificPermissions),
+    );
     // if (role.name?.toLocaleLowerCase() == "super admin") {
     //   // can = Object.fromEntries(PERMISSIONS?.map((p) => [p as any, true]));
     //   can = Object.fromEntries(
