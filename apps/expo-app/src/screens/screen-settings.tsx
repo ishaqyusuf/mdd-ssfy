@@ -99,6 +99,10 @@ export default function SettingsExampleScreen() {
 	const insuranceStatus = profile
 		? getInsuranceRequirement(profile.documents || [])
 		: null;
+	const showWarehousePacking =
+		auth.isAdmin ||
+		auth.currentSectionKey === "dispatch" ||
+		auth.currentSectionKey === "driver";
 
 	const onSelectSection = (sectionKey: SettingsSectionKey) => {
 		if (sectionKey === "hrm") {
@@ -216,6 +220,22 @@ export default function SettingsExampleScreen() {
 						/>
 					</Section>
 					<Section title="App">
+						{showWarehousePacking ? (
+							<SettingsItem
+								icon="Warehouse"
+								label="Warehouse Packing"
+								subLabel="Open the separate warehouse packing workspace"
+								isLast={false}
+								onPress={() => router.push("/(drivers)/warehouse-packing")}
+								rightElement={
+									<Icon
+										name="ChevronRight"
+										className="text-muted-foreground"
+										size={20}
+									/>
+								}
+							/>
+						) : null}
 						<SettingsItem
 							icon="FileText"
 							label="Documents"

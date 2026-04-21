@@ -1,12 +1,11 @@
 import { DispatchDetailScreen } from "@/features/dispatch/components/dispatch-detail-screen";
 import { useLocalSearchParams } from "expo-router";
 
-export default function DriverDispatchDetailRoute() {
+export default function WarehousePackingDetailRoute() {
 	const params = useLocalSearchParams<{
 		dispatchId?: string;
 		salesNo?: string;
 		openComplete?: string;
-		source?: string;
 	}>();
 
 	const dispatchId = Number(params.dispatchId || 0);
@@ -16,14 +15,13 @@ export default function DriverDispatchDetailRoute() {
 			: undefined;
 	const openComplete =
 		params.openComplete === "1" || params.openComplete === "true";
-	const entryMode = params.source === "packing" ? "packing" : "dispatch";
 
 	return (
 		<DispatchDetailScreen
 			dispatchId={dispatchId}
 			salesNo={salesNo}
 			openCompleteOnMount={openComplete}
-			entryMode={entryMode}
+			entryMode="warehouse-packing"
 		/>
 	);
 }

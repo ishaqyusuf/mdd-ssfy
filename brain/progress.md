@@ -2,6 +2,19 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-04-21
+
+- Added the first mobile packing-list integration to the Expo driver/dispatch app on top of the existing pickup packing contracts.
+  - added a dedicated `/(drivers)/warehouse-packing` route in `apps/expo-app` and a new `PackingListScreen` powered by `dispatch.packingList`
+  - added `usePackingList()` in the Expo dispatch feature so mobile now consumes the canonical packing queue contract instead of deriving packing work from the assigned-dispatch list
+  - separated the warehouse packer entry from the driver dashboard by removing the driver-home shortcut and exposing the workspace from Settings as `Warehouse Packing`
+  - reused the existing dispatch detail runtime as the item-level packing execution surface and added a warehouse-packing entry mode with a summary card for packed vs remaining work
+  - extended mobile dispatch packing/status invalidation so `dispatch.packingList`, `dispatch.assignedDispatch`, and `dispatch.dispatchOverviewV2` all refresh after packing and dispatch status mutations
+  - validation note:
+    - `bunx biome format --write` ran for the touched Expo mobile dispatch files
+    - `bunx biome check` on the touched file set still reports pre-existing lint debt in the long-lived dispatch detail files, especially `noExplicitAny` / import-order issues that were already present in that slice
+    - `bunx tsc -p apps/expo-app/tsconfig.json --noEmit` still fails because of broad pre-existing workspace TypeScript issues across `apps/api` and `packages/sales`; no feature-specific regression signal was isolated from that baseline noise in-session
+
 ## 2026-04-17
 
 - Reworked public quote acceptance to preserve the original quote and create a payable order through the existing send-to-invoice copy path.

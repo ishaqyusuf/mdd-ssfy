@@ -19,6 +19,7 @@ Tracks important request/response contracts and shared schema boundaries.
   - `packingListQuerySchema = { tab?: "current" | "completed" | "cancelled" }`
   - `signPackingSlipSchema = { dispatchId: number, receivedBy?: string | null, signature: string, note?: string | null }`
   - packing-list history is scoped by `sales-packing-list` notification membership, while live warehouse work uses normal `queue` delivery status
+  - Expo mobile packing uses the same `packingListQuerySchema` tabs and opens the shared dispatch detail screen in a packing-aware mode via route params instead of introducing a second item-detail contract
 
 ## TODO
 - Document canonical contracts for sales, checkout, dispatch, notifications, and document workflows.

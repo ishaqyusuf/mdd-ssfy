@@ -86,6 +86,7 @@ import {
 	updateInstallCostSchema,
 } from "@api/schemas/community";
 import { assertInstallCostAccess } from "@api/utils/community-unit-access";
+import { buildInstallCostSuggestionsWhere } from "@api/utils/install-cost-suggestions";
 import {
 	sortBuilderTasks,
 	sortInstallCosts,
@@ -888,19 +889,7 @@ export const communityRouters = createTRPCRouter({
 		.query(async (props) => {
 			await assertInstallCostAccess(props.ctx);
 			const suggestions = await props.ctx.db.installCostModel.findMany({
-				where: {
-					status: "active",
-					communityModelInstallTasks: {
-						every: {
-							builderTaskId: {
-								not: props.input.builderTaskId,
-							},
-							communityModelId: {
-								not: props.input.modelId,
-							},
-						},
-					},
-				},
+				where: buildInstallCostSuggestionsWhere(props.input.builderTaskId),
 				orderBy: {
 					title: "asc",
 				},

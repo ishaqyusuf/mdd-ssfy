@@ -16,6 +16,7 @@ Tracks notable API surfaces and where they are implemented.
   - `dispatch.sendSaleForPickup`: creates or reuses a pickup `OrderDelivery` in `queue` and records packing-workflow membership on the `sales-packing-list` notification channel
   - `dispatch.packingList`: tab-aware query powering `/sales/packing-list` for `current`, `completed`, and admin-only `cancelled` views
   - `dispatch.signPackingSlip`: saves signature + packed/received names, packs all items into the delivery, and completes packing through the `/p/sales-invoice-v2` flow
+  - Expo mobile now consumes `dispatch.packingList` for a separate `/(drivers)/warehouse-packing` workspace exposed from Settings, while item-level execution still reuses `dispatch.dispatchOverviewV2` + the shared dispatch detail packing flow
 - Community production routes now include:
   - `community.getUnitProductions`: community unit-production task list with builder/project/task/status/due-date filtering and `ids` deep-link filtering
   - `community.getUnitProductionSummary`: lightweight summary query powering unit-production widgets for total tasks, units covered, queued, started, completed, and past-due counts
