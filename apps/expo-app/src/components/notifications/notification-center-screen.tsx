@@ -11,8 +11,16 @@ import {
   runNotificationAction,
 } from "@notifications/notification-center";
 import { useRouter } from "expo-router";
-import { Fragment, useState } from "react";
-import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import { useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { NotificationItem } from "./notification-item";
 
 function EmptyState({ description }: { description: string }) {
@@ -33,12 +41,20 @@ function NotificationList({
   onAction,
   refreshing = false,
   onRefresh,
+  hasNextPage = false,
+  isFetchingNextPage = false,
+  onEndReached,
 }: {
   items: TransformedNotification[];
   onAction?: (notification: TransformedNotification) => void;
   refreshing?: boolean;
   onRefresh?: () => void | Promise<void>;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
+  onEndReached?: () => void;
 }) {
+  const canTriggerEndReached = useRef(true);
+
   if (!items.length) {
     return (
       <ScrollView
@@ -54,23 +70,50 @@ function NotificationList({
   }
 
   return (
-    <ScrollView
+    <FlatList
+      data={items}
+      keyExtractor={(item) => String(item.id)}
       className="flex-1"
       contentContainerClassName="px-4 pb-24 pt-2"
       showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      {items.map((item, index) => (
-        <Fragment key={item.id}>
+      initialNumToRender={8}
+      windowSize={8}
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+      renderItem={({ item, index }) => (
+        <>
           <NotificationItem activity={item} onAction={onAction} />
           {index < items.length - 1 ? (
             <View className="ml-16 h-px bg-border/70" />
           ) : null}
-        </Fragment>
-      ))}
-    </ScrollView>
+        </>
+      )}
+      onMomentumScrollBegin={() => {
+        canTriggerEndReached.current = true;
+      }}
+      onEndReachedThreshold={0.35}
+      onEndReached={() => {
+        if (!canTriggerEndReached.current) return;
+        if (!hasNextPage || isFetchingNextPage) return;
+        canTriggerEndReached.current = false;
+        onEndReached?.();
+      }}
+      ListFooterComponent={
+        isFetchingNextPage ? (
+          <View className="py-4">
+            <ActivityIndicator />
+          </View>
+        ) : hasNextPage ? (
+          <View className="h-8" />
+        ) : (
+          <View className="items-center py-4">
+            <Text className="text-xs text-muted-foreground">
+              End of notifications
+            </Text>
+          </View>
+        )
+      }
+    />
   );
 }
 
@@ -78,8 +121,9 @@ export function NotificationCenterScreen() {
   const router = useRouter();
   const auth = useAuthContext();
   const [tab, setTab] = useState("inbox");
-  const { isLoading, isRefreshing, error, notifications, archived, refresh } =
-    useNotifications();
+  const { isLoading, error, inbox, archived, refresh } = useNotifications({
+    includeArchived: true,
+  });
   const handlers = createNotificationHandlers({
     job_submitted: (data) => {
       router.push(`/job/${data.jobId}` as any);
@@ -207,12 +251,12 @@ export function NotificationCenterScreen() {
             <View className="mt-3 flex-row gap-2">
               <View className="px-1 py-1">
                 <Text className="text-xs font-medium text-foreground">
-                  {notifications.length} inbox
+                  {inbox.items.length} inbox
                 </Text>
               </View>
               <View className="px-1 py-1">
                 <Text className="text-xs font-medium text-foreground">
-                  {archived.length} archived
+                  {archived.items.length} archived
                 </Text>
               </View>
             </View>
@@ -224,8 +268,8 @@ export function NotificationCenterScreen() {
                 className="flex-1"
                 contentContainerClassName="flex-grow"
                 refreshControl={
-                  <RefreshControl
-                    refreshing={isRefreshing}
+                <RefreshControl
+                    refreshing={inbox.isRefreshing}
                     onRefresh={refresh}
                   />
                 }
@@ -237,21 +281,26 @@ export function NotificationCenterScreen() {
                 className="flex-1"
                 contentContainerClassName="flex-grow"
                 refreshControl={
-                  <RefreshControl
-                    refreshing={isRefreshing}
+                <RefreshControl
+                    refreshing={inbox.isRefreshing}
                     onRefresh={refresh}
                   />
                 }
               >
                 <EmptyState description="Unable to load notifications right now." />
               </ScrollView>
-            ) : notifications.length ? (
+            ) : inbox.items.length ? (
               <>
                 <NotificationList
-                  items={notifications}
+                  items={inbox.items}
                   onAction={onAction}
-                  refreshing={isRefreshing}
+                  refreshing={inbox.isRefreshing}
                   onRefresh={refresh}
+                  hasNextPage={!!inbox.hasNextPage}
+                  isFetchingNextPage={inbox.isFetchingNextPage}
+                  onEndReached={() => {
+                    void inbox.fetchNextPage();
+                  }}
                 />
                 <View className="absolute bottom-0 left-0 right-0 border-t border-border bg-card px-4 py-2">
                   <Pressable
@@ -269,8 +318,8 @@ export function NotificationCenterScreen() {
                 className="flex-1"
                 contentContainerClassName="flex-grow"
                 refreshControl={
-                  <RefreshControl
-                    refreshing={isRefreshing}
+                <RefreshControl
+                    refreshing={inbox.isRefreshing}
                     onRefresh={refresh}
                   />
                 }
@@ -286,8 +335,8 @@ export function NotificationCenterScreen() {
                 className="flex-1"
                 contentContainerClassName="flex-grow"
                 refreshControl={
-                  <RefreshControl
-                    refreshing={isRefreshing}
+                <RefreshControl
+                    refreshing={archived.isRefreshing}
                     onRefresh={refresh}
                   />
                 }
@@ -299,20 +348,25 @@ export function NotificationCenterScreen() {
                 className="flex-1"
                 contentContainerClassName="flex-grow"
                 refreshControl={
-                  <RefreshControl
-                    refreshing={isRefreshing}
+                <RefreshControl
+                    refreshing={archived.isRefreshing}
                     onRefresh={refresh}
                   />
                 }
               >
                 <EmptyState description="Unable to load notifications right now." />
               </ScrollView>
-            ) : archived.length ? (
+            ) : archived.items.length ? (
               <NotificationList
-                items={archived}
+                items={archived.items}
                 onAction={onAction}
-                refreshing={isRefreshing}
+                refreshing={archived.isRefreshing}
                 onRefresh={refresh}
+                hasNextPage={!!archived.hasNextPage}
+                isFetchingNextPage={archived.isFetchingNextPage}
+                onEndReached={() => {
+                  void archived.fetchNextPage();
+                }}
               />
             ) : (
               <ScrollView
@@ -320,7 +374,7 @@ export function NotificationCenterScreen() {
                 contentContainerClassName="flex-grow"
                 refreshControl={
                   <RefreshControl
-                    refreshing={isRefreshing}
+                    refreshing={archived.isRefreshing}
                     onRefresh={refresh}
                   />
                 }

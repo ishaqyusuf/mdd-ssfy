@@ -3,11 +3,11 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useTRPC } from "@/trpc/client";
 import { transformNotifications } from "@notifications/notification-center";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useUserNotificationAccount } from "./use-user-notification-account";
 
-export function useNotifications() {
+function useNotificationFeed(status: Array<"unread" | "read" | "archived">) {
 	const auth = useAuth();
 	const trpc = useTRPC();
 	const {
@@ -15,54 +15,74 @@ export function useNotifications() {
 		isLoading: notificationAccountLoading,
 		error: notificationAccountError,
 	} = useUserNotificationAccount();
-	const notificationAccountId = notificationAccount?.id;
-	const {
-		data: activitiesData,
-		isLoading,
-		error,
-	} = useQuery(
-		trpc.notes.list.queryOptions({
-			contactIds: notificationAccountId ? [notificationAccountId] : [],
-			maxPriority: 3, // Only fetch notifications (priority <= 3)
-			pageSize: 20,
-			status: ["unread", "read"], // Exclude archived notifications from query
-		}, {
-			enabled: auth.enabled && !!notificationAccountId,
-		}),
-	);
-	// Separate query for archived notifications
-	const { data: archivedActivitiesData, isLoading: archivedIsLoading } =
-		useQuery(
-			trpc.notes.list.queryOptions({
+	const contactIds = notificationAccount?.id ? [notificationAccount.id] : [];
+
+	const query = useInfiniteQuery(
+		trpc.notes.list.infiniteQueryOptions(
+			{
+				contactIds,
 				maxPriority: 3,
 				pageSize: 20,
-				status: ["archived"], // Only archived notifications
-				contactIds: notificationAccountId ? [notificationAccountId] : [],
-			}, {
-				enabled: auth.enabled && !!notificationAccountId,
-			}),
-		);
-	const notifications = useMemo(
-		() => transformNotifications(activitiesData?.data || []),
-		[activitiesData?.data],
+				status,
+			},
+			{
+				enabled: auth.enabled && contactIds.length > 0,
+				getNextPageParam: (lastPage) => lastPage?.meta?.cursor,
+			},
+		),
 	);
-	const archivedNotifications = useMemo(
-		() => transformNotifications(archivedActivitiesData?.data || []),
-		[archivedActivitiesData?.data],
-	);
+
+	const notifications = useMemo(() => {
+		const items = query.data?.pages.flatMap((page) => page?.data ?? []) ?? [];
+		return transformNotifications(items);
+	}, [query.data]);
+
+	return {
+		...query,
+		notifications,
+		notificationAccountLoading,
+		notificationAccountError,
+	};
+}
+
+export function useNotifications() {
+	const auth = useAuth();
+	const inboxQuery = useNotificationFeed(["unread", "read"]);
+	const archivedQuery = useNotificationFeed(["archived"]);
+
 	const hasUnseenNotifications = useMemo(
 		() =>
-			notifications.some((notification) => notification.status === "unread"),
-		[notifications],
+			inboxQuery.notifications.some(
+				(notification) => notification.status === "unread",
+			),
+		[inboxQuery.notifications],
 	);
-	const markMessageAsRead = (messageId: number) => {};
+
 	return {
 		isLoading:
-			auth.isPending || notificationAccountLoading || isLoading || archivedIsLoading,
-		error: notificationAccountError ?? error,
-		notifications,
-		archived: archivedNotifications,
+			auth.isPending ||
+			inboxQuery.notificationAccountLoading ||
+			inboxQuery.isPending ||
+			archivedQuery.isPending,
+		error:
+			inboxQuery.notificationAccountError ??
+			inboxQuery.error ??
+			archivedQuery.error,
+		notifications: inboxQuery.notifications,
+		archived: archivedQuery.notifications,
 		hasUnseenNotifications,
-		markMessageAsRead,
+		markMessageAsRead: (_messageId: number) => {},
+		inbox: {
+			items: inboxQuery.notifications,
+			fetchNextPage: inboxQuery.fetchNextPage,
+			hasNextPage: inboxQuery.hasNextPage,
+			isFetchingNextPage: inboxQuery.isFetchingNextPage,
+		},
+		archive: {
+			items: archivedQuery.notifications,
+			fetchNextPage: archivedQuery.fetchNextPage,
+			hasNextPage: archivedQuery.hasNextPage,
+			isFetchingNextPage: archivedQuery.isFetchingNextPage,
+		},
 	};
 }

@@ -129,7 +129,7 @@
         "expo-web-browser": "~15.0.9",
         "lottie-react-native": "~7.3.1",
         "lucide-react-native": "^0.545.0",
-        "nativewind": "^5.0.0-preview.2",
+        "nativewind": "^5.0.0-preview.3",
         "pressto": "^0.6.0",
         "react": "catalog:",
         "react-dom": "catalog:",
@@ -4870,7 +4870,7 @@
 
     "napi-postinstall": ["napi-postinstall@0.3.4", "", { "bin": { "napi-postinstall": "lib/cli.js" } }, "sha512-PHI5f1O0EP5xJ9gQmFGMS6IZcrVvTjpXjz7Na41gTE7eE2hK11lg04CECCYEEjdc17EV4DO+fkGEtt7TpTaTiQ=="],
 
-    "nativewind": ["nativewind@5.0.0-preview.2", "", { "dependencies": { "tailwindcss-safe-area": "^1.1.0" }, "peerDependencies": { "react-native-css": "^3.0.1", "tailwindcss": ">4.1.11" } }, "sha512-rTNrwFIwl/n2VH7KPvsZj/NdvKf+uGHF4NYtPamr5qG2eTYGT8B8VeyCPfYf/xUskpWOLJVqVEXaFO/vuIDEdw=="],
+    "nativewind": ["nativewind@5.0.0-preview.3", "", { "dependencies": { "tailwindcss-safe-area": "^1.1.0" }, "peerDependencies": { "react-native-css": "^3.0.1", "tailwindcss": ">4.1.11" } }, "sha512-cbl1GzzY55NL2IG35AaAVfrL4+bCh77sa39aST5/o7xy3TLPthAtzhNPstnrCn+DtIglTnXOlOJGFrX2WdhI6w=="],
 
     "natural-compare": ["natural-compare@1.4.0", "", {}, "sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw=="],
 

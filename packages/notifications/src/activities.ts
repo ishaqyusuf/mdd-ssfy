@@ -181,62 +181,74 @@ export async function appendActivityTags(
 export type GetActivitiesParams = {
   contactIds: number[];
   status?: NoteStatus[];
+  pageSize?: number;
+  cursor?: string | null;
 };
 export async function getActivties(db: Db, params: GetActivitiesParams) {
   const { contactIds, status } = params;
-  const activities = await db.notePad.findMany({
-    where: {
-      deletedAt: null,
-      recipients: {
-        some: {
-          deletedAt: null,
-          notePadContactId: {
-            in: contactIds,
-          },
-          ...(status?.length ? { status: { in: status } } : {}),
+  const pageSize = Math.max(1, Math.min(params.pageSize ?? 20, 100));
+  const offset = Math.max(0, Number(params.cursor ?? 0) || 0);
+
+  const where = {
+    deletedAt: null,
+    recipients: {
+      some: {
+        deletedAt: null,
+        notePadContactId: {
+          in: contactIds,
         },
+        ...(status?.length ? { status: { in: status } } : {}),
       },
     },
-    orderBy: {
-      createdAt: "desc",
-    },
-    select: {
-      id: true,
-      createdAt: true,
-      subject: true,
-      headline: true,
-      color: true,
-      note: true,
-      senderContact: {
-        select: {
-          id: true,
-          // name: true,
-          // email: true,
-        },
+  } as const;
+
+  const [activities, count] = await Promise.all([
+    db.notePad.findMany({
+      where,
+      orderBy: {
+        createdAt: "desc",
       },
-      tags: {
-        where: {
-          deletedAt: null,
-        },
-        select: {
-          tagName: true,
-          tagValue: true,
-        },
-      },
-      recipients: {
-        where: {
-          deletedAt: null,
-          notePadContactId: {
-            in: contactIds,
+      skip: offset,
+      take: pageSize,
+      select: {
+        id: true,
+        createdAt: true,
+        subject: true,
+        headline: true,
+        color: true,
+        note: true,
+        senderContact: {
+          select: {
+            id: true,
+            // name: true,
+            // email: true,
           },
         },
-        select: {
-          status: true,
-          notePadContactId: true,
+        tags: {
+          where: {
+            deletedAt: null,
+          },
+          select: {
+            tagName: true,
+            tagValue: true,
+          },
+        },
+        recipients: {
+          where: {
+            deletedAt: null,
+            notePadContactId: {
+              in: contactIds,
+            },
+          },
+          select: {
+            status: true,
+            notePadContactId: true,
+          },
         },
       },
-    },
-  });
+    }),
+    db.notePad.count({ where }),
+  ]);
 
   const mergedActivities = activities.map(({ tags, recipients, ...activity }) => ({
     ...activity,
@@ -288,6 +300,11 @@ export async function getActivties(db: Db, params: GetActivitiesParams) {
           .filter(Boolean),
       };
     }),
+    meta: {
+      count,
+      size: pageSize,
+      cursor: offset + activities.length < count ? String(offset + activities.length) : null,
+    },
   };
 }
 export const getContactsByUserIds = async (

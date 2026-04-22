@@ -18,21 +18,19 @@ import {
 } from "@/lib/theme-preference";
 import { InsuranceStatusAlert } from "@/components/insurance/insurance-status-alert";
 import { Pressable } from "@/components/ui/pressable";
-import { SettingsSections } from "@/components/settings-sections";
-import type { CurrentSectionKey } from "@/lib/session-store";
+import {
+	SettingsSections,
+	type SettingsSectionKey,
+	type SettingsSectionOption,
+} from "@/components/settings-sections";
 
-type SettingsSectionKey = CurrentSectionKey | "hrm";
-
-const sectionRouteMap = {
-	jobs: "/(job)/dashboard",
-	dispatch: "/(drivers)/dispatch",
-	installer: "/(job)/dashboard",
-	driver: "/(drivers)",
-	sales: "/(sales)",
-	hrm: "/hrm",
-} as const;
-
-export default function SettingsExampleScreen() {
+export default function SettingsExampleScreen({
+	sections = [],
+	onSelectSection,
+}: {
+	sections?: SettingsSectionOption[];
+	onSelectSection?: (sectionKey: SettingsSectionKey) => void;
+}) {
 	const [pushEnabled, setPushEnabled] = useState(true);
 	const [emailEnabled, setEmailEnabled] = useState(false);
 	const [locationEnabled, setLocationEnabled] = useState(true);
@@ -77,25 +75,7 @@ export default function SettingsExampleScreen() {
 	};
 	// get expo build version
 	const expoVersion = config.version;
-	const uiSections: { key: SettingsSectionKey; label: string }[] = [
-		...auth.sections.map((section) => ({
-			key: section.key,
-			label: section.label,
-		})),
-		...(auth.isAdmin
-			? [
-					{
-						key: "sales" as const,
-						label: "Sales Dashboard",
-					},
-					{
-						key: "hrm" as const,
-						label: "HRM",
-					},
-				]
-			: []),
-	];
-	const shouldShowSections = uiSections.length > 1;
+	const shouldShowSections = sections.length > 1;
 	const insuranceStatus = profile
 		? getInsuranceRequirement(profile.documents || [])
 		: null;
@@ -103,15 +83,6 @@ export default function SettingsExampleScreen() {
 		auth.isAdmin ||
 		auth.currentSectionKey === "dispatch" ||
 		auth.currentSectionKey === "driver";
-
-	const onSelectSection = (sectionKey: SettingsSectionKey) => {
-		if (sectionKey === "hrm") {
-			router.push(sectionRouteMap.hrm as any);
-			return;
-		}
-		auth.setCurrentSectionByKey(sectionKey);
-		router.replace(sectionRouteMap[sectionKey] as any);
-	};
 
 	return (
 		<View className="flex-1 bg-background">
@@ -200,9 +171,9 @@ export default function SettingsExampleScreen() {
 						</Section>
 					)}
 					<SettingsSections
-						sections={uiSections}
+						sections={sections}
 						currentSectionKey={auth.currentSectionKey}
-						onSelectSection={onSelectSection}
+						onSelectSection={onSelectSection ?? (() => {})}
 						visible={shouldShowSections}
 					/>
 					<Section title="Appearance">

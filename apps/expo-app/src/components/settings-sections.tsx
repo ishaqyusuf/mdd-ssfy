@@ -3,9 +3,9 @@ import { View, Text } from "react-native";
 import { Pressable } from "@/components/ui/pressable";
 import { Icon, type IconKeys } from "@/components/ui/icon";
 
-type SettingsSectionKey = CurrentSectionKey | "hrm";
+export type SettingsSectionKey = CurrentSectionKey | "hrm";
 
-type SettingsSectionOption = {
+export type SettingsSectionOption = {
   key: SettingsSectionKey;
   label: string;
 };

@@ -22,9 +22,15 @@ function hugeIcon(name: HugeIconName): LucideIcon {
     size = 24,
     ...props
   }: LucideProps) {
+    const resolvedIcon = icon ?? (HugeIcons.X as any);
+
+    if (__DEV__ && !icon) {
+      console.warn(`[Icon] Missing Hugeicon export for "${name}", falling back to X.`);
+    }
+
     return (
       <HugeiconsIcon
-        icon={icon}
+        icon={resolvedIcon}
         size={size}
         strokeWidth={strokeWidth}
         {...props}
@@ -62,16 +68,16 @@ const Clock = hugeIcon("Clock");
 const CreditCard = hugeIcon("CreditCard");
 const Delete = hugeIcon("Delete");
 const DoorOpen = hugeIcon("Door01Icon");
-const Fence = hugeIcon("Fence");
+const Fence = hugeIcon("FenceIcon");
 const FilePenLine = hugeIcon("FileEditIcon");
 const FileText = hugeIcon("File02Icon");
 const FolderPlus = hugeIcon("FolderAddIcon");
 const Gavel = hugeIcon("JudgeIcon");
 const Globe = hugeIcon("Globe");
 const GripHorizontal = hugeIcon("DragDropHorizontalIcon");
-const HardHat = hugeIcon("HardHatIcon");
+const HardHat = hugeIcon("ConstructionIcon");
 const Hash = hugeIcon("Hash");
-const HelpCircle = hugeIcon("HelpCircle");
+const HelpCircle = hugeIcon("HelpCircleIcon");
 const Hourglass = hugeIcon("Hourglass");
 const House = hugeIcon("House");
 const Info = hugeIcon("Info");
@@ -156,12 +162,18 @@ function IconImpl({ name, ...props }: IconProps) {
         ? parsedOpacity / 100
         : parsedOpacity;
 
-  const _themColor =
-    colorScheme === "dark" ? THEME.dark[color!] : THEME.light[color!];
+  const themedColor =
+    color && colorScheme === "dark"
+      ? THEME.dark[color]
+      : color
+        ? THEME.light[color]
+        : undefined;
+  const resolvedColor = themedColor || color || props.color;
   const styleFromClass = {
-    color: _themColor || color,
+    color: resolvedColor,
     ...(opacity !== undefined ? { opacity } : {}),
   };
+  props.color = resolvedColor;
   props.style = props.style
     ? ([props.style, styleFromClass] as any)
     : (styleFromClass as any);

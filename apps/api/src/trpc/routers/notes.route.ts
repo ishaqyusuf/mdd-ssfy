@@ -234,6 +234,7 @@ export const notesRouter = createTRPCRouter({
 			z.object({
 				contactIds: z.array(z.number()),
 				maxPriority: z.number().optional(),
+				cursor: z.string().nullable().optional(),
 				pageSize: z.number().optional(),
 				status: z.array(z.enum(["unread", "read", "archived"])).optional(),
 			}),
@@ -241,6 +242,8 @@ export const notesRouter = createTRPCRouter({
 		.query(async (props) => {
 			return getActivties(props.ctx.db, {
 				contactIds: props.input.contactIds,
+				cursor: props.input.cursor,
+				pageSize: props.input.pageSize,
 				status: props.input.status as any,
 			});
 			// const {

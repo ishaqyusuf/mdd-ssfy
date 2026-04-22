@@ -22,12 +22,6 @@ export default function AuthLayout() {
         }}
       />
       <Stack.Screen
-        name="settings"
-        options={{
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen
         name="edit-profile"
         options={{
           headerShown: false,

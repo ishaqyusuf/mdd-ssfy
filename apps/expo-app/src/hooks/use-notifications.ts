@@ -1,72 +1,81 @@
 import { useTRPC } from "@/trpc/client";
 import { transformNotifications } from "@notifications/notification-center";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useUserNotificationAccount } from "./use-user-notification-account";
 
-export function useNotifications() {
+function useNotificationFeed(
+	status: Array<"unread" | "read" | "archived">,
+	enabled = true,
+) {
 	const trpc = useTRPC();
 	const { data: notificationAccount } = useUserNotificationAccount();
+	const contactIds = notificationAccount?.id ? [notificationAccount.id] : [];
 
-	const {
-		data: activitiesData,
-		isLoading,
-		isRefetching,
-		error,
-		refetch: refetchNotifications,
-	} = useQuery(
-		trpc.notes.list.queryOptions({
-			contactIds: [notificationAccount?.id || 0],
-			maxPriority: 3,
-			pageSize: 20,
-			status: ["unread", "read"],
-		}),
-	);
-
-	const {
-		data: archivedActivitiesData,
-		isLoading: archivedIsLoading,
-		isRefetching: archivedIsRefetching,
-		refetch: refetchArchived,
-	} =
-		useQuery(
-			trpc.notes.list.queryOptions({
+	const query = useInfiniteQuery(
+		trpc.notes.list.infiniteQueryOptions(
+			{
+				contactIds,
 				maxPriority: 3,
 				pageSize: 20,
-				status: ["archived"],
-				contactIds: [notificationAccount?.id || 0],
-			}),
-		);
-
-	const notifications = useMemo(
-		() => transformNotifications(activitiesData?.data || []),
-		[activitiesData?.data],
+				status,
+			},
+			{
+				enabled: enabled && contactIds.length > 0,
+				getNextPageParam: (lastPage) => lastPage?.meta?.cursor,
+			},
+		),
 	);
-	const archivedNotifications = useMemo(
-		() => transformNotifications(archivedActivitiesData?.data || []),
-		[archivedActivitiesData?.data],
+
+	const notifications = useMemo(() => {
+		const items = query.data?.pages.flatMap((page) => page?.data ?? []) ?? [];
+		return transformNotifications(items);
+	}, [query.data]);
+
+	return {
+		...query,
+		notifications,
+	};
+}
+
+export function useNotifications(options?: { includeArchived?: boolean }) {
+	const inboxQuery = useNotificationFeed(["unread", "read"]);
+	const archivedQuery = useNotificationFeed(
+		["archived"],
+		options?.includeArchived ?? false,
 	);
 
 	const hasUnseenNotifications = useMemo(
 		() =>
-			notifications.some((notification) => notification.status === "unread"),
-		[notifications],
+			inboxQuery.notifications.some(
+				(notification) => notification.status === "unread",
+			),
+		[inboxQuery.notifications],
 	);
 
-	const markMessageAsRead = (_messageId: number) => {};
-
 	const refresh = async () => {
-		await Promise.all([refetchNotifications(), refetchArchived()]);
+		await Promise.all([inboxQuery.refetch(), archivedQuery.refetch()]);
 	};
 
 	return {
-		isLoading: isLoading || archivedIsLoading,
-		isRefreshing: isRefetching || archivedIsRefetching,
-		error,
-		notifications,
-		archived: archivedNotifications,
+		isLoading: inboxQuery.isPending || archivedQuery.isPending,
+		error: inboxQuery.error ?? archivedQuery.error,
 		hasUnseenNotifications,
-		markMessageAsRead,
+		markMessageAsRead: (_messageId: number) => {},
 		refresh,
+		inbox: {
+			items: inboxQuery.notifications,
+			isRefreshing: inboxQuery.isRefetching,
+			isFetchingNextPage: inboxQuery.isFetchingNextPage,
+			hasNextPage: inboxQuery.hasNextPage,
+			fetchNextPage: inboxQuery.fetchNextPage,
+		},
+		archived: {
+			items: archivedQuery.notifications,
+			isRefreshing: archivedQuery.isRefetching,
+			isFetchingNextPage: archivedQuery.isFetchingNextPage,
+			hasNextPage: archivedQuery.hasNextPage,
+			fetchNextPage: archivedQuery.fetchNextPage,
+		},
 	};
 }
