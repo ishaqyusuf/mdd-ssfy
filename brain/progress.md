@@ -4,6 +4,14 @@
 
 ## 2026-04-22
 
+- Fixed new sales form door/HPT reopen hydration when persisted house-package rows referenced a door component that no longer existed in the Door step's selected metadata.
+  - updated `packages/sales/src/sales-form/domain/selectors.ts` so `getSelectedDoorComponentsForLine(...)` can backfill selected door components from `selectedProdUids` and persisted `housePackageTool.doors[*].stepProductId` when the currently available door candidates are known
+  - updated `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx` so HPT sync/render and door-swap flows pass current visible door candidates into that selector, restoring the missing selected-door tab on reopened sales
+  - added regression coverage in `packages/sales/src/sales-form/domain/selectors.test.ts` for the reopen case where Door options are visible but one selected door only survives in persisted HPT rows
+  - validation note:
+    - `bun test packages/sales/src/sales-form/domain/selectors.test.ts` passes
+    - `bun test packages/sales/src/sales-form/domain/mutation-engine.test.ts` passes
+
 - Added shared dev-only sales form version switching across the sales overview and sales list action menus.
   - created `apps/www/src/components/sales-form-version-menu-items.tsx` so the `v1`/`v2` form links and `v2` overview links are driven from one reusable menu block
   - updated `apps/www/src/components/sheets/sales-overview-sheet/general-action-bar.tsx` so the overview actions dropdown now exposes the dev-only form-version chooser while preserving the existing default edit button

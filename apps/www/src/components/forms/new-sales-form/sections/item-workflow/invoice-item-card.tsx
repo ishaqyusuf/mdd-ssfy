@@ -24,21 +24,38 @@ export function InvoiceItemCard(props: {
 	componentLabel: (value?: string | null) => string;
 	children?: React.ReactNode;
 }) {
+	const isCollapsed = !props.isActive;
+
 	return (
 		<div
+			role={isCollapsed ? "button" : undefined}
+			tabIndex={isCollapsed ? 0 : undefined}
 			className={`rounded-xl border bg-background p-4 transition-all ${
 				props.isActive ? "block" : "hidden lg:block"
 			} ${
 				props.isActive
 					? "border-primary ring-1 ring-primary/20"
-					: "border-border/50 opacity-95 hover:border-border/70 hover:opacity-100"
+					: "cursor-pointer border-border/50 opacity-95 hover:border-primary/50 hover:opacity-100"
 			}`}
+			onClick={() => {
+				if (!isCollapsed) return;
+				props.onActivate();
+			}}
+			onKeyDown={(event) => {
+				if (!isCollapsed) return;
+				if (event.key !== "Enter" && event.key !== " ") return;
+				event.preventDefault();
+				props.onActivate();
+			}}
 		>
 			<div className="grid gap-3 md:grid-cols-12">
 				<button
 					type="button"
 					className="text-left md:col-span-2"
-					onClick={props.onActivate}
+					onClick={(event) => {
+						event.stopPropagation();
+						props.onActivate();
+					}}
 				>
 					<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
 						Item {props.index + 1}
@@ -49,13 +66,18 @@ export function InvoiceItemCard(props: {
 						value={props.title || ""}
 						onChange={(e) => props.onTitleChange(e.target.value)}
 						placeholder="Item Title / Location"
+						onClick={(event) => event.stopPropagation()}
+						onKeyDown={(event) => event.stopPropagation()}
 					/>
 				</div>
 				<div className="flex items-center justify-end gap-2 md:col-span-2">
 					<Button
 						size="icon"
 						variant="outline"
-						onClick={props.onActivate}
+						onClick={(event) => {
+							event.stopPropagation();
+							props.onActivate();
+						}}
 						aria-label={props.isActive ? "Collapse item" : "Expand item"}
 					>
 						{props.isActive ? (
@@ -67,7 +89,10 @@ export function InvoiceItemCard(props: {
 					<Button
 						size="icon"
 						variant="destructive"
-						onClick={props.onRemove}
+						onClick={(event) => {
+							event.stopPropagation();
+							props.onRemove();
+						}}
 						aria-label={`Remove item ${props.index + 1}`}
 					>
 						<Icons.Trash2 className="size-4" />
@@ -89,7 +114,8 @@ export function InvoiceItemCard(props: {
 										: "text-muted-foreground"
 							}`}
 							disabled={props.isRedirectDisabledStep(step)}
-							onClick={() => {
+							onClick={(event) => {
+								event.stopPropagation();
 								if (props.isRedirectDisabledStep(step)) return;
 								props.onStepChange(stepIndex);
 							}}

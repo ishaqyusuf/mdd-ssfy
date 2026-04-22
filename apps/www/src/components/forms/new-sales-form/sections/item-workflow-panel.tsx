@@ -724,68 +724,6 @@ export function ItemWorkflowPanel() {
 			lineTotal: summary.lineTotal,
 		});
 	}, [activeLine, activeProfileCoefficient, updateLineItem]);
-	const activeDoorSync = useMemo(() => {
-		if (!activeLine) return null;
-		const storedDoors = Array.isArray(activeLine.housePackageTool?.doors)
-			? activeLine.housePackageTool.doors
-			: [];
-		if (!storedDoors.length) return null;
-		const selectedDoorComponents = getSelectedDoorComponentsForLine(activeLine);
-		const activeDoorUid =
-			activeHptDoorUidByLine[activeLine.uid] ||
-			selectedDoorComponents[0]?.uid ||
-			"";
-		const activeDoorComponent =
-			selectedDoorComponents.find(
-				(component) => String(component?.uid || "") === String(activeDoorUid),
-			) ||
-			selectedDoorComponents[0] ||
-			null;
-		const routeConfig = resolveRouteConfigForLine({
-			routeData,
-			line: activeLine,
-			step: findLineStepByTitle(activeLine, "House Package Tool"),
-			component: activeDoorComponent,
-		});
-		const normalizedRows = applySharedDoorSurcharge(
-			storedDoors,
-			computeSharedDoorSurcharge(activeLine),
-			activeProfileCoefficient,
-		);
-		const summary = summarizeDoors(normalizedRows, {
-			noHandle: !!routeConfig?.noHandle,
-			hasSwing: !!routeConfig?.hasSwing,
-		});
-		const rowsChanged =
-			JSON.stringify(normalizeStoredDoorRows(storedDoors)) !==
-			JSON.stringify(normalizeStoredDoorRows(summary.rows));
-		const qtyChanged =
-			Number(activeLine.qty || 0) !== Number(summary.totalDoors || 0);
-		const totalChanged =
-			Number(Number(activeLine.lineTotal || 0).toFixed(2)) !==
-			Number(Number(summary.totalPrice || 0).toFixed(2));
-		if (!rowsChanged && !qtyChanged && !totalChanged) return null;
-		return {
-			lineUid: activeLine.uid,
-			rows: summary.rows,
-			totalDoors: summary.totalDoors,
-			totalPrice: summary.totalPrice,
-		};
-	}, [activeHptDoorUidByLine, activeLine, activeProfileCoefficient, routeData]);
-	useEffect(() => {
-		if (!activeDoorSync) return;
-		updateLineItem(activeDoorSync.lineUid, {
-			housePackageTool: {
-				...(activeLine?.housePackageTool || { id: null }),
-				doors: activeDoorSync.rows,
-				totalDoors: activeDoorSync.totalDoors,
-				totalPrice: activeDoorSync.totalPrice,
-			},
-			qty: activeDoorSync.totalDoors,
-			lineTotal: activeDoorSync.totalPrice,
-		});
-	}, [activeDoorSync, activeLine?.housePackageTool, updateLineItem]);
-
 	const stepComponentsQuery = useSalesStepComponentsQuery(
 		{
 			stepId: activeStep?.stepId || activeStep?.step?.id,
@@ -937,6 +875,78 @@ export function ItemWorkflowPanel() {
 		activeDoorStepComponentOverrides,
 		activeDoorStep,
 	]);
+	const activeDoorSync = useMemo(() => {
+		if (!activeLine) return null;
+		const storedDoors = Array.isArray(activeLine.housePackageTool?.doors)
+			? activeLine.housePackageTool.doors
+			: [];
+		if (!storedDoors.length) return null;
+		const selectedDoorComponents = getSelectedDoorComponentsForLine(
+			activeLine,
+			{
+				availableComponents: visibleDoorComponents,
+			},
+		);
+		const activeDoorUid =
+			activeHptDoorUidByLine[activeLine.uid] ||
+			selectedDoorComponents[0]?.uid ||
+			"";
+		const activeDoorComponent =
+			selectedDoorComponents.find(
+				(component) => String(component?.uid || "") === String(activeDoorUid),
+			) ||
+			selectedDoorComponents[0] ||
+			null;
+		const routeConfig = resolveRouteConfigForLine({
+			routeData,
+			line: activeLine,
+			step: findLineStepByTitle(activeLine, "House Package Tool"),
+			component: activeDoorComponent,
+		});
+		const normalizedRows = applySharedDoorSurcharge(
+			storedDoors,
+			computeSharedDoorSurcharge(activeLine),
+			activeProfileCoefficient,
+		);
+		const summary = summarizeDoors(normalizedRows, {
+			noHandle: !!routeConfig?.noHandle,
+			hasSwing: !!routeConfig?.hasSwing,
+		});
+		const rowsChanged =
+			JSON.stringify(normalizeStoredDoorRows(storedDoors)) !==
+			JSON.stringify(normalizeStoredDoorRows(summary.rows));
+		const qtyChanged =
+			Number(activeLine.qty || 0) !== Number(summary.totalDoors || 0);
+		const totalChanged =
+			Number(Number(activeLine.lineTotal || 0).toFixed(2)) !==
+			Number(Number(summary.totalPrice || 0).toFixed(2));
+		if (!rowsChanged && !qtyChanged && !totalChanged) return null;
+		return {
+			lineUid: activeLine.uid,
+			rows: summary.rows,
+			totalDoors: summary.totalDoors,
+			totalPrice: summary.totalPrice,
+		};
+	}, [
+		activeHptDoorUidByLine,
+		activeLine,
+		activeProfileCoefficient,
+		routeData,
+		visibleDoorComponents,
+	]);
+	useEffect(() => {
+		if (!activeDoorSync) return;
+		updateLineItem(activeDoorSync.lineUid, {
+			housePackageTool: {
+				...(activeLine?.housePackageTool || { id: null }),
+				doors: activeDoorSync.rows,
+				totalDoors: activeDoorSync.totalDoors,
+				totalPrice: activeDoorSync.totalPrice,
+			},
+			qty: activeDoorSync.totalDoors,
+			lineTotal: activeDoorSync.totalPrice,
+		});
+	}, [activeDoorSync, activeLine?.housePackageTool, updateLineItem]);
 	const activeRootComponents = useMemo(() => {
 		const roots = rootComponentsQuery.data || [];
 		const configured = new Set(Object.keys(routeData?.composedRouter || {}));
@@ -1815,7 +1825,9 @@ export function ItemWorkflowPanel() {
 		activeItemStep: WorkflowStep,
 	) {
 		const rows = line.housePackageTool?.doors || [];
-		const selectedDoorComponents = getSelectedDoorComponentsForLine(line);
+		const selectedDoorComponents = getSelectedDoorComponentsForLine(line, {
+			availableComponents: visibleDoorComponents,
+		});
 		const doorStepIndex = (line.formSteps || []).findIndex((step) =>
 			isDoorStepTitle(step?.step?.title),
 		);
@@ -2197,7 +2209,9 @@ export function ItemWorkflowPanel() {
 										<table className="min-w-full text-sm">
 											<thead>
 												<tr className="border-b border-slate-100 bg-slate-50/50 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
-													<th className="px-3 py-2">Size</th>
+													<th className="whitespace-nowrap px-3 py-2">
+														Size
+													</th>
 													{hasSwing ? (
 														<th className="px-3 py-2">Swing</th>
 													) : null}
@@ -2221,7 +2235,7 @@ export function ItemWorkflowPanel() {
 														key={`hpt-row-${componentId}-${row.stepProductId || row.dimension || "row"}-${row.swing || "noswing"}-${row.totalQty || 0}`}
 														className="border-b border-slate-100 last:border-0"
 													>
-														<td className="px-3 py-2 font-medium text-slate-800">
+														<td className="whitespace-nowrap px-3 py-2 font-medium text-slate-800">
 															{row.dimension || "--"}
 														</td>
 														{hasSwing ? (
@@ -3947,7 +3961,7 @@ export function ItemWorkflowPanel() {
 										key={component.uid}
 										className={`relative overflow-hidden rounded-xl border text-left transition ${
 											isSelected
-												? "border-primary bg-primary/5 ring-1 ring-primary/20"
+												? "border-primary bg-primary/5 ring-1 ring-primary/20 hover:border-primary"
 												: "bg-card hover:border-primary"
 										}`}
 									>
@@ -4649,7 +4663,9 @@ export function ItemWorkflowPanel() {
 							(step) => isDoorStepTitle(step?.step?.title),
 						);
 						const sourceUid = String(doorSwapModal.sourceUid || "");
-						const selectedDoors = getSelectedDoorComponentsForLine(activeLine);
+						const selectedDoors = getSelectedDoorComponentsForLine(activeLine, {
+							availableComponents: visibleDoorComponents,
+						});
 						const sourceComponent = selectedDoors.find(
 							(component) => String(component?.uid || "") === sourceUid,
 						);
