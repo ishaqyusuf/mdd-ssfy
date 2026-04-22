@@ -2,6 +2,16 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-04-22
+
+- Added shared dev-only sales form version switching across the sales overview and sales list action menus.
+  - created `apps/www/src/components/sales-form-version-menu-items.tsx` so the `v1`/`v2` form links and `v2` overview links are driven from one reusable menu block
+  - updated `apps/www/src/components/sheets/sales-overview-sheet/general-action-bar.tsx` so the overview actions dropdown now exposes the dev-only form-version chooser while preserving the existing default edit button
+  - updated `apps/www/src/components/tables/sales-orders/columns.tsx` and `apps/www/src/components/tables/sales-quotes/columns.tsx` so order/quote action menus now expose shared dev-only `Open with v1` / `Open with v2` entries instead of duplicating per-table wiring
+  - validation note:
+    - `bunx biome check apps/www/src/components/sales-form-version-menu-items.tsx apps/www/src/components/tables/sales-quotes/columns.tsx apps/www/src/components/sheets/sales-overview-sheet/general-action-bar.tsx` passes
+    - `bunx biome check --write` on the touched file set still reports pre-existing `noExplicitAny` lint debt in `apps/www/src/components/tables/sales-orders/columns.tsx`; no new lint errors remained in the newly added shared menu slice
+
 ## 2026-04-21
 
 - Added the first mobile packing-list integration to the Expo driver/dispatch app on top of the existing pickup packing contracts.

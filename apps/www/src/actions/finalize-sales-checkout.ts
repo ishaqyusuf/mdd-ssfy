@@ -6,6 +6,7 @@ import { prisma } from "@/db";
 import { formatMoney } from "@/lib/use-number";
 import { sum } from "@/lib/utils";
 import { expireCurrentSalesDocumentSnapshots } from "@gnd/api/utils/sales-document-access";
+import { queueSalesDocumentSnapshotWarmups } from "@gnd/api/utils/sales-document-warm";
 import { sendPaymentSystemNotifications } from "@gnd/notifications/payment-system";
 import { buildSalesCheckoutSuccessNotificationEvent } from "@gnd/sales/payment-system";
 import { tasks } from "@trigger.dev/sdk/v3";
@@ -226,14 +227,18 @@ export async function finalizeSalesCheckout({ salesPaymentId }: Props) {
 		),
 	);
 	await Promise.all(
-		squarePayment.orders.map((order) =>
-			expireCurrentSalesDocumentSnapshots({
+		squarePayment.orders.map(async (order) => {
+			await expireCurrentSalesDocumentSnapshots({
 				db: prisma,
 				salesOrderId: order.orderId,
 				reason: "payment_recorded",
 				documentPrefixes: ["invoice_pdf", "order_packing_pdf"],
-			}),
-		),
+			});
+			await queueSalesDocumentSnapshotWarmups([
+				{ salesOrderId: order.orderId, mode: "invoice" },
+				{ salesOrderId: order.orderId, mode: "order-packing" },
+			]);
+		}),
 	);
 	return {
 		proms,

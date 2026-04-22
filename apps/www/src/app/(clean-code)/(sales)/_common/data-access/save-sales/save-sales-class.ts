@@ -1,6 +1,8 @@
 import { prisma, SalesOrders } from "@/db";
 import { nextId } from "@/lib/nextId";
 import { generateRandomString } from "@/lib/utils";
+import { expireCurrentSalesDocumentSnapshots } from "@gnd/api/utils/sales-document-access";
+import { queueSalesDocumentSnapshotWarmups } from "@gnd/api/utils/sales-document-warm";
 
 import {
     SalesFormFields,
@@ -239,7 +241,34 @@ export class SaveSalesClass extends SaveSalesHelper {
                 );
             }) as any);
             this.data.result = transactions;
-            if (salesId) await resetSalesStatAction(salesId);
+            if (salesId) {
+                await resetSalesStatAction(salesId);
+                const isQuote = this.form.metaData.type === "quote";
+                await expireCurrentSalesDocumentSnapshots({
+                    db: prisma,
+                    salesOrderId: salesId,
+                    reason: "invoice_updated",
+                    documentPrefixes: isQuote
+                        ? ["quote_pdf"]
+                        : [
+                              "invoice_pdf",
+                              "production_pdf",
+                              "packing_slip_pdf",
+                              "order_packing_pdf",
+                              "quote_pdf",
+                          ],
+                });
+                await queueSalesDocumentSnapshotWarmups(
+                    isQuote
+                        ? [{ salesOrderId: salesId, mode: "quote" }]
+                        : [
+                              { salesOrderId: salesId, mode: "invoice" },
+                              { salesOrderId: salesId, mode: "production" },
+                              { salesOrderId: salesId, mode: "packing-slip" },
+                              { salesOrderId: salesId, mode: "order-packing" },
+                          ],
+                );
+            }
         } catch (error) {
             if (error instanceof Error) this.data.error = error.message;
             else this.data.error = "ERROR";

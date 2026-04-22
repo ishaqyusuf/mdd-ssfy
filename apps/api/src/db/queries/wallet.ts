@@ -1,5 +1,6 @@
 import type { TRPCContext } from "@api/trpc/init";
 import { expireCurrentSalesDocumentSnapshots } from "@api/utils/sales-document-access";
+import { queueSalesDocumentSnapshotWarmups } from "@api/utils/sales-document-warm";
 import { sendPaymentSystemNotifications } from "@gnd/notifications/payment-system";
 import {
 	appendLegacyRefundSalesPayment,
@@ -144,6 +145,10 @@ export async function resolvePayment(ctx: TRPCContext, data: ResolvePayment) {
 			reason: "payment_refunded",
 			documentPrefixes: ["invoice_pdf", "order_packing_pdf"],
 		});
+		await queueSalesDocumentSnapshotWarmups([
+			{ salesOrderId: orderId, mode: "invoice" },
+			{ salesOrderId: orderId, mode: "order-packing" },
+		]);
 	}
 	return result;
 }

@@ -1,40 +1,40 @@
 "use client";
 
-import * as React from "react";
-import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
-import { Progress } from "@gnd/ui/custom/progress";
 import { cn } from "@/lib/utils";
-import { ColumnDef } from "@/types/type";
-import { RouterOutputs } from "@api/trpc/routers/_app";
+import type { ColumnDef } from "@/types/type";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
+import { Progress } from "@gnd/ui/custom/progress";
+import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
+import * as React from "react";
 
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { buttonVariants } from "@gnd/ui/button";
-import { Icons } from "@gnd/ui/icons";
-import { InvoiceColumn } from "./column.invoice";
 import { cells } from "@gnd/ui/custom/data-table/cells";
+import { Icons } from "@gnd/ui/icons";
 import { Item } from "@gnd/ui/namespace";
+import { InvoiceColumn } from "./column.invoice";
 
-import Link from "next/link";
-import { SalesMenu } from "@/components/sales-menu";
 import { SuperAdminGuard } from "@/components/auth-guard";
-import { useBin } from "@/hooks/use-bin";
+import { SalesFormVersionMenuItems } from "@/components/sales-form-version-menu-items";
+import { SalesMenu } from "@/components/sales-menu";
 import { useAuth } from "@/hooks/use-auth";
-import { useSalesOverviewOpen } from "@/hooks/use-sales-overview-open";
-import { useTaskTrigger } from "@/hooks/use-task-trigger";
-import { invalidateInfiniteQueries } from "@/hooks/use-invalidate-query";
+import { useBin } from "@/hooks/use-bin";
 import { useDriversList } from "@/hooks/use-data-list";
-import { SubmitButton } from "@gnd/ui/submit-button";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useTRPC } from "@/trpc/client";
-import { UpdateSalesControl } from "@sales/schema";
-import { toast } from "@gnd/ui/use-toast";
+import { invalidateInfiniteQueries } from "@/hooks/use-invalidate-query";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
-import { DeliveryOption } from "@/types/sales";
+import { useTaskTrigger } from "@/hooks/use-task-trigger";
+import { useTRPC } from "@/trpc/client";
+import type { DeliveryOption } from "@/types/sales";
+import { SubmitButton } from "@gnd/ui/submit-button";
+import { toast } from "@gnd/ui/use-toast";
+import type { UpdateSalesControl } from "@sales/schema";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import {
 	FulfillmentCompleteModal,
-	FulfillmentDispatch,
+	type FulfillmentDispatch,
 } from "./fulfillment-complete-modal";
 export type SalesOrderItem = RouterOutputs["sales"]["index"]["data"][number];
 interface ItemProps {
@@ -350,7 +350,6 @@ export const columns: ColumnDef<SalesOrderItem>[] = [
 ];
 
 function Actions({ item }: { item: SalesOrderItem }) {
-	const overviewOpen = useSalesOverviewOpen();
 	const produceable = !!item.stats?.prodCompleted?.total;
 	const productionStatus = String(
 		(item as any)?.control?.productionStatus ||
@@ -659,37 +658,12 @@ function Actions({ item }: { item: SalesOrderItem }) {
 					</Button>
 				}
 			>
-				<SuperAdminGuard>
-					<SalesMenu.Sub>
-						<SalesMenu.SubTrigger className="whitespace-nowrap">
-							<Icons.ExternalLink className="mr-2 size-4 text-muted-foreground/70" />
-							<span className="whitespace-nowrap">Open overview</span>
-							<span className="ml-auto rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-								v2
-							</span>
-						</SalesMenu.SubTrigger>
-						<SalesMenu.SubContent>
-							<SalesMenu.Item
-								className="whitespace-nowrap"
-								onSelect={(e) => {
-									e.preventDefault();
-									overviewOpen.openSalesAdminSheet(item.uuid);
-								}}
-							>
-								Open v2 sheet
-							</SalesMenu.Item>
-							<SalesMenu.Item
-								className="whitespace-nowrap"
-								onSelect={(e) => {
-									e.preventDefault();
-									overviewOpen.openSalesAdminPage(item.uuid);
-								}}
-							>
-								Open v2 page
-							</SalesMenu.Item>
-						</SalesMenu.SubContent>
-					</SalesMenu.Sub>
-				</SuperAdminGuard>
+				<SalesFormVersionMenuItems
+					slug={item.slug}
+					type="order"
+					uuid={item.uuid}
+					includeOverviewV2
+				/>
 				<SalesMenu.SalesPrintMenuItems />
 				<SuperAdminGuard>
 					<SalesMenu.PrintModes />

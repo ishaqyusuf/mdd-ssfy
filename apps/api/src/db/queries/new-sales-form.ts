@@ -1,5 +1,6 @@
 import type { TRPCContext } from "@api/trpc/init";
 import { expireCurrentSalesDocumentSnapshots } from "@api/utils/sales-document-access";
+import { queueSalesDocumentSnapshotWarmups } from "@api/utils/sales-document-warm";
 import {
 	bootstrapNewSalesFormSchema,
 	deleteNewSalesFormLineItemSchema,
@@ -1694,12 +1695,31 @@ export async function saveDraftNewSalesForm(
 ) {
 	const payload = saveDraftNewSalesFormSchema.parse(input);
 	const result = await saveNewSalesFormInternal(ctx, payload, "Draft");
+	const isQuote = result.type === "quote";
 	await expireCurrentSalesDocumentSnapshots({
 		db: ctx.db,
 		salesOrderId: result.salesId,
 		reason: "invoice_updated",
-		documentPrefixes: ["invoice_pdf", "production_pdf", "packing_slip_pdf", "order_packing_pdf"],
+		documentPrefixes: isQuote
+			? ["quote_pdf"]
+			: [
+					"invoice_pdf",
+					"production_pdf",
+					"packing_slip_pdf",
+					"order_packing_pdf",
+					"quote_pdf",
+				],
 	});
+	await queueSalesDocumentSnapshotWarmups(
+		isQuote
+			? [{ salesOrderId: result.salesId, mode: "quote" }]
+			: [
+					{ salesOrderId: result.salesId, mode: "invoice" },
+					{ salesOrderId: result.salesId, mode: "production" },
+					{ salesOrderId: result.salesId, mode: "packing-slip" },
+					{ salesOrderId: result.salesId, mode: "order-packing" },
+				],
+	);
 	return result;
 }
 
@@ -1709,12 +1729,31 @@ export async function saveFinalNewSalesForm(
 ) {
 	const payload = saveFinalNewSalesFormSchema.parse(input);
 	const result = await saveNewSalesFormInternal(ctx, payload, "Active");
+	const isQuote = result.type === "quote";
 	await expireCurrentSalesDocumentSnapshots({
 		db: ctx.db,
 		salesOrderId: result.salesId,
 		reason: "invoice_updated",
-		documentPrefixes: ["invoice_pdf", "production_pdf", "packing_slip_pdf", "order_packing_pdf"],
+		documentPrefixes: isQuote
+			? ["quote_pdf"]
+			: [
+					"invoice_pdf",
+					"production_pdf",
+					"packing_slip_pdf",
+					"order_packing_pdf",
+					"quote_pdf",
+				],
 	});
+	await queueSalesDocumentSnapshotWarmups(
+		isQuote
+			? [{ salesOrderId: result.salesId, mode: "quote" }]
+			: [
+					{ salesOrderId: result.salesId, mode: "invoice" },
+					{ salesOrderId: result.salesId, mode: "production" },
+					{ salesOrderId: result.salesId, mode: "packing-slip" },
+					{ salesOrderId: result.salesId, mode: "order-packing" },
+				],
+	);
 	return result;
 }
 

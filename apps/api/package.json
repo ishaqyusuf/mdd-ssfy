@@ -15,7 +15,8 @@
   },
   "exports": {
     "./trpc/routers/_app": "./src/trpc/routers/_app.ts",
-    "./utils/sales-document-access": "./src/utils/sales-document-access.ts"
+    "./utils/sales-document-access": "./src/utils/sales-document-access.ts",
+    "./utils/sales-document-warm": "./src/utils/sales-document-warm.ts"
   },
   "dependencies": {
     "@date-fns/utc": "^2.1.0",

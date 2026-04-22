@@ -51,6 +51,7 @@ export const taskNames = [
 	"send-storefront-shipping-confirmation-email",
 	"send-storefront-win-back-email",
 	"sync-sales-inventory-line-items",
+	"warm-sales-document-snapshot",
 	"sync-dyke-step-to-inventory",
 	"update-sales-control",
 	"attach-signed-dispatch-pdf",
@@ -70,6 +71,23 @@ export const attachSignedDispatchPdfSchema = z.object({
 });
 export type AttachSignedDispatchPdfPayload = z.infer<
 	typeof attachSignedDispatchPdfSchema
+>;
+
+export const warmSalesDocumentSnapshotSchema = z.object({
+	salesOrderId: z.number(),
+	mode: z.enum([
+		"invoice",
+		"quote",
+		"packing-slip",
+		"production",
+		"order-packing",
+	]),
+	dispatchId: z.number().optional().nullable(),
+	templateId: z.string().optional().default("template-2"),
+	forceRegenerate: z.boolean().optional().default(false),
+});
+export type WarmSalesDocumentSnapshotPayload = z.infer<
+	typeof warmSalesDocumentSnapshotSchema
 >;
 
 const author = z.object({

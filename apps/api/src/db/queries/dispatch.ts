@@ -19,6 +19,7 @@ import type {
 } from "@api/schemas/sales";
 import type { TRPCContext } from "@api/trpc/init";
 import { expireCurrentSalesDocumentSnapshots } from "@api/utils/sales-document-access";
+import { queueSalesDocumentSnapshotWarmups } from "@api/utils/sales-document-warm";
 import type { QtyControlType } from "@api/type";
 import type { Prisma } from "@gnd/db";
 import type { SalesDispatchStatus } from "@gnd/utils/constants";
@@ -1250,6 +1251,19 @@ export async function signPackingSlip(
 		reason: "manual_regeneration",
 		documentPrefixes: ["packing_slip_pdf", "order_packing_pdf"],
 	});
+	await queueSalesDocumentSnapshotWarmups([
+		{
+			salesOrderId: dispatch.salesOrderId,
+			mode: "packing-slip",
+			dispatchId: dispatch.id,
+			forceRegenerate: true,
+		},
+		{
+			salesOrderId: dispatch.salesOrderId,
+			mode: "order-packing",
+			forceRegenerate: true,
+		},
+	]);
 
 	return {
 		ok: true,

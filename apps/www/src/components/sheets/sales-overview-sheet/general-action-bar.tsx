@@ -1,14 +1,13 @@
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { AuthGuard } from "@/components/auth-guard";
+import { SalesFormVersionMenuItems } from "@/components/sales-form-version-menu-items";
 import { SalesMenu } from "@/components/sales-menu";
-import { _perm } from "@/components/sidebar/links";
 import { SendForPackingButton } from "@/components/sales/send-for-packing-button";
+import { _perm } from "@/components/sidebar/links";
 import { useAuth } from "@/hooks/use-auth";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
-import { openLink } from "@/lib/open-link";
-import { salesFormUrl } from "@/utils/sales-utils";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { useTransition } from "react";
@@ -72,24 +71,31 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 				<Icons.FileSearch className="size-3.5" />
 				<span>Preview</span>
 			</Button>
-			<Button
-				size="sm"
-				variant="secondary"
-				className="flex-1 items-center space-x-2 hover:bg-secondary"
-				onClick={() => {
-					openLink(salesFormUrl(type, salesNo, true), {}, true);
-					// setParams({ invoiceId: id, type: "edit" });
-				}}
+			<SalesMenu
+				trigger={
+					<Button
+						size="sm"
+						variant="secondary"
+						className="flex-1 items-center space-x-2 hover:bg-secondary"
+					>
+						<Icons.Edit className="size-3.5" />
+						<span>Edit</span>
+					</Button>
+				}
+				id={data?.id}
+				slug={data?.uuid}
+				type={data?.type}
+				align="start"
 			>
-				<Icons.Edit className="size-3.5" />
-				<span>Edit</span>
-			</Button>
+				<SalesFormVersionMenuItems slug={salesNo} type={type} />
+			</SalesMenu>
 			<SalesMenu
 				triggerVariant="secondary"
 				id={data?.id}
 				slug={data?.uuid}
 				type={data?.type}
 			>
+				<SalesFormVersionMenuItems slug={salesNo} type={data?.type} />
 				{isQuote ? (
 					<SalesMenu.QuoteEmailMenuItems />
 				) : (

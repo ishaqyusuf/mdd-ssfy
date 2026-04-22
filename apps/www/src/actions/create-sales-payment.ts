@@ -9,6 +9,7 @@ import { authId } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { errorHandler } from "@/modules/error/handler";
 import { expireCurrentSalesDocumentSnapshots } from "@gnd/api/utils/sales-document-access";
+import { queueSalesDocumentSnapshotWarmups } from "@gnd/api/utils/sales-document-warm";
 import { createSquareTerminalCheckout } from "@gnd/square";
 import { consoleLog } from "@gnd/utils";
 import type { z } from "zod";
@@ -60,14 +61,18 @@ export const createSalesPaymentAction = actionClient
 		}
 		if (response.status === "success") {
 			await Promise.all(
-				touchedSalesIds.map((salesId) =>
-					expireCurrentSalesDocumentSnapshots({
+				touchedSalesIds.map(async (salesId) => {
+					await expireCurrentSalesDocumentSnapshots({
 						db: prisma,
 						salesOrderId: salesId,
 						reason: "payment_recorded",
 						documentPrefixes: ["invoice_pdf", "order_packing_pdf"],
-					}),
-				),
+					});
+					await queueSalesDocumentSnapshotWarmups([
+						{ salesOrderId: salesId, mode: "invoice" },
+						{ salesOrderId: salesId, mode: "order-packing" },
+					]);
+				}),
 			);
 		}
 		return response;
