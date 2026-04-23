@@ -176,7 +176,6 @@
         "@gnd/api": "workspace:*",
         "@gnd/db": "workspace:*",
         "@gnd/events": "workspace:*",
-        "@gnd/printer": "workspace:*",
         "@gnd/ui": "workspace:*",
         "@gnd/utils": "workspace:*",
         "@hookform/resolvers": "^5.2.2",
@@ -258,7 +257,6 @@
         "@gnd/db": "workspace:*",
         "@gnd/events": "workspace:*",
         "@gnd/notifications": "workspace:*",
-        "@gnd/printer": "workspace:*",
         "@gnd/sales": "workspace:*",
         "@gnd/ui": "workspace:*",
         "@gnd/utils": "workspace:*",
@@ -397,7 +395,6 @@
         "@gnd/inventory": "workspace:*",
         "@gnd/notifications": "workspace:*",
         "@gnd/pdf": "workspace:*",
-        "@gnd/printer": "workspace:*",
         "@gnd/sales": "workspace:*",
         "@gnd/site-nav": "workspace:*",
         "@gnd/square": "workspace:*",
@@ -742,17 +739,6 @@
         "react": "catalog:",
         "react-dom": "catalog:",
         "react-pdf-tailwind": "^3.0.0",
-      },
-    },
-    "packages/printer": {
-      "name": "@gnd/printer",
-      "dependencies": {
-        "@gnd/ui": "workspace:*",
-        "@gnd/utils": "workspace:*",
-        "@react-pdf/renderer": "^4.0.0",
-        "date-fns": "^4.1.0",
-        "jose": "^5.9.6",
-        "qrcode": "^1.5.4",
       },
     },
     "packages/sales": {
@@ -1539,8 +1525,6 @@
     "@gnd/notifications": ["@gnd/notifications@workspace:packages/notifications"],
 
     "@gnd/pdf": ["@gnd/pdf@workspace:packages/pdf"],
-
-    "@gnd/printer": ["@gnd/printer@workspace:packages/printer"],
 
     "@gnd/sales": ["@gnd/sales@workspace:packages/sales"],
 
@@ -6425,8 +6409,6 @@
     "@gnd/logger/pino": ["pino@10.3.1", "", { "dependencies": { "@pinojs/redact": "^0.4.0", "atomic-sleep": "^1.0.0", "on-exit-leak-free": "^2.1.0", "pino-abstract-transport": "^3.0.0", "pino-std-serializers": "^7.0.0", "process-warning": "^5.0.0", "quick-format-unescaped": "^4.0.3", "real-require": "^0.2.0", "safe-stable-stringify": "^2.3.1", "sonic-boom": "^4.0.1", "thread-stream": "^4.0.0" }, "bin": { "pino": "bin.js" } }, "sha512-r34yH/GlQpKZbU1BvFFqOjhISRo1MNx1tWYsYvmj6KIRHSPMT2+yHOEb1SG6NMvRoHRF0a07kCOox/9yakl1vg=="],
 
     "@gnd/notifications/resend": ["resend@6.8.0", "", { "dependencies": { "svix": "1.84.1" }, "peerDependencies": { "@react-email/render": "*" }, "optionalPeers": ["@react-email/render"] }, "sha512-fDOXGqafQfQXl8nXe93wr93pus8tW7YPpowenE3SmG7dJJf0hH3xUWm3xqacnPvhqjCQTJH9xETg07rmUeSuqQ=="],
-
-    "@gnd/printer/jose": ["jose@5.10.0", "", {}, "sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg=="],
 
     "@gnd/site/@next/mdx": ["@next/mdx@16.0.0-beta.0", "", { "dependencies": { "source-map": "^0.7.0" }, "peerDependencies": { "@mdx-js/loader": ">=0.15.0", "@mdx-js/react": ">=0.15.0" }, "optionalPeers": ["@mdx-js/loader", "@mdx-js/react"] }, "sha512-RdeGCzANRJG7rL1/ozMexdLeYUUFuR/n/busiDYaoIJyYXLexViS5NT8hIEQlfIuPRyFnsBe0bssK3TDlzQOvA=="],
 

@@ -1,10 +1,10 @@
 "use client";
 
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
 } from "@gnd/ui/dialog";
 
 import { ScrollArea } from "@gnd/ui/scroll-area";
@@ -37,46 +37,45 @@ import { cn } from "@gnd/ui/cn";
 //     };
 // }
 export function SalesPreviewModal({}) {
-    const ctx = useSalesPreview();
-    const inboundCtx = useInboundStatusModal();
-    const { params } = ctx;
+	const ctx = useSalesPreview();
+	const inboundCtx = useInboundStatusModal();
 
-    return (
-        <Dialog
-            onOpenChange={(e) => {
-                ctx.close();
-                inboundCtx?.setParams(null);
-            }}
-            open={ctx.opened}
-        >
-            <DialogContent className="w-[800px]s max-w-4xl">
-                <DialogHeader>
-                    <DialogTitle></DialogTitle>
-                </DialogHeader>
-                <ScrollArea
-                    className={cn(
-                        "h-[90vh] overflow-auto",
-                        !inboundCtx?.params?.inboundOrderId || "pb-24",
-                    )}
-                >
-                    <SalesPreview />
-                </ScrollArea>
-                {!inboundCtx?.params?.inboundOrderId || (
-                    <div className="fixed bottom-0 p-2 w-full bg-white">
-                        <div className="flex justify-end">
-                            <Button
-                                onClick={(e) => {
-                                    inboundCtx.setParams({
-                                        updateInboundStatus: true,
-                                    });
-                                }}
-                            >
-                                Update Inbound
-                            </Button>
-                        </div>
-                    </div>
-                )}
-            </DialogContent>
-        </Dialog>
-    );
+	return (
+		<Dialog
+			onOpenChange={() => {
+				ctx.close();
+				inboundCtx?.setParams(null);
+			}}
+			open={ctx.opened}
+		>
+			<DialogContent className="max-w-6xl overflow-hidden gap-0 p-0">
+				<DialogHeader className="sr-only">
+					<DialogTitle>Sales Preview</DialogTitle>
+				</DialogHeader>
+				<ScrollArea
+					className={cn(
+						"h-[90vh] overflow-auto",
+						!inboundCtx?.params?.inboundOrderId || "pb-24",
+					)}
+				>
+					<SalesPreview />
+				</ScrollArea>
+				{!inboundCtx?.params?.inboundOrderId || (
+					<div className="fixed bottom-0 w-full bg-white p-2">
+						<div className="flex justify-end">
+							<Button
+								onClick={() => {
+									inboundCtx.setParams({
+										updateInboundStatus: true,
+									});
+								}}
+							>
+								Update Inbound
+							</Button>
+						</div>
+					</div>
+				)}
+			</DialogContent>
+		</Dialog>
+	);
 }

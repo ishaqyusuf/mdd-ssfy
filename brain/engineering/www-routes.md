@@ -26,7 +26,6 @@ Grouped route reference for the `apps/www` Next.js App Router surface.
 - `/p/model-template`
 - `/p/sales-invoice`
 - `/p/sales-invoice-v2`
-- `/print/sales-invoice`
 - `/print-model`
 - `/printer/customer-report`
 - `/printer/sales`

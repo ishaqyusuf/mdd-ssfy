@@ -15,10 +15,12 @@ export function SalesDocumentPreviewPage({
 	token,
 	accessToken,
 	templateId = "template-2",
+	embedded = false,
 }: {
 	token?: string;
 	accessToken?: string;
 	templateId?: string;
+	embedded?: boolean;
 }) {
 	const trpc = useTRPC();
 	const auth = useAuth();
@@ -50,7 +52,7 @@ export function SalesDocumentPreviewPage({
 
 	if (isPending) {
 		return (
-			<div className="mx-auto max-w-6xl px-4 py-10">
+			<div className={embedded ? "px-0 py-0" : "mx-auto max-w-6xl px-4 py-10"}>
 				<div className="animate-pulse rounded-3xl border bg-muted/30 p-10">
 					<div className="h-8 w-48 rounded bg-muted" />
 					<div className="mt-4 h-4 w-64 rounded bg-muted" />
@@ -62,7 +64,13 @@ export function SalesDocumentPreviewPage({
 
 	if (!data) {
 		return (
-			<div className="mx-auto flex min-h-[60vh] max-w-2xl items-center px-4 py-10">
+			<div
+				className={
+					embedded
+						? "flex min-h-[60vh] items-center"
+						: "mx-auto flex min-h-[60vh] max-w-2xl items-center px-4 py-10"
+				}
+			>
 				<div className="rounded-3xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-900">
 					This preview link is invalid or has expired.
 				</div>
@@ -86,8 +94,20 @@ export function SalesDocumentPreviewPage({
         }
       `}</style>
 
-			<div className="sales-preview-shell mx-auto max-w-6xl px-4 py-6">
-				<div className="sales-preview-actions sticky top-4 z-20 mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-background/95 p-4 shadow-sm backdrop-blur">
+			<div
+				className={
+					embedded
+						? "sales-preview-shell"
+						: "sales-preview-shell mx-auto max-w-6xl px-4 py-6"
+				}
+			>
+				<div
+					className={
+						embedded
+							? "sales-preview-actions sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b bg-background/95 p-4 shadow-sm backdrop-blur"
+							: "sales-preview-actions sticky top-4 z-20 mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-background/95 p-4 shadow-sm backdrop-blur"
+					}
+				>
 					<div>
 						<h1 className="text-lg font-semibold">{data.title}</h1>
 						<p className="text-sm text-muted-foreground">

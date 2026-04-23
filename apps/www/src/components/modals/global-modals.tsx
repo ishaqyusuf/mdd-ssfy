@@ -15,7 +15,6 @@ import { useEmployeeParams } from "@/hooks/use-employee-params";
 import { useInboundStatusModal } from "@/hooks/use-inbound-status-modal";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
-import { useSalesPrintParams } from "@/hooks/use-sales-print-params";
 import { useSalesQuickPay } from "@/hooks/use-sales-quick-pay";
 import { isCommunityUnitRestrictedAccess } from "@gnd/utils/constants";
 import dynamic from "next/dynamic";
@@ -29,7 +28,6 @@ import { InboundSalesModal } from "./inbound-status-modal";
 import { JobOverviewModal } from "./job-overview";
 import { LaborCostModal } from "./labor-cost-modal";
 import { NewJobModal } from "./new-job";
-import { SalesInvoicePreviewModal } from "./sales-invoice-preview-modal";
 import { SalesPreviewModal } from "./sales-preview-modal";
 import { SalesQuickPayModal } from "./sales-quick-pay-modal";
 
@@ -77,7 +75,6 @@ export function GlobalModals() {
 	const { opened: jobFormOpen } = useJobFormParams();
 	const { opened: jobOverviewOpen } = useJobParams();
 	const { opened: salesPreviewOpen } = useSalesPreview();
-	const { params: salesPrintParams } = useSalesPrintParams();
 	const { params: salesQuickPayParams } = useSalesQuickPay();
 	const { isOpened: inboundStatusOpen } = useInboundStatusModal();
 	const { isOpened: dispatchStatusOpen } = useDispatchstatusModal();
@@ -98,7 +95,6 @@ export function GlobalModals() {
 
 			{createTemplate || !!templateId ? <CommunityTemplateModal /> : null}
 			{createModelCost ? <CreateCommunityModelCostModal /> : null}
-			{salesPrintParams.modal ? <SalesInvoicePreviewModal /> : null}
 			{salesQuickPayParams.quickPaySalesId ? <SalesQuickPayModal /> : null}
 			{editModelCostTemplateId ? <CommunityModelCostModal /> : null}
 			{contractorPayoutOpen ? <ContractorPayoutOverviewModal /> : null}
