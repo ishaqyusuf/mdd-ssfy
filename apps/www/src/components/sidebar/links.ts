@@ -420,14 +420,15 @@ export const linkModules = [
             //     .data,
         ]),
         _section("", null, [
-            _link("Jobs", "jobs", "/contractor/jobs")
-                .access(_perm.every("viewProject", "viewInvoice", "viewJobs"))
-                .subLinks(
-                    _subLink("Jobs - v2", "/hrm/contractors/jobs").access(
-                        // _role.is("Super Admin"),
-                        _perm.every("viewProject", "viewInvoice", "viewJobs"),
-                    ).data,
-                ).data,
+            // .subLinks(
+            //     _subLink("Jobs - v2", "/hrm/contractors/jobs").access(
+            //         // _role.is("Super Admin"),
+            //         _perm.every("viewProject", "viewInvoice", "viewJobs"),
+            //     ).data,
+            // )
+            _link("Jobs", "jobs", "/hrm/contractors/jobs").access(
+                _perm.every("viewProject", "viewInvoice", "viewJobs"),
+            ).data,
             _link(
                 "Payment Dashboard",
                 "payment",

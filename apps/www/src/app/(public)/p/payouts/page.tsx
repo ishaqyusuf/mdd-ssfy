@@ -1,5 +1,4 @@
 import { ErrorFallback } from "@/components/error-fallback";
-import PageShell from "@/components/page-shell";
 import { PrintContractorPayouts } from "@/components/print-contractor-payouts";
 import { PrintLoading } from "@/components/print-loading";
 import { loadContractorPayoutPrintFilterParams } from "@/hooks/use-contractor-payout-print-filter";
