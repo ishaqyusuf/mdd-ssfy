@@ -40,6 +40,24 @@ export function SalesDocumentPreviewPage({
 
 	const packingSlipPage =
 		data?.pages.find((page) => page.config.mode === "packing-slip") || null;
+	const pdfPageQuery = useMemo(() => {
+		const query = new URLSearchParams({
+			preview: "true",
+			templateId,
+		});
+		if (token) query.set("token", token);
+		if (accessToken) query.set("accessToken", accessToken);
+		return `/p/sales-invoice-v2?${query.toString()}`;
+	}, [accessToken, templateId, token]);
+	const pdfPrintPageQuery = useMemo(() => {
+		const query = new URLSearchParams({
+			preview: "false",
+			templateId,
+		});
+		if (token) query.set("token", token);
+		if (accessToken) query.set("accessToken", accessToken);
+		return `/p/sales-invoice-v2?${query.toString()}`;
+	}, [accessToken, templateId, token]);
 	const overviewUrl = useMemo(() => {
 		if (!data?.orderNo) return null;
 		const query = new URLSearchParams({
@@ -119,7 +137,7 @@ export function SalesDocumentPreviewPage({
 						<Button
 							variant="outline"
 							onClick={() => {
-								window.print();
+								openLink(pdfPrintPageQuery, null, true);
 							}}
 						>
 							<Icons.Printer className="mr-2 size-4" />
@@ -128,11 +146,11 @@ export function SalesDocumentPreviewPage({
 						<Button
 							variant="secondary"
 							onClick={() => {
-								openLink(data.downloadUrl, null, true);
+								openLink(pdfPageQuery, null, true);
 							}}
 						>
-							<Icons.Download className="mr-2 size-4" />
-							Download PDF
+							<Icons.File className="mr-2 size-4" />
+							PDF
 						</Button>
 						{auth.can?.editOrders && overviewUrl ? (
 							<Button

@@ -12,6 +12,7 @@ import { _trpc } from "./static-trpc";
 
 interface PrintSalesV2Props {
 	token?: string;
+	accessToken?: string;
 	preview?: boolean;
 	templateId?: string;
 	className?: string;
@@ -19,18 +20,22 @@ interface PrintSalesV2Props {
 
 export function PrintSalesV2({
 	token,
+	accessToken,
 	preview,
 	templateId,
 	className,
 }: PrintSalesV2Props = {}) {
 	const { filters } = useSalesPrintFilter();
 	const resolvedToken = token ?? filters.token ?? "";
+	const resolvedAccessToken = accessToken ?? filters.accessToken ?? "";
 	const resolvedPreview = preview ?? filters.preview ?? false;
+	const resolvedTemplateId = templateId ?? filters.templateId ?? "template-2";
 	const { data } = useSuspenseQuery(
 		_trpc.print.salesV2.queryOptions({
-			token: resolvedToken,
+			token: resolvedToken || undefined,
+			accessToken: resolvedAccessToken || undefined,
 			preview: resolvedPreview,
-			templateId,
+			templateId: resolvedTemplateId,
 		}),
 	);
 	const viewerRef = useRef<{ contentWindow?: Window | null } | null>(null);
@@ -65,8 +70,9 @@ export function PrintSalesV2({
 			<PackingSlipSignFab
 				page={packingSlipPage}
 				token={resolvedToken}
+				accessToken={resolvedAccessToken}
 				preview={resolvedPreview}
-				templateId={templateId}
+				templateId={resolvedTemplateId}
 			/>
 		</>
 	);
