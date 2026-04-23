@@ -16,18 +16,12 @@ export async function generateMetadata(props) {
 export default async function Page(props) {
 	const params = await props.params;
 	const queryClient = getQueryClient();
-	await Promise.all([
-		queryClient.fetchQuery(
-			trpc.newSalesForm.get.queryOptions({
-				type: "quote",
-				slug: params.slug,
-			}),
-		),
-		queryClient.fetchQuery(trpc.newSalesForm.getStepRouting.queryOptions({})),
-		queryClient.fetchQuery(trpc.customers.getCustomerProfiles.queryOptions()),
-		queryClient.fetchQuery(trpc.customers.getTaxProfiles.queryOptions()),
-		queryClient.fetchQuery(trpc.sales.getSuppliers.queryOptions({})),
-	]);
+	await queryClient.fetchQuery(
+		trpc.newSalesForm.get.queryOptions({
+			type: "quote",
+			slug: params.slug,
+		}),
+	);
 	return (
 		<PageShell>
 			<HydrateClient>

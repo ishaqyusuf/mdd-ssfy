@@ -24,15 +24,17 @@ export async function SalesBookAccountingPage({
 	const filter = loadSalesAccountingFilterParams(resolvedSearchParams);
 	const queryOptions =
 		trpc.sales.getSalesAccountings.infiniteQueryOptions(filter);
-
-	await queryClient.fetchInfiniteQuery(queryOptions);
+	const [initialFilterList, _initialAccountingRows] = await Promise.all([
+		queryClient.fetchQuery(trpc.filters.salesAccounting.queryOptions()),
+		queryClient.fetchInfiniteQuery(queryOptions),
+	]);
 
 	return (
 		<PageShell>
 			<HydrateClient>
 				<div className="flex flex-col gap-6 py-6">
 					<PageTitle>{title}</PageTitle>
-					<SalesAccountingHeader />
+					<SalesAccountingHeader initialFilterList={initialFilterList} />
 					<ErrorBoundary errorComponent={ErrorFallback}>
 						<Suspense fallback={<TableSkeleton />}>
 							<DataTable />

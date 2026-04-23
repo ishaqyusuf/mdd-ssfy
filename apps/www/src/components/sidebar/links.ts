@@ -397,7 +397,7 @@ export const linkModules = [
     _module("HRM", "employees", "GND HRM", [
         _section("", null, [
             // _link("HRM", "hrm", "/").access(_perm.in("viewHrm")).data,
-            _link("Employees", "employees", "/hrm/employees")
+            _link("Employees", "employees", "/hrm/employees/v2")
                 .access(_perm.some("viewHrm", "viewEmployee"))
                 .subLinks(
                     // .access(

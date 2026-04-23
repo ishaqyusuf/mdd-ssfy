@@ -4,7 +4,7 @@ import { ProductReportHeader } from "@/components/product-report-header";
 import { DataTable } from "@/components/tables/sales-statistics/data-table";
 import { loadProductReportFilterParams } from "@/hooks/use-product-report-filter-params";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
-import { batchPrefetch, trpc } from "@/trpc/server";
+import { HydrateClient, getQueryClient, prefetch, trpc } from "@/trpc/server";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { Suspense } from "react";
 
@@ -17,22 +17,28 @@ export async function generateMetadata(props) {
 }
 export default async function Page(props) {
 	const searchParams = await props.searchParams;
+	const queryClient = getQueryClient();
 	const filter = loadProductReportFilterParams(searchParams);
-
-	batchPrefetch([
-		(trpc.sales.getProductReport as any).infiniteQueryOptions({
+	const initialFilterList = await queryClient.fetchQuery(
+		trpc.filters.productReport.queryOptions(),
+	);
+	prefetch(
+		trpc.sales.getProductReport.infiniteQueryOptions({
 			...filter,
 		}),
-	]);
+	);
+
 	return (
 		<PageShell>
-			<PageTitle>Product Reports</PageTitle>
-			<ProductReportHeader />
-			<ErrorBoundary errorComponent={ErrorFallback}>
-				<Suspense fallback={<GridSkeleton />}>
-					<DataTable />
-				</Suspense>
-			</ErrorBoundary>
+			<HydrateClient>
+				<PageTitle>Product Reports</PageTitle>
+				<ProductReportHeader initialFilterList={initialFilterList} />
+				<ErrorBoundary errorComponent={ErrorFallback}>
+					<Suspense fallback={<GridSkeleton />}>
+						<DataTable />
+					</Suspense>
+				</ErrorBoundary>
+			</HydrateClient>
 		</PageShell>
 	);
 }

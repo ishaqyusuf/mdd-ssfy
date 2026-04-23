@@ -24,15 +24,21 @@ export async function SalesResolutionCenterPage({
 	const filter = loadResolutionCenterFilterParams(resolvedSearchParams);
 	const queryOptions =
 		trpc.sales.getSalesResolutions.infiniteQueryOptions(filter);
-
-	await queryClient.fetchInfiniteQuery(queryOptions);
+	const [initialFilterList, _initialSummary, _initialResolutionRows] =
+		await Promise.all([
+			queryClient.fetchQuery(trpc.filters.salesResolutions.queryOptions()),
+			queryClient.fetchQuery(
+				trpc.sales.getSalesResolutionsSummary.queryOptions(filter),
+			),
+			queryClient.fetchInfiniteQuery(queryOptions),
+		]);
 
 	return (
 		<PageShell>
 			<HydrateClient>
 				<div className="flex flex-col gap-6 py-6">
 					<PageTitle>{title}</PageTitle>
-					<SalesResolutionHeader />
+					<SalesResolutionHeader initialFilterList={initialFilterList} />
 					<ErrorBoundary errorComponent={ErrorFallback}>
 						<Suspense fallback={<TableSkeleton />}>
 							<ResolutionCenter />

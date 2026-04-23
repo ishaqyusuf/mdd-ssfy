@@ -1,21 +1,19 @@
-import { Button } from "@gnd/ui/button";
-import Link from "next/link";
-import { Icons } from "@gnd/ui/icons";
-import { SalesQuoteSearchFilter } from "./sales-quote-search-filter";
-import { SalesCustomTab } from "./sales-custom-tab";
-import { ButtonGroup } from "@gnd/ui/button-group";
-import { DropdownMenu } from "@gnd/ui/namespace";
-import { Separator } from "@gnd/ui/separator";
+import type { PageFilterData } from "@api/type";
 import { CreateSalesBtn } from "./create-sales-btn";
+import { SalesCustomTab } from "./sales-custom-tab";
+import { SalesQuoteSearchFilter } from "./sales-quote-search-filter";
 
-export function SalesQuoteHeader({}) {
-    return (
-        <div className="flex gap-4 items-center">
-            <SalesQuoteSearchFilter />
-            <div className="flex-1"></div>
-            <SalesCustomTab />
-            <CreateSalesBtn quote />
-        </div>
-    );
+type Props = {
+	initialFilterList?: PageFilterData[];
+};
+
+export function SalesQuoteHeader({ initialFilterList }: Props) {
+	return (
+		<div className="flex gap-4 items-center">
+			<SalesQuoteSearchFilter initialFilterList={initialFilterList} />
+			<div className="flex-1" />
+			<SalesCustomTab />
+			<CreateSalesBtn quote />
+		</div>
+	);
 }
-

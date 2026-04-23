@@ -1,20 +1,24 @@
 "use client";
 
-import { OrderSearchFilter } from "./sales-order-search-filter";
-import { SalesOrderExport } from "./sales-order-export";
-import { SalesCustomTab } from "./sales-custom-tab";
+import type { PageFilterData } from "@api/type";
 import { CreateSalesBtn } from "./create-sales-btn";
+import { SalesCustomTab } from "./sales-custom-tab";
+import { SalesOrderExport } from "./sales-order-export";
+import { OrderSearchFilter } from "./sales-order-search-filter";
 
-export function OrderHeader({}) {
-    return (
-        <div className="flex gap-4">
-            <OrderSearchFilter />
-            <SalesCustomTab />
-            <div className="flex-1"></div>
-            {/* <Table.SummarySlot /> */}
-            <SalesOrderExport />
-            <CreateSalesBtn />
-        </div>
-    );
+type Props = {
+	initialFilterList?: PageFilterData[];
+};
+
+export function OrderHeader({ initialFilterList }: Props) {
+	return (
+		<div className="flex gap-4">
+			<OrderSearchFilter initialFilterList={initialFilterList} />
+			<SalesCustomTab />
+			<div className="flex-1" />
+			{/* <Table.SummarySlot /> */}
+			<SalesOrderExport />
+			<CreateSalesBtn />
+		</div>
+	);
 }
-

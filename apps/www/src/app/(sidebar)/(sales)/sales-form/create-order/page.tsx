@@ -32,18 +32,12 @@ export default async function Page(props: Props) {
 			? selectedCustomerId
 			: null;
 	const queryClient = getQueryClient();
-	await Promise.all([
-		queryClient.fetchQuery(
-			trpc.newSalesForm.bootstrap.queryOptions({
-				type: "order",
-				customerId,
-			}),
-		),
-		queryClient.fetchQuery(trpc.newSalesForm.getStepRouting.queryOptions({})),
-		queryClient.fetchQuery(trpc.customers.getCustomerProfiles.queryOptions()),
-		queryClient.fetchQuery(trpc.customers.getTaxProfiles.queryOptions()),
-		queryClient.fetchQuery(trpc.sales.getSuppliers.queryOptions({})),
-	]);
+	await queryClient.fetchQuery(
+		trpc.newSalesForm.bootstrap.queryOptions({
+			type: "order",
+			customerId,
+		}),
+	);
 
 	return (
 		<PageShell>

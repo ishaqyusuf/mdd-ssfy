@@ -1,9 +1,9 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { Icons } from "@gnd/ui/icons";
-
+import dynamic from "next/dynamic";
 import { useState } from "react";
+
 import { Button } from "@gnd/ui/button";
 import {
 	DropdownMenu,
@@ -11,7 +11,6 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
-import { InvoiceOverviewPanel } from "./invoice-overview-panel";
 import { useNewSalesFormStore } from "../store";
 
 interface Props {
@@ -35,6 +34,20 @@ const SalesHistory = dynamic(
 				<div className="h-10 w-full animate-pulse rounded bg-muted" />
 				<div className="h-20 w-full animate-pulse rounded bg-muted" />
 				<div className="h-20 w-full animate-pulse rounded bg-muted" />
+			</div>
+		),
+	},
+);
+
+const InvoiceOverviewPanel = dynamic(
+	() =>
+		import("./invoice-overview-panel").then((mod) => mod.InvoiceOverviewPanel),
+	{
+		loading: () => (
+			<div className="space-y-3">
+				<div className="h-10 w-full animate-pulse rounded bg-muted" />
+				<div className="h-32 w-full animate-pulse rounded bg-muted" />
+				<div className="h-24 w-full animate-pulse rounded bg-muted" />
 			</div>
 		),
 	},
