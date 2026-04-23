@@ -91,12 +91,12 @@ export function applySharedDoorSurcharge(
 	profileCoefficient?: number | null,
 ) {
 	return rows.map((row) => {
-		const baseUnitPrice =
-			row?.meta?.baseUnitPrice == null
-				? Number(row?.unitPrice || 0) - surcharge
-				: Number(row.meta.baseUnitPrice || 0);
+		const hasStoredBasePrice = row?.meta?.baseUnitPrice != null;
+		const baseUnitPrice = hasStoredBasePrice
+			? Number(row.meta?.baseUnitPrice || 0)
+			: null;
 		const calculatedSalesUnit =
-			row?.meta?.baseUnitPrice == null
+			baseUnitPrice == null
 				? Math.max(0, Number(row?.unitPrice || 0) - surcharge)
 				: profileAdjustedDoorSalesPrice(
 						null,
@@ -113,7 +113,9 @@ export function applySharedDoorSurcharge(
 			lineTotal: Number((totalQty * effectiveUnitPrice).toFixed(2)),
 			meta: {
 				...(row?.meta || {}),
-				baseUnitPrice: Math.max(0, baseUnitPrice),
+				...(baseUnitPrice == null
+					? {}
+					: { baseUnitPrice: Math.max(0, baseUnitPrice) }),
 			},
 		};
 	});

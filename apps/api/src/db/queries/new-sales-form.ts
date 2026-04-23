@@ -364,7 +364,7 @@ function toBootstrapPayload(
 				uid:
 					(typeof itemMeta.uid === "string" && itemMeta.uid) ||
 					`line-${index + 1}-${generateRandomString(6)}`,
-				title: item.description || `Line ${index + 1}`,
+				title: item.description || "",
 				description: item.description,
 				qty: Number(item.qty || 0),
 				unitPrice: Number(item.rate || 0),

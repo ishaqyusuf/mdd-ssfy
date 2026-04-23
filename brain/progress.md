@@ -4,6 +4,13 @@
 
 ## 2026-04-22
 
+- Fixed legacy sales invoice printing so persisted garage/HPT items still render when the order item exists but its nested door rows were not saved.
+  - updated `packages/sales/src/sales-template/invoice-print-data.ts` to emit a fallback printable row for door-type items whose `housePackageTool` exists without any `doors`, preserving the saved item description, swing, qty, and pricing instead of dropping the line from the printout
+  - added `packages/sales/src/sales-template/invoice-print-data.test.ts` to lock the regression with `02988PC`-style garage data
+  - validation note:
+    - `bun test packages/sales/src/sales-template/invoice-print-data.test.ts` passes
+    - `bun test packages/sales/src/print/get-print-data.test.ts` passes
+
 - Fixed new sales form door/HPT reopen hydration when persisted house-package rows referenced a door component that no longer existed in the Door step's selected metadata.
   - updated `packages/sales/src/sales-form/domain/selectors.ts` so `getSelectedDoorComponentsForLine(...)` can backfill selected door components from `selectedProdUids` and persisted `housePackageTool.doors[*].stepProductId` when the currently available door candidates are known
   - updated `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx` so HPT sync/render and door-swap flows pass current visible door candidates into that selector, restoring the missing selected-door tab on reopened sales

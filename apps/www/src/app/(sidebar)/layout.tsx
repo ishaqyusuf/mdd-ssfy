@@ -1,47 +1,42 @@
-import { authOptions } from "@/lib/auth-options";
-import { GlobalModals } from "@/components/modals/global-modals";
-import { GlobalSheets } from "@/components/sheets/global-sheets";
+import { GlobalModalsProvider } from "@/components/modals/global-modals-provider";
+import { GlobalSheetsProvider } from "@/components/sheets/global-sheets-provider";
 import { SidebarContent } from "@/components/sidebar-content";
-import { TaskNotification } from "@/components/task-notification";
+import { TaskNotificationProvider } from "@/components/task-notification-provider";
+import { authOptions } from "@/lib/auth-options";
 import { HydrateClient } from "@/trpc/server";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 
 export default async function Layout({ children }) {
-    const session = await getServerSession(authOptions);
+	const session = await getServerSession(authOptions);
 
-    if (!session?.user?.id) {
-        redirect("/login/v2");
-    }
+	if (!session?.user?.id) {
+		redirect("/login/v2");
+	}
 
-    const initialAuth = {
-        id: session.user.id,
-        email: session.user.email,
-        name: session.user.name,
-        can: session.can,
-        role: session.role,
-        avatar: null,
-    };
+	const initialAuth = {
+		id: session.user.id,
+		email: session.user.email,
+		name: session.user.name,
+		can: session.can,
+		role: session.role,
+		avatar: null,
+	};
 
-    return (
-        <HydrateClient>
-            <div className="relative">
-                <SidebarContent initialAuth={initialAuth}>
-                    {children}
-                </SidebarContent>
+	return (
+		<HydrateClient>
+			<div className="relative">
+				<SidebarContent initialAuth={initialAuth}>{children}</SidebarContent>
 
-                <Suspense>
-                    <GlobalSheets />
-                    <GlobalModals />
-                    <TaskNotification />
-                </Suspense>
+				<GlobalSheetsProvider />
+				<GlobalModalsProvider />
+				<TaskNotificationProvider />
 
-                {/* <GlobalTimerProvider />
+				{/* <GlobalTimerProvider />
                 <TimezoneDetector /> */}
-            </div>
-        </HydrateClient>
-    );
+			</div>
+		</HydrateClient>
+	);
 }

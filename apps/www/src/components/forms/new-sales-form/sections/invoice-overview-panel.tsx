@@ -301,6 +301,18 @@ export function InvoiceOverviewPanel(props: Props) {
 			lastProfileIdRef.current = currentProfileId;
 			return;
 		}
+		if (
+			lastProfileIdRef.current === currentProfileId &&
+			lastProfileCoefficientRef.current == null &&
+			normalizedCurrent != null
+		) {
+			// The form may hydrate before profile options arrive. When the matching
+			// profile coefficient resolves later, seed the refs without repricing so
+			// existing saved sales prices are not mistaken for base prices on load.
+			lastProfileCoefficientRef.current = normalizedCurrent;
+			lastProfileIdRef.current = currentProfileId;
+			return;
+		}
 		const profileChanged = lastProfileIdRef.current !== currentProfileId;
 		if (
 			lastProfileCoefficientRef.current === normalizedCurrent &&
@@ -538,12 +550,16 @@ export function InvoiceOverviewPanel(props: Props) {
 							</Select>
 						</div>
 					</div>
-					<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-						<div className="flex flex-col gap-1.5">
-							<label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+					<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+						<label
+							htmlFor="invoice-due-date"
+							className="flex cursor-pointer items-center gap-3 rounded-lg border bg-card px-3"
+						>
+							<span className="min-w-[96px] text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
 								Due Date
-							</label>
+							</span>
 							<Input
+								id="invoice-due-date"
 								type="date"
 								value={record.form.goodUntil?.slice(0, 10) || ""}
 								onChange={(e) =>
@@ -553,36 +569,21 @@ export function InvoiceOverviewPanel(props: Props) {
 											: null,
 									})
 								}
-								className="h-9 rounded-lg bg-card text-xs font-bold"
+								className="h-10 flex-1 cursor-pointer border-0 bg-transparent px-0 text-xs font-bold shadow-none focus-visible:ring-0"
 							/>
-						</div>
-						<div className="flex flex-col gap-1.5">
-							<label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-								Production Due Date
-							</label>
-							<Input
-								type="date"
-								value={record.form.prodDueDate?.slice(0, 10) || ""}
-								onChange={(e) =>
-									setMeta({
-										prodDueDate: e.target.value
-											? new Date(e.target.value).toISOString()
-											: null,
-									})
-								}
-								className="h-9 rounded-lg bg-card text-xs font-bold"
-							/>
-						</div>
-						<div className="flex flex-col gap-1.5">
-							<label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-								Delivery Mode
-							</label>
+						</label>
+						<div className="rounded-lg border bg-card px-3">
 							<Select
 								value={record.form.deliveryOption || "pickup"}
 								onValueChange={(value) => setMeta({ deliveryOption: value })}
 							>
-								<SelectTrigger className="h-9 rounded-lg bg-card text-xs font-bold">
-									<SelectValue />
+								<SelectTrigger className="h-10 border-0 bg-transparent px-0 text-xs font-bold shadow-none">
+									<div className="flex items-center gap-3">
+										<span className="min-w-[96px] text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+											Delivery
+										</span>
+										<SelectValue />
+									</div>
 								</SelectTrigger>
 								<SelectContent>
 									{DELIVERY_OPTIONS.map((mode) => (

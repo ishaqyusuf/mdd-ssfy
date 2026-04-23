@@ -6,7 +6,17 @@ import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cos
 import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-params";
 import { useCommunityProjectParams } from "@/hooks/use-community-project-params";
 import { useCommunityTemplateParams } from "@/hooks/use-community-template-params";
+import { useJobParams } from "@/hooks/use-contractor-jobs-params";
+import { useContractorPayoutParams } from "@/hooks/use-contractor-payout-params";
 import { useCustomerServiceParams } from "@/hooks/use-customer-service-params";
+import { useDispatchstatusModal } from "@/hooks/use-dispatch-status-modal";
+import { useDocumentReviewParams } from "@/hooks/use-document-review-params";
+import { useEmployeeParams } from "@/hooks/use-employee-params";
+import { useInboundStatusModal } from "@/hooks/use-inbound-status-modal";
+import { useJobFormParams } from "@/hooks/use-job-form-params";
+import { useSalesPreview } from "@/hooks/use-sales-preview";
+import { useSalesPrintParams } from "@/hooks/use-sales-print-params";
+import { useSalesQuickPay } from "@/hooks/use-sales-quick-pay";
 import { isCommunityUnitRestrictedAccess } from "@gnd/utils/constants";
 import dynamic from "next/dynamic";
 import { SuperAdminGuard } from "../auth-guard";
@@ -64,24 +74,34 @@ export function GlobalModals() {
 	const { editCommunityModelInstallCostId, openToSide } =
 		useCommunityInstallCostParams();
 	const { opened: builderModalOpen } = useBuilderParams();
+	const { opened: jobFormOpen } = useJobFormParams();
+	const { opened: jobOverviewOpen } = useJobParams();
+	const { opened: salesPreviewOpen } = useSalesPreview();
+	const { params: salesPrintParams } = useSalesPrintParams();
+	const { params: salesQuickPayParams } = useSalesQuickPay();
+	const { isOpened: inboundStatusOpen } = useInboundStatusModal();
+	const { isOpened: dispatchStatusOpen } = useDispatchstatusModal();
+	const { opened: documentReviewOpen } = useDocumentReviewParams();
+	const { opened: employeeFormOpen } = useEmployeeParams();
+	const { opened: contractorPayoutOpen } = useContractorPayoutParams();
 
 	return (
 		<>
 			<SuperAdminGuard>
 				<LaborCostModal />
 			</SuperAdminGuard>
-			<InboundSalesModal />
-			<DispatchStatusModal />
-			<DocumentReviewModal />
-			<EmployeeFormModal />
-			<SalesPreviewModal />
+			{inboundStatusOpen ? <InboundSalesModal /> : null}
+			{dispatchStatusOpen ? <DispatchStatusModal /> : null}
+			{documentReviewOpen ? <DocumentReviewModal /> : null}
+			{employeeFormOpen ? <EmployeeFormModal /> : null}
+			{salesPreviewOpen ? <SalesPreviewModal /> : null}
 
 			{createTemplate || !!templateId ? <CommunityTemplateModal /> : null}
 			{createModelCost ? <CreateCommunityModelCostModal /> : null}
-			<SalesInvoicePreviewModal />
-			<SalesQuickPayModal />
+			{salesPrintParams.modal ? <SalesInvoicePreviewModal /> : null}
+			{salesQuickPayParams.quickPaySalesId ? <SalesQuickPayModal /> : null}
 			{editModelCostTemplateId ? <CommunityModelCostModal /> : null}
-			<ContractorPayoutOverviewModal />
+			{contractorPayoutOpen ? <ContractorPayoutOverviewModal /> : null}
 			{/* <Env isDev> */}
 			{openCustomerServiceId ? <WorkOrderFormModal /> : null}
 
@@ -92,8 +112,8 @@ export function GlobalModals() {
 			) : null}
 			{projectModalOpen ? <CreateCommunityProjectModal /> : null}
 			{builderModalOpen ? <BuilderFormModal /> : null}
-			<NewJobModal />
-			<JobOverviewModal />
+			{jobFormOpen ? <NewJobModal /> : null}
+			{jobOverviewOpen ? <JobOverviewModal /> : null}
 			{/* </Env> */}
 		</>
 	);

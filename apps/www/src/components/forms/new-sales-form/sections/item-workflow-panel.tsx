@@ -389,6 +389,8 @@ function componentLabel(value?: string | null) {
 function lineItemPickerLabel(line: NewSalesFormLineItem, index: number) {
 	const explicitTitle = String(line?.title || "").trim();
 	if (explicitTitle) return explicitTitle;
+	const placeholder = getLineTitlePlaceholder(line);
+	if (placeholder) return placeholder;
 	const itemTypeStep = (line?.formSteps || []).find(
 		(step) => normalizeTitle(step?.step?.title) === "item type",
 	);
@@ -398,6 +400,31 @@ function lineItemPickerLabel(line: NewSalesFormLineItem, index: number) {
 	return itemTypeLabel
 		? `Item ${index + 1} (${itemTypeLabel})`
 		: `Item ${index + 1}`;
+}
+
+function getLineTitlePlaceholder(line: NewSalesFormLineItem) {
+	const explicitTitle = String(line?.title || "").trim();
+	if (explicitTitle) return explicitTitle;
+	const steps = line?.formSteps || [];
+	const itemTypeStep = steps.find(
+		(step) => normalizeTitle(step?.step?.title) === "item type",
+	);
+	const itemTypeLabel = String(
+		itemTypeStep?.value ||
+			itemTypeStep?.step?.title ||
+			itemTypeStep?.prodUid ||
+			"",
+	).trim();
+	if (itemTypeLabel) return itemTypeLabel;
+	const firstSelectedStep = steps.find((step) =>
+		String(step?.value || "").trim(),
+	);
+	return String(
+		firstSelectedStep?.value ||
+			firstSelectedStep?.step?.title ||
+			firstSelectedStep?.prodUid ||
+			"",
+	).trim();
 }
 
 function getStoredMouldingRows(line: NewSalesFormLineItem): MouldingRow[] {
@@ -647,6 +674,38 @@ export function ItemWorkflowPanel() {
 		const coefficient = Number(profile?.coefficient || 0);
 		return Number.isFinite(coefficient) && coefficient > 0 ? coefficient : 1;
 	}, [customerProfilesQuery.data, record?.form?.customerProfileId]);
+	function getLineDisplayTotal(line: NewSalesFormLineItem) {
+		const hptDoors = Array.isArray(line.housePackageTool?.doors)
+			? line.housePackageTool.doors
+			: [];
+		if (hptDoors.length) {
+			const storedTotal = Number(line.housePackageTool?.totalPrice || 0);
+			if (storedTotal > 0) return storedTotal;
+			return summarizeDoors(hptDoors).totalPrice;
+		}
+		if (Array.isArray(line.shelfItems) && line.shelfItems.length) {
+			return summarizeShelfRows(line.shelfItems, activeProfileCoefficient)
+				.lineTotal;
+		}
+		const serviceRows = getStoredServiceRows(line);
+		if (serviceRows.length) {
+			return summarizeServiceRows(line.uid, serviceRows).lineTotal;
+		}
+		const mouldingRows = getStoredMouldingRows(line);
+		if (mouldingRows.length) {
+			return summarizeMouldingPersistRows(
+				mouldingRows,
+				sharedMouldingComponentPrice(
+					getSelectedMouldingComponentsForLine(line),
+				),
+			).total;
+		}
+		const lineTotal = Number(line.lineTotal || 0);
+		if (lineTotal > 0) return lineTotal;
+		return Number(
+			(Number(line.qty || 0) * Number(line.unitPrice || 0)).toFixed(2),
+		);
+	}
 	const activeShelfSync = useMemo(() => {
 		if (!activeLine || !isShelfItem(activeLine)) return null;
 		const currentRows = Array.isArray(activeLine.shelfItems)
@@ -2209,9 +2268,7 @@ export function ItemWorkflowPanel() {
 										<table className="min-w-full text-sm">
 											<thead>
 												<tr className="border-b border-slate-100 bg-slate-50/50 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
-													<th className="whitespace-nowrap px-3 py-2">
-														Size
-													</th>
+													<th className="whitespace-nowrap px-3 py-2">Size</th>
 													{hasSwing ? (
 														<th className="px-3 py-2">Swing</th>
 													) : null}
@@ -2372,30 +2429,34 @@ export function ItemWorkflowPanel() {
 																		</span>
 																	</div>
 																	<div className="flex justify-between">
-																		<span>Base Unit</span>
+																		<span>Door Price</span>
 																		<span className="font-semibold">
 																			{money(
-																				firstFiniteNumber(
-																					row?.meta?.baseUnitPrice,
-																					Number(row.unitPrice ?? 0) -
-																						sharedDoorSurcharge,
-																				) ?? 0,
+																				row?.meta?.baseUnitPrice == null
+																					? Number(row.unitPrice ?? 0) -
+																							sharedDoorSurcharge
+																					: profileAdjustedDoorSalesPrice(
+																							null,
+																							firstFiniteNumber(
+																								row?.meta?.baseUnitPrice,
+																								0,
+																							) ?? 0,
+																							activeProfileCoefficient,
+																						),
 																			) || "$0.00"}
 																		</span>
 																	</div>
 																	<div className="flex justify-between">
-																		<span>Calculated Sales</span>
+																		<span>Base Cost</span>
 																		<span className="font-semibold">
-																			{money(
-																				profileAdjustedDoorSalesPrice(
-																					null,
-																					firstFiniteNumber(
-																						row?.meta?.baseUnitPrice,
-																						0,
-																					) ?? 0,
-																					activeProfileCoefficient,
-																				),
-																			) || "$0.00"}
+																			{row?.meta?.baseUnitPrice == null
+																				? "--"
+																				: money(
+																						firstFiniteNumber(
+																							row?.meta?.baseUnitPrice,
+																							0,
+																						) ?? 0,
+																					) || "$0.00"}
 																		</span>
 																	</div>
 																	<div className="flex justify-between">
@@ -4424,6 +4485,12 @@ export function ItemWorkflowPanel() {
 							activeItem: value,
 						})
 					}
+					onCollapseAll={() =>
+						setEditor({
+							activeItem: null,
+						})
+					}
+					canCollapseAll={record.lineItems.length > 0 && activeLine != null}
 				/>
 
 				<div className="space-y-3">
@@ -4443,11 +4510,13 @@ export function ItemWorkflowPanel() {
 								uid={line.uid}
 								isActive={isActive}
 								title={line.title}
+								titlePlaceholder={getLineTitlePlaceholder(line) || null}
+								lineTotal={getLineDisplayTotal(line)}
 								steps={steps}
 								activeIndex={activeIndex}
 								onActivate={() =>
 									setEditor({
-										activeItem: line.uid,
+										activeItem: isActive ? null : line.uid,
 									})
 								}
 								onTitleChange={(value) =>

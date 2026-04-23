@@ -32,7 +32,9 @@ export function useItemWorkflowController(args: {
 	} = args;
 
 	const activeLine =
-		lineItems.find((line) => line.uid === activeItem) || lineItems[0] || null;
+		activeItem == null
+			? null
+			: lineItems.find((line) => line.uid === activeItem) || null;
 	const activeLineSteps = activeLine?.formSteps || [];
 	const activeStepIndex =
 		activeLine == null

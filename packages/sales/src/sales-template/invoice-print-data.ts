@@ -244,6 +244,27 @@ function transformSalesPrint(data: Data) {
               row["Shipped Qty"] = cell(linePackingInfo(data, mItem.id));
               return [row];
             } else {
+              if (!mItem.housePackageTool?.doors?.length) {
+                const fallbackDoorTitle =
+                  mItem.description ||
+                  mItem.dykeDescription ||
+                  mItem.housePackageTool?.stepProduct?.name ||
+                  mItem.housePackageTool?.stepProduct?.door?.title ||
+                  mItem.housePackageTool?.stepProduct?.product?.title ||
+                  item.dykeDescription ||
+                  itemMeta?.doorType ||
+                  "Door";
+                row.Swing = cell(mItem.swing);
+                row.Qty = cell(mItem.qty);
+                row.Door = cell(fallbackDoorTitle);
+                row["Left Hand"] = cell(mItem.qty);
+                row["Right Hand"] = cell(null);
+                row["Rate"] = cell(formatCurrency(mItem?.rate!));
+                row["Total"] = cell(formatCurrency(mItem?.total));
+                row.Size = cell("");
+                row["Shipped Qty"] = cell(linePackingInfo(data, mItem.id));
+                return [row];
+              }
               return mItem.housePackageTool?.doors?.map((door) => {
                 const row: PrintLineSection["tableRows"][number] = {} as any;
                 const doorTitle =

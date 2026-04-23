@@ -8,11 +8,20 @@ import type { NewSalesFormLineItem } from "../../schema";
 
 type WorkflowStep = NonNullable<NewSalesFormLineItem["formSteps"]>[number];
 
+function currency(value?: number | null) {
+	return new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: "USD",
+	}).format(Number(value || 0));
+}
+
 export function InvoiceItemCard(props: {
 	index: number;
 	uid: string;
 	isActive: boolean;
 	title?: string | null;
+	titlePlaceholder?: string | null;
+	lineTotal?: number | null;
 	steps: WorkflowStep[];
 	activeIndex: number;
 	onActivate: () => void;
@@ -48,7 +57,7 @@ export function InvoiceItemCard(props: {
 				props.onActivate();
 			}}
 		>
-			<div className="grid gap-3 md:grid-cols-12">
+			<div className="grid gap-4 md:grid-cols-12">
 				<button
 					type="button"
 					className="text-left md:col-span-2"
@@ -65,12 +74,15 @@ export function InvoiceItemCard(props: {
 					<Input
 						value={props.title || ""}
 						onChange={(e) => props.onTitleChange(e.target.value)}
-						placeholder="Item Title / Location"
+						placeholder={props.titlePlaceholder || "Item Title / Location"}
 						onClick={(event) => event.stopPropagation()}
 						onKeyDown={(event) => event.stopPropagation()}
 					/>
 				</div>
 				<div className="flex items-center justify-end gap-2 md:col-span-2">
+					<span className="text-sm font-bold text-foreground">
+						{currency(props.lineTotal)}
+					</span>
 					<Button
 						size="icon"
 						variant="outline"
