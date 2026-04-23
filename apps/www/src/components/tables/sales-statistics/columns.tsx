@@ -162,7 +162,7 @@ export const columns: ColumnDef<Item>[] = [
     // },
     {
         header: "Method",
-        accessorKey: "dispatch",
+        accessorKey: "deliveryMethod",
         cell: ({ row: { original: item } }) => (
             <Progress.Status>
                 {item?.deliveryOption || "Not set"}
@@ -183,7 +183,7 @@ export const columns: ColumnDef<Item>[] = [
     },
     {
         header: "Fulfillment",
-        accessorKey: "dispatch",
+        accessorKey: "fulfillment",
         cell: ({ row: { original: item } }) => (
             <Progress.Status>{item?.deliveryStatus || "-"}</Progress.Status>
         ),
@@ -383,4 +383,3 @@ function ItemCard({ item }: { item: Item }) {
         </div>
     );
 }
-

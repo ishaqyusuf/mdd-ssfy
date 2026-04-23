@@ -63,11 +63,21 @@ export function MainMenu() {
                     {/* <span>{JSON.stringify({ activeLink })}</span> */}
                     {linkModules?.modules
                         ?.filter((a) => a.activeLinkCount)
-                        .map((module, mi) => (
-                            <Fragment key={mi}>
+                        .map((module) => (
+                            <Fragment
+                                key={
+                                    module.name ??
+                                    module.defaultLink ??
+                                    "global-module"
+                                }
+                            >
                                 {module?.sections?.map((section, si) => (
                                     <div
-                                        key={si}
+                                        key={
+                                            section.name ??
+                                            section.title ??
+                                            `${module.name ?? "global"}-${si}`
+                                        }
                                         className={cn(
                                             !section?.linksCount && "hidden",
                                             moduleVariants({
@@ -112,8 +122,13 @@ export function MainMenu() {
                                         <div>
                                             {section?.links
                                                 ?.filter((l) => l?.show)
-                                                ?.map((link, li) => (
-                                                    <Fragment key={li}>
+                                                ?.map((link) => (
+                                                    <Fragment
+                                                        key={
+                                                            link.href ??
+                                                            link.name
+                                                        }
+                                                    >
                                                         {/* {link?.subLinks?.length ? } */}
                                                         <Item
                                                             isExpanded={
@@ -200,7 +215,7 @@ const ChildItem = ({
 
     return (
         <Link
-            prefetch
+            prefetch={false}
             href={child.href}
             onClick={() => onSelect?.()}
             className="group"
@@ -288,7 +303,7 @@ const Item = ({
     return (
         <div onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
             <Link
-                prefetch
+                prefetch={false}
                 href={item.href || ""}
                 onClick={() => onSelect?.()}
                 className="group"
@@ -354,7 +369,7 @@ const Item = ({
                         const isChildActive = pathname === child.href;
                         return (
                             <ChildItem
-                                key={index}
+                                key={child.href ?? child.name}
                                 child={child}
                                 isActive={isChildActive}
                                 isExpanded={isExpanded}

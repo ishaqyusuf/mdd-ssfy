@@ -55,6 +55,7 @@ const salesColumn: Column = {
 };
 const salesRepColumn: Column = {
 	header: "Sales Rep",
+	id: "salesRepCompact",
 	accessorKey: "Sales Rep",
 	meta: {},
 	cell: ({ row: { original: item } }) => (
@@ -65,6 +66,7 @@ const salesRepColumn: Column = {
 };
 const salesRepColumn2: Column = {
 	header: "Sales Rep",
+	id: "salesRepWorker",
 	accessorKey: "Sales Rep",
 	meta: {},
 	cell: ({ row: { original: item } }) => (
@@ -86,6 +88,7 @@ const orderColumn: Column = {
 };
 const statusColumn: Column = {
 	header: "Status",
+	id: "productionStatus",
 	accessorKey: "statusColumn",
 	meta: {},
 	cell: ({ row: { original: item } }) => {
@@ -101,6 +104,7 @@ const statusColumn: Column = {
 };
 const progressColumn: Column = {
 	header: "Progress",
+	id: "productionProgress",
 	accessorKey: "statusColumn",
 	meta: {},
 	cell: ({ row: { original: item } }) => {

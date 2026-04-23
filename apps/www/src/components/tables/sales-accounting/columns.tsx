@@ -144,7 +144,7 @@ export const columns: ColumnDef<Item>[] = [
     },
     {
         header: "Labor",
-        accessorKey: "status",
+        accessorKey: "labor",
         meta: {
             // preventDefault: true,
         } as ColumnMeta,
