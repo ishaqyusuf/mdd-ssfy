@@ -1,163 +1,190 @@
 import { Image, Text, View } from "@react-pdf/renderer";
 import { cn } from "../../../../utils/tw";
 import type {
-  PageMeta,
-  AddressBlock,
-  CompanyAddress,
+	PageMeta,
+	AddressBlock,
+	CompanyAddress,
 } from "@gnd/sales/print/types";
 
 interface HeaderBlockProps {
-  meta: PageMeta;
-  billing: AddressBlock | null;
-  shipping: AddressBlock | null;
-  companyAddress: CompanyAddress;
-  baseUrl?: string;
-  logoUrl?: string;
+	meta: PageMeta;
+	billing: AddressBlock | null;
+	shipping: AddressBlock | null;
+	companyAddress: CompanyAddress;
+	baseUrl?: string;
+	logoUrl?: string;
+	qrCodeDataUrl?: string;
 }
 
 export function HeaderBlock({
-  meta,
-  billing,
-  shipping,
-  companyAddress,
-  baseUrl,
-  logoUrl,
+	meta,
+	billing,
+	shipping,
+	companyAddress,
+	baseUrl,
+	logoUrl,
+	qrCodeDataUrl,
 }: HeaderBlockProps) {
-  const logoSrc = logoUrl || `${baseUrl}/logo.png`;
+	const logoSrc = logoUrl || `${baseUrl}/logo.png`;
 
-  return (
-    <View style={cn(`mb-2`)}>
-      <View style={{ ...cn(`flex-row`), alignItems: "flex-start" }}>
-        <View style={{ width: "62.5%" }}>
-          <View style={cn(`flex-row`)}>
-            <Image
-              src={logoSrc}
-              style={{ width: 150, height: 80, objectFit: "contain" }}
-            />
-          </View>
-          <View style={{ ...cn(`font-bold`), marginBottom: 16 }} wrap={false}>
-            <Text style={cn(`text-sm`)}>{companyAddress.address1}</Text>
-            <Text style={cn(`text-sm`)}>{companyAddress.address2}</Text>
-            <Text style={cn(`text-sm`)}>Phone:{companyAddress.phone}</Text>
-            {companyAddress.fax && (
-              <Text style={cn(`text-sm`)}>Fax: {companyAddress.fax}</Text>
-            )}
-            <Text style={{ ...cn(`text-sm`), textWrap: "nowrap" }}>
-              support@gndmillwork.com
-            </Text>
-          </View>
-        </View>
+	return (
+		<View style={cn(`mb-2`)}>
+			<View style={{ ...cn(`flex-row`), alignItems: "flex-start" }}>
+				<View style={{ width: qrCodeDataUrl ? "50%" : "62.5%" }}>
+					<View style={cn(`flex-row`)}>
+						<Image
+							src={logoSrc}
+							style={{ width: 150, height: 80, objectFit: "contain" }}
+						/>
+					</View>
+					<View style={{ ...cn(`font-bold`), marginBottom: 16 }} wrap={false}>
+						<Text style={cn(`text-sm`)}>{companyAddress.address1}</Text>
+						<Text style={cn(`text-sm`)}>{companyAddress.address2}</Text>
+						<Text style={cn(`text-sm`)}>Phone:{companyAddress.phone}</Text>
+						{companyAddress.fax && (
+							<Text style={cn(`text-sm`)}>Fax: {companyAddress.fax}</Text>
+						)}
+						<Text style={{ ...cn(`text-sm`), textWrap: "nowrap" }}>
+							support@gndmillwork.com
+						</Text>
+					</View>
+				</View>
 
-        <View style={{ ...cn(`flex-col p-2 text-sm`), width: "37.5%" }}>
-          <Text
-            style={{
-              ...cn(`text-right capitalize mb-4`),
-              fontSize: 18,
-              fontWeight: 700,
-            }}
-          >
-            {meta.title}
-          </Text>
+				<View
+					style={{
+						...cn(`flex-col p-2 text-sm`),
+						width: qrCodeDataUrl ? "25%" : "37.5%",
+					}}
+				>
+					<Text
+						style={{
+							...cn(`text-right capitalize mb-4`),
+							fontSize: 18,
+							fontWeight: 700,
+						}}
+					>
+						{meta.title}
+					</Text>
 
-          <HeadingLine
-            label={meta.status === "paid" ? "Invoice #" : "Quote #"}
-            value={meta.salesNo}
-            bold
-          />
-          <HeadingLine
-            label={meta.status === "paid" ? "Invoice Date" : "Quote Date"}
-            value={meta.date}
-          />
-          {meta.rep && <HeadingLine label="Rep" value={meta.rep} />}
-          {meta.goodUntil && (
-            <HeadingLine label="Good Until" value={meta.goodUntil} />
-          )}
-          {meta.po && <HeadingLine label="P.O No" value={meta.po} />}
-          {meta.balanceDue && (
-            <HeadingLine label="Balance Due" value={meta.balanceDue} bold />
-          )}
-          {meta.dueDate && (
-            <HeadingLine label="Due Date" value={meta.dueDate} />
-          )}
-        </View>
-      </View>
+					<HeadingLine
+						label={meta.status === "paid" ? "Invoice #" : "Quote #"}
+						value={meta.salesNo}
+						bold
+					/>
+					<HeadingLine
+						label={meta.status === "paid" ? "Invoice Date" : "Quote Date"}
+						value={meta.date}
+					/>
+					{meta.rep && <HeadingLine label="Rep" value={meta.rep} />}
+					{meta.goodUntil && (
+						<HeadingLine label="Good Until" value={meta.goodUntil} />
+					)}
+					{meta.po && <HeadingLine label="P.O No" value={meta.po} />}
+					{meta.balanceDue && (
+						<HeadingLine label="Balance Due" value={meta.balanceDue} bold />
+					)}
+					{meta.dueDate && (
+						<HeadingLine label="Due Date" value={meta.dueDate} />
+					)}
+				</View>
+				{qrCodeDataUrl ? (
+					<View
+						style={{
+							width: "25%",
+							borderWidth: 1,
+							borderColor: "#9ca3af",
+							padding: 8,
+							alignItems: "center",
+						}}
+					>
+						<Text style={{ fontSize: 7, textAlign: "center", marginBottom: 4 }}>
+							Scan to preview, print, or open order
+						</Text>
+						<Image
+							src={qrCodeDataUrl}
+							style={{ width: 70, height: 70, objectFit: "contain" }}
+						/>
+						<Text style={{ fontSize: 7, marginTop: 4 }}>{meta.salesNo}</Text>
+					</View>
+				) : null}
+			</View>
 
-      <View style={cn(`flex-row`)}>
-        {[billing, null, shipping].map((addr, i) => (
-          <View
-            key={i}
-            style={i === 1 ? cn(`w-1/4`) : { ...cn(`border`), width: "70%" }}
-          >
-            {i === 1 ? (
-              <PaidStamp paymentDate={meta.paymentDate} />
-            ) : addr ? (
-              <>
-                <View>
-                  <Text
-                    style={cn(
-                      `text-sm border-b bg-slate-200 text-gray-700 p-1 px-2 font-bold uppercase`,
-                    )}
-                  >
-                    {addr.title}
-                  </Text>
-                </View>
-                <View style={cn(`p-2 text-xs font-medium flex-col`)}>
-                  {addr.lines.map((line, idx) => (
-                    <Text key={idx}>{line}</Text>
-                  ))}
-                </View>
-              </>
-            ) : null}
-          </View>
-        ))}
-      </View>
-    </View>
-  );
+			<View style={cn(`flex-row`)}>
+				{[billing, null, shipping].map((addr, i) => (
+					<View
+						key={i}
+						style={i === 1 ? cn(`w-1/4`) : { ...cn(`border`), width: "70%" }}
+					>
+						{i === 1 ? (
+							<PaidStamp paymentDate={meta.paymentDate} />
+						) : addr ? (
+							<>
+								<View>
+									<Text
+										style={cn(
+											`text-sm border-b bg-slate-200 text-gray-700 p-1 px-2 font-bold uppercase`,
+										)}
+									>
+										{addr.title}
+									</Text>
+								</View>
+								<View style={cn(`p-2 text-xs font-medium flex-col`)}>
+									{addr.lines.map((line, idx) => (
+										<Text key={idx}>{line}</Text>
+									))}
+								</View>
+							</>
+						) : null}
+					</View>
+				))}
+			</View>
+		</View>
+	);
 }
 
 function HeadingLine({
-  label,
-  value,
-  bold,
+	label,
+	value,
+	bold,
 }: {
-  label: string;
-  value?: string;
-  bold?: boolean;
+	label: string;
+	value?: string;
+	bold?: boolean;
 }) {
-  return (
-    <View
-      style={{ ...cn(`flex-row justify-between items-end`), marginBottom: 2 }}
-    >
-      <Text style={{ fontWeight: 700 }}>{label}</Text>
-      <Text style={cn(`${bold ? "font-bold" : ""}`)}>{value}</Text>
-    </View>
-  );
+	return (
+		<View
+			style={{ ...cn(`flex-row justify-between items-end`), marginBottom: 2 }}
+		>
+			<Text style={{ fontWeight: 700 }}>{label}</Text>
+			<Text style={cn(`${bold ? "font-bold" : ""}`)}>{value}</Text>
+		</View>
+	);
 }
 
 function PaidStamp({ paymentDate }: { paymentDate?: string }) {
-  if (!paymentDate) return <View />;
-  return (
-    <View style={cn(`relative`)}>
-      <View
-        style={{
-          ...cn(`flex-col`),
-          position: "absolute",
-          top: -100,
-          left: -10,
-          transform: "rotate(-45deg)",
-          fontSize: 55,
-          lineHeight: 1,
-          fontWeight: 700,
-          color: "rgba(255, 0, 0, 0.3)",
-          textAlign: "center",
-          zIndex: 10,
-        }}
-      >
-        <Text style={{ fontSize: 40, fontWeight: 700, textAlign: "center" }}>
-          Paid
-        </Text>
-        <Text style={{ fontSize: 24, lineHeight: 1 }}>{paymentDate}</Text>
-      </View>
-    </View>
-  );
+	if (!paymentDate) return <View />;
+	return (
+		<View style={cn(`relative`)}>
+			<View
+				style={{
+					...cn(`flex-col`),
+					position: "absolute",
+					top: -100,
+					left: -10,
+					transform: "rotate(-45deg)",
+					fontSize: 55,
+					lineHeight: 1,
+					fontWeight: 700,
+					color: "rgba(255, 0, 0, 0.3)",
+					textAlign: "center",
+					zIndex: 10,
+				}}
+			>
+				<Text style={{ fontSize: 40, fontWeight: 700, textAlign: "center" }}>
+					Paid
+				</Text>
+				<Text style={{ fontSize: 24, lineHeight: 1 }}>{paymentDate}</Text>
+			</View>
+		</View>
+	);
 }

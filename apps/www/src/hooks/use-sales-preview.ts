@@ -1,5 +1,6 @@
 import { resolveSalesDocumentAccessAction } from "@/actions/resolve-sales-document-access";
 import type { SalesType } from "@/app-deps/(clean-code)/(sales)/types";
+import { openLink } from "@/lib/open-link";
 import type { IOrderPrintMode } from "@/types/sales";
 import {
 	parseAsInteger,
@@ -49,14 +50,7 @@ export function useSalesPreview() {
 				dispatchId: options?.dispatchId ?? null,
 			});
 
-			setParams({
-				salesPreviewId: salesId,
-				salesPreviewToken: access.accessToken,
-				salesPreviewUrl: access.previewUrl,
-				salesPreviewType,
-				previewMode,
-				dispatchId: options?.dispatchId ?? null,
-			});
+			openLink(access.previewUrl, null, true);
 		},
 	};
 }

@@ -25,7 +25,8 @@ import { SignaturePad } from "./signature-pad";
 
 interface PackingSlipSignFabProps {
 	page?: PrintPage | null;
-	token: string;
+	token?: string | null;
+	accessToken?: string | null;
 	preview?: boolean;
 	templateId?: string;
 }
@@ -33,6 +34,7 @@ interface PackingSlipSignFabProps {
 export function PackingSlipSignFab({
 	page,
 	token,
+	accessToken,
 	preview = false,
 	templateId,
 }: PackingSlipSignFabProps) {
@@ -63,7 +65,8 @@ export function PackingSlipSignFab({
 				await Promise.all([
 					queryClient.invalidateQueries({
 						queryKey: trpc.print.salesV2.queryKey({
-							token,
+							token: token ?? undefined,
+							accessToken: accessToken ?? undefined,
 							preview,
 							templateId,
 						}),
@@ -78,13 +81,14 @@ export function PackingSlipSignFab({
 						queryKey: trpc.dispatch.orderDispatchOverview.pathKey(),
 					}),
 					queryClient.invalidateQueries({
-					queryKey: trpc.sales.getSaleOverview.pathKey(),
+						queryKey: trpc.sales.getSaleOverview.pathKey(),
 					}),
 				]);
 				await Promise.all([
 					queryClient.refetchQueries({
 						queryKey: trpc.print.salesV2.queryKey({
-							token,
+							token: token ?? undefined,
+							accessToken: accessToken ?? undefined,
 							preview,
 							templateId,
 						}),
@@ -163,8 +167,8 @@ export function PackingSlipSignFab({
 						<DialogTitle>Sign Packing Slip</DialogTitle>
 						<DialogDescription>
 							Submitting will save the signature, pack all items into this
-							delivery, complete the dispatch, and reload the packing slip
-							once the updated quantities are ready.
+							delivery, complete the dispatch, and reload the packing slip once
+							the updated quantities are ready.
 						</DialogDescription>
 					</DialogHeader>
 

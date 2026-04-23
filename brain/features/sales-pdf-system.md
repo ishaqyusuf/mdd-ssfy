@@ -34,19 +34,27 @@ packages/sales/src/print/
 
 ### Template layer: `packages/pdf/src/sales-v2/`
 
-Templates are self-contained folders registered in a central registry. Each template implements the same `PrintPage` → PDF contract. Swapping templates = picking a different registry key.
+Templates are self-contained folders registered in a central registry. Each template now implements the same shared `PrintPage` contract twice:
+
+- `html` renderer for browser preview
+- `pdf` renderer for download/export
+
+Swapping templates still means picking a different registry key, but preview and download now stay on the same template id.
 
 ```
 packages/pdf/src/sales-v2/
-├── index.ts                    # barrel: SalesPdfDocument, registry types
-├── document.tsx                # <Document> wrapper — selects template by id
+├── index.ts                    # barrel: SalesPdfDocument, SalesHtmlDocument, registry types
+├── document.tsx                # <Document> wrapper — selects template.pdf by id
+├── html-document.tsx           # HTML wrapper — selects template.html by id
 ├── registry.tsx                # SalesTemplateConfig, SalesTemplateRenderProps, getTemplate()
 ├── shared/
 │   ├── watermark-page.tsx      # page wrapper with watermark + page numbering
+│   ├── html-template.tsx       # shared HTML preview building blocks
 │   └── utils.ts                # resolveImageSrc, colWidth, sumColSpans
 ├── templates/
 │   ├── template-1/             # first template ("classic" invoice look)
 │   │   ├── index.tsx           # Template1 — routes to mode composer
+│   │   ├── html.tsx            # Template1Html — routes to shared HTML renderer
 │   │   ├── blocks/             # isolated block components
 │   │   │   ├── index.ts
 │   │   │   ├── header-block.tsx
@@ -65,6 +73,8 @@ packages/pdf/src/sales-v2/
 │   │       ├── production.tsx  # production mode (no prices, no footer, no signature)
 │   │       └── packing-slip.tsx # packing slip mode (no prices, packing col, signature)
 │   └── template-2/            # future template (same contract)
+│       ├── index.tsx
+│       ├── html.tsx
 │       └── ...
 ```
 
@@ -85,21 +95,34 @@ export interface SalesTemplateRenderProps {
   config: SalesTemplateConfig;
 }
 
-export type SalesTemplateRenderer = (props: SalesTemplateRenderProps) => JSX.Element;
+export type SalesPdfTemplateRenderer = (props: SalesTemplateRenderProps) => JSX.Element;
+export type SalesHtmlTemplateRenderer = (props: SalesTemplateRenderProps) => JSX.Element;
 
-const templates: Record<string, SalesTemplateRenderer> = {
-  "template-1": Template1,
-  // "template-2": Template2,  ← drop in later
+const templates = {
+  "template-1": {
+    html: Template1Html,
+    pdf: Template1,
+  },
+  "template-2": {
+    html: Template2Html,
+    pdf: Template2,
+  },
 };
 
 // packages/pdf/src/sales-v2/document.tsx
 export function SalesPdfDocument({ pages, templateId = "template-1", config, ... }) {
-  const Template = getTemplate(templateId);
+  const template = getTemplate(templateId);
   return (
     <Document>
-      {pages.map((page, i) => <Template key={i} page={page} config={config} ... />)}
+      {pages.map((page, i) => <template.pdf key={i} page={page} config={config} ... />)}
     </Document>
   );
+}
+
+// packages/pdf/src/sales-v2/html-document.tsx
+export function SalesHtmlDocument({ pages, templateId = "template-1", config, ... }) {
+  const template = getTemplate(templateId);
+  return pages.map((page, i) => <template.html key={i} page={page} config={config} ... />);
 }
 ```
 
@@ -108,17 +131,18 @@ export function SalesPdfDocument({ pages, templateId = "template-1", config, ...
 ```
 apps/api/src/trpc/routers/print.route.ts
   └── salesV2 procedure
-       input: { token, preview?, templateId? }
-       → validates token
-       → calls getPrintData(db, tokenPayload)
-       → returns { pages: PrintPage[], title, templateId }
+       input: { token?, accessToken?, preview?, templateId? }
+       → validates signed token or snapshot access token
+       → resolves shared print payload
+       → returns preview metadata plus { pages: PrintPage[], title, templateId, downloadUrl, previewUrl }
 ```
 
 ### Client layer
 
 ```
-apps/www/src/components/print-sales-v2.tsx     # uses SalesPdfDocument
-apps/www/src/app/(public)/p/sales-invoice-v2/  # new route (legacy route untouched)
+apps/www/src/components/print-sales-v2.tsx            # legacy/fallback PDF viewer
+apps/www/src/components/sales-document-preview-page.tsx # HTML preview with actions
+apps/www/src/app/(public)/p/sales-document-v2/        # signed HTML preview route
 ```
 
 ---
@@ -199,9 +223,9 @@ Once the v2 print system is stable:
 
 The next execution slice extends the shipped v2 renderer into the day-to-day sales workflow.
 
-1. Add quick-print buttons in the sales form and in sales overview next to the preview action so printing does not depend on opening legacy paths.
-2. Move sales preview onto the new template renderer so preview, quick-print, and download all share one render contract.
-3. Treat current print latency as a first-class performance problem; the preferred fix path is stored-document reuse before any expensive on-demand render.
+1. Move sales overview preview actions onto the new signed HTML preview route.
+2. Move packing-list preview onto the HTML preview route and keep packing-sign on that surface.
+3. Keep PDF generation for export/download while treating HTML preview as the default preview experience.
 
 ## Cache and merge rules to implement
 
@@ -215,7 +239,7 @@ The stored-document phase should answer these operational rules explicitly:
 
 ## Pickup packing signoff
 
-- Packing signoff now lives on `/p/sales-invoice-v2` only, and only when the print payload is in `packing-slip` mode.
+- Packing signoff now lives on `/p/sales-document-v2` for packing-slip preview payloads.
 - The UI surface is a floating `Sign` control rendered by `apps/www/src/components/packing-slip-sign-fab.tsx`.
 - The sign form prefills:
   - `Packed By` from the current logged-in account
@@ -230,8 +254,8 @@ The stored-document phase should answer these operational rules explicitly:
 ## Notes
 
 - Templates never touch the database — they receive typed `PrintPage` props only.
-- Adding a template = creating a new folder under `templates/` and registering it.
-- `templateId` defaults to `"classic"` — backward compatible with no client changes.
+- Adding a template = creating a new folder under `templates/`, wiring both `html` and `pdf`, and registering the pair.
+- `templateId` defaults to `"template-2"` on current preview/download entrypoints.
 - Image fields (`image?: string`) are first-class on `DoorRow`, `MouldingRow`, and `ShelfRow`.
 - Client PDF preview should pass a fully qualified origin via `getBaseUrl()` so image rows resolve correctly in-browser; shared `resolveImageSrc()` also normalizes host-only base URLs by prefixing `https://`.
 - `packages/pdf/src/utils/tw.ts` acts as the safety bridge for `react-pdf-tailwind` in Sales PDF V2: it filters blank class tokens and maps unsupported classes like `col-span-*` to plain react-pdf style objects so ports from the legacy helper stay warning-free.
@@ -239,5 +263,6 @@ The stored-document phase should answer these operational rules explicitly:
 - Product image resolution in Sales PDF V2 mirrors the new sales form: stored image keys resolve through `NEXT_PUBLIC_CLOUDINARY_BASE_URL` under the `dyke/` bucket first, while absolute/data/blob URLs pass through unchanged.
 - V2 now mirrors the legacy three-bucket content split: door-like sections (doors, mouldings, HPT services), shelf sections, and generic line-item sections. Generic invoice lines are composed separately from non-HPT, non-shelf sales items and then merged into `page.sections` by line order.
 - Template 1 now appends a deduplicated end-of-document image reference block that collects unique row images, renders them in a larger grid, and labels each image with its row title.
-- Existing public tokenized download URLs remain stable while internals migrate.
+- Existing public tokenized download URLs remain stable while preview URLs now target the HTML route.
 - Shared JWT signing for tokenized sales document links now uses each token payload's own `expiry` timestamp for the JWT `exp` claim, preventing emailed quote/invoice download links from expiring after a blanket 1-hour window.
+- Generated sales PDFs now embed a QR code that points to the signed HTML preview URL for that document snapshot.

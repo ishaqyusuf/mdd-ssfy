@@ -9,26 +9,15 @@ import {
 	getUnitInvoiceAgingReport,
 	getUnitInvoiceTaskDetailReport,
 } from "@api/db/queries/unit-invoice-reports";
+import { resolveSalesDocumentPreviewData } from "@api/utils/sales-document-access";
 import {
 	generatePrintData,
 	modelPrintSchema,
 } from "@community/generate-print-data";
-import { getPrintDocumentData } from "@gnd/sales/print";
-import type { PrintMode } from "@gnd/sales/print/types";
 import { tokenSchemas, validateToken } from "@gnd/utils/tokenizer";
 import { generateLegacyPrintData } from "@sales/print-legacy-format";
 import z from "zod";
 import { createTRPCRouter, publicProcedure } from "../init";
-
-const LEGACY_TO_V2_MODE: Record<string, PrintMode> = {
-	order: "invoice",
-	"packing list": "packing-slip",
-	quote: "quote",
-	production: "production",
-	"order-packing": "order-packing",
-	invoice: "invoice",
-	"packing-slip": "packing-slip",
-};
 
 const requireFromHere = createRequire(import.meta.url);
 
@@ -125,37 +114,20 @@ export const printRouter = createTRPCRouter({
 	salesV2: publicProcedure
 		.input(
 			z.object({
-				token: z.string(),
+				token: z.string().optional(),
+				accessToken: z.string().optional(),
 				preview: z.boolean().optional().default(false),
 				templateId: z.string().optional().default("template-2"),
 			}),
 		)
 		.query(async (props) => {
-			const payload = await validateToken(
-				props.input.token,
-				tokenSchemas.salesPdfToken,
-			);
-
-			if (!payload) return null;
-
-			const mode: PrintMode = LEGACY_TO_V2_MODE[payload.mode] ?? "invoice";
-
-			const { pages, title, companyAddress } = await getPrintDocumentData(
-				props.ctx.db,
-				{
-					ids: payload.salesIds,
-					mode,
-					dispatchId: payload.dispatchId ?? null,
-				},
-			);
-
-			return {
-				pages,
-				title: title.replace(/[^\w\-]+/g, "_"),
+			return resolveSalesDocumentPreviewData({
+				db: props.ctx.db,
+				token: props.input.token ?? null,
+				accessToken: props.input.accessToken ?? null,
 				templateId: props.input.templateId,
-				companyAddress,
-				watermark: null,
-			};
+				baseUrl: process.env.NEXT_PUBLIC_APP_URL ?? null,
+			});
 		}),
 	jobs: publicProcedure
 		.input(

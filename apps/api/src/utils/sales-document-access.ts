@@ -23,6 +23,7 @@ import { createStoredDocumentRegistry } from "./stored-documents";
 const DEFAULT_TEMPLATE_ID = "template-2";
 const DEFAULT_LINK_TTL_DAYS = 7;
 const SALES_DOCUMENT_DOWNLOAD_PATH = "/api/download/sales-v2";
+const SALES_DOCUMENT_PREVIEW_PATH = "/p/sales-document-v2";
 
 const SALES_DOCUMENT_BASE_TYPES = {
 	invoice: "invoice_pdf",
@@ -61,6 +62,22 @@ export type ResolveSalesDocumentAccessResult = {
 	snapshotId?: string | null;
 	accessToken: string;
 	expiresAt: string | null;
+	previewUrl: string;
+	downloadUrl: string;
+};
+
+export type ResolveSalesDocumentPreviewDataResult = {
+	pages: Awaited<ReturnType<typeof getPrintDocumentData>>["pages"];
+	title: string;
+	templateId: string;
+	companyAddress: Awaited<
+		ReturnType<typeof getPrintDocumentData>
+	>["companyAddress"];
+	watermark: null;
+	mode: PrintMode;
+	orderNo: string | null;
+	salesOrderId: number | null;
+	documentType: string | null;
 	previewUrl: string;
 	downloadUrl: string;
 };
@@ -118,8 +135,20 @@ function buildSalesDocumentAccessUrls(input: {
 }) {
 	const baseUrl = resolveBaseUrl(input.baseUrl);
 	const template = input.templateId || DEFAULT_TEMPLATE_ID;
-	const previewUrl = `${baseUrl}${SALES_DOCUMENT_DOWNLOAD_PATH}?accessToken=${encodeURIComponent(input.accessToken)}&preview=true&templateId=${encodeURIComponent(template)}`;
+	const previewUrl = `${baseUrl}${SALES_DOCUMENT_PREVIEW_PATH}?accessToken=${encodeURIComponent(input.accessToken)}&templateId=${encodeURIComponent(template)}`;
 	const downloadUrl = `${baseUrl}${SALES_DOCUMENT_DOWNLOAD_PATH}?accessToken=${encodeURIComponent(input.accessToken)}&preview=false&templateId=${encodeURIComponent(template)}`;
+	return { previewUrl, downloadUrl };
+}
+
+function buildLegacySalesDocumentPreviewUrls(input: {
+	token: string;
+	baseUrl?: string | null;
+	templateId?: string | null;
+}) {
+	const baseUrl = resolveBaseUrl(input.baseUrl);
+	const template = input.templateId || DEFAULT_TEMPLATE_ID;
+	const previewUrl = `${baseUrl}${SALES_DOCUMENT_PREVIEW_PATH}?token=${encodeURIComponent(input.token)}&templateId=${encodeURIComponent(template)}`;
+	const downloadUrl = `${baseUrl}${SALES_DOCUMENT_DOWNLOAD_PATH}?token=${encodeURIComponent(input.token)}&preview=false&templateId=${encodeURIComponent(template)}`;
 	return { previewUrl, downloadUrl };
 }
 
@@ -271,6 +300,18 @@ async function createSalesPdfSnapshot(input: {
 	});
 
 	try {
+		const expiresAt = addDays(new Date(), DEFAULT_LINK_TTL_DAYS).toISOString();
+		const accessToken = tokenize({
+			snapshotId: pending.id,
+			salesOrderId: input.salesOrderId,
+			documentType: input.documentType,
+			expiry: expiresAt,
+		} satisfies SalesDocumentAccessToken);
+		const accessUrls = buildSalesDocumentAccessUrls({
+			accessToken,
+			baseUrl: input.baseUrl,
+			templateId: input.templateId || DEFAULT_TEMPLATE_ID,
+		});
 		const documentData = await getPrintDocumentData(input.db, {
 			ids: [input.salesOrderId],
 			mode: input.mode,
@@ -288,6 +329,7 @@ async function createSalesPdfSnapshot(input: {
 			templateId: input.templateId || DEFAULT_TEMPLATE_ID,
 			companyAddress: documentData.companyAddress,
 			baseUrl: resolveBaseUrl(input.baseUrl),
+			previewUrl: accessUrls.previewUrl,
 		});
 
 		const documentService = createApiVercelBlobDocumentService({ put });
@@ -324,14 +366,6 @@ async function createSalesPdfSnapshot(input: {
 				dispatchId: input.dispatchId ?? null,
 			},
 		});
-
-		const expiresAt = addDays(new Date(), DEFAULT_LINK_TTL_DAYS).toISOString();
-		const accessToken = tokenize({
-			snapshotId: pending.id,
-			salesOrderId: input.salesOrderId,
-			documentType: input.documentType,
-			expiry: expiresAt,
-		} satisfies SalesDocumentAccessToken);
 
 		const updated = await repository.update({
 			id: pending.id,
@@ -381,9 +415,11 @@ export async function resolveSalesDocumentAccess(
 			mode: input.mode,
 			dispatchId: input.dispatchId ?? null,
 		});
-		const baseUrl = resolveBaseUrl(input.baseUrl);
-		const previewUrl = `${baseUrl}/p/sales-invoice-v2?token=${encodeURIComponent(accessToken)}&preview=true`;
-		const downloadUrl = `${baseUrl}${SALES_DOCUMENT_DOWNLOAD_PATH}?token=${encodeURIComponent(accessToken)}&preview=false&templateId=${encodeURIComponent(input.templateId || DEFAULT_TEMPLATE_ID)}`;
+		const { previewUrl, downloadUrl } = buildLegacySalesDocumentPreviewUrls({
+			token: accessToken,
+			baseUrl: input.baseUrl,
+			templateId: input.templateId || DEFAULT_TEMPLATE_ID,
+		});
 		return {
 			kind: "legacy",
 			generated: false,
@@ -521,6 +557,108 @@ export async function getSalesSnapshotDocumentByAccessToken(input: {
 		storedDocument,
 		tokenPayload: payload,
 	} satisfies SnapshotDocumentLookup;
+}
+
+export async function resolveSalesDocumentPreviewData(input: {
+	db: Db;
+	token?: string | null;
+	accessToken?: string | null;
+	templateId?: string | null;
+	baseUrl?: string | null;
+}) {
+	const templateId = input.templateId || DEFAULT_TEMPLATE_ID;
+
+	if (input.accessToken) {
+		const snapshotLookup = await getSalesSnapshotDocumentByAccessToken({
+			db: input.db,
+			accessToken: input.accessToken,
+		});
+		if (!snapshotLookup) return null;
+
+		const meta = getSnapshotMeta(snapshotLookup.snapshot.meta);
+		const mode = meta.mode;
+		if (!mode) return null;
+
+		const documentData = await getPrintDocumentData(input.db, {
+			ids: [snapshotLookup.snapshot.salesOrderId],
+			mode,
+			dispatchId: meta.dispatchId ?? null,
+		});
+		const urls = buildSalesDocumentAccessUrls({
+			accessToken: input.accessToken,
+			baseUrl: input.baseUrl,
+			templateId,
+		});
+
+		return {
+			pages: documentData.pages,
+			title: documentData.title,
+			templateId,
+			companyAddress: documentData.companyAddress,
+			watermark: null,
+			mode,
+			orderNo: documentData.firstOrderId ?? null,
+			salesOrderId: snapshotLookup.snapshot.salesOrderId,
+			documentType: snapshotLookup.snapshot.documentType,
+			previewUrl: urls.previewUrl,
+			downloadUrl: urls.downloadUrl,
+		} satisfies ResolveSalesDocumentPreviewDataResult;
+	}
+
+	if (!input.token) return null;
+
+	const payload = validateToken(input.token, tokenSchemas.salesPdfToken);
+	if (!payload) return null;
+
+	const mode: PrintMode =
+		payload.mode === "order"
+			? "invoice"
+			: payload.mode === "packing list"
+				? "packing-slip"
+				: payload.mode === "invoice"
+					? "invoice"
+					: payload.mode === "packing-slip"
+						? "packing-slip"
+						: payload.mode === "order-packing"
+							? "order-packing"
+							: payload.mode === "production"
+								? "production"
+								: "quote";
+
+	const documentData = await getPrintDocumentData(input.db, {
+		ids: payload.salesIds,
+		mode,
+		dispatchId: payload.dispatchId ?? null,
+	});
+	const urls = buildLegacySalesDocumentPreviewUrls({
+		token: input.token,
+		baseUrl: input.baseUrl,
+		templateId,
+	});
+
+	return {
+		pages: documentData.pages,
+		title: documentData.title,
+		templateId,
+		companyAddress: documentData.companyAddress,
+		watermark: null,
+		mode,
+		orderNo:
+			payload.salesIds.length === 1
+				? (documentData.firstOrderId ?? null)
+				: null,
+		salesOrderId:
+			payload.salesIds.length === 1 ? (payload.salesIds[0] ?? null) : null,
+		documentType:
+			payload.salesIds.length === 1
+				? buildSalesDocumentTypeKey({
+						mode,
+						dispatchId: payload.dispatchId ?? null,
+					})
+				: null,
+		previewUrl: urls.previewUrl,
+		downloadUrl: urls.downloadUrl,
+	} satisfies ResolveSalesDocumentPreviewDataResult;
 }
 
 export async function expireCurrentSalesDocumentSnapshots(input: {

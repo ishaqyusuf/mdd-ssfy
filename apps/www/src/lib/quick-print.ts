@@ -29,8 +29,14 @@ export async function quickPrint({
 	});
 
 	if (access.kind === "legacy") {
-		const path = v2 ? "p/sales-invoice-v2" : "p/sales-invoice";
-		openLink(path, { token: access.accessToken, preview: true }, true);
+		const path = v2 ? "p/sales-document-v2" : "p/sales-invoice";
+		openLink(
+			path,
+			v2
+				? { token: access.accessToken, templateId: "template-2" }
+				: { token: access.accessToken, preview: true },
+			true,
+		);
 		return;
 	}
 

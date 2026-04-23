@@ -417,8 +417,8 @@ export function PackingListClient() {
 										});
 
 										openLink(
-											"p/sales-invoice-v2",
-											{ token, preview: true },
+											"p/sales-document-v2",
+											{ token, templateId: "template-2" },
 											true,
 										);
 									} catch (error) {

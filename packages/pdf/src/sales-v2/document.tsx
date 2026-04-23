@@ -55,6 +55,8 @@ interface SalesPdfDocumentProps {
 	baseUrl?: string;
 	watermark?: string;
 	logoUrl?: string;
+	previewUrl?: string;
+	qrCodeDataUrl?: string;
 	companyAddress: CompanyAddress;
 	config?: Partial<SalesTemplateConfig>;
 	title?: string;
@@ -67,12 +69,14 @@ export function SalesPdfDocument({
 	baseUrl,
 	watermark,
 	logoUrl,
+	previewUrl,
+	qrCodeDataUrl,
 	companyAddress,
 	config,
 	title,
 	onRender,
 }: SalesPdfDocumentProps) {
-	const Template = getTemplate(templateId);
+	const template = getTemplate(templateId);
 	const resolvedConfig: SalesTemplateConfig = {
 		showImages: true,
 		...config,
@@ -87,12 +91,15 @@ export function SalesPdfDocument({
 	return (
 		<Document title={resolvedTitle} onRender={onRender}>
 			{pages.map((page, i) => (
-				<Template
+				<template.pdf
 					key={`${page.meta.salesNo}-${page.meta.date}-${page.meta.title}-${page.meta.po || i}`}
 					page={page}
 					baseUrl={baseUrl}
 					watermark={watermark}
 					logoUrl={logoUrl}
+					previewUrl={i === 0 ? previewUrl : undefined}
+					qrCodeDataUrl={i === 0 ? qrCodeDataUrl : undefined}
+					pageIndex={i}
 					companyAddress={companyAddress}
 					config={resolvedConfig}
 				/>

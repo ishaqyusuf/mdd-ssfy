@@ -17,6 +17,7 @@ interface PackingSlipModeProps {
 	page: PrintPage;
 	baseUrl?: string;
 	logoUrl?: string;
+	qrCodeDataUrl?: string;
 	companyAddress: CompanyAddress;
 	config: SalesTemplateConfig;
 }
@@ -29,6 +30,7 @@ export function PackingSlipMode({
 	page,
 	baseUrl,
 	logoUrl,
+	qrCodeDataUrl,
 	companyAddress,
 	config,
 }: PackingSlipModeProps) {
@@ -42,6 +44,7 @@ export function PackingSlipMode({
 					companyAddress={companyAddress}
 					baseUrl={baseUrl}
 					logoUrl={logoUrl}
+					qrCodeDataUrl={qrCodeDataUrl}
 				/>
 			</View>
 
