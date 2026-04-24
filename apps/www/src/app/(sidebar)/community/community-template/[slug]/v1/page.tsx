@@ -22,22 +22,28 @@ type Props = {
 
 export default async function Page(props: Props) {
 	const { slug } = await props.params;
-	const queryClient = getQueryClient();
+	return (
+		<PageShell>
+			<div className="flex flex-col gap-6">
+				<ErrorBoundary errorComponent={ErrorFallback}>
+					<Suspense fallback={null}>
+						<PrefetchedCommunityTemplateV1 slug={slug} />
+					</Suspense>
+				</ErrorBoundary>
+			</div>
+		</PageShell>
+	);
+}
 
+async function PrefetchedCommunityTemplateV1({ slug }: { slug: string }) {
+	const queryClient = getQueryClient();
 	await queryClient.fetchQuery(
 		trpc.community.getCommunityTemplateLegacy.queryOptions({ slug }),
 	);
+
 	return (
-		<PageShell>
-			<HydrateClient>
-				<div className="flex flex-col gap-6">
-					<ErrorBoundary errorComponent={ErrorFallback}>
-						<Suspense fallback={null}>
-							<CommunityTemplateV1Client slug={slug} />
-						</Suspense>
-					</ErrorBoundary>
-				</div>
-			</HydrateClient>
-		</PageShell>
+		<HydrateClient>
+			<CommunityTemplateV1Client slug={slug} />
+		</HydrateClient>
 	);
 }

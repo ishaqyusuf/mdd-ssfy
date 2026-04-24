@@ -7,10 +7,14 @@ import {
 	parseAsStringEnum,
 	useQueryStates,
 } from "nuqs";
+import { useRef } from "react";
 
 export function useSalesPreview() {
+	const requestRef = useRef(0);
 	const [params, setParams] = useQueryStates({
 		salesPreviewId: parseAsInteger,
+		salesPreviewError: parseAsString,
+		salesPreviewRequest: parseAsString,
 		salesPreviewToken: parseAsString,
 		salesPreviewUrl: parseAsString,
 		salesPreviewType: parseAsStringEnum(["order", "quote"] as SalesType[]),
@@ -23,12 +27,13 @@ export function useSalesPreview() {
 		] as IOrderPrintMode[]),
 		dispatchId: parseAsInteger,
 	});
-	const opened = !!params.salesPreviewUrl;
+	const opened = !!params.salesPreviewId && !!params.salesPreviewType;
 	return {
 		params,
 		opened,
 		setParams,
 		close() {
+			requestRef.current += 1;
 			setParams(null);
 		},
 		async preview(
@@ -41,21 +46,41 @@ export function useSalesPreview() {
 		) {
 			if (!salesId || !salesPreviewType) return;
 
+			requestRef.current += 1;
+			const requestId = `${Date.now()}-${requestRef.current}`;
 			const previewMode =
 				options?.mode ?? (salesPreviewType as IOrderPrintMode);
-			const access = await resolveSalesDocumentAccessAction({
-				salesIds: [salesId],
-				mode: toPrintMode(previewMode),
-				dispatchId: options?.dispatchId ?? null,
-			});
 
 			setParams({
 				salesPreviewId: salesId,
 				salesPreviewType,
-				salesPreviewUrl: access.previewUrl,
+				salesPreviewRequest: requestId,
+				salesPreviewUrl: null,
+				salesPreviewError: null,
 				previewMode,
 				dispatchId: options?.dispatchId ?? null,
 			});
+
+			try {
+				const access = await resolveSalesDocumentAccessAction({
+					salesIds: [salesId],
+					mode: toPrintMode(previewMode),
+					dispatchId: options?.dispatchId ?? null,
+				});
+
+				if (!isCurrentPreviewRequest(requestId)) return;
+
+				setParams({
+					salesPreviewUrl: access.previewUrl,
+					salesPreviewError: null,
+				});
+			} catch {
+				if (!isCurrentPreviewRequest(requestId)) return;
+
+				setParams({
+					salesPreviewError: "Unable to prepare this preview.",
+				});
+			}
 		},
 	};
 }
@@ -75,4 +100,13 @@ function toPrintMode(mode: IOrderPrintMode) {
 		default:
 			return "invoice" as const;
 	}
+}
+
+function isCurrentPreviewRequest(requestId: string) {
+	if (typeof window === "undefined") return true;
+
+	return (
+		new URLSearchParams(window.location.search).get("salesPreviewRequest") ===
+		requestId
+	);
 }

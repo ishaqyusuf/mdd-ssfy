@@ -28,19 +28,22 @@ export async function quickPrint({
 		dispatchId: dispatchId ?? null,
 	});
 
-	if (access.kind === "legacy") {
-		const path = v2 ? "p/sales-document-v2" : "p/sales-invoice";
-		openLink(
-			path,
-			v2
-				? { token: access.accessToken, templateId: "template-2" }
-				: { token: access.accessToken, preview: true },
-			true,
-		);
-		return;
-	}
-
-	openLink(access.previewUrl, null, true);
+	const path = v2 ? "p/sales-invoice-v2" : "p/sales-invoice";
+	openLink(
+		path,
+		access.kind === "legacy"
+			? {
+					token: access.accessToken,
+					preview: false,
+					templateId: "template-2",
+				}
+			: {
+					accessToken: access.accessToken,
+					preview: false,
+					templateId: "template-2",
+				},
+		true,
+	);
 }
 
 export async function downloadSalesDocument({
@@ -54,7 +57,21 @@ export async function downloadSalesDocument({
 		dispatchId: dispatchId ?? null,
 	});
 
-	openLink(access.downloadUrl, null, true);
+	openLink(
+		"p/sales-invoice-v2",
+		access.kind === "legacy"
+			? {
+					token: access.accessToken,
+					preview: true,
+					templateId: "template-2",
+				}
+			: {
+					accessToken: access.accessToken,
+					preview: true,
+					templateId: "template-2",
+				},
+		true,
+	);
 }
 
 export function printOrder(options: SalesPrintHelperOptions) {

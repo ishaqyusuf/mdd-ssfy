@@ -25,15 +25,35 @@ type Props = {
 };
 export default async function Page(props: Props) {
 	const searchParams = await props.searchParams;
-	const queryClient = getQueryClient();
 	const filter = loadProjectUnitFilterParams(searchParams);
 	const { sort } = loadSortParams(searchParams);
-	await queryClient.fetchInfiniteQuery(
-		trpc.community.getProjectUnits.infiniteQueryOptions({
-			...(filter as any),
-			sort,
-		}) as any,
+
+	return (
+		<PageShell>
+			<div className="flex flex-col gap-6">
+				<PageTitle>Project Unit</PageTitle>
+				<ProjectUnitHeader />
+				<ErrorBoundary errorComponent={ErrorFallback}>
+					<Suspense fallback={<TableSkeleton />}>
+						<PrefetchedProjectUnitsAnalytics filter={filter} />
+					</Suspense>
+				</ErrorBoundary>
+				<ErrorBoundary errorComponent={ErrorFallback}>
+					<Suspense fallback={<TableSkeleton />}>
+						<PrefetchedProjectUnitsTable filter={filter} sort={sort} />
+					</Suspense>
+				</ErrorBoundary>
+			</div>
+		</PageShell>
 	);
+}
+
+async function PrefetchedProjectUnitsAnalytics({
+	filter,
+}: {
+	filter: ReturnType<typeof loadProjectUnitFilterParams>;
+}) {
+	const queryClient = getQueryClient();
 	await queryClient.fetchQuery(
 		trpc.community.communityProjectUnitsOverview.queryOptions({
 			builderSlug: filter.builderSlug ?? undefined,
@@ -42,24 +62,32 @@ export default async function Page(props: Props) {
 			installation: (filter as any).installation ?? undefined,
 		}),
 	);
+
 	return (
-		<PageShell>
-			<HydrateClient>
-				<div className="flex flex-col gap-6">
-					<PageTitle>Project Unit</PageTitle>
-					<ProjectUnitHeader />
-					<ErrorBoundary errorComponent={ErrorFallback}>
-						<Suspense fallback={<TableSkeleton />}>
-							<CommunityProjectUnitsAnalytics />
-						</Suspense>
-					</ErrorBoundary>
-					<ErrorBoundary errorComponent={ErrorFallback}>
-						<Suspense fallback={<TableSkeleton />}>
-							<DataTable />
-						</Suspense>
-					</ErrorBoundary>
-				</div>
-			</HydrateClient>
-		</PageShell>
+		<HydrateClient>
+			<CommunityProjectUnitsAnalytics />
+		</HydrateClient>
+	);
+}
+
+async function PrefetchedProjectUnitsTable({
+	filter,
+	sort,
+}: {
+	filter: ReturnType<typeof loadProjectUnitFilterParams>;
+	sort: ReturnType<typeof loadSortParams>["sort"];
+}) {
+	const queryClient = getQueryClient();
+	await queryClient.fetchInfiniteQuery(
+		trpc.community.getProjectUnits.infiniteQueryOptions({
+			...(filter as any),
+			sort,
+		}) as any,
+	);
+
+	return (
+		<HydrateClient>
+			<DataTable />
+		</HydrateClient>
 	);
 }

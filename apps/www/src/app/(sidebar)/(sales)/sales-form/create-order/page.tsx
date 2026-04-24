@@ -6,6 +6,7 @@ import { unstable_noStore } from "next/cache";
 import PageShell from "@/components/page-shell";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import type { SearchParams } from "nuqs";
+import { Suspense } from "react";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
@@ -31,6 +32,22 @@ export default async function Page(props: Props) {
 		selectedCustomerId && Number.isFinite(selectedCustomerId)
 			? selectedCustomerId
 			: null;
+
+	return (
+		<PageShell>
+			<PageTitle>Create Order</PageTitle>
+			<Suspense fallback={<SalesFormLoading />}>
+				<PrefetchedCreateOrderForm customerId={customerId} />
+			</Suspense>
+		</PageShell>
+	);
+}
+
+async function PrefetchedCreateOrderForm({
+	customerId,
+}: {
+	customerId: number | null;
+}) {
 	const queryClient = getQueryClient();
 	await queryClient.fetchQuery(
 		trpc.newSalesForm.bootstrap.queryOptions({
@@ -40,11 +57,16 @@ export default async function Page(props: Props) {
 	);
 
 	return (
-		<PageShell>
-			<HydrateClient>
-				<PageTitle>Create Order</PageTitle>
-				<NewSalesForm mode="create" type="order" />
-			</HydrateClient>
-		</PageShell>
+		<HydrateClient>
+			<NewSalesForm mode="create" type="order" />
+		</HydrateClient>
+	);
+}
+
+function SalesFormLoading() {
+	return (
+		<div className="rounded-lg border p-8 text-sm text-muted-foreground">
+			Loading sales form...
+		</div>
 	);
 }

@@ -7,9 +7,9 @@ import { useMemo } from "react";
 export function SalesPreview() {
 	const { params, opened } = useSalesPreview();
 
-	if (!opened || !params.salesPreviewUrl) return null;
-
 	const previewParams = useMemo(() => {
+		if (!params.salesPreviewUrl) return null;
+
 		try {
 			const url = new URL(params.salesPreviewUrl, "https://preview.local");
 			return {
@@ -21,6 +21,28 @@ export function SalesPreview() {
 			return null;
 		}
 	}, [params.salesPreviewUrl]);
+
+	if (!opened) return null;
+
+	if (params.salesPreviewError) {
+		return (
+			<div className="p-4">
+				<div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
+					{params.salesPreviewError}
+				</div>
+			</div>
+		);
+	}
+
+	if (!params.salesPreviewUrl) {
+		return (
+			<div className="flex h-[60vh] items-center justify-center bg-background">
+				<div className="text-sm text-muted-foreground">
+					Preparing preview...
+				</div>
+			</div>
+		);
+	}
 
 	if (!previewParams) {
 		return (

@@ -6,7 +6,8 @@ import { cn } from "@/lib/utils";
 import { PDFViewer } from "@gnd/pdf";
 import { SalesPdfDocument } from "@gnd/pdf/sales-v2";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import type { SyntheticEvent } from "react";
+import { useCallback, useRef } from "react";
 import { PackingSlipSignFab } from "./packing-slip-sign-fab";
 import { _trpc } from "./static-trpc";
 
@@ -16,6 +17,30 @@ interface PrintSalesV2Props {
 	preview?: boolean;
 	templateId?: string;
 	className?: string;
+}
+
+function waitForNextFrame() {
+	return new Promise<void>((resolve) => {
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => resolve());
+		});
+	});
+}
+
+async function waitForPrintableFrame(iframe: HTMLIFrameElement) {
+	await waitForNextFrame();
+
+	try {
+		const iframeDocument = iframe.contentDocument;
+		if (iframeDocument?.fonts?.ready) {
+			await iframeDocument.fonts.ready;
+		}
+	} catch {
+		// Browser PDF viewers can hide their internals; iframe load is still the
+		// reliable signal that the blob URL has been handed off to the viewer.
+	}
+
+	await waitForNextFrame();
 }
 
 export function PrintSalesV2({
@@ -39,13 +64,26 @@ export function PrintSalesV2({
 		}),
 	);
 	const viewerRef = useRef<{ contentWindow?: Window | null } | null>(null);
+	const printedRef = useRef(false);
 
-	useEffect(() => {
-		if (resolvedPreview) return;
-		setTimeout(() => {
-			viewerRef.current?.contentWindow?.print();
-		}, 3000);
-	}, [resolvedPreview]);
+	const handleViewerLoad = useCallback(
+		async (event: SyntheticEvent<HTMLIFrameElement>) => {
+			const iframe = event.currentTarget;
+			if (
+				resolvedPreview ||
+				printedRef.current ||
+				!iframe.src.startsWith("blob:")
+			) {
+				return;
+			}
+
+			printedRef.current = true;
+			await waitForPrintableFrame(iframe);
+			iframe.contentWindow?.focus();
+			iframe.contentWindow?.print();
+		},
+		[resolvedPreview],
+	);
 
 	if (!data) return null;
 
@@ -56,6 +94,7 @@ export function PrintSalesV2({
 		<>
 			<PDFViewer
 				ref={viewerRef}
+				onLoad={handleViewerLoad}
 				className={cn("flex h-screen w-full flex-col", className)}
 			>
 				<SalesPdfDocument
