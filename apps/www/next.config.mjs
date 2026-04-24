@@ -1,4 +1,17 @@
 import { withSentryConfig } from "@sentry/nextjs";
+
+const localNetworkDevOrigins = [
+	"10.*.*.*",
+	"172.*.*.*",
+	"192.168.*.*",
+	"*.local",
+];
+
+const extraDevOrigins =
+	process.env.NEXT_ALLOWED_DEV_ORIGINS?.split(",")
+		.map((origin) => origin.trim())
+		.filter(Boolean) ?? [];
+
 /** @type {import('next').NextConfig} */
 const config = {
 	allowedDevOrigins: [
@@ -6,6 +19,8 @@ const config = {
 		"gndprodesk.localhost",
 		"localhost",
 		"127.0.0.1",
+		...localNetworkDevOrigins,
+		...extraDevOrigins,
 	],
 	transpilePackages: [
 		"@gnd/ui",

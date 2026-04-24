@@ -40,6 +40,7 @@ export class SaveSalesHelper {
             po: md.po,
             qb: md.qb,
             payment_option: md.paymentMethod,
+            paymentMethodReviewDismissed: md.paymentMethodReviewDismissed,
             laborConfig: md?.salesLaborConfig,
         };
         const sd = this.ctx.data;

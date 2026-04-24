@@ -57,21 +57,7 @@ export async function downloadSalesDocument({
 		dispatchId: dispatchId ?? null,
 	});
 
-	openLink(
-		"p/sales-invoice-v2",
-		access.kind === "legacy"
-			? {
-					token: access.accessToken,
-					preview: true,
-					templateId: "template-2",
-				}
-			: {
-					accessToken: access.accessToken,
-					preview: true,
-					templateId: "template-2",
-				},
-		true,
-	);
+	downloadSilently(access.downloadUrl);
 }
 
 export function printOrder(options: SalesPrintHelperOptions) {
@@ -102,3 +88,14 @@ export const salesPrintHelper = {
 	printQuote,
 	downloadSalesDocument,
 };
+
+function downloadSilently(url: string) {
+	const iframe = document.createElement("iframe");
+	iframe.hidden = true;
+	iframe.src = url;
+	document.body.appendChild(iframe);
+
+	setTimeout(() => {
+		iframe.remove();
+	}, 60_000);
+}

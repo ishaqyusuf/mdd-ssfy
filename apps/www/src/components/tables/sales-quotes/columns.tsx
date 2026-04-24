@@ -13,6 +13,7 @@ import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { cells } from "@gnd/ui/custom/data-table/cells";
 import { Icons } from "@gnd/ui/icons";
+import { Item as ListItem } from "@gnd/ui/namespace";
 
 export type Item = RouterOutputs["sales"]["quotes"]["data"][number];
 interface ItemProps {
@@ -157,57 +158,121 @@ export const mobileColumn: ColumnDef<Item>[] = [
 		},
 	},
 ];
+
+function getInvoiceStatusLabel(item: Item) {
+	if (item.invoice.pending <= 0) return "Paid";
+	if (item.invoice.pending >= item.invoice.total) return "Open";
+	return "Part paid";
+}
+
+function getInvoiceToneClass(item: Item) {
+	if (item.invoice.pending <= 0) {
+		return "border-emerald-200 bg-emerald-50 text-emerald-700";
+	}
+	if (item.invoice.pending >= item.invoice.total) {
+		return "border-slate-200 bg-slate-50 text-slate-700";
+	}
+	return "border-amber-200 bg-amber-50 text-amber-700";
+}
+
 function ItemCard({ item }: ItemProps) {
 	return (
-		<div className="flex flex-col space-y-2 p-3 border-b">
-			<div className="flex justify-between items-start">
-				<div className="flex flex-col">
-					<div className="flex items-center gap-2">
-						<TCell.Secondary className="font-bold">
-							{item.orderId}
-						</TCell.Secondary>
+		<ListItem
+			variant="outline"
+			size="sm"
+			className="items-start rounded-none border-x-0 border-t-0 border-b border-border/70 bg-background px-3 py-3"
+		>
+			<ListItem.Header className="items-start gap-3">
+				<div className="min-w-0 space-y-1">
+					<div className="text-[11px] font-medium uppercase text-muted-foreground">
+						Quote
+					</div>
+					<ListItem.Title className="w-full max-w-full gap-1.5 font-mono text-[13px] text-foreground uppercase">
+						<span className="truncate">{item.orderId}</span>
 						{!item.orderId?.toUpperCase().endsWith(item.salesRepInitial) && (
-							<Badge className="font-mono$ text-xs" variant="secondary">
+							<Badge
+								className="rounded-md px-1.5 py-0 text-[10px]"
+								variant="secondary"
+							>
 								{item.salesRepInitial}
 							</Badge>
 						)}
-					</div>
-					<TCell.Secondary className="text-xs font-mono$">
-						{item?.salesDate}
-					</TCell.Secondary>
+						{!item.noteCount || (
+							<Badge className="h-5 rounded-md px-1.5 py-0" variant="secondary">
+								<Icons.StickyNote className="mr-1 size-3" />
+								<span>{item.noteCount}</span>
+							</Badge>
+						)}
+					</ListItem.Title>
 				</div>
-			</div>
+				<div className="flex shrink-0 items-center gap-2">
+					<Badge
+						variant="outline"
+						className={cn(
+							"rounded-lg border px-2 py-1 text-[10px] font-semibold uppercase",
+							getInvoiceToneClass(item),
+						)}
+					>
+						{getInvoiceStatusLabel(item)}
+					</Badge>
+					<div
+						onClick={(event) => {
+							event.preventDefault();
+							event.stopPropagation();
+						}}
+					>
+						<QuoteActions item={item} />
+					</div>
+				</div>
+			</ListItem.Header>
 
-			<div>
-				<TCell.Primary
+			<ListItem.Content className="min-w-0 gap-2">
+				<ListItem.Title
 					className={cn("font-semibold", item.isBusiness && "text-blue-700")}
 				>
 					<TextWithTooltip
-						className="max-w-full"
+						className="max-w-full truncate"
 						text={item.displayName || "-"}
 					/>
-				</TCell.Primary>
-				{item.poNo && (
-					<TCell.Secondary className="text-xs">
-						P.O: {item.poNo}
-					</TCell.Secondary>
-				)}
-			</div>
+				</ListItem.Title>
 
-			<div className="text-xs text-muted-foreground">
-				<TextWithTooltip className="max-w-full" text={item?.address} />
-				<div>{item?.customerPhone}</div>
-			</div>
+				<div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 text-xs">
+					<div className="min-w-0 space-y-1 text-muted-foreground">
+						<div className="flex min-w-0 items-center gap-1.5">
+							<Icons.Calendar className="size-3.5 shrink-0" />
+							<span className="truncate text-foreground">
+								{item.salesDate || "No date"}
+							</span>
+						</div>
+						<div className="flex min-w-0 items-center gap-1.5">
+							<Icons.Phone className="size-3.5 shrink-0" />
+							<span className="truncate">{item.customerPhone || "No phone"}</span>
+						</div>
+						<div className="flex min-w-0 items-center gap-1.5">
+							<Icons.MapPin className="size-3.5 shrink-0" />
+							<TextWithTooltip
+								className="max-w-full truncate"
+								text={item.address || "No address"}
+							/>
+						</div>
+					</div>
 
-			<div className="flex justify-between items-center border-t pt-2 mt-2">
-				<div>
-					<div className="text-xs text-muted-foreground">Invoice</div>
-					<TCell.Money
-						value={item.invoice.total}
-						className="font-mono$ font-bold"
-					/>
+					<div className="min-w-[88px] text-right">
+						<div className="text-[11px] uppercase text-muted-foreground">
+							Invoice
+						</div>
+						<TCell.Money
+							value={item.invoice.total}
+							className="mt-0.5 block text-sm font-semibold text-foreground"
+						/>
+						{item.poNo && (
+							<div className="mt-1 max-w-[100px] truncate text-[11px] text-muted-foreground">
+								PO {item.poNo}
+							</div>
+						)}
+					</div>
 				</div>
-			</div>
-		</div>
+			</ListItem.Content>
+		</ListItem>
 	);
 }

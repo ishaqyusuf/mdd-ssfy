@@ -2,6 +2,7 @@
 
 import { triggerEvent } from "@/actions/events";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
+import { updateSalesMetaAction } from "@/actions/update-sales-meta-action";
 import { _modal } from "@/components/common/modal/provider";
 import { useAuth } from "@/hooks/use-auth";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
@@ -31,6 +32,7 @@ import {
 import { toSaveDraftInput } from "./mappers";
 import { CustomerSelectorDialog } from "./sections/customer-selector-dialog";
 import { HeaderActions } from "./sections/header-actions";
+import { PaymentMethodReviewDialog } from "../sales-form/payment-method-review-dialog";
 import { useNewSalesFormStore } from "./store";
 import { useNewSalesFormAutoSave } from "./use-auto-save";
 import { useCreateFormQueryParams } from "./use-create-form-query-params";
@@ -87,6 +89,8 @@ type PackingDispatch = {
 	deliveryMode?: string | null;
 };
 
+const PAYMENT_METHODS = ["Cash", "Check", "Credit Card", "ACH", "Link"];
+
 function normalizeDispatchStatus(status?: string | null): DispatchStatus {
 	switch (status) {
 		case "packing queue":
@@ -126,6 +130,8 @@ export function NewSalesForm(props: Props) {
 	const queryClient = useQueryClient();
 	const auth = useAuth();
 	const [draftParams, setDraftParams] = useCreateFormQueryParams();
+	const [paymentReviewOpen, setPaymentReviewOpen] = useState(false);
+	const [paymentReviewSeen, setPaymentReviewSeen] = useState(false);
 	const record = useNewSalesFormStore((s) => s.record);
 	const dirty = useNewSalesFormStore((s) => s.dirty);
 	const saveStatus = useNewSalesFormStore((s) => s.saveStatus);
@@ -141,6 +147,7 @@ export function NewSalesForm(props: Props) {
 	const patchRecord = useNewSalesFormStore((s) => s.patchRecord);
 	const editor = useNewSalesFormStore((s) => s.editor);
 	const setEditor = useNewSalesFormStore((s) => s.setEditor);
+	const setMeta = useNewSalesFormStore((s) => s.setMeta);
 	const [recoverySnapshot, setRecoverySnapshot] =
 		useState<NewSalesFormRecoverySnapshot | null>(null);
 	const [bootstrapCustomerId] = useState<number | null>(
@@ -308,6 +315,27 @@ export function NewSalesForm(props: Props) {
 		if (!record) return null;
 		return toSaveDraftInput(record, true);
 	}, [record]);
+	const shouldReviewPaymentMethod =
+		props.mode === "edit" &&
+		Boolean(record?.salesId) &&
+		!paymentReviewSeen &&
+		!Boolean((record as any)?.paymentMethodReviewDismissed) &&
+		Number((record as any)?.paymentTotal || 0) <= 0 &&
+		(!record?.form?.paymentMethod ||
+			record.form.paymentMethod !== "Credit Card");
+
+	useEffect(() => {
+		if (shouldReviewPaymentMethod) setPaymentReviewOpen(true);
+	}, [shouldReviewPaymentMethod]);
+
+	async function dismissPaymentMethodReview(checked: boolean) {
+		if (!checked || !record?.salesId) return;
+		await updateSalesMetaAction(record.salesId, {
+			paymentMethodReviewDismissed: true,
+		});
+		setPaymentReviewSeen(true);
+		setPaymentReviewOpen(false);
+	}
 	const recoveryKey = useMemo(
 		() =>
 			getRecoveryStorageKey({
@@ -861,6 +889,21 @@ export function NewSalesForm(props: Props) {
 				open={customerSelectionRequired}
 				required
 				type={props.type}
+			/>
+			<PaymentMethodReviewDialog
+				open={paymentReviewOpen}
+				paymentMethod={record.form.paymentMethod}
+				paymentMethods={PAYMENT_METHODS}
+				onOpenChange={(open) => {
+					setPaymentReviewOpen(open);
+					if (!open) setPaymentReviewSeen(true);
+				}}
+				onSelectPaymentMethod={(method) => {
+					setMeta({ paymentMethod: method });
+					setPaymentReviewSeen(true);
+					setPaymentReviewOpen(false);
+				}}
+				onDontAskAgainChange={dismissPaymentMethodReview}
 			/>
 			<div className="relative flex min-h-0 h-[calc(100dvh-var(--header-height,5rem)-1.5rem)] max-h-[calc(100dvh-var(--header-height,5rem)-1.5rem)] overflow-hidden rounded-xl border bg-background">
 				<main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">

@@ -776,8 +776,8 @@ function MobileStatusBlock({
 	value: string;
 }) {
 	return (
-		<div className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2">
-			<div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+		<div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
+			<div className="text-[11px] font-medium uppercase text-muted-foreground">
 				{label}
 			</div>
 			<div className="mt-1 text-sm font-medium capitalize text-foreground">
@@ -796,25 +796,49 @@ function ItemCard({ item }: ItemProps) {
 		>
 			<Item.Header className="items-start gap-3">
 				<div className="min-w-0 space-y-1">
-					<div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+					<div className="text-[11px] font-medium uppercase text-muted-foreground">
 						Order
 					</div>
-					<Item.Title className="w-full max-w-full gap-1.5 font-mono text-[13px] tracking-[0.08em] text-foreground uppercase">
-						<span>{item.orderId}</span>
+					<Item.Title className="w-full max-w-full gap-1.5 font-mono text-[13px] text-foreground uppercase">
+						<span className="truncate">{item.orderId}</span>
+						{!item.orderId?.toUpperCase().endsWith(item.salesRepInitial) && (
+							<Badge
+								className="rounded-md px-1.5 py-0 text-[10px]"
+								variant="secondary"
+							>
+								{item.salesRepInitial}
+							</Badge>
+						)}
+						{!item.noteCount || (
+							<Badge className="h-5 rounded-md px-1.5 py-0" variant="secondary">
+								<Icons.StickyNote className="mr-1 size-3" />
+								<span>{item.noteCount}</span>
+							</Badge>
+						)}
 					</Item.Title>
 				</div>
-				<Badge
-					variant="outline"
-					className={cn(
-						"shrink-0 rounded-lg border px-2 py-1 text-[10px] font-semibold tracking-[0.12em] uppercase",
-						getInvoiceToneClass(item),
-					)}
-				>
-					{getInvoiceStatusLabel(item)}
-				</Badge>
+				<div className="flex shrink-0 items-center gap-2">
+					<Badge
+						variant="outline"
+						className={cn(
+							"rounded-lg border px-2 py-1 text-[10px] font-semibold uppercase",
+							getInvoiceToneClass(item),
+						)}
+					>
+						{getInvoiceStatusLabel(item)}
+					</Badge>
+					<div
+						onClick={(event) => {
+							event.preventDefault();
+							event.stopPropagation();
+						}}
+					>
+						<Actions item={item} />
+					</div>
+				</div>
 			</Item.Header>
 
-			<Item.Content className="min-w-0 gap-2">
+			<Item.Content className="min-w-0 gap-2.5">
 				<Item.Title
 					className={cn(
 						"max-w-full text-sm leading-tight",
@@ -827,21 +851,34 @@ function ItemCard({ item }: ItemProps) {
 					/>
 				</Item.Title>
 
-				<div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-					<div className="min-w-0">
-						<div className="text-[11px] uppercase tracking-[0.14em]">Date</div>
-						<div className="mt-0.5 truncate text-foreground">
-							{item.salesDate || "No date"}
+				<div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 text-xs">
+					<div className="min-w-0 space-y-1 text-muted-foreground">
+						<div className="flex min-w-0 items-center gap-1.5">
+							<Icons.Calendar className="size-3.5 shrink-0" />
+							<span className="truncate text-foreground">
+								{item.salesDate || "No date"}
+							</span>
+						</div>
+						<div className="flex min-w-0 items-center gap-1.5">
+							<Icons.Phone className="size-3.5 shrink-0" />
+							<span className="truncate">{item.customerPhone || "No phone"}</span>
+						</div>
+						<div className="flex min-w-0 items-center gap-1.5">
+							<Icons.MapPin className="size-3.5 shrink-0" />
+							<TextWithTooltip
+								className="max-w-full truncate"
+								text={item.address || "No address"}
+							/>
 						</div>
 					</div>
-					<div className="text-right">
-						<div className="text-[11px] uppercase tracking-[0.14em]">
+					<div className="min-w-[88px] text-right">
+						<div className="text-[11px] uppercase text-muted-foreground">
 							Invoice
 						</div>
 						<TCell.Money
 							value={item.invoice.total}
 							className={cn(
-								"mt-0.5 text-sm font-semibold",
+								"mt-0.5 block text-sm font-semibold",
 								item.invoice.pending === item.invoice.total
 									? "text-red-600"
 									: item.invoice.pending > 0
@@ -849,7 +886,23 @@ function ItemCard({ item }: ItemProps) {
 										: "text-emerald-600",
 							)}
 						/>
+						{item.poNo && (
+							<div className="mt-1 max-w-[100px] truncate text-[11px] text-muted-foreground">
+								PO {item.poNo}
+							</div>
+						)}
 					</div>
+				</div>
+
+				<div className="grid grid-cols-2 gap-2">
+					<MobileStatusBlock
+						label="Production"
+						value={getProductionStatusLabel(item) || "-"}
+					/>
+					<MobileStatusBlock
+						label="Fulfillment"
+						value={getFulfillmentStatusLabel(item) || "-"}
+					/>
 				</div>
 			</Item.Content>
 		</Item>

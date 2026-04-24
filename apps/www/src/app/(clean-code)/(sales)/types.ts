@@ -129,7 +129,8 @@ export type SalesMeta = {
     mockupPercentage: number;
     rep;
     total_prod_qty;
-    payment_option: SalesPaymentOptions;
+    payment_option: SalesPaymentOptions | null;
+    paymentMethodReviewDismissed?: boolean;
     truckLoadLocation;
     truck;
     tax?: boolean;
@@ -549,7 +550,8 @@ export interface SalesFormFields {
             id?: number;
         };
         // sad?: number;
-        paymentMethod: SalesPaymentOptions;
+        paymentMethod: SalesPaymentOptions | null;
+        paymentMethodReviewDismissed?: boolean;
         pricing: PricingMetaData;
         tax?: {
             salesTaxId?: string;

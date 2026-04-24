@@ -1,6 +1,7 @@
-import { Fragment, useMemo } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { SettingsClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class";
+import { updateSalesMetaAction } from "@/actions/update-sales-meta-action";
 import { DatePicker } from "@/components/_v1/date-range-picker";
 import { Icons } from "@gnd/ui/icons";
 import { Menu } from "@gnd/ui/custom/menu";
@@ -25,6 +26,7 @@ import { deleteSalesExtraCost } from "@/actions/delete-sales-extra-cost";
 import { SalesHistory } from "@/components/sales-hx";
 import { SalesCustomerInput } from "./sales-customer-input";
 import salesData from "@sales/sales-data";
+import { PaymentMethodReviewDialog } from "./payment-method-review-dialog";
 
 export type SalesMetaTab = "summary" | "history";
 
@@ -40,17 +42,56 @@ function SummaryTab({}) {
     const zus = useFormDataStore();
     const md = zus.metaData;
     const setting = useMemo(() => new SettingsClass(), []);
+    const [paymentReviewOpen, setPaymentReviewOpen] = useState(false);
+    const [paymentReviewSeen, setPaymentReviewSeen] = useState(false);
     const profiles = setting.salesProfiles();
     const taxList = setting.taxList();
     const displaySubTotal =
         (md.pricing?.grandTotal || 0) -
         (md.pricing?.taxValue || 0) -
         (md.pricing?.ccc || 0);
+    const shouldReviewPaymentMethod =
+        Boolean(md?.id) &&
+        !paymentReviewSeen &&
+        !md?.paymentMethodReviewDismissed &&
+        Number(md?.pricing?.paid || 0) <= 0 &&
+        (!md?.paymentMethod || md.paymentMethod !== "Credit Card");
+
+    useEffect(() => {
+        if (shouldReviewPaymentMethod) setPaymentReviewOpen(true);
+    }, [shouldReviewPaymentMethod]);
+
+    async function dismissPaymentMethodReview(checked: boolean) {
+        if (!checked || !md?.id) return;
+        zus.dotUpdate("metaData.paymentMethodReviewDismissed", true);
+        await updateSalesMetaAction(md.id, {
+            paymentMethodReviewDismissed: true,
+        });
+        setPaymentReviewSeen(true);
+        setPaymentReviewOpen(false);
+    }
+
     function calculateTotal() {
         setting.calculateTotalPrice();
     }
     return (
         <div className="">
+            <PaymentMethodReviewDialog
+                open={paymentReviewOpen}
+                paymentMethod={md?.paymentMethod}
+                paymentMethods={salesData.paymentOptions}
+                onOpenChange={(open) => {
+                    setPaymentReviewOpen(open);
+                    if (!open) setPaymentReviewSeen(true);
+                }}
+                onSelectPaymentMethod={(method) => {
+                    zus.dotUpdate("metaData.paymentMethod", method);
+                    setting.taxCodeChanged();
+                    setPaymentReviewSeen(true);
+                    setPaymentReviewOpen(false);
+                }}
+                onDontAskAgainChange={dismissPaymentMethodReview}
+            />
             <SalesCustomerInput />
             {/* <div className="min-h-[15vh] border-b">
                 <CustomerDataSection />

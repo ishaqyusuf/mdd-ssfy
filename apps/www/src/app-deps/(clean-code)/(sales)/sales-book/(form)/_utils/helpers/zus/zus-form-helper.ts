@@ -71,7 +71,9 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
             paymentDueDate: data.order?.paymentDueDate,
             prodDueDate: data.order?.prodDueDate,
             goodUntil: data.order?.goodUntil,
-            paymentMethod: data.order?.meta?.payment_option || "Credit Card",
+            paymentMethod: data.order?.meta?.payment_option || null,
+            paymentMethodReviewDismissed:
+                !!data.order?.meta?.paymentMethodReviewDismissed,
             pricing: {
                 dueAmount: data?.order?.amountDue,
                 discount: data.order?.meta?.discount,

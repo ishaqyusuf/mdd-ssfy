@@ -56,6 +56,56 @@ function getRequestUserAgent(
 		: (userAgent ?? null);
 }
 
+function isPrivateLocalHostname(hostname: string) {
+	if (
+		hostname === "localhost" ||
+		hostname === "127.0.0.1" ||
+		hostname.endsWith(".localhost") ||
+		hostname.endsWith(".local")
+	) {
+		return true;
+	}
+
+	if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
+		return true;
+	}
+
+	if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
+		return true;
+	}
+
+	const private172Match = hostname.match(
+		/^172\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/,
+	);
+	if (private172Match) {
+		const secondOctet = Number(private172Match[1]);
+		return secondOctet >= 16 && secondOctet <= 31;
+	}
+
+	return false;
+}
+
+function getAllowedDevRedirectOrigins() {
+	const configuredOrigins =
+		process.env.NEXTAUTH_ALLOWED_DEV_ORIGINS?.split(",")
+			.map((origin) => origin.trim())
+			.filter(Boolean) ?? [];
+
+	return configuredOrigins;
+}
+
+function isAllowedDevRedirect(url: URL) {
+	if (process.env.NODE_ENV === "production") {
+		return false;
+	}
+
+	if (getAllowedDevRedirectOrigins().includes(url.origin)) {
+		return true;
+	}
+
+	return url.protocol === "http:" && isPrivateLocalHostname(url.hostname);
+}
+
 async function getValidSessionRecord(
 	sessionId?: string,
 	userId?: Users["id"] | null,
@@ -152,6 +202,22 @@ export const authOptions: NextAuthOptions = {
 	adapter: PrismaAdapter(prisma),
 	secret: process.env.NEXTAUTH_SECRET,
 	callbacks: {
+		async redirect({ url, baseUrl }) {
+			if (url.startsWith("/")) {
+				return url;
+			}
+
+			try {
+				const parsedUrl = new URL(url);
+				if (parsedUrl.origin === baseUrl || isAllowedDevRedirect(parsedUrl)) {
+					return url;
+				}
+			} catch {
+				return baseUrl;
+			}
+
+			return baseUrl;
+		},
 		jwt: async ({ token, user: cred }) => {
 			if (cred) {
 				const { role, can, user, sessionId, activeSession, rememberMe } = cred;

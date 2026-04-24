@@ -304,6 +304,7 @@ function toBootstrapPayload(
 			email: string | null;
 		} | null;
 		meta: unknown;
+		payments?: { amount: number | null; status?: string | null }[];
 	},
 	settings: NewSalesFormSettings,
 ) {
@@ -457,6 +458,13 @@ function toBootstrapPayload(
 				})),
 		lineItems,
 	});
+	const paymentTotal = (order.payments || []).reduce(
+		(total, payment) => total + Number(payment.amount || 0),
+		0,
+	);
+	const paymentMethodReviewDismissed = Boolean(
+		container.paymentMethodReviewDismissed,
+	);
 
 	return {
 		salesId: order.id,
@@ -473,6 +481,9 @@ function toBootstrapPayload(
 			new Date().toISOString(),
 		customer: order.customer,
 		settings,
+		paymentTotal,
+		paymentCount: order.payments?.length || 0,
+		paymentMethodReviewDismissed,
 		form: {
 			customerId: order.customerId,
 			customerProfileId: order.customerProfileId,
@@ -639,6 +650,15 @@ export async function getNewSalesForm(
 				grandTotal: true,
 				updatedAt: true,
 				meta: true,
+				payments: {
+					where: {
+						deletedAt: null,
+					},
+					select: {
+						amount: true,
+						status: true,
+					},
+				},
 				customer: {
 					select: {
 						id: true,
