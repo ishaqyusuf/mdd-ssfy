@@ -24,6 +24,7 @@ export function SalesDocumentPreviewPage({
 }) {
 	const trpc = useTRPC();
 	const auth = useAuth();
+	const baseUrl = getBaseUrl();
 	const { data, isPending } = useQuery(
 		trpc.print.salesV2.queryOptions(
 			{
@@ -31,6 +32,7 @@ export function SalesDocumentPreviewPage({
 				accessToken,
 				preview: true,
 				templateId,
+				baseUrl,
 			},
 			{
 				enabled: Boolean(token || accessToken),
@@ -169,7 +171,7 @@ export function SalesDocumentPreviewPage({
 					pages={data.pages}
 					templateId={data.templateId}
 					companyAddress={data.companyAddress}
-					baseUrl={getBaseUrl()}
+					baseUrl={baseUrl}
 					previewUrl={data.previewUrl}
 					qrCodeDataUrl={data.qrCodeDataUrl}
 				/>

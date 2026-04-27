@@ -24,7 +24,8 @@ export function DesignInput({
     labelCols = 2,
     inputCols = 10,
 }: DesignInputProps) {
-    const { form, suggestions, autocompleteEnabled } = useCommunityTemplateV1();
+    const { form, suggestions, autocompleteEnabled, ensureSuggestionsLoaded } =
+        useCommunityTemplateV1();
     const { editCommunityModelInstallCostId, openToSide } =
         useCommunityInstallCostParams();
     const isMdToLg = useMediaQuery("(min-width: 768px) and (max-width: 1279px)");
@@ -63,6 +64,7 @@ export function DesignInput({
                 "max-sm:flex-col max-sm:items-start max-sm:gap-1",
                 shouldStackLabel && "flex-col items-start gap-1",
             )}
+            onFocusCapture={ensureSuggestionsLoaded}
         >
             <Label
                 className={cn(

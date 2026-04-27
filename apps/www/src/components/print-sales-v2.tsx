@@ -51,6 +51,7 @@ export function PrintSalesV2({
 	className,
 }: PrintSalesV2Props = {}) {
 	const { filters } = useSalesPrintFilter();
+	const baseUrl = getBaseUrl();
 	const resolvedToken = token ?? filters.token ?? "";
 	const resolvedAccessToken = accessToken ?? filters.accessToken ?? "";
 	const resolvedPreview = preview ?? filters.preview ?? false;
@@ -61,6 +62,7 @@ export function PrintSalesV2({
 			accessToken: resolvedAccessToken || undefined,
 			preview: resolvedPreview,
 			templateId: resolvedTemplateId,
+			baseUrl,
 		}),
 	);
 	const viewerRef = useRef<{ contentWindow?: Window | null } | null>(null);
@@ -103,7 +105,7 @@ export function PrintSalesV2({
 					title={data.title}
 					companyAddress={data.companyAddress}
 					watermark={data.watermark ?? undefined}
-					baseUrl={getBaseUrl()}
+					baseUrl={baseUrl}
 					previewUrl={data.previewUrl}
 					qrCodeDataUrl={data.qrCodeDataUrl}
 				/>

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 import { UseFormReturn, useForm } from "react-hook-form";
 import { useTRPC } from "@/trpc/client";
 import { useSuspenseQuery, useMutation, useQuery } from "@gnd/ui/tanstack";
@@ -32,6 +32,7 @@ interface CommunityTemplateV1ContextValue {
     isSaving: boolean;
     autocompleteEnabled: boolean;
     setAutocompleteEnabled: (enabled: boolean) => void;
+    ensureSuggestionsLoaded: () => void;
     importDesignFromTemplate: (template: {
         modelName: string;
         meta: any;
@@ -60,6 +61,7 @@ interface ProviderProps {
 export function CommunityTemplateV1Provider({ slug, children }: ProviderProps) {
     const trpc = useTRPC();
     const auth = useAuth();
+    const [suggestionsRequested, setSuggestionsRequested] = useState(false);
     const [autocompleteEnabled, setAutocompleteEnabledState] = useState(() => {
         if (typeof document === "undefined") return true;
         const cookieValue = document.cookie
@@ -83,7 +85,7 @@ export function CommunityTemplateV1Provider({ slug, children }: ProviderProps) {
 
     const { data: suggestions } = useQuery(
         trpc.community.getDesignKeySuggestions.queryOptions(undefined, {
-            enabled: autocompleteEnabled,
+            enabled: autocompleteEnabled && suggestionsRequested,
             staleTime: 1000 * 60 * 30,
             gcTime: 1000 * 60 * 60,
         }),
@@ -155,7 +157,15 @@ export function CommunityTemplateV1Provider({ slug, children }: ProviderProps) {
 
     const setAutocompleteEnabled = (enabled: boolean) => {
         setAutocompleteEnabledState(enabled);
+        if (!enabled) {
+            setSuggestionsRequested(false);
+        }
         document.cookie = `${TEMPLATE_V1_AUTOCOMPLETE_COOKIE}=${enabled}; path=/; max-age=${TEMPLATE_V1_AUTOCOMPLETE_COOKIE_MAX_AGE}; SameSite=Lax`;
+    };
+
+    const ensureSuggestionsLoaded = () => {
+        if (!autocompleteEnabled || suggestionsRequested) return;
+        setSuggestionsRequested(true);
     };
 
     const value: CommunityTemplateV1ContextValue = useMemo(
@@ -166,6 +176,7 @@ export function CommunityTemplateV1Provider({ slug, children }: ProviderProps) {
             isSaving,
             autocompleteEnabled,
             setAutocompleteEnabled,
+            ensureSuggestionsLoaded,
             importDesignFromTemplate,
             save,
         }),
@@ -175,6 +186,7 @@ export function CommunityTemplateV1Provider({ slug, children }: ProviderProps) {
             templateData,
             isSaving,
             autocompleteEnabled,
+            suggestionsRequested,
             importDesignFromTemplate,
         ],
     );

@@ -137,12 +137,12 @@ export function HeaderBlock({
 				{qrCodeDataUrl ? (
 					<View
 						style={{
-							width: 100,
+							width: 112,
 							marginLeft: 12,
 							borderWidth: 1,
 							borderColor: BORDER,
 							borderRadius: 6,
-							padding: 6,
+							padding: 8,
 							backgroundColor: LIGHT_BG,
 						}}
 					>
@@ -158,7 +158,7 @@ export function HeaderBlock({
 						</Text>
 						<Image
 							src={qrCodeDataUrl}
-							style={{ width: 72, height: 72, alignSelf: "center" }}
+							style={{ width: 84, height: 84, alignSelf: "center" }}
 						/>
 						<Text
 							style={{

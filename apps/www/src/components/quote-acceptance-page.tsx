@@ -16,8 +16,7 @@ import {
 import { Icons } from "@gnd/ui/icons";
 import { useMutation, useSuspenseQuery } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
-import { parseAsString, useQueryState } from "nuqs";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
 	style: "currency",
@@ -32,10 +31,6 @@ type Props = {
 export function QuoteAcceptancePage({ orderId, token }: Props) {
 	const trpc = useTRPC();
 	const quoteOrderId = orderId;
-	const [acceptedQueryOrderId, setAcceptedQueryOrderId] = useQueryState(
-		"orderId",
-		parseAsString,
-	);
 	const [acceptedOrder, setAcceptedOrder] = useState<{
 		type: "order";
 		salesId: number;
@@ -53,20 +48,8 @@ export function QuoteAcceptancePage({ orderId, token }: Props) {
 		trpc.checkout.initializeQuoteAcceptance.queryOptions({
 			orderId: quoteOrderId,
 			token,
-			acceptedOrderId: acceptedQueryOrderId || undefined,
 		}),
 	);
-
-	useEffect(() => {
-		if (data.sale.type !== "order") return;
-		if (acceptedQueryOrderId === data.sale.orderId) return;
-		void setAcceptedQueryOrderId(data.sale.orderId);
-	}, [
-		acceptedQueryOrderId,
-		data.sale.orderId,
-		data.sale.type,
-		setAcceptedQueryOrderId,
-	]);
 
 	const acceptQuoteMutation = useMutation(
 		trpc.checkout.acceptQuote.mutationOptions({
@@ -75,7 +58,6 @@ export function QuoteAcceptancePage({ orderId, token }: Props) {
 					...result.order,
 					type: "order",
 				});
-				void setAcceptedQueryOrderId(result.order.orderId);
 				toast({
 					title: result.alreadyAccepted
 						? "Quote already accepted"

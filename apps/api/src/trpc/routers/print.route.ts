@@ -118,6 +118,7 @@ export const printRouter = createTRPCRouter({
 				accessToken: z.string().optional(),
 				preview: z.boolean().optional().default(false),
 				templateId: z.string().optional().default("template-2"),
+				baseUrl: z.string().optional(),
 			}),
 		)
 		.query(async (props) => {
@@ -126,7 +127,7 @@ export const printRouter = createTRPCRouter({
 				token: props.input.token ?? null,
 				accessToken: props.input.accessToken ?? null,
 				templateId: props.input.templateId,
-				baseUrl: process.env.NEXT_PUBLIC_APP_URL ?? null,
+				baseUrl: props.input.baseUrl ?? process.env.NEXT_PUBLIC_APP_URL ?? null,
 			});
 		}),
 	jobs: publicProcedure

@@ -49,9 +49,76 @@ export const getProjectUnitsSchema = z
 	.extend(paginationSchema.shape);
 export type GetProjectUnitsSchema = z.infer<typeof getProjectUnitsSchema>;
 
-type ProjectUnitTemplate = Prisma.CommunityTemplateGetPayload<{
-	select: typeof projectUnitsSelect.communityTemplate.select;
-}>;
+type ProjectUnitTemplate = {
+	id?: number | null;
+	meta?: unknown;
+	project?: {
+		builder?: {
+			tasks?: Array<{
+				id: number;
+				taskName: string;
+				installable?: boolean | null;
+			}>;
+		} | null;
+	} | null;
+	communityModelInstallTasks?: Array<{
+		builderTaskId?: number | null;
+		qty?: number | null;
+		installCostModel?: {
+			unitCost?: number | null;
+		} | null;
+	}>;
+} | null;
+
+const projectUnitsListSelect = {
+	id: true,
+	createdAt: true,
+	lotBlock: true,
+	lot: true,
+	block: true,
+	modelName: true,
+	slug: true,
+	communityTemplateId: true,
+	projectId: true,
+	homeTemplateId: true,
+	tasks: projectUnitsSelect.tasks,
+	_count: projectUnitsSelect._count,
+	communityTemplate: {
+		select: {
+			slug: true,
+			version: true,
+			id: true,
+			meta: true,
+			project: {
+				select: {
+					builder: {
+						select: {
+							tasks: {
+								select: {
+									id: true,
+									taskName: true,
+									installable: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			communityModelInstallTasks: {
+				select: {
+					builderTaskId: true,
+					qty: true,
+					installCostModel: {
+						select: {
+							unitCost: true,
+						},
+					},
+				},
+			},
+		},
+	},
+	project: projectUnitsSelect.project,
+} satisfies Prisma.HomesSelect;
 
 function isConfiguredTemplateValue(value: unknown) {
 	if (value === null || value === undefined) return false;
@@ -71,7 +138,7 @@ function countConfiguredDesignValues(value: unknown): number {
 		);
 	}
 	if (typeof value === "object") {
-		return Object.values(value as Record<string, unknown>).reduce(
+		return Object.values(value as Record<string, unknown>).reduce<number>(
 			(sum, entry) => sum + countConfiguredDesignValues(entry),
 			0,
 		);
@@ -166,8 +233,7 @@ export async function getProjectUnits(
 	const data = await model.findMany({
 		where,
 		...searchMeta,
-
-		select: projectUnitsSelect,
+		select: projectUnitsListSelect,
 	});
 
 	return await response(

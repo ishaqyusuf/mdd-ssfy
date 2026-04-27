@@ -31,12 +31,16 @@ export async function getSalesBookFormUseCase(data: GetSalesBookFormDataProps) {
     return await composeBookForm(result);
 }
 async function composeBookForm<T>(data: T) {
-    const laborConfig = await getSalesLaborCost();
+    const [laborConfig, salesFormSettings, pricingList] = await Promise.all([
+        getSalesLaborCost(),
+        loadSalesFormData(),
+        getPricingListDta(),
+    ]);
 
     return {
         ...data,
-        salesSetting: composeStepRouting(await loadSalesFormData()),
-        pricing: composeSalesPricing(await getPricingListDta()),
+        salesSetting: composeStepRouting(salesFormSettings),
+        pricing: composeSalesPricing(pricingList),
         laborConfig,
     };
 }

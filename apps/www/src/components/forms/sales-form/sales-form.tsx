@@ -2,7 +2,6 @@ import { Icons } from "@gnd/ui/icons";
 import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import ItemSection from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/item-section";
 import { zhAddItem } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/zus-form-helper";
-import useEffectLoader from "@/lib/use-effect-loader";
 import { cn } from "@/lib/utils";
 import { FormWatcher } from "./form-watcher";
 import TakeOff from "./take-off";
@@ -15,20 +14,18 @@ import { Button } from "@gnd/ui/button";
 import { useSidebar } from "@gnd/ui/sidebar";
 import { Sidebar } from "@gnd/ui/namespace";
 import { useMediaQuery } from "@gnd/ui/hooks/use-media-query";
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 
 export function SalesFormClient({ data }) {
-	const zus = useFormDataStore();
-	useEffectLoader(
-		() => {
-			zus.dotUpdate("currentTab", "invoice");
-		},
-		{
-			wait: 200,
-		},
-	);
+	const currentTab = useFormDataStore((state) => state.currentTab);
+	const formStatus = useFormDataStore((state) => state.formStatus);
+	const setCurrentTab = useFormDataStore((state) => state.dotUpdate);
+	useLayoutEffect(() => {
+		if (currentTab === "invoice") return;
+		setCurrentTab("currentTab", "invoice");
+	}, [currentTab, setCurrentTab]);
 
-	if (!zus.formStatus || zus.currentTab != "invoice") return <></>;
+	if (!formStatus || currentTab != "invoice") return null;
 
 	return (
 		<Sidebar.Provider className="fixed inset-x-0 bottom-0 top-[calc(var(--header-height)_+_35px)] min-h-0 overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-100/70">

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { useAuth } from "@/hooks/use-auth";
+import { getBaseUrl } from "@/lib/base-url";
 import { useSignature } from "@/hooks/use-signature";
 import { useTRPC } from "@/trpc/client";
 import type { PrintPage } from "@gnd/sales/print/types";
@@ -43,6 +44,7 @@ export function PackingSlipSignFab({
 	const auth = useAuth();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const baseUrl = getBaseUrl();
 	const [open, setOpen] = useState(false);
 	const [receivedBy, setReceivedBy] = useState(
 		signing?.receivedBy || signing?.customerName || "",
@@ -69,6 +71,7 @@ export function PackingSlipSignFab({
 							accessToken: accessToken ?? undefined,
 							preview,
 							templateId,
+							baseUrl,
 						}),
 					}),
 					queryClient.invalidateQueries({
@@ -91,6 +94,7 @@ export function PackingSlipSignFab({
 							accessToken: accessToken ?? undefined,
 							preview,
 							templateId,
+							baseUrl,
 						}),
 					}),
 					queryClient.refetchQueries({

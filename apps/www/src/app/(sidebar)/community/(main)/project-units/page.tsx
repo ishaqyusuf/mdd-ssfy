@@ -1,5 +1,5 @@
 import { ErrorFallback } from "@/components/error-fallback";
-import { CommunityProjectUnitsAnalytics } from "@/components/community/project-analytics";
+import { CommunityProjectUnitsAnalyticsCards } from "@/components/community/project-units-analytics-cards";
 import { ProjectUnitHeader } from "@/components/project-units-header";
 import { DataTable } from "@/components/tables/project-units/data-table";
 import { TableSkeleton } from "@/components/tables/skeleton";
@@ -65,7 +65,7 @@ async function PrefetchedProjectUnitsAnalytics({
 
 	return (
 		<HydrateClient>
-			<CommunityProjectUnitsAnalytics />
+			<CommunityProjectUnitsAnalyticsCards />
 		</HydrateClient>
 	);
 }

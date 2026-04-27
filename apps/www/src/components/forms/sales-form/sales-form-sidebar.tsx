@@ -60,7 +60,7 @@ export function SalesFormSidebar({
             side="right"
             hidden={!sb.open && !opened}
             className={cn(
-                "top-[var(--header-height)] h-[calc(100vh_-_var(--header-height))] border-l border-slate-200/80 bg-white/95 backdrop-blur",
+                "top-[calc(var(--header-height)_+_35px)] h-[calc(100vh_-_var(--header-height)_-_35px)] border-l border-slate-200/80 bg-white/95 backdrop-blur",
                 className,
             )}
             {...props}

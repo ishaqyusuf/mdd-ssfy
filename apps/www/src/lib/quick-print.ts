@@ -1,5 +1,6 @@
 import { resolveSalesDocumentAccessAction } from "@/actions/resolve-sales-document-access";
 import type { PrintMode } from "@gnd/sales/print/types";
+import { getBaseUrl } from "./base-url";
 import { openLink } from "./open-link";
 
 export interface QuickPrintOptions {
@@ -26,6 +27,7 @@ export async function quickPrint({
 		salesIds,
 		mode,
 		dispatchId: dispatchId ?? null,
+		baseUrl: getBaseUrl(),
 	});
 
 	const path = v2 ? "p/sales-invoice-v2" : "p/sales-invoice";
@@ -55,6 +57,7 @@ export async function downloadSalesDocument({
 		salesIds,
 		mode,
 		dispatchId: dispatchId ?? null,
+		baseUrl: getBaseUrl(),
 	});
 
 	downloadSilently(access.downloadUrl);

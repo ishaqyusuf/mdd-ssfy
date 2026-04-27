@@ -1,5 +1,6 @@
 import { resolveSalesDocumentAccessAction } from "@/actions/resolve-sales-document-access";
 import type { SalesType } from "@/app-deps/(clean-code)/(sales)/types";
+import { getBaseUrl } from "@/lib/base-url";
 import type { IOrderPrintMode } from "@/types/sales";
 import {
 	parseAsInteger,
@@ -66,6 +67,7 @@ export function useSalesPreview() {
 					salesIds: [salesId],
 					mode: toPrintMode(previewMode),
 					dispatchId: options?.dispatchId ?? null,
+					baseUrl: getBaseUrl(),
 				});
 
 				if (!isCurrentPreviewRequest(requestId)) return;

@@ -12,6 +12,7 @@ export async function resolveSalesDocumentAccessAction(input: {
 	mode: PrintMode;
 	dispatchId?: number | null;
 	templateId?: string | null;
+	baseUrl?: string | null;
 	forceRegenerate?: boolean;
 }): Promise<ResolveSalesDocumentAccessResult> {
 	return resolveSalesDocumentAccess({
@@ -20,7 +21,7 @@ export async function resolveSalesDocumentAccessAction(input: {
 		mode: input.mode,
 		dispatchId: input.dispatchId ?? null,
 		templateId: input.templateId ?? null,
-		baseUrl: process.env.NEXT_PUBLIC_APP_URL ?? null,
+		baseUrl: input.baseUrl ?? process.env.NEXT_PUBLIC_APP_URL ?? null,
 		forceRegenerate: input.forceRegenerate ?? false,
 	});
 }

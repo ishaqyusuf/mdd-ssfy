@@ -214,7 +214,7 @@ function HeaderBlock({
 							border: `1px solid ${COLORS.border}`,
 							background: COLORS.lightBg,
 							borderRadius: 12,
-							padding: 10,
+							padding: 12,
 							textAlign: "center",
 						}}
 					>
@@ -224,7 +224,7 @@ function HeaderBlock({
 						<img
 							src={qrCodeDataUrl}
 							alt="Document QR"
-							style={{ width: 92, height: 92, margin: "0 auto 8px" }}
+							style={{ width: 104, height: 104, margin: "0 auto 8px" }}
 						/>
 						<div
 							style={{

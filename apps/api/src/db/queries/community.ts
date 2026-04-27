@@ -50,6 +50,7 @@ import type {
   ProjectMeta,
 } from "@community/types";
 import {
+  type GetProjectUnitsSchema,
   communityInstllationFilters,
   communityProductionFilter,
   invoiceFilter,
@@ -1635,52 +1636,79 @@ export async function communityProjectUnitsOverview(
   query: z.infer<typeof communityProjectUnitsOverviewSchema>,
 ) {
   const { db } = ctx;
-  const units = await db.homes.findMany({
-    where: whereProjectUnits({
-      ...query,
-      page: undefined,
-      size: undefined,
-      cursor: undefined,
-      dateRange: undefined,
+  const where = whereProjectUnits({
+    ...query,
+    dateRange: undefined,
+  } as Partial<GetProjectUnitsSchema>);
+  const [units, recentUnits] = await Promise.all([
+    db.homes.findMany({
+      where,
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        id: true,
+        slug: true,
+        createdAt: true,
+        tasks: {
+          where: {
+            deletedAt: null,
+            produceable: true,
+          },
+          select: {
+            producedAt: true,
+            prodStartedAt: true,
+            sentToProductionAt: true,
+          },
+        },
+        _count: {
+          select: {
+            jobs: true,
+          },
+        },
+      },
     }),
-    orderBy: {
-      createdAt: "desc",
-    },
-    select: {
-      id: true,
-      slug: true,
-      createdAt: true,
-      lotBlock: true,
-      modelName: true,
-      tasks: {
-        where: {
-          deletedAt: null,
-          produceable: true,
-        },
-        select: {
-          producedAt: true,
-          prodStartedAt: true,
-          sentToProductionAt: true,
-        },
+    db.homes.findMany({
+      where,
+      take: 6,
+      orderBy: {
+        createdAt: "desc",
       },
-      _count: {
-        select: {
-          jobs: true,
+      select: {
+        id: true,
+        slug: true,
+        createdAt: true,
+        lotBlock: true,
+        modelName: true,
+        tasks: {
+          where: {
+            deletedAt: null,
+            produceable: true,
+          },
+          select: {
+            producedAt: true,
+            prodStartedAt: true,
+            sentToProductionAt: true,
+          },
         },
-      },
-      project: {
-        select: {
-          title: true,
-          slug: true,
-          builder: {
-            select: {
-              name: true,
+        _count: {
+          select: {
+            jobs: true,
+          },
+        },
+        project: {
+          select: {
+            title: true,
+            builder: {
+              select: {
+                name: true,
+              },
             },
           },
         },
       },
-    },
-  });
+    }),
+  ]);
 
   const trend = createRecentMonthBuckets(6);
   const trendMap = new Map(trend.map((bucket) => [bucket.key, bucket]));
@@ -1721,7 +1749,7 @@ export async function communityProjectUnitsOverview(
         }))
         .sort((left, right) => right.value - left.value),
     ),
-    recent: units.slice(0, 6).map((unit) => ({
+    recent: recentUnits.map((unit) => ({
       id: unit.id,
       slug: unit.slug,
       createdAt: unit.createdAt,

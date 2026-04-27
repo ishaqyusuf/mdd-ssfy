@@ -4,6 +4,7 @@ import {
 	QuoteAcceptancePageSkeleton,
 } from "@/components/quote-acceptance-page";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
+import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import { Suspense } from "react";
 
 export async function generateMetadata() {
@@ -43,11 +44,33 @@ export default async function Page(props: Props) {
 	return (
 		<PageShell>
 			<Suspense fallback={<QuoteAcceptancePageSkeleton />}>
-				<QuoteAcceptancePage
+				<PrefetchedQuoteAcceptancePage
 					orderId={params.orderId}
 					token={searchParams.token}
 				/>
 			</Suspense>
 		</PageShell>
+	);
+}
+
+async function PrefetchedQuoteAcceptancePage({
+	orderId,
+	token,
+}: {
+	orderId: string;
+	token: string;
+}) {
+	const queryClient = getQueryClient();
+	await queryClient.fetchQuery(
+		trpc.checkout.initializeQuoteAcceptance.queryOptions({
+			orderId,
+			token,
+		}),
+	);
+
+	return (
+		<HydrateClient>
+			<QuoteAcceptancePage orderId={orderId} token={token} />
+		</HydrateClient>
 	);
 }

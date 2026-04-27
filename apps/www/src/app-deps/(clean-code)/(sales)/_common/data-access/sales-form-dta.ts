@@ -81,9 +81,11 @@ export async function getSalesBookFormDataDta(data: GetSalesBookFormDataProps) {
 export async function createSalesBookFormDataDta(
     props: GetSalesBookFormDataProps,
 ) {
-    const session = await user();
-    const ctx = await salesFormData(true);
-    const dealer = await getLoggedInDealerAccountDta();
+    const [session, ctx, dealer] = await Promise.all([
+        user(),
+        salesFormData(true),
+        getLoggedInDealerAccountDta(),
+    ]);
     let goodUntil = ctx.defaultProfile?.goodUntil;
     if (goodUntil && typeof goodUntil != "string")
         goodUntil = dayjs(goodUntil).toISOString();
@@ -132,29 +134,48 @@ export async function createSalesBookFormDataDta(
             createdAt: dayjs().toISOString() as any,
         },
     };
-    return await formatForm(data as any);
+    return await formatForm(data as any, {
+        ctx,
+    });
 }
-async function formatForm(data: GetSalesBookFormDataDta) {
+async function formatForm(
+    data: GetSalesBookFormDataDta,
+    options?: {
+        ctx?: Awaited<ReturnType<typeof salesFormData>>;
+    },
+) {
     const result = transformSalesBookForm(data);
     const { deleteDoors } = result;
-    if (deleteDoors?.length)
-        await prisma.dykeSalesDoors.updateMany({
-            where: { id: { in: deleteDoors }, salesOrderId: data.order?.id },
-            data: {
-                deletedAt: new Date(),
-            },
-        });
-    const ctx = await salesFormData(true);
-    const _taxForm = await salesTaxForm(
+    const ctxPromise = Promise.resolve(options?.ctx ?? salesFormData(true));
+    const deleteDoorsPromise = deleteDoors?.length
+        ? prisma.dykeSalesDoors.updateMany({
+              where: { id: { in: deleteDoors }, salesOrderId: data.order?.id },
+              data: {
+                  deletedAt: new Date(),
+              },
+          })
+        : Promise.resolve(null);
+    const dealerModePromise = dealerSession();
+    const superAdminPromise = userId();
+
+    const ctx = await ctxPromise;
+    const _taxFormPromise = salesTaxForm(
         data.order.taxes as any,
         data.order?.id,
         ctx?.defaultProfile?.meta?.taxCode,
     );
+    const [, dealerMode, superAdmin, _taxForm] = await Promise.all([
+        deleteDoorsPromise,
+        dealerModePromise,
+        superAdminPromise,
+        _taxFormPromise,
+    ]);
+
     return {
         ...result,
         customer: data.order.customer,
-        dealerMode: await dealerSession(),
-        superAdmin: (await userId()) == 1,
+        dealerMode,
+        superAdmin: superAdmin == 1,
         adminMode: true,
         shippingAddressId: data?.order?.shippingAddressId,
         billingAddressId: data?.order?.billingAddressId,
