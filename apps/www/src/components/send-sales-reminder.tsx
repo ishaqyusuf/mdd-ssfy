@@ -68,6 +68,9 @@ export function SendSalesReminder({ children, salesIds }: Props) {
 	});
 	const auth = useAuth();
 	const trigger = useTaskTrigger({
+		executingToast: "Sending reminder email...",
+		successToast: "Reminder email sent.",
+		errorToast: "Unable to send reminder email.",
 		onStarted() {
 			setOpened(false);
 			form.reset(defaultValues);

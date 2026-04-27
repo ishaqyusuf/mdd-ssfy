@@ -306,6 +306,9 @@ function Content(props: Props & { setOpened }) {
 	});
 
 	const trigger = useTaskTrigger({
+		executingToast: "Sending payment email...",
+		successToast: "Payment email sent.",
+		errorToast: "Unable to send payment email.",
 		onStarted() {
 			// setOpened(false);
 			// form.reset(defaultValues);

@@ -17,7 +17,7 @@ import { parseAsBoolean, useQueryStates } from "nuqs";
 import { useRouter } from "next/navigation";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 interface Props {
     type?: "button" | "menu";
@@ -34,8 +34,10 @@ export function SalesFormSave({ type = "button", and }: Props) {
         silent: true,
     });
     const [isSaving, setIsSaving] = useState(false);
+    const saveLockRef = useRef(false);
     async function save(action: "new" | "close" | "default" = "default") {
-        if (isSaving) return;
+        if (saveLockRef.current || isSaving) return;
+        saveLockRef.current = true;
         setIsSaving(true);
         const { kvFormItem, kvStepForm, metaData, sequence } = zus;
         const restoreMode = params.restoreMode;
@@ -103,6 +105,7 @@ export function SalesFormSave({ type = "button", and }: Props) {
                 }
             }
         } finally {
+            saveLockRef.current = false;
             setIsSaving(false);
         }
     }
@@ -118,6 +121,7 @@ export function SalesFormSave({ type = "button", and }: Props) {
         <Button
             icon="save"
             size="sm"
+            type="button"
             action={save}
             variant="default"
             disabled={isSaving}
