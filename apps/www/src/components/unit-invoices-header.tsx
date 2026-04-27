@@ -57,7 +57,7 @@ export function UnitInvoicesHeader() {
         <DropdownMenu.Trigger asChild>
           <Button variant="outline" className="gap-2">
             <Icons.FileSpreadsheet className="size-4" />
-            Report
+            <span className="hidden lg:inline">Report</span>
           </Button>
         </DropdownMenu.Trigger>
         <DropdownMenu.Content align="end" className="w-80">

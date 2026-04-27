@@ -119,29 +119,35 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 	...initialState,
 	reset: () => set({ ...initialState }),
 	hydrate: (record) =>
-		set({
-			record: hydrateRecord(record),
-			dirty: false,
-			saveStatus: "idle",
-			lastSaveError: null,
-			lastSavedAt: record.updatedAt || null,
-			editor: {
-				...initialEditorState,
-				activeItem: record.lineItems?.[0]?.uid || null,
-			},
+		set(() => {
+			const hydratedRecord = hydrateRecord(record);
+			return {
+				record: hydratedRecord,
+				dirty: false,
+				saveStatus: "idle",
+				lastSaveError: null,
+				lastSavedAt: record.updatedAt || null,
+				editor: {
+					...initialEditorState,
+					activeItem: hydratedRecord.lineItems?.[0]?.uid || null,
+				},
+			};
 		}),
 	restoreLocalDraft: (record) =>
-		set((state) => ({
-			...state,
-			record: hydrateRecord(record),
-			dirty: true,
-			saveStatus: "idle",
-			lastSaveError: null,
-			editor: {
-				...state.editor,
-				activeItem: record.lineItems?.[0]?.uid || null,
-			},
-		})),
+		set((state) => {
+			const hydratedRecord = hydrateRecord(record);
+			return {
+				...state,
+				record: hydratedRecord,
+				dirty: true,
+				saveStatus: "idle",
+				lastSaveError: null,
+				editor: {
+					...state.editor,
+					activeItem: hydratedRecord.lineItems?.[0]?.uid || null,
+				},
+			};
+		}),
 	setMeta: (patch) =>
 		set((state) => {
 			if (!state.record) return state;

@@ -19,6 +19,7 @@ export function InvoiceItemCard(props: {
 	index: number;
 	uid: string;
 	isActive: boolean;
+	disableCollapseTrigger?: boolean;
 	title?: string | null;
 	titlePlaceholder?: string | null;
 	lineTotal?: number | null;
@@ -34,23 +35,28 @@ export function InvoiceItemCard(props: {
 	children?: React.ReactNode;
 }) {
 	const isCollapsed = !props.isActive;
+	const collapseTriggerDisabled = !!props.disableCollapseTrigger;
 
 	return (
 		<div
-			role={isCollapsed ? "button" : undefined}
-			tabIndex={isCollapsed ? 0 : undefined}
+			role={isCollapsed && !collapseTriggerDisabled ? "button" : undefined}
+			tabIndex={isCollapsed && !collapseTriggerDisabled ? 0 : undefined}
 			className={`rounded-xl border bg-background p-4 transition-all ${
 				props.isActive ? "block" : "hidden lg:block"
 			} ${
 				props.isActive
 					? "border-primary ring-1 ring-primary/20"
-					: "cursor-pointer border-border/50 opacity-95 hover:border-primary/50 hover:opacity-100"
+					: collapseTriggerDisabled
+						? "border-border/50 opacity-95"
+						: "cursor-pointer border-border/50 opacity-95 hover:border-primary/50 hover:opacity-100"
 			}`}
 			onClick={() => {
+				if (collapseTriggerDisabled) return;
 				if (!isCollapsed) return;
 				props.onActivate();
 			}}
 			onKeyDown={(event) => {
+				if (collapseTriggerDisabled) return;
 				if (!isCollapsed) return;
 				if (event.key !== "Enter" && event.key !== " ") return;
 				event.preventDefault();
@@ -63,8 +69,10 @@ export function InvoiceItemCard(props: {
 					className="text-left md:col-span-2"
 					onClick={(event) => {
 						event.stopPropagation();
+						if (collapseTriggerDisabled) return;
 						props.onActivate();
 					}}
+					disabled={collapseTriggerDisabled}
 				>
 					<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
 						Item {props.index + 1}
@@ -88,8 +96,10 @@ export function InvoiceItemCard(props: {
 						variant="outline"
 						onClick={(event) => {
 							event.stopPropagation();
+							if (collapseTriggerDisabled) return;
 							props.onActivate();
 						}}
+						disabled={collapseTriggerDisabled}
 						aria-label={props.isActive ? "Collapse item" : "Expand item"}
 					>
 						{props.isActive ? (

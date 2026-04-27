@@ -54,6 +54,7 @@ import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { Skeleton } from "@gnd/ui/skeleton";
+import { useMediaQuery } from "@gnd/ui/hooks";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	useCustomerProfilesQuery,
@@ -77,7 +78,6 @@ import {
 	repricePersistedDoorRowsForSupplier,
 } from "./item-workflow/door-utils";
 import { InvoiceItemCard } from "./item-workflow/invoice-item-card";
-import { ItemWorkflowHeader } from "./item-workflow/item-workflow-header";
 import {
 	ShelfCategoryPathInput,
 	ShelfProductCombobox,
@@ -561,6 +561,7 @@ export function ItemWorkflowPanel() {
 
 	const stepRoutingQuery = useNewSalesFormStepRoutingQuery({});
 	const routeData = stepRoutingQuery.data;
+	const isSmallScreen = useMediaQuery("(max-width: 1023px)");
 	const suppliersQuery = useSalesSuppliersQuery(true);
 	const customerProfilesQuery = useCustomerProfilesQuery(true);
 	const saveSupplierMutation = useSalesSaveSupplierMutation();
@@ -582,6 +583,17 @@ export function ItemWorkflowPanel() {
 	const activeDoorStep = activeLine
 		? findLineStepByTitle(activeLine, "Door")
 		: null;
+	const visibleLineItems = useMemo(() => {
+		const indexedLineItems = record.lineItems.map((line, index) => ({
+			line,
+			index,
+		}));
+		if (!isSmallScreen) return indexedLineItems;
+		if (activeLine) {
+			return indexedLineItems.filter(({ line }) => line.uid === activeLine.uid);
+		}
+		return indexedLineItems.slice(0, 1);
+	}, [activeLine, isSmallScreen, record.lineItems]);
 	const activeDoorStepIndex = activeLineSteps.findIndex((step) =>
 		isDoorStepTitle(step?.step?.title),
 	);
@@ -4477,24 +4489,8 @@ export function ItemWorkflowPanel() {
 	return (
 		<>
 			<section className="space-y-4">
-				<ItemWorkflowHeader
-					value={activeLine?.uid || record.lineItems[0]?.uid || ""}
-					options={itemOptions}
-					onValueChange={(value) =>
-						setEditor({
-							activeItem: value,
-						})
-					}
-					onCollapseAll={() =>
-						setEditor({
-							activeItem: null,
-						})
-					}
-					canCollapseAll={record.lineItems.length > 0 && activeLine != null}
-				/>
-
 				<div className="space-y-3">
-					{record.lineItems.map((line, index) => {
+					{visibleLineItems.map(({ line, index }) => {
 						const isActive = line.uid === activeLine?.uid;
 						const steps = line.formSteps || [];
 						const activeIndex = resolveInteractiveStepIndex(
@@ -4509,6 +4505,7 @@ export function ItemWorkflowPanel() {
 								index={index}
 								uid={line.uid}
 								isActive={isActive}
+								disableCollapseTrigger={isSmallScreen}
 								title={line.title}
 								titlePlaceholder={getLineTitlePlaceholder(line) || null}
 								lineTotal={getLineDisplayTotal(line)}

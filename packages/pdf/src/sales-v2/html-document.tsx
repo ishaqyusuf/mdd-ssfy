@@ -8,6 +8,7 @@ interface SalesHtmlDocumentProps {
 	watermark?: string;
 	logoUrl?: string;
 	previewUrl?: string;
+	qrCodeDataUrl?: string;
 	companyAddress: CompanyAddress;
 	config?: Partial<SalesTemplateConfig>;
 }
@@ -19,6 +20,7 @@ export function SalesHtmlDocument({
 	watermark,
 	logoUrl,
 	previewUrl,
+	qrCodeDataUrl,
 	companyAddress,
 	config,
 }: SalesHtmlDocumentProps) {
@@ -39,6 +41,7 @@ export function SalesHtmlDocument({
 					watermark={watermark}
 					logoUrl={logoUrl}
 					previewUrl={index === 0 ? previewUrl : undefined}
+					qrCodeDataUrl={index === 0 ? qrCodeDataUrl : undefined}
 					pageIndex={index}
 					companyAddress={companyAddress}
 					config={resolvedConfig}

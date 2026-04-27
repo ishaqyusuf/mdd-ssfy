@@ -27,6 +27,7 @@ export function SalesHtmlTemplatePage({
 	baseUrl,
 	logoUrl,
 	previewUrl,
+	qrCodeDataUrl,
 	variant = "template-2",
 }: {
 	page: PrintPage;
@@ -34,6 +35,7 @@ export function SalesHtmlTemplatePage({
 	baseUrl?: string;
 	logoUrl?: string;
 	previewUrl?: string;
+	qrCodeDataUrl?: string;
 	variant?: "template-1" | "template-2";
 }) {
 	const pageStyle =
@@ -62,6 +64,7 @@ export function SalesHtmlTemplatePage({
 				logoUrl={logoUrl}
 				variant={variant}
 				previewUrl={previewUrl}
+				qrCodeDataUrl={qrCodeDataUrl}
 			/>
 
 			<div style={{ display: "grid", gap: 12 }}>
@@ -100,6 +103,7 @@ function HeaderBlock({
 	logoUrl,
 	variant,
 	previewUrl,
+	qrCodeDataUrl,
 }: {
 	meta: PrintPage["meta"];
 	billing: AddressBlock | null;
@@ -109,6 +113,7 @@ function HeaderBlock({
 	logoUrl?: string;
 	variant: "template-1" | "template-2";
 	previewUrl?: string;
+	qrCodeDataUrl?: string;
 }) {
 	const logoSrc = logoUrl || (baseUrl ? `${baseUrl}/logo.png` : "/logo.png");
 	const isQuote = meta.title === "Quote";
@@ -203,7 +208,7 @@ function HeaderBlock({
 					) : null}
 				</div>
 
-				{previewUrl ? (
+				{previewUrl && qrCodeDataUrl ? (
 					<div
 						style={{
 							border: `1px solid ${COLORS.border}`,
@@ -217,7 +222,7 @@ function HeaderBlock({
 							Scan to preview, print, or open order
 						</div>
 						<img
-							src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(previewUrl)}`}
+							src={qrCodeDataUrl}
 							alt="Document QR"
 							style={{ width: 92, height: 92, margin: "0 auto 8px" }}
 						/>

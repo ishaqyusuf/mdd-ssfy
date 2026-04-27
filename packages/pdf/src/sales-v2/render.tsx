@@ -1,7 +1,7 @@
 import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
 import { renderToBuffer } from "@react-pdf/renderer";
-import QRCode from "qrcode";
 import { SalesPdfDocument } from "./document";
+import { generateQrCodeDataUrl } from "./qr";
 import type { SalesTemplateConfig } from "./registry";
 
 type RenderSalesPdfBufferInput = {
@@ -17,12 +17,7 @@ type RenderSalesPdfBufferInput = {
 };
 
 export async function renderSalesPdfBuffer(input: RenderSalesPdfBufferInput) {
-	const qrCodeDataUrl = input.previewUrl
-		? await QRCode.toDataURL(input.previewUrl, {
-				margin: 0,
-				width: 144,
-			})
-		: undefined;
+	const qrCodeDataUrl = await generateQrCodeDataUrl(input.previewUrl);
 	return renderToBuffer(
 		<SalesPdfDocument
 			pages={input.pages}

@@ -13,7 +13,7 @@ export function CreateSalesBtn({ quote = false }) {
             <Button asChild>
                 <Link href={`/sales-book/create-${title}`}>
                     <Icons.Add className="mr-2 size-4" />
-                    <span>New</span>
+                    <span className="hidden lg:inline">New</span>
                 </Link>
             </Button>
             <Separator orientation="vertical" />
@@ -39,4 +39,3 @@ export function CreateSalesBtn({ quote = false }) {
         </ButtonGroup>
     );
 }
-

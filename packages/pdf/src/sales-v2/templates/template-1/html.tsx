@@ -9,6 +9,7 @@ export function Template1Html(props: SalesTemplateRenderProps) {
 			baseUrl={props.baseUrl}
 			logoUrl={props.logoUrl}
 			previewUrl={props.previewUrl}
+			qrCodeDataUrl={props.qrCodeDataUrl}
 			variant="template-1"
 		/>
 	);

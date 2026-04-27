@@ -62,7 +62,7 @@ export default function PageHeader({
 						>
 							<LinkableNode className="inline-flex items-center" href={newLink}>
 								<BtnIcon className="mr-2 h-4 w-4" />
-								<span>{buttonText} </span>
+								<span className="hidden lg:inline">{buttonText}</span>
 							</LinkableNode>
 						</Button>
 					)}

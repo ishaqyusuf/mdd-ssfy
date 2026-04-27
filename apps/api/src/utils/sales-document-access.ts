@@ -1,6 +1,9 @@
 import type { Db, Prisma } from "@gnd/db";
 import { buildOwnerDocumentFolder } from "@gnd/documents";
-import { renderSalesPdfBuffer } from "@gnd/pdf/sales-v2";
+import {
+	generateQrCodeDataUrl,
+	renderSalesPdfBuffer,
+} from "@gnd/pdf/sales-v2";
 import {
 	type SalesDocumentSnapshotRecord,
 	type SalesDocumentSnapshotRepository,
@@ -80,6 +83,7 @@ export type ResolveSalesDocumentPreviewDataResult = {
 	documentType: string | null;
 	previewUrl: string;
 	downloadUrl: string;
+	qrCodeDataUrl?: string;
 };
 
 type SnapshotDocumentLookup = {
@@ -589,6 +593,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 			baseUrl: input.baseUrl,
 			templateId,
 		});
+		const qrCodeDataUrl = await generateQrCodeDataUrl(urls.previewUrl);
 
 		return {
 			pages: documentData.pages,
@@ -602,6 +607,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 			documentType: snapshotLookup.snapshot.documentType,
 			previewUrl: urls.previewUrl,
 			downloadUrl: urls.downloadUrl,
+			qrCodeDataUrl,
 		} satisfies ResolveSalesDocumentPreviewDataResult;
 	}
 
@@ -635,6 +641,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 		baseUrl: input.baseUrl,
 		templateId,
 	});
+	const qrCodeDataUrl = await generateQrCodeDataUrl(urls.previewUrl);
 
 	return {
 		pages: documentData.pages,
@@ -658,6 +665,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 				: null,
 		previewUrl: urls.previewUrl,
 		downloadUrl: urls.downloadUrl,
+		qrCodeDataUrl,
 	} satisfies ResolveSalesDocumentPreviewDataResult;
 }
 

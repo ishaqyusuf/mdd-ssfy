@@ -34,7 +34,7 @@ export function CustomerHeader() {
 					}}
 				>
 					<Icons.add className="mr-2 h-4 w-4" />
-					Create Customer
+					<span className="hidden lg:inline">Create Customer</span>
 				</Button>
 			</div>
 			<CustomerSearchFilter />

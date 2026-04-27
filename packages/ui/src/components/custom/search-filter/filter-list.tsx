@@ -151,12 +151,14 @@ export function FilterList({
           ?.join(", ");
     }
   };
+  const visibleEntries = activeEntries.filter(([key]) => key !== "end");
+
   return (
-    <div className="flex items-center">
+    <div className="w-full min-w-0">
       <div className="" id="filterSlot"></div>
-      <ul className="flex space-x-2 items-center">
+      <ul className="flex w-max min-w-full items-center gap-2 overflow-x-auto pb-1 lg:min-w-0 lg:flex-wrap">
         {loading && (
-          <div className="flex space-x-2">
+          <div className="flex gap-2">
             <li key="1">
               <Skeleton className="h-8 w-[100px] rounded-full" />
             </li>
@@ -168,14 +170,12 @@ export function FilterList({
         {/* {!loading && filterList.map(f => )} */}
 
         {!loading &&
-          activeEntries
-            .filter(([key]) => key !== "end")
-            .map(([key, value]) => {
+          visibleEntries.map(([key, value]) => {
               const f = filterList.find((f) => f.value === key);
               return (
                 <li key={key}>
                   <Button
-                    className="h-9 px-2 bg-secondary hover:bg-secondary font-normal text-[#878787] flex space-x-1 items-center group rounded-none"
+                    className="flex h-9 shrink-0 items-center space-x-1 rounded-full bg-secondary px-3 font-normal text-[#878787] hover:bg-secondary"
                     onClick={() => handleOnRemove(key)}
                   >
                     <Icons.Clear className="scale-0 group-hover:scale-100 transition-all w-0 group-hover:w-4" />
@@ -202,10 +202,10 @@ export function FilterList({
                 </li>
               );
             })}
-        {!loading && activeEntries.length > 0 && (
+        {!loading && visibleEntries.length > 0 && (
           <li key="clear-all">
             <Button
-              className="h-9 px-2 bg-secondary hover:bg-secondary font-normal text-[#878787] flex items-center group rounded-none"
+              className="flex h-9 shrink-0 items-center rounded-full bg-secondary px-3 font-normal text-[#878787] hover:bg-secondary"
               onClick={onClearAll}
             >
               Clear filters

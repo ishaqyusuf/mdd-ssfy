@@ -104,6 +104,8 @@ export function PrintSalesV2({
 					companyAddress={data.companyAddress}
 					watermark={data.watermark ?? undefined}
 					baseUrl={getBaseUrl()}
+					previewUrl={data.previewUrl}
+					qrCodeDataUrl={data.qrCodeDataUrl}
 				/>
 			</PDFViewer>
 			<PackingSlipSignFab

@@ -42,7 +42,7 @@ export function CategoryHeader({}) {
                 }}
             >
                 <Icons.Add className="size-4 mr-2" />
-                <span>Add Category</span>
+                <span className="hidden lg:inline">Add Category</span>
             </Button>
         </div>
     );

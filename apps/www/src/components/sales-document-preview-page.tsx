@@ -171,6 +171,7 @@ export function SalesDocumentPreviewPage({
 					companyAddress={data.companyAddress}
 					baseUrl={getBaseUrl()}
 					previewUrl={data.previewUrl}
+					qrCodeDataUrl={data.qrCodeDataUrl}
 				/>
 			</div>
 

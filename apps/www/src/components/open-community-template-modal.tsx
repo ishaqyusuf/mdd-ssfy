@@ -23,7 +23,7 @@ export function OpenCommunityTemplateModal() {
 					}}
 				>
 					<Icons.Add className="mr-2" />
-					New
+					<span className="hidden lg:inline">New</span>
 				</Button>
 			</div>
 		</>

@@ -29,8 +29,15 @@ interface Props {
     filterList: PageFilterData[];
     filters;
     onRemove?;
+    onClearAll?;
 }
-export function FilterList({ loading, filterList, filters, onRemove }: Props) {
+export function FilterList({
+    loading,
+    filterList,
+    filters,
+    onRemove,
+    onClearAll,
+}: Props) {
     const handleOnRemove = (key: string) => {
         if (key === "start" || key === "end") {
             onRemove({ start: null, end: null });
@@ -164,34 +171,39 @@ export function FilterList({ loading, filterList, filters, onRemove }: Props) {
                     ?.join(", ");
         }
     };
+    const activeEntries = Object.entries(filters || {}).filter(([key, value]) => {
+        if (value === null || value === undefined || value === "") return false;
+        if (Array.isArray(value)) return value.length > 0;
+        return true;
+    });
+    const visibleEntries = activeEntries.filter(([key]) => key !== "end");
     return (
-        <motion.ul
-            variants={listVariant}
-            initial="hidden"
-            animate="show" //@ts-ignore
-            className="flex space-x-2"
-        >
-            {loading && (
-                <div className="flex space-x-2">
-                    <motion.li key="1" variants={itemVariant}>
-                        <Skeleton className="h-8 w-[100px] rounded-full" />
-                    </motion.li>
-                    <motion.li key="2" variants={itemVariant}>
-                        <Skeleton className="h-8 w-[100px] rounded-full" />
-                    </motion.li>
-                </div>
-            )}
-            {/* {!loading && filterList.map(f => )} */}
+        <div className="w-full min-w-0 overflow-x-auto pb-1">
+            <motion.ul
+                variants={listVariant}
+                initial="hidden"
+                animate="show" //@ts-ignore
+                className="flex w-max min-w-full gap-2 lg:min-w-0 lg:flex-wrap"
+            >
+                {loading && (
+                    <div className="flex gap-2">
+                        <motion.li key="1" variants={itemVariant}>
+                            <Skeleton className="h-8 w-[100px] rounded-full" />
+                        </motion.li>
+                        <motion.li key="2" variants={itemVariant}>
+                            <Skeleton className="h-8 w-[100px] rounded-full" />
+                        </motion.li>
+                    </div>
+                )}
+                {/* {!loading && filterList.map(f => )} */}
 
-            {!loading &&
-                Object.entries(filters)
-                    .filter(([key, value]) => value !== null && key !== "end")
-                    .map(([key, value]) => {
+                {!loading &&
+                    visibleEntries.map(([key, value]) => {
                         const f = filterList.find((f) => f.value === key);
                         return (
                             <motion.li key={key} variants={itemVariant}>
                                 <Button
-                                    className="group flex h-8 items-center space-x-1 rounded-full bg-secondary px-3 font-normal text-[#878787] hover:bg-secondary"
+                                    className="group flex h-8 shrink-0 items-center space-x-1 rounded-full bg-secondary px-3 font-normal text-[#878787] hover:bg-secondary"
                                     onClick={() => handleOnRemove(key)}
                                 >
                                     <Icons.Clear className="w-0 scale-0 transition-all group-hover:w-4 group-hover:scale-100" />
@@ -223,6 +235,17 @@ export function FilterList({ loading, filterList, filters, onRemove }: Props) {
                             </motion.li>
                         );
                     })}
-        </motion.ul>
+                {!loading && visibleEntries.length > 0 && (
+                    <motion.li key="clear-all" variants={itemVariant}>
+                        <Button
+                            className="flex h-8 shrink-0 items-center rounded-full bg-secondary px-3 font-normal text-[#878787] hover:bg-secondary"
+                            onClick={onClearAll}
+                        >
+                            Clear filters
+                        </Button>
+                    </motion.li>
+                )}
+            </motion.ul>
+        </div>
     );
 }

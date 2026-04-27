@@ -28,7 +28,7 @@ export function SalesOrdersV2Header() {
         <Button asChild size="sm" variant="outline">
           <Link href="/sales-book/orders">
             <Icons.ArrowUpRight className="mr-2 size-4" />
-            Legacy
+            <span className="hidden lg:inline">Legacy</span>
           </Link>
         </Button>
         <CreateSalesBtn />

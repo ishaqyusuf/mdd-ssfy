@@ -104,7 +104,7 @@ export function InventoryHeader({}) {
                     }}
                 >
                     <Icons.Add className="size-4 mr-2" />
-                    <span>
+                    <span className="hidden lg:inline">
                         {productKind === "component"
                             ? "Add Component"
                             : "Add Inventory"}

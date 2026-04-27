@@ -34,6 +34,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@gnd/ui/hover-card";
+import { Button } from "@gnd/ui/button";
 import { Table, TableBody, TableCell, TableRow } from "@gnd/ui/table";
 import { DaysFilters, daysFilters } from "@gnd/utils/constants";
 
@@ -169,9 +170,9 @@ export function SearchFilterTRPC({
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-      <div className="flex items-center space-x-4">
+      <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
         <form
-          className="relative"
+          className="relative w-full lg:w-auto"
           onSubmit={(e) => {
             e.preventDefault();
             handleSubmit();
@@ -181,7 +182,7 @@ export function SearchFilterTRPC({
           <Input
             ref={inputRef}
             placeholder={placeholder}
-            className="w-full pl-9 pr-8 md:w-[350px]"
+            className="w-full pl-9 pr-24 lg:w-[350px] lg:pr-10"
             value={prompt}
             onChange={handleSearch}
             autoComplete="off"
@@ -194,17 +195,21 @@ export function SearchFilterTRPC({
             // className={cn(__filters.length || "hidden")}
             asChild
           >
-            <button
+            <Button
               onClick={() => setIsOpen((prev) => !prev)}
               type="button"
+              variant="ghost"
+              size="sm"
               className={cn(
-                "absolute right-3 top-[10px] z-10 opacity-50 transition-opacity duration-300 hover:opacity-100",
+                "absolute right-1 top-1 z-10 h-8 gap-1.5 rounded-md px-2 text-muted-foreground opacity-70 transition-opacity duration-300 hover:opacity-100 lg:w-8 lg:px-0",
                 hasValidFilters && "opacity-100",
                 isOpen && "opacity-100",
               )}
             >
               <Icons.Filter className="size-4" />
-            </button>
+              <span className="text-xs lg:hidden">Filters</span>
+              <span className="sr-only">Open filters</span>
+            </Button>
           </DropdownMenuTrigger>
         </form>
         <FilterList
@@ -225,7 +230,7 @@ export function SearchFilterTRPC({
         />
       </div>
       <DropdownMenuContent
-        className={cn("w-[350px]")}
+        className={cn("w-[min(22rem,calc(100vw-2rem))] lg:w-[350px]")}
         sideOffset={19}
         alignOffset={-11}
         side="bottom"

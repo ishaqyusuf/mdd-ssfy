@@ -9,7 +9,19 @@ import {
 	DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@gnd/ui/select";
 import type { SaveStatus } from "../schema";
+
+type HeaderItemOption = {
+	uid: string;
+	label: string;
+};
 
 interface Props {
 	type: "order" | "quote";
@@ -43,6 +55,9 @@ interface Props {
 	onOpenPacking?: () => void;
 	openPackingDisabled?: boolean;
 	onOpenSettings?: () => void;
+	activeItem?: string | null;
+	itemOptions?: HeaderItemOption[];
+	onActiveItemChange?: (value: string) => void;
 }
 
 function statusLabel(
@@ -180,19 +195,68 @@ export function HeaderActions(props: Props) {
 						</div>
 					) : null}
 				</div>
+				<div className="flex min-w-0 items-center gap-2 lg:hidden">
+					<div className="min-w-0 flex-1">
+						<Select
+							value={props.activeItem || undefined}
+							onValueChange={props.onActiveItemChange}
+							disabled={(props.itemOptions?.length || 0) <= 1}
+						>
+							<SelectTrigger className="h-9 w-full min-w-0">
+								<SelectValue placeholder="Select item" />
+							</SelectTrigger>
+							<SelectContent>
+								{(props.itemOptions || []).map((option) => (
+									<SelectItem key={`header-item-${option.uid}`} value={option.uid}>
+										{option.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+					<Button
+						size="icon"
+						variant="outline"
+						onClick={props.onAddItem}
+						disabled={props.isSaving}
+						aria-label="Add new item"
+					>
+						<Icons.Plus className="size-4" />
+					</Button>
+					<Button
+						size="icon"
+						variant="outline"
+						onClick={props.onOpenMobileSummary}
+						disabled={!props.onOpenMobileSummary}
+						aria-label="Open invoice summary"
+					>
+						<Icons.Sidebar className="size-4" />
+					</Button>
+				</div>
 				<Menu
 					Icon={Icons.MoreHorizontal}
 					iconClassName="size-4"
 					Trigger={
-						<Button
-							size="sm"
-							variant="outline"
-							className="hidden px-3 lg:inline-flex"
-							disabled={props.isSaving}
-						>
-							<Icons.MoreHorizontal className="size-4" />
-							Actions
-						</Button>
+						<>
+							<Button
+								size="icon"
+								variant="outline"
+								className="lg:hidden"
+								disabled={props.isSaving}
+								aria-label="Open actions menu"
+							>
+								<Icons.MoreHorizontal className="size-4" />
+							</Button>
+							<Button
+								size="sm"
+								variant="outline"
+								className="hidden px-3 lg:inline-flex"
+								disabled={props.isSaving}
+							>
+								<Icons.MoreHorizontal className="size-4" />
+								Actions
+							</Button>
+						</>
 					}
 				>
 					<Menu.Item disabled={props.isSaving} onClick={props.onAddItem}>

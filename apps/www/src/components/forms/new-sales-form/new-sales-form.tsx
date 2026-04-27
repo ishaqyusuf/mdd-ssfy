@@ -75,6 +75,51 @@ function getErrorMessage(error: unknown, fallback: string) {
 	return fallback;
 }
 
+function getLineTitlePlaceholder(line: {
+	title?: string | null;
+	formSteps?: Array<{
+		step?: { title?: string | null } | null;
+		title?: string | null;
+		value?: string | null;
+		prodUid?: string | null;
+	}> | null;
+}) {
+	const explicitTitle = String(line?.title || "").trim();
+	if (explicitTitle) return explicitTitle;
+	const steps = line?.formSteps || [];
+	const itemTypeStep = steps.find(
+		(step) =>
+			String(step?.step?.title || "")
+				.trim()
+				.toLowerCase() === "item type",
+	);
+	const itemTypeLabel = String(
+		itemTypeStep?.value ||
+			itemTypeStep?.title ||
+			itemTypeStep?.prodUid ||
+			"",
+	).trim();
+	return itemTypeLabel || "";
+}
+
+function lineItemPickerLabel(
+	line: {
+		title?: string | null;
+		formSteps?: Array<{
+			step?: { title?: string | null } | null;
+			title?: string | null;
+			value?: string | null;
+			prodUid?: string | null;
+		}> | null;
+	},
+	index: number,
+) {
+	const explicitTitle = String(line?.title || "").trim();
+	if (explicitTitle) return explicitTitle;
+	const placeholder = getLineTitlePlaceholder(line);
+	return placeholder ? `Item ${index + 1} (${placeholder})` : `Item ${index + 1}`;
+}
+
 type DispatchStatus =
 	| "queue"
 	| "packing queue"
@@ -323,6 +368,14 @@ export function NewSalesForm(props: Props) {
 		Number((record as any)?.paymentTotal || 0) <= 0 &&
 		(!record?.form?.paymentMethod ||
 			record.form.paymentMethod !== "Credit Card");
+	const itemOptions = useMemo(
+		() =>
+			(record?.lineItems || []).map((line, index) => ({
+				uid: line.uid,
+				label: lineItemPickerLabel(line, index),
+			})),
+		[record?.lineItems],
+	);
 
 	useEffect(() => {
 		if (shouldReviewPaymentMethod) setPaymentReviewOpen(true);
@@ -970,6 +1023,13 @@ export function NewSalesForm(props: Props) {
 							);
 							_modal.openSheet(<NewSalesFormSettingsModal />);
 						}}
+						activeItem={editor.activeItem || record.lineItems[0]?.uid || null}
+						itemOptions={itemOptions}
+						onActiveItemChange={(value) =>
+							setEditor({
+								activeItem: value,
+							})
+						}
 					/>
 
 					<div className="flex-1 overflow-y-auto p-4 pb-28 sm:p-6 lg:p-8 lg:pb-8">

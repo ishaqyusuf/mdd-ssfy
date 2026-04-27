@@ -26,7 +26,7 @@ export function CommunityProjectHeader() {
       <div className="flex-1" />
       <Button onClick={() => modal.openModal(<ProjectModal />)}>
         <Icons.Plus className="mr-2 size-4" />
-        Add Project
+        <span className="hidden lg:inline">Add Project</span>
       </Button>
     </div>
   );

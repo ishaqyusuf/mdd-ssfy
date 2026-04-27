@@ -166,8 +166,7 @@ export function SalesOrderExport() {
             size="sm"
         >
             <Icons.Export className="mr-2 size-4" />
-            <span>Export</span>
+            <span className="hidden lg:inline">Export</span>
         </Button>
     );
 }
-
