@@ -6,7 +6,10 @@ import { SalesFormSave } from "./sales-form-save";
 import { sum } from "@/lib/utils";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { AnimatedNumber } from "@/components/animated-number";
-import { printOrder, printQuote } from "@/lib/quick-print";
+import {
+    printOrder,
+    printQuote,
+} from "@/modules/sales-print/application/sales-print-service";
 import { SalesMenu } from "@/components/sales-menu";
 
 export function Footer({}) {

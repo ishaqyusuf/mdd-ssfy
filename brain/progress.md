@@ -2,6 +2,19 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-04-27
+
+- Consolidated sales print/PDF orchestration behind a shared application service and route builder so sales CTAs stop duplicating print mode, token, and viewer-opening logic.
+  - added `apps/www/src/modules/sales-print/application/sales-print-service.ts` as the source of truth for print mode normalization, access resolution dedupe, preview URL preparation, print viewer URL building, download orchestration, and pending print window lifecycle
+  - converted `apps/www/src/lib/quick-print.ts` into a compatibility shim over that service instead of a second orchestration layer
+  - migrated key CTA surfaces and helpers including `sales-menu`, `sales-menu-print`, sales print utils, sales preview preparation, dispatch packing previews, payment-triggered printing, quote acceptance, and sales form print buttons onto the shared service
+  - extracted a shared sales print viewer page component used by both `/p/sales-invoice` and `/p/sales-invoice-v2` so the public print routes no longer duplicate their prefetch/render shell
+  - added `apps/www/src/modules/sales-print/application/sales-print-service.test.ts` to cover canonical mode mapping, shared route building, and concurrent access-resolution dedupe
+  - added `brain/decisions/ADR-007-sales-print-single-source-of-truth.md` to record the new architectural boundary
+  - validation note:
+    - `bun test apps/www/src/modules/sales-print/application/sales-print-service.test.ts` passes
+    - `bun run --filter @gnd/www typecheck` still fails because of existing unrelated errors across the workspace, and filtered output also shows long-standing type issues in several touched legacy sales files
+
 ## 2026-04-22
 
 - Fixed legacy sales invoice printing so persisted garage/HPT items still render when the order item exists but its nested door rows were not saved.

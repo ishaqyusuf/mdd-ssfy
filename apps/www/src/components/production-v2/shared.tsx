@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
-import { printProduction } from "@/lib/quick-print";
+import { printProduction } from "@/modules/sales-print/application/sales-print-service";
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";

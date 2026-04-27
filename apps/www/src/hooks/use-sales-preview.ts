@@ -1,6 +1,5 @@
-import { resolveSalesDocumentAccessAction } from "@/actions/resolve-sales-document-access";
 import type { SalesType } from "@/app-deps/(clean-code)/(sales)/types";
-import { getBaseUrl } from "@/lib/base-url";
+import { prepareSalesPrintPreview } from "@/modules/sales-print/application/sales-print-service";
 import type { IOrderPrintMode } from "@/types/sales";
 import {
 	parseAsInteger,
@@ -63,17 +62,16 @@ export function useSalesPreview() {
 			});
 
 			try {
-				const access = await resolveSalesDocumentAccessAction({
+				const previewUrl = await prepareSalesPrintPreview({
 					salesIds: [salesId],
-					mode: toPrintMode(previewMode),
+					mode: previewMode,
 					dispatchId: options?.dispatchId ?? null,
-					baseUrl: getBaseUrl(),
 				});
 
 				if (!isCurrentPreviewRequest(requestId)) return;
 
 				setParams({
-					salesPreviewUrl: access.previewUrl,
+					salesPreviewUrl: previewUrl,
 					salesPreviewError: null,
 				});
 			} catch {
@@ -85,23 +83,6 @@ export function useSalesPreview() {
 			}
 		},
 	};
-}
-
-function toPrintMode(mode: IOrderPrintMode) {
-	switch (mode) {
-		case "order":
-			return "invoice" as const;
-		case "order-packing":
-			return "order-packing" as const;
-		case "packing list":
-			return "packing-slip" as const;
-		case "production":
-			return "production" as const;
-		case "quote":
-			return "quote" as const;
-		default:
-			return "invoice" as const;
-	}
 }
 
 function isCurrentPreviewRequest(requestId: string) {

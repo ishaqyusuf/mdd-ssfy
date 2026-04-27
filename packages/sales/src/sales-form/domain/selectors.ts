@@ -179,7 +179,64 @@ export function getSelectedMouldingComponentsForLine(line: any) {
 				.map((component: any) => snapshotSelectedComponent(component))
 				.filter((component: any) => !!component.uid)
 		: [];
-	if (selected.length) return selected;
+	const resolved = [...selected];
+	const resolvedUids = new Set(
+		resolved
+			.map((component) => String(component?.uid || "").trim())
+			.filter(Boolean),
+	);
+
+	for (const uid of getSelectedProdUids(mouldingStep)) {
+		const normalizedUid = String(uid || "").trim();
+		if (!normalizedUid || resolvedUids.has(normalizedUid)) continue;
+		if (normalizedUid === String(mouldingStep?.prodUid || "").trim()) {
+			resolved.push({
+				id: mouldingStep?.componentId ?? null,
+				uid: normalizedUid,
+				title: mouldingStep?.value || "Moulding",
+				img: mouldingStep?.meta?.img || null,
+				inventoryId: mouldingStep?.meta?.inventoryId ?? null,
+				inventoryVariantId: mouldingStep?.meta?.inventoryVariantId ?? null,
+				salesPrice:
+					mouldingStep?.price == null ? null : Number(mouldingStep.price || 0),
+				basePrice:
+					mouldingStep?.basePrice == null
+						? null
+						: Number(mouldingStep.basePrice || 0),
+				pricing: null,
+				supplierVariants: [],
+				redirectUid: mouldingStep?.meta?.redirectUid || null,
+				sectionOverride: mouldingStep?.meta?.sectionOverride || null,
+			});
+			resolvedUids.add(normalizedUid);
+		}
+	}
+
+	const storedRows = Array.isArray(line?.meta?.mouldingRows)
+		? line.meta.mouldingRows
+		: [];
+	for (const row of storedRows as Array<Record<string, unknown>>) {
+		const uid = String(row?.uid || "").trim();
+		if (!uid || resolvedUids.has(uid)) continue;
+		resolved.push({
+			id: null,
+			uid,
+			title: String(row?.title || row?.description || "Moulding"),
+			img: null,
+			inventoryId: null,
+			inventoryVariantId: null,
+			salesPrice:
+				row?.salesPrice == null ? null : Number(row.salesPrice || 0),
+			basePrice: row?.basePrice == null ? null : Number(row.basePrice || 0),
+			pricing: null,
+			supplierVariants: [],
+			redirectUid: null,
+			sectionOverride: null,
+		});
+		resolvedUids.add(uid);
+	}
+
+	if (resolved.length) return resolved;
 	const prodUid = String(mouldingStep?.prodUid || "").trim();
 	if (!prodUid) return [];
 	return [

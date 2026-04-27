@@ -3,6 +3,9 @@
 import { useAuth } from "@/hooks/use-auth";
 import { getBaseUrl } from "@/lib/base-url";
 import { openLink } from "@/lib/open-link";
+import {
+	buildSalesDocumentRouteFromQuery,
+} from "@/modules/sales-print/application/sales-print-service";
 import { useTRPC } from "@/trpc/client";
 import { SalesHtmlDocument } from "@gnd/pdf/sales-v2";
 import { Button } from "@gnd/ui/button";
@@ -49,26 +52,28 @@ export function SalesDocumentPreviewPage({
 	const packingSlipPage =
 		data?.pages.find((page) => page.config.mode === "packing-slip") || null;
 	const pdfPageQuery = useMemo(() => {
-		const query = new URLSearchParams({
-			preview: "true",
+		if (!hasDocumentLocator({ pt, token, accessToken, snapshotId })) return null;
+		return buildSalesDocumentRouteFromQuery({
+			pt,
+			token,
+			accessToken,
+			snapshotId,
+			preview: true,
 			templateId,
+			origin: window.location.origin,
 		});
-		if (pt) query.set("pt", pt);
-		if (token) query.set("token", token);
-		if (accessToken) query.set("accessToken", accessToken);
-		if (snapshotId) query.set("snapshotId", snapshotId);
-		return `/p/sales-invoice-v2?${query.toString()}`;
 	}, [accessToken, pt, snapshotId, templateId, token]);
 	const pdfPrintPageQuery = useMemo(() => {
-		const query = new URLSearchParams({
-			preview: "false",
+		if (!hasDocumentLocator({ pt, token, accessToken, snapshotId })) return null;
+		return buildSalesDocumentRouteFromQuery({
+			pt,
+			token,
+			accessToken,
+			snapshotId,
+			preview: false,
 			templateId,
+			origin: window.location.origin,
 		});
-		if (pt) query.set("pt", pt);
-		if (token) query.set("token", token);
-		if (accessToken) query.set("accessToken", accessToken);
-		if (snapshotId) query.set("snapshotId", snapshotId);
-		return `/p/sales-invoice-v2?${query.toString()}`;
 	}, [accessToken, pt, snapshotId, templateId, token]);
 	const overviewUrl = useMemo(() => {
 		if (!data?.orderNo) return null;
@@ -149,6 +154,7 @@ export function SalesDocumentPreviewPage({
 						<Button
 							variant="outline"
 							onClick={() => {
+								if (!pdfPrintPageQuery) return;
 								openLink(pdfPrintPageQuery, null, true);
 							}}
 						>
@@ -158,6 +164,7 @@ export function SalesDocumentPreviewPage({
 						<Button
 							variant="secondary"
 							onClick={() => {
+								if (!pdfPageQuery) return;
 								openLink(pdfPageQuery, null, true);
 							}}
 						>
@@ -197,5 +204,16 @@ export function SalesDocumentPreviewPage({
 				templateId={templateId}
 			/>
 		</>
+	);
+}
+
+function hasDocumentLocator(input: {
+	pt?: string;
+	token?: string;
+	accessToken?: string;
+	snapshotId?: string;
+}) {
+	return Boolean(
+		input.pt || input.token || input.accessToken || input.snapshotId,
 	);
 }

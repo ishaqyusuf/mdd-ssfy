@@ -8,7 +8,7 @@ import { _qc, _trpc } from "@/components/static-trpc";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { openLink } from "@/lib/open-link";
-import { quickPrint } from "@/lib/quick-print";
+import { openSalesPrintDocument } from "@/modules/sales-print/application/sales-print-service";
 import { TerminalCheckoutStatus } from "@gnd/square";
 import { paymentMethods, salesPaymentMethods } from "@/utils/constants";
 import { formatDate } from "@/utils/format";
@@ -222,13 +222,12 @@ function Content(props: Props & { setOpened }) {
 				}
 				props.setOpened(false);
 				if (print) {
-					void quickPrint({
+					void openSalesPrintDocument({
 						salesIds: form
 							.getValues("sales")
 							?.filter((a) => a.selected)
 							.map((s) => s.id),
 						mode: "order-packing",
-						v2: true,
 					});
 				}
 

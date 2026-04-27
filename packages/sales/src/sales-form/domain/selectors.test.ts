@@ -137,4 +137,45 @@ describe("selectors domain", () => {
 		expect(mouldings).toHaveLength(1);
 		expect(mouldings[0].uid).toBe("m-1");
 	});
+
+	it("backfills selected mouldings from persisted moulding rows on edit reopen", () => {
+		const reopenedLine = {
+			formSteps: [
+				{
+					step: { title: "Item Type" },
+					value: "Moulding",
+				},
+				{
+					step: { title: "Moulding" },
+					value: "Casing, Stop",
+				},
+			],
+			meta: {
+				mouldingRows: [
+					{
+						uid: "m-1",
+						title: "Casing",
+						description: "Casing",
+						qty: 2,
+						salesPrice: 70,
+						basePrice: 55,
+					},
+					{
+						uid: "m-2",
+						title: "Stop",
+						description: "Stop",
+						qty: 1,
+						salesPrice: 35,
+						basePrice: 22,
+					},
+				],
+			},
+		};
+
+		const mouldings = getSelectedMouldingComponentsForLine(reopenedLine);
+
+		expect(mouldings.map((moulding) => moulding.uid)).toEqual(["m-1", "m-2"]);
+		expect(mouldings[0].title).toBe("Casing");
+		expect(mouldings[1].salesPrice).toBe(35);
+	});
 });

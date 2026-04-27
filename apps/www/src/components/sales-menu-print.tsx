@@ -14,13 +14,13 @@ import { Icons } from "@gnd/ui/icons";
  */
 
 import {
-	downloadSalesDocument,
+	downloadSalesPrintDocument,
 	printOrder,
 	printOrderWithPacking,
 	printPackingSlip,
 	printProduction,
 	printQuote,
-} from "@/lib/quick-print";
+} from "@/modules/sales-print/application/sales-print-service";
 import type { PrintMode } from "@gnd/sales/print/types";
 import { DropdownMenu } from "@gnd/ui/namespace";
 
@@ -51,7 +51,7 @@ export function SalesMenuPrint({
 				disabled={isDisabled}
 				onSelect={(e) => {
 					e.preventDefault();
-					void PRINT_ACTIONS[mode]({ salesIds, v2: true });
+					void PRINT_ACTIONS[mode]({ salesIds });
 				}}
 			>
 				<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
@@ -71,7 +71,7 @@ export function SalesMenuPrint({
 					disabled={isDisabled}
 					onSelect={(e) => {
 						e.preventDefault();
-						void PRINT_ACTIONS[mode]({ salesIds, v2: true });
+						void PRINT_ACTIONS[mode]({ salesIds });
 					}}
 				>
 					<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
@@ -81,7 +81,7 @@ export function SalesMenuPrint({
 					disabled={isDisabled}
 					onSelect={(e) => {
 						e.preventDefault();
-						void downloadSalesDocument({ salesIds, mode });
+						void downloadSalesPrintDocument({ salesIds, mode });
 					}}
 				>
 					<Icons.FileText className="mr-2 size-4 text-muted-foreground/70" />
@@ -120,7 +120,6 @@ const PRINT_ACTIONS = {
 	(args: {
 		salesIds: number[];
 		dispatchId?: number | null;
-		v2?: boolean;
 	}) => Promise<void>
 >;
 
@@ -141,7 +140,6 @@ const ORDER_MODE_ACTIONS = {
 	(args: {
 		salesIds: number[];
 		dispatchId?: number | null;
-		v2?: boolean;
 	}) => Promise<void>
 >;
 
@@ -162,7 +160,7 @@ export function SalesMenuPrintModes({
 				disabled={isDisabled}
 				onSelect={(e) => {
 					e.preventDefault();
-					void printQuote({ salesIds, v2: true });
+					void printQuote({ salesIds });
 				}}
 			>
 				<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
@@ -186,7 +184,7 @@ export function SalesMenuPrintModes({
 						disabled={isDisabled}
 						onSelect={(e) => {
 							e.preventDefault();
-							void ORDER_MODE_ACTIONS[mode]({ salesIds, v2: true });
+							void ORDER_MODE_ACTIONS[mode]({ salesIds });
 						}}
 					>
 						<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />

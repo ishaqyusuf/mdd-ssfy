@@ -5,7 +5,7 @@ import { Button } from "@gnd/ui/button";
 import StatusBadge from "@/components/_v1/status-badge";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-import { printPackingSlip } from "@/lib/quick-print";
+import { printPackingSlip } from "@/modules/sales-print/application/sales-print-service";
 import { formatDate } from "@/lib/use-day";
 import { skeletonListData } from "@/utils/format";
 
@@ -21,7 +21,6 @@ export function DispatchList({}) {
 		await printPackingSlip({
 			salesIds: [ctx.data.id],
 			dispatchId,
-			v2: true,
 		});
 	};
 

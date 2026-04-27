@@ -5,8 +5,12 @@ import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { openLink } from "@/lib/open-link";
-import { downloadSalesDocument, quickPrint } from "@/lib/quick-print";
 import { newSalesHelper } from "@/lib/sales";
+import {
+	downloadSalesPrintDocument,
+	openSalesPrintDocument,
+	resolveSalesPrintMode,
+} from "@/modules/sales-print/application/sales-print-service";
 import { useTRPC } from "@/trpc/client";
 import type { SalesPrintProps } from "@/utils/sales-print-utils";
 import { salesFormUrl } from "@/utils/sales-utils";
@@ -354,7 +358,10 @@ function useSalesPrintAction() {
 		options?: PrintActionProps,
 	) {
 		if (!state.salesIds.length) return;
-		const mode = resolvePrintMode(params?.mode, state.type);
+		const mode = resolveSalesPrintMode(
+			params?.mode,
+			state.type === "quote" ? "quote" : "order",
+		);
 
 		if (options?.share) {
 			const sp = newSalesHelper();
@@ -375,14 +382,14 @@ function useSalesPrintAction() {
 				? Number(params?.dispatchId)
 				: null;
 		if (options?.pdf) {
-			await downloadSalesDocument({
+			await downloadSalesPrintDocument({
 				salesIds: state.salesIds,
 				mode,
 				dispatchId,
 			});
 		} else {
 			actions.closeMenu();
-			await quickPrint({
+			await openSalesPrintDocument({
 				salesIds: state.salesIds,
 				mode,
 				dispatchId,
@@ -391,26 +398,6 @@ function useSalesPrintAction() {
 		}
 		actions.closeMenu();
 	};
-}
-
-function resolvePrintMode(
-	mode: SalesPrintProps["mode"] | undefined,
-	type: SalesType | undefined,
-): PrintMode {
-	switch (mode) {
-		case "quote":
-			return "quote";
-		case "production":
-			return "production";
-		case "packing list":
-			return "packing-slip";
-		case "order-packing":
-			return "order-packing";
-		case "order":
-			return "invoice";
-		default:
-			return type === "quote" ? "quote" : "invoice";
-	}
 }
 
 const ORDER_MODES: { label: string; mode: PrintMode }[] = [
@@ -712,7 +699,10 @@ function SalesMenuPrintModes({ disabled }: ActionProps) {
 				onSelect={(e) => {
 					e.preventDefault();
 					actions.closeMenu();
-					void quickPrint({ salesIds: state.salesIds, mode: "quote" });
+					void openSalesPrintDocument({
+						salesIds: state.salesIds,
+						mode: "quote",
+					});
 				}}
 			>
 				<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
@@ -737,7 +727,10 @@ function SalesMenuPrintModes({ disabled }: ActionProps) {
 						onSelect={(e) => {
 							e.preventDefault();
 							actions.closeMenu();
-							void quickPrint({ salesIds: state.salesIds, mode });
+							void openSalesPrintDocument({
+								salesIds: state.salesIds,
+								mode,
+							});
 						}}
 					>
 						<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />

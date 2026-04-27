@@ -1,7 +1,7 @@
 "use client";
 
 import { openLink } from "@/lib/open-link";
-import { quickPrint } from "@/lib/quick-print";
+import { openSalesPrintDocument } from "@/modules/sales-print/application/sales-print-service";
 import { useTRPC } from "@/trpc/client";
 import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
 import { Badge } from "@gnd/ui/badge";
@@ -235,7 +235,7 @@ export function QuoteAcceptancePage({ orderId, token }: Props) {
 										variant="outline"
 										className="h-12"
 										onClick={() =>
-											void quickPrint({
+											void openSalesPrintDocument({
 												salesIds: [currentOrder.salesId],
 												mode: "invoice",
 											})

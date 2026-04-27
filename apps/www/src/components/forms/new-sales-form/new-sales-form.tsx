@@ -7,7 +7,10 @@ import { _modal } from "@/components/common/modal/provider";
 import { useAuth } from "@/hooks/use-auth";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
-import { printOrder, printQuote } from "@/lib/quick-print";
+import {
+	printOrder,
+	printQuote,
+} from "@/modules/sales-print/application/sales-print-service";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";

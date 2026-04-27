@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
-import { printPackingSlip } from "@/lib/quick-print";
+import { printPackingSlip } from "@/modules/sales-print/application/sales-print-service";
 import { useTRPC } from "@/trpc/client";
 import { Menu } from "@gnd/ui/custom/menu";
 import { ResetSalesControl, UpdateSalesControl } from "@sales/schema";
@@ -54,7 +54,6 @@ export function DispatchListMenu({ dispatch }: Props) {
 		await printPackingSlip({
 			salesIds: [ctx.data.id],
 			dispatchId,
-			v2: true,
 		});
 	};
 	const packAll = () => {
