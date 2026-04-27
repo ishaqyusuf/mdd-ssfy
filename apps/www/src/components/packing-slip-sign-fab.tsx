@@ -26,16 +26,20 @@ import { SignaturePad } from "./signature-pad";
 
 interface PackingSlipSignFabProps {
 	page?: PrintPage | null;
+	pt?: string | null;
 	token?: string | null;
 	accessToken?: string | null;
+	snapshotId?: string | null;
 	preview?: boolean;
 	templateId?: string;
 }
 
 export function PackingSlipSignFab({
 	page,
+	pt,
 	token,
 	accessToken,
+	snapshotId,
 	preview = false,
 	templateId,
 }: PackingSlipSignFabProps) {
@@ -51,6 +55,7 @@ export function PackingSlipSignFab({
 	);
 	const [signatureValue, setSignatureValue] = useState("");
 	const [isRefreshingSlip, setIsRefreshingSlip] = useState(false);
+	const [isSubmittingSignature, setIsSubmittingSignature] = useState(false);
 	const signature = useSignature({
 		id: `packing-slip-signature-${dispatchId || "new"}`,
 		title: `packing-slip-${dispatchId || "signature"}`,
@@ -67,8 +72,10 @@ export function PackingSlipSignFab({
 				await Promise.all([
 					queryClient.invalidateQueries({
 						queryKey: trpc.print.salesV2.queryKey({
+							pt: pt ?? undefined,
 							token: token ?? undefined,
 							accessToken: accessToken ?? undefined,
+							snapshotId: snapshotId ?? undefined,
 							preview,
 							templateId,
 							baseUrl,
@@ -90,8 +97,10 @@ export function PackingSlipSignFab({
 				await Promise.all([
 					queryClient.refetchQueries({
 						queryKey: trpc.print.salesV2.queryKey({
+							pt: pt ?? undefined,
 							token: token ?? undefined,
 							accessToken: accessToken ?? undefined,
+							snapshotId: snapshotId ?? undefined,
 							preview,
 							templateId,
 							baseUrl,
@@ -125,7 +134,8 @@ export function PackingSlipSignFab({
 	}
 
 	const packedBy = auth.name || signing?.packedBy || "Current user";
-	const isBusy = mutation.isPending || isRefreshingSlip;
+	const isBusy =
+		isSubmittingSignature || mutation.isPending || isRefreshingSlip;
 	const deliveredAtMs = signing?.deliveredAt
 		? new Date(signing.deliveredAt).getTime()
 		: null;
@@ -224,26 +234,32 @@ export function PackingSlipSignFab({
 								!signatureValue
 							}
 							onClick={async () => {
-								const pathname = await signature.saveSignature(
-									"dispatch-documents",
-									receivedBy.trim() || `dispatch-${dispatchId}`,
-								);
-								if (!pathname) {
-									toast.error("Unable to save signature image.");
-									return;
-								}
+								if (isBusy) return;
+								setIsSubmittingSignature(true);
+								try {
+									const pathname = await signature.saveSignature(
+										"dispatch-documents",
+										receivedBy.trim() || `dispatch-${dispatchId}`,
+									);
+									if (!pathname) {
+										toast.error("Unable to save signature image.");
+										return;
+									}
 
-								await mutation.mutateAsync({
-									dispatchId,
-									receivedBy: receivedBy.trim(),
-									noteType: "pickup",
-									signature: pathname,
-								});
+									await mutation.mutateAsync({
+										dispatchId,
+										receivedBy: receivedBy.trim(),
+										noteType: "pickup",
+										signature: pathname,
+									});
+								} finally {
+									setIsSubmittingSignature(false);
+								}
 							}}
 						>
 							{isRefreshingSlip
 								? "Reloading slip..."
-								: mutation.isPending
+								: isSubmittingSignature || mutation.isPending
 									? "Completing packing..."
 									: "Submit"}
 						</Button>

@@ -107,17 +107,18 @@ export async function resolvePayment(ctx: TRPCContext, data: ResolvePayment) {
 				note: data.note,
 				reason: data.reason,
 			});
-			if (orderId) {
-				await repairLegacySalesPaymentBalance(prisma, {
-					salesId: orderId,
-				});
-				await createLegacySalesResolution(prisma, {
-					action: data.action,
-					reason: data.reason,
-					salesId: orderId,
-					resolvedBy: user.name || "",
-				});
-			}
+		}
+
+		if (orderId) {
+			await repairLegacySalesPaymentBalance(prisma, {
+				salesId: orderId,
+			});
+			await createLegacySalesResolution(prisma, {
+				action: data.action,
+				reason: data.reason,
+				salesId: orderId,
+				resolvedBy: user.name || "",
+			});
 		}
 	});
 	const orderId =

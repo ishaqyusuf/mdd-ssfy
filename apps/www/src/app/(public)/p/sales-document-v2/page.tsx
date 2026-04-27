@@ -9,8 +9,10 @@ export async function generateMetadata() {
 
 export default async function Page(props: {
 	searchParams: Promise<{
+		pt?: string;
 		token?: string;
 		accessToken?: string;
+		snapshotId?: string;
 		templateId?: string;
 	}>;
 }) {
@@ -18,8 +20,10 @@ export default async function Page(props: {
 
 	return (
 		<SalesDocumentPreviewPage
+			pt={searchParams.pt}
 			token={searchParams.token}
 			accessToken={searchParams.accessToken}
+			snapshotId={searchParams.snapshotId}
 			templateId={searchParams.templateId ?? "template-2"}
 		/>
 	);

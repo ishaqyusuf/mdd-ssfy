@@ -13,8 +13,10 @@ export function SalesPreview() {
 		try {
 			const url = new URL(params.salesPreviewUrl, "https://preview.local");
 			return {
+				pt: url.searchParams.get("pt") ?? undefined,
 				token: url.searchParams.get("token") ?? undefined,
 				accessToken: url.searchParams.get("accessToken") ?? undefined,
+				snapshotId: url.searchParams.get("snapshotId") ?? undefined,
 				templateId: url.searchParams.get("templateId") ?? "template-2",
 			};
 		} catch {
@@ -55,8 +57,10 @@ export function SalesPreview() {
 	return (
 		<div className="bg-background">
 			<SalesDocumentPreviewPage
+				pt={previewParams.pt}
 				token={previewParams.token}
 				accessToken={previewParams.accessToken}
+				snapshotId={previewParams.snapshotId}
 				templateId={previewParams.templateId}
 				embedded
 			/>

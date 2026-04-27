@@ -209,33 +209,11 @@ function HeaderBlock({
 				</div>
 
 				{previewUrl && qrCodeDataUrl ? (
-					<div
-						style={{
-							border: `1px solid ${COLORS.border}`,
-							background: COLORS.lightBg,
-							borderRadius: 12,
-							padding: 12,
-							textAlign: "center",
-						}}
-					>
-						<div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 8 }}>
-							Scan to preview, print, or open order
-						</div>
-						<img
-							src={qrCodeDataUrl}
-							alt="Document QR"
-							style={{ width: 104, height: 104, margin: "0 auto 8px" }}
-						/>
-						<div
-							style={{
-								fontSize: 10,
-								color: COLORS.muted,
-								wordBreak: "break-word",
-							}}
-						>
-							{meta.salesNo}
-						</div>
-					</div>
+					<img
+						src={qrCodeDataUrl}
+						alt="Document QR"
+						style={{ width: 104, height: 104, display: "block" }}
+					/>
 				) : null}
 			</div>
 

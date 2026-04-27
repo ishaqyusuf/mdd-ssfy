@@ -1,4 +1,8 @@
-import { getSalesSnapshotDocumentByAccessToken } from "@gnd/api/utils/sales-document-access";
+import {
+	getSalesSnapshotDocumentByPublicToken,
+	getSalesSnapshotDocumentByAccessToken,
+	resolveSalesDocumentPreviewData,
+} from "@gnd/api/utils/sales-document-access";
 import { db } from "@gnd/db";
 import { renderSalesPdfBuffer } from "@gnd/pdf/sales-v2";
 import { getPrintDocumentData } from "@gnd/sales/print";
@@ -9,8 +13,10 @@ import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const paramsSchema = z.object({
+	pt: z.string().optional(),
 	token: z.string().optional(),
 	accessToken: z.string().optional(),
+	snapshotId: z.string().optional(),
 	preview: z.preprocess((val) => val === "true", z.boolean().default(false)),
 	templateId: z.string().optional().default("template-2"),
 });
@@ -36,6 +42,48 @@ export async function GET(req: NextRequest) {
 			{ error: "Invalid download parameters" },
 			{ status: 400 },
 		);
+	}
+
+	if (result.data.pt) {
+		const snapshotLookup = await getSalesSnapshotDocumentByPublicToken({
+			db,
+			publicToken: result.data.pt,
+		});
+		if (!snapshotLookup) notFound();
+
+		const previewData = await resolveSalesDocumentPreviewData({
+			db,
+			publicToken: result.data.pt,
+			templateId: result.data.templateId,
+			baseUrl: requestUrl.origin,
+		});
+		if (!previewData) notFound();
+
+		const buffer = await renderSalesPdfBuffer({
+			pages: previewData.pages,
+			title: previewData.title,
+			templateId: previewData.templateId,
+			companyAddress: previewData.companyAddress,
+			baseUrl: requestUrl.origin,
+			previewUrl: previewData.previewUrl,
+			qrCodeDataUrl: previewData.qrCodeDataUrl,
+		});
+
+		const headers: Record<string, string> = {
+			"Content-Type":
+				snapshotLookup.storedDocument.mimeType || "application/pdf",
+			"Cache-Control": "no-store, max-age=0",
+		};
+
+		if (!result.data.preview) {
+			headers["Content-Disposition"] =
+				`attachment; filename="${previewData.title}.pdf"`;
+		} else {
+			headers["Content-Disposition"] =
+				`inline; filename="${previewData.title}.pdf"`;
+		}
+
+		return new Response(buffer, { headers });
 	}
 
 	if (result.data.accessToken) {
@@ -75,6 +123,41 @@ export async function GET(req: NextRequest) {
 			headers,
 			status: upstream.status,
 		});
+	}
+
+	if (result.data.snapshotId) {
+		const previewData = await resolveSalesDocumentPreviewData({
+			db,
+			snapshotId: result.data.snapshotId,
+			templateId: result.data.templateId,
+			baseUrl: requestUrl.origin,
+		});
+		if (!previewData) notFound();
+
+		const buffer = await renderSalesPdfBuffer({
+			pages: previewData.pages,
+			title: previewData.title,
+			templateId: previewData.templateId,
+			companyAddress: previewData.companyAddress,
+			baseUrl: requestUrl.origin,
+			previewUrl: previewData.previewUrl,
+			qrCodeDataUrl: previewData.qrCodeDataUrl,
+		});
+
+		const headers: Record<string, string> = {
+			"Content-Type": "application/pdf",
+			"Cache-Control": "no-store, max-age=0",
+		};
+
+		if (!result.data.preview) {
+			headers["Content-Disposition"] =
+				`attachment; filename="${previewData.title}.pdf"`;
+		} else {
+			headers["Content-Disposition"] =
+				`inline; filename="${previewData.title}.pdf"`;
+		}
+
+		return new Response(buffer, { headers });
 	}
 
 	const payload = result.data.token

@@ -19,8 +19,10 @@ export default async function Page(props) {
 	const filter = loadSalesPrintFilterParams(searchParams);
 	batchPrefetch([
 		trpc.print.salesV2.queryOptions({
+			pt: filter.pt ?? "",
 			token: filter.token ?? "",
 			accessToken: filter.accessToken ?? "",
+			snapshotId: filter.snapshotId ?? "",
 			preview: filter.preview ?? false,
 			templateId: filter.templateId ?? "template-2",
 		}),

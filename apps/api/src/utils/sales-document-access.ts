@@ -21,6 +21,13 @@ import {
 import { put } from "@vercel/blob";
 import { addDays } from "date-fns";
 import { createApiVercelBlobDocumentService } from "./documents";
+import {
+	createPublicLinkToken,
+	findActivePublicLinkTokenByResource,
+	getActivePublicLinkToken,
+	PUBLIC_LINK_KINDS,
+	PUBLIC_LINK_RESOURCE_TYPES,
+} from "./public-link-token";
 import { createStoredDocumentRegistry } from "./stored-documents";
 
 const DEFAULT_TEMPLATE_ID = "template-2";
@@ -44,6 +51,7 @@ type SalesDocumentMeta = {
 	dispatchId?: number | null;
 	scopeKey?: string | null;
 	title?: string | null;
+	publicLinkMode?: "public-token" | "access-token" | null;
 };
 
 export type ResolveSalesDocumentAccessInput = {
@@ -132,15 +140,34 @@ function resolveBaseUrl(baseUrl?: string | null) {
 	).replace(/\/$/, "");
 }
 
+function buildTemplateSearchParam(templateId?: string | null) {
+	const template = templateId || DEFAULT_TEMPLATE_ID;
+	return template === DEFAULT_TEMPLATE_ID
+		? ""
+		: `&templateId=${encodeURIComponent(template)}`;
+}
+
+function buildPublicTokenSalesDocumentUrls(input: {
+	publicToken: string;
+	baseUrl?: string | null;
+	templateId?: string | null;
+}) {
+	const baseUrl = resolveBaseUrl(input.baseUrl);
+	const templateParam = buildTemplateSearchParam(input.templateId);
+	const previewUrl = `${baseUrl}${SALES_DOCUMENT_PREVIEW_PATH}?pt=${encodeURIComponent(input.publicToken)}${templateParam}`;
+	const downloadUrl = `${baseUrl}${SALES_DOCUMENT_DOWNLOAD_PATH}?pt=${encodeURIComponent(input.publicToken)}&preview=false${templateParam}`;
+	return { previewUrl, downloadUrl };
+}
+
 function buildSalesDocumentAccessUrls(input: {
 	accessToken: string;
 	baseUrl?: string | null;
 	templateId?: string | null;
 }) {
 	const baseUrl = resolveBaseUrl(input.baseUrl);
-	const template = input.templateId || DEFAULT_TEMPLATE_ID;
-	const previewUrl = `${baseUrl}${SALES_DOCUMENT_PREVIEW_PATH}?accessToken=${encodeURIComponent(input.accessToken)}&templateId=${encodeURIComponent(template)}`;
-	const downloadUrl = `${baseUrl}${SALES_DOCUMENT_DOWNLOAD_PATH}?accessToken=${encodeURIComponent(input.accessToken)}&preview=false&templateId=${encodeURIComponent(template)}`;
+	const templateParam = buildTemplateSearchParam(input.templateId);
+	const previewUrl = `${baseUrl}${SALES_DOCUMENT_PREVIEW_PATH}?accessToken=${encodeURIComponent(input.accessToken)}${templateParam}`;
+	const downloadUrl = `${baseUrl}${SALES_DOCUMENT_DOWNLOAD_PATH}?accessToken=${encodeURIComponent(input.accessToken)}&preview=false${templateParam}`;
 	return { previewUrl, downloadUrl };
 }
 
@@ -150,10 +177,36 @@ function buildLegacySalesDocumentPreviewUrls(input: {
 	templateId?: string | null;
 }) {
 	const baseUrl = resolveBaseUrl(input.baseUrl);
-	const template = input.templateId || DEFAULT_TEMPLATE_ID;
-	const previewUrl = `${baseUrl}${SALES_DOCUMENT_PREVIEW_PATH}?token=${encodeURIComponent(input.token)}&templateId=${encodeURIComponent(template)}`;
-	const downloadUrl = `${baseUrl}${SALES_DOCUMENT_DOWNLOAD_PATH}?token=${encodeURIComponent(input.token)}&preview=false&templateId=${encodeURIComponent(template)}`;
+	const templateParam = buildTemplateSearchParam(input.templateId);
+	const previewUrl = `${baseUrl}${SALES_DOCUMENT_PREVIEW_PATH}?token=${encodeURIComponent(input.token)}${templateParam}`;
+	const downloadUrl = `${baseUrl}${SALES_DOCUMENT_DOWNLOAD_PATH}?token=${encodeURIComponent(input.token)}&preview=false${templateParam}`;
 	return { previewUrl, downloadUrl };
+}
+
+async function ensureSalesDocumentPublicToken(input: {
+	db: Db;
+	snapshotId: string;
+	expiresAt: string;
+	templateId?: string | null;
+}) {
+	const existing = await findActivePublicLinkTokenByResource({
+		db: input.db,
+		kind: PUBLIC_LINK_KINDS.salesDocumentPreview,
+		resourceType: PUBLIC_LINK_RESOURCE_TYPES.salesDocumentSnapshot,
+		resourceId: input.snapshotId,
+	});
+	if (existing) return existing;
+
+	return createPublicLinkToken({
+		db: input.db,
+		kind: PUBLIC_LINK_KINDS.salesDocumentPreview,
+		resourceType: PUBLIC_LINK_RESOURCE_TYPES.salesDocumentSnapshot,
+		resourceId: input.snapshotId,
+		expiresAt: new Date(input.expiresAt),
+		meta: {
+			templateId: input.templateId || DEFAULT_TEMPLATE_ID,
+		},
+	});
 }
 
 function getSnapshotMeta(
@@ -311,8 +364,14 @@ async function createSalesPdfSnapshot(input: {
 			documentType: input.documentType,
 			expiry: expiresAt,
 		} satisfies SalesDocumentAccessToken);
-		const accessUrls = buildSalesDocumentAccessUrls({
-			accessToken,
+		const publicToken = await ensureSalesDocumentPublicToken({
+			db: input.db,
+			snapshotId: pending.id,
+			expiresAt,
+			templateId: input.templateId || DEFAULT_TEMPLATE_ID,
+		});
+		const accessUrls = buildPublicTokenSalesDocumentUrls({
+			publicToken: publicToken.token,
 			baseUrl: input.baseUrl,
 			templateId: input.templateId || DEFAULT_TEMPLATE_ID,
 		});
@@ -385,6 +444,7 @@ async function createSalesPdfSnapshot(input: {
 				accessToken,
 				expiresAt,
 				title,
+				publicLinkMode: "public-token",
 			},
 		});
 
@@ -467,8 +527,15 @@ export async function resolveSalesDocumentAccess(
 			meta.accessToken &&
 			isFutureIso(meta.expiresAt)
 		) {
-			const urls = buildSalesDocumentAccessUrls({
-				accessToken: meta.accessToken,
+			const publicToken = await ensureSalesDocumentPublicToken({
+				db: input.db,
+				snapshotId: current.id,
+				expiresAt: meta.expiresAt || addDays(new Date(), DEFAULT_LINK_TTL_DAYS).toISOString(),
+				templateId:
+					meta.templateId || input.templateId || DEFAULT_TEMPLATE_ID,
+			});
+			const urls = buildPublicTokenSalesDocumentUrls({
+				publicToken: publicToken.token,
 				baseUrl: input.baseUrl,
 				templateId: meta.templateId || input.templateId || DEFAULT_TEMPLATE_ID,
 			});
@@ -497,8 +564,14 @@ export async function resolveSalesDocumentAccess(
 		baseUrl: input.baseUrl,
 	});
 
-	const urls = buildSalesDocumentAccessUrls({
-		accessToken: created.accessToken,
+	const publicToken = await ensureSalesDocumentPublicToken({
+		db: input.db,
+		snapshotId: created.snapshot.id,
+		expiresAt: created.expiresAt,
+		templateId: input.templateId || DEFAULT_TEMPLATE_ID,
+	});
+	const publicTokenUrls = buildPublicTokenSalesDocumentUrls({
+		publicToken: publicToken.token,
 		baseUrl: input.baseUrl,
 		templateId: input.templateId || DEFAULT_TEMPLATE_ID,
 	});
@@ -512,8 +585,49 @@ export async function resolveSalesDocumentAccess(
 		snapshotId: created.snapshot.id,
 		accessToken: created.accessToken,
 		expiresAt: created.expiresAt,
-		previewUrl: urls.previewUrl,
-		downloadUrl: urls.downloadUrl,
+		previewUrl: publicTokenUrls.previewUrl,
+		downloadUrl: publicTokenUrls.downloadUrl,
+	};
+}
+
+async function getSalesSnapshotDocumentById(input: {
+	db: Db;
+	snapshotId: string;
+}) {
+	const repository = createSalesDocumentSnapshotRepository(input.db);
+	const snapshot = await repository.findById({
+		id: input.snapshotId,
+	});
+	if (!snapshot) return null;
+	if (!snapshot.isCurrent || snapshot.generationStatus !== "ready") return null;
+	const meta = getSnapshotMeta(snapshot.meta);
+	if (!isFutureIso(meta.expiresAt)) return null;
+
+	const storedDocument = snapshot.storedDocumentId
+		? await input.db.storedDocument.findFirst({
+				where: {
+					id: snapshot.storedDocumentId,
+					deletedAt: null,
+					status: "ready",
+				},
+				select: {
+					id: true,
+					url: true,
+					pathname: true,
+					filename: true,
+					mimeType: true,
+					status: true,
+				},
+			})
+		: null;
+	if (!storedDocument) return null;
+
+	return {
+		snapshot,
+		storedDocument,
+		tokenPayload: null,
+	} satisfies Omit<SnapshotDocumentLookup, "tokenPayload"> & {
+		tokenPayload: null;
 	};
 }
 
@@ -563,14 +677,123 @@ export async function getSalesSnapshotDocumentByAccessToken(input: {
 	} satisfies SnapshotDocumentLookup;
 }
 
+export async function getSalesSnapshotDocumentByPublicToken(input: {
+	db: Db;
+	publicToken: string;
+}) {
+	const tokenRecord = await getActivePublicLinkToken({
+		db: input.db,
+		token: input.publicToken,
+	});
+	if (!tokenRecord) return null;
+	if (tokenRecord.kind !== PUBLIC_LINK_KINDS.salesDocumentPreview) return null;
+	if (
+		tokenRecord.resourceType !==
+		PUBLIC_LINK_RESOURCE_TYPES.salesDocumentSnapshot
+	) {
+		return null;
+	}
+
+	return getSalesSnapshotDocumentById({
+		db: input.db,
+		snapshotId: tokenRecord.resourceId,
+	});
+}
+
 export async function resolveSalesDocumentPreviewData(input: {
 	db: Db;
+	publicToken?: string | null;
 	token?: string | null;
 	accessToken?: string | null;
+	snapshotId?: string | null;
 	templateId?: string | null;
 	baseUrl?: string | null;
 }) {
 	const templateId = input.templateId || DEFAULT_TEMPLATE_ID;
+
+	if (input.publicToken) {
+		const snapshotLookup = await getSalesSnapshotDocumentByPublicToken({
+			db: input.db,
+			publicToken: input.publicToken,
+		});
+		if (!snapshotLookup) return null;
+
+		const meta = getSnapshotMeta(snapshotLookup.snapshot.meta);
+		const mode = meta.mode;
+		if (!mode) return null;
+
+		const documentData = await getPrintDocumentData(input.db, {
+			ids: [snapshotLookup.snapshot.salesOrderId],
+			mode,
+			dispatchId: meta.dispatchId ?? null,
+		});
+		const urls = buildPublicTokenSalesDocumentUrls({
+			publicToken: input.publicToken,
+			baseUrl: input.baseUrl,
+			templateId,
+		});
+		const qrCodeDataUrl = await generateQrCodeDataUrl(urls.previewUrl);
+
+		return {
+			pages: documentData.pages,
+			title: documentData.title,
+			templateId,
+			companyAddress: documentData.companyAddress,
+			watermark: null,
+			mode,
+			orderNo: documentData.firstOrderId ?? null,
+			salesOrderId: snapshotLookup.snapshot.salesOrderId,
+			documentType: snapshotLookup.snapshot.documentType,
+			previewUrl: urls.previewUrl,
+			downloadUrl: urls.downloadUrl,
+			qrCodeDataUrl,
+		} satisfies ResolveSalesDocumentPreviewDataResult;
+	}
+
+	if (input.snapshotId) {
+		const snapshotLookup = await getSalesSnapshotDocumentById({
+			db: input.db,
+			snapshotId: input.snapshotId,
+		});
+		if (!snapshotLookup) return null;
+
+		const meta = getSnapshotMeta(snapshotLookup.snapshot.meta);
+		const mode = meta.mode;
+		if (!mode) return null;
+
+		const documentData = await getPrintDocumentData(input.db, {
+			ids: [snapshotLookup.snapshot.salesOrderId],
+			mode,
+			dispatchId: meta.dispatchId ?? null,
+		});
+		const publicToken = await ensureSalesDocumentPublicToken({
+			db: input.db,
+			snapshotId: input.snapshotId,
+			expiresAt: meta.expiresAt || addDays(new Date(), DEFAULT_LINK_TTL_DAYS).toISOString(),
+			templateId,
+		});
+		const urls = buildPublicTokenSalesDocumentUrls({
+			publicToken: publicToken.token,
+			baseUrl: input.baseUrl,
+			templateId,
+		});
+		const qrCodeDataUrl = await generateQrCodeDataUrl(urls.previewUrl);
+
+		return {
+			pages: documentData.pages,
+			title: documentData.title,
+			templateId,
+			companyAddress: documentData.companyAddress,
+			watermark: null,
+			mode,
+			orderNo: documentData.firstOrderId ?? null,
+			salesOrderId: snapshotLookup.snapshot.salesOrderId,
+			documentType: snapshotLookup.snapshot.documentType,
+			previewUrl: urls.previewUrl,
+			downloadUrl: urls.downloadUrl,
+			qrCodeDataUrl,
+		} satisfies ResolveSalesDocumentPreviewDataResult;
+	}
 
 	if (input.accessToken) {
 		const snapshotLookup = await getSalesSnapshotDocumentByAccessToken({
@@ -588,8 +811,14 @@ export async function resolveSalesDocumentPreviewData(input: {
 			mode,
 			dispatchId: meta.dispatchId ?? null,
 		});
-		const urls = buildSalesDocumentAccessUrls({
-			accessToken: input.accessToken,
+		const publicToken = await ensureSalesDocumentPublicToken({
+			db: input.db,
+			snapshotId: snapshotLookup.snapshot.id,
+			expiresAt: meta.expiresAt || addDays(new Date(), DEFAULT_LINK_TTL_DAYS).toISOString(),
+			templateId,
+		});
+		const urls = buildPublicTokenSalesDocumentUrls({
+			publicToken: publicToken.token,
 			baseUrl: input.baseUrl,
 			templateId,
 		});

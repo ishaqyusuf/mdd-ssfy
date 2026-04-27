@@ -43,15 +43,18 @@ function Content({ data }) {
 		);
 	}
 	const sidebar = useSidebar();
-	const hidden = !sidebar?.open;
 	const isLgOrBelow = useMediaQuery("(max-width: 1023px)");
+	const desktopSidebarHidden = !sidebar?.open;
+	const mobileSidebarOpen = !!sidebar?.openMobile;
+	const hidden = isLgOrBelow ? !mobileSidebarOpen : desktopSidebarHidden;
 	const [takeOff, takeOffChanged] = useLocalStorage("take-off", false);
 	const itemCount = zus.sequence?.formItem?.length || 0;
 
 	useEffect(() => {
 		if (!isLgOrBelow) return;
 		sidebar?.setOpen(false);
-	}, [isLgOrBelow]);
+		sidebar?.setOpenMobile(false);
+	}, [isLgOrBelow, sidebar]);
 
 	return (
 		<>
@@ -158,8 +161,8 @@ function Content({ data }) {
 			{isLgOrBelow ? (
 				<SalesFormSidebar
 					sheetMode
-					mobileOpen={!hidden}
-					onMobileOpenChange={(open) => sidebar.setOpen(open)}
+					mobileOpen={mobileSidebarOpen}
+					onMobileOpenChange={(open) => sidebar.setOpenMobile(open)}
 				/>
 			) : (
 				<SalesFormSidebar className="hidden xl:flex" />

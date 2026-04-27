@@ -135,41 +135,11 @@ export function HeaderBlock({
 				</View>
 
 				{qrCodeDataUrl ? (
-					<View
-						style={{
-							width: 112,
-							marginLeft: 12,
-							borderWidth: 1,
-							borderColor: BORDER,
-							borderRadius: 6,
-							padding: 8,
-							backgroundColor: LIGHT_BG,
-						}}
-					>
-						<Text
-							style={{
-								fontSize: 6.5,
-								color: TEXT_MUTED,
-								textAlign: "center",
-								marginBottom: 4,
-							}}
-						>
-							Scan to preview, print, or open order
-						</Text>
+					<View style={{ width: 84, marginLeft: 12 }}>
 						<Image
 							src={qrCodeDataUrl}
 							style={{ width: 84, height: 84, alignSelf: "center" }}
 						/>
-						<Text
-							style={{
-								fontSize: 6.5,
-								color: TEXT_MUTED,
-								textAlign: "center",
-								marginTop: 4,
-							}}
-						>
-							{meta.salesNo}
-						</Text>
 					</View>
 				) : null}
 			</View>

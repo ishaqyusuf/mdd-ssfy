@@ -8,7 +8,6 @@ import { TransactionsTab } from "@/components/sheets/customer-overview-sheet/tra
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { useSalesOverviewOpen } from "@/hooks/use-sales-overview-open";
 import { useTRPC } from "@/trpc/client";
-import textWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import {
@@ -18,10 +17,11 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@gnd/ui/card";
+import textWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
-import { formatDate } from "@gnd/utils/dayjs";
 import { formatMoney } from "@gnd/utils";
+import { formatDate } from "@gnd/utils/dayjs";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
@@ -63,7 +63,10 @@ export function CustomerOverviewV2Content({
 				pendingPaymentIds={pendingPaymentIds}
 			/>
 
-			<Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)}>
+			<Tabs
+				value={activeTab}
+				onValueChange={(value) => setActiveTab(value as typeof activeTab)}
+			>
 				<TabsList className="grid w-full grid-cols-4">
 					<TabsTrigger value="overview">Overview</TabsTrigger>
 					<TabsTrigger value="sales">Sales</TabsTrigger>
@@ -74,7 +77,14 @@ export function CustomerOverviewV2Content({
 				<TabsContent value="overview" className="mt-4">
 					<div className="grid gap-4 xl:grid-cols-[1.6fr_1fr]">
 						<div className="grid gap-4">
-							<CustomerSummaryCards data={data} isPending={overviewQuery.isPending} />
+							<CustomerSummaryCards
+								data={data}
+								isPending={overviewQuery.isPending}
+							/>
+							<AccountHealthCard
+								data={data}
+								isPending={overviewQuery.isPending}
+							/>
 							<CustomerSalesPreview
 								emptyText="No sales orders found for this customer."
 								items={data?.salesWorkspace.orders || []}
@@ -101,9 +111,22 @@ export function CustomerOverviewV2Content({
 							/>
 						</div>
 						<div className="grid gap-4">
-							<CustomerContactCard data={data} isPending={overviewQuery.isPending} />
-							<CustomerLocationCard data={data} isPending={overviewQuery.isPending} />
-							<CustomerPendingActions data={data} isPending={overviewQuery.isPending} />
+							<RecentActivityCard
+								data={data}
+								isPending={overviewQuery.isPending}
+							/>
+							<CustomerContactCard
+								data={data}
+								isPending={overviewQuery.isPending}
+							/>
+							<CustomerLocationCard
+								data={data}
+								isPending={overviewQuery.isPending}
+							/>
+							<CustomerPendingActions
+								data={data}
+								isPending={overviewQuery.isPending}
+							/>
 						</div>
 					</div>
 				</TabsContent>
@@ -128,12 +151,8 @@ export function CustomerOverviewV2Content({
 					<CustomerSalesPreview
 						emptyText="No quotes found for this customer."
 						items={data?.salesWorkspace.quotes || []}
-						onOpenSheet={(orderNo) =>
-							salesOverviewOpen.openQuoteSheet(orderNo)
-						}
-						onOpenPage={(orderNo) =>
-							salesOverviewOpen.openQuotePage(orderNo)
-						}
+						onOpenSheet={(orderNo) => salesOverviewOpen.openQuoteSheet(orderNo)}
+						onOpenPage={(orderNo) => salesOverviewOpen.openQuotePage(orderNo)}
 						showAll
 						title="Quotes"
 						type="quote"
@@ -145,7 +164,8 @@ export function CustomerOverviewV2Content({
 						<CardHeader className="pb-3">
 							<CardTitle>Customer transactions</CardTitle>
 							<CardDescription>
-								Recent transaction history for {data?.customer.displayName || accountNo}.
+								Recent transaction history for{" "}
+								{data?.customer.displayName || accountNo}.
 							</CardDescription>
 						</CardHeader>
 						<CardContent>
@@ -179,6 +199,19 @@ type CustomerOverviewV2Data = {
 		secondary: CustomerAddress[];
 	};
 	walletBalance: number;
+	health: {
+		status:
+			| "attention_needed"
+			| "credit_available"
+			| "delivery_in_progress"
+			| "clear";
+		label: string;
+		description: string;
+		nextAction: string;
+		recommendedActions: string[];
+		netExposure: number;
+		creditAvailable: number;
+	};
 	general: {
 		pendingPayment: number;
 		pendingPaymentOrders: Array<{
@@ -204,6 +237,22 @@ type CustomerOverviewV2Data = {
 		orders: CustomerSalesItem[];
 		quotes: CustomerSalesItem[];
 	};
+	recentActivity: Array<{
+		id: string;
+		type:
+			| "order"
+			| "quote"
+			| "payment"
+			| "refund"
+			| "wallet"
+			| "payment_cancelled";
+		title: string;
+		subtitle: string;
+		amount: number;
+		date: string;
+		status: string | null;
+		orderId: string | null;
+	}>;
 };
 
 type CustomerAddress = {
@@ -264,6 +313,9 @@ function CustomerHero({
 										{data?.customer.displayName || "Customer"}
 									</h2>
 								)}
+								{data?.health ? (
+									<Badge variant="secondary">{data.health.label}</Badge>
+								) : null}
 								<Badge variant="outline">
 									{data?.customer.profileName || "Customer"}
 								</Badge>
@@ -278,6 +330,11 @@ function CustomerHero({
 								<span>{data?.customer.email || "No email"}</span>
 								<span>{data?.customer.phoneNo || "No phone"}</span>
 							</div>
+							{data?.health ? (
+								<p className="max-w-2xl text-sm text-muted-foreground">
+									{data.health.description}
+								</p>
+							) : null}
 						</div>
 					</div>
 					<div className="flex flex-wrap gap-2">
@@ -322,28 +379,31 @@ function CustomerSummaryCards({
 }) {
 	const cards = [
 		{
-			label: "Wallet balance",
+			label: "Open balance",
+			value: `$${formatMoney(data?.general.pendingPayment || 0)}`,
+			description: `${data?.general.pendingPaymentOrders?.length || 0} order(s) still awaiting payment`,
+			icon: Icons.ReceiptText,
+		},
+		{
+			label: "Wallet credit",
 			value: `$${formatMoney(data?.walletBalance || 0)}`,
-			description: "Available customer wallet funds",
+			description: "Reusable customer funds already on account",
 			icon: Icons.Wallet,
 		},
 		{
-			label: "Pending payment",
-			value: `$${formatMoney(data?.general.pendingPayment || 0)}`,
-			description: `${data?.general.pendingPaymentOrders?.length || 0} open payment order(s)`,
-			icon: Icons.Clock3,
+			label: "Net exposure",
+			value: `$${formatMoney(data?.health.netExposure || 0)}`,
+			description:
+				data?.health.creditAvailable && data.health.creditAvailable > 0
+					? `$${formatMoney(data.health.creditAvailable)} remains available after covering open balances`
+					: "Amount still exposed after applying available wallet funds",
+			icon: Icons.Activity,
 		},
 		{
-			label: "Sales value",
-			value: `$${formatMoney(data?.general.totalSalesValue || 0)}`,
-			description: `${data?.general.totalSalesCount || 0} sales order(s)`,
-			icon: Icons.ShoppingCart,
-		},
-		{
-			label: "Quote value",
-			value: `$${formatMoney(data?.general.totalQuotesValue || 0)}`,
-			description: `${data?.general.totalQuotesCount || 0} quote(s)`,
-			icon: Icons.FileText,
+			label: "Delivery follow-up",
+			value: `${data?.general.pendingDeliveryOrders?.length || 0}`,
+			description: `${data?.general.totalSalesCount || 0} sales order(s) on this account`,
+			icon: Icons.Truck,
 		},
 	];
 
@@ -363,14 +423,146 @@ function CustomerSummaryCards({
 								</div>
 							</div>
 							<div className="text-2xl font-black">
-								{isPending ? <Skeleton className="h-8 w-24 rounded-md" /> : card.value}
+								{isPending ? (
+									<Skeleton className="h-8 w-24 rounded-md" />
+								) : (
+									card.value
+								)}
 							</div>
-							<p className="text-xs text-muted-foreground">{card.description}</p>
+							<p className="text-xs text-muted-foreground">
+								{card.description}
+							</p>
 						</CardContent>
 					</Card>
 				);
 			})}
 		</div>
+	);
+}
+
+function AccountHealthCard({
+	data,
+	isPending,
+}: {
+	data: CustomerOverviewV2Data | undefined;
+	isPending: boolean;
+}) {
+	return (
+		<Card>
+			<CardHeader className="pb-3">
+				<CardTitle>Account status</CardTitle>
+				<CardDescription>
+					What is happening now and the cleanest next move for this customer.
+				</CardDescription>
+			</CardHeader>
+			<CardContent className="space-y-4">
+				{isPending ? (
+					<Skeleton className="h-32 rounded-lg" />
+				) : (
+					<>
+						<div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border bg-muted/30 p-4">
+							<div className="space-y-1">
+								<div className="flex items-center gap-2">
+									<Badge variant="secondary">{data?.health.label}</Badge>
+									<span className="text-sm text-muted-foreground">
+										Net exposure ${formatMoney(data?.health.netExposure || 0)}
+									</span>
+								</div>
+								<p className="text-sm text-muted-foreground">
+									{data?.health.description}
+								</p>
+							</div>
+							<div className="min-w-40 rounded-lg border bg-background px-3 py-2 text-sm">
+								<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+									Next best action
+								</p>
+								<p className="mt-1 font-medium">{data?.health.nextAction}</p>
+							</div>
+						</div>
+						<div className="grid gap-3 md:grid-cols-2">
+							{(data?.health.recommendedActions || []).map((action) => (
+								<div
+									key={action}
+									className="flex items-start gap-2 rounded-lg border p-3 text-sm"
+								>
+									<Icons.CheckCircle2 className="mt-0.5 size-4 text-emerald-600" />
+									<span>{action}</span>
+								</div>
+							))}
+						</div>
+					</>
+				)}
+			</CardContent>
+		</Card>
+	);
+}
+
+function RecentActivityCard({
+	data,
+	isPending,
+}: {
+	data: CustomerOverviewV2Data | undefined;
+	isPending: boolean;
+}) {
+	return (
+		<Card>
+			<CardHeader className="pb-3">
+				<CardTitle>Recent activity</CardTitle>
+				<CardDescription>
+					A single timeline for orders, payments, refunds, and wallet movement.
+				</CardDescription>
+			</CardHeader>
+			<CardContent>
+				{isPending ? (
+					<Skeleton className="h-44 rounded-lg" />
+				) : data?.recentActivity?.length ? (
+					<div className="space-y-3">
+						{data.recentActivity.map((item) => {
+							const Icon = getActivityIcon(item.type);
+							return (
+								<div
+									key={item.id}
+									className="flex items-start justify-between gap-3 rounded-lg border p-3"
+								>
+									<div className="flex items-start gap-3">
+										<div className="rounded-md bg-primary/10 p-2 text-primary">
+											<Icon className="size-4" />
+										</div>
+										<div className="space-y-1">
+											<p className="text-sm font-semibold">{item.title}</p>
+											<p className="text-xs text-muted-foreground">
+												{item.subtitle}
+											</p>
+											<p className="text-xs text-muted-foreground">
+												{formatDate(item.date)}
+											</p>
+										</div>
+									</div>
+									<div className="text-right">
+										<p className="text-sm font-semibold">
+											{item.amount < 0 ? "-" : ""}$
+											{formatMoney(Math.abs(item.amount || 0))}
+										</p>
+										{item.status ? (
+											<Badge
+												variant="outline"
+												className="mt-1 text-[10px] uppercase"
+											>
+												{item.status}
+											</Badge>
+										) : null}
+									</div>
+								</div>
+							);
+						})}
+					</div>
+				) : (
+					<div className="rounded-lg border p-3 text-sm text-muted-foreground">
+						No recent account activity yet.
+					</div>
+				)}
+			</CardContent>
+		</Card>
 	);
 }
 
@@ -389,7 +581,10 @@ function CustomerContactCard({
 		},
 		{
 			label: "Secondary",
-			value: data?.customer.phoneNo2 || data?.customer.email || "No secondary contact",
+			value:
+				data?.customer.phoneNo2 ||
+				data?.customer.email ||
+				"No secondary contact",
 			icon: Icons.Mail,
 		},
 	];
@@ -398,26 +593,32 @@ function CustomerContactCard({
 		<Card>
 			<CardHeader className="pb-3">
 				<CardTitle>Quick contacts</CardTitle>
-				<CardDescription>Fast customer contact details and account basics.</CardDescription>
+				<CardDescription>
+					Fast customer contact details and account basics.
+				</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-3">
-				{isPending ? <Skeleton className="h-28 rounded-lg" /> : contacts.map((contact) => {
-					const Icon = contact.icon;
-					return (
-						<div
-							key={contact.label}
-							className="flex items-center justify-between rounded-lg border p-3"
-						>
-							<div className="space-y-1">
-								<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-									{contact.label}
-								</p>
-								<p className="text-sm font-medium">{contact.value}</p>
+				{isPending ? (
+					<Skeleton className="h-28 rounded-lg" />
+				) : (
+					contacts.map((contact) => {
+						const Icon = contact.icon;
+						return (
+							<div
+								key={contact.label}
+								className="flex items-center justify-between rounded-lg border p-3"
+							>
+								<div className="space-y-1">
+									<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+										{contact.label}
+									</p>
+									<p className="text-sm font-medium">{contact.value}</p>
+								</div>
+								<Icon className="size-4 text-primary" />
 							</div>
-							<Icon className="size-4 text-primary" />
-						</div>
-					);
-				})}
+						);
+					})
+				)}
 				{isPending ? null : (
 					<div className="rounded-lg border p-3">
 						<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -445,7 +646,7 @@ function CustomerLocationCard({
 			? {
 					label: "Primary address",
 					value: formatAddress(data.addresses.primary),
-			  }
+				}
 			: null,
 		...(data?.addresses.secondary || []).slice(0, 2).map((address, index) => ({
 			label: `Location ${index + 2}`,
@@ -457,7 +658,9 @@ function CustomerLocationCard({
 		<Card>
 			<CardHeader className="pb-3">
 				<CardTitle>Locations</CardTitle>
-				<CardDescription>Billing and shipping context for this customer.</CardDescription>
+				<CardDescription>
+					Billing and shipping context for this customer.
+				</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-3">
 				{isPending ? (
@@ -494,13 +697,23 @@ function CustomerPendingActions({
 		<Card>
 			<CardHeader className="pb-3">
 				<CardTitle>Open work</CardTitle>
-				<CardDescription>Pending order states that may need follow-up.</CardDescription>
+				<CardDescription>
+					Pending order states that may need follow-up.
+				</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-3">
 				{isPending ? (
 					<Skeleton className="h-28 rounded-lg" />
 				) : (
 					<>
+						<div className="rounded-lg border p-3">
+							<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+								Recommended next move
+							</p>
+							<p className="mt-1 text-sm font-medium">
+								{data?.health.nextAction}
+							</p>
+						</div>
 						<div className="rounded-lg border p-3">
 							<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
 								Pending payment orders
@@ -515,6 +728,14 @@ function CustomerPendingActions({
 							</p>
 							<p className="mt-1 text-lg font-bold">
 								{data?.general.pendingDeliveryOrders?.length || 0}
+							</p>
+						</div>
+						<div className="rounded-lg border p-3">
+							<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+								Credit left after balances
+							</p>
+							<p className="mt-1 text-lg font-bold">
+								${formatMoney(data?.health.creditAvailable || 0)}
 							</p>
 						</div>
 					</>
@@ -599,10 +820,7 @@ function CustomerSalesPreview({
 												>
 													Open sheet
 												</Button>
-												<Button
-													size="sm"
-													onClick={() => onOpenPage(item.uuid)}
-												>
+												<Button size="sm" onClick={() => onOpenPage(item.uuid)}>
 													Open page
 												</Button>
 											</div>
@@ -629,6 +847,25 @@ function getInitials(value?: string | null) {
 		.slice(0, 2)
 		.map((segment) => segment[0]?.toUpperCase() || "")
 		.join("");
+}
+
+function getActivityIcon(
+	type: CustomerOverviewV2Data["recentActivity"][number]["type"],
+) {
+	switch (type) {
+		case "refund":
+			return Icons.TrendingDown;
+		case "wallet":
+			return Icons.Wallet;
+		case "payment_cancelled":
+			return Icons.AlertTriangle;
+		case "quote":
+			return Icons.FileText;
+		case "order":
+			return Icons.ShoppingCart;
+		default:
+			return Icons.ReceiptText;
+	}
 }
 
 function formatAddress(

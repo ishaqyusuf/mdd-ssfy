@@ -1,313 +1,334 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import type { GetSalesResolutionData } from "@/actions/get-sales-resolution-data";
+import { useResolutionCenterParams } from "@/hooks/use-resolution-center-params";
+import { useZodForm } from "@/hooks/use-zod-form";
+import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
+import { cn } from "@gnd/ui/cn";
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
 } from "@gnd/ui/dialog";
 import { Form } from "@gnd/ui/form";
-
 import { Icons } from "@gnd/ui/icons";
-import { GetSalesResolutionData } from "@/actions/get-sales-resolution-data";
-import { useResolutionCenterParams } from "@/hooks/use-resolution-center-params";
-import { ResolvePayment, resolvePaymentSchema } from "@sales/schema";
-import { useZodForm } from "@/hooks/use-zod-form";
-import FormSelect from "../common/controls/form-select";
-import FormInput from "../common/controls/form-input";
-import { cn } from "@gnd/ui/cn";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
-import { useTRPC } from "@/trpc/client";
 import { toast } from "@gnd/ui/use-toast";
-import { SALES_REFUND_METHODS_OPTIONS } from "@sales/constants";
 import { generateRandomString } from "@gnd/utils";
+import { SALES_REFUND_METHODS_OPTIONS } from "@sales/constants";
+import { type ResolvePayment, resolvePaymentSchema } from "@sales/schema";
+import { useState } from "react";
+import FormInput from "../common/controls/form-input";
+import FormSelect from "../common/controls/form-select";
 
 interface ResolutionDialogProps {
-    payment: GetSalesResolutionData["payments"][number];
-    refundableAmount?;
+	payment: GetSalesResolutionData["payments"][number];
+	refundableAmount?;
+	currentDue?: number;
+	currentCalculatedDue?: number;
+	conflictStatus?: string | null;
+	recommendedAction?: string;
 }
 
 const RESOLUTION_ACTIONS = [
-    { value: "cancel", label: "Cancel Payment" },
-    { value: "refund", label: "Process Refund" },
+	{ value: "cancel", label: "Cancel Payment" },
+	{ value: "refund", label: "Process Refund" },
 ];
 const REFUND_MODES = [
-    { value: "full", label: "Full Refund" },
-    { value: "part", label: "Part Refund" },
+	{ value: "full", label: "Full Refund" },
+	{ value: "part", label: "Part Refund" },
 ];
 
 const CANCELLATION_REASONS = [
-    { value: "refund-wallet", label: "Refund to Wallet" },
-    { value: "duplicate", label: "Duplicate Payment" },
-    { value: "customer-repay", label: "Customer Will Repay" },
-    { value: "no-reason", label: "No Specific Reason" },
-    { value: "fraud", label: "Fraudulent Transaction" },
-    { value: "error", label: "Processing Error" },
+	{ value: "refund-wallet", label: "Refund to Wallet" },
+	{ value: "duplicate", label: "Duplicate Payment" },
+	{ value: "customer-repay", label: "Customer Will Repay" },
+	{ value: "no-reason", label: "No Specific Reason" },
+	{ value: "fraud", label: "Fraudulent Transaction" },
+	{ value: "error", label: "Processing Error" },
 ];
 
 const REFUND_REASONS = [
-    { value: "overpayment", label: "Overpayment" },
-    { value: "customer-request", label: "Customer Request" },
-    { value: "order-cancelled", label: "Order Cancelled" },
-    { value: "duplicate", label: "Duplicate Charge" },
-    // { value: "dispute", label: "Dispute Resolution" },
+	{ value: "overpayment", label: "Overpayment" },
+	{ value: "customer-request", label: "Customer Request" },
+	{ value: "order-cancelled", label: "Order Cancelled" },
+	{ value: "duplicate", label: "Duplicate Charge" },
+	// { value: "dispute", label: "Dispute Resolution" },
 ];
 
 export function ResolutionDialog({
-    payment,
-    refundableAmount,
-    // onResolve,
+	payment,
+	refundableAmount,
+	currentDue = 0,
+	currentCalculatedDue = 0,
+	conflictStatus,
+	recommendedAction,
+	// onResolve,
 }: ResolutionDialogProps) {
-    const [open, setOpen] = useState(false);
+	const [open, setOpen] = useState(false);
 
-    const form = useZodForm(resolvePaymentSchema, {
-        defaultValues: {
-            action: "cancel",
-            transactionId: payment.id,
-            reason: "",
-            note: "",
-            refundMethod: "wallet",
-            refundMode: "full",
-            refundAmount: payment?.amount,
-            squarePaymentId: payment?.squarePaymentId,
-            paymentMethod: payment.paymentMethod,
-        },
-    });
+	const form = useZodForm(resolvePaymentSchema, {
+		defaultValues: {
+			action: "cancel",
+			transactionId: payment.id,
+			reason: "",
+			note: "",
+			refundMethod: "wallet",
+			refundMode: "full",
+			refundAmount: payment?.amount,
+			squarePaymentId: payment?.squarePaymentId,
+			paymentMethod: payment.paymentMethod,
+		},
+	});
 
-    const watchedAction = form.watch("action");
-    const refundMode = form.watch("refundMode");
-    const rcp = useResolutionCenterParams();
-    const trpc = useTRPC();
-    const qc = useQueryClient();
-    const resolveAction = useMutation(
-        trpc.sales.resolvePayment.mutationOptions({
-            onSuccess(data, variables, context) {
-                toast({
-                    title: "Success",
-                    variant: "success",
-                });
-                setOpen(false);
-                qc.invalidateQueries({
-                    queryKey: trpc.sales.getSalesResolutions.queryKey(),
-                });
-                rcp.setParams({
-                    refreshToken: generateRandomString(),
-                });
-            },
-            onError(error, variables, context) {
-                toast({
-                    title: "Error",
-                    variant: "error",
-                    description: error.message,
-                });
-            },
-        }),
-    );
-    const onSubmit = (data: ResolvePayment) => {
-        resolveAction.mutate({
-            ...data,
-            // paymentMethod: payment.paymentMethod,
-        });
-    };
-    const handleOpenChange = (newOpen: boolean) => {
-        setOpen(newOpen);
-        if (!newOpen) {
-            form.reset();
-        }
-    };
+	const watchedAction = form.watch("action");
+	const refundMode = form.watch("refundMode");
+	const rcp = useResolutionCenterParams();
+	const trpc = useTRPC();
+	const qc = useQueryClient();
+	const resolveAction = useMutation(
+		trpc.sales.resolvePayment.mutationOptions({
+			onSuccess(data, variables, context) {
+				toast({
+					title: "Success",
+					variant: "success",
+					description: "Resolution applied and account balances refreshed.",
+				});
+				setOpen(false);
+				qc.invalidateQueries({
+					queryKey: trpc.sales.getSalesResolutions.queryKey(),
+				});
+				qc.invalidateQueries({
+					queryKey: trpc.sales.getSalesResolutionsSummary.queryKey(),
+				});
+				qc.invalidateQueries({
+					queryKey: trpc.customer.getCustomerOverviewV2.queryKey(),
+				});
+				rcp.setParams({
+					refreshToken: generateRandomString(),
+				});
+			},
+			onError(error, variables, context) {
+				toast({
+					title: "Error",
+					variant: "error",
+					description: error.message,
+				});
+			},
+		}),
+	);
+	const onSubmit = (data: ResolvePayment) => {
+		resolveAction.mutate({
+			...data,
+			// paymentMethod: payment.paymentMethod,
+		});
+	};
+	const handleOpenChange = (newOpen: boolean) => {
+		setOpen(newOpen);
+		if (!newOpen) {
+			form.reset();
+		}
+	};
 
-    const getReasonsForAction = (action: string) => {
-        switch (action) {
-            case "cancel":
-                return CANCELLATION_REASONS;
-            case "refund":
-                return REFUND_REASONS;
-            default:
-                return [];
-        }
-    };
+	const getReasonsForAction = (action: string) => {
+		switch (action) {
+			case "cancel":
+				return CANCELLATION_REASONS;
+			case "refund":
+				return REFUND_REASONS;
+			default:
+				return [];
+		}
+	};
 
-    const shouldShowReasonField =
-        watchedAction === "cancel" || watchedAction === "refund";
-    const reasonOptions = getReasonsForAction(watchedAction);
-    const refundAmount = form.watch("refundAmount");
-    const refundMethods = useMemo(
-        () =>
-            SALES_REFUND_METHODS_OPTIONS.map((rm) => {
-                // if (
-                //     !payment?.squarePaymentId &&
-                //     matchValue(rm.value).in("credit-card", "terminal")
-                // )
-                //     (rm as any).disabled = true;
-                // console.log(
-                //     rm.value,
-                //     payment?.squarePaymentId,
-                //     !payment?.squarePaymentId &&
-                //         matchValue(rm.value).in("credit-card", "terminal"),
-                // );
-                return rm;
-            }),
-        [payment],
-    );
+	const shouldShowReasonField =
+		watchedAction === "cancel" || watchedAction === "refund";
+	const reasonOptions = getReasonsForAction(watchedAction);
+	const refundAmount = form.watch("refundAmount");
+	const projectedDue =
+		watchedAction === "cancel"
+			? currentCalculatedDue
+			: watchedAction === "refund"
+				? Number(currentDue || 0) + Number(refundAmount || 0)
+				: currentDue;
+	const refundMethods = SALES_REFUND_METHODS_OPTIONS;
 
-    return (
-        <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogTrigger asChild>
-                <Button
-                    disabled={
-                        payment?.status?.toLocaleLowerCase() == "canceled"
-                    }
-                    variant="outline"
-                    size="sm"
-                >
-                    <Icons.more className="h-4 w-4" />
-                    Resolve
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-                {!open || (
-                    <>
-                        <DialogHeader>
-                            <DialogTitle>Resolve Payment Issue</DialogTitle>
-                            <DialogDescription>
-                                Payment ID: {payment.id} | Amount: $
-                                {payment.amount.toLocaleString()}
-                                {` | ${payment.squarePaymentId}`}
-                            </DialogDescription>
-                        </DialogHeader>
-                        <Form {...form}>
-                            <form
-                                onSubmit={form.handleSubmit(onSubmit)}
-                                className="space-y-4"
-                            >
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormSelect
-                                        control={form.control}
-                                        name="action"
-                                        size="sm"
-                                        options={RESOLUTION_ACTIONS}
-                                        label={"Resolution Action"}
-                                    />
-                                    {shouldShowReasonField && (
-                                        <FormSelect
-                                            control={form.control}
-                                            name="reason"
-                                            size="sm"
-                                            rules={{
-                                                required: shouldShowReasonField
-                                                    ? "Please select a reason"
-                                                    : false,
-                                            }}
-                                            label={
-                                                watchedAction === "cancel"
-                                                    ? "Cancellation Reason"
-                                                    : "Refund Reason"
-                                            }
-                                            options={reasonOptions}
-                                        />
-                                    )}
-                                </div>
-                                {watchedAction == "refund" && (
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <FormSelect
-                                            control={form.control}
-                                            name="refundMethod"
-                                            rules={{
-                                                required:
-                                                    "Please select a method",
-                                            }}
-                                            label={"Refund Method"}
-                                            options={refundMethods}
-                                        />
-                                        <FormSelect
-                                            control={form.control}
-                                            name="refundMode"
-                                            rules={{
-                                                required:
-                                                    "Please select a mode",
-                                            }}
-                                            label={"Refund Mode"}
-                                            options={REFUND_MODES}
-                                            onSelect={(e) => {
-                                                if (
-                                                    (e as any) == "part" &&
-                                                    refundableAmount
-                                                ) {
-                                                    console.log(e);
-                                                    form.setValue(
-                                                        "refundAmount",
-                                                        refundableAmount,
-                                                    );
-                                                }
-                                            }}
-                                        />
-                                        <div className="col-span-2">
-                                            <FormInput
-                                                control={form.control}
-                                                name="refundAmount"
-                                                label="Refund Amount"
-                                                disabled={refundMode === "full"}
-                                                numericProps={{
-                                                    prefix: `$`,
-                                                    type: "tel",
-                                                    max: payment?.amount,
-                                                    min: 0,
-                                                    placeholder: `$0 / $${payment?.amount}`,
-                                                    disabled:
-                                                        refundMode == "full",
-                                                    suffix: ` / $${payment?.amount}`,
-                                                    className: cn(
-                                                        refundAmount >
-                                                            payment?.amount
-                                                            ? "text-red-800"
-                                                            : "",
-                                                    ),
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-                                <FormInput
-                                    control={form.control}
-                                    type="textarea"
-                                    name="note"
-                                    label="Additional Notes"
-                                    placeholder="Enter any additional notes..."
-                                />
+	return (
+		<Dialog open={open} onOpenChange={handleOpenChange}>
+			<DialogTrigger asChild>
+				<Button
+					disabled={payment?.status?.toLocaleLowerCase() === "canceled"}
+					variant="outline"
+					size="sm"
+				>
+					<Icons.more className="h-4 w-4" />
+					Resolve
+				</Button>
+			</DialogTrigger>
+			<DialogContent className="sm:max-w-[425px]">
+				{!open || (
+					<>
+						<DialogHeader>
+							<DialogTitle>Resolve Payment Issue</DialogTitle>
+							<DialogDescription>
+								Payment ID: {payment.id} | Amount: $
+								{payment.amount.toLocaleString()}
+								{` | ${payment.squarePaymentId}`}
+							</DialogDescription>
+						</DialogHeader>
+						<div className="grid grid-cols-1 gap-3 rounded-lg border bg-muted/30 p-3 text-sm md:grid-cols-2">
+							<div className="rounded-md border bg-background p-3">
+								<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+									Current due
+								</p>
+								<p className="mt-1 text-lg font-semibold">
+									${Number(currentDue || 0).toLocaleString()}
+								</p>
+							</div>
+							<div className="rounded-md border bg-background p-3">
+								<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+									Projected due after action
+								</p>
+								<p className="mt-1 text-lg font-semibold">
+									${Number(projectedDue || 0).toLocaleString()}
+								</p>
+							</div>
+							<div className="rounded-md border bg-background p-3 md:col-span-2">
+								<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+									Recommended next step
+								</p>
+								<p className="mt-1 font-medium">
+									{recommendedAction ||
+										"Resolve the payment state, then confirm the account balance."}
+								</p>
+								{conflictStatus ? (
+									<p className="mt-1 text-xs uppercase text-muted-foreground">
+										Current conflict: {conflictStatus}
+									</p>
+								) : null}
+							</div>
+						</div>
+						<Form {...form}>
+							<form
+								onSubmit={form.handleSubmit(onSubmit)}
+								className="space-y-4"
+							>
+								<div className="grid grid-cols-2 gap-4">
+									<FormSelect
+										control={form.control}
+										name="action"
+										size="sm"
+										options={RESOLUTION_ACTIONS}
+										label={"Resolution Action"}
+									/>
+									{shouldShowReasonField && (
+										<FormSelect
+											control={form.control}
+											name="reason"
+											size="sm"
+											rules={{
+												required: shouldShowReasonField
+													? "Please select a reason"
+													: false,
+											}}
+											label={
+												watchedAction === "cancel"
+													? "Cancellation Reason"
+													: "Refund Reason"
+											}
+											options={reasonOptions}
+										/>
+									)}
+								</div>
+								{watchedAction === "refund" && (
+									<div className="grid grid-cols-2 gap-4">
+										<FormSelect
+											control={form.control}
+											name="refundMethod"
+											rules={{
+												required: "Please select a method",
+											}}
+											label={"Refund Method"}
+											options={refundMethods}
+										/>
+										<FormSelect
+											control={form.control}
+											name="refundMode"
+											rules={{
+												required: "Please select a mode",
+											}}
+											label={"Refund Mode"}
+											options={REFUND_MODES}
+											onSelect={(e) => {
+												if (e === "part" && refundableAmount) {
+													form.setValue("refundAmount", refundableAmount);
+												}
+											}}
+										/>
+										<div className="col-span-2">
+											<FormInput
+												control={form.control}
+												name="refundAmount"
+												label="Refund Amount"
+												disabled={refundMode === "full"}
+												numericProps={{
+													prefix: "$",
+													type: "tel",
+													max: payment?.amount,
+													min: 0,
+													placeholder: `$0 / $${payment?.amount}`,
+													disabled: refundMode === "full",
+													suffix: ` / $${payment?.amount}`,
+													className: cn(
+														refundAmount > payment?.amount
+															? "text-red-800"
+															: "",
+													),
+												}}
+											/>
+										</div>
+									</div>
+								)}
+								<FormInput
+									control={form.control}
+									type="textarea"
+									name="note"
+									label="Additional Notes"
+									placeholder="Enter any additional notes..."
+								/>
 
-                                <DialogFooter>
-                                    <Button
-                                        disabled={resolveAction?.isPending}
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() => setOpen(false)}
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        type="submit"
-                                        disabled={
-                                            !form.formState.isValid ||
-                                            form.formState.isSubmitting ||
-                                            resolveAction?.isPending
-                                        }
-                                    >
-                                        {form.formState.isSubmitting ||
-                                        resolveAction?.isPending
-                                            ? "Applying..."
-                                            : "Apply Resolution"}
-                                    </Button>
-                                </DialogFooter>
-                            </form>
-                        </Form>
-                    </>
-                )}
-            </DialogContent>
-        </Dialog>
-    );
+								<DialogFooter>
+									<Button
+										disabled={resolveAction?.isPending}
+										type="button"
+										variant="outline"
+										onClick={() => setOpen(false)}
+									>
+										Cancel
+									</Button>
+									<Button
+										type="submit"
+										disabled={
+											!form.formState.isValid ||
+											form.formState.isSubmitting ||
+											resolveAction?.isPending
+										}
+									>
+										{form.formState.isSubmitting || resolveAction?.isPending
+											? "Applying..."
+											: "Apply Resolution"}
+									</Button>
+								</DialogFooter>
+							</form>
+						</Form>
+					</>
+				)}
+			</DialogContent>
+		</Dialog>
+	);
 }

@@ -177,6 +177,7 @@ export function NewSalesForm(props: Props) {
 	const [draftParams, setDraftParams] = useCreateFormQueryParams();
 	const [paymentReviewOpen, setPaymentReviewOpen] = useState(false);
 	const [paymentReviewSeen, setPaymentReviewSeen] = useState(false);
+	const [manualSaveLock, setManualSaveLock] = useState(false);
 	const record = useNewSalesFormStore((s) => s.record);
 	const dirty = useNewSalesFormStore((s) => s.dirty);
 	const saveStatus = useNewSalesFormStore((s) => s.saveStatus);
@@ -466,6 +467,7 @@ export function NewSalesForm(props: Props) {
 	const taskTrigger = useTaskTrigger({
 		silent: true,
 	});
+	const isSaveBusy = manualSaveLock || autosave.isSaving || finalSave.isPending;
 	const ensurePackingDispatch = useCallback(async () => {
 		if (activePackingDispatch?.id) {
 			return {
@@ -804,45 +806,26 @@ export function NewSalesForm(props: Props) {
 		return true;
 	}
 
-	async function saveDraftNow() {
-		if (!validateBeforeSave()) return;
-		markSaving();
-		const resp = await autosave.flush();
-		if (!resp) {
-			markError("Unable to save draft.");
-			return;
+	async function runWithManualSaveLock(action: () => Promise<void>) {
+		if (isSaveBusy) return;
+		setManualSaveLock(true);
+		try {
+			await action();
+		} finally {
+			setManualSaveLock(false);
 		}
-		await handlePostSaveSuccess(resp);
-		await clearSelectedCustomerQuery();
-		if (props.mode === "create") {
-			const editHref = buildEditHref(resp);
-			if (editHref) {
-				router.push(editHref);
-				return;
-			}
-		}
-		toast({
-			title: "Draft saved",
-			variant: "success",
-		});
 	}
 
-	async function saveFinal() {
-		if (!record) return;
-		if (!validateBeforeSave()) return;
-		markSaving();
-		const payload = toSaveDraftInput(record, false);
-		try {
-			const resp = await finalSave.mutateAsync({
-				...payload,
-				autosave: false,
-			});
+	async function saveDraftNow() {
+		await runWithManualSaveLock(async () => {
+			if (!validateBeforeSave()) return;
+			markSaving();
+			const resp = await autosave.flush();
+			if (!resp) {
+				markError("Unable to save draft.");
+				return;
+			}
 			await handlePostSaveSuccess(resp);
-			toast({
-				title: "Saved",
-				description: `${props.type} ${resp?.orderId} has been finalized.`,
-				variant: "success",
-			});
 			await clearSelectedCustomerQuery();
 			if (props.mode === "create") {
 				const editHref = buildEditHref(resp);
@@ -851,45 +834,82 @@ export function NewSalesForm(props: Props) {
 					return;
 				}
 			}
-		} catch (error) {
-			const message = getErrorMessage(error, "Unable to save.");
-			if (
-				String(message || "")
-					.toLowerCase()
-					.includes("out of date")
-			) {
-				markStale(message);
-			} else markError(message);
 			toast({
-				title: "Save failed",
-				description: message || "Unable to save final form.",
-				variant: "destructive",
+				title: "Draft saved",
+				variant: "success",
 			});
-		}
+		});
+	}
+
+	async function saveFinal() {
+		await runWithManualSaveLock(async () => {
+			if (!record) return;
+			if (!validateBeforeSave()) return;
+			markSaving();
+			const payload = toSaveDraftInput(record, false);
+			try {
+				const resp = await finalSave.mutateAsync({
+					...payload,
+					autosave: false,
+				});
+				await handlePostSaveSuccess(resp);
+				toast({
+					title: "Saved",
+					description: `${props.type} ${resp?.orderId} has been finalized.`,
+					variant: "success",
+				});
+				await clearSelectedCustomerQuery();
+				if (props.mode === "create") {
+					const editHref = buildEditHref(resp);
+					if (editHref) {
+						router.push(editHref);
+						return;
+					}
+				}
+			} catch (error) {
+				const message = getErrorMessage(error, "Unable to save.");
+				if (
+					String(message || "")
+						.toLowerCase()
+						.includes("out of date")
+				) {
+					markStale(message);
+				} else markError(message);
+				toast({
+					title: "Save failed",
+					description: message || "Unable to save final form.",
+					variant: "destructive",
+				});
+			}
+		});
 	}
 
 	async function saveClose() {
-		if (!validateBeforeSave()) return;
-		if (dirty) {
-			const resp = await autosave.flush("manual-flush");
-			if (!resp) return;
-			await handlePostSaveSuccess(resp);
-			await clearSelectedCustomerQuery();
-		}
-		router.push(`/sales-book/${props.type === "order" ? "orders" : "quotes"}`);
+		await runWithManualSaveLock(async () => {
+			if (!validateBeforeSave()) return;
+			if (dirty) {
+				const resp = await autosave.flush("manual-flush");
+				if (!resp) return;
+				await handlePostSaveSuccess(resp);
+				await clearSelectedCustomerQuery();
+			}
+			router.push(`/sales-book/${props.type === "order" ? "orders" : "quotes"}`);
+		});
 	}
 
 	async function saveNew() {
-		if (!validateBeforeSave()) return;
-		if (dirty) {
-			const resp = await autosave.flush("manual-flush");
-			if (!resp) return;
-			await handlePostSaveSuccess(resp);
-			await clearSelectedCustomerQuery();
-		}
-		router.push(
-			`/sales-form/${props.type === "order" ? "create-order" : "create-quote"}`,
-		);
+		await runWithManualSaveLock(async () => {
+			if (!validateBeforeSave()) return;
+			if (dirty) {
+				const resp = await autosave.flush("manual-flush");
+				if (!resp) return;
+				await handlePostSaveSuccess(resp);
+				await clearSelectedCustomerQuery();
+			}
+			router.push(
+				`/sales-form/${props.type === "order" ? "create-order" : "create-quote"}`,
+			);
+		});
 	}
 
 	async function handlePrint() {
@@ -967,7 +987,7 @@ export function NewSalesForm(props: Props) {
 						dirty={dirty}
 						lastSavedAt={lastSavedAt}
 						statusMessage={lastSaveError}
-						isSaving={autosave.isSaving || finalSave.isPending}
+						isSaving={isSaveBusy}
 						autosaveEnabled={editor.autosaveEnabled}
 						stepDisplayMode={editor.stepDisplayMode}
 						onAddItem={() => addLineItem()}
@@ -1071,7 +1091,7 @@ export function NewSalesForm(props: Props) {
 					mode={props.mode}
 					type={props.type}
 					isSaved={isSaved}
-					isSaving={autosave.isSaving || finalSave.isPending}
+					isSaving={isSaveBusy}
 					mobileOpen={editor.showMobileSummary}
 					onSave={() => void saveDraftNow()}
 					onSaveClose={() => void saveClose()}
@@ -1107,7 +1127,7 @@ export function NewSalesForm(props: Props) {
 						<Button
 							className="h-11 px-4"
 							onClick={() => void saveFinal()}
-							disabled={autosave.isSaving || finalSave.isPending}
+							disabled={isSaveBusy}
 						>
 							Finalize
 						</Button>

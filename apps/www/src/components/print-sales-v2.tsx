@@ -12,8 +12,10 @@ import { PackingSlipSignFab } from "./packing-slip-sign-fab";
 import { _trpc } from "./static-trpc";
 
 interface PrintSalesV2Props {
+	pt?: string;
 	token?: string;
 	accessToken?: string;
+	snapshotId?: string;
 	preview?: boolean;
 	templateId?: string;
 	className?: string;
@@ -44,22 +46,28 @@ async function waitForPrintableFrame(iframe: HTMLIFrameElement) {
 }
 
 export function PrintSalesV2({
+	pt,
 	token,
 	accessToken,
+	snapshotId,
 	preview,
 	templateId,
 	className,
 }: PrintSalesV2Props = {}) {
 	const { filters } = useSalesPrintFilter();
 	const baseUrl = getBaseUrl();
+	const resolvedPt = pt ?? filters.pt ?? "";
 	const resolvedToken = token ?? filters.token ?? "";
 	const resolvedAccessToken = accessToken ?? filters.accessToken ?? "";
+	const resolvedSnapshotId = snapshotId ?? filters.snapshotId ?? "";
 	const resolvedPreview = preview ?? filters.preview ?? false;
 	const resolvedTemplateId = templateId ?? filters.templateId ?? "template-2";
 	const { data } = useSuspenseQuery(
 		_trpc.print.salesV2.queryOptions({
+			pt: resolvedPt || undefined,
 			token: resolvedToken || undefined,
 			accessToken: resolvedAccessToken || undefined,
+			snapshotId: resolvedSnapshotId || undefined,
 			preview: resolvedPreview,
 			templateId: resolvedTemplateId,
 			baseUrl,
@@ -112,8 +120,10 @@ export function PrintSalesV2({
 			</PDFViewer>
 			<PackingSlipSignFab
 				page={packingSlipPage}
+				pt={resolvedPt}
 				token={resolvedToken}
 				accessToken={resolvedAccessToken}
+				snapshotId={resolvedSnapshotId}
 				preview={resolvedPreview}
 				templateId={resolvedTemplateId}
 			/>

@@ -114,8 +114,10 @@ export const printRouter = createTRPCRouter({
 	salesV2: publicProcedure
 		.input(
 			z.object({
+				pt: z.string().optional(),
 				token: z.string().optional(),
 				accessToken: z.string().optional(),
+				snapshotId: z.string().optional(),
 				preview: z.boolean().optional().default(false),
 				templateId: z.string().optional().default("template-2"),
 				baseUrl: z.string().optional(),
@@ -124,8 +126,10 @@ export const printRouter = createTRPCRouter({
 		.query(async (props) => {
 			return resolveSalesDocumentPreviewData({
 				db: props.ctx.db,
+				publicToken: props.input.pt ?? null,
 				token: props.input.token ?? null,
 				accessToken: props.input.accessToken ?? null,
+				snapshotId: props.input.snapshotId ?? null,
 				templateId: props.input.templateId,
 				baseUrl: props.input.baseUrl ?? process.env.NEXT_PUBLIC_APP_URL ?? null,
 			});

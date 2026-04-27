@@ -1,4 +1,3 @@
-import { useRouter, useSearchParams } from "next/navigation";
 import { triggerEvent } from "@/actions/events";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { updateSalesExtraCosts } from "@/actions/update-sales-extra-costs";
@@ -12,18 +11,20 @@ import { Icons } from "@gnd/ui/icons";
 import { Menu } from "@gnd/ui/custom/menu";
 import Button from "@/components/common/button";
 
+import type { CreateSalesHistorySchemaTask } from "@jobs/schema";
+import { toast } from "@gnd/ui/use-toast";
 import { parseAsBoolean, useQueryStates } from "nuqs";
+import { useRouter } from "next/navigation";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
-import { CreateSalesHistorySchemaTask } from "@jobs/schema";
-import { toast } from "@gnd/ui/use-toast";
+import { useState } from "react";
 
 interface Props {
     type?: "button" | "menu";
     and?: "default" | "close" | "new";
 }
 export function SalesFormSave({ type = "button", and }: Props) {
-    const [params, setParams] = useQueryStates({
+    const [params] = useQueryStates({
         restoreMode: parseAsBoolean,
     });
     const zus = useFormDataStore();
@@ -32,72 +33,77 @@ export function SalesFormSave({ type = "button", and }: Props) {
     const tsk = useTaskTrigger({
         silent: true,
     });
+    const [isSaving, setIsSaving] = useState(false);
     async function save(action: "new" | "close" | "default" = "default") {
+        if (isSaving) return;
+        setIsSaving(true);
         const { kvFormItem, kvStepForm, metaData, sequence } = zus;
         const restoreMode = params.restoreMode;
-        if (!metaData?.customer?.id) {
-            toast({
-                title: "Customer required.",
-                variant: "destructive",
-            });
-            return;
-        }
-        const resp = await saveFormUseCase(
-            {
-                kvFormItem,
-                kvStepForm,
-                metaData,
-                sequence,
-                saveAction: action,
-                newFeature: true,
-            },
-            zus.oldFormState,
-            {
-                restoreMode,
-                allowRedirect: true,
-            },
-        );
-
-        const s = resp?.data?.sales;
-        tsk.triggerWithAuth("create-sales-history", {
-            salesNo: resp.salesNo,
-            salesType: resp.salesType,
-        } as CreateSalesHistorySchemaTask);
-        if (resp?.salesType == "order")
-            await resetSalesStatAction(resp.salesId, resp?.salesNo);
-        if (s?.updateId) triggerEvent("salesUpdated", s?.id);
-        else triggerEvent("salesCreated", s?.id);
-        await updateSalesExtraCosts(resp.salesId, zus.metaData?.extraCosts);
-        metaData?.type == "order"
-            ? sq?.invalidate.salesList()
-            : sq?.invalidate?.quoteList();
-        switch (action) {
-            case "close":
-                router.push(`/sales-book/${metaData.type}s`);
-                break;
-            case "default":
-                if (resp.redirectTo) {
-                    router.push(resp.redirectTo);
-                } else router.refresh();
-                break;
-            case "new":
-                router.push(`/sales-book/create-${metaData.type}`);
-        }
-        if (!metaData.debugMode) {
-            await refetchData();
-            if (resp.data?.error)
+        try {
+            if (!metaData?.customer?.id) {
                 toast({
+                    title: "Customer required.",
                     variant: "destructive",
-                    title: resp?.data?.error,
                 });
-            // toast.error(resp.data?.error);
-            else {
-                toast({
-                    variant: "success",
-                    title: "Saved",
-                });
+                return;
             }
-        } else {
+            const resp = await saveFormUseCase(
+                {
+                    kvFormItem,
+                    kvStepForm,
+                    metaData,
+                    sequence,
+                    saveAction: action,
+                    newFeature: true,
+                },
+                zus.oldFormState,
+                {
+                    restoreMode,
+                    allowRedirect: true,
+                },
+            );
+
+            const s = resp?.data?.sales;
+            tsk.triggerWithAuth("create-sales-history", {
+                salesNo: resp.salesNo,
+                salesType: resp.salesType,
+            } as CreateSalesHistorySchemaTask);
+            if (resp?.salesType === "order")
+                await resetSalesStatAction(resp.salesId, resp?.salesNo);
+            if (s?.updateId) triggerEvent("salesUpdated", s?.id);
+            else triggerEvent("salesCreated", s?.id);
+            await updateSalesExtraCosts(resp.salesId, zus.metaData?.extraCosts);
+            metaData?.type === "order"
+                ? sq?.invalidate.salesList()
+                : sq?.invalidate?.quoteList();
+            switch (action) {
+                case "close":
+                    router.push(`/sales-book/${metaData.type}s`);
+                    break;
+                case "default":
+                    if (resp.redirectTo) {
+                        router.push(resp.redirectTo);
+                    } else router.refresh();
+                    break;
+                case "new":
+                    router.push(`/sales-book/create-${metaData.type}`);
+            }
+            if (!metaData.debugMode) {
+                await refetchData();
+                if (resp.data?.error)
+                    toast({
+                        variant: "destructive",
+                        title: resp?.data?.error,
+                    });
+                else {
+                    toast({
+                        variant: "success",
+                        title: "Saved",
+                    });
+                }
+            }
+        } finally {
+            setIsSaving(false);
         }
     }
     async function refetchData() {
@@ -108,30 +114,42 @@ export function SalesFormSave({ type = "button", and }: Props) {
         });
         zus.init(zhInitializeState(data));
     }
-    return type == "button" ? (
-        <Button icon="save" size="sm" action={save} variant="default">
+    return type === "button" ? (
+        <Button
+            icon="save"
+            size="sm"
+            action={save}
+            variant="default"
+            disabled={isSaving}
+        >
             <span className="">Save</span>
         </Button>
     ) : and ? (
-        <Menu.Item Icon={Icons.save} onClick={(e) => save(and)}>
+        <Menu.Item Icon={Icons.save} onClick={(e) => save(and)} disabled={isSaving}>
             Save & {and}
         </Menu.Item>
     ) : (
         <>
-            <Menu.Item Icon={Icons.save} onClick={(e) => save()}>
+            <Menu.Item Icon={Icons.save} onClick={(e) => save()} disabled={isSaving}>
                 Save
             </Menu.Item>
             <Menu.Item
                 Icon={Icons.save}
+                disabled={isSaving}
                 SubMenu={
                     <>
                         <Menu.Item
                             Icon={Icons.close}
+                            disabled={isSaving}
                             onClick={() => save("close")}
                         >
                             Close
                         </Menu.Item>
-                        <Menu.Item Icon={Icons.add} onClick={() => save("new")}>
+                        <Menu.Item
+                            Icon={Icons.add}
+                            disabled={isSaving}
+                            onClick={() => save("new")}
+                        >
                             New
                         </Menu.Item>
                     </>

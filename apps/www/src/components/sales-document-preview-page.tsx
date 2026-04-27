@@ -12,13 +12,17 @@ import { useMemo } from "react";
 import { PackingSlipSignFab } from "./packing-slip-sign-fab";
 
 export function SalesDocumentPreviewPage({
+	pt,
 	token,
 	accessToken,
+	snapshotId,
 	templateId = "template-2",
 	embedded = false,
 }: {
+	pt?: string;
 	token?: string;
 	accessToken?: string;
+	snapshotId?: string;
 	templateId?: string;
 	embedded?: boolean;
 }) {
@@ -28,14 +32,16 @@ export function SalesDocumentPreviewPage({
 	const { data, isPending } = useQuery(
 		trpc.print.salesV2.queryOptions(
 			{
+				pt,
 				token,
 				accessToken,
+				snapshotId,
 				preview: true,
 				templateId,
 				baseUrl,
 			},
 			{
-				enabled: Boolean(token || accessToken),
+				enabled: Boolean(pt || token || accessToken || snapshotId),
 			},
 		),
 	);
@@ -47,19 +53,23 @@ export function SalesDocumentPreviewPage({
 			preview: "true",
 			templateId,
 		});
+		if (pt) query.set("pt", pt);
 		if (token) query.set("token", token);
 		if (accessToken) query.set("accessToken", accessToken);
+		if (snapshotId) query.set("snapshotId", snapshotId);
 		return `/p/sales-invoice-v2?${query.toString()}`;
-	}, [accessToken, templateId, token]);
+	}, [accessToken, pt, snapshotId, templateId, token]);
 	const pdfPrintPageQuery = useMemo(() => {
 		const query = new URLSearchParams({
 			preview: "false",
 			templateId,
 		});
+		if (pt) query.set("pt", pt);
 		if (token) query.set("token", token);
 		if (accessToken) query.set("accessToken", accessToken);
+		if (snapshotId) query.set("snapshotId", snapshotId);
 		return `/p/sales-invoice-v2?${query.toString()}`;
-	}, [accessToken, templateId, token]);
+	}, [accessToken, pt, snapshotId, templateId, token]);
 	const overviewUrl = useMemo(() => {
 		if (!data?.orderNo) return null;
 		const query = new URLSearchParams({
@@ -179,8 +189,10 @@ export function SalesDocumentPreviewPage({
 
 			<PackingSlipSignFab
 				page={packingSlipPage}
+				pt={pt}
 				token={token}
 				accessToken={accessToken}
+				snapshotId={snapshotId}
 				preview
 				templateId={templateId}
 			/>
