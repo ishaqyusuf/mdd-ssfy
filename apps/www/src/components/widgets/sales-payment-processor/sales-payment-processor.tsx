@@ -206,7 +206,7 @@ function Content(props: Props & { setOpened }) {
 						variant: "spinner",
 					});
 				break;
-			case "completed":
+			case "completed": {
 				toast({
 					title: "Payment Successful",
 					description: "The payment has been completed successfully.",
@@ -220,6 +220,7 @@ function Content(props: Props & { setOpened }) {
 				if (sendEmail) {
 					// await sendSalesEmail();
 				}
+				props.setOpened(false);
 				if (print) {
 					void quickPrint({
 						salesIds: form
@@ -228,12 +229,11 @@ function Content(props: Props & { setOpened }) {
 							.map((s) => s.id),
 						mode: "order-packing",
 						v2: true,
-					}).then(() => {
-						props.setOpened(false);
 					});
-				} else props.setOpened(false);
+				}
 
 				break;
+			}
 			case "failed":
 				toast({
 					title: "Payment Failed",

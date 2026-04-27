@@ -84,10 +84,10 @@ export function Footer({}) {
                             onClick={async () => {
                                 if (!previewId) return;
                                 if (isOrder) {
-                                    await printOrder({ salesIds: [previewId] });
+                                    void printOrder({ salesIds: [previewId] });
                                     return;
                                 }
-                                await printQuote({ salesIds: [previewId] });
+                                void printQuote({ salesIds: [previewId] });
                             }}
                         >
                             <Icons.Printer className="mr-1 h-4 w-4" />

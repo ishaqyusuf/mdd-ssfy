@@ -895,10 +895,10 @@ export function NewSalesForm(props: Props) {
 	async function handlePrint() {
 		if (!record?.salesId) return;
 		if (props.type === "order") {
-			await printOrder({ salesIds: [record.salesId] });
+			void printOrder({ salesIds: [record.salesId] });
 			return;
 		}
-		await printQuote({ salesIds: [record.salesId] });
+		void printQuote({ salesIds: [record.salesId] });
 	}
 
 	function handleOpenOverview() {

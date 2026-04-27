@@ -381,11 +381,13 @@ function useSalesPrintAction() {
 				dispatchId,
 			});
 		} else {
+			actions.closeMenu();
 			await quickPrint({
 				salesIds: state.salesIds,
 				mode,
 				dispatchId,
 			});
+			return;
 		}
 		actions.closeMenu();
 	};
@@ -709,9 +711,8 @@ function SalesMenuPrintModes({ disabled }: ActionProps) {
 				disabled={isDisabled}
 				onSelect={(e) => {
 					e.preventDefault();
-					void quickPrint({ salesIds: state.salesIds, mode: "quote" }).then(
-						() => actions.closeMenu(),
-					);
+					actions.closeMenu();
+					void quickPrint({ salesIds: state.salesIds, mode: "quote" });
 				}}
 			>
 				<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
@@ -735,9 +736,8 @@ function SalesMenuPrintModes({ disabled }: ActionProps) {
 						key={mode}
 						onSelect={(e) => {
 							e.preventDefault();
-							void quickPrint({ salesIds: state.salesIds, mode }).then(() =>
-								actions.closeMenu(),
-							);
+							actions.closeMenu();
+							void quickPrint({ salesIds: state.salesIds, mode });
 						}}
 					>
 						<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
