@@ -37,6 +37,8 @@ import {
   withSalesControl,
   withSalesListControl,
 } from "@gnd/sales";
+import { channelNames } from "@notifications/channels";
+import { serializeTagValue } from "@notifications/tag-values";
 import z from "zod";
 import type { SalesPaymentStatus } from "@sales/constants";
 
@@ -73,7 +75,10 @@ export async function getSales(
     include: SalesListInclude,
   });
   const notCounts = await salesNotesCount(
-    data?.map((a) => a.id),
+    data.map((sale) => ({
+      id: sale.id,
+      orderId: sale.orderId,
+    })),
     ctx.db,
   );
 
@@ -178,7 +183,10 @@ export async function getOrders(
     include: SalesListInclude,
   });
   const notCounts = await salesNotesCount(
-    data?.map((a) => a.id),
+    data.map((sale) => ({
+      id: sale.id,
+      orderId: sale.orderId,
+    })),
     ctx.db,
   );
 
@@ -253,53 +261,110 @@ export async function getSaleOverview(
   return saleWithControl ?? overview;
 }
 
-export async function salesNotesCount(salesIds: number[], prisma) {
-  if (!salesIds || salesIds.length === 0) return {};
+type SalesNoteCountReference = {
+  id: number;
+  orderId?: string | number | null;
+};
+
+export async function salesNotesCount(
+  salesReferences: SalesNoteCountReference[],
+  prisma,
+) {
+  if (!salesReferences?.length) return {};
+
+  const salesIds = Array.from(
+    new Set(
+      salesReferences
+        .map((reference) => serializeTagValue(reference.id))
+        .filter((value) => value.length > 0),
+    ),
+  );
+  const salesNos = Array.from(
+    new Set(
+      salesReferences
+        .map((reference) => reference.orderId)
+        .filter(
+          (value): value is string | number =>
+            value !== null && value !== undefined && String(value).trim().length > 0,
+        )
+        .map((value) => serializeTagValue(String(value))),
+    ),
+  );
   const notes = await prisma.notePad.findMany({
     where: {
       deletedAt: null,
-      OR: salesIds?.map((v) => ({
-        AND: [
-          {
-            tags: {
-              some: {
-                tagName: "salesId",
-                deletedAt: null,
-                tagValue: v?.toString(),
-              },
-            },
+      tags: {
+        some: {
+          tagName: "channel",
+          deletedAt: null,
+          tagValue: {
+            in: channelNames.map((channel) => serializeTagValue(channel)),
           },
-          {
-            tags: {
-              some: {
-                OR: [
-                  {
-                    tagName: "type",
+        },
+      },
+      OR: [
+        ...(salesIds.length
+          ? [
+              {
+                tags: {
+                  some: {
+                    tagName: "salesId",
                     deletedAt: null,
-                    tagValue: "production",
+                    tagValue: {
+                      in: salesIds,
+                    },
                   },
-                  {
-                    tagName: "type",
-                    deletedAt: null,
-                    tagValue: "general",
-                  },
-                ],
+                },
               },
-            },
-          },
-        ],
-      })),
+            ]
+          : []),
+        ...(salesNos.length
+          ? [
+              {
+                tags: {
+                  some: {
+                    tagName: "salesNo",
+                    deletedAt: null,
+                    tagValue: {
+                      in: salesNos,
+                    },
+                  },
+                },
+              },
+            ]
+          : []),
+      ],
     },
     select: {
       id: true,
       tags: {
         where: {
-          tagName: "salesId",
-          tagValue: {
-            in: salesIds.map((a) => String(a)),
-          },
+          deletedAt: null,
+          OR: [
+            ...(salesIds.length
+              ? [
+                  {
+                    tagName: "salesId",
+                    tagValue: {
+                      in: salesIds,
+                    },
+                  },
+                ]
+              : []),
+            ...(salesNos.length
+              ? [
+                  {
+                    tagName: "salesNo",
+                    tagValue: {
+                      in: salesNos,
+                    },
+                  },
+                ]
+              : []),
+          ],
         },
         select: {
+          tagName: true,
           tagValue: true,
         },
       },
@@ -312,26 +377,43 @@ export async function salesNotesCount(salesIds: number[], prisma) {
     };
   } = {};
 
-  // salesIds.forEach((s) => {
-  //   const noteCount = notes?.filter((a) =>
-  //     a.tags?.some((t) => t.tagValue === String(s))
-  //   )?.length;
-  //   if (noteCount)
-  //     resp[String(s)] = {
-  //       noteCount,
-  //     };
-  // });
-  const countMap = new Map<string, number>();
-  notes.forEach((a) => {
-    a.tags.forEach((t) => {
-      countMap.set(t.tagValue, (countMap.get(t.tagValue) || 0) + 1);
-    });
-  });
+  const saleKeyBySalesId = new Map<string, string>();
+  const saleKeyBySalesNo = new Map<string, string>();
+  for (const reference of salesReferences) {
+    const saleKey = String(reference.id);
+    saleKeyBySalesId.set(serializeTagValue(reference.id), saleKey);
+    if (reference.orderId !== null && reference.orderId !== undefined) {
+      const orderId = String(reference.orderId).trim();
+      if (orderId) saleKeyBySalesNo.set(serializeTagValue(orderId), saleKey);
+    }
+  }
 
-  salesIds.forEach((s) => {
-    const noteCount = countMap.get(String(s));
-    if (noteCount) resp[String(s)] = { noteCount };
-  });
+  const countMap = new Map<string, number>();
+  for (const note of notes) {
+    const matchedSaleKeys = new Set<string>();
+
+    for (const tag of note.tags) {
+      if (tag.tagName === "salesId") {
+        const saleKey = saleKeyBySalesId.get(tag.tagValue);
+        if (saleKey) matchedSaleKeys.add(saleKey);
+      }
+
+      if (tag.tagName === "salesNo") {
+        const saleKey = saleKeyBySalesNo.get(tag.tagValue);
+        if (saleKey) matchedSaleKeys.add(saleKey);
+      }
+    }
+
+    for (const saleKey of matchedSaleKeys) {
+      countMap.set(saleKey, (countMap.get(saleKey) || 0) + 1);
+    }
+  }
+
+  for (const reference of salesReferences) {
+    const saleKey = String(reference.id);
+    const noteCount = countMap.get(saleKey);
+    if (noteCount) resp[saleKey] = { noteCount };
+  }
   return resp;
 }
 
