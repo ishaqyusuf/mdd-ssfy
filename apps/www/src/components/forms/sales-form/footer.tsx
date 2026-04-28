@@ -14,7 +14,7 @@ import { SalesMenu } from "@/components/sales-menu";
 
 export function Footer({}) {
     const zus = useFormDataStore();
-    const previewId = zus?.metaData?.id || zus?.metaData?.salesId;
+    const previewId = zus?.metaData?.id ?? null;
     const isSaved = !!previewId;
     const isOrder = zus?.metaData?.type == "order";
     const amount = sum([

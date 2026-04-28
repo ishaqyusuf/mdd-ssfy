@@ -75,23 +75,14 @@ export function SalesFormSave({ type = "button", and }: Props) {
             if (s?.updateId) triggerEvent("salesUpdated", s?.id);
             else triggerEvent("salesCreated", s?.id);
             await updateSalesExtraCosts(resp.salesId, zus.metaData?.extraCosts);
-            metaData?.type === "order"
-                ? sq?.invalidate.salesList()
-                : sq?.invalidate?.quoteList();
-            switch (action) {
-                case "close":
-                    router.push(`/sales-book/${metaData.type}s`);
-                    break;
-                case "default":
-                    if (resp.redirectTo) {
-                        router.push(resp.redirectTo);
-                    } else router.refresh();
-                    break;
-                case "new":
-                    router.push(`/sales-book/create-${metaData.type}`);
-            }
+            sq?.invalidate.salesList();
+            sq?.invalidate.quoteList();
             if (!metaData.debugMode) {
-                await refetchData();
+                await refetchData({
+                    salesNo: resp.salesNo,
+                    salesId: resp.salesId,
+                    type: resp.salesType || metaData.type,
+                });
                 if (resp.data?.error)
                     toast({
                         variant: "destructive",
@@ -104,16 +95,37 @@ export function SalesFormSave({ type = "button", and }: Props) {
                     });
                 }
             }
+            switch (action) {
+                case "close":
+                    router.push(`/sales-book/${metaData.type}s`);
+                    break;
+                case "default":
+                    if (resp.redirectTo) {
+                        router.push(resp.redirectTo);
+                    } else router.refresh();
+                    break;
+                case "new":
+                    router.push(`/sales-book/create-${metaData.type}`);
+            }
         } finally {
             saveLockRef.current = false;
             setIsSaving(false);
         }
     }
-    async function refetchData() {
-        if (!zus.metaData.salesId) return;
+    async function refetchData({
+        salesNo,
+        salesId,
+        type,
+    }: {
+        salesNo?: string | number | null;
+        salesId?: string | number | null;
+        type?: string | null;
+    }) {
+        const slug = salesNo ?? zus.metaData.salesId ?? salesId;
+        if (!slug) return;
         const data = await getSalesBookFormUseCase({
-            type: zus.metaData.type,
-            slug: zus.metaData.salesId,
+            type: (type ?? zus.metaData.type) as "order" | "quote",
+            slug,
         });
         zus.init(zhInitializeState(data));
     }

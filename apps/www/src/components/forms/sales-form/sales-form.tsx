@@ -36,12 +36,11 @@ function Content({ data }) {
 	const isMobilePanel = useMediaQuery("(max-width: 1279px)");
 	const [takeOff, takeOffChanged] = useLocalStorage("take-off", false);
 	const itemCount = zus.sequence?.formItem?.length || 0;
+	const previewId = zus.metaData?.id ?? null;
 
 	function preview() {
-		void sPreview.preview(
-			zus.metaData?.id || zus.metaData?.salesId,
-			zus?.metaData?.type,
-		);
+		if (!previewId) return;
+		void sPreview.preview(previewId, zus?.metaData?.type);
 	}
 
 	useEffect(() => {
@@ -73,6 +72,7 @@ function Content({ data }) {
 							<Button
 								size="sm"
 								onClick={() => preview()}
+								disabled={!previewId}
 								className="hidden items-center gap-2 sm:flex"
 							>
 								<Icons.Menu className="mr-1 h-4 w-4" />
