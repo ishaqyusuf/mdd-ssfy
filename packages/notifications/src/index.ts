@@ -38,6 +38,8 @@ import { payoutIssues } from "./types/payout-issues";
 import { payoutReversed } from "./types/payout-reversed";
 import { quoteAccepted } from "./types/quote-accepted";
 import { salesCheckoutSuccess } from "./types/sales-checkout-success";
+import { salesCustomerPaymentFailed } from "./types/sales-customer-payment-failed";
+import { salesCustomerPaymentReceived } from "./types/sales-customer-payment-received";
 import { salesDispatchAssigned } from "./types/sales-dispatch-assigned";
 import { salesDispatchCancelled } from "./types/sales-dispatch-cancelled";
 import { salesDispatchCompleted } from "./types/sales-dispatch-completed";
@@ -82,6 +84,8 @@ export {
 } from "./activity-tree";
 const handlers = {
 	sales_checkout_success: salesCheckoutSuccess,
+	sales_customer_payment_received: salesCustomerPaymentReceived,
+	sales_customer_payment_failed: salesCustomerPaymentFailed,
 	quote_accepted: quoteAccepted,
 	job_assigned: jobAssigned,
 	job_submitted: jobSubmitted,

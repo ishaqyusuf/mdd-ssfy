@@ -95,7 +95,6 @@ export function SalesPaymentProcessor(props: Props) {
 const formSchema = createPaymentSchema
 	.merge(
 		z.object({
-			sendEmail: z.boolean().optional().nullable(),
 			linkProcessed: z.boolean().optional().nullable(),
 			print: z.boolean().optional().nullable(),
 			paymentStatus: z
@@ -155,6 +154,8 @@ function Content(props: Props & { setOpened }) {
 		form.reset({
 			deviceId: data?.lastTerminalId,
 			terminalPaymentSession: null,
+			notifyCustomer: true,
+			print: true,
 			sales: data.pendingSales.map((s) => ({
 				id: s.id,
 				selected: props.selectedIds.includes(s.id),
@@ -216,10 +217,7 @@ function Content(props: Props & { setOpened }) {
 				_qc.invalidateQueries({
 					queryKey: _trpc.sales.getOrders.infiniteQueryKey({}),
 				});
-				const { print, sendEmail } = form.getValues();
-				if (sendEmail) {
-					// await sendSalesEmail();
-				}
+				const { print } = form.getValues();
 				props.setOpened(false);
 				if (print) {
 					void openSalesPrintDocument({
@@ -227,7 +225,7 @@ function Content(props: Props & { setOpened }) {
 							.getValues("sales")
 							?.filter((a) => a.selected)
 							.map((s) => s.id),
-						mode: "order-packing",
+						mode: "invoice",
 					});
 				}
 
@@ -314,14 +312,23 @@ function Content(props: Props & { setOpened }) {
 		},
 	});
 	const getAmount = (formData: z.infer<typeof formSchema>) => {
-		if (formData?.editPrice && isNaN(+formData._amount)) {
+		const customAmount = Number(formData?._amount);
+		if (formData?.editPrice && (Number.isNaN(customAmount) || customAmount <= 0)) {
 			toast({
 				title: "Invalid amount",
 				variant: "destructive",
 			});
 			return;
 		}
-		return formData?.editPrice ? +formData?._amount : formData?.amount;
+		if (formData?.editPrice && customAmount > Number(formData.amount || 0)) {
+			toast({
+				title: "Amount too high",
+				description: "Custom amount cannot exceed the selected balance.",
+				variant: "destructive",
+			});
+			return;
+		}
+		return formData?.editPrice ? customAmount : formData?.amount;
 	};
 	const initPayment = async (formData: z.infer<typeof formSchema>) => {
 		form.setValue("paymentStatus", "processing");
@@ -433,6 +440,15 @@ function Content(props: Props & { setOpened }) {
 		}, 100);
 	}
 	const percentageList = [25, 50, 75, 100];
+	const setPercentageAmount = (percentage: number) => {
+		const totalAmount = Number(form.getValues("amount") || 0);
+		const nextAmount = Math.round(totalAmount * (percentage / 100) * 100) / 100;
+		form.setValue("editPrice", true);
+		form.setValue("_amount", String(nextAmount), {
+			shouldDirty: true,
+			shouldValidate: true,
+		});
+	};
 
 	const [sendingLink, startTransition] = useTransition();
 
@@ -512,7 +528,7 @@ function Content(props: Props & { setOpened }) {
 							<>
 								<Menu Icon={Icons.Calculator}>
 									{percentageList.map((p) => (
-										<Menu.Item onClick={(e) => {}} key={p}>
+										<Menu.Item onClick={() => setPercentageAmount(p)} key={p}>
 											{p} %
 										</Menu.Item>
 									))}
@@ -558,17 +574,22 @@ function Content(props: Props & { setOpened }) {
 						<div className="flex gap-2">
 							<Field orientation="horizontal">
 								<Checkbox
-									disabled
-									checked={form.getValues("sendEmail") ?? false}
+									checked={form.getValues("notifyCustomer") ?? true}
 									onCheckedChange={(checked) =>
-										form.setValue("sendEmail", !!checked)
+										form.setValue("notifyCustomer", !!checked)
 									}
-									id="send-email"
+									id="notify-customer"
 								/>
 								<Field.Content>
-									<Field.Label htmlFor="send-email" className="font-normal">
+									<Field.Label
+										htmlFor="notify-customer"
+										className="font-normal"
+									>
 										Notify Customer
 									</Field.Label>
+									<Field.Description className="font-normal">
+										Send a payment receipt email with invoice download.
+									</Field.Description>
 								</Field.Content>
 							</Field>
 
@@ -579,7 +600,6 @@ function Content(props: Props & { setOpened }) {
 										form.setValue("print", !!checked)
 									}
 									id="print-copy"
-									defaultChecked
 								/>
 								<Field.Content>
 									<Field.Label htmlFor="print-copy" className="font-normal">

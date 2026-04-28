@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { useTRPC } from "@/trpc/client";
@@ -77,6 +77,13 @@ export function SalesDocumentEmailDialog({
 		}
 		return "Enter the customer email address for this document.";
 	}, [customerName]);
+
+	useEffect(() => {
+		if (!open) return;
+		if (!customerEmail?.trim()) return;
+		if (email.trim()) return;
+		setEmail(customerEmail);
+	}, [customerEmail, email, open]);
 
 	return (
 		<>

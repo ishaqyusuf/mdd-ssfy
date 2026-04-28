@@ -3,6 +3,10 @@ import { Prisma, type TransactionClient } from "@gnd/db";
 import { sendPaymentSystemNotifications } from "@gnd/notifications/payment-system";
 import { NotificationService } from "@gnd/notifications/services/triggers";
 import {
+	buildSalesCustomerPaymentFailedPayload,
+	buildSalesCustomerPaymentReceivedPayload,
+} from "@gnd/notifications/types/sales-customer-payment-utils";
+import {
 	type PaymentSystemNotificationEvent,
 	type SalesCheckoutSuccessNotificationPayload,
 	applyLegacySalesCheckoutSettlement,
@@ -12,7 +16,7 @@ import {
 } from "@gnd/sales/payment-system";
 import { getCustomerWallet } from "@gnd/sales/wallet";
 import { SQUARE_LOCATION_ID, squareClient } from "@gnd/square";
-import { timeout } from "@gnd/utils";
+import { generateRandomString, timeout } from "@gnd/utils";
 import { getAppUrl } from "@gnd/utils/envs";
 import {
 	type SalesPaymentTokenSchema,
@@ -709,6 +713,7 @@ export async function verifyPayment(
 	tip?: number | null;
 	status?: SquarePaymentStatus | "error";
 	notifications?: PaymentSystemNotificationEvent<SalesCheckoutSuccessNotificationPayload>[];
+	invoiceDownloadUrl?: string | null;
 }> {
 	salesRepsNotifications = {};
 	const attempts = query.attempts || 1;
@@ -725,6 +730,11 @@ export async function verifyPayment(
 						id: query.paymentId,
 					},
 					include: {
+						createdBy: {
+							select: {
+								id: true,
+							},
+						},
 						customerTxs: {},
 						orders: {
 							select: {
@@ -746,9 +756,24 @@ export async function verifyPayment(
 						},
 					},
 				});
+				const settledOrders = squarePayment.orders
+					.map((entry) => entry.order)
+					.filter(
+						(order): order is NonNullable<(typeof squarePayment.orders)[number]["order"]> =>
+							Boolean(order),
+					);
 				if (squarePayment?.customerTxs?.length)
 					return {
-						status: "COMPLETED",
+						status: "COMPLETED" as const,
+						amount: Number(squarePayment.amount || 0),
+						customerReceiptSales: settledOrders.map((order) => ({
+								salesId: order.id,
+								remainingDue: Number(order.amountDue || 0),
+							})),
+						customerAuthorId:
+							squarePayment.createdBy?.id ||
+							settledOrders[0]?.salesRepId ||
+							1,
 					};
 				const checkout = squarePayment.checkout;
 				if (!squarePayment.squareOrderId || !checkout?.id) {
@@ -801,27 +826,39 @@ export async function verifyPayment(
 				);
 
 				if (resp.amount > 0)
-					await paymentSuccess(
+					return paymentSuccess(
 						{
-							// ...checkout,
 							walletId: query.walletId,
 							checkoutId: checkout.id,
 							squarePaymentId: squarePayment.id,
-							orders: squarePayment?.orders
-								?.map((a) => a.order)
-								.filter(Boolean)
-								.map((a) => ({
-									...a,
-								})), //.[0]?.order,
+							orders: settledOrders.map((order) => ({
+								...order,
+							})),
 							tip: resp.tip,
-							// amount: checkout?.amount || squarePayment.amount,
 							amount: resp.amount,
+							authorId:
+								squarePayment.createdBy?.id ||
+								settledOrders[0]?.salesRepId ||
+								1,
 						},
 						tx,
 					);
 				return {
 					...resp,
 					notifications: Object.values(salesRepsNotifications || {}),
+					customerFailureSales: settledOrders.map((order) => ({
+							salesId: order.id,
+							remainingDue: Number(order.amountDue || 0),
+						})),
+					customerFailureNotifiedAt:
+						(squarePayment.meta as Record<string, unknown> | null)
+							?.customerFailureNotifiedAt || null,
+					customerFailureMeta:
+						(squarePayment.meta as Record<string, unknown> | null) || {},
+					customerAuthorId:
+						squarePayment.createdBy?.id ||
+						settledOrders[0]?.salesRepId ||
+						1,
 				};
 			},
 			{ isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
@@ -834,10 +871,74 @@ export async function verifyPayment(
 		});
 	const notifications =
 		"notifications" in result ? result.notifications || [] : [];
+	let invoiceDownloadUrl: string | null = null;
 	if (result.status === "COMPLETED") {
-		await sendPaymentSystemNotifications(tasks, ctx, notifications);
+		await sendPaymentSystemNotifications(
+			tasks,
+			ctx,
+			notifications as PaymentSystemNotificationEvent[],
+		);
+		if ("customerReceiptSales" in result && result.customerReceiptSales?.length) {
+			const payload = await buildSalesCustomerPaymentReceivedPayload(ctx.db, {
+				sales: result.customerReceiptSales,
+				paymentMethod: "online",
+				totalAmount: Number(result.amount || 0),
+			});
+			await new NotificationService(tasks, ctx).send(
+				"sales_customer_payment_received",
+				{
+					author: {
+						id: result.customerAuthorId || 1,
+						role: "employee",
+					},
+					payload,
+				},
+			);
+			invoiceDownloadUrl = payload.invoiceDownloadUrl || null;
+		}
 	}
-	return result;
+	if (
+		(result.status === "FAILED" || result.status === "CANCELED") &&
+		"customerFailureSales" in result &&
+		result.customerFailureSales?.length &&
+		!result.customerFailureNotifiedAt
+	) {
+		await new NotificationService(tasks, ctx).send(
+			"sales_customer_payment_failed",
+			{
+				author: {
+					id: result.customerAuthorId || 1,
+					role: "employee",
+				},
+				payload: await buildSalesCustomerPaymentFailedPayload(ctx.db, {
+					sales: result.customerFailureSales,
+					paymentMethod: "online",
+					totalAmount: Number(result.amount || 0),
+					reason:
+						result.status === "CANCELED"
+							? "The payment was canceled before completion."
+							: "The payment processor could not complete this payment.",
+				}),
+			},
+		);
+		await ctx.db.squarePayments.update({
+			where: {
+				id: query.paymentId,
+			},
+			data: {
+				meta: {
+					...("customerFailureMeta" in result
+						? result.customerFailureMeta || {}
+						: {}),
+					customerFailureNotifiedAt: new Date().toISOString(),
+				},
+			},
+		});
+	}
+	return {
+		...result,
+		invoiceDownloadUrl,
+	};
 }
 export async function paymentSuccess(
 	p: {
@@ -846,6 +947,7 @@ export async function paymentSuccess(
 		amount;
 		tip;
 		orders: { id; customerId; amountDue; salesRepId }[];
+		authorId?;
 		checkoutId;
 	},
 	tx: TransactionClient,
@@ -883,6 +985,28 @@ export async function paymentSuccess(
 			event.recipientEmail || `${event.recipientEmployeeId}`
 		] = event;
 	}
+	let balance = Number(p.amount || 0);
+	return {
+		amount: Number(p.amount || 0),
+		tip: p.tip,
+		status: "COMPLETED" as const,
+		notifications: Object.values(salesRepsNotifications || {}),
+		customerReceiptSales: p.orders
+			.map((order) => {
+				const amountApplied =
+					balance > Number(order.amountDue || 0)
+						? Number(order.amountDue || 0)
+						: balance;
+				balance -= amountApplied;
+				return {
+					salesId: order.id,
+					amountApplied,
+					remainingDue: Math.max(Number(order.amountDue || 0) - amountApplied, 0),
+				};
+			})
+			.filter((sale) => sale.amountApplied > 0),
+		customerAuthorId: p.authorId || p.orders[0]?.salesRepId || 1,
+	};
 }
 
 /*

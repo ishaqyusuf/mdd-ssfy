@@ -15,6 +15,7 @@ import { useQuery } from "@gnd/ui/tanstack";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import { PackingSlipSignFab } from "./packing-slip-sign-fab";
+import { SalesDocumentEmailDialog } from "./sales-document-email-dialog";
 
 export function SalesDocumentPreviewPage({
 	pt,
@@ -23,6 +24,9 @@ export function SalesDocumentPreviewPage({
 	snapshotId,
 	templateId = "template-2",
 	embedded = false,
+	customerEmail,
+	customerName,
+	salesOrderId,
 }: {
 	pt?: string;
 	token?: string;
@@ -30,6 +34,9 @@ export function SalesDocumentPreviewPage({
 	snapshotId?: string;
 	templateId?: string;
 	embedded?: boolean;
+	customerEmail?: string;
+	customerName?: string;
+	salesOrderId?: number | null;
 }) {
 	const trpc = useTRPC();
 	const auth = useAuth();
@@ -195,6 +202,15 @@ export function SalesDocumentPreviewPage({
 					</div>
 
 					<div className="flex flex-wrap items-center gap-2">
+						{salesOrderId ? (
+							<SalesDocumentEmailDialog
+								salesOrderId={salesOrderId}
+								mode={data.mode === "quote" ? "quote" : "invoice"}
+								documentTitle={data.title}
+								customerEmail={customerEmail}
+								customerName={customerName}
+							/>
+						) : null}
 						<Button
 							variant="outline"
 							onClick={() => {

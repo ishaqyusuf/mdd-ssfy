@@ -415,6 +415,15 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 					</CardHeader>
 					<CardContent className="space-y-4">
 						<StatusPanel state={state.name} />
+						{state.name === "paid" && verificationData?.invoiceDownloadUrl ? (
+							<Button
+								asChild
+								variant="outline"
+								className="w-full"
+							>
+								<a href={verificationData.invoiceDownloadUrl}>Download invoice</a>
+							</Button>
+						) : null}
 						<Separator />
 						<div className="space-y-3 text-sm text-slate-600">
 							<div className="flex items-center justify-between">

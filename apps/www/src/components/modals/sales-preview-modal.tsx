@@ -12,7 +12,6 @@ import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { SalesPreview } from "../sales-preview";
 import { useInboundStatusModal } from "@/hooks/use-inbound-status-modal";
 import { Button } from "@gnd/ui/button";
-import { cn } from "@gnd/ui/cn";
 
 // export function useSalesPreviewModal() {
 //     const [q, setQ] = useQueryStates({
@@ -49,20 +48,15 @@ export function SalesPreviewModal({}) {
 			open={ctx.opened}
 		>
 			<DialogContent className="max-w-6xl overflow-hidden gap-0 p-0">
-				<DialogHeader className="sr-only">
+				<DialogHeader className="border-b px-6 py-4">
 					<DialogTitle>Sales Preview</DialogTitle>
 				</DialogHeader>
-				<ScrollArea
-					className={cn(
-						"h-[90vh] overflow-auto",
-						!inboundCtx?.params?.inboundOrderId || "pb-24",
-					)}
-				>
+				<ScrollArea className="h-[90vh] overflow-auto">
 					<SalesPreview />
 				</ScrollArea>
-				{!inboundCtx?.params?.inboundOrderId || (
+				{!inboundCtx?.params?.inboundOrderId ? null : (
 					<div className="fixed bottom-0 w-full bg-white p-2">
-						<div className="flex justify-end">
+						<div className="flex justify-end gap-2">
 							<Button
 								onClick={() => {
 									inboundCtx.setParams({

@@ -141,6 +141,64 @@ export const salesPaymentRefundedTags = actityTagsSchema.extend({
 });
 export type SalesPaymentRefundedTags = z.infer<typeof salesPaymentRefundedTags>;
 
+const salesCustomerPaymentSaleSchema = z.object({
+	salesId: z.number(),
+	orderNo: z.string(),
+	amountApplied: z.number().nullable().optional(),
+	remainingDue: z.number().nullable().optional(),
+});
+
+export const salesCustomerPaymentReceivedSchema = z.object({
+	customerEmail: z.string().email(),
+	customerName: z.string(),
+	paymentMethod: z.string(),
+	totalAmount: z.number(),
+	note: z.string().optional().nullable(),
+	invoiceDownloadUrl: z.string().optional().nullable(),
+	sales: z.array(salesCustomerPaymentSaleSchema).min(1),
+});
+export type SalesCustomerPaymentReceivedInput = z.infer<
+	typeof salesCustomerPaymentReceivedSchema
+>;
+export const salesCustomerPaymentReceivedTags = actityTagsSchema.extend({
+	customerEmail: z.string().email(),
+	customerName: z.string(),
+	orderNos: z.array(z.string()).min(1),
+	totalAmount: z.number(),
+	paymentMethod: z.string(),
+});
+export type SalesCustomerPaymentReceivedTags = z.infer<
+	typeof salesCustomerPaymentReceivedTags
+>;
+
+export const salesCustomerPaymentFailedSchema = z.object({
+	customerEmail: z.string().email(),
+	customerName: z.string(),
+	paymentMethod: z.string().optional().nullable(),
+	totalAmount: z.number().optional().nullable(),
+	reason: z.string().optional().nullable(),
+	sales: z
+		.array(
+			salesCustomerPaymentSaleSchema.omit({
+				amountApplied: true,
+			}),
+		)
+		.min(1),
+});
+export type SalesCustomerPaymentFailedInput = z.infer<
+	typeof salesCustomerPaymentFailedSchema
+>;
+export const salesCustomerPaymentFailedTags = actityTagsSchema.extend({
+	customerEmail: z.string().email(),
+	customerName: z.string(),
+	orderNos: z.array(z.string()).min(1),
+	totalAmount: z.number().optional().nullable(),
+	paymentMethod: z.string().optional().nullable(),
+});
+export type SalesCustomerPaymentFailedTags = z.infer<
+	typeof salesCustomerPaymentFailedTags
+>;
+
 export const jobActivitySchema = z.object({
 	users: z.array(userSchema).optional().nullable(),
 	jobId: z.number(),
@@ -542,6 +600,8 @@ export type NotificationTypes = {
 	quote_accepted: QuoteAcceptedInput;
 	sales_payment_recorded: SalesPaymentRecordedInput;
 	sales_payment_refunded: SalesPaymentRefundedInput;
+	sales_customer_payment_received: SalesCustomerPaymentReceivedInput;
+	sales_customer_payment_failed: SalesCustomerPaymentFailedInput;
 	// job_activity: JobActivityInput;
 	job_assigned: JobAssignedInput;
 	job_submitted: JobSubmittedInput;
@@ -1183,6 +1243,14 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_payment_refunded"),
 		payload: salesPaymentRefundedSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("sales_customer_payment_received"),
+		payload: salesCustomerPaymentReceivedSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("sales_customer_payment_failed"),
+		payload: salesCustomerPaymentFailedSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("job_assigned"),

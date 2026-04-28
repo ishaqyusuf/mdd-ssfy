@@ -10,8 +10,15 @@ import { prisma } from "@/db";
 import { errorHandler } from "@/modules/error/handler";
 import { expireCurrentSalesDocumentSnapshots } from "@gnd/api/utils/sales-document-access";
 import { queueSalesDocumentSnapshotWarmups } from "@gnd/api/utils/sales-document-warm";
+import {
+	buildSalesCustomerPaymentReceivedPayload,
+} from "@gnd/notifications/types/sales-customer-payment-utils";
+import { NotificationService } from "@gnd/notifications/services/triggers";
+import { sendPaymentSystemNotifications } from "@gnd/notifications/payment-system";
+import { recordLegacySalesPayment } from "@gnd/sales/payment-system";
 import { createSquareTerminalCheckout } from "@gnd/square";
 import { consoleLog } from "@gnd/utils";
+import { tasks } from "@trigger.dev/sdk/v3";
 import type { z } from "zod";
 
 import type { CustomerTransactionStatus } from "@/utils/constants";
@@ -29,14 +36,38 @@ export const createSalesPaymentAction = actionClient
 		name: "create-sales-payment",
 	})
 	.action(async ({ parsedInput: { ...input } }) => {
-		const touchedSalesIds = [...input.salesIds];
+		const authorId = await authId();
 		const response = {
 			terminalPaymentSession: null as typeof input.terminalPaymentSession,
 			status: null,
+			appliedSalesIds: [] as number[],
 		};
 		if (input.paymentMethod === "terminal") {
 			if (input.terminalPaymentSession?.squarePaymentId) {
-				await applySalesPayment(input);
+				const result = await applySalesPayment(input, authorId);
+				response.appliedSalesIds = result.appliedSalesIds;
+				await sendPaymentSystemNotifications(
+					tasks,
+					{ db: prisma, userId: authorId },
+					result.events,
+				);
+				if (input.notifyCustomer !== false && result.appliedSales.length) {
+					const notification = new NotificationService(tasks, {
+						db: prisma,
+						userId: authorId,
+					});
+					await notification.send("sales_customer_payment_received", {
+						author: {
+							id: authorId,
+							role: "employee",
+						},
+						payload: await buildSalesCustomerPaymentReceivedPayload(prisma, {
+							sales: result.appliedSales,
+							paymentMethod: input.paymentMethod,
+							totalAmount: result.totalApplied,
+						}),
+					});
+				}
 				response.status = "success";
 			} else {
 				const { error, resp: data } = await createTerminalPayment(input);
@@ -56,12 +87,35 @@ export const createSalesPaymentAction = actionClient
 				};
 			}
 		} else {
-			await applySalesPayment(input);
+			const result = await applySalesPayment(input, authorId);
+			response.appliedSalesIds = result.appliedSalesIds;
+			await sendPaymentSystemNotifications(
+				tasks,
+				{ db: prisma, userId: authorId },
+				result.events,
+			);
+			if (input.notifyCustomer !== false && result.appliedSales.length) {
+				const notification = new NotificationService(tasks, {
+					db: prisma,
+					userId: authorId,
+				});
+				await notification.send("sales_customer_payment_received", {
+					author: {
+						id: authorId,
+						role: "employee",
+					},
+					payload: await buildSalesCustomerPaymentReceivedPayload(prisma, {
+						sales: result.appliedSales,
+						paymentMethod: input.paymentMethod,
+						totalAmount: result.totalApplied,
+					}),
+				});
+			}
 			response.status = "success";
 		}
 		if (response.status === "success") {
 			await Promise.all(
-				touchedSalesIds.map(async (salesId) => {
+				response.appliedSalesIds.map(async (salesId) => {
 					await expireCurrentSalesDocumentSnapshots({
 						db: prisma,
 						salesOrderId: salesId,
@@ -78,83 +132,76 @@ export const createSalesPaymentAction = actionClient
 		return response;
 	});
 
-async function applySalesPayment(props: z.infer<typeof createPaymentSchema>) {
+async function applySalesPayment(
+	props: z.infer<typeof createPaymentSchema>,
+	authorId: number,
+) {
 	return prisma.$transaction(async (tx) => {
 		const wallet = await getCustomerWallet(tx, props.accountNo);
 		if (!wallet) throw new Error("Customer not found.");
 		const pendingSalesData = await getCustomerPendingSales(props.accountNo);
 		let balance = +props.amount;
-		await Promise.all(
-			props.salesIds.map(async (orderId) => {
-				const order = pendingSalesData.find((o) => o.id === orderId);
-				if (!order) throw new Error("Order not found.");
-				const payAmount = balance > order.amountDue ? order.amountDue : balance;
-				balance -= payAmount;
-				const __tx = await tx.customerTransaction.create({
-					data: {
-						amount: payAmount,
-						wallet: {
-							connect: {
-								id: wallet.id,
-							},
-						},
-						paymentMethod: props.paymentMethod,
-						status: "success" as CustomerTransactionStatus,
-						meta: {
-							checkNo: props.checkNo,
-						},
-						type: "transaction" as CustomerTransactionType,
-						author: {
-							connect: {
-								id: await authId(),
-							},
-						},
-						squarePayment: props.terminalPaymentSession?.squarePaymentId
-							? {
-									connect: {
-										id: props.terminalPaymentSession?.squarePaymentId,
-									},
-								}
-							: undefined,
-						salesPayments: {
-							create: {
-								meta: {
-									checkNo: props.checkNo,
-								},
-								amount: payAmount,
-								status: "success" as SalesPaymentStatus,
-								orderId: order.id,
-								squarePaymentsId: props.terminalPaymentSession?.squarePaymentId,
-							},
-						},
-					},
-					select: {
-						salesPayments: {
-							select: {
-								id: true,
-								amount: true,
-								order: {
-									select: {
-										salesRepId: true,
-										id: true,
-										orderId: true,
-									},
-								},
-							},
-						},
-					},
-				});
-				const [sp] = __tx.salesPayments;
-				await updateSalesDueAmount(orderId, tx);
-				await createPayrollAction({
-					orderId: sp.order.id,
-					userId: sp.order.salesRepId,
-					salesPaymentId: sp.id,
-					salesAmount: sp.amount,
-				});
-			}),
-		);
-		return {};
+		const appliedSalesIds: number[] = [];
+		const appliedSales: {
+			salesId: number;
+			amountApplied: number;
+			remainingDue: number;
+		}[] = [];
+		const events = [];
+
+		for (const orderId of props.salesIds || []) {
+			const order = pendingSalesData.find((item) => item.id === orderId);
+			if (!order) throw new Error("Order not found.");
+			if (balance <= 0) break;
+
+			const payAmount = balance > order.amountDue ? order.amountDue : balance;
+			if (payAmount <= 0) continue;
+
+			balance -= payAmount;
+			const paymentWrite = await recordLegacySalesPayment(tx, {
+				amount: payAmount,
+				authorId,
+				walletId: wallet.id,
+				paymentMethod: props.paymentMethod,
+				salesId: order.id,
+				transactionType: "transaction" as CustomerTransactionType,
+				checkNo: props.checkNo,
+				squarePaymentId: props.terminalPaymentSession?.squarePaymentId,
+				transactionStatus: "success" as CustomerTransactionStatus,
+				paymentStatus: "success" as SalesPaymentStatus,
+			});
+			const salesPayment = paymentWrite.salesPayment;
+			if (!salesPayment) continue;
+
+			await updateSalesDueAmount(orderId, tx);
+			await createPayrollAction(
+				{
+					orderId: salesPayment.order.id,
+					userId: salesPayment.order.salesRep.id,
+					salesPaymentId: salesPayment.id,
+					salesAmount: salesPayment.amount,
+				},
+				tx,
+			);
+
+			appliedSalesIds.push(order.id);
+			appliedSales.push({
+				salesId: order.id,
+				amountApplied: payAmount,
+				remainingDue: Math.max(Number(order.amountDue || 0) - payAmount, 0),
+			});
+			events.push(...paymentWrite.events);
+		}
+
+		return {
+			appliedSalesIds,
+			appliedSales,
+			totalApplied: appliedSales.reduce(
+				(sum, sale) => sum + Number(sale.amountApplied || 0),
+				0,
+			),
+			events,
+		};
 	});
 }
 

@@ -20,6 +20,7 @@ import {
 } from "@gnd/utils/tokenizer";
 import { put } from "@vercel/blob";
 import { addDays } from "date-fns";
+import { networkInterfaces } from "node:os";
 import { createApiVercelBlobDocumentService } from "./documents";
 import {
 	createPublicLinkToken,
@@ -134,12 +135,80 @@ function buildStoredDocumentKind(documentType: string) {
 	return `sales_pdf_snapshot:${documentType}`;
 }
 
-function resolveBaseUrl(baseUrl?: string | null) {
+function isLoopbackHostname(hostname: string) {
 	return (
+		hostname === "localhost" ||
+		hostname === "127.0.0.1" ||
+		hostname === "::1"
+	);
+}
+
+function isPrivateIpv4(value: string) {
+	if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(value)) {
+		return true;
+	}
+
+	if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(value)) {
+		return true;
+	}
+
+	const private172Match = value.match(/^172\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/);
+	if (!private172Match) {
+		return false;
+	}
+
+	const secondOctet = Number(private172Match[1]);
+	return secondOctet >= 16 && secondOctet <= 31;
+}
+
+function getLocalNetworkIp() {
+	const envIp = process.env.LOCAL_NETWORK_IP?.trim();
+	if (envIp && isPrivateIpv4(envIp)) {
+		return envIp;
+	}
+
+	for (const addresses of Object.values(networkInterfaces())) {
+		for (const address of addresses ?? []) {
+			if (
+				address.family === "IPv4" &&
+				!address.internal &&
+				isPrivateIpv4(address.address)
+			) {
+				return address.address;
+			}
+		}
+	}
+
+	return null;
+}
+
+function resolveBaseUrl(baseUrl?: string | null) {
+	const resolvedUrl = (
 		baseUrl ||
 		process.env.NEXT_PUBLIC_APP_URL ||
 		"http://localhost:3000"
 	).replace(/\/$/, "");
+
+	if (process.env.NODE_ENV === "production") {
+		return resolvedUrl;
+	}
+
+	try {
+		const url = new URL(resolvedUrl);
+		if (!isLoopbackHostname(url.hostname)) {
+			return resolvedUrl;
+		}
+
+		const networkIp = getLocalNetworkIp();
+		if (!networkIp) {
+			return resolvedUrl;
+		}
+
+		url.hostname = networkIp;
+		return url.toString().replace(/\/$/, "");
+	} catch {
+		return resolvedUrl;
+	}
 }
 
 function buildTemplateSearchParam(templateId?: string | null) {

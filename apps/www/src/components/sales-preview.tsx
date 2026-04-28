@@ -62,7 +62,10 @@ export function SalesPreview() {
 				accessToken={previewParams.accessToken}
 				snapshotId={previewParams.snapshotId}
 				templateId={previewParams.templateId}
+				customerEmail={params.salesPreviewCustomerEmail ?? undefined}
+				customerName={params.salesPreviewCustomerName ?? undefined}
 				embedded
+				salesOrderId={params.salesPreviewId}
 			/>
 		</div>
 	);

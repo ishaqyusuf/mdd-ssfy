@@ -149,6 +149,7 @@ export const createPaymentSchema = z
         enableTip: z.boolean().optional().nullable(),
         walletBalance: z.number().optional().nullable(),
         useWallet: z.boolean().optional().nullable(),
+        notifyCustomer: z.boolean().optional().nullable(),
         terminalPaymentSession: z
             .object({
                 status: z.string(),

@@ -8,6 +8,8 @@ import { JobPaymentSentEmail } from "@gnd/email/emails/job-payment-sent";
 import { JobRejectedEmail } from "@gnd/email/emails/job-rejected";
 import { JobTaskConfigureRequestEmail } from "@gnd/email/emails/job-task-configure-request";
 import LoginEmail from "@gnd/email/emails/login-link-email";
+import { SalesCustomerPaymentFailedEmail } from "@gnd/email/emails/sales-customer-payment-failed";
+import { SalesCustomerPaymentReceivedEmail } from "@gnd/email/emails/sales-customer-payment-received";
 import SalesEmail from "@gnd/email/emails/sales-email";
 import SalesReminderScheduleAdminNotificationEmail from "@gnd/email/emails/sales-reminder-schedule-admin-notification";
 import { SalesRepOnlinePaymentReceived } from "@gnd/email/emails/sales-rep-online-payment-received";
@@ -213,6 +215,8 @@ export class EmailService {
 	#getTemplate(templateName: string) {
 		const templates = {
 			"sales-rep-online-payment-received": SalesRepOnlinePaymentReceived,
+			"sales-customer-payment-received": SalesCustomerPaymentReceivedEmail,
+			"sales-customer-payment-failed": SalesCustomerPaymentFailedEmail,
 			"job-assigned": JobAssignedEmail,
 			"job-approved": JobApprovedEmail,
 			"job-payment-sent": JobPaymentSentEmail,

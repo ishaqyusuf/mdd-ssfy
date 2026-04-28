@@ -24,6 +24,8 @@ export const channelNames = [
 	"quote_accepted",
 	"sales_payment_recorded",
 	"sales_payment_refunded",
+	"sales_customer_payment_received",
+	"sales_customer_payment_failed",
 	"sales_info",
 	"sales_item_info",
 	"sales_dispatch_info",
@@ -236,6 +238,18 @@ export const channelsConfig: Partial<{
 	sales_payment_refunded: {
 		name: "Sales Payment Refunded",
 		description: "Send when a refund is recorded against a sales order.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_customer_payment_received: {
+		name: "Customer Payment Received",
+		description: "Send a receipt email to a customer after payment succeeds.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_customer_payment_failed: {
+		name: "Customer Payment Failed",
+		description: "Send a failure notice to a customer after payment fails.",
 		priority: 5,
 		category: "Sales",
 	},
