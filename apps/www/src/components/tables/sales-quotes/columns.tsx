@@ -143,6 +143,8 @@ function QuoteActions({ item }: { item: Item }) {
 			</SuperAdminGuard>
 			<SalesMenu.Copy />
 			<SalesMenu.Move />
+			<SalesMenu.Separator />
+			<SalesMenu.Delete />
 		</SalesMenu>
 	);
 }

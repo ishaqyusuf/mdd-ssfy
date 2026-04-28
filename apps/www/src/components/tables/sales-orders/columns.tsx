@@ -707,6 +707,8 @@ function Actions({ item }: { item: SalesOrderItem }) {
 						</SalesMenu.Item>
 					</SalesMenu.SubContent>
 				</SalesMenu.Sub>
+				<SalesMenu.Separator />
+				<SalesMenu.Delete />
 			</SalesMenu>
 			<FulfillmentCompleteModal
 				open={isFulfillmentModalOpen}
