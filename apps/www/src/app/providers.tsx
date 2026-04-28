@@ -15,7 +15,7 @@ type Props = {
 };
 export function Providers({ children }: Props) {
 	return (
-		<SessionProvider>
+		<SessionProvider refetchOnWindowFocus refetchWhenOffline={false}>
 			<NuqsAdapter>
 				<TRPCReactProvider>
 					<Provider store={store}>

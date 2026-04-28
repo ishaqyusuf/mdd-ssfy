@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "@/components/link";
-import { redirect, usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { ISidebar, nav } from "@/lib/navs";
-import { timeout } from "@/lib/timeout";
 import { cn } from "@/lib/utils";
 import { PrimitiveDivProps } from "@/types/type";
 import { useSession } from "next-auth/react";
-import { createPortal } from "react-dom";
 
 import { Button } from "@gnd/ui/button";
 import Portal from "../portal";
@@ -25,17 +23,11 @@ export default function TabbedLayout({
     }[];
     tabKey?: keyof ISidebar;
 } & PrimitiveDivProps) {
-    const { data: session } = useSession({
-        required: true,
-        onUnauthenticated() {
-            redirect("/login");
-        },
-    });
+    const { data: session } = useSession();
     const _nav = nav(session);
     const path = usePathname();
     const [tab, setTab] = useState<any>(path);
     // const [tabs, setTabs] = useState<{ label; value }[]>([]);
-    const route = useRouter();
 
     return (
         <div className="space-y-4">

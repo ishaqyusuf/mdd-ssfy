@@ -1,5 +1,3 @@
-import { redirect } from "next/navigation";
-
 import { createSubmissionSchema } from "@/actions/schema";
 import { submitSalesAssignmentAction } from "@/actions/submit-sales-assignment";
 import FormInput from "@/components/common/controls/form-input";
@@ -11,6 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useSession } from "next-auth/react";
 import { useAction } from "next-safe-action/hooks";
 import { useController, useForm, useFormContext } from "react-hook-form";
+import { useEffect } from "react";
 import { NumericFormatProps } from "react-number-format";
 import z from "zod";
 
@@ -30,12 +29,7 @@ export function ProductionSubmitForm({}) {
     const ctx = useAssignmentRow();
     const pending = ctx?.assignment?.pending;
     const { item, queryCtx } = useProductionItem();
-    const session = useSession({
-        required: true,
-        onUnauthenticated() {
-            redirect("/login");
-        },
-    });
+    const session = useSession();
     const form = useForm<z.infer<typeof createSubmissionSchema>>({
         resolver: zodResolver(createSubmissionSchema),
         defaultValues: {
@@ -56,6 +50,10 @@ export function ProductionSubmitForm({}) {
             submittedById: session?.data?.user?.id,
         },
     });
+    useEffect(() => {
+        if (!session.data?.user?.id) return;
+        form.setValue("submittedById", session.data.user.id);
+    }, [form, session.data?.user?.id]);
     const formData = form.watch();
 
     const toast = useLoadingToast();

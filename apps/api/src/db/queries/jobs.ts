@@ -290,7 +290,6 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
 function containsInsensitive(value: string) {
 	return {
 		contains: value,
-		mode: "insensitive" as const,
 	};
 }
 

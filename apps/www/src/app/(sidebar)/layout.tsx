@@ -1,3 +1,4 @@
+import { ClientAuthGuard } from "@/components/auth/client-auth-guard";
 import { GlobalModalsProvider } from "@/components/modals/global-modals-provider";
 import { GlobalSheetsProvider } from "@/components/sheets/global-sheets-provider";
 import { SidebarContent } from "@/components/sidebar-content";
@@ -27,16 +28,18 @@ export default async function Layout({ children }) {
 
 	return (
 		<HydrateClient>
-			<div className="relative">
-				<SidebarContent initialAuth={initialAuth}>{children}</SidebarContent>
+			<ClientAuthGuard>
+				<div className="relative">
+					<SidebarContent initialAuth={initialAuth}>{children}</SidebarContent>
 
-				<GlobalSheetsProvider />
-				<GlobalModalsProvider />
-				<TaskNotificationProvider />
+					<GlobalSheetsProvider />
+					<GlobalModalsProvider />
+					<TaskNotificationProvider />
 
-				{/* <GlobalTimerProvider />
+					{/* <GlobalTimerProvider />
                 <TimezoneDetector /> */}
-			</div>
+				</div>
+			</ClientAuthGuard>
 		</HydrateClient>
 	);
 }

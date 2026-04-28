@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ICan } from "@/types/auth";
 import { useSession } from "next-auth/react";
@@ -21,37 +21,36 @@ export default function AuthGuard({
     className,
     children,
     permissionType = "every",
-    roles = [],
-    noRedirect,
+	roles = [],
+	noRedirect,
 }: Props) {
-    const { data: session } = useSession({
-        required: true,
-        onUnauthenticated() {
-            redirect("/login");
-        },
-    });
+	const { data: session, status } = useSession();
+	const router = useRouter();
 
-    const [visible, setVisible] = useState(false);
-    useEffect(() => {
-        const gn = (v) =>
-            Array.isArray(v)
-                ? v.some((p) => session?.can?.[p])
-                : session?.can?.[v];
-        const fn = permissionType == "every" ? can?.every(gn) : can?.some(gn);
+	const [visible, setVisible] = useState(false);
+	useEffect(() => {
+		if (status !== "authenticated" || !session?.user) {
+			setVisible(false);
+			return;
+		}
 
-        let res = !can?.length ? true : fn;
-        if (permissionType == "none") res = !res;
-        const permission = !can.length || res;
-        const rolePermission =
-            !roles.length || roles?.some((r) => r == session?.role?.name);
+		const gn = (v) =>
+			Array.isArray(v) ? v.some((p) => session?.can?.[p]) : session?.can?.[v];
+		const fn = permissionType == "every" ? can?.every(gn) : can?.some(gn);
 
-        const _visible =
-            (permission && rolePermission) || session?.role.name == "Admin";
-        setVisible(_visible);
-        if (!_visible && !noRedirect) {
-            redirect("/");
-        }
-    }, [noRedirect, can, roles, permissionType]);
+		let res = !can?.length ? true : fn;
+		if (permissionType == "none") res = !res;
+		const permission = !can.length || res;
+		const rolePermission =
+			!roles.length || roles?.some((r) => r == session?.role?.name);
 
-    return <div className={cn(className)}>{visible && children}</div>;
+		const nextVisible =
+			(permission && rolePermission) || session?.role?.name == "Admin";
+		setVisible(nextVisible);
+		if (!nextVisible && !noRedirect) {
+			router.replace("/");
+		}
+	}, [can, noRedirect, permissionType, roles, router, session, status]);
+
+	return <div className={cn(className)}>{visible && children}</div>;
 }

@@ -1,20 +1,14 @@
 "use client";
 
-import { SidebarInset, SidebarProvider } from "@gnd/ui/sidebar";
+import { SidebarInset } from "@gnd/ui/sidebar";
 import { SidebarContext, SidebarProviderRoot } from "./context";
 
 import { SideMenu } from "./sidemenu";
 import { Header } from "./header";
 import { useSession } from "next-auth/react";
-import { redirect } from "next/navigation";
 
 export function SideBar({ children, user, menuMode, validLinks }) {
-    const { data: session } = useSession({
-        required: true,
-        onUnauthenticated() {
-            redirect("/login/v2");
-        },
-    });
+    const { data: session } = useSession();
 
     if (!session?.user) return <></>;
     return (
