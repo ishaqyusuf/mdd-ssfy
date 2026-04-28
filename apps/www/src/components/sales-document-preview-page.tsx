@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { getBaseUrl } from "@/lib/base-url";
 import { openLink } from "@/lib/open-link";
 import {
+	buildSalesPdfDownloadUrlFromQuery,
 	buildSalesDocumentRouteFromQuery,
 } from "@/modules/sales-print/application/sales-print-service";
 import { useTRPC } from "@/trpc/client";
@@ -53,12 +54,11 @@ export function SalesDocumentPreviewPage({
 		data?.pages.find((page) => page.config.mode === "packing-slip") || null;
 	const pdfPageQuery = useMemo(() => {
 		if (!hasDocumentLocator({ pt, token, accessToken, snapshotId })) return null;
-		return buildSalesDocumentRouteFromQuery({
+		return buildSalesPdfDownloadUrlFromQuery({
 			pt,
 			token,
 			accessToken,
 			snapshotId,
-			preview: true,
 			templateId,
 			origin: window.location.origin,
 		});

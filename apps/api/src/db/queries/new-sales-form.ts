@@ -225,6 +225,7 @@ function toBootstrapPayload(
 		updatedAt: Date | null;
 		items: Array<{
 			id: number;
+			dykeDescription: string | null;
 			description: string | null;
 			qty: number | null;
 			rate: number | null;
@@ -365,7 +366,11 @@ function toBootstrapPayload(
 				uid:
 					(typeof itemMeta.uid === "string" && itemMeta.uid) ||
 					`line-${index + 1}-${generateRandomString(6)}`,
-				title: item.description || "",
+				title:
+					item.dykeDescription ||
+					(typeof itemMeta.title === "string" ? itemMeta.title : "") ||
+					item.description ||
+					"",
 				description: item.description,
 				qty: Number(item.qty || 0),
 				unitPrice: Number(item.rate || 0),
@@ -423,8 +428,22 @@ function toBootstrapPayload(
 								null,
 						}
 					: null;
+			const persistedTitle =
+				typeof line.title === "string" ? line.title.trim() : "";
+			const persistedDescription =
+				typeof line.description === "string" ? line.description.trim() : "";
+			const dbTitle =
+				typeof dbMatch?.title === "string" ? dbMatch.title.trim() : "";
 			return {
 				...line,
+				title:
+					dbTitle && (!persistedTitle || persistedTitle === persistedDescription)
+						? dbTitle
+						: persistedTitle || dbTitle,
+				meta: {
+					...(dbMatch?.meta || {}),
+					...(line.meta || {}),
+				},
 				formSteps:
 					line.formSteps && line.formSteps.length
 						? line.formSteps
@@ -674,6 +693,7 @@ export async function getNewSalesForm(
 					},
 					select: {
 						id: true,
+						dykeDescription: true,
 						description: true,
 						qty: true,
 						rate: true,
@@ -1505,6 +1525,7 @@ async function saveNewSalesFormInternal(
 				const createdItem = await tx.salesOrderItems.create({
 					data: {
 						salesOrderId: currentId!,
+						dykeDescription: line.title || null,
 						description: line.description || line.title,
 						qty: line.qty,
 						rate: line.unitPrice,

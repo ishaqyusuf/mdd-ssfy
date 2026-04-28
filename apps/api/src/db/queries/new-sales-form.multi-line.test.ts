@@ -15,6 +15,7 @@ function createMockContext() {
     doors: [] as any[],
     extraCosts: [] as any[],
     salesTaxes: [] as any[],
+    salesDocumentSnapshots: [] as any[],
     users: [
       {
         id: 77,
@@ -346,10 +347,34 @@ function createMockContext() {
         );
       },
     },
+    salesDocumentSnapshot: {
+      findMany: async ({ where }: any) => {
+        return state.salesDocumentSnapshots.filter((snapshot) => {
+          if (
+            where?.salesOrderId &&
+            snapshot.salesOrderId !== where.salesOrderId
+          )
+            return false;
+          if (where?.isCurrent != null && snapshot.isCurrent !== where.isCurrent)
+            return false;
+          if (where?.deletedAt === null && snapshot.deletedAt != null) return false;
+          return true;
+        });
+      },
+      update: async ({ where, data }: any) => {
+        const row = state.salesDocumentSnapshots.find(
+          (snapshot) => snapshot.id === where.id,
+        );
+        if (!row) return null;
+        Object.assign(row, data);
+        return row;
+      },
+    },
   };
 
   return {
     ctx: { db, userId: 77 } as any,
+    state,
   };
 }
 
@@ -525,5 +550,239 @@ describe("new-sales-form multi-line mixed parity", () => {
     expect(mouldingLine?.lineTotal).toBe(150);
     expect(((mouldingLine?.meta as any)?.mouldingRows || []).length).toBe(1);
     expect((mouldingLine?.meta as any)?.mouldingRows?.[0]?.salesPrice).toBe(70);
+  });
+
+  it("merges db line meta back into stale persisted drafts for moulding edits", async () => {
+    const { ctx, state } = createMockContext();
+    state.orders.push({
+      id: 1,
+      slug: "order-07890pc",
+      orderId: "07890PC",
+      type: "order",
+      status: "Draft",
+      deletedAt: null,
+      customerId: 100,
+      customerProfileId: null,
+      billingAddressId: null,
+      shippingAddressId: null,
+      paymentTerm: "None",
+      goodUntil: null,
+      prodDueDate: null,
+      deliveryOption: "pickup",
+      taxPercentage: 0,
+      subTotal: 150,
+      tax: 0,
+      grandTotal: 150,
+      updatedAt: new Date("2026-02-24T12:00:00.000Z"),
+      meta: {
+        newSalesForm: {
+          version: "stale-v1",
+          updatedAt: "2026-02-24T12:00:00.000Z",
+          form: {
+            paymentTerm: "None",
+            deliveryOption: "pickup",
+          },
+          extraCosts: [],
+          summary: {
+            taxRate: 0,
+          },
+          lineItems: [
+            {
+              id: 10,
+              uid: "line-moulding-stale",
+              title: "Casing",
+              description: "Casing",
+              qty: 2,
+              unitPrice: 75,
+              lineTotal: 150,
+              meta: {},
+              formSteps: [
+                { stepId: 13, value: "Moulding", prodUid: "item-type-moulding" },
+                { stepId: 14, value: "Casing", prodUid: "moulding-casing" },
+              ],
+              shelfItems: [],
+              housePackageTool: null,
+            },
+          ],
+        },
+      },
+    });
+    state.items.push({
+      id: 10,
+      salesOrderId: 1,
+      dykeDescription: "Moulding",
+      description: "Casing",
+      qty: 2,
+      rate: 75,
+      total: 150,
+      deletedAt: null,
+      meta: {
+        uid: "line-moulding-stale",
+        meta: {
+          mouldingRows: [
+            {
+              uid: "m-1",
+              title: "Casing",
+              description: "Casing",
+              qty: 2,
+              addon: 0,
+              customPrice: null,
+              salesPrice: 70,
+              basePrice: 40,
+            },
+          ],
+        },
+      },
+    });
+    state.stepForms.push(
+      {
+        id: 1,
+        salesId: 1,
+        salesItemId: 10,
+        deletedAt: null,
+        stepId: 13,
+        componentId: null,
+        prodUid: "item-type-moulding",
+        value: "Moulding",
+        qty: 0,
+        price: 0,
+        basePrice: 0,
+        meta: {},
+      },
+      {
+        id: 2,
+        salesId: 1,
+        salesItemId: 10,
+        deletedAt: null,
+        stepId: 14,
+        componentId: null,
+        prodUid: "moulding-casing",
+        value: "Casing",
+        qty: 0,
+        price: 70,
+        basePrice: 40,
+        meta: {},
+      },
+    );
+
+    const loaded = await getNewSalesForm(ctx, {
+      type: "order",
+      slug: "order-07890pc",
+    });
+
+    const mouldingLine = loaded.lineItems.find(
+      (line) => line.uid === "line-moulding-stale",
+    );
+
+    expect(mouldingLine?.title).toBe("Moulding");
+    expect(((mouldingLine?.meta as any)?.mouldingRows || []).length).toBe(1);
+    expect((mouldingLine?.meta as any)?.mouldingRows?.[0]?.title).toBe("Casing");
+  });
+
+  it("restores service parent titles from legacy dykeDescription on edit reopen", async () => {
+    const { ctx, state } = createMockContext();
+    state.orders.push({
+      id: 2,
+      slug: "order-service-07890pc",
+      orderId: "07890PC-S",
+      type: "order",
+      status: "Draft",
+      deletedAt: null,
+      customerId: 100,
+      customerProfileId: null,
+      billingAddressId: null,
+      shippingAddressId: null,
+      paymentTerm: "None",
+      goodUntil: null,
+      prodDueDate: null,
+      deliveryOption: "pickup",
+      taxPercentage: 0,
+      subTotal: 80,
+      tax: 0,
+      grandTotal: 80,
+      updatedAt: new Date("2026-02-24T12:00:00.000Z"),
+      meta: {
+        newSalesForm: {
+          version: "stale-v1",
+          updatedAt: "2026-02-24T12:00:00.000Z",
+          form: {
+            paymentTerm: "None",
+            deliveryOption: "pickup",
+          },
+          extraCosts: [],
+          summary: {
+            taxRate: 0,
+          },
+          lineItems: [
+            {
+              id: 20,
+              uid: "line-service-stale",
+              title: "Install",
+              description: "Install",
+              qty: 1,
+              unitPrice: 80,
+              lineTotal: 80,
+              meta: {},
+              formSteps: [
+                { stepId: 11, value: "Services", prodUid: "item-type-services" },
+              ],
+              shelfItems: [],
+              housePackageTool: null,
+            },
+          ],
+        },
+      },
+    });
+    state.items.push({
+      id: 20,
+      salesOrderId: 2,
+      dykeDescription: "Services",
+      description: "Install",
+      qty: 1,
+      rate: 80,
+      total: 80,
+      deletedAt: null,
+      meta: {
+        uid: "line-service-stale",
+        meta: {
+          serviceRows: [
+            {
+              uid: "svc-1",
+              service: "Install",
+              qty: 1,
+              unitPrice: 80,
+              taxxable: true,
+            },
+          ],
+        },
+      },
+    });
+    state.stepForms.push({
+      id: 3,
+      salesId: 2,
+      salesItemId: 20,
+      deletedAt: null,
+      stepId: 11,
+      componentId: null,
+      prodUid: "item-type-services",
+      value: "Services",
+      qty: 0,
+      price: 0,
+      basePrice: 0,
+      meta: {},
+    });
+
+    const loaded = await getNewSalesForm(ctx, {
+      type: "order",
+      slug: "order-service-07890pc",
+    });
+
+    const serviceLine = loaded.lineItems.find(
+      (line) => line.uid === "line-service-stale",
+    );
+
+    expect(serviceLine?.title).toBe("Services");
+    expect(((serviceLine?.meta as any)?.serviceRows || []).length).toBe(1);
+    expect((serviceLine?.meta as any)?.serviceRows?.[0]?.service).toBe("Install");
   });
 });

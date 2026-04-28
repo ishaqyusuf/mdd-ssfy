@@ -8,6 +8,7 @@ import type { PrintMode } from "@gnd/sales/print/types";
 const DEFAULT_TEMPLATE_ID = "template-2";
 const PRINT_VIEWER_PATH = "p/sales-invoice-v2";
 const PREVIEW_PAGE_PATH = "p/sales-document-v2";
+const DOWNLOAD_ROUTE_PATH = "api/download/sales-v2";
 
 type SalesType = "order" | "quote";
 export type SalesPrintRequestMode = PrintMode | IOrderPrintMode;
@@ -119,6 +120,21 @@ export function buildSalesDocumentRouteFromQuery(input: {
 	}
 
 	return url.toString();
+}
+
+export function buildSalesPdfDownloadUrlFromQuery(input: {
+	pt?: string;
+	token?: string;
+	accessToken?: string;
+	snapshotId?: string;
+	templateId?: string | null;
+	origin?: string;
+}) {
+	return buildSalesDocumentRouteFromQuery({
+		...input,
+		path: DOWNLOAD_ROUTE_PATH,
+		preview: false,
+	});
 }
 
 export async function resolveSalesPrintAccess(
@@ -255,14 +271,16 @@ function buildSalesDocumentRouteUrl(
 }
 
 function downloadSilently(url: string) {
-	const iframe = document.createElement("iframe");
-	iframe.hidden = true;
-	iframe.src = url;
-	document.body.appendChild(iframe);
+	const link = document.createElement("a");
+	link.href = url;
+	link.rel = "noopener";
+	link.style.display = "none";
+	document.body.appendChild(link);
+	link.click();
 
 	setTimeout(() => {
-		iframe.remove();
-	}, 60_000);
+		link.remove();
+	}, 1_000);
 }
 
 function openPendingPrintWindow() {

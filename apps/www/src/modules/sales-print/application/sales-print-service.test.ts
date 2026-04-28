@@ -2,6 +2,7 @@
 import { describe, expect, it } from "bun:test";
 import type { ResolveSalesDocumentAccessResult } from "@gnd/api/utils/sales-document-access";
 import {
+	buildSalesPdfDownloadUrlFromQuery,
 	buildSalesDocumentRouteFromQuery,
 	resolveSalesPrintAccess,
 	resolveSalesPrintMode,
@@ -36,6 +37,28 @@ describe("sales print service", () => {
 			}),
 		).toBe(
 			"https://app.example.com/p/sales-invoice-v2?pt=public-123&preview=true&templateId=template-7",
+		);
+	});
+
+	it("builds download urls from shared query inputs", () => {
+		expect(
+			buildSalesPdfDownloadUrlFromQuery({
+				accessToken: "access-123",
+				templateId: "template-2",
+				origin: "https://app.example.com",
+			}),
+		).toBe(
+			"https://app.example.com/api/download/sales-v2?accessToken=access-123&preview=false",
+		);
+
+		expect(
+			buildSalesPdfDownloadUrlFromQuery({
+				pt: "public-123",
+				templateId: "template-7",
+				origin: "https://app.example.com",
+			}),
+		).toBe(
+			"https://app.example.com/api/download/sales-v2?pt=public-123&preview=false&templateId=template-7",
 		);
 	});
 
