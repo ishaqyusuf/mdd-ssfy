@@ -4,6 +4,7 @@ import { DataTable } from "@/components/tables/sales-orders/data-table";
 import { TableSkeleton } from "@/components/tables/skeleton";
 import { loadOrderFilterParams } from "@/hooks/use-sales-filter-params";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
+import { resolveSalesVisibility } from "@/lib/sales-visibility";
 import { batchPrefetch, trpc } from "@/trpc/server";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { Suspense } from "react";
@@ -20,7 +21,9 @@ export async function generateMetadata(props) {
 
 export default async function Page(props) {
 	const searchParams = await props.searchParams;
-	const filter = loadOrderFilterParams(searchParams);
+	const { filter } = await resolveSalesVisibility(
+		loadOrderFilterParams(searchParams),
+	);
 	batchPrefetch([
 		trpc.sales.getOrders.infiniteQueryOptions({
 			...(filter as any),

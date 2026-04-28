@@ -50,16 +50,39 @@ function isControlReadParityEnabled() {
   );
 }
 
+type DefaultSalesScopeOptions = {
+  scopeBin?: boolean;
+};
+
+export function applyDefaultSalesRepScope(
+  query: SalesQueryParamsSchema,
+  userId?: number,
+  { scopeBin = false }: DefaultSalesScopeOptions = {},
+) {
+  if (!userId || query.showing === "all sales") {
+    return query;
+  }
+
+  if (!scopeBin && query.bin) {
+    return query;
+  }
+
+  if (query.defaultSearch || !query.q?.trim()) {
+    return {
+      ...query,
+      salesRepId: userId,
+    };
+  }
+
+  return query;
+}
+
 export async function getSales(
   ctx: TRPCContext,
   query: SalesQueryParamsSchema,
 ) {
   if (!query.salesType) query.salesType = "order";
-  if (query.defaultSearch) {
-    if (query.showing != "all sales") query.salesRepId = ctx.userId!;
-  }
-  if (query.showing != "all sales" && !query.q?.trim())
-    query.salesRepId = ctx.userId!;
+  query = applyDefaultSalesRepScope(query, ctx.userId);
 
   const { db } = ctx;
   const { response, searchMeta, where, meta } = await composeQueryData(
@@ -164,11 +187,7 @@ export async function getOrders(
   query: SalesQueryParamsSchema,
 ) {
   query.salesType = "order";
-  if (query.defaultSearch && !query.bin) {
-    if (query.showing != "all sales") query.salesRepId = ctx.userId!;
-    if (query.showing != "all sales" && !query.q?.trim())
-      query.salesRepId = ctx.userId!;
-  }
+  query = applyDefaultSalesRepScope(query, ctx.userId);
   const { db } = ctx;
 
   const { response, searchMeta, where } = await composeQueryData(
@@ -208,6 +227,7 @@ export async function getQuotes(
   query: SalesQueryParamsSchema,
 ) {
   query.salesType = "quote";
+  query = applyDefaultSalesRepScope(query, ctx.userId);
 
   const { db } = ctx;
   const { response, searchMeta, where } = await composeQueryData(

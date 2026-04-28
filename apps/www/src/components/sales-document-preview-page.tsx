@@ -4,15 +4,16 @@ import { useAuth } from "@/hooks/use-auth";
 import { getBaseUrl } from "@/lib/base-url";
 import { openLink } from "@/lib/open-link";
 import {
-	buildSalesPdfDownloadUrlFromQuery,
 	buildSalesDocumentRouteFromQuery,
+	buildSalesPdfDownloadUrlFromQuery,
 } from "@/modules/sales-print/application/sales-print-service";
 import { useTRPC } from "@/trpc/client";
 import { SalesHtmlDocument } from "@gnd/pdf/sales-v2";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { useQuery } from "@gnd/ui/tanstack";
-import { useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo } from "react";
 import { PackingSlipSignFab } from "./packing-slip-sign-fab";
 
 export function SalesDocumentPreviewPage({
@@ -32,6 +33,7 @@ export function SalesDocumentPreviewPage({
 }) {
 	const trpc = useTRPC();
 	const auth = useAuth();
+	const router = useRouter();
 	const baseUrl = getBaseUrl();
 	const { data, isPending } = useQuery(
 		trpc.print.salesV2.queryOptions(
@@ -53,7 +55,9 @@ export function SalesDocumentPreviewPage({
 	const packingSlipPage =
 		data?.pages.find((page) => page.config.mode === "packing-slip") || null;
 	const pdfPageQuery = useMemo(() => {
-		if (!hasDocumentLocator({ pt, token, accessToken, snapshotId })) return null;
+		if (!hasDocumentLocator({ pt, token, accessToken, snapshotId })) {
+			return null;
+		}
 		return buildSalesPdfDownloadUrlFromQuery({
 			pt,
 			token,
@@ -64,7 +68,9 @@ export function SalesDocumentPreviewPage({
 		});
 	}, [accessToken, pt, snapshotId, templateId, token]);
 	const pdfPrintPageQuery = useMemo(() => {
-		if (!hasDocumentLocator({ pt, token, accessToken, snapshotId })) return null;
+		if (!hasDocumentLocator({ pt, token, accessToken, snapshotId })) {
+			return null;
+		}
 		return buildSalesDocumentRouteFromQuery({
 			pt,
 			token,
@@ -84,6 +90,24 @@ export function SalesDocumentPreviewPage({
 		});
 		return `/sales-book/orders/overview-v2?${query.toString()}`;
 	}, [data?.mode, data?.orderNo]);
+	const editSalesUrl = useMemo(() => {
+		if (!data?.orderNo) return null;
+		const salesType = data.mode === "quote" ? "quote" : "order";
+		const query = new URLSearchParams({
+			"sales-overview-id": data.orderNo,
+			"sales-type": salesType,
+			mode: salesType === "quote" ? "quote" : "sales",
+			salesTab: "activity",
+		});
+		return `/sales-form/edit-${salesType}/${encodeURIComponent(data.orderNo)}?${query.toString()}`;
+	}, [data?.mode, data?.orderNo]);
+
+	useEffect(() => {
+		if (embedded || auth.isPending || !auth.can?.editSales || !editSalesUrl) {
+			return;
+		}
+		router.replace(editSalesUrl);
+	}, [auth.can?.editSales, auth.isPending, editSalesUrl, embedded, router]);
 
 	if (isPending) {
 		return (
@@ -108,6 +132,26 @@ export function SalesDocumentPreviewPage({
 			>
 				<div className="rounded-3xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-900">
 					This preview link is invalid or has expired.
+				</div>
+			</div>
+		);
+	}
+
+	if (!embedded && auth.isPending) {
+		return (
+			<div className="mx-auto flex min-h-[60vh] max-w-2xl items-center px-4 py-10">
+				<div className="rounded-3xl border bg-muted/30 p-6 text-sm text-muted-foreground">
+					Checking access...
+				</div>
+			</div>
+		);
+	}
+
+	if (!embedded && auth.can?.editSales && editSalesUrl) {
+		return (
+			<div className="mx-auto flex min-h-[60vh] max-w-2xl items-center px-4 py-10">
+				<div className="rounded-3xl border bg-muted/30 p-6 text-sm text-muted-foreground">
+					Redirecting to the editable sales workspace...
 				</div>
 			</div>
 		);

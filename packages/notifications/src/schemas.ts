@@ -900,6 +900,8 @@ export const simpleSalesDocumentEmailSchema = z.object({
 	printType: z.enum(["order", "quote"]),
 	salesIds: z.array(z.number()).optional().nullable(),
 	salesNos: z.array(z.string()).optional().nullable(),
+	customerEmail: z.string().email().optional().nullable(),
+	note: z.string().optional().nullable(),
 });
 export type SendSalesEmailPayloadInput = z.infer<
 	typeof simpleSalesDocumentEmailSchema

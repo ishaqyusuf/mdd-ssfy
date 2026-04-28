@@ -1,7 +1,4 @@
-import { redirect } from "next/navigation";
-
 import type { SalesType } from "@/app-deps/(clean-code)/(sales)/types";
-import { useSession } from "next-auth/react";
 import {
 	parseAsInteger,
 	parseAsJson,
@@ -27,7 +24,7 @@ export function useSalesOverviewQuery() {
 	const onCloseQuery = useOnCloseQuery();
 	const [params, setParams] = useQueryStates({
 		"sales-overview-id": parseAsString,
-		"sales-type": parseAsStringEnum(["quote", "sales"] as SalesType[]),
+		"sales-type": parseAsStringEnum(["quote", "order"] as SalesType[]),
 		mode: parseAsStringEnum([...openModes]),
 		"prod-item-view": parseAsString,
 		"prod-item-tab": parseAsStringEnum(["assignments", "details", "notes"]),
@@ -37,6 +34,8 @@ export function useSalesOverviewQuery() {
 			"general",
 			"production",
 			"transaction",
+			"transactions",
+			"activity",
 			"inbound",
 			"dispatch",
 			"notification",

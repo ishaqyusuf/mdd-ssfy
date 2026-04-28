@@ -88,6 +88,8 @@ export type ResolveSalesDocumentPreviewDataResult = {
 	mode: PrintMode;
 	orderNo: string | null;
 	salesOrderId: number | null;
+	customerEmail: string | null;
+	customerName: string | null;
 	documentType: string | null;
 	previewUrl: string;
 	downloadUrl: string;
@@ -220,6 +222,49 @@ function isFutureIso(value?: string | null) {
 	if (!value) return false;
 	const parsed = new Date(value);
 	return !Number.isNaN(parsed.getTime()) && parsed.getTime() > Date.now();
+}
+
+async function loadSalesPreviewRecipient(input: {
+	db: Db;
+	salesOrderId: number | null | undefined;
+}) {
+	if (!input.salesOrderId) {
+		return {
+			customerEmail: null,
+			customerName: null,
+		};
+	}
+
+	const sale = await input.db.salesOrders.findUnique({
+		where: {
+			id: input.salesOrderId,
+		},
+		select: {
+			customer: {
+				select: {
+					email: true,
+					name: true,
+					businessName: true,
+				},
+			},
+			billingAddress: {
+				select: {
+					email: true,
+					name: true,
+				},
+			},
+		},
+	});
+
+	return {
+		customerEmail:
+			sale?.customer?.email?.trim() || sale?.billingAddress?.email?.trim() || null,
+		customerName:
+			sale?.customer?.name?.trim() ||
+			sale?.customer?.businessName?.trim() ||
+			sale?.billingAddress?.name?.trim() ||
+			null,
+	};
 }
 
 function sanitizeFilename(value: string) {
@@ -727,6 +772,10 @@ export async function resolveSalesDocumentPreviewData(input: {
 			mode,
 			dispatchId: meta.dispatchId ?? null,
 		});
+		const recipient = await loadSalesPreviewRecipient({
+			db: input.db,
+			salesOrderId: snapshotLookup.snapshot.salesOrderId,
+		});
 		const urls = buildPublicTokenSalesDocumentUrls({
 			publicToken: input.publicToken,
 			baseUrl: input.baseUrl,
@@ -743,6 +792,8 @@ export async function resolveSalesDocumentPreviewData(input: {
 			mode,
 			orderNo: documentData.firstOrderId ?? null,
 			salesOrderId: snapshotLookup.snapshot.salesOrderId,
+			customerEmail: recipient.customerEmail,
+			customerName: recipient.customerName,
 			documentType: snapshotLookup.snapshot.documentType,
 			previewUrl: urls.previewUrl,
 			downloadUrl: urls.downloadUrl,
@@ -766,6 +817,10 @@ export async function resolveSalesDocumentPreviewData(input: {
 			mode,
 			dispatchId: meta.dispatchId ?? null,
 		});
+		const recipient = await loadSalesPreviewRecipient({
+			db: input.db,
+			salesOrderId: snapshotLookup.snapshot.salesOrderId,
+		});
 		const publicToken = await ensureSalesDocumentPublicToken({
 			db: input.db,
 			snapshotId: input.snapshotId,
@@ -788,6 +843,8 @@ export async function resolveSalesDocumentPreviewData(input: {
 			mode,
 			orderNo: documentData.firstOrderId ?? null,
 			salesOrderId: snapshotLookup.snapshot.salesOrderId,
+			customerEmail: recipient.customerEmail,
+			customerName: recipient.customerName,
 			documentType: snapshotLookup.snapshot.documentType,
 			previewUrl: urls.previewUrl,
 			downloadUrl: urls.downloadUrl,
@@ -811,6 +868,10 @@ export async function resolveSalesDocumentPreviewData(input: {
 			mode,
 			dispatchId: meta.dispatchId ?? null,
 		});
+		const recipient = await loadSalesPreviewRecipient({
+			db: input.db,
+			salesOrderId: snapshotLookup.snapshot.salesOrderId,
+		});
 		const publicToken = await ensureSalesDocumentPublicToken({
 			db: input.db,
 			snapshotId: snapshotLookup.snapshot.id,
@@ -833,6 +894,8 @@ export async function resolveSalesDocumentPreviewData(input: {
 			mode,
 			orderNo: documentData.firstOrderId ?? null,
 			salesOrderId: snapshotLookup.snapshot.salesOrderId,
+			customerEmail: recipient.customerEmail,
+			customerName: recipient.customerName,
 			documentType: snapshotLookup.snapshot.documentType,
 			previewUrl: urls.previewUrl,
 			downloadUrl: urls.downloadUrl,
@@ -865,6 +928,10 @@ export async function resolveSalesDocumentPreviewData(input: {
 		mode,
 		dispatchId: payload.dispatchId ?? null,
 	});
+	const recipient = await loadSalesPreviewRecipient({
+		db: input.db,
+		salesOrderId: payload.salesIds.length === 1 ? (payload.salesIds[0] ?? null) : null,
+	});
 	const urls = buildLegacySalesDocumentPreviewUrls({
 		token: input.token,
 		baseUrl: input.baseUrl,
@@ -885,6 +952,8 @@ export async function resolveSalesDocumentPreviewData(input: {
 				: null,
 		salesOrderId:
 			payload.salesIds.length === 1 ? (payload.salesIds[0] ?? null) : null,
+		customerEmail: recipient.customerEmail,
+		customerName: recipient.customerName,
 		documentType:
 			payload.salesIds.length === 1
 				? buildSalesDocumentTypeKey({

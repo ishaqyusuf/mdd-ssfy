@@ -196,10 +196,11 @@ async function buildSalesDocumentEmailData(
 
 	return {
 		type: input.printType,
-		customerEmail: primarySale.customerEmail,
+		customerEmail: normalizeText(input.customerEmail) || primarySale.customerEmail,
 		customerName: primarySale.customerName,
 		salesRep: primarySale.salesRep,
 		salesRepEmail: primarySale.salesRepEmail,
+		note: normalizeText(input.note),
 		paymentLink,
 		pdfLink:
 			pdfToken && apiUrl != null
@@ -251,6 +252,7 @@ export const simpleSalesDocumentEmail: NotificationHandler = {
 			subject: `${docType} email sent`,
 			headline: `${docType} email sent to ${data.customerName} (${data.customerEmail}) for ${data.sales.length} document${data.sales.length > 1 ? "s" : ""}.`,
 			authorId: author.id,
+			note: data.note || undefined,
 			tags: payload,
 		};
 	},
@@ -266,6 +268,7 @@ export const simpleSalesDocumentEmail: NotificationHandler = {
 			data: {
 				isQuote,
 				customerName: data.customerName,
+				note: data.note || undefined,
 				acceptQuoteLink: data.acceptQuoteLink || undefined,
 				paymentLink: data.paymentLink || undefined,
 				pdfLink: data.pdfLink || undefined,
