@@ -891,6 +891,10 @@ export class ComponentHelperClass extends StepHelperClass {
             // }
             if (!takeOff) this.nextStep(isRoot, this.redirectUid);
             this.updateComponentCost();
+            if (stepData.title == "Door") {
+                this.updateGroupedCost();
+                this.calculateTotalPrice();
+            }
         }
     }
     public componentIsRoot() {

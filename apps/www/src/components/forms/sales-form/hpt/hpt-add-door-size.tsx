@@ -33,22 +33,27 @@ export function HptAddDoorSize({ doorIndex }) {
                         <Menu.Item
                             onClick={(e) => {
                                 e.stopPropagation();
-                                ctx.hpt.dotUpdateGroupItemFormPath(
-                                    size.path,
-                                    "selected",
-                                    !selected,
-                                );
+                                if (!selected) {
+                                    ctx.hpt.addHeight(size);
+                                } else {
+                                    ctx.hpt.dotUpdateGroupItemFormPath(
+                                        size.path,
+                                        "selected",
+                                        false,
+                                    );
+                                }
                                 ctx.hpt.dotUpdateGroupItemFormPath(
                                     size.path,
                                     "pricing.itemPrice.salesPrice",
                                     size.salesPrice,
                                 );
-                                // console.log({ door });
                                 ctx.hpt.dotUpdateGroupItemFormPath(
                                     size.path,
                                     "stepProductId.id",
                                     door?.id,
                                 );
+                                ctx.hpt.updateGroupedCost();
+                                ctx.hpt.calculateTotalPrice();
                             }}
                             disabled={!size?.basePrice}
                             className={cn(selected && "bg-muted")}
@@ -73,4 +78,3 @@ export function HptAddDoorSize({ doorIndex }) {
         </>
     );
 }
-
