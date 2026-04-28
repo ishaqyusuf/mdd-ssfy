@@ -3020,6 +3020,23 @@ model SalesDocumentSnapshot {
     @@index([generationStatus, updatedAt])
 }
 
+model PublicLinkToken {
+    id           String    @id @default(cuid())
+    token        String    @unique @db.VarChar(191)
+    kind         String    @db.VarChar(100)
+    resourceType String    @db.VarChar(100)
+    resourceId   String    @db.VarChar(191)
+    expiresAt    DateTime? @db.Timestamp(0)
+    revokedAt    DateTime? @db.Timestamp(0)
+    meta         Json?     @db.Json
+    createdAt    DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt    DateTime? @updatedAt
+    deletedAt    DateTime? @db.Timestamp(0)
+
+    @@index([resourceType, resourceId])
+    @@index([kind, expiresAt])
+}
+
 // ---- sales.payment-system.prisma ----
 model PaymentLedgerEntry {
     id              String    @id @default(cuid())

@@ -97,7 +97,6 @@ export function updateDoorGroupForm(
     }
 
     cls.dotUpdateItemForm("groupItem", groupItem);
-    return groupItem;
     cls.updateComponentCost();
     cls.updateGroupedCost();
     cls.calculateTotalPrice();

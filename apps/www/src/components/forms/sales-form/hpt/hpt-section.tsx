@@ -106,6 +106,9 @@ function DoorSizeTable({ door, sn }: DoorSizeTable) {
 
     const itemType = ctx?.hpt?.getItemForm()?.groupItem?.itemType;
     const isSlab = itemType === "Door Slabs Only";
+    const showSwingColumn = door.sizeList.some(
+        (sl) => Boolean(ctx.config.hasSwing || sl?.form?.swing),
+    );
     return (
         <div className="grid w-full grid-cols-1 gap-4 xl:grid-cols-4">
             <div className="space-y-4 xl:col-span-3">
@@ -132,11 +135,11 @@ function DoorSizeTable({ door, sn }: DoorSizeTable) {
                         <TableRow className="uppercase">
                             <TableHead className="font-mono$ w-8">#</TableHead>
                             <TableHead className="w-30">Size</TableHead>
-                            {ctx.config.hasSwing && (
-                                <TableHead className="w-28">Swing</TableHead>
-                            )}
                             {!isSlab || (
                                 <TableHead className="w-16">PROD</TableHead>
+                            )}
+                            {showSwingColumn && (
+                                <TableHead className="w-28">Swing</TableHead>
                             )}
                             {ctx.config.noHandle ? (
                                 <TableHead
@@ -227,6 +230,7 @@ function DoorSizeRowContent({
     const line = useHptLine();
     const { lineUid, zDoor, sizeForm, size, sn, valueChanged } = line;
     const { isSlab, showNote, setShowNote } = ctx;
+    const showSwing = Boolean(ctx.config.hasSwing || sizeForm?.swing);
 
     if (!zDoor?.selected) return <></>;
 
@@ -274,7 +278,7 @@ function DoorSizeRowContent({
                             />
                         </div>
                     )}
-                    {ctx.config.hasSwing && (
+                    {showSwing && (
                         <div className="space-y-1">
                             <div className="text-xs uppercase text-muted-foreground">
                                 Swing
@@ -368,7 +372,7 @@ function DoorSizeRowContent({
                         />
                     </TableCell>
                 )}
-                {ctx.config.hasSwing && (
+                {showSwing && (
                     <TableCell>
                         <LineInput
                             cls={ctx.hpt}
