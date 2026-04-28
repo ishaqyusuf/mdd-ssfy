@@ -41,6 +41,7 @@ import {
 } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/line-input";
 import { HptAddDoorSize } from "./hpt-add-door-size";
 import { Checkbox } from "@gnd/ui/checkbox";
+import { useEffect } from "react";
 
 interface Props {
     itemStepUid;
@@ -54,12 +55,20 @@ export function HptSection({ itemStepUid }: Props) {
                 },
             ]}
         >
-            <Content />
+            <Content itemStepUid={itemStepUid} />
         </HptContextProvider>
     );
 }
-function Content() {
+function Content({ itemStepUid }: { itemStepUid: string }) {
     const ctx = useHpt();
+    const isOpen = ctx.itemForm?.currentStepUid == itemStepUid;
+
+    useEffect(() => {
+        if (!isOpen) return;
+        ctx.hpt.updateGroupedCost();
+        ctx.hpt.calculateTotalPrice();
+    }, [ctx.hpt, isOpen]);
+
     return (
         <div className="">
             <Tabs

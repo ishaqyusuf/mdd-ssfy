@@ -6,6 +6,8 @@ import { FormClient } from "../_components/form-client";
 
 import PageShell from "@/components/page-shell";
 import { PageTitle } from "@gnd/ui/custom/page-title";
+import { unstable_noStore } from "next/cache";
+export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }) {
 	return constructMetadata({
 		title: `Create Order - gndprodesk.com`,
@@ -13,6 +15,7 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function CreateOrderPage({}) {
+	unstable_noStore();
 	const data = await createSalesBookFormUseCase({
 		type: "order",
 	});
