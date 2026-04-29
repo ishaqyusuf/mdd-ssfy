@@ -35,6 +35,7 @@
     "backlog": "turbo dev --parallel  --filter @gnd/gnd-backlog",
     "mobile": "turbo dev --parallel  --filter @gnd/expo-app --filter @gnd/www",
     "mobile-jobs": "turbo dev --parallel  --filter @gnd/expo-app --filter @gnd/www --filter @gnd/site --filter @gnd/jobs",
+    "mobile-jobs:terminal": "bash ./scripts/open-mobile-jobs-terminal.sh",
     "dev": "turbo dev --parallel",
     "www": "turbo dev --parallel --filter @gnd/www",
     "www:jobs": "turbo dev --parallel --filter @gnd/www --filter @gnd/jobs",
