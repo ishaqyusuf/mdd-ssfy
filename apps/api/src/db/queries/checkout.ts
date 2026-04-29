@@ -225,16 +225,87 @@ export async function initializeCheckout(
 ) {
 	const { db } = ctx;
 	const payload = resolveSalesCheckoutToken(query.token);
-	const sales = await getOrders(ctx, {
-		salesIds: payload?.salesIds,
-		// invoice: "pending",
-	});
+	const sales = payload?.salesIds?.length
+		? await db.salesOrders.findMany({
+				where: {
+					id: {
+						in: payload.salesIds,
+					},
+					type: "order",
+					deletedAt: null,
+				},
+				select: {
+					id: true,
+					orderId: true,
+					amountDue: true,
+					customerId: true,
+					salesRepId: true,
+					customer: {
+						select: {
+							businessName: true,
+							name: true,
+							email: true,
+							phoneNo: true,
+						},
+					},
+					billingAddress: {
+						select: {
+							name: true,
+							email: true,
+							address1: true,
+							phoneNo: true,
+						},
+					},
+					shippingAddress: {
+						select: {
+							name: true,
+							address1: true,
+							phoneNo: true,
+						},
+					},
+				},
+			})
+		: [];
 	await timeout(1000);
 
 	return {
 		payload,
-		sales: sales?.data?.filter((a) => a.due > 0),
-		customerName: sales?.data?.[0]?.displayName,
+		sales: sales
+			.map((sale) => ({
+				id: sale.id,
+				orderId: sale.orderId?.toUpperCase(),
+				due: Number(sale.amountDue || 0),
+				customerId: sale.customerId,
+				salesRepId: sale.salesRepId,
+				accountNo: sale.customer?.phoneNo
+					? sale.customer.phoneNo
+					: sale.customerId
+						? `cust-${sale.customerId}`
+						: null,
+				customerPhone:
+					sale.billingAddress?.phoneNo ||
+					sale.customer?.phoneNo ||
+					sale.shippingAddress?.phoneNo ||
+					null,
+				email: sale.customer?.email || sale.billingAddress?.email || null,
+				displayName:
+					sale.customer?.businessName ||
+					sale.customer?.name ||
+					sale.billingAddress?.name ||
+					sale.shippingAddress?.name ||
+					null,
+				address:
+					sale.shippingAddress?.address1 ||
+					sale.billingAddress?.address1 ||
+					null,
+			}))
+			.filter((sale) => sale.due > 0),
+		customerName:
+			sales[0]?.customer?.businessName ||
+			sales[0]?.customer?.name ||
+			sales[0]?.billingAddress?.name ||
+			sales[0]?.shippingAddress?.name ||
+			null,
 	};
 }
 
