@@ -207,6 +207,7 @@ export function SalesDocumentPreviewPage({
 								salesOrderId={salesOrderId}
 								mode={data.mode === "quote" ? "quote" : "invoice"}
 								documentTitle={data.title}
+								orderNo={data.orderNo}
 								customerEmail={customerEmail}
 								customerName={customerName}
 							/>

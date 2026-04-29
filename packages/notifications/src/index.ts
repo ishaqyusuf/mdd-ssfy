@@ -20,6 +20,7 @@ import { communityUnitProductionBatchUpdated } from "./types/community-unit-prod
 import { communityUnitProductionCompleted } from "./types/community-unit-production-completed";
 import { communityUnitProductionStarted } from "./types/community-unit-production-started";
 import { communityUnitProductionStopped } from "./types/community-unit-production-stopped";
+import { composedSalesDocumentEmail } from "./types/composed-sales-document-email";
 import { dispatchPackingDelay } from "./types/dispatch-packing-delay";
 import { employeeDocumentReview } from "./types/employee-document-review";
 import { inventoryInbound } from "./types/inventory-inbound";
@@ -121,6 +122,7 @@ const handlers = {
 	sales_marked_as_production_completed: salesMarkedAsProductionCompleted,
 	sales_production_all_completed: salesProductionAllCompleted,
 	sales_email_reminder: salesEmailReminder,
+	composed_sales_document_email: composedSalesDocumentEmail,
 	simple_sales_document_email: simpleSalesDocumentEmail,
 	simple_sales_email_reminder: simpleSalesEmailReminder,
 	sales_reminder_schedule_admin_notification:

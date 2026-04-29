@@ -23,7 +23,10 @@ export function GeneralFooter({}) {
 	const sPreview = useSalesPreview();
 
 	function preview() {
-		void sPreview.preview(data?.id, data?.type);
+		void sPreview.preview(data?.id, data?.type, {
+			customerEmail: data?.email,
+			customerName: data?.displayName,
+		});
 	}
 	async function reset() {
 		startTransition(async () => {

@@ -29,6 +29,8 @@ const config = {
 		"@gnd/community",
 		"@gnd/inventory",
 		"@gnd/square",
+		"@gnd/notifications",
+		"@gnd/pdf",
 	],
 	eslint: {
 		ignoreDuringBuilds: true,

@@ -21,6 +21,7 @@
     "@gnd/db": "workspace:*",
     "@gnd/logger": "workspace:*",
     "@gnd/sales": "workspace:*",
+    "@gnd/pdf": "workspace:*",
     "@gnd/utils": "workspace:*",
     "@gnd/email": "workspace:*",
     "@gnd/app-store": "workspace:*",

@@ -13,6 +13,8 @@ export function useSalesPreview() {
 	const requestRef = useRef(0);
 	const [params, setParams] = useQueryStates({
 		salesPreviewId: parseAsInteger,
+		salesPreviewCustomerEmail: parseAsString,
+		salesPreviewCustomerName: parseAsString,
 		salesPreviewError: parseAsString,
 		salesPreviewRequest: parseAsString,
 		salesPreviewToken: parseAsString,
@@ -42,6 +44,8 @@ export function useSalesPreview() {
 			options?: {
 				mode?: IOrderPrintMode;
 				dispatchId?: number | null;
+				customerEmail?: string | null;
+				customerName?: string | null;
 			},
 		) {
 			if (!salesId || !salesPreviewType) return;
@@ -53,6 +57,8 @@ export function useSalesPreview() {
 
 			setParams({
 				salesPreviewId: salesId,
+				salesPreviewCustomerEmail: options?.customerEmail ?? null,
+				salesPreviewCustomerName: options?.customerName ?? null,
 				salesPreviewType,
 				salesPreviewRequest: requestId,
 				salesPreviewUrl: null,

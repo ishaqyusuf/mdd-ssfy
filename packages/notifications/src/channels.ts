@@ -30,6 +30,7 @@ export const channelNames = [
 	"sales_item_info",
 	"sales_dispatch_info",
 	"sales_email_reminder",
+	"composed_sales_document_email",
 	"simple_sales_document_email",
 	"simple_sales_email_reminder",
 	"sales_reminder_schedule_admin_notification",
@@ -274,6 +275,13 @@ export const channelsConfig: Partial<{
 	sales_email_reminder: {
 		name: "Sales Email Reminder",
 		description: "Send when a sales reminder email is sent.",
+		priority: 5,
+		category: "Sales",
+	},
+	composed_sales_document_email: {
+		name: "Composed Sales Document Email",
+		description:
+			"Send a custom sales document email with optional PDF attachment and payment CTA.",
 		priority: 5,
 		category: "Sales",
 	},

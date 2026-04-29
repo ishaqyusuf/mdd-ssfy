@@ -20,6 +20,8 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 			id?: number | null;
 			orderId?: string | null;
 			uuid?: string | null;
+			email?: string | null;
+			displayName?: string | null;
 		};
 	};
 	const isQuote = data?.type === "quote";
@@ -31,7 +33,10 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 		auth.roleTitle?.toLowerCase() === "super admin" &&
 		!isQuote;
 	function preview() {
-		void sPreview.preview(data?.id, data?.type);
+		void sPreview.preview(data?.id, data?.type, {
+			customerEmail: data?.email,
+			customerName: data?.displayName,
+		});
 	}
 	const [loading, startTransition] = useTransition();
 	const qs = useSalesOverviewQuery();

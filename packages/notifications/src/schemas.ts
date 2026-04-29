@@ -637,6 +637,7 @@ export type NotificationTypes = {
 	sales_marked_as_production_completed: SalesMarkedAsProductionCompletedInput;
 	sales_production_all_completed: SalesProductionAllCompletedInput;
 	sales_email_reminder: SalesEmailReminderInput;
+	composed_sales_document_email: ComposedSalesDocumentEmailInput;
 	simple_sales_document_email: SendSalesEmailPayloadInput;
 	simple_sales_email_reminder: SimpleSalesEmailReminderInput;
 	sales_reminder_schedule_admin_notification: SalesReminderScheduleAdminNotificationInput;
@@ -951,6 +952,31 @@ export const salesEmailReminderTags = actityTagsSchema.extend({
 	hasPdfLink: z.boolean().optional(),
 });
 export type SalesEmailReminderTags = z.infer<typeof salesEmailReminderTags>;
+export const composedSalesDocumentEmailSchema = z.object({
+	printType: z.enum(["order", "quote"]),
+	salesIds: z.array(z.number()).min(1),
+	customerEmail: z.string().email(),
+	customerName: z.string().optional().nullable(),
+	subject: z.string().min(1),
+	message: z.string().optional().nullable(),
+	attachSalesPdf: z.boolean().default(true).optional(),
+});
+export type ComposedSalesDocumentEmailInput = z.infer<
+	typeof composedSalesDocumentEmailSchema
+>;
+export const composedSalesDocumentEmailTags = actityTagsSchema.extend({
+	customerEmail: z.string().email(),
+	customerName: z.string().optional().nullable(),
+	salesCount: z.number(),
+	reminderType: z.enum(["order", "quote"]),
+	salesNo: z.array(z.string()).optional(),
+	emailSubject: z.string(),
+	hasPaymentLink: z.boolean().optional(),
+	hasPdfAttachment: z.boolean().optional(),
+});
+export type ComposedSalesDocumentEmailTags = z.infer<
+	typeof composedSalesDocumentEmailTags
+>;
 export const simpleSalesDocumentEmailSchema = z.object({
 	emailType: z
 		.enum(["with payment", "with part payment", "without payment"])
@@ -1383,6 +1409,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_email_reminder"),
 		payload: salesEmailReminderSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("composed_sales_document_email"),
+		payload: composedSalesDocumentEmailSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("simple_sales_document_email"),

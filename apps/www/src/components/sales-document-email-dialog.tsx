@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
+import { Checkbox } from "@gnd/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -25,16 +26,25 @@ type SalesDocumentEmailDialogProps = {
 	salesOrderId?: number | null;
 	mode: "quote" | "invoice" | "packing-slip" | "production" | "order-packing";
 	documentTitle: string;
+	orderNo?: string | null;
 	customerEmail?: string | null;
 	customerName?: string | null;
 	downloadUrl?: string | null;
 	disabled?: boolean;
 };
 
+function buildDefaultSubject(orderNo?: string | null) {
+	const normalizedOrderNo = orderNo?.trim();
+	return normalizedOrderNo
+		? `Regarding your GND sales #${normalizedOrderNo}`
+		: "Regarding your GND sales document";
+}
+
 export function SalesDocumentEmailDialog({
 	salesOrderId,
 	mode,
 	documentTitle,
+	orderNo,
 	customerEmail,
 	customerName,
 	downloadUrl,
@@ -44,14 +54,18 @@ export function SalesDocumentEmailDialog({
 	const queryClient = useQueryClient();
 	const [open, setOpen] = useState(false);
 	const [email, setEmail] = useState(customerEmail || "");
-	const [note, setNote] = useState("");
+	const [subject, setSubject] = useState(buildDefaultSubject(orderNo));
+	const [message, setMessage] = useState("");
+	const [attachSalesPdf, setAttachSalesPdf] = useState(true);
 	const notification = useNotificationTrigger({
 		executingToast: "Sending email...",
 		successToast: "Email sent.",
 		errorToast: "Unable to send email.",
 		onSuccess: async () => {
 			setOpen(false);
-			setNote("");
+			setSubject(buildDefaultSubject(orderNo));
+			setMessage("");
+			setAttachSalesPdf(true);
 			await Promise.all([
 				queryClient.invalidateQueries({
 					queryKey: trpc.notes.activityTree.pathKey(),
@@ -65,17 +79,18 @@ export function SalesDocumentEmailDialog({
 
 	const isQuote = mode === "quote";
 	const isEmailValid = EMAIL_RE.test(email.trim());
-	const attachmentLabel = isQuote ? "Quote attached" : "Invoice attached";
+	const attachmentLabel = "Attach sales PDF";
 	const canSend =
 		!disabled &&
 		!notification.isActionPending &&
 		!!salesOrderId &&
-		isEmailValid;
+		isEmailValid &&
+		subject.trim().length > 0;
 	const helperText = useMemo(() => {
 		if (customerName?.trim()) {
-			return `This email will be sent to ${customerName}. You can update the address before sending.`;
+			return `This email will be sent to ${customerName}. You can update the address and subject before sending.`;
 		}
-		return "Enter the customer email address for this document.";
+		return "Enter the customer email address and subject for this document.";
 	}, [customerName]);
 
 	useEffect(() => {
@@ -92,6 +107,9 @@ export function SalesDocumentEmailDialog({
 				disabled={disabled || !salesOrderId}
 				onClick={() => {
 					setEmail(customerEmail || "");
+					setSubject(buildDefaultSubject(orderNo));
+					setMessage("");
+					setAttachSalesPdf(true);
 					setOpen(true);
 				}}
 			>
@@ -102,7 +120,7 @@ export function SalesDocumentEmailDialog({
 			<Dialog open={open} onOpenChange={setOpen}>
 				<DialogContent className="sm:max-w-xl">
 					<DialogHeader>
-						<DialogTitle>Send {isQuote ? "Quote" : "Invoice"} Email</DialogTitle>
+						<DialogTitle>Compose {isQuote ? "Quote" : "Invoice"} Email</DialogTitle>
 						<DialogDescription>{helperText}</DialogDescription>
 					</DialogHeader>
 
@@ -113,10 +131,26 @@ export function SalesDocumentEmailDialog({
 									<Icons.FileText className="size-4 text-muted-foreground" />
 								</div>
 								<div className="min-w-0 flex-1">
-									<p className="text-sm font-medium">{attachmentLabel}</p>
-									<p className="truncate text-sm text-muted-foreground">
-										{documentTitle}
-									</p>
+									<div className="flex items-start gap-3">
+										<Checkbox
+											id="sales-preview-attach-pdf"
+											checked={attachSalesPdf}
+											onCheckedChange={(checked) =>
+												setAttachSalesPdf(checked === true)
+											}
+										/>
+										<div>
+											<Label
+												htmlFor="sales-preview-attach-pdf"
+												className="text-sm font-medium"
+											>
+												{attachmentLabel}
+											</Label>
+											<p className="truncate text-sm text-muted-foreground">
+												{documentTitle}
+											</p>
+										</div>
+									</div>
 								</div>
 								{downloadUrl ? (
 									<Button variant="ghost" size="sm" asChild>
@@ -143,14 +177,31 @@ export function SalesDocumentEmailDialog({
 						</div>
 
 						<div className="space-y-2">
-							<Label htmlFor="sales-preview-email-note">Message</Label>
+							<Label htmlFor="sales-preview-email-subject">Subject</Label>
+							<Input
+								id="sales-preview-email-subject"
+								value={subject}
+								onChange={(event) => setSubject(event.target.value)}
+								placeholder="Regarding your GND sales"
+							/>
+							{!subject.trim() ? (
+								<p className="text-xs text-rose-600">Subject is required.</p>
+							) : null}
+						</div>
+
+						<div className="space-y-2">
+							<Label htmlFor="sales-preview-email-message">Message</Label>
 							<Textarea
-								id="sales-preview-email-note"
-								value={note}
-								onChange={(event) => setNote(event.target.value)}
-								placeholder="Add an extra note for the customer..."
+								id="sales-preview-email-message"
+								value={message}
+								onChange={(event) => setMessage(event.target.value)}
+								placeholder="Write your message to the customer..."
 								className="min-h-32"
 							/>
+							<p className="text-xs text-muted-foreground">
+								If this sale has an outstanding balance, a payment button will be
+								included automatically.
+							</p>
 						</div>
 					</div>
 
@@ -168,12 +219,14 @@ export function SalesDocumentEmailDialog({
 							disabled={!canSend}
 							onClick={() => {
 								if (!salesOrderId) return;
-								notification.simpleSalesDocumentEmail({
-									emailType: isQuote ? "without payment" : "with payment",
+								notification.composedSalesDocumentEmail({
 									printType: isQuote ? "quote" : "order",
 									salesIds: [salesOrderId],
 									customerEmail: email.trim(),
-									note: note.trim() || undefined,
+									customerName: customerName?.trim() || undefined,
+									subject: subject.trim(),
+									message: message.trim() || undefined,
+									attachSalesPdf,
 								});
 							}}
 						>

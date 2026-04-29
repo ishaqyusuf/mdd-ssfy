@@ -36,7 +36,10 @@ export function QuickActionsBar() {
     if (!data?.id) return null;
 
     function preview() {
-        void sPreview.preview(data?.id, data?.type);
+        void sPreview.preview(data?.id, data?.type, {
+            customerEmail: data?.email,
+            customerName: data?.displayName,
+        });
     }
 
     function reset() {
@@ -66,6 +69,7 @@ export function QuickActionsBar() {
                     [data.orderId, data.displayName].filter(Boolean).join(" | ") ||
                     "Sales document"
                 }
+                orderNo={data.orderId}
                 customerEmail={data.email}
                 customerName={data.displayName}
             />

@@ -7,6 +7,7 @@ import { JobAssignedEmail } from "@gnd/email/emails/job-assigned";
 import { JobPaymentSentEmail } from "@gnd/email/emails/job-payment-sent";
 import { JobRejectedEmail } from "@gnd/email/emails/job-rejected";
 import { JobTaskConfigureRequestEmail } from "@gnd/email/emails/job-task-configure-request";
+import ComposedSalesDocumentEmail from "@gnd/email/emails/composed-sales-document-email";
 import LoginEmail from "@gnd/email/emails/login-link-email";
 import { SalesCustomerPaymentFailedEmail } from "@gnd/email/emails/sales-customer-payment-failed";
 import { SalesCustomerPaymentReceivedEmail } from "@gnd/email/emails/sales-customer-payment-received";
@@ -222,6 +223,7 @@ export class EmailService {
 			"job-payment-sent": JobPaymentSentEmail,
 			"job-rejected": JobRejectedEmail,
 			"job-task-configure-request": JobTaskConfigureRequestEmail,
+			"composed-sales-document-email": ComposedSalesDocumentEmail,
 			"sales-email-reminder": SalesEmail,
 			"sales-reminder-schedule-admin-notification":
 				SalesReminderScheduleAdminNotificationEmail,

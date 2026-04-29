@@ -31,6 +31,7 @@ import type {
 } from "@sales/constants";
 import { copySales } from "@sales/copy-sales";
 import type { CustomerTransactionType } from "@sales/types";
+import { resolveReminderAmount } from "@sales/utils/reminder-pay-plan";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { addDays } from "date-fns";
 import z from "zod";
@@ -42,6 +43,24 @@ function isTokenExpired(expiry?: string | null) {
 	const date = new Date(expiry);
 	if (Number.isNaN(date.getTime())) return true;
 	return date.getTime() < Date.now();
+}
+
+function normalizeBuyerPhoneNumber(phoneNo?: string | null): string | null {
+	if (!phoneNo) return null;
+	const raw = phoneNo.trim();
+	if (!raw) return null;
+
+	if (raw.startsWith("+")) {
+		const digits = raw.slice(1).replace(/\D/g, "");
+		if (digits.length < 8 || digits.length > 15) return null;
+		return `+${digits}`;
+	}
+
+	const digits = raw.replace(/\D/g, "");
+	if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+	if (digits.length === 10) return `+1${digits}`;
+	if (digits.length >= 8 && digits.length <= 15) return `+${digits}`;
+	return null;
 }
 
 function resolveQuoteAcceptanceToken(token: string) {
@@ -604,10 +623,16 @@ export async function createSalesCheckoutLink(
 			(sum, order) => sum + Number(order.due || 0),
 			0,
 		);
-		const amount =
+		const derivedAmount =
 			payload.payPlan === "flexible"
 				? Number(data.amount || 0)
-				: Number(payload.amount || 0);
+				: resolveReminderAmount({
+						due: totalDue,
+						payPlan: payload.payPlan ?? "full",
+						preferredAmount: payload.preferredAmount,
+						percentage: payload.percentage,
+					});
+		const amount = Number(derivedAmount || 0);
 		if (!SQUARE_LOCATION_ID) {
 			throw new Error("Square location is not configured");
 		}
@@ -625,8 +650,7 @@ export async function createSalesCheckoutLink(
 		const phone = checkoutData?.sales
 			?.map((a) => a.customerPhone)
 			?.filter(Boolean)?.[0];
-		let phoneNo = phone?.replaceAll("-", "");
-		if (!phoneNo?.startsWith("+")) phoneNo = `+1${phoneNo}`;
+		const phoneNo = normalizeBuyerPhoneNumber(phone);
 		const pendingCheckout = await createPendingLegacySalesCheckout(tx, {
 			amount,
 			orders: checkoutData.sales.map((order) => ({
@@ -659,7 +683,7 @@ export async function createSalesCheckoutLink(
 				},
 				prePopulatedData: {
 					buyerEmail,
-					buyerPhoneNumber: phoneNo,
+					...(phoneNo ? { buyerPhoneNumber: phoneNo } : {}),
 					buyerAddress: {
 						addressLine1: cust?.address,
 					},
@@ -759,21 +783,22 @@ export async function verifyPayment(
 				const settledOrders = squarePayment.orders
 					.map((entry) => entry.order)
 					.filter(
-						(order): order is NonNullable<(typeof squarePayment.orders)[number]["order"]> =>
-							Boolean(order),
+						(
+							order,
+						): order is NonNullable<
+							(typeof squarePayment.orders)[number]["order"]
+						> => Boolean(order),
 					);
 				if (squarePayment?.customerTxs?.length)
 					return {
 						status: "COMPLETED" as const,
 						amount: Number(squarePayment.amount || 0),
 						customerReceiptSales: settledOrders.map((order) => ({
-								salesId: order.id,
-								remainingDue: Number(order.amountDue || 0),
-							})),
+							salesId: order.id,
+							remainingDue: Number(order.amountDue || 0),
+						})),
 						customerAuthorId:
-							squarePayment.createdBy?.id ||
-							settledOrders[0]?.salesRepId ||
-							1,
+							squarePayment.createdBy?.id || settledOrders[0]?.salesRepId || 1,
 					};
 				const checkout = squarePayment.checkout;
 				if (!squarePayment.squareOrderId || !checkout?.id) {
@@ -847,18 +872,16 @@ export async function verifyPayment(
 					...resp,
 					notifications: Object.values(salesRepsNotifications || {}),
 					customerFailureSales: settledOrders.map((order) => ({
-							salesId: order.id,
-							remainingDue: Number(order.amountDue || 0),
-						})),
+						salesId: order.id,
+						remainingDue: Number(order.amountDue || 0),
+					})),
 					customerFailureNotifiedAt:
 						(squarePayment.meta as Record<string, unknown> | null)
 							?.customerFailureNotifiedAt || null,
 					customerFailureMeta:
 						(squarePayment.meta as Record<string, unknown> | null) || {},
 					customerAuthorId:
-						squarePayment.createdBy?.id ||
-						settledOrders[0]?.salesRepId ||
-						1,
+						squarePayment.createdBy?.id || settledOrders[0]?.salesRepId || 1,
 				};
 			},
 			{ isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
@@ -878,7 +901,10 @@ export async function verifyPayment(
 			ctx,
 			notifications as PaymentSystemNotificationEvent[],
 		);
-		if ("customerReceiptSales" in result && result.customerReceiptSales?.length) {
+		if (
+			"customerReceiptSales" in result &&
+			result.customerReceiptSales?.length
+		) {
 			const payload = await buildSalesCustomerPaymentReceivedPayload(ctx.db, {
 				sales: result.customerReceiptSales,
 				paymentMethod: "online",
@@ -1001,7 +1027,10 @@ export async function paymentSuccess(
 				return {
 					salesId: order.id,
 					amountApplied,
-					remainingDue: Math.max(Number(order.amountDue || 0) - amountApplied, 0),
+					remainingDue: Math.max(
+						Number(order.amountDue || 0) - amountApplied,
+						0,
+					),
 				};
 			})
 			.filter((sale) => sale.amountApplied > 0),

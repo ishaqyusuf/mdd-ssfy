@@ -1,6 +1,6 @@
 import type { Db } from "@gnd/db";
-import { getAppApiUrl, getAppUrl } from "@gnd/utils/envs";
 import { getCustomerWallet } from "@gnd/sales/wallet";
+import { getAppApiUrl, getAppUrl } from "@gnd/utils/envs";
 import {
 	type SalesPaymentTokenSchema,
 	type SalesPdfToken,
@@ -157,9 +157,7 @@ async function buildSalesDocumentEmailData(
 			: await (async () => {
 					const accountNo =
 						primarySale.customerPhone ||
-						(primarySale.customerId
-							? `cust-${primarySale.customerId}`
-							: null);
+						(primarySale.customerId ? `cust-${primarySale.customerId}` : null);
 					const walletId =
 						primarySale.customerWalletId ||
 						(accountNo ? (await getCustomerWallet(db, accountNo)).id : null);
@@ -171,6 +169,11 @@ async function buildSalesDocumentEmailData(
 					const paymentToken = tryTokenize({
 						salesIds: paymentEligibleSales.map((sale) => sale.id),
 						expiry,
+						payPlan: "full",
+						amount: paymentEligibleSales.reduce(
+							(sum, sale) => sum + Number(sale.due || 0),
+							0,
+						),
 						walletId,
 					} satisfies SalesPaymentTokenSchema);
 					return paymentToken && appUrl
@@ -196,7 +199,8 @@ async function buildSalesDocumentEmailData(
 
 	return {
 		type: input.printType,
-		customerEmail: normalizeText(input.customerEmail) || primarySale.customerEmail,
+		customerEmail:
+			normalizeText(input.customerEmail) || primarySale.customerEmail,
 		customerName: primarySale.customerName,
 		salesRep: primarySale.salesRep,
 		salesRepEmail: primarySale.salesRepEmail,
