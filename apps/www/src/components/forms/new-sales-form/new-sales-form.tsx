@@ -137,7 +137,14 @@ type PackingDispatch = {
 	deliveryMode?: string | null;
 };
 
-const PAYMENT_METHODS = ["Cash", "Check", "Credit Card", "ACH", "Link"];
+const PAYMENT_METHODS = [
+	"Cash",
+	"Check",
+	"Credit Card",
+	"ACH",
+	"Link",
+	"Wire Transfer",
+];
 
 function normalizeDispatchStatus(status?: string | null): DispatchStatus {
 	switch (status) {

@@ -20,7 +20,14 @@ export default {
         textValue("Pickup", "pickup"),
         textValue("Delivery", "delivery"),
     ],
-    paymentOptions: ["Cash", "Credit Card", "Check", "COD", "Zelle"],
+    paymentOptions: [
+        "Cash",
+        "Credit Card",
+        "Check",
+        "COD",
+        "Zelle",
+        "Wire Transfer",
+    ],
     paymentTerms: [
         textValue("None", ""),
         textValue("Net10"),

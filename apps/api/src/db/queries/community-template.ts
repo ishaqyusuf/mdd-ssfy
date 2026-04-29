@@ -33,60 +33,69 @@ export async function getCommunityTemplates(
 		whereCommunityTemplates(query),
 		model,
 	);
-
-	const data = await model.findMany({
-		where,
-		...searchMeta,
-		include: {
-			project: {
-				select: {
-					title: true,
-					meta: true,
-					builderId: true,
-					builder: {
-						select: {
-							name: true,
-							meta: true,
-							tasks: {
-								select: {
-									id: true,
-									taskName: true,
-								},
+	const modelSelect = {
+		id: true,
+		createdAt: true,
+		slug: true,
+		modelName: true,
+		meta: true,
+		project: {
+			select: {
+				slug: true,
+				title: true,
+				builder: {
+					select: {
+						name: true,
+						tasks: {
+							select: {
+								id: true,
+								taskName: true,
 							},
 						},
 					},
 				},
 			},
-			pivot: {
-				include: {
-					modelCosts: true,
-					_count: {
-						select: {
-							modelCosts: true,
-						},
+		},
+		pivot: {
+			select: {
+				meta: true,
+				modelCosts: {
+					take: 1,
+					select: {
+						id: true,
 					},
-				},
-			},
-			costs: true,
-			communityModelInstallTasks: {
-				select: {
-					builderTaskId: true,
-					qty: true,
-					installCostModel: {
-						select: {
-							unitCost: true,
-						},
-					},
-				},
-			},
-			// builder: true,
-			_count: {
-				select: {
-					homes: true,
-					// piv: true
 				},
 			},
 		},
+		costs: {
+			select: {
+				id: true,
+				current: true,
+				meta: true,
+			},
+		},
+		communityModelInstallTasks: {
+			select: {
+				builderTaskId: true,
+				qty: true,
+				installCostModel: {
+					select: {
+						unitCost: true,
+					},
+				},
+			},
+		},
+		_count: {
+			select: {
+				homes: true,
+			},
+		},
+	} satisfies Prisma.CommunityModelsSelect;
+
+	const data = await model.findMany({
+		where,
+		...searchMeta,
+		select: modelSelect,
 	});
 
 	return await response(
@@ -195,7 +204,7 @@ function countConfiguredDesignValues(value: unknown): number {
 		);
 	}
 	if (typeof value === "object") {
-		return Object.values(value as Record<string, unknown>).reduce(
+		return Object.values(value as Record<string, unknown>).reduce<number>(
 			(sum, entry) => sum + countConfiguredDesignValues(entry),
 			0,
 		);

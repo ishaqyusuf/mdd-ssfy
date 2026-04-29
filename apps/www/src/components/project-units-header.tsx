@@ -14,6 +14,7 @@ export function ProjectUnitHeader({}) {
             <SearchFilter
                 filterSchema={projectUnitFilterParams}
                 placeholder="Search ProjectUnits..."
+                debounceMs={300}
                 trpcRoute={trpc.filters.projectUnit}
                 {...{ filters, setFilters }}
             />
@@ -22,4 +23,3 @@ export function ProjectUnitHeader({}) {
         </div>
     );
 }
-

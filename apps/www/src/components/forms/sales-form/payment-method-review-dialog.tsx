@@ -86,6 +86,13 @@ export function PaymentMethodReviewDialog({
 					<Button type="button" onClick={() => onOpenChange(false)}>
 						Done
 					</Button>
+					<Button
+						type="button"
+						variant="outline"
+						onClick={() => onOpenChange(false)}
+					>
+						Skip
+					</Button>
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>

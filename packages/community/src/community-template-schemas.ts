@@ -2,7 +2,6 @@ import type { Db } from "@gnd/db";
 import { sortList } from "@gnd/utils";
 import type { RenturnTypeAsync } from "@gnd/utils";
 import {
-  inventoryCategories,
   inventoryList,
   saveInventory,
   updateSubCategory,
@@ -123,41 +122,18 @@ export async function getCommunitySchema(
   db: Db,
   query?: GetCommunitySchemaSchema,
 ) {
-  const inputsCategory = await getCommunitySectionsInventoryCategory(db);
-  const blocksCategory = await getCommunityBlocksInventoryCategory(db);
-  const _blocks = await db.communityTemplateBlockConfig.findMany({
-    where: {},
-    select: {
-      uid: true,
-      id: true,
-      index: true,
-    },
-  });
-  const fields = await db.communityTemplateInputConfig.findMany({
-    select: {
-      uid: true,
-    },
-  });
-  await db.inventory.updateMany({
-    where: {
-      uid: {
-        in: _blocks.map((a) => a.uid),
+  const [inputsCategory, blocksCategory, _blocks] = await Promise.all([
+    getCommunitySectionsInventoryCategory(db),
+    getCommunityBlocksInventoryCategory(db),
+    db.communityTemplateBlockConfig.findMany({
+      where: {},
+      select: {
+        uid: true,
+        id: true,
+        index: true,
       },
-    },
-    data: {
-      inventoryCategoryId: blocksCategory!.id,
-    },
-  });
-  await db.inventory.updateMany({
-    where: {
-      uid: {
-        in: fields.map((a) => a.uid),
-      },
-    },
-    data: {
-      inventoryCategoryId: inputsCategory!.id,
-    },
-  });
+    }),
+  ]);
   const blocksInventories = await db.inventory.findMany({
     where: {
       uid: {
@@ -356,8 +332,7 @@ export type GetBlockInputsSchema = z.infer<typeof getBlockInputsSchema>;
 export async function getBlockInputs(db: Db, query: GetBlockInputsSchema) {
   const inputs = await db.communityTemplateInputConfig.findMany({
     where: {
-      // communityTemplateBlockConfigId: query.blockId,
-      deletedAt: {},
+      deletedAt: null,
     },
     select: {
       id: true,
@@ -387,13 +362,13 @@ export async function getBlockInputs(db: Db, query: GetBlockInputsSchema) {
     inputs: inputs
       .map((i) => ({
         ...i,
-        // inv: inventories.find((iv) => iv.uid == i.uid),
         inv: invMap.get(i.uid),
       }))
-      .filter((a) => ({
+      .map((a) => ({
         ...a,
         title: a.title || a.inv?.name,
-      })),
+      }))
+      .filter((a) => !!a.title),
   };
 }
 
@@ -404,26 +379,21 @@ export async function getCommunityListingsInventoryCategory(db: Db) {
   return await getCategory(db, "Community Item");
 }
 export async function getCategory(db: Db, type: CommunityCategory) {
-  await Promise.all(
-    Object.entries({
-      Community: COMMUNITY_BLOCKS_INVENTORY_CATEGORY_TITLE,
-      "Community Sections": COMMUNITY_SECTIONS_INVENTORY_CATEGORY_TITLE,
-      // "Community Item"
-    }).map(async ([o, n]) => {
-      const result = await db.inventoryCategory.updateMany({
-        where: {
-          title: o,
-        },
-        data: {
-          title: n,
-        },
-      });
-    }),
-  );
-  const response = await inventoryCategories(db, {
-    q: type,
+  const legacyTitles: Partial<Record<CommunityCategory, string[]>> = {
+    [COMMUNITY_BLOCKS_INVENTORY_CATEGORY_TITLE]: ["Community"],
+    [COMMUNITY_SECTIONS_INVENTORY_CATEGORY_TITLE]: ["Community Sections"],
+  };
+
+  return db.inventoryCategory.findFirst({
+    where: {
+      title: {
+        in: [type, ...(legacyTitles[type] || [])],
+      },
+    },
+    orderBy: {
+      id: "asc",
+    },
   });
-  return response?.data?.[0];
 }
 export async function getCommunityBlocksInventoryCategory(db: Db) {
   return await getCategory(db, "Community Blocks");

@@ -39,7 +39,15 @@ const PAYMENT_TERMS = [
 	"Net 60",
 ];
 const DELIVERY_OPTIONS = ["pickup", "delivery", "ship"];
-const PAYMENT_METHODS = ["None", "Cash", "Check", "Credit Card", "ACH", "Link"];
+const PAYMENT_METHODS = [
+	"None",
+	"Cash",
+	"Check",
+	"Credit Card",
+	"ACH",
+	"Link",
+	"Wire Transfer",
+];
 
 function normalizeProfileTitle(value?: string | null) {
 	return String(value || "")

@@ -46,6 +46,7 @@ interface Props {
   // setFilters;
   defaultSearch?;
   placeholder?;
+  debounceMs?;
   filterList?: PageFilterData[];
   initialFilterList?: PageFilterData[];
   filters;
@@ -59,6 +60,7 @@ export function SearchFilter({
   setFilters,
   trpQueryOptions = undefined,
   placeholder = "Search ...",
+  debounceMs = 1500,
   initialFilterList,
 }) {
   const { data: trpcFilterData } = useQuery({
@@ -77,6 +79,7 @@ export function SearchFilter({
     >
       <SearchFilterTRPC
         placeholder={placeholder}
+        debounceMs={debounceMs}
         filterList={trpcFilterData as any}
         {...{ filters, setFilters }}
       />
@@ -86,6 +89,7 @@ export function SearchFilter({
 export function SearchFilterTRPC({
   placeholder,
   defaultSearch = {},
+  debounceMs = 1500,
   filterList,
   SearchTips,
 }: Props) {
@@ -135,7 +139,7 @@ export function SearchFilterTRPC({
       setPrompt("");
     }
   };
-  const deb = useDebounce(prompt, 1500);
+  const deb = useDebounce(prompt, debounceMs);
   const hasMounted = useRef(false);
   useEffect(() => {
     if (!hasMounted.current) {

@@ -4,6 +4,7 @@ import { useTransition } from "react";
 
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { SalesMenu } from "@/components/sales-menu";
+import { SalesDocumentEmailDialog } from "@/components/sales-document-email-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
@@ -58,6 +59,16 @@ export function QuickActionsBar() {
                     className="flex items-center gap-2"
                 />
             ) : null}
+            <SalesDocumentEmailDialog
+                salesOrderId={data.id}
+                mode={isQuote ? "quote" : "invoice"}
+                documentTitle={
+                    [data.orderId, data.displayName].filter(Boolean).join(" | ") ||
+                    "Sales document"
+                }
+                customerEmail={data.email}
+                customerName={data.displayName}
+            />
             <Button
                 onClick={preview}
                 size="sm"

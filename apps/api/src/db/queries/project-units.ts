@@ -1,8 +1,9 @@
 import type { TRPCContext } from "@api/trpc/init";
 import { isCommunityUnitRequest } from "@api/utils/community-unit-access";
 import type { CommunityTemplateMeta } from "@community/types";
-import { getUnitProductionStatus, projectUnitsSelect } from "@community/utils";
+import { projectUnitsSelect } from "@community/utils";
 import type { Prisma } from "@gnd/db";
+import { formatDate } from "@gnd/utils/dayjs";
 import { transformFilterDateToQuery } from "@gnd/utils";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
@@ -49,76 +50,112 @@ export const getProjectUnitsSchema = z
 	.extend(paginationSchema.shape);
 export type GetProjectUnitsSchema = z.infer<typeof getProjectUnitsSchema>;
 
-type ProjectUnitTemplate = {
-	id?: number | null;
-	meta?: unknown;
-	project?: {
-		builder?: {
-			tasks?: Array<{
-				id: number;
-				taskName: string;
-				installable?: boolean | null;
-			}>;
-		} | null;
-	} | null;
-	communityModelInstallTasks?: Array<{
-		builderTaskId?: number | null;
-		qty?: number | null;
-		installCostModel?: {
-			unitCost?: number | null;
-		} | null;
-	}>;
-} | null;
-
-const projectUnitsListSelect = {
-	id: true,
-	createdAt: true,
-	lotBlock: true,
-	lot: true,
-	block: true,
-	modelName: true,
-	slug: true,
-	communityTemplateId: true,
-	projectId: true,
-	homeTemplateId: true,
-	tasks: projectUnitsSelect.tasks,
-	_count: projectUnitsSelect._count,
-	communityTemplate: {
-		select: {
-			slug: true,
-			version: true,
-			id: true,
-			meta: true,
-			project: {
-				select: {
-					builder: {
-						select: {
-							tasks: {
+function buildProjectUnitsListSelect(hideInstallCost: boolean) {
+	return {
+		id: true,
+		createdAt: true,
+		lotBlock: true,
+		lot: true,
+		block: true,
+		modelName: true,
+		slug: true,
+		communityTemplateId: true,
+		tasks: projectUnitsSelect.tasks,
+		_count: projectUnitsSelect._count,
+		communityTemplate: {
+			select: {
+				slug: true,
+				version: true,
+				id: true,
+				meta: true,
+				...(hideInstallCost
+					? {}
+					: {
+							project: {
 								select: {
-									id: true,
-									taskName: true,
-									installable: true,
+									builder: {
+										select: {
+											tasks: {
+												select: {
+													id: true,
+													taskName: true,
+													installable: true,
+												},
+											},
+										},
+									},
 								},
 							},
-						},
-					},
-				},
+							communityModelInstallTasks: {
+								select: {
+									builderTaskId: true,
+									qty: true,
+									installCostModel: {
+										select: {
+											unitCost: true,
+										},
+									},
+								},
+							},
+						}),
 			},
-			communityModelInstallTasks: {
-				select: {
-					builderTaskId: true,
-					qty: true,
-					installCostModel: {
-						select: {
-							unitCost: true,
-						},
+		},
+		project: {
+			select: {
+				title: true,
+				builder: {
+					select: {
+						name: true,
 					},
 				},
 			},
 		},
-	},
-	project: projectUnitsSelect.project,
-} satisfies Prisma.HomesSelect;
+	} satisfies Prisma.HomesSelect;
+}
+
+function getProjectUnitProductionStatus(home: {
+	id: number;
+	tasks: Array<{
+		produceable?: boolean | null;
+		sentToProductionAt?: Date | null;
+		producedAt?: Date | null;
+		productionDueDate?: Date | null;
+	}>;
+	_count?: {
+		jobs?: number | null;
+	} | null;
+}) {
+	const prod = home.tasks.filter((task) => task.produceable);
+	const produceables = prod.length;
+	const hasJob = Number(home?._count?.jobs || 0);
+	let produced = prod.filter((task) => task.producedAt).length;
+	let prodDate: Date | null = prod.find((task) => task.productionDueDate)
+		?.productionDueDate || null;
+	let productionStatus = "Idle";
+	const sent = prod.filter((task) => task.sentToProductionAt).length;
+
+	if (hasJob) produced = prod.length;
+	if (sent > 0) productionStatus = "Queued";
+	if (produced > 0) {
+		productionStatus = "Started";
+		if (produced === produceables) {
+			productionStatus = "Completed";
+			prodDate = prod.find((task) => task.producedAt)?.producedAt || prodDate;
+		}
+	}
+	if (hasJob) {
+		productionStatus = "Completed";
+		prodDate = prod.find((task) => task.producedAt)?.producedAt || prodDate;
+	}
+
+	return {
+		date: prodDate ? formatDate(prodDate) : null,
+		produceables,
+		produced,
+		pendings: produceables - produced,
+		status: productionStatus,
+	};
+}
 
 function isConfiguredTemplateValue(value: unknown) {
 	if (value === null || value === undefined) return false;
@@ -148,7 +185,7 @@ function countConfiguredDesignValues(value: unknown): number {
 }
 
 function getInstallCostSummary(
-	template: ProjectUnitTemplate | null | undefined,
+	template: any,
 ) {
 	if (!template?.id) {
 		return {
@@ -197,7 +234,7 @@ function getInstallCostSummary(
 	};
 }
 
-function getTemplateSummary(template: ProjectUnitTemplate | null | undefined) {
+function getTemplateSummary(template: any) {
 	if (!template?.id) {
 		return {
 			status: "missing" as const,
@@ -233,17 +270,49 @@ export async function getProjectUnits(
 	const data = await model.findMany({
 		where,
 		...searchMeta,
-		select: projectUnitsListSelect,
+		select: buildProjectUnitsListSelect(hideInstallCost),
 	});
+	const installCostSummaryByTemplateId = new Map<
+		number,
+		ReturnType<typeof getInstallCostSummary>
+	>();
+	const templateSummaryByTemplateId = new Map<
+		number,
+		ReturnType<typeof getTemplateSummary>
+	>();
 
 	return await response(
 		data.map((d) => {
 			const { tasks, _count, communityTemplate, ...unitData } = d;
-			const production = getUnitProductionStatus(d);
-			const installCostSummary = hideInstallCost
-				? null
-				: getInstallCostSummary(communityTemplate);
-			const templateSummary = getTemplateSummary(communityTemplate);
+			const production = getProjectUnitProductionStatus({
+				id: d.id,
+				tasks,
+				_count,
+			});
+			const templateId = communityTemplate?.id ?? null;
+			let installCostSummary: ReturnType<typeof getInstallCostSummary> | null =
+				null;
+			let templateSummary = getTemplateSummary(null);
+
+			if (templateId) {
+				if (!templateSummaryByTemplateId.has(templateId)) {
+					templateSummaryByTemplateId.set(
+						templateId,
+						getTemplateSummary(communityTemplate),
+					);
+				}
+				templateSummary = templateSummaryByTemplateId.get(templateId)!;
+
+				if (!hideInstallCost) {
+					if (!installCostSummaryByTemplateId.has(templateId)) {
+						installCostSummaryByTemplateId.set(
+							templateId,
+							getInstallCostSummary(communityTemplate),
+						);
+					}
+					installCostSummary = installCostSummaryByTemplateId.get(templateId)!;
+				}
+			}
 
 			return {
 				...unitData,
