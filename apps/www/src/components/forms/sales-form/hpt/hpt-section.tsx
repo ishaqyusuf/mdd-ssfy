@@ -1,6 +1,5 @@
 import ConfirmBtn from "@/components/_v1/confirm-btn";
 import { Icons } from "@gnd/ui/icons";
-import Money from "@/components/_v1/money";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { Menu } from "@gnd/ui/custom/menu";
 import { AnimatedNumber } from "@/components/animated-number";
@@ -70,7 +69,7 @@ function Content({ itemStepUid }: { itemStepUid: string }) {
     }, [ctx.hpt, isOpen]);
 
     return (
-        <div className="">
+        <section className="space-y-4 bg-gradient-to-br from-white via-slate-50/70 to-slate-100/60 p-4">
             <Tabs
                 onValueChange={(e) => {
                     ctx.hpt.tabChanged(e);
@@ -78,9 +77,13 @@ function Content({ itemStepUid }: { itemStepUid: string }) {
                 }}
                 value={ctx.hpt.tabUid}
             >
-                <TabsList>
+                <TabsList className="flex h-auto w-full flex-wrap justify-start gap-2 rounded-2xl bg-slate-100/80 p-2">
                     {ctx.doors?.map((door) => (
-                        <TabsTrigger key={door.uid} value={door.uid}>
+                        <TabsTrigger
+                            key={door.uid}
+                            value={door.uid}
+                            className="rounded-full border border-transparent px-4 py-2 text-xs font-semibold uppercase tracking-wide data-[state=active]:border-primary/20 data-[state=active]:bg-white data-[state=active]:text-primary"
+                        >
                             <TextWithTooltip
                                 className="max-w-[260px]"
                                 text={door.title}
@@ -94,21 +97,59 @@ function Content({ itemStepUid }: { itemStepUid: string }) {
                     </TabsContent>
                 ))}
             </Tabs>
-        </div>
+        </section>
     );
 }
 interface DoorSizeTable {
     door: HptContext["doors"][number];
     sn;
 }
+
+export function getHptTableColumnCount({
+    isSlab,
+    showSwing,
+    noHandle,
+}: {
+    isSlab: boolean;
+    showSwing: boolean;
+    noHandle: boolean;
+}) {
+    return (
+        2 + // #, size
+        (isSlab ? 1 : 0) +
+        (showSwing ? 1 : 0) +
+        (noHandle ? 1 : 2) +
+        1 + // estimate
+        1 + // line total
+        1 // actions
+    );
+}
+
 function DoorSizeTable({ door, sn }: DoorSizeTable) {
     const ctx = useHpt();
 
     const itemType = ctx?.hpt?.getItemForm()?.groupItem?.itemType;
     const isSlab = itemType === "Door Slabs Only";
     const showSwingColumn = door.sizeList.some(
-        (sl) => Boolean(ctx.config.hasSwing || sl?.form?.swing),
+        (sl) =>
+            Boolean(
+                ctx.config.hasSwing ||
+                    ctx.itemForm?.groupItem?.form?.[sl.path]?.swing,
+            ),
     );
+    const selectedRows = door.sizeList.filter(
+        (sl) => ctx.itemForm?.groupItem?.form?.[sl.path]?.selected,
+    );
+    const doorTotal = selectedRows.reduce((total, sl) => {
+        const lineTotal =
+            ctx.itemForm?.groupItem?.form?.[sl.path]?.pricing?.totalPrice || 0;
+        return total + Number(lineTotal || 0);
+    }, 0);
+    const tableColumnCount = getHptTableColumnCount({
+        isSlab,
+        showSwing: showSwingColumn,
+        noHandle: Boolean(ctx.config.noHandle),
+    });
     return (
         <div className="grid w-full grid-cols-1 gap-4 xl:grid-cols-4">
             <div className="space-y-4 xl:col-span-3">
@@ -125,15 +166,16 @@ function DoorSizeTable({ door, sn }: DoorSizeTable) {
                             mode="mobile"
                         />
                     ))}
-                    <div className="rounded-xl border bg-accent/40 p-3">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
                         <HptAddDoorSize doorIndex={sn - 1} />
                     </div>
                 </div>
                 <div className="hidden lg:block">
-                <Table className="table-fixed   p-4 font-medium">
+                    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <Table className="table-fixed p-4 font-medium">
                     <TableHeader className="text-xs">
-                        <TableRow className="uppercase">
-                            <TableHead className="font-mono$ w-8">#</TableHead>
+                        <TableRow className="bg-slate-50/80 uppercase text-slate-500">
+                            <TableHead className="w-8 font-mono$">#</TableHead>
                             <TableHead className="w-30">Size</TableHead>
                             {!isSlab || (
                                 <TableHead className="w-16">PROD</TableHead>
@@ -155,10 +197,6 @@ function DoorSizeTable({ door, sn }: DoorSizeTable) {
                                 </>
                             )}
                             <TableHead className="w-28 ">Estimate</TableHead>
-                            {/* <TableHead className="w-28 whitespace-nowrap">
-                                Labor/Qty
-                            </TableHead> */}
-
                             <TableHead className="w-28">Line Total</TableHead>
                             <TableHead className=""></TableHead>
                         </TableRow>
@@ -173,14 +211,15 @@ function DoorSizeTable({ door, sn }: DoorSizeTable) {
                             />
                         ))}
                     </TableBody>
-                    <TableFooter className="bg-accent">
+                    <TableFooter className="bg-slate-50/80">
                         <TableRow>
-                            <TableCell>
+                            <TableCell colSpan={tableColumnCount}>
                                 <HptAddDoorSize doorIndex={sn - 1} />
                             </TableCell>
                         </TableRow>
                     </TableFooter>
                 </Table>
+                    </div>
                 </div>
             </div>
             <div className="hidden xl:block">
@@ -236,18 +275,21 @@ function DoorSizeRowContent({
 
     if (mode == "mobile") {
         return (
-            <div className="space-y-3 rounded-xl border bg-background p-4 shadow-sm">
+            <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                     <div>
-                        <div className="text-xs uppercase text-muted-foreground">
+                        <div className="text-xs uppercase tracking-wide text-slate-500">
                             Size
                         </div>
-                        <div className="text-base font-semibold">{size.size}</div>
+                        <div className="text-base font-semibold text-slate-900">
+                            {size.size}
+                        </div>
                     </div>
                     <div className="flex items-center gap-2">
                         <Button
                             variant={showNote ? "default" : "outline"}
                             size="xs"
+                            className="rounded-full"
                             onClick={() => {
                                 setShowNote(!showNote);
                             }}
@@ -268,7 +310,7 @@ function DoorSizeRowContent({
                 <div className="grid gap-3 sm:grid-cols-2">
                     {!isSlab || (
                         <div className="space-y-1">
-                            <div className="text-xs uppercase text-muted-foreground">
+                            <div className="text-xs uppercase tracking-wide text-slate-500">
                                 Prod
                             </div>
                             <LineSwitch
@@ -280,7 +322,7 @@ function DoorSizeRowContent({
                     )}
                     {showSwing && (
                         <div className="space-y-1">
-                            <div className="text-xs uppercase text-muted-foreground">
+                            <div className="text-xs uppercase tracking-wide text-slate-500">
                                 Swing
                             </div>
                             <LineInput
@@ -294,13 +336,13 @@ function DoorSizeRowContent({
 
                 <div className="grid gap-2 grid-cols-3 items-end">
                     <div className="space-y-1">
-                        <div className="text-xs uppercase text-muted-foreground">
+                        <div className="text-xs uppercase tracking-wide text-slate-500">
                             Estimate
                         </div>
                         <PriceEstimateCell />
                     </div>
                     <div className="space-y-1">
-                        <div className="text-xs uppercase text-muted-foreground">
+                        <div className="text-xs uppercase tracking-wide text-slate-500">
                             {ctx.config.noHandle ? "Qty" : "Qty"}
                         </div>
                         {ctx.config.noHandle ? (
@@ -338,10 +380,10 @@ function DoorSizeRowContent({
                         )}
                     </div>
                     <div className="space-y-1">
-                        <div className="text-xs uppercase text-muted-foreground">
+                        <div className="text-xs uppercase tracking-wide text-slate-500">
                             Line Total
                         </div>
-                        <div className="text-base font-semibold">
+                        <div className="text-base font-semibold text-slate-900">
                             <AnimatedNumber value={zDoor?.pricing?.totalPrice || 0} />
                         </div>
                     </div>
@@ -355,12 +397,11 @@ function DoorSizeRowContent({
         <>
             <TableRow
                 className={cn(
-                    // !sizeForm?.selected && "hidden",
-                    "hover:bg-transparent",
+                    "hover:bg-slate-50/60",
                 )}
             >
-                <TableCell className="font-mono$"></TableCell>
-                <TableCell className="font-mono$ text-sm font-semibold">
+                <TableCell className="font-mono$ text-slate-400">{sn}</TableCell>
+                <TableCell className="font-mono$ text-sm font-semibold text-slate-900">
                     {size.size}
                 </TableCell>
                 {!isSlab || (
@@ -437,12 +478,12 @@ function DoorSizeRowContent({
                 </TableCell>
                 <TableCell
                     align="right"
-                    className="flex items-center justify-end"
+                    className="flex items-center justify-end gap-2"
                 >
                     <Button
                         variant={showNote ? "default" : "outline"}
                         size="xs"
-                        className=""
+                        className="rounded-full"
                         onClick={(e) => {
                             setShowNote(!showNote);
                         }}

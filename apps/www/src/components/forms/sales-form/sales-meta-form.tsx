@@ -1,10 +1,11 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, type ReactNode, useEffect, useMemo, useState } from "react";
 import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { SettingsClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class";
 import { updateSalesMetaAction } from "@/actions/update-sales-meta-action";
 import { DatePicker } from "@/components/_v1/date-range-picker";
 import { Icons } from "@gnd/ui/icons";
 import { Menu } from "@gnd/ui/custom/menu";
+import { Button } from "@gnd/ui/button";
 import { AnimatedNumber } from "@/components/animated-number";
 import { FormSelectProps } from "@/components/common/controls/form-select";
 import { NumberInput } from "@/components/currency-input";
@@ -75,7 +76,7 @@ function SummaryTab({}) {
         setting.calculateTotalPrice();
     }
     return (
-        <div className="">
+        <div className="space-y-4 pb-4">
             <PaymentMethodReviewDialog
                 open={paymentReviewOpen}
                 paymentMethod={md?.paymentMethod}
@@ -93,14 +94,26 @@ function SummaryTab({}) {
                 onDontAskAgainChange={dismissPaymentMethodReview}
             />
             <SalesCustomerInput />
-            {/* <div className="min-h-[15vh] border-b">
-                <CustomerDataSection />
-            </div> */}
-            <div className="space-y-2">
-                <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2 xl:grid-cols-3">
-                    <CompactField label="Date">
+            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="border-b border-slate-200 bg-slate-50/80 px-4 py-3">
+                    <div className="flex items-center gap-2">
+                        <div className="rounded-full bg-slate-900 p-1.5 text-white">
+                            <Icons.Calendar className="size-3.5" />
+                        </div>
+                        <div>
+                            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                                Invoice Details
+                            </p>
+                            <p className="text-sm font-semibold text-slate-900">
+                                Dates, terms, profile, and delivery setup
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 gap-3 p-4 md:grid-cols-2">
+                    <CompactField label="Date" icon={<Icons.Calendar className="size-4" />}>
                         <DatePicker
-                            className="midday h-8 w-auto border-none p-0 px-1 uppercase whitespace-nowrap"
+                            className="midday h-10 w-full border-none bg-transparent p-0 text-sm font-semibold uppercase whitespace-nowrap"
                             hideIcon
                             value={md.createdAt as any}
                             setValue={(e) => {
@@ -108,7 +121,7 @@ function SummaryTab({}) {
                             }}
                         />
                     </CompactField>
-                    <CompactField label="Profile">
+                    <CompactField label="Profile" icon={<Icons.Tag className="size-4" />}>
                         <Select
                             value={md.salesProfileId}
                             onSelect={(e) => {
@@ -120,9 +133,9 @@ function SummaryTab({}) {
                             valueKey="id"
                         />
                     </CompactField>
-                    <CompactField label="P.O No">
+                    <CompactField label="P.O No" icon={<Icons.ReceiptText className="size-4" />}>
                         <LabelInput
-                            className="midday w-full text-right uppercase"
+                            className="midday h-10 w-full bg-transparent text-sm font-semibold uppercase"
                             value={md.po || ""}
                             onChange={(e) => {
                                 zus.dotUpdate("metaData.po", e.target.value);
@@ -131,7 +144,7 @@ function SummaryTab({}) {
                     </CompactField>
                     {md.type === "order" ? (
                         <>
-                            <CompactField label="Net Term">
+                            <CompactField label="Net Term" icon={<Icons.CreditCard className="size-4" />}>
                                 <Select
                                     name="metaData.paymentTerm"
                                     value={md.paymentTerm}
@@ -140,24 +153,25 @@ function SummaryTab({}) {
                                     titleKey={"text"}
                                 />
                             </CompactField>
-                            {md.paymentTerm != "None" || (
-                                <CompactField label="Due Date">
-                                    <DatePicker
-                                        className="midday h-8 w-auto border-none p-0 px-1 uppercase whitespace-nowrap"
-                                        hideIcon
-                                        value={md.paymentDueDate as any}
-                                        setValue={(e) => {
-                                            zus.dotUpdate(
-                                                "metaData.paymentDueDate",
-                                                e,
-                                            );
-                                        }}
-                                    />
-                                </CompactField>
-                            )}
-                            <CompactField label="Production Due Date">
+                            <CompactField label="Due Date" icon={<Icons.CalendarDays className="size-4" />}>
                                 <DatePicker
-                                    className="midday h-8 w-auto border-none p-0 px-1 uppercase whitespace-nowrap"
+                                    className="midday h-10 w-full border-none bg-transparent p-0 text-sm font-semibold uppercase whitespace-nowrap"
+                                    hideIcon
+                                    value={md.paymentDueDate as any}
+                                    setValue={(e) => {
+                                        zus.dotUpdate(
+                                            "metaData.paymentDueDate",
+                                            e,
+                                        );
+                                    }}
+                                />
+                            </CompactField>
+                            <CompactField
+                                label="Production Due Date"
+                                icon={<Icons.Hammer className="size-4" />}
+                            >
+                                <DatePicker
+                                    className="midday h-10 w-full border-none bg-transparent p-0 text-sm font-semibold uppercase whitespace-nowrap"
                                     hideIcon
                                     value={md.prodDueDate}
                                     setValue={(e) => {
@@ -170,9 +184,9 @@ function SummaryTab({}) {
                             </CompactField>
                         </>
                     ) : (
-                        <CompactField label="Good Until">
+                        <CompactField label="Good Until" icon={<Icons.CalendarDays className="size-4" />}>
                             <DatePicker
-                                className="midday h-8 w-auto border-none p-0 px-1 uppercase whitespace-nowrap"
+                                className="midday h-10 w-full border-none bg-transparent p-0 text-sm font-semibold uppercase whitespace-nowrap"
                                 hideIcon
                                 value={md.goodUntil as any}
                                 setValue={(e) => {
@@ -183,7 +197,8 @@ function SummaryTab({}) {
                     )}
                     <CompactField
                         label="Delivery Mode"
-                        className="md:col-span-2 xl:col-span-3"
+                        icon={<Icons.Truck className="size-4" />}
+                        className="md:col-span-2"
                     >
                         <Select
                             name="metaData.deliveryMode"
@@ -194,12 +209,45 @@ function SummaryTab({}) {
                         />
                     </CompactField>
                 </div>
-                <div className="mt-1.5 space-y-1 rounded-lg border border-muted bg-muted/10 p-2.5">
-                    <div className="mb-2 border-b pb-2 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Cost Summary
+            </section>
+
+            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="border-b border-slate-200 bg-slate-50/80 px-4 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                            <div className="rounded-full bg-emerald-600 p-1.5 text-white">
+                                <Icons.Calculator className="size-3.5" />
+                            </div>
+                            <div>
+                                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                                    Cost Summary
+                                </p>
+                                <p className="text-sm font-semibold text-slate-900">
+                                    Adjust global costs, tax, and payment effects
+                                </p>
+                            </div>
+                        </div>
+                        <div className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-600">
+                            Invoice-level only
+                        </div>
+                    </div>
+                </div>
+                <div className="space-y-3 p-4">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        <SummaryStat
+                            label="Sub Total"
+                            value={<AnimatedNumber value={displaySubTotal || 0} />}
+                        />
+                        <SummaryStat
+                            label="Tax"
+                            value={<AnimatedNumber value={md.pricing?.taxValue || 0} />}
+                        />
+                        <SummaryStat
+                            label="CCC"
+                            value={<AnimatedNumber value={md.pricing?.ccc || 0} />}
+                        />
                     </div>
                     {
-                        // Object.entries(md.extraCosts)
                         md.extraCosts
                             .map((k, i) =>
                                 k.type == "Labor" ? (
@@ -211,10 +259,10 @@ function SummaryTab({}) {
                                             calculateTotal();
                                         }}
                                         label={
-                                            <span>
+                                            <span className="flex items-center gap-2">
                                                 <LabelInput
                                                     value={k.label}
-                                                    className="text-end"
+                                                    className="h-8 bg-transparent text-sm font-semibold text-slate-800"
                                                     onChange={(e) => {
                                                         zus.dotUpdate(
                                                             `metaData.extraCosts.${i}.label`,
@@ -249,7 +297,20 @@ function SummaryTab({}) {
                                 ),
                             )
                     }
-                    <Menu Icon={Icons.add} label={"Add Cost"}>
+                    <Menu
+                        Trigger={
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-9 rounded-full border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 shadow-none hover:bg-slate-100"
+                            >
+                                <Icons.Plus className="size-3.5" />
+                                <span>Add Cost</span>
+                                <Icons.ChevronDown className="size-3.5 text-slate-500" />
+                            </Button>
+                        }
+                    >
                         {[
                             {
                                 label: "Discount",
@@ -286,14 +347,23 @@ function SummaryTab({}) {
                             </Menu.Item>
                         ))}
                     </Menu>
-                    <LineContainer label="Sub Total">
-                        <div className="text-right">
+                    <LineContainer
+                        label={
+                            <span className="text-sm font-medium text-slate-600">
+                                Sub Total
+                            </span>
+                        }
+                    >
+                        <div className="text-right text-sm font-semibold text-slate-900">
                             <AnimatedNumber value={displaySubTotal || 0} />
                         </div>
                     </LineContainer>
                     <LineContainer
                         label={
-                            <div className="col-span-3 flex items-center justify-end border-b hover:bg-muted-foreground/30">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-slate-600">
+                                    Tax Group
+                                </span>
                                 <Select
                                     name="metaData.tax.taxCode"
                                     options={taxList}
@@ -303,24 +373,26 @@ function SummaryTab({}) {
                                     onSelect={(e) => {
                                         setting.taxCodeChanged();
                                     }}
-                                    className="w-auto"
+                                    className="w-auto min-w-[110px]"
                                 />
-                                <span className="text-sm">
+                                <span className="text-xs text-slate-500">
                                     {!md.tax?.taxCode || (
                                         <span>({md.tax?.percentage || 0}%)</span>
                                     )}
-                                    :
                                 </span>
                             </div>
                         }
                     >
-                        <div className="text-right">
+                        <div className="text-right text-sm font-semibold text-slate-900">
                             <AnimatedNumber value={md.pricing?.taxValue || 0} />
                         </div>
                     </LineContainer>
                     <LineContainer
                         label={
-                            <div className="col-span-3 flex items-center justify-end border-b hover:bg-muted-foreground/30">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-slate-600">
+                                    Payment Method
+                                </span>
                                 <Select
                                     name="metaData.paymentMethod"
                                     options={salesData.paymentOptions}
@@ -331,33 +403,40 @@ function SummaryTab({}) {
                                     }}
                                     className="w-auto"
                                 />
-                                <span>
+                                <span className="text-xs text-slate-500">
                                     {md.paymentMethod != "Credit Card" || (
-                                        <span className="text-sm">
+                                        <span>
                                             ({md.pricing?.cccPercentage || 3.5}%)
                                         </span>
                                     )}
-                                    :
                                 </span>
                             </div>
                         }
                     >
-                        <div className="text-right">
+                        <div className="text-right text-sm font-semibold text-slate-900">
                             <AnimatedNumber value={md.pricing?.ccc || 0} />
                         </div>
                     </LineContainer>
                 </div>
-            </div>
+            </section>
         </div>
     );
 }
-function CompactField({ label, className = "", children }) {
+function CompactField({ label, icon, className = "", children }) {
     return (
-        <div className={cn("px-0.5 py-0.5", className)}>
-            <Label className="text-sm leading-none uppercase tracking-wide text-muted-foreground">
-                {label}
-            </Label>
-            <div className="mt-0.5 flex min-h-6 items-center justify-end">
+        <div
+            className={cn(
+                "rounded-2xl border border-slate-200 bg-slate-50/70 p-3 shadow-sm",
+                className,
+            )}
+        >
+            <div className="flex items-center gap-2 text-slate-500">
+                {icon ? <span className="shrink-0">{icon}</span> : null}
+                <Label className="text-[11px] leading-none uppercase tracking-[0.16em] text-slate-500">
+                    {label}
+                </Label>
+            </div>
+            <div className="mt-2 flex min-h-10 items-center text-slate-900">
                 {children}
             </div>
         </div>
@@ -389,7 +468,7 @@ function Input({
             {props.type == "date" ? (
                 <>
                     <DatePicker
-                        className=" midday w-auto border-b border-none p-0 px-1 uppercase whitespace-nowrap"
+                        className="midday h-10 w-full border-none bg-transparent p-0 text-sm font-semibold uppercase whitespace-nowrap"
                         hideIcon
                         value={value as any}
                         setValue={(e) => {
@@ -401,7 +480,7 @@ function Input({
             ) : props.numberProps ? (
                 <NumberInput
                     {...props.numberProps}
-                    className="text-end min-w-16"
+                    className="h-9 min-w-20 bg-transparent text-end text-sm font-semibold"
                     value={value as any}
                     readOnly={props.readOnly}
                     onValueChange={(e) => {
@@ -412,7 +491,7 @@ function Input({
                 />
             ) : (
                 <LabelInput
-                    className="midday h-6 text-sm uppercase"
+                    className="midday h-9 bg-transparent text-sm font-semibold uppercase"
                     value={value as any}
                     onChange={(e) => {
                         zus.dotUpdate(name, e.target.value);
@@ -427,19 +506,28 @@ function LineContainer({ label, lg = false, className = "", children }) {
     return (
         <div
             className={cn(
-                "items-center gap-4 font-mono$ uppercase",
-                label && "grid grid-cols-5",
+                "rounded-2xl border border-slate-200 bg-slate-50/70 p-3",
+                label &&
+                    "grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_auto]",
+                className,
             )}
         >
-            <div className="col-span-3 flex justify-end text-muted-foreground">
+            <div className="flex items-center text-muted-foreground">
                 {!label ||
                     (typeof label === "string" ? (
-                        <Label className="">{label}:</Label>
+                        <Label className="text-sm font-medium text-slate-600">
+                            {label}
+                        </Label>
                     ) : (
                         label
                     ))}
             </div>
-            <div className={cn(lg && "col-span-2", "flex flex-1")}>
+            <div
+                className={cn(
+                    lg && "col-span-2",
+                    "flex flex-1 items-center justify-between gap-3 md:justify-end",
+                )}
+            >
                 {children}
             </div>
         </div>
@@ -481,7 +569,10 @@ export function Select<T>({
         >
             <SelectTrigger
                 noIcon
-                className="uppercases midday relative h-6 w-auto min-w-[16px] border-none bg-transparent p-0 text-sm font-mono$"
+                className={cn(
+                    "uppercases midday relative h-10 w-full min-w-[16px] border-none bg-transparent p-0 text-left text-sm font-semibold text-slate-900 shadow-none",
+                    props.className,
+                )}
             >
                 {isPlaceholder && (
                     <div className="pointer-events-none absolute inset-0">
@@ -517,5 +608,24 @@ export function Select<T>({
                 </ScrollArea>
             </SelectContent>
         </BaseSelect>
+    );
+}
+
+function SummaryStat({
+    label,
+    value,
+}: {
+    label: string;
+    value: ReactNode;
+}) {
+    return (
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 px-3 py-2">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                {label}
+            </p>
+            <div className="mt-1 text-sm font-semibold text-slate-900">
+                {value}
+            </div>
+        </div>
     );
 }

@@ -155,43 +155,56 @@ function HeaderBlock({
 						style={{
 							background: COLORS.navy,
 							color: "#fff",
-							padding: "8px 12px",
+							padding: "6px 10px",
 							borderRadius: variant === "template-2" ? 8 : 0,
 							textAlign: "right",
-							marginBottom: 10,
-							fontSize: 16,
+							marginBottom: 8,
+							fontSize: 14,
 							fontWeight: 700,
 							textTransform: "uppercase",
-							letterSpacing: 1,
+							letterSpacing: 0.8,
 						}}
 					>
 						{meta.title}
 					</div>
-					<MetaRow
-						label={isQuote ? "Quote #" : "Order #"}
-						value={meta.salesNo}
-						bold
-					/>
-					<MetaRow
-						label={isQuote ? "Quote Date" : "Order Date"}
-						value={meta.date}
-					/>
-					{meta.rep ? <MetaRow label="Rep" value={meta.rep} /> : null}
-					{meta.goodUntil ? (
-						<MetaRow label="Good Until" value={meta.goodUntil} />
-					) : null}
-					{meta.po ? <MetaRow label="P.O No" value={meta.po} /> : null}
-					{meta.balanceDue ? (
-						<MetaRow label="Balance Due" value={meta.balanceDue} bold accent />
-					) : null}
-					{meta.dueDate ? (
-						<MetaRow label="Due Date" value={meta.dueDate} />
-					) : null}
+					<div
+						style={{
+							display: "grid",
+							gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+							columnGap: 8,
+						}}
+					>
+						<MetaRow
+							label={isQuote ? "Quote #" : "Order #"}
+							value={meta.salesNo}
+							bold
+						/>
+						<MetaRow
+							label={isQuote ? "Quote Date" : "Order Date"}
+							value={meta.date}
+						/>
+						{meta.rep ? <MetaRow label="Rep" value={meta.rep} /> : null}
+						{meta.goodUntil ? (
+							<MetaRow label="Good Until" value={meta.goodUntil} />
+						) : null}
+						{meta.po ? <MetaRow label="P.O No" value={meta.po} /> : null}
+						{meta.balanceDue ? (
+							<MetaRow
+								label="Balance Due"
+								value={meta.balanceDue}
+								bold
+								accent
+							/>
+						) : null}
+						{meta.dueDate ? (
+							<MetaRow label="Due Date" value={meta.dueDate} />
+						) : null}
+					</div>
 					{meta.paymentDate ? (
 						<div
 							style={{
 								marginTop: 8,
-								padding: "8px 10px",
+								padding: "7px 10px",
 								borderRadius: 8,
 								border: "1px solid #16a34a",
 								background: "#dcfce7",
@@ -300,18 +313,28 @@ function MetaRow({
 		<div
 			style={{
 				display: "flex",
-				justifyContent: "space-between",
-				gap: 12,
+				flexDirection: "column",
+				gap: 1,
 				borderBottom: `1px solid ${COLORS.border}`,
-				padding: "4px 0",
+				padding: "4px 0 3px",
 				fontSize: 12,
+				minWidth: 0,
 			}}
 		>
-			<span style={{ color: COLORS.muted }}>{label}</span>
+			<span
+				style={{
+					color: COLORS.muted,
+					fontSize: 10,
+					textTransform: "uppercase",
+				}}
+			>
+				{label}
+			</span>
 			<span
 				style={{
 					color: accent ? COLORS.accent : COLORS.text,
 					fontWeight: bold ? 700 : 500,
+					lineHeight: 1.2,
 				}}
 			>
 				{value}

@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import type { SearchParams } from "nuqs";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { ErrorFallback } from "@/components/error-fallback";
+import { AuthGuard } from "@/components/auth-guard";
+import { _perm } from "@/components/sidebar/links";
 import { TableSkeleton } from "@/components/tables/skeleton";
 import { DataTable } from "@/components/tables/sales-dispatch/data-table";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
@@ -50,58 +52,67 @@ export default async function Page(props: Props) {
 
 	return (
 		<PageShell>
-			<PageTitle>Admin Dispatch Dashboard</PageTitle>
-			<div className="flex flex-col gap-6">
-				{/* Summary KPI Cards */}
-				<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
-					<ErrorBoundary errorComponent={ErrorFallback}>
-						<Suspense fallback={<DispatchSummaryCardsSkeleton />}>
-							<DispatchSummaryCards />
-						</Suspense>
-					</ErrorBoundary>
-				</div>
-
-				{/* Overdue alert banner */}
-				<ErrorBoundary errorComponent={ErrorFallback}>
-					<Suspense fallback={null}>
-						<DispatchOverdueBanner />
-					</Suspense>
-				</ErrorBoundary>
-
-				{/* Header with Filters + Admin Actions */}
-				<AdminDispatchHeader />
-
-				{/* Main Content */}
-				{view === "calendar" ? (
-					/* Calendar View */
-					<ErrorBoundary errorComponent={ErrorFallback}>
-						<Suspense fallback={<DispatchCalendarSkeleton />}>
-							<DispatchCalendarView />
-						</Suspense>
-					</ErrorBoundary>
-				) : (
-					/* Table View: Table + Sidebar */
-					<div className="flex gap-6 items-start">
-						{/* Dispatch Table */}
-						<div className="flex-1 min-w-0">
-							<ErrorBoundary errorComponent={ErrorFallback}>
-								<Suspense fallback={<TableSkeleton />}>
-									<DataTable />
-								</Suspense>
-							</ErrorBoundary>
-						</div>
-
-						{/* Driver Workload Sidebar */}
-						<div className="hidden xl:block w-64 shrink-0">
-							<ErrorBoundary errorComponent={ErrorFallback}>
-								<Suspense fallback={<DriverWorkloadSkeleton />}>
-									<DriverWorkloadCard />
-								</Suspense>
-							</ErrorBoundary>
-						</div>
+			<AuthGuard
+				rules={[_perm.some("editOrders", "editDelivery")]}
+				Fallback={
+					<div className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">
+						You do not have permission to access dispatch admin.
 					</div>
-				)}
-			</div>
+				}
+			>
+				<PageTitle>Admin Dispatch Dashboard</PageTitle>
+				<div className="flex flex-col gap-6">
+					{/* Summary KPI Cards */}
+					<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+						<ErrorBoundary errorComponent={ErrorFallback}>
+							<Suspense fallback={<DispatchSummaryCardsSkeleton />}>
+								<DispatchSummaryCards />
+							</Suspense>
+						</ErrorBoundary>
+					</div>
+
+					{/* Overdue alert banner */}
+					<ErrorBoundary errorComponent={ErrorFallback}>
+						<Suspense fallback={null}>
+							<DispatchOverdueBanner />
+						</Suspense>
+					</ErrorBoundary>
+
+					{/* Header with Filters + Admin Actions */}
+					<AdminDispatchHeader />
+
+					{/* Main Content */}
+					{view === "calendar" ? (
+						/* Calendar View */
+						<ErrorBoundary errorComponent={ErrorFallback}>
+							<Suspense fallback={<DispatchCalendarSkeleton />}>
+								<DispatchCalendarView />
+							</Suspense>
+						</ErrorBoundary>
+					) : (
+						/* Table View: Table + Sidebar */
+						<div className="flex gap-6 items-start">
+							{/* Dispatch Table */}
+							<div className="flex-1 min-w-0">
+								<ErrorBoundary errorComponent={ErrorFallback}>
+									<Suspense fallback={<TableSkeleton />}>
+										<DataTable />
+									</Suspense>
+								</ErrorBoundary>
+							</div>
+
+							{/* Driver Workload Sidebar */}
+							<div className="hidden xl:block w-64 shrink-0">
+								<ErrorBoundary errorComponent={ErrorFallback}>
+									<Suspense fallback={<DriverWorkloadSkeleton />}>
+										<DriverWorkloadCard />
+									</Suspense>
+								</ErrorBoundary>
+							</div>
+						</div>
+					)}
+				</div>
+			</AuthGuard>
 		</PageShell>
 	);
 }

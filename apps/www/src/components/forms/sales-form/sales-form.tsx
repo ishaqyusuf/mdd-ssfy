@@ -49,7 +49,7 @@ function Content({ data }) {
 	}, [isMobilePanel]);
 
 	return (
-		<div className="fixed inset-x-0 bottom-0 top-[calc(var(--header-height)_+_35px)] overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-100/70 p-3 sm:p-4">
+		<div className="fixed bottom-0 left-0 right-0 top-[calc(var(--header-height)_+_35px)] overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-100/70 p-3 md:left-[70px] sm:p-4">
 			<div className="relative flex h-full min-h-0 overflow-hidden rounded-xl border border-slate-200/80 bg-white/80 shadow-sm">
 				<main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 					<div className="shrink-0 flex border-b border-slate-200/80 bg-white/90 px-4 py-3 backdrop-blur md:px-6">

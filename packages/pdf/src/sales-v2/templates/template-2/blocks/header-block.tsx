@@ -87,50 +87,58 @@ export function HeaderBlock({
 				</View>
 
 				{/* Right: Invoice badge + details */}
-				<View style={{ width: qrCodeDataUrl ? 160 : 200 }}>
+				<View style={{ width: qrCodeDataUrl ? 188 : 228 }}>
 					{/* Invoice title badge */}
 					<View
 						style={{
 							backgroundColor: NAVY,
-							paddingVertical: 6,
-							paddingHorizontal: 12,
+							paddingVertical: 5,
+							paddingHorizontal: 10,
 							borderRadius: 4,
-							marginBottom: 10,
+							marginBottom: 8,
 							alignItems: "flex-end",
 						}}
 					>
 						<Text
 							style={{
 								color: "#ffffff",
-								fontSize: 16,
+								fontSize: 14,
 								fontWeight: 700,
 								textTransform: "uppercase",
-								letterSpacing: 1,
+								letterSpacing: 0.8,
 							}}
 						>
 							{meta.title}
 						</Text>
 					</View>
 
-					{/* Detail rows */}
-					<MetaRow
-						label={isQuote ? "Quote #" : "Order #"}
-						value={meta.salesNo}
-						bold
-					/>
-					<MetaRow
-						label={isQuote ? "Quote Date" : "Order Date"}
-						value={meta.date}
-					/>
-					{meta.rep && <MetaRow label="Rep" value={meta.rep} />}
-					{meta.goodUntil && (
-						<MetaRow label="Good Until" value={meta.goodUntil} />
-					)}
-					{meta.po && <MetaRow label="P.O No" value={meta.po} />}
-					{meta.balanceDue && (
-						<MetaRow label="Balance Due" value={meta.balanceDue} bold accent />
-					)}
-					{meta.dueDate && <MetaRow label="Due Date" value={meta.dueDate} />}
+					<View
+						style={{
+							flexDirection: "row",
+							flexWrap: "wrap",
+							columnGap: 8,
+							rowGap: 0,
+						}}
+					>
+						<MetaRow
+							label={isQuote ? "Quote #" : "Order #"}
+							value={meta.salesNo}
+							bold
+						/>
+						<MetaRow
+							label={isQuote ? "Quote Date" : "Order Date"}
+							value={meta.date}
+						/>
+						{meta.rep && <MetaRow label="Rep" value={meta.rep} />}
+						{meta.goodUntil && (
+							<MetaRow label="Good Until" value={meta.goodUntil} />
+						)}
+						{meta.po && <MetaRow label="P.O No" value={meta.po} />}
+						{meta.balanceDue && (
+							<MetaRow label="Balance Due" value={meta.balanceDue} bold accent />
+						)}
+						{meta.dueDate && <MetaRow label="Due Date" value={meta.dueDate} />}
+					</View>
 					{meta.paymentDate && <PaidBadge date={meta.paymentDate} />}
 				</View>
 
@@ -217,18 +225,26 @@ function MetaRow({
 	return (
 		<View
 			style={{
-				flexDirection: "row",
-				justifyContent: "space-between",
+				width: "47%",
 				borderBottomWidth: 1,
 				borderBottomColor: BORDER,
-				paddingVertical: 2,
-				paddingHorizontal: 4,
+				paddingVertical: 3,
+				paddingHorizontal: 2,
 			}}
 		>
-			<Text style={{ fontSize: 8, color: TEXT_MUTED }}>{label}</Text>
 			<Text
 				style={{
-					fontSize: bold ? 9 : 8,
+					fontSize: 7,
+					color: TEXT_MUTED,
+					textTransform: "uppercase",
+					marginBottom: 1,
+				}}
+			>
+				{label}
+			</Text>
+			<Text
+				style={{
+					fontSize: bold ? 8.5 : 8,
 					fontWeight: bold ? 700 : 400,
 					color: accent ? ACCENT : "#1e293b",
 				}}

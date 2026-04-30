@@ -3,11 +3,13 @@
 import { useSalesPrintFilter } from "@/hooks/use-sales-print-filter";
 import { getBaseUrl } from "@/lib/base-url";
 import { cn } from "@/lib/utils";
+import { buildSalesPdfDownloadUrlFromQuery } from "@/modules/sales-print/application/sales-print-service";
 import { PDFViewer } from "@gnd/pdf";
 import { SalesPdfDocument } from "@gnd/pdf/sales-v2";
+import type { PrintMode } from "@gnd/sales/print/types";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import type { SyntheticEvent } from "react";
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { PackingSlipSignFab } from "./packing-slip-sign-fab";
 import { _trpc } from "./static-trpc";
 
@@ -18,6 +20,7 @@ interface PrintSalesV2Props {
 	snapshotId?: string;
 	preview?: boolean;
 	templateId?: string;
+	mode?: PrintMode;
 	className?: string;
 }
 
@@ -52,38 +55,77 @@ export function PrintSalesV2({
 	snapshotId,
 	preview,
 	templateId,
+	mode,
 	className,
 }: PrintSalesV2Props = {}) {
 	const { filters } = useSalesPrintFilter();
-	const baseUrl = getBaseUrl();
 	const resolvedPt = pt ?? filters.pt ?? "";
 	const resolvedToken = token ?? filters.token ?? "";
 	const resolvedAccessToken = accessToken ?? filters.accessToken ?? "";
 	const resolvedSnapshotId = snapshotId ?? filters.snapshotId ?? "";
 	const resolvedPreview = preview ?? filters.preview ?? false;
 	const resolvedTemplateId = templateId ?? filters.templateId ?? "template-2";
-	const { data } = useSuspenseQuery(
-		_trpc.print.salesV2.queryOptions({
-			pt: resolvedPt || undefined,
-			token: resolvedToken || undefined,
-			accessToken: resolvedAccessToken || undefined,
-			snapshotId: resolvedSnapshotId || undefined,
-			preview: resolvedPreview,
-			templateId: resolvedTemplateId,
-			baseUrl,
-		}),
-	);
-	const viewerRef = useRef<{ contentWindow?: Window | null } | null>(null);
-	const printedRef = useRef(false);
+	const resolvedMode = mode ?? (filters.mode as PrintMode | undefined);
+	const fastPdfUrl = useMemo(() => {
+		if (
+			resolvedPreview ||
+			!resolvedAccessToken ||
+			resolvedMode === "packing-slip" ||
+			resolvedPt ||
+			resolvedToken ||
+			resolvedSnapshotId
+		) {
+			return null;
+		}
 
+		return buildSalesPdfDownloadUrlFromQuery({
+			accessToken: resolvedAccessToken,
+			templateId: resolvedTemplateId,
+			preview: true,
+			origin: window.location.origin,
+		});
+	}, [
+		resolvedAccessToken,
+		resolvedMode,
+		resolvedPreview,
+		resolvedPt,
+		resolvedSnapshotId,
+		resolvedTemplateId,
+		resolvedToken,
+	]);
+
+	if (fastPdfUrl) {
+		return (
+			<StoredPdfPrintFrame src={fastPdfUrl} className={className} />
+		);
+	}
+
+	return (
+		<RenderedPdfPrintViewer
+			pt={resolvedPt}
+			token={resolvedToken}
+			accessToken={resolvedAccessToken}
+			snapshotId={resolvedSnapshotId}
+			preview={resolvedPreview}
+			templateId={resolvedTemplateId}
+			className={className}
+		/>
+	);
+}
+
+function StoredPdfPrintFrame({
+	src,
+	className,
+}: {
+	src: string;
+	className?: string;
+}) {
+	const viewerRef = useRef<HTMLIFrameElement | null>(null);
+	const printedRef = useRef(false);
 	const handleViewerLoad = useCallback(
 		async (event: SyntheticEvent<HTMLIFrameElement>) => {
 			const iframe = event.currentTarget;
-			if (
-				resolvedPreview ||
-				printedRef.current ||
-				!iframe.src.startsWith("blob:")
-			) {
+			if (printedRef.current) {
 				return;
 			}
 
@@ -92,7 +134,67 @@ export function PrintSalesV2({
 			iframe.contentWindow?.focus();
 			iframe.contentWindow?.print();
 		},
-		[resolvedPreview],
+		[],
+	);
+
+	return (
+		<iframe
+			ref={viewerRef}
+			src={src}
+			onLoad={handleViewerLoad}
+			className={cn("flex h-screen w-full flex-col border-0", className)}
+			title="Sales print PDF"
+		/>
+	);
+}
+
+function RenderedPdfPrintViewer({
+	pt,
+	token,
+	accessToken,
+	snapshotId,
+	preview,
+	templateId,
+	className,
+}: Required<
+	Pick<
+		PrintSalesV2Props,
+		| "pt"
+		| "token"
+		| "accessToken"
+		| "snapshotId"
+		| "preview"
+		| "templateId"
+		| "className"
+	>
+>) {
+	const baseUrl = getBaseUrl();
+	const viewerRef = useRef<{ contentWindow?: Window | null } | null>(null);
+	const printedRef = useRef(false);
+	const { data } = useSuspenseQuery(
+		_trpc.print.salesV2.queryOptions({
+			pt: pt || undefined,
+			token: token || undefined,
+			accessToken: accessToken || undefined,
+			snapshotId: snapshotId || undefined,
+			preview,
+			templateId,
+			baseUrl,
+		}),
+	);
+	const handleViewerLoad = useCallback(
+		async (event: SyntheticEvent<HTMLIFrameElement>) => {
+			const iframe = event.currentTarget;
+			if (preview || printedRef.current || !iframe.src.startsWith("blob:")) {
+				return;
+			}
+
+			printedRef.current = true;
+			await waitForPrintableFrame(iframe);
+			iframe.contentWindow?.focus();
+			iframe.contentWindow?.print();
+		},
+		[preview],
 	);
 
 	if (!data) return null;
@@ -120,12 +222,12 @@ export function PrintSalesV2({
 			</PDFViewer>
 			<PackingSlipSignFab
 				page={packingSlipPage}
-				pt={resolvedPt}
-				token={resolvedToken}
-				accessToken={resolvedAccessToken}
-				snapshotId={resolvedSnapshotId}
-				preview={resolvedPreview}
-				templateId={resolvedTemplateId}
+				pt={pt}
+				token={token}
+				accessToken={accessToken}
+				snapshotId={snapshotId}
+				preview={preview}
+				templateId={templateId}
 			/>
 		</>
 	);

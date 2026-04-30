@@ -21,11 +21,12 @@ describe("sales print service", () => {
 			buildSalesDocumentRouteFromQuery({
 				accessToken: "access-123",
 				preview: false,
+				mode: "invoice",
 				templateId: "template-2",
 				origin: "https://app.example.com",
 			}),
 		).toBe(
-			"https://app.example.com/p/sales-invoice-v2?accessToken=access-123&preview=false",
+			"https://app.example.com/p/sales-invoice-v2?accessToken=access-123&preview=false&mode=invoice",
 		);
 
 		expect(
@@ -45,10 +46,11 @@ describe("sales print service", () => {
 			buildSalesPdfDownloadUrlFromQuery({
 				accessToken: "access-123",
 				templateId: "template-2",
+				preview: true,
 				origin: "https://app.example.com",
 			}),
 		).toBe(
-			"https://app.example.com/api/download/sales-v2?accessToken=access-123&preview=false",
+			"https://app.example.com/api/download/sales-v2?accessToken=access-123&preview=true",
 		);
 
 		expect(

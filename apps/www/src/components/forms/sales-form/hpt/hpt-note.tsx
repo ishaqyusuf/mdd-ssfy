@@ -3,6 +3,7 @@ import { useHpt, useHptLine } from "../context";
 import { noteTagFilter } from "@/modules/notes/utils";
 import { TableCell, TableRow } from "@gnd/ui/table";
 import Note from "@/modules/notes";
+import { getHptTableColumnCount } from "./hpt-section";
 
 export function HptNote({}) {
     const ctx = useHptLine();
@@ -19,11 +20,11 @@ export function HptNote({}) {
                   noteTagFilter("salesId", salesId),
               ]
             : null;
-    const colSpan =
-        6 +
-        (isSlab ? 1 : 0) +
-        (config.hasSwing ? 1 : 0) +
-        (config.noHandle ? 1 : 2);
+    const colSpan = getHptTableColumnCount({
+        isSlab,
+        showSwing: Boolean(config.hasSwing || sizeForm?.swing),
+        noHandle: Boolean(config.noHandle),
+    });
     return (
         <>
             {!showNote || (

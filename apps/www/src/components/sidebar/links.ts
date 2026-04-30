@@ -378,8 +378,8 @@ export const linkModules = [
                 _subLink(
                     "Admin Dashboard",
                     "/sales-book/dispatch-admin",
-                ).access(_role.is("Super Admin")).data,
-            ]).access(_perm.is("editOrders")).data,
+                ).access(_perm.some("editOrders", "editDelivery")).data,
+            ]).access(_perm.some("editOrders", "editDelivery")).data,
         ]),
         _section("", "", [
             _link("Customers", "customers", "/sales-book/customers", [

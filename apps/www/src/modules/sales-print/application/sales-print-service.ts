@@ -72,6 +72,7 @@ export function buildSalesPrintViewerUrl(
 	options?: {
 		preview?: boolean;
 		templateId?: string | null;
+		mode?: PrintMode;
 		origin?: string;
 	},
 ) {
@@ -99,6 +100,7 @@ export function buildSalesDocumentRouteFromQuery(input: {
 	snapshotId?: string;
 	preview?: boolean;
 	templateId?: string | null;
+	mode?: PrintMode;
 	origin?: string;
 }) {
 	const origin =
@@ -112,6 +114,9 @@ export function buildSalesDocumentRouteFromQuery(input: {
 	if (input.snapshotId) url.searchParams.set("snapshotId", input.snapshotId);
 	if (typeof input.preview === "boolean") {
 		url.searchParams.set("preview", String(input.preview));
+	}
+	if (input.mode) {
+		url.searchParams.set("mode", input.mode);
 	}
 
 	const templateId = input.templateId ?? DEFAULT_TEMPLATE_ID;
@@ -128,12 +133,13 @@ export function buildSalesPdfDownloadUrlFromQuery(input: {
 	accessToken?: string;
 	snapshotId?: string;
 	templateId?: string | null;
+	preview?: boolean;
 	origin?: string;
 }) {
 	return buildSalesDocumentRouteFromQuery({
 		...input,
 		path: DOWNLOAD_ROUTE_PATH,
-		preview: false,
+		preview: input.preview ?? false,
 	});
 }
 
@@ -176,12 +182,14 @@ export async function openSalesPrintDocument(
 	dependencies: SalesPrintDependencies = defaultDependencies,
 ) {
 	const pendingWindow = openPendingPrintWindow();
+	const mode = resolveSalesPrintMode(request.mode);
 
 	try {
 		const access = await resolveSalesPrintAccess(request, dependencies);
 		const href = buildSalesPrintViewerUrl(access, {
 			preview: false,
 			templateId: request.templateId,
+			mode,
 		});
 
 		if (pendingWindow && !pendingWindow.closed) {
@@ -244,6 +252,7 @@ function buildSalesDocumentRouteUrl(
 	options?: {
 		preview?: boolean;
 		templateId?: string | null;
+		mode?: PrintMode;
 		origin?: string;
 	},
 ) {
@@ -260,6 +269,9 @@ function buildSalesDocumentRouteUrl(
 
 	if (typeof options?.preview === "boolean") {
 		url.searchParams.set("preview", String(options.preview));
+	}
+	if (options?.mode) {
+		url.searchParams.set("mode", options.mode);
 	}
 
 	const templateId = options?.templateId ?? DEFAULT_TEMPLATE_ID;

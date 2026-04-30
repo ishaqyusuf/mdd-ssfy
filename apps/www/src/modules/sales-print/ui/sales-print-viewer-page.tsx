@@ -14,16 +14,26 @@ export function SalesPrintViewerPage({
 	searchParams,
 }: SalesPrintViewerPageProps) {
 	const filter = loadSalesPrintFilterParams(searchParams);
-	batchPrefetch([
-		trpc.print.salesV2.queryOptions({
-			pt: filter.pt ?? "",
-			token: filter.token ?? "",
-			accessToken: filter.accessToken ?? "",
-			snapshotId: filter.snapshotId ?? "",
-			preview: filter.preview ?? false,
-			templateId: filter.templateId ?? "template-2",
-		}),
-	]);
+	const shouldUseStoredPdfFastPath =
+		!filter.preview &&
+		filter.accessToken &&
+		filter.mode !== "packing-slip" &&
+		!filter.pt &&
+		!filter.token &&
+		!filter.snapshotId;
+
+	if (!shouldUseStoredPdfFastPath) {
+		batchPrefetch([
+			trpc.print.salesV2.queryOptions({
+				pt: filter.pt ?? "",
+				token: filter.token ?? "",
+				accessToken: filter.accessToken ?? "",
+				snapshotId: filter.snapshotId ?? "",
+				preview: filter.preview ?? false,
+				templateId: filter.templateId ?? "template-2",
+			}),
+		]);
+	}
 
 	return (
 		<ErrorBoundary errorComponent={ErrorFallback}>

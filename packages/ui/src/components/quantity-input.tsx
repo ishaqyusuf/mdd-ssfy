@@ -61,7 +61,7 @@ export function QuantityInput({
       <InputGroup className="border-transparents rounded-full p-0">
         <InputGroup.Addon>
           <InputGroup.Button
-            className="rounded-full border border-transparent group-hover:border-border hover:bg-muted-foreground hover:text-muted"
+            className="min-h-6 min-w-6 shrink-0 rounded-full border border-transparent group-hover:border-border hover:bg-muted-foreground hover:text-muted"
             size="icon-xs"
             variant="secondary"
           >
@@ -85,7 +85,7 @@ export function QuantityInput({
         />
         <InputGroup.Addon align="inline-end">
           <InputGroup.Button
-            className="rounded-full"
+            className="min-h-6 min-w-6 shrink-0 rounded-full"
             size="icon-xs"
             variant="secondary"
           >
@@ -106,7 +106,7 @@ export function QuantityInput({
         aria-label="Decrease"
         // className="flex items-center pr-[.325em]"
         className={cn(
-          "flex items-center rounded-full justify-center text-white border bg-muted-foreground spl-[.325em] size-6",
+          "flex size-6 min-h-6 min-w-6 shrink-0 items-center justify-center rounded-full border bg-muted-foreground text-white spl-[.325em]",
           value <= max ||
             "hover:border-muted-foreground hover:bg-muted hover:text-secondary-foreground",
         )}
@@ -143,7 +143,7 @@ export function QuantityInput({
       <button
         aria-label="Increase"
         className={cn(
-          "flex items-center rounded-full justify-center text-white border bg-muted-foreground spl-[.325em] size-6",
+          "flex size-6 min-h-6 min-w-6 shrink-0 items-center justify-center rounded-full border bg-muted-foreground text-white spl-[.325em]",
           value >= max ||
             "hover:border-muted-foreground hover:bg-muted hover:text-secondary-foreground",
         )}

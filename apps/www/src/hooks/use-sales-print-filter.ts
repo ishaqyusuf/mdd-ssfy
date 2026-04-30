@@ -7,6 +7,7 @@ export const salesPrintFilterSchema = {
 	accessToken: parseAsString,
 	snapshotId: parseAsString,
 	templateId: parseAsString,
+	mode: parseAsString,
 	preview: parseAsBoolean,
 };
 
