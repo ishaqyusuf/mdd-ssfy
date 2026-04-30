@@ -24,7 +24,6 @@ export function Sidebar({ children }: { children?: React.ReactNode }) {
 			)}
 		>
 			<div className="pointer-events-none absolute inset-0">
-				<div className="from-sidebar-primary/18 absolute inset-x-0 top-0 h-40 bg-gradient-to-b to-transparent" />
 				<div className="bg-sidebar-border absolute inset-x-6 top-[70px] h-px" />
 				<div className="bg-sidebar-border/70 absolute inset-y-0 right-0 w-px" />
 			</div>

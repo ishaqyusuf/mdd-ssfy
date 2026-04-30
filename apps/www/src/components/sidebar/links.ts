@@ -399,12 +399,7 @@ export const linkModules = [
             // _link("HRM", "hrm", "/").access(_perm.in("viewHrm")).data,
             _link("Employees", "employees", "/hrm/employees/v2")
                 .access(_perm.some("viewHrm", "viewEmployee"))
-                .subLinks(
-                    // .access(
-                    //     // _role.is("Super Admin"),
-                    // )
-                    _subLink("Employees - v2", "/hrm/employees/v2").data,
-                ).data,
+                .data,
             _link(
                 "Document Approvals",
                 "documentApproval",
@@ -805,4 +800,3 @@ export function getActiveLinkFromMap(
         )
         .sort(([hrefA], [hrefB]) => hrefB.length - hrefA.length)?.[0]?.[1];
 }
-

@@ -145,42 +145,28 @@ export function NavsList({ mobile = false }) {
 											setExpandModule(isExpandedModule ? null : module.name);
 										}}
 										className={cn(
-											"group border-sidebar-border/80 hover:bg-sidebar-accent/70 hover:text-sidebar-foreground focus-visible:ring-sidebar-ring mb-2 flex h-11 w-full cursor-pointer select-none items-center gap-3 rounded-2xl border bg-transparent px-3 text-left text-sidebar-foreground/58 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2",
+											"group hover:bg-sidebar-accent/55 focus-visible:ring-sidebar-ring mb-1.5 flex h-8 w-full cursor-pointer select-none items-center justify-between gap-2 rounded-lg px-2.5 text-left transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2",
 											isExpandedModule &&
-												"bg-sidebar-accent text-sidebar-foreground border-sidebar-border shadow-sm",
+												"bg-sidebar-accent text-sidebar-foreground",
 											!isExpanded && "hidden",
 										)}
 										aria-expanded={show}
 									>
-										<div
-											className={cn(
-												"bg-sidebar-primary/14 text-sidebar-primary flex size-8 items-center justify-center rounded-xl transition-colors duration-200",
-												isExpandedModule &&
-													"bg-sidebar-primary text-sidebar-primary-foreground",
-											)}
-										>
-											<Icon name={module.icon} className="size-4" />
-										</div>
 										<div className="min-w-0 flex-1">
-											<div className="flex items-center gap-2">
-												<span className="truncate text-[11px] font-semibold uppercase tracking-[0.24em]">
-													{module.name}
-												</span>
-												<span
-													className={cn(
-														"bg-sidebar-foreground/18 inline-flex h-1.5 w-1.5 rounded-full transition-colors duration-200",
-														isActiveModule && "bg-sidebar-primary",
-													)}
-												/>
-											</div>
-											<span className="text-sidebar-foreground/42 block truncate text-[11px] normal-case tracking-[0.01em]">
-												{show ? "Collapse section" : "Open section"}
+											<span
+												className={cn(
+													"text-sidebar-foreground/72 group-hover:text-sidebar-foreground block truncate text-[12px] font-medium tracking-[0.01em]",
+													isExpandedModule &&
+														"text-sidebar-foreground font-semibold",
+												)}
+											>
+												{module.name}
 											</span>
 										</div>
 										<Icons.ChevronDown
 											className={cn(
-												"bg-sidebar text-sidebar-foreground/55 group-hover:text-sidebar-foreground border-sidebar-border flex size-7 rounded-full border p-1.5 transition-all duration-200",
-												isExpandedModule && "text-sidebar-foreground",
+												"text-sidebar-foreground/40 group-hover:text-sidebar-foreground/70 size-3.5 transition-transform duration-200",
+												isExpandedModule && "text-sidebar-foreground/80",
 												show ? "" : "-rotate-90",
 											)}
 										/>

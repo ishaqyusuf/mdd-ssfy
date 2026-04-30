@@ -9,12 +9,11 @@ import { createRoleAction } from "@/actions/create-role-action";
 import {
     Table,
     TableBody,
-    TableCell,
+	TableCell,
     TableHead,
     TableHeader,
     TableRow,
 } from "@gnd/ui/table";
-import { skeletonListData } from "@/utils/format";
 import { cn } from "@gnd/ui/cn";
 import { DataSkeleton } from "../data-skeleton";
 import { TCell } from "../(clean-code)/data-table/table-cells";
@@ -25,10 +24,12 @@ import { Form } from "@gnd/ui/form";
 import { generateRandomString } from "@/lib/utils";
 import { rndTimeout } from "@/lib/timeout";
 import { SubmitButton } from "../submit-button";
+import { useLoadingToast } from "@/hooks/use-loading-toast";
 
 export function RoleForm({}) {
     const { params, setParams } = useRolesParams();
     const form = useRoleFormContext();
+    const toast = useLoadingToast();
     const data = useAsyncMemo(async () => {
         await rndTimeout();
         return await getRoleForm(params.roleEditId);
@@ -44,12 +45,29 @@ export function RoleForm({}) {
                 roleForm: null,
                 refreshToken: generateRandomString(),
             });
+            toast.success("Role saved");
         },
         onError(args) {
-            // toast.error(args.message);
+            toast.error(args.error?.serverError || "Unable to save role");
         },
     });
-    const onSubmit = form.handleSubmit((values) => action.execute(values));
+    const onSubmit = form.handleSubmit(
+        (values) => action.execute(values),
+        () => {
+            const titleError = form.formState.errors.title?.message;
+            const permissionErrors = Object.keys(
+                (form.formState.errors.permissions as Record<string, unknown>) ||
+                    {},
+            );
+            toast.error(
+                typeof titleError === "string"
+                    ? titleError
+                    : permissionErrors.length
+                      ? "Role permissions are still loading. Please try again."
+                      : "Please fix the role form and try again",
+            );
+        },
+    );
     return (
         <DataSkeletonProvider
             value={
@@ -72,6 +90,7 @@ export function RoleForm({}) {
                             size="sm"
                             type="submit"
                             isSubmitting={action.isExecuting}
+                            disabled={!data}
                         >
                             Submit
                         </SubmitButton>
@@ -98,11 +117,7 @@ export function RoleForm({}) {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {skeletonListData(
-                                data?.permissionsList,
-                                10,
-                                "abc",
-                            )?.map((tx, i) => (
+                            {(data?.permissionsList || []).map((tx, i) => (
                                 <TableRow key={i} className={cn("")}>
                                     <TableCell>
                                         <DataSkeleton pok="date">
@@ -129,6 +144,28 @@ export function RoleForm({}) {
                                     </TableCell>
                                 </TableRow>
                             ))}
+                            {!data?.permissionsList?.length &&
+                                Array.from({ length: 10 }).map((_, i) => (
+                                    <TableRow key={`skeleton-${i}`}>
+                                        <TableCell>
+                                            <DataSkeleton pok="date">
+                                                <TCell.Secondary className="font-mono$ uppercase">
+                                                    permission
+                                                </TCell.Secondary>
+                                            </DataSkeleton>
+                                        </TableCell>
+                                        <TableCell>
+                                            <DataSkeleton placeholder={"**"}>
+                                                <div className="size-4 rounded border border-border" />
+                                            </DataSkeleton>
+                                        </TableCell>
+                                        <TableCell>
+                                            <DataSkeleton placeholder={"**"}>
+                                                <div className="size-4 rounded border border-border" />
+                                            </DataSkeleton>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
                         </TableBody>
                     </Table>
                 </form>

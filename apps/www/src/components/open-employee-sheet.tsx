@@ -3,7 +3,6 @@ import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { AuthGuard } from "./auth-guard";
 import { _perm } from "./sidebar/links";
-import { Menu } from "./(clean-code)/menu";
 import { useRolesParams } from "@/hooks/use-roles-params";
 
 export function OpenEmployeeSheet() {
@@ -36,21 +35,20 @@ export function OpenEmployeeSheet() {
                 </Button>
             </AuthGuard>
             <AuthGuard rules={[_perm.is("editRole")]}>
-                <Menu>
-                    <Menu.Item
-                        onClick={(e) => {
-                            role.setParams({
-                                viewRoles: true,
-                                primaryTab: "roles",
-                            });
-                        }}
-                        icon="roles"
-                    >
-                        Roles
-                    </Menu.Item>
-                </Menu>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                        role.setParams({
+                            viewRoles: true,
+                            primaryTab: "roles",
+                        })
+                    }
+                >
+                    <Icons.roles className="mr-2 size-4" />
+                    Roles
+                </Button>
             </AuthGuard>
         </div>
     );
 }
-

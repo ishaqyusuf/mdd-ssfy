@@ -9,6 +9,10 @@ import { revalidateTag } from "next/cache";
 export type CreateRoleForm = z.infer<typeof createRoleSchema>;
 
 export async function createRole(data: CreateRoleForm) {
+    const permissions = Object.values(data.permissions).filter(
+        (permission) => typeof permission.permissionId === "number",
+    );
+
     if (data.id) {
         await prisma.roles.update({
             where: {
@@ -31,20 +35,24 @@ export async function createRole(data: CreateRoleForm) {
         where: {
             roleId: data.id,
             permissionId: {
-                in: Object.values(data.permissions)
+                in: permissions
                     .map((p) => (!p.checked ? p.permissionId : null))
                     .filter(Boolean),
             },
         },
     });
-    await prisma.roleHasPermissions.createMany({
-        data: Object.values(data.permissions)
-            .filter((p) => p.checked && !p.roleId)
-            .map((d) => ({
-                permissionId: d.permissionId,
-                roleId: data.id,
-            })),
-    });
+    const permissionsToCreate = permissions
+        .filter((p) => p.checked && !p.roleId)
+        .map((d) => ({
+            permissionId: d.permissionId!,
+            roleId: data.id,
+        }));
+
+    if (permissionsToCreate.length) {
+        await prisma.roleHasPermissions.createMany({
+            data: permissionsToCreate,
+        });
+    }
     revalidateTag(`roles`);
     revalidateTag(`role_${data.id}`);
     revalidateTag(`employees_filter_data`);

@@ -6,7 +6,7 @@ export const createRoleSchema = z.object({
     permissions: z.record(
         z.string(),
         z.object({
-            permissionId: z.number(),
+            permissionId: z.number().optional(),
             roleId: z.number().nullable().optional(),
             checked: z.boolean().optional(),
         })
