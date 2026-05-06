@@ -61,7 +61,7 @@ function Content({ item: sale }: { item: Item }) {
 	const salesOverview = useSalesOverviewQuery();
 	const customerQuery = useCustomerOverviewQuery();
 	return (
-		<div className="">
+		<div className="min-w-0">
 			<Collapsible
 				open={ids.includes(sale.id)}
 				onOpenChange={() => {
@@ -76,16 +76,18 @@ function Content({ item: sale }: { item: Item }) {
 				}}
 			>
 				<CollapsibleTrigger asChild>
-					<CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-						<div className="flex items-center justify-between">
-							<div className="flex items-center gap-4">
-								{ids.includes(sale.id) ? (
-									<Icons.ChevronDown className="h-5 w-5" />
-								) : (
-									<Icons.ChevronRight className="h-5 w-5" />
-								)}
-								<div>
-									<CardTitle className="text-lg uppercase">
+					<CardHeader className="cursor-pointer p-3 transition-colors hover:bg-muted/50 md:p-6">
+						<div className="flex min-w-0 items-start justify-between gap-3 md:items-center">
+							<div className="flex min-w-0 flex-1 items-start gap-2 md:gap-4">
+								<div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground md:size-auto md:border-0 md:bg-transparent">
+									{ids.includes(sale.id) ? (
+										<Icons.ChevronDown className="h-4 w-4 md:h-5 md:w-5" />
+									) : (
+										<Icons.ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
+									)}
+								</div>
+								<div className="min-w-0 flex-1">
+									<CardTitle className="hidden text-lg uppercase md:block">
 										<Button
 											size="xs"
 											className="uppercase border-b border-muted hover:border-muted-foreground"
@@ -112,7 +114,55 @@ function Content({ item: sale }: { item: Item }) {
 											{sale?.customer?.businessName || sale?.customer?.name}
 										</Button>
 									</CardTitle>
-									<div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+									<div className="flex min-w-0 items-start justify-between gap-2 md:hidden">
+										<div className="min-w-0">
+											<div className="truncate text-sm font-semibold uppercase leading-5 text-foreground">
+												{sale?.customer?.businessName ||
+													sale?.customer?.name ||
+													"Customer"}
+											</div>
+											<div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[11px] leading-4 text-muted-foreground">
+												<span className="shrink-0 font-medium">
+													#{sale.orderId}
+												</span>
+												<span className="text-muted-foreground/40">|</span>
+												<span className="min-w-0 truncate">
+													{sale.salesRep || "No rep"}
+												</span>
+											</div>
+										</div>
+										<div className="shrink-0 text-right">
+											<div className="font-mono text-sm font-semibold tabular-nums text-foreground">
+												<Money value={sale.total} />
+											</div>
+											<div className="mt-0.5 text-[10px] uppercase leading-3 text-muted-foreground">
+												{sale.paymentCount} payment
+												{sale.paymentCount !== 1 ? "s" : ""}
+											</div>
+										</div>
+									</div>
+									<div className="mt-2 flex min-w-0 flex-wrap items-center gap-1.5 md:hidden">
+										{sale.status ? (
+											<Badge
+												variant="outline"
+												className="h-5 shrink-0 px-1.5 text-[10px] font-medium capitalize"
+											>
+												{sale.status}
+											</Badge>
+										) : null}
+										{dueMismatch ? (
+											<Badge
+												variant="secondary"
+												className="h-5 shrink-0 bg-amber-50 px-1.5 text-[10px] font-medium text-amber-700"
+											>
+												Due mismatch
+											</Badge>
+										) : null}
+										<span className="min-w-0 truncate text-[11px] leading-4 text-muted-foreground">
+											{sale.orderDate}
+										</span>
+									</div>
+									<div className="mt-1 hidden items-center gap-4 text-sm text-muted-foreground md:flex">
 										<div className="flex items-center gap-1">
 											<Icons.User className="h-4 w-4" />
 											{sale.salesRep}
@@ -138,7 +188,7 @@ function Content({ item: sale }: { item: Item }) {
 									</div>
 								</div>
 							</div>
-							<div className="flex items-center gap-2">
+							<div className="hidden shrink-0 items-center gap-2 md:flex">
 								{sale.status && (
 									<Progress>
 										<Progress.Status>{sale.status}</Progress.Status>
@@ -155,6 +205,9 @@ function Content({ item: sale }: { item: Item }) {
 									{recommendedAction}
 								</Badge>
 
+								<Action item={sale} />
+							</div>
+							<div className="shrink-0 md:hidden">
 								<Action item={sale} />
 							</div>
 						</div>

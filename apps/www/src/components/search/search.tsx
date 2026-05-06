@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@/hooks/use-auth";
 import { useSearchStore } from "@/store/search";
 import { useTRPC } from "@/trpc/client";
 import {
@@ -10,10 +11,12 @@ import {
 	CommandItem,
 	CommandList,
 } from "@gnd/ui/command";
+import { Icons } from "@gnd/ui/icons";
 import { useQuery } from "@gnd/ui/tanstack";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { useDebounceValue } from "usehooks-ts";
+import { type Access, _perm, validateRules } from "../sidebar-links";
 
 type SearchSourceName =
 	| "sales"
@@ -62,6 +65,48 @@ const GROUP_ORDER = [
 	"builders",
 ] as const;
 
+const QUICK_LINKS: {
+	id: string;
+	title: string;
+	subtitle: string;
+	href: string;
+	icon: keyof typeof Icons;
+	rules: Access[];
+}[] = [
+	{
+		id: "sales",
+		title: "Sales",
+		subtitle: "Review orders and active sales work",
+		href: "/sales-book/orders",
+		icon: "orders",
+		rules: [_perm.is("editOrders")],
+	},
+	{
+		id: "quotes",
+		title: "Quotes",
+		subtitle: "Find estimates and quote activity",
+		href: "/sales-book/quotes",
+		icon: "quotes",
+		rules: [_perm.is("viewEstimates")],
+	},
+	{
+		id: "new-sale",
+		title: "New sale",
+		subtitle: "Start a new sales order",
+		href: "/sales-book/create-order",
+		icon: "add",
+		rules: [_perm.is("editOrders")],
+	},
+	{
+		id: "new-quote",
+		title: "New quote",
+		subtitle: "Create a customer estimate",
+		href: "/sales-book/create-quote",
+		icon: "edit",
+		rules: [_perm.is("editEstimates")],
+	},
+];
+
 const formatGroupName = (name: string): string => {
 	switch (name) {
 		case "sales":
@@ -105,12 +150,62 @@ function SearchResultItemDisplay({ item }: { item: SearchItem }) {
 	);
 }
 
+function normalizeSearchResults(items: unknown): SearchItem[] {
+	if (!Array.isArray(items)) return [];
+
+	return items.flatMap((item) => {
+		if (!item || typeof item !== "object") return [];
+
+		const result = item as Partial<SearchItem>;
+		if (!result.id || !result.title || !result.type) return [];
+
+		return [
+			{
+				...result,
+				id: result.id,
+				title: result.title,
+				type: result.type,
+			},
+		];
+	});
+}
+
+function QuickLinkItemDisplay({
+	item,
+	onSelect,
+}: {
+	item: (typeof QUICK_LINKS)[number];
+	onSelect: (href: string) => void;
+}) {
+	const Icon = Icons[item.icon];
+
+	return (
+		<CommandItem
+			value={`quick-link-${item.id}-${item.title}`}
+			onSelect={() => onSelect(item.href)}
+			className="flex items-center gap-3 rounded-md px-3 py-3 text-sm"
+		>
+			<span className="flex size-9 shrink-0 items-center justify-center rounded-md border bg-muted/50 text-muted-foreground">
+				{Icon ? <Icon className="size-4" /> : null}
+			</span>
+			<span className="min-w-0 flex-1">
+				<span className="block truncate font-medium">{item.title}</span>
+				<span className="block truncate text-xs text-muted-foreground">
+					{item.subtitle}
+				</span>
+			</span>
+		</CommandItem>
+	);
+}
+
 export function Search() {
 	const router = useRouter();
 	const { setOpen } = useSearchStore();
 	const trpc = useTRPC();
+	const auth = useAuth();
 
 	const [debounceDelay, setDebounceDelay] = useState(200);
+	const [searchValue, setSearchValue] = useState("");
 	const [debouncedSearch, setDebouncedSearch] = useDebounceValue(
 		"",
 		debounceDelay,
@@ -133,7 +228,10 @@ export function Search() {
 		placeholderData: (previousData) => previousData,
 	});
 
-	const searchResults: SearchItem[] = queryResult || [];
+	const searchResults = useMemo(
+		() => normalizeSearchResults(queryResult),
+		[queryResult],
+	);
 
 	const combinedData = useMemo(() => {
 		return searchResults.map((item) => ({
@@ -172,16 +270,30 @@ export function Search() {
 		return ordered;
 	}, [combinedData]);
 
+	const quickLinks = useMemo(() => {
+		if (!auth.enabled || auth.isPending) return [];
+
+		return QUICK_LINKS.filter((item) =>
+			validateRules(item.rules, auth.can, auth.id, auth.role),
+		);
+	}, [auth.can, auth.enabled, auth.id, auth.isPending, auth.role]);
+
+	const openHref = (href: string) => {
+		setOpen();
+		router.push(href);
+	};
+
 	return (
 		<Command
 			shouldFilter={false}
-			className="search-container overflow-hidden p-0 relative w-full bg-background backdrop-filter dark:border-[#2C2C2C] backdrop-blur-lg dark:bg-[#151515]/[99] h-auto border border-border"
+			className="search-container relative h-full w-full overflow-hidden border border-border bg-background p-0 backdrop-blur-lg backdrop-filter dark:border-[#2C2C2C] dark:bg-[#151515]/[99]"
 		>
 			<div className="border-b border-border relative">
 				<CommandInput
 					ref={inputRef}
 					placeholder="Type a command or search..."
 					onValueChange={(value: string) => {
+						setSearchValue(value);
 						setDebouncedSearch(value);
 
 						if (value.trim().split(/\s+/).length > 1) {
@@ -190,7 +302,7 @@ export function Search() {
 							setDebounceDelay(200);
 						}
 					}}
-					className="px-4 h-[55px] py-0"
+					className="h-12 px-4 py-0 text-base md:h-[55px] md:text-sm"
 				/>
 				{isFetching ? (
 					<div className="absolute bottom-0 h-[2px] w-full overflow-hidden">
@@ -199,15 +311,30 @@ export function Search() {
 				) : null}
 			</div>
 
-			<div className="px-2 global-search-list" ref={listRef}>
-				<CommandList ref={listHeightRef} className="scrollbar-hide">
-					{!isLoading && combinedData.length === 0 && debouncedSearch ? (
+			<div className="global-search-list min-h-0 flex-1 px-2" ref={listRef}>
+				<CommandList
+					ref={listHeightRef}
+					className="scrollbar-hide max-h-none h-full"
+				>
+					{!searchValue.trim() ? (
+						<CommandGroup heading="Quick links">
+							{quickLinks.map((item) => (
+								<QuickLinkItemDisplay
+									key={item.id}
+									item={item}
+									onSelect={openHref}
+								/>
+							))}
+						</CommandGroup>
+					) : null}
+
+					{!isLoading && combinedData.length === 0 && searchValue.trim() ? (
 						<CommandEmpty>
-							No results found for "{debouncedSearch}".
+							No results found for "{searchValue}".
 						</CommandEmpty>
 					) : null}
 
-					{!isLoading
+					{!isLoading && searchValue.trim()
 						? Object.entries(groupedData).map(([groupName, items]) => (
 								<CommandGroup
 									key={groupName}

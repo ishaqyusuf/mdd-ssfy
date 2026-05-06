@@ -16,7 +16,7 @@ export function SearchModal() {
     return (
         <Dialog open={isOpen} onOpenChange={setOpen}>
             <DialogContent
-                className="overflow-hidden p-0 max-w-full w-full md:max-w-[740px] h-[535px] m-0 select-text bg-transparent border-none"
+                className="m-0 h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-full overflow-hidden rounded-lg border-none bg-transparent p-0 select-text sm:h-[min(535px,calc(100dvh-2rem))] md:h-[535px] md:max-w-[740px]"
                 hideClose
             >
                 <Search />
@@ -25,4 +25,3 @@ export function SearchModal() {
         </Dialog>
     );
 }
-

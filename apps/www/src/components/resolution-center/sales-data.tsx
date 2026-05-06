@@ -1,5 +1,8 @@
 import { getSalesResolutionData } from "@/actions/get-sales-resolution-data";
-import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
+import {
+	DataSkeletonProvider,
+	type useCreateDataSkeletonCtx,
+} from "@/hooks/use-data-skeleton";
 import { useResolutionCenterParams } from "@/hooks/use-resolution-center-params";
 import { timeout } from "@/lib/timeout";
 import { formatDate } from "@/lib/use-day";
@@ -23,16 +26,19 @@ export function SalesData({
 	recommendedAction: string;
 	dueMismatch: boolean;
 }) {
+	type Payment = NonNullable<
+		Awaited<ReturnType<typeof getSalesResolutionData>>
+	>["payments"][number];
 	const r = useResolutionCenterParams();
 	const data = useAsyncMemo(async () => {
 		await timeout(300);
 		const r = await getSalesResolutionData(sale?.id);
 		return r;
 	}, [sale?.id, r.params?.refreshToken]);
-	const paymentSkeleton = {
+	const paymentSkeleton: Partial<Payment> = {
 		history: [
 			{
-				id: "skeleton-history",
+				id: 0,
 				createdAt: new Date(),
 				status: "pending",
 				reason: "",
@@ -42,26 +48,29 @@ export function SalesData({
 		],
 	};
 	const paymentRows = skeletonListData(data?.payments, 3, paymentSkeleton);
+	const skeletonContext = {
+		loading: !data?.salesId,
+	} as unknown as ReturnType<typeof useCreateDataSkeletonCtx>;
 	return (
-		<CardContent className="pt-0">
-			<div className="space-y-4">
-				<div className="grid grid-cols-1 gap-4 rounded-lg bg-muted/30 p-4 md:grid-cols-4">
+		<CardContent className="px-3 pb-3 pt-0 md:px-6 md:pb-6">
+			<div className="space-y-3 md:space-y-4">
+				<div className="grid grid-cols-2 gap-2 rounded-md bg-muted/30 p-3 md:grid-cols-4 md:gap-4 md:rounded-lg md:p-4">
 					<div>
 						<Label className="text-xs text-muted-foreground">Grand Total</Label>
-						<div className="text-lg font-semibold">
+						<div className="text-base font-semibold md:text-lg">
 							<Money value={sale?.total} />
 						</div>
 					</div>
 					<div>
 						<Label className="text-xs text-muted-foreground">Amount Paid</Label>
-						<div className="text-lg font-semibold text-green-600">
+						<div className="text-base font-semibold text-green-600 md:text-lg">
 							<Money value={sale?.paid} />
 						</div>
 					</div>
 					<div>
 						<Label className="text-xs text-muted-foreground">Stored Due</Label>
 						<div
-							className={`text-lg font-semibold ${sale.due > 0 ? "text-red-600" : "text-green-600"}`}
+							className={`text-base font-semibold md:text-lg ${sale.due > 0 ? "text-red-600" : "text-green-600"}`}
 						>
 							<Money value={sale.due} />
 						</div>
@@ -71,14 +80,14 @@ export function SalesData({
 							Projected Due
 						</Label>
 						<div
-							className={`text-lg font-semibold ${sale.calculatedDue > 0 ? "text-amber-600" : "text-green-600"}`}
+							className={`text-base font-semibold md:text-lg ${sale.calculatedDue > 0 ? "text-amber-600" : "text-green-600"}`}
 						>
 							<Money value={sale.calculatedDue} />
 						</div>
 					</div>
 				</div>
-				<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-					<Card className="p-4">
+				<div className="grid grid-cols-1 gap-2 md:grid-cols-2 md:gap-4">
+					<Card className="rounded-md p-3 md:rounded-lg md:p-4">
 						<Label className="text-xs text-muted-foreground">
 							Conflict status
 						</Label>
@@ -94,7 +103,7 @@ export function SalesData({
 								: "The order balance and payment projection are already aligned."}
 						</p>
 					</Card>
-					<Card className="p-4">
+					<Card className="rounded-md p-3 md:rounded-lg md:p-4">
 						<Label className="text-xs text-muted-foreground">
 							Recommended next action
 						</Label>
@@ -106,17 +115,19 @@ export function SalesData({
 					</Card>
 				</div>
 				<div>
-					<h4 className="font-semibold mb-3">Payment History</h4>
-					<DataSkeletonProvider value={{ loading: !data?.salesId }}>
-						<div className="space-y-3">
+					<h4 className="mb-2 text-sm font-semibold md:mb-3 md:text-base">
+						Payment History
+					</h4>
+					<DataSkeletonProvider value={skeletonContext}>
+						<div className="space-y-2 md:space-y-3">
 							{paymentRows.map((payment) => (
 								<Card
 									key={`${payment.id ?? payment.paymentNo ?? payment.createdAt ?? payment.status}`}
-									className="p-4"
+									className="rounded-md p-3 md:rounded-lg md:p-4"
 								>
-									<div className="flex items-center justify-between">
-										<div className="flex items-center gap-4">
-											<div className="flex items-center gap-2">
+									<div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
+										<div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-center md:gap-4">
+											<div className="flex min-w-0 items-center gap-2">
 												<Icon
 													Icon={
 														PaymentMethodIcon[
@@ -127,7 +138,7 @@ export function SalesData({
 													className=""
 												/>
 
-												<span className="font-medium capitalize">
+												<span className="min-w-0 truncate font-medium capitalize">
 													<DataSkeleton as="span" pok="textSm">
 														{payment.paymentMethod?.replace("-", " ")}
 													</DataSkeleton>
@@ -140,24 +151,24 @@ export function SalesData({
 													</DataSkeleton>
 												)}
 											</div>
-											<div className="flex items-center gap-2">
+											<div className="flex min-w-0 items-center gap-2">
 												<StatusIcon status={payment.status} />
 												<DataSkeleton as="span" pok="textSm">
 													<Progress>
 														<Progress.Status>{payment.status}</Progress.Status>
 													</Progress>
 												</DataSkeleton>
-												<span className="mr-4 uppercase text-xs font-semibold">
+												<span className="min-w-0 truncate text-xs font-semibold uppercase md:mr-4">
 													{payment?.reason}
 												</span>
 											</div>
 										</div>
-										<div className="flex items-center gap-4">
-											<div className="text-right">
+										<div className="flex min-w-0 items-center justify-between gap-3 md:justify-end md:gap-4">
+											<div className="min-w-0 text-left md:text-right">
 												<div className="font-semibold">
 													<Money value={payment?.amount} />
 												</div>
-												<div className="text-xs text-muted-foreground">
+												<div className="truncate text-xs text-muted-foreground">
 													{formatDate(payment?.createdAt)} •{" "}
 													{payment.authorName}
 												</div>
@@ -187,7 +198,7 @@ export function SalesData({
 											</DataSkeleton>
 										</div>
 									</div>
-									<div>
+									<div className="mt-2 text-sm text-muted-foreground">
 										<span>{payment?.history?.[0]?.description}</span>
 									</div>
 									{payment.history.length > 0 && (
@@ -199,7 +210,7 @@ export function SalesData({
 												{payment.history.map((entry) => (
 													<div
 														key={`${entry.id ?? entry.createdAt}-${entry.status}-${entry.reason}`}
-														className="text-xs text-muted-foreground flex items-center gap-2"
+														className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-muted-foreground md:gap-2"
 													>
 														<StatusIcon status={entry.status} />
 														<span>

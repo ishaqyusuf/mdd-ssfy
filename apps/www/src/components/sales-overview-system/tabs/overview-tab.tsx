@@ -1,113 +1,87 @@
 "use client";
 
-import { Icons } from "@gnd/ui/icons";
+import { Fragment } from "react";
 
+import { TCell } from "@/components/(clean-code)/data-table/table-cells";
+import Money from "@/components/_v1/money";
+import { DataSkeleton } from "@/components/data-skeleton";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
+import {
+	DataSkeletonProvider,
+	type useCreateDataSkeletonCtx,
+} from "@/hooks/use-data-skeleton";
 import { openLink } from "@/lib/open-link";
 import { salesFormUrl } from "@/utils/sales-utils";
 
+import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import { Card, CardContent } from "@gnd/ui/card";
 import { cn } from "@gnd/ui/cn";
+import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
+import { Icons } from "@gnd/ui/icons";
+import { Progress } from "@gnd/ui/progress";
 
+import { DeliveryOption } from "../../sheets/sales-overview-sheet/delivery-option";
+import { SalesPO } from "../../sheets/sales-overview-sheet/inline-data-edit";
 import { useSalesOverviewSystem } from "../provider";
-import {
-	OverviewProgressBar,
-	OverviewSectionCard,
-	OverviewSectionLabel,
-} from "../section-primitives";
 import { QuickActionsBar } from "../sections/quick-actions-bar";
-import {
-	formatAddress,
-	formatCurrency,
-	formatPercent,
-	getPaymentBalance,
-} from "../view-model";
 
 type AddressEntry = {
 	title?: string | null;
 	lines?: string[] | null;
-	address?: string | null;
-	street?: string | null;
-	city?: string | null;
-	state?: string | null;
-	zipCode?: string | null;
-	country?: string | null;
 };
 
 type CostLine = {
-	id?: number | string | null;
-	label?: string | null;
-	title?: string | null;
 	amount?: number | null;
-	value?: number | null;
+	label?: string | null;
 };
 
-function StatPill({
-	label,
-	value,
-	accent,
-}: {
-	label: string;
-	value: string;
-	accent?: "green" | "amber" | "blue" | "rose" | "slate";
-}) {
-	const accentMap: Record<string, string> = {
-		green: "border-l-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20",
-		amber: "border-l-amber-500 bg-amber-50/60 dark:bg-amber-950/20",
-		blue: "border-l-blue-500 bg-blue-50/60 dark:bg-blue-950/20",
-		rose: "border-l-rose-500 bg-rose-50/60 dark:bg-rose-950/20",
-		slate: "border-l-slate-400 bg-slate-50/60 dark:bg-slate-900/30",
-	};
-	return (
-		<div
-			className={cn(
-				"rounded-lg border-l-2 px-4 py-3",
-				accentMap[accent ?? "slate"],
-			)}
-		>
-			<p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-				{label}
-			</p>
-			<p className="mt-1 text-lg font-bold leading-none">{value}</p>
-		</div>
-	);
+function getStatusColor(status?: string | null) {
+	switch (status) {
+		case "green":
+			return "bg-green-500";
+		case "amber":
+		case "yellow":
+			return "bg-amber-500";
+		case "red":
+			return "bg-red-500";
+		case "blue":
+			return "bg-blue-500";
+		default:
+			return "bg-slate-400";
+	}
 }
 
-function DataRow({
-	label,
-	value,
-	action,
-}: {
-	label: string;
-	value?: string | null;
-	action?: React.ReactNode;
-}) {
-	return (
-		<div className="flex items-start justify-between gap-3 border-b border-border/40 py-2.5 last:border-b-0">
-			<p className="min-w-[110px] text-sm text-muted-foreground">{label}</p>
-			<div className="flex items-center gap-2 text-right">
-				{action ?? <p className="text-sm font-medium">{value || "—"}</p>}
-			</div>
-		</div>
-	);
+function getStatusVariant(
+	status?: string | null,
+): "default" | "secondary" | "destructive" | "outline" {
+	switch (status) {
+		case "completed":
+			return "default";
+		case "in-progress":
+			return "secondary";
+		case "pending":
+			return "outline";
+		case "cancelled":
+			return "destructive";
+		default:
+			return "outline";
+	}
 }
 
-function StatusDot({ color }: { color?: string | null }) {
-	const colorMap: Record<string, string> = {
-		green: "bg-emerald-500",
-		amber: "bg-amber-500",
-		yellow: "bg-amber-400",
-		red: "bg-rose-500",
-		blue: "bg-blue-500",
-	};
+function SectionTitle({
+	icon: Icon,
+	children,
+}: {
+	icon: React.ComponentType<{ className?: string }>;
+	children: React.ReactNode;
+}) {
 	return (
-		<span
-			className={cn(
-				"inline-block size-2 rounded-full",
-				colorMap[color ?? ""] ?? "bg-slate-400",
-			)}
-		/>
+		<h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+			<Icon className="h-4 w-4" />
+			{children}
+		</h3>
 	);
 }
 
@@ -116,322 +90,442 @@ export function SalesOverviewOverviewTab() {
 		state: { data, isQuote },
 	} = useSalesOverviewSystem();
 	const customerQuery = useCustomerOverviewQuery();
+	const skeletonContext = {
+		loading: !data?.id,
+	} as unknown as ReturnType<typeof useCreateDataSkeletonCtx>;
 
-	const balance = getPaymentBalance(data?.invoice);
-	const paid = Number(data?.invoice?.paid || 0);
 	const total = Number(data?.invoice?.total || 0);
-	const paymentPct = total > 0 ? (paid / total) * 100 : 0;
-	const assignedPct = Number(data?.stats?.prodAssigned?.percentage || 0);
-	const completedPct = Number(data?.stats?.prodCompleted?.percentage || 0);
-
-	const addressEntries = [
+	const paid = Number(data?.invoice?.paid || 0);
+	const pending = Number(data?.invoice?.pending || 0);
+	const paymentPercentage = total > 0 ? (paid / total) * 100 : 0;
+	const balance = total - paid;
+	const productionPercentage = data?.stats?.prodCompleted?.percentage;
+	const assignmentPercentage = data?.stats?.prodAssigned?.percentage;
+	const assignmentStatus = data?.status?.assignment?.status ?? "pending";
+	const assignmentStatusColor = data?.status?.assignment?.color ?? "warmGray";
+	const productionStatus = data?.status?.production?.status ?? "pending";
+	const productionStatusColor = data?.status?.production?.color ?? "warmGray";
+	const deliveryStatus = data?.status?.delivery?.status ?? "pending";
+	const deliveryStatusColor = data?.status?.delivery?.color ?? "warmGray";
+	const dispatchCount = data?.dispatchList?.length ?? 0;
+	const addresses = [
 		data?.addressData?.billing,
 		data?.addressData?.shipping,
-	].filter(Boolean) as AddressEntry[];
+	] as Array<AddressEntry | null | undefined>;
 	const costLines = (data?.costLines ?? []) as CostLine[];
 
 	return (
-		<div className="space-y-6 p-1">
-			{/* Quick Actions */}
-			<QuickActionsBar />
+		<DataSkeletonProvider value={skeletonContext}>
+			<div className="relative mt-0 space-y-6 p-6">
+				<QuickActionsBar />
 
-			{/* Hero stat strip */}
-			{!isQuote && (
-				<div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-					<StatPill
-						label="Invoice Total"
-						value={formatCurrency(total)}
-						accent="slate"
-					/>
-					<StatPill
-						label="Balance Due"
-						value={formatCurrency(balance)}
-						accent={balance > 0 ? "amber" : "green"}
-					/>
-					<StatPill
-						label="Assigned"
-						value={formatPercent(assignedPct)}
-						accent="blue"
-					/>
-					<StatPill
-						label="Production"
-						value={formatPercent(completedPct)}
-						accent={completedPct >= 100 ? "green" : "slate"}
-					/>
-				</div>
-			)}
-
-			{/* Main grid */}
-			<div className="grid gap-6 lg:grid-cols-2">
-				{/* Customer */}
-				<OverviewSectionCard className="p-4">
-					<OverviewSectionLabel icon={Icons.User} label="Customer" />
-					<DataRow
-						label="Name"
-						value={data?.displayName}
-						action={
-							data?.accountNo ? (
-								<Button
-									variant="ghost"
-									size="xs"
-									className="h-auto px-1 py-0 text-sm font-medium"
-									onClick={() => customerQuery.open(data.accountNo)}
-								>
-									{data.displayName}
-								</Button>
-							) : undefined
-						}
-					/>
-					<DataRow label="Phone" value={data?.customerPhone} />
-					<DataRow label="Email" value={data?.email} />
-					{data?.isBusiness && (
-						<div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-							<Icons.Building2 className="size-3" />
-							Business account
-						</div>
-					)}
-				</OverviewSectionCard>
-
-				{/* Order info */}
-				<OverviewSectionCard className="p-4">
-					<OverviewSectionLabel icon={Icons.Calendar} label="Order" />
-					<DataRow
-						label="Order #"
-						action={
-							data?.orderId ? (
-								<Button
-									variant="ghost"
-									size="xs"
-									className="h-auto px-1 py-0 font-medium"
-									onClick={() =>
-										openLink(
-											salesFormUrl(data.type, data.orderId, data.isDyke),
-											{},
-											true,
-										)
-									}
-								>
-									{data.orderId}
-								</Button>
-							) : undefined
-						}
-					/>
-					<DataRow label="P.O Number" value={data?.poNo} />
-					<DataRow label="Type" value={data?.type} />
-					<DataRow label="Sales Date" value={data?.salesDate} />
-					{!isQuote && (
-						<DataRow
-							label="Delivery"
-							value={data?.deliveryOption || data?.status?.delivery?.status}
-						/>
-					)}
-				</OverviewSectionCard>
-			</div>
-
-			{/* Sales rep */}
-			<OverviewSectionCard className="p-4">
-				<OverviewSectionLabel
-					icon={Icons.UserCheck}
-					label="Sales Representative"
-				/>
-				<div className="flex items-center gap-2">
-					<div className="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-bold uppercase">
-						{data?.salesRepInitial || "?"}
-					</div>
-					<div>
-						<p className="text-sm font-semibold">{data?.salesRep || "—"}</p>
-						{data?.salesRepInitial && (
-							<p className="text-xs text-muted-foreground">
-								{data.salesRepInitial}
-							</p>
-						)}
-					</div>
-				</div>
-			</OverviewSectionCard>
-
-			{/* Payment status (non-quote) */}
-			{!isQuote && (
-				<OverviewSectionCard className="p-4">
-					<OverviewSectionLabel icon={Icons.CreditCard} label="Payment" />
-					<div className="mb-3 space-y-1.5">
-						<div className="flex justify-between text-sm">
-							<span className="text-muted-foreground">Payment progress</span>
-							<span className="font-medium">{formatPercent(paymentPct)}</span>
-						</div>
-						<OverviewProgressBar
-							value={paymentPct}
-							colorClass={paymentPct >= 100 ? "bg-emerald-500" : "bg-blue-500"}
-						/>
-					</div>
-					<div className="grid grid-cols-3 gap-3 text-sm">
+				<div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+					<div className="space-y-6">
 						<div>
-							<p className="text-xs text-muted-foreground">Collected</p>
-							<p className="font-semibold text-emerald-600">
-								{formatCurrency(paid)}
-							</p>
-						</div>
-						<div>
-							<p className="text-xs text-muted-foreground">Pending</p>
-							<p className="font-semibold text-amber-600">
-								{formatCurrency(Number(data?.invoice?.pending || 0))}
-							</p>
-						</div>
-						<div>
-							<p className="text-xs text-muted-foreground">Balance</p>
-							<p className="font-semibold">{formatCurrency(balance)}</p>
-						</div>
-					</div>
-					{(data?.netTerm || data?.dueDate) && (
-						<div className="mt-3 flex gap-4 border-t border-border/40 pt-3 text-sm">
-							{data?.netTerm && (
-								<div>
-									<p className="text-xs text-muted-foreground">Terms</p>
-									<p className="font-medium">{data.netTerm}</p>
+							<SectionTitle icon={Icons.User}>
+								CUSTOMER INFORMATION
+							</SectionTitle>
+							<div className="space-y-3">
+								<div className="flex items-center gap-2">
+									<Icons.User className="mt-0.5 h-4 w-4 text-muted-foreground" />
+									<div>
+										<DataSkeleton
+											className="text-lg font-medium"
+											placeholder="Customer Name"
+										>
+											<Button
+												variant="secondary"
+												size="xs"
+												onClick={() => {
+													if (data?.accountNo) {
+														customerQuery.open(data.accountNo);
+													}
+												}}
+												className="flex items-center gap-1 text-lg font-medium"
+											>
+												<TextWithTooltip
+													className="max-w-[150px]"
+													text={data?.displayName}
+												/>
+												<Icons.ExternalLink className="ml-1 h-4 w-4" />
+											</Button>
+										</DataSkeleton>
+										{data?.isBusiness ? (
+											<DataSkeleton
+												className="text-sm text-muted-foreground"
+												placeholder="Business"
+											>
+												<div className="flex items-center gap-1 text-sm text-muted-foreground">
+													<Icons.Building className="h-3 w-3" />
+													<span>Business</span>
+												</div>
+											</DataSkeleton>
+										) : null}
+									</div>
 								</div>
-							)}
-							{data?.dueDate && (
-								<div>
-									<p className="text-xs text-muted-foreground">Due</p>
-									<p className="font-medium">{data.dueDate}</p>
-								</div>
-							)}
-						</div>
-					)}
-				</OverviewSectionCard>
-			)}
 
-			{/* Production status (non-quote) */}
-			{!isQuote && (
-				<OverviewSectionCard className="p-4">
-					<OverviewSectionLabel icon={Icons.Factory} label="Production" />
+								<div className="flex items-start gap-2">
+									<Icons.Phone className="mt-0.5 h-4 w-4 text-muted-foreground" />
+									<DataSkeleton className="text-sm" placeholder="239-825-2782">
+										<span>{data?.customerPhone}</span>
+									</DataSkeleton>
+								</div>
+
+								{data?.email ? (
+									<div className="flex items-start gap-2">
+										<Icons.Mail className="mt-0.5 h-4 w-4 text-muted-foreground" />
+										<DataSkeleton
+											className="text-sm"
+											placeholder="customer@example.com"
+										>
+											<span>{data.email}</span>
+										</DataSkeleton>
+									</div>
+								) : null}
+							</div>
+						</div>
+
+						<div>
+							<SectionTitle icon={Icons.Calendar}>ORDER DETAILS</SectionTitle>
+							<div className="space-y-3">
+								<div className="grid grid-cols-2 gap-2 text-sm">
+									<div>
+										<p className="text-muted-foreground">Order Number</p>
+										<DataSkeleton className="font-medium" placeholder="03527PC">
+											<Button
+												variant="secondary"
+												size="xs"
+												onClick={() => {
+													if (!data?.orderId) return;
+													openLink(
+														salesFormUrl(data.type, data.orderId, data.isDyke),
+														{},
+														true,
+													);
+												}}
+												className="flex items-center gap-1 font-medium"
+											>
+												<TextWithTooltip
+													className="max-w-[150px]"
+													text={data?.orderId}
+												/>
+												<Icons.ExternalLink className="ml-1 h-4 w-4" />
+											</Button>
+										</DataSkeleton>
+									</div>
+									<div>
+										<p className="text-muted-foreground">Type</p>
+										<DataSkeleton className="font-medium" placeholder="Order">
+											<p className="font-medium capitalize">
+												{isQuote ? "Quote" : data?.type}
+											</p>
+										</DataSkeleton>
+									</div>
+								</div>
+								<div className="grid grid-cols-2 gap-2 text-sm">
+									<div>
+										<p className="text-muted-foreground">Date</p>
+										<DataSkeleton
+											className="font-medium"
+											placeholder="04/04/25"
+										>
+											<p className="font-medium">{data?.salesDate}</p>
+										</DataSkeleton>
+									</div>
+									{isQuote ? null : (
+										<div>
+											<p className="text-muted-foreground">Delivery Option</p>
+											<DeliveryOption salesId={data?.id} />
+										</div>
+									)}
+									<SalesPO salesId={data?.id} value={data?.poNo} />
+								</div>
+							</div>
+						</div>
+
+						<div>
+							<SectionTitle icon={Icons.UserCheck}>
+								SALES REPRESENTATIVE
+							</SectionTitle>
+							<DataSkeleton
+								className="text-sm font-medium"
+								placeholder="Pablo Cruz (PC)"
+							>
+								<p className="text-sm font-medium">
+									{data?.salesRep}{" "}
+									{data?.salesRepInitial ? `(${data.salesRepInitial})` : null}
+								</p>
+							</DataSkeleton>
+						</div>
+					</div>
+
+					<div className="space-y-6">
+						<div className={cn(!isQuote || "hidden")}>
+							<SectionTitle icon={Icons.CreditCardIcon}>
+								PAYMENT STATUS
+							</SectionTitle>
+							<div className="space-y-3">
+								<div className="flex items-center justify-between">
+									<span className="text-sm">Payment Progress</span>
+									<DataSkeleton
+										className="text-sm font-medium"
+										placeholder="0%"
+									>
+										<span className="text-sm font-medium">
+											{paymentPercentage.toFixed(0)}%
+										</span>
+									</DataSkeleton>
+								</div>
+								<DataSkeleton className="h-2 w-full" placeholder="">
+									<Progress value={paymentPercentage} className="h-2" />
+								</DataSkeleton>
+								<div className="grid grid-cols-2 gap-4 pt-2">
+									<div className="flex items-center gap-2">
+										<Icons.CheckCircle2 className="h-4 w-4 text-green-500" />
+										<div>
+											<p className="text-sm text-muted-foreground">Paid</p>
+											<DataSkeleton
+												className="text-sm font-medium"
+												placeholder="$0.00"
+											>
+												<p className="text-sm font-medium">
+													${paid.toFixed(2)}
+												</p>
+											</DataSkeleton>
+										</div>
+									</div>
+									<div className="flex items-center gap-2">
+										<Icons.Clock className="h-4 w-4 text-amber-500" />
+										<div>
+											<p className="text-sm text-muted-foreground">Pending</p>
+											<DataSkeleton
+												className="text-sm font-medium"
+												placeholder="$3,217.63"
+											>
+												<p className="text-sm font-medium">
+													${pending.toFixed(2)}
+												</p>
+											</DataSkeleton>
+										</div>
+									</div>
+								</div>
+								<div className="mt-2 grid grid-cols-2 gap-4 border-t border-border/40 pt-3">
+									<div>
+										<p className="text-sm text-muted-foreground">
+											Payment Terms
+										</p>
+										<DataSkeleton
+											className="text-sm font-medium"
+											placeholder="NET10"
+										>
+											<p className="text-sm font-medium">{data?.netTerm}</p>
+										</DataSkeleton>
+									</div>
+									<div>
+										<p className="text-sm text-muted-foreground">Due Date</p>
+										<DataSkeleton
+											className="text-sm font-medium"
+											placeholder="04/14/25"
+										>
+											<div className="text-sm font-medium">
+												<TCell.Date>{data?.dueDate}</TCell.Date>
+											</div>
+										</DataSkeleton>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						{balance > 0 && !isQuote && data?.id ? (
+							<SalesPaymentProcessor
+								selectedIds={[data.id]}
+								phoneNo={data.customerPhone}
+								customerId={data.customerId}
+							/>
+						) : null}
+
+						<div>
+							<SectionTitle icon={Icons.FileText}>INVOICE DETAILS</SectionTitle>
+							<Card className="border-border/40">
+								<CardContent className="p-4">
+									<div className="space-y-2">
+										{costLines.map((line, index) => (
+											<div
+												key={`${line.label ?? "line"}-${index}`}
+												className="flex justify-between text-sm"
+											>
+												<span className="text-muted-foreground">
+													{line.label}
+												</span>
+												<DataSkeleton placeholder="$0.00">
+													<span>
+														<Money value={line.amount} />
+													</span>
+												</DataSkeleton>
+											</div>
+										))}
+									</div>
+								</CardContent>
+							</Card>
+						</div>
+					</div>
+				</div>
+
+				<div>
+					<SectionTitle icon={Icons.MapPin}>ADDRESSES</SectionTitle>
+					<div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+						{addresses.map((address, index) => (
+							<Card key={address?.title ?? index} className="border-border/40">
+								<CardContent className="p-4">
+									<h4 className="mb-2 font-medium">{address?.title}</h4>
+									<DataSkeleton
+										className="text-sm not-italic text-muted-foreground"
+										placeholder="1713 LEE AVE"
+									>
+										<address className="text-sm not-italic text-muted-foreground">
+											{address?.lines?.filter(Boolean).map((line) => (
+												<Fragment key={line}>
+													{line}
+													<br />
+												</Fragment>
+											))}
+										</address>
+									</DataSkeleton>
+								</CardContent>
+							</Card>
+						))}
+					</div>
+				</div>
+
+				<div className={cn(!isQuote || "hidden")}>
+					<SectionTitle icon={Icons.Factory}>PRODUCTION STATUS</SectionTitle>
 					{data?.stats?.prodAssigned?.total === 0 && data?.id ? (
-						<p className="text-sm text-muted-foreground">
-							Production not applicable for this sale.
-						</p>
+						<Card className="border-border/40">
+							<CardContent className="p-4">
+								<div className="flex items-center justify-center py-2">
+									<p className="text-sm text-muted-foreground">
+										Production not applicable for this sale
+									</p>
+								</div>
+							</CardContent>
+						</Card>
 					) : (
-						<div className="grid gap-4 md:grid-cols-2">
-							<div className="space-y-2">
-								<div className="flex items-center justify-between text-sm">
-									<span>Assignment</span>
-									<div className="flex items-center gap-1.5">
-										<StatusDot color={data?.status?.assignment?.color} />
-										<span className="text-xs font-medium capitalize">
-											{data?.status?.assignment?.status || "—"}
-										</span>
+						<div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+							<Card className="border-border/40">
+								<CardContent className="p-4">
+									<div className="mb-3 flex items-center justify-between">
+										<span className="text-sm">Assignment Progress</span>
+										<div className="flex items-center gap-2">
+											<div
+												className={`h-2 w-2 rounded-full ${getStatusColor(
+													assignmentStatusColor,
+												)}`}
+											/>
+											<DataSkeleton
+												className="text-xs font-medium"
+												placeholder="Completed"
+											>
+												<span className="text-xs font-medium capitalize">
+													{assignmentStatus}
+												</span>
+											</DataSkeleton>
+										</div>
 									</div>
-								</div>
-								<OverviewProgressBar
-									value={assignedPct}
-									colorClass="bg-blue-500"
-								/>
-								<p className="text-xs text-muted-foreground">
-									{data?.stats?.prodAssigned?.score}/
-									{data?.stats?.prodAssigned?.total} assigned
-								</p>
-							</div>
-							<div className="space-y-2">
-								<div className="flex items-center justify-between text-sm">
-									<span>Completion</span>
-									<div className="flex items-center gap-1.5">
-										<StatusDot color={data?.status?.production?.color} />
-										<span className="text-xs font-medium capitalize">
-											{data?.status?.production?.status || "—"}
-										</span>
+									<DataSkeleton className="mb-3 h-2 w-full" placeholder="">
+										<Progress
+											value={assignmentPercentage}
+											className="mb-3 h-2"
+										/>
+									</DataSkeleton>
+									<DataSkeleton
+										className="text-sm text-muted-foreground"
+										placeholder="7/7 items assigned"
+									>
+										<p className="text-sm text-muted-foreground">
+											{data?.stats?.prodAssigned?.score}/
+											{data?.stats?.prodAssigned?.total} items assigned
+										</p>
+									</DataSkeleton>
+								</CardContent>
+							</Card>
+
+							<Card className="border-border/40">
+								<CardContent className="p-4">
+									<div className="mb-3 flex items-center justify-between">
+										<span className="text-sm">Production Progress</span>
+										<div className="flex items-center gap-2">
+											<div
+												className={`h-2 w-2 rounded-full ${getStatusColor(
+													productionStatusColor,
+												)}`}
+											/>
+											<DataSkeleton
+												className="text-xs font-medium"
+												placeholder="Pending"
+											>
+												<span className="text-xs font-medium capitalize">
+													{productionStatus}
+												</span>
+											</DataSkeleton>
+										</div>
 									</div>
-								</div>
-								<OverviewProgressBar
-									value={completedPct}
-									colorClass={
-										completedPct >= 100 ? "bg-emerald-500" : "bg-violet-500"
-									}
-								/>
-								<p className="text-xs text-muted-foreground">
-									{data?.stats?.prodCompleted?.score}/
-									{data?.stats?.prodCompleted?.total} completed
-								</p>
-							</div>
+									<DataSkeleton className="mb-3 h-2 w-full" placeholder="">
+										<Progress
+											value={productionPercentage}
+											className="mb-3 h-2"
+										/>
+									</DataSkeleton>
+									<DataSkeleton
+										className="text-sm text-muted-foreground"
+										placeholder="0/7 items completed"
+									>
+										<p className="text-sm text-muted-foreground">
+											{data?.stats?.prodCompleted?.score}/
+											{data?.stats?.prodCompleted?.total} items completed
+										</p>
+									</DataSkeleton>
+								</CardContent>
+							</Card>
 						</div>
 					)}
-				</OverviewSectionCard>
-			)}
+				</div>
 
-			{/* Delivery status (non-quote) */}
-			{!isQuote && (
-				<OverviewSectionCard className="p-4">
-					<OverviewSectionLabel icon={Icons.Truck} label="Delivery" />
-					<div className="flex items-center justify-between">
-						<p className="text-sm text-muted-foreground">Status</p>
-						<div className="flex items-center gap-1.5">
-							<StatusDot color={data?.status?.delivery?.color} />
-							<Badge variant="outline" className="capitalize">
-								{data?.status?.delivery?.status || "pending"}
-							</Badge>
-						</div>
-					</div>
-					<p className="mt-2 text-sm text-muted-foreground">
-						{data?.dispatchList?.length
-							? `${data.dispatchList.length} dispatch ${data.dispatchList.length === 1 ? "entry" : "entries"}`
-							: "No dispatch entries yet"}
-					</p>
-				</OverviewSectionCard>
-			)}
-
-			{/* Addresses */}
-			{addressEntries.length > 0 && (
-				<OverviewSectionCard className="p-4">
-					<OverviewSectionLabel icon={Icons.MapPin} label="Addresses" />
-					<div className="grid gap-4 md:grid-cols-2">
-						{addressEntries.map((addr, i) => (
-							<div
-								key={`${addr.title ?? "address"}-${addr.address ?? i}`}
-								className="space-y-1"
+				<div className={cn(!isQuote || "hidden")}>
+					<SectionTitle icon={Icons.Package}>SHIPPING STATUS</SectionTitle>
+					<Card className="border-border/40">
+						<CardContent className="p-4">
+							<div className="mb-3 flex items-center justify-between">
+								<span className="text-sm">Delivery Status</span>
+								<div className="flex items-center gap-2">
+									<div
+										className={`h-2 w-2 rounded-full ${getStatusColor(
+											deliveryStatusColor,
+										)}`}
+									/>
+									<DataSkeleton
+										className="text-xs font-medium"
+										placeholder="Pending"
+									>
+										<Badge variant={getStatusVariant(deliveryStatus)}>
+											<span className="capitalize">{deliveryStatus}</span>
+										</Badge>
+									</DataSkeleton>
+								</div>
+							</div>
+							<DataSkeleton
+								className="text-sm text-muted-foreground"
+								placeholder="No dispatch information available"
 							>
-								<p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-									{addr.title || (i === 0 ? "Billing" : "Shipping")}
+								<p className="text-sm text-muted-foreground">
+									{dispatchCount > 0
+										? `${dispatchCount} dispatch entries available`
+										: "No dispatch information available"}
 								</p>
-								<address className="not-italic text-sm leading-relaxed text-foreground/80">
-									{addr.lines?.filter(Boolean).map((line: string) => (
-										<span key={line}>
-											{line}
-											<br />
-										</span>
-									)) ||
-										formatAddress(addr) ||
-										"—"}
-								</address>
-							</div>
-						))}
-					</div>
-				</OverviewSectionCard>
-			)}
-
-			{/* Cost breakdown */}
-			{!isQuote && costLines.length ? (
-				<OverviewSectionCard className="p-4">
-					<OverviewSectionLabel
-						icon={Icons.Package}
-						label="Invoice Breakdown"
-					/>
-					<div className="divide-y divide-border/40">
-						{costLines.map((c, ci) => (
-							<div
-								key={String(
-									c.id ??
-										`${c.label ?? c.title ?? "line"}-${c.amount ?? c.value ?? ci}`,
-								)}
-								className="flex items-center justify-between py-2 text-sm"
-							>
-								<span className="text-muted-foreground">
-									{c.label || c.title || `Line ${ci + 1}`}
-								</span>
-								<span className="font-medium">
-									{formatCurrency(Number(c.amount || c.value || 0))}
-								</span>
-							</div>
-						))}
-					</div>
-				</OverviewSectionCard>
-			) : null}
-		</div>
+							</DataSkeleton>
+						</CardContent>
+					</Card>
+				</div>
+			</div>
+		</DataSkeletonProvider>
 	);
 }

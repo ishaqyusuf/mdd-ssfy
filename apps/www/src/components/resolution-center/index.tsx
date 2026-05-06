@@ -27,8 +27,10 @@ export function ResolutionCenter() {
 		filter: filters,
 		route: trpc.sales.getSalesResolutions,
 	});
-	const conflictCount =
-		summary?.unresolvedCount ?? queryData?.pages?.[0]?.meta?.count ?? 0;
+	const firstPage = queryData?.pages?.[0] as
+		| { meta?: { count?: number } }
+		| undefined;
+	const conflictCount = summary?.unresolvedCount ?? firstPage?.meta?.count ?? 0;
 
 	if (hasFilters && !data?.length && !isFetching) {
 		return <NoResults setFilter={setFilters} />;
@@ -59,7 +61,7 @@ export function ResolutionCenter() {
 					</Badge>
 				</div>
 			</Portal>
-			<div className="flex w-full flex-col gap-4">
+			<div className="flex w-full min-w-0 flex-col gap-4 overflow-hidden rounded-md border-y border-border md:rounded-lg md:border">
 				<Table>
 					<Table.Body>
 						<Table.TableRow />

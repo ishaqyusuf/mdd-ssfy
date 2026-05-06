@@ -36,7 +36,7 @@ export async function SalesResolutionCenterPage({
 	return (
 		<PageShell>
 			<HydrateClient>
-				<div className="flex flex-col gap-6 py-6">
+				<div className="flex min-w-0 flex-col gap-4 px-3 py-4 sm:px-4 md:gap-6 md:px-0 md:py-6">
 					<PageTitle>{title}</PageTitle>
 					<SalesResolutionHeader initialFilterList={initialFilterList} />
 					<ErrorBoundary errorComponent={ErrorFallback}>

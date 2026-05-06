@@ -107,7 +107,7 @@ export function ResolutionDialog({
 					queryKey: trpc.sales.getSalesResolutionsSummary.queryKey(),
 				});
 				qc.invalidateQueries({
-					queryKey: trpc.customer.getCustomerOverviewV2.queryKey(),
+					queryKey: trpc.customers.getCustomerOverviewV2.queryKey(),
 				});
 				rcp.setParams({
 					refreshToken: generateRandomString(),
@@ -170,7 +170,7 @@ export function ResolutionDialog({
 					Resolve
 				</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-[425px]">
+			<DialogContent className="max-h-[90vh] w-[calc(100vw-1.5rem)] overflow-y-auto rounded-lg sm:max-w-[425px]">
 				{!open || (
 					<>
 						<DialogHeader>
@@ -218,7 +218,7 @@ export function ResolutionDialog({
 								onSubmit={form.handleSubmit(onSubmit)}
 								className="space-y-4"
 							>
-								<div className="grid grid-cols-2 gap-4">
+								<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
 									<FormSelect
 										control={form.control}
 										name="action"
@@ -246,7 +246,7 @@ export function ResolutionDialog({
 									)}
 								</div>
 								{watchedAction === "refund" && (
-									<div className="grid grid-cols-2 gap-4">
+									<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
 										<FormSelect
 											control={form.control}
 											name="refundMethod"
@@ -265,12 +265,12 @@ export function ResolutionDialog({
 											label={"Refund Mode"}
 											options={REFUND_MODES}
 											onSelect={(e) => {
-												if (e === "part" && refundableAmount) {
+												if (e?.value === "part" && refundableAmount) {
 													form.setValue("refundAmount", refundableAmount);
 												}
 											}}
 										/>
-										<div className="col-span-2">
+										<div className="sm:col-span-2">
 											<FormInput
 												control={form.control}
 												name="refundAmount"
@@ -302,7 +302,7 @@ export function ResolutionDialog({
 									placeholder="Enter any additional notes..."
 								/>
 
-								<DialogFooter>
+								<DialogFooter className="gap-2 sm:gap-0">
 									<Button
 										disabled={resolveAction?.isPending}
 										type="button"

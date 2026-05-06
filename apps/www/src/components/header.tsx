@@ -9,7 +9,7 @@ export function Header() {
     return (
         <>
             <header
-                className="md:m-0 z-50 px-6 md:border-b h-[70px] flex justify-between items-center top-0 backdrop-filter backdrop-blur-xl md:backdrop-filter md:backdrop-blur-none bg-background bg-opacity-70 desktop:rounded-t-[10px] transition-transform gap-4"
+                className="fixed inset-x-0 top-0 z-50 flex h-[70px] items-center justify-between gap-4 border-b bg-background/90 px-4 shadow-sm backdrop-blur-xl backdrop-filter transition-transform md:relative md:m-0 md:border-b md:bg-background/70 md:px-6 md:shadow-none md:backdrop-blur-none md:backdrop-filter desktop:rounded-t-[10px]"
                 style={{
                     transform:
                         "translateY(calc(var(--header-offset, 0px) * -1))",
@@ -48,6 +48,7 @@ export function Header() {
                 <NotificationCenter />
                 <UserNav />
             </header>
+            <div className="h-[70px] md:hidden" />
             <div className="dark:bg-muted" id="pageTab"></div>
             <div className="overflow-auto" id="tab"></div>
         </>
@@ -82,4 +83,3 @@ export function Header() {
         </header>
     );
 }
-
