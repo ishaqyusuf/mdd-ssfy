@@ -205,4 +205,123 @@ describe("community job submission task APIs", () => {
 		expect(result.job.tasks).toEqual([]);
 		expect(result.job.isCustom).toBe(false);
 	});
+
+	it("hydrates job task rows in the selected builder task install-cost order", async () => {
+		const db = {
+			homes: {
+				findFirst: async () => ({
+					lot: "1",
+					block: "A",
+					modelName: "Model A",
+					lotBlock: "1/A",
+					project: {
+						meta: { addon: 25 },
+						title: "Project Alpha",
+						builder: { name: "Builder One" },
+					},
+				}),
+			},
+			builderTask: {
+				findFirst: async () => ({
+					id: 88,
+					installable: true,
+					deletedAt: null,
+					taskIndex: 1,
+					createdAt: new Date("2024-01-01T00:00:00.000Z"),
+					taskName: "Install",
+					addonPercentage: 10,
+					builderTaskInstallCosts: [
+						{
+							id: 500,
+							orderIndex: 2,
+							createdAt: new Date("2024-03-01T00:00:00.000Z"),
+							modelInstallTasks: [
+								{
+									id: 700,
+									communityModelId: 44,
+									installCostModelId: 900,
+									qty: 2,
+									status: "active",
+								},
+							],
+							defaultQty: 2,
+							installCostModel: {
+								id: 900,
+								title: "Third configured item",
+								unit: "ea",
+								unitCost: 50,
+							},
+						},
+						{
+							id: 501,
+							orderIndex: 0,
+							createdAt: new Date("2024-01-01T00:00:00.000Z"),
+							modelInstallTasks: [
+								{
+									id: 701,
+									communityModelId: 44,
+									installCostModelId: 901,
+									qty: 4,
+									status: "active",
+								},
+							],
+							defaultQty: 4,
+							installCostModel: {
+								id: 901,
+								title: "First configured item",
+								unit: "ea",
+								unitCost: 25,
+							},
+						},
+						{
+							id: 502,
+							orderIndex: 1,
+							createdAt: new Date("2024-02-01T00:00:00.000Z"),
+							modelInstallTasks: [
+								{
+									id: 702,
+									communityModelId: 44,
+									installCostModelId: 902,
+									qty: 3,
+									status: "active",
+								},
+							],
+							defaultQty: 3,
+							installCostModel: {
+								id: 902,
+								title: "Second configured item",
+								unit: "ea",
+								unitCost: 35,
+							},
+						},
+					],
+				}),
+			},
+			jobs: {
+				findFirst: async () => null,
+			},
+			users: {
+				findFirst: async () => ({
+					id: 7,
+					name: "Installer",
+				}),
+			},
+		};
+
+		const result = await getCommunityJobForm(createContext(db), {
+			unitId: 12,
+			builderTaskId: 88,
+			modelId: 44,
+			userId: 7,
+		});
+
+		expect(result.job.tasks.map((task) => task.title)).toEqual([
+			"First configured item",
+			"Second configured item",
+			"Third configured item",
+		]);
+		expect(result.job.tasks.map((task) => task.modelTaskId)).toEqual([
+			701, 702, 700,
+		]);
+	});
 });

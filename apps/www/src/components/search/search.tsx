@@ -289,21 +289,31 @@ export function Search() {
 			className="search-container relative h-full w-full overflow-hidden border border-border bg-background p-0 backdrop-blur-lg backdrop-filter dark:border-[#2C2C2C] dark:bg-[#151515]/[99]"
 		>
 			<div className="border-b border-border relative">
-				<CommandInput
-					ref={inputRef}
-					placeholder="Type a command or search..."
-					onValueChange={(value: string) => {
-						setSearchValue(value);
-						setDebouncedSearch(value);
+				<div className="flex items-center">
+					<CommandInput
+						ref={inputRef}
+						placeholder="Type a command or search..."
+						onValueChange={(value: string) => {
+							setSearchValue(value);
+							setDebouncedSearch(value);
 
-						if (value.trim().split(/\s+/).length > 1) {
-							setDebounceDelay(700);
-						} else {
-							setDebounceDelay(200);
-						}
-					}}
-					className="h-12 px-4 py-0 text-base md:h-[55px] md:text-sm"
-				/>
+							if (value.trim().split(/\s+/).length > 1) {
+								setDebounceDelay(700);
+							} else {
+								setDebounceDelay(200);
+							}
+						}}
+						className="h-12 px-4 py-0 text-base md:h-[55px] md:text-sm"
+					/>
+					<button
+						type="button"
+						aria-label="Close search"
+						onClick={() => setOpen()}
+						className="mr-2 inline-flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:hidden"
+					>
+						<Icons.X className="size-4" />
+					</button>
+				</div>
 				{isFetching ? (
 					<div className="absolute bottom-0 h-[2px] w-full overflow-hidden">
 						<div className="absolute top-[1px] h-full w-40 animate-slide-effect bg-gradient-to-r dark:from-gray-800 dark:via-white dark:via-80% dark:to-gray-800 from-gray-200 via-black via-80% to-gray-200" />
