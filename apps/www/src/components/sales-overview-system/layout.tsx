@@ -71,10 +71,19 @@ export function SalesOverviewHeader({
 						{tabs.map((tab) => (
 							<DropdownMenuItem
 								key={tab.value}
+								disabled={tab.disabled}
 								onSelect={() => onTabChange(tab.value)}
-								className="min-w-0"
+								className="flex min-w-0 items-center justify-between gap-3"
 							>
 								<span className="truncate">{tab.label}</span>
+								{tab.badge !== undefined ? (
+									<Badge
+										className="h-5 shrink-0 px-1.5 text-[10px]"
+										variant={tab.badge ? "default" : "outline"}
+									>
+										{tab.badge}
+									</Badge>
+								) : null}
 							</DropdownMenuItem>
 						))}
 					</DropdownMenuContent>
@@ -84,9 +93,18 @@ export function SalesOverviewHeader({
 						<TabsTrigger
 							key={tab.value}
 							value={tab.value}
+							disabled={tab.disabled}
 							onClick={() => onTabChange(tab.value)}
 						>
-							{tab.label}
+							<span>{tab.label}</span>
+							{tab.badge !== undefined ? (
+								<Badge
+									className="ml-2"
+									variant={tab.badge ? "default" : "outline"}
+								>
+									{tab.badge}
+								</Badge>
+							) : null}
 						</TabsTrigger>
 					))}
 				</TabsList>

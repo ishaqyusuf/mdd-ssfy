@@ -8,6 +8,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
+import { openLink } from "@/lib/open-link";
+import { salesFormUrl } from "@/utils/sales-utils";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { useTransition } from "react";
@@ -20,6 +22,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 			id?: number | null;
 			orderId?: string | null;
 			uuid?: string | null;
+			isDyke?: boolean | null;
 			email?: string | null;
 			displayName?: string | null;
 		};
@@ -76,24 +79,26 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 				<Icons.FileSearch className="size-3.5" />
 				<span>Preview</span>
 			</Button>
-			<SalesMenu
-				trigger={
-					<Button
-						size="sm"
-						variant="secondary"
-						className="flex-1 items-center space-x-2 hover:bg-secondary"
-					>
-						<Icons.Edit className="size-3.5" />
-						<span>Edit</span>
-					</Button>
-				}
-				id={data?.id}
-				slug={data?.uuid}
-				type={data?.type}
-				align="start"
+			<Button
+				size="sm"
+				variant="secondary"
+				className="flex-1 items-center space-x-2 hover:bg-secondary"
+				disabled={!salesNo && !data?.orderId}
+				onClick={() => {
+					openLink(
+						salesFormUrl(
+							data?.type ?? type,
+							salesNo ?? data?.orderId,
+							data?.isDyke ?? true,
+						),
+						{},
+						true,
+					);
+				}}
 			>
-				<SalesFormVersionMenuItems slug={salesNo} type={type} />
-			</SalesMenu>
+				<Icons.Edit className="size-3.5" />
+				<span>Edit</span>
+			</Button>
 			<SalesMenu
 				triggerVariant="secondary"
 				id={data?.id}

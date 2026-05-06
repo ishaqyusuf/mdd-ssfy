@@ -10,6 +10,9 @@ export function normalizeSalesOverviewTab(
 	tab: string | null | undefined,
 ): SalesOverviewTabId | null {
 	if (!tab) return null;
+	if (tab === "general") return "overview";
+	if (tab === "transaction") return "transactions";
+	if (tab === "inbound") return "activity";
 	if (SALES_OVERVIEW_TAB_ORDER.includes(tab as SalesOverviewTabId)) {
 		return tab as SalesOverviewTabId;
 	}

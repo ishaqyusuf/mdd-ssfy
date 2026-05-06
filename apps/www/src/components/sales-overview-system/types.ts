@@ -9,24 +9,54 @@ export type SalesOverviewAccessView = "salesAdmin" | "production" | "dispatch";
 
 export type SalesOverviewTabId =
 	| "overview"
-	| "finance"
 	| "production"
+	| "transactions"
+	| "activity"
 	| "dispatch"
 	| "packing"
-	| "transactions"
+	| "finance"
 	| "details";
 
 export const SALES_OVERVIEW_TAB_ORDER: SalesOverviewTabId[] = [
 	"overview",
-	"finance",
 	"production",
+	"transactions",
+	"activity",
 	"dispatch",
 	"packing",
-	"transactions",
+	"finance",
 	"details",
 ];
 
-export type SalesOverviewData = RouterOutputs["sales"]["getSaleOverview"];
+type SalesOverviewProgressStat = {
+	score?: number | null;
+	total?: number | null;
+	percentage?: number | null;
+};
+
+type SalesOverviewStatusGroup = {
+	status?: string | null;
+	color?: string | null;
+};
+
+export type SalesOverviewData = RouterOutputs["sales"]["getSaleOverview"] & {
+	addressData?: {
+		billing?: Record<string, unknown> | string | null;
+		shipping?: Record<string, unknown> | string | null;
+	} | null;
+	costLines?: unknown[] | null;
+	dispatchList?: unknown[] | null;
+	stats?: {
+		prodAssigned?: SalesOverviewProgressStat | null;
+		prodCompleted?: SalesOverviewProgressStat | null;
+	} | null;
+	status?: {
+		assignment?: SalesOverviewStatusGroup | null;
+		delivery?: SalesOverviewStatusGroup | null;
+		production?: SalesOverviewStatusGroup | null;
+	} | null;
+	uuid?: string | null;
+};
 
 export type SalesOverviewState = {
 	surface: SalesOverviewSurface;

@@ -17,6 +17,7 @@ import {
 } from "./controller";
 import type {
 	SalesOverviewContextValue,
+	SalesOverviewData,
 	SalesOverviewSurface,
 	SalesOverviewTabId,
 } from "./types";
@@ -32,28 +33,27 @@ const {
 	}): SalesOverviewContextValue => {
 		const pageQuery = useSalesOverviewV2PageQuery();
 		const sheetQuery = useSalesOverviewV2SheetQuery();
-		const query = surface === "page" ? pageQuery : sheetQuery;
 		const auth = useAuth();
 		const overviewId =
 			surface === "page"
-				? query.params.overviewId
-				: query.params.overviewSheetId;
+				? pageQuery.params.overviewId
+				: sheetQuery.params.overviewSheetId;
 		const salesType =
 			surface === "page"
-				? query.params.overviewType
-				: query.params.overviewSheetType;
+				? pageQuery.params.overviewType
+				: sheetQuery.params.overviewSheetType;
 		const mode =
 			surface === "page"
-				? query.params.overviewMode
-				: query.params.overviewSheetMode;
+				? pageQuery.params.overviewMode
+				: sheetQuery.params.overviewSheetMode;
 		const currentTab =
 			surface === "page"
-				? query.params.overviewTab
-				: query.params.overviewSheetTab;
+				? pageQuery.params.overviewTab
+				: sheetQuery.params.overviewSheetTab;
 		const dispatchId =
 			surface === "page"
-				? query.params.dispatchId
-				: query.params.overviewSheetDispatchId;
+				? pageQuery.params.dispatchId
+				: sheetQuery.params.overviewSheetDispatchId;
 		const trpc = useTRPC();
 		const { status } = useSession();
 		const { data, isPending } = useQuery(
@@ -67,8 +67,10 @@ const {
 				},
 			),
 		);
+		const overviewData = data as SalesOverviewData | null | undefined;
 		const prodQty =
-			data?.salesStat?.prodAssigned?.total ?? data?.stats?.prodAssigned?.total;
+			overviewData?.salesStat?.prodAssigned?.total ??
+			overviewData?.stats?.prodAssigned?.total;
 		const normalizedTab = normalizeSalesOverviewTab(currentTab);
 		const isAdmin = !!auth?.can?.viewOrders;
 		const accessView = resolveSalesOverviewAccessView({
@@ -81,15 +83,16 @@ const {
 			.filter(Boolean)
 			.join(" | ");
 		const setCurrentTab = (tab: SalesOverviewTabId) => {
-			query.setParams(
-				surface === "page"
-					? {
-							overviewTab: tab,
-						}
-					: {
-							overviewSheetTab: tab,
-						},
-			);
+			if (surface === "page") {
+				pageQuery.setParams({
+					overviewTab: tab,
+				});
+				return;
+			}
+
+			sheetQuery.setParams({
+				overviewSheetTab: tab,
+			});
 		};
 
 		return {
@@ -102,14 +105,17 @@ const {
 				isAdmin,
 				auth,
 				mode,
-				data,
+				data: overviewData,
 				prodQty: prodQty || 0,
 				isQuote: data?.type === "quote",
 				title,
 			},
 			actions: {
 				setCurrentTab,
-				close: () => query.close(),
+				close: () => {
+					if (surface === "page") pageQuery.close();
+					else sheetQuery.close();
+				},
 			},
 			meta: {
 				isLoading: isPending,

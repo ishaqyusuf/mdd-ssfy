@@ -1,6 +1,8 @@
 import type { SalesType } from "@/app-deps/(clean-code)/(sales)/types";
 import { parseAsString, parseAsStringEnum, useQueryStates } from "nuqs";
 
+type SalesOverviewQueryType = SalesType | "sales";
+
 const openModes = [
 	"quote",
 	"sales",
@@ -12,15 +14,23 @@ const openModes = [
 export function useSalesOverviewV2SheetQuery() {
 	const [params, setParams] = useQueryStates({
 		overviewSheetId: parseAsString,
-		overviewSheetType: parseAsStringEnum(["quote", "sales"] as SalesType[]),
+		overviewSheetType: parseAsStringEnum([
+			"quote",
+			"sales",
+			"order",
+		] as SalesOverviewQueryType[]),
 		overviewSheetMode: parseAsStringEnum([...openModes]),
 		overviewSheetTab: parseAsStringEnum([
+			"general",
 			"overview",
-			"finance",
 			"production",
+			"transaction",
+			"transactions",
+			"inbound",
+			"activity",
 			"dispatch",
 			"packing",
-			"transactions",
+			"finance",
 			"details",
 		] as const),
 		overviewSheetDispatchId: parseAsString,

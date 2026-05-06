@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 
+import { SalesOverviewActivityTabV1 } from "./tabs/activity/v1";
 import { SalesOverviewDetailsTabV1 } from "./tabs/details/v1";
 import { SalesOverviewDispatchTabV1 } from "./tabs/dispatch/v1";
 import { SalesOverviewFinanceTabV1 } from "./tabs/finance/v1";
@@ -34,12 +35,13 @@ type SalesOverviewTabVersionRegistry = Record<
 export const DEFAULT_SALES_OVERVIEW_TAB_VERSIONS: Partial<
 	Record<SalesOverviewTabId, string>
 > = {
-	overview: "v2",
+	overview: "v1",
 	finance: "v1",
 	production: "v1",
 	dispatch: "v1",
 	packing: "v1",
 	transactions: "v1",
+	activity: "v1",
 	details: "v1",
 };
 
@@ -101,6 +103,15 @@ const SALES_OVERVIEW_TAB_VERSION_REGISTRY: SalesOverviewTabVersionRegistry = {
 		versions: {
 			v1: {
 				content: <SalesOverviewTransactionsTabV1 />,
+				status: "active",
+			},
+		},
+	},
+	activity: {
+		defaultVersion: "v1",
+		versions: {
+			v1: {
+				content: <SalesOverviewActivityTabV1 />,
 				status: "active",
 			},
 		},

@@ -35,9 +35,19 @@ function StatPill({
 	);
 }
 
+type ProductionItemProgress = {
+	analytics?: {
+		stats?: {
+			qty?: {
+				percentage?: number | null;
+			} | null;
+		} | null;
+	} | null;
+};
+
 export function SalesOverviewProductionTab() {
 	const {
-		state: { accessView, auth, data, isAdmin, overviewId },
+		state: { accessView, auth, currentTab, data, isAdmin, overviewId },
 	} = useSalesOverviewSystem();
 	const trpc = useTRPC();
 
@@ -50,7 +60,7 @@ export function SalesOverviewProductionTab() {
 						? Number(auth?.id || 0)
 						: null,
 			},
-			{ enabled: !!overviewId },
+			{ enabled: !!overviewId && currentTab === "production" },
 		),
 	);
 
@@ -119,8 +129,9 @@ export function SalesOverviewProductionTab() {
 				) : (
 					<div className="space-y-3">
 						{items.map((item) => {
+							const itemProgress = item as ProductionItemProgress;
 							const itemPct = Number(
-								item?.analytics?.stats?.qty?.percentage || 0,
+								itemProgress.analytics?.stats?.qty?.percentage || 0,
 							);
 							return (
 								<div

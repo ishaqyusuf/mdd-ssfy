@@ -26,6 +26,10 @@ type DeliveryWithCompletion = {
 	deliveredAt?: string | Date | null;
 };
 
+type DispatchProgress = {
+	percentage?: number | null;
+};
+
 function statusVariant(
 	status?: string | null,
 ): "default" | "secondary" | "destructive" | "outline" {
@@ -45,14 +49,14 @@ function statusVariant(
 
 export function SalesOverviewDispatchTab() {
 	const {
-		state: { dispatchId, overviewId },
+		state: { currentTab, dispatchId, overviewId },
 	} = useSalesOverviewSystem();
 	const trpc = useTRPC();
 
 	const { data } = useQuery(
 		trpc.dispatch.orderDispatchOverview.queryOptions(
 			{ salesNo: overviewId },
-			{ enabled: !!overviewId },
+			{ enabled: !!overviewId && currentTab === "dispatch" },
 		),
 	);
 
@@ -62,7 +66,8 @@ export function SalesOverviewDispatchTab() {
 			)
 		: data?.deliveries || [];
 
-	const progressPct = Number(data?.progress?.percentage || 0);
+	const progress = data?.progress as DispatchProgress | null | undefined;
+	const progressPct = Number(progress?.percentage || 0);
 
 	return (
 		<div className="space-y-5 p-1">
@@ -97,6 +102,8 @@ export function SalesOverviewDispatchTab() {
 					{deliveries.map((delivery) => {
 						const address = (delivery as { address?: DeliveryAddress | null })
 							.address;
+						const deliveredAt = (delivery as DeliveryWithCompletion)
+							.deliveredAt;
 
 						return (
 							<OverviewSectionCard key={delivery.id}>
@@ -139,15 +146,13 @@ export function SalesOverviewDispatchTab() {
 											</p>
 										</div>
 									)}
-									{(delivery as DeliveryWithCompletion).deliveredAt && (
+									{deliveredAt && (
 										<div>
 											<p className="text-xs text-muted-foreground">
 												Date Completed
 											</p>
 											<p className="font-medium">
-												{new Date(
-													(delivery as DeliveryWithCompletion).deliveredAt!,
-												).toLocaleDateString("en-US")}
+												{new Date(deliveredAt).toLocaleDateString("en-US")}
 											</p>
 										</div>
 									)}

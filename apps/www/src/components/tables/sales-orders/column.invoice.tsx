@@ -31,6 +31,27 @@ export function InvoiceColumn({ item }: { item: Item }) {
         buttonRef.current?.click();
     }
     const buttonRef = useRef<HTMLButtonElement>(null);
+    const hasPendingBalance = Number(pending || 0) > 0;
+    const invoiceClassName = cn(
+        "font-mono$ font-medium",
+        pending == total
+            ? "text-red-600"
+            : hasPendingBalance
+            ? "text-purple-500"
+            : "text-green-600"
+    );
+
+    if (!hasPendingBalance) {
+        return (
+            <div className="text-right relative z-10">
+                <TCell.Money
+                    value={item.invoice.total}
+                    className={invoiceClassName}
+                />
+            </div>
+        );
+    }
+
     return (
         <div className="text-right relative z-10">
             <SalesPaymentProcessor
@@ -45,14 +66,7 @@ export function InvoiceColumn({ item }: { item: Item }) {
                     <TooltipTrigger>
                         <TCell.Money
                             value={item.invoice.total}
-                            className={cn(
-                                "font-mono$ font-medium",
-                                pending == total
-                                    ? "text-red-600"
-                                    : pending > 0
-                                    ? "text-purple-500"
-                                    : "text-green-600"
-                            )}
+                            className={invoiceClassName}
                         />
                     </TooltipTrigger>
                     <TooltipContent
@@ -108,4 +122,3 @@ export function InvoiceColumn({ item }: { item: Item }) {
         </div>
     );
 }
-

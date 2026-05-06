@@ -13,52 +13,38 @@ type TabDefinition = {
 	version: string;
 	availableVersions: string[];
 	access: Array<"salesAdmin" | "production" | "dispatch">;
+	badge?: ReactNode;
+	disabled?: boolean;
 	hideForQuote?: boolean;
+	hidden?: boolean;
 	content: ReactNode;
 };
 
 export function useSalesOverviewTabs() {
 	const {
-		state: { accessView, isAdmin, isQuote },
+		state: { accessView, isAdmin, isQuote, mode, prodQty },
 	} = useSalesOverviewSystem();
+	const isDispatchMode = mode === "dispatch-modal";
+	const isProductionMode =
+		mode === "production-tasks" || mode === "sales-production";
 
 	const tabs: TabDefinition[] = [
 		{
 			value: "overview",
-			label: "Overview",
+			label: "General",
 			...resolveSalesOverviewTabVersion("overview"),
-			description: "Customer, order, payment, and status at a glance",
+			description: "Customer, order, payment, and status details",
 			access: ["salesAdmin"],
-		},
-		{
-			value: "finance",
-			label: "Finance",
-			...resolveSalesOverviewTabVersion("finance"),
-			description: "Invoice totals, payment collection, and cost lines",
-			access: ["salesAdmin"],
+			hidden: isDispatchMode || isProductionMode,
 		},
 		{
 			value: "production",
-			label: "Production",
+			label: "Productions",
 			...resolveSalesOverviewTabVersion("production"),
-			description: "Assignment coverage and item-level progress",
-			access: ["salesAdmin", "production"],
-			hideForQuote: true,
-		},
-		{
-			value: "dispatch",
-			label: "Dispatch",
-			...resolveSalesOverviewTabVersion("dispatch"),
-			description: "Active deliveries and driver assignment",
-			access: ["salesAdmin", "dispatch"],
-			hideForQuote: true,
-		},
-		{
-			value: "packing",
-			label: "Packing",
-			...resolveSalesOverviewTabVersion("packing"),
-			description: "Packing list and dispatch item management",
-			access: ["salesAdmin", "dispatch"],
+			description: "Production assignments and item-level progress",
+			access: ["salesAdmin", "production", "dispatch"],
+			badge: prodQty > 0 ? prodQty : 0,
+			disabled: !isProductionMode && !isDispatchMode && prodQty <= 0,
 			hideForQuote: true,
 		},
 		{
@@ -70,15 +56,53 @@ export function useSalesOverviewTabs() {
 			hideForQuote: true,
 		},
 		{
+			value: "activity",
+			label: isProductionMode
+				? "Notes"
+				: isDispatchMode
+					? "General"
+					: "Activity",
+			...resolveSalesOverviewTabVersion("activity"),
+			description: "Sales activity, notes, and inbound updates",
+			access: ["salesAdmin", "production", "dispatch"],
+		},
+		{
+			value: "dispatch",
+			label: "Dispatch",
+			...resolveSalesOverviewTabVersion("dispatch"),
+			description: "Active deliveries and driver assignment",
+			access: ["salesAdmin"],
+			hideForQuote: true,
+			hidden: isDispatchMode || isProductionMode,
+		},
+		{
+			value: "packing",
+			label: isDispatchMode ? "Packing List" : "Packing",
+			...resolveSalesOverviewTabVersion("packing"),
+			description: "Packing list and dispatch item management",
+			access: ["dispatch"],
+			hideForQuote: true,
+			hidden: !isDispatchMode,
+		},
+		{
+			value: "finance",
+			label: "Finance",
+			...resolveSalesOverviewTabVersion("finance"),
+			description: "Invoice totals, payment collection, and cost lines",
+			access: ["salesAdmin"],
+			hidden: true,
+		},
+		{
 			value: "details",
 			label: "Details",
 			...resolveSalesOverviewTabVersion("details"),
 			description: "Internal IDs, dates, and raw status snapshot",
 			access: ["salesAdmin"],
+			hidden: true,
 		},
 	];
 
-	let visible = tabs;
+	let visible = tabs.filter((tab) => !tab.hidden);
 
 	// Filter by role
 	if (!isAdmin) {
