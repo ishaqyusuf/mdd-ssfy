@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { env } from "./env.mjs";
-import { getLinkModules, validateLinks } from "./components/sidebar/links";
+import { getLinkModules, validateLinks } from "./components/sidebar-links";
 
 export const config = {
     matcher: [

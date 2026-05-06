@@ -22,6 +22,7 @@ interface LineItemBlockProps {
 
 export function LineItemBlock({ section }: LineItemBlockProps) {
 	const widths = getColumnWidths(section.headers);
+	const [firstRow, ...remainingRows] = section.rows;
 
 	return (
 		<View
@@ -34,134 +35,192 @@ export function LineItemBlock({ section }: LineItemBlockProps) {
 				marginBottom: 2,
 			}}
 		>
-			{section.title ? (
-				<View
-					style={{
-						backgroundColor: NAVY,
-						paddingVertical: 4,
-						paddingHorizontal: 8,
-					}}
-				>
-					<Text
-						wrap={false}
+			<View wrap={false}>
+				{section.title ? (
+					<View
 						style={{
-							fontSize: 8.5,
-							fontWeight: 700,
-							color: "#ffffff",
-							textTransform: "uppercase",
-							letterSpacing: 0.4,
+							backgroundColor: NAVY,
+							paddingVertical: 4,
+							paddingHorizontal: 8,
 						}}
 					>
-						{section.title}
-					</Text>
-				</View>
-			) : null}
-
-			<View style={{ flexDirection: "column" }}>
-				{/* Column headers */}
-				<View
-					style={{
-						flexDirection: "row",
-						backgroundColor: "#e2e8f0",
-						borderBottomWidth: 1,
-						borderBottomColor: BORDER,
-					}}
-				>
-					{section.headers.map((h, index) => (
-						<View
-							key={h.title}
+						<Text
+							wrap={false}
 							style={{
-								width: widths[headerKey(h, index)],
-								paddingVertical: 4,
-								paddingHorizontal: 5,
-								borderRightWidth: index < section.headers.length - 1 ? 1 : 0,
-								borderRightColor: BORDER,
-								justifyContent: "center",
+								fontSize: 8.5,
+								fontWeight: 700,
+								color: "#ffffff",
+								textTransform: "uppercase",
+								letterSpacing: 0.4,
 							}}
 						>
-							<Text
-								style={{
-									fontSize: 7.5,
-									fontWeight: 700,
-									color: "#334155",
-									textTransform: "uppercase",
-									textAlign:
-										h.align === "right"
-											? "right"
-											: h.align === "center"
-												? "center"
-												: "left",
-								}}
-							>
-								{h.title}
-							</Text>
-						</View>
-					))}
-				</View>
+							{section.title}
+						</Text>
+					</View>
+				) : null}
 
-				{/* Data rows */}
-				{section.rows.map((row, ri) => (
-					<View
-						wrap={false}
-						key={ri}
-						style={{
-							flexDirection: "row",
-							backgroundColor: row.isGroupHeader
-								? "#dbeafe"
-								: ri % 2 === 0
-									? "#ffffff"
-									: ROW_ALT,
-							borderBottomWidth: ri < section.rows.length - 1 ? 1 : 0,
-							borderBottomColor: BORDER,
-						}}
-					>
-						{row.cells.map((cell, ci) => {
-							const key = headerKey(section.headers[ci]!, ci);
-							const isDescription = key === "description";
-
-							return (
+				{firstRow ? (
+					<>
+						<View
+							style={{
+								flexDirection: "row",
+								backgroundColor: "#e2e8f0",
+								borderBottomWidth: 1,
+								borderBottomColor: BORDER,
+							}}
+						>
+							{section.headers.map((h, index) => (
 								<View
-									key={ci}
+									key={h.title}
 									style={{
-										width: widths[key],
-										paddingVertical: 3,
+										width: widths[headerKey(h, index)],
+										paddingVertical: 4,
 										paddingHorizontal: 5,
-										borderRightWidth: ci < row.cells.length - 1 ? 1 : 0,
+										borderRightWidth:
+											index < section.headers.length - 1 ? 1 : 0,
 										borderRightColor: BORDER,
 										justifyContent: "center",
 									}}
 								>
 									<Text
 										style={{
-											fontSize: 8.5,
-											fontWeight:
-												cell.bold || (row.isGroupHeader && isDescription)
-													? 700
-													: 500,
-											color:
-												row.isGroupHeader && isDescription ? ACCENT : "#1e293b",
+											fontSize: 7.5,
+											fontWeight: 700,
+											color: "#334155",
+											textTransform: "uppercase",
 											textAlign:
-												row.isGroupHeader && isDescription
-													? "center"
-													: cell.align === "right"
-														? "right"
-														: cell.align === "center"
-															? "center"
-															: "left",
-											textTransform:
-												row.isGroupHeader && isDescription
-													? "uppercase"
-													: "none",
+												h.align === "right"
+													? "right"
+													: h.align === "center"
+														? "center"
+														: "left",
 										}}
 									>
-										{cell.value ?? ""}
+										{h.title}
 									</Text>
 								</View>
-							);
-						})}
-					</View>
-				))}
+							))}
+						</View>
+
+						<View
+							wrap={false}
+							style={{
+								flexDirection: "row",
+								backgroundColor: firstRow.isGroupHeader ? "#dbeafe" : "#ffffff",
+								borderBottomWidth: remainingRows.length > 0 ? 1 : 0,
+								borderBottomColor: BORDER,
+							}}
+						>
+							{firstRow.cells.map((cell, ci) => {
+								const key = headerKey(section.headers[ci]!, ci);
+								const isDescription = key === "description";
+
+								return (
+									<View
+										key={ci}
+										style={{
+											width: widths[key],
+											paddingVertical: 3,
+											paddingHorizontal: 5,
+											borderRightWidth: ci < firstRow.cells.length - 1 ? 1 : 0,
+											borderRightColor: BORDER,
+											justifyContent: "center",
+										}}
+									>
+										<Text
+											style={{
+												fontSize: 8.5,
+												fontWeight:
+													cell.bold || (firstRow.isGroupHeader && isDescription)
+														? 700
+														: 500,
+												color:
+													firstRow.isGroupHeader && isDescription
+														? ACCENT
+														: "#1e293b",
+												textAlign:
+													firstRow.isGroupHeader && isDescription
+														? "center"
+														: cell.align === "right"
+															? "right"
+															: cell.align === "center"
+																? "center"
+																: "left",
+												textTransform:
+													firstRow.isGroupHeader && isDescription
+														? "uppercase"
+														: "none",
+											}}
+										>
+											{cell.value ?? ""}
+										</Text>
+									</View>
+								);
+							})}
+						</View>
+					</>
+				) : null}
 			</View>
+
+			{remainingRows.map((row, ri) => (
+				<View
+					wrap={false}
+					key={ri}
+					style={{
+						flexDirection: "row",
+						backgroundColor: row.isGroupHeader
+							? "#dbeafe"
+							: ri % 2 === 0
+								? "#ffffff"
+								: ROW_ALT,
+						borderBottomWidth: ri < section.rows.length - 1 ? 1 : 0,
+						borderBottomColor: BORDER,
+					}}
+				>
+					{row.cells.map((cell, ci) => {
+						const key = headerKey(section.headers[ci]!, ci);
+						const isDescription = key === "description";
+
+						return (
+							<View
+								key={ci}
+								style={{
+									width: widths[key],
+									paddingVertical: 3,
+									paddingHorizontal: 5,
+									borderRightWidth: ci < row.cells.length - 1 ? 1 : 0,
+									borderRightColor: BORDER,
+									justifyContent: "center",
+								}}
+							>
+								<Text
+									style={{
+										fontSize: 8.5,
+										fontWeight:
+											cell.bold || (row.isGroupHeader && isDescription)
+												? 700
+												: 500,
+										color:
+											row.isGroupHeader && isDescription ? ACCENT : "#1e293b",
+										textAlign:
+											row.isGroupHeader && isDescription
+												? "center"
+												: cell.align === "right"
+													? "right"
+													: cell.align === "center"
+														? "center"
+														: "left",
+										textTransform:
+											row.isGroupHeader && isDescription ? "uppercase" : "none",
+									}}
+								>
+									{cell.value ?? ""}
+								</Text>
+							</View>
+						);
+					})}
+				</View>
+			))}
 		</View>
 	);
 }

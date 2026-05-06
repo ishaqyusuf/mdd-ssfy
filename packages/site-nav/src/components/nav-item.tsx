@@ -73,7 +73,9 @@ export const NavItem = ({
 			<NavLink
 				prefetch
 				href={item.href || ""}
-				onClick={() => onSelect?.()}
+				onClick={() => {
+					if (item.href) onSelect?.();
+				}}
 				className="group"
 			>
 				<div className="relative">

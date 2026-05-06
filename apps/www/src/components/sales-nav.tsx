@@ -6,7 +6,7 @@ import { NavigationMenu } from "@gnd/ui/namespace";
 import Portal from "@gnd/ui/custom/portal";
 import Link from "next/link";
 import { AuthGuard } from "./auth-guard";
-import { _perm } from "./sidebar/links";
+import { _perm } from "./sidebar-links";
 
 export function SalesNav() {
     return (

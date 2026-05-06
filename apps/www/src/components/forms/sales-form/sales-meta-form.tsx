@@ -51,7 +51,9 @@ function SummaryTab({}) {
         (md.pricing?.grandTotal || 0) -
         (md.pricing?.taxValue || 0) -
         (md.pricing?.ccc || 0);
+    const isOrder = md?.type === "order";
     const shouldReviewPaymentMethod =
+        isOrder &&
         Boolean(md?.id) &&
         !paymentReviewSeen &&
         !md?.paymentMethodReviewDismissed &&
@@ -78,7 +80,7 @@ function SummaryTab({}) {
     return (
         <div className="space-y-4 pb-4">
             <PaymentMethodReviewDialog
-                open={paymentReviewOpen}
+                open={isOrder && paymentReviewOpen}
                 paymentMethod={md?.paymentMethod}
                 paymentMethods={salesData.paymentOptions}
                 onOpenChange={(open) => {

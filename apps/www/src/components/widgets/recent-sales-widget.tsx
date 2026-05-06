@@ -22,8 +22,8 @@ export function RecentSalesWidget() {
 	);
 	if (isLoading)
 		return (
-			<Card>
-				<CardHeader>
+			<Card className="shadow-none sm:shadow-sm">
+				<CardHeader className="px-3 py-3 sm:p-6">
 					<CardTitle>
 						<Skeleton className="h-[32px] w-[56px]" />
 					</CardTitle>
@@ -31,23 +31,23 @@ export function RecentSalesWidget() {
 						<Skeleton className="h-[16px] w-[56px]" />
 					</CardDescription>
 				</CardHeader>
-				<CardContent className="space-y-4">
-					<ul className="bullet-none divide-y cursor-pointer overflow-auto scrollbar-hide aspect-square pb-32 mt-4">
+				<CardContent className="px-3 pb-3 sm:p-6 sm:pt-0">
+					<ul className="bullet-none max-h-[280px] cursor-pointer divide-y overflow-auto scrollbar-hide sm:max-h-[420px]">
 						<WidgetListSkeleton />
 					</ul>
 				</CardContent>
 			</Card>
 		);
 	return (
-		<Card>
-			<CardHeader>
+		<Card className="shadow-none sm:shadow-sm">
+			<CardHeader className="px-3 py-3 sm:p-6">
 				<CardTitle>Recent Sales</CardTitle>
 				<CardDescription>
 					You made {data?.length} sales recently.
 				</CardDescription>
 			</CardHeader>
-			<CardContent className="space-y-8">
-				<ul className="bullet-none divide-y cursor-pointer overflow-auto scrollbar-hide aspect-square pb-32 mt-4">
+			<CardContent className="px-3 pb-3 sm:p-6 sm:pt-0">
+				<ul className="bullet-none max-h-[280px] cursor-pointer divide-y overflow-auto scrollbar-hide sm:max-h-[420px]">
 					{data?.map((invoice) => {
 						return <InvoiceRow key={invoice.id} invoice={invoice} />;
 					})}

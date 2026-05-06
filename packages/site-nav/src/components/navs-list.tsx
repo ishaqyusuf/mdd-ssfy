@@ -22,7 +22,13 @@ const sectionLabel = cva("", {
 		renderMode: "default",
 	},
 });
-export function NavsList({ mobile = false }) {
+export function NavsList({
+	mobile = false,
+	onSelect,
+}: {
+	mobile?: boolean;
+	onSelect?: () => void;
+}) {
 	const {
 		linkModules,
 		activeLink,
@@ -217,6 +223,7 @@ export function NavsList({ mobile = false }) {
 															<NavItem
 																isExpanded={isExpanded}
 																isItemExpanded={expandedItem === link.href}
+																onSelect={onSelect}
 																onToggle={(path) => {
 																	setExpandedItem(
 																		expandedItem === path ? null : path,

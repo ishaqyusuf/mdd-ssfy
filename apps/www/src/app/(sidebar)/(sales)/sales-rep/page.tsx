@@ -76,16 +76,16 @@ export default async function SalesRepProfile(props: {
 	const user = await authUser();
 
 	return (
-		<PageShell>
+		<PageShell className="p-3 sm:p-4 md:p-6">
 			<HydrateClient>
 				<PageTitle>Sales Rep Profile</PageTitle>
-				<div className="flex flex-1 flex-col space-y-4 p-4 pt-6 md:p-8">
+				<div className="flex flex-1 flex-col space-y-4 px-0 pt-2 sm:px-4 sm:pt-6 md:p-8">
 					<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 						<div className="min-w-0 space-y-1">
-							<h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+							<h2 className="text-xl font-semibold tracking-tight sm:text-3xl">
 								Welcome back, {user?.name?.split(" ")?.filter(Boolean)?.[0]}
 							</h2>
-							<p className="text-muted-foreground">
+							<p className="text-sm text-muted-foreground sm:text-base">
 								Manage your sales activities and track performance
 							</p>
 						</div>
@@ -102,7 +102,7 @@ export default async function SalesRepProfile(props: {
 						</Link>
 					</div>
 
-					<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+					<div className="grid grid-cols-2 overflow-hidden rounded-lg border border-border/70 bg-background [&>*:nth-child(-n+2)]:border-t-0 sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:border-0 sm:bg-transparent lg:grid-cols-4">
 						<Suspense fallback={<SummaryCardSkeleton />}>
 							<SalesRepTotalSales />
 						</Suspense>
@@ -136,7 +136,7 @@ export default async function SalesRepProfile(props: {
 					</div>
 					<div className="flex flex-col">
 						<Tabs defaultValue="recent-sales" className="space-y-4">
-							<div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+							<div className="-mx-3 overflow-x-auto px-3 sm:mx-0 sm:px-0">
 								<TabsList className="inline-flex min-w-max bg-muted">
 									<TabsTrigger value="recent-sales">Recent Sales</TabsTrigger>
 									<TabsTrigger value="recent-quotes">Recent Quotes</TabsTrigger>

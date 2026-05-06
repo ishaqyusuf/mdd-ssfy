@@ -1,4 +1,7 @@
-import { resolveSalesDocumentAccessAction } from "@/actions/resolve-sales-document-access";
+import {
+	resolveSalesDocumentAccessAction,
+	resolveSalesDocumentHtmlPreviewAccessAction,
+} from "@/actions/resolve-sales-document-access";
 import { getBaseUrl } from "@/lib/base-url";
 import { openLink } from "@/lib/open-link";
 import type { IOrderPrintMode } from "@/types/sales";
@@ -29,17 +32,29 @@ type SalesPrintDependencies = {
 		templateId?: string | null;
 		baseUrl?: string | null;
 	}): Promise<ResolveSalesDocumentAccessResult>;
+	resolveHtmlPreviewAccess(input: {
+		salesIds: number[];
+		mode: PrintMode;
+		dispatchId?: number | null;
+		templateId?: string | null;
+		baseUrl?: string | null;
+	}): Promise<ResolveSalesDocumentAccessResult>;
 	openLink: typeof openLink;
 	getBaseUrl: typeof getBaseUrl;
 };
 
 const defaultDependencies: SalesPrintDependencies = {
 	resolveAccess: resolveSalesDocumentAccessAction,
+	resolveHtmlPreviewAccess: resolveSalesDocumentHtmlPreviewAccessAction,
 	openLink,
 	getBaseUrl,
 };
 
 const inflightAccessRequests = new Map<
+	string,
+	Promise<ResolveSalesDocumentAccessResult>
+>();
+const inflightHtmlPreviewRequests = new Map<
 	string,
 	Promise<ResolveSalesDocumentAccessResult>
 >();
@@ -105,7 +120,9 @@ export function buildSalesDocumentRouteFromQuery(input: {
 }) {
 	const origin =
 		input.origin ||
-		(typeof window !== "undefined" ? window.location.origin : "http://localhost");
+		(typeof window !== "undefined"
+			? window.location.origin
+			: "http://localhost");
 	const url = new URL(input.path || PRINT_VIEWER_PATH, origin);
 
 	if (input.pt) url.searchParams.set("pt", input.pt);
@@ -177,6 +194,40 @@ export async function resolveSalesPrintAccess(
 	return pendingAccess;
 }
 
+export async function resolveSalesHtmlPreviewAccess(
+	request: SalesPrintRequest,
+	dependencies: SalesPrintDependencies = defaultDependencies,
+) {
+	const mode = resolveSalesPrintMode(request.mode);
+	const baseUrl = request.baseUrl ?? dependencies.getBaseUrl();
+	const templateId = request.templateId ?? DEFAULT_TEMPLATE_ID;
+	const accessKey = JSON.stringify({
+		salesIds: [...request.salesIds].sort((a, b) => a - b),
+		mode,
+		dispatchId: request.dispatchId ?? null,
+		templateId,
+		baseUrl,
+	});
+
+	const inflight = inflightHtmlPreviewRequests.get(accessKey);
+	if (inflight) return inflight;
+
+	const pendingAccess = dependencies
+		.resolveHtmlPreviewAccess({
+			salesIds: request.salesIds,
+			mode,
+			dispatchId: request.dispatchId ?? null,
+			templateId,
+			baseUrl,
+		})
+		.finally(() => {
+			inflightHtmlPreviewRequests.delete(accessKey);
+		});
+
+	inflightHtmlPreviewRequests.set(accessKey, pendingAccess);
+	return pendingAccess;
+}
+
 export async function openSalesPrintDocument(
 	request: SalesPrintRequest,
 	dependencies: SalesPrintDependencies = defaultDependencies,
@@ -224,6 +275,16 @@ export async function prepareSalesPrintPreview(
 	});
 }
 
+export async function prepareSalesHtmlPreview(
+	request: SalesPrintRequest,
+	dependencies: SalesPrintDependencies = defaultDependencies,
+) {
+	const access = await resolveSalesHtmlPreviewAccess(request, dependencies);
+	return buildSalesDocumentPreviewUrl(access, {
+		templateId: request.templateId,
+	});
+}
+
 export function printOrder(request: Omit<SalesPrintRequest, "mode">) {
 	return openSalesPrintDocument({ ...request, mode: "invoice" });
 }
@@ -258,7 +319,9 @@ function buildSalesDocumentRouteUrl(
 ) {
 	const origin =
 		options?.origin ||
-		(typeof window !== "undefined" ? window.location.origin : "http://localhost");
+		(typeof window !== "undefined"
+			? window.location.origin
+			: "http://localhost");
 	const url = new URL(path, origin);
 
 	if (access.kind === "legacy") {

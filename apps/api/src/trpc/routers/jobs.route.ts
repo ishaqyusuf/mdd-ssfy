@@ -38,7 +38,12 @@ import { saveNote } from "@gnd/utils/note";
 import { NotificationService } from "@notifications/services/triggers";
 import { tasks } from "@trigger.dev/sdk/v3";
 import z from "zod";
-import { createTRPCRouter, publicProcedure } from "../init";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	publicProcedure,
+	type TRPCContext,
+} from "../init";
 // import { Notifications } from "@notifications/index";
 
 function serializeTagValue(value: unknown): string {
@@ -48,6 +53,115 @@ function serializeTagValue(value: unknown): string {
 	} catch {
 		return String(value);
 	}
+}
+
+const jobReviewInputSchema = z.object({
+	action: z.enum(["submit", "approve", "reject"]),
+	note: z.string().optional(),
+	jobId: z.number(),
+});
+
+type JobReviewInput = z.infer<typeof jobReviewInputSchema>;
+type NotificationTasks = ConstructorParameters<typeof NotificationService>[0];
+
+function logJobReviewSideEffectError(
+	stage: "activity" | "notification",
+	input: JobReviewInput,
+	error: unknown,
+) {
+	console.error(
+		`[jobs.jobReview] Failed to run ${stage} side effect for ${input.action} on job ${input.jobId}`,
+		error,
+	);
+}
+
+function getJobReviewStatus(action: JobReviewInput["action"]): JobStatus {
+	if (action === "submit") return "Submitted";
+	if (action === "approve") return "Approved";
+	return "Rejected";
+}
+
+function getJobReviewHeadline(action: JobReviewInput["action"]) {
+	if (action === "submit") return "Job Submitted";
+	if (action === "approve") return "Job Approved";
+	return "Job Rejected";
+}
+
+export async function reviewJobStatus(
+	ctx: {
+		db: TRPCContext["db"];
+		userId: number;
+	},
+	input: JobReviewInput,
+	options: {
+		notificationTasks?: NotificationTasks;
+	} = {},
+) {
+	const db = ctx.db;
+	const job = await db.jobs.update({
+		where: {
+			id: input.jobId,
+		},
+		data: {
+			status: getJobReviewStatus(input.action),
+			statusDate: new Date(),
+		},
+	});
+
+	try {
+		await saveNote(
+			ctx.db,
+			{
+				headline: getJobReviewHeadline(input.action),
+				note: generateJobId(input.jobId),
+				subject: "",
+				tags: [
+					{
+						tagName: "jobControlId",
+						tagValue: job?.controlId || generateJobId(input.jobId),
+					},
+					{
+						tagName: "jobId",
+						tagValue: String(input.jobId),
+					},
+				],
+			},
+			ctx.userId,
+		);
+	} catch (error) {
+		logJobReviewSideEffectError("activity", input, error);
+	}
+
+	if (job.userId) {
+		try {
+			const notification = new NotificationService(
+				options.notificationTasks ?? tasks,
+				ctx,
+			).setEmployeeRecipients(job.userId);
+
+			if (input.action === "submit") {
+				await notification.channel.jobSubmitted({
+					jobId: input.jobId,
+				});
+			} else if (input.action === "approve") {
+				await notification.channel.jobApproved({
+					jobId: input.jobId,
+					contractorId: job.userId,
+					note: input.note,
+				});
+			} else {
+				await notification.channel.jobRejected({
+					jobId: input.jobId,
+					contractorId: job.userId,
+					note: input.note,
+				});
+			}
+		} catch (error) {
+			logJobReviewSideEffectError("notification", input, error);
+		}
+	}
+
+	return job;
 }
 
 export const jobRoutes = createTRPCRouter({
@@ -192,80 +306,10 @@ export const jobRoutes = createTRPCRouter({
 				assignedToName: "",
 			});
 		}),
-	jobReview: publicProcedure
-		.input(
-			z.object({
-				action: z.enum(["submit", "approve", "reject"]),
-				note: z.string().optional(),
-				jobId: z.number(),
-			}),
-		)
+	jobReview: protectedProcedure
+		.input(jobReviewInputSchema)
 		.mutation(async (props) => {
-			const { ctx, input } = props;
-			const {} = ctx;
-			const db = ctx.db;
-
-			const job = await db.jobs.update({
-				where: {
-					id: input.jobId,
-				},
-				data: {
-					status:
-						input.action === "submit"
-							? "Submitted"
-							: input.action === "approve"
-								? "Approved"
-								: "Rejected",
-					statusDate: new Date(),
-				},
-			});
-			await saveNote(
-				ctx.db,
-				{
-					headline:
-						input.action === "submit"
-							? "Job Submitted"
-							: input.action === "approve"
-								? "Job Approved"
-								: "Job Rejected",
-					note: generateJobId(input.jobId),
-					subject: input?.action == "approve" ? `` : ``,
-					tags: [
-						{
-							tagName: "jobControlId",
-							tagValue: job?.controlId!,
-						},
-						{
-							tagName: "jobId",
-							tagValue: String(input.jobId),
-						},
-					],
-				},
-				ctx.userId!,
-			);
-			if (job.userId) {
-				const s = new NotificationService(tasks, ctx).setEmployeeRecipients(
-					job.userId,
-				);
-
-				if (input.action === "submit") {
-					await s.channel.jobSubmitted({
-						jobId: input.jobId,
-					});
-				} else if (input.action === "approve") {
-					await s.channel.jobApproved({
-						jobId: input.jobId,
-						contractorId: job.userId,
-						note: input.note,
-					});
-				} else {
-					await s.channel.jobRejected({
-						jobId: input.jobId,
-						contractorId: job.userId,
-						note: input.note,
-					});
-				}
-			}
+			return reviewJobStatus(props.ctx, props.input);
 		}),
 	cancelPayment: publicProcedure
 		.input(

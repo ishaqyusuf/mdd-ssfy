@@ -3,7 +3,7 @@ import { AuthGuard } from "@/components/auth-guard";
 import { SalesFormVersionMenuItems } from "@/components/sales-form-version-menu-items";
 import { SalesMenu } from "@/components/sales-menu";
 import { SendForPackingButton } from "@/components/sales/send-for-packing-button";
-import { _perm } from "@/components/sidebar/links";
+import { _perm } from "@/components/sidebar-links";
 import { useAuth } from "@/hooks/use-auth";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";

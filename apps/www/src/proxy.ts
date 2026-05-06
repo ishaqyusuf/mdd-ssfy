@@ -1,6 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { type NextRequest, NextResponse } from "next/server";
-import { getLinkModules, validateLinks } from "./components/sidebar/links";
+import { getLinkModules, validateLinks } from "./components/sidebar-links";
 import { createAuthLoginUrl, isAuthLoginPath } from "./lib/auth/auth-routes";
 import { type AuthSnapshot, toAuthSnapshot } from "./lib/auth/auth-snapshot";
 import {

@@ -19,6 +19,7 @@ const COLUMN_WIDTHS: Record<string, number> = {
 
 export function LineItemBlock({ section }: LineItemBlockProps) {
 	const widths = getColumnWidths(section.headers);
+	const [firstRow, ...remainingRows] = section.rows;
 
 	return (
 		<View
@@ -27,91 +28,142 @@ export function LineItemBlock({ section }: LineItemBlockProps) {
 				borderColor: BORDER_COLOR,
 			}}
 		>
-			{section.title ? (
-				<Text
-					wrap={false}
-					style={{
-						...cn(`text-sm p-1 uppercase text-left bg-slate-100`),
-						fontWeight: 700,
-						letterSpacing: 0.3,
-					}}
-				>
-					{section.title}
-				</Text>
-			) : null}
-
-			<View style={cn(`flex-col`)}>
-				<View style={{ ...cn(`flex-row border-t`), borderColor: BORDER_COLOR }}>
-					{section.headers.map((h, index) => (
-						<View
-							key={h.title}
-							style={{
-								...cn(
-									`border-b uppercase ${index === section.headers.length - 1 ? "" : "border-r"}`,
-								),
-								borderColor: BORDER_COLOR,
-								paddingHorizontal: 4,
-								paddingVertical: 2,
-								width: widths[headerKey(h, index)],
-								justifyContent: "center",
-								backgroundColor: hexToRgba(colorsObject.black, 0.2),
-							}}
-						>
-							<Text
-								style={cn(
-									`font-semibold ${h.align === "right" ? "text-right" : h.align === "center" ? "text-center" : ""}`,
-								)}
-							>
-								{h.title}
-							</Text>
-						</View>
-					))}
-				</View>
-
-				{section.rows.map((row, ri) => (
-					<View
+			<View wrap={false}>
+				{section.title ? (
+					<Text
 						wrap={false}
-						key={ri}
 						style={{
-							...cn(
-								`flex-row border-b font-medium text-xs ${row.isGroupHeader ? "bg-slate-200" : ""}`,
-							),
-							borderColor: BORDER_COLOR,
+							...cn(`text-sm p-1 uppercase text-left bg-slate-100`),
+							fontWeight: 700,
+							letterSpacing: 0.3,
 						}}
 					>
-						{row.cells.map((cell, ci) => {
-							const key = headerKey(section.headers[ci]!, ci);
-							const isDescription = key === "description";
+						{section.title}
+					</Text>
+				) : null}
 
-							return (
+				{firstRow ? (
+					<>
+						<View
+							style={{ ...cn(`flex-row border-t`), borderColor: BORDER_COLOR }}
+						>
+							{section.headers.map((h, index) => (
 								<View
-									key={ci}
+									key={h.title}
 									style={{
-										...cn(`${ci === row.cells.length - 1 ? "" : "border-r"}`),
+										...cn(
+											`border-b uppercase ${index === section.headers.length - 1 ? "" : "border-r"}`,
+										),
 										borderColor: BORDER_COLOR,
-										width: widths[key],
+										paddingHorizontal: 4,
+										paddingVertical: 2,
+										width: widths[headerKey(h, index)],
 										justifyContent: "center",
+										backgroundColor: hexToRgba(colorsObject.black, 0.2),
 									}}
 								>
 									<Text
-										style={{
-											...cn(
-												`${cell.bold ? "font-bold" : ""} ${row.isGroupHeader && isDescription ? "text-center uppercase" : cell.align === "right" ? "text-right" : cell.align === "center" ? "text-center" : "text-left"}`,
-											),
-											fontWeight:
-												row.isGroupHeader && isDescription ? 700 : undefined,
-											paddingHorizontal: 4,
-											paddingVertical: 3,
-										}}
+										style={cn(
+											`font-semibold ${h.align === "right" ? "text-right" : h.align === "center" ? "text-center" : ""}`,
+										)}
 									>
-										{cell.value ?? ""}
+										{h.title}
 									</Text>
 								</View>
-							);
-						})}
-					</View>
-				))}
+							))}
+						</View>
+
+						<View
+							wrap={false}
+							style={{
+								...cn(
+									`flex-row border-b font-medium text-xs ${firstRow.isGroupHeader ? "bg-slate-200" : ""}`,
+								),
+								borderColor: BORDER_COLOR,
+							}}
+						>
+							{firstRow.cells.map((cell, ci) => {
+								const key = headerKey(section.headers[ci]!, ci);
+								const isDescription = key === "description";
+
+								return (
+									<View
+										key={ci}
+										style={{
+											...cn(
+												`${ci === firstRow.cells.length - 1 ? "" : "border-r"}`,
+											),
+											borderColor: BORDER_COLOR,
+											width: widths[key],
+											justifyContent: "center",
+										}}
+									>
+										<Text
+											style={{
+												...cn(
+													`${cell.bold ? "font-bold" : ""} ${firstRow.isGroupHeader && isDescription ? "text-center uppercase" : cell.align === "right" ? "text-right" : cell.align === "center" ? "text-center" : "text-left"}`,
+												),
+												fontWeight:
+													firstRow.isGroupHeader && isDescription
+														? 700
+														: undefined,
+												paddingHorizontal: 4,
+												paddingVertical: 3,
+											}}
+										>
+											{cell.value ?? ""}
+										</Text>
+									</View>
+								);
+							})}
+						</View>
+					</>
+				) : null}
 			</View>
+
+			{remainingRows.map((row, ri) => (
+				<View
+					wrap={false}
+					key={ri}
+					style={{
+						...cn(
+							`flex-row border-b font-medium text-xs ${row.isGroupHeader ? "bg-slate-200" : ""}`,
+						),
+						borderColor: BORDER_COLOR,
+					}}
+				>
+					{row.cells.map((cell, ci) => {
+						const key = headerKey(section.headers[ci]!, ci);
+						const isDescription = key === "description";
+
+						return (
+							<View
+								key={ci}
+								style={{
+									...cn(`${ci === row.cells.length - 1 ? "" : "border-r"}`),
+									borderColor: BORDER_COLOR,
+									width: widths[key],
+									justifyContent: "center",
+								}}
+							>
+								<Text
+									style={{
+										...cn(
+											`${cell.bold ? "font-bold" : ""} ${row.isGroupHeader && isDescription ? "text-center uppercase" : cell.align === "right" ? "text-right" : cell.align === "center" ? "text-center" : "text-left"}`,
+										),
+										fontWeight:
+											row.isGroupHeader && isDescription ? 700 : undefined,
+										paddingHorizontal: 4,
+										paddingVertical: 3,
+									}}
+								>
+									{cell.value ?? ""}
+								</Text>
+							</View>
+						);
+					})}
+				</View>
+			))}
 		</View>
 	);
 }

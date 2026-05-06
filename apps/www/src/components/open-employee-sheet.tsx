@@ -2,7 +2,7 @@ import { useEmployeeParams } from "@/hooks/use-employee-params";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { AuthGuard } from "./auth-guard";
-import { _perm } from "./sidebar/links";
+import { _perm } from "./sidebar-links";
 import { useRolesParams } from "@/hooks/use-roles-params";
 
 export function OpenEmployeeSheet() {

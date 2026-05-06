@@ -7,7 +7,7 @@ import { Icons } from "@gnd/ui/icons";
 import { usePathname } from "next/dist/client/components/navigation";
 import Link from "next/link";
 import { Header } from "./header";
-import { linkModules } from "./sidebar/links";
+import { linkModules } from "./sidebar-links";
 export function SidebarContent({
 	children,
 	initialAuth = null,

@@ -1,5 +1,5 @@
 import { ErrorFallback } from "@/components/error-fallback";
-import { _role } from "@/components/sidebar/links";
+import { _role } from "@/components/sidebar-links";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { Suspense } from "react";

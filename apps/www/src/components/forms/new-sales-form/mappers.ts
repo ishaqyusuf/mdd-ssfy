@@ -24,6 +24,12 @@ function normalizeSyntheticLineTitle(value?: string | null) {
 	return /^line\s+\d+$/i.test(title) ? "" : title;
 }
 
+function normalizeSalesFormTitle(value?: string | null) {
+	return String(value || "")
+		.trim()
+		.toLowerCase();
+}
+
 function getStoredMouldingRows(line: NewSalesFormLineItem) {
 	const meta = line.meta as NewSalesFormLineItem["meta"] & {
 		mouldingRows?: Array<Record<string, unknown>>;
@@ -36,6 +42,40 @@ function getStoredServiceRows(line: NewSalesFormLineItem) {
 		serviceRows?: Array<Record<string, unknown>>;
 	};
 	return Array.isArray(meta?.serviceRows) ? meta.serviceRows : [];
+}
+
+function getItemTypeTitle(line: Partial<NewSalesFormLineItem>) {
+	const itemTypeStep = (line.formSteps || []).find(
+		(step) => normalizeSalesFormTitle(step?.step?.title) === "item type",
+	);
+	return String(itemTypeStep?.value || "").trim();
+}
+
+function isGroupedLineItem(line: Partial<NewSalesFormLineItem>) {
+	const itemType = normalizeSalesFormTitle(getItemTypeTitle(line));
+	if (
+		itemType === "moulding" ||
+		itemType === "mouldings" ||
+		itemType === "molding" ||
+		itemType === "moldings" ||
+		itemType === "service" ||
+		itemType === "services"
+	) {
+		return true;
+	}
+	const typedLine = line as NewSalesFormLineItem;
+	return (
+		getStoredMouldingRows(typedLine).length > 0 ||
+		getStoredServiceRows(typedLine).length > 0
+	);
+}
+
+function normalizeGroupedLineTitle(line: Partial<NewSalesFormLineItem>) {
+	const title = normalizeSyntheticLineTitle(line.title);
+	if (!isGroupedLineItem(line)) return title;
+	const itemTypeTitle = getItemTypeTitle(line);
+	if (!itemTypeTitle) return title;
+	return itemTypeTitle;
 }
 
 function deriveLineTotalForSummary(line: NewSalesFormLineItem) {
@@ -100,7 +140,7 @@ export function normalizeLineItem(
 	return {
 		id: line.id ?? null,
 		uid: line.uid || createLineItemUid(index),
-		title: normalizeSyntheticLineTitle(line.title),
+		title: normalizeGroupedLineTitle(line),
 		description: line.description ?? "",
 		qty,
 		unitPrice,

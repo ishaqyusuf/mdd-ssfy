@@ -3,7 +3,7 @@ import { CustomerDirectoryV2Page } from "@/components/customer-v2/customer-direc
 import PageShell from "@/components/page-shell";
 import { loadCustomerFilterParams } from "@/hooks/use-customer-filter-params";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
-import { _role } from "@/components/sidebar/links";
+import { _role } from "@/components/sidebar-links";
 import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import type { SearchParams } from "nuqs";

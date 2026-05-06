@@ -48,6 +48,12 @@ import {
 	getCommunityTemplatesSchema,
 } from "@api/db/queries/community-template";
 import {
+	getBuilderTasksForProject,
+	getBuilderTasksForProjectSchema,
+	getCommunityJobForm,
+	getCommunityJobFormSchema,
+} from "@api/db/queries/community-job-form";
+import {
 	getProjectUnits,
 	getProjectUnitsSchema,
 } from "@api/db/queries/project-units";
@@ -133,7 +139,7 @@ import {
 	communityInstallCostRateSchema,
 	jobFormSchema,
 } from "@community/schema";
-import type { JobMeta, JobStatus, ProjectMeta } from "@community/types";
+import type { JobStatus } from "@community/types";
 import type { Prisma } from "@gnd/db";
 import { getSettingAction } from "@gnd/settings";
 import {
@@ -439,204 +445,8 @@ export const communityRouters = createTRPCRouter({
 		};
 	}),
 	getJobForm: publicProcedure
-		.input(
-			z.object({
-				jobId: z.number().optional().nullable(),
-				builderTaskId: z.number().optional().nullable(),
-				modelId: z.number().optional().nullable(),
-				unitId: z.number().optional().nullable(),
-				userId: z.number().optional().nullable(),
-			}),
-		)
-		.query(async (props) => {
-			const { jobId, builderTaskId, modelId } = props.input;
-			// get unit information
-			const { db } = props.ctx;
-			const unit = await props.ctx.db.homes.findFirst({
-				where: {
-					id: props.input.unitId,
-				},
-				select: {
-					lot: true,
-					block: true,
-					modelName: true,
-					lotBlock: true,
-					project: {
-						select: {
-							meta: true,
-							title: true,
-							builder: {
-								select: {
-									name: true,
-								},
-							},
-						},
-					},
-				},
-			});
-			const projectAddon = (unit?.project?.meta as any as ProjectMeta)?.addon;
-			const builderTask = await db.builderTask.findFirst({
-				where: {
-					id: builderTaskId!,
-					// installable: true,
-				},
-				select: {
-					id: true,
-					taskIndex: true,
-					createdAt: true,
-					taskName: true,
-					addonPercentage: true,
-					builderTaskInstallCosts: {
-						select: {
-							id: true,
-							orderIndex: true,
-							createdAt: true,
-							modelInstallTasks: {
-								where: {
-									communityModelId: modelId,
-								},
-								select: {
-									id: true,
-									communityModelId: true,
-									installCostModelId: true,
-									qty: true,
-									status: true,
-								},
-							},
-							defaultQty: true,
-							installCostModel: {
-								select: {
-									id: true,
-									title: true,
-									unit: true,
-									unitCost: true,
-								},
-							},
-						},
-					},
-				},
-			});
-			const job = await db.jobs.findFirst({
-				where: {
-					id: jobId! || -1,
-				},
-				select: {
-					amount: true,
-					description: true,
-					meta: true,
-					id: true,
-					adminNote: true,
-					isCustom: true,
-					note: true,
-					title: true,
-					subtitle: true,
-					type: true,
-					status: true,
-					jobInstallTasks: {
-						select: {
-							id: true,
-							communityModelInstallTaskId: true,
-							qty: true,
-							maxQty: true,
-							rate: true,
-						},
-					},
-					user: {
-						select: {
-							id: true,
-							name: true,
-						},
-					},
-				},
-			});
-			const sortedBuilderTaskInstallCosts = builderTask
-				? sortInstallCosts(
-						builderTask.builderTaskInstallCosts.map((cost) => ({
-							...cost,
-							builderTaskInstallCost: {
-								id: cost.id,
-								orderIndex: cost.orderIndex ?? null,
-								createdAt: cost.createdAt ?? null,
-							},
-						})),
-					)
-				: [];
-			const jobTasks = sortedBuilderTaskInstallCosts
-				?.map((taskInstallCost) => {
-					const modelInstallTask = taskInstallCost.modelInstallTasks?.find(
-						(mit) =>
-							mit.installCostModelId === taskInstallCost.installCostModel.id,
-					);
-					const modelTaskId = modelInstallTask?.id;
-					const jobTask = job?.jobInstallTasks.find(
-						(jt) => jt.communityModelInstallTaskId === modelTaskId,
-					);
-					return {
-						id: jobTask?.id,
-						// builderTaskId:
-						qty: jobTask?.qty!,
-						maxQty: jobTask?.maxQty || modelInstallTask?.qty, //.defaultQty,
-						rate: jobTask?.rate || taskInstallCost.installCostModel.unitCost,
-						installCostModel: taskInstallCost.installCostModel,
-						modelTaskId,
-						title: taskInstallCost.installCostModel.title,
-					};
-				})
-				.filter((a) => a.maxQty && a.modelTaskId);
-			const user = await db.users.findFirst({
-				where: {
-					id: props.input.userId ?? props.ctx.userId ?? -1,
-				},
-				select: {
-					name: true,
-					id: true,
-				},
-			});
-			const jobMeta: JobMeta = (job?.meta as any) || {
-				addonPercent: builderTask?.addonPercentage,
-				addon: projectAddon,
-			};
-			return {
-				unit: {
-					lot: unit?.lot,
-					block: unit?.block,
-					lotBlock: unit?.lotBlock,
-					modelName: unit?.modelName,
-					projectTitle: unit?.project.title,
-					builderName: unit?.project?.builder?.name,
-					projectAddon,
-					taskName: builderTask?.taskName,
-					// addonPercentage: builderTask?.addonPercentage,
-				},
-				builderTaskId,
-
-				user: job?.user || user,
-				job: {
-					tasks: jobTasks,
-					id: job?.id,
-					// type: job?.type || job?.,
-					amount: job?.amount,
-					description: job?.description,
-					meta: jobMeta,
-					title:
-						job?.title ||
-						[unit?.project?.title, unit?.lotBlock]
-							?.filter(Boolean)
-							?.join(" - "),
-					subtitle:
-						job?.subtitle ||
-						[unit?.modelName, builderTask?.taskName]
-							?.filter(Boolean)
-							?.join(" - "),
-					adminNote: job?.adminNote,
-					isCustom: !!job?.isCustom || !builderTaskId,
-					status: (job?.status || "Assigned") as JobStatus,
-				},
-				// communityModelInstallTaskIds: Array.from(
-				//   new Set(jobTasks?.map((a) => a.modelTaskId!)?.filter(Boolean)),
-				// ),
-			};
-		}),
+		.input(getCommunityJobFormSchema)
+		.query(async (props) => getCommunityJobForm(props.ctx, props.input)),
 	saveJobForm: publicProcedure.input(jobFormSchema).mutation(async (props) => {
 		const { ctx, input } = props;
 		return ctx.db.$transaction(async (db) => {
@@ -1359,67 +1169,8 @@ export const communityRouters = createTRPCRouter({
 			});
 		}),
 	getBuilderTasksForProject: publicProcedure
-		.input(
-			z.object({
-				projectId: z.number(),
-				homeId: z.number(),
-			}),
-		)
-		.query(async (props) => {
-			const { projectId, homeId } = props.input;
-			const { db } = props.ctx;
-			const tasks = await db.builderTask.findMany({
-				where: {
-					builder: {
-						projects: {
-							some: {
-								id: projectId,
-							},
-						},
-					},
-				},
-				select: {
-					id: true,
-					taskName: true,
-					// communityModelInstallTasks: {
-					//   select: {
-					//     id: true,
-					//     qty: true,
-					//     installCostModel: {
-					//       select: {
-					//         title: true,
-					//         unitCost: true,
-					//         unit: true,
-					//       },
-					//     },
-					//   },
-					//   where: {
-
-					//     // communityModel: {
-					//     //   homes: {
-					//     //     some: {
-					//     //       id: homeId,
-					//     //     },
-					//     //   },
-					//     // },
-					//   },
-					// },
-				},
-			});
-
-			return tasks.map((task) => ({
-				id: task.id,
-				taskName: task.taskName,
-				// installTasksCount: task.communityModelInstallTasks.length,
-
-				// installCostModel: task.communityModelInstallTasks?.[0]?.installCostModel || null,
-				// qty: task.communityModelInstallTasks?.[0]?.qty || null,
-				// estimatedCost: task.communityModelInstallTasks.reduce((acc, t) => {
-				//   const cost = (t.installCostModel?.unitCost || 0) * (t.qty || 0);
-				//   return acc + cost;
-				// }, 0),
-			}));
-		}),
+		.input(getBuilderTasksForProjectSchema)
+		.query(async (props) => getBuilderTasksForProject(props.ctx, props.input)),
 	saveCommunityModelCostForm: publicProcedure
 		.input(saveCommunityModelCostSchema)
 		.mutation(async (props) => {

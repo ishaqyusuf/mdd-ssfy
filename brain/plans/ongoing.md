@@ -93,3 +93,25 @@
 5. Replace bulky step header chrome with wrapped step CTA buttons and value-only component previews.
 6. Refactor summary/history into a flatter sheet layout and make HPT, moulding, service, and shelf-items mobile-native within their own step-family folders.
 7. Extract save orchestration from the button component into application/server save boundaries while preserving hardening constraints and server-authoritative pricing.
+
+## Sales Default Action Queue Cleanup
+- Status: Ready
+- Objective: Change the default Sales orders page from a broad incomplete-orders list into a focused actionable queue, so forgotten payment/delivery completion states do not bloat the first view.
+- Current Phase: Detailed implementation plan captured
+- Next Step: Add a server-side default queue mode to the sales query contract and map empty Sales page loads to that mode.
+- Blockers: None
+- Related Files: packages/sales/src/utils/where-queries.ts, packages/sales/src/schema.ts, apps/api/src/schemas/sales.ts, apps/api/src/utils/sales.ts, apps/api/src/db/queries/sales.ts, apps/api/src/db/queries/sales-orders-v2.ts, apps/www/src/hooks/use-sales-filter-params.ts, apps/www/src/hooks/use-sales-orders-v2-filter-params.ts, apps/www/src/components/sales-order-search-filter.tsx, apps/www/src/components/sales-orders-v2-header.tsx, apps/api/src/db/queries/filters.ts
+- Last Updated: 2026-05-04
+
+### Plan
+1. Define the target queue contract: default Sales should mean "active action required," not every order that is simply not delivered or not paid. Keep explicit filters for Outstanding Payment, Pending Delivery, Pending Production, Needs Completion Review, and All Orders.
+2. Extend the sales query schema with a stable queue/filter key, for example `queue: "actionable" | "needs-completion" | "all"`, while preserving existing `invoice`, `production`, and `dispatch.status` filters for user-selected searches.
+3. Replace the current default `OR` query in `packages/sales/src/utils/where-queries.ts` with a named default queue builder. The current default includes pending dispatch, pending production, or `amountDue > 0`; the new default should prefer true operational action and exclude orders that are fully operationally complete but only stale because someone forgot to close status.
+4. Add a `needs-completion` queue that catches likely forgotten rows, such as orders with completed production and dispatch control but lingering open delivery status, or orders with old/no recent activity and inconsistent payment/delivery flags. Keep this queue visible as a deliberate tab/filter instead of hiding the data.
+5. Wire both old and V2 Sales routes through the same queue semantics. The legacy page currently uses `loadOrderFilterParams` and `getOrders`; V2 converts its own filters to the legacy query before `whereSales`, so both paths need the same default behavior.
+6. Update filter metadata and UI copy so sales reps see "Action Queue" by default, with clear alternate filters for "Needs Completion", "Outstanding Payment", "Pending Delivery", and "All Orders". Avoid in-app explanatory text blocks; use concise labels, badges, and filter chips.
+7. Add focused tests around `whereSales` and default scoping: empty default load, manager all-sales visibility, explicit payment filter, explicit dispatch filter, needs-completion queue, and bin behavior.
+8. Verify with one manual pass on `/sales-book/orders` and `/sales-book/orders/v2`: default list size is reduced, explicit filters still reveal the hidden/stale rows, summaries match the active filter, and sales-rep scoping remains intact.
+
+### Resume Prompt
+Continue the Sales Default Action Queue Cleanup plan from `brain/plans/ongoing.md`. Current phase: detailed implementation plan captured. Next step: add a server-side default queue mode to the sales query contract and map empty Sales page loads to that mode. Blockers: none. Relevant files: `packages/sales/src/utils/where-queries.ts`, `packages/sales/src/schema.ts`, `apps/api/src/schemas/sales.ts`, `apps/api/src/utils/sales.ts`, `apps/api/src/db/queries/sales.ts`, `apps/api/src/db/queries/sales-orders-v2.ts`, `apps/www/src/hooks/use-sales-filter-params.ts`, `apps/www/src/hooks/use-sales-orders-v2-filter-params.ts`, `apps/www/src/components/sales-order-search-filter.tsx`, `apps/www/src/components/sales-orders-v2-header.tsx`, and `apps/api/src/db/queries/filters.ts`. Update `brain/plans/ongoing.md` as progress continues.

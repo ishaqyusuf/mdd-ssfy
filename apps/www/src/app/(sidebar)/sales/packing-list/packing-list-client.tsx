@@ -24,6 +24,16 @@ import { addDays } from "date-fns";
 import { toast } from "sonner";
 
 type PackingListTab = "current" | "completed" | "cancelled";
+type PackingListItem = {
+	dispatchId?: number;
+	salesId?: number;
+	orderNo?: string | null;
+	salesRep?: string | null;
+	customerName?: string | null;
+	address?: string | null;
+	phone?: string | null;
+	status?: string | null;
+};
 
 function normalize(value?: string | null) {
 	return String(value || "").toLowerCase();
@@ -71,16 +81,7 @@ function PackingListCard({
 	onStatusChange,
 	isUpdating,
 }: {
-	item: {
-		dispatchId: number;
-		salesId: number;
-		orderNo: string;
-		salesRep?: string | null;
-		customerName?: string | null;
-		address?: string | null;
-		phone?: string | null;
-		status?: string | null;
-	};
+	item: PackingListItem;
 	tab: PackingListTab;
 	isAdmin: boolean;
 	onOpen: () => void;
@@ -97,25 +98,29 @@ function PackingListCard({
 	return (
 		<Card
 			className={cn(
-				"h-full rounded-3xl border-border/70 transition duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg",
+				"h-full max-w-full overflow-hidden rounded-3xl border-border/70 transition duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg",
 				item.status === "cancelled" && "border-destructive/30 bg-destructive/5",
 			)}
 		>
-			<CardContent className="flex h-full flex-col gap-4 p-5">
+			<CardContent className="flex h-full min-w-0 flex-col gap-4 p-4 sm:p-5">
 				<div className="flex items-start justify-between gap-3">
-					<button type="button" onClick={onOpen} className="min-w-0 text-left">
-						<p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+					<button
+						type="button"
+						onClick={onOpen}
+						className="min-w-0 flex-1 text-left"
+					>
+						<p className="truncate text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
 							Customer
 						</p>
-						<p className="mt-1 truncate text-2xl font-semibold">
+						<p className="mt-1 truncate text-xl font-semibold sm:text-2xl">
 							{item.customerName || "Unknown customer"}
 						</p>
 					</button>
 
-					<div className="flex items-center gap-2">
+					<div className="flex shrink-0 items-center gap-1.5">
 						<span
 							className={cn(
-								"rounded-full px-3 py-1 text-xs font-semibold",
+								"max-w-[96px] truncate rounded-full px-2.5 py-1 text-xs font-semibold sm:max-w-none sm:px-3",
 								item.status === "completed" &&
 									"bg-emerald-500/10 text-emerald-700",
 								item.status === "cancelled" &&
@@ -195,11 +200,11 @@ function PackingListCard({
 				<button
 					type="button"
 					onClick={onOpen}
-					className="flex flex-1 flex-col gap-3 text-left"
+					className="flex min-w-0 flex-1 flex-col gap-3 text-left"
 				>
 					<div className="space-y-3 text-sm">
-						<div className="flex items-start gap-2">
-							<Icons.User className="mt-0.5 size-4 text-muted-foreground" />
+						<div className="flex min-w-0 items-start gap-2">
+							<Icons.User className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
 							<div className="min-w-0">
 								<p className="truncate font-medium">{item.orderNo}</p>
 								<p className="truncate text-muted-foreground">
@@ -208,26 +213,26 @@ function PackingListCard({
 							</div>
 						</div>
 
-						<div className="flex items-start gap-2">
-							<Icons.MapPin className="mt-0.5 size-4 text-muted-foreground" />
-							<p className="text-muted-foreground">
+						<div className="flex min-w-0 items-start gap-2">
+							<Icons.MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+							<p className="min-w-0 break-words text-muted-foreground">
 								{item.address || "No address available"}
 							</p>
 						</div>
 
-						<div className="flex items-center gap-2">
-							<Icons.Phone className="size-4 text-muted-foreground" />
-							<p className="text-muted-foreground">
+						<div className="flex min-w-0 items-center gap-2">
+							<Icons.Phone className="size-4 shrink-0 text-muted-foreground" />
+							<p className="min-w-0 truncate text-muted-foreground">
 								{item.phone || "No phone number"}
 							</p>
 						</div>
 					</div>
 
-					<div className="mt-auto flex items-center justify-between pt-2 text-sm">
-						<span className="text-muted-foreground">
+					<div className="mt-auto flex min-w-0 items-center justify-between gap-3 pt-2 text-sm">
+						<span className="min-w-0 truncate text-muted-foreground">
 							{tab === "current" ? "Open packing slip" : "View packing slip"}
 						</span>
-						<Icons.ExternalLink className="size-4 text-muted-foreground transition group-hover:text-primary" />
+						<Icons.ExternalLink className="size-4 shrink-0 text-muted-foreground transition group-hover:text-primary" />
 					</div>
 				</button>
 			</CardContent>
@@ -309,6 +314,10 @@ export function PackingListClient() {
 	}, [items, term]);
 
 	const emptyState = getEmptyStateCopy(tab);
+	const activeMutationDispatchId =
+		statusMutation.variables && "dispatchId" in statusMutation.variables
+			? statusMutation.variables.dispatchId
+			: null;
 
 	function setTab(nextTab: PackingListTab) {
 		const params = new URLSearchParams(searchParams.toString());
@@ -337,12 +346,12 @@ export function PackingListClient() {
 	}, [query, searchParams]);
 
 	return (
-		<div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 md:px-6">
-			<div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-3 text-center">
-				<span className="rounded-full border border-border/60 bg-background/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+		<div className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-6 overflow-x-hidden px-0 py-4 sm:gap-8 sm:px-2 sm:py-6 md:px-6">
+			<div className="mx-auto flex w-full max-w-3xl min-w-0 flex-col items-center gap-3 text-center">
+				<span className="max-w-full truncate rounded-full border border-border/60 bg-background/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:tracking-[0.24em]">
 					Warehouse Pickup Packing
 				</span>
-				<h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
+				<h1 className="max-w-full truncate text-2xl font-semibold tracking-tight md:text-3xl">
 					Packing List
 				</h1>
 				<p className="max-w-2xl text-sm text-muted-foreground">
@@ -350,6 +359,7 @@ export function PackingListClient() {
 					packing slip, and track completed packing history from one queue.
 				</p>
 				<Tabs
+					className="w-full min-w-0"
 					value={tab}
 					onValueChange={(value) => setTab(value as PackingListTab)}
 				>
@@ -371,14 +381,14 @@ export function PackingListClient() {
 					<input
 						value={query}
 						onChange={(event) => updateQuery(event.target.value)}
-						placeholder={`Search ${getTabLabel(tab)} orders by order #, customer, sales rep, phone, or address`}
-						className="h-16 w-full rounded-full border border-border bg-background pl-14 pr-6 text-base shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+						placeholder={`Search ${getTabLabel(tab)} orders`}
+						className="h-12 w-full min-w-0 rounded-full border border-border bg-background pl-12 pr-4 text-sm shadow-sm outline-none transition placeholder:text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 sm:h-16 sm:pl-14 sm:pr-6 sm:text-base"
 					/>
 				</div>
 			</div>
 
-			<div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
-				<p>
+			<div className="flex min-w-0 items-center justify-between gap-3 text-sm text-muted-foreground">
+				<p className="min-w-0 truncate">
 					{packingList.isPending
 						? `Loading ${getTabLabel(tab)} packing orders...`
 						: `${filtered.length} order${filtered.length === 1 ? "" : "s"} in ${getTabLabel(tab)}`}
@@ -386,7 +396,7 @@ export function PackingListClient() {
 			</div>
 
 			{packingList.isPending ? (
-				<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+				<div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-3">
 					{Array.from({ length: 6 }).map((_, skeletonIndex) => (
 						<div
 							key={`packing-skeleton-${skeletonIndex + 1}`}
@@ -395,19 +405,24 @@ export function PackingListClient() {
 					))}
 				</div>
 			) : filtered.length ? (
-				<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+				<div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-3">
 					{filtered.map((item) => (
 						<PackingListCard
-							key={`${tab}-${item.dispatchId}`}
+							key={`${tab}-${item.dispatchId ?? item.orderNo ?? item.salesId}`}
 							item={item}
 							tab={tab}
 							isAdmin={isAdmin}
 							isUpdating={
 								statusMutation.isPending &&
-								statusMutation.variables?.dispatchId === item.dispatchId
+								activeMutationDispatchId === item.dispatchId
 							}
 							onOpen={() => {
 								void (async () => {
+									if (!item.salesId || !item.dispatchId) {
+										toast.error("Packing slip is missing dispatch details.");
+										return;
+									}
+
 									try {
 										const token = await generateToken({
 											salesIds: [item.salesId],
@@ -427,6 +442,11 @@ export function PackingListClient() {
 								})();
 							}}
 							onStatusChange={(newStatus) => {
+								if (!item.dispatchId) {
+									toast.error("Unable to update dispatch.");
+									return;
+								}
+
 								statusMutation.mutate({
 									dispatchId: item.dispatchId,
 									oldStatus: (item.status || "queue") as

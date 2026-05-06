@@ -6,7 +6,7 @@ import { Table } from "@gnd/ui/data-table";
 import { useEmployeeParams } from "@/hooks/use-employee-params";
 import { PageFilterData } from "@/types/type";
 import { customerTransactionsColumn, Item } from "./columns";
-import { _perm } from "@/components/sidebar/links";
+import { _perm } from "@/components/sidebar-links";
 
 type Props = {
     data: Item[];

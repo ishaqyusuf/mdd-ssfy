@@ -44,7 +44,7 @@ import { ComponentHelperClass } from "../../../_utils/helpers/zus/step-component
 import { Door } from "../door-swap-modal";
 
 import { AuthGuard } from "@/components/auth-guard";
-import { _role } from "@/components/sidebar/links";
+import { _role } from "@/components/sidebar-links";
 import { doorSwings } from "@/utils/constants";
 import { DoorSizeSelectProvider, useCtx } from "./use-door-size-select";
 import { DoorSupplierBadge } from "@/components/forms/sales-form/door-supplier-badge";

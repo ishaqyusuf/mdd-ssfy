@@ -8,33 +8,33 @@ import { getDueDateStatus } from "@/utils/format";
 import { formatDate } from "@/utils/format";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { cn } from "@gnd/ui/cn";
-import { Progress } from "@gnd/ui/custom/progress";
 import { FormatAmount } from "@gnd/ui/custom/format-amount";
+import { Progress } from "@gnd/ui/custom/progress";
 
 type Props = {
-    invoice: NonNullable<RouterOutputs["sales"]["index"]["data"]>[number];
+	invoice: NonNullable<RouterOutputs["sales"]["index"]["data"]>[number];
 };
 
 export function InvoiceRow({ invoice }: Props) {
-    // const { setParams } = useOrderFilterParams();
+	// const { setParams } = useOrderFilterParams();
 
-    const overviewQuery = useSalesOverviewQuery();
-    const showDate = !!invoice.due;
+	const overviewQuery = useSalesOverviewQuery();
+	const showDate = !!invoice.due;
 
-    return (
-        <>
-            <li
-                key={invoice.id}
-                className="h-[57px] flex items-center w-full"
-                onClick={
-                    () => overviewQuery.open2(invoice.slug, "sales")
-                    // setParams({ invoiceId: invoice.id, type: "details" })
-                }
-            >
-                <div className="flex items-center w-full">
-                    <div className="flex flex-col space-y-1 w-[90px]">
-                        <span>{invoice.orderId}</span>
-                        {/* <span className="text-sm">
+	return (
+		<>
+			<li
+				key={invoice.id}
+				className="flex h-[57px] w-full min-w-0 items-center"
+			>
+				<button
+					type="button"
+					className="flex h-full min-w-0 w-full items-center text-left"
+					onClick={() => overviewQuery.open2(invoice.slug, "sales")}
+				>
+					<div className="flex w-[76px] shrink-0 flex-col space-y-1 sm:w-[90px]">
+						<span className="truncate text-sm">{invoice.orderId}</span>
+						{/* <span className="text-sm">
                             {invoice.dueDate
                                 ? formatDate(invoice.dueDate)
                                 : "-"}
@@ -45,31 +45,30 @@ export function InvoiceRow({ invoice }: Props) {
                                     ? getDueDateStatus(invoice.dueDate)
                                     : "-"}
                             </span> */}
-                        {/* )} */}
-                    </div>
+						{/* )} */}
+					</div>
 
-                    {/* <div className="w-[85px]">
+					{/* <div className="w-[85px]">
                         
                         <Progress.Status>
                             {invoice?.deliveryStatus || "-"}
                         </Progress.Status>
                     </div> */}
 
-                    <div className="flex-1 text-sm line-clamp-1 pr-4">
-                        {invoice.displayName}
-                    </div>
+					<div className="min-w-0 flex-1 truncate pr-3 text-sm">
+						{invoice.displayName}
+					</div>
 
-                    <div
-                        className={cn(
-                            "w-1/4 flex justify-end text-sm",
-                            // invoice.status === "canceled" && "line-through",
-                        )}
-                    >
-                        <FormatAmount amount={invoice.invoice.total ?? 0} />
-                    </div>
-                </div>
-            </li>
-        </>
-    );
+					<div
+						className={cn(
+							"flex shrink-0 justify-end text-sm",
+							// invoice.status === "canceled" && "line-through",
+						)}
+					>
+						<FormatAmount amount={invoice.invoice.total ?? 0} />
+					</div>
+				</button>
+			</li>
+		</>
+	);
 }
-

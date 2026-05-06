@@ -10,7 +10,7 @@ import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { updateEmployeeRole } from "@/actions/update-employee-role";
 import { updateEmployeeProfile } from "@/actions/update-employee-profile";
 import { AuthGuard } from "@/components/auth-guard";
-import { _perm } from "@/components/sidebar/links";
+import { _perm } from "@/components/sidebar-links";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { useEmployeeParams } from "@/hooks/use-employee-params";

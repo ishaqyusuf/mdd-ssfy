@@ -677,6 +677,8 @@ describe("new-sales-form multi-line mixed parity", () => {
     expect(mouldingLine?.title).toBe("Moulding");
     expect(((mouldingLine?.meta as any)?.mouldingRows || []).length).toBe(1);
     expect((mouldingLine?.meta as any)?.mouldingRows?.[0]?.title).toBe("Casing");
+    expect(mouldingLine?.formSteps?.[0]?.step?.title).toBe("Step 13");
+    expect(mouldingLine?.formSteps?.[1]?.step?.title).toBe("Step 14");
   });
 
   it("restores service parent titles from legacy dykeDescription on edit reopen", async () => {
@@ -784,5 +786,204 @@ describe("new-sales-form multi-line mixed parity", () => {
     expect(serviceLine?.title).toBe("Services");
     expect(((serviceLine?.meta as any)?.serviceRows || []).length).toBe(1);
     expect((serviceLine?.meta as any)?.serviceRows?.[0]?.service).toBe("Install");
+    expect(serviceLine?.formSteps?.[0]?.step?.title).toBe("Step 11");
+  });
+
+  it("collapses legacy grouped moulding siblings by multiDykeUid on edit reopen", async () => {
+    const { ctx, state } = createMockContext();
+    state.orders.push({
+      id: 3,
+      slug: "order-legacy-moulding-group",
+      orderId: "07838DB-M",
+      type: "order",
+      status: "Draft",
+      deletedAt: null,
+      customerId: 100,
+      customerProfileId: null,
+      billingAddressId: null,
+      shippingAddressId: null,
+      paymentTerm: "None",
+      goodUntil: null,
+      prodDueDate: null,
+      deliveryOption: "pickup",
+      taxPercentage: 0,
+      subTotal: 175,
+      tax: 0,
+      grandTotal: 175,
+      updatedAt: new Date("2026-02-24T12:00:00.000Z"),
+      meta: {},
+    });
+    state.items.push(
+      {
+        id: 30,
+        salesOrderId: 3,
+        multiDykeUid: "legacy-moulding-group-1",
+        multiDyke: true,
+        dykeProduction: false,
+        dykeDescription: "Moulding",
+        description: "Casing",
+        qty: 2,
+        rate: 70,
+        total: 140,
+        deletedAt: null,
+        meta: {
+          uid: "legacy-moulding-item-1",
+          tax: false,
+          meta: {},
+        },
+      },
+      {
+        id: 31,
+        salesOrderId: 3,
+        multiDykeUid: "legacy-moulding-group-1",
+        multiDyke: false,
+        dykeProduction: false,
+        dykeDescription: "Moulding",
+        description: "Stop",
+        qty: 1,
+        rate: 35,
+        total: 35,
+        deletedAt: null,
+        meta: {
+          uid: "legacy-moulding-item-2",
+          tax: false,
+          meta: {},
+        },
+      },
+    );
+    state.hpts.push(
+      {
+        id: 1,
+        salesOrderId: 3,
+        orderItemId: 30,
+        deletedAt: null,
+        height: null,
+        doorType: "Moulding",
+        doorId: null,
+        dykeDoorId: null,
+        jambSizeId: null,
+        casingId: null,
+        moldingId: 501,
+        stepProductId: null,
+        totalPrice: 140,
+        totalDoors: 0,
+        meta: {},
+      },
+      {
+        id: 2,
+        salesOrderId: 3,
+        orderItemId: 31,
+        deletedAt: null,
+        height: null,
+        doorType: "Moulding",
+        doorId: null,
+        dykeDoorId: null,
+        jambSizeId: null,
+        casingId: null,
+        moldingId: 501,
+        stepProductId: null,
+        totalPrice: 35,
+        totalDoors: 0,
+        meta: {},
+      },
+    );
+
+    const loaded = await getNewSalesForm(ctx, {
+      type: "order",
+      slug: "order-legacy-moulding-group",
+    });
+
+    expect(loaded.lineItems).toHaveLength(1);
+    expect(loaded.lineItems[0]?.title).toBe("Moulding");
+    expect(loaded.lineItems[0]?.qty).toBe(3);
+    expect(loaded.lineItems[0]?.lineTotal).toBe(175);
+    expect(((loaded.lineItems[0]?.meta as any)?.mouldingRows || []).length).toBe(2);
+    expect((loaded.lineItems[0]?.meta as any)?.mouldingRows?.[0]?.description).toBe(
+      "Casing",
+    );
+    expect((loaded.lineItems[0]?.meta as any)?.mouldingRows?.[1]?.description).toBe(
+      "Stop",
+    );
+  });
+
+  it("collapses legacy grouped service siblings by multiDykeUid on edit reopen", async () => {
+    const { ctx, state } = createMockContext();
+    state.orders.push({
+      id: 4,
+      slug: "order-legacy-service-group",
+      orderId: "07838DB-S",
+      type: "order",
+      status: "Draft",
+      deletedAt: null,
+      customerId: 100,
+      customerProfileId: null,
+      billingAddressId: null,
+      shippingAddressId: null,
+      paymentTerm: "None",
+      goodUntil: null,
+      prodDueDate: null,
+      deliveryOption: "pickup",
+      taxPercentage: 0,
+      subTotal: 110,
+      tax: 0,
+      grandTotal: 110,
+      updatedAt: new Date("2026-02-24T12:00:00.000Z"),
+      meta: {},
+    });
+    state.items.push(
+      {
+        id: 40,
+        salesOrderId: 4,
+        multiDykeUid: "legacy-service-group-1",
+        multiDyke: true,
+        dykeProduction: true,
+        dykeDescription: "Services",
+        description: "Install",
+        qty: 1,
+        rate: 80,
+        total: 80,
+        deletedAt: null,
+        meta: {
+          uid: "legacy-service-item-1",
+          tax: true,
+          meta: {},
+        },
+      },
+      {
+        id: 41,
+        salesOrderId: 4,
+        multiDykeUid: "legacy-service-group-1",
+        multiDyke: false,
+        dykeProduction: false,
+        dykeDescription: "Services",
+        description: "Delivery",
+        qty: 1,
+        rate: 30,
+        total: 30,
+        deletedAt: null,
+        meta: {
+          uid: "legacy-service-item-2",
+          tax: false,
+          meta: {},
+        },
+      },
+    );
+
+    const loaded = await getNewSalesForm(ctx, {
+      type: "order",
+      slug: "order-legacy-service-group",
+    });
+
+    expect(loaded.lineItems).toHaveLength(1);
+    expect(loaded.lineItems[0]?.title).toBe("Services");
+    expect(loaded.lineItems[0]?.qty).toBe(2);
+    expect(loaded.lineItems[0]?.lineTotal).toBe(110);
+    expect(((loaded.lineItems[0]?.meta as any)?.serviceRows || []).length).toBe(2);
+    expect((loaded.lineItems[0]?.meta as any)?.serviceRows?.[0]?.service).toBe(
+      "Install",
+    );
+    expect((loaded.lineItems[0]?.meta as any)?.serviceRows?.[1]?.service).toBe(
+      "Delivery",
+    );
   });
 });

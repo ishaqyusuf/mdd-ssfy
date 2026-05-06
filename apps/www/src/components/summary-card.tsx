@@ -7,22 +7,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Skeleton } from "@gnd/ui/skeleton";
 
 import { AnimatedNumber } from "./animated-number";
+import { ResponsiveMetric } from "./responsive-metric";
 
 export function SummaryCardSkeleton() {
 	return (
-		<Card>
-			<CardHeader className="pb-2">
-				<CardTitle>
-					<Skeleton className="h-8 w-32" />
-				</CardTitle>
-			</CardHeader>
+		<Card className="min-w-0 rounded-none border-0 border-border/70 border-t bg-transparent shadow-none first:border-t-0 odd:border-r sm:rounded-lg sm:border sm:bg-card sm:shadow-sm sm:first:border-t sm:odd:border-r-0">
+			<div className="px-3 py-2.5 sm:hidden">
+				<Skeleton className="h-3 w-20" />
+				<Skeleton className="mt-2 h-6 w-24" />
+			</div>
+			<div className="hidden sm:block">
+				<CardHeader className="pb-2">
+					<CardTitle>
+						<Skeleton className="h-8 w-32" />
+					</CardTitle>
+				</CardHeader>
 
-			<CardContent>
-				<div className="flex flex-col gap-2">
-					<Skeleton className="h-5 w-16" />
-					<Skeleton className="h-4 w-24" />
-				</div>
-			</CardContent>
+				<CardContent>
+					<div className="flex flex-col gap-2">
+						<Skeleton className="h-5 w-16" />
+						<Skeleton className="h-4 w-24" />
+					</div>
+				</CardContent>
+			</div>
 		</Card>
 	);
 }
@@ -35,14 +42,7 @@ interface Props {
 	masked?: boolean;
 }
 export function SummaryCard(props: Props) {
-	const [activeIndex, setActiveIndex] = useState(0);
 	const [isHovered, setIsHovered] = useState(false);
-
-	//   const dataWithDefaultCurrency = data.length
-	//     ? data
-	//     : [{ currency: defaultCurrency, total_amount: 0 }];
-
-	//   const item = dataWithDefaultCurrency[activeIndex];
 	function getDisplayValue() {
 		if (props.currency === "number") {
 			return String(props.total_amount ?? 0);
@@ -52,58 +52,36 @@ export function SummaryCard(props: Props) {
 
 	const maskedValue = getDisplayValue().replace(/\d/g, "*");
 
+	const value = (
+		<button
+			type="button"
+			onMouseEnter={() => props.masked && setIsHovered(true)}
+			onMouseLeave={() => props.masked && setIsHovered(false)}
+			className={cn(
+				"max-w-full truncate text-left",
+				props.masked && "cursor-default",
+				props.masked && !isHovered && "tracking-wider",
+			)}
+		>
+			{props.masked && !isHovered ? (
+				maskedValue
+			) : (
+				<AnimatedNumber
+					key={props.currency}
+					value={props.total_amount}
+					currency={props.currency}
+					maximumFractionDigits={0}
+					minimumFractionDigits={0}
+				/>
+			)}
+		</button>
+	);
+
 	return (
-		<Card>
-			<CardHeader className="relative pb-2">
-				<CardTitle className="font-mono$ text-2xl font-medium">
-					<button
-						type="button"
-						onMouseEnter={() => props.masked && setIsHovered(true)}
-						onMouseLeave={() => props.masked && setIsHovered(false)}
-						className={cn(
-							"text-left",
-							props.masked && "cursor-default",
-							props.masked && !isHovered && "tracking-wider",
-						)}
-					>
-						{props.masked && !isHovered ? (
-							maskedValue
-						) : (
-							<AnimatedNumber
-								key={props.currency}
-								value={props.total_amount}
-								currency={props.currency}
-								maximumFractionDigits={0}
-								minimumFractionDigits={0}
-							/>
-						)}
-					</button>
-
-					{/* {dataWithDefaultCurrency.length > 1 && (
-            <div className="flex space-x-2 top-[63px] absolute">
-              {dataWithDefaultCurrency.map((item, idx) => (
-                <button
-                  type="button"
-                  key={item.currency}
-                  onMouseEnter={() => setActiveIndex(idx)}
-                  onClick={() => setActiveIndex(idx)}
-                  className={cn(
-                    "w-[10px] h-[3px] bg-[#1D1D1D] dark:bg-[#D9D9D9] opacity-30 transition-all",
-                    idx === activeIndex && "opacity-100",
-                  )}
-                />
-              ))}
-            </div>
-          )} */}
-				</CardTitle>
-			</CardHeader>
-
-			<CardContent>
-				<div className="flex flex-col gap-2">
-					<div>{props.title}</div>
-					<div className="text-sm text-muted-foreground">{props.subtitle}</div>
-				</div>
-			</CardContent>
-		</Card>
+		<ResponsiveMetric
+			title={props.title || ""}
+			value={value}
+			subtitle={props.subtitle}
+		/>
 	);
 }

@@ -1,5 +1,5 @@
 import { ErrorFallback } from "@/components/error-fallback";
-import { _role } from "@/components/sidebar/links";
+import { _role } from "@/components/sidebar-links";
 import { DataTable } from "@/components/tables/site-actions/data-table";
 import { TableSkeleton } from "@/components/tables/skeleton";
 import { loadingSiteActionFilterParams } from "@/hooks/use-site-action-filter-params";

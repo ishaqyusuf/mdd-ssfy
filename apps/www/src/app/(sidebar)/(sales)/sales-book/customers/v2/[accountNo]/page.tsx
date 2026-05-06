@@ -1,7 +1,7 @@
 import { AuthGuard } from "@/components/auth-guard";
 import { CustomerOverviewV2Content } from "@/components/customer-v2/customer-overview-v2-content";
 import PageShell from "@/components/page-shell";
-import { _role } from "@/components/sidebar/links";
+import { _role } from "@/components/sidebar-links";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import { PageTitle } from "@gnd/ui/custom/page-title";

@@ -6,14 +6,18 @@ import { openLink } from "@/lib/open-link";
 import {
 	buildSalesDocumentRouteFromQuery,
 	buildSalesPdfDownloadUrlFromQuery,
+	downloadSalesPrintDocument,
+	openSalesPrintDocument,
 } from "@/modules/sales-print/application/sales-print-service";
 import { useTRPC } from "@/trpc/client";
 import { SalesHtmlDocument } from "@gnd/pdf/sales-v2";
+import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { useQuery } from "@gnd/ui/tanstack";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { PackingSlipSignFab } from "./packing-slip-sign-fab";
 import { SalesDocumentEmailDialog } from "./sales-document-email-dialog";
 
@@ -27,6 +31,7 @@ export function SalesDocumentPreviewPage({
 	customerEmail,
 	customerName,
 	salesOrderId,
+	dispatchId,
 }: {
 	pt?: string;
 	token?: string;
@@ -37,11 +42,14 @@ export function SalesDocumentPreviewPage({
 	customerEmail?: string;
 	customerName?: string;
 	salesOrderId?: number | null;
+	dispatchId?: number | null;
 }) {
 	const trpc = useTRPC();
 	const auth = useAuth();
 	const router = useRouter();
 	const baseUrl = getBaseUrl();
+	const [printing, setPrinting] = useState(false);
+	const [downloading, setDownloading] = useState(false);
 	const { data, isPending } = useQuery(
 		trpc.print.salesV2.queryOptions(
 			{
@@ -59,8 +67,9 @@ export function SalesDocumentPreviewPage({
 		),
 	);
 
+	const previewPages = (data?.pages ?? []) as PrintPage[];
 	const packingSlipPage =
-		data?.pages.find((page) => page.config.mode === "packing-slip") || null;
+		previewPages.find((page) => page.config.mode === "packing-slip") || null;
 	const pdfPageQuery = useMemo(() => {
 		if (!hasDocumentLocator({ pt, token, accessToken, snapshotId })) {
 			return null;
@@ -108,6 +117,7 @@ export function SalesDocumentPreviewPage({
 		});
 		return `/sales-form/edit-${salesType}/${encodeURIComponent(data.orderNo)}?${query.toString()}`;
 	}, [data?.mode, data?.orderNo]);
+	const useSnapshotActions = embedded && !!salesOrderId && !!data?.mode;
 
 	useEffect(() => {
 		if (embedded || auth.isPending || !auth.can?.editSales || !editSalesUrl) {
@@ -115,6 +125,56 @@ export function SalesDocumentPreviewPage({
 		}
 		router.replace(editSalesUrl);
 	}, [auth.can?.editSales, auth.isPending, editSalesUrl, embedded, router]);
+
+	async function handlePrint() {
+		if (useSnapshotActions && salesOrderId && data?.mode) {
+			setPrinting(true);
+			try {
+				await openSalesPrintDocument({
+					salesIds: [salesOrderId],
+					mode: data.mode,
+					dispatchId: dispatchId ?? null,
+					templateId,
+				});
+			} catch (error) {
+				toast.error(
+					error instanceof Error ? error.message : "Unable to prepare print.",
+				);
+			} finally {
+				setPrinting(false);
+			}
+			return;
+		}
+
+		if (pdfPrintPageQuery) {
+			openLink(pdfPrintPageQuery, null, true);
+		}
+	}
+
+	async function handleDownloadPdf() {
+		if (useSnapshotActions && salesOrderId && data?.mode) {
+			setDownloading(true);
+			try {
+				await downloadSalesPrintDocument({
+					salesIds: [salesOrderId],
+					mode: data.mode,
+					dispatchId: dispatchId ?? null,
+					templateId,
+				});
+			} catch (error) {
+				toast.error(
+					error instanceof Error ? error.message : "Unable to prepare PDF.",
+				);
+			} finally {
+				setDownloading(false);
+			}
+			return;
+		}
+
+		if (pdfPageQuery) {
+			openLink(pdfPageQuery, null, true);
+		}
+	}
 
 	if (isPending) {
 		return (
@@ -215,22 +275,30 @@ export function SalesDocumentPreviewPage({
 						<Button
 							variant="outline"
 							onClick={() => {
-								if (!pdfPrintPageQuery) return;
-								openLink(pdfPrintPageQuery, null, true);
+								void handlePrint();
 							}}
+							disabled={printing}
 						>
-							<Icons.Printer className="mr-2 size-4" />
-							Print
+							{printing ? (
+								<Icons.Loader2 className="mr-2 size-4 animate-spin" />
+							) : (
+								<Icons.Printer className="mr-2 size-4" />
+							)}
+							{printing ? "Preparing..." : "Print"}
 						</Button>
 						<Button
 							variant="secondary"
 							onClick={() => {
-								if (!pdfPageQuery) return;
-								openLink(pdfPageQuery, null, true);
+								void handleDownloadPdf();
 							}}
+							disabled={downloading}
 						>
-							<Icons.File className="mr-2 size-4" />
-							PDF
+							{downloading ? (
+								<Icons.Loader2 className="mr-2 size-4 animate-spin" />
+							) : (
+								<Icons.File className="mr-2 size-4" />
+							)}
+							{downloading ? "Preparing..." : "PDF"}
 						</Button>
 						{auth.can?.editOrders && overviewUrl ? (
 							<Button
@@ -246,9 +314,9 @@ export function SalesDocumentPreviewPage({
 				</div>
 
 				<SalesHtmlDocument
-					pages={data.pages}
+					pages={previewPages}
 					templateId={data.templateId}
-					companyAddress={data.companyAddress}
+					companyAddress={data.companyAddress as CompanyAddress}
 					baseUrl={baseUrl}
 					previewUrl={data.previewUrl}
 					qrCodeDataUrl={data.qrCodeDataUrl}

@@ -4,7 +4,7 @@ import {
     getActiveLinkFromMap,
     getLinkModules,
     validateLinks,
-} from "@/components/sidebar/links";
+} from "@/components/sidebar-links";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 

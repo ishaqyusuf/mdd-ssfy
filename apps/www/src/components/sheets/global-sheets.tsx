@@ -15,7 +15,7 @@ import { useSalesOverviewV2SheetQuery } from "@/hooks/use-sales-overview-v2-shee
 import { AuthGuard } from "../auth-guard";
 import { CustomerOverviewV2Sheet } from "../customer-v2/customer-overview-v2-sheet";
 import { SearchModal } from "../search/search-modal";
-import { _perm } from "../sidebar/links";
+import { _perm } from "../sidebar-links";
 import { CommunityInventoryOverviewSheet } from "./community-inventory-overview";
 import { CustomerCreateSheet } from "./customer-create-sheet";
 import { CustomerOverviewSheet } from "./customer-overview-sheet";

@@ -66,6 +66,7 @@ export function SalesPreview() {
 				customerName={params.salesPreviewCustomerName ?? undefined}
 				embedded
 				salesOrderId={params.salesPreviewId}
+				dispatchId={params.dispatchId ?? undefined}
 			/>
 		</div>
 	);

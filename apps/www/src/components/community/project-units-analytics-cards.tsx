@@ -1,10 +1,11 @@
 "use client";
 
+import { ResponsiveMetric } from "@/components/responsive-metric";
 import { useProjectUnitFilterParams } from "@/hooks/use-project-units-filter-params";
 import { useTRPC } from "@/trpc/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Icons } from "@gnd/ui/icons";
 import { useSuspenseQuery } from "@gnd/ui/tanstack";
+import type { ComponentType } from "react";
 
 function SummaryMetric({
 	title,
@@ -15,23 +16,15 @@ function SummaryMetric({
 	title: string;
 	value: number;
 	subtitle: string;
-	icon: any;
+	icon: ComponentType<{ className?: string }>;
 }) {
 	return (
-		<Card className="border-slate-200 shadow-sm">
-			<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-				<CardTitle className="text-sm font-medium text-slate-700">
-					{title}
-				</CardTitle>
-				<span className="flex size-8 items-center justify-center rounded-full bg-slate-100 text-slate-700">
-					<Icon className="size-4" />
-				</span>
-			</CardHeader>
-			<CardContent className="space-y-1">
-				<div className="text-2xl font-semibold text-slate-950">{value}</div>
-				<p className="text-xs text-slate-500">{subtitle}</p>
-			</CardContent>
-		</Card>
+		<ResponsiveMetric
+			title={title}
+			value={value.toLocaleString()}
+			subtitle={subtitle}
+			icon={Icon}
+		/>
 	);
 }
 
@@ -42,21 +35,21 @@ export function CommunityProjectUnitsAnalyticsCards() {
 		trpc.community.communityProjectUnitsOverview.queryOptions({
 			builderSlug: filters.builderSlug ?? undefined,
 			projectSlug: filters.projectSlug ?? undefined,
-			production: (filters.production as
-				| "idle"
-				| "queued"
-				| "started"
-				| "completed"
-				| null) ?? undefined,
-			installation: (filters.installation as
-				| "with jobs"
-				| "without jobs"
-				| null) ?? undefined,
+			production:
+				(filters.production as
+					| "idle"
+					| "queued"
+					| "started"
+					| "completed"
+					| null) ?? undefined,
+			installation:
+				(filters.installation as "with jobs" | "without jobs" | null) ??
+				undefined,
 		}),
 	);
 
 	return (
-		<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+		<div className="grid grid-cols-2 overflow-hidden rounded-lg border border-border/70 bg-background [&>*:nth-child(-n+2)]:border-t-0 sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:border-0 sm:bg-transparent xl:grid-cols-4">
 			<SummaryMetric
 				title="Units"
 				value={data.summary.total}

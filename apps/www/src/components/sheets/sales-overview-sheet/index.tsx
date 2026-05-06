@@ -60,6 +60,14 @@ function Content() {
 		currentTab: query?.params?.salesTab,
 		tabs,
 	});
+	const setActiveTab = (tab: LegacySalesOverviewTabId) => {
+		query.setParams({
+			salesTab: tab as never,
+			"prod-item-tab": null,
+			"prod-item-view": null,
+			dispatchOverviewId: null,
+		});
+	};
 
 	return (
 		<CustomSheet
@@ -73,17 +81,13 @@ function Content() {
 			<Tabs
 				value={activeTab}
 				onValueChange={(e) => {
-					query.setParams({
-						salesTab: e as never,
-						"prod-item-tab": null,
-						"prod-item-view": null,
-						dispatchOverviewId: null,
-					});
+					setActiveTab(e as LegacySalesOverviewTabId);
 				}}
 			>
 				<LegacySalesOverviewHeader
 					tabs={tabs}
 					activeTab={activeTab as LegacySalesOverviewTabId}
+					onTabChange={setActiveTab}
 				/>
 			</Tabs>
 			<CustomSheetContent className="-mt-4">

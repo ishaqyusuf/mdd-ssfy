@@ -372,6 +372,7 @@ export function NewSalesForm(props: Props) {
 		return toSaveDraftInput(record, true);
 	}, [record]);
 	const shouldReviewPaymentMethod =
+		isOrder &&
 		props.mode === "edit" &&
 		Boolean(record?.salesId) &&
 		!paymentReviewSeen &&
@@ -974,7 +975,7 @@ export function NewSalesForm(props: Props) {
 				type={props.type}
 			/>
 			<PaymentMethodReviewDialog
-				open={paymentReviewOpen}
+				open={isOrder && paymentReviewOpen}
 				paymentMethod={record.form.paymentMethod}
 				paymentMethods={PAYMENT_METHODS}
 				onOpenChange={(open) => {

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { AuthGuard } from "./auth-guard";
 import { CommunityTemplateSearchFilter } from "./community-template-search-filter";
 import { OpenCommunityTemplateModal } from "./open-community-template-modal";
-import { _perm } from "./sidebar/links";
+import { _perm } from "./sidebar-links";
 
 type Props = {
 	initialFilterList?: PageFilterData[];

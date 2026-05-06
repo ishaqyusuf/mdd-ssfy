@@ -1,22 +1,22 @@
-import type { TRPCContext } from "@api/trpc/init";
+import { whereCustomer, whereSales } from "@api/prisma-where";
 import type {
-	GetCustomers,
 	GetCustomerDirectoryV2SummarySchema,
 	GetCustomerOverviewV2Schema,
+	GetCustomers,
 	SearchCustomersSchema,
 	UpsertCustomerSchema,
 } from "@api/schemas/customer";
+import type { TRPCContext } from "@api/trpc/init";
 import type { Prisma } from "@gnd/db";
-import { z } from "zod";
-import type { AddressBookMeta, CustomerMeta } from "@sales/types";
-import { composeQueryData } from "@gnd/utils/query-response";
-import { whereCustomer, whereSales } from "@api/prisma-where";
-import { salesAddressLines } from "@sales/utils/utils";
-import type { SalesQueryParamsSchema } from "@sales/schema";
-import { getCustomerWallet } from "@sales/wallet";
-import { nextId, sum } from "@gnd/utils";
 import { fetchDevicesByLocations, getSquareDevices } from "@gnd/square";
+import { nextId, sum } from "@gnd/utils";
+import { composeQueryData } from "@gnd/utils/query-response";
+import type { SalesQueryParamsSchema } from "@sales/schema";
+import type { AddressBookMeta, CustomerMeta } from "@sales/types";
+import { salesAddressLines } from "@sales/utils/utils";
+import { getCustomerWallet } from "@sales/wallet";
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 
 function buildCustomerLookupWhere(
 	accountNo: string,
@@ -1146,9 +1146,9 @@ export async function getCustomerPendingSales(ctx: TRPCContext, accountNo) {
 		// "sales.type": "order",
 		salesType: "order",
 	};
-	const [p1, p2] = accountNo?.split("-");
-	if (p1 == "cust") query.customerId = Number(p2);
-	else query["phone"] = accountNo;
+	const [p1, p2] = String(accountNo || "").split("-");
+	if (p1 === "cust") query.customerId = Number(p2);
+	else query.phone = accountNo;
 	const where = whereSales(query);
 	const ls = await db.salesOrders.findMany({
 		where,
@@ -1159,6 +1159,7 @@ export async function getCustomerPendingSales(ctx: TRPCContext, accountNo) {
 			amountDue: true,
 			orderId: true,
 			id: true,
+			meta: true,
 			grandTotal: true,
 			createdAt: true,
 			billingAddress: {
@@ -1178,7 +1179,30 @@ export async function getCustomerPendingSales(ctx: TRPCContext, accountNo) {
 	});
 	return ls.map(({ customer, billingAddress: bAddr, ...rest }) => ({
 		...rest,
+		paymentMethod: resolvePendingSalePaymentMethod(rest.meta),
 		customerName: bAddr?.name || customer?.businessName || customer?.name,
 		customerEmail: bAddr?.email || customer?.email, // || customer?.name,
 	}));
+}
+
+function resolvePendingSalePaymentMethod(meta: unknown) {
+	const record =
+		meta && typeof meta === "object" && !Array.isArray(meta)
+			? (meta as Record<string, unknown>)
+			: null;
+	const newSalesForm =
+		record?.newSalesForm &&
+		typeof record.newSalesForm === "object" &&
+		!Array.isArray(record.newSalesForm)
+			? (record.newSalesForm as Record<string, unknown>)
+			: null;
+	const form =
+		newSalesForm?.form &&
+		typeof newSalesForm.form === "object" &&
+		!Array.isArray(newSalesForm.form)
+			? (newSalesForm.form as Record<string, unknown>)
+			: null;
+	const paymentMethod = form?.paymentMethod;
+
+	return typeof paymentMethod === "string" ? paymentMethod : null;
 }

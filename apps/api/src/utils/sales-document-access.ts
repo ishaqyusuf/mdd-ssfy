@@ -1,9 +1,7 @@
+import { networkInterfaces } from "node:os";
 import type { Db, Prisma } from "@gnd/db";
 import { buildOwnerDocumentFolder } from "@gnd/documents";
-import {
-	generateQrCodeDataUrl,
-	renderSalesPdfBuffer,
-} from "@gnd/pdf/sales-v2";
+import { generateQrCodeDataUrl, renderSalesPdfBuffer } from "@gnd/pdf/sales-v2";
 import {
 	type SalesDocumentSnapshotRecord,
 	type SalesDocumentSnapshotRepository,
@@ -20,14 +18,13 @@ import {
 } from "@gnd/utils/tokenizer";
 import { put } from "@vercel/blob";
 import { addDays } from "date-fns";
-import { networkInterfaces } from "node:os";
 import { createApiVercelBlobDocumentService } from "./documents";
 import {
+	PUBLIC_LINK_KINDS,
+	PUBLIC_LINK_RESOURCE_TYPES,
 	createPublicLinkToken,
 	findActivePublicLinkTokenByResource,
 	getActivePublicLinkToken,
-	PUBLIC_LINK_KINDS,
-	PUBLIC_LINK_RESOURCE_TYPES,
 } from "./public-link-token";
 import { createStoredDocumentRegistry } from "./stored-documents";
 
@@ -63,6 +60,15 @@ export type ResolveSalesDocumentAccessInput = {
 	templateId?: string | null;
 	baseUrl?: string | null;
 	forceRegenerate?: boolean;
+};
+
+export type ResolveSalesDocumentHtmlPreviewAccessInput = {
+	db: Db;
+	salesIds: number[];
+	mode: PrintMode;
+	dispatchId?: number | null;
+	templateId?: string | null;
+	baseUrl?: string | null;
 };
 
 export type ResolveSalesDocumentAccessResult = {
@@ -137,9 +143,7 @@ function buildStoredDocumentKind(documentType: string) {
 
 function isLoopbackHostname(hostname: string) {
 	return (
-		hostname === "localhost" ||
-		hostname === "127.0.0.1" ||
-		hostname === "::1"
+		hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1"
 	);
 }
 
@@ -287,6 +291,22 @@ function getSnapshotMeta(
 	return meta as SalesDocumentMeta;
 }
 
+function toSalesDocumentSnapshotRecord(
+	record: Omit<SalesDocumentSnapshotRecord, "meta"> & {
+		meta?: Prisma.JsonValue | null;
+	},
+): SalesDocumentSnapshotRecord {
+	return {
+		...record,
+		meta:
+			record.meta &&
+			typeof record.meta === "object" &&
+			!Array.isArray(record.meta)
+				? (record.meta as Record<string, unknown>)
+				: null,
+	};
+}
+
 function isFutureIso(value?: string | null) {
 	if (!value) return false;
 	const parsed = new Date(value);
@@ -327,7 +347,9 @@ async function loadSalesPreviewRecipient(input: {
 
 	return {
 		customerEmail:
-			sale?.customer?.email?.trim() || sale?.billingAddress?.email?.trim() || null,
+			sale?.customer?.email?.trim() ||
+			sale?.billingAddress?.email?.trim() ||
+			null,
 		customerName:
 			sale?.customer?.name?.trim() ||
 			sale?.customer?.businessName?.trim() ||
@@ -359,23 +381,57 @@ function buildLegacySalesPrintToken(input: {
 	} satisfies SalesPdfToken);
 }
 
+export function resolveSalesDocumentHtmlPreviewAccess(
+	input: ResolveSalesDocumentHtmlPreviewAccessInput,
+): ResolveSalesDocumentAccessResult {
+	if (!input.salesIds.length) {
+		throw new Error("At least one sales order is required.");
+	}
+
+	const expiresAt = addDays(new Date(), DEFAULT_LINK_TTL_DAYS).toISOString();
+	const accessToken = buildLegacySalesPrintToken({
+		salesIds: input.salesIds,
+		mode: input.mode,
+		dispatchId: input.dispatchId ?? null,
+	});
+	const { previewUrl, downloadUrl } = buildLegacySalesDocumentPreviewUrls({
+		token: accessToken,
+		baseUrl: input.baseUrl,
+		templateId: input.templateId || DEFAULT_TEMPLATE_ID,
+	});
+
+	return {
+		kind: "legacy",
+		generated: false,
+		mode: input.mode,
+		documentType: buildSalesDocumentTypeKey(input),
+		salesOrderId:
+			input.salesIds.length === 1 ? (input.salesIds[0] ?? null) : null,
+		accessToken,
+		expiresAt,
+		previewUrl,
+		downloadUrl,
+	};
+}
+
 export function createSalesDocumentSnapshotRepository(
 	db: Db,
 ): SalesDocumentSnapshotRepository & {
 	findById(input: { id: string }): Promise<SalesDocumentSnapshotRecord | null>;
 } {
 	return {
-		create(input) {
-			return db.salesDocumentSnapshot.create({
+		async create(input) {
+			const record = await db.salesDocumentSnapshot.create({
 				data: {
 					...input,
 					meta: input.meta as Prisma.InputJsonValue | undefined,
 				},
 			});
+			return toSalesDocumentSnapshotRecord(record);
 		},
-		update(input) {
+		async update(input) {
 			const { id, ...data } = input;
-			return db.salesDocumentSnapshot.update({
+			const record = await db.salesDocumentSnapshot.update({
 				where: { id },
 				data: {
 					...data,
@@ -385,9 +441,10 @@ export function createSalesDocumentSnapshotRepository(
 							: ((data.meta || null) as Prisma.InputJsonValue | null),
 				},
 			});
+			return toSalesDocumentSnapshotRecord(record);
 		},
-		findCurrentByType(input) {
-			return db.salesDocumentSnapshot.findFirst({
+		async findCurrentByType(input) {
+			const record = await db.salesDocumentSnapshot.findFirst({
 				where: {
 					salesOrderId: input.salesOrderId,
 					documentType: input.documentType,
@@ -398,9 +455,10 @@ export function createSalesDocumentSnapshotRepository(
 					version: "desc",
 				},
 			});
+			return record ? toSalesDocumentSnapshotRecord(record) : null;
 		},
-		findLatestVersion(input) {
-			return db.salesDocumentSnapshot.findFirst({
+		async findLatestVersion(input) {
+			const record = await db.salesDocumentSnapshot.findFirst({
 				where: {
 					salesOrderId: input.salesOrderId,
 					documentType: input.documentType,
@@ -410,6 +468,7 @@ export function createSalesDocumentSnapshotRepository(
 					version: "desc",
 				},
 			});
+			return record ? toSalesDocumentSnapshotRecord(record) : null;
 		},
 		async clearCurrentByType(input) {
 			await db.salesDocumentSnapshot.updateMany({
@@ -425,13 +484,14 @@ export function createSalesDocumentSnapshotRepository(
 				},
 			});
 		},
-		findById(input) {
-			return db.salesDocumentSnapshot.findFirst({
+		async findById(input) {
+			const record = await db.salesDocumentSnapshot.findFirst({
 				where: {
 					id: input.id,
 					deletedAt: null,
 				},
 			});
+			return record ? toSalesDocumentSnapshotRecord(record) : null;
 		},
 	};
 }
@@ -509,7 +569,11 @@ async function createSalesPdfSnapshot(input: {
 			previewUrl: accessUrls.previewUrl,
 		});
 
-		const documentService = createApiVercelBlobDocumentService({ put });
+		const documentService = createApiVercelBlobDocumentService({
+			put: put as unknown as Parameters<
+				typeof createApiVercelBlobDocumentService
+			>[0]["put"],
+		});
 		const folder = buildOwnerDocumentFolder({
 			ownerType: "sales_order",
 			ownerId: String(input.salesOrderId),
@@ -644,9 +708,10 @@ export async function resolveSalesDocumentAccess(
 			const publicToken = await ensureSalesDocumentPublicToken({
 				db: input.db,
 				snapshotId: current.id,
-				expiresAt: meta.expiresAt || addDays(new Date(), DEFAULT_LINK_TTL_DAYS).toISOString(),
-				templateId:
-					meta.templateId || input.templateId || DEFAULT_TEMPLATE_ID,
+				expiresAt:
+					meta.expiresAt ||
+					addDays(new Date(), DEFAULT_LINK_TTL_DAYS).toISOString(),
+				templateId: meta.templateId || input.templateId || DEFAULT_TEMPLATE_ID,
 			});
 			const urls = buildPublicTokenSalesDocumentUrls({
 				publicToken: publicToken.token,
@@ -893,7 +958,9 @@ export async function resolveSalesDocumentPreviewData(input: {
 		const publicToken = await ensureSalesDocumentPublicToken({
 			db: input.db,
 			snapshotId: input.snapshotId,
-			expiresAt: meta.expiresAt || addDays(new Date(), DEFAULT_LINK_TTL_DAYS).toISOString(),
+			expiresAt:
+				meta.expiresAt ||
+				addDays(new Date(), DEFAULT_LINK_TTL_DAYS).toISOString(),
 			templateId,
 		});
 		const urls = buildPublicTokenSalesDocumentUrls({
@@ -944,7 +1011,9 @@ export async function resolveSalesDocumentPreviewData(input: {
 		const publicToken = await ensureSalesDocumentPublicToken({
 			db: input.db,
 			snapshotId: snapshotLookup.snapshot.id,
-			expiresAt: meta.expiresAt || addDays(new Date(), DEFAULT_LINK_TTL_DAYS).toISOString(),
+			expiresAt:
+				meta.expiresAt ||
+				addDays(new Date(), DEFAULT_LINK_TTL_DAYS).toISOString(),
 			templateId,
 		});
 		const urls = buildPublicTokenSalesDocumentUrls({
@@ -999,7 +1068,8 @@ export async function resolveSalesDocumentPreviewData(input: {
 	});
 	const recipient = await loadSalesPreviewRecipient({
 		db: input.db,
-		salesOrderId: payload.salesIds.length === 1 ? (payload.salesIds[0] ?? null) : null,
+		salesOrderId:
+			payload.salesIds.length === 1 ? (payload.salesIds[0] ?? null) : null,
 	});
 	const urls = buildLegacySalesDocumentPreviewUrls({
 		token: input.token,

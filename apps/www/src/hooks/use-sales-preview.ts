@@ -1,5 +1,5 @@
 import type { SalesType } from "@/app-deps/(clean-code)/(sales)/types";
-import { prepareSalesPrintPreview } from "@/modules/sales-print/application/sales-print-service";
+import { prepareSalesHtmlPreview } from "@/modules/sales-print/application/sales-print-service";
 import type { IOrderPrintMode } from "@/types/sales";
 import {
 	parseAsInteger,
@@ -68,7 +68,7 @@ export function useSalesPreview() {
 			});
 
 			try {
-				const previewUrl = await prepareSalesPrintPreview({
+				const previewUrl = await prepareSalesHtmlPreview({
 					salesIds: [salesId],
 					mode: previewMode,
 					dispatchId: options?.dispatchId ?? null,

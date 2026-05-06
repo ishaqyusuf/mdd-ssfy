@@ -3,7 +3,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useMemo } from "react";
 import type { ReactNode } from "react";
-import { type Access, _role, validateRules } from "./sidebar/links";
+import { type Access, _role, validateRules } from "./sidebar-links";
 
 interface Props {
 	children?: ReactNode;

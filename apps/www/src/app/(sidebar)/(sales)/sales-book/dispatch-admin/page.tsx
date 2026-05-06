@@ -3,7 +3,7 @@ import type { SearchParams } from "nuqs";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { ErrorFallback } from "@/components/error-fallback";
 import { AuthGuard } from "@/components/auth-guard";
-import { _perm } from "@/components/sidebar/links";
+import { _perm } from "@/components/sidebar-links";
 import { TableSkeleton } from "@/components/tables/skeleton";
 import { DataTable } from "@/components/tables/sales-dispatch/data-table";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";

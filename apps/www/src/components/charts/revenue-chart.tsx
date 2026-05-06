@@ -4,6 +4,7 @@ import { useSalesDashboardParams } from "@/hooks/use-sales-dashboard-params";
 import { openLink } from "@/lib/open-link";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
+import { useEffect, useState } from "react";
 import {
 	Bar,
 	BarChart,
@@ -14,7 +15,15 @@ import {
 	YAxis,
 } from "recharts";
 
-const ToolTipContent = ({ active, payload, label }: any) => {
+const ToolTipContent = ({
+	active,
+	payload,
+	label,
+}: {
+	active?: boolean;
+	payload?: Array<{ value: number }>;
+	label?: string;
+}) => {
 	if (active && payload && payload.length) {
 		return (
 			<div className="w-[240px] border shadow-sm bg-background p-2">
@@ -31,6 +40,7 @@ const ToolTipContent = ({ active, payload, label }: any) => {
 
 export function RevenueChart() {
 	const { params } = useSalesDashboardParams();
+	const [chartHeight, setChartHeight] = useState(280);
 	const trpc = useTRPC();
 	const { data, isLoading } = useQuery(
 		trpc.salesDashboard.getRevenueOverTime.queryOptions({
@@ -39,12 +49,21 @@ export function RevenueChart() {
 		}),
 	);
 
+	useEffect(() => {
+		const query = window.matchMedia("(min-width: 640px)");
+		const handleChange = () => setChartHeight(query.matches ? 350 : 260);
+
+		handleChange();
+		query.addEventListener("change", handleChange);
+		return () => query.removeEventListener("change", handleChange);
+	}, []);
+
 	if (isLoading) {
 		return <div>Loading...</div>;
 	}
 
 	return (
-		<ResponsiveContainer width="100%" height={350}>
+		<ResponsiveContainer width="100%" height={chartHeight}>
 			<BarChart data={data}>
 				<CartesianGrid strokeDasharray="3 3" vertical={false} />
 				<XAxis

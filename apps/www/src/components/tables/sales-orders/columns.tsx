@@ -773,16 +773,19 @@ function getInvoiceToneClass(item: SalesOrderItem) {
 function MobileStatusBlock({
 	label,
 	value,
+	icon: Icon,
 }: {
 	label: string;
 	value: string;
+	icon: React.ComponentType<{ className?: string }>;
 }) {
 	return (
-		<div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
-			<div className="text-[11px] font-medium uppercase text-muted-foreground">
-				{label}
+		<div className="min-w-0 rounded-2xl border border-border/70 bg-muted/20 px-3 py-2.5">
+			<div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+				<Icon className="size-3.5 shrink-0" />
+				<span className="truncate">{label}</span>
 			</div>
-			<div className="mt-1 text-sm font-medium capitalize text-foreground">
+			<div className="mt-1 truncate text-sm font-semibold capitalize text-foreground">
 				{value || "-"}
 			</div>
 		</div>
@@ -790,123 +793,135 @@ function MobileStatusBlock({
 }
 
 function ItemCard({ item }: ItemProps) {
+	const invoiceStatus = getInvoiceStatusLabel(item);
+	const productionStatus = getProductionStatusLabel(item) || "-";
+	const fulfillmentStatus = getFulfillmentStatusLabel(item) || "-";
+
 	return (
-		<Item
-			variant="outline"
-			size="sm"
-			className="items-start rounded-none border-x-0 border-t-0 border-b border-border/70 bg-background px-3 py-2.5"
+		<div
+			className={cn(
+				"group flex w-full flex-col gap-3 rounded-3xl border border-border/70 bg-card p-4 text-left shadow-sm transition duration-200 active:scale-[0.995]",
+				item.invoice.pending >= item.invoice.total &&
+					"border-red-200/80 bg-red-50/30",
+			)}
 		>
-			<Item.Header className="items-start gap-3">
-				<div className="min-w-0 space-y-1">
-					<div className="text-[11px] font-medium uppercase text-muted-foreground">
-						Order
-					</div>
-					<Item.Title className="w-full max-w-full gap-1.5 font-mono text-[13px] text-foreground uppercase">
-						<span className="truncate">{item.orderId}</span>
+			<div className="flex items-start justify-between gap-3">
+				<div className="min-w-0 flex-1">
+					<p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+						Customer
+					</p>
+					<p
+						className={cn(
+							"mt-1 truncate text-xl font-semibold leading-6 text-foreground",
+							item.isBusiness && "text-blue-700",
+						)}
+					>
+						{item.displayName || "Unknown customer"}
+					</p>
+					<div className="mt-2 flex min-w-0 flex-wrap items-center gap-1.5">
+						<span className="rounded-full bg-muted px-2 py-1 font-mono text-[11px] font-semibold uppercase text-foreground">
+							{item.orderId || "-"}
+						</span>
 						{!item.orderId?.toUpperCase().endsWith(item.salesRepInitial) && (
-							<Badge
-								className="rounded-md px-1.5 py-0 text-[10px]"
-								variant="secondary"
-							>
+							<span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold uppercase text-primary">
 								{item.salesRepInitial}
-							</Badge>
+							</span>
 						)}
 						{!item.noteCount || (
-							<Badge className="h-5 rounded-md px-1.5 py-0" variant="secondary">
+							<span className="inline-flex items-center rounded-full bg-muted px-2 py-1 text-[11px] font-semibold text-muted-foreground">
 								<Icons.StickyNote className="mr-1 size-3" />
-								<span>{item.noteCount}</span>
-							</Badge>
+								{item.noteCount}
+							</span>
 						)}
-					</Item.Title>
+					</div>
 				</div>
-				<div className="flex shrink-0 items-center gap-2">
-					<Badge
-						variant="outline"
+
+				<div className="flex shrink-0 items-start gap-1.5">
+					<span
 						className={cn(
-							"rounded-lg border px-2 py-1 text-[10px] font-semibold uppercase",
+							"rounded-full border px-2.5 py-1 text-[11px] font-semibold",
 							getInvoiceToneClass(item),
 						)}
 					>
-						{getInvoiceStatusLabel(item)}
-					</Badge>
+						{invoiceStatus}
+					</span>
 					<div
 						onClick={(event) => {
 							event.preventDefault();
+							event.stopPropagation();
+						}}
+						onKeyDown={(event) => {
 							event.stopPropagation();
 						}}
 					>
 						<Actions item={item} />
 					</div>
 				</div>
-			</Item.Header>
+			</div>
 
-			<Item.Content className="min-w-0 gap-2.5">
-				<Item.Title
-					className={cn(
-						"max-w-full text-sm leading-tight",
-						item.isBusiness && "text-blue-700",
-					)}
-				>
-					<TextWithTooltip
-						className="max-w-full truncate"
-						text={item.displayName || "-"}
-					/>
-				</Item.Title>
-
-				<div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 text-xs">
-					<div className="min-w-0 space-y-1 text-muted-foreground">
-						<div className="flex min-w-0 items-center gap-1.5">
-							<Icons.Calendar className="size-3.5 shrink-0" />
-							<span className="truncate text-foreground">
-								{item.salesDate || "No date"}
-							</span>
-						</div>
-						<div className="flex min-w-0 items-center gap-1.5">
-							<Icons.Phone className="size-3.5 shrink-0" />
-							<span className="truncate">{item.customerPhone || "No phone"}</span>
-						</div>
-						<div className="flex min-w-0 items-center gap-1.5">
-							<Icons.MapPin className="size-3.5 shrink-0" />
-							<TextWithTooltip
-								className="max-w-full truncate"
-								text={item.address || "No address"}
-							/>
-						</div>
+			<div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4">
+				<div className="min-w-0 space-y-2 text-sm">
+					<div className="flex min-w-0 items-center gap-2">
+						<Icons.Calendar className="size-4 shrink-0 text-muted-foreground" />
+						<span className="truncate text-foreground">
+							{item.salesDate || "No date"}
+						</span>
 					</div>
-					<div className="min-w-[88px] text-right">
-						<div className="text-[11px] uppercase text-muted-foreground">
-							Invoice
-						</div>
-						<TCell.Money
-							value={item.invoice.total}
-							className={cn(
-								"mt-0.5 block text-sm font-semibold",
-								item.invoice.pending === item.invoice.total
-									? "text-red-600"
-									: item.invoice.pending > 0
-										? "text-amber-600"
-										: "text-emerald-600",
-							)}
+					<div className="flex min-w-0 items-center gap-2">
+						<Icons.Phone className="size-4 shrink-0 text-muted-foreground" />
+						<span className="truncate text-muted-foreground">
+							{item.customerPhone || "No phone number"}
+						</span>
+					</div>
+					<div className="flex min-w-0 items-start gap-2">
+						<Icons.MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+						<TextWithTooltip
+							className="max-w-full truncate text-muted-foreground"
+							text={item.address || "No address available"}
 						/>
-						{item.poNo && (
-							<div className="mt-1 max-w-[100px] truncate text-[11px] text-muted-foreground">
-								PO {item.poNo}
-							</div>
-						)}
 					</div>
 				</div>
 
-				<div className="grid grid-cols-2 gap-2">
-					<MobileStatusBlock
-						label="Production"
-						value={getProductionStatusLabel(item) || "-"}
+				<div className="min-w-[92px] text-right">
+					<p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+						Invoice
+					</p>
+					<TCell.Money
+						value={item.invoice.total}
+						className={cn(
+							"mt-1 block text-base font-semibold",
+							item.invoice.pending === item.invoice.total
+								? "text-red-600"
+								: item.invoice.pending > 0
+									? "text-amber-600"
+									: "text-emerald-600",
+						)}
 					/>
-					<MobileStatusBlock
-						label="Fulfillment"
-						value={getFulfillmentStatusLabel(item) || "-"}
-					/>
+					{item.poNo ? (
+						<p className="mt-1 max-w-[110px] truncate text-[11px] text-muted-foreground">
+							PO {item.poNo}
+						</p>
+					) : null}
 				</div>
-			</Item.Content>
-		</Item>
+			</div>
+
+			<div className="grid grid-cols-2 gap-2">
+				<MobileStatusBlock
+					label="Production"
+					value={productionStatus}
+					icon={Icons.Factory}
+				/>
+				<MobileStatusBlock
+					label="Fulfillment"
+					value={fulfillmentStatus}
+					icon={Icons.Package2}
+				/>
+			</div>
+
+			<div className="flex items-center justify-between border-border/70 border-t pt-3 text-sm">
+				<span className="text-muted-foreground">Open sales order</span>
+				<Icons.ExternalLink className="size-4 text-muted-foreground transition group-hover:text-primary" />
+			</div>
+		</div>
 	);
 }

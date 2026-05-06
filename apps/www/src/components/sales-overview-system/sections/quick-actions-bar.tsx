@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { SendForPackingButton } from "@/components/sales/send-for-packing-button";
 import { useSalesOverviewSystem } from "../provider";
 import { AuthGuard } from "@/components/auth-guard";
-import { _perm } from "@/components/sidebar/links";
+import { _perm } from "@/components/sidebar-links";
 
 export function QuickActionsBar() {
     const {

@@ -2,7 +2,7 @@ import { updateCommunityVersion } from "@/actions/community/update-community-ver
 import { useHomeModal } from "@/app-deps/(v1)/(loggedIn)/community/units/home-modal";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { AuthGuard } from "@/components/auth-guard";
-import { _perm } from "@/components/sidebar/links";
+import { _perm } from "@/components/sidebar-links";
 import { _qc, _trpc } from "@/components/static-trpc";
 import { useAuth } from "@/hooks/use-auth";
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
