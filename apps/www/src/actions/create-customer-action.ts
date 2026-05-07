@@ -29,7 +29,7 @@ export const createCustomerAction = actionClient
             const isBusiness = input.customerType === "Business";
 
             const customerData = {
-                name: isBusiness ? null : input.name,
+                name: input.name || null,
                 businessName: isBusiness ? input.businessName : null,
                 phoneNo: input.phoneNo,
                 phoneNo2: input.phoneNo2,

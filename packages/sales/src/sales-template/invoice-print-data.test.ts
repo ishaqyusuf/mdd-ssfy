@@ -18,7 +18,7 @@ describe("getInvoicePrintData", () => {
             goodUntil: null,
             paymentTerm: null,
             customer: {
-              name: "Test Customer",
+              name: "Test Contact",
               businessName: "Test Customer",
               phoneNo: null,
               email: null,
@@ -79,6 +79,14 @@ describe("getInvoicePrintData", () => {
       dispatchId: null,
     });
 
+    expect(printData?.billing?.slice(0, 2)).toEqual([
+      "Test Customer",
+      "Test Contact",
+    ]);
+    expect(printData?.shipping?.slice(0, 2)).toEqual([
+      "Test Customer",
+      "Test Contact",
+    ]);
     expect(printData?.linesSection).toHaveLength(1);
     expect(printData?.linesSection[0]?.tableRows).toHaveLength(1);
     expect(printData?.linesSection[0]?.tableRows[0]?.Door?.text?.[0]).toBe(

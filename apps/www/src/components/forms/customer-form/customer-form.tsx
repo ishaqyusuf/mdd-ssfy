@@ -158,9 +158,8 @@ export function CustomerForm() {
 										<FormInput
 											control={form.control}
 											name="name"
-											label="Name *"
+											label={isBusiness ? "Customer Name" : "Name *"}
 											size="sm"
-											className={cn(isBusiness && "hidden")}
 										/>
 
 										<div className="grid grid-cols-2 gap-4">

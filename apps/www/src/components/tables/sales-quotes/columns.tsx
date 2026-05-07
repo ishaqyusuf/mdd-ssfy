@@ -9,11 +9,14 @@ import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { SuperAdminGuard } from "@/components/auth-guard";
 import { SalesFormVersionMenuItems } from "@/components/sales-form-version-menu-items";
 import { SalesMenu } from "@/components/sales-menu";
+import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import { buttonVariants } from "@gnd/ui/button";
 import { cells } from "@gnd/ui/custom/data-table/cells";
 import { Icons } from "@gnd/ui/icons";
 import { Item as ListItem } from "@gnd/ui/namespace";
+import Link from "next/link";
 
 export type Item = RouterOutputs["sales"]["quotes"]["data"][number];
 interface ItemProps {
@@ -110,14 +113,57 @@ export const columns: ColumnDef<Item>[] = [
 		meta: {
 			actionCell: true,
 			preventDefault: true,
+			className: "dt-action-cell",
 		},
-		cell: ({ row: { original: item } }) => (
-			<div className="flex gap-4">
-				<QuoteActions item={item} />
-			</div>
-		),
+		cell: ({ row: { original: item } }) => <QuoteActionCell item={item} />,
 	},
 ];
+
+function QuotePreviewAction({ item }: { item: Item }) {
+	const salesPreview = useSalesPreview();
+
+	return (
+		<Button
+			type="button"
+			size="xs"
+			variant="outline"
+			title="Preview"
+			aria-label={`Preview ${item.orderId || item.slug}`}
+			onClick={() => {
+				void salesPreview.preview(item.id, "quote", {
+					customerEmail: item.email,
+					customerName: item.displayName,
+				});
+			}}
+		>
+			<Icons.Eye className="size-4" />
+		</Button>
+	);
+}
+
+function QuoteActionCell({ item }: { item: Item }) {
+	return (
+		<div className="relative z-10 flex items-center gap-2">
+			<Link
+				className={cn(
+					buttonVariants({
+						size: "xs",
+					}),
+					"bg-green-600/70 text-accent hover:bg-green-600",
+				)}
+				href={`/sales-book/edit-quote/${item.slug}`}
+				target="_blank"
+				rel="noopener noreferrer"
+				title="Edit"
+				aria-label={`Edit ${item.orderId || item.slug}`}
+			>
+				<Icons.Edit className="size-4" />
+			</Link>
+			<QuotePreviewAction item={item} />
+			<QuoteActions item={item} />
+		</div>
+	);
+}
 
 function QuoteActions({ item }: { item: Item }) {
 	return (
@@ -178,6 +224,8 @@ function getInvoiceToneClass(item: Item) {
 }
 
 function ItemCard({ item }: ItemProps) {
+	const noteCount = (item as Item & { noteCount?: number }).noteCount;
+
 	return (
 		<ListItem
 			variant="outline"
@@ -199,10 +247,10 @@ function ItemCard({ item }: ItemProps) {
 								{item.salesRepInitial}
 							</Badge>
 						)}
-						{!item.noteCount || (
+						{!noteCount || (
 							<Badge className="h-5 rounded-md px-1.5 py-0" variant="secondary">
 								<Icons.StickyNote className="mr-1 size-3" />
-								<span>{item.noteCount}</span>
+								<span>{noteCount}</span>
 							</Badge>
 						)}
 					</ListItem.Title>
@@ -248,7 +296,9 @@ function ItemCard({ item }: ItemProps) {
 						</div>
 						<div className="flex min-w-0 items-center gap-1.5">
 							<Icons.Phone className="size-3.5 shrink-0" />
-							<span className="truncate">{item.customerPhone || "No phone"}</span>
+							<span className="truncate">
+								{item.customerPhone || "No phone"}
+							</span>
 						</div>
 						<div className="flex min-w-0 items-center gap-1.5">
 							<Icons.MapPin className="size-3.5 shrink-0" />

@@ -3,6 +3,7 @@
 import { useAppSelector } from "@/store";
 import { formatDate } from "@/lib/use-day";
 import { IAddressBook, ISalesOrder } from "@/types/sales";
+import { buildCustomerNameLines } from "@gnd/sales/print/customer-name-lines";
 
 interface Props {
     order: ISalesOrder;
@@ -144,6 +145,7 @@ export function OrderPrintHeader({ order, Logo }: Props) {
                                         businessName={
                                             order.customer?.businessName
                                         }
+                                        customerName={order.customer?.name}
                                         address={order.billingAddress}
                                         title="Sold To"
                                     />
@@ -152,6 +154,7 @@ export function OrderPrintHeader({ order, Logo }: Props) {
                                         businessName={
                                             order.customer?.businessName
                                         }
+                                        customerName={order.customer?.name}
                                         address={order.shippingAddress}
                                         title="Ship To"
                                     />
@@ -202,13 +205,19 @@ function Address({
     address,
     title,
     businessName,
+    customerName,
 }: {
     address: IAddressBook | undefined;
     title;
     businessName;
+    customerName;
 }) {
     const lines = [
-        businessName || address?.name,
+        ...buildCustomerNameLines({
+            businessName,
+            customerName,
+            addressName: address?.name,
+        }),
         `${address?.phoneNo} ${
             address?.phoneNo2 ? `(${address?.phoneNo2})` : ""
         }`,

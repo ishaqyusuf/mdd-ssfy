@@ -1,5 +1,6 @@
 export { getPrintData } from "./get-print-data";
 export { getPrintDocumentData, resolveSalesCompanyAddress } from "./get-print-document-data";
+export { buildCustomerNameLines } from "./compose/customer-name-lines";
 export { printSalesV2Schema } from "./schema";
 export type { PrintSalesV2Input } from "./schema";
 

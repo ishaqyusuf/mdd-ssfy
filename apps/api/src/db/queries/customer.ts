@@ -398,7 +398,7 @@ export async function createOrUpdateCustomer(
 		let customerId = input.id;
 		const isBusiness = input.customerType === "Business";
 		const customerData: any = {
-			name: isBusiness ? null : input.name,
+			name: input.name || null,
 			businessName: isBusiness ? input.businessName : null,
 			phoneNo: input.phoneNo,
 			phoneNo2: input.phoneNo2,

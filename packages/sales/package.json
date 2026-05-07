@@ -42,6 +42,7 @@
 		"./pdf-system": "./src/pdf-system/index.ts",
 		"./resolution-system": "./src/resolution-system/index.ts",
 		"./print/types": "./src/print/types.ts",
+		"./print/customer-name-lines": "./src/print/compose/customer-name-lines.ts",
 		"./print": "./src/print/index.ts"
 	},
 	"dependencies": {

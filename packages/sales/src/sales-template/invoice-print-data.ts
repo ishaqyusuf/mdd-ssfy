@@ -22,6 +22,7 @@ import { getSalesSetting, SalesSetting } from "../exports";
 import { z } from "zod";
 import { INVOICE_PRINT_MODES } from "../constants";
 import { CSSProperties } from "react";
+import { buildCustomerNameLines } from "../print/compose/customer-name-lines";
 export const printInvoiceSchema = z.object({
   ids: z.array(z.number()).optional().nullable(),
   slugs: z.array(z.string()).optional().nullable(),
@@ -125,7 +126,11 @@ function transformSalesPrint(data: Data) {
       data.billingAddress,
       data.customer?.businessName!
     ),
-    shipping: addressLines(data.customer, data.shippingAddress),
+    shipping: addressLines(
+      data.customer,
+      data.shippingAddress,
+      data.customer?.businessName!
+    ),
     date: formatDate(data.createdAt),
     salesRep: data?.salesRep?.name!,
     poNo: (data.meta as any as SalesMeta)?.po!,
@@ -410,7 +415,11 @@ function addressLines(
   return (
     address || customer
       ? [
-          businessName || address?.name || customer?.name,
+          ...buildCustomerNameLines({
+            businessName,
+            customerName: customer?.name,
+            addressName: address?.name,
+          }),
           `${address?.phoneNo || customer?.phoneNo} ${
             address?.phoneNo2 ? `(${address?.phoneNo2})` : ""
           }`,

@@ -11,6 +11,7 @@ import { formatCurrency as _formatCurrency, sum } from "@gnd/utils";
 import { getSalesSetting, type SalesSetting } from "./sales-control/settings";
 import { AddressBookMeta, CustomerMeta, StepComponentMeta } from "./types";
 import { SalesPrintModes } from "./constants";
+import { buildCustomerNameLines } from "./print/compose/customer-name-lines";
 
 function formatCurrency(value) {
   const v = _formatCurrency(value);
@@ -985,7 +986,12 @@ function addressLine(
     lines:
       address || customer
         ? [
-            (businessName || address?.name || customer?.name)?.toUpperCase(),
+            ...buildCustomerNameLines({
+              businessName,
+              customerName: customer?.name,
+              addressName: address?.name,
+              uppercase: true,
+            }),
             `${address?.phoneNo || customer?.phoneNo} ${
               address?.phoneNo2 ? `(${address?.phoneNo2})` : ""
             }`,

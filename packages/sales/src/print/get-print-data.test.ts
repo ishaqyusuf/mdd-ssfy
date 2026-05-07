@@ -200,6 +200,14 @@ describe("getPrintData", () => {
 		});
 
 		expect(result.pages).toHaveLength(1);
+		expect(result.pages[0]?.billing?.lines.slice(0, 2)).toEqual([
+			"ADA HOMES",
+			"ADA",
+		]);
+		expect(result.pages[0]?.shipping?.lines.slice(0, 2)).toEqual([
+			"ADA HOMES",
+			"ADA",
+		]);
 		expect(result.pages[0]?.sections.map((section) => section.kind)).toEqual([
 			"door",
 			"moulding",

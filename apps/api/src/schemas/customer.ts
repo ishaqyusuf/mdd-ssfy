@@ -1,6 +1,10 @@
 import { paginationSchema } from "@gnd/utils/schema";
 import { z } from "zod";
 
+function hasText(value?: string | null) {
+  return String(value || "").trim().length > 0;
+}
+
 export const searchCustomersSchema = z.object({
   query: z.string().optional(),
 });
@@ -59,7 +63,7 @@ export const upsertCustomerSchema = z
         message: "Profile is required!",
         code: "custom",
       });
-    if (data.customerType === "Personal" && !data.name) {
+    if (data.customerType === "Personal" && !hasText(data.name)) {
       ctx.addIssue({
         path: ["name"],
         message: "Name is required for Individual customers",
@@ -73,7 +77,7 @@ export const upsertCustomerSchema = z
         code: "custom",
       });
     }
-    if (data.customerType === "Business" && !data.businessName) {
+    if (data.customerType === "Business" && !hasText(data.businessName)) {
       ctx.addIssue({
         path: ["businessName"],
         message: "Business Name is required for Business customers",

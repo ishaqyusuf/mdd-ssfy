@@ -1,5 +1,6 @@
 import type { AddressBlock, PrintMode } from "../types";
 import type { PrintSalesData } from "../query";
+import { buildCustomerNameLines } from "./customer-name-lines";
 
 function buildAddressLines(
   customer: PrintSalesData["customer"],
@@ -10,7 +11,12 @@ function buildAddressLines(
 
   const meta = address?.meta as any;
   return [
-    (businessName || address?.name || customer?.name)?.toUpperCase(),
+    ...buildCustomerNameLines({
+      businessName,
+      customerName: customer?.name,
+      addressName: address?.name,
+      uppercase: true,
+    }),
     [
       address?.phoneNo || customer?.phoneNo,
       address?.phoneNo2 ? `(${address.phoneNo2})` : "",
@@ -40,7 +46,11 @@ export function composeAddresses(
 
   const shipping: AddressBlock = {
     title: isQuote ? "Shipping Address" : "Ship To",
-    lines: buildAddressLines(sale.customer, sale.shippingAddress),
+    lines: buildAddressLines(
+      sale.customer,
+      sale.shippingAddress,
+      sale.customer?.businessName,
+    ),
   };
 
   return { billing, shipping };
