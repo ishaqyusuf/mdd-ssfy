@@ -71,18 +71,36 @@ export function SalesFormSave({ type = "button", and }: Props) {
                 salesType: resp.salesType,
             } as CreateSalesHistorySchemaTask);
             if (resp?.salesType === "order")
-                await resetSalesStatAction(resp.salesId, resp?.salesNo);
+                void resetSalesStatAction(resp.salesId, resp?.salesNo).catch(
+                    (error) => {
+                        console.error("Unable to reset sales stats", error);
+                    },
+                );
             if (s?.updateId) triggerEvent("salesUpdated", s?.id);
             else triggerEvent("salesCreated", s?.id);
-            await updateSalesExtraCosts(resp.salesId, zus.metaData?.extraCosts);
+            const syncExtraCosts = updateSalesExtraCosts(
+                resp.salesId,
+                zus.metaData?.extraCosts,
+            );
             sq?.invalidate.salesList();
             sq?.invalidate.quoteList();
+            if (resp.salesId) zus.dotUpdate("metaData.id", resp.salesId);
+            if (resp.salesNo) zus.dotUpdate("metaData.salesId", resp.salesNo);
+            const syncSavedForm = syncExtraCosts.then(() => {
+                if (!metaData.debugMode) {
+                    return (
+                        refetchData({
+                            salesNo: resp.salesNo,
+                            salesId: resp.salesId,
+                            type: resp.salesType || metaData.type,
+                        })
+                    );
+                }
+            });
+            void syncSavedForm.catch((error) => {
+                console.error("Unable to sync saved sales form", error);
+            });
             if (!metaData.debugMode) {
-                await refetchData({
-                    salesNo: resp.salesNo,
-                    salesId: resp.salesId,
-                    type: resp.salesType || metaData.type,
-                });
                 if (resp.data?.error)
                     toast({
                         variant: "destructive",
@@ -125,7 +143,7 @@ export function SalesFormSave({ type = "button", and }: Props) {
         if (!slug) return;
         const data = await getSalesBookFormUseCase({
             type: (type ?? zus.metaData.type) as "order" | "quote",
-            slug,
+            slug: String(slug),
         });
         zus.init(zhInitializeState(data));
     }

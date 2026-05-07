@@ -13,12 +13,14 @@ export async function saveSalesFormDta(
     const result = worker.result();
 
     if (!result?.data?.error && result?.salesId) {
-        await prisma.$transaction((tx) =>
+        void prisma.$transaction((tx) =>
             syncSalesInventoryLineItems(tx as any, {
                 salesOrderId: result.salesId,
                 source: "old-form",
             })
-        );
+        ).catch((error) => {
+            console.error("Unable to sync sales inventory line items", error);
+        });
     }
 
     return result;

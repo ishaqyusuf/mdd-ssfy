@@ -25,6 +25,7 @@ import { useDriversList } from "@/hooks/use-data-list";
 import { invalidateInfiniteQueries } from "@/hooks/use-invalidate-query";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
+import { prepareSalesHtmlPreview } from "@/modules/sales-print/application/sales-print-service";
 import { useTRPC } from "@/trpc/client";
 import type { DeliveryOption } from "@/types/sales";
 import { SubmitButton } from "@gnd/ui/submit-button";
@@ -39,6 +40,59 @@ import {
 export type SalesOrderItem = RouterOutputs["sales"]["index"]["data"][number];
 interface ItemProps {
 	item: SalesOrderItem;
+}
+
+function SalesOrderPreviewAction({ item }: ItemProps) {
+	const [isPreviewing, setIsPreviewing] = React.useState(false);
+
+	return (
+		<Button
+			type="button"
+			size="xs"
+			variant="outline"
+			title="Preview"
+			aria-label={`Preview ${item.orderId || item.slug}`}
+			disabled={isPreviewing}
+			onClick={async () => {
+				const previewWindow = window.open("", "_blank");
+				if (previewWindow) {
+					previewWindow.opener = null;
+				}
+				setIsPreviewing(true);
+
+				try {
+					const href = await prepareSalesHtmlPreview({
+						salesIds: [item.id],
+						mode: "invoice",
+					});
+
+					if (previewWindow && !previewWindow.closed) {
+						previewWindow.location.replace(href);
+					} else {
+						window.open(href, "_blank", "noopener,noreferrer");
+					}
+				} catch (error: any) {
+					if (previewWindow && !previewWindow.closed) {
+						previewWindow.close();
+					}
+
+					toast({
+						title: "Unable to open preview.",
+						description: error?.message || "Please try again.",
+						variant: "error",
+					});
+				} finally {
+					setIsPreviewing(false);
+				}
+			}}
+		>
+			{isPreviewing ? (
+				<Icons.Loader2 className="size-4 animate-spin" />
+			) : (
+				<Icons.Eye className="size-4" />
+			)}
+		</Button>
+	);
 }
 
 function getProductionStatusLabel(item: SalesOrderItem) {
@@ -645,9 +699,14 @@ function Actions({ item }: { item: SalesOrderItem }) {
 					"bg-green-600/70 hover:bg-green-600 text-accent",
 				)}
 				href={`/sales-book/edit-order/${item.slug}`}
+				target="_blank"
+				rel="noopener noreferrer"
+				title="Edit"
+				aria-label={`Edit ${item.orderId || item.slug}`}
 			>
 				<Icons.Edit className="size-4" />
 			</Link>
+			<SalesOrderPreviewAction item={item} />
 			<SalesMenu
 				id={item.id}
 				slug={item.slug}

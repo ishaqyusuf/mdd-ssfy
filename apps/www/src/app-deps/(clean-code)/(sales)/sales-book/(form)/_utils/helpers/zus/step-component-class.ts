@@ -78,16 +78,19 @@ export class StepHelperClass extends SettingsClass {
         return this.getStepForm().title == "Line Item";
     }
     public isMoulding() {
-        // return this.getStepForm().title == "Moulding";
-        // console.log(this.getItemForm().groupItem?.type);
         const config = this.getRouteConfig();
-        return config?.shelfLineItems;
-        // return [
-        //     // "door",
-        //     "moulding",
-        //     // "weatherstrip color",
-        //     "door hardware",
-        // ].includes(this.getStepForm().title?.trim()?.toLocaleLowerCase());
+        const stepTitle = this.getStepForm()?.title
+            ?.trim()
+            ?.toLocaleLowerCase();
+        const itemType = this.getItemType()?.trim()?.toLocaleLowerCase();
+        const groupItemType = this.getItemForm()?.groupItem?.type;
+
+        return (
+            config?.shelfLineItems ||
+            stepTitle == "moulding" ||
+            itemType == "moulding" ||
+            groupItemType == "MOULDING"
+        );
     }
     public isServiceLineItem() {
         return !this.isMoulding() && this.isLineItem();

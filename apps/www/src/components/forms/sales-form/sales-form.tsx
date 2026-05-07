@@ -1,18 +1,15 @@
-import { Icons } from "@gnd/ui/icons";
 import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import ItemSection from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/item-section";
 import { zhAddItem } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/zus-form-helper";
-import { cn } from "@/lib/utils";
-import { FormWatcher } from "./form-watcher";
-import TakeOff from "./take-off";
-import { TakeoffSwitch } from "./take-off/takeoff-switch";
-import { useLocalStorage } from "@/hooks/use-local-storage";
-import { SalesFormSidebar } from "./sales-form-sidebar";
-import { SalesFormSave } from "./sales-form-save";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
+import { cn } from "@/lib/utils";
 import { Button } from "@gnd/ui/button";
 import { useMediaQuery } from "@gnd/ui/hooks/use-media-query";
+import { Icons } from "@gnd/ui/icons";
 import { useEffect, useLayoutEffect, useState } from "react";
+import { FormWatcher } from "./form-watcher";
+import { SalesFormSave } from "./sales-form-save";
+import { SalesFormSidebar } from "./sales-form-sidebar";
 
 export function SalesFormClient({ data }) {
 	const currentTab = useFormDataStore((state) => state.currentTab);
@@ -34,7 +31,6 @@ function Content({ data }) {
 	const zus = useFormDataStore();
 	const [showMobileSalesPanel, setShowMobileSalesPanel] = useState(false);
 	const isMobilePanel = useMediaQuery("(max-width: 1279px)");
-	const [takeOff, takeOffChanged] = useLocalStorage("take-off", false);
 	const itemCount = zus.sequence?.formItem?.length || 0;
 	const previewId = zus.metaData?.id ?? null;
 
@@ -111,15 +107,11 @@ function Content({ data }) {
 								</div>
 
 								<div className="space-y-4 p-3 md:p-5">
-									{takeOff ? (
-										<TakeOff />
-									) : (
-										<div className="space-y-4">
-											{zus.sequence?.formItem?.map((uid) => (
-												<ItemSection key={uid} uid={uid} />
-											))}
-										</div>
-									)}
+									<div className="space-y-4">
+										{zus.sequence?.formItem?.map((uid) => (
+											<ItemSection key={uid} uid={uid} />
+										))}
+									</div>
 								</div>
 							</div>
 
@@ -146,7 +138,6 @@ function Content({ data }) {
 			</div>
 
 			<FormWatcher />
-			<TakeoffSwitch {...{ takeOff, takeOffChanged }} />
 		</div>
 	);
 }

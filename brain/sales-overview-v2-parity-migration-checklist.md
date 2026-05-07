@@ -59,6 +59,7 @@ V2 parity work must preserve the current UI and behavior. Architecture, data loa
 - [ ] General tab screenshot matches the current main sheet.
   - 2026-05-06: v2 General was moved back to the legacy-style two-column layout with matching section labels, inline delivery/PO controls, invoice details, address cards, production status, and shipping status. Browser screenshot parity is still required before checking this off.
 - [ ] Productions tab screenshot matches the current main sheet.
+  - 2026-05-07: v2 sheet mode now renders the legacy production workflow through the v2 tab shell, preserving accordion cards, selections, item menus, detail panels, and footer actions. Browser screenshot/action parity is still required before checking this off.
 - [ ] Transactions tab screenshot matches the current main sheet.
 - [ ] Activity tab screenshot matches the current main sheet.
 - [ ] Dispatch tab screenshot matches the current main sheet.

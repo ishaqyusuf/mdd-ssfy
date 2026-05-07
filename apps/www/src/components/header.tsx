@@ -34,7 +34,9 @@ export function Header() {
                     id="breadCrumb"
                     className="hidden md:flex items-center space-x-1"
                 ></div>
-                <OpenSearchButton />
+                <div className="hidden sm:contents">
+                    <OpenSearchButton />
+                </div>
 
                 <div className="flex-1"></div>
                 <div
@@ -45,6 +47,9 @@ export function Header() {
                     className="hidden md:inline-flex gap-4"
                     id="actionNav"
                 ></div>
+                <div className="contents sm:hidden">
+                    <OpenSearchButton />
+                </div>
                 <NotificationCenter />
                 <UserNav />
             </header>

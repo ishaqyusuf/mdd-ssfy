@@ -7,13 +7,20 @@ import { ServiceContent } from "./service-content";
 
 export function MouldingAndService({}) {
     const item = useTakeoffItem();
-    const itemType = item.itemForm?.groupItem?.itemType;
+    const groupItem = item.itemForm?.groupItem;
+    const itemType =
+        groupItem?.itemType ||
+        (groupItem?.type == "MOULDING"
+            ? "Moulding"
+            : groupItem?.type == "SERVICE"
+              ? "Services"
+              : null);
     return (
         <GroupedItemContext
             args={[
                 {
                     stepSequence: item.stepSequence,
-                    itemType: item.itemForm?.groupItem?.itemType,
+                    itemType,
                 },
             ]}
         >

@@ -26,6 +26,19 @@ type PaymentSystemTypedEvent<TType extends PaymentSystemNotificationType> =
 export interface PaymentSystemNotificationContext {
 	db: Db;
 	userId?: number | null;
+	systemAuthorId?: number | null;
+}
+
+function resolveAuthor(
+	ctx: PaymentSystemNotificationContext,
+	event: PaymentSystemNotificationEvent<unknown>,
+) {
+	if (event.author.id != null) return event.author;
+
+	return {
+		id: ctx.userId ?? ctx.systemAuthorId ?? 1,
+		role: "employee" as const,
+	};
 }
 
 async function sendPaymentSystemNotification<
@@ -35,16 +48,22 @@ async function sendPaymentSystemNotification<
 	ctx: PaymentSystemNotificationContext,
 	event: PaymentSystemTypedEvent<TType>,
 ) {
-	if (!event.recipientEmployeeId || event.author.id == null) return;
+	if (!event.recipientEmployeeId) return;
 
 	const service = new NotificationService(tasks, ctx).setEmployeeRecipients(
 		event.recipientEmployeeId,
 	);
 
 	await service.send(event.type, {
-		author: event.author,
+		author: resolveAuthor(ctx, event),
+		recipients: [
+			{
+				ids: [event.recipientEmployeeId],
+				role: "employee",
+			},
+		],
 		payload: event.payload,
-	});
+	} as Parameters<typeof service.send<TType>>[1]);
 }
 
 export async function sendPaymentSystemNotifications(
@@ -55,13 +74,25 @@ export async function sendPaymentSystemNotifications(
 	for (const event of events) {
 		switch (event.type) {
 			case "sales_checkout_success":
-				await sendPaymentSystemNotification(tasks, ctx, event);
+				await sendPaymentSystemNotification(
+					tasks,
+					ctx,
+					event as unknown as PaymentSystemTypedEvent<"sales_checkout_success">,
+				);
 				break;
 			case "sales_payment_recorded":
-				await sendPaymentSystemNotification(tasks, ctx, event);
+				await sendPaymentSystemNotification(
+					tasks,
+					ctx,
+					event as unknown as PaymentSystemTypedEvent<"sales_payment_recorded">,
+				);
 				break;
 			case "sales_payment_refunded":
-				await sendPaymentSystemNotification(tasks, ctx, event);
+				await sendPaymentSystemNotification(
+					tasks,
+					ctx,
+					event as unknown as PaymentSystemTypedEvent<"sales_payment_refunded">,
+				);
 				break;
 		}
 	}

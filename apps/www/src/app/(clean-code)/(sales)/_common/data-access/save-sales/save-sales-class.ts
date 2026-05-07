@@ -242,7 +242,9 @@ export class SaveSalesClass extends SaveSalesHelper {
             }) as any);
             this.data.result = transactions;
             if (salesId) {
-                await resetSalesStatAction(salesId);
+                void resetSalesStatAction(salesId).catch((error) => {
+                    console.error("Unable to reset sales stats", error);
+                });
                 const isQuote = this.form.metaData.type === "quote";
                 await expireCurrentSalesDocumentSnapshots({
                     db: prisma,
@@ -258,7 +260,7 @@ export class SaveSalesClass extends SaveSalesHelper {
                               "quote_pdf",
                           ],
                 });
-                await queueSalesDocumentSnapshotWarmups(
+                void queueSalesDocumentSnapshotWarmups(
                     isQuote
                         ? [{ salesOrderId: salesId, mode: "quote" }]
                         : [
@@ -267,7 +269,9 @@ export class SaveSalesClass extends SaveSalesHelper {
                               { salesOrderId: salesId, mode: "packing-slip" },
                               { salesOrderId: salesId, mode: "order-packing" },
                           ],
-                );
+                ).catch((error) => {
+                    console.error("Unable to queue sales document warmups", error);
+                });
             }
         } catch (error) {
             if (error instanceof Error) this.data.error = error.message;

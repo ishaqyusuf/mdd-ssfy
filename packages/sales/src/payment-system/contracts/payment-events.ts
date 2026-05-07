@@ -5,7 +5,7 @@ export type PaymentSystemNotificationType =
 
 export interface PaymentSystemNotificationAuthor {
 	id: number | null;
-	role: "customer";
+	role: "customer" | "employee";
 }
 
 export interface PaymentSystemNotificationEvent<

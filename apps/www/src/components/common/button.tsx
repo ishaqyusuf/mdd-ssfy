@@ -1,12 +1,16 @@
-import {} from "react";
+import type { VariantProps } from "class-variance-authority";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { cn } from "@/lib/utils";
 
-import { Button as BaseButton, ButtonProps } from "@gnd/ui/button";
+import {
+    Button as BaseButton,
+    type ButtonProps,
+    buttonVariants,
+} from "@gnd/ui/button";
 
 import { IconKeys, Icons } from "@gnd/ui/icons";
 
-interface BtnProps extends ButtonProps {
+interface BtnProps extends ButtonProps, VariantProps<typeof buttonVariants> {
     action?;
     text?;
     icon?: IconKeys;
