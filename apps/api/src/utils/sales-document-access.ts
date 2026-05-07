@@ -78,6 +78,10 @@ export type ResolveSalesDocumentAccessResult = {
 	documentType: string;
 	salesOrderId: number | null;
 	snapshotId?: string | null;
+	generationStatus?: string | null;
+	generatedAt?: string | null;
+	sourceUpdatedAt?: string | null;
+	isStale?: boolean;
 	accessToken: string;
 	expiresAt: string | null;
 	previewUrl: string;
@@ -98,6 +102,11 @@ export type ResolveSalesDocumentPreviewDataResult = {
 	customerEmail: string | null;
 	customerName: string | null;
 	documentType: string | null;
+	snapshotId?: string | null;
+	generationStatus?: string | null;
+	generatedAt?: string | null;
+	sourceUpdatedAt?: string | null;
+	isStale?: boolean;
 	previewUrl: string;
 	downloadUrl: string;
 	qrCodeDataUrl?: string;
@@ -313,6 +322,44 @@ function isFutureIso(value?: string | null) {
 	return !Number.isNaN(parsed.getTime()) && parsed.getTime() > Date.now();
 }
 
+function dateToIso(value?: Date | null) {
+	return value ? value.toISOString() : null;
+}
+
+async function getSalesOrderSourceUpdatedAt(input: {
+	db: Db;
+	salesOrderId: number;
+}) {
+	const sale = await input.db.salesOrders.findUnique({
+		where: {
+			id: input.salesOrderId,
+		},
+		select: {
+			updatedAt: true,
+		},
+	});
+
+	return sale?.updatedAt ?? null;
+}
+
+async function isSalesSnapshotStale(input: {
+	db: Db;
+	snapshot: Pick<
+		SalesDocumentSnapshotRecord,
+		"salesOrderId" | "sourceUpdatedAt"
+	>;
+}) {
+	const saleUpdatedAt = await getSalesOrderSourceUpdatedAt({
+		db: input.db,
+		salesOrderId: input.snapshot.salesOrderId,
+	});
+
+	if (!saleUpdatedAt) return false;
+	if (!input.snapshot.sourceUpdatedAt) return true;
+
+	return input.snapshot.sourceUpdatedAt.getTime() < saleUpdatedAt.getTime();
+}
+
 async function loadSalesPreviewRecipient(input: {
 	db: Db;
 	salesOrderId: number | null | undefined;
@@ -516,12 +563,18 @@ async function createSalesPdfSnapshot(input: {
 		documentType: input.documentType,
 	});
 
+	const sourceUpdatedAt = await getSalesOrderSourceUpdatedAt({
+		db: input.db,
+		salesOrderId: input.salesOrderId,
+	});
+
 	const pending = await repository.create({
 		salesOrderId: input.salesOrderId,
 		documentType: input.documentType,
 		version: (latest?.version || 0) + 1,
 		generationStatus: "pending",
 		isCurrent: true,
+		sourceUpdatedAt,
 		meta: {
 			mode: input.mode,
 			dispatchId: input.dispatchId ?? null,
@@ -612,6 +665,7 @@ async function createSalesPdfSnapshot(input: {
 			id: pending.id,
 			storedDocumentId: storedDocument.id,
 			generationStatus: "ready",
+			sourceUpdatedAt,
 			generatedAt: new Date(),
 			errorMessage: null,
 			meta: {
@@ -703,7 +757,11 @@ export async function resolveSalesDocumentAccess(
 			current &&
 			storedDocument &&
 			meta.accessToken &&
-			isFutureIso(meta.expiresAt)
+			isFutureIso(meta.expiresAt) &&
+			!(await isSalesSnapshotStale({
+				db: input.db,
+				snapshot: current,
+			}))
 		) {
 			const publicToken = await ensureSalesDocumentPublicToken({
 				db: input.db,
@@ -725,6 +783,10 @@ export async function resolveSalesDocumentAccess(
 				documentType,
 				salesOrderId,
 				snapshotId: current.id,
+				generationStatus: current.generationStatus,
+				generatedAt: dateToIso(current.generatedAt),
+				sourceUpdatedAt: dateToIso(current.sourceUpdatedAt),
+				isStale: false,
 				accessToken: meta.accessToken,
 				expiresAt: meta.expiresAt || null,
 				previewUrl: urls.previewUrl,
@@ -762,6 +824,10 @@ export async function resolveSalesDocumentAccess(
 		documentType,
 		salesOrderId,
 		snapshotId: created.snapshot.id,
+		generationStatus: created.snapshot.generationStatus,
+		generatedAt: dateToIso(created.snapshot.generatedAt),
+		sourceUpdatedAt: dateToIso(created.snapshot.sourceUpdatedAt),
+		isStale: false,
 		accessToken: created.accessToken,
 		expiresAt: created.expiresAt,
 		previewUrl: publicTokenUrls.previewUrl,
@@ -772,6 +838,7 @@ export async function resolveSalesDocumentAccess(
 async function getSalesSnapshotDocumentById(input: {
 	db: Db;
 	snapshotId: string;
+	allowStale?: boolean;
 }) {
 	const repository = createSalesDocumentSnapshotRepository(input.db);
 	const snapshot = await repository.findById({
@@ -781,6 +848,15 @@ async function getSalesSnapshotDocumentById(input: {
 	if (!snapshot.isCurrent || snapshot.generationStatus !== "ready") return null;
 	const meta = getSnapshotMeta(snapshot.meta);
 	if (!isFutureIso(meta.expiresAt)) return null;
+	if (
+		!input.allowStale &&
+		(await isSalesSnapshotStale({
+			db: input.db,
+			snapshot,
+		}))
+	) {
+		return null;
+	}
 
 	const storedDocument = snapshot.storedDocumentId
 		? await input.db.storedDocument.findFirst({
@@ -813,6 +889,7 @@ async function getSalesSnapshotDocumentById(input: {
 export async function getSalesSnapshotDocumentByAccessToken(input: {
 	db: Db;
 	accessToken: string;
+	allowStale?: boolean;
 }) {
 	const payload = validateToken(
 		input.accessToken,
@@ -829,6 +906,15 @@ export async function getSalesSnapshotDocumentByAccessToken(input: {
 	if (snapshot.documentType !== payload.documentType) return null;
 	if (!snapshot.isCurrent || snapshot.generationStatus !== "ready") return null;
 	if (new Date(payload.expiry).getTime() <= Date.now()) return null;
+	if (
+		!input.allowStale &&
+		(await isSalesSnapshotStale({
+			db: input.db,
+			snapshot,
+		}))
+	) {
+		return null;
+	}
 
 	const storedDocument = snapshot.storedDocumentId
 		? await input.db.storedDocument.findFirst({
@@ -859,6 +945,7 @@ export async function getSalesSnapshotDocumentByAccessToken(input: {
 export async function getSalesSnapshotDocumentByPublicToken(input: {
 	db: Db;
 	publicToken: string;
+	allowStale?: boolean;
 }) {
 	const tokenRecord = await getActivePublicLinkToken({
 		db: input.db,
@@ -876,6 +963,7 @@ export async function getSalesSnapshotDocumentByPublicToken(input: {
 	return getSalesSnapshotDocumentById({
 		db: input.db,
 		snapshotId: tokenRecord.resourceId,
+		allowStale: input.allowStale,
 	});
 }
 
@@ -894,12 +982,17 @@ export async function resolveSalesDocumentPreviewData(input: {
 		const snapshotLookup = await getSalesSnapshotDocumentByPublicToken({
 			db: input.db,
 			publicToken: input.publicToken,
+			allowStale: true,
 		});
 		if (!snapshotLookup) return null;
 
 		const meta = getSnapshotMeta(snapshotLookup.snapshot.meta);
 		const mode = meta.mode;
 		if (!mode) return null;
+		const isStale = await isSalesSnapshotStale({
+			db: input.db,
+			snapshot: snapshotLookup.snapshot,
+		});
 
 		const documentData = await getPrintDocumentData(input.db, {
 			ids: [snapshotLookup.snapshot.salesOrderId],
@@ -929,6 +1022,11 @@ export async function resolveSalesDocumentPreviewData(input: {
 			customerEmail: recipient.customerEmail,
 			customerName: recipient.customerName,
 			documentType: snapshotLookup.snapshot.documentType,
+			snapshotId: snapshotLookup.snapshot.id,
+			generationStatus: snapshotLookup.snapshot.generationStatus,
+			generatedAt: dateToIso(snapshotLookup.snapshot.generatedAt),
+			sourceUpdatedAt: dateToIso(snapshotLookup.snapshot.sourceUpdatedAt),
+			isStale,
 			previewUrl: urls.previewUrl,
 			downloadUrl: urls.downloadUrl,
 			qrCodeDataUrl,
@@ -939,12 +1037,17 @@ export async function resolveSalesDocumentPreviewData(input: {
 		const snapshotLookup = await getSalesSnapshotDocumentById({
 			db: input.db,
 			snapshotId: input.snapshotId,
+			allowStale: true,
 		});
 		if (!snapshotLookup) return null;
 
 		const meta = getSnapshotMeta(snapshotLookup.snapshot.meta);
 		const mode = meta.mode;
 		if (!mode) return null;
+		const isStale = await isSalesSnapshotStale({
+			db: input.db,
+			snapshot: snapshotLookup.snapshot,
+		});
 
 		const documentData = await getPrintDocumentData(input.db, {
 			ids: [snapshotLookup.snapshot.salesOrderId],
@@ -982,6 +1085,11 @@ export async function resolveSalesDocumentPreviewData(input: {
 			customerEmail: recipient.customerEmail,
 			customerName: recipient.customerName,
 			documentType: snapshotLookup.snapshot.documentType,
+			snapshotId: snapshotLookup.snapshot.id,
+			generationStatus: snapshotLookup.snapshot.generationStatus,
+			generatedAt: dateToIso(snapshotLookup.snapshot.generatedAt),
+			sourceUpdatedAt: dateToIso(snapshotLookup.snapshot.sourceUpdatedAt),
+			isStale,
 			previewUrl: urls.previewUrl,
 			downloadUrl: urls.downloadUrl,
 			qrCodeDataUrl,
@@ -992,12 +1100,17 @@ export async function resolveSalesDocumentPreviewData(input: {
 		const snapshotLookup = await getSalesSnapshotDocumentByAccessToken({
 			db: input.db,
 			accessToken: input.accessToken,
+			allowStale: true,
 		});
 		if (!snapshotLookup) return null;
 
 		const meta = getSnapshotMeta(snapshotLookup.snapshot.meta);
 		const mode = meta.mode;
 		if (!mode) return null;
+		const isStale = await isSalesSnapshotStale({
+			db: input.db,
+			snapshot: snapshotLookup.snapshot,
+		});
 
 		const documentData = await getPrintDocumentData(input.db, {
 			ids: [snapshotLookup.snapshot.salesOrderId],
@@ -1035,6 +1148,11 @@ export async function resolveSalesDocumentPreviewData(input: {
 			customerEmail: recipient.customerEmail,
 			customerName: recipient.customerName,
 			documentType: snapshotLookup.snapshot.documentType,
+			snapshotId: snapshotLookup.snapshot.id,
+			generationStatus: snapshotLookup.snapshot.generationStatus,
+			generatedAt: dateToIso(snapshotLookup.snapshot.generatedAt),
+			sourceUpdatedAt: dateToIso(snapshotLookup.snapshot.sourceUpdatedAt),
+			isStale,
 			previewUrl: urls.previewUrl,
 			downloadUrl: urls.downloadUrl,
 			qrCodeDataUrl,

@@ -24,8 +24,8 @@ import { useBin } from "@/hooks/use-bin";
 import { useDriversList } from "@/hooks/use-data-list";
 import { invalidateInfiniteQueries } from "@/hooks/use-invalidate-query";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
+import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
-import { prepareSalesHtmlPreview } from "@/modules/sales-print/application/sales-print-service";
 import { useTRPC } from "@/trpc/client";
 import type { DeliveryOption } from "@/types/sales";
 import { SubmitButton } from "@gnd/ui/submit-button";
@@ -43,7 +43,7 @@ interface ItemProps {
 }
 
 function SalesOrderPreviewAction({ item }: ItemProps) {
-	const [isPreviewing, setIsPreviewing] = React.useState(false);
+	const salesPreview = useSalesPreview();
 
 	return (
 		<Button
@@ -52,45 +52,14 @@ function SalesOrderPreviewAction({ item }: ItemProps) {
 			variant="outline"
 			title="Preview"
 			aria-label={`Preview ${item.orderId || item.slug}`}
-			disabled={isPreviewing}
-			onClick={async () => {
-				const previewWindow = window.open("", "_blank");
-				if (previewWindow) {
-					previewWindow.opener = null;
-				}
-				setIsPreviewing(true);
-
-				try {
-					const href = await prepareSalesHtmlPreview({
-						salesIds: [item.id],
-						mode: "invoice",
-					});
-
-					if (previewWindow && !previewWindow.closed) {
-						previewWindow.location.replace(href);
-					} else {
-						window.open(href, "_blank", "noopener,noreferrer");
-					}
-				} catch (error: any) {
-					if (previewWindow && !previewWindow.closed) {
-						previewWindow.close();
-					}
-
-					toast({
-						title: "Unable to open preview.",
-						description: error?.message || "Please try again.",
-						variant: "error",
-					});
-				} finally {
-					setIsPreviewing(false);
-				}
+			onClick={() => {
+				void salesPreview.preview(item.id, "order", {
+					customerEmail: item.email,
+					customerName: item.displayName,
+				});
 			}}
 		>
-			{isPreviewing ? (
-				<Icons.Loader2 className="size-4 animate-spin" />
-			) : (
-				<Icons.Eye className="size-4" />
-			)}
+			<Icons.Eye className="size-4" />
 		</Button>
 	);
 }

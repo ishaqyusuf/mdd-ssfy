@@ -1,24 +1,31 @@
-import { Env } from "@/components/env";
-import Portal from "@/components/_v1/portal";
 import { SuperAdminGuard } from "@/components/auth-guard";
+import { Label } from "@gnd/ui/label";
 import { Switch } from "@gnd/ui/switch";
 
-export function TakeoffSwitch({ takeOff, takeOffChanged }) {
-    const toggleTakeOff = (e) => {
-        takeOffChanged(e);
-    };
-    return (
-        <SuperAdminGuard>
-            <Portal nodeId={"navRightSlot"}>
-                <div>
-                    <Switch
-                        onCheckedChange={toggleTakeOff}
-                        checked={takeOff}
-                        id="takeOff"
-                    />
-                    <label htmlFor="takeOff">Take off</label>
-                </div>
-            </Portal>
-        </SuperAdminGuard>
-    );
+interface TakeoffSwitchProps {
+	takeOff: boolean;
+	takeOffChanged: (checked: boolean) => void;
+}
+
+export function TakeoffSwitch({
+	takeOff,
+	takeOffChanged,
+}: TakeoffSwitchProps) {
+	return (
+		<SuperAdminGuard>
+			<div className="flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-white px-3">
+				<Switch
+					onCheckedChange={takeOffChanged}
+					checked={takeOff}
+					id="takeOff"
+				/>
+				<Label
+					htmlFor="takeOff"
+					className="whitespace-nowrap text-xs font-semibold text-slate-700"
+				>
+					Take off
+				</Label>
+			</div>
+		</SuperAdminGuard>
+	);
 }

@@ -73,6 +73,7 @@ export type UpdateSalesDocumentSnapshotInput = {
 	generationStatus?: SalesDocumentStatus;
 	reason?: SalesDocumentReason | null;
 	isCurrent?: boolean;
+	sourceUpdatedAt?: Date | null;
 	generatedAt?: Date | null;
 	invalidatedAt?: Date | null;
 	failedAt?: Date | null;

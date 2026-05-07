@@ -22,6 +22,7 @@ export interface SalesPrintRequest {
 	dispatchId?: number | null;
 	templateId?: string | null;
 	baseUrl?: string | null;
+	forceRegenerate?: boolean;
 }
 
 type SalesPrintDependencies = {
@@ -31,6 +32,7 @@ type SalesPrintDependencies = {
 		dispatchId?: number | null;
 		templateId?: string | null;
 		baseUrl?: string | null;
+		forceRegenerate?: boolean;
 	}): Promise<ResolveSalesDocumentAccessResult>;
 	resolveHtmlPreviewAccess(input: {
 		salesIds: number[];
@@ -173,6 +175,7 @@ export async function resolveSalesPrintAccess(
 		dispatchId: request.dispatchId ?? null,
 		templateId,
 		baseUrl,
+		forceRegenerate: request.forceRegenerate ?? false,
 	});
 
 	const inflight = inflightAccessRequests.get(accessKey);
@@ -185,6 +188,7 @@ export async function resolveSalesPrintAccess(
 			dispatchId: request.dispatchId ?? null,
 			templateId,
 			baseUrl,
+			forceRegenerate: request.forceRegenerate ?? false,
 		})
 		.finally(() => {
 			inflightAccessRequests.delete(accessKey);
@@ -263,6 +267,19 @@ export async function downloadSalesPrintDocument(
 ) {
 	const access = await resolveSalesPrintAccess(request, dependencies);
 	downloadSilently(access.downloadUrl);
+}
+
+export async function regenerateSalesPrintDocument(
+	request: SalesPrintRequest,
+	dependencies: SalesPrintDependencies = defaultDependencies,
+) {
+	return resolveSalesPrintAccess(
+		{
+			...request,
+			forceRegenerate: true,
+		},
+		dependencies,
+	);
 }
 
 export async function prepareSalesPrintPreview(

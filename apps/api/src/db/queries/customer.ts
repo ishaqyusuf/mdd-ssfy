@@ -1203,6 +1203,8 @@ function resolvePendingSalePaymentMethod(meta: unknown) {
 			? (newSalesForm.form as Record<string, unknown>)
 			: null;
 	const paymentMethod = form?.paymentMethod;
+	const legacyPaymentMethod = record?.payment_option || record?.paymentOption;
 
-	return typeof paymentMethod === "string" ? paymentMethod : null;
+	if (typeof paymentMethod === "string") return paymentMethod;
+	return typeof legacyPaymentMethod === "string" ? legacyPaymentMethod : null;
 }

@@ -1,4 +1,4 @@
-import { type Prisma, db } from "@gnd/db";
+import { Prisma, db } from "@gnd/db";
 import {
 	type CreateStoredDocumentRecordInput,
 	type StoredDocumentRepository,
@@ -90,6 +90,35 @@ function isFutureIso(value?: string | null) {
 	if (!value) return false;
 	const parsed = new Date(value);
 	return !Number.isNaN(parsed.getTime()) && parsed.getTime() > Date.now();
+}
+
+async function getSalesOrderSourceUpdatedAt(salesOrderId: number) {
+	const sale = await db.salesOrders.findUnique({
+		where: {
+			id: salesOrderId,
+		},
+		select: {
+			updatedAt: true,
+		},
+	});
+
+	return sale?.updatedAt ?? null;
+}
+
+async function isSalesSnapshotStale(
+	snapshot: Pick<
+		SalesDocumentSnapshotRecord,
+		"salesOrderId" | "sourceUpdatedAt"
+	>,
+) {
+	const saleUpdatedAt = await getSalesOrderSourceUpdatedAt(
+		snapshot.salesOrderId,
+	);
+
+	if (!saleUpdatedAt) return false;
+	if (!snapshot.sourceUpdatedAt) return true;
+
+	return snapshot.sourceUpdatedAt.getTime() < saleUpdatedAt.getTime();
 }
 
 function sanitizeFilename(value: string) {
@@ -271,7 +300,8 @@ async function warmSnapshot(payload: WarmSalesDocumentSnapshotPayload) {
 			current &&
 			storedDocument &&
 			meta.accessToken &&
-			isFutureIso(meta.expiresAt)
+			isFutureIso(meta.expiresAt) &&
+			!(await isSalesSnapshotStale(current))
 		) {
 			return {
 				ok: true,
@@ -292,12 +322,17 @@ async function warmSnapshot(payload: WarmSalesDocumentSnapshotPayload) {
 		documentType,
 	});
 
+	const sourceUpdatedAt = await getSalesOrderSourceUpdatedAt(
+		payload.salesOrderId,
+	);
+
 	const pending = await repository.create({
 		salesOrderId: payload.salesOrderId,
 		documentType,
 		version: (latest?.version || 0) + 1,
 		generationStatus: "pending",
 		isCurrent: true,
+		sourceUpdatedAt,
 		meta: {
 			mode: payload.mode,
 			dispatchId: payload.dispatchId ?? null,
@@ -379,6 +414,7 @@ async function warmSnapshot(payload: WarmSalesDocumentSnapshotPayload) {
 			id: pending.id,
 			storedDocumentId: storedDocument.id,
 			generationStatus: "ready",
+			sourceUpdatedAt,
 			generatedAt: new Date(),
 			errorMessage: null,
 			meta: {

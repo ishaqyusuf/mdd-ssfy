@@ -27,6 +27,7 @@ export function InvoiceColumn({ item }: { item: Item }) {
     const qpCtx = useSalesQuickPay();
     const customerQuery = useCustomerOverviewQuery();
     function pay() {
+        setOpened(false);
         // trigger buttonRef Click.
         buttonRef.current?.click();
     }
@@ -62,7 +63,7 @@ export function InvoiceColumn({ item }: { item: Item }) {
                 <button ref={buttonRef}></button>
             </SalesPaymentProcessor>
             <TooltipProvider delayDuration={70}>
-                <Tooltip>
+                <Tooltip open={opened} onOpenChange={setOpened}>
                     <TooltipTrigger>
                         <TCell.Money
                             value={item.invoice.total}
@@ -76,8 +77,7 @@ export function InvoiceColumn({ item }: { item: Item }) {
                             e.preventDefault();
                         }}
                         className={cn(
-                            "px-3 py-1.5 text-xs space-y-2 relative z-[999]",
-                            opened && "size-0"
+                            "px-3 py-1.5 text-xs space-y-2 relative z-[999]"
                         )}
                         sideOffset={10}
                     >

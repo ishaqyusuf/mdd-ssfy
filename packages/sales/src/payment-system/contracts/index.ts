@@ -38,15 +38,16 @@ export interface PaymentAllocationRecord {
 }
 
 export interface OrderPaymentProjection {
-  salesOrderId?: number | null;
-  grandTotal: number;
-  totalRecorded: number;
-  totalAllocated: number;
-  totalRefunded: number;
-  totalVoided: number;
-  amountDue: number;
-  overpaidAmount: number;
+	salesOrderId?: number | null;
+	grandTotal: number;
+	totalRecorded: number;
+	totalAllocated: number;
+	totalRefunded: number;
+	totalVoided: number;
+	amountDue: number;
+	overpaidAmount: number;
 }
 
 export * from "./checkout";
+export * from "./payment-processor";
 export * from "./payment-events";

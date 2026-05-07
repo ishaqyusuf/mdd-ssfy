@@ -5,6 +5,7 @@ import {
 	buildSalesDocumentRouteFromQuery,
 	buildSalesPdfDownloadUrlFromQuery,
 	prepareSalesHtmlPreview,
+	regenerateSalesPrintDocument,
 	resolveSalesHtmlPreviewAccess,
 	resolveSalesPrintAccess,
 	resolveSalesPrintMode,
@@ -108,6 +109,42 @@ describe("sales print service", () => {
 		expect(calls).toBe(1);
 		expect(first).toBe(response);
 		expect(second).toBe(response);
+	});
+
+	it("passes force regeneration through the shared access resolver", async () => {
+		let forceRegenerate: boolean | undefined;
+		const response: ResolveSalesDocumentAccessResult = {
+			kind: "snapshot",
+			generated: true,
+			mode: "invoice",
+			documentType: "invoice_pdf",
+			salesOrderId: 42,
+			snapshotId: "snapshot-2",
+			accessToken: "access-456",
+			expiresAt: null,
+			previewUrl:
+				"https://app.example.com/p/sales-document-v2?accessToken=access-456",
+			downloadUrl:
+				"https://app.example.com/api/download/sales-v2?accessToken=access-456",
+		};
+
+		const dependencies = {
+			resolveAccess: async (input) => {
+				forceRegenerate = input.forceRegenerate;
+				return response;
+			},
+			resolveHtmlPreviewAccess: async () => response,
+			openLink: () => undefined,
+			getBaseUrl: () => "https://app.example.com",
+		};
+
+		const access = await regenerateSalesPrintDocument(
+			{ salesIds: [42], mode: "invoice" },
+			dependencies,
+		);
+
+		expect(access).toBe(response);
+		expect(forceRegenerate).toBe(true);
 	});
 
 	it("prepares HTML previews through lightweight token access", async () => {

@@ -8,13 +8,15 @@ import {
 	buildSalesPdfDownloadUrlFromQuery,
 	downloadSalesPrintDocument,
 	openSalesPrintDocument,
+	regenerateSalesPrintDocument,
 } from "@/modules/sales-print/application/sales-print-service";
 import { useTRPC } from "@/trpc/client";
+import type { ResolveSalesDocumentAccessResult } from "@gnd/api/utils/sales-document-access";
 import { SalesHtmlDocument } from "@gnd/pdf/sales-v2";
 import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
-import { useQuery } from "@gnd/ui/tanstack";
+import { useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -45,24 +47,37 @@ export function SalesDocumentPreviewPage({
 	dispatchId?: number | null;
 }) {
 	const trpc = useTRPC();
+	const queryClient = useQueryClient();
 	const auth = useAuth();
 	const router = useRouter();
 	const baseUrl = getBaseUrl();
 	const [printing, setPrinting] = useState(false);
 	const [downloading, setDownloading] = useState(false);
+	const [regenerating, setRegenerating] = useState(false);
+	const [regeneratedAccess, setRegeneratedAccess] =
+		useState<ResolveSalesDocumentAccessResult | null>(null);
+	const effectivePt = regeneratedAccess ? undefined : pt;
+	const effectiveToken = regeneratedAccess ? undefined : token;
+	const effectiveAccessToken = regeneratedAccess?.accessToken ?? accessToken;
+	const effectiveSnapshotId = regeneratedAccess ? undefined : snapshotId;
 	const { data, isPending } = useQuery(
 		trpc.print.salesV2.queryOptions(
 			{
-				pt,
-				token,
-				accessToken,
-				snapshotId,
+				pt: effectivePt,
+				token: effectiveToken,
+				accessToken: effectiveAccessToken,
+				snapshotId: effectiveSnapshotId,
 				preview: true,
 				templateId,
 				baseUrl,
 			},
 			{
-				enabled: Boolean(pt || token || accessToken || snapshotId),
+				enabled: Boolean(
+					effectivePt ||
+						effectiveToken ||
+						effectiveAccessToken ||
+						effectiveSnapshotId,
+				),
 			},
 		),
 	);
@@ -71,32 +86,58 @@ export function SalesDocumentPreviewPage({
 	const packingSlipPage =
 		previewPages.find((page) => page.config.mode === "packing-slip") || null;
 	const pdfPageQuery = useMemo(() => {
-		if (!hasDocumentLocator({ pt, token, accessToken, snapshotId })) {
+		if (
+			!hasDocumentLocator({
+				pt: effectivePt,
+				token: effectiveToken,
+				accessToken: effectiveAccessToken,
+				snapshotId: effectiveSnapshotId,
+			})
+		) {
 			return null;
 		}
 		return buildSalesPdfDownloadUrlFromQuery({
-			pt,
-			token,
-			accessToken,
-			snapshotId,
+			pt: effectivePt,
+			token: effectiveToken,
+			accessToken: effectiveAccessToken,
+			snapshotId: effectiveSnapshotId,
 			templateId,
 			origin: window.location.origin,
 		});
-	}, [accessToken, pt, snapshotId, templateId, token]);
+	}, [
+		effectiveAccessToken,
+		effectivePt,
+		effectiveSnapshotId,
+		effectiveToken,
+		templateId,
+	]);
 	const pdfPrintPageQuery = useMemo(() => {
-		if (!hasDocumentLocator({ pt, token, accessToken, snapshotId })) {
+		if (
+			!hasDocumentLocator({
+				pt: effectivePt,
+				token: effectiveToken,
+				accessToken: effectiveAccessToken,
+				snapshotId: effectiveSnapshotId,
+			})
+		) {
 			return null;
 		}
 		return buildSalesDocumentRouteFromQuery({
-			pt,
-			token,
-			accessToken,
-			snapshotId,
+			pt: effectivePt,
+			token: effectiveToken,
+			accessToken: effectiveAccessToken,
+			snapshotId: effectiveSnapshotId,
 			preview: false,
 			templateId,
 			origin: window.location.origin,
 		});
-	}, [accessToken, pt, snapshotId, templateId, token]);
+	}, [
+		effectiveAccessToken,
+		effectivePt,
+		effectiveSnapshotId,
+		effectiveToken,
+		templateId,
+	]);
 	const overviewUrl = useMemo(() => {
 		if (!data?.orderNo) return null;
 		const query = new URLSearchParams({
@@ -117,7 +158,10 @@ export function SalesDocumentPreviewPage({
 		});
 		return `/sales-form/edit-${salesType}/${encodeURIComponent(data.orderNo)}?${query.toString()}`;
 	}, [data?.mode, data?.orderNo]);
-	const useSnapshotActions = embedded && !!salesOrderId && !!data?.mode;
+	const resolvedSalesOrderId = salesOrderId ?? data?.salesOrderId ?? null;
+	const useSnapshotActions = embedded && !!resolvedSalesOrderId && !!data?.mode;
+	const isSnapshotStale =
+		data && "isStale" in data ? Boolean(data.isStale) : false;
 
 	useEffect(() => {
 		if (embedded || auth.isPending || !auth.can?.editSales || !editSalesUrl) {
@@ -127,11 +171,11 @@ export function SalesDocumentPreviewPage({
 	}, [auth.can?.editSales, auth.isPending, editSalesUrl, embedded, router]);
 
 	async function handlePrint() {
-		if (useSnapshotActions && salesOrderId && data?.mode) {
+		if (useSnapshotActions && resolvedSalesOrderId && data?.mode) {
 			setPrinting(true);
 			try {
 				await openSalesPrintDocument({
-					salesIds: [salesOrderId],
+					salesIds: [resolvedSalesOrderId],
 					mode: data.mode,
 					dispatchId: dispatchId ?? null,
 					templateId,
@@ -152,11 +196,11 @@ export function SalesDocumentPreviewPage({
 	}
 
 	async function handleDownloadPdf() {
-		if (useSnapshotActions && salesOrderId && data?.mode) {
+		if (useSnapshotActions && resolvedSalesOrderId && data?.mode) {
 			setDownloading(true);
 			try {
 				await downloadSalesPrintDocument({
-					salesIds: [salesOrderId],
+					salesIds: [resolvedSalesOrderId],
 					mode: data.mode,
 					dispatchId: dispatchId ?? null,
 					templateId,
@@ -173,6 +217,35 @@ export function SalesDocumentPreviewPage({
 
 		if (pdfPageQuery) {
 			openLink(pdfPageQuery, null, true);
+		}
+	}
+
+	async function handleRegeneratePdf() {
+		if (!resolvedSalesOrderId || !data?.mode) {
+			toast.error("Unable to identify this sales document.");
+			return;
+		}
+
+		setRegenerating(true);
+		try {
+			const access = await regenerateSalesPrintDocument({
+				salesIds: [resolvedSalesOrderId],
+				mode: data.mode,
+				dispatchId: dispatchId ?? null,
+				templateId,
+				baseUrl,
+			});
+			setRegeneratedAccess(access);
+			await queryClient.invalidateQueries({
+				queryKey: trpc.print.salesV2.pathKey(),
+			});
+			toast.success("Latest PDF snapshot generated.");
+		} catch (error) {
+			toast.error(
+				error instanceof Error ? error.message : "Unable to regenerate PDF.",
+			);
+		} finally {
+			setRegenerating(false);
 		}
 	}
 
@@ -262,9 +335,9 @@ export function SalesDocumentPreviewPage({
 					</div>
 
 					<div className="flex flex-wrap items-center gap-2">
-						{salesOrderId ? (
+						{resolvedSalesOrderId ? (
 							<SalesDocumentEmailDialog
-								salesOrderId={salesOrderId}
+								salesOrderId={resolvedSalesOrderId}
 								mode={data.mode === "quote" ? "quote" : "invoice"}
 								documentTitle={data.title}
 								orderNo={data.orderNo}
@@ -300,6 +373,22 @@ export function SalesDocumentPreviewPage({
 							)}
 							{downloading ? "Preparing..." : "PDF"}
 						</Button>
+						{auth.can?.editSales && resolvedSalesOrderId ? (
+							<Button
+								variant={isSnapshotStale ? "default" : "outline"}
+								onClick={() => {
+									void handleRegeneratePdf();
+								}}
+								disabled={regenerating}
+							>
+								{regenerating ? (
+									<Icons.Loader2 className="mr-2 size-4 animate-spin" />
+								) : (
+									<Icons.RefreshCw className="mr-2 size-4" />
+								)}
+								{regenerating ? "Regenerating..." : "Regenerate"}
+							</Button>
+						) : null}
 						{auth.can?.editOrders && overviewUrl ? (
 							<Button
 								onClick={() => {
@@ -325,10 +414,10 @@ export function SalesDocumentPreviewPage({
 
 			<PackingSlipSignFab
 				page={packingSlipPage}
-				pt={pt}
-				token={token}
-				accessToken={accessToken}
-				snapshotId={snapshotId}
+				pt={effectivePt}
+				token={effectiveToken}
+				accessToken={effectiveAccessToken}
+				snapshotId={effectiveSnapshotId}
 				preview
 				templateId={templateId}
 			/>

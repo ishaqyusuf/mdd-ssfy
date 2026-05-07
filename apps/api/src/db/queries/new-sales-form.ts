@@ -80,6 +80,20 @@ function safeRecord(value: unknown): Record<string, unknown> {
 	return value as Record<string, unknown>;
 }
 
+function resolvePersistedPaymentMethod(
+	container: NewSalesFormContainer,
+	persisted?: NewSalesFormPersistedMeta,
+) {
+	const newFormPaymentMethod = persisted?.form?.paymentMethod;
+	if (typeof newFormPaymentMethod === "string" && newFormPaymentMethod) {
+		return newFormPaymentMethod;
+	}
+	const legacyPaymentMethod = container.payment_option;
+	return typeof legacyPaymentMethod === "string" && legacyPaymentMethod
+		? legacyPaymentMethod
+		: null;
+}
+
 function roundCurrency(value: number) {
 	return Math.round((value + Number.EPSILON) * 100) / 100;
 }
@@ -829,10 +843,10 @@ function toBootstrapPayload(
 	const taxRate = Number(
 		order.taxPercentage || persisted?.summary?.taxRate || 0,
 	);
+	const paymentMethod = resolvePersistedPaymentMethod(container, persisted);
 	const summary = recalculateSummary({
 		taxRate,
-		paymentMethod:
-			(persisted?.form?.paymentMethod as string | null | undefined) || null,
+		paymentMethod,
 		cccPercentage: settings.cccPercentage,
 		extraCosts: persistedExtraCosts.length
 			? persistedExtraCosts.map((cost) => ({
@@ -879,8 +893,7 @@ function toBootstrapPayload(
 			billingAddressId: order.billingAddressId,
 			shippingAddressId: order.shippingAddressId,
 			paymentTerm: order.paymentTerm || DEFAULT_PAYMENT_TERM,
-			paymentMethod:
-				(persisted?.form?.paymentMethod as string | null | undefined) || null,
+			paymentMethod,
 			goodUntil: order.goodUntil?.toISOString() || null,
 			prodDueDate: order.prodDueDate?.toISOString() || null,
 			po: null,
@@ -1742,6 +1755,7 @@ async function saveNewSalesFormInternal(
 		const nextVersion = `${Date.now()}-${generateRandomString(8)}`;
 		const nextMeta: NewSalesFormContainer = {
 			...currentMeta,
+			payment_option: payload.meta.paymentMethod || null,
 			newSalesForm: {
 				version: nextVersion,
 				updatedAt: new Date().toISOString(),

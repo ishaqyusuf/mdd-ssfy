@@ -10,6 +10,8 @@ import { useEffect, useLayoutEffect, useState } from "react";
 import { FormWatcher } from "./form-watcher";
 import { SalesFormSave } from "./sales-form-save";
 import { SalesFormSidebar } from "./sales-form-sidebar";
+import TakeOff from "./take-off";
+import { TakeoffSwitch } from "./take-off/takeoff-switch";
 
 export function SalesFormClient({ data }) {
 	const currentTab = useFormDataStore((state) => state.currentTab);
@@ -30,6 +32,7 @@ function Content({ data }) {
 	const sPreview = useSalesPreview();
 	const zus = useFormDataStore();
 	const [showMobileSalesPanel, setShowMobileSalesPanel] = useState(false);
+	const [takeOff, setTakeOff] = useState(false);
 	const isMobilePanel = useMediaQuery("(max-width: 1279px)");
 	const itemCount = zus.sequence?.formItem?.length || 0;
 	const previewId = zus.metaData?.id ?? null;
@@ -64,6 +67,10 @@ function Content({ data }) {
 						</div>
 						<div className="flex-1" />
 						<div className="flex items-center gap-2">
+							<TakeoffSwitch
+								takeOff={takeOff}
+								takeOffChanged={setTakeOff}
+							/>
 							<SalesFormSave />
 							<Button
 								size="sm"
@@ -94,10 +101,12 @@ function Content({ data }) {
 								<div className="flex items-center justify-between border-b border-slate-200/80 px-4 py-3 md:px-5">
 									<div>
 										<h2 className="text-sm font-semibold text-slate-900 md:text-base">
-											Item Configuration
+											{takeOff ? "Take Off" : "Item Configuration"}
 										</h2>
 										<p className="text-xs text-slate-500">
-											Add, edit, and review selected products
+											{takeOff
+												? "Take-off view"
+												: "Add, edit, and review selected products"}
 										</p>
 									</div>
 									<div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
@@ -107,11 +116,15 @@ function Content({ data }) {
 								</div>
 
 								<div className="space-y-4 p-3 md:p-5">
-									<div className="space-y-4">
-										{zus.sequence?.formItem?.map((uid) => (
-											<ItemSection key={uid} uid={uid} />
-										))}
-									</div>
+									{takeOff ? (
+										<TakeOff />
+									) : (
+										<div className="space-y-4">
+											{zus.sequence?.formItem?.map((uid) => (
+												<ItemSection key={uid} uid={uid} />
+											))}
+										</div>
+									)}
 								</div>
 							</div>
 

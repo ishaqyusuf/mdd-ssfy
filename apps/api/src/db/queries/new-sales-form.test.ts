@@ -1,10 +1,13 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, mock } from "bun:test";
+import { tasks } from "@trigger.dev/sdk/v3";
 import {
 	getNewSalesFormShelfCategories,
 	getNewSalesFormShelfProducts,
 	getNewSalesForm,
 	saveDraftNewSalesForm,
 } from "./new-sales-form";
+
+(tasks as any).trigger = mock(async () => ({ id: "test-trigger-run" }));
 
 function createMockContext() {
 	const now = new Date("2026-02-24T12:00:00.000Z");
@@ -16,6 +19,7 @@ function createMockContext() {
 		hpts: [] as any[],
 		doors: [] as any[],
 		extraCosts: [] as any[],
+		documentSnapshots: [] as any[],
 		salesTaxes: [] as any[],
 		users: [
 			{
@@ -377,6 +381,31 @@ function createMockContext() {
 				return getOrderGraph(order);
 			},
 		},
+		salesDocumentSnapshot: {
+			findMany: async ({ where }: any) =>
+				state.documentSnapshots.filter((snapshot) => {
+					if (
+						where?.salesOrderId &&
+						snapshot.salesOrderId !== where.salesOrderId
+					) {
+						return false;
+					}
+					if (where?.isCurrent != null && snapshot.isCurrent !== where.isCurrent) {
+						return false;
+					}
+					if (where?.deletedAt === null && snapshot.deletedAt != null) {
+						return false;
+					}
+					return true;
+				}),
+			update: async ({ where, data }: any) => {
+				const row = state.documentSnapshots.find(
+					(snapshot) => snapshot.id === where.id,
+				);
+				Object.assign(row, data);
+				return row;
+			},
+		},
 		customers: {
 			findMany: async () => state.customers,
 		},
@@ -491,8 +520,46 @@ describe("new-sales-form relational parity", () => {
 		expect(none).toEqual([]);
 	});
 
+	it("hydrates payment method from legacy sales order meta on edit", async () => {
+		const { ctx, state } = createMockContext();
+
+		state.orders.push({
+			id: state.ids.order++,
+			orderId: "ORD-LEGACY",
+			slug: "legacy-payment-method",
+			type: "order",
+			status: "Draft",
+			deletedAt: null,
+			updatedAt: new Date("2026-02-24T12:00:00.000Z"),
+			customerId: 100,
+			customerProfileId: null,
+			billingAddressId: null,
+			shippingAddressId: null,
+			paymentTerm: "None",
+			goodUntil: null,
+			prodDueDate: null,
+			deliveryOption: "pickup",
+			taxPercentage: 0,
+			subTotal: 1000,
+			tax: 0,
+			grandTotal: 1035,
+			payments: [],
+			meta: {
+				payment_option: "Credit Card",
+			},
+		});
+
+		const loaded = await getNewSalesForm(ctx, {
+			type: "order",
+			slug: "legacy-payment-method",
+		});
+
+		expect(loaded.form.paymentMethod).toBe("Credit Card");
+		expect(loaded.summary.grandTotal).toBeGreaterThan(loaded.summary.subTotal);
+	});
+
 	it("saves and hydrates formSteps/shelfItems/housePackageTool/doors/molding", async () => {
-		const { ctx } = createMockContext();
+		const { ctx, state } = createMockContext();
 
 		const draft = await saveDraftNewSalesForm(ctx, {
 			type: "order",
@@ -599,6 +666,7 @@ describe("new-sales-form relational parity", () => {
 		expect(line!.housePackageTool?.moldingId).toBe(501);
 		expect(line!.housePackageTool?.molding?.title).toBe("Classic Moulding");
 		expect(loaded.form.paymentMethod).toBe("Credit Card");
+		expect(state.orders[0]?.meta?.payment_option).toBe("Credit Card");
 		expect(loaded.summary.grandTotal).toBeGreaterThan(loaded.summary.subTotal);
 	});
 
