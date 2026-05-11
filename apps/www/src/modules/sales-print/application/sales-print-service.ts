@@ -7,8 +7,11 @@ import { openLink } from "@/lib/open-link";
 import type { IOrderPrintMode } from "@/types/sales";
 import type { ResolveSalesDocumentAccessResult } from "@gnd/api/utils/sales-document-access";
 import type { PrintMode } from "@gnd/sales/print/types";
+import {
+	DEFAULT_SALES_PRINT_TEMPLATE_ID,
+	normalizeSalesPrintMode,
+} from "./sales-print-request";
 
-const DEFAULT_TEMPLATE_ID = "template-2";
 const PRINT_VIEWER_PATH = "p/sales-invoice-v2";
 const PREVIEW_PAGE_PATH = "p/sales-document-v2";
 const DOWNLOAD_ROUTE_PATH = "api/download/sales-v2";
@@ -65,23 +68,7 @@ export function resolveSalesPrintMode(
 	mode?: SalesPrintRequestMode,
 	salesType: SalesType = "order",
 ): PrintMode {
-	switch (mode) {
-		case "invoice":
-			return "invoice";
-		case "quote":
-			return "quote";
-		case "production":
-			return "production";
-		case "packing list":
-		case "packing-slip":
-			return "packing-slip";
-		case "order-packing":
-			return "order-packing";
-		case "order":
-			return "invoice";
-		default:
-			return salesType === "quote" ? "quote" : "invoice";
-	}
+	return normalizeSalesPrintMode(mode, salesType);
 }
 
 export function buildSalesPrintViewerUrl(
@@ -120,12 +107,10 @@ export function buildSalesDocumentRouteFromQuery(input: {
 	mode?: PrintMode;
 	origin?: string;
 }) {
-	const origin =
-		input.origin ||
-		(typeof window !== "undefined"
-			? window.location.origin
-			: "http://localhost");
-	const url = new URL(input.path || PRINT_VIEWER_PATH, origin);
+	const path = input.path || PRINT_VIEWER_PATH;
+	const url = input.origin
+		? new URL(path, input.origin)
+		: new URL(path, "http://same-origin.local");
 
 	if (input.pt) url.searchParams.set("pt", input.pt);
 	if (input.token) url.searchParams.set("token", input.token);
@@ -138,12 +123,16 @@ export function buildSalesDocumentRouteFromQuery(input: {
 		url.searchParams.set("mode", input.mode);
 	}
 
-	const templateId = input.templateId ?? DEFAULT_TEMPLATE_ID;
-	if (templateId && templateId !== DEFAULT_TEMPLATE_ID) {
+	const templateId = input.templateId ?? DEFAULT_SALES_PRINT_TEMPLATE_ID;
+	if (templateId && templateId !== DEFAULT_SALES_PRINT_TEMPLATE_ID) {
 		url.searchParams.set("templateId", templateId);
 	}
 
-	return url.toString();
+	if (input.origin) {
+		return url.toString();
+	}
+
+	return `${url.pathname}${url.search}`;
 }
 
 export function buildSalesPdfDownloadUrlFromQuery(input: {
@@ -168,7 +157,7 @@ export async function resolveSalesPrintAccess(
 ) {
 	const mode = resolveSalesPrintMode(request.mode);
 	const baseUrl = request.baseUrl ?? dependencies.getBaseUrl();
-	const templateId = request.templateId ?? DEFAULT_TEMPLATE_ID;
+	const templateId = request.templateId ?? DEFAULT_SALES_PRINT_TEMPLATE_ID;
 	const accessKey = JSON.stringify({
 		salesIds: [...request.salesIds].sort((a, b) => a - b),
 		mode,
@@ -204,7 +193,7 @@ export async function resolveSalesHtmlPreviewAccess(
 ) {
 	const mode = resolveSalesPrintMode(request.mode);
 	const baseUrl = request.baseUrl ?? dependencies.getBaseUrl();
-	const templateId = request.templateId ?? DEFAULT_TEMPLATE_ID;
+	const templateId = request.templateId ?? DEFAULT_SALES_PRINT_TEMPLATE_ID;
 	const accessKey = JSON.stringify({
 		salesIds: [...request.salesIds].sort((a, b) => a - b),
 		mode,
@@ -336,10 +325,8 @@ function buildSalesDocumentRouteUrl(
 ) {
 	const origin =
 		options?.origin ||
-		(typeof window !== "undefined"
-			? window.location.origin
-			: "http://localhost");
-	const url = new URL(path, origin);
+		(typeof window !== "undefined" ? window.location.origin : undefined);
+	const url = new URL(path, origin ?? "http://same-origin.local");
 
 	if (access.kind === "legacy") {
 		url.searchParams.set("token", access.accessToken);
@@ -354,12 +341,16 @@ function buildSalesDocumentRouteUrl(
 		url.searchParams.set("mode", options.mode);
 	}
 
-	const templateId = options?.templateId ?? DEFAULT_TEMPLATE_ID;
-	if (templateId && templateId !== DEFAULT_TEMPLATE_ID) {
+	const templateId = options?.templateId ?? DEFAULT_SALES_PRINT_TEMPLATE_ID;
+	if (templateId && templateId !== DEFAULT_SALES_PRINT_TEMPLATE_ID) {
 		url.searchParams.set("templateId", templateId);
 	}
 
-	return url.toString();
+	if (origin) {
+		return url.toString();
+	}
+
+	return `${url.pathname}${url.search}`;
 }
 
 function downloadSilently(url: string) {

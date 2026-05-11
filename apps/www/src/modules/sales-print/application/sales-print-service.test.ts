@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { describe, expect, it } from "bun:test";
 import type { ResolveSalesDocumentAccessResult } from "@gnd/api/utils/sales-document-access";
+import { parseSalesPrintRequest } from "./sales-print-request";
 import {
 	buildSalesDocumentRouteFromQuery,
 	buildSalesPdfDownloadUrlFromQuery,
@@ -12,6 +13,67 @@ import {
 } from "./sales-print-service";
 
 describe("sales print service", () => {
+	it("classifies access-token-only links as rendered PDFs", () => {
+		const request = parseSalesPrintRequest({
+			accessToken: "access-123",
+			mode: "invoice",
+		});
+
+		expect(request.isValid).toBe(true);
+		expect(request.locatorType).toBe("access-token");
+		expect(request.renderMode).toBe("rendered-pdf");
+		expect(request.params.templateId).toBe("template-2");
+		expect(request.params.mode).toBe("invoice");
+	});
+
+	it("classifies preview access-token links as rendered PDFs", () => {
+		const request = parseSalesPrintRequest({
+			accessToken: "access-123",
+			preview: "true",
+			mode: "invoice",
+		});
+
+		expect(request.isValid).toBe(true);
+		expect(request.locatorType).toBe("access-token");
+		expect(request.renderMode).toBe("rendered-pdf");
+	});
+
+	it("classifies packing slip access-token links as rendered PDFs", () => {
+		const request = parseSalesPrintRequest({
+			accessToken: "access-123",
+			mode: "packing-slip",
+		});
+
+		expect(request.isValid).toBe(true);
+		expect(request.locatorType).toBe("access-token");
+		expect(request.renderMode).toBe("rendered-pdf");
+	});
+
+	it("classifies public, legacy, and snapshot locators as rendered PDFs", () => {
+		expect(parseSalesPrintRequest({ pt: "public-123" }).renderMode).toBe(
+			"rendered-pdf",
+		);
+		expect(parseSalesPrintRequest({ token: "legacy-123" }).renderMode).toBe(
+			"rendered-pdf",
+		);
+		expect(
+			parseSalesPrintRequest({ snapshotId: "snapshot-123" }).renderMode,
+		).toBe("rendered-pdf");
+	});
+
+	it("marks missing and conflicting locators as invalid", () => {
+		const missing = parseSalesPrintRequest({});
+		const conflicting = parseSalesPrintRequest({
+			accessToken: "access-123",
+			pt: "public-123",
+		});
+
+		expect(missing.isValid).toBe(false);
+		expect(missing.invalidReason).toBe("missing-locator");
+		expect(conflicting.isValid).toBe(false);
+		expect(conflicting.invalidReason).toBe("multiple-locators");
+	});
+
 	it("normalizes legacy UI modes to canonical print modes", () => {
 		expect(resolveSalesPrintMode("order")).toBe("invoice");
 		expect(resolveSalesPrintMode("packing list")).toBe("packing-slip");
@@ -65,6 +127,25 @@ describe("sales print service", () => {
 		).toBe(
 			"https://app.example.com/api/download/sales-v2?pt=public-123&preview=false&templateId=template-7",
 		);
+	});
+
+	it("builds same-origin relative urls when no origin is supplied", () => {
+		expect(
+			buildSalesDocumentRouteFromQuery({
+				accessToken: "access-123",
+				preview: false,
+				mode: "invoice",
+			}),
+		).toBe(
+			"/p/sales-invoice-v2?accessToken=access-123&preview=false&mode=invoice",
+		);
+
+		expect(
+			buildSalesPdfDownloadUrlFromQuery({
+				accessToken: "access-123",
+				preview: true,
+			}),
+		).toBe("/api/download/sales-v2?accessToken=access-123&preview=true");
 	});
 
 	it("deduplicates concurrent access resolution for the same document request", async () => {
@@ -183,9 +264,7 @@ describe("sales print service", () => {
 
 		expect(snapshotAccessCalls).toBe(0);
 		expect(htmlPreviewAccessCalls).toBe(1);
-		expect(href).toBe(
-			"http://localhost/p/sales-document-v2?token=preview-token-123",
-		);
+		expect(href).toBe("/p/sales-document-v2?token=preview-token-123");
 	});
 
 	it("deduplicates concurrent HTML preview access resolution", async () => {

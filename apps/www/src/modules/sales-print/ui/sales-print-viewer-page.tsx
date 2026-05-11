@@ -1,7 +1,7 @@
 import { ErrorFallback } from "@/components/error-fallback";
 import { PrintLoading } from "@/components/print-loading";
 import { PrintSalesV2 } from "@/components/print-sales-v2";
-import { loadSalesPrintFilterParams } from "@/hooks/use-sales-print-filter";
+import { parseSalesPrintRequest } from "@/modules/sales-print/application/sales-print-request";
 import { batchPrefetch, trpc } from "@/trpc/server";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { Suspense } from "react";
@@ -13,24 +13,18 @@ interface SalesPrintViewerPageProps {
 export function SalesPrintViewerPage({
 	searchParams,
 }: SalesPrintViewerPageProps) {
-	const filter = loadSalesPrintFilterParams(searchParams);
-	const shouldUseStoredPdfFastPath =
-		!filter.preview &&
-		filter.accessToken &&
-		filter.mode !== "packing-slip" &&
-		!filter.pt &&
-		!filter.token &&
-		!filter.snapshotId;
+	const printRequest = parseSalesPrintRequest(searchParams);
+	const { params } = printRequest;
 
-	if (!shouldUseStoredPdfFastPath) {
+	if (printRequest.isValid && printRequest.renderMode === "rendered-pdf") {
 		batchPrefetch([
 			trpc.print.salesV2.queryOptions({
-				pt: filter.pt ?? "",
-				token: filter.token ?? "",
-				accessToken: filter.accessToken ?? "",
-				snapshotId: filter.snapshotId ?? "",
-				preview: filter.preview ?? false,
-				templateId: filter.templateId ?? "template-2",
+				pt: params.pt,
+				token: params.token,
+				accessToken: params.accessToken,
+				snapshotId: params.snapshotId,
+				preview: params.preview,
+				templateId: params.templateId,
 			}),
 		]);
 	}
@@ -38,7 +32,7 @@ export function SalesPrintViewerPage({
 	return (
 		<ErrorBoundary errorComponent={ErrorFallback}>
 			<Suspense fallback={<PrintLoading />}>
-				<PrintSalesV2 />
+				<PrintSalesV2 printRequest={printRequest} />
 			</Suspense>
 		</ErrorBoundary>
 	);

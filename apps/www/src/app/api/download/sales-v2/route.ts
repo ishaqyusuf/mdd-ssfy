@@ -1,6 +1,10 @@
 import {
-	getSalesSnapshotDocumentByPublicToken,
+	normalizeSalesPrintMode,
+	parseSalesPrintRequest,
+} from "@/modules/sales-print/application/sales-print-request";
+import {
 	getSalesSnapshotDocumentByAccessToken,
+	getSalesSnapshotDocumentByPublicToken,
 	resolveSalesDocumentPreviewData,
 } from "@gnd/api/utils/sales-document-access";
 import { db } from "@gnd/db";
@@ -10,51 +14,37 @@ import type { PrintMode } from "@gnd/sales/print/types";
 import { tokenSchemas, validateToken } from "@gnd/utils/tokenizer";
 import { notFound } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-
-const paramsSchema = z.object({
-	pt: z.string().optional(),
-	token: z.string().optional(),
-	accessToken: z.string().optional(),
-	snapshotId: z.string().optional(),
-	preview: z.preprocess((val) => val === "true", z.boolean().default(false)),
-	templateId: z.string().optional().default("template-2"),
-});
-
-const LEGACY_TO_V2_MODE: Record<string, PrintMode> = {
-	order: "invoice",
-	"packing list": "packing-slip",
-	quote: "quote",
-	production: "production",
-	"order-packing": "order-packing",
-	invoice: "invoice",
-	"packing-slip": "packing-slip",
-};
 
 export async function GET(req: NextRequest) {
 	const requestUrl = new URL(req.url);
-	const result = paramsSchema.safeParse(
+	const printRequest = parseSalesPrintRequest(
 		Object.fromEntries(requestUrl.searchParams.entries()),
 	);
+	const { params } = printRequest;
 
-	if (!result.success) {
+	if (!printRequest.isValid) {
 		return NextResponse.json(
-			{ error: "Invalid download parameters" },
+			{
+				error:
+					printRequest.invalidReason === "multiple-locators"
+						? "Provide only one document locator"
+						: "Missing document locator",
+			},
 			{ status: 400 },
 		);
 	}
 
-	if (result.data.pt) {
+	if (printRequest.locatorType === "public-token") {
 		const snapshotLookup = await getSalesSnapshotDocumentByPublicToken({
 			db,
-			publicToken: result.data.pt,
+			publicToken: params.pt,
 		});
 		if (!snapshotLookup) notFound();
 
 		const previewData = await resolveSalesDocumentPreviewData({
 			db,
-			publicToken: result.data.pt,
-			templateId: result.data.templateId,
+			publicToken: params.pt,
+			templateId: params.templateId,
 			baseUrl: requestUrl.origin,
 		});
 		if (!previewData) notFound();
@@ -75,7 +65,7 @@ export async function GET(req: NextRequest) {
 			"Cache-Control": "no-store, max-age=0",
 		};
 
-		if (!result.data.preview) {
+		if (!params.preview) {
 			headers["Content-Disposition"] =
 				`attachment; filename="${previewData.title}.pdf"`;
 		} else {
@@ -86,10 +76,10 @@ export async function GET(req: NextRequest) {
 		return new Response(buffer, { headers });
 	}
 
-	if (result.data.accessToken) {
+	if (printRequest.locatorType === "access-token") {
 		const snapshotLookup = await getSalesSnapshotDocumentByAccessToken({
 			db,
-			accessToken: result.data.accessToken,
+			accessToken: params.accessToken,
 		});
 		if (!snapshotLookup) notFound();
 
@@ -115,7 +105,7 @@ export async function GET(req: NextRequest) {
 		const filename =
 			snapshotLookup.storedDocument.filename ||
 			`${snapshotLookup.snapshot.documentType}.pdf`;
-		headers["Content-Disposition"] = result.data.preview
+		headers["Content-Disposition"] = params.preview
 			? `inline; filename="${filename}"`
 			: `attachment; filename="${filename}"`;
 
@@ -125,11 +115,11 @@ export async function GET(req: NextRequest) {
 		});
 	}
 
-	if (result.data.snapshotId) {
+	if (printRequest.locatorType === "snapshot-id") {
 		const previewData = await resolveSalesDocumentPreviewData({
 			db,
-			snapshotId: result.data.snapshotId,
-			templateId: result.data.templateId,
+			snapshotId: params.snapshotId,
+			templateId: params.templateId,
 			baseUrl: requestUrl.origin,
 		});
 		if (!previewData) notFound();
@@ -149,7 +139,7 @@ export async function GET(req: NextRequest) {
 			"Cache-Control": "no-store, max-age=0",
 		};
 
-		if (!result.data.preview) {
+		if (!params.preview) {
 			headers["Content-Disposition"] =
 				`attachment; filename="${previewData.title}.pdf"`;
 		} else {
@@ -160,13 +150,13 @@ export async function GET(req: NextRequest) {
 		return new Response(buffer, { headers });
 	}
 
-	const payload = result.data.token
-		? validateToken(result.data.token, tokenSchemas.salesPdfToken)
+	const payload = params.token
+		? validateToken(params.token, tokenSchemas.salesPdfToken)
 		: null;
 
 	if (!payload) notFound();
 
-	const mode: PrintMode = LEGACY_TO_V2_MODE[payload.mode] ?? "invoice";
+	const mode: PrintMode = normalizeSalesPrintMode(payload.mode);
 	const documentData = await getPrintDocumentData(db, {
 		ids: payload.salesIds,
 		mode,
@@ -176,9 +166,9 @@ export async function GET(req: NextRequest) {
 	const buffer = await renderSalesPdfBuffer({
 		pages: documentData.pages,
 		title: documentData.title,
-		templateId: result.data.templateId,
+		templateId: params.templateId,
 		companyAddress: documentData.companyAddress,
-		baseUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+		baseUrl: requestUrl.origin,
 	});
 
 	const headers: Record<string, string> = {
@@ -186,7 +176,7 @@ export async function GET(req: NextRequest) {
 		"Cache-Control": "no-store, max-age=0",
 	};
 
-	if (!result.data.preview) {
+	if (!params.preview) {
 		headers["Content-Disposition"] =
 			`attachment; filename="${documentData.title}.pdf"`;
 	} else {

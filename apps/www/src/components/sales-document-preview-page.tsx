@@ -102,9 +102,10 @@ export function SalesDocumentPreviewPage({
 			accessToken: effectiveAccessToken,
 			snapshotId: effectiveSnapshotId,
 			templateId,
-			origin: window.location.origin,
+			origin: baseUrl,
 		});
 	}, [
+		baseUrl,
 		effectiveAccessToken,
 		effectivePt,
 		effectiveSnapshotId,
@@ -129,9 +130,10 @@ export function SalesDocumentPreviewPage({
 			snapshotId: effectiveSnapshotId,
 			preview: false,
 			templateId,
-			origin: window.location.origin,
+			origin: baseUrl,
 		});
 	}, [
+		baseUrl,
 		effectiveAccessToken,
 		effectivePt,
 		effectiveSnapshotId,

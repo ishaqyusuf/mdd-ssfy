@@ -33,7 +33,7 @@ export function PackingSlipMode({
 }: PackingSlipModeProps) {
 	return (
 		<>
-			<View fixed style={{ paddingBottom: 8, marginBottom: 8 }}>
+			<View style={{ paddingBottom: 8, marginBottom: 8 }}>
 				<HeaderBlock
 					meta={page.meta}
 					billing={page.billing}

@@ -1,17 +1,28 @@
 "use client";
 
 import { useSalesPrintFilter } from "@/hooks/use-sales-print-filter";
-import { getBaseUrl } from "@/lib/base-url";
 import { cn } from "@/lib/utils";
+import {
+	type SalesPrintRequestInfo,
+	parseSalesPrintRequest,
+} from "@/modules/sales-print/application/sales-print-request";
 import { buildSalesPdfDownloadUrlFromQuery } from "@/modules/sales-print/application/sales-print-service";
-import { PDFViewer } from "@gnd/pdf";
-import { SalesPdfDocument } from "@gnd/pdf/sales-v2";
 import type { PrintMode } from "@gnd/sales/print/types";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import dynamic from "next/dynamic";
 import type { SyntheticEvent } from "react";
-import { useCallback, useMemo, useRef } from "react";
-import { PackingSlipSignFab } from "./packing-slip-sign-fab";
-import { _trpc } from "./static-trpc";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { PrintLoading } from "./print-loading";
+
+const RenderedPdfPrintViewer = dynamic(
+	() =>
+		import("./rendered-pdf-print-viewer").then(
+			(module) => module.RenderedPdfPrintViewer,
+		),
+	{
+		loading: () => <PrintLoading />,
+		ssr: false,
+	},
+);
 
 interface PrintSalesV2Props {
 	pt?: string;
@@ -22,6 +33,7 @@ interface PrintSalesV2Props {
 	templateId?: string;
 	mode?: PrintMode;
 	className?: string;
+	printRequest?: SalesPrintRequestInfo;
 }
 
 function waitForNextFrame() {
@@ -57,60 +69,126 @@ export function PrintSalesV2({
 	templateId,
 	mode,
 	className,
+	printRequest,
 }: PrintSalesV2Props = {}) {
-	const { filters } = useSalesPrintFilter();
-	const resolvedPt = pt ?? filters.pt ?? "";
-	const resolvedToken = token ?? filters.token ?? "";
-	const resolvedAccessToken = accessToken ?? filters.accessToken ?? "";
-	const resolvedSnapshotId = snapshotId ?? filters.snapshotId ?? "";
-	const resolvedPreview = preview ?? filters.preview ?? false;
-	const resolvedTemplateId = templateId ?? filters.templateId ?? "template-2";
-	const resolvedMode = mode ?? (filters.mode as PrintMode | undefined);
-	const fastPdfUrl = useMemo(() => {
-		if (
-			resolvedPreview ||
-			!resolvedAccessToken ||
-			resolvedMode === "packing-slip" ||
-			resolvedPt ||
-			resolvedToken ||
-			resolvedSnapshotId
-		) {
-			return null;
-		}
-
-		return buildSalesPdfDownloadUrlFromQuery({
-			accessToken: resolvedAccessToken,
-			templateId: resolvedTemplateId,
-			preview: true,
-			origin: window.location.origin,
-		});
-	}, [
-		resolvedAccessToken,
-		resolvedMode,
-		resolvedPreview,
-		resolvedPt,
-		resolvedSnapshotId,
-		resolvedTemplateId,
-		resolvedToken,
-	]);
-
-	if (fastPdfUrl) {
+	if (printRequest) {
 		return (
-			<StoredPdfPrintFrame src={fastPdfUrl} className={className} />
+			<PrintSalesV2Resolved printRequest={printRequest} className={className} />
+		);
+	}
+
+	return (
+		<PrintSalesV2FromFilters
+			pt={pt}
+			token={token}
+			accessToken={accessToken}
+			snapshotId={snapshotId}
+			preview={preview}
+			templateId={templateId}
+			mode={mode}
+			className={className}
+		/>
+	);
+}
+
+function PrintSalesV2FromFilters({
+	pt,
+	token,
+	accessToken,
+	snapshotId,
+	preview,
+	templateId,
+	mode,
+	className,
+}: Omit<PrintSalesV2Props, "printRequest">) {
+	const { filters } = useSalesPrintFilter();
+	const resolvedPrintRequest = parseSalesPrintRequest({
+		pt: pt ?? filters.pt,
+		token: token ?? filters.token,
+		accessToken: accessToken ?? filters.accessToken,
+		snapshotId: snapshotId ?? filters.snapshotId,
+		preview: preview ?? filters.preview,
+		templateId: templateId ?? filters.templateId,
+		mode: mode ?? filters.mode,
+	});
+
+	return (
+		<PrintSalesV2Resolved
+			printRequest={resolvedPrintRequest}
+			className={className}
+		/>
+	);
+}
+
+function PrintSalesV2Resolved({
+	printRequest,
+	className,
+}: {
+	printRequest: SalesPrintRequestInfo;
+	className?: string;
+}) {
+	const resolvedPrintRequest = printRequest;
+	const { params } = resolvedPrintRequest;
+
+	if (!resolvedPrintRequest.isValid) {
+		return <PrintUnavailable reason={resolvedPrintRequest.invalidReason} />;
+	}
+
+	if (resolvedPrintRequest.renderMode === "stored-pdf") {
+		return (
+			<StoredPdfPrintUrlFrame
+				accessToken={params.accessToken}
+				templateId={params.templateId}
+				className={className}
+			/>
 		);
 	}
 
 	return (
 		<RenderedPdfPrintViewer
-			pt={resolvedPt}
-			token={resolvedToken}
-			accessToken={resolvedAccessToken}
-			snapshotId={resolvedSnapshotId}
-			preview={resolvedPreview}
-			templateId={resolvedTemplateId}
+			pt={params.pt}
+			token={params.token}
+			accessToken={params.accessToken}
+			snapshotId={params.snapshotId}
+			preview={params.preview}
+			templateId={params.templateId}
 			className={className}
 		/>
 	);
+}
+
+function StoredPdfPrintUrlFrame({
+	accessToken,
+	templateId,
+	className,
+}: {
+	accessToken: string;
+	templateId: string;
+	className?: string;
+}) {
+	const [browserOrigin, setBrowserOrigin] = useState<string | null>(null);
+	useEffect(() => {
+		setBrowserOrigin(window.location.origin);
+	}, []);
+
+	const fastPdfUrl = useMemo(() => {
+		if (!browserOrigin) {
+			return null;
+		}
+
+		return buildSalesPdfDownloadUrlFromQuery({
+			accessToken,
+			templateId,
+			preview: true,
+			origin: browserOrigin,
+		});
+	}, [accessToken, browserOrigin, templateId]);
+
+	if (!fastPdfUrl) {
+		return <PrintLoading />;
+	}
+
+	return <StoredPdfPrintFrame src={fastPdfUrl} className={className} />;
 }
 
 function StoredPdfPrintFrame({
@@ -122,9 +200,32 @@ function StoredPdfPrintFrame({
 }) {
 	const viewerRef = useRef<HTMLIFrameElement | null>(null);
 	const printedRef = useRef(false);
+	const loadTimeoutRef = useRef<number | null>(null);
+	const [loadFailed, setLoadFailed] = useState(false);
+	const [loadTimedOut, setLoadTimedOut] = useState(false);
+	useEffect(() => {
+		setLoadFailed(false);
+		setLoadTimedOut(false);
+		printedRef.current = false;
+
+		loadTimeoutRef.current = window.setTimeout(() => {
+			setLoadTimedOut(true);
+		}, 12_000);
+
+		return () => {
+			if (loadTimeoutRef.current) {
+				window.clearTimeout(loadTimeoutRef.current);
+			}
+		};
+	}, []);
 	const handleViewerLoad = useCallback(
 		async (event: SyntheticEvent<HTMLIFrameElement>) => {
 			const iframe = event.currentTarget;
+			if (loadTimeoutRef.current) {
+				window.clearTimeout(loadTimeoutRef.current);
+				loadTimeoutRef.current = null;
+			}
+			setLoadTimedOut(false);
 			if (printedRef.current) {
 				return;
 			}
@@ -138,97 +239,85 @@ function StoredPdfPrintFrame({
 	);
 
 	return (
-		<iframe
-			ref={viewerRef}
-			src={src}
-			onLoad={handleViewerLoad}
-			className={cn("flex h-screen w-full flex-col border-0", className)}
-			title="Sales print PDF"
-		/>
+		<div className={cn("relative h-screen w-full", className)}>
+			<iframe
+				ref={viewerRef}
+				src={src}
+				onLoad={handleViewerLoad}
+				onError={() => {
+					if (loadTimeoutRef.current) {
+						window.clearTimeout(loadTimeoutRef.current);
+						loadTimeoutRef.current = null;
+					}
+					setLoadFailed(true);
+				}}
+				className="flex h-full w-full flex-col border-0"
+				title="Sales print PDF"
+			/>
+			{loadFailed || loadTimedOut ? (
+				<PrintRecoveryPanel
+					src={src}
+					message={
+						loadFailed
+							? "The PDF could not be loaded automatically."
+							: "The PDF is taking longer than expected to load."
+					}
+				/>
+			) : null}
+		</div>
 	);
 }
 
-function RenderedPdfPrintViewer({
-	pt,
-	token,
-	accessToken,
-	snapshotId,
-	preview,
-	templateId,
-	className,
-}: Required<
-	Pick<
-		PrintSalesV2Props,
-		| "pt"
-		| "token"
-		| "accessToken"
-		| "snapshotId"
-		| "preview"
-		| "templateId"
-		| "className"
-	>
->) {
-	const baseUrl = getBaseUrl();
-	const viewerRef = useRef<{ contentWindow?: Window | null } | null>(null);
-	const printedRef = useRef(false);
-	const { data } = useSuspenseQuery(
-		_trpc.print.salesV2.queryOptions({
-			pt: pt || undefined,
-			token: token || undefined,
-			accessToken: accessToken || undefined,
-			snapshotId: snapshotId || undefined,
-			preview,
-			templateId,
-			baseUrl,
-		}),
-	);
-	const handleViewerLoad = useCallback(
-		async (event: SyntheticEvent<HTMLIFrameElement>) => {
-			const iframe = event.currentTarget;
-			if (preview || printedRef.current || !iframe.src.startsWith("blob:")) {
-				return;
-			}
-
-			printedRef.current = true;
-			await waitForPrintableFrame(iframe);
-			iframe.contentWindow?.focus();
-			iframe.contentWindow?.print();
-		},
-		[preview],
-	);
-
-	if (!data) return null;
-
-	const packingSlipPage =
-		data.pages.find((page) => page.config.mode === "packing-slip") || null;
+export function PrintUnavailable({ reason }: { reason?: string }) {
+	const message =
+		reason === "missing-locator"
+			? "This print link is missing a document token."
+			: reason === "multiple-locators"
+				? "This print link has conflicting document tokens."
+				: reason || "This print document is unavailable.";
 
 	return (
-		<>
-			<PDFViewer
-				ref={viewerRef}
-				onLoad={handleViewerLoad}
-				className={cn("flex h-screen w-full flex-col", className)}
-			>
-				<SalesPdfDocument
-					pages={data.pages}
-					templateId={data.templateId}
-					title={data.title}
-					companyAddress={data.companyAddress}
-					watermark={data.watermark ?? undefined}
-					baseUrl={baseUrl}
-					previewUrl={data.previewUrl}
-					qrCodeDataUrl={data.qrCodeDataUrl}
-				/>
-			</PDFViewer>
-			<PackingSlipSignFab
-				page={packingSlipPage}
-				pt={pt}
-				token={token}
-				accessToken={accessToken}
-				snapshotId={snapshotId}
-				preview={preview}
-				templateId={templateId}
-			/>
-		</>
+		<div className="flex h-screen w-full items-center justify-center bg-white p-6 text-center">
+			<div className="max-w-md space-y-3">
+				<h1 className="font-semibold text-lg text-slate-950">
+					Unable to load print document
+				</h1>
+				<p className="text-slate-600 text-sm">{message}</p>
+			</div>
+		</div>
+	);
+}
+
+function PrintRecoveryPanel({
+	src,
+	message,
+}: {
+	src: string;
+	message: string;
+}) {
+	return (
+		<div className="absolute inset-x-4 top-4 z-10 mx-auto max-w-md rounded-md border border-slate-200 bg-white p-4 shadow-lg">
+			<p className="font-medium text-slate-950 text-sm">
+				Print preview needs attention
+			</p>
+			<p className="mt-1 text-slate-600 text-sm">{message}</p>
+			<div className="mt-3 flex gap-2">
+				<a
+					href={src}
+					target="_blank"
+					rel="noreferrer"
+					className="inline-flex h-9 items-center rounded-md bg-slate-950 px-3 font-medium text-sm text-white"
+				>
+					Open PDF
+				</a>
+				<button
+					type="button"
+					onClick={() => window.location.reload()}
+					className="inline-flex h-9 items-center rounded-md border border-slate-200 px-3 font-medium text-slate-950 text-sm"
+				>
+					Retry
+				</button>
+			</div>
+		</div>
 	);
 }
