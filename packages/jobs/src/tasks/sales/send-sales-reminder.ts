@@ -1,14 +1,13 @@
 import { db } from "@gnd/db";
+import type { NotificationJobInput } from "@notifications/schemas";
+import { logger, schemaTask, tasks } from "@trigger.dev/sdk/v3";
+import { getAppUrl } from "@utils/envs";
 import {
 	type SendSalesReminderPayload,
 	sendSalesReminderSchema,
 } from "../../schema";
 import { processBatch } from "../../utils/process-batch";
-import type { NotificationJobInput } from "@notifications/schemas";
-import { logger, schemaTask, tasks } from "@trigger.dev/sdk/v3";
-import { getAppApiUrl, getAppUrl } from "@utils/envs";
 const baseAppUrl = getAppUrl();
-const baseApiUrl = getAppApiUrl();
 export const sendSalesReminder = schemaTask({
 	id: "send-sales-reminder",
 	schema: sendSalesReminderSchema,
@@ -47,9 +46,7 @@ export const sendSalesReminder = schemaTask({
 							customerName: data.customerName,
 							salesRep: props.salesRep,
 							salesRepEmail: props.salesRepEmail,
-							pdfLink: data.downloadToken
-								? `${baseApiUrl}/download/sales?token=${data.downloadToken}&download=true`
-								: null,
+							pdfToken: data.downloadToken || null,
 							paymentLink: data.paymentToken
 								? `${baseAppUrl}/checkout/${data.paymentToken}/v2`
 								: null,
@@ -109,20 +106,20 @@ async function loadSales(props: SendSalesReminderPayload) {
 				},
 			},
 		})
-  ).map((sale) => {
-    const po = (sale.meta as { po?: string | null } | null)?.po;
-    const customerEmail = sale?.customer?.email || sale?.billingAddress?.email;
-    return {
-      customerEmail,
-      po,
-      id: sale.id,
-      type: sale.type,
-      isQuote: sale.type === "quote",
-      due: sale.amountDue || 0,
-      total: sale.grandTotal || 0,
-      date: sale.createdAt || new Date(),
-      orderId: sale.orderId,
-      salesRep: sale?.salesRep?.name,
+	).map((sale) => {
+		const po = (sale.meta as { po?: string | null } | null)?.po;
+		const customerEmail = sale?.customer?.email || sale?.billingAddress?.email;
+		return {
+			customerEmail,
+			po,
+			id: sale.id,
+			type: sale.type,
+			isQuote: sale.type === "quote",
+			due: sale.amountDue || 0,
+			total: sale.grandTotal || 0,
+			date: sale.createdAt || new Date(),
+			orderId: sale.orderId,
+			salesRep: sale?.salesRep?.name,
 			salesRepId: sale?.salesRep?.id,
 			salesRepEmail: sale?.salesRep?.email,
 			customerName: sale?.customer?.name || sale?.billingAddress?.name,

@@ -1,6 +1,4 @@
 import type { Db } from "@gnd/db";
-import { getPrintDocumentData } from "@gnd/sales/print";
-import type { PrintMode } from "@gnd/sales/print/types";
 import { getCustomerWallet } from "@gnd/sales/wallet";
 import { getAppUrl } from "@gnd/utils/envs";
 import {
@@ -9,12 +7,13 @@ import {
 } from "@gnd/utils/tokenizer";
 import { addDays } from "date-fns";
 import { z } from "zod";
-import { renderSalesPdfBuffer } from "../../../pdf/src/sales-v2";
 import type { NotificationHandler } from "../base";
 import {
 	type ComposedSalesDocumentEmailInput,
 	type ComposedSalesDocumentEmailTags,
+	salesPdfAttachmentSchema,
 } from "../schemas";
+import { buildSalesPdfAttachment } from "./sales-pdf-attachment";
 
 const DEFAULT_TEMPLATE_ID = "template-2";
 const LINK_TTL_DAYS = 7;
@@ -59,14 +58,7 @@ const resolvedSchema = z.object({
 			due: z.number(),
 		}),
 	),
-	pdfAttachment: z
-		.object({
-			filename: z.string(),
-			content: z.string(),
-			contentType: z.literal("application/pdf"),
-		})
-		.optional()
-		.nullable(),
+	pdfAttachment: salesPdfAttachmentSchema.optional().nullable(),
 });
 
 type ResolvedComposedSalesDocumentEmailInput = z.infer<typeof resolvedSchema>;
@@ -181,27 +173,16 @@ async function buildPaymentLink(db: Db, sales: LoadedSale[]) {
 	return paymentToken ? `${appUrl}/checkout/${paymentToken}/v2` : null;
 }
 
-async function buildPdfAttachment(db: Db, sales: LoadedSale[], type: "order" | "quote") {
-	const appUrl = getAppUrl() || "http://localhost:3000";
-	const mode: PrintMode = type === "quote" ? "quote" : "invoice";
-	const documentData = await getPrintDocumentData(db, {
-		ids: sales.map((sale) => sale.id),
-		mode,
-		dispatchId: null,
-	});
-	const buffer = await renderSalesPdfBuffer({
-		pages: documentData.pages,
-		title: documentData.title,
+async function buildPdfAttachment(
+	db: Db,
+	sales: LoadedSale[],
+	type: "order" | "quote",
+) {
+	return buildSalesPdfAttachment(db, {
+		salesIds: sales.map((sale) => sale.id),
+		mode: type,
 		templateId: DEFAULT_TEMPLATE_ID,
-		companyAddress: documentData.companyAddress,
-		baseUrl: appUrl,
 	});
-
-	return {
-		filename: `${documentData.title}.pdf`,
-		content: buffer.toString("base64"),
-		contentType: "application/pdf" as const,
-	};
 }
 
 async function buildComposedSalesDocumentEmailData(
@@ -210,12 +191,16 @@ async function buildComposedSalesDocumentEmailData(
 ) {
 	const sales = await loadSales(db, input);
 	if (!sales.length) {
-		throw new Error("No eligible sales found for composed sales document email");
+		throw new Error(
+			"No eligible sales found for composed sales document email",
+		);
 	}
 
 	const [primarySale] = sales;
 	if (!primarySale) {
-		throw new Error("No eligible sales found for composed sales document email");
+		throw new Error(
+			"No eligible sales found for composed sales document email",
+		);
 	}
 
 	const hasMixedRecipients = sales.some(
@@ -235,9 +220,12 @@ async function buildComposedSalesDocumentEmailData(
 
 	return {
 		type,
-		customerEmail: normalizeText(input.customerEmail) || primarySale.customerEmail,
+		customerEmail:
+			normalizeText(input.customerEmail) || primarySale.customerEmail,
 		customerName:
-			normalizeText(input.customerName) || primarySale.customerName || "Customer",
+			normalizeText(input.customerName) ||
+			primarySale.customerName ||
+			"Customer",
 		salesRep: primarySale.salesRep,
 		salesRepEmail: primarySale.salesRepEmail,
 		subject: input.subject.trim(),
@@ -287,7 +275,12 @@ export const composedSalesDocumentEmail: NotificationHandler = {
 			tags: payload,
 		};
 	},
-	createEmail(data: ResolvedComposedSalesDocumentEmailInput, _author, _user, args) {
+	createEmail(
+		data: ResolvedComposedSalesDocumentEmailInput,
+		_author,
+		_user,
+		args,
+	) {
 		return {
 			...args,
 			template: "composed-sales-document-email",

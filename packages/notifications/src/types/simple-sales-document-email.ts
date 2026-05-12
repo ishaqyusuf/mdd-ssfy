@@ -1,9 +1,8 @@
 import type { Db } from "@gnd/db";
 import { getCustomerWallet } from "@gnd/sales/wallet";
-import { getAppApiUrl, getAppUrl } from "@gnd/utils/envs";
+import { getAppUrl } from "@gnd/utils/envs";
 import {
 	type SalesPaymentTokenSchema,
-	type SalesPdfToken,
 	tryTokenize,
 } from "@gnd/utils/tokenizer";
 import { addDays } from "date-fns";
@@ -14,7 +13,9 @@ import {
 	type SalesEmailReminderTags,
 	type SendSalesEmailPayloadInput,
 	salesEmailReminderSchema,
+	salesPdfAttachmentSchema,
 } from "../schemas";
+import { buildSalesPdfAttachment } from "./sales-pdf-attachment";
 
 function normalizeText(value: string | null | undefined) {
 	return value?.trim() || null;
@@ -143,13 +144,7 @@ async function buildSalesDocumentEmailData(
 	}
 
 	const appUrl = getAppUrl();
-	const apiUrl = getAppApiUrl();
 	const expiry = addDays(new Date(), 7).toISOString();
-	const pdfToken = tryTokenize({
-		salesIds: sales.map((sale) => sale.id),
-		expiry,
-		mode: input.printType,
-	} satisfies SalesPdfToken);
 	const paymentEligibleSales = sales.filter((sale) => sale.due > 0);
 	const paymentLink =
 		input.printType === "quote" || !paymentEligibleSales.length
@@ -206,10 +201,11 @@ async function buildSalesDocumentEmailData(
 		salesRepEmail: primarySale.salesRepEmail,
 		note: normalizeText(input.note),
 		paymentLink,
-		pdfLink:
-			pdfToken && apiUrl != null
-				? `${apiUrl}/download/sales?token=${encodeURIComponent(pdfToken)}&download=true`
-				: null,
+		pdfLink: null,
+		pdfAttachment: await buildSalesPdfAttachment(db, {
+			salesIds: sales.map((sale) => sale.id),
+			mode: input.printType,
+		}),
 		acceptQuoteLink,
 		sales: sales.map((sale) => ({
 			orderId: sale.orderId,
@@ -223,10 +219,12 @@ async function buildSalesDocumentEmailData(
 
 const resolvedSchema = salesEmailReminderSchema.extend({
 	acceptQuoteLink: z.string().optional().nullable(),
+	pdfAttachment: salesPdfAttachmentSchema.optional().nullable(),
 });
 
 type ResolvedSalesDocumentEmailInput = SalesEmailReminderInput & {
 	acceptQuoteLink?: string | null;
+	pdfAttachment?: z.infer<typeof salesPdfAttachmentSchema> | null;
 };
 
 export const simpleSalesDocumentEmail: NotificationHandler = {
@@ -247,7 +245,8 @@ export const simpleSalesDocumentEmail: NotificationHandler = {
 			reminderType: data.type,
 			salesNo: data.sales.map((sale) => sale.orderId),
 			hasPaymentLink: Boolean(data.paymentLink),
-			hasPdfLink: Boolean(data.pdfLink),
+			hasPdfLink: false,
+			hasPdfAttachment: Boolean(data.pdfAttachment),
 		};
 
 		return {
@@ -269,13 +268,14 @@ export const simpleSalesDocumentEmail: NotificationHandler = {
 			to: [data.customerEmail],
 			from: `GND Millwork <${data.salesRepEmail.split("@")[0]}@gndprodesk.com>`,
 			subject: `${data.salesRep} sent you ${isQuote ? "a quote" : "an invoice"}`,
+			attachments: data.pdfAttachment ? [data.pdfAttachment] : undefined,
 			data: {
 				isQuote,
 				customerName: data.customerName,
 				note: data.note || undefined,
 				acceptQuoteLink: data.acceptQuoteLink || undefined,
 				paymentLink: data.paymentLink || undefined,
-				pdfLink: data.pdfLink || undefined,
+				hasPdfAttachment: Boolean(data.pdfAttachment),
 				sales: data.sales.map((sale) => ({
 					...sale,
 					date:

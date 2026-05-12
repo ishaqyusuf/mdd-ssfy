@@ -38,7 +38,7 @@ export function SalesPreview({ onClose }: { onClose?: () => void }) {
 
 	if (!params.salesPreviewUrl) {
 		return (
-			<div className="flex h-[60vh] items-center justify-center bg-background">
+			<div className="flex h-[60vh] items-center justify-center bg-transparent">
 				<div className="text-sm text-muted-foreground">
 					Preparing preview...
 				</div>
@@ -55,7 +55,7 @@ export function SalesPreview({ onClose }: { onClose?: () => void }) {
 	}
 
 	return (
-		<div className="min-h-0 flex-1 bg-background">
+		<div className="min-h-0 flex-1 bg-transparent">
 			<SalesDocumentPreviewPage
 				pt={previewParams.pt}
 				token={previewParams.token}

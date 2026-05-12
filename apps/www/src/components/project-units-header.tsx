@@ -16,7 +16,6 @@ export function ProjectUnitHeader() {
 					filterSchema={projectUnitFilterParams}
 					placeholder="Search ProjectUnits..."
 					debounceMs={300}
-					initialFilterList={[]}
 					trpcRoute={trpc.filters.projectUnit}
 					{...{ filters, setFilters }}
 				/>

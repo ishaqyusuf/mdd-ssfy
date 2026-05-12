@@ -1,11 +1,9 @@
 import type { Db } from "@gnd/db";
-import { getAppApiUrl } from "@gnd/utils/envs";
-import { type SalesPdfToken, tryTokenize } from "@gnd/utils/tokenizer";
-import { addDays } from "date-fns";
 import {
 	salesCustomerPaymentFailedSchema,
 	salesCustomerPaymentReceivedSchema,
 } from "../schemas";
+import { buildSalesPdfAttachment } from "./sales-pdf-attachment";
 
 function normalizeText(value: string | null | undefined) {
 	return value?.trim() || null;
@@ -89,12 +87,7 @@ async function loadSales(db: Db, sales: SaleInput[]) {
 				...order,
 			};
 		})
-		.filter(
-			(
-				sale,
-			): sale is SaleInput &
-				LoadedSale => sale !== null,
-		);
+		.filter((sale): sale is SaleInput & LoadedSale => sale !== null);
 
 	if (!resolved.length) {
 		throw new Error("No eligible sales were found for customer payment email");
@@ -123,19 +116,6 @@ async function loadSales(db: Db, sales: SaleInput[]) {
 	};
 }
 
-function buildInvoiceDownloadUrl(salesIds: number[]) {
-	const apiUrl = getAppApiUrl();
-	const token = tryTokenize({
-		salesIds,
-		expiry: addDays(new Date(), 7).toISOString(),
-		mode: "invoice",
-	} satisfies SalesPdfToken);
-
-	return token && apiUrl
-		? `${apiUrl}/download/sales?token=${encodeURIComponent(token)}&download=true`
-		: null;
-}
-
 export async function buildSalesCustomerPaymentReceivedPayload(
 	db: Db,
 	input: {
@@ -153,9 +133,11 @@ export async function buildSalesCustomerPaymentReceivedPayload(
 		paymentMethod: input.paymentMethod,
 		totalAmount: Number(input.totalAmount || 0),
 		note: normalizeText(input.note),
-		invoiceDownloadUrl: buildInvoiceDownloadUrl(
-			resolved.sales.map((sale) => sale.id),
-		),
+		invoiceDownloadUrl: null,
+		invoicePdfAttachment: await buildSalesPdfAttachment(db, {
+			salesIds: resolved.sales.map((sale) => sale.id),
+			mode: "invoice",
+		}),
 		sales: resolved.sales.map((sale) => ({
 			salesId: sale.id,
 			orderNo: sale.orderNo,

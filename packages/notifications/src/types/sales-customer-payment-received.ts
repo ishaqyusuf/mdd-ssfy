@@ -36,6 +36,9 @@ export const salesCustomerPaymentReceived: NotificationHandler = {
 			template: "sales-customer-payment-received",
 			to: [data.customerEmail],
 			subject: `Payment received for order${data.sales.length > 1 ? "s" : ""} ${data.sales.map((sale) => sale.orderNo).join(", ")}`,
+			attachments: data.invoicePdfAttachment
+				? [data.invoicePdfAttachment]
+				: undefined,
 			data,
 		};
 	},

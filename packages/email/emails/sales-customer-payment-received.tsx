@@ -22,7 +22,7 @@ interface Props {
 	paymentMethod: string;
 	totalAmount: number;
 	note?: string | null;
-	invoiceDownloadUrl?: string | null;
+	invoicePdfAttachment?: unknown;
 	sales: {
 		orderNo: string;
 		amountApplied?: number | null;
@@ -190,7 +190,9 @@ export function SalesCustomerPaymentReceivedEmail(props: Props) {
 							{props.sales.map((sale) => (
 								<tr key={sale.orderNo}>
 									<td style={{ padding: "12px 0" }}>
-										<Text className={`m-0 ${themeClasses.text}`}>{sale.orderNo}</Text>
+										<Text className={`m-0 ${themeClasses.text}`}>
+											{sale.orderNo}
+										</Text>
 									</td>
 									<td style={{ padding: "12px 0" }}>
 										<Text className={`m-0 ${themeClasses.text}`}>
@@ -209,11 +211,16 @@ export function SalesCustomerPaymentReceivedEmail(props: Props) {
 						</tbody>
 					</table>
 
-					{props.invoiceDownloadUrl ? (
-						<Section className="mt-[24px] text-center">
-							<Button href={props.invoiceDownloadUrl}>
-								{props.sales.length > 1 ? "Download invoices" : "Download invoice"}
-							</Button>
+					{props.invoicePdfAttachment ? (
+						<Section className="mt-[20px] p-[14px]">
+							<Text
+								className={`m-0 text-[14px] leading-[22px] ${themeClasses.text}`}
+								style={{ color: lightStyles.text.color }}
+							>
+								{props.sales.length > 1
+									? "The invoice PDFs are attached to this email for your reference."
+									: "The invoice PDF is attached to this email for your reference."}
+							</Text>
 						</Section>
 					) : null}
 
@@ -221,8 +228,8 @@ export function SalesCustomerPaymentReceivedEmail(props: Props) {
 						className={`mt-[20px] text-[14px] leading-[22px] ${themeClasses.text}`}
 						style={{ color: lightStyles.text.color }}
 					>
-						If you have any questions about this payment, reply to this email and
-						our team will help.
+						If you have any questions about this payment, reply to this email
+						and our team will help.
 					</Text>
 
 					<Footer />

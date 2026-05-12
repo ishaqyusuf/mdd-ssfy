@@ -6,6 +6,11 @@ import { type ChannelName, channelNames } from "./channels";
 const channel = z.enum(channelNames);
 const source = z.enum(["system", "user"]).default("system");
 const priority = z.number().int().min(1).max(10).default(5);
+export const salesPdfAttachmentSchema = z.object({
+	filename: z.string(),
+	content: z.string(),
+	contentType: z.literal("application/pdf"),
+});
 const baseActivityTags = z.object({
 	type: channel,
 	source,
@@ -155,6 +160,7 @@ export const salesCustomerPaymentReceivedSchema = z.object({
 	totalAmount: z.number(),
 	note: z.string().optional().nullable(),
 	invoiceDownloadUrl: z.string().optional().nullable(),
+	invoicePdfAttachment: salesPdfAttachmentSchema.optional().nullable(),
 	sales: z.array(salesCustomerPaymentSaleSchema).min(1),
 });
 export type SalesCustomerPaymentReceivedInput = z.infer<
@@ -931,6 +937,7 @@ export const salesEmailReminderSchema = z.object({
 	pdfToken: z.string().optional().nullable(),
 	paymentLink: z.string().optional().nullable(),
 	pdfLink: z.string().optional().nullable(),
+	pdfAttachment: salesPdfAttachmentSchema.optional().nullable(),
 	sales: z.array(
 		z.object({
 			orderId: z.string(),
@@ -950,6 +957,7 @@ export const salesEmailReminderTags = actityTagsSchema.extend({
 	salesNo: z.array(z.string()).optional(),
 	hasPaymentLink: z.boolean().optional(),
 	hasPdfLink: z.boolean().optional(),
+	hasPdfAttachment: z.boolean().optional(),
 });
 export type SalesEmailReminderTags = z.infer<typeof salesEmailReminderTags>;
 export const composedSalesDocumentEmailSchema = z.object({

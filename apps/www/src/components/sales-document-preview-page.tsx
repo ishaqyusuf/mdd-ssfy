@@ -438,7 +438,7 @@ export function SalesDocumentPreviewPage({
 					}
 				>
 					<div
-						className="w-full shadow-[0_24px_48px_-12px_rgba(15,23,42,0.32)] dark:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.65)] [&_.sales-html-document]:w-full"
+						className="pointer-events-auto w-full shadow-[0_24px_48px_-12px_rgba(15,23,42,0.32)] dark:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.65)] [&_.sales-html-document]:w-full"
 						style={{ maxWidth: documentWidth }}
 					>
 						{document}
@@ -591,21 +591,17 @@ function SalesDocumentViewWrapper({
 	children: ReactNode;
 }) {
 	return (
-		<div
-			className="sales-preview-shell h-full min-h-0 overflow-y-auto bg-[#f8fafc] bg-[radial-gradient(circle_at_1px_1px,#e0e0e0_0.5px,transparent_0)] bg-[length:6px_6px] text-foreground dark:bg-[#080808] dark:bg-[radial-gradient(circle_at_1px_1px,#232323_0.5px,transparent_0)]"
-			onClick={(event) => {
-				if (event.target === event.currentTarget) {
-					onBackgroundClick?.();
-				}
-			}}
-		>
+		<div className="sales-preview-shell relative h-full min-h-0 overflow-y-auto bg-transparent text-foreground">
+			<button
+				type="button"
+				className="fixed inset-0 z-0 cursor-default border-0 bg-black/55 p-0 backdrop-blur-[1px]"
+				onClick={onBackgroundClick}
+				aria-label="Close preview"
+				tabIndex={-1}
+			/>
 			<div
-				className="mx-auto flex min-h-[100dvh] w-full flex-col items-center px-3 pt-8 pb-28 sm:px-6 md:px-8"
-				onClick={(event) => {
-					if (event.target === event.currentTarget) {
-						onBackgroundClick?.();
-					}
-				}}
+				className="pointer-events-none relative z-10 mx-auto flex min-h-[100dvh] w-full flex-col items-center px-3 pt-8 pb-28 sm:px-6 md:px-8"
+				style={{ maxWidth: documentWidth + 96 }}
 			>
 				<div className="flex w-full justify-center">{children}</div>
 			</div>

@@ -39,7 +39,7 @@ export function SalesPreviewModal({}) {
 
 	return (
 		<Dialog onOpenChange={closePreview} open={ctx.opened}>
-			<DialogContent className="fixed inset-0 left-0 top-0 flex h-[100dvh] max-h-none w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 p-0 sm:rounded-none">
+			<DialogContent className="fixed inset-0 left-0 top-0 flex h-[100dvh] max-h-none w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 bg-transparent p-0 sm:rounded-none">
 				<DialogHeader className="sr-only">
 					<DialogTitle>Sales preview</DialogTitle>
 				</DialogHeader>
