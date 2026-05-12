@@ -18,7 +18,7 @@ import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { type MouseEvent, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PackingSlipSignFab } from "./packing-slip-sign-fab";
 import { SalesDocumentEmailDialog } from "./sales-document-email-dialog";
@@ -172,7 +172,7 @@ export function SalesDocumentPreviewPage({
 		router.replace(editSalesUrl);
 	}, [auth.can?.editSales, auth.isPending, editSalesUrl, embedded, router]);
 
-	async function handlePrint() {
+	async function handlePrint(event?: MouseEvent<HTMLButtonElement>) {
 		if (useSnapshotActions && resolvedSalesOrderId && data?.mode) {
 			setPrinting(true);
 			try {
@@ -181,6 +181,7 @@ export function SalesDocumentPreviewPage({
 					mode: data.mode,
 					dispatchId: dispatchId ?? null,
 					templateId,
+					openInNewTab: event?.shiftKey ?? false,
 				});
 			} catch (error) {
 				toast.error(
@@ -349,8 +350,8 @@ export function SalesDocumentPreviewPage({
 						) : null}
 						<Button
 							variant="outline"
-							onClick={() => {
-								void handlePrint();
+							onClick={(event) => {
+								void handlePrint(event);
 							}}
 							disabled={printing}
 						>

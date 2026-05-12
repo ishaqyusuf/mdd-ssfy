@@ -45,7 +45,7 @@ export function PackingSlipMode({
 				/>
 			</View>
 
-			<View style={{ width: "100%" }}>
+			<View style={{ width: "100%", flexShrink: 0 }}>
 				{page.sections.map((section, index) => {
 					const wrapperStyle = index === 0 ? undefined : { marginTop: 6 };
 					switch (section.kind) {
@@ -98,7 +98,8 @@ export function PackingSlipMode({
 			<View
 				wrap={false}
 				style={{
-					flex: 1,
+					flexGrow: 1,
+					flexShrink: 0,
 					flexDirection: "column",
 					justifyContent: "flex-end",
 				}}

@@ -44,7 +44,7 @@ export function ProductionMode({
 				/>
 			</View>
 
-			<View style={{ width: "100%" }}>
+			<View style={{ width: "100%", flexShrink: 0 }}>
 				{page.sections.map((section, index) => {
 					const wrapperStyle = index === 0 ? undefined : { marginTop: 6 };
 					switch (section.kind) {

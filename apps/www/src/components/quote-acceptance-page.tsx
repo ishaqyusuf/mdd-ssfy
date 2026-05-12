@@ -234,10 +234,11 @@ export function QuoteAcceptancePage({ orderId, token }: Props) {
 										size="lg"
 										variant="outline"
 										className="h-12"
-										onClick={() =>
+										onClick={(event) =>
 											void openSalesPrintDocument({
 												salesIds: [currentOrder.salesId],
 												mode: "invoice",
+												openInNewTab: event.shiftKey,
 											})
 										}
 									>

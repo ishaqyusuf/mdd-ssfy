@@ -18,7 +18,14 @@ import { toast } from "@gnd/ui/use-toast";
 import type { CreateSalesHistorySchemaTask } from "@jobs/schema";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	type MouseEvent as ReactMouseEvent,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { SalesFormDevSwitcher } from "../sales-form-dev-switcher";
 import { PaymentMethodReviewDialog } from "../sales-form/payment-method-review-dialog";
 import {
@@ -924,13 +931,14 @@ export function NewSalesForm(props: Props) {
 		});
 	}
 
-	async function handlePrint() {
+	async function handlePrint(event?: ReactMouseEvent<HTMLButtonElement>) {
 		if (!record?.salesId) return;
+		const openInNewTab = event?.shiftKey ?? false;
 		if (props.type === "order") {
-			void printOrder({ salesIds: [record.salesId] });
+			void printOrder({ salesIds: [record.salesId], openInNewTab });
 			return;
 		}
-		void printQuote({ salesIds: [record.salesId] });
+		void printQuote({ salesIds: [record.salesId], openInNewTab });
 	}
 
 	function handleOpenOverview() {

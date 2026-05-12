@@ -233,6 +233,7 @@ describe("sales print service", () => {
 		let openedViewerHref: string | null = null;
 		let openedLinkHref: string | null = null;
 		let pendingWindowOpened = false;
+		const viewerSubtitles: string[] = [];
 		const response: ResolveSalesDocumentAccessResult = {
 			kind: "snapshot",
 			generated: false,
@@ -254,6 +255,7 @@ describe("sales print service", () => {
 				openedLinkHref = href;
 			},
 			openViewerShell: (input) => {
+				viewerSubtitles.push(input.subtitle);
 				openedViewerHref = input.content.props.href;
 				return true;
 			},
@@ -274,6 +276,10 @@ describe("sales print service", () => {
 		expect(openedViewerHref).toBe(
 			"/p/sales-invoice-v2?accessToken=access-123&preview=false&mode=invoice",
 		);
+		expect(viewerSubtitles).toEqual([
+			"Generating document...",
+			"PDF print preview",
+		]);
 		expect(openedLinkHref).toBe(null);
 		expect(pendingWindowOpened).toBe(false);
 	});
@@ -315,6 +321,105 @@ describe("sales print service", () => {
 		expect(openedLinkHref).toBe(
 			"/p/sales-invoice-v2?accessToken=access-123&preview=false&mode=invoice|true",
 		);
+	});
+
+	it("opens shift-click print requests in a pending browser tab instead of the attachment overlay", async () => {
+		let openedViewer = false;
+		let replacedHref: string | null = null;
+		let openedLinkHref: string | null = null;
+		const response: ResolveSalesDocumentAccessResult = {
+			kind: "snapshot",
+			generated: false,
+			mode: "invoice",
+			documentType: "invoice_pdf",
+			salesOrderId: 42,
+			snapshotId: "snapshot-1",
+			accessToken: "access-123",
+			expiresAt: null,
+			previewUrl:
+				"https://app.example.com/p/sales-document-v2?accessToken=access-123",
+			downloadUrl:
+				"https://app.example.com/api/download/sales-v2?accessToken=access-123",
+		};
+		const pendingWindow = {
+			closed: false,
+			location: {
+				replace: (href: string) => {
+					replacedHref = href;
+				},
+			},
+			close: () => undefined,
+		};
+		const dependencies = {
+			resolveAccess: async () => response,
+			resolveHtmlPreviewAccess: async () => response,
+			openLink: (href) => {
+				openedLinkHref = href;
+			},
+			openViewerShell: () => {
+				openedViewer = true;
+				return true;
+			},
+			openPendingPrintWindow: () => pendingWindow,
+			createPrintViewerContent: (href) => ({ props: { href } }),
+			getBaseUrl: () => "https://app.example.com",
+			useAttachmentOverlay: true,
+		};
+
+		await openSalesPrintDocument(
+			{ salesIds: [42], mode: "invoice", openInNewTab: true },
+			dependencies,
+		);
+
+		expect(replacedHref).toBe(
+			"/p/sales-invoice-v2?accessToken=access-123&preview=false&mode=invoice",
+		);
+		expect(openedViewer).toBe(false);
+		expect(openedLinkHref).toBe(null);
+	});
+
+	it("falls back to a new-tab link for shift-click print requests when a pending tab is unavailable", async () => {
+		let openedViewer = false;
+		let openedLinkHref: string | null = null;
+		const response: ResolveSalesDocumentAccessResult = {
+			kind: "snapshot",
+			generated: false,
+			mode: "invoice",
+			documentType: "invoice_pdf",
+			salesOrderId: 42,
+			snapshotId: "snapshot-1",
+			accessToken: "access-123",
+			expiresAt: null,
+			previewUrl:
+				"https://app.example.com/p/sales-document-v2?accessToken=access-123",
+			downloadUrl:
+				"https://app.example.com/api/download/sales-v2?accessToken=access-123",
+		};
+		const dependencies = {
+			resolveAccess: async () => response,
+			resolveHtmlPreviewAccess: async () => response,
+			openLink: (href, _query, newTab) => {
+				openedLinkHref = `${href}|${newTab}`;
+			},
+			openViewerShell: () => {
+				openedViewer = true;
+				return true;
+			},
+			openPendingPrintWindow: () => null,
+			createPrintViewerContent: (href) => ({ props: { href } }),
+			getBaseUrl: () => "https://app.example.com",
+			useAttachmentOverlay: true,
+		};
+
+		await openSalesPrintDocument(
+			{ salesIds: [42], mode: "invoice", openInNewTab: true },
+			dependencies,
+		);
+
+		expect(openedLinkHref).toBe(
+			"/p/sales-invoice-v2?accessToken=access-123&preview=false&mode=invoice|true",
+		);
+		expect(openedViewer).toBe(false);
 	});
 
 	it("uses the legacy pending print window when the attachment overlay is disabled", async () => {
@@ -384,8 +489,7 @@ describe("sales print service", () => {
 			snapshotId: "snapshot-1",
 			accessToken: "access-123",
 			expiresAt: null,
-			previewUrl:
-				"https://app.example.com/p/sales-document-v2?pt=public-123",
+			previewUrl: "https://app.example.com/p/sales-document-v2?pt=public-123",
 			downloadUrl:
 				"https://app.example.com/api/download/sales-v2?pt=public-123&preview=false",
 		};

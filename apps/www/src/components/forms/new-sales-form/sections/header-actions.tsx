@@ -16,6 +16,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@gnd/ui/select";
+import type { MouseEvent } from "react";
 import type { SaveStatus } from "../schema";
 
 type HeaderItemOption = {
@@ -43,7 +44,7 @@ interface Props {
 	onSaveNew?: () => Promise<void> | void;
 	onSaveFinal?: () => Promise<void> | void;
 	onOpenOverview?: () => void;
-	onPrint?: () => Promise<void> | void;
+	onPrint?: (event?: MouseEvent<HTMLButtonElement>) => Promise<void> | void;
 	showPackingControls?: boolean;
 	packingButtonLabel?: string;
 	packingBusy?: boolean;
@@ -131,7 +132,7 @@ export function HeaderActions(props: Props) {
 					<Button
 						size="icon"
 						variant="outline"
-						onClick={() => void props.onPrint?.()}
+						onClick={(event) => void props.onPrint?.(event)}
 						disabled={props.isSaving || !props.isSaved}
 					>
 						<Icons.Printer className="size-4" />

@@ -349,6 +349,7 @@ function SalesMenuMove({ disabled }: ActionProps) {
 type PrintActionProps = {
 	pdf?: boolean;
 	share?: boolean;
+	openInNewTab?: boolean;
 };
 
 function useSalesPrintAction() {
@@ -413,16 +414,15 @@ function useSalesPrintAction() {
 				} as any);
 			}
 			return;
-		} else {
-			actions.closeMenu();
-			await openSalesPrintDocument({
-				salesIds: state.salesIds,
-				mode,
-				dispatchId,
-			});
-			return;
 		}
+
 		actions.closeMenu();
+		await openSalesPrintDocument({
+			salesIds: state.salesIds,
+			mode,
+			dispatchId,
+			openInNewTab: options?.openInNewTab,
+		});
 	};
 }
 
@@ -455,14 +455,27 @@ function SalesMenuPrint({ disabled }: ActionProps) {
 	const runPrint = useSalesPrintAction();
 	const { state } = useSalesMenuContext();
 	const isQuote = state.type === "quote";
+	const shiftClickRef = useRef(false);
+	const captureShiftClick = (event: { shiftKey: boolean }) => {
+		shiftClickRef.current = event.shiftKey;
+	};
+	const consumeShiftClick = () => {
+		const openInNewTab = shiftClickRef.current;
+		shiftClickRef.current = false;
+		return openInNewTab;
+	};
 
 	if (isQuote) {
 		return (
 			<DropdownMenu.Item
 				disabled={disabled || !state.salesIds.length}
+				onPointerDown={captureShiftClick}
 				onSelect={(e) => {
 					e.preventDefault();
-					void runPrint({ mode: "quote" }, { pdf: false });
+					void runPrint(
+						{ mode: "quote" },
+						{ pdf: false, openInNewTab: consumeShiftClick() },
+					);
 				}}
 			>
 				<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
@@ -482,11 +495,12 @@ function SalesMenuPrint({ disabled }: ActionProps) {
 			</DropdownMenu.SubTrigger>
 			<DropdownMenu.SubContent>
 				<DropdownMenu.Item
+					onPointerDown={captureShiftClick}
 					onSelect={(e) => {
 						e.preventDefault();
 						void runPrint(
 							{ mode: "order-packing", dispatchId: "all" },
-							{ pdf: false },
+							{ pdf: false, openInNewTab: consumeShiftClick() },
 						);
 					}}
 				>
@@ -494,27 +508,39 @@ function SalesMenuPrint({ disabled }: ActionProps) {
 					Order & Packing
 				</DropdownMenu.Item>
 				<DropdownMenu.Item
+					onPointerDown={captureShiftClick}
 					onSelect={(e) => {
 						e.preventDefault();
-						void runPrint(undefined, { pdf: false });
+						void runPrint(undefined, {
+							pdf: false,
+							openInNewTab: consumeShiftClick(),
+						});
 					}}
 				>
 					<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
 					Order
 				</DropdownMenu.Item>
 				<DropdownMenu.Item
+					onPointerDown={captureShiftClick}
 					onSelect={(e) => {
 						e.preventDefault();
-						void runPrint({ mode: "packing list" }, { pdf: false });
+						void runPrint(
+							{ mode: "packing list" },
+							{ pdf: false, openInNewTab: consumeShiftClick() },
+						);
 					}}
 				>
 					<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
 					Packing
 				</DropdownMenu.Item>
 				<DropdownMenu.Item
+					onPointerDown={captureShiftClick}
 					onSelect={(e) => {
 						e.preventDefault();
-						void runPrint({ mode: "production" }, { pdf: false });
+						void runPrint(
+							{ mode: "production" },
+							{ pdf: false, openInNewTab: consumeShiftClick() },
+						);
 					}}
 				>
 					<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
@@ -717,17 +743,28 @@ function SalesMenuPrintModes({ disabled }: ActionProps) {
 	const { state, actions } = useSalesMenuContext();
 	const isDisabled = disabled || !state.salesIds.length;
 	const isQuote = state.type === "quote";
+	const shiftClickRef = useRef(false);
+	const captureShiftClick = (event: { shiftKey: boolean }) => {
+		shiftClickRef.current = event.shiftKey;
+	};
+	const consumeShiftClick = () => {
+		const openInNewTab = shiftClickRef.current;
+		shiftClickRef.current = false;
+		return openInNewTab;
+	};
 
 	if (isQuote) {
 		return (
 			<DropdownMenu.Item
 				disabled={isDisabled}
+				onPointerDown={captureShiftClick}
 				onSelect={(e) => {
 					e.preventDefault();
 					actions.closeMenu();
 					void openSalesPrintDocument({
 						salesIds: state.salesIds,
 						mode: "quote",
+						openInNewTab: consumeShiftClick(),
 					});
 				}}
 			>
@@ -750,12 +787,14 @@ function SalesMenuPrintModes({ disabled }: ActionProps) {
 				{ORDER_MODES.map(({ label, mode }) => (
 					<DropdownMenu.Item
 						key={mode}
+						onPointerDown={captureShiftClick}
 						onSelect={(e) => {
 							e.preventDefault();
 							actions.closeMenu();
 							void openSalesPrintDocument({
 								salesIds: state.salesIds,
 								mode,
+								openInNewTab: consumeShiftClick(),
 							});
 						}}
 					>

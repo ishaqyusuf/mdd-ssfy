@@ -44,7 +44,7 @@ export function QuoteMode({
 				/>
 			</View>
 
-			<View style={cn("w-full")}>
+			<View style={{ ...cn("w-full"), flexShrink: 0 }}>
 				{page.sections.map((section, index) => {
 					const wrapperStyle = index === 0 ? undefined : { marginTop: 6 };
 
@@ -105,7 +105,8 @@ export function QuoteMode({
 				wrap={false}
 				style={{
 					...cn("border-x border-b border-t flex-col"),
-					flex: 1,
+					flexGrow: 1,
+					flexShrink: 0,
 					flexDirection: "column",
 					justifyContent: "flex-end",
 					borderColor: "#9ca3af",

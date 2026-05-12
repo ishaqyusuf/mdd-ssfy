@@ -12,11 +12,11 @@ import {
 } from "@/modules/sales-print/application/sales-print-service";
 import { SalesMenu } from "@/components/sales-menu";
 
-export function Footer({}) {
+export function Footer() {
     const zus = useFormDataStore();
     const previewId = zus?.metaData?.id ?? null;
     const isSaved = !!previewId;
-    const isOrder = zus?.metaData?.type == "order";
+    const isOrder = zus?.metaData?.type === "order";
     const amount = sum([
         zus?.metaData?.pricing?.grandTotal,
         -1 * zus?.metaData?.pricing?.paid,
@@ -84,13 +84,14 @@ export function Footer({}) {
                         <Button
                             type="button"
                             size="sm"
-                            onClick={async () => {
+                            onClick={async (event) => {
                                 if (!previewId) return;
+                                const openInNewTab = event.shiftKey;
                                 if (isOrder) {
-                                    void printOrder({ salesIds: [previewId] });
+                                    void printOrder({ salesIds: [previewId], openInNewTab });
                                     return;
                                 }
-                                void printQuote({ salesIds: [previewId] });
+                                void printQuote({ salesIds: [previewId], openInNewTab });
                             }}
                         >
                             <Icons.Printer className="mr-1 h-4 w-4" />
@@ -101,7 +102,7 @@ export function Footer({}) {
                             onClick={() => {
                                 overviewQuery.open2(
                                     zus.metaData?.salesId,
-                                    zus.metaData.type == "order"
+                                    zus.metaData.type === "order"
                                         ? "sales"
                                         : "quote",
                                 );

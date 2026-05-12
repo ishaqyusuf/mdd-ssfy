@@ -103,7 +103,7 @@ export function SalesPdfTemplate(props: Props) {
             </View>
             {order?.id && (
               <>
-                <View style={cn("w-full")}>
+                <View style={{ ...cn("w-full"), flexShrink: 0 }}>
                   {orderedPrinting.map((p: any, i: number) =>
                     p.nonShelf ? (
                       <SalesPrintDoorItems
@@ -130,7 +130,8 @@ export function SalesPdfTemplate(props: Props) {
             <View
               wrap={false}
               style={cn("border-x border-b border-t flex-col", {
-                flex: 1,
+                flexGrow: 1,
+                flexShrink: 0,
                 flexDirection: "column",
                 justifyContent: "flex-end",
               })}

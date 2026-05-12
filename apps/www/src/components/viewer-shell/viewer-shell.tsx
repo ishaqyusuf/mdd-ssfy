@@ -2,14 +2,9 @@
 
 import { cn } from "@/lib/utils";
 import { Button } from "@gnd/ui/button";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogHeader,
-	DialogTitle,
-} from "@gnd/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@gnd/ui/dialog";
 import { Icons } from "@gnd/ui/icons";
+import { useEffect, useState } from "react";
 import type { ViewerShellInput, ViewerShellSize } from "./controller";
 
 const sizeClassName: Record<ViewerShellSize, string> = {
@@ -28,6 +23,13 @@ export function ViewerShell({
 	const open = !!viewer;
 	const closeOnOutsideClick = viewer?.closeOnOutsideClick ?? true;
 	const size = viewer?.size ?? "wide";
+	const [revision, setRevision] = useState(0);
+
+	useEffect(() => {
+		if (viewer) {
+			setRevision(0);
+		}
+	}, [viewer]);
 
 	return (
 		<Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
@@ -39,61 +41,57 @@ export function ViewerShell({
 					}
 				}}
 				className={cn(
-					"flex max-w-none translate-y-[-50%] flex-col gap-0 overflow-hidden border border-white/15 bg-background p-0 shadow-2xl sm:rounded-lg",
+					"relative flex max-w-none translate-y-[-50%] flex-col gap-0 overflow-hidden border border-white/15 bg-background p-0 shadow-2xl sm:rounded-lg",
 					viewer ? sizeClassName[size] : sizeClassName.wide,
 				)}
 			>
-				<DialogHeader className="border-b bg-background/95 px-3 py-2 text-left backdrop-blur sm:px-4">
-					<div className="flex min-h-10 items-center gap-3">
-						{viewer?.icon ? (
-							<div className="flex size-9 shrink-0 items-center justify-center rounded-md border bg-muted text-muted-foreground">
-								{viewer.icon}
-							</div>
-						) : null}
-						<div className="min-w-0 flex-1">
-							<DialogTitle className="truncate font-medium text-base leading-5">
-								{viewer?.title || "Preview"}
-							</DialogTitle>
-							<DialogDescription className="truncate text-muted-foreground text-xs">
-								{viewer?.subtitle || "Document preview"}
-							</DialogDescription>
-						</div>
-						{viewer?.actions?.length ? (
-							<div className="flex shrink-0 items-center gap-1">
-								{viewer.actions.map((action) => (
-									<Button
-										key={action.id}
-										type="button"
-										variant="ghost"
-										size="sm"
-										disabled={action.disabled}
-										onClick={action.onClick}
-										title={action.label}
-										aria-label={action.label}
-										className="h-9 gap-2 px-2"
-									>
-										{action.icon}
-										<span className="hidden text-xs sm:inline">
-											{action.label}
-										</span>
-									</Button>
-								))}
-							</div>
-						) : null}
+				<DialogTitle className="sr-only">
+					{viewer?.title || "Preview"}
+				</DialogTitle>
+				<div className="absolute top-3 right-3 z-20 flex items-center gap-1 rounded-md border border-border/40 bg-background/55 p-1 shadow-sm backdrop-blur-md">
+					{viewer?.actions?.map((action) => (
 						<Button
+							key={action.id}
 							type="button"
 							variant="ghost"
-							size="icon"
-							onClick={onClose}
-							title="Close"
-							aria-label="Close preview"
-							className="size-9 shrink-0"
+							size="sm"
+							disabled={action.disabled}
+							onClick={action.onClick}
+							title={action.label}
+							aria-label={action.label}
+							className="h-9 gap-2 px-2 hover:bg-background/80"
 						>
-							<Icons.X className="size-4" />
+							{action.icon}
+							<span className="hidden text-xs sm:inline">{action.label}</span>
 						</Button>
-					</div>
-				</DialogHeader>
-				<div className="min-h-0 flex-1 overflow-hidden bg-muted/40">
+					))}
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						onClick={() => setRevision((current) => current + 1)}
+						title="Refresh preview"
+						aria-label="Refresh preview"
+						className="size-9 shrink-0 hover:bg-background/80"
+					>
+						<Icons.RefreshCw className="size-4" />
+					</Button>
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						onClick={onClose}
+						title="Close"
+						aria-label="Close preview"
+						className="size-9 shrink-0 hover:bg-background/80"
+					>
+						<Icons.X className="size-4" />
+					</Button>
+				</div>
+				<div
+					key={`${viewer?.id ?? "viewer"}-${revision}`}
+					className="min-h-0 flex-1 overflow-hidden bg-muted/40"
+				>
 					{viewer?.content}
 				</div>
 			</DialogContent>

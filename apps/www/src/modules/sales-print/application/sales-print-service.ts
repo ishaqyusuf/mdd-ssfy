@@ -2,7 +2,10 @@ import {
 	resolveSalesDocumentAccessAction,
 	resolveSalesDocumentHtmlPreviewAccessAction,
 } from "@/actions/resolve-sales-document-access";
-import { openViewerShell } from "@/components/viewer-shell/controller";
+import {
+	closeViewerShell,
+	openViewerShell,
+} from "@/components/viewer-shell/controller";
 import { getBaseUrl } from "@/lib/base-url";
 import { openLink } from "@/lib/open-link";
 import type { IOrderPrintMode } from "@/types/sales";
@@ -30,6 +33,7 @@ export interface SalesPrintRequest {
 	templateId?: string | null;
 	baseUrl?: string | null;
 	forceRegenerate?: boolean;
+	openInNewTab?: boolean;
 }
 
 type SalesPrintDependencies = {
@@ -50,8 +54,10 @@ type SalesPrintDependencies = {
 	}): Promise<ResolveSalesDocumentAccessResult>;
 	openLink: typeof openLink;
 	openViewerShell: typeof openViewerShell;
+	closeViewerShell?: typeof closeViewerShell;
 	openPendingPrintWindow: typeof openPendingPrintWindow;
 	createPrintViewerContent: typeof createPrintViewerContent;
+	createPrintLoadingContent?: typeof createPrintLoadingContent;
 	getBaseUrl: typeof getBaseUrl;
 	useAttachmentOverlay: boolean;
 };
@@ -61,8 +67,10 @@ const defaultDependencies: SalesPrintDependencies = {
 	resolveHtmlPreviewAccess: resolveSalesDocumentHtmlPreviewAccessAction,
 	openLink,
 	openViewerShell,
+	closeViewerShell,
 	openPendingPrintWindow,
 	createPrintViewerContent,
+	createPrintLoadingContent,
 	getBaseUrl,
 	useAttachmentOverlay: ATTACHMENT_OVERLAY,
 };
@@ -237,10 +245,31 @@ export async function openSalesPrintDocument(
 	request: SalesPrintRequest,
 	dependencies: SalesPrintDependencies = defaultDependencies,
 ) {
-	const pendingWindow = dependencies.useAttachmentOverlay
-		? null
-		: dependencies.openPendingPrintWindow();
 	const mode = resolveSalesPrintMode(request.mode);
+	const shouldUseAttachmentOverlay =
+		dependencies.useAttachmentOverlay && !request.openInNewTab;
+	const viewerId = `sales-print-${Date.now()}`;
+	const pendingWindow = request.openInNewTab
+		? dependencies.openPendingPrintWindow()
+		: shouldUseAttachmentOverlay
+			? null
+			: dependencies.openPendingPrintWindow();
+	const openedProgressViewer = shouldUseAttachmentOverlay
+		? dependencies.openViewerShell({
+				id: viewerId,
+				title: getSalesPrintViewerTitle(mode),
+				subtitle: "Generating document...",
+				icon: createElement("span", {
+					className: "size-2 rounded-full bg-current",
+					"aria-hidden": true,
+				}),
+				content:
+					dependencies.createPrintLoadingContent?.(mode) ??
+					createPrintLoadingContent(mode),
+				size: "wide",
+				closeOnOutsideClick: false,
+			})
+		: false;
 
 	try {
 		const access = await resolveSalesPrintAccess(request, dependencies);
@@ -250,10 +279,10 @@ export async function openSalesPrintDocument(
 			mode,
 		});
 
-		if (dependencies.useAttachmentOverlay) {
+		if (shouldUseAttachmentOverlay) {
 			const content = await dependencies.createPrintViewerContent(href);
 			const openedInViewer = dependencies.openViewerShell({
-				id: `sales-print-${Date.now()}`,
+				id: viewerId,
 				title: getSalesPrintViewerTitle(mode),
 				subtitle: "PDF print preview",
 				icon: createElement("span", {
@@ -275,10 +304,16 @@ export async function openSalesPrintDocument(
 			return;
 		}
 
+		if (openedProgressViewer) {
+			dependencies.closeViewerShell?.();
+		}
 		dependencies.openLink(href, null, true);
 	} catch (error) {
 		if (pendingWindow && !pendingWindow.closed) {
 			pendingWindow.close();
+		}
+		if (openedProgressViewer) {
+			dependencies.closeViewerShell?.();
 		}
 		throw error;
 	}
@@ -415,6 +450,42 @@ async function createPrintViewerContent(href: string): Promise<ReactNode> {
 	);
 
 	return createElement(SalesPrintShellViewer, { href });
+}
+
+function createPrintLoadingContent(mode: PrintMode): ReactNode {
+	return createElement(
+		"div",
+		{
+			className:
+				"flex h-full min-h-[420px] items-center justify-center bg-background text-foreground",
+		},
+		createElement(
+			"div",
+			{
+				className:
+					"flex w-[min(360px,calc(100vw-48px))] flex-col items-center gap-4 rounded-lg border bg-card px-6 py-8 text-center shadow-sm",
+			},
+			createElement("div", {
+				className:
+					"size-10 animate-spin rounded-full border-4 border-muted border-t-primary",
+				"aria-hidden": true,
+			}),
+			createElement(
+				"div",
+				{ className: "space-y-1" },
+				createElement(
+					"p",
+					{ className: "text-sm font-semibold" },
+					"Generating document...",
+				),
+				createElement(
+					"p",
+					{ className: "text-xs text-muted-foreground" },
+					`Preparing ${getSalesPrintViewerTitle(mode).toLowerCase()} for preview.`,
+				),
+			),
+		),
+	);
 }
 
 function openPendingPrintWindow() {

@@ -23,6 +23,7 @@ import {
 } from "@/modules/sales-print/application/sales-print-service";
 import type { PrintMode } from "@gnd/sales/print/types";
 import { DropdownMenu } from "@gnd/ui/namespace";
+import { useRef } from "react";
 
 interface SalesMenuPrintProps {
 	salesIds: number[];
@@ -44,14 +45,27 @@ export function SalesMenuPrint({
 	disabled = false,
 }: SalesMenuPrintProps) {
 	const isDisabled = disabled || !salesIds.length;
+	const shiftClickRef = useRef(false);
+	const captureShiftClick = (event: { shiftKey: boolean }) => {
+		shiftClickRef.current = event.shiftKey;
+	};
+	const consumeShiftClick = () => {
+		const openInNewTab = shiftClickRef.current;
+		shiftClickRef.current = false;
+		return openInNewTab;
+	};
 
 	if (!showPdf) {
 		return (
 			<DropdownMenu.Item
 				disabled={isDisabled}
+				onPointerDown={captureShiftClick}
 				onSelect={(e) => {
 					e.preventDefault();
-					void PRINT_ACTIONS[mode]({ salesIds });
+					void PRINT_ACTIONS[mode]({
+						salesIds,
+						openInNewTab: consumeShiftClick(),
+					});
 				}}
 			>
 				<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
@@ -69,9 +83,13 @@ export function SalesMenuPrint({
 			<DropdownMenu.SubContent>
 				<DropdownMenu.Item
 					disabled={isDisabled}
+					onPointerDown={captureShiftClick}
 					onSelect={(e) => {
 						e.preventDefault();
-						void PRINT_ACTIONS[mode]({ salesIds });
+						void PRINT_ACTIONS[mode]({
+							salesIds,
+							openInNewTab: consumeShiftClick(),
+						});
 					}}
 				>
 					<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
@@ -120,6 +138,7 @@ const PRINT_ACTIONS = {
 	(args: {
 		salesIds: number[];
 		dispatchId?: number | null;
+		openInNewTab?: boolean;
 	}) => Promise<void>
 >;
 
@@ -140,6 +159,7 @@ const ORDER_MODE_ACTIONS = {
 	(args: {
 		salesIds: number[];
 		dispatchId?: number | null;
+		openInNewTab?: boolean;
 	}) => Promise<void>
 >;
 
@@ -153,14 +173,24 @@ export function SalesMenuPrintModes({
 	disabled = false,
 }: SalesMenuPrintModesProps) {
 	const isDisabled = disabled || !salesIds.length;
+	const shiftClickRef = useRef(false);
+	const captureShiftClick = (event: { shiftKey: boolean }) => {
+		shiftClickRef.current = event.shiftKey;
+	};
+	const consumeShiftClick = () => {
+		const openInNewTab = shiftClickRef.current;
+		shiftClickRef.current = false;
+		return openInNewTab;
+	};
 
 	if (salesType === "quote") {
 		return (
 			<DropdownMenu.Item
 				disabled={isDisabled}
+				onPointerDown={captureShiftClick}
 				onSelect={(e) => {
 					e.preventDefault();
-					void printQuote({ salesIds });
+					void printQuote({ salesIds, openInNewTab: consumeShiftClick() });
 				}}
 			>
 				<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
@@ -182,9 +212,13 @@ export function SalesMenuPrintModes({
 					<DropdownMenu.Item
 						key={mode}
 						disabled={isDisabled}
+						onPointerDown={captureShiftClick}
 						onSelect={(e) => {
 							e.preventDefault();
-							void ORDER_MODE_ACTIONS[mode]({ salesIds });
+							void ORDER_MODE_ACTIONS[mode]({
+								salesIds,
+								openInNewTab: consumeShiftClick(),
+							});
 						}}
 					>
 						<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
