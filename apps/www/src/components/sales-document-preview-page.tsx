@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/hooks/use-auth";
 import { getBaseUrl } from "@/lib/base-url";
+import { cn } from "@/lib/utils";
 import { openLink } from "@/lib/open-link";
 import {
 	buildSalesDocumentRouteFromQuery,
@@ -17,8 +18,21 @@ import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { useQuery, useQueryClient } from "@gnd/ui/tanstack";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@gnd/ui/tooltip";
 import { useRouter } from "next/navigation";
-import { type MouseEvent, useEffect, useMemo, useState } from "react";
+import {
+	type ComponentType,
+	type MouseEvent,
+	type ReactNode,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 import { toast } from "sonner";
 import { PackingSlipSignFab } from "./packing-slip-sign-fab";
 import { SalesDocumentEmailDialog } from "./sales-document-email-dialog";
@@ -34,6 +48,7 @@ export function SalesDocumentPreviewPage({
 	customerName,
 	salesOrderId,
 	dispatchId,
+	onClose,
 }: {
 	pt?: string;
 	token?: string;
@@ -45,6 +60,7 @@ export function SalesDocumentPreviewPage({
 	customerName?: string;
 	salesOrderId?: number | null;
 	dispatchId?: number | null;
+	onClose?: () => void;
 }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -253,6 +269,18 @@ export function SalesDocumentPreviewPage({
 	}
 
 	if (isPending) {
+		if (embedded) {
+			return (
+				<SalesDocumentViewWrapper>
+					<div className="w-full max-w-[920px] animate-pulse rounded-md border bg-background p-8 shadow-[0_24px_48px_-12px_rgba(15,23,42,0.28)]">
+						<div className="h-8 w-48 rounded bg-muted" />
+						<div className="mt-4 h-4 w-64 rounded bg-muted" />
+						<div className="mt-8 h-[720px] rounded bg-muted" />
+					</div>
+				</SalesDocumentViewWrapper>
+			);
+		}
+
 		return (
 			<div className={embedded ? "px-0 py-0" : "mx-auto max-w-6xl px-4 py-10"}>
 				<div className="animate-pulse rounded-3xl border bg-muted/30 p-10">
@@ -265,6 +293,16 @@ export function SalesDocumentPreviewPage({
 	}
 
 	if (!data) {
+		if (embedded) {
+			return (
+				<SalesDocumentViewWrapper>
+					<div className="rounded-md border border-rose-200 bg-rose-50 p-6 text-sm text-rose-900 shadow-lg">
+						This preview link is invalid or has expired.
+					</div>
+				</SalesDocumentViewWrapper>
+			);
+		}
+
 		return (
 			<div
 				className={
@@ -297,6 +335,126 @@ export function SalesDocumentPreviewPage({
 					Redirecting to the editable sales workspace...
 				</div>
 			</div>
+		);
+	}
+
+	const documentWidth = data.templateId === "template-2" ? 980 : 920;
+	const document = (
+		<SalesHtmlDocument
+			pages={previewPages}
+			templateId={data.templateId}
+			companyAddress={data.companyAddress as CompanyAddress}
+			baseUrl={baseUrl}
+			previewUrl={data.previewUrl}
+			qrCodeDataUrl={data.qrCodeDataUrl}
+		/>
+	);
+
+	if (embedded) {
+		return (
+			<>
+				<style jsx global>{`
+					@media print {
+						body {
+							background: #fff !important;
+						}
+						.sales-preview-toolbar {
+							display: none !important;
+						}
+						.sales-preview-shell {
+							padding: 0 !important;
+						}
+					}
+				`}</style>
+
+				<SalesDocumentViewWrapper
+					documentWidth={documentWidth}
+					onBackgroundClick={onClose}
+					toolbar={
+						<SalesDocumentPreviewToolbar>
+							{resolvedSalesOrderId ? (
+								<SalesDocumentEmailDialog
+									salesOrderId={resolvedSalesOrderId}
+									mode={data.mode === "quote" ? "quote" : "invoice"}
+									documentTitle={data.title}
+									orderNo={data.orderNo}
+									customerEmail={customerEmail}
+									customerName={customerName}
+									triggerVariant="icon"
+								/>
+							) : null}
+							<ToolbarButton
+								label={printing ? "Preparing print" : "Print"}
+								icon={printing ? Icons.Loader2 : Icons.Printer}
+								loading={printing}
+								disabled={printing}
+								onClick={(event) => {
+									void handlePrint(event);
+								}}
+							/>
+							<ToolbarButton
+								label={downloading ? "Preparing PDF" : "PDF"}
+								icon={downloading ? Icons.Loader2 : Icons.FileText}
+								loading={downloading}
+								disabled={downloading}
+								onClick={() => {
+									void handleDownloadPdf();
+								}}
+							/>
+							{auth.can?.editSales && resolvedSalesOrderId ? (
+								<ToolbarButton
+									label={
+										regenerating
+											? "Regenerating"
+											: isSnapshotStale
+												? "Regenerate stale PDF"
+												: "Regenerate"
+									}
+									icon={regenerating ? Icons.Loader2 : Icons.RefreshCw}
+									loading={regenerating}
+									disabled={regenerating}
+									emphasis={isSnapshotStale}
+									onClick={() => {
+										void handleRegeneratePdf();
+									}}
+								/>
+							) : null}
+							{auth.can?.editOrders && overviewUrl ? (
+								<ToolbarButton
+									label="Open Overview"
+									icon={Icons.ArrowUpRight}
+									onClick={() => {
+										openLink(overviewUrl, null, true);
+									}}
+								/>
+							) : null}
+							{onClose ? (
+								<>
+									<div className="mx-1 h-4 w-px bg-border" />
+									<ToolbarButton label="Close" icon={Icons.X} onClick={onClose} />
+								</>
+							) : null}
+						</SalesDocumentPreviewToolbar>
+					}
+				>
+					<div
+						className="w-full shadow-[0_24px_48px_-12px_rgba(15,23,42,0.32)] dark:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.65)] [&_.sales-html-document]:w-full"
+						style={{ maxWidth: documentWidth }}
+					>
+						{document}
+					</div>
+				</SalesDocumentViewWrapper>
+
+				<PackingSlipSignFab
+					page={packingSlipPage}
+					pt={effectivePt}
+					token={effectiveToken}
+					accessToken={effectiveAccessToken}
+					snapshotId={effectiveSnapshotId}
+					preview
+					templateId={templateId}
+				/>
+			</>
 		);
 	}
 
@@ -405,14 +563,7 @@ export function SalesDocumentPreviewPage({
 					</div>
 				</div>
 
-				<SalesHtmlDocument
-					pages={previewPages}
-					templateId={data.templateId}
-					companyAddress={data.companyAddress as CompanyAddress}
-					baseUrl={baseUrl}
-					previewUrl={data.previewUrl}
-					qrCodeDataUrl={data.qrCodeDataUrl}
-				/>
+				{document}
 			</div>
 
 			<PackingSlipSignFab
@@ -425,6 +576,96 @@ export function SalesDocumentPreviewPage({
 				templateId={templateId}
 			/>
 		</>
+	);
+}
+
+function SalesDocumentViewWrapper({
+	documentWidth = 960,
+	toolbar,
+	onBackgroundClick,
+	children,
+}: {
+	documentWidth?: number;
+	toolbar?: ReactNode;
+	onBackgroundClick?: () => void;
+	children: ReactNode;
+}) {
+	return (
+		<div
+			className="sales-preview-shell h-full min-h-0 overflow-y-auto bg-[#f8fafc] bg-[radial-gradient(circle_at_1px_1px,#e0e0e0_0.5px,transparent_0)] bg-[length:6px_6px] text-foreground dark:bg-[#080808] dark:bg-[radial-gradient(circle_at_1px_1px,#232323_0.5px,transparent_0)]"
+			onClick={(event) => {
+				if (event.target === event.currentTarget) {
+					onBackgroundClick?.();
+				}
+			}}
+		>
+			<div
+				className="mx-auto flex min-h-[100dvh] w-full flex-col items-center px-3 pt-8 pb-28 sm:px-6 md:px-8"
+				onClick={(event) => {
+					if (event.target === event.currentTarget) {
+						onBackgroundClick?.();
+					}
+				}}
+			>
+				<div className="flex w-full justify-center">{children}</div>
+			</div>
+			{toolbar}
+		</div>
+	);
+}
+
+function SalesDocumentPreviewToolbar({ children }: { children: ReactNode }) {
+	return (
+		<div className="sales-preview-toolbar fixed inset-x-0 bottom-5 z-50 flex justify-center px-4">
+			<TooltipProvider delayDuration={0}>
+				<div className="flex h-12 items-center gap-1 rounded-full border bg-background/85 px-2 shadow-[0_18px_42px_rgba(15,23,42,0.22)] backdrop-blur-xl">
+					{children}
+				</div>
+			</TooltipProvider>
+		</div>
+	);
+}
+
+function ToolbarButton({
+	label,
+	icon: Icon,
+	loading = false,
+	disabled = false,
+	emphasis = false,
+	onClick,
+}: {
+	label: string;
+	icon: ComponentType<{ className?: string }>;
+	loading?: boolean;
+	disabled?: boolean;
+	emphasis?: boolean;
+	onClick: (event: MouseEvent<HTMLButtonElement>) => void;
+}) {
+	return (
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<Button
+					type="button"
+					variant={emphasis ? "default" : "ghost"}
+					size="icon"
+					className={cn(
+						"size-8 rounded-full",
+						emphasis && "text-primary-foreground",
+					)}
+					disabled={disabled}
+					onClick={onClick}
+				>
+					<Icon className={cn("size-4", loading && "animate-spin")} />
+					<span className="sr-only">{label}</span>
+				</Button>
+			</TooltipTrigger>
+			<TooltipContent
+				sideOffset={14}
+				className="rounded-none px-2 py-1 font-medium text-[10px]"
+			>
+				{label}
+			</TooltipContent>
+		</Tooltip>
 	);
 }
 

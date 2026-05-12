@@ -19,6 +19,11 @@ import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 import { Textarea } from "@gnd/ui/textarea";
 import { useQueryClient } from "@gnd/ui/tanstack";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@gnd/ui/tooltip";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -31,6 +36,7 @@ type SalesDocumentEmailDialogProps = {
 	customerName?: string | null;
 	downloadUrl?: string | null;
 	disabled?: boolean;
+	triggerVariant?: "default" | "icon";
 };
 
 function buildDefaultSubject(orderNo?: string | null) {
@@ -49,6 +55,7 @@ export function SalesDocumentEmailDialog({
 	customerName,
 	downloadUrl,
 	disabled = false,
+	triggerVariant = "default",
 }: SalesDocumentEmailDialogProps) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -92,6 +99,30 @@ export function SalesDocumentEmailDialog({
 		}
 		return "Enter the customer email address and subject for this document.";
 	}, [customerName]);
+	const trigger = (
+		<Button
+			variant="outline"
+			size={triggerVariant === "icon" ? "icon" : "default"}
+			disabled={disabled || !salesOrderId}
+			onClick={() => {
+				setEmail(customerEmail || "");
+				setSubject(buildDefaultSubject(orderNo));
+				setMessage("");
+				setAttachSalesPdf(true);
+				setOpen(true);
+			}}
+			className={triggerVariant === "icon" ? "size-8 rounded-full" : undefined}
+		>
+			<Icons.Mail
+				className={triggerVariant === "icon" ? "size-4" : "mr-2 size-4"}
+			/>
+			{triggerVariant === "icon" ? (
+				<span className="sr-only">Email</span>
+			) : (
+				"Email"
+			)}
+		</Button>
+	);
 
 	useEffect(() => {
 		if (!open) return;
@@ -102,20 +133,19 @@ export function SalesDocumentEmailDialog({
 
 	return (
 		<>
-			<Button
-				variant="outline"
-				disabled={disabled || !salesOrderId}
-				onClick={() => {
-					setEmail(customerEmail || "");
-					setSubject(buildDefaultSubject(orderNo));
-					setMessage("");
-					setAttachSalesPdf(true);
-					setOpen(true);
-				}}
-			>
-				<Icons.Mail className="mr-2 size-4" />
-				Email
-			</Button>
+			{triggerVariant === "icon" ? (
+				<Tooltip>
+					<TooltipTrigger asChild>{trigger}</TooltipTrigger>
+					<TooltipContent
+						sideOffset={14}
+						className="rounded-none px-2 py-1 font-medium text-[10px]"
+					>
+						Email
+					</TooltipContent>
+				</Tooltip>
+			) : (
+				trigger
+			)}
 
 			<Dialog open={open} onOpenChange={setOpen}>
 				<DialogContent className="sm:max-w-xl">

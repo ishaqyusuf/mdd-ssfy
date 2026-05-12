@@ -19,6 +19,8 @@ export interface RenderedPdfPrintViewerProps {
 	preview: boolean;
 	templateId: string;
 	className?: string;
+	onPrintReady?: () => void;
+	onPrintError?: (error: unknown) => void;
 }
 
 function waitForNextFrame() {
@@ -53,6 +55,8 @@ export function RenderedPdfPrintViewer({
 	preview,
 	templateId,
 	className,
+	onPrintReady,
+	onPrintError,
 }: RenderedPdfPrintViewerProps) {
 	const baseUrl = getBaseUrl();
 	const viewerRef = useRef<{ contentWindow?: Window | null } | null>(null);
@@ -76,11 +80,20 @@ export function RenderedPdfPrintViewer({
 			}
 
 			printedRef.current = true;
-			await waitForPrintableFrame(iframe);
-			iframe.contentWindow?.focus();
-			iframe.contentWindow?.print();
+			try {
+				await waitForPrintableFrame(iframe);
+				const printWindow = iframe.contentWindow;
+				if (!printWindow) {
+					throw new Error("The print frame is unavailable.");
+				}
+				printWindow.focus();
+				printWindow.print();
+				onPrintReady?.();
+			} catch (error) {
+				onPrintError?.(error);
+			}
 		},
-		[preview],
+		[onPrintError, onPrintReady, preview],
 	);
 
 	if (!data) {

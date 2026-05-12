@@ -32,7 +32,7 @@ export function ProductionMode({
 }: ProductionModeProps) {
 	return (
 		<>
-			<View style={{ paddingBottom: 8, marginBottom: 8 }}>
+			<View fixed style={{ paddingBottom: 8, marginBottom: 8 }}>
 				<HeaderBlock
 					meta={page.meta}
 					billing={page.billing}
@@ -44,7 +44,7 @@ export function ProductionMode({
 				/>
 			</View>
 
-			<View style={{ width: "100%", flexShrink: 0 }}>
+			<View style={{ width: "100%" }}>
 				{page.sections.map((section, index) => {
 					const wrapperStyle = index === 0 ? undefined : { marginTop: 6 };
 					switch (section.kind) {

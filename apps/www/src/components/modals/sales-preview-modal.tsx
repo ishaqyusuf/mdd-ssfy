@@ -1,13 +1,7 @@
 "use client";
 
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-} from "@gnd/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@gnd/ui/dialog";
 
-import { ScrollArea } from "@gnd/ui/scroll-area";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { SalesPreview } from "../sales-preview";
 import { useInboundStatusModal } from "@/hooks/use-inbound-status-modal";
@@ -38,26 +32,23 @@ import { Button } from "@gnd/ui/button";
 export function SalesPreviewModal({}) {
 	const ctx = useSalesPreview();
 	const inboundCtx = useInboundStatusModal();
+	const closePreview = () => {
+		ctx.close();
+		inboundCtx?.setParams(null);
+	};
 
 	return (
-		<Dialog
-			onOpenChange={() => {
-				ctx.close();
-				inboundCtx?.setParams(null);
-			}}
-			open={ctx.opened}
-		>
-			<DialogContent className="max-w-6xl overflow-hidden gap-0 p-0">
-				<DialogHeader className="border-b px-6 py-4">
-					<DialogTitle>Sales Preview</DialogTitle>
+		<Dialog onOpenChange={closePreview} open={ctx.opened}>
+			<DialogContent className="fixed inset-0 left-0 top-0 flex h-[100dvh] max-h-none w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 p-0 sm:rounded-none">
+				<DialogHeader className="sr-only">
+					<DialogTitle>Sales preview</DialogTitle>
 				</DialogHeader>
-				<ScrollArea className="h-[90vh] overflow-auto">
-					<SalesPreview />
-				</ScrollArea>
+				<SalesPreview onClose={closePreview} />
 				{!inboundCtx?.params?.inboundOrderId ? null : (
-					<div className="fixed bottom-0 w-full bg-white p-2">
+					<div className="absolute right-6 bottom-24 z-50 rounded-full border bg-background/90 p-2 shadow-lg backdrop-blur">
 						<div className="flex justify-end gap-2">
 							<Button
+								size="sm"
 								onClick={() => {
 									inboundCtx.setParams({
 										updateInboundStatus: true,

@@ -417,12 +417,48 @@ function useSalesPrintAction() {
 		}
 
 		actions.closeMenu();
-		await openSalesPrintDocument({
-			salesIds: state.salesIds,
-			mode,
-			dispatchId,
-			openInNewTab: options?.openInNewTab,
-		});
+		const printToast = options?.openInNewTab
+			? null
+			: toast({
+					title: "Preparing print...",
+					description: "Your printer dialog will open when the document is ready.",
+					variant: "spinner",
+					duration: Number.POSITIVE_INFINITY,
+				});
+
+		try {
+			await openSalesPrintDocument({
+				salesIds: state.salesIds,
+				mode,
+				dispatchId,
+				openInNewTab: options?.openInNewTab,
+				onPrintReady: () => {
+					printToast?.update({
+						title: "Print dialog opened",
+						description: "Choose a printer to finish printing.",
+						variant: "success",
+						duration: 2500,
+					} as any);
+				},
+				onPrintError: (error) => {
+					printToast?.update({
+						title: "Unable to open print dialog",
+						description:
+							error instanceof Error ? error.message : "Please try again.",
+						variant: "error",
+						duration: 3500,
+					} as any);
+				},
+			});
+		} catch (error) {
+			printToast?.update({
+				title: "Unable to prepare print",
+				description:
+					error instanceof Error ? error.message : "Please try again.",
+				variant: "error",
+				duration: 3500,
+			} as any);
+		}
 	};
 }
 

@@ -44,7 +44,7 @@ export function InvoiceMode({
 				/>
 			</View>
 
-			<View style={{ ...cn("w-full"), flexShrink: 0 }}>
+			<View style={cn("w-full")}>
 				{page.sections.map((section, index) => {
 					const wrapperStyle = index === 0 ? undefined : { marginTop: 6 };
 
@@ -105,8 +105,7 @@ export function InvoiceMode({
 				wrap={false}
 				style={{
 					...cn("border-x border-b border-t flex-col"),
-					flexGrow: 1,
-					flexShrink: 0,
+					flex: 1,
 					flexDirection: "column",
 					justifyContent: "flex-end",
 					borderColor: "#9ca3af",

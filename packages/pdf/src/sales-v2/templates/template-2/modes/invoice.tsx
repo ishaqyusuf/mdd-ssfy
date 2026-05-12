@@ -30,7 +30,7 @@ export function InvoiceMode({
 }: InvoiceModeProps) {
 	return (
 		<>
-			<View style={{ paddingBottom: 8, marginBottom: 8 }}>
+			<View fixed style={{ paddingBottom: 8, marginBottom: 8 }}>
 				<HeaderBlock
 					meta={page.meta}
 					billing={page.billing}
@@ -42,7 +42,7 @@ export function InvoiceMode({
 				/>
 			</View>
 
-			<View style={{ width: "100%", flexShrink: 0 }}>
+			<View style={{ width: "100%" }}>
 				{page.sections.map((section, index) => {
 					const wrapperStyle = index === 0 ? undefined : { marginTop: 6 };
 					switch (section.kind) {
@@ -95,8 +95,7 @@ export function InvoiceMode({
 			<View
 				wrap={false}
 				style={{
-					flexGrow: 1,
-					flexShrink: 0,
+					flex: 1,
 					flexDirection: "column",
 					justifyContent: "flex-end",
 				}}

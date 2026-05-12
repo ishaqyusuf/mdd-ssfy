@@ -1,6 +1,5 @@
-import type { CellHeader, LineItemSection } from "@gnd/sales/print/types";
 import { Text, View } from "@react-pdf/renderer";
-import { getSectionLeadInPresenceAhead } from "../../../shared/pagination";
+import type { CellHeader, LineItemSection } from "@gnd/sales/print/types";
 
 // ─── Design tokens ─────────────────────────────────────────
 const NAVY = "#1a2e4a";
@@ -23,67 +22,6 @@ interface LineItemBlockProps {
 
 export function LineItemBlock({ section }: LineItemBlockProps) {
 	const widths = getColumnWidths(section.headers);
-	const [firstRow, ...remainingRows] = section.rows;
-	const renderRow = (
-		row: LineItemSection["rows"][number],
-		rowIndex: number,
-		key: string | number,
-	) => (
-		<View
-			wrap={false}
-			key={key}
-			style={{
-				flexDirection: "row",
-				backgroundColor: row.isGroupHeader
-					? "#dbeafe"
-					: rowIndex % 2 === 0
-						? "#ffffff"
-						: ROW_ALT,
-				borderBottomWidth: rowIndex < section.rows.length - 1 ? 1 : 0,
-				borderBottomColor: BORDER,
-			}}
-		>
-			{row.cells.map((cell, ci) => {
-				const key = headerKey(section.headers[ci]!, ci);
-				const isDescription = key === "description";
-
-				return (
-					<View
-						key={ci}
-						style={{
-							width: widths[key],
-							paddingVertical: 3,
-							paddingHorizontal: 5,
-							borderRightWidth: ci < row.cells.length - 1 ? 1 : 0,
-							borderRightColor: BORDER,
-							justifyContent: "center",
-						}}
-					>
-						<Text
-							style={{
-								fontSize: 8.5,
-								fontWeight:
-									cell.bold || (row.isGroupHeader && isDescription) ? 700 : 500,
-								color: row.isGroupHeader && isDescription ? ACCENT : "#1e293b",
-								textAlign:
-									row.isGroupHeader && isDescription
-										? "center"
-										: cell.align === "right"
-											? "right"
-											: cell.align === "center"
-												? "center"
-												: "left",
-								textTransform:
-									row.isGroupHeader && isDescription ? "uppercase" : "none",
-							}}
-						>
-							{cell.value ?? ""}
-						</Text>
-					</View>
-				);
-			})}
-		</View>
-	);
 
 	return (
 		<View
@@ -96,34 +34,31 @@ export function LineItemBlock({ section }: LineItemBlockProps) {
 				marginBottom: 2,
 			}}
 		>
-			<View
-				wrap={false}
-				minPresenceAhead={getSectionLeadInPresenceAhead()}
-				style={{ flexDirection: "column" }}
-			>
-				{section.title ? (
-					<View
+			{section.title ? (
+				<View
+					style={{
+						backgroundColor: NAVY,
+						paddingVertical: 4,
+						paddingHorizontal: 8,
+					}}
+				>
+					<Text
+						wrap={false}
 						style={{
-							backgroundColor: NAVY,
-							paddingVertical: 4,
-							paddingHorizontal: 8,
+							fontSize: 8.5,
+							fontWeight: 700,
+							color: "#ffffff",
+							textTransform: "uppercase",
+							letterSpacing: 0.4,
 						}}
 					>
-						<Text
-							wrap={false}
-							style={{
-								fontSize: 8.5,
-								fontWeight: 700,
-								color: "#ffffff",
-								textTransform: "uppercase",
-								letterSpacing: 0.4,
-							}}
-						>
-							{section.title}
-						</Text>
-					</View>
-				) : null}
+						{section.title}
+					</Text>
+				</View>
+			) : null}
 
+			<View style={{ flexDirection: "column" }}>
+				{/* Column headers */}
 				<View
 					style={{
 						flexDirection: "row",
@@ -164,13 +99,69 @@ export function LineItemBlock({ section }: LineItemBlockProps) {
 					))}
 				</View>
 
-				{firstRow ? renderRow(firstRow, 0, "first") : null}
-			</View>
+				{/* Data rows */}
+				{section.rows.map((row, ri) => (
+					<View
+						wrap={false}
+						key={ri}
+						style={{
+							flexDirection: "row",
+							backgroundColor: row.isGroupHeader
+								? "#dbeafe"
+								: ri % 2 === 0
+									? "#ffffff"
+									: ROW_ALT,
+							borderBottomWidth: ri < section.rows.length - 1 ? 1 : 0,
+							borderBottomColor: BORDER,
+						}}
+					>
+						{row.cells.map((cell, ci) => {
+							const key = headerKey(section.headers[ci]!, ci);
+							const isDescription = key === "description";
 
-			{/* Data rows */}
-			{remainingRows.map((row, rowIndex) =>
-				renderRow(row, rowIndex + 1, rowIndex + 1),
-			)}
+							return (
+								<View
+									key={ci}
+									style={{
+										width: widths[key],
+										paddingVertical: 3,
+										paddingHorizontal: 5,
+										borderRightWidth: ci < row.cells.length - 1 ? 1 : 0,
+										borderRightColor: BORDER,
+										justifyContent: "center",
+									}}
+								>
+									<Text
+										style={{
+											fontSize: 8.5,
+											fontWeight:
+												cell.bold || (row.isGroupHeader && isDescription)
+													? 700
+													: 500,
+											color:
+												row.isGroupHeader && isDescription ? ACCENT : "#1e293b",
+											textAlign:
+												row.isGroupHeader && isDescription
+													? "center"
+													: cell.align === "right"
+														? "right"
+														: cell.align === "center"
+															? "center"
+															: "left",
+											textTransform:
+												row.isGroupHeader && isDescription
+													? "uppercase"
+													: "none",
+										}}
+									>
+										{cell.value ?? ""}
+									</Text>
+								</View>
+							);
+						})}
+					</View>
+				))}
+			</View>
 		</View>
 	);
 }

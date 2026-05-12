@@ -34,6 +34,8 @@ export interface SalesPrintRequest {
 	baseUrl?: string | null;
 	forceRegenerate?: boolean;
 	openInNewTab?: boolean;
+	onPrintReady?: () => void;
+	onPrintError?: (error: unknown) => void;
 }
 
 type SalesPrintDependencies = {
@@ -57,6 +59,7 @@ type SalesPrintDependencies = {
 	closeViewerShell?: typeof closeViewerShell;
 	openPendingPrintWindow: typeof openPendingPrintWindow;
 	createPrintViewerContent: typeof createPrintViewerContent;
+	mountHiddenPrintViewer?: typeof mountHiddenPrintViewer;
 	createPrintLoadingContent?: typeof createPrintLoadingContent;
 	getBaseUrl: typeof getBaseUrl;
 	useAttachmentOverlay: boolean;
@@ -70,6 +73,7 @@ const defaultDependencies: SalesPrintDependencies = {
 	closeViewerShell,
 	openPendingPrintWindow,
 	createPrintViewerContent,
+	mountHiddenPrintViewer,
 	createPrintLoadingContent,
 	getBaseUrl,
 	useAttachmentOverlay: ATTACHMENT_OVERLAY,
@@ -248,28 +252,11 @@ export async function openSalesPrintDocument(
 	const mode = resolveSalesPrintMode(request.mode);
 	const shouldUseAttachmentOverlay =
 		dependencies.useAttachmentOverlay && !request.openInNewTab;
-	const viewerId = `sales-print-${Date.now()}`;
 	const pendingWindow = request.openInNewTab
 		? dependencies.openPendingPrintWindow()
 		: shouldUseAttachmentOverlay
 			? null
 			: dependencies.openPendingPrintWindow();
-	const openedProgressViewer = shouldUseAttachmentOverlay
-		? dependencies.openViewerShell({
-				id: viewerId,
-				title: getSalesPrintViewerTitle(mode),
-				subtitle: "Generating document...",
-				icon: createElement("span", {
-					className: "size-2 rounded-full bg-current",
-					"aria-hidden": true,
-				}),
-				content:
-					dependencies.createPrintLoadingContent?.(mode) ??
-					createPrintLoadingContent(mode),
-				size: "wide",
-				closeOnOutsideClick: false,
-			})
-		: false;
 
 	try {
 		const access = await resolveSalesPrintAccess(request, dependencies);
@@ -280,21 +267,16 @@ export async function openSalesPrintDocument(
 		});
 
 		if (shouldUseAttachmentOverlay) {
-			const content = await dependencies.createPrintViewerContent(href);
-			const openedInViewer = dependencies.openViewerShell({
-				id: viewerId,
-				title: getSalesPrintViewerTitle(mode),
-				subtitle: "PDF print preview",
-				icon: createElement("span", {
-					className: "size-2 rounded-full bg-current",
-					"aria-hidden": true,
-				}),
-				content,
-				size: "wide",
-				closeOnOutsideClick: true,
+			const mountedHiddenViewer = await dependencies.mountHiddenPrintViewer?.(href, {
+				onPrintReady: () => {
+					request.onPrintReady?.();
+				},
+				onPrintError: (error) => {
+					request.onPrintError?.(error);
+				},
 			});
 
-			if (openedInViewer) {
+			if (mountedHiddenViewer) {
 				return;
 			}
 		}
@@ -304,16 +286,10 @@ export async function openSalesPrintDocument(
 			return;
 		}
 
-		if (openedProgressViewer) {
-			dependencies.closeViewerShell?.();
-		}
 		dependencies.openLink(href, null, true);
 	} catch (error) {
 		if (pendingWindow && !pendingWindow.closed) {
 			pendingWindow.close();
-		}
-		if (openedProgressViewer) {
-			dependencies.closeViewerShell?.();
 		}
 		throw error;
 	}
@@ -450,6 +426,64 @@ async function createPrintViewerContent(href: string): Promise<ReactNode> {
 	);
 
 	return createElement(SalesPrintShellViewer, { href });
+}
+
+async function mountHiddenPrintViewer(
+	href: string,
+	callbacks?: {
+		onPrintReady?: () => void;
+		onPrintError?: (error: unknown) => void;
+	},
+) {
+	if (typeof document === "undefined") return false;
+
+	const { createRoot } = await import("react-dom/client");
+	const { SalesPrintShellViewer } = await import(
+		"@/modules/sales-print/ui/sales-print-shell-viewer"
+	);
+
+	const host = document.createElement("div");
+	host.setAttribute("data-sales-hidden-print-host", "true");
+	Object.assign(host.style, {
+		position: "fixed",
+		top: "0",
+		left: "-10000px",
+		width: "1024px",
+		height: "768px",
+		overflow: "hidden",
+		opacity: "0",
+		pointerEvents: "none",
+		zIndex: "-1",
+	});
+
+	document.body.appendChild(host);
+	const root = createRoot(host);
+	let cleanupTimer: number | null = null;
+
+	const cleanup = () => {
+		if (cleanupTimer) {
+			window.clearTimeout(cleanupTimer);
+			cleanupTimer = null;
+		}
+		root.unmount();
+		host.remove();
+	};
+
+	root.render(
+		createElement(SalesPrintShellViewer, {
+			href,
+			onPrintReady: () => {
+				callbacks?.onPrintReady?.();
+				cleanupTimer = window.setTimeout(cleanup, 60_000);
+			},
+			onPrintError: (error: unknown) => {
+				callbacks?.onPrintError?.(error);
+				cleanup();
+			},
+		}),
+	);
+
+	return true;
 }
 
 function createPrintLoadingContent(mode: PrintMode): ReactNode {

@@ -4,7 +4,7 @@ import { SalesDocumentPreviewPage } from "@/components/sales-document-preview-pa
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { useMemo } from "react";
 
-export function SalesPreview() {
+export function SalesPreview({ onClose }: { onClose?: () => void }) {
 	const { params, opened } = useSalesPreview();
 
 	const previewParams = useMemo(() => {
@@ -55,7 +55,7 @@ export function SalesPreview() {
 	}
 
 	return (
-		<div className="bg-background">
+		<div className="min-h-0 flex-1 bg-background">
 			<SalesDocumentPreviewPage
 				pt={previewParams.pt}
 				token={previewParams.token}
@@ -67,6 +67,7 @@ export function SalesPreview() {
 				embedded
 				salesOrderId={params.salesPreviewId}
 				dispatchId={params.dispatchId ?? undefined}
+				onClose={onClose}
 			/>
 		</div>
 	);

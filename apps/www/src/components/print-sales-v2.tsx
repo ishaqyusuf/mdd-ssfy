@@ -34,6 +34,8 @@ interface PrintSalesV2Props {
 	mode?: PrintMode;
 	className?: string;
 	printRequest?: SalesPrintRequestInfo;
+	onPrintReady?: () => void;
+	onPrintError?: (error: unknown) => void;
 }
 
 function waitForNextFrame() {
@@ -70,10 +72,17 @@ export function PrintSalesV2({
 	mode,
 	className,
 	printRequest,
+	onPrintReady,
+	onPrintError,
 }: PrintSalesV2Props = {}) {
 	if (printRequest) {
 		return (
-			<PrintSalesV2Resolved printRequest={printRequest} className={className} />
+			<PrintSalesV2Resolved
+				printRequest={printRequest}
+				className={className}
+				onPrintReady={onPrintReady}
+				onPrintError={onPrintError}
+			/>
 		);
 	}
 
@@ -87,6 +96,8 @@ export function PrintSalesV2({
 			templateId={templateId}
 			mode={mode}
 			className={className}
+			onPrintReady={onPrintReady}
+			onPrintError={onPrintError}
 		/>
 	);
 }
@@ -100,6 +111,8 @@ function PrintSalesV2FromFilters({
 	templateId,
 	mode,
 	className,
+	onPrintReady,
+	onPrintError,
 }: Omit<PrintSalesV2Props, "printRequest">) {
 	const { filters } = useSalesPrintFilter();
 	const resolvedPrintRequest = parseSalesPrintRequest({
@@ -116,6 +129,8 @@ function PrintSalesV2FromFilters({
 		<PrintSalesV2Resolved
 			printRequest={resolvedPrintRequest}
 			className={className}
+			onPrintReady={onPrintReady}
+			onPrintError={onPrintError}
 		/>
 	);
 }
@@ -123,9 +138,13 @@ function PrintSalesV2FromFilters({
 function PrintSalesV2Resolved({
 	printRequest,
 	className,
+	onPrintReady,
+	onPrintError,
 }: {
 	printRequest: SalesPrintRequestInfo;
 	className?: string;
+	onPrintReady?: () => void;
+	onPrintError?: (error: unknown) => void;
 }) {
 	const resolvedPrintRequest = printRequest;
 	const { params } = resolvedPrintRequest;
@@ -140,6 +159,8 @@ function PrintSalesV2Resolved({
 				accessToken={params.accessToken}
 				templateId={params.templateId}
 				className={className}
+				onPrintReady={onPrintReady}
+				onPrintError={onPrintError}
 			/>
 		);
 	}
@@ -153,6 +174,8 @@ function PrintSalesV2Resolved({
 			preview={params.preview}
 			templateId={params.templateId}
 			className={className}
+			onPrintReady={onPrintReady}
+			onPrintError={onPrintError}
 		/>
 	);
 }
@@ -161,10 +184,14 @@ function StoredPdfPrintUrlFrame({
 	accessToken,
 	templateId,
 	className,
+	onPrintReady,
+	onPrintError,
 }: {
 	accessToken: string;
 	templateId: string;
 	className?: string;
+	onPrintReady?: () => void;
+	onPrintError?: (error: unknown) => void;
 }) {
 	const [browserOrigin, setBrowserOrigin] = useState<string | null>(null);
 	useEffect(() => {
@@ -188,15 +215,26 @@ function StoredPdfPrintUrlFrame({
 		return <PrintLoading />;
 	}
 
-	return <StoredPdfPrintFrame src={fastPdfUrl} className={className} />;
+	return (
+		<StoredPdfPrintFrame
+			src={fastPdfUrl}
+			className={className}
+			onPrintReady={onPrintReady}
+			onPrintError={onPrintError}
+		/>
+	);
 }
 
 function StoredPdfPrintFrame({
 	src,
 	className,
+	onPrintReady,
+	onPrintError,
 }: {
 	src: string;
 	className?: string;
+	onPrintReady?: () => void;
+	onPrintError?: (error: unknown) => void;
 }) {
 	const viewerRef = useRef<HTMLIFrameElement | null>(null);
 	const printedRef = useRef(false);
@@ -210,6 +248,7 @@ function StoredPdfPrintFrame({
 
 		loadTimeoutRef.current = window.setTimeout(() => {
 			setLoadTimedOut(true);
+			onPrintError?.(new Error("The PDF is taking longer than expected to load."));
 		}, 12_000);
 
 		return () => {
@@ -217,7 +256,7 @@ function StoredPdfPrintFrame({
 				window.clearTimeout(loadTimeoutRef.current);
 			}
 		};
-	}, []);
+	}, [onPrintError]);
 	const handleViewerLoad = useCallback(
 		async (event: SyntheticEvent<HTMLIFrameElement>) => {
 			const iframe = event.currentTarget;
@@ -231,11 +270,20 @@ function StoredPdfPrintFrame({
 			}
 
 			printedRef.current = true;
-			await waitForPrintableFrame(iframe);
-			iframe.contentWindow?.focus();
-			iframe.contentWindow?.print();
+			try {
+				await waitForPrintableFrame(iframe);
+				const printWindow = iframe.contentWindow;
+				if (!printWindow) {
+					throw new Error("The print frame is unavailable.");
+				}
+				printWindow.focus();
+				printWindow.print();
+				onPrintReady?.();
+			} catch (error) {
+				onPrintError?.(error);
+			}
 		},
-		[],
+		[onPrintError, onPrintReady],
 	);
 
 	return (
@@ -250,6 +298,7 @@ function StoredPdfPrintFrame({
 						loadTimeoutRef.current = null;
 					}
 					setLoadFailed(true);
+					onPrintError?.(new Error("The PDF could not be loaded automatically."));
 				}}
 				className="flex h-full w-full flex-col border-0"
 				title="Sales print PDF"

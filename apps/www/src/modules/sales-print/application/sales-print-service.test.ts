@@ -229,10 +229,11 @@ describe("sales print service", () => {
 		expect(forceRegenerate).toBe(true);
 	});
 
-	it("opens PDF print documents in the attachment overlay when enabled", async () => {
+	it("mounts a hidden print viewer instead of showing a PDF preview when the attachment overlay is enabled", async () => {
 		let openedViewerHref: string | null = null;
 		let openedLinkHref: string | null = null;
 		let pendingWindowOpened = false;
+		let printReady = false;
 		const viewerSubtitles: string[] = [];
 		const response: ResolveSalesDocumentAccessResult = {
 			kind: "snapshot",
@@ -256,7 +257,6 @@ describe("sales print service", () => {
 			},
 			openViewerShell: (input) => {
 				viewerSubtitles.push(input.subtitle);
-				openedViewerHref = input.content.props.href;
 				return true;
 			},
 			openPendingPrintWindow: () => {
@@ -264,24 +264,33 @@ describe("sales print service", () => {
 				return null;
 			},
 			createPrintViewerContent: (href) => ({ props: { href } }),
+			mountHiddenPrintViewer: (href, callbacks) => {
+				openedViewerHref = href;
+				callbacks?.onPrintReady?.();
+				return true;
+			},
 			getBaseUrl: () => "https://app.example.com",
 			useAttachmentOverlay: true,
 		};
 
 		await openSalesPrintDocument(
-			{ salesIds: [42], mode: "invoice" },
+			{
+				salesIds: [42],
+				mode: "invoice",
+				onPrintReady: () => {
+					printReady = true;
+				},
+			},
 			dependencies,
 		);
 
 		expect(openedViewerHref).toBe(
 			"/p/sales-invoice-v2?accessToken=access-123&preview=false&mode=invoice",
 		);
-		expect(viewerSubtitles).toEqual([
-			"Generating document...",
-			"PDF print preview",
-		]);
+		expect(viewerSubtitles).toEqual([]);
 		expect(openedLinkHref).toBe(null);
 		expect(pendingWindowOpened).toBe(false);
+		expect(printReady).toBe(true);
 	});
 
 	it("falls back to new-tab print when the attachment overlay provider is unavailable", async () => {

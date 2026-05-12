@@ -3,7 +3,15 @@
 import { PrintSalesV2 } from "@/components/print-sales-v2";
 import { parseSalesPrintRequest } from "@/modules/sales-print/application/sales-print-request";
 
-export function SalesPrintShellViewer({ href }: { href: string }) {
+export function SalesPrintShellViewer({
+	href,
+	onPrintReady,
+	onPrintError,
+}: {
+	href: string;
+	onPrintReady?: () => void;
+	onPrintError?: (error: unknown) => void;
+}) {
 	const url = new URL(href, window.location.origin);
 	const printRequest = parseSalesPrintRequest({
 		pt: url.searchParams.get("pt") ?? undefined,
@@ -17,7 +25,12 @@ export function SalesPrintShellViewer({ href }: { href: string }) {
 
 	return (
 		<div className="h-full w-full bg-background">
-			<PrintSalesV2 printRequest={printRequest} className="h-full" />
+			<PrintSalesV2
+				printRequest={printRequest}
+				className="h-full"
+				onPrintReady={onPrintReady}
+				onPrintError={onPrintError}
+			/>
 		</div>
 	);
 }

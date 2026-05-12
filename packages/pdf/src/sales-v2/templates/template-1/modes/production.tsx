@@ -47,7 +47,7 @@ export function ProductionMode({
 				/>
 			</View>
 
-			<View style={{ ...cn("w-full"), flexShrink: 0 }}>
+			<View style={cn("w-full")}>
 				{page.sections.map((section, index) => {
 					const wrapperStyle = index === 0 ? undefined : { marginTop: 6 };
 
