@@ -12,9 +12,10 @@ import { renderSalesPdfBuffer } from "@gnd/pdf/sales-v2";
 import {
 	type SalesDocumentSnapshotRecord,
 	type SalesDocumentSnapshotRepository,
+	createOrRefreshSalesPrintData,
 	resolveCurrentSalesDocument,
+	salesPrintDataToPrintDocumentData,
 } from "@gnd/sales/pdf-system";
-import { getPrintDocumentData } from "@gnd/sales/print";
 import type { PrintMode } from "@gnd/sales/print/types";
 import { type SalesDocumentAccessToken, tokenize } from "@gnd/utils/tokenizer";
 import { logger, schemaTask } from "@trigger.dev/sdk/v3";
@@ -342,23 +343,34 @@ async function warmSnapshot(payload: WarmSalesDocumentSnapshotPayload) {
 	});
 
 	try {
-		const documentData = await getPrintDocumentData(db, {
-			ids: [payload.salesOrderId],
+		const printDataResult = await createOrRefreshSalesPrintData(db, {
+			salesOrderId: payload.salesOrderId,
 			mode: payload.mode,
+			documentType,
 			dispatchId: payload.dispatchId ?? null,
+			templateId: payload.templateId || DEFAULT_TEMPLATE_ID,
+			forceRefresh: payload.forceRegenerate ?? false,
+			reason: payload.forceRegenerate ? "manual_regeneration" : "warmup",
 		});
-
-		if (!documentData.pages.length) {
-			throw new Error("No printable pages found for this sales document.");
-		}
+		const documentData = salesPrintDataToPrintDocumentData(
+			printDataResult.record,
+		);
 
 		const title = documentData.title || `sales-${payload.salesOrderId}`;
+		const renderStart = Date.now();
 		const buffer = await renderSalesPdfBuffer({
 			pages: documentData.pages,
 			title,
 			templateId: payload.templateId || DEFAULT_TEMPLATE_ID,
 			companyAddress: documentData.companyAddress,
 			baseUrl: resolveBaseUrl(),
+		});
+		logger.info("Rendered sales PDF snapshot", {
+			salesOrderId: payload.salesOrderId,
+			documentType,
+			templateId: payload.templateId || DEFAULT_TEMPLATE_ID,
+			durationMs: Date.now() - renderStart,
+			salesPrintDataId: printDataResult.record.id,
 		});
 
 		const registry = createDocumentRegistry(createStoredDocumentRepository());
@@ -376,11 +388,19 @@ async function warmSnapshot(payload: WarmSalesDocumentSnapshotPayload) {
 			ownerId: String(payload.salesOrderId),
 			kind: buildStoredDocumentKind(documentType),
 		});
+		const uploadStart = Date.now();
 		const uploaded = await documentService.upload({
 			filename,
 			folder,
 			body: buffer,
 			contentType: "application/pdf",
+		});
+		logger.info("Uploaded sales PDF snapshot", {
+			salesOrderId: payload.salesOrderId,
+			documentType,
+			templateId: payload.templateId || DEFAULT_TEMPLATE_ID,
+			durationMs: Date.now() - uploadStart,
+			size: uploaded.size ?? null,
 		});
 
 		const storedDocument = await registry.registerUploaded({
@@ -425,6 +445,7 @@ async function warmSnapshot(payload: WarmSalesDocumentSnapshotPayload) {
 				accessToken,
 				expiresAt,
 				title,
+				salesPrintDataId: printDataResult.record.id,
 			},
 		});
 

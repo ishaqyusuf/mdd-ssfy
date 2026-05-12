@@ -5,7 +5,10 @@ import { generateQrCodeDataUrl, renderSalesPdfBuffer } from "@gnd/pdf/sales-v2";
 import {
 	type SalesDocumentSnapshotRecord,
 	type SalesDocumentSnapshotRepository,
+	createOrRefreshSalesPrintData,
+	expireCurrentSalesPrintData,
 	resolveCurrentSalesDocument,
+	salesPrintDataToPrintDocumentData,
 } from "@gnd/sales/pdf-system";
 import { getPrintDocumentData } from "@gnd/sales/print";
 import type { PrintMode } from "@gnd/sales/print/types";
@@ -123,6 +126,11 @@ type SnapshotDocumentLookup = {
 		status: string;
 	};
 	tokenPayload: SalesDocumentAccessToken;
+};
+
+type SnapshotAccessLookup = {
+	snapshot: SalesDocumentSnapshotRecord;
+	tokenPayload: SalesDocumentAccessToken | null;
 };
 
 export function buildSalesDocumentTypeKey(input: {
@@ -326,6 +334,13 @@ function dateToIso(value?: Date | null) {
 	return value ? value.toISOString() : null;
 }
 
+function logSalesDocumentAccess(
+	event: string,
+	payload: Record<string, unknown> = {},
+) {
+	console.info("[sales-document-access]", event, payload);
+}
+
 async function getSalesOrderSourceUpdatedAt(input: {
 	db: Db;
 	salesOrderId: number;
@@ -428,11 +443,21 @@ function buildLegacySalesPrintToken(input: {
 	} satisfies SalesPdfToken);
 }
 
-export function resolveSalesDocumentHtmlPreviewAccess(
+export async function resolveSalesDocumentHtmlPreviewAccess(
 	input: ResolveSalesDocumentHtmlPreviewAccessInput,
-): ResolveSalesDocumentAccessResult {
+): Promise<ResolveSalesDocumentAccessResult> {
 	if (!input.salesIds.length) {
 		throw new Error("At least one sales order is required.");
+	}
+
+	if (input.salesIds.length === 1) {
+		await createOrRefreshSalesPrintData(input.db, {
+			salesOrderId: input.salesIds[0]!,
+			mode: input.mode,
+			dispatchId: input.dispatchId ?? null,
+			templateId: input.templateId || DEFAULT_TEMPLATE_ID,
+			reason: "html_preview_access",
+		});
 	}
 
 	const expiresAt = addDays(new Date(), DEFAULT_LINK_TTL_DAYS).toISOString();
@@ -480,14 +505,14 @@ export function createSalesDocumentSnapshotRepository(
 			const { id, ...data } = input;
 			const record = await db.salesDocumentSnapshot.update({
 				where: { id },
-				data: {
-					...data,
-					meta:
-						data.meta === undefined
-							? undefined
-							: ((data.meta || null) as Prisma.InputJsonValue | null),
-				},
-			});
+					data: {
+						...data,
+						meta:
+							data.meta === undefined || data.meta === null
+								? undefined
+								: (data.meta as Prisma.InputJsonValue),
+					},
+				});
 			return toSalesDocumentSnapshotRecord(record);
 		},
 		async findCurrentByType(input) {
@@ -551,6 +576,7 @@ async function createSalesPdfSnapshot(input: {
 	dispatchId?: number | null;
 	templateId?: string | null;
 	baseUrl?: string | null;
+	forceRegenerate?: boolean;
 }) {
 	const repository = createSalesDocumentSnapshotRepository(input.db);
 	const latest = await repository.findLatestVersion({
@@ -602,17 +628,21 @@ async function createSalesPdfSnapshot(input: {
 			baseUrl: input.baseUrl,
 			templateId: input.templateId || DEFAULT_TEMPLATE_ID,
 		});
-		const documentData = await getPrintDocumentData(input.db, {
-			ids: [input.salesOrderId],
+		const printDataResult = await createOrRefreshSalesPrintData(input.db, {
+			salesOrderId: input.salesOrderId,
 			mode: input.mode,
+			documentType: input.documentType,
 			dispatchId: input.dispatchId ?? null,
+			templateId: input.templateId || DEFAULT_TEMPLATE_ID,
+			forceRefresh: input.forceRegenerate ?? false,
+			reason: input.forceRegenerate ? "manual_regeneration" : "pdf_snapshot",
 		});
-
-		if (!documentData.pages.length) {
-			throw new Error("No printable pages found for this sales document.");
-		}
+		const documentData = salesPrintDataToPrintDocumentData(
+			printDataResult.record,
+		);
 
 		const title = documentData.title || `sales-${input.salesOrderId}`;
+		const renderStart = Date.now();
 		const buffer = await renderSalesPdfBuffer({
 			pages: documentData.pages,
 			title,
@@ -620,6 +650,13 @@ async function createSalesPdfSnapshot(input: {
 			companyAddress: documentData.companyAddress,
 			baseUrl: resolveBaseUrl(input.baseUrl),
 			previewUrl: accessUrls.previewUrl,
+		});
+		logSalesDocumentAccess("renderSalesPdfBuffer", {
+			salesOrderId: input.salesOrderId,
+			documentType: input.documentType,
+			templateId: input.templateId || DEFAULT_TEMPLATE_ID,
+			durationMs: Date.now() - renderStart,
+			salesPrintDataId: printDataResult.record.id,
 		});
 
 		const documentService = createApiVercelBlobDocumentService({
@@ -633,11 +670,19 @@ async function createSalesPdfSnapshot(input: {
 			kind: buildStoredDocumentKind(input.documentType),
 		});
 		const filename = `${sanitizeFilename(title)}.pdf`;
+		const uploadStart = Date.now();
 		const uploaded = await documentService.upload({
 			filename,
 			folder,
 			body: buffer,
 			contentType: "application/pdf",
+		});
+		logSalesDocumentAccess("blobUpload", {
+			salesOrderId: input.salesOrderId,
+			documentType: input.documentType,
+			templateId: input.templateId || DEFAULT_TEMPLATE_ID,
+			durationMs: Date.now() - uploadStart,
+			size: uploaded.size ?? null,
 		});
 
 		const storedDocument = await createStoredDocumentRegistry(
@@ -677,6 +722,7 @@ async function createSalesPdfSnapshot(input: {
 				expiresAt,
 				title,
 				publicLinkMode: "public-token",
+				salesPrintDataId: printDataResult.record.id,
 			},
 		});
 
@@ -729,7 +775,7 @@ export async function resolveSalesDocumentAccess(
 		};
 	}
 
-	const salesOrderId = input.salesIds[0];
+	const salesOrderId = input.salesIds[0]!;
 	const documentType = buildSalesDocumentTypeKey(input);
 	const repository = createSalesDocumentSnapshotRepository(input.db);
 
@@ -752,17 +798,26 @@ export async function resolveSalesDocumentAccess(
 						},
 					})
 				: null;
+		const snapshotStale = current
+			? await isSalesSnapshotStale({
+					db: input.db,
+					snapshot: current,
+				})
+			: false;
 
 		if (
 			current &&
 			storedDocument &&
 			meta.accessToken &&
 			isFutureIso(meta.expiresAt) &&
-			!(await isSalesSnapshotStale({
-				db: input.db,
-				snapshot: current,
-			}))
+			!snapshotStale
 		) {
+			logSalesDocumentAccess("pdfSnapshotHit", {
+				salesOrderId,
+				documentType,
+				snapshotId: current.id,
+				storedDocumentId: current.storedDocumentId ?? null,
+			});
 			const publicToken = await ensureSalesDocumentPublicToken({
 				db: input.db,
 				snapshotId: current.id,
@@ -793,6 +848,16 @@ export async function resolveSalesDocumentAccess(
 				downloadUrl: urls.downloadUrl,
 			};
 		}
+
+		logSalesDocumentAccess("pdfSnapshotMiss", {
+			salesOrderId,
+			documentType,
+			hasCurrent: Boolean(current),
+			hasStoredDocument: Boolean(storedDocument),
+			hasAccessToken: Boolean(meta.accessToken),
+			accessTokenFresh: isFutureIso(meta.expiresAt),
+			snapshotStale,
+		});
 	}
 
 	const created = await createSalesPdfSnapshot({
@@ -803,6 +868,7 @@ export async function resolveSalesDocumentAccess(
 		dispatchId: input.dispatchId ?? null,
 		templateId: input.templateId || DEFAULT_TEMPLATE_ID,
 		baseUrl: input.baseUrl,
+		forceRegenerate: input.forceRegenerate ?? false,
 	});
 
 	const publicToken = await ensureSalesDocumentPublicToken({
@@ -835,28 +901,13 @@ export async function resolveSalesDocumentAccess(
 	};
 }
 
-async function getSalesSnapshotDocumentById(input: {
+export async function getSalesSnapshotDocumentById(input: {
 	db: Db;
 	snapshotId: string;
 	allowStale?: boolean;
 }) {
-	const repository = createSalesDocumentSnapshotRepository(input.db);
-	const snapshot = await repository.findById({
-		id: input.snapshotId,
-	});
+	const snapshot = await getSalesSnapshotById(input);
 	if (!snapshot) return null;
-	if (!snapshot.isCurrent || snapshot.generationStatus !== "ready") return null;
-	const meta = getSnapshotMeta(snapshot.meta);
-	if (!isFutureIso(meta.expiresAt)) return null;
-	if (
-		!input.allowStale &&
-		(await isSalesSnapshotStale({
-			db: input.db,
-			snapshot,
-		}))
-	) {
-		return null;
-	}
 
 	const storedDocument = snapshot.storedDocumentId
 		? await input.db.storedDocument.findFirst({
@@ -886,11 +937,79 @@ async function getSalesSnapshotDocumentById(input: {
 	};
 }
 
+export async function getSalesSnapshotById(input: {
+	db: Db;
+	snapshotId: string;
+	allowStale?: boolean;
+	skipExpiresAtCheck?: boolean;
+}) {
+	const repository = createSalesDocumentSnapshotRepository(input.db);
+	const snapshot = await repository.findById({
+		id: input.snapshotId,
+	});
+	if (!snapshot) return null;
+	if (!input.allowStale) {
+		if (!snapshot.isCurrent || snapshot.generationStatus !== "ready") {
+			return null;
+		}
+	} else if (!["ready", "stale"].includes(snapshot.generationStatus)) {
+		return null;
+	}
+	const meta = getSnapshotMeta(snapshot.meta);
+	if (!input.skipExpiresAtCheck && !isFutureIso(meta.expiresAt)) return null;
+	if (
+		!input.allowStale &&
+		(await isSalesSnapshotStale({
+			db: input.db,
+			snapshot,
+		}))
+	) {
+		return null;
+	}
+
+	return snapshot;
+}
+
 export async function getSalesSnapshotDocumentByAccessToken(input: {
 	db: Db;
 	accessToken: string;
 	allowStale?: boolean;
 }) {
+	const snapshotLookup = await getSalesSnapshotByAccessToken(input);
+	if (!snapshotLookup) return null;
+	const { snapshot, tokenPayload: payload } = snapshotLookup;
+
+	const storedDocument = snapshot.storedDocumentId
+		? await input.db.storedDocument.findFirst({
+				where: {
+					id: snapshot.storedDocumentId,
+					deletedAt: null,
+					status: "ready",
+				},
+				select: {
+					id: true,
+					url: true,
+					pathname: true,
+					filename: true,
+					mimeType: true,
+					status: true,
+				},
+			})
+		: null;
+	if (!storedDocument) return null;
+
+	return {
+		snapshot,
+		storedDocument,
+		tokenPayload: payload as SalesDocumentAccessToken,
+	} satisfies SnapshotDocumentLookup;
+}
+
+export async function getSalesSnapshotByAccessToken(input: {
+	db: Db;
+	accessToken: string;
+	allowStale?: boolean;
+}): Promise<SnapshotAccessLookup | null> {
 	const payload = validateToken(
 		input.accessToken,
 		tokenSchemas.salesDocumentAccessToken,
@@ -916,33 +1035,28 @@ export async function getSalesSnapshotDocumentByAccessToken(input: {
 		return null;
 	}
 
-	const storedDocument = snapshot.storedDocumentId
-		? await input.db.storedDocument.findFirst({
-				where: {
-					id: snapshot.storedDocumentId,
-					deletedAt: null,
-					status: "ready",
-				},
-				select: {
-					id: true,
-					url: true,
-					pathname: true,
-					filename: true,
-					mimeType: true,
-					status: true,
-				},
-			})
-		: null;
-	if (!storedDocument) return null;
-
 	return {
 		snapshot,
-		storedDocument,
 		tokenPayload: payload,
-	} satisfies SnapshotDocumentLookup;
+	};
 }
 
 export async function getSalesSnapshotDocumentByPublicToken(input: {
+	db: Db;
+	publicToken: string;
+	allowStale?: boolean;
+}) {
+	const snapshot = await getSalesSnapshotByPublicToken(input);
+	if (!snapshot) return null;
+
+	return getSalesSnapshotDocumentById({
+		db: input.db,
+		snapshotId: snapshot.id,
+		allowStale: input.allowStale,
+	});
+}
+
+export async function getSalesSnapshotByPublicToken(input: {
 	db: Db;
 	publicToken: string;
 	allowStale?: boolean;
@@ -960,10 +1074,11 @@ export async function getSalesSnapshotDocumentByPublicToken(input: {
 		return null;
 	}
 
-	return getSalesSnapshotDocumentById({
+	return getSalesSnapshotById({
 		db: input.db,
 		snapshotId: tokenRecord.resourceId,
 		allowStale: input.allowStale,
+		skipExpiresAtCheck: true,
 	});
 }
 
@@ -979,29 +1094,35 @@ export async function resolveSalesDocumentPreviewData(input: {
 	const templateId = input.templateId || DEFAULT_TEMPLATE_ID;
 
 	if (input.publicToken) {
-		const snapshotLookup = await getSalesSnapshotDocumentByPublicToken({
+		const snapshot = await getSalesSnapshotByPublicToken({
 			db: input.db,
 			publicToken: input.publicToken,
 			allowStale: true,
 		});
-		if (!snapshotLookup) return null;
+		if (!snapshot) return null;
 
-		const meta = getSnapshotMeta(snapshotLookup.snapshot.meta);
+		const meta = getSnapshotMeta(snapshot.meta);
 		const mode = meta.mode;
 		if (!mode) return null;
 		const isStale = await isSalesSnapshotStale({
 			db: input.db,
-			snapshot: snapshotLookup.snapshot,
+			snapshot,
 		});
 
-		const documentData = await getPrintDocumentData(input.db, {
-			ids: [snapshotLookup.snapshot.salesOrderId],
+		const printDataResult = await createOrRefreshSalesPrintData(input.db, {
+			salesOrderId: snapshot.salesOrderId,
 			mode,
+			documentType: snapshot.documentType,
 			dispatchId: meta.dispatchId ?? null,
+			templateId,
+			reason: "html_preview",
 		});
+		const documentData = salesPrintDataToPrintDocumentData(
+			printDataResult.record,
+		);
 		const recipient = await loadSalesPreviewRecipient({
 			db: input.db,
-			salesOrderId: snapshotLookup.snapshot.salesOrderId,
+			salesOrderId: snapshot.salesOrderId,
 		});
 		const urls = buildPublicTokenSalesDocumentUrls({
 			publicToken: input.publicToken,
@@ -1018,14 +1139,14 @@ export async function resolveSalesDocumentPreviewData(input: {
 			watermark: null,
 			mode,
 			orderNo: documentData.firstOrderId ?? null,
-			salesOrderId: snapshotLookup.snapshot.salesOrderId,
+			salesOrderId: snapshot.salesOrderId,
 			customerEmail: recipient.customerEmail,
 			customerName: recipient.customerName,
-			documentType: snapshotLookup.snapshot.documentType,
-			snapshotId: snapshotLookup.snapshot.id,
-			generationStatus: snapshotLookup.snapshot.generationStatus,
-			generatedAt: dateToIso(snapshotLookup.snapshot.generatedAt),
-			sourceUpdatedAt: dateToIso(snapshotLookup.snapshot.sourceUpdatedAt),
+			documentType: snapshot.documentType,
+			snapshotId: snapshot.id,
+			generationStatus: snapshot.generationStatus,
+			generatedAt: dateToIso(snapshot.generatedAt),
+			sourceUpdatedAt: dateToIso(snapshot.sourceUpdatedAt),
 			isStale,
 			previewUrl: urls.previewUrl,
 			downloadUrl: urls.downloadUrl,
@@ -1034,29 +1155,35 @@ export async function resolveSalesDocumentPreviewData(input: {
 	}
 
 	if (input.snapshotId) {
-		const snapshotLookup = await getSalesSnapshotDocumentById({
+		const snapshot = await getSalesSnapshotById({
 			db: input.db,
 			snapshotId: input.snapshotId,
 			allowStale: true,
 		});
-		if (!snapshotLookup) return null;
+		if (!snapshot) return null;
 
-		const meta = getSnapshotMeta(snapshotLookup.snapshot.meta);
+		const meta = getSnapshotMeta(snapshot.meta);
 		const mode = meta.mode;
 		if (!mode) return null;
 		const isStale = await isSalesSnapshotStale({
 			db: input.db,
-			snapshot: snapshotLookup.snapshot,
+			snapshot,
 		});
 
-		const documentData = await getPrintDocumentData(input.db, {
-			ids: [snapshotLookup.snapshot.salesOrderId],
+		const printDataResult = await createOrRefreshSalesPrintData(input.db, {
+			salesOrderId: snapshot.salesOrderId,
 			mode,
+			documentType: snapshot.documentType,
 			dispatchId: meta.dispatchId ?? null,
+			templateId,
+			reason: "html_preview",
 		});
+		const documentData = salesPrintDataToPrintDocumentData(
+			printDataResult.record,
+		);
 		const recipient = await loadSalesPreviewRecipient({
 			db: input.db,
-			salesOrderId: snapshotLookup.snapshot.salesOrderId,
+			salesOrderId: snapshot.salesOrderId,
 		});
 		const publicToken = await ensureSalesDocumentPublicToken({
 			db: input.db,
@@ -1081,14 +1208,14 @@ export async function resolveSalesDocumentPreviewData(input: {
 			watermark: null,
 			mode,
 			orderNo: documentData.firstOrderId ?? null,
-			salesOrderId: snapshotLookup.snapshot.salesOrderId,
+			salesOrderId: snapshot.salesOrderId,
 			customerEmail: recipient.customerEmail,
 			customerName: recipient.customerName,
-			documentType: snapshotLookup.snapshot.documentType,
-			snapshotId: snapshotLookup.snapshot.id,
-			generationStatus: snapshotLookup.snapshot.generationStatus,
-			generatedAt: dateToIso(snapshotLookup.snapshot.generatedAt),
-			sourceUpdatedAt: dateToIso(snapshotLookup.snapshot.sourceUpdatedAt),
+			documentType: snapshot.documentType,
+			snapshotId: snapshot.id,
+			generationStatus: snapshot.generationStatus,
+			generatedAt: dateToIso(snapshot.generatedAt),
+			sourceUpdatedAt: dateToIso(snapshot.sourceUpdatedAt),
 			isStale,
 			previewUrl: urls.previewUrl,
 			downloadUrl: urls.downloadUrl,
@@ -1097,33 +1224,40 @@ export async function resolveSalesDocumentPreviewData(input: {
 	}
 
 	if (input.accessToken) {
-		const snapshotLookup = await getSalesSnapshotDocumentByAccessToken({
+		const snapshotLookup = await getSalesSnapshotByAccessToken({
 			db: input.db,
 			accessToken: input.accessToken,
 			allowStale: true,
 		});
 		if (!snapshotLookup) return null;
+		const { snapshot } = snapshotLookup;
 
-		const meta = getSnapshotMeta(snapshotLookup.snapshot.meta);
+		const meta = getSnapshotMeta(snapshot.meta);
 		const mode = meta.mode;
 		if (!mode) return null;
 		const isStale = await isSalesSnapshotStale({
 			db: input.db,
-			snapshot: snapshotLookup.snapshot,
+			snapshot,
 		});
 
-		const documentData = await getPrintDocumentData(input.db, {
-			ids: [snapshotLookup.snapshot.salesOrderId],
+		const printDataResult = await createOrRefreshSalesPrintData(input.db, {
+			salesOrderId: snapshot.salesOrderId,
 			mode,
+			documentType: snapshot.documentType,
 			dispatchId: meta.dispatchId ?? null,
+			templateId,
+			reason: "html_preview",
 		});
+		const documentData = salesPrintDataToPrintDocumentData(
+			printDataResult.record,
+		);
 		const recipient = await loadSalesPreviewRecipient({
 			db: input.db,
-			salesOrderId: snapshotLookup.snapshot.salesOrderId,
+			salesOrderId: snapshot.salesOrderId,
 		});
 		const publicToken = await ensureSalesDocumentPublicToken({
 			db: input.db,
-			snapshotId: snapshotLookup.snapshot.id,
+			snapshotId: snapshot.id,
 			expiresAt:
 				meta.expiresAt ||
 				addDays(new Date(), DEFAULT_LINK_TTL_DAYS).toISOString(),
@@ -1144,14 +1278,14 @@ export async function resolveSalesDocumentPreviewData(input: {
 			watermark: null,
 			mode,
 			orderNo: documentData.firstOrderId ?? null,
-			salesOrderId: snapshotLookup.snapshot.salesOrderId,
+			salesOrderId: snapshot.salesOrderId,
 			customerEmail: recipient.customerEmail,
 			customerName: recipient.customerName,
-			documentType: snapshotLookup.snapshot.documentType,
-			snapshotId: snapshotLookup.snapshot.id,
-			generationStatus: snapshotLookup.snapshot.generationStatus,
-			generatedAt: dateToIso(snapshotLookup.snapshot.generatedAt),
-			sourceUpdatedAt: dateToIso(snapshotLookup.snapshot.sourceUpdatedAt),
+			documentType: snapshot.documentType,
+			snapshotId: snapshot.id,
+			generationStatus: snapshot.generationStatus,
+			generatedAt: dateToIso(snapshot.generatedAt),
+			sourceUpdatedAt: dateToIso(snapshot.sourceUpdatedAt),
 			isStale,
 			previewUrl: urls.previewUrl,
 			downloadUrl: urls.downloadUrl,
@@ -1179,15 +1313,32 @@ export async function resolveSalesDocumentPreviewData(input: {
 								? "production"
 								: "quote";
 
-	const documentData = await getPrintDocumentData(input.db, {
-		ids: payload.salesIds,
-		mode,
-		dispatchId: payload.dispatchId ?? null,
-	});
+	const singleSalesOrderId =
+		payload.salesIds.length === 1 ? (payload.salesIds[0] ?? null) : null;
+	const documentData = singleSalesOrderId
+		? salesPrintDataToPrintDocumentData(
+				(
+					await createOrRefreshSalesPrintData(input.db, {
+						salesOrderId: singleSalesOrderId,
+						mode,
+						documentType: buildSalesDocumentTypeKey({
+							mode,
+							dispatchId: payload.dispatchId ?? null,
+						}),
+						dispatchId: payload.dispatchId ?? null,
+						templateId,
+						reason: "legacy_html_preview",
+					})
+				).record,
+			)
+		: await getPrintDocumentData(input.db, {
+				ids: payload.salesIds,
+				mode,
+				dispatchId: payload.dispatchId ?? null,
+			});
 	const recipient = await loadSalesPreviewRecipient({
 		db: input.db,
-		salesOrderId:
-			payload.salesIds.length === 1 ? (payload.salesIds[0] ?? null) : null,
+		salesOrderId: singleSalesOrderId,
 	});
 	const urls = buildLegacySalesDocumentPreviewUrls({
 		token: input.token,
@@ -1204,11 +1355,8 @@ export async function resolveSalesDocumentPreviewData(input: {
 		watermark: null,
 		mode,
 		orderNo:
-			payload.salesIds.length === 1
-				? (documentData.firstOrderId ?? null)
-				: null,
-		salesOrderId:
-			payload.salesIds.length === 1 ? (payload.salesIds[0] ?? null) : null,
+			payload.salesIds.length === 1 ? (documentData.firstOrderId ?? null) : null,
+		salesOrderId: singleSalesOrderId,
 		customerEmail: recipient.customerEmail,
 		customerName: recipient.customerName,
 		documentType:
@@ -1239,6 +1387,11 @@ export async function expireCurrentSalesDocumentSnapshots(input: {
 				SALES_DOCUMENT_BASE_TYPES["order-packing"],
 				SALES_DOCUMENT_BASE_TYPES.quote,
 			];
+	const printDataExpiry = await expireCurrentSalesPrintData(input.db, {
+		salesOrderId: input.salesOrderId,
+		reason: input.reason,
+		documentPrefixes: prefixes,
+	});
 
 	const currentSnapshots = await input.db.salesDocumentSnapshot.findMany({
 		where: {
@@ -1282,5 +1435,6 @@ export async function expireCurrentSalesDocumentSnapshots(input: {
 	return {
 		ok: true,
 		expiredCount,
+		expiredPrintDataCount: printDataExpiry.expiredCount,
 	};
 }

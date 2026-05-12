@@ -1,6 +1,5 @@
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { AuthGuard } from "@/components/auth-guard";
-import { SalesFormVersionMenuItems } from "@/components/sales-form-version-menu-items";
 import { SalesMenu } from "@/components/sales-menu";
 import { SendForPackingButton } from "@/components/sales/send-for-packing-button";
 import { _perm } from "@/components/sidebar-links";
@@ -105,7 +104,6 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 				slug={data?.uuid}
 				type={data?.type}
 			>
-				<SalesFormVersionMenuItems slug={salesNo} type={data?.type} />
 				{isQuote ? (
 					<SalesMenu.QuoteEmailMenuItems />
 				) : (

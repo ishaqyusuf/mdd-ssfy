@@ -3,6 +3,11 @@ import {
 	getBuilderTasksForProject,
 	getCommunityJobForm,
 } from "../../db/queries/community-job-form";
+import {
+	getProjectUnitInstallCostStatus,
+	getProjectUnitTemplateStatus,
+	whereProjectUnits,
+} from "../../db/queries/project-units";
 import type { TRPCContext } from "../init";
 
 type BuilderTaskWhere = {
@@ -28,6 +33,111 @@ function createContext(db: unknown): TRPCContext {
 		userId: 101,
 	};
 }
+
+describe("project unit filters", () => {
+	it("searches unit, project, and builder text fields", () => {
+		expect(whereProjectUnits({ q: "cedar" })).toEqual({
+			OR: [
+				{ search: { contains: "cedar" } },
+				{ modelName: { contains: "cedar" } },
+				{ lotBlock: { contains: "cedar" } },
+				{ project: { title: { contains: "cedar" } } },
+				{ project: { builder: { name: { contains: "cedar" } } } },
+			],
+		});
+	});
+
+	it("filters by project, builder, and installation states", () => {
+		expect(
+			whereProjectUnits({
+				builderSlug: "builder-one",
+				projectSlug: "project-alpha",
+				installation: "has installation",
+			}),
+		).toEqual({
+			AND: [
+				{ project: { builder: { slug: "builder-one" } } },
+				{ project: { slug: "project-alpha" } },
+				{ jobs: { some: {} } },
+			],
+		});
+
+		expect(whereProjectUnits({ installation: "No Submission" })).toEqual({
+			jobs: { none: {} },
+		});
+	});
+
+	it("detects configured template data", () => {
+		expect(getProjectUnitTemplateStatus(null)).toBe("not configured");
+		expect(
+			getProjectUnitTemplateStatus({
+				id: 1,
+				meta: { design: { elevation: "A" } },
+				templateValues: [],
+			}),
+		).toBe("configured");
+		expect(
+			getProjectUnitTemplateStatus({
+				id: 2,
+				meta: {},
+				templateValues: [{ value: 0, inventoryId: 10 }],
+			}),
+		).toBe("configured");
+		expect(
+			getProjectUnitTemplateStatus({
+				id: 3,
+				meta: { design: {} },
+				templateValues: [],
+			}),
+		).toBe("not configured");
+	});
+
+	it("detects install-cost configuration states", () => {
+		const baseTemplate = {
+			id: 1,
+			project: {
+				builder: {
+					tasks: [
+						{ id: 10, installable: true },
+						{ id: 11, installable: true },
+						{ id: 12, installable: false },
+					],
+				},
+			},
+		};
+
+		expect(
+			getProjectUnitInstallCostStatus({
+				...baseTemplate,
+				communityModelInstallTasks: [],
+			}),
+		).toBe("not configured");
+		expect(
+			getProjectUnitInstallCostStatus({
+				...baseTemplate,
+				communityModelInstallTasks: [
+					{ builderTaskId: 10, qty: 2, installCostModel: { unitCost: 25 } },
+				],
+			}),
+		).toBe("part configured");
+		expect(
+			getProjectUnitInstallCostStatus({
+				...baseTemplate,
+				communityModelInstallTasks: [
+					{ builderTaskId: 10, qty: 2, installCostModel: { unitCost: 25 } },
+					{ builderTaskId: 11, qty: 1, installCostModel: { unitCost: 40 } },
+				],
+			}),
+		).toBe("configured");
+		expect(
+			getProjectUnitInstallCostStatus({
+				id: 2,
+				project: { builder: { tasks: [] } },
+				communityModelInstallTasks: [],
+			}),
+		).toBe("not configured");
+	});
+});
 
 describe("community job submission task APIs", () => {
 	it("returns only builder tasks checked for jobs in builder form", async () => {

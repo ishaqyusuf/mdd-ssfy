@@ -2,11 +2,15 @@ import {
 	resolveSalesDocumentAccessAction,
 	resolveSalesDocumentHtmlPreviewAccessAction,
 } from "@/actions/resolve-sales-document-access";
+import { openViewerShell } from "@/components/viewer-shell/controller";
 import { getBaseUrl } from "@/lib/base-url";
 import { openLink } from "@/lib/open-link";
 import type { IOrderPrintMode } from "@/types/sales";
 import type { ResolveSalesDocumentAccessResult } from "@gnd/api/utils/sales-document-access";
 import type { PrintMode } from "@gnd/sales/print/types";
+import type { ReactNode } from "react";
+import { createElement } from "react";
+import { ATTACHMENT_OVERLAY } from "./feature-flags";
 import {
 	DEFAULT_SALES_PRINT_TEMPLATE_ID,
 	normalizeSalesPrintMode,
@@ -45,14 +49,22 @@ type SalesPrintDependencies = {
 		baseUrl?: string | null;
 	}): Promise<ResolveSalesDocumentAccessResult>;
 	openLink: typeof openLink;
+	openViewerShell: typeof openViewerShell;
+	openPendingPrintWindow: typeof openPendingPrintWindow;
+	createPrintViewerContent: typeof createPrintViewerContent;
 	getBaseUrl: typeof getBaseUrl;
+	useAttachmentOverlay: boolean;
 };
 
 const defaultDependencies: SalesPrintDependencies = {
 	resolveAccess: resolveSalesDocumentAccessAction,
 	resolveHtmlPreviewAccess: resolveSalesDocumentHtmlPreviewAccessAction,
 	openLink,
+	openViewerShell,
+	openPendingPrintWindow,
+	createPrintViewerContent,
 	getBaseUrl,
+	useAttachmentOverlay: ATTACHMENT_OVERLAY,
 };
 
 const inflightAccessRequests = new Map<
@@ -225,7 +237,9 @@ export async function openSalesPrintDocument(
 	request: SalesPrintRequest,
 	dependencies: SalesPrintDependencies = defaultDependencies,
 ) {
-	const pendingWindow = openPendingPrintWindow();
+	const pendingWindow = dependencies.useAttachmentOverlay
+		? null
+		: dependencies.openPendingPrintWindow();
 	const mode = resolveSalesPrintMode(request.mode);
 
 	try {
@@ -235,6 +249,26 @@ export async function openSalesPrintDocument(
 			templateId: request.templateId,
 			mode,
 		});
+
+		if (dependencies.useAttachmentOverlay) {
+			const content = await dependencies.createPrintViewerContent(href);
+			const openedInViewer = dependencies.openViewerShell({
+				id: `sales-print-${Date.now()}`,
+				title: getSalesPrintViewerTitle(mode),
+				subtitle: "PDF print preview",
+				icon: createElement("span", {
+					className: "size-2 rounded-full bg-current",
+					"aria-hidden": true,
+				}),
+				content,
+				size: "wide",
+				closeOnOutsideClick: true,
+			});
+
+			if (openedInViewer) {
+				return;
+			}
+		}
 
 		if (pendingWindow && !pendingWindow.closed) {
 			pendingWindow.location.replace(href);
@@ -364,6 +398,23 @@ function downloadSilently(url: string) {
 	setTimeout(() => {
 		link.remove();
 	}, 1_000);
+}
+
+function getSalesPrintViewerTitle(mode: PrintMode) {
+	if (mode === "quote") return "Print Quote";
+	if (mode === "packing-slip") return "Print Packing Slip";
+	if (mode === "production") return "Print Production";
+	if (mode === "order-packing") return "Print Order + Packing";
+
+	return "Print Invoice";
+}
+
+async function createPrintViewerContent(href: string): Promise<ReactNode> {
+	const { SalesPrintShellViewer } = await import(
+		"@/modules/sales-print/ui/sales-print-shell-viewer"
+	);
+
+	return createElement(SalesPrintShellViewer, { href });
 }
 
 function openPendingPrintWindow() {

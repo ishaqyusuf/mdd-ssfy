@@ -2,6 +2,7 @@
 
 import { CommandProvider } from "@/components/cmd/provider";
 import { ModalProvider } from "@/components/common/modal/provider";
+import { ViewerShellProvider } from "@/components/viewer-shell";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { store } from "@/store";
 import { TRPCReactProvider } from "@/trpc/client";
@@ -21,7 +22,9 @@ export function Providers({ children }: Props) {
 					<Provider store={store}>
 						<ModalProvider>
 							<ThemeProvider attribute="class" defaultTheme="light">
-								<CommandProvider>{children}</CommandProvider>
+								<ViewerShellProvider>
+									<CommandProvider>{children}</CommandProvider>
+								</ViewerShellProvider>
 							</ThemeProvider>
 						</ModalProvider>
 					</Provider>

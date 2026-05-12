@@ -81,7 +81,10 @@ export function parseSalesPrintRequest(
 				? "multiple-locators"
 				: undefined;
 	const isValid = !invalidReason;
-	const renderMode = "rendered-pdf";
+	const renderMode: SalesPrintRenderMode =
+		isValid && locatorType === "access-token" && !params.preview
+			? "stored-pdf"
+			: "rendered-pdf";
 
 	return {
 		params,

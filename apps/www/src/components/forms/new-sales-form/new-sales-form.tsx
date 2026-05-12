@@ -19,6 +19,8 @@ import type { CreateSalesHistorySchemaTask } from "@jobs/schema";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { SalesFormDevSwitcher } from "../sales-form-dev-switcher";
+import { PaymentMethodReviewDialog } from "../sales-form/payment-method-review-dialog";
 import {
 	useNewSalesFormBootstrapQuery,
 	useNewSalesFormGetQuery,
@@ -35,7 +37,6 @@ import {
 import { toSaveDraftInput } from "./mappers";
 import { CustomerSelectorDialog } from "./sections/customer-selector-dialog";
 import { HeaderActions } from "./sections/header-actions";
-import { PaymentMethodReviewDialog } from "../sales-form/payment-method-review-dialog";
 import { useNewSalesFormStore } from "./store";
 import { useNewSalesFormAutoSave } from "./use-auto-save";
 import { useCreateFormQueryParams } from "./use-create-form-query-params";
@@ -968,6 +969,12 @@ export function NewSalesForm(props: Props) {
 
 	return (
 		<>
+			<SalesFormDevSwitcher
+				currentForm="new"
+				type={props.type}
+				slug={record.slug || props.slug}
+				orderId={record.orderId}
+			/>
 			<CustomerSelectorDialog
 				mode={props.mode}
 				open={customerSelectionRequired}

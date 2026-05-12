@@ -17,8 +17,8 @@ import { Item } from "@gnd/ui/namespace";
 import { InvoiceColumn } from "./column.invoice";
 
 import { SuperAdminGuard } from "@/components/auth-guard";
-import { SalesFormVersionMenuItems } from "@/components/sales-form-version-menu-items";
 import { SalesMenu } from "@/components/sales-menu";
+import { SalesOverviewVersionMenuItems } from "@/components/sales-overview-version-menu-items";
 import { useAuth } from "@/hooks/use-auth";
 import { useBin } from "@/hooks/use-bin";
 import { useDriversList } from "@/hooks/use-data-list";
@@ -686,12 +686,7 @@ function Actions({ item }: { item: SalesOrderItem }) {
 					</Button>
 				}
 			>
-				<SalesFormVersionMenuItems
-					slug={item.slug}
-					type="order"
-					uuid={item.uuid}
-					includeOverviewV2
-				/>
+				<SalesOverviewVersionMenuItems type="order" uuid={item.uuid} />
 				<SalesMenu.SalesPrintMenuItems />
 				<SuperAdminGuard>
 					<SalesMenu.PrintModes />

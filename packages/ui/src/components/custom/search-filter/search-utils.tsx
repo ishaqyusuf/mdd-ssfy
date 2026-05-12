@@ -39,6 +39,8 @@ export const searchIcons: Partial<{
 	builder: "user",
 	builderId: "user",
 	builderSlug: "user",
+	template: "template",
+	installCost: "installCosts",
 	contractor: "user",
 	authorizedBy: "user",
 	role: "roles",

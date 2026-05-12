@@ -59,6 +59,35 @@ model SalesDocumentSnapshot {
     @@index([generationStatus, updatedAt])
 }
 
+model SalesPrintData {
+    id              String    @id @default(cuid())
+    salesOrderId    Int
+    documentType    String    @db.VarChar(100)
+    templateId      String    @default("template-2") @db.VarChar(100)
+    mode            String    @db.VarChar(50)
+    dispatchId      Int?
+    scopeKey        String?   @db.VarChar(191)
+    title           String    @db.VarChar(255)
+    firstOrderId    String?   @db.VarChar(191)
+    companyAddress  Json      @db.Json
+    pages           Json      @db.Json
+    sourceUpdatedAt DateTime? @db.Timestamp(0)
+    generatedAt     DateTime? @db.Timestamp(0)
+    invalidatedAt   DateTime? @db.Timestamp(0)
+    failedAt        DateTime? @db.Timestamp(0)
+    status          String    @default("ready") @db.VarChar(50)
+    reason          String?   @db.VarChar(100)
+    errorMessage    String?   @db.Text
+    meta            Json?     @db.Json
+    createdAt       DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime? @updatedAt
+    deletedAt       DateTime? @db.Timestamp(0)
+
+    @@unique([salesOrderId, documentType, templateId])
+    @@index([salesOrderId, status])
+    @@index([status, updatedAt])
+}
+
 model PublicLinkToken {
     id           String    @id @default(cuid())
     token        String    @unique @db.VarChar(191)

@@ -3,7 +3,6 @@
 import { useTransition } from "react";
 
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
-import { SalesFormVersionMenuItems } from "@/components/sales-form-version-menu-items";
 import { SalesMenu } from "@/components/sales-menu";
 import { useAuth } from "@/hooks/use-auth";
 import { useBatchSales } from "@/hooks/use-batch-sales";
@@ -93,7 +92,6 @@ export function QuickActionsBar() {
 				slug={data.uuid}
 				type={data.type}
 			>
-				<SalesFormVersionMenuItems slug={data.orderId} type={data.type} />
 				{isQuote ? (
 					<SalesMenu.QuoteEmailMenuItems />
 				) : (

@@ -52,9 +52,11 @@ import type {
 import {
   type GetProjectUnitsSchema,
   communityInstllationFilters,
+  communityInstallCostFilters,
   communityProductionFilter,
+  communityTemplateConfigFilters,
+  buildProjectUnitsWhere,
   invoiceFilter,
-  whereProjectUnits,
 } from "./project-units";
 
 function getTagStringArray(value: unknown) {
@@ -1626,9 +1628,11 @@ export async function communityProjectsOverview(
 export const communityProjectUnitsOverviewSchema = z.object({
   builderSlug: z.string().optional().nullable(),
   projectSlug: z.string().optional().nullable(),
+  template: z.enum(communityTemplateConfigFilters).optional().nullable(),
   production: z.enum(communityProductionFilter).optional().nullable(),
   invoice: z.enum(invoiceFilter).optional().nullable(),
   installation: z.enum(communityInstllationFilters).optional().nullable(),
+  installCost: z.enum(communityInstallCostFilters).optional().nullable(),
 });
 
 export async function communityProjectUnitsOverview(
@@ -1636,7 +1640,7 @@ export async function communityProjectUnitsOverview(
   query: z.infer<typeof communityProjectUnitsOverviewSchema>,
 ) {
   const { db } = ctx;
-  const where = whereProjectUnits({
+  const where = await buildProjectUnitsWhere(ctx, {
     ...query,
     dateRange: undefined,
   } as Partial<GetProjectUnitsSchema>);

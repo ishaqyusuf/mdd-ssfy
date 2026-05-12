@@ -26,21 +26,33 @@ export const communityProductionFilter = [
 export type CommunityProductionFilter =
 	(typeof communityProductionFilter)[number];
 export const communityInstllationFilters = [
+	"has installation",
+	"no installation",
 	"Submitted",
 	"No Submission",
 ] as const;
 export type CommunityInstllationFilters =
 	(typeof communityInstllationFilters)[number];
 export const communityInstallCostFilters = [
+	"configured",
+	"part configured",
+	"not configured",
 	"has install cost",
 	"no install cost",
 ] as const;
 export type CommunityInstallCostFilters =
 	(typeof communityInstallCostFilters)[number];
+export const communityTemplateConfigFilters = [
+	"configured",
+	"not configured",
+] as const;
+export type CommunityTemplateConfigFilters =
+	(typeof communityTemplateConfigFilters)[number];
 export const getProjectUnitsSchema = z
 	.object({
 		builderSlug: z.string().optional().nullable(),
 		projectSlug: z.string().optional().nullable(),
+		template: z.enum(communityTemplateConfigFilters).optional().nullable(),
 		production: z.enum(communityProductionFilter).optional().nullable(),
 		invoice: z.enum(invoiceFilter).optional().nullable(),
 		installation: z.enum(communityInstllationFilters).optional().nullable(),
@@ -68,6 +80,16 @@ function buildProjectUnitsListSelect(hideInstallCost: boolean) {
 				version: true,
 				id: true,
 				meta: true,
+				templateValues: {
+					where: {
+						deletedAt: null,
+					},
+					select: {
+						value: true,
+						inventoryId: true,
+						inventoryCategoryId: true,
+					},
+				},
 				...(hideInstallCost
 					? {}
 					: {
@@ -187,6 +209,8 @@ function countConfiguredDesignValues(value: unknown): number {
 function getInstallCostSummary(
 	template: any,
 ) {
+	const status = getProjectUnitInstallCostStatus(template);
+
 	if (!template?.id) {
 		return {
 			status: "missing" as const,
@@ -221,17 +245,36 @@ function getInstallCostSummary(
 
 	return {
 		status:
-			totalTasks === 0
+			status === "not configured" && totalTasks === 0
 				? ("not-required" as const)
-				: configuredTasks >= totalTasks
+				: status === "configured"
 					? ("ready" as const)
-					: configuredTasks > 0
+					: status === "part configured"
 						? ("partial" as const)
 						: ("missing" as const),
 		totalEstimate,
 		configuredTasks,
 		totalTasks,
 	};
+}
+
+export function getProjectUnitTemplateStatus(template: any) {
+	if (!template?.id) {
+		return "not configured" as const;
+	}
+
+	const design = (template.meta as CommunityTemplateMeta | null)?.design;
+	const configuredCount = countConfiguredDesignValues(design);
+	const templateValueCount = (template.templateValues || []).filter(
+		(value) =>
+			isConfiguredTemplateValue(value?.value) ||
+			value?.inventoryId ||
+			value?.inventoryCategoryId,
+	).length;
+
+	return configuredCount + templateValueCount > 0
+		? ("configured" as const)
+		: ("not configured" as const);
 }
 
 function getTemplateSummary(template: any) {
@@ -244,11 +287,208 @@ function getTemplateSummary(template: any) {
 
 	const design = (template.meta as CommunityTemplateMeta | null)?.design;
 	const configuredCount = countConfiguredDesignValues(design);
+	const templateValueCount = (template.templateValues || []).filter(
+		(value) =>
+			isConfiguredTemplateValue(value?.value) ||
+			value?.inventoryId ||
+			value?.inventoryCategoryId,
+	).length;
 
 	return {
-		status: configuredCount > 0 ? ("ready" as const) : ("missing" as const),
-		configuredCount,
+		status:
+			configuredCount + templateValueCount > 0
+				? ("ready" as const)
+				: ("missing" as const),
+		configuredCount: configuredCount + templateValueCount,
 	};
+}
+
+export function getProjectUnitInstallCostStatus(template: any) {
+	if (!template?.id) return "not configured" as const;
+
+	const installableTasks = (template.project?.builder?.tasks || []).filter(
+		(task) => !!task.installable,
+	);
+	const installableTaskIds = new Set<number>(
+		installableTasks
+			.map((task) => Number(task.id))
+			.filter((taskId) => Number.isFinite(taskId)),
+	);
+	const configuredTaskIds = new Set<number>();
+
+	for (const installTask of template.communityModelInstallTasks || []) {
+		if (!installTask.builderTaskId) continue;
+		if (!installableTaskIds.has(installTask.builderTaskId)) continue;
+		const qty = Number(installTask.qty || 0);
+		const unitCost = Number(installTask.installCostModel?.unitCost || 0);
+		if (qty <= 0 || unitCost <= 0) continue;
+		configuredTaskIds.add(installTask.builderTaskId);
+	}
+
+	if (installableTasks.length === 0 || configuredTaskIds.size === 0) {
+		return "not configured" as const;
+	}
+
+	if (configuredTaskIds.size >= installableTasks.length) {
+		return "configured" as const;
+	}
+
+	return "part configured" as const;
+}
+
+function normalizeTemplateFilter(value: unknown) {
+	if (value === "configured") return "configured" as const;
+	if (value === "not configured") return "not configured" as const;
+	return null;
+}
+
+function normalizeInstallCostFilter(value: unknown) {
+	if (value === "configured" || value === "has install cost") {
+		return "configured" as const;
+	}
+	if (value === "part configured") return "part configured" as const;
+	if (value === "not configured" || value === "no install cost") {
+		return "not configured" as const;
+	}
+	return null;
+}
+
+function normalizeInstallationFilter(value: unknown) {
+	if (value === "has installation" || value === "Submitted") {
+		return "has installation" as const;
+	}
+	if (value === "no installation" || value === "No Submission") {
+		return "no installation" as const;
+	}
+	return null;
+}
+
+async function getProjectUnitConfigurationWhere(
+	ctx: TRPCContext,
+	query: Partial<GetProjectUnitsSchema>,
+) {
+	const where: Prisma.HomesWhereInput[] = [];
+	const templateFilter = normalizeTemplateFilter(query.template);
+	const installCostFilter = normalizeInstallCostFilter(query.installCost);
+
+	if (!templateFilter && !installCostFilter) {
+		return undefined;
+	}
+
+	const templates = await ctx.db.communityModels.findMany({
+		select: {
+			id: true,
+			meta: true,
+			templateValues: {
+				where: {
+					deletedAt: null,
+				},
+				select: {
+					value: true,
+					inventoryId: true,
+					inventoryCategoryId: true,
+				},
+			},
+			project: {
+				select: {
+					builder: {
+						select: {
+							tasks: {
+								select: {
+									id: true,
+									installable: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			communityModelInstallTasks: {
+				select: {
+					builderTaskId: true,
+					qty: true,
+					installCostModel: {
+						select: {
+							unitCost: true,
+						},
+					},
+				},
+			},
+		},
+	});
+
+	if (templateFilter) {
+		const ids = templates
+			.filter(
+				(template) => getProjectUnitTemplateStatus(template) === templateFilter,
+			)
+			.map((template) => template.id);
+
+		where.push(
+			templateFilter === "not configured"
+				? {
+						OR: [
+							{
+								communityTemplateId: null,
+							},
+							{
+								communityTemplateId: {
+									in: ids,
+								},
+							},
+						],
+					}
+				: {
+						communityTemplateId: {
+							in: ids,
+						},
+					},
+		);
+	}
+
+	if (installCostFilter) {
+		const ids = templates
+			.filter(
+				(template) =>
+					getProjectUnitInstallCostStatus(template) === installCostFilter,
+			)
+			.map((template) => template.id);
+
+		where.push(
+			installCostFilter === "not configured"
+				? {
+						OR: [
+							{
+								communityTemplateId: null,
+							},
+							{
+								communityTemplateId: {
+									in: ids,
+								},
+							},
+						],
+					}
+				: {
+						communityTemplateId: {
+							in: ids,
+						},
+					},
+		);
+	}
+
+	return composeQuery(where);
+}
+
+export async function buildProjectUnitsWhere(
+	ctx: TRPCContext,
+	query: Partial<GetProjectUnitsSchema>,
+) {
+	return composeQuery(
+		[
+			whereProjectUnits(query),
+			await getProjectUnitConfigurationWhere(ctx, query),
+		].filter(Boolean) as Prisma.HomesWhereInput[],
+	);
 }
 
 export async function getProjectUnits(
@@ -258,9 +498,10 @@ export async function getProjectUnits(
 	const { db } = ctx;
 	const hideInstallCost = await isCommunityUnitRequest(ctx);
 	const model = db.homes;
+	const projectUnitsWhere = await buildProjectUnitsWhere(ctx, query);
 	const { response, searchMeta, where } = await composeQueryData(
 		query,
-		whereProjectUnits(query),
+		projectUnitsWhere,
 		model,
 		{
 			sortFn,
@@ -375,6 +616,21 @@ export function whereProjectUnits(query: Partial<GetProjectUnitsSchema>) {
 						{
 							modelName: q,
 						},
+						{
+							lotBlock: q,
+						},
+						{
+							project: {
+								title: q,
+							},
+						},
+						{
+							project: {
+								builder: {
+									name: q,
+								},
+							},
+						},
 					],
 				});
 				break;
@@ -432,6 +688,24 @@ export function whereProjectUnits(query: Partial<GetProjectUnitsSchema>) {
 										},
 									],
 								},
+							},
+						});
+						break;
+				}
+				break;
+			case "installation":
+				switch (normalizeInstallationFilter(v)) {
+					case "has installation":
+						where.push({
+							jobs: {
+								some: {},
+							},
+						});
+						break;
+					case "no installation":
+						where.push({
+							jobs: {
+								none: {},
 							},
 						});
 						break;

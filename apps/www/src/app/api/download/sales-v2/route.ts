@@ -3,6 +3,7 @@ import {
 	parseSalesPrintRequest,
 } from "@/modules/sales-print/application/sales-print-request";
 import {
+	getSalesSnapshotDocumentById,
 	getSalesSnapshotDocumentByAccessToken,
 	getSalesSnapshotDocumentByPublicToken,
 	resolveSalesDocumentPreviewData,
@@ -14,6 +15,108 @@ import type { PrintMode } from "@gnd/sales/print/types";
 import { tokenSchemas, validateToken } from "@gnd/utils/tokenizer";
 import { notFound } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
+
+type StoredPdfSnapshotLookup = {
+	snapshot: {
+		documentType: string;
+	};
+	storedDocument: {
+		url: string | null;
+		pathname: string;
+		filename: string | null;
+		mimeType: string | null;
+	};
+};
+
+async function streamStoredPdfSnapshot(input: {
+	snapshotLookup: StoredPdfSnapshotLookup;
+	requestUrl: URL;
+	preview: boolean;
+}): Promise<Response | null> {
+	const sourceUrl =
+		input.snapshotLookup.storedDocument.url ||
+		input.snapshotLookup.storedDocument.pathname;
+	const absoluteSourceUrl = sourceUrl.startsWith("http")
+		? sourceUrl
+		: new URL(sourceUrl, input.requestUrl.origin).toString();
+	const upstream = await fetch(absoluteSourceUrl);
+	if (!upstream.ok) {
+		return null;
+	}
+
+	const headers: Record<string, string> = {
+		"Content-Type":
+			input.snapshotLookup.storedDocument.mimeType || "application/pdf",
+		"Cache-Control": "no-store, max-age=0",
+	};
+	const filename =
+		input.snapshotLookup.storedDocument.filename ||
+		`${input.snapshotLookup.snapshot.documentType}.pdf`;
+	headers["Content-Disposition"] = input.preview
+		? `inline; filename="${filename}"`
+		: `attachment; filename="${filename}"`;
+
+	return new Response(upstream.body, {
+		headers,
+		status: upstream.status,
+	});
+}
+
+async function renderSnapshotPdfFallback(input: {
+	requestUrl: URL;
+	preview: boolean;
+	templateId?: string | null;
+	publicToken?: string | null;
+	accessToken?: string | null;
+	snapshotId?: string | null;
+}) {
+	const documentData = await resolveSalesDocumentPreviewData({
+		db,
+		publicToken: input.publicToken,
+		accessToken: input.accessToken,
+		snapshotId: input.snapshotId,
+		templateId: input.templateId,
+		baseUrl: input.requestUrl.origin,
+	});
+	if (!documentData) return null;
+
+	const buffer = await renderSalesPdfBuffer({
+		pages: documentData.pages,
+		title: documentData.title,
+		templateId: documentData.templateId,
+		companyAddress: documentData.companyAddress,
+		baseUrl: input.requestUrl.origin,
+		previewUrl: documentData.previewUrl,
+	});
+
+	return createPdfResponse({
+		buffer,
+		title: documentData.title,
+		preview: input.preview,
+	});
+}
+
+function createPdfResponse(input: {
+	buffer: Buffer;
+	title: string;
+	preview: boolean;
+}) {
+	const headers: Record<string, string> = {
+		"Content-Type": "application/pdf",
+		"Cache-Control": "no-store, max-age=0",
+	};
+
+	headers["Content-Disposition"] = input.preview
+		? `inline; filename="${input.title}.pdf"`
+		: `attachment; filename="${input.title}.pdf"`;
+
+	const body = input.buffer.buffer.slice(
+		input.buffer.byteOffset,
+		input.buffer.byteOffset + input.buffer.byteLength,
+	) as ArrayBuffer;
+
+	return new Response(body, { headers });
+}
 
 export async function GET(req: NextRequest) {
 	const requestUrl = new URL(req.url);
@@ -39,41 +142,23 @@ export async function GET(req: NextRequest) {
 			db,
 			publicToken: params.pt,
 		});
-		if (!snapshotLookup) notFound();
-
-		const previewData = await resolveSalesDocumentPreviewData({
-			db,
-			publicToken: params.pt,
-			templateId: params.templateId,
-			baseUrl: requestUrl.origin,
-		});
-		if (!previewData) notFound();
-
-		const buffer = await renderSalesPdfBuffer({
-			pages: previewData.pages,
-			title: previewData.title,
-			templateId: previewData.templateId,
-			companyAddress: previewData.companyAddress,
-			baseUrl: requestUrl.origin,
-			previewUrl: previewData.previewUrl,
-			qrCodeDataUrl: previewData.qrCodeDataUrl,
-		});
-
-		const headers: Record<string, string> = {
-			"Content-Type":
-				snapshotLookup.storedDocument.mimeType || "application/pdf",
-			"Cache-Control": "no-store, max-age=0",
-		};
-
-		if (!params.preview) {
-			headers["Content-Disposition"] =
-				`attachment; filename="${previewData.title}.pdf"`;
-		} else {
-			headers["Content-Disposition"] =
-				`inline; filename="${previewData.title}.pdf"`;
+		if (snapshotLookup) {
+			const storedResponse = await streamStoredPdfSnapshot({
+				snapshotLookup,
+				requestUrl,
+				preview: params.preview,
+			});
+			if (storedResponse) return storedResponse;
 		}
 
-		return new Response(buffer, { headers });
+		const fallbackResponse = await renderSnapshotPdfFallback({
+			requestUrl,
+			preview: params.preview,
+			templateId: params.templateId,
+			publicToken: params.pt,
+		});
+		if (fallbackResponse) return fallbackResponse;
+		notFound();
 	}
 
 	if (printRequest.locatorType === "access-token") {
@@ -81,73 +166,47 @@ export async function GET(req: NextRequest) {
 			db,
 			accessToken: params.accessToken,
 		});
-		if (!snapshotLookup) notFound();
-
-		const sourceUrl =
-			snapshotLookup.storedDocument.url ||
-			snapshotLookup.storedDocument.pathname;
-		const absoluteSourceUrl = sourceUrl.startsWith("http")
-			? sourceUrl
-			: new URL(sourceUrl, requestUrl.origin).toString();
-		const upstream = await fetch(absoluteSourceUrl);
-		if (!upstream.ok) {
-			return NextResponse.json(
-				{ error: "Unable to load stored PDF snapshot" },
-				{ status: 502 },
-			);
+		if (snapshotLookup) {
+			const storedResponse = await streamStoredPdfSnapshot({
+				snapshotLookup,
+				requestUrl,
+				preview: params.preview,
+			});
+			if (storedResponse) return storedResponse;
 		}
 
-		const headers: Record<string, string> = {
-			"Content-Type":
-				snapshotLookup.storedDocument.mimeType || "application/pdf",
-			"Cache-Control": "no-store, max-age=0",
-		};
-		const filename =
-			snapshotLookup.storedDocument.filename ||
-			`${snapshotLookup.snapshot.documentType}.pdf`;
-		headers["Content-Disposition"] = params.preview
-			? `inline; filename="${filename}"`
-			: `attachment; filename="${filename}"`;
-
-		return new Response(upstream.body, {
-			headers,
-			status: upstream.status,
+		const fallbackResponse = await renderSnapshotPdfFallback({
+			requestUrl,
+			preview: params.preview,
+			templateId: params.templateId,
+			accessToken: params.accessToken,
 		});
+		if (fallbackResponse) return fallbackResponse;
+		notFound();
 	}
 
 	if (printRequest.locatorType === "snapshot-id") {
-		const previewData = await resolveSalesDocumentPreviewData({
+		const snapshotLookup = await getSalesSnapshotDocumentById({
 			db,
 			snapshotId: params.snapshotId,
-			templateId: params.templateId,
-			baseUrl: requestUrl.origin,
 		});
-		if (!previewData) notFound();
-
-		const buffer = await renderSalesPdfBuffer({
-			pages: previewData.pages,
-			title: previewData.title,
-			templateId: previewData.templateId,
-			companyAddress: previewData.companyAddress,
-			baseUrl: requestUrl.origin,
-			previewUrl: previewData.previewUrl,
-			qrCodeDataUrl: previewData.qrCodeDataUrl,
-		});
-
-		const headers: Record<string, string> = {
-			"Content-Type": "application/pdf",
-			"Cache-Control": "no-store, max-age=0",
-		};
-
-		if (!params.preview) {
-			headers["Content-Disposition"] =
-				`attachment; filename="${previewData.title}.pdf"`;
-		} else {
-			headers["Content-Disposition"] =
-				`inline; filename="${previewData.title}.pdf"`;
+		if (snapshotLookup) {
+			const storedResponse = await streamStoredPdfSnapshot({
+				snapshotLookup,
+				requestUrl,
+				preview: params.preview,
+			});
+			if (storedResponse) return storedResponse;
 		}
 
-		return new Response(buffer, { headers });
+		const fallbackResponse = await renderSnapshotPdfFallback({
+			requestUrl,
+			preview: params.preview,
+			templateId: params.templateId,
+			snapshotId: params.snapshotId,
+		});
+		if (fallbackResponse) return fallbackResponse;
+		notFound();
 	}
 
 	const payload = params.token
@@ -171,18 +230,9 @@ export async function GET(req: NextRequest) {
 		baseUrl: requestUrl.origin,
 	});
 
-	const headers: Record<string, string> = {
-		"Content-Type": "application/pdf",
-		"Cache-Control": "no-store, max-age=0",
-	};
-
-	if (!params.preview) {
-		headers["Content-Disposition"] =
-			`attachment; filename="${documentData.title}.pdf"`;
-	} else {
-		headers["Content-Disposition"] =
-			`inline; filename="${documentData.title}.pdf"`;
-	}
-
-	return new Response(buffer, { headers });
+	return createPdfResponse({
+		buffer,
+		title: documentData.title,
+		preview: params.preview,
+	});
 }

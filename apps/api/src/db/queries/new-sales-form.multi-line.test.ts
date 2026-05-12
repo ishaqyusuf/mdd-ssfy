@@ -1,8 +1,11 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, mock } from "bun:test";
+import { tasks } from "@trigger.dev/sdk/v3";
 import {
   getNewSalesForm,
   saveDraftNewSalesForm,
 } from "./new-sales-form";
+
+(tasks as any).trigger = mock(async () => ({ id: "test-trigger-run" }));
 
 function createMockContext() {
   const now = new Date("2026-02-24T12:00:00.000Z");
@@ -16,6 +19,7 @@ function createMockContext() {
     extraCosts: [] as any[],
     salesTaxes: [] as any[],
     salesDocumentSnapshots: [] as any[],
+    salesPrintData: [] as any[],
     users: [
       {
         id: 77,
@@ -364,6 +368,30 @@ function createMockContext() {
       update: async ({ where, data }: any) => {
         const row = state.salesDocumentSnapshots.find(
           (snapshot) => snapshot.id === where.id,
+        );
+        if (!row) return null;
+        Object.assign(row, data);
+        return row;
+      },
+    },
+    salesPrintData: {
+      findMany: async ({ where }: any) => {
+        return state.salesPrintData.filter((printData) => {
+          if (
+            where?.salesOrderId &&
+            printData.salesOrderId !== where.salesOrderId
+          )
+            return false;
+          if (where?.status != null && printData.status !== where.status)
+            return false;
+          if (where?.deletedAt === null && printData.deletedAt != null)
+            return false;
+          return true;
+        });
+      },
+      update: async ({ where, data }: any) => {
+        const row = state.salesPrintData.find(
+          (printData) => printData.id === where.id,
         );
         if (!row) return null;
         Object.assign(row, data);

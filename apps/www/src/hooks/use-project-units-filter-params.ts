@@ -10,6 +10,7 @@ export const projectUnitFilterParams = {
     q: parseAsString,
     builderSlug: parseAsString,
     projectSlug: parseAsString,
+    template: parseAsString,
     dateRange: parseAsArrayOf(parseAsString),
     installation: parseAsString,
     production: parseAsString,
@@ -26,4 +27,3 @@ export function useProjectUnitFilterParams() {
 export const loadProjectUnitFilterParams = createLoader(
     projectUnitFilterParams,
 );
-

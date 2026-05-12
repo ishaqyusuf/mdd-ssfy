@@ -5,6 +5,7 @@ import { parseSalesPrintRequest } from "./sales-print-request";
 import {
 	buildSalesDocumentRouteFromQuery,
 	buildSalesPdfDownloadUrlFromQuery,
+	openSalesPrintDocument,
 	prepareSalesHtmlPreview,
 	regenerateSalesPrintDocument,
 	resolveSalesHtmlPreviewAccess,
@@ -13,7 +14,7 @@ import {
 } from "./sales-print-service";
 
 describe("sales print service", () => {
-	it("classifies access-token-only links as rendered PDFs", () => {
+	it("classifies access-token print links as stored PDFs", () => {
 		const request = parseSalesPrintRequest({
 			accessToken: "access-123",
 			mode: "invoice",
@@ -21,7 +22,7 @@ describe("sales print service", () => {
 
 		expect(request.isValid).toBe(true);
 		expect(request.locatorType).toBe("access-token");
-		expect(request.renderMode).toBe("rendered-pdf");
+		expect(request.renderMode).toBe("stored-pdf");
 		expect(request.params.templateId).toBe("template-2");
 		expect(request.params.mode).toBe("invoice");
 	});
@@ -38,7 +39,7 @@ describe("sales print service", () => {
 		expect(request.renderMode).toBe("rendered-pdf");
 	});
 
-	it("classifies packing slip access-token links as rendered PDFs", () => {
+	it("classifies packing slip access-token print links as stored PDFs", () => {
 		const request = parseSalesPrintRequest({
 			accessToken: "access-123",
 			mode: "packing-slip",
@@ -46,7 +47,7 @@ describe("sales print service", () => {
 
 		expect(request.isValid).toBe(true);
 		expect(request.locatorType).toBe("access-token");
-		expect(request.renderMode).toBe("rendered-pdf");
+		expect(request.renderMode).toBe("stored-pdf");
 	});
 
 	it("classifies public, legacy, and snapshot locators as rendered PDFs", () => {
@@ -228,21 +229,165 @@ describe("sales print service", () => {
 		expect(forceRegenerate).toBe(true);
 	});
 
-	it("prepares HTML previews through lightweight token access", async () => {
-		let snapshotAccessCalls = 0;
-		let htmlPreviewAccessCalls = 0;
+	it("opens PDF print documents in the attachment overlay when enabled", async () => {
+		let openedViewerHref: string | null = null;
+		let openedLinkHref: string | null = null;
+		let pendingWindowOpened = false;
 		const response: ResolveSalesDocumentAccessResult = {
-			kind: "legacy",
+			kind: "snapshot",
 			generated: false,
 			mode: "invoice",
 			documentType: "invoice_pdf",
 			salesOrderId: 42,
-			accessToken: "preview-token-123",
+			snapshotId: "snapshot-1",
+			accessToken: "access-123",
 			expiresAt: null,
 			previewUrl:
-				"https://app.example.com/p/sales-document-v2?token=preview-token-123",
+				"https://app.example.com/p/sales-document-v2?accessToken=access-123",
 			downloadUrl:
-				"https://app.example.com/api/download/sales-v2?token=preview-token-123",
+				"https://app.example.com/api/download/sales-v2?accessToken=access-123",
+		};
+		const dependencies = {
+			resolveAccess: async () => response,
+			resolveHtmlPreviewAccess: async () => response,
+			openLink: (href) => {
+				openedLinkHref = href;
+			},
+			openViewerShell: (input) => {
+				openedViewerHref = input.content.props.href;
+				return true;
+			},
+			openPendingPrintWindow: () => {
+				pendingWindowOpened = true;
+				return null;
+			},
+			createPrintViewerContent: (href) => ({ props: { href } }),
+			getBaseUrl: () => "https://app.example.com",
+			useAttachmentOverlay: true,
+		};
+
+		await openSalesPrintDocument(
+			{ salesIds: [42], mode: "invoice" },
+			dependencies,
+		);
+
+		expect(openedViewerHref).toBe(
+			"/p/sales-invoice-v2?accessToken=access-123&preview=false&mode=invoice",
+		);
+		expect(openedLinkHref).toBe(null);
+		expect(pendingWindowOpened).toBe(false);
+	});
+
+	it("falls back to new-tab print when the attachment overlay provider is unavailable", async () => {
+		let openedLinkHref: string | null = null;
+		const response: ResolveSalesDocumentAccessResult = {
+			kind: "snapshot",
+			generated: false,
+			mode: "invoice",
+			documentType: "invoice_pdf",
+			salesOrderId: 42,
+			snapshotId: "snapshot-1",
+			accessToken: "access-123",
+			expiresAt: null,
+			previewUrl:
+				"https://app.example.com/p/sales-document-v2?accessToken=access-123",
+			downloadUrl:
+				"https://app.example.com/api/download/sales-v2?accessToken=access-123",
+		};
+		const dependencies = {
+			resolveAccess: async () => response,
+			resolveHtmlPreviewAccess: async () => response,
+			openLink: (href, _query, newTab) => {
+				openedLinkHref = `${href}|${newTab}`;
+			},
+			openViewerShell: () => false,
+			openPendingPrintWindow: () => null,
+			createPrintViewerContent: (href) => ({ props: { href } }),
+			getBaseUrl: () => "https://app.example.com",
+			useAttachmentOverlay: true,
+		};
+
+		await openSalesPrintDocument(
+			{ salesIds: [42], mode: "invoice" },
+			dependencies,
+		);
+
+		expect(openedLinkHref).toBe(
+			"/p/sales-invoice-v2?accessToken=access-123&preview=false&mode=invoice|true",
+		);
+	});
+
+	it("uses the legacy pending print window when the attachment overlay is disabled", async () => {
+		let openedViewer = false;
+		let replacedHref: string | null = null;
+		let openedLinkHref: string | null = null;
+		const response: ResolveSalesDocumentAccessResult = {
+			kind: "snapshot",
+			generated: false,
+			mode: "invoice",
+			documentType: "invoice_pdf",
+			salesOrderId: 42,
+			snapshotId: "snapshot-1",
+			accessToken: "access-123",
+			expiresAt: null,
+			previewUrl:
+				"https://app.example.com/p/sales-document-v2?accessToken=access-123",
+			downloadUrl:
+				"https://app.example.com/api/download/sales-v2?accessToken=access-123",
+		};
+		const pendingWindow = {
+			closed: false,
+			location: {
+				replace: (href: string) => {
+					replacedHref = href;
+				},
+			},
+			close: () => undefined,
+		};
+		const dependencies = {
+			resolveAccess: async () => response,
+			resolveHtmlPreviewAccess: async () => response,
+			openLink: (href) => {
+				openedLinkHref = href;
+			},
+			openViewerShell: () => {
+				openedViewer = true;
+				return true;
+			},
+			openPendingPrintWindow: () => pendingWindow,
+			createPrintViewerContent: (href) => ({ props: { href } }),
+			getBaseUrl: () => "https://app.example.com",
+			useAttachmentOverlay: false,
+		};
+
+		await openSalesPrintDocument(
+			{ salesIds: [42], mode: "invoice" },
+			dependencies,
+		);
+
+		expect(replacedHref).toBe(
+			"/p/sales-invoice-v2?accessToken=access-123&preview=false&mode=invoice",
+		);
+		expect(openedViewer).toBe(false);
+		expect(openedLinkHref).toBe(null);
+	});
+
+	it("prepares HTML previews through snapshot access", async () => {
+		let snapshotAccessCalls = 0;
+		let htmlPreviewAccessCalls = 0;
+		const response: ResolveSalesDocumentAccessResult = {
+			kind: "snapshot",
+			generated: false,
+			mode: "invoice",
+			documentType: "invoice_pdf",
+			salesOrderId: 42,
+			snapshotId: "snapshot-1",
+			accessToken: "access-123",
+			expiresAt: null,
+			previewUrl:
+				"https://app.example.com/p/sales-document-v2?pt=public-123",
+			downloadUrl:
+				"https://app.example.com/api/download/sales-v2?pt=public-123&preview=false",
 		};
 		const dependencies = {
 			resolveAccess: async () => {
@@ -264,7 +409,7 @@ describe("sales print service", () => {
 
 		expect(snapshotAccessCalls).toBe(0);
 		expect(htmlPreviewAccessCalls).toBe(1);
-		expect(href).toBe("/p/sales-document-v2?token=preview-token-123");
+		expect(href).toBe("/p/sales-document-v2?accessToken=access-123");
 	});
 
 	it("deduplicates concurrent HTML preview access resolution", async () => {

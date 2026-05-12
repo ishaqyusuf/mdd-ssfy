@@ -19,6 +19,7 @@ import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { DropdownMenu } from "@gnd/ui/namespace";
 import { ToastAction } from "@gnd/ui/toast";
+import { toast } from "@gnd/ui/use-toast";
 import type { SalesType } from "@sales/types";
 import { useMutation } from "@tanstack/react-query";
 import {
@@ -382,11 +383,36 @@ function useSalesPrintAction() {
 				? Number(params?.dispatchId)
 				: null;
 		if (options?.pdf) {
-			await downloadSalesPrintDocument({
-				salesIds: state.salesIds,
-				mode,
-				dispatchId,
+			actions.closeMenu();
+			const downloadToast = toast({
+				title: "Preparing PDF...",
+				description: "Generating the latest sales document.",
+				variant: "spinner",
+				duration: Number.POSITIVE_INFINITY,
 			});
+
+			try {
+				await downloadSalesPrintDocument({
+					salesIds: state.salesIds,
+					mode,
+					dispatchId,
+				});
+				downloadToast.update({
+					title: "PDF download started",
+					description: "Check your browser downloads.",
+					variant: "success",
+					duration: 2500,
+				} as any);
+			} catch (error) {
+				downloadToast.update({
+					title: "Unable to download PDF",
+					description:
+						error instanceof Error ? error.message : "Please try again.",
+					variant: "error",
+					duration: 3500,
+				} as any);
+			}
+			return;
 		} else {
 			actions.closeMenu();
 			await openSalesPrintDocument({

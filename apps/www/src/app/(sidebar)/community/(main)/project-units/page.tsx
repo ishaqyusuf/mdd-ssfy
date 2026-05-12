@@ -62,11 +62,17 @@ async function PrefetchedProjectUnitsAnalytics({
 	const overviewInput: ProjectUnitsOverviewInput = {
 		builderSlug: filter.builderSlug ?? undefined,
 		projectSlug: filter.projectSlug ?? undefined,
+		template:
+			(filter.template as ProjectUnitsOverviewQueryInput["template"]) ??
+			undefined,
 		production:
 			(filter.production as ProjectUnitsOverviewQueryInput["production"]) ??
 			undefined,
 		installation:
 			(filter.installation as ProjectUnitsOverviewQueryInput["installation"]) ??
+			undefined,
+		installCost:
+			(filter.installCost as ProjectUnitsOverviewQueryInput["installCost"]) ??
 			undefined,
 	};
 	await queryClient.fetchQuery(

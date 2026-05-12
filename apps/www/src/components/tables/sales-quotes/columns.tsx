@@ -7,8 +7,8 @@ import type { RouterOutputs } from "@api/trpc/routers/_app";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 
 import { SuperAdminGuard } from "@/components/auth-guard";
-import { SalesFormVersionMenuItems } from "@/components/sales-form-version-menu-items";
 import { SalesMenu } from "@/components/sales-menu";
+import { SalesOverviewVersionMenuItems } from "@/components/sales-overview-version-menu-items";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -177,12 +177,7 @@ function QuoteActions({ item }: { item: Item }) {
 				</Button>
 			}
 		>
-			<SalesFormVersionMenuItems
-				slug={item.slug}
-				type="quote"
-				uuid={item.uuid}
-				includeOverviewV2
-			/>
+			<SalesOverviewVersionMenuItems type="quote" uuid={item.uuid} />
 			<SalesMenu.QuoteEmailMenuItems />
 			<SuperAdminGuard>
 				<SalesMenu.PrintModes />

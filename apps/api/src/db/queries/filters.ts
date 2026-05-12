@@ -36,6 +36,7 @@ import {
   communityInstallCostFilters,
   communityInstllationFilters,
   communityProductionFilter,
+  communityTemplateConfigFilters,
   invoiceFilter,
   type GetProjectUnitsSchema,
 } from "./project-units";
@@ -383,16 +384,21 @@ export async function projectUnitFilters(ctx: TRPCContext) {
       "Invoice",
       labelValueOptions([...invoiceFilter]),
     ),
+    optionFilter<T>(
+      "template",
+      "Template",
+      labelValueOptions([...communityTemplateConfigFilters]),
+    ),
     dateRangeFilter<T>("dateRange", "Filter by date"),
     optionFilter<T>(
       "installation",
       "Installation",
-      labelValueOptions([...communityInstllationFilters]),
+      labelValueOptions(["has installation", "no installation"]),
     ),
     optionFilter<T>(
       "installCost",
       "Install Cost",
-      labelValueOptions([...communityInstallCostFilters]),
+      labelValueOptions(["configured", "part configured", "not configured"]),
     ),
     optionFilter<T>(
       "production",

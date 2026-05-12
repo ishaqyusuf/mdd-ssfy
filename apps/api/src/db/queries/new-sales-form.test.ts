@@ -20,6 +20,7 @@ function createMockContext() {
 		doors: [] as any[],
 		extraCosts: [] as any[],
 		documentSnapshots: [] as any[],
+		printData: [] as any[],
 		salesTaxes: [] as any[],
 		users: [
 			{
@@ -401,6 +402,31 @@ function createMockContext() {
 			update: async ({ where, data }: any) => {
 				const row = state.documentSnapshots.find(
 					(snapshot) => snapshot.id === where.id,
+				);
+				Object.assign(row, data);
+				return row;
+			},
+		},
+		salesPrintData: {
+			findMany: async ({ where }: any) =>
+				state.printData.filter((printData) => {
+					if (
+						where?.salesOrderId &&
+						printData.salesOrderId !== where.salesOrderId
+					) {
+						return false;
+					}
+					if (where?.status != null && printData.status !== where.status) {
+						return false;
+					}
+					if (where?.deletedAt === null && printData.deletedAt != null) {
+						return false;
+					}
+					return true;
+				}),
+			update: async ({ where, data }: any) => {
+				const row = state.printData.find(
+					(printData) => printData.id === where.id,
 				);
 				Object.assign(row, data);
 				return row;
