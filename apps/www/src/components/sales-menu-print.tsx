@@ -13,14 +13,7 @@ import { Icons } from "@gnd/ui/icons";
  *   <SalesMenuPrint salesIds={[123]} mode="quote" showPdf />
  */
 
-import {
-	downloadSalesPrintDocument,
-	printOrder,
-	printOrderWithPacking,
-	printPackingSlip,
-	printProduction,
-	printQuote,
-} from "@/modules/sales-print/application/sales-print-service";
+import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
 import type { PrintMode } from "@gnd/sales/print/types";
 import { DropdownMenu } from "@gnd/ui/namespace";
 import { useRef } from "react";
@@ -44,7 +37,12 @@ export function SalesMenuPrint({
 	showPdf = true,
 	disabled = false,
 }: SalesMenuPrintProps) {
-	const isDisabled = disabled || !salesIds.length;
+	const salesPrint = useSalesPrintController();
+	const isDisabled =
+		disabled ||
+		!salesIds.length ||
+		salesPrint.isPrinting ||
+		salesPrint.isDownloading;
 	const shiftClickRef = useRef(false);
 	const captureShiftClick = (event: { shiftKey: boolean }) => {
 		shiftClickRef.current = event.shiftKey;
@@ -62,8 +60,9 @@ export function SalesMenuPrint({
 				onPointerDown={captureShiftClick}
 				onSelect={(e) => {
 					e.preventDefault();
-					void PRINT_ACTIONS[mode]({
+					void salesPrint.print({
 						salesIds,
+						mode,
 						openInNewTab: consumeShiftClick(),
 					});
 				}}
@@ -86,8 +85,9 @@ export function SalesMenuPrint({
 					onPointerDown={captureShiftClick}
 					onSelect={(e) => {
 						e.preventDefault();
-						void PRINT_ACTIONS[mode]({
+						void salesPrint.print({
 							salesIds,
+							mode,
 							openInNewTab: consumeShiftClick(),
 						});
 					}}
@@ -99,7 +99,7 @@ export function SalesMenuPrint({
 					disabled={isDisabled}
 					onSelect={(e) => {
 						e.preventDefault();
-						void downloadSalesPrintDocument({ salesIds, mode });
+						void salesPrint.downloadPdf({ salesIds, mode });
 					}}
 				>
 					<Icons.FileText className="mr-2 size-4 text-muted-foreground/70" />
@@ -127,41 +127,12 @@ function V2Badge() {
 
 type OrderPrintMode = Exclude<PrintMode, "quote">;
 
-const PRINT_ACTIONS = {
-	invoice: printOrder,
-	"order-packing": printOrderWithPacking,
-	"packing-slip": printPackingSlip,
-	production: printProduction,
-	quote: printQuote,
-} satisfies Record<
-	PrintMode,
-	(args: {
-		salesIds: number[];
-		dispatchId?: number | null;
-		openInNewTab?: boolean;
-	}) => Promise<void>
->;
-
 const ORDER_MODES: { label: string; mode: OrderPrintMode }[] = [
 	{ label: "Order & Packing", mode: "order-packing" },
 	{ label: "Order", mode: "invoice" },
 	{ label: "Packing", mode: "packing-slip" },
 	{ label: "Production", mode: "production" },
 ];
-
-const ORDER_MODE_ACTIONS = {
-	"order-packing": printOrderWithPacking,
-	invoice: printOrder,
-	"packing-slip": printPackingSlip,
-	production: printProduction,
-} satisfies Record<
-	OrderPrintMode,
-	(args: {
-		salesIds: number[];
-		dispatchId?: number | null;
-		openInNewTab?: boolean;
-	}) => Promise<void>
->;
 
 /**
  * A print sub-menu that exposes all print modes for an order.
@@ -172,7 +143,8 @@ export function SalesMenuPrintModes({
 	salesType = "order",
 	disabled = false,
 }: SalesMenuPrintModesProps) {
-	const isDisabled = disabled || !salesIds.length;
+	const salesPrint = useSalesPrintController();
+	const isDisabled = disabled || !salesIds.length || salesPrint.isPrinting;
 	const shiftClickRef = useRef(false);
 	const captureShiftClick = (event: { shiftKey: boolean }) => {
 		shiftClickRef.current = event.shiftKey;
@@ -190,7 +162,12 @@ export function SalesMenuPrintModes({
 				onPointerDown={captureShiftClick}
 				onSelect={(e) => {
 					e.preventDefault();
-					void printQuote({ salesIds, openInNewTab: consumeShiftClick() });
+					void salesPrint.print({
+						salesIds,
+						mode: "quote",
+						openInNewTab: consumeShiftClick(),
+						salesType: "quote",
+					});
 				}}
 			>
 				<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
@@ -215,9 +192,11 @@ export function SalesMenuPrintModes({
 						onPointerDown={captureShiftClick}
 						onSelect={(e) => {
 							e.preventDefault();
-							void ORDER_MODE_ACTIONS[mode]({
+							void salesPrint.print({
 								salesIds,
+								mode,
 								openInNewTab: consumeShiftClick(),
+								salesType: "order",
 							});
 						}}
 					>

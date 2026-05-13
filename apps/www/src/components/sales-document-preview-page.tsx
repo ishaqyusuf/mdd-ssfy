@@ -2,15 +2,13 @@
 
 import { useAuth } from "@/hooks/use-auth";
 import { getBaseUrl } from "@/lib/base-url";
-import { cn } from "@/lib/utils";
 import { openLink } from "@/lib/open-link";
+import { cn } from "@/lib/utils";
 import {
 	buildSalesDocumentRouteFromQuery,
 	buildSalesPdfDownloadUrlFromQuery,
-	downloadSalesPrintDocument,
-	openSalesPrintDocument,
-	regenerateSalesPrintDocument,
 } from "@/modules/sales-print/application/sales-print-service";
+import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
 import { useTRPC } from "@/trpc/client";
 import type { ResolveSalesDocumentAccessResult } from "@gnd/api/utils/sales-document-access";
 import { SalesHtmlDocument } from "@gnd/pdf/sales-v2";
@@ -67,9 +65,7 @@ export function SalesDocumentPreviewPage({
 	const auth = useAuth();
 	const router = useRouter();
 	const baseUrl = getBaseUrl();
-	const [printing, setPrinting] = useState(false);
-	const [downloading, setDownloading] = useState(false);
-	const [regenerating, setRegenerating] = useState(false);
+	const salesPrint = useSalesPrintController();
 	const [regeneratedAccess, setRegeneratedAccess] =
 		useState<ResolveSalesDocumentAccessResult | null>(null);
 	const effectivePt = regeneratedAccess ? undefined : pt;
@@ -190,22 +186,13 @@ export function SalesDocumentPreviewPage({
 
 	async function handlePrint(event?: MouseEvent<HTMLButtonElement>) {
 		if (useSnapshotActions && resolvedSalesOrderId && data?.mode) {
-			setPrinting(true);
-			try {
-				await openSalesPrintDocument({
-					salesIds: [resolvedSalesOrderId],
-					mode: data.mode,
-					dispatchId: dispatchId ?? null,
-					templateId,
-					openInNewTab: event?.shiftKey ?? false,
-				});
-			} catch (error) {
-				toast.error(
-					error instanceof Error ? error.message : "Unable to prepare print.",
-				);
-			} finally {
-				setPrinting(false);
-			}
+			await salesPrint.print({
+				salesIds: [resolvedSalesOrderId],
+				mode: data.mode,
+				dispatchId: dispatchId ?? null,
+				templateId,
+				openInNewTab: event?.shiftKey ?? false,
+			});
 			return;
 		}
 
@@ -216,21 +203,12 @@ export function SalesDocumentPreviewPage({
 
 	async function handleDownloadPdf() {
 		if (useSnapshotActions && resolvedSalesOrderId && data?.mode) {
-			setDownloading(true);
-			try {
-				await downloadSalesPrintDocument({
-					salesIds: [resolvedSalesOrderId],
-					mode: data.mode,
-					dispatchId: dispatchId ?? null,
-					templateId,
-				});
-			} catch (error) {
-				toast.error(
-					error instanceof Error ? error.message : "Unable to prepare PDF.",
-				);
-			} finally {
-				setDownloading(false);
-			}
+			await salesPrint.downloadPdf({
+				salesIds: [resolvedSalesOrderId],
+				mode: data.mode,
+				dispatchId: dispatchId ?? null,
+				templateId,
+			});
 			return;
 		}
 
@@ -245,27 +223,23 @@ export function SalesDocumentPreviewPage({
 			return;
 		}
 
-		setRegenerating(true);
-		try {
-			const access = await regenerateSalesPrintDocument({
+		await salesPrint.regenerate(
+			{
 				salesIds: [resolvedSalesOrderId],
 				mode: data.mode,
 				dispatchId: dispatchId ?? null,
 				templateId,
 				baseUrl,
-			});
-			setRegeneratedAccess(access);
-			await queryClient.invalidateQueries({
-				queryKey: trpc.print.salesV2.pathKey(),
-			});
-			toast.success("Latest PDF snapshot generated.");
-		} catch (error) {
-			toast.error(
-				error instanceof Error ? error.message : "Unable to regenerate PDF.",
-			);
-		} finally {
-			setRegenerating(false);
-		}
+			},
+			{
+				onRegenerated: async (access) => {
+					setRegeneratedAccess(access);
+					await queryClient.invalidateQueries({
+						queryKey: trpc.print.salesV2.pathKey(),
+					});
+				},
+			},
+		);
 	}
 
 	if (isPending) {
@@ -384,19 +358,19 @@ export function SalesDocumentPreviewPage({
 								/>
 							) : null}
 							<ToolbarButton
-								label={printing ? "Preparing print" : "Print"}
-								icon={printing ? Icons.Loader2 : Icons.Printer}
-								loading={printing}
-								disabled={printing}
+								label={salesPrint.isPrinting ? "Preparing print" : "Print"}
+								icon={salesPrint.isPrinting ? Icons.Loader2 : Icons.Printer}
+								loading={salesPrint.isPrinting}
+								disabled={salesPrint.isPrinting}
 								onClick={(event) => {
 									void handlePrint(event);
 								}}
 							/>
 							<ToolbarButton
-								label={downloading ? "Preparing PDF" : "PDF"}
-								icon={downloading ? Icons.Loader2 : Icons.FileText}
-								loading={downloading}
-								disabled={downloading}
+								label={salesPrint.isDownloading ? "Preparing PDF" : "PDF"}
+								icon={salesPrint.isDownloading ? Icons.Loader2 : Icons.FileText}
+								loading={salesPrint.isDownloading}
+								disabled={salesPrint.isDownloading}
 								onClick={() => {
 									void handleDownloadPdf();
 								}}
@@ -404,15 +378,17 @@ export function SalesDocumentPreviewPage({
 							{auth.can?.editSales && resolvedSalesOrderId ? (
 								<ToolbarButton
 									label={
-										regenerating
+										salesPrint.isRegenerating
 											? "Regenerating"
 											: isSnapshotStale
 												? "Regenerate stale PDF"
 												: "Regenerate"
 									}
-									icon={regenerating ? Icons.Loader2 : Icons.RefreshCw}
-									loading={regenerating}
-									disabled={regenerating}
+									icon={
+										salesPrint.isRegenerating ? Icons.Loader2 : Icons.RefreshCw
+									}
+									loading={salesPrint.isRegenerating}
+									disabled={salesPrint.isRegenerating}
 									emphasis={isSnapshotStale}
 									onClick={() => {
 										void handleRegeneratePdf();
@@ -431,7 +407,11 @@ export function SalesDocumentPreviewPage({
 							{onClose ? (
 								<>
 									<div className="mx-1 h-4 w-px bg-border" />
-									<ToolbarButton label="Close" icon={Icons.X} onClick={onClose} />
+									<ToolbarButton
+										label="Close"
+										icon={Icons.X}
+										onClick={onClose}
+									/>
 								</>
 							) : null}
 						</SalesDocumentPreviewToolbar>
@@ -511,28 +491,28 @@ export function SalesDocumentPreviewPage({
 							onClick={(event) => {
 								void handlePrint(event);
 							}}
-							disabled={printing}
+							disabled={salesPrint.isPrinting}
 						>
-							{printing ? (
+							{salesPrint.isPrinting ? (
 								<Icons.Loader2 className="mr-2 size-4 animate-spin" />
 							) : (
 								<Icons.Printer className="mr-2 size-4" />
 							)}
-							{printing ? "Preparing..." : "Print"}
+							{salesPrint.isPrinting ? "Preparing..." : "Print"}
 						</Button>
 						<Button
 							variant="secondary"
 							onClick={() => {
 								void handleDownloadPdf();
 							}}
-							disabled={downloading}
+							disabled={salesPrint.isDownloading}
 						>
-							{downloading ? (
+							{salesPrint.isDownloading ? (
 								<Icons.Loader2 className="mr-2 size-4 animate-spin" />
 							) : (
 								<Icons.File className="mr-2 size-4" />
 							)}
-							{downloading ? "Preparing..." : "PDF"}
+							{salesPrint.isDownloading ? "Preparing..." : "PDF"}
 						</Button>
 						{auth.can?.editSales && resolvedSalesOrderId ? (
 							<Button
@@ -540,14 +520,14 @@ export function SalesDocumentPreviewPage({
 								onClick={() => {
 									void handleRegeneratePdf();
 								}}
-								disabled={regenerating}
+								disabled={salesPrint.isRegenerating}
 							>
-								{regenerating ? (
+								{salesPrint.isRegenerating ? (
 									<Icons.Loader2 className="mr-2 size-4 animate-spin" />
 								) : (
 									<Icons.RefreshCw className="mr-2 size-4" />
 								)}
-								{regenerating ? "Regenerating..." : "Regenerate"}
+								{salesPrint.isRegenerating ? "Regenerating..." : "Regenerate"}
 							</Button>
 						) : null}
 						{auth.can?.editOrders && overviewUrl ? (

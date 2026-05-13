@@ -7,10 +7,7 @@ import { _modal } from "@/components/common/modal/provider";
 import { useAuth } from "@/hooks/use-auth";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
-import {
-	printOrder,
-	printQuote,
-} from "@/modules/sales-print/application/sales-print-service";
+import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
@@ -105,10 +102,7 @@ function getLineTitlePlaceholder(line: {
 				.toLowerCase() === "item type",
 	);
 	const itemTypeLabel = String(
-		itemTypeStep?.value ||
-			itemTypeStep?.title ||
-			itemTypeStep?.prodUid ||
-			"",
+		itemTypeStep?.value || itemTypeStep?.title || itemTypeStep?.prodUid || "",
 	).trim();
 	return itemTypeLabel || "";
 }
@@ -128,7 +122,9 @@ function lineItemPickerLabel(
 	const explicitTitle = String(line?.title || "").trim();
 	if (explicitTitle) return explicitTitle;
 	const placeholder = getLineTitlePlaceholder(line);
-	return placeholder ? `Item ${index + 1} (${placeholder})` : `Item ${index + 1}`;
+	return placeholder
+		? `Item ${index + 1} (${placeholder})`
+		: `Item ${index + 1}`;
 }
 
 type DispatchStatus =
@@ -188,6 +184,7 @@ function WorkflowPanelSkeleton() {
 
 export function NewSalesForm(props: Props) {
 	const router = useRouter();
+	const salesPrint = useSalesPrintController();
 	const overviewQuery = useSalesOverviewQuery();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -379,13 +376,17 @@ export function NewSalesForm(props: Props) {
 		if (!record) return null;
 		return toSaveDraftInput(record, true);
 	}, [record]);
+	const recordPaymentMeta = record as {
+		paymentMethodReviewDismissed?: unknown;
+		paymentTotal?: unknown;
+	} | null;
 	const shouldReviewPaymentMethod =
 		isOrder &&
 		props.mode === "edit" &&
 		Boolean(record?.salesId) &&
 		!paymentReviewSeen &&
-		!Boolean((record as any)?.paymentMethodReviewDismissed) &&
-		Number((record as any)?.paymentTotal || 0) <= 0 &&
+		!recordPaymentMeta?.paymentMethodReviewDismissed &&
+		Number(recordPaymentMeta?.paymentTotal || 0) <= 0 &&
 		(!record?.form?.paymentMethod ||
 			record.form.paymentMethod !== "Credit Card");
 	const itemOptions = useMemo(
@@ -912,7 +913,9 @@ export function NewSalesForm(props: Props) {
 				await handlePostSaveSuccess(resp);
 				await clearSelectedCustomerQuery();
 			}
-			router.push(`/sales-book/${props.type === "order" ? "orders" : "quotes"}`);
+			router.push(
+				`/sales-book/${props.type === "order" ? "orders" : "quotes"}`,
+			);
 		});
 	}
 
@@ -934,11 +937,12 @@ export function NewSalesForm(props: Props) {
 	async function handlePrint(event?: ReactMouseEvent<HTMLButtonElement>) {
 		if (!record?.salesId) return;
 		const openInNewTab = event?.shiftKey ?? false;
-		if (props.type === "order") {
-			void printOrder({ salesIds: [record.salesId], openInNewTab });
-			return;
-		}
-		void printQuote({ salesIds: [record.salesId], openInNewTab });
+		await salesPrint.print({
+			salesIds: [record.salesId],
+			mode: props.type === "order" ? "invoice" : "quote",
+			openInNewTab,
+			salesType: props.type,
+		});
 	}
 
 	function handleOpenOverview() {
@@ -1043,6 +1047,7 @@ export function NewSalesForm(props: Props) {
 						onSaveFinal={saveFinal}
 						onOpenOverview={handleOpenOverview}
 						onPrint={handlePrint}
+						isPrinting={salesPrint.isPrinting}
 						isSaved={isSaved}
 						showPackingControls={isOrder}
 						packingButtonLabel={

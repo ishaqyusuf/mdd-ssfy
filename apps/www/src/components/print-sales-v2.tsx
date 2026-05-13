@@ -2,6 +2,7 @@
 
 import { useSalesPrintFilter } from "@/hooks/use-sales-print-filter";
 import { cn } from "@/lib/utils";
+import { printLoadedFrame } from "@/modules/sales-print/application/print-frame";
 import {
 	type SalesPrintRequestInfo,
 	parseSalesPrintRequest,
@@ -44,30 +45,6 @@ interface PrintSalesV2Props {
 		stage: SalesPrintStage,
 		details?: SalesPrintStageDetails,
 	) => void;
-}
-
-function waitForNextFrame() {
-	return new Promise<void>((resolve) => {
-		requestAnimationFrame(() => {
-			requestAnimationFrame(() => resolve());
-		});
-	});
-}
-
-async function waitForPrintableFrame(iframe: HTMLIFrameElement) {
-	await waitForNextFrame();
-
-	try {
-		const iframeDocument = iframe.contentDocument;
-		if (iframeDocument?.fonts?.ready) {
-			await iframeDocument.fonts.ready;
-		}
-	} catch {
-		// Browser PDF viewers can hide their internals; iframe load is still the
-		// reliable signal that the blob URL has been handed off to the viewer.
-	}
-
-	await waitForNextFrame();
 }
 
 export function PrintSalesV2({
@@ -297,7 +274,6 @@ function StoredPdfPrintFrame({
 	const handleViewerLoad = useCallback(
 		async (event: SyntheticEvent<HTMLIFrameElement>) => {
 			const iframe = event.currentTarget;
-			onPrintStage?.("pdf-iframe-load", { href: src });
 			if (loadTimeoutRef.current) {
 				window.clearTimeout(loadTimeoutRef.current);
 				loadTimeoutRef.current = null;
@@ -308,23 +284,13 @@ function StoredPdfPrintFrame({
 			}
 
 			printedRef.current = true;
-			try {
-				await waitForPrintableFrame(iframe);
-				const printWindow = iframe.contentWindow;
-				if (!printWindow) {
-					throw new Error("The print frame is unavailable.");
-				}
-				printWindow.focus();
-				printWindow.print();
-				onPrintStage?.("print-dialog-called", { href: src });
-				onPrintReady?.();
-			} catch (error) {
-				onPrintStage?.("print-data-query-error", {
-					href: src,
-					error,
-				});
-				onPrintError?.(error);
-			}
+			await printLoadedFrame({
+				iframe,
+				href: src,
+				onPrintReady,
+				onPrintError,
+				onPrintStage,
+			});
 		},
 		[onPrintError, onPrintReady, onPrintStage, src],
 	);

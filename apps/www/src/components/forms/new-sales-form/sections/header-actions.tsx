@@ -45,6 +45,7 @@ interface Props {
 	onSaveFinal?: () => Promise<void> | void;
 	onOpenOverview?: () => void;
 	onPrint?: (event?: MouseEvent<HTMLButtonElement>) => Promise<void> | void;
+	isPrinting?: boolean;
 	showPackingControls?: boolean;
 	packingButtonLabel?: string;
 	packingBusy?: boolean;
@@ -133,9 +134,14 @@ export function HeaderActions(props: Props) {
 						size="icon"
 						variant="outline"
 						onClick={(event) => void props.onPrint?.(event)}
-						disabled={props.isSaving || !props.isSaved}
+						disabled={props.isSaving || !props.isSaved || props.isPrinting}
+						aria-label={props.isPrinting ? "Preparing print" : "Print"}
 					>
-						<Icons.Printer className="size-4" />
+						{props.isPrinting ? (
+							<Icons.Loader2 className="size-4 animate-spin" />
+						) : (
+							<Icons.Printer className="size-4" />
+						)}
 					</Button>
 					{props.showPackingControls ? (
 						<div className="flex items-center">
@@ -208,7 +214,10 @@ export function HeaderActions(props: Props) {
 							</SelectTrigger>
 							<SelectContent>
 								{(props.itemOptions || []).map((option) => (
-									<SelectItem key={`header-item-${option.uid}`} value={option.uid}>
+									<SelectItem
+										key={`header-item-${option.uid}`}
+										value={option.uid}
+									>
 										{option.label}
 									</SelectItem>
 								))}

@@ -2,6 +2,7 @@
 
 import { getBaseUrl } from "@/lib/base-url";
 import { cn } from "@/lib/utils";
+import { printLoadedFrame } from "@/modules/sales-print/application/print-frame";
 import type {
 	SalesPrintStage,
 	SalesPrintStageDetails,
@@ -29,30 +30,6 @@ export interface RenderedPdfPrintViewerProps {
 		stage: SalesPrintStage,
 		details?: SalesPrintStageDetails,
 	) => void;
-}
-
-function waitForNextFrame() {
-	return new Promise<void>((resolve) => {
-		requestAnimationFrame(() => {
-			requestAnimationFrame(() => resolve());
-		});
-	});
-}
-
-async function waitForPrintableFrame(iframe: HTMLIFrameElement) {
-	await waitForNextFrame();
-
-	try {
-		const iframeDocument = iframe.contentDocument;
-		if (iframeDocument?.fonts?.ready) {
-			await iframeDocument.fonts.ready;
-		}
-	} catch {
-		// Browser PDF viewers can hide their internals; iframe load is still the
-		// reliable signal that the blob URL has been handed off to the viewer.
-	}
-
-	await waitForNextFrame();
 }
 
 export function RenderedPdfPrintViewer({
@@ -90,29 +67,23 @@ export function RenderedPdfPrintViewer({
 	const handleViewerLoad = useCallback(
 		async (event: SyntheticEvent<HTMLIFrameElement>) => {
 			const iframe = event.currentTarget;
-			onPrintStage?.("pdf-iframe-load", { href: iframe.src });
+			const href = iframe.src;
+			onPrintStage?.("pdf-iframe-load", { href });
 			if (preview || printedRef.current || !iframe.src.startsWith("blob:")) {
 				return;
 			}
 
 			printedRef.current = true;
-			try {
-				await waitForPrintableFrame(iframe);
-				const printWindow = iframe.contentWindow;
-				if (!printWindow) {
-					throw new Error("The print frame is unavailable.");
-				}
-				printWindow.focus();
-				printWindow.print();
-				onPrintStage?.("print-dialog-called", { href: iframe.src });
-				onPrintReady?.();
-			} catch (error) {
-				onPrintStage?.("print-data-query-error", {
-					href: iframe.src,
-					error,
-				});
-				onPrintError?.(error);
-			}
+			await printLoadedFrame({
+				iframe,
+				href,
+				onPrintReady,
+				onPrintError,
+				onPrintStage: (stage, details) => {
+					if (stage === "pdf-iframe-load") return;
+					onPrintStage?.(stage, details);
+				},
+			});
 		},
 		[onPrintError, onPrintReady, onPrintStage, preview],
 	);

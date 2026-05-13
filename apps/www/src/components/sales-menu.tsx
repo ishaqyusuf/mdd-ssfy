@@ -6,13 +6,8 @@ import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { openLink } from "@/lib/open-link";
 import { newSalesHelper } from "@/lib/sales";
-import {
-	type SalesPrintStage,
-	type SalesPrintStageDetails,
-	downloadSalesPrintDocument,
-	openSalesPrintDocument,
-	resolveSalesPrintMode,
-} from "@/modules/sales-print/application/sales-print-service";
+import { resolveSalesPrintMode } from "@/modules/sales-print/application/sales-print-service";
+import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
 import { useTRPC } from "@/trpc/client";
 import type { SalesPrintProps } from "@/utils/sales-print-utils";
 import { salesFormUrl } from "@/utils/sales-utils";
@@ -20,8 +15,6 @@ import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { DropdownMenu } from "@gnd/ui/namespace";
 import { ToastAction } from "@gnd/ui/toast";
-import { toast } from "@gnd/ui/use-toast";
-import type { SalesType } from "@sales/types";
 import { useMutation } from "@tanstack/react-query";
 import {
 	type ComponentProps,
@@ -32,6 +25,8 @@ import {
 	useRef,
 	useState,
 } from "react";
+
+type SalesType = "order" | "quote";
 
 type SalesMenuState = {
 	id?: number;
@@ -53,75 +48,6 @@ type SalesMenuContextValue = {
 		isOpen: boolean;
 	};
 };
-
-type ToastUpdateInput = Parameters<ReturnType<typeof toast>["update"]>[0];
-
-function getSalesPrintStageToast(
-	stage: SalesPrintStage,
-	details?: SalesPrintStageDetails,
-) {
-	switch (stage) {
-		case "resolve-access-start":
-			return {
-				title: "Preparing print...",
-				description:
-					(details?.salesIds?.length ?? 0) > 1
-						? "Requesting access for selected orders."
-						: "Requesting document access.",
-			};
-		case "resolve-access-done":
-			return {
-				title: "Print access ready",
-				description: "Loading the print viewer.",
-			};
-		case "hidden-viewer-mounted":
-			return {
-				title: "Print viewer loading",
-				description: "Waiting for the PDF viewer to finish loading.",
-			};
-		case "print-data-query-start":
-			return {
-				title: "Loading selected orders",
-				description: "Preparing printable sales data.",
-			};
-		case "print-data-query-done":
-			return {
-				title: "Rendering PDF",
-				description: "Sales data loaded. Waiting for the PDF frame.",
-			};
-		case "pdf-iframe-load":
-			return {
-				title: "PDF loaded",
-				description: "Opening the browser print dialog.",
-			};
-		case "print-dialog-called":
-			return {
-				title: "Print dialog opened",
-				description: "Choose a printer to finish printing.",
-			};
-		case "print-timeout":
-			return {
-				title: "Print viewer needs attention",
-				description:
-					details?.message ||
-					"The hidden print viewer is taking longer than expected.",
-			};
-		case "resolve-access-error":
-		case "print-data-query-error":
-			return {
-				title: "Unable to prepare print",
-				description:
-					details?.error instanceof Error
-						? details.error.message
-						: details?.message || "Please try again.",
-			};
-		default:
-			return {
-				title: "Preparing print...",
-				description: "Working on the print request.",
-			};
-	}
-}
 
 const SalesMenuContext = createContext<SalesMenuContextValue | null>(null);
 
@@ -424,6 +350,7 @@ type PrintActionProps = {
 
 function useSalesPrintAction() {
 	const { state, actions } = useSalesMenuContext();
+	const salesPrint = useSalesPrintController();
 
 	return async function runPrint(
 		params?: SalesPrintProps,
@@ -455,166 +382,23 @@ function useSalesPrintAction() {
 				: null;
 		if (options?.pdf) {
 			actions.closeMenu();
-			const downloadToast = toast({
-				title: "Preparing PDF...",
-				description: "Generating the latest sales document.",
-				variant: "spinner",
-				duration: Number.POSITIVE_INFINITY,
+			await salesPrint.downloadPdf({
+				salesIds: state.salesIds,
+				mode,
+				dispatchId,
+				salesType: state.type === "quote" ? "quote" : "order",
 			});
-
-			try {
-				await downloadSalesPrintDocument({
-					salesIds: state.salesIds,
-					mode,
-					dispatchId,
-				});
-				downloadToast.update({
-					title: "PDF download started",
-					description: "Check your browser downloads.",
-					variant: "success",
-					duration: 2500,
-				} as ToastUpdateInput);
-			} catch (error) {
-				downloadToast.update({
-					title: "Unable to download PDF",
-					description:
-						error instanceof Error ? error.message : "Please try again.",
-					variant: "error",
-					duration: 3500,
-				} as ToastUpdateInput);
-			}
 			return;
 		}
 
 		actions.closeMenu();
-		const printToast = options?.openInNewTab
-			? null
-			: toast({
-					title: "Preparing print...",
-					description: "Requesting access for the selected document.",
-					variant: "spinner",
-					duration: Number.POSITIVE_INFINITY,
-				});
-		let latestPrintHref: string | null = null;
-		let dismissPrintToastTimer: ReturnType<typeof setTimeout> | null = null;
-		const dismissPrintToastAfter = (delayMs: number) => {
-			if (!printToast) return;
-			if (dismissPrintToastTimer) {
-				clearTimeout(dismissPrintToastTimer);
-			}
-			dismissPrintToastTimer = setTimeout(() => {
-				printToast.dismiss();
-				dismissPrintToastTimer = null;
-			}, delayMs);
-		};
-		const updatePrintToast = (
-			input: ToastUpdateInput,
-			dismissAfterMs?: number,
-		) => {
-			printToast?.update(input);
-			if (dismissAfterMs != null) {
-				dismissPrintToastAfter(dismissAfterMs);
-			}
-		};
-		const updatePrintStage = (
-			stage: SalesPrintStage,
-			details?: SalesPrintStageDetails,
-		) => {
-			if (details?.href) {
-				latestPrintHref = details.href;
-			}
-			console.info("[sales-print]", stage, {
-				mode,
-				salesIds: state.salesIds,
-				...details,
-			});
-			if (!printToast) return;
-
-			const nextToast = getSalesPrintStageToast(stage, details);
-			const isErrorStage =
-				stage === "resolve-access-error" ||
-				stage === "print-data-query-error" ||
-				stage === "print-timeout";
-			const isDoneStage = stage === "print-dialog-called";
-			const toastUpdate = {
-				...nextToast,
-				variant: isErrorStage ? "error" : isDoneStage ? "success" : "spinner",
-				duration: isErrorStage
-					? 8000
-					: isDoneStage
-						? 2500
-						: Number.POSITIVE_INFINITY,
-				action:
-					isErrorStage && latestPrintHref ? (
-						<ToastAction
-							altText="Open print view"
-							onClick={() => {
-								if (latestPrintHref) openLink(latestPrintHref, null, true);
-							}}
-						>
-							Open
-						</ToastAction>
-					) : undefined,
-			} as ToastUpdateInput;
-			updatePrintToast(
-				toastUpdate,
-				isErrorStage ? 8000 : isDoneStage ? 2500 : undefined,
-			);
-		};
-
-		try {
-			await openSalesPrintDocument({
-				salesIds: state.salesIds,
-				mode,
-				dispatchId,
-				openInNewTab: options?.openInNewTab,
-				onPrintStage: updatePrintStage,
-				onPrintReady: () => {
-					updatePrintToast(
-						{
-							title: "Print dialog opened",
-							description: "Choose a printer to finish printing.",
-							variant: "success",
-							duration: 2500,
-						} as ToastUpdateInput,
-						2500,
-					);
-				},
-				onPrintError: (error) => {
-					updatePrintToast(
-						{
-							title: "Unable to open print dialog",
-							description:
-								error instanceof Error ? error.message : "Please try again.",
-							variant: "error",
-							duration: 8000,
-							action: latestPrintHref ? (
-								<ToastAction
-									altText="Open print view"
-									onClick={() => {
-										if (latestPrintHref) openLink(latestPrintHref, null, true);
-									}}
-								>
-									Open
-								</ToastAction>
-							) : undefined,
-						} as ToastUpdateInput,
-						8000,
-					);
-				},
-			});
-		} catch (error) {
-			updatePrintToast(
-				{
-					title: "Unable to prepare print",
-					description:
-						error instanceof Error ? error.message : "Please try again.",
-					variant: "error",
-					duration: 3500,
-				} as ToastUpdateInput,
-				3500,
-			);
-		}
+		await salesPrint.print({
+			salesIds: state.salesIds,
+			mode,
+			dispatchId,
+			openInNewTab: options?.openInNewTab,
+			salesType: state.type === "quote" ? "quote" : "order",
+		});
 	};
 }
 

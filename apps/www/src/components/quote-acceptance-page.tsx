@@ -1,7 +1,7 @@
 "use client";
 
 import { openLink } from "@/lib/open-link";
-import { openSalesPrintDocument } from "@/modules/sales-print/application/sales-print-service";
+import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
 import { useTRPC } from "@/trpc/client";
 import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
 import { Badge } from "@gnd/ui/badge";
@@ -43,6 +43,7 @@ export function QuoteAcceptancePage({ orderId, token }: Props) {
 		acceptedAt?: string | null;
 		paymentToken?: string | null;
 	} | null>(null);
+	const salesPrint = useSalesPrintController();
 
 	const { data } = useSuspenseQuery(
 		trpc.checkout.initializeQuoteAcceptance.queryOptions({
@@ -106,6 +107,8 @@ export function QuoteAcceptancePage({ orderId, token }: Props) {
 	const isAccepted = currentOrder.type === "order" || !!acceptedOrder;
 	const hasBalance = Number(currentOrder.due || 0) > 0;
 	const paymentToken = acceptedOrder?.paymentToken || sale.paymentToken;
+	const currentOrderSalesId =
+		"salesId" in currentOrder ? currentOrder.salesId : currentOrder.id;
 
 	return (
 		<div className="mx-auto flex min-h-[calc(100vh-7rem)] w-full max-w-5xl items-center px-4 py-8 sm:px-6">
@@ -235,14 +238,17 @@ export function QuoteAcceptancePage({ orderId, token }: Props) {
 										variant="outline"
 										className="h-12"
 										onClick={(event) =>
-											void openSalesPrintDocument({
-												salesIds: [currentOrder.salesId],
+											void salesPrint.print({
+												salesIds: [currentOrderSalesId],
 												mode: "invoice",
 												openInNewTab: event.shiftKey,
 											})
 										}
+										disabled={salesPrint.isPrinting}
 									>
-										View Invoice
+										{salesPrint.isPrinting
+											? "Preparing invoice..."
+											: "View Invoice"}
 									</Button>
 								</>
 							) : (
