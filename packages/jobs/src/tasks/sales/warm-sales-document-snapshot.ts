@@ -13,6 +13,7 @@ import {
 	type SalesDocumentSnapshotRecord,
 	type SalesDocumentSnapshotRepository,
 	createOrRefreshSalesPrintData,
+	isSalesSourceStale,
 	resolveCurrentSalesDocument,
 	salesPrintDataToPrintDocumentData,
 } from "@gnd/sales/pdf-system";
@@ -119,7 +120,10 @@ async function isSalesSnapshotStale(
 	if (!saleUpdatedAt) return false;
 	if (!snapshot.sourceUpdatedAt) return true;
 
-	return snapshot.sourceUpdatedAt.getTime() < saleUpdatedAt.getTime();
+	return isSalesSourceStale({
+		sourceUpdatedAt: snapshot.sourceUpdatedAt,
+		saleUpdatedAt,
+	});
 }
 
 function sanitizeFilename(value: string) {

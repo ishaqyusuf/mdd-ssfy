@@ -24,7 +24,6 @@ import {
 } from "@gnd/ui/hover-card";
 import { Icon, Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
-import { Table, TableBody, TableCell, TableRow } from "@gnd/ui/table";
 import { transformFilterDateToQuery } from "@gnd/utils";
 import { type DaysFilters, daysFilters } from "@gnd/utils/constants";
 import { formatISO } from "date-fns";
@@ -221,8 +220,8 @@ export function SearchFilterTRPC({
 			</div>
 			<DropdownMenuContent
 				className={cn("w-[min(22rem,calc(100vw-2rem))] lg:w-[350px]")}
-				sideOffset={19}
-				alignOffset={-11}
+				sideOffset={4}
+				alignOffset={0}
 				side="bottom"
 				align="end"
 			>
@@ -331,11 +330,18 @@ function CalendarFilter({ filter }: CalendarFilterProps) {
 	};
 
 	return (
-		<div className="flex">
-			<Table>
-				<TableBody>
-					{daysFilters.map((dayFilter) => (
-						<TableRow
+		<div className="flex max-w-[calc(100vw-2rem)] overflow-x-auto">
+			<div className="w-32 shrink-0 border-r border-border py-1">
+				{daysFilters.map((dayFilter) => {
+					const selected = isCurrentFilter(dayFilter);
+
+					return (
+						<button
+							type="button"
+							className={cn(
+								"flex h-8 w-full items-center gap-2 px-2 text-left text-sm capitalize text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
+								selected && "bg-accent font-medium text-accent-foreground",
+							)}
 							onClick={() => {
 								setFilters({
 									[filter.key]: [dayFilter],
@@ -343,51 +349,46 @@ function CalendarFilter({ filter }: CalendarFilterProps) {
 							}}
 							key={dayFilter}
 						>
-							<TableCell
+							<Icons.CheckCircle
 								className={cn(
-									"flex cursor-pointer items-center gap-4 pr-12 capitalize",
-									isCurrentFilter(dayFilter) && "font-semibold",
+									"size-3 shrink-0",
+									selected ? "opacity-100" : "opacity-20",
 								)}
-							>
-								<Icons.CheckCircle
-									className={cn(
-										"size-3",
-										!isCurrentFilter(dayFilter) && "opacity-20",
-									)}
-								/>
-								{dayFilter}
-							</TableCell>
-						</TableRow>
-					))}
-				</TableBody>
-			</Table>
+							/>
+							<span className="truncate">{dayFilter}</span>
+						</button>
+					);
+				})}
+			</div>
 
-			<Calendar
-				mode="range"
-				initialFocus
-				selected={{
-					from: dateValue(0),
-					to: dateValue(1),
-				}}
-				onSelect={(range) => {
-					const value = [
-						range?.from
-							? formatISO(range.from, {
-									representation: "date",
-								})
-							: "-",
-						range?.to
-							? formatISO(range.to, {
-									representation: "date",
-								})
-							: "-",
-					];
+			<div className="min-w-max">
+				<Calendar
+					mode="range"
+					initialFocus
+					selected={{
+						from: dateValue(0),
+						to: dateValue(1),
+					}}
+					onSelect={(range) => {
+						const value = [
+							range?.from
+								? formatISO(range.from, {
+										representation: "date",
+									})
+								: "-",
+							range?.to
+								? formatISO(range.to, {
+										representation: "date",
+									})
+								: "-",
+						];
 
-					setFilters({
-						[filter.key]: value,
-					});
-				}}
-			/>
+						setFilters({
+							[filter.key]: value,
+						});
+					}}
+				/>
+			</div>
 		</div>
 	);
 }

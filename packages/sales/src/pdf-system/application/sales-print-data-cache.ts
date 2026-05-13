@@ -1,9 +1,10 @@
-import { Prisma, type Db } from "@gnd/db";
+import { type Db, Prisma } from "@gnd/db";
 import {
 	getPrintDocumentData,
 	resolveSalesCompanyAddress,
 } from "../../print/get-print-document-data";
 import type { CompanyAddress, PrintMode, PrintPage } from "../../print/types";
+import { isSalesSourceStale } from "./source-freshness";
 
 const DEFAULT_TEMPLATE_ID = "template-2";
 
@@ -100,7 +101,9 @@ export function buildSalesPrintStoredDocumentKind(documentType: string) {
 	return `sales_pdf_snapshot:${documentType}`;
 }
 
-export function salesPrintDataToPrintDocumentData(record: SalesPrintDataRecord) {
+export function salesPrintDataToPrintDocumentData(
+	record: SalesPrintDataRecord,
+) {
 	return {
 		pages: record.pages,
 		title: record.title,
@@ -445,7 +448,10 @@ async function isSalesPrintDataStale(
 	if (!saleUpdatedAt) return false;
 	if (!input.sourceUpdatedAt) return true;
 
-	return input.sourceUpdatedAt.getTime() < saleUpdatedAt.getTime();
+	return isSalesSourceStale({
+		sourceUpdatedAt: input.sourceUpdatedAt,
+		saleUpdatedAt,
+	});
 }
 
 async function markSalesPrintDataFailed(
@@ -482,9 +488,7 @@ async function markSalesPrintDataFailed(
 		status: "failed",
 		reason: input.reason ?? null,
 		errorMessage: input.errorMessage,
-		meta: input.meta
-			? (input.meta as Prisma.InputJsonValue)
-			: Prisma.JsonNull,
+		meta: input.meta ? (input.meta as Prisma.InputJsonValue) : Prisma.JsonNull,
 	};
 
 	if (input.currentId) {

@@ -7,11 +7,12 @@ import {
 	type SalesDocumentSnapshotRepository,
 	createOrRefreshBatchSalesPrintData,
 	createOrRefreshSalesPrintData,
+	evaluateSalesSourceFreshness,
 	expireCurrentSalesPrintData,
 	resolveCurrentSalesDocument,
 	salesPrintDataToPrintDocumentData,
 } from "@gnd/sales/pdf-system";
-import { getPrintDocumentData } from "@gnd/sales/print";
+import type { getPrintDocumentData } from "@gnd/sales/print";
 import type { PrintMode } from "@gnd/sales/print/types";
 import {
 	type SalesDocumentAccessToken,
@@ -373,7 +374,28 @@ async function isSalesSnapshotStale(input: {
 	if (!saleUpdatedAt) return false;
 	if (!input.snapshot.sourceUpdatedAt) return true;
 
-	return input.snapshot.sourceUpdatedAt.getTime() < saleUpdatedAt.getTime();
+	return evaluateSalesSourceFreshness({
+		sourceUpdatedAt: input.snapshot.sourceUpdatedAt,
+		saleUpdatedAt,
+	}).isStale;
+}
+
+async function getSalesSnapshotFreshness(input: {
+	db: Db;
+	snapshot: Pick<
+		SalesDocumentSnapshotRecord,
+		"salesOrderId" | "sourceUpdatedAt"
+	>;
+}) {
+	const saleUpdatedAt = await getSalesOrderSourceUpdatedAt({
+		db: input.db,
+		salesOrderId: input.snapshot.salesOrderId,
+	});
+
+	return evaluateSalesSourceFreshness({
+		sourceUpdatedAt: input.snapshot.sourceUpdatedAt,
+		saleUpdatedAt,
+	});
 }
 
 async function loadSalesPreviewRecipient(input: {
@@ -452,8 +474,12 @@ export async function resolveSalesDocumentHtmlPreviewAccess(
 	}
 
 	if (input.salesIds.length === 1) {
+		const salesOrderId = input.salesIds[0];
+		if (salesOrderId == null) {
+			throw new Error("At least one sales order is required.");
+		}
 		await createOrRefreshSalesPrintData(input.db, {
-			salesOrderId: input.salesIds[0]!,
+			salesOrderId,
 			mode: input.mode,
 			dispatchId: input.dispatchId ?? null,
 			templateId: input.templateId || DEFAULT_TEMPLATE_ID,
@@ -506,14 +532,14 @@ export function createSalesDocumentSnapshotRepository(
 			const { id, ...data } = input;
 			const record = await db.salesDocumentSnapshot.update({
 				where: { id },
-					data: {
-						...data,
-						meta:
-							data.meta === undefined || data.meta === null
-								? undefined
-								: (data.meta as Prisma.InputJsonValue),
-					},
-				});
+				data: {
+					...data,
+					meta:
+						data.meta === undefined || data.meta === null
+							? undefined
+							: (data.meta as Prisma.InputJsonValue),
+				},
+			});
 			return toSalesDocumentSnapshotRecord(record);
 		},
 		async findCurrentByType(input) {
@@ -776,7 +802,10 @@ export async function resolveSalesDocumentAccess(
 		};
 	}
 
-	const salesOrderId = input.salesIds[0]!;
+	const salesOrderId = input.salesIds[0];
+	if (salesOrderId == null) {
+		throw new Error("At least one sales order is required.");
+	}
 	const documentType = buildSalesDocumentTypeKey(input);
 	const repository = createSalesDocumentSnapshotRepository(input.db);
 
@@ -800,18 +829,18 @@ export async function resolveSalesDocumentAccess(
 					})
 				: null;
 		const snapshotStale = current
-			? await isSalesSnapshotStale({
+			? await getSalesSnapshotFreshness({
 					db: input.db,
 					snapshot: current,
 				})
-			: false;
+			: null;
 
 		if (
 			current &&
 			storedDocument &&
 			meta.accessToken &&
 			isFutureIso(meta.expiresAt) &&
-			!snapshotStale
+			!snapshotStale?.isStale
 		) {
 			logSalesDocumentAccess("pdfSnapshotHit", {
 				salesOrderId,
@@ -853,11 +882,41 @@ export async function resolveSalesDocumentAccess(
 		logSalesDocumentAccess("pdfSnapshotMiss", {
 			salesOrderId,
 			documentType,
+			templateId: meta.templateId || input.templateId || DEFAULT_TEMPLATE_ID,
 			hasCurrent: Boolean(current),
 			hasStoredDocument: Boolean(storedDocument),
 			hasAccessToken: Boolean(meta.accessToken),
 			accessTokenFresh: isFutureIso(meta.expiresAt),
-			snapshotStale,
+			missReason: !current
+				? "missing-current"
+				: !storedDocument
+					? "missing-stored-document"
+					: !meta.accessToken
+						? "missing-access-token"
+						: !isFutureIso(meta.expiresAt)
+							? "expired-access-token"
+							: snapshotStale?.isStale
+								? snapshotStale.reason
+								: "unknown",
+			snapshotStale: snapshotStale?.isStale ?? false,
+			staleReason: snapshotStale?.reason ?? null,
+			snapshotId: current?.id ?? null,
+			generationStatus: current?.generationStatus ?? null,
+			isCurrent: current?.isCurrent ?? null,
+			storedDocumentId: current?.storedDocumentId ?? null,
+			sourceUpdatedAt: dateToIso(current?.sourceUpdatedAt),
+			saleUpdatedAt:
+				snapshotStale?.saleUpdatedAtMs != null
+					? new Date(snapshotStale.saleUpdatedAtMs).toISOString()
+					: null,
+			saleUpdatedAtMs: snapshotStale?.saleUpdatedAtMs ?? null,
+			sourceUpdatedAtMs: snapshotStale?.sourceUpdatedAtMs ?? null,
+			normalizedSaleUpdatedAtMs:
+				snapshotStale?.normalizedSaleUpdatedAtMs ?? null,
+			normalizedSourceUpdatedAtMs:
+				snapshotStale?.normalizedSourceUpdatedAtMs ?? null,
+			normalizedDeltaMs: snapshotStale?.normalizedDeltaMs ?? null,
+			expiresAt: meta.expiresAt ?? null,
 		});
 	}
 
@@ -1363,7 +1422,9 @@ export async function resolveSalesDocumentPreviewData(input: {
 		watermark: null,
 		mode,
 		orderNo:
-			payload.salesIds.length === 1 ? (documentData.firstOrderId ?? null) : null,
+			payload.salesIds.length === 1
+				? (documentData.firstOrderId ?? null)
+				: null,
 		salesOrderId: singleSalesOrderId,
 		customerEmail: recipient.customerEmail,
 		customerName: recipient.customerName,

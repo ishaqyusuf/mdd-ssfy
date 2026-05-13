@@ -1,5 +1,4 @@
 import { format, parseISO } from "date-fns";
-import { motion } from "framer-motion";
 import { formatDateRange } from "little-date";
 
 import type { PageFilterData } from "@api/type";
@@ -13,23 +12,6 @@ import {
 	normalizeFilterDefinitions,
 } from "./filter-definitions";
 import { isSearchKey } from "./search-utils";
-
-const listVariant = {
-	hidden: { y: 10, opacity: 0 },
-	show: {
-		y: 0,
-		opacity: 1,
-		transition: {
-			duration: 0.05,
-			staggerChildren: 0.06,
-		},
-	},
-};
-
-const itemVariant = {
-	hidden: { y: 10, opacity: 0 },
-	show: { y: 0, opacity: 1 },
-};
 
 interface Props {
 	loading?: boolean;
@@ -55,6 +37,11 @@ export function FilterList({
 	const optionLookup = optionLookupProp || buildOptionLabelLookup(definitions);
 
 	const handleOnRemove = (key: string) => {
+		if (key === "start") {
+			onRemove?.({ start: null, end: null });
+			return;
+		}
+
 		onRemove?.({ [key]: null });
 	};
 
@@ -67,10 +54,21 @@ export function FilterList({
 
 	const renderFilter = ({ key, value }) => {
 		const definition = definitions.find((item) => item.key === key);
+		const fallbackLabel = getFilterValueLabel({
+			key,
+			value,
+			definitions,
+			optionLookup,
+			filters,
+		});
 
 		if (definition?.renderChip) {
 			const Chip = definition.renderChip;
-			return <Chip definition={definition} value={value} filters={filters} />;
+			const rendered = (
+				<Chip definition={definition} value={value} filters={filters} />
+			);
+
+			return rendered || fallbackLabel;
 		}
 
 		if (definition?.type === "date-range" || key === "start") {
@@ -88,46 +86,41 @@ export function FilterList({
 
 	return (
 		<div className="w-full min-w-0 overflow-x-auto pb-1">
-			<motion.ul
-				variants={listVariant}
-				initial="hidden"
-				animate="show"
-				className="flex w-max min-w-full gap-2 lg:min-w-0 lg:flex-wrap"
-			>
+			<ul className="flex w-max min-w-full gap-2 lg:min-w-0 lg:flex-wrap">
 				{loading && (
 					<div className="flex gap-2">
-						<motion.li key="1" variants={itemVariant}>
+						<li key="1">
 							<Skeleton className="h-8 w-[100px] rounded-full" />
-						</motion.li>
-						<motion.li key="2" variants={itemVariant}>
+						</li>
+						<li key="2">
 							<Skeleton className="h-8 w-[100px] rounded-full" />
-						</motion.li>
+						</li>
 					</div>
 				)}
 
 				{!loading &&
 					visibleEntries.map(([key, value]) => (
-						<motion.li key={key} variants={itemVariant}>
+						<li key={key}>
 							<Button
-								className="group flex h-8 shrink-0 items-center space-x-1 rounded-full bg-secondary px-3 font-normal text-[#878787] hover:bg-secondary"
+								className="group flex h-8 shrink-0 items-center overflow-hidden rounded-full bg-secondary px-3 font-normal text-[#878787] transition-[gap,padding] duration-200 ease-out hover:gap-1.5 hover:bg-secondary"
 								onClick={() => handleOnRemove(key)}
 							>
-								<Icons.Clear className="w-0 scale-0 transition-all group-hover:w-4 group-hover:scale-100" />
+								<Icons.Clear className="size-4 w-0 -translate-x-1 scale-75 opacity-0 transition-[width,opacity,transform] duration-200 ease-out group-hover:w-4 group-hover:translate-x-0 group-hover:scale-100 group-hover:opacity-100" />
 								<span>{renderFilter({ key, value })}</span>
 							</Button>
-						</motion.li>
+						</li>
 					))}
 				{!loading && visibleEntries.length > 0 && onClearAll && (
-					<motion.li key="clear-all" variants={itemVariant}>
+					<li key="clear-all">
 						<Button
 							className="flex h-8 shrink-0 items-center rounded-full bg-secondary px-3 font-normal text-[#878787] hover:bg-secondary"
 							onClick={onClearAll}
 						>
 							Clear filters
 						</Button>
-					</motion.li>
+					</li>
 				)}
-			</motion.ul>
+			</ul>
 		</div>
 	);
 }

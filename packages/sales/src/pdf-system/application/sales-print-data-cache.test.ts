@@ -125,6 +125,24 @@ describe("sales print data cache", () => {
 		expect(record).toBeNull();
 	});
 
+	it("resolves a cache row from the same persisted second as fresh", async () => {
+		const { db } = createMockDb({
+			sourceUpdatedAt: new Date("2026-05-12T10:00:00.789Z"),
+			printData: [
+				readyRow({
+					sourceUpdatedAt: new Date("2026-05-12T10:00:00.000Z"),
+				}),
+			],
+		});
+
+		const record = await resolveCurrentSalesPrintData(db, {
+			salesOrderId: 10,
+			mode: "invoice",
+		});
+
+		expect(record?.id).toBe("spd-existing");
+	});
+
 	it("creates print data on miss", async () => {
 		const { db, state } = createMockDb();
 
@@ -185,7 +203,9 @@ describe("sales print data cache", () => {
 		});
 
 		expect(generatedIds).toEqual([11]);
-		expect(result.records.map((record) => record.salesOrderId)).toEqual([10, 11]);
+		expect(result.records.map((record) => record.salesOrderId)).toEqual([
+			10, 11,
+		]);
 		expect(result.pages.map((page) => page.meta.salesNo)).toEqual([
 			"INV-10",
 			"INV-11",
@@ -215,7 +235,10 @@ describe("sales print data cache", () => {
 		const { db, state } = createMockDb({
 			printData: [
 				readyRow({ id: "invoice", documentType: "invoice_pdf" }),
-				readyRow({ id: "packing", documentType: "packing_slip_pdf:dispatch:5" }),
+				readyRow({
+					id: "packing",
+					documentType: "packing_slip_pdf:dispatch:5",
+				}),
 				readyRow({ id: "production", documentType: "production_pdf" }),
 			],
 		});
