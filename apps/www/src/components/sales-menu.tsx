@@ -496,6 +496,26 @@ function useSalesPrintAction() {
 					duration: Number.POSITIVE_INFINITY,
 				});
 		let latestPrintHref: string | null = null;
+		let dismissPrintToastTimer: ReturnType<typeof setTimeout> | null = null;
+		const dismissPrintToastAfter = (delayMs: number) => {
+			if (!printToast) return;
+			if (dismissPrintToastTimer) {
+				clearTimeout(dismissPrintToastTimer);
+			}
+			dismissPrintToastTimer = setTimeout(() => {
+				printToast.dismiss();
+				dismissPrintToastTimer = null;
+			}, delayMs);
+		};
+		const updatePrintToast = (
+			input: ToastUpdateInput,
+			dismissAfterMs?: number,
+		) => {
+			printToast?.update(input);
+			if (dismissAfterMs != null) {
+				dismissPrintToastAfter(dismissAfterMs);
+			}
+		};
 		const updatePrintStage = (
 			stage: SalesPrintStage,
 			details?: SalesPrintStageDetails,
@@ -516,7 +536,7 @@ function useSalesPrintAction() {
 				stage === "print-data-query-error" ||
 				stage === "print-timeout";
 			const isDoneStage = stage === "print-dialog-called";
-			printToast.update({
+			const toastUpdate = {
 				...nextToast,
 				variant: isErrorStage ? "error" : isDoneStage ? "success" : "spinner",
 				duration: isErrorStage
@@ -535,7 +555,11 @@ function useSalesPrintAction() {
 							Open
 						</ToastAction>
 					) : undefined,
-			} as ToastUpdateInput);
+			} as ToastUpdateInput;
+			updatePrintToast(
+				toastUpdate,
+				isErrorStage ? 8000 : isDoneStage ? 2500 : undefined,
+			);
 		};
 
 		try {
@@ -546,41 +570,50 @@ function useSalesPrintAction() {
 				openInNewTab: options?.openInNewTab,
 				onPrintStage: updatePrintStage,
 				onPrintReady: () => {
-					printToast?.update({
-						title: "Print dialog opened",
-						description: "Choose a printer to finish printing.",
-						variant: "success",
-						duration: 2500,
-					} as ToastUpdateInput);
+					updatePrintToast(
+						{
+							title: "Print dialog opened",
+							description: "Choose a printer to finish printing.",
+							variant: "success",
+							duration: 2500,
+						} as ToastUpdateInput,
+						2500,
+					);
 				},
 				onPrintError: (error) => {
-					printToast?.update({
-						title: "Unable to open print dialog",
-						description:
-							error instanceof Error ? error.message : "Please try again.",
-						variant: "error",
-						duration: 8000,
-						action: latestPrintHref ? (
-							<ToastAction
-								altText="Open print view"
-								onClick={() => {
-									if (latestPrintHref) openLink(latestPrintHref, null, true);
-								}}
-							>
-								Open
-							</ToastAction>
-						) : undefined,
-					} as ToastUpdateInput);
+					updatePrintToast(
+						{
+							title: "Unable to open print dialog",
+							description:
+								error instanceof Error ? error.message : "Please try again.",
+							variant: "error",
+							duration: 8000,
+							action: latestPrintHref ? (
+								<ToastAction
+									altText="Open print view"
+									onClick={() => {
+										if (latestPrintHref) openLink(latestPrintHref, null, true);
+									}}
+								>
+									Open
+								</ToastAction>
+							) : undefined,
+						} as ToastUpdateInput,
+						8000,
+					);
 				},
 			});
 		} catch (error) {
-			printToast?.update({
-				title: "Unable to prepare print",
-				description:
-					error instanceof Error ? error.message : "Please try again.",
-				variant: "error",
-				duration: 3500,
-			} as ToastUpdateInput);
+			updatePrintToast(
+				{
+					title: "Unable to prepare print",
+					description:
+						error instanceof Error ? error.message : "Please try again.",
+					variant: "error",
+					duration: 3500,
+				} as ToastUpdateInput,
+				3500,
+			);
 		}
 	};
 }

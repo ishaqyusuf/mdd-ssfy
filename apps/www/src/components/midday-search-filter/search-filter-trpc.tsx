@@ -29,6 +29,8 @@ import { type DaysFilters, daysFilters } from "@gnd/utils/constants";
 import { formatISO } from "date-fns";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
+import { PageTabs } from "../page-tabs";
+import { SavePageTabButton } from "../page-tabs/save-page-tab-button";
 import { SelectTag } from "../select-tag";
 import {
 	type FilterCommitMode,
@@ -217,7 +219,13 @@ export function SearchFilterTRPC({
 					definitions={definitions}
 					optionLookup={optionLookup}
 				/>
+				<SavePageTabButton
+					definitions={definitions}
+					filters={filters}
+					optionLookup={optionLookup}
+				/>
 			</div>
+			<PageTabs portal />
 			<DropdownMenuContent
 				className={cn("w-[min(22rem,calc(100vw-2rem))] lg:w-[350px]")}
 				sideOffset={4}

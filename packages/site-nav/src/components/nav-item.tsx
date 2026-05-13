@@ -72,7 +72,7 @@ export const NavItem = ({
 		<div onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
 			<NavLink
 				prefetch
-				href={item.href || ""}
+				href={item.targetHref || item.href || ""}
 				onClick={() => {
 					if (item.href) onSelect?.();
 				}}

@@ -2,8 +2,10 @@
 
 import { AuthStateProvider, type InitialAuthState } from "@/hooks/use-auth";
 import { useAuth } from "@/hooks/use-auth";
+import { useTRPC } from "@/trpc/client";
 import { SiteNav, createSiteNavContext } from "@gnd/site-nav";
 import { Icons } from "@gnd/ui/icons";
+import { useQuery } from "@gnd/ui/tanstack";
 import { usePathname } from "next/dist/client/components/navigation";
 import Link from "next/link";
 import { Header } from "./header";
@@ -11,20 +13,31 @@ import { linkModules } from "./sidebar-links";
 export function SidebarContent({
 	children,
 	initialAuth = null,
+	pageTabDefaults = {},
 }: {
 	children: React.ReactNode;
 	initialAuth?: InitialAuthState | null;
+	pageTabDefaults?: Record<string, string>;
 }) {
 	return (
 		<AuthStateProvider value={initialAuth}>
-			<NavLayoutClient>{children}</NavLayoutClient>
+			<NavLayoutClient pageTabDefaults={pageTabDefaults}>
+				{children}
+			</NavLayoutClient>
 		</AuthStateProvider>
 	);
 }
 
-function NavLayoutClient({ children }) {
+function NavLayoutClient({ children, pageTabDefaults }) {
 	const auth = useAuth();
+	const trpc = useTRPC();
 	const pathName = usePathname();
+	const { data: defaults = pageTabDefaults } = useQuery({
+		...trpc.pageTabs.defaults.queryOptions(),
+		enabled: auth.enabled,
+		initialData: pageTabDefaults,
+	});
+
 	return (
 		<SiteNav.Provider
 			value={createSiteNavContext({
@@ -34,6 +47,7 @@ function NavLayoutClient({ children }) {
 				role: auth.role,
 				userId: auth.id,
 				permissions: auth.can,
+				defaultHrefByPath: defaults,
 			})}
 		>
 			<div className="relative ">

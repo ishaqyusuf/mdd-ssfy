@@ -46,7 +46,7 @@ function SearchFilterAdapterContent({
 	trpQueryOptions,
 	initialFilterList,
 	placeholder = "Search ...",
-	commitMode = "submit",
+	commitMode = "debounced",
 	debounceMs,
 	searchKey,
 }: Omit<SearchFilterAdapterProps, "filterSchema">) {

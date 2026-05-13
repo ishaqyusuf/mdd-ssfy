@@ -27,7 +27,7 @@ export const NavChildItem = ({
 	return (
 		<NavLink
 			prefetch
-			href={child.href}
+			href={child.targetHref || child.href}
 			onClick={() => onSelect?.()}
 			className="group"
 		>
