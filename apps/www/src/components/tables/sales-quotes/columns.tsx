@@ -6,7 +6,6 @@ import type { ColumnDef } from "@/types/type";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 
-import { SuperAdminGuard } from "@/components/auth-guard";
 import { SalesMenu } from "@/components/sales-menu";
 import { SalesOverviewVersionMenuItems } from "@/components/sales-overview-version-menu-items";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
@@ -179,9 +178,7 @@ function QuoteActions({ item }: { item: Item }) {
 		>
 			<SalesOverviewVersionMenuItems type="quote" uuid={item.uuid} />
 			<SalesMenu.QuoteEmailMenuItems />
-			<SuperAdminGuard>
-				<SalesMenu.PrintModes />
-			</SuperAdminGuard>
+			<SalesMenu.QuotePrintMenuItems />
 			<SalesMenu.Copy />
 			<SalesMenu.Move />
 			<SalesMenu.Separator />

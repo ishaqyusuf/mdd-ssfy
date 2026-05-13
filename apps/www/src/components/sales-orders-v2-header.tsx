@@ -1,38 +1,58 @@
 "use client";
 
-import { Icons } from "@gnd/ui/icons";
-
-import Link from "next/link";
-import { SearchFilter } from "@gnd/ui/search-filter";
-import { useQueryStates } from "nuqs";
+import { salesOrdersV2FilterParams } from "@/hooks/use-sales-orders-v2-filter-params";
+import {
+	SearchFilterProvider,
+	useSearchFilterContext,
+} from "@/hooks/use-search-filter";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
-import { salesOrdersV2FilterParams } from "@/hooks/use-sales-orders-v2-filter-params";
+import { Icons } from "@gnd/ui/icons";
+import { useQuery } from "@gnd/ui/tanstack";
+import Link from "next/link";
 import { CreateSalesBtn } from "./create-sales-btn";
+import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";
 
 export function SalesOrdersV2Header() {
-  const trpc = useTRPC();
-  const [filters, setFilters] = useQueryStates(salesOrdersV2FilterParams);
+	return (
+		<div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+			<div className="min-w-0 flex-1">
+				<SearchFilterProvider
+					args={[
+						{
+							filterSchema: salesOrdersV2FilterParams,
+						},
+					]}
+				>
+					<SalesOrdersV2SearchFilterContent />
+				</SearchFilterProvider>
+			</div>
+			<div className="flex flex-wrap items-center gap-2">
+				<Button asChild size="sm" variant="outline">
+					<Link href="/sales-book/orders">
+						<Icons.ArrowUpRight className="mr-2 size-4" />
+						<span className="hidden lg:inline">Legacy</span>
+					</Link>
+				</Button>
+				<CreateSalesBtn />
+			</div>
+		</div>
+	);
+}
 
-  return (
-    <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
-      <div className="min-w-0 flex-1">
-        <SearchFilter
-          filterSchema={salesOrdersV2FilterParams}
-          placeholder="Search order number, customer, phone, address, or P.O..."
-          trpcRoute={trpc.filters.salesOrdersV2}
-          {...{ filters, setFilters }}
-        />
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <Button asChild size="sm" variant="outline">
-          <Link href="/sales-book/orders">
-            <Icons.ArrowUpRight className="mr-2 size-4" />
-            <span className="hidden lg:inline">Legacy</span>
-          </Link>
-        </Button>
-        <CreateSalesBtn />
-      </div>
-    </div>
-  );
+function SalesOrdersV2SearchFilterContent() {
+	const trpc = useTRPC();
+	const { shouldFetch } = useSearchFilterContext();
+	const { data: trpcFilterData } = useQuery({
+		enabled: shouldFetch,
+		...trpc.filters.salesOrdersV2.queryOptions(),
+	});
+
+	return (
+		<SearchFilterTRPC
+			commitMode="submit"
+			placeholder="Search order number, customer, phone, address, or P.O..."
+			filterList={trpcFilterData}
+		/>
+	);
 }

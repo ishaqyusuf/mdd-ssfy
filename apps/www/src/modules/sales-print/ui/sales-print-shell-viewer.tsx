@@ -2,15 +2,24 @@
 
 import { PrintSalesV2 } from "@/components/print-sales-v2";
 import { parseSalesPrintRequest } from "@/modules/sales-print/application/sales-print-request";
+import type {
+	SalesPrintStage,
+	SalesPrintStageDetails,
+} from "@/modules/sales-print/application/sales-print-service";
 
 export function SalesPrintShellViewer({
 	href,
 	onPrintReady,
 	onPrintError,
+	onPrintStage,
 }: {
 	href: string;
 	onPrintReady?: () => void;
 	onPrintError?: (error: unknown) => void;
+	onPrintStage?: (
+		stage: SalesPrintStage,
+		details?: SalesPrintStageDetails,
+	) => void;
 }) {
 	const url = new URL(href, window.location.origin);
 	const printRequest = parseSalesPrintRequest({
@@ -30,6 +39,7 @@ export function SalesPrintShellViewer({
 				className="h-full"
 				onPrintReady={onPrintReady}
 				onPrintError={onPrintError}
+				onPrintStage={onPrintStage}
 			/>
 		</div>
 	);

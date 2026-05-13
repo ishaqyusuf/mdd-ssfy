@@ -1,30 +1,27 @@
 "use client";
 
-import { SearchFilter } from "@gnd/ui/search-filter";
-import { OpenEmployeeSheet } from "./open-employee-sheet";
 import { employeeFilterParams } from "@/hooks/use-employee-filter-params";
 import { useTRPC } from "@/trpc/client";
 import type { PageFilterData } from "@api/type";
-import { useQueryStates } from "nuqs";
+import { SearchFilterAdapter as SearchFilter } from "./midday-search-filter/search-filter-adapter";
+import { OpenEmployeeSheet } from "./open-employee-sheet";
 
 type Props = {
-    initialFilterList?: PageFilterData[];
+	initialFilterList?: PageFilterData[];
 };
 
 export function EmployeeHeader({ initialFilterList }: Props) {
-    const trpc = useTRPC();
-    const [filters, setFilters] = useQueryStates(employeeFilterParams);
-    return (
-        <div className="flex justify-between">
-            <SearchFilter
-                filterSchema={employeeFilterParams}
-                placeholder="Search Employees..."
-                trpcRoute={trpc.filters.employee}
-                initialFilterList={initialFilterList}
-                {...{ filters, setFilters }}
-            />
-            <div className="flex-1"></div>
-            <OpenEmployeeSheet />
-        </div>
-    );
+	const trpc = useTRPC();
+	return (
+		<div className="flex justify-between">
+			<SearchFilter
+				filterSchema={employeeFilterParams}
+				placeholder="Search Employees..."
+				trpcRoute={trpc.filters.employee}
+				initialFilterList={initialFilterList}
+			/>
+			<div className="flex-1" />
+			<OpenEmployeeSheet />
+		</div>
+	);
 }

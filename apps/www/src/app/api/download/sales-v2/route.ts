@@ -10,7 +10,10 @@ import {
 } from "@gnd/api/utils/sales-document-access";
 import { db } from "@gnd/db";
 import { renderSalesPdfBuffer } from "@gnd/pdf/sales-v2";
-import { getPrintDocumentData } from "@gnd/sales/print";
+import {
+	buildSalesPrintDocumentTypeKey,
+	createOrRefreshBatchSalesPrintData,
+} from "@gnd/sales/pdf-system";
 import type { PrintMode } from "@gnd/sales/print/types";
 import { tokenSchemas, validateToken } from "@gnd/utils/tokenizer";
 import { notFound } from "next/navigation";
@@ -216,10 +219,16 @@ export async function GET(req: NextRequest) {
 	if (!payload) notFound();
 
 	const mode: PrintMode = normalizeSalesPrintMode(payload.mode);
-	const documentData = await getPrintDocumentData(db, {
-		ids: payload.salesIds,
+	const documentData = await createOrRefreshBatchSalesPrintData(db, {
+		salesOrderIds: payload.salesIds,
 		mode,
+		documentType: buildSalesPrintDocumentTypeKey({
+			mode,
+			dispatchId: payload.dispatchId ?? null,
+		}),
 		dispatchId: payload.dispatchId ?? null,
+		templateId: params.templateId,
+		reason: "legacy_batch_pdf_download",
 	});
 
 	const buffer = await renderSalesPdfBuffer({

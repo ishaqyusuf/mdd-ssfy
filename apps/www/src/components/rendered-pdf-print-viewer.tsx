@@ -2,11 +2,15 @@
 
 import { getBaseUrl } from "@/lib/base-url";
 import { cn } from "@/lib/utils";
+import type {
+	SalesPrintStage,
+	SalesPrintStageDetails,
+} from "@/modules/sales-print/application/sales-print-service";
 import { PDFViewer } from "@gnd/pdf";
 import { SalesPdfDocument } from "@gnd/pdf/sales-v2";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import type { SyntheticEvent } from "react";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { PackingSlipSignFab } from "./packing-slip-sign-fab";
 import { PrintUnavailable } from "./print-sales-v2";
 import { _trpc } from "./static-trpc";
@@ -21,6 +25,10 @@ export interface RenderedPdfPrintViewerProps {
 	className?: string;
 	onPrintReady?: () => void;
 	onPrintError?: (error: unknown) => void;
+	onPrintStage?: (
+		stage: SalesPrintStage,
+		details?: SalesPrintStageDetails,
+	) => void;
 }
 
 function waitForNextFrame() {
@@ -57,10 +65,12 @@ export function RenderedPdfPrintViewer({
 	className,
 	onPrintReady,
 	onPrintError,
+	onPrintStage,
 }: RenderedPdfPrintViewerProps) {
 	const baseUrl = getBaseUrl();
 	const viewerRef = useRef<{ contentWindow?: Window | null } | null>(null);
 	const printedRef = useRef(false);
+	onPrintStage?.("print-data-query-start");
 	const { data } = useSuspenseQuery(
 		_trpc.print.salesV2.queryOptions({
 			pt: pt || undefined,
@@ -72,9 +82,15 @@ export function RenderedPdfPrintViewer({
 			baseUrl,
 		}),
 	);
+	useEffect(() => {
+		onPrintStage?.("print-data-query-done", {
+			href: data?.previewUrl,
+		});
+	}, [data?.previewUrl, onPrintStage]);
 	const handleViewerLoad = useCallback(
 		async (event: SyntheticEvent<HTMLIFrameElement>) => {
 			const iframe = event.currentTarget;
+			onPrintStage?.("pdf-iframe-load", { href: iframe.src });
 			if (preview || printedRef.current || !iframe.src.startsWith("blob:")) {
 				return;
 			}
@@ -88,12 +104,17 @@ export function RenderedPdfPrintViewer({
 				}
 				printWindow.focus();
 				printWindow.print();
+				onPrintStage?.("print-dialog-called", { href: iframe.src });
 				onPrintReady?.();
 			} catch (error) {
+				onPrintStage?.("print-data-query-error", {
+					href: iframe.src,
+					error,
+				});
 				onPrintError?.(error);
 			}
 		},
-		[onPrintError, onPrintReady, preview],
+		[onPrintError, onPrintReady, onPrintStage, preview],
 	);
 
 	if (!data) {

@@ -124,15 +124,44 @@ export const printRouter = createTRPCRouter({
 			}),
 		)
 		.query(async (props) => {
-			return resolveSalesDocumentPreviewData({
-				db: props.ctx.db,
-				publicToken: props.input.pt ?? null,
-				token: props.input.token ?? null,
-				accessToken: props.input.accessToken ?? null,
-				snapshotId: props.input.snapshotId ?? null,
+			const startedAt = Date.now();
+			console.info("[sales-print] print-data-query-start", {
+				locator: props.input.pt
+					? "public-token"
+					: props.input.token
+						? "legacy-token"
+						: props.input.accessToken
+							? "access-token"
+							: props.input.snapshotId
+								? "snapshot-id"
+								: "missing",
+				preview: props.input.preview,
 				templateId: props.input.templateId,
-				baseUrl: props.input.baseUrl ?? process.env.NEXT_PUBLIC_APP_URL ?? null,
 			});
+			try {
+				const data = await resolveSalesDocumentPreviewData({
+					db: props.ctx.db,
+					publicToken: props.input.pt ?? null,
+					token: props.input.token ?? null,
+					accessToken: props.input.accessToken ?? null,
+					snapshotId: props.input.snapshotId ?? null,
+					templateId: props.input.templateId,
+					baseUrl:
+						props.input.baseUrl ?? process.env.NEXT_PUBLIC_APP_URL ?? null,
+				});
+				console.info("[sales-print] print-data-query-done", {
+					durationMs: Date.now() - startedAt,
+					pages: data?.pages.length ?? 0,
+					title: data?.title ?? null,
+				});
+				return data;
+			} catch (error) {
+				console.error("[sales-print] print-data-query-error", {
+					durationMs: Date.now() - startedAt,
+					error: error instanceof Error ? error.message : error,
+				});
+				throw error;
+			}
 		}),
 	jobs: publicProcedure
 		.input(

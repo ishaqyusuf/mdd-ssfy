@@ -7,6 +7,8 @@ import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { openLink } from "@/lib/open-link";
 import { newSalesHelper } from "@/lib/sales";
 import {
+	type SalesPrintStage,
+	type SalesPrintStageDetails,
 	downloadSalesPrintDocument,
 	openSalesPrintDocument,
 	resolveSalesPrintMode,
@@ -14,7 +16,6 @@ import {
 import { useTRPC } from "@/trpc/client";
 import type { SalesPrintProps } from "@/utils/sales-print-utils";
 import { salesFormUrl } from "@/utils/sales-utils";
-import type { PrintMode } from "@gnd/sales/print/types";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { DropdownMenu } from "@gnd/ui/namespace";
@@ -52,6 +53,75 @@ type SalesMenuContextValue = {
 		isOpen: boolean;
 	};
 };
+
+type ToastUpdateInput = Parameters<ReturnType<typeof toast>["update"]>[0];
+
+function getSalesPrintStageToast(
+	stage: SalesPrintStage,
+	details?: SalesPrintStageDetails,
+) {
+	switch (stage) {
+		case "resolve-access-start":
+			return {
+				title: "Preparing print...",
+				description:
+					(details?.salesIds?.length ?? 0) > 1
+						? "Requesting access for selected orders."
+						: "Requesting document access.",
+			};
+		case "resolve-access-done":
+			return {
+				title: "Print access ready",
+				description: "Loading the print viewer.",
+			};
+		case "hidden-viewer-mounted":
+			return {
+				title: "Print viewer loading",
+				description: "Waiting for the PDF viewer to finish loading.",
+			};
+		case "print-data-query-start":
+			return {
+				title: "Loading selected orders",
+				description: "Preparing printable sales data.",
+			};
+		case "print-data-query-done":
+			return {
+				title: "Rendering PDF",
+				description: "Sales data loaded. Waiting for the PDF frame.",
+			};
+		case "pdf-iframe-load":
+			return {
+				title: "PDF loaded",
+				description: "Opening the browser print dialog.",
+			};
+		case "print-dialog-called":
+			return {
+				title: "Print dialog opened",
+				description: "Choose a printer to finish printing.",
+			};
+		case "print-timeout":
+			return {
+				title: "Print viewer needs attention",
+				description:
+					details?.message ||
+					"The hidden print viewer is taking longer than expected.",
+			};
+		case "resolve-access-error":
+		case "print-data-query-error":
+			return {
+				title: "Unable to prepare print",
+				description:
+					details?.error instanceof Error
+						? details.error.message
+						: details?.message || "Please try again.",
+			};
+		default:
+			return {
+				title: "Preparing print...",
+				description: "Working on the print request.",
+			};
+	}
+}
 
 const SalesMenuContext = createContext<SalesMenuContextValue | null>(null);
 
@@ -403,7 +473,7 @@ function useSalesPrintAction() {
 					description: "Check your browser downloads.",
 					variant: "success",
 					duration: 2500,
-				} as any);
+				} as ToastUpdateInput);
 			} catch (error) {
 				downloadToast.update({
 					title: "Unable to download PDF",
@@ -411,7 +481,7 @@ function useSalesPrintAction() {
 						error instanceof Error ? error.message : "Please try again.",
 					variant: "error",
 					duration: 3500,
-				} as any);
+				} as ToastUpdateInput);
 			}
 			return;
 		}
@@ -421,10 +491,52 @@ function useSalesPrintAction() {
 			? null
 			: toast({
 					title: "Preparing print...",
-					description: "Your printer dialog will open when the document is ready.",
+					description: "Requesting access for the selected document.",
 					variant: "spinner",
 					duration: Number.POSITIVE_INFINITY,
 				});
+		let latestPrintHref: string | null = null;
+		const updatePrintStage = (
+			stage: SalesPrintStage,
+			details?: SalesPrintStageDetails,
+		) => {
+			if (details?.href) {
+				latestPrintHref = details.href;
+			}
+			console.info("[sales-print]", stage, {
+				mode,
+				salesIds: state.salesIds,
+				...details,
+			});
+			if (!printToast) return;
+
+			const nextToast = getSalesPrintStageToast(stage, details);
+			const isErrorStage =
+				stage === "resolve-access-error" ||
+				stage === "print-data-query-error" ||
+				stage === "print-timeout";
+			const isDoneStage = stage === "print-dialog-called";
+			printToast.update({
+				...nextToast,
+				variant: isErrorStage ? "error" : isDoneStage ? "success" : "spinner",
+				duration: isErrorStage
+					? 8000
+					: isDoneStage
+						? 2500
+						: Number.POSITIVE_INFINITY,
+				action:
+					isErrorStage && latestPrintHref ? (
+						<ToastAction
+							altText="Open print view"
+							onClick={() => {
+								if (latestPrintHref) openLink(latestPrintHref, null, true);
+							}}
+						>
+							Open
+						</ToastAction>
+					) : undefined,
+			} as ToastUpdateInput);
+		};
 
 		try {
 			await openSalesPrintDocument({
@@ -432,13 +544,14 @@ function useSalesPrintAction() {
 				mode,
 				dispatchId,
 				openInNewTab: options?.openInNewTab,
+				onPrintStage: updatePrintStage,
 				onPrintReady: () => {
 					printToast?.update({
 						title: "Print dialog opened",
 						description: "Choose a printer to finish printing.",
 						variant: "success",
 						duration: 2500,
-					} as any);
+					} as ToastUpdateInput);
 				},
 				onPrintError: (error) => {
 					printToast?.update({
@@ -446,8 +559,18 @@ function useSalesPrintAction() {
 						description:
 							error instanceof Error ? error.message : "Please try again.",
 						variant: "error",
-						duration: 3500,
-					} as any);
+						duration: 8000,
+						action: latestPrintHref ? (
+							<ToastAction
+								altText="Open print view"
+								onClick={() => {
+									if (latestPrintHref) openLink(latestPrintHref, null, true);
+								}}
+							>
+								Open
+							</ToastAction>
+						) : undefined,
+					} as ToastUpdateInput);
 				},
 			});
 		} catch (error) {
@@ -457,17 +580,10 @@ function useSalesPrintAction() {
 					error instanceof Error ? error.message : "Please try again.",
 				variant: "error",
 				duration: 3500,
-			} as any);
+			} as ToastUpdateInput);
 		}
 	};
 }
-
-const ORDER_MODES: { label: string; mode: PrintMode }[] = [
-	{ label: "Order & Packing", mode: "order-packing" },
-	{ label: "Order", mode: "invoice" },
-	{ label: "Packing", mode: "packing-slip" },
-	{ label: "Production", mode: "production" },
-];
 
 function SalesMenuShare({ disabled }: ActionProps) {
 	const runPrint = useSalesPrintAction();
@@ -771,78 +887,6 @@ function SalesMenuItem(props: ComponentProps<typeof DropdownMenu.Item>) {
 	return <DropdownMenu.Item {...props} />;
 }
 
-/**
- * V2 print sub-menu using quickPrint. Reads salesIds + type from context.
- * For quotes: single Print item. For orders: sub-menu with all 4 modes.
- */
-function SalesMenuPrintModes({ disabled }: ActionProps) {
-	const { state, actions } = useSalesMenuContext();
-	const isDisabled = disabled || !state.salesIds.length;
-	const isQuote = state.type === "quote";
-	const shiftClickRef = useRef(false);
-	const captureShiftClick = (event: { shiftKey: boolean }) => {
-		shiftClickRef.current = event.shiftKey;
-	};
-	const consumeShiftClick = () => {
-		const openInNewTab = shiftClickRef.current;
-		shiftClickRef.current = false;
-		return openInNewTab;
-	};
-
-	if (isQuote) {
-		return (
-			<DropdownMenu.Item
-				disabled={isDisabled}
-				onPointerDown={captureShiftClick}
-				onSelect={(e) => {
-					e.preventDefault();
-					actions.closeMenu();
-					void openSalesPrintDocument({
-						salesIds: state.salesIds,
-						mode: "quote",
-						openInNewTab: consumeShiftClick(),
-					});
-				}}
-			>
-				<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
-				Print
-			</DropdownMenu.Item>
-		);
-	}
-
-	return (
-		<DropdownMenu.Sub>
-			<DropdownMenu.SubTrigger disabled={isDisabled}>
-				<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
-				Print
-				<span className="ml-auto rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-					v2
-				</span>
-			</DropdownMenu.SubTrigger>
-			<DropdownMenu.SubContent>
-				{ORDER_MODES.map(({ label, mode }) => (
-					<DropdownMenu.Item
-						key={mode}
-						onPointerDown={captureShiftClick}
-						onSelect={(e) => {
-							e.preventDefault();
-							actions.closeMenu();
-							void openSalesPrintDocument({
-								salesIds: state.salesIds,
-								mode,
-								openInNewTab: consumeShiftClick(),
-							});
-						}}
-					>
-						<Icons.Printer className="mr-2 size-4 text-muted-foreground/70" />
-						{label}
-					</DropdownMenu.Item>
-				))}
-			</DropdownMenu.SubContent>
-		</DropdownMenu.Sub>
-	);
-}
-
 function SalesMenuSalesPrintMenuItems({ disabled }: ActionProps) {
 	return (
 		<>
@@ -900,7 +944,6 @@ export const SalesMenu = Object.assign(SalesMenuRoot, {
 	Share: SalesMenuShare,
 	Print: SalesMenuPrint,
 	PDF: SalesMenuPDF,
-	PrintModes: SalesMenuPrintModes,
 	SalesPrintMenuItems: SalesMenuSalesPrintMenuItems,
 	QuotePrintMenuItems: SalesMenuQuotePrintMenuItems,
 	Notifications: SalesMenuNotifications,

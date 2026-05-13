@@ -6,7 +6,11 @@ import {
 	type SalesPrintRequestInfo,
 	parseSalesPrintRequest,
 } from "@/modules/sales-print/application/sales-print-request";
-import { buildSalesPdfDownloadUrlFromQuery } from "@/modules/sales-print/application/sales-print-service";
+import {
+	type SalesPrintStage,
+	type SalesPrintStageDetails,
+	buildSalesPdfDownloadUrlFromQuery,
+} from "@/modules/sales-print/application/sales-print-service";
 import type { PrintMode } from "@gnd/sales/print/types";
 import dynamic from "next/dynamic";
 import type { SyntheticEvent } from "react";
@@ -36,6 +40,10 @@ interface PrintSalesV2Props {
 	printRequest?: SalesPrintRequestInfo;
 	onPrintReady?: () => void;
 	onPrintError?: (error: unknown) => void;
+	onPrintStage?: (
+		stage: SalesPrintStage,
+		details?: SalesPrintStageDetails,
+	) => void;
 }
 
 function waitForNextFrame() {
@@ -74,6 +82,7 @@ export function PrintSalesV2({
 	printRequest,
 	onPrintReady,
 	onPrintError,
+	onPrintStage,
 }: PrintSalesV2Props = {}) {
 	if (printRequest) {
 		return (
@@ -82,6 +91,7 @@ export function PrintSalesV2({
 				className={className}
 				onPrintReady={onPrintReady}
 				onPrintError={onPrintError}
+				onPrintStage={onPrintStage}
 			/>
 		);
 	}
@@ -98,6 +108,7 @@ export function PrintSalesV2({
 			className={className}
 			onPrintReady={onPrintReady}
 			onPrintError={onPrintError}
+			onPrintStage={onPrintStage}
 		/>
 	);
 }
@@ -113,6 +124,7 @@ function PrintSalesV2FromFilters({
 	className,
 	onPrintReady,
 	onPrintError,
+	onPrintStage,
 }: Omit<PrintSalesV2Props, "printRequest">) {
 	const { filters } = useSalesPrintFilter();
 	const resolvedPrintRequest = parseSalesPrintRequest({
@@ -131,6 +143,7 @@ function PrintSalesV2FromFilters({
 			className={className}
 			onPrintReady={onPrintReady}
 			onPrintError={onPrintError}
+			onPrintStage={onPrintStage}
 		/>
 	);
 }
@@ -140,11 +153,16 @@ function PrintSalesV2Resolved({
 	className,
 	onPrintReady,
 	onPrintError,
+	onPrintStage,
 }: {
 	printRequest: SalesPrintRequestInfo;
 	className?: string;
 	onPrintReady?: () => void;
 	onPrintError?: (error: unknown) => void;
+	onPrintStage?: (
+		stage: SalesPrintStage,
+		details?: SalesPrintStageDetails,
+	) => void;
 }) {
 	const resolvedPrintRequest = printRequest;
 	const { params } = resolvedPrintRequest;
@@ -161,6 +179,7 @@ function PrintSalesV2Resolved({
 				className={className}
 				onPrintReady={onPrintReady}
 				onPrintError={onPrintError}
+				onPrintStage={onPrintStage}
 			/>
 		);
 	}
@@ -176,6 +195,7 @@ function PrintSalesV2Resolved({
 			className={className}
 			onPrintReady={onPrintReady}
 			onPrintError={onPrintError}
+			onPrintStage={onPrintStage}
 		/>
 	);
 }
@@ -186,12 +206,17 @@ function StoredPdfPrintUrlFrame({
 	className,
 	onPrintReady,
 	onPrintError,
+	onPrintStage,
 }: {
 	accessToken: string;
 	templateId: string;
 	className?: string;
 	onPrintReady?: () => void;
 	onPrintError?: (error: unknown) => void;
+	onPrintStage?: (
+		stage: SalesPrintStage,
+		details?: SalesPrintStageDetails,
+	) => void;
 }) {
 	const [browserOrigin, setBrowserOrigin] = useState<string | null>(null);
 	useEffect(() => {
@@ -221,6 +246,7 @@ function StoredPdfPrintUrlFrame({
 			className={className}
 			onPrintReady={onPrintReady}
 			onPrintError={onPrintError}
+			onPrintStage={onPrintStage}
 		/>
 	);
 }
@@ -230,11 +256,16 @@ function StoredPdfPrintFrame({
 	className,
 	onPrintReady,
 	onPrintError,
+	onPrintStage,
 }: {
 	src: string;
 	className?: string;
 	onPrintReady?: () => void;
 	onPrintError?: (error: unknown) => void;
+	onPrintStage?: (
+		stage: SalesPrintStage,
+		details?: SalesPrintStageDetails,
+	) => void;
 }) {
 	const viewerRef = useRef<HTMLIFrameElement | null>(null);
 	const printedRef = useRef(false);
@@ -248,7 +279,13 @@ function StoredPdfPrintFrame({
 
 		loadTimeoutRef.current = window.setTimeout(() => {
 			setLoadTimedOut(true);
-			onPrintError?.(new Error("The PDF is taking longer than expected to load."));
+			onPrintStage?.("print-timeout", {
+				href: src,
+				message: "The PDF is taking longer than expected to load.",
+			});
+			onPrintError?.(
+				new Error("The PDF is taking longer than expected to load."),
+			);
 		}, 12_000);
 
 		return () => {
@@ -256,10 +293,11 @@ function StoredPdfPrintFrame({
 				window.clearTimeout(loadTimeoutRef.current);
 			}
 		};
-	}, [onPrintError]);
+	}, [onPrintError, onPrintStage, src]);
 	const handleViewerLoad = useCallback(
 		async (event: SyntheticEvent<HTMLIFrameElement>) => {
 			const iframe = event.currentTarget;
+			onPrintStage?.("pdf-iframe-load", { href: src });
 			if (loadTimeoutRef.current) {
 				window.clearTimeout(loadTimeoutRef.current);
 				loadTimeoutRef.current = null;
@@ -278,12 +316,17 @@ function StoredPdfPrintFrame({
 				}
 				printWindow.focus();
 				printWindow.print();
+				onPrintStage?.("print-dialog-called", { href: src });
 				onPrintReady?.();
 			} catch (error) {
+				onPrintStage?.("print-data-query-error", {
+					href: src,
+					error,
+				});
 				onPrintError?.(error);
 			}
 		},
-		[onPrintError, onPrintReady],
+		[onPrintError, onPrintReady, onPrintStage, src],
 	);
 
 	return (
@@ -298,7 +341,13 @@ function StoredPdfPrintFrame({
 						loadTimeoutRef.current = null;
 					}
 					setLoadFailed(true);
-					onPrintError?.(new Error("The PDF could not be loaded automatically."));
+					onPrintStage?.("print-data-query-error", {
+						href: src,
+						message: "The PDF could not be loaded automatically.",
+					});
+					onPrintError?.(
+						new Error("The PDF could not be loaded automatically."),
+					);
 				}}
 				className="flex h-full w-full flex-col border-0"
 				title="Sales print PDF"

@@ -235,6 +235,7 @@ describe("sales print service", () => {
 		let pendingWindowOpened = false;
 		let printReady = false;
 		const viewerSubtitles: string[] = [];
+		const stages: string[] = [];
 		const response: ResolveSalesDocumentAccessResult = {
 			kind: "snapshot",
 			generated: false,
@@ -266,6 +267,8 @@ describe("sales print service", () => {
 			createPrintViewerContent: (href) => ({ props: { href } }),
 			mountHiddenPrintViewer: (href, callbacks) => {
 				openedViewerHref = href;
+				callbacks?.onPrintStage?.("print-data-query-start", { href });
+				callbacks?.onPrintStage?.("pdf-iframe-load", { href });
 				callbacks?.onPrintReady?.();
 				return true;
 			},
@@ -280,6 +283,9 @@ describe("sales print service", () => {
 				onPrintReady: () => {
 					printReady = true;
 				},
+				onPrintStage: (stage) => {
+					stages.push(stage);
+				},
 			},
 			dependencies,
 		);
@@ -291,6 +297,107 @@ describe("sales print service", () => {
 		expect(openedLinkHref).toBe(null);
 		expect(pendingWindowOpened).toBe(false);
 		expect(printReady).toBe(true);
+		expect(stages).toEqual([
+			"resolve-access-start",
+			"resolve-access-done",
+			"print-data-query-start",
+			"pdf-iframe-load",
+			"hidden-viewer-mounted",
+		]);
+	});
+
+	it("reports hidden viewer timeout stages through the attachment overlay", async () => {
+		let printError: unknown = null;
+		const stages: string[] = [];
+		const response: ResolveSalesDocumentAccessResult = {
+			kind: "legacy",
+			generated: false,
+			mode: "invoice",
+			documentType: "invoice_pdf",
+			salesOrderId: null,
+			accessToken: "legacy-123",
+			expiresAt: null,
+			previewUrl:
+				"https://app.example.com/p/sales-document-v2?token=legacy-123",
+			downloadUrl:
+				"https://app.example.com/api/download/sales-v2?token=legacy-123",
+		};
+		const dependencies = {
+			resolveAccess: async () => response,
+			resolveHtmlPreviewAccess: async () => response,
+			openLink: () => undefined,
+			openViewerShell: () => false,
+			openPendingPrintWindow: () => null,
+			createPrintViewerContent: (href) => ({ props: { href } }),
+			mountHiddenPrintViewer: (href, callbacks) => {
+				const error = new Error(
+					"The print viewer is taking longer than expected.",
+				);
+				callbacks?.onPrintStage?.("print-timeout", {
+					href,
+					error,
+					message: error.message,
+				});
+				callbacks?.onPrintError?.(error);
+				return true;
+			},
+			getBaseUrl: () => "https://app.example.com",
+			useAttachmentOverlay: true,
+		};
+
+		await openSalesPrintDocument(
+			{
+				salesIds: [42, 43],
+				mode: "invoice",
+				onPrintError: (error) => {
+					printError = error;
+				},
+				onPrintStage: (stage) => {
+					stages.push(stage);
+				},
+			},
+			dependencies,
+		);
+
+		expect(printError).toBeInstanceOf(Error);
+		expect(stages).toEqual([
+			"resolve-access-start",
+			"resolve-access-done",
+			"print-timeout",
+			"hidden-viewer-mounted",
+		]);
+	});
+
+	it("reports access resolution errors before surfacing print failure", async () => {
+		const stages: string[] = [];
+		const error = new Error("access failed");
+		const dependencies = {
+			resolveAccess: async () => {
+				throw error;
+			},
+			resolveHtmlPreviewAccess: async () => null,
+			openLink: () => undefined,
+			openViewerShell: () => false,
+			openPendingPrintWindow: () => null,
+			createPrintViewerContent: (href) => ({ props: { href } }),
+			getBaseUrl: () => "https://app.example.com",
+			useAttachmentOverlay: true,
+		};
+
+		await expect(
+			openSalesPrintDocument(
+				{
+					salesIds: [42],
+					mode: "invoice",
+					onPrintStage: (stage) => {
+						stages.push(stage);
+					},
+				},
+				dependencies,
+			),
+		).rejects.toThrow("access failed");
+
+		expect(stages).toEqual(["resolve-access-start", "resolve-access-error"]);
 	});
 
 	it("falls back to new-tab print when the attachment overlay provider is unavailable", async () => {

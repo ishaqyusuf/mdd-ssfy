@@ -5,6 +5,7 @@ import { generateQrCodeDataUrl, renderSalesPdfBuffer } from "@gnd/pdf/sales-v2";
 import {
 	type SalesDocumentSnapshotRecord,
 	type SalesDocumentSnapshotRepository,
+	createOrRefreshBatchSalesPrintData,
 	createOrRefreshSalesPrintData,
 	expireCurrentSalesPrintData,
 	resolveCurrentSalesDocument,
@@ -1315,27 +1316,34 @@ export async function resolveSalesDocumentPreviewData(input: {
 
 	const singleSalesOrderId =
 		payload.salesIds.length === 1 ? (payload.salesIds[0] ?? null) : null;
-	const documentData = singleSalesOrderId
-		? salesPrintDataToPrintDocumentData(
-				(
-					await createOrRefreshSalesPrintData(input.db, {
-						salesOrderId: singleSalesOrderId,
-						mode,
-						documentType: buildSalesDocumentTypeKey({
+	const documentData =
+		payload.salesIds.length === 1 && singleSalesOrderId
+			? salesPrintDataToPrintDocumentData(
+					(
+						await createOrRefreshSalesPrintData(input.db, {
+							salesOrderId: singleSalesOrderId,
 							mode,
+							documentType: buildSalesDocumentTypeKey({
+								mode,
+								dispatchId: payload.dispatchId ?? null,
+							}),
 							dispatchId: payload.dispatchId ?? null,
-						}),
+							templateId,
+							reason: "legacy_html_preview",
+						})
+					).record,
+				)
+			: await createOrRefreshBatchSalesPrintData(input.db, {
+					salesOrderIds: payload.salesIds,
+					mode,
+					documentType: buildSalesDocumentTypeKey({
+						mode,
 						dispatchId: payload.dispatchId ?? null,
-						templateId,
-						reason: "legacy_html_preview",
-					})
-				).record,
-			)
-		: await getPrintDocumentData(input.db, {
-				ids: payload.salesIds,
-				mode,
-				dispatchId: payload.dispatchId ?? null,
-			});
+					}),
+					dispatchId: payload.dispatchId ?? null,
+					templateId,
+					reason: "legacy_batch_html_preview",
+				});
 	const recipient = await loadSalesPreviewRecipient({
 		db: input.db,
 		salesOrderId: singleSalesOrderId,

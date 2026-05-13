@@ -1,386 +1,416 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
-
-import { useHotkeys } from "react-hotkeys-hook";
-
+import { useSearchFilterContext } from "@/hooks/use-search-filter";
+import type { PageFilterData } from "@api/type";
+import { Button } from "@gnd/ui/button";
+import { Calendar } from "@gnd/ui/calendar";
 import { cn } from "@gnd/ui/cn";
 import {
-    DropdownMenu,
-    DropdownMenuCheckboxItem,
-    DropdownMenuContent,
-    DropdownMenuGroup,
-    DropdownMenuPortal,
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
-    DropdownMenuTrigger,
+	DropdownMenu,
+	DropdownMenuCheckboxItem,
+	DropdownMenuContent,
+	DropdownMenuGroup,
+	DropdownMenuPortal,
+	DropdownMenuSub,
+	DropdownMenuSubContent,
+	DropdownMenuSubTrigger,
+	DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
-import { Icons } from "@gnd/ui/icons";
-import { Input } from "@gnd/ui/input";
-import { formatISO } from "date-fns";
-import { SelectTag } from "../select-tag";
-import { FilterList } from "./filter-list";
-import { getSearchKey, isSearchKey, searchIcons } from "./search-utils";
-import { useSearchFilterContext } from "@/hooks/use-search-filter";
-import { Icon } from "@gnd/ui/icons";
-import { PageFilterData } from "@api/type";
-import { Calendar } from "@gnd/ui/calendar";
 import {
-    HoverCard,
-    HoverCardContent,
-    HoverCardTrigger,
+	HoverCard,
+	HoverCardContent,
+	HoverCardTrigger,
 } from "@gnd/ui/hover-card";
-import { Button } from "@gnd/ui/button";
+import { Icon, Icons } from "@gnd/ui/icons";
+import { Input } from "@gnd/ui/input";
 import { Table, TableBody, TableCell, TableRow } from "@gnd/ui/table";
-import { DaysFilters, daysFilters } from "@gnd/utils/constants";
-import { SuperAdminGuard } from "../auth-guard";
 import { transformFilterDateToQuery } from "@gnd/utils";
+import { type DaysFilters, daysFilters } from "@gnd/utils/constants";
+import { formatISO } from "date-fns";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
+import { SelectTag } from "../select-tag";
+import {
+	type FilterCommitMode,
+	type FilterDefinition,
+	buildOptionLabelLookup,
+	normalizeFilterDefinitions,
+} from "./filter-definitions";
+import { FilterList } from "./filter-list";
+import { isSearchKey, searchIcons } from "./search-utils";
+
 interface Props {
-    // filters;
-    // setFilters;
-    defaultSearch?;
-    placeholder?;
-    filterList?: PageFilterData[];
-    SearchTips?;
+	defaultSearch?: Record<string, unknown>;
+	placeholder?: string;
+	filterList?: Array<PageFilterData | FilterDefinition>;
+	SearchTips?: ReactNode;
+	searchKey?: string;
+	commitMode?: FilterCommitMode;
+	debounceMs?: number;
 }
 
 export function SearchFilterTRPC({
-    placeholder,
-    defaultSearch = {},
-    filterList,
-    SearchTips,
+	placeholder,
+	filterList,
+	SearchTips,
+	searchKey: searchKeyProp,
+	commitMode = "debounced",
+	debounceMs = 400,
 }: Props) {
-    const [prompt, setPrompt] = useState("");
-    const inputRef = useRef<HTMLInputElement>(null);
+	const inputRef = useRef<HTMLInputElement>(null);
+	const {
+		isOpen,
+		setIsOpen,
+		setIsFocused,
+		filters,
+		setFilters,
+		clearAll,
+		setSearch,
+		optionSelected,
+		isOptionSelected,
+		searchKey: contextSearchKey,
+	} = useSearchFilterContext();
 
-    const [streaming, setStreaming] = useState(false);
+	const definitions = useMemo(
+		() => normalizeFilterDefinitions(filterList),
+		[filterList],
+	);
+	const optionLookup = useMemo(
+		() => buildOptionLabelLookup(definitions),
+		[definitions],
+	);
+	const searchKey =
+		searchKeyProp ||
+		definitions.find((definition) => isSearchKey(definition.key))?.key ||
+		contextSearchKey;
+	const searchValue = filters?.[searchKey];
+	const [prompt, setPrompt] = useState(
+		typeof searchValue === "string" ? searchValue : "",
+	);
+	const debouncedPrompt = useDebounce(prompt, debounceMs);
+	const hasMounted = useRef(false);
+	const nonSearchDefinitions = definitions.filter(
+		(definition) => !isSearchKey(definition.key),
+	);
 
-    const {
-        isFocused,
-        isOpen,
-        setIsOpen,
-        shouldFetch,
-        filters,
-        setFilters,
-        optionSelected,
-    } = useSearchFilterContext();
-    useHotkeys(
-        "esc",
-        () => {
-            setPrompt("");
-            setFilters(null);
-            setIsOpen(false);
-        },
-        {
-            enableOnFormTags: true,
-            enabled: Boolean(prompt),
-        },
-    );
+	useEffect(() => {
+		const nextPrompt = typeof searchValue === "string" ? searchValue : "";
 
-    useHotkeys("meta+s", (evt) => {
-        evt.preventDefault();
-        inputRef.current?.focus();
-    });
+		setPrompt((currentPrompt) =>
+			currentPrompt === nextPrompt ? currentPrompt : nextPrompt,
+		);
+	}, [searchValue]);
 
-    useHotkeys("meta+f", (evt) => {
-        evt.preventDefault();
-        setIsOpen((prev) => !prev);
-    });
+	useEffect(() => {
+		if (commitMode !== "debounced") return;
 
-    const handleSearch = (evt: React.ChangeEvent<HTMLInputElement>) => {
-        const value = evt.target.value;
-        if (value) {
-            setPrompt(value);
-        } else {
-            setFilters(null);
-            setPrompt("");
-        }
-    };
-    const deb = useDebounce(prompt, 200);
-    const hasMounted = useRef(false);
-    useEffect(() => {
-        if (!hasMounted.current) {
-            hasMounted.current = true;
-            return;
-        }
-        const searchKey = getSearchKey(filters);
+		if (!hasMounted.current) {
+			hasMounted.current = true;
+			return;
+		}
 
-        if (searchKey)
-            setFilters({
-                [searchKey]: deb.length > 0 ? deb : null,
-            });
-    }, [deb]);
+		setSearch(debouncedPrompt.length > 0 ? debouncedPrompt : null);
+	}, [commitMode, debouncedPrompt, setSearch]);
 
-    const handleSubmit = async () => {
-        // If the user is typing a query with multiple words, we want to stream the results
-        const searchKey = getSearchKey(filters);
+	useHotkeys(
+		"esc",
+		() => {
+			setPrompt("");
+			clearAll();
+			setIsOpen(false);
+		},
+		{
+			enableOnFormTags: true,
+			enabled: Boolean(prompt) || isOpen,
+		},
+	);
 
-        if (searchKey)
-            setFilters({
-                [searchKey]: prompt.length > 0 ? prompt : null,
-            });
-    };
-    const hasValidFilters = Object.entries(filters).filter(([key, value]) => {
-        if (isSearchKey(key)) return false;
-        if (value === null || value === undefined || value === "") return false;
-        if (Array.isArray(value)) return value.length > 0;
-        return true;
-    }).length > 0;
+	useHotkeys("meta+s", (evt) => {
+		evt.preventDefault();
+		inputRef.current?.focus();
+	});
 
-    const __filters = (filterList || [])?.filter((a) => !isSearchKey(a.value));
+	useHotkeys("meta+f", (evt) => {
+		evt.preventDefault();
+		setIsOpen((prev) => !prev);
+	});
 
-    return (
-        <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-            <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
-                <form
-                    className="relative w-full lg:w-auto"
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        handleSubmit();
-                    }}
-                >
-                    <Icons.Search className="pointer-events-none absolute left-3 top-[11px] size-4" />
-                    <Input
-                        ref={inputRef}
-                        placeholder={placeholder}
-                        className="w-full pl-9 pr-24 lg:w-[350px] lg:pr-10"
-                        value={prompt}
-                        onChange={handleSearch}
-                        autoComplete="off"
-                        autoCapitalize="none"
-                        autoCorrect="off"
-                        spellCheck="false"
-                    />
-                    {!SearchTips || <SearchTip>{SearchTips}</SearchTip>}
-                    <DropdownMenuTrigger
-                        // className={cn(__filters.length || "hidden")}
-                        asChild
-                    >
-                        <Button
-                            onClick={() => setIsOpen((prev) => !prev)}
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className={cn(
-                                "absolute right-1 top-1 z-10 h-8 gap-1.5 rounded-md px-2 text-muted-foreground opacity-70 transition-opacity duration-300 hover:opacity-100 lg:w-8 lg:px-0",
-                                hasValidFilters && "opacity-100",
-                                isOpen && "opacity-100",
-                            )}
-                        >
-                            <Icons.Filter className="size-4" />
-                            <span className="text-xs lg:hidden">Filters</span>
-                            <span className="sr-only">Open filters</span>
-                        </Button>
-                    </DropdownMenuTrigger>
-                </form>
-                <FilterList
-                    loading={streaming}
-                    onRemove={(obj) => {
-                        setFilters(obj);
-                        const clearPrompt = Object.entries(obj).find(([k, v]) =>
-                            isSearchKey(k),
-                        )?.[0];
-                        if (clearPrompt) setPrompt("");
-                    }}
-                    onClearAll={() => {
-                        setFilters(null);
-                        setPrompt("");
-                    }}
-                    filters={filters}
-                    filterList={__filters}
-                />
-            </div>
-            <DropdownMenuContent
-                className={cn("w-[min(22rem,calc(100vw-2rem))] lg:w-[350px]")}
-                sideOffset={19}
-                alignOffset={-11}
-                side="bottom"
-                align="end"
-            >
-                {__filters?.map((f, i) => (
-                    <DropdownMenuGroup key={i}>
-                        <DropdownMenuSub>
-                            <DropdownMenuSubTrigger>
-                                <Icon
-                                    name={searchIcons[f.value] as any}
-                                    className={"mr-2 size-4"}
-                                />
-                                <span className="capitalize">
-                                    {f.label || f.value?.split(".").join(" ")}
-                                </span>
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuPortal>
-                                <DropdownMenuSubContent
-                                    sideOffset={14}
-                                    alignOffset={-4}
-                                    className="p-0"
-                                >
-                                    {f.type == "date-range" ? (
-                                        <CalendarFilter filter={f} />
-                                    ) : f.options?.length > 20 ? (
-                                        <>
-                                            <SelectTag
-                                                headless
-                                                data={f.options?.map((opt) => ({
-                                                    ...opt,
-                                                    label: opt.label,
-                                                    id: opt.value,
-                                                }))}
-                                                onChange={(selected) => {
-                                                    optionSelected(f.value, {
-                                                        ...selected,
-                                                        value: selected.id,
-                                                    });
-                                                }}
-                                            />
-                                        </>
-                                    ) : (
-                                        f.options?.map(
-                                            ({ label, value }, _i) => (
-                                                <DropdownMenuCheckboxItem
-                                                    onCheckedChange={() => {
-                                                        optionSelected(
-                                                            f.value,
-                                                            { value, label },
-                                                        );
-                                                    }}
-                                                    key={_i}
-                                                >
-                                                    {label}
-                                                </DropdownMenuCheckboxItem>
-                                            ),
-                                        )
-                                    )}
-                                </DropdownMenuSubContent>
-                            </DropdownMenuPortal>
-                        </DropdownMenuSub>
-                    </DropdownMenuGroup>
-                ))}
-            </DropdownMenuContent>
-        </DropdownMenu>
-    );
+	const hasValidFilters = Object.entries(filters || {}).some(([key, value]) => {
+		if (isSearchKey(key)) return false;
+		if (value === null || value === undefined || value === "") return false;
+		if (Array.isArray(value)) return value.length > 0;
+		return true;
+	});
+
+	const handleSearch = (evt: React.ChangeEvent<HTMLInputElement>) => {
+		const value = evt.target.value;
+		setPrompt(value);
+
+		if (commitMode === "immediate") {
+			setSearch(value.length > 0 ? value : null);
+			return;
+		}
+
+		if (!value) {
+			setSearch(null);
+		}
+	};
+
+	const handleSubmit = (evt?: React.FormEvent) => {
+		evt?.preventDefault();
+		setSearch(prompt.length > 0 ? prompt : null);
+	};
+
+	return (
+		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+			<div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
+				<form className="relative w-full lg:w-auto" onSubmit={handleSubmit}>
+					<Icons.Search className="pointer-events-none absolute left-3 top-[11px] size-4" />
+					<Input
+						ref={inputRef}
+						aria-label={placeholder || "Search"}
+						placeholder={placeholder}
+						className="w-full pl-9 pr-24 lg:w-[350px] lg:pr-10"
+						value={prompt}
+						onChange={handleSearch}
+						onFocus={() => setIsFocused(true)}
+						onBlur={() => setIsFocused(false)}
+						autoComplete="off"
+						autoCapitalize="none"
+						autoCorrect="off"
+						spellCheck="false"
+					/>
+					{!SearchTips || <SearchTip>{SearchTips}</SearchTip>}
+					<DropdownMenuTrigger asChild>
+						<Button
+							aria-expanded={isOpen}
+							aria-label="Open filters"
+							onClick={() => setIsOpen((prev) => !prev)}
+							type="button"
+							variant="ghost"
+							size="sm"
+							className={cn(
+								"absolute right-1 top-1 z-10 h-8 gap-1.5 rounded-md px-2 text-muted-foreground opacity-70 transition-opacity duration-300 hover:opacity-100 lg:w-8 lg:px-0",
+								hasValidFilters && "opacity-100",
+								isOpen && "opacity-100",
+							)}
+						>
+							<Icons.Filter className="size-4" />
+							<span className="text-xs lg:hidden">Filters</span>
+							<span className="sr-only">Open filters</span>
+						</Button>
+					</DropdownMenuTrigger>
+				</form>
+				<FilterList
+					onRemove={(obj) => {
+						setFilters(obj);
+
+						if (Object.keys(obj).some((key) => isSearchKey(key))) {
+							setPrompt("");
+						}
+					}}
+					onClearAll={() => {
+						clearAll();
+						setPrompt("");
+					}}
+					filters={filters}
+					definitions={definitions}
+					optionLookup={optionLookup}
+				/>
+			</div>
+			<DropdownMenuContent
+				className={cn("w-[min(22rem,calc(100vw-2rem))] lg:w-[350px]")}
+				sideOffset={19}
+				alignOffset={-11}
+				side="bottom"
+				align="end"
+			>
+				{nonSearchDefinitions.map((definition) => (
+					<DropdownMenuGroup key={definition.key}>
+						<DropdownMenuSub>
+							<DropdownMenuSubTrigger>
+								<Icon
+									name={
+										(definition.icon ||
+											searchIcons[definition.key] ||
+											"Search") as never
+									}
+									className="mr-2 size-4"
+								/>
+								<span className="capitalize">{definition.label}</span>
+							</DropdownMenuSubTrigger>
+							<DropdownMenuPortal>
+								<DropdownMenuSubContent
+									sideOffset={14}
+									alignOffset={-4}
+									className="p-0"
+								>
+									{definition.renderControl ? (
+										<definition.renderControl
+											definition={definition}
+											value={filters?.[definition.key]}
+											filters={filters}
+											setFilter={setFilters}
+											toggleOption={optionSelected}
+										/>
+									) : definition.type === "date-range" ||
+										definition.type === "date" ? (
+										<CalendarFilter filter={definition} />
+									) : (definition.options?.length ?? 0) > 20 ? (
+										<SelectTag
+											headless
+											data={definition.options?.map((option) => ({
+												...option,
+												id: option.value,
+											}))}
+											onChange={(selected) => {
+												optionSelected(definition.key, {
+													label: selected.label,
+													value: selected.id,
+												});
+											}}
+										/>
+									) : (
+										definition.options?.map((option) => (
+											<DropdownMenuCheckboxItem
+												checked={isOptionSelected(definition.key, option.value)}
+												onSelect={(event) => event.preventDefault()}
+												onCheckedChange={() => {
+													optionSelected(definition.key, option);
+												}}
+												key={option.value}
+											>
+												{option.label}
+											</DropdownMenuCheckboxItem>
+										))
+									)}
+								</DropdownMenuSubContent>
+							</DropdownMenuPortal>
+						</DropdownMenuSub>
+					</DropdownMenuGroup>
+				))}
+			</DropdownMenuContent>
+		</DropdownMenu>
+	);
 }
+
 interface CalendarFilterProps {
-    filter: PageFilterData;
+	filter: FilterDefinition;
 }
+
 function CalendarFilter({ filter }: CalendarFilterProps) {
-    const {
-        isFocused,
-        isOpen,
-        setIsOpen,
-        shouldFetch,
-        filters,
-        setFilters,
-        optionSelected,
-    } = useSearchFilterContext();
-    const isCurrentFilter = (_) => {
-        const f = filters?.[filter.value];
-        if (Array.isArray(f)) return _ === f?.[0];
+	const { filters, setFilters } = useSearchFilterContext();
 
-        return false;
-    };
-    const dateValue = (filter, index) => {
-        const f = filters?.[filter.value];
-        if (Array.isArray(f) && f?.length > index) {
-            const dates = transformFilterDateToQuery(f);
-            const dv = index == 0 ? dates?.gte : dates?.lte; ///dates[index];
-            // const dv = dates?.[index];
-            if (index > 0)
-                switch (f?.[0] as DaysFilters) {
-                    case "today":
-                    // case "tomorrow":
-                    case "yesterday":
-                        return undefined;
-                        break;
-                }
-            return dv ? new Date(dv) : undefined;
-        }
-        return undefined;
-    };
-    return (
-        <div className="flex">
-            <Table className="">
-                <TableBody>
-                    {daysFilters.map((df) => (
-                        <TableRow
-                            onClick={(e) => {
-                                setFilters({
-                                    [filter.value]: [df],
-                                });
-                            }}
-                            key={df}
-                        >
-                            <TableCell
-                                className={cn(
-                                    "capitalize flex gap-4 pr-12 cursor-pointer items-center",
-                                    isCurrentFilter(df) && "font-semibold",
-                                )}
-                            >
-                                <Icons.CheckCircle
-                                    className={cn(
-                                        "size-3",
-                                        !isCurrentFilter(df)
-                                            ? "opacity-20"
-                                            : "",
-                                    )}
-                                />
-                                {df}
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
+	const isCurrentFilter = (value: string) => {
+		const filterValue = filters?.[filter.key];
+		if (Array.isArray(filterValue)) return value === filterValue?.[0];
 
-            <Calendar
-                mode="range"
-                initialFocus
-                selected={{
-                    from: dateValue(filter, 0),
-                    to: dateValue(filter, 1),
-                }}
-                onSelect={(range) => {
-                    let value = [
-                        range?.from
-                            ? formatISO(range.from, {
-                                  representation: "date",
-                              })
-                            : "-",
-                        range?.to
-                            ? formatISO(range.to, {
-                                  representation: "date",
-                              })
-                            : "-",
-                    ];
-                    console.log([value, filter]);
-                    setFilters({
-                        [filter.value]: value, //.join(","),
-                    });
-                }}
-            />
-        </div>
-    );
+		return false;
+	};
+
+	const dateValue = (index: number) => {
+		const filterValue = filters?.[filter.key];
+
+		if (Array.isArray(filterValue) && filterValue.length > index) {
+			const dates = transformFilterDateToQuery(filterValue);
+			const date = index === 0 ? dates?.gte : dates?.lte;
+
+			if (index > 0) {
+				switch (filterValue?.[0] as DaysFilters) {
+					case "today":
+					case "yesterday":
+						return undefined;
+				}
+			}
+
+			return date ? new Date(date) : undefined;
+		}
+
+		return undefined;
+	};
+
+	return (
+		<div className="flex">
+			<Table>
+				<TableBody>
+					{daysFilters.map((dayFilter) => (
+						<TableRow
+							onClick={() => {
+								setFilters({
+									[filter.key]: [dayFilter],
+								});
+							}}
+							key={dayFilter}
+						>
+							<TableCell
+								className={cn(
+									"flex cursor-pointer items-center gap-4 pr-12 capitalize",
+									isCurrentFilter(dayFilter) && "font-semibold",
+								)}
+							>
+								<Icons.CheckCircle
+									className={cn(
+										"size-3",
+										!isCurrentFilter(dayFilter) && "opacity-20",
+									)}
+								/>
+								{dayFilter}
+							</TableCell>
+						</TableRow>
+					))}
+				</TableBody>
+			</Table>
+
+			<Calendar
+				mode="range"
+				initialFocus
+				selected={{
+					from: dateValue(0),
+					to: dateValue(1),
+				}}
+				onSelect={(range) => {
+					const value = [
+						range?.from
+							? formatISO(range.from, {
+									representation: "date",
+								})
+							: "-",
+						range?.to
+							? formatISO(range.to, {
+									representation: "date",
+								})
+							: "-",
+					];
+
+					setFilters({
+						[filter.key]: value,
+					});
+				}}
+			/>
+		</div>
+	);
 }
-function SearchTip({ children }) {
-    return (
-        <HoverCard>
-            <HoverCardTrigger asChild>
-                <button
-                    type="button"
-                    className="absolute opacity-50 transition-opacity duration-300 hover:opacity-100 right-10 top-[10px] z-10"
-                >
-                    <Icons.HelpCircle className="size-4" />
-                </button>
-            </HoverCardTrigger>
-            <HoverCardContent className="w-80">
-                <div className="flex justify-between gap-4">
-                    <div className="space-y-1">
-                        <h4 className="text-sm font-semibold">Search tips</h4>
-                        <div className="text-sm">{children}</div>
-                    </div>
-                </div>
-            </HoverCardContent>
-        </HoverCard>
-    );
+
+function SearchTip({ children }: { children: ReactNode }) {
+	return (
+		<HoverCard>
+			<HoverCardTrigger asChild>
+				<button
+					type="button"
+					className="absolute right-10 top-[10px] z-10 opacity-50 transition-opacity duration-300 hover:opacity-100"
+				>
+					<Icons.HelpCircle className="size-4" />
+				</button>
+			</HoverCardTrigger>
+			<HoverCardContent className="w-80">
+				<div className="flex justify-between gap-4">
+					<div className="space-y-1">
+						<h4 className="text-sm font-semibold">Search tips</h4>
+						<div className="text-sm">{children}</div>
+					</div>
+				</div>
+			</HoverCardContent>
+		</HoverCard>
+	);
 }

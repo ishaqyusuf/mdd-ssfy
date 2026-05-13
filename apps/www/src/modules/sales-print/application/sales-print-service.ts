@@ -36,6 +36,10 @@ export interface SalesPrintRequest {
 	openInNewTab?: boolean;
 	onPrintReady?: () => void;
 	onPrintError?: (error: unknown) => void;
+	onPrintStage?: (
+		stage: SalesPrintStage,
+		details?: SalesPrintStageDetails,
+	) => void;
 }
 
 type SalesPrintDependencies = {
@@ -63,6 +67,26 @@ type SalesPrintDependencies = {
 	createPrintLoadingContent?: typeof createPrintLoadingContent;
 	getBaseUrl: typeof getBaseUrl;
 	useAttachmentOverlay: boolean;
+};
+
+export type SalesPrintStage =
+	| "resolve-access-start"
+	| "resolve-access-done"
+	| "resolve-access-error"
+	| "hidden-viewer-mounted"
+	| "print-data-query-start"
+	| "print-data-query-done"
+	| "print-data-query-error"
+	| "pdf-iframe-load"
+	| "print-dialog-called"
+	| "print-timeout";
+
+export type SalesPrintStageDetails = {
+	href?: string;
+	mode?: PrintMode;
+	salesIds?: number[];
+	message?: string;
+	error?: unknown;
 };
 
 const defaultDependencies: SalesPrintDependencies = {
@@ -259,7 +283,15 @@ export async function openSalesPrintDocument(
 			: dependencies.openPendingPrintWindow();
 
 	try {
+		request.onPrintStage?.("resolve-access-start", {
+			mode,
+			salesIds: request.salesIds,
+		});
 		const access = await resolveSalesPrintAccess(request, dependencies);
+		request.onPrintStage?.("resolve-access-done", {
+			mode,
+			salesIds: request.salesIds,
+		});
 		const href = buildSalesPrintViewerUrl(access, {
 			preview: false,
 			templateId: request.templateId,
@@ -267,16 +299,32 @@ export async function openSalesPrintDocument(
 		});
 
 		if (shouldUseAttachmentOverlay) {
-			const mountedHiddenViewer = await dependencies.mountHiddenPrintViewer?.(href, {
-				onPrintReady: () => {
-					request.onPrintReady?.();
+			const mountedHiddenViewer = await dependencies.mountHiddenPrintViewer?.(
+				href,
+				{
+					onPrintReady: () => {
+						request.onPrintReady?.();
+					},
+					onPrintError: (error) => {
+						request.onPrintError?.(error);
+					},
+					onPrintStage: (stage, details) => {
+						request.onPrintStage?.(stage, {
+							...details,
+							href: details?.href ?? href,
+							mode: details?.mode ?? mode,
+							salesIds: details?.salesIds ?? request.salesIds,
+						});
+					},
 				},
-				onPrintError: (error) => {
-					request.onPrintError?.(error);
-				},
-			});
+			);
 
 			if (mountedHiddenViewer) {
+				request.onPrintStage?.("hidden-viewer-mounted", {
+					href,
+					mode,
+					salesIds: request.salesIds,
+				});
 				return;
 			}
 		}
@@ -288,6 +336,11 @@ export async function openSalesPrintDocument(
 
 		dependencies.openLink(href, null, true);
 	} catch (error) {
+		request.onPrintStage?.("resolve-access-error", {
+			mode,
+			salesIds: request.salesIds,
+			error,
+		});
 		if (pendingWindow && !pendingWindow.closed) {
 			pendingWindow.close();
 		}
@@ -433,6 +486,10 @@ async function mountHiddenPrintViewer(
 	callbacks?: {
 		onPrintReady?: () => void;
 		onPrintError?: (error: unknown) => void;
+		onPrintStage?: (
+			stage: SalesPrintStage,
+			details?: SalesPrintStageDetails,
+		) => void;
 	},
 ) {
 	if (typeof document === "undefined") return false;
@@ -441,6 +498,8 @@ async function mountHiddenPrintViewer(
 	const { SalesPrintShellViewer } = await import(
 		"@/modules/sales-print/ui/sales-print-shell-viewer"
 	);
+	const { TRPCReactProvider } = await import("@/trpc/client");
+	const { SessionProvider } = await import("next-auth/react");
 
 	const host = document.createElement("div");
 	host.setAttribute("data-sales-hidden-print-host", "true");
@@ -459,6 +518,7 @@ async function mountHiddenPrintViewer(
 	document.body.appendChild(host);
 	const root = createRoot(host);
 	let cleanupTimer: number | null = null;
+	let settled = false;
 
 	const cleanup = () => {
 		if (cleanupTimer) {
@@ -469,18 +529,49 @@ async function mountHiddenPrintViewer(
 		host.remove();
 	};
 
-	root.render(
-		createElement(SalesPrintShellViewer, {
+	const timeout = window.setTimeout(() => {
+		if (settled) return;
+		settled = true;
+		const error = new Error("The print viewer is taking longer than expected.");
+		callbacks?.onPrintStage?.("print-timeout", {
 			href,
-			onPrintReady: () => {
-				callbacks?.onPrintReady?.();
-				cleanupTimer = window.setTimeout(cleanup, 60_000);
+			message: error.message,
+			error,
+		});
+		callbacks?.onPrintError?.(error);
+		cleanup();
+	}, 20_000);
+
+	root.render(
+		createElement(
+			SessionProvider,
+			{
+				refetchOnWindowFocus: false,
+				refetchWhenOffline: false,
 			},
-			onPrintError: (error: unknown) => {
-				callbacks?.onPrintError?.(error);
-				cleanup();
-			},
-		}),
+			createElement(
+				TRPCReactProvider,
+				null,
+				createElement(SalesPrintShellViewer, {
+					href,
+					onPrintReady: () => {
+						if (settled) return;
+						settled = true;
+						window.clearTimeout(timeout);
+						callbacks?.onPrintReady?.();
+						cleanupTimer = window.setTimeout(cleanup, 60_000);
+					},
+					onPrintError: (error: unknown) => {
+						if (settled) return;
+						settled = true;
+						window.clearTimeout(timeout);
+						callbacks?.onPrintError?.(error);
+						cleanup();
+					},
+					onPrintStage: callbacks?.onPrintStage,
+				}),
+			),
+		),
 	);
 
 	return true;

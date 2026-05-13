@@ -1,5 +1,8 @@
 import { Prisma, type Db } from "@gnd/db";
-import { getPrintDocumentData } from "../../print/get-print-document-data";
+import {
+	getPrintDocumentData,
+	resolveSalesCompanyAddress,
+} from "../../print/get-print-document-data";
 import type { CompanyAddress, PrintMode, PrintPage } from "../../print/types";
 
 const DEFAULT_TEMPLATE_ID = "template-2";
@@ -103,6 +106,53 @@ export function salesPrintDataToPrintDocumentData(record: SalesPrintDataRecord) 
 		title: record.title,
 		firstOrderId: record.firstOrderId ?? null,
 		companyAddress: record.companyAddress,
+	};
+}
+
+export async function createOrRefreshBatchSalesPrintData(
+	db: Db,
+	input: Omit<CreateOrRefreshSalesPrintDataInput, "salesOrderId"> & {
+		salesOrderIds: number[];
+	},
+) {
+	const results = await Promise.all(
+		input.salesOrderIds.map(async (salesOrderId) => {
+			return createOrRefreshSalesPrintData(db, {
+				...input,
+				salesOrderId,
+				reason: input.reason ?? "batch_print",
+				meta: {
+					...(input.meta ?? {}),
+					batchSalesOrderIds: input.salesOrderIds,
+				},
+			});
+		}),
+	);
+	const records = results.map((result) => result.record);
+	const pages = records.flatMap((record) => record.pages);
+	const firstRecord = records[0] ?? null;
+	const generatedCount = results.filter((result) => result.generated).length;
+
+	logSalesPrintCache("batchResolved", {
+		mode: input.mode,
+		dispatchId: input.dispatchId ?? null,
+		templateId: input.templateId || DEFAULT_TEMPLATE_ID,
+		salesOrderIds: input.salesOrderIds,
+		records: records.length,
+		pages: pages.length,
+		generatedCount,
+	});
+
+	return {
+		records,
+		pages,
+		title:
+			records.length === 1 && firstRecord
+				? firstRecord.title
+				: sanitizePrintTitle(`Sales Print (${pages.length})`),
+		firstOrderId: firstRecord?.firstOrderId ?? null,
+		companyAddress:
+			firstRecord?.companyAddress ?? resolveSalesCompanyAddress(null),
 	};
 }
 
@@ -476,4 +526,8 @@ function logSalesPrintCache(
 	payload: Record<string, unknown> = {},
 ) {
 	console.info("[sales-print-data-cache]", event, payload);
+}
+
+function sanitizePrintTitle(value: string) {
+	return value.replace(/[^\w\-]+/g, "_");
 }

@@ -16,7 +16,6 @@ import { Icons } from "@gnd/ui/icons";
 import { Item } from "@gnd/ui/namespace";
 import { InvoiceColumn } from "./column.invoice";
 
-import { SuperAdminGuard } from "@/components/auth-guard";
 import { SalesMenu } from "@/components/sales-menu";
 import { SalesOverviewVersionMenuItems } from "@/components/sales-overview-version-menu-items";
 import { useAuth } from "@/hooks/use-auth";
@@ -688,9 +687,6 @@ function Actions({ item }: { item: SalesOrderItem }) {
 			>
 				<SalesOverviewVersionMenuItems type="order" uuid={item.uuid} />
 				<SalesMenu.SalesPrintMenuItems />
-				<SuperAdminGuard>
-					<SalesMenu.PrintModes />
-				</SuperAdminGuard>
 				<SalesMenu.Sub>
 					<SalesMenu.SubTrigger>
 						<Icons.Check className="mr-2 size-4 text-muted-foreground/70" />

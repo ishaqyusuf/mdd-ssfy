@@ -1,4 +1,3 @@
-import { SuperAdminGuard } from "@/components/auth-guard";
 import { SalesMenu } from "@/components/sales-menu";
 import { SalesPaymentNotificationsMenu } from "@/components/sales-payment-notifications-menu";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
@@ -47,9 +46,6 @@ export function BatchActions() {
 						}
 					>
 						<SalesMenu.SalesPrintMenuItems />
-						<SuperAdminGuard>
-							<SalesMenu.PrintModes />
-						</SuperAdminGuard>
 					</SalesMenu>
 					<SalesPaymentNotificationsMenu
 						type="order"
