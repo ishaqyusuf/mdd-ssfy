@@ -72,4 +72,80 @@ describe("item workflow step family", () => {
 
 		expect(family).toBe("service-line-item");
 	});
+
+	it("keeps grouped moulding panel active from redirected or skipped steps", () => {
+		const family = getItemWorkflowStepFamily(
+			{
+				title: "Moulding",
+				formSteps: [
+					{
+						step: {
+							title: "Item Type",
+						},
+						value: "Moulding",
+					},
+					{
+						step: {
+							title: "Color",
+						},
+						value: "White",
+						meta: {
+							redirected: true,
+						},
+					},
+				],
+				meta: {
+					mouldingRows: [
+						{
+							uid: "m-1",
+							title: "Casing",
+							qty: 2,
+						},
+					],
+				},
+			} as any,
+			{
+				step: {
+					title: "Color",
+				},
+				meta: {
+					redirected: true,
+				},
+			} as any,
+		);
+
+		expect(family).toBe("moulding-line-item");
+	});
+
+	it("keeps grouped service panel active from service step aliases", () => {
+		const family = getItemWorkflowStepFamily(
+			{
+				title: "Services",
+				formSteps: [
+					{
+						step: {
+							title: "Item Type",
+						},
+						value: "Service",
+					},
+				],
+				meta: {
+					serviceRows: [
+						{
+							uid: "svc-1",
+							service: "Install",
+							qty: 1,
+						},
+					],
+				},
+			} as any,
+			{
+				step: {
+					title: "Services",
+				},
+			} as any,
+		);
+
+		expect(family).toBe("service-line-item");
+	});
 });

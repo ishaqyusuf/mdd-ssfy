@@ -20,6 +20,12 @@ Tracks important request/response contracts and shared schema boundaries.
   - `signPackingSlipSchema = { dispatchId: number, receivedBy?: string | null, signature: string, note?: string | null }`
   - packing-list history is scoped by `sales-packing-list` notification membership, while live warehouse work uses normal `queue` delivery status
   - Expo mobile packing uses the same `packingListQuerySchema` tabs and opens the shared dispatch detail screen in a packing-aware mode via route params instead of introducing a second item-detail contract
+- New sales form grouped line contract:
+  - grouped service UI lines store row projection in `line.meta.serviceRows`
+  - grouped moulding UI lines store row projection in `line.meta.mouldingRows`
+  - grouped row projections carry legacy persistence identity where known: `salesItemId`, `hptId` for moulding, `groupUid`, `uid`, `primaryGroupItem`, row qty/price/total fields, and row-level tax/production flags for services
+  - API hydration treats DB grouping identity as authoritative and only uses persisted `order.meta.newSalesForm` for current editable row values
+  - API save expands grouped projections back into legacy sibling `SalesOrderItems` rows sharing `multiDykeUid`; moulding rows also write per-row `HousePackageTools`
 
 ## TODO
 - Document canonical contracts for sales, checkout, dispatch, notifications, and document workflows.

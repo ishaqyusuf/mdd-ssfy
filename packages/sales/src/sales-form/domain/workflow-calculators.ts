@@ -475,6 +475,7 @@ export function deriveServiceRows({
       const qty = Number(row?.qty ?? 0);
       const unitPrice = Number(row?.unitPrice ?? 0);
       return {
+        ...row,
         uid: String(row?.uid || "").trim() || `service-${lineUid}-${index + 1}`,
         service: String(row?.service ?? row?.description ?? ""),
         taxxable: Boolean(row?.taxxable),
@@ -505,6 +506,7 @@ export function summarizeServiceRows(lineUid: string, nextRowsRaw: any[]) {
     const qty = Number(row?.qty ?? 0);
     const unitPrice = Number(row?.unitPrice ?? 0);
     return {
+      ...row,
       uid: String(row?.uid || "").trim() || `service-${lineUid}-${index + 1}`,
       service: String(row?.service ?? "").trim(),
       taxxable: Boolean(row?.taxxable),
@@ -726,6 +728,7 @@ export function deriveMouldingRows({
 
 export function summarizeMouldingPersistRows(nextRowsRaw: any[], sharedComponentPrice: number) {
   const storedRows = nextRowsRaw.map((row: any) => ({
+    ...row,
     uid: row.uid,
     title: row.title,
     description: row.description,
@@ -754,7 +757,7 @@ export function summarizeMouldingPersistRows(nextRowsRaw: any[], sharedComponent
       .toFixed(2),
   );
   return {
-    storedRows,
+    storedRows: calculated,
     calculated,
     qtyTotal,
     total,

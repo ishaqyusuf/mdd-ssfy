@@ -2,6 +2,23 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-05-13
+
+- Implemented new sales form grouped moulding/service edit-save parity with the old sales form relational shape.
+  - added shared grouping domain helpers in `packages/sales/src/sales-form/domain/grouping.ts` for grouped-line detection, legacy sibling collapse, and grouped projection expansion for legacy save
+  - moved legacy grouped collapse behavior out of the API query path and into the shared sales-form domain so it can be tested directly
+  - updated `getNewSalesForm` hydration so legacy `multiDykeUid` sibling groups reopen as one grouped UI parent with row-level `mouldingRows` / `serviceRows`, preserving row identity, HPT identity, tax/production flags, and moulding selected-component metadata
+  - updated `saveNewSalesFormInternal` so grouped service/moulding lines expand back into one `SalesOrderItems` row per row projection, preserve existing `salesItemId` / `hptId`, revive edited rows by clearing `deletedAt`, create rows only for newly added grouped rows, and leave removed siblings soft-deleted
+  - updated grouped moulding save to write one `HousePackageTools` row per moulding row with row-level product ids and `priceTags.moulding` pricing metadata
+  - preserved row identity through service/moulding workflow calculators so UI edits do not drop persistence ids
+  - added regression coverage for grouped collapse/expand, grouped service save, grouped moulding + HPT save, ID preservation, soft-delete semantics, and grouped step-family rendering
+  - validation note:
+    - `bun test packages/sales/src/sales-form/domain` passes
+    - `bun test apps/api/src/db/queries/new-sales-form.multi-line.test.ts` passes
+    - `bun test apps/api/src/db/queries/new-sales-form.test.ts` passes
+    - `bun test apps/www/src/components/forms/new-sales-form/sections/item-workflow/step-family.test.ts` passes
+    - `git diff --check` passes
+
 ## 2026-04-27
 
 - Consolidated sales print/PDF orchestration behind a shared application service and route builder so sales CTAs stop duplicating print mode, token, and viewer-opening logic.

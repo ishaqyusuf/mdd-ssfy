@@ -34,7 +34,11 @@ import { salesAddressLines } from "@api/utils/sales";
 import { TRPCError } from "@trpc/server";
 import { projectLegacyOrderPayments } from "@gnd/sales";
 import { generateRandomString } from "@gnd/utils";
-import { calculateSalesFormSummary } from "@gnd/sales/sales-form";
+import {
+	calculateSalesFormSummary,
+	collapseLegacyGroupedLines,
+	expandGroupedLineForLegacySave,
+} from "@gnd/sales/sales-form";
 import { generateSalesSlug } from "@gnd/sales/utils";
 import { syncSalesInventoryLineItems } from "@sales/sync-sales-inventory-line-items";
 
@@ -151,250 +155,6 @@ function isGroupedLine(line: {
 	);
 }
 
-function isMouldingTitle(value?: string | null) {
-	const normalized = normalizeSalesFormTitle(value);
-	return (
-		normalized === "moulding" ||
-		normalized === "mouldings" ||
-		normalized === "molding" ||
-		normalized === "moldings"
-	);
-}
-
-function isServiceTitle(value?: string | null) {
-	const normalized = normalizeSalesFormTitle(value);
-	return normalized === "service" || normalized === "services";
-}
-
-function findLineStepByTitle(
-	line: {
-		formSteps?: Array<{
-			step?: { title?: string | null } | null;
-		}> | null;
-	},
-	title: string,
-) {
-	const normalized = normalizeSalesFormTitle(title);
-	return (line.formSteps || []).find(
-		(step) => normalizeSalesFormTitle(step?.step?.title) === normalized,
-	);
-}
-
-function summarizeLegacyServiceRows(rows: Array<Record<string, unknown>>) {
-	const normalizedRows = rows.map((row, index) => {
-		const qty = Number(row.qty || 0);
-		const unitPrice = Number(row.unitPrice || 0);
-		return {
-			uid:
-				String(row.uid || "").trim() || `legacy-service-row-${index + 1}`,
-			service: String(row.service || "").trim(),
-			taxxable: Boolean(row.taxxable),
-			produceable: Boolean(row.produceable),
-			qty,
-			unitPrice,
-			lineTotal: roundCurrency(qty * unitPrice),
-		};
-	});
-	const qtyTotal = normalizedRows.reduce(
-		(sum, row) => sum + Number(row.qty || 0),
-		0,
-	);
-	const lineTotal = roundCurrency(
-		normalizedRows.reduce((sum, row) => sum + Number(row.lineTotal || 0), 0),
-	);
-	return {
-		rows: normalizedRows,
-		qtyTotal,
-		lineTotal,
-		unitPrice: qtyTotal > 0 ? roundCurrency(lineTotal / qtyTotal) : 0,
-		description: normalizedRows
-			.map((row) => String(row.service || "").trim())
-			.filter(Boolean)
-			.join(" | "),
-	};
-}
-
-function summarizeLegacyMouldingRows(rows: Array<Record<string, unknown>>) {
-	const normalizedRows = rows.map((row, index) => {
-		const qty = Number(row.qty || 0);
-		const salesPrice = Number(row.salesPrice || 0);
-		const addon = Number(row.addon || 0);
-		const customPrice =
-			row.customPrice == null || row.customPrice === ""
-				? null
-				: Number(row.customPrice || 0);
-		const unit = customPrice == null ? salesPrice + addon : customPrice + addon;
-		return {
-			uid:
-				String(row.uid || "").trim() || `legacy-moulding-row-${index + 1}`,
-			title: String(row.title || row.description || "Moulding").trim(),
-			description: String(
-				row.description || row.title || "Moulding",
-			).trim(),
-			qty,
-			addon,
-			customPrice,
-			salesPrice,
-			basePrice: Number(row.basePrice || 0),
-			lineTotal: roundCurrency(qty * unit),
-		};
-	});
-	const qtyTotal = normalizedRows.reduce(
-		(sum, row) => sum + Number(row.qty || 0),
-		0,
-	);
-	const lineTotal = roundCurrency(
-		normalizedRows.reduce((sum, row) => sum + Number(row.lineTotal || 0), 0),
-	);
-	return {
-		rows: normalizedRows,
-		qtyTotal,
-		lineTotal,
-		unitPrice: qtyTotal > 0 ? roundCurrency(lineTotal / qtyTotal) : 0,
-		description: normalizedRows
-			.map((row) => String(row.description || row.title || "").trim())
-			.filter(Boolean)
-			.join(" | "),
-	};
-}
-
-function collapseLegacyGroupedDbLines(rawLines: any[]) {
-	const groups = new Map<string, any[]>();
-	for (const line of rawLines) {
-		const groupUid = String(line?.multiDykeUid || "").trim();
-		if (!groupUid) continue;
-		const siblings = groups.get(groupUid) || [];
-		siblings.push(line);
-		groups.set(groupUid, siblings);
-	}
-	const consumed = new Set<string>();
-	return rawLines.flatMap((line) => {
-		const groupUid = String(line?.multiDykeUid || "").trim();
-		if (!groupUid) return [line];
-		if (consumed.has(groupUid)) return [];
-		const siblings = groups.get(groupUid) || [line];
-		const representative = siblings.find((item) => Boolean(item?.multiDyke)) || siblings[0];
-		const representativeTitle = String(representative?.title || "").trim();
-		const itemTypeTitle = getLineItemTypeTitle(representative);
-		const groupedMoulding =
-			siblings.some((item) => Number(item?.housePackageTool?.moldingId || 0) > 0) ||
-			isMouldingTitle(itemTypeTitle) ||
-			isMouldingTitle(representativeTitle);
-		const groupedService =
-			!groupedMoulding &&
-			(isServiceTitle(itemTypeTitle) || isServiceTitle(representativeTitle));
-		if (!groupedMoulding && !groupedService) {
-			return [line];
-		}
-		consumed.add(groupUid);
-		if (groupedService) {
-			const serviceRows = siblings.map((item, index) => ({
-				uid: String(item?.uid || "").trim() || `legacy-service-${index + 1}`,
-				service: String(item?.description || "").trim(),
-				taxxable: Boolean(item?.sourceMeta?.tax),
-				produceable: Boolean(item?.dykeProduction),
-				qty: Number(item?.qty || 0),
-				unitPrice: Number(item?.unitPrice || 0),
-			}));
-			const summary = summarizeLegacyServiceRows(serviceRows);
-			return [
-				{
-					...representative,
-					title: "Services",
-					description: summary.description,
-					qty: summary.qtyTotal,
-					unitPrice: summary.unitPrice,
-					lineTotal: summary.lineTotal,
-					meta: {
-						...(safeRecord(representative?.meta) || {}),
-						serviceRows: summary.rows,
-						taxxable: summary.rows.some((row) => Boolean(row?.taxxable)),
-						produceable: summary.rows.some((row) => Boolean(row?.produceable)),
-					},
-				},
-			];
-		}
-		const mouldingRows = siblings.map((item, index) => {
-			const mouldingStep = findLineStepByTitle(item, "Moulding");
-			return {
-				uid:
-					String(mouldingStep?.prodUid || "").trim() ||
-					String(item?.housePackageTool?.molding?.value || "").trim() ||
-					`legacy-moulding-${index + 1}`,
-				title: String(
-					mouldingStep?.value ||
-						item?.description ||
-						item?.housePackageTool?.molding?.title ||
-						"Moulding",
-				).trim(),
-				description: String(
-					item?.description ||
-						mouldingStep?.value ||
-						item?.housePackageTool?.molding?.title ||
-						"Moulding",
-				).trim(),
-				qty: Number(item?.qty || 0),
-				addon: 0,
-				customPrice: null,
-				salesPrice: Number(item?.unitPrice || 0),
-				basePrice: Number(mouldingStep?.basePrice || 0),
-			};
-		});
-		const summary = summarizeLegacyMouldingRows(mouldingRows);
-		const nextFormSteps = Array.isArray(representative?.formSteps)
-			? representative.formSteps.map((step: any) => {
-					if (!isMouldingTitle(step?.step?.title)) return step;
-					return {
-						...step,
-						prodUid: summary.rows[0]?.uid || step?.prodUid || "",
-						value: summary.rows
-							.map((row) => String(row.title || "").trim())
-							.filter(Boolean)
-							.join(", "),
-						price: summary.lineTotal,
-						basePrice: summary.rows.reduce(
-							(sum, row) => sum + Number(row.basePrice || 0),
-							0,
-						),
-						meta: {
-							...(safeRecord(step?.meta) || {}),
-							selectedProdUids: summary.rows.map((row) => row.uid),
-							selectedComponents: summary.rows.map((row) => ({
-								id: null,
-								uid: row.uid,
-								title: row.title,
-								img: null,
-								inventoryId: null,
-								inventoryVariantId: null,
-								salesPrice: row.salesPrice,
-								basePrice: row.basePrice,
-								pricing: null,
-								supplierVariants: [],
-								redirectUid: null,
-								sectionOverride: null,
-							})),
-						},
-					};
-				})
-			: representative?.formSteps || [];
-		return [
-			{
-				...representative,
-				title: "Moulding",
-				description: summary.description,
-				qty: summary.qtyTotal,
-				unitPrice: summary.unitPrice,
-				lineTotal: summary.lineTotal,
-				meta: {
-					...(safeRecord(representative?.meta) || {}),
-					mouldingRows: summary.rows,
-				},
-				formSteps: nextFormSteps,
-			},
-		];
-	});
-}
-
 function mergePersistedFormSteps(
 	persistedSteps: Array<Record<string, unknown>> | undefined,
 	dbSteps: Array<Record<string, unknown>> | undefined,
@@ -437,6 +197,79 @@ function mergePersistedFormSteps(
 					: safeRecord(dbMatch?.step),
 		};
 	});
+}
+
+function rowText(row: Record<string, unknown>, key: "moulding" | "service") {
+	if (key === "service") return String(row.service || row.description || "").trim();
+	return String(row.title || row.description || "").trim();
+}
+
+function mergeGroupedRowsByIdentity(
+	persistedRows: unknown,
+	dbRows: unknown,
+	key: "moulding" | "service",
+) {
+	const persisted = Array.isArray(persistedRows) ? persistedRows : [];
+	const database = Array.isArray(dbRows) ? dbRows : [];
+	if (!persisted.length) return database;
+	if (!database.length) return persisted;
+	return persisted.map((row: Record<string, unknown>, index) => {
+		const uid = String(row?.uid || "").trim();
+		const text = rowText(row, key).toLowerCase();
+		const dbMatch =
+			database.find(
+				(dbRow: Record<string, unknown>) =>
+					uid && String(dbRow?.uid || "").trim() === uid,
+			) ||
+			database.find(
+				(dbRow: Record<string, unknown>) =>
+					text && rowText(dbRow, key).toLowerCase() === text,
+			) ||
+			database[index];
+		return {
+			...(dbMatch || {}),
+			...row,
+			salesItemId:
+				(row as any)?.salesItemId ?? (dbMatch as any)?.salesItemId ?? null,
+			hptId: (row as any)?.hptId ?? (dbMatch as any)?.hptId ?? null,
+			groupUid: (row as any)?.groupUid ?? (dbMatch as any)?.groupUid ?? null,
+			primaryGroupItem:
+				(row as any)?.primaryGroupItem ??
+				(dbMatch as any)?.primaryGroupItem ??
+				index === 0,
+		};
+	});
+}
+
+function mergeGroupedLineMeta(
+	persistedMeta: Record<string, unknown>,
+	dbMeta: Record<string, unknown>,
+) {
+	const merged = {
+		...dbMeta,
+		...persistedMeta,
+	};
+	if (
+		Array.isArray(dbMeta.mouldingRows) ||
+		Array.isArray(persistedMeta.mouldingRows)
+	) {
+		merged.mouldingRows = mergeGroupedRowsByIdentity(
+			persistedMeta.mouldingRows,
+			dbMeta.mouldingRows,
+			"moulding",
+		);
+	}
+	if (
+		Array.isArray(dbMeta.serviceRows) ||
+		Array.isArray(persistedMeta.serviceRows)
+	) {
+		merged.serviceRows = mergeGroupedRowsByIdentity(
+			persistedMeta.serviceRows,
+			dbMeta.serviceRows,
+			"service",
+		);
+	}
+	return merged;
 }
 
 function supportsInventorySync(
@@ -767,7 +600,7 @@ function toBootstrapPayload(
 				housePackageTool,
 			};
 		});
-	const dbLines = collapseLegacyGroupedDbLines(rawDbLines).map(
+	const dbLines = collapseLegacyGroupedLines(rawDbLines).map(
 		({ multiDykeUid, multiDyke, dykeProduction, sourceMeta, ...line }) => line,
 	);
 
@@ -815,6 +648,10 @@ function toBootstrapPayload(
 						? line.formSteps
 						: dbMatch?.formSteps || [],
 			});
+			const mergedMeta = mergeGroupedLineMeta(
+				safeRecord(line.meta),
+				safeRecord(dbMatch?.meta),
+			);
 			return {
 				...line,
 				title:
@@ -824,10 +661,7 @@ function toBootstrapPayload(
 							  (!persistedTitle || persistedTitle === persistedDescription)
 							? dbTitle
 							: persistedTitle || dbTitle,
-				meta: {
-					...(dbMatch?.meta || {}),
-					...(line.meta || {}),
-				},
+				meta: mergedMeta,
 				formSteps: mergePersistedFormSteps(
 					line.formSteps as Array<Record<string, unknown>> | undefined,
 					dbMatch?.formSteps as Array<Record<string, unknown>> | undefined,
@@ -1665,6 +1499,9 @@ async function saveNewSalesFormInternal(
 	status: string,
 ) {
 	const normalizedLines = normalizeLineItems(payload.lineItems);
+	const legacySaveLines = normalizedLines.flatMap((line) =>
+		expandGroupedLineForLegacySave(line),
+	);
 	const setting = await ctx.db.settings.findFirst({
 		where: {
 			type: "sales-settings",
@@ -1907,29 +1744,87 @@ async function saveNewSalesFormInternal(
 			});
 		}
 
-		if (normalizedLines.length) {
-			for (const line of normalizedLines) {
-				const createdItem = await tx.salesOrderItems.create({
-					data: {
-						salesOrderId: currentId!,
-						dykeDescription: line.title || null,
-						description: line.description || line.title,
-						qty: line.qty,
-						rate: line.unitPrice,
-						total: line.lineTotal,
-						meta: {
-							uid: line.uid,
-							title: line.title,
-							description: line.description,
-							meta: line.meta || {},
-						} as any,
-					},
-					select: {
-						id: true,
-					},
-				});
+		if (legacySaveLines.length) {
+			for (const legacyLine of legacySaveLines) {
+				const line = legacyLine.line;
+				const row = legacyLine.row || {};
+				const rowQty =
+					legacyLine.kind === "service" || legacyLine.kind === "moulding"
+						? Number(row.qty || 0)
+						: line.qty;
+				const rowUnitPrice =
+					legacyLine.kind === "service"
+						? Number(row.unitPrice || 0)
+						: legacyLine.kind === "moulding"
+							? row.customPrice == null || row.customPrice === ""
+								? Number(row.salesPrice || 0) + Number(row.addon || 0)
+								: Number(row.customPrice || 0) + Number(row.addon || 0)
+							: line.unitPrice;
+				const rowTotal =
+					legacyLine.kind === "service" || legacyLine.kind === "moulding"
+						? roundCurrency(
+								Number.isFinite(Number(row.lineTotal))
+									? Number(row.lineTotal || 0)
+									: rowQty * rowUnitPrice,
+							)
+						: line.lineTotal;
+				const rowDescription =
+					legacyLine.kind === "service"
+						? String(row.service || row.description || "").trim()
+						: legacyLine.kind === "moulding"
+							? String(row.description || row.title || "Moulding").trim()
+							: line.description || line.title;
+				const rowUid =
+					String(row.uid || "").trim() ||
+					(legacyLine.kind ? `${line.uid}-${legacyLine.kind}` : line.uid);
+				const itemMeta = {
+					uid: rowUid,
+					title: line.title,
+					description: rowDescription,
+					meta: line.meta || {},
+					...(legacyLine.kind === "service"
+						? {
+								tax: Boolean(row.taxxable),
+							}
+						: {}),
+				};
+				const itemData = {
+					salesOrderId: currentId!,
+					dykeDescription: line.title || null,
+					description: rowDescription,
+					qty: rowQty,
+					rate: rowUnitPrice,
+					total: rowTotal,
+					multiDykeUid: legacyLine.groupUid,
+					multiDyke: legacyLine.primaryGroupItem || null,
+					dykeProduction:
+						legacyLine.kind === "service" ? Boolean(row.produceable) : false,
+					meta: itemMeta as any,
+					deletedAt: null,
+				};
+				const existingSalesItemId = Number(row.salesItemId || 0);
+				const createdItem =
+					legacyLine.kind && existingSalesItemId > 0
+						? await tx.salesOrderItems.update({
+								where: {
+									id: existingSalesItemId,
+								},
+								data: itemData,
+								select: {
+									id: true,
+								},
+							})
+						: await tx.salesOrderItems.create({
+								data: itemData,
+								select: {
+									id: true,
+								},
+							});
 
-				const formSteps = line.formSteps || [];
+				const formSteps =
+					legacyLine.kind && !legacyLine.primaryGroupItem
+						? []
+						: line.formSteps || [];
 				if (formSteps.length) {
 					const stepRows = formSteps
 						.map((step) => ({
@@ -1952,7 +1847,7 @@ async function saveNewSalesFormInternal(
 					}
 				}
 
-				const shelfItems = line.shelfItems || [];
+				const shelfItems = legacyLine.kind ? [] : line.shelfItems || [];
 				if (shelfItems.length) {
 					const shelfRows = shelfItems
 						.map((shelf) => ({
@@ -1973,7 +1868,57 @@ async function saveNewSalesFormInternal(
 					}
 				}
 
-				const hpt = line.housePackageTool;
+				const hpt =
+					legacyLine.kind === "moulding"
+						? {
+								...(line.housePackageTool || {}),
+								doorType:
+									line.housePackageTool?.doorType ||
+									String(line.title || "Moulding"),
+								moldingId:
+									Number(row.mouldingProductId || 0) ||
+									line.housePackageTool?.moldingId ||
+									null,
+								stepProductId:
+									Number(row.stepProductId || 0) ||
+									line.housePackageTool?.stepProductId ||
+									null,
+								totalPrice: rowTotal,
+								totalDoors: 0,
+								meta: {
+									...safeRecord(line.housePackageTool?.meta),
+									priceTags: {
+										...safeRecord(
+											safeRecord(line.housePackageTool?.meta).priceTags,
+										),
+										moulding: {
+											...safeRecord(
+												safeRecord(
+													safeRecord(line.housePackageTool?.meta)
+														.priceTags,
+												).moulding,
+											),
+											addon: Number(row.addon || 0),
+											overridePrice:
+												row.customPrice == null || row.customPrice === ""
+													? null
+													: Number(row.customPrice || 0),
+											salesPrice: Number(row.salesPrice || 0),
+											basePrice: Number(row.basePrice || 0),
+											price: rowUnitPrice,
+											laborQty: row.laborQty ?? null,
+											unitLabor: row.unitLabor ?? null,
+										},
+									},
+									legacyGroupUid: legacyLine.groupUid,
+									legacySalesItemId: row.salesItemId ?? null,
+									legacyHptId: row.hptId ?? null,
+								},
+								doors: [],
+							}
+						: legacyLine.kind
+							? null
+							: line.housePackageTool;
 				const hasHpt =
 					!!hpt &&
 					(!!hpt.doorType ||
@@ -1986,26 +1931,40 @@ async function saveNewSalesFormInternal(
 						!!(hpt.doors || []).length);
 
 				if (hasHpt && hpt) {
-					const createdHpt = await tx.housePackageTools.create({
-						data: {
-							salesOrderId: currentId!,
-							orderItemId: createdItem.id,
-							height: hpt.height || null,
-							doorType: hpt.doorType || null,
-							doorId: hpt.doorId || null,
-							dykeDoorId: hpt.dykeDoorId || null,
-							jambSizeId: hpt.jambSizeId || null,
-							casingId: hpt.casingId || null,
-							moldingId: hpt.moldingId || null,
-							stepProductId: hpt.stepProductId || null,
-							totalPrice: Number(hpt.totalPrice || 0),
-							totalDoors: Number(hpt.totalDoors || 0),
-							meta: safeRecord(hpt.meta) as any,
-						},
-						select: {
-							id: true,
-						},
-					});
+					const hptData = {
+						salesOrderId: currentId!,
+						orderItemId: createdItem.id,
+						height: hpt.height || null,
+						doorType: hpt.doorType || null,
+						doorId: hpt.doorId || null,
+						dykeDoorId: hpt.dykeDoorId || null,
+						jambSizeId: hpt.jambSizeId || null,
+						casingId: hpt.casingId || null,
+						moldingId: hpt.moldingId || null,
+						stepProductId: hpt.stepProductId || null,
+						totalPrice: Number(hpt.totalPrice || 0),
+						totalDoors: Number(hpt.totalDoors || 0),
+						meta: safeRecord(hpt.meta) as any,
+						deletedAt: null,
+					};
+					const existingHptId = Number(row.hptId || 0);
+					const createdHpt =
+						legacyLine.kind === "moulding" && existingHptId > 0
+							? await tx.housePackageTools.update({
+									where: {
+										id: existingHptId,
+									},
+									data: hptData,
+									select: {
+										id: true,
+									},
+								})
+							: await tx.housePackageTools.create({
+									data: hptData,
+									select: {
+										id: true,
+									},
+								});
 
 					const doors = (hpt.doors || []).filter(
 						(door) =>

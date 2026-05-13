@@ -52,6 +52,12 @@ export {
   isShelfItem,
 } from "./selectors";
 export {
+  collapseLegacyGroupedLines,
+  expandGroupedLineForLegacySave,
+  isGroupedMouldingLine,
+  isGroupedServiceLine,
+} from "./grouping";
+export {
   repriceSalesFormLineItemsByProfile,
   type SalesFormHousePackageToolLike,
   type SalesFormProfileDoorLike,

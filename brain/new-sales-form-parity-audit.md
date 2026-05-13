@@ -9,6 +9,14 @@ Verdict: Not 100% in line.
 - Parity closure is re-opened based on current field/user-reported missing features across pricing, grouped workflows, supplier/door modal behaviors, component control UX, save history, and state resilience.
 - Execution authority for closure sequencing is now `brain/new-sales-form-missing-features-execution-plan.md`.
 
+## 2026-05-13 Addendum
+
+- Grouped moulding/service relational round-trip is materially improved in the new sales form.
+- Legacy `SalesOrderItems.multiDykeUid` sibling groups now hydrate as one UI line with row-level `mouldingRows` / `serviceRows`.
+- New-form save now expands grouped rows back into the legacy relational shape, including one `SalesOrderItems` row per service/moulding row and one `HousePackageTools` row per moulding row.
+- Existing grouped row identity is preserved via `salesItemId` / `hptId`; removed grouped rows remain soft-deleted instead of being flattened into the parent.
+- Remaining parity risk: full old-form costing behavior, service toggle UI parity, moulding calculator UX parity, and broader runtime fixture/browser proof are still open.
+
 ## Legacy Scope Reviewed
 
 - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/costing-class.ts`
@@ -69,8 +77,8 @@ Verdict: Not 100% in line.
 7. Moulding/service grouped line-item engines
 - Legacy: Dedicated classes (`MouldingClass`, `ServiceClass`) with group form state and pricing merge.
 - New: Dedicated UI panels with row-level persistence in `line.meta`.
-- Status: Partial.
-- Gap: Core UX exists, but canonical grouped domain behavior is not yet unified to legacy class semantics.
+- Status: Partial-to-strong for relational edit/save round-trip; partial for complete UX/costing parity.
+- Gap: Shared grouping collapse/expand helpers now preserve legacy sibling/HPT shape, but full old-form runtime pricing and interaction parity still needs fixture/browser proof.
 
 8. CostingClass subtotal/tax/labor/ccc logic
 - Legacy: `CostingClass` computes subtotal/taxable splits, service taxability, labor derived from group forms, credit-card surcharge (`ccc`), and tax profile application.

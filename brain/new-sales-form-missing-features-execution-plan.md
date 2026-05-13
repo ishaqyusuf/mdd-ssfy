@@ -50,8 +50,8 @@ Deliver full behavioral parity for critical sales-form workflows by closing all 
 1. Moulding line items + calculator parity
 - Legacy: `apps/www/src/components/forms/sales-form/moulding-and-service/moulding-content.tsx`
 - New: `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:956`
-- Status: Partial
-- Gap: UI exists; full calculator/price-summary parity and user flow needs completion.
+- Status: Partial/Improved
+- Gap: grouped edit/save round-trip now preserves legacy moulding sibling rows and HPT rows, but full calculator/price-summary parity and user flow still need completion.
 
 2. Customer profile update not changing pricing
 - Legacy: `apps/www/src/components/forms/sales-form/sales-customer-input.tsx:129-133`
@@ -104,8 +104,8 @@ Deliver full behavioral parity for critical sales-form workflows by closing all 
 10. Service line items tax switch + production switch
 - Legacy: `service-content.tsx` tax/prod `LineSwitch`
 - New: service rows currently no production switch UI
-- Status: Partial
-- Gap: add `tax` and `production` toggles with persistence and costing impact.
+- Status: Partial/Improved
+- Gap: row-level tax and production flags now hydrate/save through grouped service rows; remaining work is UI toggle parity and full costing/tax scenario proof.
 
 11. Tax not getting calculated
 - Legacy: `taxCodeChanged()` always triggers `calculateTotalPrice()`
@@ -221,6 +221,13 @@ Validation gate:
 
 ### Phase 2: Grouped Workflows and Modal Parity
 Dependencies: Phase 1
+
+2026-05-13 implementation note:
+- Grouped moulding/service edit-save parity foundation is implemented in `packages/sales/src/sales-form/domain/grouping.ts` and `apps/api/src/db/queries/new-sales-form.ts`.
+- Legacy grouped siblings with shared `SalesOrderItems.multiDykeUid` now collapse into one new-form UI parent with row-level `mouldingRows` / `serviceRows` carrying persistence identity.
+- Saving grouped rows now expands back to legacy sibling `SalesOrderItems`, preserves existing `salesItemId` / `hptId` where possible, revives edited rows by clearing `deletedAt`, creates new sibling rows only for new UI rows, and leaves removed siblings soft-deleted.
+- Moulding grouped save writes one `HousePackageTools` row per moulding row with row-level moulding product, step product, and `priceTags.moulding` pricing metadata.
+- Validation added in `packages/sales/src/sales-form/domain/grouping.test.ts`, `apps/api/src/db/queries/new-sales-form.multi-line.test.ts`, and `apps/www/src/components/forms/new-sales-form/sections/item-workflow/step-family.test.ts`.
 
 1. Moulding workflow completion
 - Finalize calculator parity and line estimate breakdown behavior.

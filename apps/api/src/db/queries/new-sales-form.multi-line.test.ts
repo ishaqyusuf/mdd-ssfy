@@ -180,6 +180,12 @@ function createMockContext() {
         state.items.push(row);
         return select?.id ? { id: row.id } : row;
       },
+      update: async ({ where, data, select }: any) => {
+        const row = state.items.find((item) => item.id === where.id);
+        if (!row) throw new Error(`Missing salesOrderItem ${where.id}`);
+        Object.assign(row, data);
+        return select?.id ? { id: row.id } : row;
+      },
     },
     dykeStepForm: {
       updateMany: async ({ where, data }: any) => {
@@ -239,6 +245,12 @@ function createMockContext() {
           ...data,
         };
         state.hpts.push(row);
+        return select?.id ? { id: row.id } : row;
+      },
+      update: async ({ where, data, select }: any) => {
+        const row = state.hpts.find((hpt) => hpt.id === where.id);
+        if (!row) throw new Error(`Missing housePackageTool ${where.id}`);
+        Object.assign(row, data);
         return select?.id ? { id: row.id } : row;
       },
     },
@@ -1013,5 +1025,309 @@ describe("new-sales-form multi-line mixed parity", () => {
     expect((loaded.lineItems[0]?.meta as any)?.serviceRows?.[1]?.service).toBe(
       "Delivery",
     );
+  });
+});
+
+describe("new-sales-form grouped legacy save parity", () => {
+  it("saves edited grouped service rows back as legacy siblings", async () => {
+    const { ctx, state } = createMockContext();
+    state.orders.push({
+      id: 5,
+      slug: "order-save-service-group",
+      orderId: "07838DB-S2",
+      type: "order",
+      status: "Draft",
+      deletedAt: null,
+      customerId: 100,
+      customerProfileId: null,
+      billingAddressId: null,
+      shippingAddressId: null,
+      paymentTerm: "None",
+      goodUntil: null,
+      prodDueDate: null,
+      deliveryOption: "pickup",
+      taxPercentage: 0,
+      subTotal: 110,
+      tax: 0,
+      grandTotal: 110,
+      updatedAt: new Date("2026-02-24T12:00:00.000Z"),
+      meta: {},
+    });
+    state.items.push(
+      {
+        id: 50,
+        salesOrderId: 5,
+        multiDykeUid: "service-save-group",
+        multiDyke: true,
+        dykeProduction: true,
+        dykeDescription: "Services",
+        description: "Install",
+        qty: 1,
+        rate: 80,
+        total: 80,
+        deletedAt: null,
+        meta: { uid: "svc-save-1", tax: true, meta: {} },
+      },
+      {
+        id: 51,
+        salesOrderId: 5,
+        multiDykeUid: "service-save-group",
+        multiDyke: false,
+        dykeProduction: false,
+        dykeDescription: "Services",
+        description: "Delivery",
+        qty: 1,
+        rate: 30,
+        total: 30,
+        deletedAt: null,
+        meta: { uid: "svc-save-2", tax: false, meta: {} },
+      },
+    );
+
+    const loaded = await getNewSalesForm(ctx, {
+      type: "order",
+      slug: "order-save-service-group",
+    });
+    const serviceLine = loaded.lineItems[0]!;
+    const rows = [...((serviceLine.meta as any).serviceRows || [])];
+    rows[0] = {
+      ...rows[0],
+      qty: 2,
+      unitPrice: 90,
+      lineTotal: 180,
+      taxxable: false,
+      produceable: false,
+    };
+    rows.push({
+      uid: "svc-save-3",
+      service: "Cleanup",
+      taxxable: true,
+      produceable: true,
+      qty: 1,
+      unitPrice: 25,
+      lineTotal: 25,
+    });
+
+    await saveDraftNewSalesForm(ctx, {
+      type: "order",
+      slug: loaded.slug,
+      salesId: loaded.salesId,
+      version: loaded.version,
+      autosave: false,
+      meta: loaded.form,
+      extraCosts: loaded.extraCosts,
+      summary: {
+        subTotal: 235,
+        taxRate: 0,
+        taxTotal: 0,
+        grandTotal: 235,
+      },
+      lineItems: [
+        {
+          ...serviceLine,
+          qty: 4,
+          unitPrice: 58.75,
+          lineTotal: 235,
+          meta: {
+            ...(serviceLine.meta as any),
+            serviceRows: rows,
+          },
+        },
+      ],
+    });
+
+    const activeItems = state.items.filter(
+      (item) => item.salesOrderId === 5 && item.deletedAt == null,
+    );
+    expect(activeItems).toHaveLength(3);
+    expect(new Set(activeItems.map((item) => item.multiDykeUid)).size).toBe(1);
+    expect(activeItems.filter((item) => item.multiDyke)).toHaveLength(1);
+    expect(activeItems.map((item) => item.id).sort()).toEqual([1, 50, 51]);
+    expect(activeItems.find((item) => item.description === "Install")?.qty).toBe(2);
+    expect(activeItems.find((item) => item.description === "Install")?.rate).toBe(90);
+    expect(activeItems.find((item) => item.description === "Install")?.meta?.tax).toBe(false);
+    expect(
+      activeItems.find((item) => item.description === "Cleanup")?.dykeProduction,
+    ).toBe(true);
+
+    const reloaded = await getNewSalesForm(ctx, {
+      type: "order",
+      slug: "order-save-service-group",
+    });
+    expect(reloaded.lineItems).toHaveLength(1);
+    expect(((reloaded.lineItems[0]?.meta as any)?.serviceRows || [])).toHaveLength(3);
+  });
+
+  it("saves edited grouped moulding rows back as legacy siblings with HPT rows", async () => {
+    const { ctx, state } = createMockContext();
+    state.orders.push({
+      id: 6,
+      slug: "order-save-moulding-group",
+      orderId: "07838DB-M2",
+      type: "order",
+      status: "Draft",
+      deletedAt: null,
+      customerId: 100,
+      customerProfileId: null,
+      billingAddressId: null,
+      shippingAddressId: null,
+      paymentTerm: "None",
+      goodUntil: null,
+      prodDueDate: null,
+      deliveryOption: "pickup",
+      taxPercentage: 0,
+      subTotal: 175,
+      tax: 0,
+      grandTotal: 175,
+      updatedAt: new Date("2026-02-24T12:00:00.000Z"),
+      meta: {},
+    });
+    state.items.push(
+      {
+        id: 60,
+        salesOrderId: 6,
+        multiDykeUid: "moulding-save-group",
+        multiDyke: true,
+        dykeProduction: false,
+        dykeDescription: "Moulding",
+        description: "Casing",
+        qty: 2,
+        rate: 70,
+        total: 140,
+        deletedAt: null,
+        meta: { uid: "mould-save-1", tax: false, meta: {} },
+      },
+      {
+        id: 61,
+        salesOrderId: 6,
+        multiDykeUid: "moulding-save-group",
+        multiDyke: false,
+        dykeProduction: false,
+        dykeDescription: "Moulding",
+        description: "Stop",
+        qty: 1,
+        rate: 35,
+        total: 35,
+        deletedAt: null,
+        meta: { uid: "mould-save-2", tax: false, meta: {} },
+      },
+    );
+    state.hpts.push(
+      {
+        id: 60,
+        salesOrderId: 6,
+        orderItemId: 60,
+        deletedAt: null,
+        doorType: "Moulding",
+        moldingId: 501,
+        stepProductId: 501,
+        totalPrice: 140,
+        totalDoors: 0,
+        meta: {
+          priceTags: {
+            moulding: { salesPrice: 70, basePrice: 50, price: 70 },
+          },
+        },
+      },
+      {
+        id: 61,
+        salesOrderId: 6,
+        orderItemId: 61,
+        deletedAt: null,
+        doorType: "Moulding",
+        moldingId: 501,
+        stepProductId: 501,
+        totalPrice: 35,
+        totalDoors: 0,
+        meta: {
+          priceTags: {
+            moulding: { salesPrice: 35, basePrice: 20, price: 35 },
+          },
+        },
+      },
+    );
+
+    const loaded = await getNewSalesForm(ctx, {
+      type: "order",
+      slug: "order-save-moulding-group",
+    });
+    const mouldingLine = loaded.lineItems[0]!;
+    const rows = [...((mouldingLine.meta as any).mouldingRows || [])];
+    rows[0] = {
+      ...rows[0],
+      qty: 3,
+      salesPrice: 72,
+      lineTotal: 216,
+    };
+    rows.splice(1, 1);
+    rows.push({
+      uid: "mould-save-3",
+      title: "Base",
+      description: "Base",
+      qty: 1,
+      salesPrice: 44,
+      basePrice: 25,
+      addon: 0,
+      lineTotal: 44,
+      mouldingProductId: 501,
+      stepProductId: 501,
+    });
+
+    await saveDraftNewSalesForm(ctx, {
+      type: "order",
+      slug: loaded.slug,
+      salesId: loaded.salesId,
+      version: loaded.version,
+      autosave: false,
+      meta: loaded.form,
+      extraCosts: loaded.extraCosts,
+      summary: {
+        subTotal: 260,
+        taxRate: 0,
+        taxTotal: 0,
+        grandTotal: 260,
+      },
+      lineItems: [
+        {
+          ...mouldingLine,
+          qty: 4,
+          unitPrice: 65,
+          lineTotal: 260,
+          meta: {
+            ...(mouldingLine.meta as any),
+            mouldingRows: rows,
+          },
+        },
+      ],
+    });
+
+    const activeItems = state.items.filter(
+      (item) => item.salesOrderId === 6 && item.deletedAt == null,
+    );
+    const activeHpts = state.hpts.filter(
+      (hpt) => hpt.salesOrderId === 6 && hpt.deletedAt == null,
+    );
+    expect(activeItems).toHaveLength(2);
+    expect(activeHpts).toHaveLength(2);
+    expect(new Set(activeItems.map((item) => item.multiDykeUid)).size).toBe(1);
+    expect(activeItems.map((item) => item.id).sort()).toEqual([1, 60]);
+    expect(activeHpts.map((hpt) => hpt.id).sort()).toEqual([1, 60]);
+    expect(state.items.find((item) => item.id === 61)?.deletedAt).toBeInstanceOf(Date);
+    expect(state.hpts.find((hpt) => hpt.id === 61)?.deletedAt).toBeInstanceOf(Date);
+    expect(activeItems.find((item) => item.description === "Casing")?.qty).toBe(3);
+    expect(activeItems.find((item) => item.description === "Base")?.rate).toBe(44);
+    expect(
+      activeHpts.find((hpt) => {
+        const item = activeItems.find((active) => active.id === hpt.orderItemId);
+        return item?.description === "Base";
+      })?.meta?.priceTags?.moulding?.salesPrice,
+    ).toBe(44);
+
+    const reloaded = await getNewSalesForm(ctx, {
+      type: "order",
+      slug: "order-save-moulding-group",
+    });
+    expect(reloaded.lineItems).toHaveLength(1);
+    expect(((reloaded.lineItems[0]?.meta as any)?.mouldingRows || [])).toHaveLength(2);
   });
 });

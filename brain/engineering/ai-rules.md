@@ -5,6 +5,7 @@ Operational rules for AI agents contributing to this repository.
 
 ## Rules
 - Read relevant Brain docs before making changes.
+- Always update Brain docs before closing any coding/planning task; for trivial/no-impact work, explicitly note that no Brain file needed a content change.
 - Update Brain docs after material code or planning changes.
 - Prefer editing the structured Brain locations over creating new flat docs.
 - Leave compatibility breadcrumbs when moving or reorganizing existing documentation.

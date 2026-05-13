@@ -35,6 +35,7 @@ Defines the expected read-before-write and update-after-change workflow for AI c
     - `ai/midday-example`
 
 ## After Work
+- Always update Brain before closing a coding/planning task, even for narrow fixes; if no docs changed materially, record why no Brain update was needed in the final handoff.
 - Update `brain/tasks/` to reflect status changes.
 - Update `brain/progress.md` with completed work, blockers, and follow-up context.
 - Add or update feature docs when behavior changes materially.
