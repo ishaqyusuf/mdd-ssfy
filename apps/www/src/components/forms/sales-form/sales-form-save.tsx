@@ -23,8 +23,9 @@ interface Props {
     type?: "button" | "menu";
     and?: "default" | "close" | "new";
     className?: string;
+    iconOnly?: boolean;
 }
-export function SalesFormSave({ type = "button", and, className }: Props) {
+export function SalesFormSave({ type = "button", and, className, iconOnly }: Props) {
     const [params] = useQueryStates({
         restoreMode: parseAsBoolean,
     });
@@ -157,8 +158,10 @@ export function SalesFormSave({ type = "button", and, className }: Props) {
             variant="default"
             disabled={isSaving}
             className={className}
+            aria-label={iconOnly ? "Save" : undefined}
+            title={iconOnly ? "Save" : undefined}
         >
-            <span className="">Save</span>
+            {iconOnly ? null : <span className="">Save</span>}
         </Button>
     ) : and ? (
         <Menu.Item Icon={Icons.save} onClick={(e) => save(and)} disabled={isSaving}>

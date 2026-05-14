@@ -16,6 +16,12 @@ import {
 } from "@gnd/ui/dropdown-menu";
 import { useMediaQuery } from "@gnd/ui/hooks/use-media-query";
 import { Icons } from "@gnd/ui/icons";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@gnd/ui/tooltip";
 import { useEffect, useLayoutEffect, useState } from "react";
 import { FormWatcher } from "./form-watcher";
 import { SalesFormSave } from "./sales-form-save";
@@ -151,211 +157,248 @@ function SalesFormActionToolbar({ onPreview }: { onPreview: () => void }) {
 	};
 
 	return (
-		<div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center px-2 pb-[env(safe-area-inset-bottom)]">
-			<div className="pointer-events-auto flex w-full max-w-[min(100%,38rem)] items-center gap-1.5 overflow-hidden rounded-lg border border-slate-200 bg-white/95 p-1.5 shadow-lg backdrop-blur">
-				<Button
-					type="button"
-					size="sm"
-					onClick={() => {
-						zhAddItem();
-					}}
-					className="h-8 min-w-0 flex-1 gap-1.5 px-2.5 text-xs sm:flex-none"
-				>
-					<Icons.Plus className="size-3.5 shrink-0" />
-					<span className="truncate">Add Item</span>
-				</Button>
+		<div className="pointer-events-none absolute inset-x-0 bottom-1 z-10 flex justify-center px-2 pb-[env(safe-area-inset-bottom)]">
+			<TooltipProvider delayDuration={120}>
+				<div className="pointer-events-auto flex w-fit max-w-[calc(100%-1rem)] items-center gap-1 overflow-hidden rounded-full border border-slate-200 bg-white/95 p-1 shadow-lg backdrop-blur">
+					<TooltipIcon label="Add item">
+						<Button
+							type="button"
+							size="icon"
+							onClick={() => {
+								zhAddItem();
+							}}
+							className="size-8 rounded-full"
+							aria-label="Add item"
+						>
+							<Icons.Plus className="size-3.5" />
+						</Button>
+					</TooltipIcon>
 
-				{isSaved && (
-					<div className="hidden items-center gap-1.5 lg:flex">
-						{isOrder && (
-							<SalesPaymentProcessor
-								phoneNo={zus.metaData.primaryPhone}
-								selectedIds={[zus.metaData.id]}
-								customerId={zus.metaData.customer.id}
-								disabled={!amount || !zus.metaData.salesId}
-							>
-								<Button
-									type="button"
-									size="sm"
-									variant="outline"
+					{isSaved && (
+						<div className="hidden items-center gap-1 lg:flex">
+							{isOrder && (
+								<SalesPaymentProcessor
+									phoneNo={zus.metaData.primaryPhone}
+									selectedIds={[zus.metaData.id]}
+									customerId={zus.metaData.customer.id}
 									disabled={!amount || !zus.metaData.salesId}
-									className="h-8 px-2.5 text-xs"
 								>
-									<Icons.payment className="mr-1.5 size-3.5" />
-									Pay
-								</Button>
-							</SalesPaymentProcessor>
-						)}
-						<SalesMenu
-							id={zus?.metaData?.id}
-							salesIds={previewId ? [previewId] : []}
-							type={zus?.metaData?.type}
-							trigger={
+									<TooltipIcon label="Pay">
+										<Button
+											type="button"
+											size="icon"
+											variant="outline"
+											disabled={!amount || !zus.metaData.salesId}
+											className="size-8 rounded-full"
+											aria-label="Pay"
+										>
+											<Icons.payment className="size-3.5" />
+										</Button>
+									</TooltipIcon>
+								</SalesPaymentProcessor>
+							)}
+							<SalesMenu
+								id={zus?.metaData?.id}
+								salesIds={previewId ? [previewId] : []}
+								type={zus?.metaData?.type}
+								trigger={
+									<TooltipIcon label="Email">
+										<Button
+											type="button"
+											size="icon"
+											variant="outline"
+											className="size-8 rounded-full"
+											aria-label="Email"
+										>
+											<Icons.Mail className="size-3.5" />
+										</Button>
+									</TooltipIcon>
+								}
+							>
+								{isOrder ? (
+									<SalesMenu.SalesEmailMenuItems />
+								) : (
+									<SalesMenu.QuoteEmailMenuItems />
+								)}
+							</SalesMenu>
+							<TooltipIcon label="Preview">
 								<Button
 									type="button"
-									size="sm"
+									size="icon"
 									variant="outline"
-									className="h-8 px-2.5 text-xs"
+									onClick={() => onPreview()}
+									disabled={!previewId}
+									className="size-8 rounded-full"
+									aria-label="Preview"
 								>
-									<Icons.Mail className="mr-1.5 size-3.5" />
-									Email
+									<Icons.Eye className="size-3.5" />
 								</Button>
-							}
-						>
-							{isOrder ? (
-								<SalesMenu.SalesEmailMenuItems />
-							) : (
-								<SalesMenu.QuoteEmailMenuItems />
-							)}
-						</SalesMenu>
-						<Button
-							type="button"
-							size="sm"
-							variant="outline"
-							onClick={() => onPreview()}
-							disabled={!previewId}
-							className="h-8 gap-1.5 px-2.5 text-xs"
-						>
-							<Icons.Menu className="size-3.5" />
-							<span>Preview</span>
-						</Button>
-						<Button
-							type="button"
-							size="sm"
-							variant="outline"
-							onClick={(event) => void print(event)}
-							disabled={salesPrint.isPrinting}
-							className="h-8 px-2.5 text-xs"
-						>
-							{salesPrint.isPrinting ? (
-								<Icons.Loader2 className="mr-1.5 size-3.5 animate-spin" />
-							) : (
-								<Icons.Printer className="mr-1.5 size-3.5" />
-							)}
-							{salesPrint.isPrinting ? "Preparing..." : "Print"}
-						</Button>
-						<Button
-							type="button"
-							size="sm"
-							variant="secondary"
-							onClick={overview}
-							className="h-8 px-2.5 text-xs"
-						>
-							Overview
-						</Button>
-					</div>
-				)}
-				{!isSaved && (
-					<Button
-						type="button"
-						size="sm"
-						variant="outline"
-						onClick={() => onPreview()}
-						disabled={!previewId}
-						className="hidden h-8 gap-1.5 px-2.5 text-xs sm:inline-flex"
-					>
-						<Icons.Menu className="size-3.5" />
-						<span>Preview</span>
-					</Button>
-				)}
-
-				<DropdownMenu>
-					<DropdownMenuTrigger asChild>
-						<Button
-							type="button"
-							size="sm"
-							variant="outline"
-							className={cn(
-								"h-8 shrink-0 gap-1.5 px-2.5 text-xs lg:hidden",
-								!isSaved && "sm:hidden",
-							)}
-						>
-							<Icons.MoreHorizontal className="size-3.5" />
-							<span>More</span>
-						</Button>
-					</DropdownMenuTrigger>
-					<DropdownMenuContent align="end" className="w-52">
-						{isSaved && (
-							<>
-								{isOrder && (
-									<SalesPaymentProcessor
-										phoneNo={zus.metaData.primaryPhone}
-										selectedIds={[zus.metaData.id]}
-										customerId={zus.metaData.customer.id}
-										disabled={!amount || !zus.metaData.salesId}
-									>
-										<DropdownMenuItem
-											disabled={!amount || !zus.metaData.salesId}
-											onSelect={(event) => event.preventDefault()}
-										>
-											<Icons.payment className="mr-2 size-4" />
-											Pay
-										</DropdownMenuItem>
-									</SalesPaymentProcessor>
-								)}
-								<SalesMenu
-									id={zus?.metaData?.id}
-									salesIds={previewId ? [previewId] : []}
-									type={zus?.metaData?.type}
-									trigger={
-										<DropdownMenuItem onSelect={(event) => event.preventDefault()}>
-											<Icons.Mail className="mr-2 size-4" />
-											Email
-										</DropdownMenuItem>
-									}
+							</TooltipIcon>
+							<TooltipIcon label={salesPrint.isPrinting ? "Preparing print" : "Print"}>
+								<Button
+									type="button"
+									size="icon"
+									variant="outline"
+									onClick={(event) => void print(event)}
+									disabled={salesPrint.isPrinting}
+									className="size-8 rounded-full"
+									aria-label={salesPrint.isPrinting ? "Preparing print" : "Print"}
 								>
-									{isOrder ? (
-										<SalesMenu.SalesEmailMenuItems />
+									{salesPrint.isPrinting ? (
+										<Icons.Loader2 className="size-3.5 animate-spin" />
 									) : (
-										<SalesMenu.QuoteEmailMenuItems />
+										<Icons.Printer className="size-3.5" />
 									)}
-								</SalesMenu>
+								</Button>
+							</TooltipIcon>
+							<TooltipIcon label="Overview">
+								<Button
+									type="button"
+									size="icon"
+									variant="secondary"
+									onClick={overview}
+									className="size-8 rounded-full"
+									aria-label="Overview"
+								>
+									<Icons.ExternalLink className="size-3.5" />
+								</Button>
+							</TooltipIcon>
+						</div>
+					)}
+					{!isSaved && (
+						<TooltipIcon label="Preview">
+							<Button
+								type="button"
+								size="icon"
+								variant="outline"
+								onClick={() => onPreview()}
+								disabled={!previewId}
+								className="hidden size-8 rounded-full sm:inline-flex"
+								aria-label="Preview"
+							>
+								<Icons.Eye className="size-3.5" />
+							</Button>
+						</TooltipIcon>
+					)}
+
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<TooltipIcon label="More actions">
+								<Button
+									type="button"
+									size="icon"
+									variant="outline"
+									className={cn(
+										"size-8 shrink-0 rounded-full lg:hidden",
+										!isSaved && "sm:hidden",
+									)}
+									aria-label="More actions"
+								>
+									<Icons.MoreHorizontal className="size-3.5" />
+								</Button>
+							</TooltipIcon>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end" className="w-52">
+							{isSaved && (
+								<>
+									{isOrder && (
+										<SalesPaymentProcessor
+											phoneNo={zus.metaData.primaryPhone}
+											selectedIds={[zus.metaData.id]}
+											customerId={zus.metaData.customer.id}
+											disabled={!amount || !zus.metaData.salesId}
+										>
+											<DropdownMenuItem
+												disabled={!amount || !zus.metaData.salesId}
+												onSelect={(event) => event.preventDefault()}
+											>
+												<Icons.payment className="mr-2 size-4" />
+												Pay
+											</DropdownMenuItem>
+										</SalesPaymentProcessor>
+									)}
+									<SalesMenu
+										id={zus?.metaData?.id}
+										salesIds={previewId ? [previewId] : []}
+										type={zus?.metaData?.type}
+										trigger={
+											<DropdownMenuItem onSelect={(event) => event.preventDefault()}>
+												<Icons.Mail className="mr-2 size-4" />
+												Email
+											</DropdownMenuItem>
+										}
+									>
+										{isOrder ? (
+											<SalesMenu.SalesEmailMenuItems />
+										) : (
+											<SalesMenu.QuoteEmailMenuItems />
+										)}
+									</SalesMenu>
+									<DropdownMenuItem
+										disabled={!previewId}
+										onSelect={() => onPreview()}
+									>
+										<Icons.Eye className="mr-2 size-4" />
+										Preview
+									</DropdownMenuItem>
+									<DropdownMenuItem
+										disabled={salesPrint.isPrinting}
+										onSelect={(event) => {
+											event.preventDefault();
+											void print();
+										}}
+									>
+										{salesPrint.isPrinting ? (
+											<Icons.Loader2 className="mr-2 size-4 animate-spin" />
+										) : (
+											<Icons.Printer className="mr-2 size-4" />
+										)}
+										{salesPrint.isPrinting ? "Preparing..." : "Print"}
+									</DropdownMenuItem>
+									<DropdownMenuItem onSelect={overview}>
+										<Icons.ExternalLink className="mr-2 size-4" />
+										Overview
+									</DropdownMenuItem>
+								</>
+							)}
+							{!isSaved && (
 								<DropdownMenuItem
 									disabled={!previewId}
 									onSelect={() => onPreview()}
+									className="sm:hidden"
 								>
-									<Icons.Menu className="mr-2 size-4" />
+									<Icons.Eye className="mr-2 size-4" />
 									Preview
 								</DropdownMenuItem>
-								<DropdownMenuItem
-									disabled={salesPrint.isPrinting}
-									onSelect={(event) => {
-										event.preventDefault();
-										void print();
-									}}
-								>
-									{salesPrint.isPrinting ? (
-										<Icons.Loader2 className="mr-2 size-4 animate-spin" />
-									) : (
-										<Icons.Printer className="mr-2 size-4" />
-									)}
-									{salesPrint.isPrinting ? "Preparing..." : "Print"}
-								</DropdownMenuItem>
-								<DropdownMenuItem onSelect={overview}>
-									<Icons.ExternalLink className="mr-2 size-4" />
-									Overview
-								</DropdownMenuItem>
-							</>
-						)}
-						{!isSaved && (
-							<DropdownMenuItem
-								disabled={!previewId}
-								onSelect={() => onPreview()}
-								className="sm:hidden"
-							>
-								<Icons.Menu className="mr-2 size-4" />
-								Preview
-							</DropdownMenuItem>
-						)}
-					</DropdownMenuContent>
-				</DropdownMenu>
-				<div className="min-w-0 flex-1 sm:flex-none">
-					<SalesFormSave
-						type="button"
-						className="h-8 w-full px-2.5 text-xs sm:w-auto"
-					/>
+							)}
+						</DropdownMenuContent>
+					</DropdownMenu>
+					<TooltipIcon label="Save">
+						<SalesFormSave
+							type="button"
+							iconOnly
+							className="size-8 rounded-full p-0"
+						/>
+					</TooltipIcon>
 				</div>
-			</div>
+			</TooltipProvider>
 		</div>
+	);
+}
+
+function TooltipIcon({
+	children,
+	label,
+}: {
+	children: React.ReactNode;
+	label: string;
+}) {
+	return (
+		<Tooltip>
+			<TooltipTrigger asChild>{children}</TooltipTrigger>
+			<TooltipContent side="top" className="px-2 py-1 text-xs">
+				{label}
+			</TooltipContent>
+		</Tooltip>
 	);
 }
