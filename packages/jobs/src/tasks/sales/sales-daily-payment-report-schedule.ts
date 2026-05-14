@@ -14,7 +14,7 @@ import {
 	buildDailyPaymentsReport,
 } from "@gnd/sales/payment-system";
 import { getSettingAction } from "@gnd/settings";
-import { getRecipient } from "@gnd/utils/envs";
+import { getEmailUrl, getRecipient } from "@gnd/utils/envs";
 import { logger, schedules, task } from "@trigger.dev/sdk/v3";
 import { put } from "@vercel/blob";
 import { nanoid } from "nanoid";
@@ -106,6 +106,22 @@ function money(value: number) {
 
 function formatMoney(value: number) {
 	return money(value);
+}
+
+function formatCurrency(value: number) {
+	return `$${money(value).toLocaleString("en-US", {
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2,
+	})}`;
+}
+
+function escapeHtml(value: unknown) {
+	return String(value ?? "")
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#39;");
 }
 
 function formatDateForFile(date: Date, timezone: string) {
@@ -312,6 +328,142 @@ function buildWorkbook(report: DailyPaymentsReport) {
 	]);
 }
 
+function buildReportEmailHtml(input: {
+	report: DailyPaymentsReport;
+	reportDate: string;
+	artifact: StoredReportArtifact;
+}) {
+	const baseUrl = getEmailUrl();
+	const logoUrl = `${baseUrl}/email/logo-footer.png`;
+	const periodStart = formatDateTime(
+		input.report.periodStart,
+		input.report.timezone,
+	);
+	const periodEnd = formatDateTime(
+		input.report.periodEnd,
+		input.report.timezone,
+	);
+	const generatedAt = formatDateTime(
+		input.report.generatedAt,
+		input.report.timezone,
+	);
+	const methodRows = input.report.methodTotals
+		.map(
+			(row) => `
+				<tr>
+					<td style="padding: 14px 0; border-bottom: 1px solid #edf2f7; color: #0f172a; font-size: 14px; font-weight: 700; text-transform: capitalize;">${escapeHtml(row.paymentMethod)}</td>
+					<td align="right" style="padding: 14px 0; border-bottom: 1px solid #edf2f7; color: #475569; font-size: 14px;">${row.count}</td>
+					<td align="right" style="padding: 14px 0; border-bottom: 1px solid #edf2f7; color: #0f172a; font-size: 14px; font-weight: 700;">${formatCurrency(row.netReceived)}</td>
+				</tr>
+			`,
+		)
+		.join("");
+	const exceptionLabel =
+		input.report.exceptions.length === 1 ? "exception" : "exceptions";
+	const downloadLink = input.artifact.url
+		? `
+			<a href="${escapeHtml(input.artifact.url)}" style="display: inline-block; background: #635bff; color: #ffffff; border-radius: 8px; padding: 13px 18px; font-size: 14px; font-weight: 700; text-decoration: none;">
+				Download Excel report
+			</a>
+		`
+		: "";
+
+	return `
+		<div style="margin: 0; padding: 0; background: #f6f9fc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color: #0f172a;">
+			<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background: #f6f9fc; border-collapse: collapse;">
+				<tr>
+					<td align="center" style="padding: 32px 16px;">
+						<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width: 680px; border-collapse: collapse;">
+							<tr>
+								<td style="padding: 0 0 18px;">
+									<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse;">
+										<tr>
+											<td valign="middle">
+												<img src="${logoUrl}" width="150" alt="GND Millwork" style="display: block; width: 150px; max-width: 150px; height: auto; border: 0;" />
+											</td>
+											<td align="right" valign="middle" style="color: #64748b; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;">
+												Daily Payment Report
+											</td>
+										</tr>
+									</table>
+								</td>
+							</tr>
+							<tr>
+								<td style="background: #ffffff; border: 1px solid #e6ebf1; border-radius: 16px; box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08); overflow: hidden;">
+									<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse;">
+										<tr>
+											<td style="padding: 32px 32px 26px; background: linear-gradient(135deg, #ffffff 0%, #f7f9ff 52%, #eef4ff 100%); border-bottom: 1px solid #e6ebf1;">
+												<p style="margin: 0 0 10px; color: #635bff; font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;">${escapeHtml(input.reportDate)}</p>
+												<h1 style="margin: 0; color: #0a2540; font-size: 30px; line-height: 1.15; font-weight: 800;">${formatCurrency(input.report.netReceived)} net received</h1>
+												<p style="margin: 12px 0 0; color: #64748b; font-size: 14px; line-height: 1.6;">${escapeHtml(periodStart)} to ${escapeHtml(periodEnd)} · ${escapeHtml(input.report.timezone)}</p>
+											</td>
+										</tr>
+										<tr>
+											<td style="padding: 24px 32px;">
+												<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse;">
+													<tr>
+														<td width="33.33%" style="padding: 0 12px 0 0;">
+															<div style="border: 1px solid #e6ebf1; border-radius: 12px; padding: 16px; background: #ffffff;">
+																<div style="color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Gross received</div>
+																<div style="margin-top: 8px; color: #0a2540; font-size: 20px; font-weight: 800;">${formatCurrency(input.report.totalPaymentsReceived)}</div>
+															</div>
+														</td>
+														<td width="33.33%" style="padding: 0 6px;">
+															<div style="border: 1px solid #e6ebf1; border-radius: 12px; padding: 16px; background: #ffffff;">
+																<div style="color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Refunds</div>
+																<div style="margin-top: 8px; color: #0a2540; font-size: 20px; font-weight: 800;">${formatCurrency(input.report.totalRefunds)}</div>
+															</div>
+														</td>
+														<td width="33.33%" style="padding: 0 0 0 12px;">
+															<div style="border: 1px solid #e6ebf1; border-radius: 12px; padding: 16px; background: #ffffff;">
+																<div style="color: #64748b; font-size: 12px; font-weight: 700; text-transform: uppercase;">Payments</div>
+																<div style="margin-top: 8px; color: #0a2540; font-size: 20px; font-weight: 800;">${input.report.paymentCount}</div>
+															</div>
+														</td>
+													</tr>
+												</table>
+											</td>
+										</tr>
+										<tr>
+											<td style="padding: 0 32px 28px;">
+												<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse;">
+													<tr>
+														<td style="padding: 0 0 10px; color: #0a2540; font-size: 16px; font-weight: 800;">Payment method breakdown</td>
+													</tr>
+													<tr>
+														<td>
+															<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse;">
+																${methodRows || `<tr><td style="padding: 14px 0; color: #64748b; font-size: 14px;">No payments were recorded in this period.</td></tr>`}
+															</table>
+														</td>
+													</tr>
+												</table>
+											</td>
+										</tr>
+										<tr>
+											<td style="padding: 0 32px 32px;">
+												<div style="background: ${input.report.exceptions.length ? "#fff7ed" : "#ecfdf5"}; border: 1px solid ${input.report.exceptions.length ? "#fed7aa" : "#bbf7d0"}; border-radius: 12px; padding: 16px 18px; color: ${input.report.exceptions.length ? "#9a3412" : "#166534"}; font-size: 14px; line-height: 1.55;">
+													<strong>${input.report.exceptions.length} ${exceptionLabel}</strong> flagged for accounting review.
+												</div>
+											</td>
+										</tr>
+										<tr>
+											<td style="padding: 0 32px 32px;">
+												${downloadLink}
+												<p style="margin: 14px 0 0; color: #64748b; font-size: 13px; line-height: 1.6;">The Excel workbook is attached and includes summary, method breakdown, payment detail, and exceptions tabs. Generated at ${escapeHtml(generatedAt)}.</p>
+											</td>
+										</tr>
+									</table>
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+			</table>
+		</div>
+	`;
+}
+
 async function storeWorkbook(input: {
 	buffer: Buffer;
 	filename: string;
@@ -397,20 +549,11 @@ async function sendReportEmail(input: {
 	);
 	const subjectPrefix = input.runType === "test" ? "TEST - " : "";
 	const subject = `${subjectPrefix}Sales Daily Payment Report - ${reportDate}`;
-	const html = `
-		<div style="font-family: Arial, sans-serif; line-height: 1.5;">
-			<h2 style="margin: 0 0 12px;">Sales Daily Payment Report</h2>
-			<p>Report date: <strong>${reportDate}</strong></p>
-			<table cellpadding="6" cellspacing="0" style="border-collapse: collapse;">
-				<tr><td>Total payments received</td><td><strong>$${input.report.totalPaymentsReceived.toFixed(2)}</strong></td></tr>
-				<tr><td>Total refunds</td><td><strong>$${input.report.totalRefunds.toFixed(2)}</strong></td></tr>
-				<tr><td>Net received</td><td><strong>$${input.report.netReceived.toFixed(2)}</strong></td></tr>
-				<tr><td>Payment count</td><td><strong>${input.report.paymentCount}</strong></td></tr>
-			</table>
-			<p>The Excel report is attached.</p>
-			${input.artifact.url ? `<p><a href="${input.artifact.url}">Download report</a></p>` : ""}
-		</div>
-	`;
+	const html = buildReportEmailHtml({
+		report: input.report,
+		reportDate,
+		artifact: input.artifact,
+	});
 
 	let sent = 0;
 	let failed = 0;
