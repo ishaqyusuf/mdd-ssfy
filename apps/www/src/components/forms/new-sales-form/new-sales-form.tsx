@@ -935,13 +935,53 @@ export function NewSalesForm(props: Props) {
 	}
 
 	async function handlePrint(event?: ReactMouseEvent<HTMLButtonElement>) {
-		if (!record?.salesId) return;
 		const openInNewTab = event?.shiftKey ?? false;
-		await salesPrint.print({
-			salesIds: [record.salesId],
-			mode: props.type === "order" ? "invoice" : "quote",
-			openInNewTab,
-			salesType: props.type,
+		await runWithManualSaveLock(async () => {
+			if (!record) return;
+			if (!validateBeforeSave()) return;
+			if (saveStatus === "stale") {
+				toast({
+					title: "Print unavailable",
+					description: "Reload latest data before printing this form.",
+					variant: "destructive",
+				});
+				return;
+			}
+
+			let salesId = record.salesId;
+			let shouldRegeneratePrint = false;
+
+			if (dirty) {
+				const resp = await autosave.flush("manual-flush");
+				if (!resp?.salesId) {
+					toast({
+						title: "Unable to prepare print",
+						description: "Save the latest changes before printing.",
+						variant: "destructive",
+					});
+					return;
+				}
+				await handlePostSaveSuccess(resp);
+				salesId = resp.salesId;
+				shouldRegeneratePrint = true;
+			}
+
+			if (!salesId) {
+				toast({
+					title: "Unable to prepare print",
+					description: "Save this form before printing.",
+					variant: "destructive",
+				});
+				return;
+			}
+
+			await salesPrint.print({
+				salesIds: [salesId],
+				mode: props.type === "order" ? "invoice" : "quote",
+				forceRegenerate: shouldRegeneratePrint,
+				openInNewTab,
+				salesType: props.type,
+			});
 		});
 	}
 

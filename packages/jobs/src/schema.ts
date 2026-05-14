@@ -25,6 +25,8 @@ export const taskNames = [
 	"run-app-download-expiry-reminder-test",
 	"run-sales-pending-bill-reminder-now",
 	"run-sales-pending-bill-reminder-test",
+	"run-sales-daily-payment-report-now",
+	"run-sales-daily-payment-report-test",
 	"sales-rep-payment-received-notification",
 	"send-login-email",
 	"send-password-reset-code",

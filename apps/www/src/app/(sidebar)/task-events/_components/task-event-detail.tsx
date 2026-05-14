@@ -42,6 +42,29 @@ type TaskHistoryMeta = {
 	}>;
 	skippedSalesTruncated?: number;
 	successfulRecipientsTruncated?: number;
+	reportDate?: string;
+	totalPaymentsReceived?: number;
+	totalRefunds?: number;
+	netReceived?: number;
+	paymentCount?: number;
+	exceptionCount?: number;
+	recipientCount?: number;
+	notificationChannelName?: string;
+	artifact?: {
+		documentId?: string;
+		filename?: string;
+		pathname?: string;
+		url?: string | null;
+		contentType?: string;
+		size?: number | null;
+	};
+	methodTotals?: Array<{
+		paymentMethod: string;
+		count: number;
+		grossReceived: number;
+		refunds: number;
+		netReceived: number;
+	}>;
 };
 
 export function TaskEventDetail({ eventName }: Props) {
@@ -161,6 +184,7 @@ export function TaskEventDetail({ eventName }: Props) {
 	const latestHistory = historyQuery.data?.list || [];
 	const latestRun = latestHistory[0];
 	const latestMeta = parseTaskHistoryMeta(latestRun?.meta);
+	const isPaymentsReport = eventName === "sales-daily-payment-report-schedule";
 
 	const parsedFilter = useMemo(() => {
 		try {
@@ -347,21 +371,43 @@ export function TaskEventDetail({ eventName }: Props) {
 			<div className="rounded-lg border bg-card p-4">
 				{latestMeta ? (
 					<div className="grid gap-2 md:grid-cols-4 mb-4">
-						<SummaryCard
-							label="Found"
-							value={latestMeta.found ?? 0}
-							sub={`Trigger: ${latestMeta.triggerType || "-"}`}
-						/>
-						<SummaryCard
-							label="Sent"
-							value={latestMeta.sent ?? 0}
-							sub={`Grouped: ${latestMeta.grouped ?? 0}`}
-						/>
-						<SummaryCard
-							label="Failed"
-							value={latestMeta.failed ?? 0}
-							sub={`Skipped: ${latestMeta.skipped ?? 0}`}
-						/>
+						{isPaymentsReport ? (
+							<>
+								<SummaryCard
+									label="Net Received"
+									value={formatCurrency(latestMeta.netReceived ?? 0)}
+									sub={`Report: ${latestMeta.reportDate || "-"}`}
+								/>
+								<SummaryCard
+									label="Payments"
+									value={latestMeta.paymentCount ?? 0}
+									sub={`Exceptions: ${latestMeta.exceptionCount ?? 0}`}
+								/>
+								<SummaryCard
+									label="Email"
+									value={latestMeta.sent ?? 0}
+									sub={`Recipients: ${latestMeta.recipientCount ?? 0}`}
+								/>
+							</>
+						) : (
+							<>
+								<SummaryCard
+									label="Found"
+									value={latestMeta.found ?? 0}
+									sub={`Trigger: ${latestMeta.triggerType || "-"}`}
+								/>
+								<SummaryCard
+									label="Sent"
+									value={latestMeta.sent ?? 0}
+									sub={`Grouped: ${latestMeta.grouped ?? 0}`}
+								/>
+								<SummaryCard
+									label="Failed"
+									value={latestMeta.failed ?? 0}
+									sub={`Skipped: ${latestMeta.skipped ?? 0}`}
+								/>
+							</>
+						)}
 						<SummaryCard
 							label="Status"
 							value={String(latestMeta.statusUsed || "-")}
@@ -440,16 +486,51 @@ function HistoryMetaView({ meta }: { meta: TaskHistoryMeta | null }) {
 
 	const recipients = meta.successfulRecipients || [];
 	const skippedSales = meta.skippedSales || [];
+	const artifactUrl = meta.artifact?.url || meta.artifact?.pathname || null;
 
 	return (
 		<div className="text-xs space-y-2">
 			<div className="flex flex-wrap gap-2 text-muted-foreground">
 				<span>Status: {meta.statusUsed || "-"}</span>
-				<span>Found: {meta.found ?? 0}</span>
+				{meta.reportDate ? <span>Report: {meta.reportDate}</span> : null}
+				{meta.netReceived != null ? (
+					<span>Net: {formatCurrency(meta.netReceived)}</span>
+				) : null}
+				{meta.paymentCount != null ? (
+					<span>Payments: {meta.paymentCount}</span>
+				) : null}
+				{meta.found != null ? <span>Found: {meta.found}</span> : null}
 				<span>Sent: {meta.sent ?? 0}</span>
 				<span>Failed: {meta.failed ?? 0}</span>
 				<span>Skipped: {meta.skipped ?? 0}</span>
 			</div>
+
+			{artifactUrl ? (
+				<div>
+					<a
+						href={artifactUrl}
+						target="_blank"
+						rel="noreferrer"
+						className="inline-flex rounded-md border px-2 py-1 text-xs font-medium hover:bg-muted"
+					>
+						Download {meta.artifact?.filename || "Excel report"}
+					</a>
+				</div>
+			) : null}
+
+			{meta.methodTotals?.length ? (
+				<div>
+					<div className="font-medium">Payment Methods</div>
+					<div className="mt-1 flex flex-wrap gap-2 text-muted-foreground">
+						{meta.methodTotals.map((row) => (
+							<span key={row.paymentMethod}>
+								{row.paymentMethod}: {formatCurrency(row.netReceived)} (
+								{row.count})
+							</span>
+						))}
+					</div>
+				</div>
+			) : null}
 
 			{meta.filterUsed ? (
 				<details>
@@ -516,4 +597,11 @@ function formatDate(value: Date | string | null | undefined) {
 	const date = new Date(value);
 	if (Number.isNaN(date.getTime())) return "-";
 	return date.toLocaleString();
+}
+
+function formatCurrency(value: number) {
+	return new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: "USD",
+	}).format(Number(value) || 0);
 }

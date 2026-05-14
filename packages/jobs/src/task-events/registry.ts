@@ -8,6 +8,20 @@ const salesPendingBillReminderFilterSchema = salesQueryParamsSchema.partial();
 const dispatchDuplicateSweeperFilterSchema = z
 	.record(z.string(), z.unknown())
 	.default({});
+const dailyPaymentsReportFilterSchema = z
+	.object({
+		timezone: z.string().min(1).default("America/New_York"),
+		reportWindow: z.enum(["today", "previous_day"]).default("today"),
+		notificationChannelName: z
+			.string()
+			.min(1)
+			.default("sales_daily_payment_report"),
+	})
+	.default({
+		timezone: "America/New_York",
+		reportWindow: "today",
+		notificationChannelName: "sales_daily_payment_report",
+	});
 
 type TaskEventFilterDefinition = {
 	key: string;
@@ -125,6 +139,29 @@ const registry = {
 		defaultConfig: {
 			status: "active" as TaskEventStatus,
 			filter: {},
+		},
+	},
+	"sales-daily-payment-report-schedule": {
+		eventName: "sales-daily-payment-report-schedule",
+		title: "Sales Daily Payment Report",
+		description:
+			"Generate the daily payments received Excel report and email it to the configured notification channel.",
+		runNowTaskId: buildRunTaskName(
+			"sales-daily-payment-report-schedule",
+			"now",
+		),
+		runTestTaskId: buildRunTaskName(
+			"sales-daily-payment-report-schedule",
+			"test",
+		),
+		filterSchema: dailyPaymentsReportFilterSchema,
+		defaultConfig: {
+			status: "active" as TaskEventStatus,
+			filter: {
+				timezone: "America/New_York",
+				reportWindow: "today",
+				notificationChannelName: "sales_daily_payment_report",
+			},
 		},
 	},
 } as const;

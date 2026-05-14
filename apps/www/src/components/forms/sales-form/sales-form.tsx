@@ -34,7 +34,6 @@ function Content({ data }) {
 	const [showMobileSalesPanel, setShowMobileSalesPanel] = useState(false);
 	const [takeOff, setTakeOff] = useState(false);
 	const isMobilePanel = useMediaQuery("(max-width: 1279px)");
-	const itemCount = zus.sequence?.formItem?.length || 0;
 	const previewId = zus.metaData?.id ?? null;
 
 	function preview() {
@@ -48,8 +47,8 @@ function Content({ data }) {
 	}, [isMobilePanel]);
 
 	return (
-		<div className="fixed bottom-0 left-0 right-0 top-[calc(var(--header-height)_+_35px)] overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-100/70 p-3 md:left-[70px] sm:p-4">
-			<div className="relative flex h-full min-h-0 overflow-hidden rounded-xl border border-slate-200/80 bg-white/80 shadow-sm">
+		<div className="fixed bottom-0 left-0 right-0 top-[var(--header-height)] overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-100/70 md:left-[84px]">
+			<div className="relative flex h-full min-h-0 overflow-hidden border border-slate-200/80 bg-white/80 shadow-sm">
 				<main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 					<div className="shrink-0 flex border-b border-slate-200/80 bg-white/90 px-4 py-3 backdrop-blur md:px-6">
 						<div className="flex items-center gap-3">
@@ -97,36 +96,15 @@ function Content({ data }) {
 
 					<div className="flex-1 overflow-y-auto p-3 pb-24 md:p-6 xl:pb-6">
 						<div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
-							<div className="rounded-2xl border border-slate-200/70 bg-white/95 shadow-sm ring-1 ring-slate-900/5">
-								<div className="flex items-center justify-between border-b border-slate-200/80 px-4 py-3 md:px-5">
-									<div>
-										<h2 className="text-sm font-semibold text-slate-900 md:text-base">
-											{takeOff ? "Take Off" : "Item Configuration"}
-										</h2>
-										<p className="text-xs text-slate-500">
-											{takeOff
-												? "Take-off view"
-												: "Add, edit, and review selected products"}
-										</p>
-									</div>
-									<div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
-										{itemCount} item
-										{itemCount === 1 ? "" : "s"}
-									</div>
+							{takeOff ? (
+								<TakeOff />
+							) : (
+								<div className="space-y-4">
+									{zus.sequence?.formItem?.map((uid) => (
+										<ItemSection key={uid} uid={uid} />
+									))}
 								</div>
-
-								<div className="space-y-4 p-3 md:p-5">
-									{takeOff ? (
-										<TakeOff />
-									) : (
-										<div className="space-y-4">
-											{zus.sequence?.formItem?.map((uid) => (
-												<ItemSection key={uid} uid={uid} />
-											))}
-										</div>
-									)}
-								</div>
-							</div>
+							)}
 
 							<div className="sticky bottom-0 z-10 pointer-events-none flex justify-end pb-0 pt-2">
 								<div className="pointer-events-auto rounded-xl border border-slate-200 bg-white/95 p-2 shadow-lg backdrop-blur">

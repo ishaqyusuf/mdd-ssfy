@@ -229,6 +229,57 @@ describe("sales print service", () => {
 		expect(forceRegenerate).toBe(true);
 	});
 
+	it("passes force regeneration through print requests", async () => {
+		let forceRegenerate: boolean | undefined;
+		let replacedHref: string | null = null;
+		const response: ResolveSalesDocumentAccessResult = {
+			kind: "snapshot",
+			generated: true,
+			mode: "invoice",
+			documentType: "invoice_pdf",
+			salesOrderId: 42,
+			snapshotId: "snapshot-2",
+			accessToken: "access-456",
+			expiresAt: null,
+			previewUrl:
+				"https://app.example.com/p/sales-document-v2?accessToken=access-456",
+			downloadUrl:
+				"https://app.example.com/api/download/sales-v2?accessToken=access-456",
+		};
+		const pendingWindow = {
+			closed: false,
+			location: {
+				replace: (href: string) => {
+					replacedHref = href;
+				},
+			},
+			close: () => undefined,
+		};
+		const dependencies = {
+			resolveAccess: async (input) => {
+				forceRegenerate = input.forceRegenerate;
+				return response;
+			},
+			resolveHtmlPreviewAccess: async () => response,
+			openLink: () => undefined,
+			openViewerShell: () => false,
+			openPendingPrintWindow: () => pendingWindow,
+			createPrintViewerContent: (href) => ({ props: { href } }),
+			getBaseUrl: () => "https://app.example.com",
+			useAttachmentOverlay: false,
+		};
+
+		await openSalesPrintDocument(
+			{ salesIds: [42], mode: "invoice", forceRegenerate: true },
+			dependencies,
+		);
+
+		expect(forceRegenerate).toBe(true);
+		expect(replacedHref).toBe(
+			"/p/sales-invoice-v2?accessToken=access-456&preview=false&mode=invoice",
+		);
+	});
+
 	it("mounts a hidden print viewer instead of showing a PDF preview when the attachment overlay is enabled", async () => {
 		let openedViewerHref: string | null = null;
 		let openedLinkHref: string | null = null;

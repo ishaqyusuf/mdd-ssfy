@@ -28,6 +28,7 @@ export type SalesPrintControllerActionInput = {
 	dispatchId?: number | null;
 	templateId?: string | null;
 	baseUrl?: string | null;
+	forceRegenerate?: boolean;
 	openInNewTab?: boolean;
 	salesType?: "order" | "quote";
 };
@@ -239,6 +240,7 @@ export function useSalesPrintController() {
 					dispatchId: input.dispatchId ?? null,
 					templateId: input.templateId ?? null,
 					baseUrl: input.baseUrl ?? null,
+					forceRegenerate: input.forceRegenerate ?? false,
 					openInNewTab: input.openInNewTab,
 					onPrintStage: lifecycle.onPrintStage,
 					onPrintReady: lifecycle.onPrintReady,

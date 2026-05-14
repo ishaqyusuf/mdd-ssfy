@@ -34,6 +34,7 @@ export const channelNames = [
 	"simple_sales_document_email",
 	"simple_sales_email_reminder",
 	"sales_reminder_schedule_admin_notification",
+	"sales_daily_payment_report",
 	"sales_dispatch_assigned",
 	"sales_dispatch_cancelled",
 	"sales_dispatch_completed",
@@ -251,6 +252,13 @@ export const channelsConfig: Partial<{
 	sales_customer_payment_failed: {
 		name: "Customer Payment Failed",
 		description: "Send a failure notice to a customer after payment fails.",
+		priority: 5,
+		category: "Sales",
+	},
+	sales_daily_payment_report: {
+		name: "Sales Daily Payment Report",
+		description:
+			"Send the daily accounting report of payments received with an Excel attachment.",
 		priority: 5,
 		category: "Sales",
 	},
