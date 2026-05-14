@@ -138,6 +138,13 @@ function SalesFormActionToolbar({ onPreview }: { onPreview: () => void }) {
 	]);
 	const overviewQuery = useSalesOverviewQuery();
 	const salesPrint = useSalesPrintController();
+	const customer = zus?.metaData?.customer as
+		| {
+				email?: string | null;
+				businessName?: string | null;
+				name?: string | null;
+		  }
+		| undefined;
 
 	const print = async (event?: { shiftKey?: boolean }) => {
 		if (!previewId) return;
@@ -183,36 +190,37 @@ function SalesFormActionToolbar({ onPreview }: { onPreview: () => void }) {
 									customerId={zus.metaData.customer.id}
 									disabled={!amount || !zus.metaData.salesId}
 								>
-									<TooltipIcon label="Pay">
-										<Button
-											type="button"
-											size="icon"
-											variant="outline"
-											disabled={!amount || !zus.metaData.salesId}
-											className="size-8 rounded-full"
-											aria-label="Pay"
-										>
-											<Icons.payment className="size-3.5" />
-										</Button>
-									</TooltipIcon>
+									<Button
+										type="button"
+										size="icon"
+										variant="outline"
+										disabled={!amount || !zus.metaData.salesId}
+										className="size-8 rounded-full"
+										aria-label="Pay"
+										title="Pay"
+									>
+										<Icons.payment className="size-3.5" />
+									</Button>
 								</SalesPaymentProcessor>
 							)}
 							<SalesMenu
 								id={zus?.metaData?.id}
 								salesIds={previewId ? [previewId] : []}
 								type={zus?.metaData?.type}
+								orderNo={zus?.metaData?.salesId}
+								customerEmail={customer?.email}
+								customerName={customer?.businessName || customer?.name}
 								trigger={
-									<TooltipIcon label="Email">
-										<Button
-											type="button"
-											size="icon"
-											variant="outline"
-											className="size-8 rounded-full"
-											aria-label="Email"
-										>
-											<Icons.Mail className="size-3.5" />
-										</Button>
-									</TooltipIcon>
+									<Button
+										type="button"
+										size="icon"
+										variant="outline"
+										className="size-8 rounded-full"
+										aria-label="Email"
+										title="Email"
+									>
+										<Icons.Mail className="size-3.5" />
+									</Button>
 								}
 							>
 								{isOrder ? (
@@ -321,6 +329,9 @@ function SalesFormActionToolbar({ onPreview }: { onPreview: () => void }) {
 										id={zus?.metaData?.id}
 										salesIds={previewId ? [previewId] : []}
 										type={zus?.metaData?.type}
+										orderNo={zus?.metaData?.salesId}
+										customerEmail={customer?.email}
+										customerName={customer?.businessName || customer?.name}
 										trigger={
 											<DropdownMenuItem onSelect={(event) => event.preventDefault()}>
 												<Icons.Mail className="mr-2 size-4" />

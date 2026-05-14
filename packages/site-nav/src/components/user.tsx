@@ -34,31 +34,37 @@ export function User({ user, onLogout, children }: SiteNavUserProps) {
 	const { isExpanded } = useSiteNav();
 
 	return (
-		<div className="bg-sidebar-accent/70 border-sidebar-border hover:bg-sidebar-accent relative w-full overflow-hidden rounded-[22px] border shadow-sm backdrop-blur-xl transition-colors duration-200">
+		<div
+			className={
+				isExpanded
+					? "relative w-full overflow-hidden rounded-lg border border-sidebar-border/90 bg-white/82 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_12px_32px_rgba(15,23,42,0.06)] backdrop-blur-xl transition-colors duration-200 hover:bg-white dark:bg-sidebar-accent/82 dark:hover:bg-sidebar-accent"
+					: "relative w-full overflow-hidden rounded-lg border border-transparent bg-transparent transition-colors duration-200"
+			}
+		>
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
 					<Button
 						size="lg"
 						variant="link"
-						className="text-sidebar-foreground data-[state=open]:bg-sidebar-accent flex h-full min-h-[56px] w-full gap-3 px-3 py-2 no-underline data-[state=open]:text-sidebar-foreground"
+						className="flex h-full min-h-[56px] w-full gap-3 px-3 py-2 text-sidebar-foreground no-underline data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-foreground"
 					>
-						<Avatar className="border-sidebar-border h-10 w-10 rounded-2xl border">
+						<Avatar className="h-10 w-10 rounded-lg border border-sidebar-border">
 							<AvatarImage src={user?.avatar} alt={user?.name} />
-							<AvatarFallback className="bg-sidebar rounded-2xl text-sidebar-foreground">
+							<AvatarFallback className="rounded-lg bg-sidebar-primary/10 text-sidebar-primary">
 								{getInitials(user?.name)}
 							</AvatarFallback>
 						</Avatar>
 						{!isExpanded || (
 							<>
 								<div className="grid flex-1 text-left text-sm leading-tight">
-									<span className="text-sidebar-foreground truncate font-semibold">
+									<span className="truncate font-semibold text-sidebar-foreground">
 										{user?.name}
 									</span>
-									<span className="text-sidebar-foreground/50 truncate text-xs">
+									<span className="truncate text-xs text-sidebar-foreground/50">
 										{user?.email}
 									</span>
 								</div>
-								<Icons.ChevronDown className="text-sidebar-foreground/50 ml-auto size-4" />
+								<Icons.ChevronDown className="ml-auto size-4 text-sidebar-foreground/50" />
 							</>
 						)}
 					</Button>

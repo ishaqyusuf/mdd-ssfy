@@ -34,7 +34,7 @@ export const NavChildItem = ({
 			<div className="relative">
 				<div
 					className={cn(
-						"border-sidebar-border ml-[42px] mr-[15px] flex h-[34px] items-center border-l pl-4",
+						"ml-[42px] mr-[15px] flex h-[32px] items-center border-l border-sidebar-border/80 pl-4",
 						!shouldSkipAnimation && "transition-all duration-300 ease-in-out",
 						showChild
 							? "opacity-100 translate-x-0"
@@ -53,7 +53,7 @@ export const NavChildItem = ({
 							"text-xs font-medium transition-colors duration-200",
 							"text-sidebar-foreground/50 group-hover:text-sidebar-foreground/88",
 							"whitespace-nowrap overflow-hidden",
-							isActive && "text-sidebar-primary",
+							isActive && "text-sidebar-primary font-semibold",
 						)}
 					>
 						{child.name}

@@ -27,6 +27,7 @@ describe("printLoadedFrame", () => {
 		await printLoadedFrame({
 			iframe,
 			href: "blob:test",
+			settleMs: 0,
 			onPrintReady: () => {
 				ready = true;
 			},
@@ -52,6 +53,7 @@ describe("printLoadedFrame", () => {
 		await printLoadedFrame({
 			iframe,
 			href: "blob:test",
+			settleMs: 0,
 			onPrintError: (error) => {
 				printError = error;
 			},

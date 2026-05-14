@@ -1,5 +1,6 @@
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import Link from "@/components/link";
+import { SalesDocumentEmailDialog } from "@/components/sales-document-email-dialog";
 import { SalesPaymentNotificationsMenu } from "@/components/sales-payment-notifications-menu";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
@@ -33,10 +34,15 @@ type SalesMenuState = {
 	slug?: string;
 	type?: SalesType;
 	salesIds: number[];
+	orderNo?: string | null;
+	customerEmail?: string | null;
+	customerName?: string | null;
+	documentTitle?: string | null;
 };
 
 type SalesMenuActions = {
 	closeMenu: () => void;
+	openComposeEmail: () => void;
 	copyAs: (as: SalesType) => Promise<void>;
 	move: () => Promise<void>;
 };
@@ -64,6 +70,10 @@ type SalesMenuProps = {
 	slug?: string;
 	type?: SalesType;
 	salesIds?: number[];
+	orderNo?: string | null;
+	customerEmail?: string | null;
+	customerName?: string | null;
+	documentTitle?: string | null;
 	children: ReactNode;
 	trigger?: ReactNode;
 	triggerVariant?: ComponentProps<typeof Button>["variant"];
@@ -79,6 +89,10 @@ function SalesMenuRoot({
 	slug,
 	type,
 	salesIds,
+	orderNo,
+	customerEmail,
+	customerName,
+	documentTitle,
 	children,
 	trigger,
 	triggerVariant = "outline",
@@ -89,6 +103,7 @@ function SalesMenuRoot({
 	onOpenChange,
 }: SalesMenuProps) {
 	const [internalOpen, setInternalOpen] = useState(false);
+	const [composeOpen, setComposeOpen] = useState(false);
 	const isControlled = typeof open === "boolean";
 	const isOpen = isControlled ? (open as boolean) : internalOpen;
 	const setOpen = onOpenChange || setInternalOpen;
@@ -108,13 +123,21 @@ function SalesMenuRoot({
 			slug,
 			type: resolvedType,
 			salesIds: resolvedIds,
+			orderNo,
+			customerEmail,
+			customerName,
+			documentTitle,
 		};
-	}, [id, salesIds, slug, type]);
+	}, [customerEmail, customerName, documentTitle, id, orderNo, salesIds, slug, type]);
 
 	const actions = useMemo<SalesMenuActions>(
 		() => ({
 			closeMenu() {
 				setOpen(false);
+			},
+			openComposeEmail() {
+				setOpen(false);
+				setComposeOpen(true);
 			},
 			async copyAs(as) {
 				if (!state.slug || !state.type) return;
@@ -212,6 +235,12 @@ function SalesMenuRoot({
 			state.type,
 		],
 	);
+	const composeSalesOrderId = state.id ?? state.salesIds[0] ?? null;
+	const composeDocumentTitle =
+		state.documentTitle ||
+		`${state.type === "quote" ? "Quote" : "Invoice"}${
+			state.orderNo ? ` ${state.orderNo}` : ""
+		}`;
 
 	const value = useMemo<SalesMenuContextValue>(
 		() => ({
@@ -241,6 +270,17 @@ function SalesMenuRoot({
 					{children}
 				</DropdownMenu.Content>
 			</DropdownMenu.Root>
+			<SalesDocumentEmailDialog
+				salesOrderId={composeSalesOrderId}
+				mode={state.type === "quote" ? "quote" : "invoice"}
+				documentTitle={composeDocumentTitle}
+				orderNo={state.orderNo}
+				customerEmail={state.customerEmail}
+				customerName={state.customerName}
+				trigger={null}
+				open={composeOpen}
+				onOpenChange={setComposeOpen}
+			/>
 		</SalesMenuContext.Provider>
 	);
 }
@@ -725,6 +765,7 @@ function SalesMenuQuotePrintMenuItems({ disabled }: ActionProps) {
 function SalesMenuSalesEmailMenuItems({ disabled }: ActionProps) {
 	return (
 		<>
+			<SalesMenuComposeEmail disabled={disabled} />
 			<SalesMenuNotifications disabled={disabled} />
 			<SalesMenuPaymentNotifications disabled={disabled} />
 		</>
@@ -732,7 +773,29 @@ function SalesMenuSalesEmailMenuItems({ disabled }: ActionProps) {
 }
 
 function SalesMenuQuoteEmailMenuItems({ disabled }: ActionProps) {
-	return <SalesMenuNotifications disabled={disabled} />;
+	return (
+		<>
+			<SalesMenuComposeEmail disabled={disabled} />
+			<SalesMenuNotifications disabled={disabled} />
+		</>
+	);
+}
+
+function SalesMenuComposeEmail({ disabled }: ActionProps) {
+	const { state, actions } = useSalesMenuContext();
+
+	return (
+		<DropdownMenu.Item
+			disabled={disabled || !(state.id ?? state.salesIds[0])}
+			onSelect={(event) => {
+				event.preventDefault();
+				actions.openComposeEmail();
+			}}
+		>
+			<Icons.Edit3 className="mr-2 size-4 text-muted-foreground/70" />
+			Compose
+		</DropdownMenu.Item>
+	);
 }
 
 function SalesMenuSeparator() {

@@ -23,6 +23,7 @@ export type VercelBlobProviderOptions = {
 			contentType?: string;
 			token?: string;
 			addRandomSuffix?: boolean;
+			allowOverwrite?: boolean;
 			cacheControlMaxAge?: number;
 		},
 	) => Promise<VercelBlobPutResult>;
@@ -30,6 +31,7 @@ export type VercelBlobProviderOptions = {
 	token?: string;
 	access?: "public";
 	addRandomSuffix?: boolean;
+	allowOverwrite?: boolean;
 	cacheControlMaxAge?: number;
 };
 
@@ -45,6 +47,7 @@ export function createVercelBlobProvider(
 				token: options.token,
 				contentType: input.contentType,
 				addRandomSuffix: options.addRandomSuffix,
+				allowOverwrite: options.allowOverwrite,
 				cacheControlMaxAge: options.cacheControlMaxAge,
 			});
 			return {

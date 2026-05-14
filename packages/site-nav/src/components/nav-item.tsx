@@ -81,32 +81,40 @@ export const NavItem = ({
 				<div className="relative">
 					<div
 						className={cn(
-							"ml-[10px] mr-[10px] h-[44px] rounded-[18px] border transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
-							isActive
-								? "border-sidebar-border bg-sidebar-accent shadow-sm"
-								: "border-transparent bg-transparent group-hover:border-sidebar-border/80 group-hover:bg-sidebar-accent/70",
-							isExpanded ? "w-[calc(100%-20px)]" : "w-[44px]",
+							"ml-[10px] mr-[10px] h-[42px] rounded-lg border transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
+							isExpanded && isActive
+								? "border-sidebar-border/90 bg-card shadow-[0_1px_2px_rgba(15,23,42,0.08),0_10px_28px_rgba(15,23,42,0.06)]"
+								: "border-transparent bg-transparent",
+							isExpanded &&
+								!isActive &&
+								"group-hover:border-sidebar-border/80 group-hover:bg-sidebar-accent/78",
+							isExpanded ? "w-[calc(100%-20px)]" : "w-[42px]",
 						)}
 					/>
 
-					{isActive && (
+					{isExpanded && isActive && (
 						<>
-							<div className="bg-sidebar-primary absolute inset-y-[7px] left-[13px] w-[3px] rounded-full" />
-							<div className="from-sidebar-primary/10 absolute inset-x-[10px] inset-y-0 rounded-[18px] bg-gradient-to-r to-transparent" />
+							<div className="absolute inset-y-[9px] left-[13px] w-[3px] rounded-full bg-sidebar-primary" />
 						</>
 					)}
 
-					<div className="text-sidebar-foreground/48 group-hover:text-sidebar-foreground/88 pointer-events-none absolute left-[10px] top-0 flex h-[44px] w-[44px] items-center justify-center">
-						<div className={cn(isActive && "!text-sidebar-primary")}>
+					<div className="pointer-events-none absolute left-[10px] top-0 flex h-[42px] w-[42px] items-center justify-center text-sidebar-foreground/48 group-hover:text-sidebar-foreground/88">
+						<div
+							className={cn(
+								"flex h-7 w-7 items-center justify-center rounded-md transition-colors duration-200",
+								isActive &&
+									"bg-sidebar-primary !text-white shadow-[0_6px_14px_rgba(15,23,42,0.14)] [&_svg]:!text-white",
+							)}
+						>
 							<Icon name={item.icon} className={cn("h-4 w-4")} />
 						</div>
 					</div>
 
 					{isExpanded && (
-						<div className="pointer-events-none absolute left-[58px] right-[10px] top-0 flex h-[44px] items-center">
+						<div className="pointer-events-none absolute left-[58px] right-[10px] top-0 flex h-[42px] items-center">
 							<span
 								className={cn(
-									"text-sidebar-foreground/64 group-hover:text-sidebar-foreground overflow-hidden whitespace-nowrap text-sm font-medium tracking-[0.01em] transition-colors duration-150",
+									"overflow-hidden whitespace-nowrap text-sm font-medium text-sidebar-foreground/64 transition-colors duration-150 group-hover:text-sidebar-foreground",
 									hasChildren ? "pr-2" : "",
 									isActive && "text-sidebar-foreground font-semibold",
 								)}
@@ -118,7 +126,7 @@ export const NavItem = ({
 									type="button"
 									onClick={handleChevronClick}
 									className={cn(
-										"text-sidebar-foreground/42 hover:border-sidebar-border hover:bg-sidebar-accent hover:text-sidebar-foreground pointer-events-auto ml-auto mr-1 flex h-8 w-8 items-center justify-center rounded-full border border-transparent transition-all duration-200",
+										"pointer-events-auto ml-auto mr-1 flex h-7 w-7 items-center justify-center rounded-lg border border-transparent text-sidebar-foreground/42 transition-all duration-200 hover:border-sidebar-border hover:bg-sidebar-accent hover:text-sidebar-foreground",
 										isActive && "text-sidebar-primary",
 										shouldShowChildren && "rotate-180",
 									)}
@@ -135,7 +143,7 @@ export const NavItem = ({
 				<div
 					className={cn(
 						"transition-all duration-300 ease-in-out overflow-hidden",
-						shouldShowChildren ? "max-h-96 mt-1" : "max-h-0",
+						shouldShowChildren ? "max-h-96 mt-1.5" : "max-h-0",
 					)}
 				>
 					{childLinks.map((child, index) => {

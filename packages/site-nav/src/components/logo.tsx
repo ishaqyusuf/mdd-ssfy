@@ -28,27 +28,27 @@ function BaseLogo({
 	return (
 		<div
 			className={cn(
-				"bg-sidebar/95 absolute left-0 top-0 z-[999] flex h-[70px] items-center border-b border-sidebar-border shadow-sm backdrop-blur-xl transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+				"absolute left-0 top-0 z-[999] flex h-[70px] items-center border-b border-sidebar-border/80 bg-sidebar/95 backdrop-blur-xl transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
 				isExpanded ? "w-full justify-start px-5" : "w-[83px] justify-center",
 				className,
 			)}
 		>
-			<div className="bg-sidebar-border pointer-events-none absolute inset-x-5 bottom-0 h-px" />
+			<div className="pointer-events-none absolute inset-x-5 bottom-0 h-px bg-white/70" />
 			{Link ? (
 				<Link
 					href={href}
 					className={cn(
-						"inline-flex items-center",
+						"inline-flex min-w-0 items-center",
 						isExpanded ? "gap-3" : "justify-center",
 					)}
 				>
 					{content}
 					{isExpanded ? (
-						<div className="flex flex-col">
-							<span className="text-sidebar-foreground/55 text-[11px] font-semibold uppercase tracking-[0.24em]">
+						<div className="flex min-w-0 flex-col">
+							<span className="truncate text-[10px] font-semibold uppercase tracking-[0.2em] text-sidebar-foreground/48">
 								Workspace
 							</span>
-							<span className="text-sidebar-foreground text-sm font-semibold">
+							<span className="truncate text-sm font-semibold text-sidebar-foreground">
 								Control Panel
 							</span>
 						</div>
@@ -58,17 +58,17 @@ function BaseLogo({
 				<a
 					href={href}
 					className={cn(
-						"inline-flex items-center",
+						"inline-flex min-w-0 items-center",
 						isExpanded ? "gap-3" : "justify-center",
 					)}
 				>
 					{content}
 					{isExpanded ? (
-						<div className="flex flex-col">
-							<span className="text-sidebar-foreground/55 text-[11px] font-semibold uppercase tracking-[0.24em]">
+						<div className="flex min-w-0 flex-col">
+							<span className="truncate text-[10px] font-semibold uppercase tracking-[0.2em] text-sidebar-foreground/48">
 								Workspace
 							</span>
-							<span className="text-sidebar-foreground text-sm font-semibold">
+							<span className="truncate text-sm font-semibold text-sidebar-foreground">
 								Control Panel
 							</span>
 						</div>

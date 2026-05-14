@@ -127,7 +127,7 @@ export function NavsList({
 	return (
 		<div className="mt-3 w-full px-3">
 			<nav className="w-full overflow-auto">
-				<div className="flex flex-col gap-2">
+				<div className="flex flex-col gap-2.5">
 					{renderedLinkModules?.modules.map((module, mi) => {
 						if (isExpanded && !module?.activeLinkCount) return null;
 						const hasModuleTitle = Boolean(module?.name?.trim());
@@ -151,9 +151,9 @@ export function NavsList({
 											setExpandModule(isExpandedModule ? null : module.name);
 										}}
 										className={cn(
-											"group hover:bg-sidebar-accent/55 focus-visible:ring-sidebar-ring mb-1.5 flex h-8 w-full cursor-pointer select-none items-center justify-between gap-2 rounded-lg px-2.5 text-left transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2",
+											"group mb-1.5 flex h-8 w-full cursor-pointer select-none items-center justify-between gap-2 rounded-lg px-2.5 text-left transition-colors duration-200 hover:bg-sidebar-accent/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
 											isExpandedModule &&
-												"bg-sidebar-accent text-sidebar-foreground",
+												"bg-sidebar-accent text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(99,91,255,0.08)]",
 											!isExpanded && "hidden",
 										)}
 										aria-expanded={show}
@@ -161,7 +161,7 @@ export function NavsList({
 										<div className="min-w-0 flex-1">
 											<span
 												className={cn(
-													"text-sidebar-foreground/72 group-hover:text-sidebar-foreground block truncate text-[12px] font-medium tracking-[0.01em]",
+													"block truncate text-[12px] font-medium text-sidebar-foreground/66 group-hover:text-sidebar-foreground",
 													isExpandedModule &&
 														"text-sidebar-foreground font-semibold",
 												)}
@@ -171,7 +171,7 @@ export function NavsList({
 										</div>
 										<Icons.ChevronDown
 											className={cn(
-												"text-sidebar-foreground/40 group-hover:text-sidebar-foreground/70 size-3.5 transition-transform duration-200",
+												"size-3.5 text-sidebar-foreground/38 transition-transform duration-200 group-hover:text-sidebar-foreground/70",
 												isExpandedModule && "text-sidebar-foreground/80",
 												show ? "" : "-rotate-90",
 											)}
@@ -194,7 +194,7 @@ export function NavsList({
 											{!isExpanded && si > 0 ? null : (
 												<div
 													className={cn(
-														"text-sidebar-foreground/38 mx-4 mt-4 hidden text-[10px] font-semibold uppercase tracking-[0.18em]",
+														"mx-4 mt-4 hidden text-[10px] font-semibold uppercase tracking-[0.16em] text-sidebar-foreground/36",
 														activeLink?.module !== module.name &&
 															sectionLabel({
 																renderMode: isExpanded

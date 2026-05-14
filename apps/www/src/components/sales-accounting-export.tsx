@@ -14,12 +14,12 @@ import { useMemo } from "react";
 import { _trpc } from "./static-trpc";
 
 export function SalesAccountingExport() {
-	const { filters } = useSalesAccountingFilterParams();
+	const { filters, hasFilters } = useSalesAccountingFilterParams();
 	const { rowSelection } = useSalesAccountingStore();
 	const selectedIds = useMemo(() => {
 		return Object.entries(rowSelection)
-			.filter(([a, b]) => b)
-			.map(([a, b]) => +a);
+			.filter(([, isSelected]) => isSelected)
+			.map(([id]) => +id);
 	}, [rowSelection]);
 
 	const { refetch } = useQuery(
@@ -253,7 +253,7 @@ export function SalesAccountingExport() {
 			});
 		}
 	}
-	if (!selectedIds.length) return null;
+	if (!hasFilters && !selectedIds.length) return null;
 	return (
 		<Button
 			// disabled={isPending}
@@ -261,7 +261,7 @@ export function SalesAccountingExport() {
 			size="sm"
 		>
 			<Icons.Export className="mr-2 size-4" />
-			<span className="hidden lg:inline">Export</span>
+			<span className="hidden lg:inline">Report</span>
 		</Button>
 	);
 }

@@ -107,14 +107,27 @@ function commonListData(data: Item, bin?: boolean) {
     gate: data.productionGate,
     order: data,
   });
-  const costLines: { label: string; amount }[] = [];
+  const costLines: {
+    label: string | null | undefined;
+    amount: number | null | undefined;
+  }[] = [];
   const _cost = (label, amount) => costLines.push({ label, amount });
   const paid = sum([data.grandTotal! - data.amountDue!]);
+  const creditCardFee = toNumber(meta?.ccc);
+  const creditCardFeePercentage = toNumber(meta?.ccc_percentage);
   _cost("Sub total", data.subTotal);
   data.extraCosts.map((e) => {
     _cost(e.label, e.totalAmount || e.amount);
   });
   data.taxes.map((t) => _cost(t.taxConfig?.title, t.tax));
+  if (creditCardFee > 0) {
+    _cost(
+      creditCardFeePercentage > 0
+        ? `Credit Card Fee (${creditCardFeePercentage}%)`
+        : "Credit Card Fee",
+      creditCardFee,
+    );
+  }
   _cost("Total Invoice", data.grandTotal);
   _cost("Paid", paid);
   _cost("Due Amount", data.amountDue);

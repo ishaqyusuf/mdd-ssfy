@@ -384,6 +384,7 @@ async function storeWorkbook(input: {
 			token: process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
 			access: "public",
 			addRandomSuffix: false,
+			allowOverwrite: true,
 		}),
 	);
 	const uploaded = await documentService.upload({

@@ -9,6 +9,7 @@ import Link from "next/link";
 import { salesAccountingFilterParams } from "@/hooks/use-sales-accounting-filter-params";
 import { useTRPC } from "@/trpc/client";
 import { SearchFilterAdapter as SearchFilter } from "./midday-search-filter/search-filter-adapter";
+import { SalesReportMenu } from "./sales-report-menu";
 
 const SalesAccountingExport = dynamic(
 	() =>
@@ -34,8 +35,9 @@ export function SalesAccountingHeader({ initialFilterList }: Props) {
 				trpcRoute={trpc.filters.salesAccounting}
 				initialFilterList={initialFilterList}
 			/>
-			<div className="flex-1" />
 			<SalesAccountingExport />
+			<div className="flex-1" />
+			<SalesReportMenu />
 			<Link
 				href="/sales-book/accounting/resolution-center"
 				className={cn(

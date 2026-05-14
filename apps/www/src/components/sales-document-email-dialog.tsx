@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { useTRPC } from "@/trpc/client";
@@ -37,6 +37,9 @@ type SalesDocumentEmailDialogProps = {
 	downloadUrl?: string | null;
 	disabled?: boolean;
 	triggerVariant?: "default" | "icon";
+	trigger?: ReactNode | null;
+	open?: boolean;
+	onOpenChange?: (open: boolean) => void;
 };
 
 function buildDefaultSubject(orderNo?: string | null) {
@@ -56,14 +59,19 @@ export function SalesDocumentEmailDialog({
 	downloadUrl,
 	disabled = false,
 	triggerVariant = "default",
+	trigger: customTrigger,
+	open: controlledOpen,
+	onOpenChange,
 }: SalesDocumentEmailDialogProps) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
-	const [open, setOpen] = useState(false);
+	const [internalOpen, setInternalOpen] = useState(false);
 	const [email, setEmail] = useState(customerEmail || "");
 	const [subject, setSubject] = useState(buildDefaultSubject(orderNo));
 	const [message, setMessage] = useState("");
 	const [attachSalesPdf, setAttachSalesPdf] = useState(true);
+	const open = controlledOpen ?? internalOpen;
+	const setOpen = onOpenChange ?? setInternalOpen;
 	const notification = useNotificationTrigger({
 		executingToast: "Sending email...",
 		successToast: "Email sent.",
@@ -99,7 +107,7 @@ export function SalesDocumentEmailDialog({
 		}
 		return "Enter the customer email address and subject for this document.";
 	}, [customerName]);
-	const trigger = (
+	const defaultTrigger = (
 		<Button
 			variant="outline"
 			size={triggerVariant === "icon" ? "icon" : "default"}
@@ -123,6 +131,15 @@ export function SalesDocumentEmailDialog({
 			)}
 		</Button>
 	);
+	const trigger = customTrigger === undefined ? defaultTrigger : customTrigger;
+
+	useEffect(() => {
+		if (!open) return;
+		setEmail(customerEmail || "");
+		setSubject(buildDefaultSubject(orderNo));
+		setMessage("");
+		setAttachSalesPdf(true);
+	}, [customerEmail, open, orderNo]);
 
 	useEffect(() => {
 		if (!open) return;
@@ -133,7 +150,7 @@ export function SalesDocumentEmailDialog({
 
 	return (
 		<>
-			{triggerVariant === "icon" ? (
+			{trigger === null ? null : triggerVariant === "icon" && customTrigger === undefined ? (
 				<Tooltip>
 					<TooltipTrigger asChild>{trigger}</TooltipTrigger>
 					<TooltipContent
