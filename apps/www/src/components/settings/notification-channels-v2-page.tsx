@@ -72,6 +72,7 @@ export function NotificationChannelsV2Page() {
 	const { openNotificationChannelId, setParams } =
 		useNotificationChannelParams();
 	const [search, setSearch] = useState("");
+	const [autoSyncAttempted, setAutoSyncAttempted] = useState(false);
 	const deferredSearch = useDeferredValue(search);
 
 	const channelsQuery = useQuery(
@@ -129,12 +130,20 @@ export function NotificationChannelsV2Page() {
 				size: 200,
 			},
 			{
-				enabled: !!selectedChannelId,
+				enabled: channels.length > 0,
 			},
 		),
 	);
 	const roles = rolesQuery.data ?? [];
 	const employees = employeesQuery.data?.data ?? [];
+	const employeeNameById = useMemo(() => {
+		return new Map(
+			employees.map((employee) => [
+				employee.id,
+				employee.name || employee.email || `User ${employee.id}`,
+			]),
+		);
+	}, [employees]);
 
 	const availableSubscribers = useMemo(() => {
 		const subscriberIds = new Set(selectedChannel?.subscriberIds ?? []);
@@ -189,6 +198,27 @@ export function NotificationChannelsV2Page() {
 			},
 		}),
 	);
+	const syncChannels = syncChannelsMutation.mutate;
+
+	useEffect(() => {
+		if (
+			!channelsQuery.isSuccess ||
+			!needsChannelSync ||
+			autoSyncAttempted ||
+			syncChannelsMutation.isPending
+		) {
+			return;
+		}
+
+		setAutoSyncAttempted(true);
+		syncChannels();
+	}, [
+		autoSyncAttempted,
+		channelsQuery.isSuccess,
+		needsChannelSync,
+		syncChannels,
+		syncChannelsMutation.isPending,
+	]);
 
 	const addRoleMutation = useMutation(
 		trpc.notes.addNotificationChannelRole.mutationOptions({
@@ -275,16 +305,16 @@ export function NotificationChannelsV2Page() {
 							className="pl-9"
 						/>
 					</div>
-					{needsChannelSync ? (
+					{needsChannelSync && syncChannelsMutation.isError ? (
 						<div className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
 							<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 								<div className="space-y-1">
 									<p className="font-semibold">
-										Channel definitions need an update
+										Could not update channel definitions
 									</p>
 									<p className="text-xs text-amber-900/80">
-										Load the current list normally, then run a one-time sync to
-										restore any missing built-in channels.
+										Some built-in channels are still missing. Try the one-time
+										sync again.
 									</p>
 								</div>
 								<Button
@@ -292,7 +322,10 @@ export function NotificationChannelsV2Page() {
 									variant="outline"
 									className="border-amber-300 bg-white"
 									disabled={syncChannelsMutation.isPending}
-									onClick={() => syncChannelsMutation.mutate()}
+									onClick={() => {
+										syncChannelsMutation.reset();
+										syncChannelsMutation.mutate();
+									}}
 								>
 									{syncChannelsMutation.isPending ? (
 										<Icons.Loader2 className="mr-2 size-4 animate-spin" />
@@ -367,14 +400,18 @@ export function NotificationChannelsV2Page() {
 										<Badge variant="outline">
 											{channel.category || "General"}
 										</Badge>
-										<Badge variant="outline">
-											{channel.roles.length} role
-											{channel.roles.length === 1 ? "" : "s"}
-										</Badge>
-										<Badge variant="outline">
-											{channel.subscriberIds.length} user
-											{channel.subscriberIds.length === 1 ? "" : "s"}
-										</Badge>
+										<ListSummaryBadge
+											emptyLabel="No roles"
+											items={channel.roles}
+										/>
+										<ListSummaryBadge
+											emptyLabel="No users"
+											items={channel.subscriberIds.map(
+												(subscriberId) =>
+													employeeNameById.get(subscriberId) ??
+													`User ${subscriberId}`,
+											)}
+										/>
 									</div>
 								</button>
 							))
@@ -706,6 +743,31 @@ function DeliveryIcon({
 		>
 			<Icon className="size-4" />
 		</div>
+	);
+}
+
+function ListSummaryBadge({
+	emptyLabel,
+	items,
+}: {
+	emptyLabel: string;
+	items: string[];
+}) {
+	const [firstItem, ...otherItems] = items;
+
+	return (
+		<Badge
+			variant="outline"
+			className="max-w-full gap-1 overflow-hidden text-left"
+			title={items.length ? items.join(", ") : emptyLabel}
+		>
+			<span className="truncate">{firstItem ?? emptyLabel}</span>
+			{otherItems.length ? (
+				<span className="shrink-0 text-muted-foreground">
+					+{otherItems.length}
+				</span>
+			) : null}
+		</Badge>
 	);
 }
 

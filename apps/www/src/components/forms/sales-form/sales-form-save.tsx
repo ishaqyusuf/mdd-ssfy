@@ -22,8 +22,9 @@ import { useRef, useState } from "react";
 interface Props {
     type?: "button" | "menu";
     and?: "default" | "close" | "new";
+    className?: string;
 }
-export function SalesFormSave({ type = "button", and }: Props) {
+export function SalesFormSave({ type = "button", and, className }: Props) {
     const [params] = useQueryStates({
         restoreMode: parseAsBoolean,
     });
@@ -155,6 +156,7 @@ export function SalesFormSave({ type = "button", and }: Props) {
             action={save}
             variant="default"
             disabled={isSaving}
+            className={className}
         >
             <span className="">Save</span>
         </Button>
