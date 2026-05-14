@@ -86,7 +86,8 @@ export async function getTaskEvents(ctx: TRPCContext) {
 				description: definition.description,
 				runNowTaskId: definition.runNowTaskId,
 				runTestTaskId: definition.runTestTaskId,
-				filterSystem: definition.filterSystem ?? null,
+				filterSystem:
+					"filterSystem" in definition ? definition.filterSystem : null,
 				config,
 				latestHistory,
 			};
@@ -113,7 +114,7 @@ export async function getTaskEvent(ctx: TRPCContext, eventName: string) {
 		description: definition.description,
 		runNowTaskId: definition.runNowTaskId,
 		runTestTaskId: definition.runTestTaskId,
-		filterSystem: definition.filterSystem ?? null,
+		filterSystem: "filterSystem" in definition ? definition.filterSystem : null,
 		config,
 	};
 }
@@ -195,15 +196,20 @@ export async function runTaskEventNow(
 	ctx: TRPCContext,
 	input: {
 		eventName: string;
+		filter?: Record<string, unknown>;
 	},
 ) {
 	await requireSuperAdmin(ctx);
 
 	const eventName = resolveEventNameOrThrow(input.eventName);
 	const definition = getTaskEventDefinition(eventName);
+	const filter = input.filter
+		? definition.filterSchema.parse(input.filter)
+		: undefined;
 
 	return tasks.trigger(definition.runNowTaskId, {
 		eventName,
+		...(filter ? { filter } : {}),
 	});
 }
 

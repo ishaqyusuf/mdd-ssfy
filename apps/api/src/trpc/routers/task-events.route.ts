@@ -10,6 +10,11 @@ import {
 import { createTRPCRouter, publicProcedure } from "../init";
 import z from "zod";
 
+export const runTaskEventNowInputSchema = z.object({
+  eventName: z.string().min(1),
+  filter: z.record(z.string(), z.any()).optional(),
+});
+
 export const taskEventsRouter = createTRPCRouter({
   list: publicProcedure.query(async ({ ctx }) => {
     return getTaskEvents(ctx);
@@ -46,11 +51,7 @@ export const taskEventsRouter = createTRPCRouter({
       return getTaskEventHistory(ctx, input);
     }),
   runNow: publicProcedure
-    .input(
-      z.object({
-        eventName: z.string().min(1),
-      }),
-    )
+    .input(runTaskEventNowInputSchema)
     .mutation(async ({ ctx, input }) => {
       return runTaskEventNow(ctx, input);
     }),

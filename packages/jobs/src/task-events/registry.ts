@@ -12,6 +12,14 @@ const dailyPaymentsReportFilterSchema = z
 	.object({
 		timezone: z.string().min(1).default("America/New_York"),
 		reportWindow: z.enum(["today", "previous_day"]).default("today"),
+		dateFrom: z
+			.string()
+			.regex(/^\d{4}-\d{2}-\d{2}$/)
+			.optional(),
+		dateTo: z
+			.string()
+			.regex(/^\d{4}-\d{2}-\d{2}$/)
+			.optional(),
 		notificationChannelName: z
 			.string()
 			.min(1)

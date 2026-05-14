@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { salesFilterParamsSchema } from "@/hooks/use-sales-filter-params";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import { Input } from "@gnd/ui/input";
 import { SearchFilter } from "@gnd/ui/search-filter";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { Textarea } from "@gnd/ui/textarea";
@@ -75,6 +76,18 @@ export function TaskEventDetail({ eventName }: Props) {
 	const [filterText, setFilterText] = useState("{}");
 	const [runId, setRunId] = useState<string | null>(null);
 	const [syncedRunId, setSyncedRunId] = useState<string | null>(null);
+	const [manualDateMode, setManualDateMode] = useState<"single" | "range">(
+		"single",
+	);
+	const [manualSingleDate, setManualSingleDate] = useState(() =>
+		formatDateInputValue(new Date()),
+	);
+	const [manualRangeFrom, setManualRangeFrom] = useState(() =>
+		formatDateInputValue(new Date()),
+	);
+	const [manualRangeTo, setManualRangeTo] = useState(() =>
+		formatDateInputValue(new Date()),
+	);
 
 	const { data, isPending, refetch } = useQuery(
 		_trpc.taskEvents.get.queryOptions({ eventName }),
@@ -199,6 +212,24 @@ export function TaskEventDetail({ eventName }: Props) {
 		filterSystem?.paramsSchemaId === "use-sales-filter-params";
 	const saveFilter = usesSalesFilterSystem ? filter : parsedFilter;
 	const hasInvalidFilter = !usesSalesFilterSystem && parsedFilter === null;
+	const paymentFilter =
+		isPaymentsReport && saveFilter && typeof saveFilter === "object"
+			? (saveFilter as Record<string, unknown>)
+			: {};
+	const manualDateFrom =
+		manualDateMode === "single" ? manualSingleDate : manualRangeFrom;
+	const manualDateTo =
+		manualDateMode === "single" ? manualSingleDate : manualRangeTo;
+	const hasInvalidManualDateRange =
+		manualDateMode === "range" &&
+		Boolean(manualDateFrom && manualDateTo && manualDateTo < manualDateFrom);
+	const hasMissingManualDate =
+		!manualDateFrom || !manualDateTo || hasInvalidManualDateRange;
+	const manualRunFilter = {
+		...paymentFilter,
+		dateFrom: manualDateFrom,
+		dateTo: manualDateTo,
+	};
 
 	const setSystemFilters = (next: Record<string, unknown> | null) => {
 		setFilter((current) => {
@@ -288,6 +319,7 @@ export function TaskEventDetail({ eventName }: Props) {
 								trpQueryOptions={{
 									salesManager: auth?.can?.viewSalesManager,
 								}}
+								initialFilterList={[]}
 								filters={filter}
 								setFilters={setSystemFilters}
 							/>
@@ -367,6 +399,105 @@ export function TaskEventDetail({ eventName }: Props) {
 					</div>
 				) : null}
 			</div>
+
+			{isPaymentsReport ? (
+				<div className="rounded-lg border bg-card p-4 flex flex-col gap-4">
+					<div>
+						<div className="text-sm font-medium">Manual Report Run</div>
+						<p className="text-xs text-muted-foreground mt-1">
+							Run this report for a one-off payment date or date range without
+							changing the daily schedule.
+						</p>
+					</div>
+
+					<div className="flex flex-wrap gap-2">
+						<Button
+							type="button"
+							size="sm"
+							variant={manualDateMode === "single" ? "default" : "outline"}
+							onClick={() => setManualDateMode("single")}
+						>
+							Single date
+						</Button>
+						<Button
+							type="button"
+							size="sm"
+							variant={manualDateMode === "range" ? "default" : "outline"}
+							onClick={() => setManualDateMode("range")}
+						>
+							Date range
+						</Button>
+					</div>
+
+					{manualDateMode === "single" ? (
+						<div className="grid gap-2 md:max-w-xs">
+							<label className="text-xs font-medium text-muted-foreground">
+								Payment date
+							</label>
+							<Input
+								type="date"
+								value={manualSingleDate}
+								onChange={(event) => setManualSingleDate(event.target.value)}
+							/>
+						</div>
+					) : (
+						<div className="grid gap-3 md:grid-cols-2 md:max-w-xl">
+							<div className="grid gap-2">
+								<label className="text-xs font-medium text-muted-foreground">
+									From
+								</label>
+								<Input
+									type="date"
+									value={manualRangeFrom}
+									onChange={(event) => setManualRangeFrom(event.target.value)}
+								/>
+							</div>
+							<div className="grid gap-2">
+								<label className="text-xs font-medium text-muted-foreground">
+									To
+								</label>
+								<Input
+									type="date"
+									value={manualRangeTo}
+									onChange={(event) => setManualRangeTo(event.target.value)}
+								/>
+							</div>
+						</div>
+					)}
+
+					{hasInvalidManualDateRange ? (
+						<p className="text-xs text-destructive">
+							End date cannot be before start date.
+						</p>
+					) : null}
+
+					<div className="flex flex-wrap items-center gap-2">
+						<Button
+							type="button"
+							onClick={() => {
+								if (hasMissingManualDate) {
+									toast({
+										variant: "error",
+										title: "Select a valid report date",
+									});
+									return;
+								}
+
+								runNowMutation.mutate({
+									eventName,
+									filter: manualRunFilter,
+								});
+							}}
+							disabled={runNowMutation.isPending || hasMissingManualDate}
+						>
+							{runNowMutation.isPending ? "Starting..." : "Run Report"}
+						</Button>
+						<div className="text-xs text-muted-foreground">
+							Timezone: {String(paymentFilter.timezone || "America/New_York")}
+						</div>
+					</div>
+				</div>
+			) : null}
 
 			<div className="rounded-lg border bg-card p-4">
 				{latestMeta ? (
@@ -597,6 +728,13 @@ function formatDate(value: Date | string | null | undefined) {
 	const date = new Date(value);
 	if (Number.isNaN(date.getTime())) return "-";
 	return date.toLocaleString();
+}
+
+function formatDateInputValue(date: Date) {
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, "0");
+	const day = String(date.getDate()).padStart(2, "0");
+	return `${year}-${month}-${day}`;
 }
 
 function formatCurrency(value: number) {
