@@ -64,7 +64,7 @@ export function ComponentSectionFooter({ ctx }: { ctx: UseStepContext }) {
                 className={cn(
                     "left-1/2 z-20 w-fit max-w-[calc(100vw-2rem)] -translate-x-1/2 transform bg-secondary",
                     isFixed
-                        ? "fixed bottom-6 z-40"
+                        ? "fixed bottom-14 z-40"
                         : "sticky bottom-2 sm:bottom-12",
                 )}
             >

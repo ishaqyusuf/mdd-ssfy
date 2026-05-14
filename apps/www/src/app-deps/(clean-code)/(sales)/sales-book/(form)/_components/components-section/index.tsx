@@ -194,7 +194,7 @@ function FloatingAction({ ctx }: { ctx: UseStepContext }) {
                 className={cn(
                     "z-40 w-fit max-w-[calc(100vw-2rem)] -translate-x-1/2 transform bg-secondary",
                     isFixed
-                        ? "fixed bottom-2"
+                        ? "fixed bottom-14"
                         : "absolute bottom-0 left-1/2",
                 )}
             >
