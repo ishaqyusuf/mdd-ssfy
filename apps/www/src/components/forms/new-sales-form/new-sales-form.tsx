@@ -100,6 +100,18 @@ function getErrorMessage(error: unknown, fallback: string) {
 	return fallback;
 }
 
+type OrderInboundStatus = "AVAILABLE" | "ORDERED" | "PENDING ORDER";
+
+function promptForInboundStatus(currentStatus?: string | null) {
+	if (currentStatus) return currentStatus as OrderInboundStatus;
+	const allProductInStock = window.confirm("Is all product in stock?");
+	if (allProductInStock) return "AVAILABLE";
+	const productOrdered = window.confirm(
+		"Has the product not in stock been ordered?",
+	);
+	return productOrdered ? "ORDERED" : "PENDING ORDER";
+}
+
 function getLineTitlePlaceholder(line: {
 	title?: string | null;
 	formSteps?: Array<{
@@ -190,7 +202,7 @@ function SkeletonIcon() {
 
 function WorkflowPanelSkeleton() {
 	return (
-		<div className="divide-y divide-muted-foreground">
+		<div className="divide-y divide-border/40">
 			{[0, 1, 2].map((itemIndex) => (
 				<div key={`workflow-skeleton-${itemIndex}`} className="bg-background p-4">
 					<div className="grid gap-4 md:grid-cols-12">
@@ -252,7 +264,7 @@ function NewSalesFormSkeleton() {
 						</div>
 					</div>
 					<div className="flex-1 overflow-hidden pb-28 lg:pb-20">
-						<div className="mx-auto flex w-full max-w-6xl flex-col pr-4 sm:pr-6 lg:pr-8">
+						<div className="mx-auto flex w-full max-w-6xl flex-col">
 							<WorkflowPanelSkeleton />
 						</div>
 					</div>
@@ -606,6 +618,9 @@ export function NewSalesForm(props: Props) {
 				enabled: isOrder && !!record?.salesId,
 			},
 		),
+	);
+	const saveInboundStatus = useMutation(
+		trpc.notes.saveInboundNote.mutationOptions(),
 	);
 	const packingDispatches = useMemo(
 		() =>
@@ -990,6 +1005,7 @@ export function NewSalesForm(props: Props) {
 			salesId?: number | null;
 			slug?: string | null;
 			orderId?: string | null;
+			inventoryStatus?: string | null;
 			status?: string | null;
 			version?: string | null;
 			updatedAt?: string | null;
@@ -1000,6 +1016,7 @@ export function NewSalesForm(props: Props) {
 				salesId: resp?.salesId,
 				slug: resp?.slug,
 				orderId: resp?.orderId,
+				inventoryStatus: resp?.inventoryStatus,
 				status: resp?.status,
 			});
 			markSaved({
@@ -1028,6 +1045,27 @@ export function NewSalesForm(props: Props) {
 			}
 		},
 		[clearRecoveryKeys, markSaved, patchRecord, taskTrigger],
+	);
+
+	const logInboundStatusAfterSave = useCallback(
+		async (
+			resp: { salesId?: number | null; orderId?: string | null },
+			inboundStatus: OrderInboundStatus | null,
+			previousStatus?: string | null,
+		) => {
+			if (!inboundStatus || previousStatus === inboundStatus) return;
+			if (!resp.salesId || !resp.orderId) return;
+			patchRecord({
+				inventoryStatus: inboundStatus,
+			} as Partial<NewSalesFormRecord>);
+			await saveInboundStatus.mutateAsync({
+				salesId: resp.salesId,
+				orderNo: resp.orderId,
+				status: inboundStatus,
+				note: "Inbound status captured during order save.",
+			});
+		},
+		[patchRecord, saveInboundStatus],
 	);
 
 	useEffect(() => {
@@ -1179,7 +1217,12 @@ export function NewSalesForm(props: Props) {
 
 	async function saveDraftNow() {
 		await runWithManualSaveLock(async () => {
+			if (!record) return;
 			if (!validateBeforeSave()) return;
+			const previousInboundStatus = record.inventoryStatus;
+			const inboundStatus = isOrder
+				? promptForInboundStatus(previousInboundStatus)
+				: null;
 			markSaving();
 			const resp = await autosave.flush();
 			if (!resp) {
@@ -1187,6 +1230,11 @@ export function NewSalesForm(props: Props) {
 				return;
 			}
 			await handlePostSaveSuccess(resp);
+			await logInboundStatusAfterSave(
+				resp,
+				inboundStatus,
+				previousInboundStatus,
+			);
 			await clearSelectedCustomerQuery();
 			if (props.mode === "create") {
 				const editHref = buildEditHref(resp);
@@ -1206,14 +1254,26 @@ export function NewSalesForm(props: Props) {
 		await runWithManualSaveLock(async () => {
 			if (!record) return;
 			if (!validateBeforeSave()) return;
+			const previousInboundStatus = record.inventoryStatus;
+			const inboundStatus = isOrder
+				? promptForInboundStatus(previousInboundStatus)
+				: null;
 			markSaving();
-			const payload = toSaveDraftInput(record, false);
+			const payload = {
+				...toSaveDraftInput(record, false),
+				inventoryStatus: inboundStatus,
+			};
 			try {
 				const resp = await finalSave.mutateAsync({
 					...payload,
 					autosave: false,
 				});
 				await handlePostSaveSuccess(resp);
+				await logInboundStatusAfterSave(
+					resp,
+					inboundStatus,
+					previousInboundStatus,
+				);
 				toast({
 					title: "Saved",
 					description: `${props.type} ${resp?.orderId} has been finalized.`,
@@ -1247,12 +1307,28 @@ export function NewSalesForm(props: Props) {
 
 	async function saveClose() {
 		await runWithManualSaveLock(async () => {
+			if (!record) return;
 			if (!validateBeforeSave()) return;
+			const previousInboundStatus = record.inventoryStatus;
+			const inboundStatus = isOrder
+				? promptForInboundStatus(previousInboundStatus)
+				: null;
 			if (dirty) {
 				const resp = await autosave.flush("manual-flush");
 				if (!resp) return;
 				await handlePostSaveSuccess(resp);
+				await logInboundStatusAfterSave(
+					resp,
+					inboundStatus,
+					previousInboundStatus,
+				);
 				await clearSelectedCustomerQuery();
+			} else {
+				await logInboundStatusAfterSave(
+					record,
+					inboundStatus,
+					previousInboundStatus,
+				);
 			}
 			router.push(
 				`/sales-book/${props.type === "order" ? "orders" : "quotes"}`,
@@ -1262,12 +1338,28 @@ export function NewSalesForm(props: Props) {
 
 	async function saveNew() {
 		await runWithManualSaveLock(async () => {
+			if (!record) return;
 			if (!validateBeforeSave()) return;
+			const previousInboundStatus = record.inventoryStatus;
+			const inboundStatus = isOrder
+				? promptForInboundStatus(previousInboundStatus)
+				: null;
 			if (dirty) {
 				const resp = await autosave.flush("manual-flush");
 				if (!resp) return;
 				await handlePostSaveSuccess(resp);
+				await logInboundStatusAfterSave(
+					resp,
+					inboundStatus,
+					previousInboundStatus,
+				);
 				await clearSelectedCustomerQuery();
+			} else {
+				await logInboundStatusAfterSave(
+					record,
+					inboundStatus,
+					previousInboundStatus,
+				);
 			}
 			router.push(
 				`/sales-form/${props.type === "order" ? "create-order" : "create-quote"}`,
@@ -1462,7 +1554,7 @@ export function NewSalesForm(props: Props) {
 					/>
 
 					<div className="flex-1 overflow-y-auto overscroll-contain pb-28 lg:pb-20">
-						<div className="mx-auto flex w-full max-w-6xl flex-col pr-4 sm:pr-6 lg:pr-8">
+						<div className="mx-auto flex w-full max-w-6xl flex-col">
 							{recoverySnapshot ? (
 								<div className="m-4 flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 md:flex-row md:items-center md:justify-between sm:m-6 lg:m-8">
 									<p>

@@ -4586,7 +4586,7 @@ export function ItemWorkflowPanel() {
 	return (
 		<>
 			<section>
-				<div className="divide-y divide-muted-foreground">
+				<div className="divide-y divide-border/40">
 					{visibleLineItems.map(({ line, index }) => {
 						const isActive = line.uid === activeLine?.uid;
 						const steps = line.formSteps || [];

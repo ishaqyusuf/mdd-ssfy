@@ -1,3 +1,4 @@
+import { DealerPortalSection } from "@/components/dealer-portal-section";
 import { DealershipShell } from "@/components/dealership-shell";
 import { requireDealer } from "@/lib/dealer-session";
 
@@ -17,6 +18,10 @@ export default async function DealershipSectionPage({
   const { section } = await params;
   const { dealer } = await requireDealer();
   const title = titles[section] || "Dealership";
+  const supportedSections = ["orders", "quotes", "customers", "profiles", "settings"];
+  const portalSection = supportedSections.includes(section)
+    ? (section as "orders" | "quotes" | "customers" | "profiles" | "settings")
+    : null;
 
   return (
     <DealershipShell dealer={dealer}>
@@ -28,11 +33,7 @@ export default async function DealershipSectionPage({
           <h2 className="text-2xl font-semibold tracking-normal">{title}</h2>
         </header>
 
-        <div className="min-h-96 rounded-lg border bg-card p-5">
-          <div className="flex h-72 items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
-            Ready for implementation
-          </div>
-        </div>
+        {portalSection ? <DealerPortalSection section={portalSection} /> : null}
       </div>
     </DealershipShell>
   );

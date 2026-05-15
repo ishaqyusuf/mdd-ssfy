@@ -87,6 +87,7 @@ export type SalesPrintStageDetails = {
 	salesIds?: number[];
 	message?: string;
 	error?: unknown;
+	printedFromSnapshot?: boolean;
 };
 
 const defaultDependencies: SalesPrintDependencies = {
@@ -277,7 +278,7 @@ export async function openSalesPrintDocument(
 	const shouldUseAttachmentOverlay =
 		dependencies.useAttachmentOverlay && !request.openInNewTab;
 	const pendingWindow = request.openInNewTab
-		? dependencies.openPendingPrintWindow()
+		? null
 		: shouldUseAttachmentOverlay
 			? null
 			: dependencies.openPendingPrintWindow();
@@ -288,9 +289,11 @@ export async function openSalesPrintDocument(
 			salesIds: request.salesIds,
 		});
 		const access = await resolveSalesPrintAccess(request, dependencies);
+		const printedFromSnapshot = access.kind === "snapshot" && !access.generated;
 		request.onPrintStage?.("resolve-access-done", {
 			mode,
 			salesIds: request.salesIds,
+			printedFromSnapshot,
 		});
 		const href = buildSalesPrintViewerUrl(access, {
 			preview: false,
@@ -314,6 +317,8 @@ export async function openSalesPrintDocument(
 							href: details?.href ?? href,
 							mode: details?.mode ?? mode,
 							salesIds: details?.salesIds ?? request.salesIds,
+							printedFromSnapshot:
+								details?.printedFromSnapshot ?? printedFromSnapshot,
 						});
 					},
 				},
@@ -324,6 +329,7 @@ export async function openSalesPrintDocument(
 					href,
 					mode,
 					salesIds: request.salesIds,
+					printedFromSnapshot,
 				});
 				return;
 			}

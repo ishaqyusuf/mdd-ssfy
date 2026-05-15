@@ -26,6 +26,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useBin } from "@/hooks/use-bin";
 import { useDriversList } from "@/hooks/use-data-list";
 import { invalidateInfiniteQueries } from "@/hooks/use-invalidate-query";
+import { useInboundStatusModal } from "@/hooks/use-inbound-status-modal";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
@@ -78,6 +79,50 @@ function getFulfillmentStatusLabel(item: SalesOrderItem) {
 	const status = (item as any)?.control?.dispatchStatus;
 	if (status && status !== "unknown") return status;
 	return item?.deliveryStatus || "-";
+}
+
+function normalizeInboundStatus(status?: string | null) {
+	const value = String(status || "").trim().toUpperCase();
+	if (value === "AVAILABLE" || value === "ORDERED" || value === "PENDING ORDER") {
+		return value;
+	}
+	return null;
+}
+
+function getInboundToneClass(status?: string | null) {
+	switch (normalizeInboundStatus(status)) {
+		case "AVAILABLE":
+			return "border-emerald-200 bg-emerald-50 text-emerald-700";
+		case "ORDERED":
+			return "border-blue-200 bg-blue-50 text-blue-700";
+		case "PENDING ORDER":
+			return "border-amber-300 bg-amber-50 text-amber-800";
+		default:
+			return "border-slate-200 bg-slate-50 text-slate-600";
+	}
+}
+
+export function salesInboundRowClassName(status?: string | null) {
+	return normalizeInboundStatus(status) === "PENDING ORDER"
+		? "bg-amber-50/60 hover:bg-amber-100/70"
+		: "";
+}
+
+function SalesInboundBadge({ item }: { item: SalesOrderItem }) {
+	const status = normalizeInboundStatus((item as any).inboundStatus);
+	if (!status) return <span className="text-muted-foreground">-</span>;
+
+	return (
+		<Badge
+			variant="outline"
+			className={cn(
+				"rounded-full text-[11px] font-semibold uppercase whitespace-nowrap",
+				getInboundToneClass(status),
+			)}
+		>
+			{status}
+		</Badge>
+	);
 }
 
 function CompactCustomerCell({ item }: { item: SalesOrderItem }) {
@@ -215,6 +260,11 @@ export const columns2: ColumnDef<SalesOrderItem>[] = [
 		},
 		cell: ({ row: { original: item } }) => <div>{item?.poNo}</div>,
 	},
+	{
+		header: "Inbound",
+		accessorKey: "inboundStatus",
+		cell: ({ row: { original: item } }) => <SalesInboundBadge item={item} />,
+	},
 	// Toggle this switch to restore the legacy separate Customer / Phone / Address columns.
 	...(compactCustomerV2 ? compactCustomerColumnV2 : legacyCustomerColumnsV2),
 	{
@@ -308,6 +358,11 @@ export const columns: ColumnDef<SalesOrderItem>[] = [
 		},
 		cell: ({ row: { original: item } }) => <div>{item?.poNo}</div>,
 	},
+	{
+		header: "Inbound",
+		accessorKey: "inboundStatus",
+		cell: ({ row: { original: item } }) => <SalesInboundBadge item={item} />,
+	},
 	// Toggle this switch to restore the legacy separate Customer / Phone / Address columns.
 	...(compactCustomer ? compactCustomerColumn : legacyCustomerColumns),
 	// {
@@ -397,6 +452,7 @@ function Actions({ item }: { item: SalesOrderItem }) {
 		.some((status) => String(status).toLowerCase() === "completed");
 	const isBin = useBin();
 	const auth = useAuth();
+	const inboundStatusModal = useInboundStatusModal();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const [isFulfillmentModalOpen, setFulfillmentModalOpen] =
@@ -699,6 +755,21 @@ function Actions({ item }: { item: SalesOrderItem }) {
 					orderId={item.orderId}
 					priority={(item as any).priority}
 				/>
+				<SalesMenu.Item
+					onSelect={(event) => {
+						event.preventDefault();
+						inboundStatusModal.setParams({
+							inboundOrderId: item.id,
+							inboundOrderNo: item.orderId,
+							inboundOrderStatus:
+								normalizeInboundStatus((item as any).inboundStatus) || null,
+							updateInboundStatus: true,
+						});
+					}}
+				>
+					<Icons.Package2 className="mr-2 size-4 text-muted-foreground/70" />
+					Update inbound
+				</SalesMenu.Item>
 				<SalesMenu.Sub>
 					<SalesMenu.SubTrigger>
 						<Icons.Check className="mr-2 size-4 text-muted-foreground/70" />
@@ -857,6 +928,7 @@ function ItemCard({ item }: ItemProps) {
 							priority={(item as any).priority}
 							className="px-2 py-1"
 						/>
+						<SalesInboundBadge item={item} />
 						{!item.orderId?.toUpperCase().endsWith(item.salesRepInitial) && (
 							<span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold uppercase text-primary">
 								{item.salesRepInitial}

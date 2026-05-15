@@ -17,9 +17,26 @@ export function getSalesPrintStageToast(
 						: "Requesting document access.",
 			};
 		case "resolve-access-done":
+			if (details?.printedFromSnapshot) {
+				return {
+					title: "Printed from snapshot",
+					description: "Using the stored PDF snapshot for this print.",
+				};
+			}
 			return {
 				title: "Print access ready",
 				description: "Loading the print viewer.",
+			};
+		case "print-dialog-called":
+			if (details?.printedFromSnapshot) {
+				return {
+					title: "Printed from snapshot",
+					description: "The print dialog opened from the stored PDF snapshot.",
+				};
+			}
+			return {
+				title: "Print dialog opened",
+				description: "Choose a printer to finish printing.",
 			};
 		case "hidden-viewer-mounted":
 			return {
@@ -40,11 +57,6 @@ export function getSalesPrintStageToast(
 			return {
 				title: "PDF loaded",
 				description: "Opening the browser print dialog.",
-			};
-		case "print-dialog-called":
-			return {
-				title: "Print dialog opened",
-				description: "Choose a printer to finish printing.",
 			};
 		case "print-timeout":
 			return {

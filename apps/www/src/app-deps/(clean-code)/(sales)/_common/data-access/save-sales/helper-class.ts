@@ -56,6 +56,8 @@ export class SaveSalesHelper {
             tax: md.pricing.taxValue,
             isDyke: true,
             type: md.type,
+            inventoryStatus:
+                md.type == "order" ? md.inventoryStatus || undefined : undefined,
             salesProfile: md.salesProfileId
                 ? {
                       connect: {

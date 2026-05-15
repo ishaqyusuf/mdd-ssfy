@@ -527,6 +527,7 @@ export interface SalesFormFields {
         laborConfig?: SalesMeta["laborConfig"];
         salesRepId;
         type: SalesType;
+        inventoryStatus?: "AVAILABLE" | "ORDERED" | "PENDING ORDER" | null;
         id?: number;
         salesId?: string;
         salesProfileId?: number;

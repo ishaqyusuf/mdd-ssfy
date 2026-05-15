@@ -9,7 +9,7 @@ import {
 } from "@gnd/ui/dialog";
 import { FormProvider, useFieldArray, useForm } from "react-hook-form";
 import FormSelect from "../common/controls/form-select";
-import { inboundFilterStatus } from "@gnd/utils/constants";
+import { orderInboundStatuses } from "@gnd/utils/constants";
 import FormInput from "../common/controls/form-input";
 import { Button } from "@gnd/ui/button";
 import { z } from "zod";
@@ -26,6 +26,7 @@ import { InboundDocumentUploadZone } from "../sales-inbound/inbound-document-upl
 import Image from "next/image";
 import { env } from "@/env.mjs";
 import ConfirmBtn from "../confirm-button";
+import { toast } from "@gnd/ui/use-toast";
 
 // get schema from zod input
 const formSchema = saveInboundNoteSchema;
@@ -52,23 +53,30 @@ export function InboundSalesModal({}) {
         trpc.notes.saveInboundNote.mutationOptions({
             onSuccess: () => {
                 queryClient.invalidateQueries({
+                    queryKey: trpc.sales.getOrders.pathKey(),
+                });
+                queryClient.invalidateQueries({
                     queryKey: trpc.sales.inboundSummary.queryKey(),
                 });
                 queryClient.invalidateQueries({
                     queryKey: trpc.sales.inboundIndex.queryKey(),
+                });
+                toast({
+                    title: "Inbound status updated.",
+                    variant: "success",
                 });
                 setParams(null);
             },
             onError(e) {},
         }),
     );
-    const statusList = inboundFilterStatus.filter((a) => a != "total");
+    const statusList = [...orderInboundStatuses];
     useEffect(() => {
         if (params.inboundOrderId) {
             form.reset({
                 salesId: params.inboundOrderId,
                 orderNo: params.inboundOrderNo,
-                status: "" as any,
+                status: (params.inboundOrderStatus || "") as any,
                 note: "",
             });
         }

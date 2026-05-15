@@ -1,4 +1,7 @@
-import { inboundFilterStatus, noteTagNames } from "@gnd/utils/constants";
+import {
+  inboundFilterStatus,
+  orderInboundStatuses,
+} from "@gnd/utils/constants";
 import { z } from "zod";
 
 export const saveInboundNoteSchema = z.object({
@@ -6,7 +9,7 @@ export const saveInboundNoteSchema = z.object({
   noteColor: z.string().nullable().optional(),
   salesId: z.number(),
   orderNo: z.string(),
-  status: z.enum(inboundFilterStatus),
+  status: z.enum(orderInboundStatuses),
   attachments: z
     .array(
       z.object({

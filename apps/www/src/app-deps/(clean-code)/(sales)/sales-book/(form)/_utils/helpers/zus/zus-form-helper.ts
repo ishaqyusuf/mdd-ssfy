@@ -5,12 +5,21 @@ import {
 } from "@/app/(clean-code)/(sales)/types";
 import { formatMoney } from "@/lib/use-number";
 import { generateRandomString } from "@/lib/utils";
+import { orderInboundStatuses, type OrderInboundStatus } from "@gnd/utils/constants";
 import dayjs from "dayjs";
 
 import { getFormState } from "../../../_common/_stores/form-data-store";
 import { CostingClass } from "./costing-class";
 import { SettingsClass } from "./settings-class";
 import { StepHelperClass } from "./step-component-class";
+
+function normalizeOrderInboundStatus(
+    status?: string | null,
+): OrderInboundStatus | null {
+    return orderInboundStatuses.includes(status as OrderInboundStatus)
+        ? (status as OrderInboundStatus)
+        : null;
+}
 
 export function zhInitializeState(data: GetSalesBookForm, copy = false) {
     const profile = data.order?.id
@@ -63,6 +72,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
             debugMode: false,
             salesRepId: data.order?.salesRepId || data.order.salesRep?.id,
             type: data.order?.type as any,
+            inventoryStatus: normalizeOrderInboundStatus(data.order?.inventoryStatus),
             id: copy ? null : data.order?.id,
             salesId: copy ? null : data.order?.orderId,
             tax: selectedTax,

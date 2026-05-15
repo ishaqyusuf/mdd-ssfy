@@ -386,11 +386,12 @@ async function generateSalesIdentity(
 
 function toBootstrapPayload(
 	order: {
-		id: number;
-		slug: string;
-		orderId: string;
-		type: string | null;
-		status: string | null;
+			id: number;
+			slug: string;
+			orderId: string;
+			inventoryStatus: string | null;
+			type: string | null;
+			status: string | null;
 		customerId: number | null;
 		customerProfileId: number | null;
 		billingAddressId: number | null;
@@ -707,6 +708,7 @@ function toBootstrapPayload(
 		salesId: order.id,
 		slug: order.slug,
 		orderId: order.orderId,
+		inventoryStatus: order.inventoryStatus,
 		type: (order.type || "order") as "order" | "quote",
 		status: order.status || "Draft",
 		version:
@@ -798,6 +800,7 @@ export async function bootstrapNewSalesForm(
 		salesId: null,
 		slug: null,
 		orderId: null,
+		inventoryStatus: null,
 		type: input.type,
 		status: "Draft",
 		version: `new-${Date.now()}-${generateRandomString(6)}`,
@@ -861,6 +864,7 @@ export async function getNewSalesForm(
 				id: true,
 				slug: true,
 				orderId: true,
+				inventoryStatus: true,
 				type: true,
 				status: true,
 				customerId: true,
@@ -1531,6 +1535,7 @@ async function saveNewSalesFormInternal(
 			slug: string;
 			orderId: string;
 			meta: unknown;
+			inventoryStatus: string | null;
 			updatedAt: Date | null;
 			paymentTerm: string | null;
 			goodUntil: Date | null;
@@ -1551,6 +1556,7 @@ async function saveNewSalesFormInternal(
 					slug: true,
 					orderId: true,
 					meta: true,
+					inventoryStatus: true,
 					updatedAt: true,
 					paymentTerm: true,
 					goodUntil: true,
@@ -1630,6 +1636,8 @@ async function saveNewSalesFormInternal(
 					prodDueDate: safeDate(payload.meta.prodDueDate),
 					deliveryOption:
 						payload.meta.deliveryOption || DEFAULT_DELIVERY_OPTION,
+					inventoryStatus:
+						payload.type === "order" ? payload.inventoryStatus || null : null,
 					taxPercentage: summary.taxRate,
 					subTotal: summary.subTotal,
 					tax: summary.taxTotal,
@@ -1647,6 +1655,8 @@ async function saveNewSalesFormInternal(
 			order = {
 				...created,
 				meta: nextMeta,
+				inventoryStatus:
+					payload.type === "order" ? payload.inventoryStatus || null : null,
 				updatedAt: new Date(),
 				paymentTerm: payload.meta.paymentTerm || DEFAULT_PAYMENT_TERM,
 				goodUntil: safeDate(payload.meta.goodUntil),
@@ -1672,6 +1682,10 @@ async function saveNewSalesFormInternal(
 					prodDueDate: safeDate(payload.meta.prodDueDate) || order.prodDueDate,
 					deliveryOption:
 						payload.meta.deliveryOption || DEFAULT_DELIVERY_OPTION,
+					inventoryStatus:
+						payload.type === "order"
+							? payload.inventoryStatus || order.inventoryStatus || null
+							: null,
 					taxPercentage: summary.taxRate,
 					subTotal: summary.subTotal,
 					tax: summary.taxTotal,
@@ -2066,6 +2080,10 @@ async function saveNewSalesFormInternal(
 			salesId: currentId,
 			slug: order.slug,
 			orderId: order.orderId,
+			inventoryStatus:
+				payload.type === "order"
+					? payload.inventoryStatus || order.inventoryStatus || null
+					: null,
 			type: payload.type,
 			isNew,
 			version: nextVersion,

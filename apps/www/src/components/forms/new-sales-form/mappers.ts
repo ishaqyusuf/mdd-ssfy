@@ -13,6 +13,7 @@ import {
 	summarizeMouldingPersistRows,
 	summarizeServiceRows,
 } from "@gnd/sales/sales-form";
+import { orderInboundStatuses, type OrderInboundStatus } from "@gnd/utils/constants";
 
 function roundCurrency(value: number) {
 	return Math.round((value + Number.EPSILON) * 100) / 100;
@@ -28,6 +29,14 @@ function normalizeSalesFormTitle(value?: string | null) {
 	return String(value || "")
 		.trim()
 		.toLowerCase();
+}
+
+function normalizeOrderInboundStatus(
+	status?: string | null,
+): OrderInboundStatus | null {
+	return orderInboundStatuses.includes(status as OrderInboundStatus)
+		? (status as OrderInboundStatus)
+		: null;
 }
 
 function getStoredMouldingRows(line: NewSalesFormLineItem) {
@@ -295,6 +304,7 @@ export function toSaveDraftInput(
 		| "type"
 		| "salesId"
 		| "slug"
+		| "inventoryStatus"
 		| "version"
 		| "form"
 		| "lineItems"
@@ -320,6 +330,10 @@ export function toSaveDraftInput(
 		type: source.type,
 		salesId: source.salesId,
 		slug: source.slug,
+		inventoryStatus:
+			source.type === "order"
+				? normalizeOrderInboundStatus(source.inventoryStatus)
+				: null,
 		version: source.version,
 		autosave,
 		meta,

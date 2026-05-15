@@ -17,7 +17,9 @@ import { parseAsBoolean, useQueryStates } from "nuqs";
 import { useRouter } from "next/navigation";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
+import { useTRPC } from "@/trpc/client";
 import { useRef, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 
 interface Props {
     type?: "button" | "menu";
@@ -25,6 +27,20 @@ interface Props {
     className?: string;
     iconOnly?: boolean;
 }
+
+type OrderInboundStatus = "AVAILABLE" | "ORDERED" | "PENDING ORDER";
+
+function promptForInboundStatus(currentStatus?: string | null) {
+    if (currentStatus) return currentStatus as OrderInboundStatus;
+    const allProductInStock = window.confirm("Is all product in stock?");
+    if (allProductInStock) return "AVAILABLE";
+
+    const productOrdered = window.confirm(
+        "Has the product not in stock been ordered?",
+    );
+    return productOrdered ? "ORDERED" : "PENDING ORDER";
+}
+
 export function SalesFormSave({ type = "button", and, className, iconOnly }: Props) {
     const [params] = useQueryStates({
         restoreMode: parseAsBoolean,
@@ -32,9 +48,13 @@ export function SalesFormSave({ type = "button", and, className, iconOnly }: Pro
     const zus = useFormDataStore();
     const router = useRouter();
     const sq = useSalesQueryClient();
+    const trpc = useTRPC();
     const tsk = useTaskTrigger({
         silent: true,
     });
+    const saveInboundStatus = useMutation(
+        trpc.notes.saveInboundNote.mutationOptions(),
+    );
     const [isSaving, setIsSaving] = useState(false);
     const saveLockRef = useRef(false);
     async function save(action: "new" | "close" | "default" = "default") {
@@ -51,11 +71,23 @@ export function SalesFormSave({ type = "button", and, className, iconOnly }: Pro
                 });
                 return;
             }
+            const inboundStatus =
+                metaData?.type === "order"
+                    ? promptForInboundStatus(metaData?.inventoryStatus)
+                    : null;
+            const shouldLogInboundStatus =
+                !!inboundStatus && inboundStatus !== metaData?.inventoryStatus;
+            const nextMetaData = inboundStatus
+                ? {
+                      ...metaData,
+                      inventoryStatus: inboundStatus,
+                  }
+                : metaData;
             const resp = await saveFormUseCase(
                 {
                     kvFormItem,
                     kvStepForm,
-                    metaData,
+                    metaData: nextMetaData,
                     sequence,
                     saveAction: action,
                     newFeature: true,
@@ -88,6 +120,17 @@ export function SalesFormSave({ type = "button", and, className, iconOnly }: Pro
             sq?.invalidate.quoteList();
             if (resp.salesId) zus.dotUpdate("metaData.id", resp.salesId);
             if (resp.salesNo) zus.dotUpdate("metaData.salesId", resp.salesNo);
+            if (inboundStatus && resp.salesId && resp.salesNo) {
+                zus.dotUpdate("metaData.inventoryStatus", inboundStatus);
+            }
+            if (shouldLogInboundStatus && inboundStatus && resp.salesId && resp.salesNo) {
+                await saveInboundStatus.mutateAsync({
+                    salesId: resp.salesId,
+                    orderNo: resp.salesNo,
+                    status: inboundStatus,
+                    note: "Inbound status captured during order save.",
+                });
+            }
             const syncSavedForm = syncExtraCosts.then(() => {
                 if (!metaData.debugMode) {
                     return (

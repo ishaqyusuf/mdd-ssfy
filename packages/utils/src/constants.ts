@@ -11,6 +11,12 @@ export const inboundFilterStatus = [
 	"back order",
 ] as const;
 export type InboundFilterStatus = (typeof inboundFilterStatus)[number];
+export const orderInboundStatuses = [
+	"AVAILABLE",
+	"ORDERED",
+	"PENDING ORDER",
+] as const;
+export type OrderInboundStatus = (typeof orderInboundStatuses)[number];
 export const noteTagNames = [
 	"channel",
 	"itemControlUID",
@@ -23,6 +29,7 @@ export const noteTagNames = [
 	"salesNo",
 	"salesItemId",
 	"salesAssignment",
+	"previousInboundStatus",
 	"inboundStatus",
 	"status",
 	"type",

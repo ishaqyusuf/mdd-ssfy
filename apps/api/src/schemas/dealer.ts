@@ -35,3 +35,55 @@ export const createDealerAccountSchema = z
 export type CreateDealerAccountSchema = z.infer<
   typeof createDealerAccountSchema
 >;
+
+export const resendDealerOnboardingSchema = z.object({
+  dealerId: z.number(),
+});
+export type ResendDealerOnboardingSchema = z.infer<
+  typeof resendDealerOnboardingSchema
+>;
+
+export const dealerPortalCustomerSchema = z.object({
+  id: z.number().optional().nullable(),
+  name: z.string().optional().nullable(),
+  businessName: z.string().optional().nullable(),
+  email: z.string().email().optional().nullable().or(z.literal("")),
+  phoneNo: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
+  customerTypeId: z.number().optional().nullable(),
+});
+export type DealerPortalCustomerSchema = z.infer<
+  typeof dealerPortalCustomerSchema
+>;
+
+export const dealerPortalSalesProfileSchema = z.object({
+  id: z.number().optional().nullable(),
+  title: z.string().min(1),
+  coefficient: z.number().optional().nullable(),
+  defaultProfile: z.boolean().optional().nullable(),
+});
+export type DealerPortalSalesProfileSchema = z.infer<
+  typeof dealerPortalSalesProfileSchema
+>;
+
+export const dealerPortalSalesDocumentsSchema = z.object({
+  type: z.enum(["order", "quote"]),
+});
+export type DealerPortalSalesDocumentsSchema = z.infer<
+  typeof dealerPortalSalesDocumentsSchema
+>;
+
+export const dealerPortalSettingsSchema = z.object({
+  name: z.string().optional().nullable(),
+  companyName: z.string().optional().nullable(),
+  phoneNo: z.string().optional().nullable(),
+  logoUrl: z.string().url().optional().nullable().or(z.literal("")),
+  address1: z.string().optional().nullable(),
+  address2: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
+  state: z.string().optional().nullable(),
+  country: z.string().optional().nullable(),
+});
+export type DealerPortalSettingsSchema = z.infer<
+  typeof dealerPortalSettingsSchema
+>;

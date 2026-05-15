@@ -280,6 +280,53 @@ describe("sales print service", () => {
 		);
 	});
 
+	it("opens shift-print requests through the new-tab link helper instead of a pending window", async () => {
+		let openedLinkHref: string | null = null;
+		let openedInNewTab: boolean | null = null;
+		let pendingWindowOpened = false;
+		const response: ResolveSalesDocumentAccessResult = {
+			kind: "snapshot",
+			generated: true,
+			mode: "invoice",
+			documentType: "invoice_pdf",
+			salesOrderId: 42,
+			snapshotId: "snapshot-2",
+			accessToken: "access-456",
+			expiresAt: null,
+			previewUrl:
+				"https://app.example.com/p/sales-document-v2?accessToken=access-456",
+			downloadUrl:
+				"https://app.example.com/api/download/sales-v2?accessToken=access-456",
+		};
+		const dependencies = {
+			resolveAccess: async () => response,
+			resolveHtmlPreviewAccess: async () => response,
+			openLink: (href, _query, newTab) => {
+				openedLinkHref = href;
+				openedInNewTab = newTab;
+			},
+			openViewerShell: () => false,
+			openPendingPrintWindow: () => {
+				pendingWindowOpened = true;
+				return null;
+			},
+			createPrintViewerContent: (href) => ({ props: { href } }),
+			getBaseUrl: () => "https://app.example.com",
+			useAttachmentOverlay: false,
+		};
+
+		await openSalesPrintDocument(
+			{ salesIds: [42], mode: "invoice", openInNewTab: true },
+			dependencies,
+		);
+
+		expect(pendingWindowOpened).toBe(false);
+		expect(openedLinkHref).toBe(
+			"/p/sales-invoice-v2?accessToken=access-456&preview=false&mode=invoice",
+		);
+		expect(openedInNewTab).toBe(true);
+	});
+
 	it("mounts a hidden print viewer instead of showing a PDF preview when the attachment overlay is enabled", async () => {
 		let openedViewerHref: string | null = null;
 		let openedLinkHref: string | null = null;
@@ -355,6 +402,96 @@ describe("sales print service", () => {
 			"pdf-iframe-load",
 			"hidden-viewer-mounted",
 		]);
+	});
+
+	it("marks hidden print stages when an existing snapshot is reused", async () => {
+		const snapshotFlags: Array<boolean | undefined> = [];
+		const response: ResolveSalesDocumentAccessResult = {
+			kind: "snapshot",
+			generated: false,
+			mode: "invoice",
+			documentType: "invoice_pdf",
+			salesOrderId: 42,
+			snapshotId: "snapshot-1",
+			accessToken: "access-123",
+			expiresAt: null,
+			previewUrl:
+				"https://app.example.com/p/sales-document-v2?accessToken=access-123",
+			downloadUrl:
+				"https://app.example.com/api/download/sales-v2?accessToken=access-123",
+		};
+		const dependencies = {
+			resolveAccess: async () => response,
+			resolveHtmlPreviewAccess: async () => response,
+			openLink: () => undefined,
+			openViewerShell: () => false,
+			openPendingPrintWindow: () => null,
+			createPrintViewerContent: (href) => ({ props: { href } }),
+			mountHiddenPrintViewer: (_href, callbacks) => {
+				callbacks?.onPrintStage?.("print-dialog-called");
+				return true;
+			},
+			getBaseUrl: () => "https://app.example.com",
+			useAttachmentOverlay: true,
+		};
+
+		await openSalesPrintDocument(
+			{
+				salesIds: [42],
+				mode: "invoice",
+				onPrintStage: (_stage, details) => {
+					snapshotFlags.push(details?.printedFromSnapshot);
+				},
+			},
+			dependencies,
+		);
+
+		expect(snapshotFlags).toEqual([undefined, true, true, true]);
+	});
+
+	it("does not mark newly generated snapshots as existing snapshot prints", async () => {
+		const snapshotFlags: Array<boolean | undefined> = [];
+		const response: ResolveSalesDocumentAccessResult = {
+			kind: "snapshot",
+			generated: true,
+			mode: "invoice",
+			documentType: "invoice_pdf",
+			salesOrderId: 42,
+			snapshotId: "snapshot-1",
+			accessToken: "access-123",
+			expiresAt: null,
+			previewUrl:
+				"https://app.example.com/p/sales-document-v2?accessToken=access-123",
+			downloadUrl:
+				"https://app.example.com/api/download/sales-v2?accessToken=access-123",
+		};
+		const dependencies = {
+			resolveAccess: async () => response,
+			resolveHtmlPreviewAccess: async () => response,
+			openLink: () => undefined,
+			openViewerShell: () => false,
+			openPendingPrintWindow: () => null,
+			createPrintViewerContent: (href) => ({ props: { href } }),
+			mountHiddenPrintViewer: (_href, callbacks) => {
+				callbacks?.onPrintStage?.("print-dialog-called");
+				return true;
+			},
+			getBaseUrl: () => "https://app.example.com",
+			useAttachmentOverlay: true,
+		};
+
+		await openSalesPrintDocument(
+			{
+				salesIds: [42],
+				mode: "invoice",
+				onPrintStage: (_stage, details) => {
+					snapshotFlags.push(details?.printedFromSnapshot);
+				},
+			},
+			dependencies,
+		);
+
+		expect(snapshotFlags).toEqual([undefined, false, false, false]);
 	});
 
 	it("reports hidden viewer timeout stages through the attachment overlay", async () => {
@@ -490,10 +627,10 @@ describe("sales print service", () => {
 		);
 	});
 
-	it("opens shift-click print requests in a pending browser tab instead of the attachment overlay", async () => {
+	it("opens shift-click print requests through a new-tab link instead of the attachment overlay", async () => {
 		let openedViewer = false;
-		let replacedHref: string | null = null;
 		let openedLinkHref: string | null = null;
+		let pendingWindowOpened = false;
 		const response: ResolveSalesDocumentAccessResult = {
 			kind: "snapshot",
 			generated: false,
@@ -508,26 +645,20 @@ describe("sales print service", () => {
 			downloadUrl:
 				"https://app.example.com/api/download/sales-v2?accessToken=access-123",
 		};
-		const pendingWindow = {
-			closed: false,
-			location: {
-				replace: (href: string) => {
-					replacedHref = href;
-				},
-			},
-			close: () => undefined,
-		};
 		const dependencies = {
 			resolveAccess: async () => response,
 			resolveHtmlPreviewAccess: async () => response,
-			openLink: (href) => {
-				openedLinkHref = href;
+			openLink: (href, _query, newTab) => {
+				openedLinkHref = `${href}|${newTab}`;
 			},
 			openViewerShell: () => {
 				openedViewer = true;
 				return true;
 			},
-			openPendingPrintWindow: () => pendingWindow,
+			openPendingPrintWindow: () => {
+				pendingWindowOpened = true;
+				return null;
+			},
 			createPrintViewerContent: (href) => ({ props: { href } }),
 			getBaseUrl: () => "https://app.example.com",
 			useAttachmentOverlay: true,
@@ -538,11 +669,11 @@ describe("sales print service", () => {
 			dependencies,
 		);
 
-		expect(replacedHref).toBe(
-			"/p/sales-invoice-v2?accessToken=access-123&preview=false&mode=invoice",
+		expect(openedLinkHref).toBe(
+			"/p/sales-invoice-v2?accessToken=access-123&preview=false&mode=invoice|true",
 		);
 		expect(openedViewer).toBe(false);
-		expect(openedLinkHref).toBe(null);
+		expect(pendingWindowOpened).toBe(false);
 	});
 
 	it("falls back to a new-tab link for shift-click print requests when a pending tab is unavailable", async () => {

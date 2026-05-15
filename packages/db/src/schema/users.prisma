@@ -13,6 +13,7 @@ model Users {
     rememberToken               String?                          @db.VarChar(100)
     meta                        Json?                            @db.Json
     deletedAt                   DateTime?                        @db.Timestamp(0)
+    accessRevokedAt             DateTime?                        @db.Timestamp(0)
     createdAt                   DateTime?                        @default(now()) @db.Timestamp(0)
     updatedAt                   DateTime?                        @updatedAt
     employeeProfileId           Int?

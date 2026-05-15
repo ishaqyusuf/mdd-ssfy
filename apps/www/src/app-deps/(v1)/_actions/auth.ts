@@ -164,6 +164,7 @@ export async function loginAction({
 	}
 	const where: Prisma.UsersWhereInput = {
 		email,
+		accessRevokedAt: null,
 	};
 
 	const user = await prisma.users.findFirst({
@@ -196,7 +197,10 @@ export async function loginAction({
 				name: true,
 			},
 		});
-		const specificPermissions = await getUserSpecificPermissions(prisma, user.id);
+		const specificPermissions = await getUserSpecificPermissions(
+			prisma,
+			user.id,
+		);
 		const can = generatePermissions(
 			role?.name,
 			mergePermissionRecords(rolePermissions, specificPermissions),

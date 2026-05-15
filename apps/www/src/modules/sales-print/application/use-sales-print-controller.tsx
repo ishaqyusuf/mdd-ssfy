@@ -38,8 +38,13 @@ export type SalesPrintControllerOptions = {
 	onRegenerated?: (access: SalesPrintRegenerateResult) => void | Promise<void>;
 };
 
-function getTerminalStageDuration(stage: SalesPrintStage) {
-	if (stage === "print-dialog-called") return 2500;
+function getTerminalStageDuration(
+	stage: SalesPrintStage,
+	details?: SalesPrintStageDetails,
+) {
+	if (stage === "print-dialog-called") {
+		return details?.printedFromSnapshot ? 10000 : 2500;
+	}
 	if (
 		stage === "resolve-access-error" ||
 		stage === "print-data-query-error" ||
@@ -98,6 +103,9 @@ export function useSalesPrintController() {
 		(input: {
 			mode: PrintMode;
 			salesIds: number[];
+			dispatchId?: number | null;
+			templateId?: string | null;
+			baseUrl?: string | null;
 			showToast: boolean;
 		}) => {
 			const activeToast = input.showToast
@@ -109,6 +117,7 @@ export function useSalesPrintController() {
 					})
 				: null;
 			let latestPrintHref: string | null = null;
+			let printedFromSnapshot = false;
 
 			const updateToast = (
 				update: ToastUpdateInput,
@@ -120,12 +129,71 @@ export function useSalesPrintController() {
 				}
 			};
 
+			const recreateSnapshot = async () => {
+				if (isRegeneratingRef.current) return;
+				isRegeneratingRef.current = true;
+				setIsRegenerating(true);
+				updateToast({
+					title: "Re-creating snapshot...",
+					description: "Generating a fresh PDF snapshot for this document.",
+					variant: "spinner",
+					duration: Number.POSITIVE_INFINITY,
+				} as ToastUpdateInput);
+
+				try {
+					await regenerateSalesPrintDocument({
+						salesIds: input.salesIds,
+						mode: input.mode,
+						dispatchId: input.dispatchId ?? null,
+						templateId: input.templateId ?? null,
+						baseUrl: input.baseUrl ?? null,
+					});
+					updateToast(
+						{
+							title: "Snapshot re-created",
+							description: "Print again to use the fresh PDF snapshot.",
+							variant: "success",
+							duration: 3500,
+						} as ToastUpdateInput,
+						3500,
+					);
+				} catch (error) {
+					updateToast(
+						{
+							title: "Unable to re-create snapshot",
+							description: buildErrorDescription(error, "Please try again."),
+							variant: "error",
+							duration: 8000,
+						} as ToastUpdateInput,
+						8000,
+					);
+				} finally {
+					isRegeneratingRef.current = false;
+					setIsRegenerating(false);
+				}
+			};
+
+			const getSnapshotAction = () =>
+				printedFromSnapshot ? (
+					<ToastAction
+						altText="Re-create snapshot"
+						onClick={() => {
+							void recreateSnapshot();
+						}}
+					>
+						Re-create snapshot
+					</ToastAction>
+				) : undefined;
+
 			const onPrintStage = (
 				stage: SalesPrintStage,
 				details?: SalesPrintStageDetails,
 			) => {
 				if (details?.href) {
 					latestPrintHref = details.href;
+				}
+				if (details?.printedFromSnapshot) {
+					printedFromSnapshot = true;
 				}
 				console.info("[sales-print]", stage, {
 					mode: input.mode,
@@ -136,7 +204,7 @@ export function useSalesPrintController() {
 				if (!activeToast) return;
 
 				const toastContent = getSalesPrintStageToast(stage, details);
-				const terminalDuration = getTerminalStageDuration(stage);
+				const terminalDuration = getTerminalStageDuration(stage, details);
 				updateToast(
 					{
 						...toastContent,
@@ -147,7 +215,9 @@ export function useSalesPrintController() {
 								: "spinner",
 						duration: terminalDuration ?? Number.POSITIVE_INFINITY,
 						action:
-							isErrorStage(stage) && latestPrintHref ? (
+							printedFromSnapshot ? (
+								getSnapshotAction()
+							) : isErrorStage(stage) && latestPrintHref ? (
 								<ToastAction
 									altText="Open print view"
 									onClick={() => {
@@ -163,6 +233,21 @@ export function useSalesPrintController() {
 			};
 
 			const onPrintReady = () => {
+				if (printedFromSnapshot) {
+					updateToast(
+						{
+							title: "Printed from snapshot",
+							description:
+								"The print dialog opened from the stored PDF snapshot.",
+							variant: "success",
+							duration: 10000,
+							action: getSnapshotAction(),
+						} as ToastUpdateInput,
+						10000,
+					);
+					return;
+				}
+
 				updateToast(
 					{
 						title: "Print dialog opened",
@@ -230,6 +315,9 @@ export function useSalesPrintController() {
 			const lifecycle = createPrintLifecycle({
 				mode,
 				salesIds: input.salesIds,
+				dispatchId: input.dispatchId ?? null,
+				templateId: input.templateId ?? null,
+				baseUrl: input.baseUrl ?? null,
 				showToast: options.showToast ?? !input.openInNewTab,
 			});
 

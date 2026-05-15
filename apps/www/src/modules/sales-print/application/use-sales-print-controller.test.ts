@@ -9,6 +9,17 @@ describe("getSalesPrintStageToast", () => {
 		});
 	});
 
+	it("returns snapshot copy when printing from an existing snapshot", () => {
+		expect(
+			getSalesPrintStageToast("print-dialog-called", {
+				printedFromSnapshot: true,
+			}),
+		).toEqual({
+			title: "Printed from snapshot",
+			description: "The print dialog opened from the stored PDF snapshot.",
+		});
+	});
+
 	it("returns actionable timeout copy", () => {
 		expect(
 			getSalesPrintStageToast("print-timeout", {

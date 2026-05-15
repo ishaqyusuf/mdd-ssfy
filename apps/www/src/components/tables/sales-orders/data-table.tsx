@@ -14,6 +14,7 @@ import { Icons } from "@gnd/ui/icons";
 import Link from "next/link";
 
 import { salesPriorityRowClassName } from "@/components/sales-priority-control";
+import { salesInboundRowClassName } from "./columns";
 import { TableSkeleton } from "../skeleton";
 import { BatchActions } from "./batch-actions";
 import { columns, mobileColumn } from "./columns";
@@ -106,7 +107,12 @@ export function DataTable(props: Props) {
                             borderless: true,
                         },
                         rowClassName(row) {
-                            return salesPriorityRowClassName(row.original?.priority);
+                            return [
+                                salesPriorityRowClassName(row.original?.priority),
+                                salesInboundRowClassName(row.original?.inboundStatus),
+                            ]
+                                .filter(Boolean)
+                                .join(" ");
                         },
                         rowClick(id, rowData) {
                             overviewQuery.open2(rowData.uuid, "sales");

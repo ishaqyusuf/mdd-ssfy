@@ -68,6 +68,9 @@ async function getValidSessionRecord(
 			id: sessionId,
 			userId,
 			deletedAt: null,
+			user: {
+				accessRevokedAt: null,
+			},
 			OR: [{ expires: null }, { expires: { gt: new Date() } }],
 		},
 		select: {

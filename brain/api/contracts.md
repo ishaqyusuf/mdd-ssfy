@@ -26,6 +26,11 @@ Tracks important request/response contracts and shared schema boundaries.
   - grouped row projections carry legacy persistence identity where known: `salesItemId`, `hptId` for moulding, `groupUid`, `uid`, `primaryGroupItem`, row qty/price/total fields, and row-level tax/production flags for services
   - API hydration treats DB grouping identity as authoritative and only uses persisted `order.meta.newSalesForm` for current editable row values
   - API save expands grouped projections back into legacy sibling `SalesOrderItems` rows sharing `multiDykeUid`; moulding rows also write per-row `HousePackageTools`
+- Manual order inbound status contract:
+  - `SalesOrders.inventoryStatus` stores `AVAILABLE | ORDERED | PENDING ORDER`
+  - `newSalesForm.saveDraft` / `saveFinal` accept optional `inventoryStatus` for orders and return it in the saved payload
+  - `newSalesForm.get` / `bootstrap` return top-level `inventoryStatus`
+  - `notes.saveInboundNote` updates the order-level status and creates an `inventory_inbound` order note; `PENDING ORDER` also creates unread recipients for inbound-channel subscribers
 
 ## TODO
 - Document canonical contracts for sales, checkout, dispatch, notifications, and document workflows.

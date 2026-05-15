@@ -9,7 +9,7 @@ import {
 } from "@gnd/ui/dialog";
 import { FormProvider, useFieldArray, useForm } from "react-hook-form";
 import FormSelect from "../common/controls/form-select";
-import { inboundFilterStatus } from "@gnd/utils/constants";
+import { orderInboundStatuses } from "@gnd/utils/constants";
 import FormInput from "../common/controls/form-input";
 import { Button } from "@gnd/ui/button";
 import { z } from "zod";
@@ -61,7 +61,7 @@ export function DispatchStatusModal({}) {
             onError(e) {},
         }),
     );
-    const statusList = inboundFilterStatus.filter((a) => a != "total");
+    const statusList = [...orderInboundStatuses];
     useEffect(() => {
         // if (params.inboundOrderId) {
         //     form.reset({

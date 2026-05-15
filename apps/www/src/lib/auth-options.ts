@@ -74,9 +74,7 @@ function isPrivateLocalHostname(hostname: string) {
 		return true;
 	}
 
-	const private172Match = hostname.match(
-		/^172\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/,
-	);
+	const private172Match = hostname.match(/^172\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/);
 	if (private172Match) {
 		const secondOctet = Number(private172Match[1]);
 		return secondOctet >= 16 && secondOctet <= 31;
@@ -120,6 +118,9 @@ async function getValidSessionRecord(
 			id: sessionId,
 			userId,
 			deletedAt: null,
+			user: {
+				accessRevokedAt: null,
+			},
 			OR: [{ expires: null }, { expires: { gt: new Date() } }],
 		},
 		select: {

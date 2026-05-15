@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { orderInboundStatuses } from "@gnd/utils/constants";
 
 export const newSalesFormTypeSchema = z.enum(["order", "quote"]);
 export type NewSalesFormType = z.infer<typeof newSalesFormTypeSchema>;
@@ -201,6 +202,7 @@ export const saveDraftNewSalesFormSchema = z.object({
 	type: newSalesFormTypeSchema,
 	slug: z.string().optional().nullable(),
 	salesId: z.number().optional().nullable(),
+	inventoryStatus: z.enum(orderInboundStatuses).optional().nullable(),
 	version: z.string().optional().nullable(),
 	autosave: z.boolean().default(true),
 	meta: newSalesFormMetaSchema,

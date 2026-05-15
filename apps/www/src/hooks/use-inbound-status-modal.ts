@@ -9,6 +9,7 @@ export function useInboundStatusModal() {
     const [params, setParams] = useQueryStates({
         inboundOrderId: parseAsInteger,
         inboundOrderNo: parseAsString,
+        inboundOrderStatus: parseAsString,
         updateInboundStatus: parseAsBoolean,
     });
 

@@ -3,6 +3,7 @@ import type { TRPCContext } from "@api/trpc/init";
 import type { NoteTagNames } from "@gnd/utils/constants";
 import {
 	getSubscribersAccount,
+	getSubscribersForNotificationType,
 	getSubscriberAccount,
 } from "@notifications/channel-subscribers";
 import {
@@ -114,41 +115,130 @@ export async function saveInboundNote(
 	data: SaveInboundNoteSchema,
 ) {
 	const senderId = await getSenderId(ctx);
-	const note = await ctx.db.notePad.create({
-		data: {
-			headline: `Sales Inbound`,
-			subject: `${data.status}`,
-			note: `${data.note}`,
-			color: data.noteColor,
-			senderContact: {
-				connect: {
-					id: senderId,
-				},
-			},
-			tags: {
-				createMany: {
-					data: [
-						{
-							tagName: "salesId" as NoteTagNames,
-							tagValue: `${data.salesId}`,
-						},
-						{
-							tagName: "inboundStatus" as NoteTagNames,
-							tagValue: `${data.status}`,
-						},
-						{
-							tagName: "type" as NoteTagNames,
-							tagValue: "inbound",
-						},
-						...(data?.attachments || [])?.map(({ pathname: tagValue }) => ({
-							tagValue,
-							tagName: "attachment" as NoteTagNames,
-						})),
-					],
-				},
-			},
+	const order = await ctx.db.salesOrders.findFirstOrThrow({
+		where: {
+			id: data.salesId,
+			type: "order",
+			deletedAt: null,
+		},
+		select: {
+			id: true,
+			orderId: true,
+			inventoryStatus: true,
 		},
 	});
+	const previousStatus = order.inventoryStatus || null;
+	const nextStatus = data.status;
+	const changed = previousStatus !== nextStatus;
+	const subscribers =
+		nextStatus === "PENDING ORDER"
+			? await getSubscribersForNotificationType(ctx.db, "inventory_inbound")
+			: [];
+	const recipientIds = subscribers
+		.filter((subscriber) => subscriber.inAppNotification)
+		.map((subscriber) => subscriber.id)
+		.filter((id, index, ids) => ids.indexOf(id) === index);
+	const statusNote = changed
+		? `Inbound status changed from ${previousStatus || "Not set"} to ${nextStatus}.`
+		: `Inbound status confirmed as ${nextStatus}.`;
+	const userNote = data.note?.trim();
+
+	const [updatedOrder, note] = await ctx.db.$transaction([
+		ctx.db.salesOrders.update({
+			where: {
+				id: order.id,
+			},
+			data: {
+				inventoryStatus: nextStatus,
+			},
+			select: {
+				id: true,
+				orderId: true,
+				inventoryStatus: true,
+			},
+		}),
+		ctx.db.notePad.create({
+			data: {
+				headline: `Sales Inbound`,
+				subject: `${nextStatus}`,
+				note: [statusNote, userNote].filter(Boolean).join("\n\n"),
+				color: data.noteColor,
+				senderContact: {
+					connect: {
+						id: senderId,
+					},
+				},
+				recipients: recipientIds.length
+					? {
+							createMany: {
+								data: recipientIds.map((notePadContactId) => ({
+									notePadContactId,
+									status: "unread",
+								})),
+							},
+						}
+					: undefined,
+				tags: {
+					createMany: {
+						data: [
+							{
+								tagName: "channel" as NoteTagNames,
+								tagValue: "inventory_inbound",
+							},
+							{
+								tagName: "salesId" as NoteTagNames,
+								tagValue: `${data.salesId}`,
+							},
+								{
+									tagName: "salesNo" as NoteTagNames,
+									tagValue: `${data.orderNo || order.orderId}`,
+								},
+								...(previousStatus
+									? [
+											{
+												tagName: "previousInboundStatus" as NoteTagNames,
+												tagValue: previousStatus,
+											},
+										]
+									: []),
+								{
+									tagName: "inboundStatus" as NoteTagNames,
+									tagValue: nextStatus,
+								},
+								...(ctx.userId
+									? [
+											{
+												tagName: "userId" as NoteTagNames,
+												tagValue: `${ctx.userId}`,
+											},
+										]
+									: []),
+							{
+								tagName: "type" as NoteTagNames,
+								tagValue: "inbound",
+							},
+							{
+								tagName: "status" as NoteTagNames,
+								tagValue: "public",
+							},
+							...(data?.attachments || [])?.map(({ pathname: tagValue }) => ({
+								tagValue,
+								tagName: "attachment" as NoteTagNames,
+							})),
+						],
+					},
+				},
+			},
+		}),
+	]);
+
+	return {
+		order: updatedOrder,
+		note,
+		notificationCount: recipientIds.length,
+		previousStatus,
+		status: nextStatus,
+	};
 }
 
 export async function getSenderId(ctx: TRPCContext) {

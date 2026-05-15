@@ -201,7 +201,7 @@ export function parseSearchparams(_params) {
 	};
 }
 export function whereEmployees(params: EmployeesQueryParams) {
-	const wheres: Prisma.UsersWhereInput[] = [];
+	const wheres: Prisma.UsersWhereInput[] = [{ accessRevokedAt: null }];
 	const { can, cannot, roles } = params;
 	if (params.q) {
 		const contains = { contains: params.q };

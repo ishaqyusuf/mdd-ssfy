@@ -80,6 +80,7 @@ export function DealersAdminPage() {
 		useState<CustomerCandidate | null>(null);
 	const [dealerName, setDealerName] = useState("");
 	const [dealerEmail, setDealerEmail] = useState("");
+	const [resendingDealerId, setResendingDealerId] = useState<number | null>(null);
 	const debouncedSearch = useDebounce(search, 300);
 	const debouncedCustomerSearch = useDebounce(customerSearch, 300);
 
@@ -121,6 +122,36 @@ export function DealersAdminPage() {
 					description: error.message,
 					variant: "destructive",
 				});
+			},
+		}),
+	);
+
+	const resendOnboarding = useMutation(
+		trpc.dealer.resendOnboarding.mutationOptions({
+			onMutate: (variables) => {
+				setResendingDealerId(
+					variables && "dealerId" in variables ? variables.dealerId : null,
+				);
+			},
+			onSuccess: async () => {
+				await queryClient.invalidateQueries({
+					queryKey: trpc.dealer.list.pathKey(),
+				});
+				toast({
+					title: "Onboarding resent.",
+					description: "A new dealer setup link was queued for delivery.",
+					variant: "success",
+				});
+			},
+			onError: (error) => {
+				toast({
+					title: "Could not resend onboarding.",
+					description: error.message,
+					variant: "destructive",
+				});
+			},
+			onSettled: () => {
+				setResendingDealerId(null);
 			},
 		}),
 	);
@@ -321,12 +352,13 @@ export function DealersAdminPage() {
 							<TableHead>Status</TableHead>
 							<TableHead>Customer link</TableHead>
 							<TableHead>Created</TableHead>
+							<TableHead className="text-right">Actions</TableHead>
 						</TableRow>
 					</TableHeader>
 					<TableBody>
 						{dealersQuery.isPending ? (
 							<TableRow>
-								<TableCell colSpan={5} className="h-24 text-center">
+								<TableCell colSpan={6} className="h-24 text-center">
 									Loading dealers...
 								</TableCell>
 							</TableRow>
@@ -338,6 +370,9 @@ export function DealersAdminPage() {
 									dealer.dealer?.businessName ||
 									dealer.dealer?.name ||
 									"Unnamed dealer";
+								const isResending =
+									resendOnboarding.isPending && resendingDealerId === dealer.id;
+								const canResendOnboarding = !dealer.authUserId;
 
 								return (
 									<TableRow key={dealer.id}>
@@ -365,12 +400,33 @@ export function DealersAdminPage() {
 											)}
 										</TableCell>
 										<TableCell>{formatDate(dealer.createdAt)}</TableCell>
+										<TableCell className="text-right">
+											<Button
+												className="h-8 gap-2"
+												disabled={!canResendOnboarding || resendOnboarding.isPending}
+												onClick={() =>
+													resendOnboarding.mutate({
+														dealerId: dealer.id,
+													})
+												}
+												size="sm"
+												type="button"
+												variant="outline"
+											>
+												{isResending ? (
+													<Icons.Loader2 className="size-3.5 animate-spin" />
+												) : (
+													<Icons.Mail className="size-3.5" />
+												)}
+												Resend onboarding
+											</Button>
+										</TableCell>
 									</TableRow>
 								);
 							})
 						) : (
 							<TableRow>
-								<TableCell colSpan={5} className="h-24 text-center">
+								<TableCell colSpan={6} className="h-24 text-center">
 									No dealers found.
 								</TableCell>
 							</TableRow>
