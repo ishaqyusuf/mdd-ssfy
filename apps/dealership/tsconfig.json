@@ -1,27 +1,34 @@
 {
-  "extends": "@gnd/tsconfig/nextjs.json",
-  "compilerOptions": {
-    "target": "es2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"],
-      "@api/*": ["../api/src/*"],
-      "@auth/*": ["../../packages/auth/src/*"],
-      "@community/*": ["../../packages/community/src/*"],
-      "@notifications/*": ["../../packages/notifications/src/*"],
-      "@sales/*": ["../../packages/sales/src/*"]
+    "extends": "@gnd/tsconfig/nextjs.json",
+    "compilerOptions": {
+        "target": "es2017",
+        "lib": ["dom", "dom.iterable", "esnext"],
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["./src/*"],
+            "@api/*": ["../api/src/*"],
+            "@auth/*": ["../auth/src/*"],
+            "@community/*": ["../../packages/community/src/*"],
+            "@emails/*": ["../../packages/email/emails/*"],
+            "@notifications/*": ["../../packages/notifications/src/*"],
+            "@engine/*": ["../engine/src/*"],
+            "@gnd/inventory": ["../../packages/inventory/src/index.ts"],
+            "@gnd/inventory/*": ["../../packages/inventory/src/*"],
+            "@jobs/*": ["../../packages/jobs/src/*"],
+            "@sales/*": ["../../packages/sales/src/*"],
+            "@square/*": ["../../packages/jobs/src/*"]
+        },
+        "strict": false,
+        "noImplicitAny": false
     },
-    "strict": false,
-    "noImplicitAny": false
-  },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "../../types",
-    "next-env.d.ts",
-    "next.config.mjs",
-    ".next/types/**/*.ts"
-  ],
-  "exclude": ["node_modules", ".next"]
+    "include": [
+        "**/*.ts",
+        "**/*.tsx",
+        "../../types",
+        "next-env.d.ts",
+        "next.config.mjs",
+        "tailwind.config.ts",
+        ".next/types/**/*.ts"
+    ],
+    "exclude": ["node_modules", ".next"]
 }
