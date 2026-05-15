@@ -1,8 +1,11 @@
 "use server";
 
+import { dealerAuth } from "@gnd/auth/better-auth/dealership";
 import { db } from "@gnd/db";
-import { completeDealerOnboarding } from "@gnd/db/queries";
-import { hashPassword } from "@gnd/utils/crypto";
+import {
+  completeDealerOnboarding,
+  getDealerOnboardingInvite,
+} from "@gnd/db/queries";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
@@ -38,9 +41,34 @@ export async function createDealerPassword(
   }
 
   try {
+    const invite = await getDealerOnboardingInvite(db, parsed.data.token);
+
+    if (!invite) {
+      return {
+        error: "Dealer onboarding link is invalid or expired.",
+      };
+    }
+
+    if (invite.auth.authUserId) {
+      return {
+        error: "Dealer account is already set up. Sign in to continue.",
+      };
+    }
+
+    const signup = await dealerAuth.api.signUpEmail({
+      body: {
+        email: invite.auth.email,
+        password: parsed.data.password,
+        name:
+          invite.auth.companyName ||
+          invite.auth.name ||
+          invite.auth.email.split("@")[0],
+      },
+    });
+
     await completeDealerOnboarding(db, {
       token: parsed.data.token,
-      passwordHash: await hashPassword(parsed.data.password),
+      authUserId: signup.user.id,
     });
   } catch (error) {
     return {

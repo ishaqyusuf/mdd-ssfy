@@ -23,7 +23,11 @@ const metrics = [
   },
 ];
 
-export function DealershipDashboard() {
+export function DealershipDashboard({
+  dealerName,
+}: {
+  dealerName: string;
+}) {
   return (
     <div className="space-y-8">
       <header className="flex flex-col gap-3 border-b pb-6 md:flex-row md:items-center md:justify-between">
@@ -32,7 +36,7 @@ export function DealershipDashboard() {
             Dealer workspace
           </p>
           <h2 className="text-2xl font-semibold tracking-normal">
-            Business Dashboard
+            {dealerName}
           </h2>
         </div>
       </header>

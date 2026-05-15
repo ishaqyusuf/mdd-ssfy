@@ -20,7 +20,7 @@ export type CreateDealerAccountInput = {
 
 export type CompleteDealerOnboardingInput = {
   token: string;
-  passwordHash: string;
+  authUserId: string;
 };
 
 function dealerSearchWhere(search?: string | null): Prisma.DealerAuthWhereInput {
@@ -240,10 +240,95 @@ export async function getDealerOnboardingInvite(db: Database, token: string) {
           name: true,
           companyName: true,
           status: true,
+          authUserId: true,
         },
       },
     },
   });
+}
+
+export async function getDealerByAuthUserId(db: Database, authUserId: string) {
+  return db.dealerAuth.findUnique({
+    where: {
+      authUserId,
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      companyName: true,
+      phoneNo: true,
+      status: true,
+      restricted: true,
+      deletedAt: true,
+      authUserId: true,
+      dealer: {
+        select: {
+          id: true,
+          name: true,
+          businessName: true,
+          email: true,
+          phoneNo: true,
+        },
+      },
+    },
+  });
+}
+
+export async function getActiveDealerByAuthUserId(
+  db: Database,
+  authUserId: string,
+) {
+  const dealer = await getDealerByAuthUserId(db, authUserId);
+
+  if (!dealer || dealer.deletedAt || dealer.restricted) {
+    return null;
+  }
+
+  return dealer.status === "active" || dealer.status === "approved"
+    ? dealer
+    : null;
+}
+
+export async function getDealerPortalDashboard(db: Database, dealerId: number) {
+  const [openQuotes, activeOrders, customers, salesProfiles] =
+    await Promise.all([
+      db.salesOrders.count({
+        where: {
+          dealerAuthId: dealerId,
+          deletedAt: null,
+          type: "quote",
+        },
+      }),
+      db.salesOrders.count({
+        where: {
+          dealerAuthId: dealerId,
+          deletedAt: null,
+          type: {
+            not: "quote",
+          },
+        },
+      }),
+      db.customers.count({
+        where: {
+          dealerOwnerId: dealerId,
+          deletedAt: null,
+        },
+      }),
+      db.customerTypes.count({
+        where: {
+          dealerOwnerId: dealerId,
+          deletedAt: null,
+        },
+      }),
+    ]);
+
+  return {
+    openQuotes,
+    activeOrders,
+    customers,
+    salesProfiles,
+  };
 }
 
 export async function completeDealerOnboarding(
@@ -273,7 +358,7 @@ export async function completeDealerOnboarding(
         id: invite.dealerId,
       },
       data: {
-        password: input.passwordHash,
+        authUserId: input.authUserId,
         emailVerifiedAt: new Date(),
         status: "active",
       },

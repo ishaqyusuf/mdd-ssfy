@@ -194,7 +194,7 @@ type TableProps = WithTable & {
 		rowClick?: (id: string, rowData?) => any;
 		loadMore?;
 		filterData?: PageFilterData[];
-		rowClassName?: string;
+		rowClassName?: string | ((row: any) => string);
 		mobileMode?: {
 			hideHeader?: boolean;
 			borderless?: boolean;

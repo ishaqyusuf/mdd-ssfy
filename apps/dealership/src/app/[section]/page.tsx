@@ -1,4 +1,5 @@
 import { DealershipShell } from "@/components/dealership-shell";
+import { requireDealer } from "@/lib/dealer-session";
 
 const titles: Record<string, string> = {
   orders: "Orders",
@@ -14,10 +15,11 @@ export default async function DealershipSectionPage({
   params: Promise<{ section: string }>;
 }) {
   const { section } = await params;
+  const { dealer } = await requireDealer();
   const title = titles[section] || "Dealership";
 
   return (
-    <DealershipShell>
+    <DealershipShell dealer={dealer}>
       <div className="space-y-6">
         <header className="border-b pb-6">
           <p className="text-sm font-medium text-muted-foreground">

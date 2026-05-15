@@ -10,6 +10,7 @@ import { Table, useTableData } from "@gnd/ui/data-table";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
+import { salesPriorityRowClassName } from "@/components/sales-priority-control";
 import { columns, mobileColumn } from "./columns";
 
 export function DataTable() {
@@ -61,6 +62,9 @@ export function DataTable() {
             mobileMode: {
               hideHeader: true,
               borderless: true,
+            },
+            rowClassName(row) {
+              return salesPriorityRowClassName(row.original?.priority);
             },
             rowClick(_, rowData) {
               overviewQuery.open2(rowData.uuid, "sales");

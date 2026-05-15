@@ -245,28 +245,17 @@ export function HeaderActions(props: Props) {
 				</div>
 				<Menu
 					Icon={Icons.MoreHorizontal}
-					iconClassName="size-4"
 					Trigger={
-						<>
-							<Button
-								size="icon"
-								variant="outline"
-								className="lg:hidden"
-								disabled={props.isSaving}
-								aria-label="Open actions menu"
-							>
-								<Icons.MoreHorizontal className="size-4" />
-							</Button>
-							<Button
-								size="sm"
-								variant="outline"
-								className="hidden px-3 lg:inline-flex"
-								disabled={props.isSaving}
-							>
-								<Icons.MoreHorizontal className="size-4" />
-								Actions
-							</Button>
-						</>
+						<Button
+							size="sm"
+							variant="outline"
+							className="size-9 px-0 lg:w-auto lg:px-3"
+							disabled={props.isSaving}
+							aria-label="Open actions menu"
+						>
+							<Icons.MoreHorizontal className="size-4" />
+							<span className="hidden lg:inline">Actions</span>
+						</Button>
 					}
 				>
 					<Menu.Item disabled={props.isSaving} onClick={props.onAddItem}>

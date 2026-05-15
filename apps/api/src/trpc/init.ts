@@ -1,5 +1,6 @@
 import type { Context } from "hono";
 import { db, type Database } from "@gnd/db";
+import type { getActiveDealerByAuthUserId } from "@gnd/db/queries";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { withAuthPermission } from "./middleware/auth-permission";
@@ -10,6 +11,8 @@ export type TRPCContext = {
   //   supabase: SupabaseClient;
   db: Database;
   userId?: number;
+  dealerAuthUserId?: string;
+  dealer?: Awaited<ReturnType<typeof getActiveDealerByAuthUserId>>;
   // guestId?: string;
   //   geo: ReturnType<typeof getGeoContext>;
   //   teamId?: string;
@@ -79,3 +82,22 @@ export const protectedProcedure = t.procedure
     });
   });
 // export const protectedProcedure = t.procedure.use();
+
+export const dealerProtectedProcedure = t.procedure
+  .use(withPrimaryDbMiddleware)
+  .use(async (opts) => {
+    if (!opts.ctx.dealerAuthUserId || !opts.ctx.dealer) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+      });
+    }
+
+    return opts.next({
+      ctx: {
+        ...opts.ctx,
+        db: opts.ctx.db,
+        dealerAuthUserId: opts.ctx.dealerAuthUserId,
+        dealer: opts.ctx.dealer,
+      },
+    });
+  });

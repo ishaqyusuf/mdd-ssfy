@@ -2372,9 +2372,9 @@ export function ItemWorkflowPanel() {
 												</tr>
 											</thead>
 											<tbody>
-												{rowsForComponent.map((row) => (
+												{rowsForComponent.map((row, rowIndex) => (
 													<tr
-														key={`hpt-row-${componentId}-${row.stepProductId || row.dimension || "row"}-${row.swing || "noswing"}-${row.totalQty || 0}`}
+														key={`hpt-row-${componentId}-${row.id ?? "new"}-${row.stepProductId || row.dimension || "row"}-${row.swing || "noswing"}-${row.totalQty || 0}-${rowIndex}`}
 														className="border-b border-slate-100 last:border-0"
 													>
 														<td className="whitespace-nowrap px-3 py-2 font-medium text-slate-800">

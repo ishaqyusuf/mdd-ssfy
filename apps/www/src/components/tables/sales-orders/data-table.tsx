@@ -13,6 +13,7 @@ import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { Icons } from "@gnd/ui/icons";
 import Link from "next/link";
 
+import { salesPriorityRowClassName } from "@/components/sales-priority-control";
 import { TableSkeleton } from "../skeleton";
 import { BatchActions } from "./batch-actions";
 import { columns, mobileColumn } from "./columns";
@@ -103,6 +104,9 @@ export function DataTable(props: Props) {
                         mobileMode: {
                             hideHeader: true,
                             borderless: true,
+                        },
+                        rowClassName(row) {
+                            return salesPriorityRowClassName(row.original?.priority);
                         },
                         rowClick(id, rowData) {
                             overviewQuery.open2(rowData.uuid, "sales");

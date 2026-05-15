@@ -17,13 +17,36 @@ const navItems = [
   { href: "/settings", label: "Company Settings", icon: Settings },
 ];
 
-export function DealershipShell({ children }: { children: React.ReactNode }) {
+type DealerShellDealer = {
+  name: string | null;
+  companyName: string | null;
+  email: string;
+  dealer: {
+    name: string | null;
+    businessName: string | null;
+  } | null;
+};
+
+export function DealershipShell({
+  children,
+  dealer,
+}: {
+  children: React.ReactNode;
+  dealer: DealerShellDealer;
+}) {
+  const displayName =
+    dealer.companyName ||
+    dealer.dealer?.businessName ||
+    dealer.name ||
+    dealer.dealer?.name ||
+    dealer.email;
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r bg-card px-4 py-5 md:block">
         <div className="mb-8 px-2">
           <p className="text-sm font-medium text-muted-foreground">GND</p>
-          <h1 className="text-xl font-semibold">Dealership</h1>
+          <h1 className="text-xl font-semibold leading-tight">{displayName}</h1>
         </div>
 
         <nav className="space-y-1">

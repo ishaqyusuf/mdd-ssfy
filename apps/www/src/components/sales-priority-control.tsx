@@ -1,6 +1,7 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
+import { cva } from "class-variance-authority";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
@@ -34,6 +35,26 @@ export function salesPriorityTone(priority?: string | null) {
 	}
 }
 
+const salesPriorityRowVariants = cva("", {
+	variants: {
+		priority: {
+			CRITICAL: "bg-red-50/60 hover:bg-red-100/70",
+			HIGH: "bg-amber-50/60 hover:bg-amber-100/70",
+			LOW: "bg-slate-50/80 hover:bg-slate-100/90",
+			NORMAL: "",
+		},
+	},
+	defaultVariants: {
+		priority: "NORMAL",
+	},
+});
+
+export function salesPriorityRowClassName(priority?: string | null) {
+	return salesPriorityRowVariants({
+		priority: normalizeSalesPriority(priority),
+	});
+}
+
 export function SalesPriorityBadge({
 	priority,
 	className,
@@ -41,6 +62,8 @@ export function SalesPriorityBadge({
 	priority?: string | null;
 	className?: string;
 }) {
+	if (normalizeSalesPriority(priority) === "NORMAL") return null;
+
 	return (
 		<Badge
 			variant="outline"

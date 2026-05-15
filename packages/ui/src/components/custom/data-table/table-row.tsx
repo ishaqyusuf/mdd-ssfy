@@ -24,52 +24,59 @@ export function TableRow() {
   return (
     <>
       <PaginationOverlay />
-      {table.getRowModel().rows.map((row, rowIndex) => (
-        <BaseTableRow
-          data-page-index={
-            Math.floor(rowIndex / (pagination?.pageSize || 1)) + 1
-          }
-          data-row-id={row.id}
-          data-row-index={rowIndex}
-          className={cn(
-            "group h-10 md:h-11.25 cursor-pointer select-text hover:bg-[#F2F1EF] hover:dark:bg-secondary",
-            // mobileMode?.borderless &&
-            "max-md:border-y-0 max-md:hover:bg-transparent",
-            tableMeta?.rowClassName,
-          )}
-          key={row.id}
-          ref={pagination?.registerRow?.(rowIndex)}
-        >
-          {/* <CheckboxRow style={getStickyStyle('checkbox')} row={row} /> */}
-          {row.getVisibleCells().map((cell) => (
-            <TableCell
-              key={cell.id}
-              style={getStickyStyle(cell.column.id)}
-              onClick={() => {
-                const meta = cell.column.columnDef.meta as CellMeta | undefined;
-                if (
-                  // usingMobileColumn ||
-                  cell.column.id === "actions" ||
-                  cell.column.id === "select" ||
-                  meta?.preventDefault
-                )
-                  return;
-                tableMeta?.rowClick?.(row.original?.id, row.original);
-              }}
-              className={cn(
-                (cell.column.columnDef.meta as CellMeta | undefined)?.className,
-                tableMeta?.rowClick &&
-                  !usingMobileColumn &&
-                  "cursor-pointer hover:bg-transparent",
-                mobileMode?.borderless && "border-0",
-                "",
-              )}
-            >
-              {flexRender(cell.column.columnDef.cell, cell.getContext())}
-            </TableCell>
-          ))}
-        </BaseTableRow>
-      ))}
+      {table.getRowModel().rows.map((row, rowIndex) => {
+        const rowClassName =
+          typeof tableMeta?.rowClassName === "function"
+            ? tableMeta.rowClassName(row)
+            : tableMeta?.rowClassName;
+
+        return (
+          <BaseTableRow
+            data-page-index={
+              Math.floor(rowIndex / (pagination?.pageSize || 1)) + 1
+            }
+            data-row-id={row.id}
+            data-row-index={rowIndex}
+            className={cn(
+              "group h-10 md:h-11.25 cursor-pointer select-text hover:bg-[#F2F1EF] hover:dark:bg-secondary",
+              // mobileMode?.borderless &&
+              "max-md:border-y-0 max-md:hover:bg-transparent",
+              rowClassName,
+            )}
+            key={row.id}
+            ref={pagination?.registerRow?.(rowIndex)}
+          >
+            {/* <CheckboxRow style={getStickyStyle('checkbox')} row={row} /> */}
+            {row.getVisibleCells().map((cell) => (
+              <TableCell
+                key={cell.id}
+                style={getStickyStyle(cell.column.id)}
+                onClick={() => {
+                  const meta = cell.column.columnDef.meta as CellMeta | undefined;
+                  if (
+                    // usingMobileColumn ||
+                    cell.column.id === "actions" ||
+                    cell.column.id === "select" ||
+                    meta?.preventDefault
+                  )
+                    return;
+                  tableMeta?.rowClick?.(row.original?.id, row.original);
+                }}
+                className={cn(
+                  (cell.column.columnDef.meta as CellMeta | undefined)?.className,
+                  tableMeta?.rowClick &&
+                    !usingMobileColumn &&
+                    "cursor-pointer hover:bg-transparent",
+                  mobileMode?.borderless && "border-0",
+                  "",
+                )}
+              >
+                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+              </TableCell>
+            ))}
+          </BaseTableRow>
+        );
+      })}
     </>
   );
 }

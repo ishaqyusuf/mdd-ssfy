@@ -6,6 +6,7 @@ import { checkoutRouter } from "./checkout.route";
 import { communityRouters } from "./community.route";
 import { customerServiceRouter } from "./customer-service.route";
 import { customerRouter } from "./customer.route";
+import { dealerPortalRouter } from "./dealer-portal.route";
 import { dealerRouter } from "./dealer.route";
 import { dispatchRouters } from "./dispatch.route";
 import { emailsRoute } from "./emails.route";
@@ -42,6 +43,7 @@ export const appRouter = createTRPCRouter({
 	customerService: customerServiceRouter,
 	customers: customerRouter,
 	dealer: dealerRouter,
+	dealerPortal: dealerPortalRouter,
 	dispatch: dispatchRouters,
 	emails: emailsRoute,
 	filters: filterRouters,

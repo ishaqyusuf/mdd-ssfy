@@ -8,6 +8,7 @@ import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesOrdersStore } from "@/store/sales-orders";
 import { useSalesProductionFilterParams } from "@/hooks/use-sales-production-filter-params";
+import { salesPriorityRowClassName } from "@/components/sales-priority-control";
 
 interface Props {
 	workerMode?: boolean;
@@ -62,6 +63,9 @@ export function DataTable(props: Props) {
 						hasNextPage,
 					},
 					tableMeta: {
+						rowClassName(row) {
+							return salesPriorityRowClassName(row.original?.priority);
+						},
 						rowClick(id, rowData) {
 							overviewQuery.open2(
 								rowData.uuid,
