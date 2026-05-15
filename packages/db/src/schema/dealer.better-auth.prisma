@@ -1,0 +1,57 @@
+model DealerAuthUser {
+    id            String              @id
+    name          String
+    email         String
+    emailVerified Boolean
+    image         String?
+    createdAt     DateTime
+    updatedAt     DateTime
+    sessions      DealerAuthSession[]
+    accounts      DealerAuthAccount[]
+    dealerAuth    DealerAuth?
+
+    @@unique([email])
+}
+
+model DealerAuthSession {
+    id        String         @id
+    expiresAt DateTime
+    token     String
+    createdAt DateTime
+    updatedAt DateTime
+    ipAddress String?
+    userAgent String?
+    userId    String
+    user      DealerAuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([token])
+    @@index([userId])
+}
+
+model DealerAuthAccount {
+    id                    String         @id
+    accountId             String
+    providerId            String
+    userId                String
+    user                  DealerAuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+    accessToken           String?
+    refreshToken          String?
+    idToken               String?        @db.Text
+    accessTokenExpiresAt  DateTime?
+    refreshTokenExpiresAt DateTime?
+    scope                 String?
+    password              String?
+    createdAt             DateTime
+    updatedAt             DateTime
+
+    @@index([userId])
+}
+
+model DealerAuthVerification {
+    id         String    @id
+    identifier String
+    value      String
+    expiresAt  DateTime
+    createdAt  DateTime?
+    updatedAt  DateTime?
+}

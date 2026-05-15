@@ -23,6 +23,7 @@
     "@trpc/client": "^11.6.0",
     "@trpc/server": "^11.6.0",
     "@trpc/tanstack-react-query": "^11.6.0",
+    "better-auth": "^1.4.0",
     "lucide-react": "^0.546.0",
     "next": "catalog:",
     "next-themes": "^0.4.6",

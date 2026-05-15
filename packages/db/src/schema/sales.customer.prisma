@@ -51,6 +51,7 @@ model DealerAuth {
     dealerId                 Int?                  @unique
     createdAt                DateTime?             @default(now()) @db.Timestamp(0)
     email                    String                @unique
+    authUserId               String?               @unique
     name                     String?               @db.VarChar(255)
     companyName              String?               @db.VarChar(255)
     phoneNo                  String?               @db.VarChar(255)
@@ -73,7 +74,9 @@ model DealerAuth {
     token                    DealerToken[]
     primaryBillingAddress    AddressBooks?         @relation(name: "primaryBillingAddress", fields: [primaryBillingAddressId], references: [id])
     primaryShippingAddress   AddressBooks?         @relation(name: "primaryShippingAddress", fields: [primaryShippingAddressId], references: [id])
+    authUser                 DealerAuthUser?       @relation(fields: [authUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+    @@index([authUserId])
     @@index([primaryBillingAddressId])
     @@index([primaryShippingAddressId])
 }
