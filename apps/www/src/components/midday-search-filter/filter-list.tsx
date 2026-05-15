@@ -7,10 +7,12 @@ import { Icons } from "@gnd/ui/icons";
 import { Skeleton } from "@gnd/ui/skeleton";
 import {
 	type FilterDefinition,
+	type FilterOption,
 	buildOptionLabelLookup,
 	getFilterValueLabel,
 	normalizeFilterDefinitions,
 } from "./filter-definitions";
+import { FilterOptionColor } from "./filter-option-color";
 import { isSearchKey } from "./search-utils";
 
 interface Props {
@@ -54,6 +56,7 @@ export function FilterList({
 
 	const renderFilter = ({ key, value }) => {
 		const definition = definitions.find((item) => item.key === key);
+		const colorLabel = renderColoredFilterValue({ definition, value });
 		const fallbackLabel = getFilterValueLabel({
 			key,
 			value,
@@ -74,6 +77,8 @@ export function FilterList({
 		if (definition?.type === "date-range" || key === "start") {
 			return formatDateValue({ key, value, filters });
 		}
+
+		if (colorLabel) return colorLabel;
 
 		return getFilterValueLabel({
 			key,
@@ -161,6 +166,44 @@ function formatDateValue({
 	}
 
 	return String(value);
+}
+
+function renderColoredFilterValue({
+	definition,
+	value,
+}: {
+	definition?: FilterDefinition;
+	value: unknown;
+}) {
+	if (!definition?.options?.some((option) => option.color)) return null;
+
+	const values = Array.isArray(value) ? value : [value];
+	const options = values.map((item) => findOption(definition, item));
+
+	const hasColor = options.some((option) => option?.color);
+	if (!hasColor) return null;
+
+	return (
+		<span className="inline-flex items-center gap-1.5">
+			{options.map((option, index) => (
+				<span
+					key={`${option?.value || String(index)}-${index}`}
+					className="inline-flex min-w-0 items-center gap-1.5"
+				>
+					<FilterOptionColor color={option?.color} />
+					<span>{option?.label || String(values[index])}</span>
+					{index < options.length - 1 ? <span>,</span> : null}
+				</span>
+			))}
+		</span>
+	);
+}
+
+function findOption(
+	definition: FilterDefinition,
+	value: unknown,
+): FilterOption | undefined {
+	return definition.options?.find((option) => option.value === String(value));
 }
 
 function toDate(value: unknown) {

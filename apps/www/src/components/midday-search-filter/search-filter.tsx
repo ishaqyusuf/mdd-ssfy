@@ -22,6 +22,7 @@ import { Input } from "@gnd/ui/input";
 import { Icon, Icons } from "@gnd/ui/icons";
 import { searchParamsParser } from "../(clean-code)/data-table/search-params";
 import { SelectTag } from "../select-tag";
+import { FilterOptionColor } from "./filter-option-color";
 import { FilterList } from "./filter-list";
 import { isSearchKey, searchIcons } from "./search-utils";
 import { Calendar } from "@gnd/ui/calendar";
@@ -233,9 +234,26 @@ export function MiddaySearchFilter({
                                                             headless
                                                             data={f.options?.map(
                                                                 (opt) => ({
+                                                                    ...opt,
                                                                     label: opt.label,
                                                                     id: opt.value,
                                                                 }),
+                                                            )}
+                                                            renderListItem={({
+                                                                item,
+                                                            }) => (
+                                                                <div className="flex items-center gap-2">
+                                                                    <FilterOptionColor
+                                                                        color={
+                                                                            item.color
+                                                                        }
+                                                                    />
+                                                                    <span className="line-clamp-1">
+                                                                        {
+                                                                            item.label
+                                                                        }
+                                                                    </span>
+                                                                </div>
                                                             )}
                                                             onChange={(
                                                                 selected,
@@ -253,7 +271,11 @@ export function MiddaySearchFilter({
                                                 ) : (
                                                     f.options?.map(
                                                         (
-                                                            { label, value },
+                                                            {
+                                                                label,
+                                                                value,
+                                                                color,
+                                                            },
                                                             _i,
                                                         ) => (
                                                             <DropdownMenuCheckboxItem
@@ -268,7 +290,16 @@ export function MiddaySearchFilter({
                                                                 }}
                                                                 key={_i}
                                                             >
-                                                                {label}
+                                                                <span className="flex items-center gap-2">
+                                                                    <FilterOptionColor
+                                                                        color={
+                                                                            color
+                                                                        }
+                                                                    />
+                                                                    <span>
+                                                                        {label}
+                                                                    </span>
+                                                                </span>
                                                             </DropdownMenuCheckboxItem>
                                                         ),
                                                     )

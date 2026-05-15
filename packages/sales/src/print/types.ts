@@ -162,6 +162,7 @@ export interface LineItemSection {
 export interface LineItemRow {
 	cells: RowCell[];
 	isGroupHeader?: boolean;
+	componentDetails?: SectionDetail[];
 }
 
 // ─── Footer ──────────────────────────────────────────────────

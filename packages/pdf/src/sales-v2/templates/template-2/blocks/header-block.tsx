@@ -4,6 +4,7 @@ import type {
 	PageMeta,
 } from "@gnd/sales/print/types";
 import { Image, Text, View } from "@react-pdf/renderer";
+import { resolveLogoSrc } from "../../../shared/utils";
 
 // ─── Design tokens ─────────────────────────────────────────
 const NAVY = "#1a2e4a";
@@ -31,7 +32,7 @@ export function HeaderBlock({
 	logoUrl,
 	qrCodeDataUrl,
 }: HeaderBlockProps) {
-	const logoSrc = logoUrl || `${baseUrl}/logo.png`;
+	const logoSrc = resolveLogoSrc(baseUrl, logoUrl);
 	const isQuote = meta.title === "Quote";
 
 	return (

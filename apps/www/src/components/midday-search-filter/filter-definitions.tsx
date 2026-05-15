@@ -11,6 +11,7 @@ export type FilterOption = {
 	label: string;
 	subLabel?: string;
 	value: string;
+	color?: string;
 };
 
 export type FilterControlProps = {
@@ -92,6 +93,7 @@ export function normalizeFilterDefinitions(
 					label: option.label,
 					subLabel: option.subLabel,
 					value: String(option.value),
+					color: option.color,
 				})),
 				optionSource: "server-prefetched",
 			} satisfies FilterDefinition;

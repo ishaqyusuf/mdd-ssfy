@@ -55,6 +55,10 @@ export function resolveDocumentImageSrc(
   return `${normalizedBase}/${normalizedValue}`;
 }
 
+export function resolveLogoSrc(baseUrl?: string, logoUrl?: string | null) {
+  return resolveDocumentImageSrc(logoUrl || "/logo.png", baseUrl) || "/logo.png";
+}
+
 export function colWidth(
   span: number | null | undefined,
   allSpans: number,

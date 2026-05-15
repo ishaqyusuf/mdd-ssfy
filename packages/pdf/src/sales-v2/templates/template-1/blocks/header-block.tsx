@@ -5,6 +5,7 @@ import type {
 	AddressBlock,
 	CompanyAddress,
 } from "@gnd/sales/print/types";
+import { resolveLogoSrc } from "../../../shared/utils";
 
 interface HeaderBlockProps {
 	meta: PageMeta;
@@ -25,7 +26,7 @@ export function HeaderBlock({
 	logoUrl,
 	qrCodeDataUrl,
 }: HeaderBlockProps) {
-	const logoSrc = logoUrl || `${baseUrl}/logo.png`;
+	const logoSrc = resolveLogoSrc(baseUrl, logoUrl);
 
 	return (
 		<View style={cn(`mb-2`)}>

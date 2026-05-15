@@ -34,7 +34,9 @@ export type PageFilterData = {
     label?: string;
     options?: {
         label: string;
+        subLabel?: string;
         value: string;
+        color?: string;
     }[];
 };
 export type ColumnMeta = {

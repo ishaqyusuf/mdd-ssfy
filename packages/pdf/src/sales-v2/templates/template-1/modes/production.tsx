@@ -91,7 +91,7 @@ export function ProductionMode({
 						case "line-item":
 							return (
 								<View key={`line-${section.index}`} style={wrapperStyle}>
-									<LineItemBlock section={section} />
+									<LineItemBlock section={section} baseUrl={baseUrl} showImages={config.showImages} />
 								</View>
 							);
 					}

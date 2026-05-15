@@ -6,6 +6,7 @@ import type {
 	LineItemSection,
 	PrintModeConfig,
 	RowCell,
+	SectionDetail,
 } from "../types";
 import { packingInfo } from "./packing";
 import {
@@ -29,6 +30,53 @@ function formatLineItemDescription(value: string | null | undefined) {
 
 function formatLineItemSwing(value: string | null | undefined) {
 	return String(value || "").toUpperCase();
+}
+
+function getLineItemComponentDetails(item: PrintSalesItem): SectionDetail[] {
+	return (item.formSteps || [])
+		.filter((formStep) => {
+			const title = String(formStep.step?.title || "").trim();
+			return title && !["Door", "Item Type", "Moulding"].includes(title);
+		})
+		.map((formStep) => {
+			const label = String(formStep.step?.title || "").trim();
+			const value = String(
+				formStep.component?.name || formStep.value || "",
+			).trim();
+
+			return value ? { label, value } : null;
+		})
+		.filter((detail): detail is SectionDetail => Boolean(detail));
+}
+
+function getLineItemImage(item: PrintSalesItem) {
+	const meta = item.meta && typeof item.meta === "object" ? item.meta : null;
+	const nestedMeta =
+		meta &&
+		"meta" in meta &&
+		meta.meta &&
+		typeof meta.meta === "object" &&
+		!Array.isArray(meta.meta)
+			? meta.meta
+			: null;
+	const metaImage =
+		(meta && "img" in meta ? meta.img : null) ||
+		(meta && "image" in meta ? meta.image : null) ||
+		(nestedMeta && "img" in nestedMeta ? nestedMeta.img : null) ||
+		(nestedMeta && "image" in nestedMeta ? nestedMeta.image : null);
+
+	if (typeof metaImage === "string" && metaImage.trim()) {
+		return metaImage;
+	}
+
+	for (const formStep of item.formSteps || []) {
+		const component = formStep.component;
+		const image =
+			component?.img || component?.door?.img || component?.product?.img || null;
+		if (image) return image;
+	}
+
+	return null;
 }
 
 export function composeLineItemSections(
@@ -93,6 +141,7 @@ export function composeLineItemSections(
 				colSpan: 5,
 				align: isGroupHeader ? "center" : "left",
 				bold: true,
+				image: getLineItemImage(item),
 			},
 			{
 				value: formatLineItemSwing(item.swing),
@@ -136,6 +185,7 @@ export function composeLineItemSections(
 		return {
 			cells,
 			isGroupHeader,
+			componentDetails: getLineItemComponentDetails(item),
 		};
 	});
 

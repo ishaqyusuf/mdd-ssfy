@@ -15,11 +15,12 @@ export const SALES_PRIORITY_OPTIONS: {
 	value: SalesPriorityValue;
 	label: string;
 	rank: number;
+	color: string;
 }[] = [
-	{ value: "CRITICAL", label: "Critical", rank: 0 },
-	{ value: "HIGH", label: "High", rank: 1 },
-	{ value: "NORMAL", label: "Normal", rank: 2 },
-	{ value: "LOW", label: "Low", rank: 3 },
+	{ value: "CRITICAL", label: "Critical", rank: 0, color: "#dc2626" },
+	{ value: "HIGH", label: "High", rank: 1, color: "#d97706" },
+	{ value: "NORMAL", label: "Normal", rank: 2, color: "#71717a" },
+	{ value: "LOW", label: "Low", rank: 3, color: "#64748b" },
 ];
 
 const priorityByValue = new Map(

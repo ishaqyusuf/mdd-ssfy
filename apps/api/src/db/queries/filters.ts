@@ -615,6 +615,7 @@ export async function getSalesOrderFilters(
       SALES_PRIORITY_OPTIONS.map((priority) => ({
         label: priority.label,
         value: priority.value,
+        color: priority.color,
       })),
     ),
   ].filter(Boolean);
@@ -720,6 +721,7 @@ export async function getSalesOrderFiltersV2(ctx: TRPCContext) {
       SALES_PRIORITY_OPTIONS.map((priority) => ({
         label: priority.label,
         value: priority.value,
+        color: priority.color,
       })),
     ),
   ] satisfies FilterData[];
@@ -784,6 +786,7 @@ export async function getSalesProductionFilters(ctx: TRPCContext) {
       options: SALES_PRIORITY_OPTIONS.map((priority) => ({
         label: priority.label,
         value: priority.value,
+        color: priority.color,
       })),
     },
     {

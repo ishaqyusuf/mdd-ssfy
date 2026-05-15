@@ -24,6 +24,7 @@ export type PageFilterData<TValue = string> = {
     label: string;
     subLabel?: string;
     value: string;
+    color?: string;
   }[];
 };
 export type StepMeta = {

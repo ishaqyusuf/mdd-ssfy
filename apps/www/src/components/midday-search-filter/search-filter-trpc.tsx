@@ -38,6 +38,7 @@ import {
 	buildOptionLabelLookup,
 	normalizeFilterDefinitions,
 } from "./filter-definitions";
+import { FilterOptionColor } from "./filter-option-color";
 import { FilterList } from "./filter-list";
 import { isSearchKey, searchIcons } from "./search-utils";
 
@@ -271,10 +272,17 @@ export function SearchFilterTRPC({
 												...option,
 												id: option.value,
 											}))}
+											renderListItem={({ item }) => (
+												<div className="flex items-center gap-2">
+													<FilterOptionColor color={(item as any).color} />
+													<span className="line-clamp-1">{item.label}</span>
+												</div>
+											)}
 											onChange={(selected) => {
 												optionSelected(definition.key, {
 													label: selected.label,
 													value: selected.id,
+													color: (selected as any).color,
 												});
 											}}
 										/>
@@ -288,7 +296,10 @@ export function SearchFilterTRPC({
 												}}
 												key={option.value}
 											>
-												{option.label}
+												<span className="flex items-center gap-2">
+													<FilterOptionColor color={option.color} />
+													<span>{option.label}</span>
+												</span>
 											</DropdownMenuCheckboxItem>
 										))
 									)}

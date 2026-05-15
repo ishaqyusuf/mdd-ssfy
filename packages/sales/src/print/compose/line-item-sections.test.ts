@@ -121,4 +121,78 @@ describe("composeLineItemSections", () => {
 		expect(sections[0]?.rows).toHaveLength(1);
 		expect(sections[0]?.rows[0]?.cells[1]?.value).toBe("GENERIC LINE ITEM");
 	});
+
+	it("keeps selected component details on generic line items", () => {
+		const sale = {
+			items: [
+				{
+					id: 301,
+					description: "Custom line item",
+					swing: "",
+					qty: 1,
+					rate: 10,
+					total: 10,
+					shelfItems: [],
+					housePackageTool: null,
+					formSteps: [
+						{
+							step: { title: "Item Type" },
+							value: "Custom",
+						},
+						{
+							step: { title: "Finish" },
+							value: "Paint Grade",
+							component: { name: "Primed White" },
+						},
+						{
+							step: { title: "Hardware" },
+							value: "Black Hinges",
+							component: null,
+						},
+					],
+					meta: { lineIndex: 1 },
+				},
+			],
+			deliveries: [],
+		} as unknown as PrintSalesData;
+
+		const sections = composeLineItemSections(
+			sale,
+			{ showPackingCol: false, showPrices: true } as PrintModeConfig,
+			null,
+		);
+
+		expect(sections[0]?.rows[0]?.componentDetails).toEqual([
+			{ label: "Finish", value: "Primed White" },
+			{ label: "Hardware", value: "Black Hinges" },
+		]);
+	});
+
+	it("keeps item image data on generic line items", () => {
+		const sale = {
+			items: [
+				{
+					id: 401,
+					description: "Picture item",
+					swing: "",
+					qty: 1,
+					rate: 10,
+					total: 10,
+					shelfItems: [],
+					housePackageTool: null,
+					formSteps: [],
+					meta: { lineIndex: 1, img: "line-item.png" },
+				},
+			],
+			deliveries: [],
+		} as unknown as PrintSalesData;
+
+		const sections = composeLineItemSections(
+			sale,
+			{ showPackingCol: false, showPrices: true } as PrintModeConfig,
+			null,
+		);
+
+		expect(sections[0]?.rows[0]?.cells[1]?.image).toBe("line-item.png");
+	});
 });

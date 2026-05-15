@@ -3,7 +3,7 @@ import type {
 	SalesPrintStageDetails,
 } from "./sales-print-service";
 
-const DEFAULT_PRINT_RENDER_SETTLE_MS = 750;
+const DEFAULT_PRINT_RENDER_SETTLE_MS = 2500;
 
 export function waitForNextPrintFrame() {
 	return new Promise<void>((resolve) => {

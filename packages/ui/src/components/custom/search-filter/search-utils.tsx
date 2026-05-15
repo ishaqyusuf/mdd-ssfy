@@ -19,6 +19,8 @@ export const searchIcons: Partial<{
 	scheduleDate: "calendar",
 	po: "inbound",
 	"sales.rep": "user",
+	"sales.priority": "flag",
+	priority: "flag",
 	salesRepId: "user",
 	invoice: "communityInvoice",
 	invoiceStatus: "communityInvoice",
