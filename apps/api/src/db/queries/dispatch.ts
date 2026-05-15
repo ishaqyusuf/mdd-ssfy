@@ -1001,13 +1001,12 @@ export async function getPackingQueue(ctx: TRPCContext) {
 			},
 		},
 		orderBy: {
-			...(input.tab === "completed"
-				? [{ deliveredAt: "desc" as const }, { createdAt: "desc" as const }]
-				: [{ createdAt: "desc" as const }]),
+			createdAt: "desc",
 		},
 		select: {
 			id: true,
 			salesOrderId: true,
+			status: true,
 			createdAt: true,
 			order: {
 				select: {
@@ -1065,7 +1064,7 @@ export async function getPackingList(
 		input.tab === "current" || input.tab === "completed"
 			? []
 			: await getPackingListDispatchIds(ctx.db, {
-					includeCompleted: input.tab === "completed",
+					includeCompleted: false,
 				});
 
 	if (input.tab === "cancelled" && !dispatchIds.length) return [];
@@ -1236,7 +1235,8 @@ export async function signPackingSlip(
 			salesId: dispatch.salesOrderId,
 			orderNo: dispatch.order?.orderId || undefined,
 			dispatchId: dispatch.id,
-			deliveryMode: dispatch.deliveryMode || undefined,
+			deliveryMode:
+				normalizeDispatchDeliveryMode(dispatch.deliveryMode) || undefined,
 			dueDate: dispatch.dueDate || undefined,
 			driverId: dispatch.driverId || undefined,
 			packedBy,
@@ -1354,6 +1354,12 @@ type DispatchSelect = {
 	pendingCount: number;
 };
 
+function normalizeDispatchDeliveryMode(
+	value: string | null | undefined,
+): "pickup" | "delivery" | null {
+	return value === "pickup" || value === "delivery" ? value : null;
+}
+
 async function getDispatchForUpdate(
 	ctx: TRPCContext,
 	dispatchId: number,
@@ -1403,7 +1409,7 @@ async function getDispatchForUpdate(
 		status: dispatch.status,
 		driverId: dispatch.driverId,
 		dueDate: dispatch.dueDate,
-		deliveryMode: dispatch.deliveryMode as "pickup" | "delivery" | null,
+		deliveryMode: normalizeDispatchDeliveryMode(dispatch.deliveryMode),
 		orderId: dispatch.order.id,
 		orderNo: dispatch.order.orderId,
 		packedCount,

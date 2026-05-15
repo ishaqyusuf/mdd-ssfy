@@ -5,6 +5,7 @@ import {
 	type CommunityUnitProductionStartedTags,
 	type CommunityUnitProductionStoppedTags,
 	type DispatchPackingDelayTags,
+	type EmployeeAccessRevokedTags,
 	type EmployeeDocumentReviewTags,
 	type InventoryInboundActivityTags,
 	type JobSubmittedTags,
@@ -22,6 +23,7 @@ import {
 	communityUnitProductionStartedTags,
 	communityUnitProductionStoppedTags,
 	dispatchPackingDelayTags,
+	employeeAccessRevokedTags,
 	employeeDocumentReviewTags,
 	inventoryInboundActivityTags,
 	jobSubmittedTags,
@@ -64,6 +66,7 @@ type NotificationActionPayloadMap = {
 	job_submitted: Omit<JobSubmittedTags, "type">;
 	job_task_configure_request: Omit<JobTaskConfigureRequestTags, "type">;
 	employee_document_review: Omit<EmployeeDocumentReviewTags, "type">;
+	employee_access_revoked: Omit<EmployeeAccessRevokedTags, "type">;
 	community_documents: Omit<CommunityDocumentsTags, "type">;
 	inventory_inbound_activity: Omit<InventoryInboundActivityTags, "type">;
 	dispatch_packing_delay: Omit<DispatchPackingDelayTags, "type">;
@@ -182,6 +185,16 @@ function parseAction(
 		return {
 			type: "employee_document_review",
 			label: "Review",
+			data: parsed.data,
+		};
+	}
+
+	if (type === "employee_access_revoked") {
+		const parsed = employeeAccessRevokedTags.safeParse(tags);
+		if (!parsed.success) return undefined;
+		return {
+			type: "employee_access_revoked",
+			label: "Open Employee",
 			data: parsed.data,
 		};
 	}

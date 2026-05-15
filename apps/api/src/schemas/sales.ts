@@ -260,7 +260,7 @@ export const bulkCancelDispatchSchema = z.object({
 export type BulkCancelDispatchSchema = z.infer<typeof bulkCancelDispatchSchema>;
 
 export const exportDispatchesSchema = dispatchQueryParamsSchema.omit({
-	page: true,
-	limit: true,
+	cursor: true,
+	size: true,
 });
 export type ExportDispatchesSchema = z.infer<typeof exportDispatchesSchema>;

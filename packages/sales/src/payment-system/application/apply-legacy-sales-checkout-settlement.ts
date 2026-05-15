@@ -57,7 +57,23 @@ export async function applyLegacySalesCheckoutSettlement(
 			transactionStatus: input.transactionStatus,
 			paymentStatus: input.paymentStatus,
 		});
-		const salesPayment = paymentWrite.salesPayment;
+		const salesPayment = paymentWrite.salesPayment as
+			| {
+					id: number;
+					amount: number;
+					order?: {
+						orderId: string;
+						customer?: {
+							name?: string | null;
+							businessName?: string | null;
+						} | null;
+						billingAddress?: { name?: string | null } | null;
+						salesRep?: {
+							email?: string | null;
+						} | null;
+					} | null;
+			  }
+			| null;
 		if (!salesPayment?.order) continue;
 
 		await input.onPaymentApplied?.({

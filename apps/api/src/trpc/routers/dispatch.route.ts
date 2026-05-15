@@ -68,6 +68,10 @@ function getDispatchNotificationService(ctx: TRPCContext) {
 	});
 }
 
+function normalizeDispatchDeliveryMode(value: string | null | undefined) {
+	return value === "pickup" || value === "delivery" ? value : undefined;
+}
+
 export const dispatchRouters = createTRPCRouter({
 	index: publicProcedure
 		.input(dispatchQueryParamsSchema)
@@ -119,7 +123,9 @@ export const dispatchRouters = createTRPCRouter({
 							payload: {
 								orderNo: dispatch.order?.orderId || undefined,
 								dispatchId: dispatch.id,
-								deliveryMode: dispatch.deliveryMode || undefined,
+								deliveryMode: normalizeDispatchDeliveryMode(
+									dispatch.deliveryMode,
+								),
 								dueDate: dispatch.dueDate || undefined,
 								driverId: dispatch.driverId || undefined,
 							},
@@ -160,7 +166,9 @@ export const dispatchRouters = createTRPCRouter({
 							payload: {
 								orderNo: dispatch.order?.orderId || undefined,
 								dispatchId: dispatch.id,
-								deliveryMode: dispatch.deliveryMode || undefined,
+								deliveryMode: normalizeDispatchDeliveryMode(
+									dispatch.deliveryMode,
+								),
 								dueDate: dispatch.dueDate || undefined,
 								driverId: dispatch.driverId || undefined,
 							},

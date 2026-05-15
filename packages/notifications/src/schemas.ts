@@ -16,8 +16,8 @@ const baseActivityTags = z.object({
 	source,
 	priority,
 	// sendEmail: z.boolean().optional().default(false),
-	// authorContactId: z.number().optional(),
-	// authorContactName: z.string().optional(),
+	authorContactId: z.number().optional(),
+	authorContactName: z.string().optional(),
 });
 const activitiesTags = z.object({
 	id: z.number(),
@@ -443,6 +443,29 @@ export type EmployeeDocumentReviewTags = z.infer<
 	typeof employeeDocumentReviewTags
 >;
 
+export const employeeAccessRevokedSchema = z.object({
+	userId: z.number(),
+	userName: z.string(),
+	userEmail: z.string().optional().nullable(),
+	revokedById: z.number(),
+	revokedByName: z.string(),
+	revokedAt: z.string(),
+});
+export type EmployeeAccessRevokedInput = z.infer<
+	typeof employeeAccessRevokedSchema
+>;
+export const employeeAccessRevokedTags = actityTagsSchema.extend({
+	userId: z.coerce.number(),
+	userName: z.string(),
+	userEmail: z.string().optional().nullable(),
+	revokedById: z.coerce.number(),
+	revokedByName: z.string(),
+	revokedAt: z.string(),
+});
+export type EmployeeAccessRevokedTags = z.infer<
+	typeof employeeAccessRevokedTags
+>;
+
 const documentIdsTagSchema = z
 	.union([z.string(), z.array(z.string())])
 	.transform((value) => (Array.isArray(value) ? value : [value]));
@@ -637,6 +660,7 @@ export type NotificationTypes = {
 	job_task_configure_request: JobTaskConfigureRequestInput;
 	job_task_configured: JobTaskConfiguredInput;
 	employee_document_review: EmployeeDocumentReviewInput;
+	employee_access_revoked: EmployeeAccessRevokedInput;
 	community_documents: CommunityDocumentsInput;
 	inventory_inbound: InventoryInboundInput;
 	inventory_inbound_activity: InventoryInboundActivityInput;
@@ -1356,6 +1380,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("employee_document_review"),
 		payload: employeeDocumentReviewSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("employee_access_revoked"),
+		payload: employeeAccessRevokedSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("community_documents"),

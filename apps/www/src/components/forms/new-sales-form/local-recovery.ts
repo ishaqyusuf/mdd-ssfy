@@ -1,4 +1,10 @@
-import type { NewSalesFormSaveDraftInput } from "./schema";
+import type {
+    NewSalesFormExtraCost,
+    NewSalesFormLineItem,
+    NewSalesFormMeta,
+    NewSalesFormSaveDraftInput,
+    NewSalesFormSummary,
+} from "./schema";
 
 const LOCAL_RECOVERY_VERSION = 1;
 const LOCAL_RECOVERY_PREFIX = "new-sales-form:recovery";
@@ -6,7 +12,12 @@ const LOCAL_RECOVERY_PREFIX = "new-sales-form:recovery";
 export type NewSalesFormRecoverySnapshot = {
     version: number;
     savedAt: string;
-    payload: NewSalesFormSaveDraftInput;
+    payload: NewSalesFormSaveDraftInput & {
+        meta: NewSalesFormMeta;
+        lineItems: NewSalesFormLineItem[];
+        extraCosts: NewSalesFormExtraCost[];
+        summary: NewSalesFormSummary;
+    };
 };
 
 function isBrowser() {
@@ -30,7 +41,7 @@ export function writeRecoverySnapshot(
     const snapshot: NewSalesFormRecoverySnapshot = {
         version: LOCAL_RECOVERY_VERSION,
         savedAt: new Date().toISOString(),
-        payload,
+        payload: payload as NewSalesFormRecoverySnapshot["payload"],
     };
     try {
         window.localStorage.setItem(key, JSON.stringify(snapshot));

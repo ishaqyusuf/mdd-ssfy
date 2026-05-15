@@ -151,6 +151,7 @@ function commonListData(data: Item, bin?: boolean) {
     dueDate: data.paymentDueDate,
     id: data.id,
     orderId: data.orderId?.toUpperCase(),
+    inboundStatus: data.inventoryStatus,
     uuid: data.orderId,
     isDyke: data.isDyke,
     slug: data.slug,

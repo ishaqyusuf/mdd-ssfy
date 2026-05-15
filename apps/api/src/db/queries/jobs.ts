@@ -14,6 +14,7 @@ import {
 	nextId,
 	padStart,
 	sum,
+	transformFilterDateToQuery,
 } from "@gnd/utils";
 import { formatLargeNumber } from "@gnd/utils/format";
 import { getInsuranceRequirement } from "@gnd/utils/insurance-documents";
@@ -1403,7 +1404,7 @@ export async function getJobsPrintData(
 			amount: Number(job.amount || 0),
 			status: job.status,
 			createdAt: job.createdAt,
-			jobType: getJobType(job.meta as JobMeta | null),
+			jobType: getJobType(job.meta as unknown as JobMeta | null),
 			isCustom: job.isCustom,
 			builderTaskName: job.builderTask?.taskName || null,
 			contractorId: Number(job.user?.id || 0) || null,
@@ -1647,7 +1648,7 @@ export async function getJobsPrintData(
 			amount: Number(job.amount || 0),
 			status: job.status,
 			createdAt: job.createdAt,
-			jobType: getJobType(job.meta as JobMeta | null),
+			jobType: getJobType(job.meta as unknown as JobMeta | null),
 			isCustom: job.isCustom,
 			builderTaskName: job.builderTask?.taskName || null,
 			contractorName: job.user?.name || "Unknown contractor",

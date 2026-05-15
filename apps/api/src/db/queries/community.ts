@@ -244,13 +244,13 @@ export type GetCommunityTemplateHistorySchema = z.infer<
 function countTemplateHistoryConfiguredValues(value: unknown): number {
   if (value === null || value === undefined) return 0;
   if (Array.isArray(value)) {
-    return value.reduce(
+    return value.reduce<number>(
       (sum, entry) => sum + countTemplateHistoryConfiguredValues(entry),
       0,
     );
   }
   if (typeof value === "object") {
-    return Object.values(value as Record<string, unknown>).reduce(
+    return Object.values(value as Record<string, unknown>).reduce<number>(
       (sum, entry) => sum + countTemplateHistoryConfiguredValues(entry),
       0,
     );
@@ -1615,7 +1615,7 @@ export async function communityProjectsOverview(
         createdAt: project.createdAt,
         updatedAt: project.updatedAt,
         archived: Boolean(project.archived),
-        supervisor: (project.meta as ProjectMeta | null)?.supervisor || null,
+        supervisor: (project.meta as unknown as ProjectMeta | null)?.supervisor || null,
         units: project._count.homes,
         jobs: project._count.jobs,
         invoices: project._count.invoices,
@@ -2078,7 +2078,7 @@ export async function communityProjectOverview(
     },
   });
 
-  const meta = (project.meta as ProjectMeta | null) || null;
+  const meta = (project.meta as unknown as ProjectMeta | null) || null;
   const productionTasks = project.homeTasks.filter((task) => task.produceable);
   const productionStatusMap = {
     queued: 0,
@@ -2466,13 +2466,13 @@ function isConfiguredTemplateValue(value: unknown) {
 function countConfiguredDesignValues(value: unknown): number {
   if (value === null || value === undefined) return 0;
   if (Array.isArray(value)) {
-    return value.reduce(
+    return value.reduce<number>(
       (sum, entry) => sum + countConfiguredDesignValues(entry),
       0,
     );
   }
   if (typeof value === "object") {
-    return Object.values(value as Record<string, unknown>).reduce(
+    return Object.values(value as Record<string, unknown>).reduce<number>(
       (sum, entry) => sum + countConfiguredDesignValues(entry),
       0,
     );
@@ -2751,7 +2751,8 @@ export async function getProjectUnitPrintPreflight(
       null;
     const hasTemplate = !!resolvedTemplate?.id;
     const templateConfiguredCount = countConfiguredDesignValues(
-      (resolvedTemplate?.meta as CommunityTemplateMeta | null)?.design,
+      (resolvedTemplate?.meta as unknown as CommunityTemplateMeta | null)
+        ?.design,
     );
     const isTemplateEmpty = hasTemplate && templateConfiguredCount <= 0;
     const installCost = getInstallCostPreflight(resolvedTemplate);

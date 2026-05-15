@@ -5,6 +5,7 @@ import type { composeSalesItemControlStat } from "./utils/sales-control";
 // import type { IconKeys } from "@ui/components/custom/icons";
 export type PageDataMeta = {
   count?;
+  size?;
   page?;
   next?: {
     size?;
@@ -55,6 +56,8 @@ export type QtyControlByType = {
 };
 export type SalesDispatchStatus =
   | "queue"
+  | "packing queue"
+  | "missing items"
   | "packed"
   | "in progress"
   | "completed"

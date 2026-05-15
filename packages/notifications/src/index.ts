@@ -23,6 +23,7 @@ import { communityUnitProductionStopped } from "./types/community-unit-productio
 import { composedSalesDocumentEmail } from "./types/composed-sales-document-email";
 import { dispatchPackingDelay } from "./types/dispatch-packing-delay";
 import { dealerOnboarding } from "./types/dealer-onboarding";
+import { employeeAccessRevoked } from "./types/employee-access-revoked";
 import { employeeDocumentReview } from "./types/employee-document-review";
 import { inventoryInbound } from "./types/inventory-inbound";
 import { inventoryInboundActivity } from "./types/inventory-inbound-activity";
@@ -103,6 +104,7 @@ const handlers = {
 	job_task_configure_request: jobTaskConfigureRequest,
 	job_task_configured: jobTaskConfigured,
 	employee_document_review: employeeDocumentReview,
+	employee_access_revoked: employeeAccessRevoked,
 	community_documents: communityDocuments,
 	inventory_inbound: inventoryInbound,
 	inventory_inbound_activity: inventoryInboundActivity,
@@ -389,11 +391,8 @@ export class Notifications {
 
 		const rawData = { ...payload } as NotificationTypes[T];
 		const handler = handlers[type as keyof typeof handlers];
-		const data = ((await handler?.extendData?.(
-			this.#db,
-			rawData,
-			author!,
-		)) ?? rawData) as NotificationTypes[T];
+		const data = ((await handler?.extendData?.(this.#db, rawData, author!)) ??
+			rawData) as NotificationTypes[T];
 
 		// return null;
 		return this.#createInternal(

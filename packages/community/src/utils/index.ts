@@ -101,11 +101,20 @@ export const projectUnitsSelect = {
     },
   },
 } satisfies Prisma.HomesSelect;
-export function getUnitProductionStatus(
-  home: Prisma.HomesGetPayload<{
-    select: typeof projectUnitsSelect;
-  }>
-) {
+type UnitProductionStatusHome = {
+  id: number;
+  tasks?: Array<{
+    produceable?: boolean | null;
+    producedAt?: Date | string | null;
+    sentToProductionAt?: Date | string | null;
+    productionDueDate?: Date | string | null;
+  }> | null;
+  _count: {
+    jobs: number;
+  };
+};
+
+export function getUnitProductionStatus(home: UnitProductionStatusHome) {
   const prod = home?.tasks?.filter((t) => t.produceable);
   let prodDate: any = null;
   // if (home.builderId == 14)

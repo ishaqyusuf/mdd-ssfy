@@ -50,7 +50,7 @@ import type { GetBuildersSchema } from "@community/builder";
 import type { GetJobsSchema } from "./jobs";
 import type { GetContractorPayoutsSchema } from "./jobs";
 import type { GetEmployeesSchema } from "@api/schemas/hrm";
-import type { GetNotificationChannelsSchema } from "./note";
+import type { GetNotificationChannelsSchema } from "@notifications/schemas";
 import type { GetOrdersV2Schema } from "./sales-orders-v2";
 
 export async function notificationChannelFilters(ctx: TRPCContext) {
@@ -171,6 +171,13 @@ function dateRangeFilter<T>(value: T, label) {
     label,
     value,
     type: "date-range",
+  } satisfies PageFilterData<T>;
+}
+function inputFilter<T>(value: T, label) {
+  return {
+    label,
+    value,
+    type: "input",
   } satisfies PageFilterData<T>;
 }
 const searchFilter = {

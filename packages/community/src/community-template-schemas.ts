@@ -504,6 +504,7 @@ export async function getTemplateInputListings(
   const results = await inventoryList(db, {
     // categoryId: query.inputInventoryId,
     subCategoryInvId: query.inputInventoryId,
+    showCustom: false,
     size: 99,
   });
   return results?.data?.map((r) => ({

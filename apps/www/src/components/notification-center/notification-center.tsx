@@ -110,6 +110,10 @@ export function NotificationCenter() {
 				openDocumentReviewId: Number(data.documentId),
 			});
 		},
+		employee_access_revoked: (data, _notification, context) => {
+			context.close();
+			router.push(`/hrm/employees/v2/${Number(data.userId)}`);
+		},
 		community_documents: (data, _notification, context) => {
 			context.close();
 			router.push(

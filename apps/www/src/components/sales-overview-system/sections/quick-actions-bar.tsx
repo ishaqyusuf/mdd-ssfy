@@ -6,6 +6,7 @@ import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { SalesMenu } from "@/components/sales-menu";
 import { useAuth } from "@/hooks/use-auth";
 import { useBatchSales } from "@/hooks/use-batch-sales";
+import { useInboundStatusModal } from "@/hooks/use-inbound-status-modal";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { openLink } from "@/lib/open-link";
 import { salesFormUrl } from "@/utils/sales-utils";
@@ -25,6 +26,7 @@ export function QuickActionsBar() {
 	} = useSalesOverviewSystem();
 	const sPreview = useSalesPreview();
 	const batchSales = useBatchSales();
+	const inboundStatusModal = useInboundStatusModal();
 	const auth = useAuth();
 	const [loading, startTransition] = useTransition();
 	const canSendForPacking =
@@ -38,6 +40,16 @@ export function QuickActionsBar() {
 		void sPreview.preview(data?.id, data?.type, {
 			customerEmail: data?.email,
 			customerName: data?.displayName,
+		});
+	}
+
+	function updateInboundStatus() {
+		if (!data?.id || !data?.orderId || isQuote) return;
+		inboundStatusModal.setParams({
+			inboundOrderId: data.id,
+			inboundOrderNo: data.orderId,
+			inboundOrderStatus: data.inboundStatus || null,
+			updateInboundStatus: true,
 		});
 	}
 
@@ -86,6 +98,17 @@ export function QuickActionsBar() {
 				<Icons.Edit className="size-3.5" />
 				<span>Edit</span>
 			</Button>
+			{isQuote ? null : (
+				<Button
+					size="sm"
+					variant="secondary"
+					className="flex-1 items-center gap-2 hover:bg-secondary"
+					onClick={updateInboundStatus}
+				>
+					<Icons.PackageOpen className="size-3.5" />
+					<span>Inbound</span>
+				</Button>
+			)}
 			<SalesMenu
 				triggerVariant="secondary"
 				id={data.id}
@@ -123,6 +146,16 @@ export function QuickActionsBar() {
 								</SalesMenu.Item>
 							</SalesMenu.SubContent>
 						</SalesMenu.Sub>
+						<SalesMenu.Separator />
+						<SalesMenu.Item
+							onSelect={(e) => {
+								e.preventDefault();
+								updateInboundStatus();
+							}}
+						>
+							<Icons.PackageOpen className="mr-2 size-4 text-muted-foreground/70" />
+							Update Inbound
+						</SalesMenu.Item>
 						<SalesMenu.Separator />
 						<SalesMenu.Share />
 						<SalesMenu.SalesPrintMenuItems />

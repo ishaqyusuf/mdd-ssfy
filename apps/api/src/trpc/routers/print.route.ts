@@ -7,7 +7,9 @@ import {
 } from "@api/db/queries/jobs";
 import {
 	getUnitInvoiceAgingReport,
+	getUnitInvoiceAgingReportSchema,
 	getUnitInvoiceTaskDetailReport,
+	getUnitInvoiceTaskDetailReportSchema,
 } from "@api/db/queries/unit-invoice-reports";
 import { resolveSalesDocumentPreviewData } from "@api/utils/sales-document-access";
 import {
@@ -218,7 +220,8 @@ export const printRouter = createTRPCRouter({
 
 			if (!payload) return null;
 
-			const report = await getUnitInvoiceAgingReport(props.ctx, payload);
+			const filters = getUnitInvoiceAgingReportSchema.parse(payload);
+			const report = await getUnitInvoiceAgingReport(props.ctx, filters);
 
 			return {
 				title: "Community_Invoice_Aging_Report",
@@ -243,7 +246,8 @@ export const printRouter = createTRPCRouter({
 
 			if (!payload) return null;
 
-			const report = await getUnitInvoiceTaskDetailReport(props.ctx, payload);
+			const filters = getUnitInvoiceTaskDetailReportSchema.parse(payload);
+			const report = await getUnitInvoiceTaskDetailReport(props.ctx, filters);
 
 			return {
 				title: "Community_Invoice_Task_Detail_Report",

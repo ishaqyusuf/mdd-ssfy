@@ -23,6 +23,7 @@ Track whether a sales order has vendor-order work outstanding without moving int
 - The sales orders table exposes an `Inbound` badge column.
 - `AVAILABLE` is green, `ORDERED` is blue, and `PENDING ORDER` is amber with row emphasis.
 - The order action menu opens the existing inbound status modal for later manual updates.
+- Sales overview action bars expose an `Inbound` / `Update Inbound` action for orders so the status can be changed without leaving the overview.
 
 ## Future Improvements
 - Generate purchase orders from pending inbound statuses.

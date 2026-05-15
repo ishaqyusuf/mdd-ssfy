@@ -202,6 +202,18 @@ export function createNotificationChannelTriggers(
 				recipients: resolvedRecipients,
 			});
 		},
+		employeeAccessRevoked(input: Input<"employee_access_revoked">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("employee_access_revoked", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
 		communityDocuments(input: Input<"community_documents">) {
 			const { recipients, author, ...payload } = input;
 			const resolvedRecipients = resolveRecipients(
@@ -306,9 +318,7 @@ export function createNotificationChannelTriggers(
 				recipients: resolvedRecipients,
 			});
 		},
-		composedSalesDocumentEmail(
-			input: Input<"composed_sales_document_email">,
-		) {
+		composedSalesDocumentEmail(input: Input<"composed_sales_document_email">) {
 			const { recipients, author, ...payload } = input;
 			const resolvedRecipients = resolveRecipients(
 				recipients,

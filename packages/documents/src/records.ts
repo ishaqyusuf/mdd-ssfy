@@ -65,7 +65,7 @@ export type StoredDocumentRecord = DocumentOwnerReference & {
 	uploadedBy?: number | null;
 	title?: string | null;
 	description?: string | null;
-	meta?: Record<string, unknown> | null;
+	meta?: unknown | null;
 	createdAt?: Date | null;
 	updatedAt?: Date | null;
 	deletedAt?: Date | null;

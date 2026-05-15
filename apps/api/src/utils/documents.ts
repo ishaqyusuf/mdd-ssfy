@@ -8,6 +8,8 @@ import {
 
 export type ApiDocumentProviderName = "vercel-blob" | "cloudinary";
 
+type VercelBlobPut = typeof import("@vercel/blob").put;
+
 export function getApiDocumentProviderFromEnv(): ApiDocumentProviderName {
   const provider = String(process.env.DOCUMENT_PROVIDER || "vercel-blob")
     .trim()
@@ -16,28 +18,18 @@ export function getApiDocumentProviderFromEnv(): ApiDocumentProviderName {
 }
 
 export function createApiVercelBlobDocumentService(options: {
-  put: (
-    pathname: string,
-    body: DocumentUploadInput["body"],
-    options?: {
-      access?: "public";
-      contentType?: string;
-      token?: string;
-      addRandomSuffix?: boolean;
-      cacheControlMaxAge?: number;
-    },
-  ) => Promise<{
-    url: string;
-    pathname: string;
-    contentType?: string;
-    size?: number;
-  }>;
+  put: VercelBlobPut;
   del?: (urlOrPathname: string, options?: { token?: string }) => Promise<void>;
   token?: string;
 }) {
   return createDocumentService(
     createVercelBlobProvider({
-      put: options.put,
+      put: (pathname, body, putOptions) =>
+        options.put(
+          pathname,
+          body as Parameters<VercelBlobPut>[1],
+          putOptions as Parameters<VercelBlobPut>[2],
+        ),
       del: options.del,
       token: options.token || process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
       access: "public",

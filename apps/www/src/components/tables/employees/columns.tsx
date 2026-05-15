@@ -118,7 +118,7 @@ function Action({ item }: { item: Item }) {
 	const trpc = useTRPC();
 	const toast = useLoadingToast();
 	const auth = useAuth();
-	const canRevokeEmployee = Boolean(auth.can?.editEmployee);
+	const canRevokeEmployee = auth.roleTitle?.toLowerCase() === "super admin";
 	const [confirmRevokeOpen, setConfirmRevokeOpen] = useState(false);
 	const submitAction = useMutation(
 		trpc.hrm.resetEmployeePassword.mutationOptions({
@@ -174,6 +174,7 @@ function Action({ item }: { item: Item }) {
 					</Menu.Item>
 					{canRevokeEmployee ? (
 						<Menu.Item
+							Icon={Icons.LockKeyhole}
 							className="text-destructive focus:text-destructive"
 							onClick={() => {
 								setConfirmRevokeOpen(true);

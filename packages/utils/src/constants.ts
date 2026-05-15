@@ -39,6 +39,7 @@ export const noteTagNames = [
 	"userId",
 	"jobControlId",
 	"jobId",
+	"paymentId",
 	"documentId",
 	"documentIds",
 	"projectId",

@@ -383,8 +383,11 @@ export async function getUnitProductionOverview(
         select: {
           id: true,
           slug: true,
+          lot: true,
+          block: true,
           lotBlock: true,
           modelName: true,
+          search: true,
           address: true,
           jobs: {
             where: {

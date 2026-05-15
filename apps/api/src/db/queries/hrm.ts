@@ -19,6 +19,8 @@ import {
 	isInsuranceDocumentTitle,
 	parseInsuranceDocumentMeta,
 } from "@gnd/utils/insurance-documents";
+import { NotificationService } from "@notifications/services/triggers";
+import { tasks } from "@trigger.dev/sdk/v3";
 import { TRPCError } from "@trpc/server";
 
 const EMPLOYEE_SPECIFIC_PERMISSION_NAMES = ["submit custom job"] as const;
@@ -65,6 +67,57 @@ function formatPermissionLabel(name: string) {
 		.split(" ")
 		.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
 		.join(" ");
+}
+
+async function requireSuperAdmin(ctx: TRPCContext) {
+	if (!ctx.userId) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "Unauthorized",
+		});
+	}
+
+	const user = await ctx.db.users.findFirst({
+		where: {
+			id: ctx.userId,
+		},
+		select: {
+			id: true,
+			name: true,
+			roles: {
+				where: {
+					deletedAt: null,
+				},
+				select: {
+					role: {
+						select: {
+							name: true,
+						},
+					},
+				},
+			},
+		},
+	});
+
+	if (!user) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "Unauthorized",
+		});
+	}
+
+	const role = user?.roles?.[0]?.role?.name;
+	if (role?.toLowerCase() !== "super admin") {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Only Super Admin can revoke employee access.",
+		});
+	}
+
+	return {
+		id: user.id,
+		name: user.name || "Super Admin",
+	};
 }
 
 export async function getEmployeePermissionOptions(ctx: TRPCContext) {
@@ -362,6 +415,7 @@ export async function deleteEmployee(ctx: TRPCContext, userId: number) {
 }
 
 export async function revokeEmployee(ctx: TRPCContext, userId: number) {
+	const actor = await requireSuperAdmin(ctx);
 	if (ctx.userId === userId) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
@@ -379,6 +433,8 @@ export async function revokeEmployee(ctx: TRPCContext, userId: number) {
 		select: {
 			id: true,
 			name: true,
+			email: true,
+			accessRevokedAt: true,
 		},
 	});
 
@@ -386,6 +442,15 @@ export async function revokeEmployee(ctx: TRPCContext, userId: number) {
 		where: {
 			userId,
 		},
+	});
+
+	await new NotificationService(tasks, ctx).channel.employeeAccessRevoked({
+		userId: user.id,
+		userName: user.name || "Employee",
+		userEmail: user.email,
+		revokedById: actor.id,
+		revokedByName: actor.name,
+		revokedAt: (user.accessRevokedAt || new Date()).toISOString(),
 	});
 
 	return user;

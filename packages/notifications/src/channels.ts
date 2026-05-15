@@ -13,6 +13,7 @@ export const channelNames = [
 	"job_task_configure_request",
 	"job_task_configured",
 	"employee_document_review",
+	"employee_access_revoked",
 	"community_documents",
 	"inventory_inbound",
 	"inventory_inbound_activity",
@@ -117,6 +118,12 @@ export const channelsConfig: Partial<{
 		description:
 			"Send when an employee uploads an insurance document for review.",
 		priority: 5,
+		category: "Community",
+	},
+	employee_access_revoked: {
+		name: "Employee Access Revoked",
+		description: "Send when a Super Admin revokes an employee's access.",
+		priority: 8,
 		category: "Community",
 	},
 	community_documents: {

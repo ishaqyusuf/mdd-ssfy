@@ -65,3 +65,12 @@ export {
   type SalesFormProfileShelfItemLike,
   type SalesFormProfileStepLike,
 } from "./profile-repricing";
+export {
+  calculateDualSalesFormPricing,
+  type DualPricingExtraCostInput,
+  type DualPricingInput,
+  type DualPricingLineInput,
+  type DualPricingLineResult,
+  type DualPricingResult,
+  type SalesFormPricingProfile,
+} from "./dual-pricing";

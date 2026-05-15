@@ -24,7 +24,7 @@ export const trpc = createTRPCOptionsProxy<AppRouter>({
   client: createTRPCClient({
     links: [
       httpBatchLink({
-        transformer: superjson,
+        transformer: superjson as any,
         url: getApiUrl(),
       }),
       loggerLink({

@@ -1,3 +1,15 @@
+import {
+	computeNormalizedSalesFormSummary,
+	createEmptySalesFormLineItem,
+	createSalesFormLineItemUid,
+	hydrateSalesFormRecord,
+	normalizeSalesFormExtraCosts,
+	normalizeSalesFormLineItem,
+	normalizeSalesFormLineItems,
+	normalizeSalesFormMeta,
+	repriceSalesFormLineItemsForProfile,
+	toSalesFormSaveDraftPayload,
+} from "@gnd/sales/sales-form";
 import type {
 	NewSalesFormExtraCost,
 	NewSalesFormLineItem,
@@ -6,206 +18,32 @@ import type {
 	NewSalesFormSaveDraftInput,
 	NewSalesFormSummary,
 } from "./schema";
-import {
-	calculateSalesFormSummary,
-	repriceSalesFormLineItemsByProfile,
-	summarizeDoors,
-	summarizeMouldingPersistRows,
-	summarizeServiceRows,
-} from "@gnd/sales/sales-form";
-import { orderInboundStatuses, type OrderInboundStatus } from "@gnd/utils/constants";
-
-function roundCurrency(value: number) {
-	return Math.round((value + Number.EPSILON) * 100) / 100;
-}
-
-function normalizeSyntheticLineTitle(value?: string | null) {
-	const title = String(value ?? "").trim();
-	if (!title) return "";
-	return /^line\s+\d+$/i.test(title) ? "" : title;
-}
-
-function normalizeSalesFormTitle(value?: string | null) {
-	return String(value || "")
-		.trim()
-		.toLowerCase();
-}
-
-function normalizeOrderInboundStatus(
-	status?: string | null,
-): OrderInboundStatus | null {
-	return orderInboundStatuses.includes(status as OrderInboundStatus)
-		? (status as OrderInboundStatus)
-		: null;
-}
-
-function getStoredMouldingRows(line: NewSalesFormLineItem) {
-	const meta = line.meta as NewSalesFormLineItem["meta"] & {
-		mouldingRows?: Array<Record<string, unknown>>;
-	};
-	return Array.isArray(meta?.mouldingRows) ? meta.mouldingRows : [];
-}
-
-function getStoredServiceRows(line: NewSalesFormLineItem) {
-	const meta = line.meta as NewSalesFormLineItem["meta"] & {
-		serviceRows?: Array<Record<string, unknown>>;
-	};
-	return Array.isArray(meta?.serviceRows) ? meta.serviceRows : [];
-}
-
-function getItemTypeTitle(line: Partial<NewSalesFormLineItem>) {
-	const itemTypeStep = (line.formSteps || []).find(
-		(step) => normalizeSalesFormTitle(step?.step?.title) === "item type",
-	);
-	return String(itemTypeStep?.value || "").trim();
-}
-
-function isGroupedLineItem(line: Partial<NewSalesFormLineItem>) {
-	const itemType = normalizeSalesFormTitle(getItemTypeTitle(line));
-	if (
-		itemType === "moulding" ||
-		itemType === "mouldings" ||
-		itemType === "molding" ||
-		itemType === "moldings" ||
-		itemType === "service" ||
-		itemType === "services"
-	) {
-		return true;
-	}
-	const typedLine = line as NewSalesFormLineItem;
-	return (
-		getStoredMouldingRows(typedLine).length > 0 ||
-		getStoredServiceRows(typedLine).length > 0
-	);
-}
-
-function normalizeGroupedLineTitle(line: Partial<NewSalesFormLineItem>) {
-	const title = normalizeSyntheticLineTitle(line.title);
-	if (!isGroupedLineItem(line)) return title;
-	const itemTypeTitle = getItemTypeTitle(line);
-	if (!itemTypeTitle) return title;
-	return itemTypeTitle;
-}
-
-function deriveLineTotalForSummary(line: NewSalesFormLineItem) {
-	const hptDoors = Array.isArray(line.housePackageTool?.doors)
-		? line.housePackageTool.doors
-		: [];
-	if (hptDoors.length) {
-		const storedTotal = Number(line.housePackageTool?.totalPrice || 0);
-		if (storedTotal > 0) return storedTotal;
-		return summarizeDoors(hptDoors).totalPrice;
-	}
-
-	const serviceRows = getStoredServiceRows(line);
-	if (serviceRows.length) {
-		return summarizeServiceRows(line.uid, serviceRows).lineTotal;
-	}
-
-	const mouldingRows = getStoredMouldingRows(line);
-	if (mouldingRows.length) {
-		return summarizeMouldingPersistRows(mouldingRows, 0).total;
-	}
-
-	return Number(line.lineTotal || 0);
-}
-
-function deriveSummaryLineItems(lineItems: NewSalesFormLineItem[]) {
-	return (lineItems || []).map((line) => ({
-		...line,
-		lineTotal: deriveLineTotalForSummary(line),
-	}));
-}
 
 export function createLineItemUid(index = 0) {
-	const stamp = Date.now().toString(36);
-	const random = Math.random().toString(36).slice(2, 8);
-	return `line-${index + 1}-${stamp}-${random}`;
+	return createSalesFormLineItemUid(index);
 }
 
 export function createEmptyLineItem(index = 0): NewSalesFormLineItem {
-	return {
-		id: null,
-		uid: createLineItemUid(index),
-		title: "",
-		description: "",
-		qty: 1,
-		unitPrice: 0,
-		lineTotal: 0,
-		meta: {},
-		formSteps: [],
-		shelfItems: [],
-		housePackageTool: null,
-	};
+	return createEmptySalesFormLineItem(index) as NewSalesFormLineItem;
 }
 
 export function normalizeLineItem(
 	line: Partial<NewSalesFormLineItem>,
 	index = 0,
 ): NewSalesFormLineItem {
-	const qty = Number(line.qty ?? 0);
-	const unitPrice = Number(line.unitPrice ?? 0);
-	const computedTotal = roundCurrency(qty * unitPrice);
-	return {
-		id: line.id ?? null,
-		uid: line.uid || createLineItemUid(index),
-		title: normalizeGroupedLineTitle(line),
-		description: line.description ?? "",
-		qty,
-		unitPrice,
-		lineTotal: roundCurrency(Number(line.lineTotal ?? computedTotal)),
-		meta: line.meta ?? {},
-		formSteps: line.formSteps ?? [],
-		shelfItems: line.shelfItems ?? [],
-		housePackageTool: line.housePackageTool ?? null,
-	};
+	return normalizeSalesFormLineItem(line, index) as NewSalesFormLineItem;
 }
 
 export function normalizeLineItems(
 	lines: Partial<NewSalesFormLineItem>[],
 ): NewSalesFormLineItem[] {
-	return (lines || []).map((line, index) => normalizeLineItem(line, index));
+	return normalizeSalesFormLineItems(lines) as NewSalesFormLineItem[];
 }
 
 export function normalizeMeta(
 	meta: Partial<NewSalesFormMeta>,
 ): NewSalesFormMeta {
-	const customerId =
-		meta.customerId == null || meta.customerId === ""
-			? null
-			: Number(meta.customerId);
-	const customerProfileId =
-		meta.customerProfileId == null || meta.customerProfileId === ""
-			? null
-			: Number(meta.customerProfileId);
-	const billingAddressId =
-		meta.billingAddressId == null || meta.billingAddressId === ""
-			? null
-			: Number(meta.billingAddressId);
-	const shippingAddressId =
-		meta.shippingAddressId == null || meta.shippingAddressId === ""
-			? null
-			: Number(meta.shippingAddressId);
-	return {
-		customerId: Number.isFinite(customerId) ? customerId : null,
-		customerProfileId: Number.isFinite(customerProfileId)
-			? customerProfileId
-			: null,
-		billingAddressId: Number.isFinite(billingAddressId)
-			? billingAddressId
-			: null,
-		shippingAddressId: Number.isFinite(shippingAddressId)
-			? shippingAddressId
-			: null,
-		paymentTerm: meta.paymentTerm ?? "None",
-		goodUntil: meta.goodUntil ?? null,
-		prodDueDate: meta.prodDueDate ?? null,
-		po: meta.po ?? "",
-		notes: meta.notes ?? "",
-		deliveryOption: meta.deliveryOption ?? "pickup",
-		paymentMethod: meta.paymentMethod ?? null,
-		taxCode: meta.taxCode ?? null,
-	};
+	return normalizeSalesFormMeta(meta) as NewSalesFormMeta;
 }
 
 export function repriceLineItemsByProfile(
@@ -213,11 +51,11 @@ export function repriceLineItemsByProfile(
 	previousProfileCoefficient?: number | null,
 	nextProfileCoefficient?: number | null,
 ): NewSalesFormLineItem[] {
-	return repriceSalesFormLineItemsByProfile(
-		lineItems || [],
+	return repriceSalesFormLineItemsForProfile(
+		lineItems,
 		previousProfileCoefficient,
 		nextProfileCoefficient,
-	).map((line, index) => normalizeLineItem(line, index));
+	) as NewSalesFormLineItem[];
 }
 
 export function computeSummary(
@@ -227,75 +65,23 @@ export function computeSummary(
 	paymentMethod?: string | null,
 	cccPercentage?: number | null,
 ): NewSalesFormSummary {
-	const summaryLineItems = deriveSummaryLineItems(lineItems);
-	const summary = calculateSalesFormSummary({
-		strategy: "legacy",
+	return computeNormalizedSalesFormSummary(
+		lineItems,
 		taxRate,
-		lineItems: summaryLineItems,
 		extraCosts,
 		paymentMethod,
 		cccPercentage,
-	});
-	return {
-		subTotal: summary.subTotal,
-		adjustedSubTotal: summary.adjustedSubTotal,
-		taxRate: summary.taxRate,
-		taxTotal: summary.taxTotal,
-		grandTotal: summary.grandTotal,
-		discount: summary.discount,
-		discountPct: summary.discountPct,
-		percentDiscountValue: summary.percentDiscountValue,
-		labor: summary.labor,
-		delivery: summary.delivery,
-		otherCosts: summary.otherCosts,
-		ccc: summary.ccc,
-	};
+	) as NewSalesFormSummary;
 }
 
 export function normalizeExtraCosts(
 	costs: Partial<NewSalesFormExtraCost>[] = [],
 ): NewSalesFormExtraCost[] {
-	const normalized = (costs || []).map((cost, index) => ({
-		id: cost.id ?? null,
-		label: (cost.label || `Cost ${index + 1}`).trim(),
-		type: (cost.type || "CustomNonTaxxable") as NewSalesFormExtraCost["type"],
-		amount: Number(cost.amount || 0),
-		taxxable: cost.taxxable ?? false,
-	}));
-	if (!normalized.some((cost) => cost.type === "Labor")) {
-		normalized.push({
-			id: null,
-			label: "Labor",
-			type: "Labor",
-			amount: 0,
-			taxxable: false,
-		});
-	}
-	return normalized;
+	return normalizeSalesFormExtraCosts(costs) as NewSalesFormExtraCost[];
 }
 
 export function hydrateRecord(record: NewSalesFormRecord): NewSalesFormRecord {
-	const normalized = normalizeLineItems(record.lineItems || []);
-	const lineItems = normalized.length ? normalized : [createEmptyLineItem(0)];
-	const meta = normalizeMeta(record.form || {});
-	const extraCosts = normalizeExtraCosts(record.extraCosts || []);
-	const summary = computeSummary(
-		lineItems,
-		record.summary?.taxRate || 0,
-		extraCosts,
-		meta.paymentMethod,
-		(record as any).settings?.cccPercentage,
-	);
-	return {
-		...record,
-		form: meta,
-		lineItems,
-		extraCosts,
-		summary: {
-			...summary,
-			...record.summary,
-		},
-	};
+	return hydrateSalesFormRecord(record) as NewSalesFormRecord;
 }
 
 export function toSaveDraftInput(
@@ -313,32 +99,8 @@ export function toSaveDraftInput(
 	>,
 	autosave = true,
 ): NewSalesFormSaveDraftInput {
-	const lineItems = normalizeLineItems(source.lineItems || []).map((line) => ({
-		...line,
-		title: normalizeSyntheticLineTitle(line.title),
-	}));
-	const extraCosts = normalizeExtraCosts(source.extraCosts || []);
-	const meta = normalizeMeta(source.form || {});
-	const summary = computeSummary(
-		lineItems,
-		source.summary?.taxRate || 0,
-		extraCosts,
-		meta.paymentMethod,
-		(source as any).settings?.cccPercentage,
-	);
-	return {
-		type: source.type,
-		salesId: source.salesId,
-		slug: source.slug,
-		inventoryStatus:
-			source.type === "order"
-				? normalizeOrderInboundStatus(source.inventoryStatus)
-				: null,
-		version: source.version,
+	return toSalesFormSaveDraftPayload(
+		source,
 		autosave,
-		meta,
-		lineItems: lineItems as NewSalesFormSaveDraftInput["lineItems"],
-		extraCosts,
-		summary,
-	};
+	) as NewSalesFormSaveDraftInput;
 }

@@ -395,7 +395,7 @@ export function whereUnitInvoices(query: Partial<GetUnitInvoicesSchema>) {
     if (!v) continue;
 
     const value = v as any;
-    switch (k as keyof GetProjectUnitsSchema) {
+    switch (k as keyof GetUnitInvoicesSchema) {
       case "q":
         where.push({
           OR: [

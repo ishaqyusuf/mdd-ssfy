@@ -275,7 +275,14 @@ export function dtoStepComponent(
     include: {
       door: true;
       product: true;
-      step: true;
+      step: {
+        select: {
+          id: true;
+          uid: true;
+          title: true;
+          meta: true;
+        };
+      };
       sorts: true;
       _count: {
         select: {

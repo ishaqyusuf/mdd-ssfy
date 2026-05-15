@@ -56,6 +56,9 @@ export function InboundSalesModal({}) {
                     queryKey: trpc.sales.getOrders.pathKey(),
                 });
                 queryClient.invalidateQueries({
+                    queryKey: trpc.sales.getSaleOverview.pathKey(),
+                });
+                queryClient.invalidateQueries({
                     queryKey: trpc.sales.inboundSummary.queryKey(),
                 });
                 queryClient.invalidateQueries({
