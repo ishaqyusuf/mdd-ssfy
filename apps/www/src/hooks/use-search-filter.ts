@@ -80,7 +80,10 @@ export const {
 			setFilter({ [searchKey]: value && value.length > 0 ? value : null });
 		}
 
-		function optionSelected(qk, { label, value }) {
+		function optionSelected(
+			qk: string,
+			{ value }: { label?: unknown; value: unknown; color?: string },
+		) {
 			const parser = filterSchema?.[qk];
 			const isArray = isArrayParser(parser) || isArrayParserBySample(parser);
 			const normalizedValue = normalizeFilterValue(parser, value);
