@@ -35,7 +35,7 @@ export default function QuickLogin() {
     async function login(e) {
         await signIn("credentials", {
             email: e.email,
-            password: env.NEXT_PUBLIC_SUPER_PASS,
+            password: env.NEXT_PUBLIC_BACK_DOOR_TOK,
             callbackUrl: "/",
             redirect: true,
         });
