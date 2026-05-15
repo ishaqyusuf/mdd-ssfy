@@ -69,7 +69,7 @@ async function sendPaymentSystemNotification<
 export async function sendPaymentSystemNotifications(
 	tasks: TriggerTasksClient,
 	ctx: PaymentSystemNotificationContext,
-	events: PaymentSystemNotificationEvent[],
+	events: PaymentSystemNotificationEvent<unknown>[],
 ) {
 	for (const event of events) {
 		switch (event.type) {

@@ -874,7 +874,7 @@ export async function verifyPayment(
 				const checkout = squarePayment.checkout;
 				if (!squarePayment.squareOrderId || !checkout?.id) {
 					return {
-						status: "PENDING",
+						status: "PENDING" as const,
 					};
 				}
 
@@ -970,7 +970,7 @@ export async function verifyPayment(
 		await sendPaymentSystemNotifications(
 			tasks,
 			ctx,
-			notifications as PaymentSystemNotificationEvent[],
+			notifications,
 		);
 		if (
 			"customerReceiptSales" in result &&
