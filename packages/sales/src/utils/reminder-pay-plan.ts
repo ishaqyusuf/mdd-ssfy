@@ -8,7 +8,7 @@ export type ReminderPresetPayPlan =
 	(typeof reminderCompatibilityPayPlans)[number];
 
 export type ReminderPayPlan =
-	| ReminderPresetPayPlan
+	| number
 	| "full"
 	| "custom"
 	| "flexible";
