@@ -3,7 +3,7 @@ import type {
 	SalesPdfToken,
 } from "@gnd/utils/tokenizer";
 import { addDays } from "date-fns";
-import type { SalesPrintModes } from "src/constants";
+import type { SalesPrintModes } from "../constants";
 import type { SalesType } from "../types";
 import {
 	type ReminderPayPlan,

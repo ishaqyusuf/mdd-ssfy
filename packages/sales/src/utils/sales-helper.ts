@@ -1,6 +1,6 @@
 import { SalesPdfToken } from "@gnd/utils/tokenizer";
 import { addDays } from "date-fns";
-import { SalesPrintModes } from "src/constants";
+import { SalesPrintModes } from "../constants";
 
 export class SalesHelper {
   #token: string = "";

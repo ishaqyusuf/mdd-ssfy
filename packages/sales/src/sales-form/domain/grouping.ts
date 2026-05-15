@@ -119,6 +119,7 @@ function summarizeMouldingRows(rows: Array<Record<string, any>>) {
       salesPrice,
       basePrice: Number(row.basePrice || 0),
       lineTotal: roundCurrency(qty * unit),
+      stepProductId: row.stepProductId ?? null,
     };
   });
   const qtyTotal = normalizedRows.reduce(
@@ -209,7 +210,7 @@ export function collapseLegacyGroupedLines<T extends Record<string, any>>(
             taxxable: summary.rows.some((row) => Boolean(row?.taxxable)),
             produceable: summary.rows.some((row) => Boolean(row?.produceable)),
           },
-        } as T,
+        } as unknown as T,
       ];
     }
 
@@ -309,7 +310,7 @@ export function collapseLegacyGroupedLines<T extends Record<string, any>>(
           mouldingRows: summary.rows,
         },
         formSteps: nextFormSteps,
-      } as T,
+      } as unknown as T,
     ];
   });
 }
