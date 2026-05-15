@@ -21,6 +21,7 @@ import { GeneralActionBar } from "./general-action-bar";
 import { cn } from "@gnd/ui/cn";
 import { DeliveryOption } from "./delivery-option";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
+import { SalesPrioritySelect } from "@/components/sales-priority-control";
 
 export function GeneralTab({}) {
     const { data } = useSaleOverview();
@@ -97,11 +98,20 @@ export function GeneralTab({}) {
     return (
         <DataSkeletonProvider value={{ loading: !saleData?.id } as any}>
             <div className="relative mt-0 space-y-6 p-6">
-                <GeneralActionBar
-                    salesNo={saleData?.orderId}
-                    type={data?.type}
-                    salesId={data?.id!}
-                />
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <GeneralActionBar
+                        salesNo={saleData?.orderId}
+                        type={data?.type}
+                        salesId={data?.id!}
+                    />
+                    {!isQuote ? (
+                        <SalesPrioritySelect
+                            salesId={data?.id}
+                            orderId={saleData?.orderId}
+                            priority={(saleData as any)?.priority}
+                        />
+                    ) : null}
+                </div>
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div className="space-y-6">
                         <div>

@@ -5,6 +5,11 @@ import { transformSalesFilterQuery } from "@api/utils/sales";
 import { SalesListInclude } from "@api/utils/sales";
 import { composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
+import {
+	getSalesPriorityLabel,
+	normalizeSalesPriority,
+	salesPrioritySchema,
+} from "@sales/priority";
 import { z } from "zod";
 
 const ordersV2InvoiceStatus = ["paid", "outstanding"] as const;
@@ -31,6 +36,7 @@ export const getOrdersV2Schema = z
     orderNo: z.string().optional().nullable(),
     invoiceStatus: z.enum(ordersV2InvoiceStatus).optional().nullable(),
     production: z.enum(ordersV2ProductionStatus).optional().nullable(),
+    priority: salesPrioritySchema.optional().nullable(),
   })
   .extend(paginationSchema.shape);
 
@@ -60,6 +66,7 @@ function toLegacyOrdersQuery(query: GetOrdersV2SummarySchema, userId?: number | 
         ? "pending"
         : query.invoiceStatus ?? undefined,
     production: query.production,
+    "sales.priority": query.priority,
   };
 
   transformSalesFilterQuery(legacyQuery);
@@ -184,6 +191,8 @@ function normalizeOrderRow(
     salesRepName: dto.salesRep || "Unassigned",
     poNo: dto.poNo || "-",
     deliveryOption: dto.deliveryOption || "pickup",
+    priority: normalizeSalesPriority(row.priority),
+    priorityLabel: getSalesPriorityLabel(row.priority),
     invoiceTotal: dto.invoice.total || 0,
     amountDue: dto.invoice.pending || 0,
     paymentDueDate: dto.dueDate,

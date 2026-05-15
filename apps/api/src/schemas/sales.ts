@@ -9,6 +9,7 @@ import {
 	salesType,
 } from "@gnd/utils/constants";
 import { paginationSchema } from "@gnd/utils/schema";
+import { salesPrioritySchema } from "@sales/priority";
 import { z } from "@hono/zod-openapi";
 export const dispatchQueryParamsSchema = z
 	.object({
@@ -113,6 +114,8 @@ export const salesQueryParamsSchema = z
 			.enum(PRODUCTION_ASSIGNMENT_FILTER_OPTIONS)
 			.optional()
 			.nullable(),
+		"sales.priority": salesPrioritySchema.optional().nullable(),
+		priority: salesPrioritySchema.optional().nullable(),
 		invoice: z.enum(INVOICE_FILTER_OPTIONS).optional().nullable(),
 		production: z.enum(PRODUCTION_FILTER_OPTIONS).optional().nullable(),
 		showing: z.enum(["all sales"]).optional().nullable(),

@@ -20,9 +20,7 @@ export default async function Page(props) {
 	const searchParams = await props.searchParams;
 	const queryClient = getQueryClient();
 	const filter = loadSalesProductionFilterParams(searchParams);
-	const [initialDashboardData, initialFilterList] = await Promise.all<
-		[DashboardResponse, PageFilterData[]]
-	>([
+	const [initialDashboardData, initialFilterList] = await Promise.all([
 		queryClient.fetchQuery(trpc.sales.productionDashboard.queryOptions()),
 		queryClient.fetchQuery(trpc.filters.salesProductions.queryOptions()),
 	]);
@@ -38,8 +36,8 @@ export default async function Page(props) {
 				<ErrorBoundary errorComponent={ErrorFallback}>
 					<ProductionWorkspace
 						mode="admin"
-						initialDashboardData={initialDashboardData}
-						initialFilterList={initialFilterList}
+						initialDashboardData={initialDashboardData as DashboardResponse}
+						initialFilterList={initialFilterList as PageFilterData[]}
 					/>
 				</ErrorBoundary>
 			</HydrateClient>

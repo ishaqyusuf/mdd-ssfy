@@ -73,6 +73,7 @@ import {
 	productionV2ListQuerySchema,
 	salesProductionQueryParamsSchema,
 } from "@sales/exports";
+import { salesPrioritySchema } from "@sales/priority";
 import {
 	getProductionDashboardV2,
 	getProductionListV2,
@@ -238,6 +239,46 @@ export const salesRouter = createTRPCRouter({
 		.input(getOrdersV2SummarySchema)
 		.query(async (props) => {
 			return getOrdersV2Summary(props.ctx, props.input);
+		}),
+	updatePriority: protectedProcedure
+		.input(
+			z
+				.object({
+					salesId: z.number().optional().nullable(),
+					orderId: z.string().optional().nullable(),
+					priority: salesPrioritySchema,
+				})
+				.refine((input) => input.salesId || input.orderId, {
+					message: "salesId or orderId is required",
+					path: ["salesId"],
+				}),
+		)
+		.mutation(async (props) => {
+			const order = await props.ctx.db.salesOrders.findFirstOrThrow({
+				where: {
+					id: props.input.salesId || undefined,
+					orderId: props.input.orderId || undefined,
+				},
+				select: {
+					id: true,
+					orderId: true,
+					priority: true,
+				},
+			});
+
+			return props.ctx.db.salesOrders.update({
+				where: {
+					id: order.id,
+				},
+				data: {
+					priority: props.input.priority,
+				},
+				select: {
+					id: true,
+					orderId: true,
+					priority: true,
+				},
+			});
 		}),
 	quotes: publicProcedure.input(salesQueryParamsSchema).query(async (props) => {
 		return getQuotes(props.ctx, transformSalesFilterQuery(props.input));

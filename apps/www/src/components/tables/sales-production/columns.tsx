@@ -12,6 +12,7 @@ import type { RouterOutputs } from "@api/trpc/routers/_app";
 
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
+import { SalesPriorityBadge } from "@/components/sales-priority-control";
 
 export type Item = RouterOutputs["sales"]["productions"]["data"][number];
 interface ItemProps {
@@ -83,7 +84,10 @@ const orderColumn: Column = {
 	accessorKey: "orderId",
 	meta: {},
 	cell: ({ row: { original: item } }) => (
-		<TCell.Primary className="font-mono$">{item.orderId}</TCell.Primary>
+		<div className="flex flex-wrap items-center gap-2">
+			<TCell.Primary className="font-mono$">{item.orderId}</TCell.Primary>
+			<SalesPriorityBadge priority={(item as any).priority} />
+		</div>
 	),
 };
 const statusColumn: Column = {
@@ -147,7 +151,9 @@ function DueDateCell({ item }: ItemProps) {
 		<>
 			<TCell.Primary className="">
 				{item.alert.date ? (
-					<TCell.Secondary>{item.alert.dateString}</TCell.Secondary>
+					<TCell.Secondary>
+						{item.dueDateLabel || (item.alert as any)?.dateString}
+					</TCell.Secondary>
 				) : (
 					<>N/A</>
 				)}
@@ -223,6 +229,9 @@ function ItemCard({ item }: ItemProps) {
 			<div className="flex justify-between items-start">
 				<div className="flex flex-col">
 					<TCell.Primary className="font-mono$">{item.orderId}</TCell.Primary>
+					<div className="mt-1">
+						<SalesPriorityBadge priority={(item as any).priority} />
+					</div>
 					<TCell.Secondary>{item.customer}</TCell.Secondary>
 				</div>
 				<Progress>
@@ -238,7 +247,7 @@ function ItemCard({ item }: ItemProps) {
 				</TCell.Secondary>
 				{item.alert?.date && (
 					<TCell.Secondary className="font-mono$">
-						{item.alert.dateString}
+						{item.dueDateLabel || (item.alert as any)?.dateString}
 					</TCell.Secondary>
 				)}
 			</div>

@@ -1,0 +1,43 @@
+{
+  "name": "@gnd/dealership",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "PORTLESS_APP_PORT=${PORTLESS_APP_PORT:-4200} TZ=UTC portless gnd-dealership next dev --turbopack",
+    "clean": "git clean -xdf .next .turbo node_modules",
+    "build": "NODE_ENV=production next build --turbopack",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@gnd/api": "workspace:*",
+    "@gnd/auth": "workspace:*",
+    "@gnd/db": "workspace:*",
+    "@gnd/notifications": "workspace:*",
+    "@gnd/sales": "workspace:*",
+    "@gnd/ui": "workspace:*",
+    "@gnd/utils": "workspace:*",
+    "@tanstack/react-query": "^5.90.3",
+    "@trpc/client": "^11.6.0",
+    "@trpc/server": "^11.6.0",
+    "@trpc/tanstack-react-query": "^11.6.0",
+    "lucide-react": "^0.546.0",
+    "next": "catalog:",
+    "next-themes": "^0.4.6",
+    "nuqs": "^2.7.1",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "superjson": "2.2.2",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@gnd/tsconfig": "workspace:*",
+    "@tailwindcss/postcss": "catalog:",
+    "@types/node": "^25.2.3",
+    "@types/react": "~19.1.0",
+    "@types/react-dom": "^19.1.9",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:"
+  }
+}

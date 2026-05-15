@@ -7,20 +7,19 @@ export async function updateOrderPriorityActon({
     priority,
     orderId,
 }: UpdateOrderPriorityProps) {
-    const { id, meta } = (
+    const { id } = (
         await prisma.salesOrders.findMany({
             where: {
                 orderId,
             },
         })
     )[0] as any as ISalesOrder;
-    meta.priority = priority;
     await prisma.salesOrders.update({
         where: {
             id,
         },
         data: {
-            meta: meta as any,
+            priority,
         },
     });
 }

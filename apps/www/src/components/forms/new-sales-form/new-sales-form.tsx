@@ -4,19 +4,35 @@ import { triggerEvent } from "@/actions/events";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { updateSalesMetaAction } from "@/actions/update-sales-meta-action";
 import { _modal } from "@/components/common/modal/provider";
+import { SalesMenu } from "@/components/sales-menu";
+import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { useAuth } from "@/hooks/use-auth";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@gnd/ui/dropdown-menu";
+import { Icons } from "@gnd/ui/icons";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@gnd/ui/tooltip";
 import { toast } from "@gnd/ui/use-toast";
 import type { CreateSalesHistorySchemaTask } from "@jobs/schema";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
 	type MouseEvent as ReactMouseEvent,
+	type ReactNode,
 	useCallback,
 	useEffect,
 	useMemo,
@@ -39,6 +55,7 @@ import {
 	writeRecoverySnapshot,
 } from "./local-recovery";
 import { toSaveDraftInput } from "./mappers";
+import type { NewSalesFormRecord } from "./schema";
 import { CustomerSelectorDialog } from "./sections/customer-selector-dialog";
 import { HeaderActions } from "./sections/header-actions";
 import { useNewSalesFormStore } from "./store";
@@ -163,21 +180,356 @@ function normalizeDispatchStatus(status?: string | null): DispatchStatus {
 	}
 }
 
+function SkeletonBlock({ className }: { className: string }) {
+	return <div className={`animate-pulse rounded bg-muted ${className}`} />;
+}
+
+function SkeletonIcon() {
+	return <div className="size-8 animate-pulse rounded-full bg-muted" />;
+}
+
 function WorkflowPanelSkeleton() {
 	return (
-		<div className="grid gap-4">
-			<div className="rounded-xl border bg-card p-4">
-				<div className="h-5 w-44 animate-pulse rounded bg-muted" />
-				<div className="mt-3 h-4 w-72 animate-pulse rounded bg-muted" />
-			</div>
-			<div className="rounded-xl border bg-card p-4">
-				<div className="h-10 w-full animate-pulse rounded bg-muted" />
-				<div className="mt-4 grid gap-3">
-					<div className="h-20 w-full animate-pulse rounded bg-muted" />
-					<div className="h-20 w-full animate-pulse rounded bg-muted" />
-					<div className="h-20 w-full animate-pulse rounded bg-muted" />
+		<div className="divide-y divide-muted-foreground">
+			{[0, 1, 2].map((itemIndex) => (
+				<div key={`workflow-skeleton-${itemIndex}`} className="bg-background p-4">
+					<div className="grid gap-4 md:grid-cols-12">
+						<div className="md:col-span-10">
+							<SkeletonBlock className="h-10 w-full" />
+						</div>
+						<div className="flex items-center justify-end gap-2 md:col-span-2">
+							<SkeletonBlock className="h-5 w-20" />
+							<SkeletonIcon />
+						</div>
+					</div>
+					<div className="mt-3 flex flex-wrap gap-2">
+						<SkeletonBlock className="h-6 w-28 rounded-full" />
+						<SkeletonBlock className="h-6 w-36 rounded-full" />
+						<SkeletonBlock className="h-6 w-24 rounded-full" />
+					</div>
+					<div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
+						<div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50/70 px-4 py-3">
+							<SkeletonBlock className="size-12" />
+							<div className="min-w-0 flex-1 space-y-2">
+								<SkeletonBlock className="h-4 w-56 max-w-full" />
+								<SkeletonBlock className="h-3 w-28" />
+							</div>
+							<div className="flex gap-1">
+								<SkeletonIcon />
+								<SkeletonIcon />
+								<SkeletonIcon />
+							</div>
+						</div>
+						<div className="grid gap-3 p-4 sm:grid-cols-3">
+							<SkeletonBlock className="h-16 w-full" />
+							<SkeletonBlock className="h-16 w-full" />
+							<SkeletonBlock className="h-16 w-full" />
+						</div>
+					</div>
+				</div>
+			))}
+		</div>
+	);
+}
+
+function NewSalesFormSkeleton() {
+	return (
+		<div className="fixed bottom-0 left-0 right-0 top-[var(--header-height)] overflow-hidden bg-background md:left-[84px]">
+			<div className="relative flex h-full min-h-0 overflow-hidden border border-slate-200/80 bg-background shadow-sm">
+				<main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+					<div className="shrink-0 border-b bg-card px-4 py-3 sm:px-5">
+						<div className="flex flex-wrap items-center gap-3">
+							<div className="space-y-2">
+								<SkeletonBlock className="h-5 w-44" />
+								<SkeletonBlock className="h-3 w-64 max-w-[70vw]" />
+							</div>
+							<div className="ml-auto flex items-center gap-2">
+								<SkeletonBlock className="hidden h-8 w-28 rounded-full sm:block" />
+								<SkeletonIcon />
+								<SkeletonIcon />
+								<SkeletonIcon />
+							</div>
+						</div>
+					</div>
+					<div className="flex-1 overflow-hidden pb-28 lg:pb-20">
+						<div className="mx-auto flex w-full max-w-6xl flex-col pr-4 sm:pr-6 lg:pr-8">
+							<WorkflowPanelSkeleton />
+						</div>
+					</div>
+					<div className="pointer-events-none absolute inset-x-0 bottom-1 z-20 hidden justify-center px-2 pb-[env(safe-area-inset-bottom)] lg:flex">
+						<div className="pointer-events-auto flex w-fit max-w-[calc(100%-1rem)] items-center gap-1 rounded-full border border-slate-200 bg-card/95 p-1 shadow-lg backdrop-blur">
+							<SkeletonIcon />
+							<SkeletonIcon />
+							<SkeletonIcon />
+							<SkeletonIcon />
+						</div>
+					</div>
+				</main>
+				<aside className="hidden w-80 shrink-0 border-l bg-card/80 p-4 xl:block">
+					<div className="space-y-4">
+						<SkeletonBlock className="h-5 w-32" />
+						<SkeletonBlock className="h-24 w-full" />
+						<SkeletonBlock className="h-24 w-full" />
+						<div className="space-y-2 pt-2">
+							<SkeletonBlock className="h-4 w-full" />
+							<SkeletonBlock className="h-4 w-4/5" />
+							<SkeletonBlock className="h-10 w-full" />
+						</div>
+					</div>
+				</aside>
+				<div className="absolute inset-x-0 bottom-0 z-20 border-t bg-card p-3 shadow-[0_-4px_18px_rgba(0,0,0,0.08)] lg:hidden">
+					<div className="mx-auto flex w-full max-w-lg items-center gap-3">
+						<div className="flex-1 space-y-2">
+							<SkeletonBlock className="h-3 w-24" />
+							<SkeletonBlock className="h-6 w-32" />
+						</div>
+						<SkeletonBlock className="h-11 w-24" />
+					</div>
 				</div>
 			</div>
+		</div>
+	);
+}
+
+function FloatingActionTooltip({
+	children,
+	label,
+}: {
+	children: ReactNode;
+	label: string;
+}) {
+	return (
+		<Tooltip>
+			<TooltipTrigger asChild>{children}</TooltipTrigger>
+			<TooltipContent side="top" className="px-2 py-1 text-xs">
+				{label}
+			</TooltipContent>
+		</Tooltip>
+	);
+}
+
+function NewSalesFormFloatingActions({
+	type,
+	record,
+	isSaved,
+	isSaving,
+	isPrinting,
+	onAddItem,
+	onSave,
+	onOpenOverview,
+	onPrint,
+}: {
+	type: Props["type"];
+	record: NewSalesFormRecord;
+	isSaved: boolean;
+	isSaving: boolean;
+	isPrinting: boolean;
+	onAddItem: () => void;
+	onSave: () => void;
+	onOpenOverview: () => void;
+	onPrint: (event?: ReactMouseEvent<HTMLButtonElement>) => void;
+}) {
+	const isOrder = type === "order";
+	const salesId = Number(record.salesId || 0);
+	const customer = record.customer;
+	const customerId = Number(customer?.id || record.form.customerId || 0);
+	const amountDue = Math.max(
+		0,
+		Number(record.summary.grandTotal || 0) - Number(record.paymentTotal || 0),
+	);
+	const canUseSavedActions = isSaved && salesId > 0;
+	const canPay = isOrder && canUseSavedActions && amountDue > 0 && customerId > 0;
+	const salesIds = salesId ? [salesId] : [];
+	const customerName = customer?.businessName || customer?.name || undefined;
+
+	return (
+		<div className="pointer-events-none absolute inset-x-0 bottom-1 z-20 hidden justify-center px-2 pb-[env(safe-area-inset-bottom)] lg:flex">
+			<TooltipProvider delayDuration={120}>
+				<div className="pointer-events-auto flex w-fit max-w-[calc(100%-1rem)] items-center gap-1 overflow-hidden rounded-full border border-slate-200 bg-card/95 p-1 shadow-lg backdrop-blur">
+					<FloatingActionTooltip label="Add item">
+						<Button
+							type="button"
+							size="icon"
+							onClick={onAddItem}
+							className="size-8 rounded-full"
+							aria-label="Add item"
+						>
+							<Icons.Plus className="size-3.5" />
+						</Button>
+					</FloatingActionTooltip>
+
+					{canUseSavedActions ? (
+						<div className="hidden items-center gap-1 xl:flex">
+							{isOrder ? (
+								<SalesPaymentProcessor
+									phoneNo={customer?.phoneNo}
+									selectedIds={salesIds}
+									customerId={customerId}
+									disabled={!canPay}
+								>
+									<Button
+										type="button"
+										size="icon"
+										variant="outline"
+										disabled={!canPay}
+										className="size-8 rounded-full"
+										aria-label="Pay"
+										title="Pay"
+									>
+										<Icons.payment className="size-3.5" />
+									</Button>
+								</SalesPaymentProcessor>
+							) : null}
+							<SalesMenu
+								id={salesId}
+								salesIds={salesIds}
+								type={type}
+								orderNo={record.orderId}
+								customerEmail={customer?.email ?? null}
+								customerName={customerName}
+								trigger={
+									<Button
+										type="button"
+										size="icon"
+										variant="outline"
+										className="size-8 rounded-full"
+										aria-label="Email"
+										title="Email"
+									>
+										<Icons.Mail className="size-3.5" />
+									</Button>
+								}
+							>
+								{isOrder ? (
+									<SalesMenu.SalesEmailMenuItems />
+								) : (
+									<SalesMenu.QuoteEmailMenuItems />
+								)}
+							</SalesMenu>
+							<FloatingActionTooltip label="Overview">
+								<Button
+									type="button"
+									size="icon"
+									variant="outline"
+									onClick={onOpenOverview}
+									className="size-8 rounded-full"
+									aria-label="Overview"
+								>
+									<Icons.ExternalLink className="size-3.5" />
+								</Button>
+							</FloatingActionTooltip>
+							<FloatingActionTooltip label={isPrinting ? "Preparing print" : "Print"}>
+								<Button
+									type="button"
+									size="icon"
+									variant="outline"
+									onClick={(event) => onPrint(event)}
+									disabled={isPrinting}
+									className="size-8 rounded-full"
+									aria-label={isPrinting ? "Preparing print" : "Print"}
+								>
+									{isPrinting ? (
+										<Icons.Loader2 className="size-3.5 animate-spin" />
+									) : (
+										<Icons.Printer className="size-3.5" />
+									)}
+								</Button>
+							</FloatingActionTooltip>
+						</div>
+					) : null}
+
+					{canUseSavedActions ? (
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									type="button"
+									size="icon"
+									variant="outline"
+									className="size-8 shrink-0 rounded-full xl:hidden"
+									aria-label="More actions"
+								>
+									<Icons.MoreHorizontal className="size-3.5" />
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end" className="w-52">
+								{isOrder ? (
+									<SalesPaymentProcessor
+										phoneNo={customer?.phoneNo}
+										selectedIds={salesIds}
+										customerId={customerId}
+										disabled={!canPay}
+									>
+										<DropdownMenuItem
+											disabled={!canPay}
+											onSelect={(event) => event.preventDefault()}
+										>
+											<Icons.payment className="mr-2 size-4" />
+											Pay
+										</DropdownMenuItem>
+									</SalesPaymentProcessor>
+								) : null}
+								<SalesMenu
+									id={salesId}
+									salesIds={salesIds}
+									type={type}
+									orderNo={record.orderId}
+									customerEmail={customer?.email ?? null}
+									customerName={customerName}
+									trigger={
+										<DropdownMenuItem
+											onSelect={(event) => event.preventDefault()}
+										>
+											<Icons.Mail className="mr-2 size-4" />
+											Email
+										</DropdownMenuItem>
+									}
+								>
+									{isOrder ? (
+										<SalesMenu.SalesEmailMenuItems />
+									) : (
+										<SalesMenu.QuoteEmailMenuItems />
+									)}
+								</SalesMenu>
+								<DropdownMenuItem onSelect={onOpenOverview}>
+									<Icons.ExternalLink className="mr-2 size-4" />
+									Overview
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									disabled={isPrinting}
+									onSelect={(event) => {
+										event.preventDefault();
+										onPrint();
+									}}
+								>
+									{isPrinting ? (
+										<Icons.Loader2 className="mr-2 size-4 animate-spin" />
+									) : (
+										<Icons.Printer className="mr-2 size-4" />
+									)}
+									{isPrinting ? "Preparing..." : "Print"}
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					) : null}
+
+					<FloatingActionTooltip label={isSaving ? "Saving" : "Save"}>
+						<Button
+							type="button"
+							size="icon"
+							onClick={onSave}
+							disabled={isSaving}
+							className="size-8 rounded-full p-0"
+							aria-label={isSaving ? "Saving" : "Save"}
+						>
+							{isSaving ? (
+								<Icons.Loader2 className="size-3.5 animate-spin" />
+							) : (
+								<Icons.Save className="size-3.5" />
+							)}
+						</Button>
+					</FloatingActionTooltip>
+				</div>
+			</TooltipProvider>
 		</div>
 	);
 }
@@ -713,24 +1065,13 @@ export function NewSalesForm(props: Props) {
 			writeRecoverySnapshot(recoveryKey, payload);
 		};
 
-		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-			persistSnapshot();
-			const shouldBlockLeave =
-				!editor.autosaveEnabled ||
-				saveStatus === "error" ||
-				saveStatus === "stale";
-			if (!shouldBlockLeave) return;
-			event.preventDefault();
-			event.returnValue = "";
-		};
-
 		window.addEventListener("pagehide", persistSnapshot);
-		window.addEventListener("beforeunload", handleBeforeUnload);
+		window.addEventListener("beforeunload", persistSnapshot);
 		return () => {
 			window.removeEventListener("pagehide", persistSnapshot);
-			window.removeEventListener("beforeunload", handleBeforeUnload);
+			window.removeEventListener("beforeunload", persistSnapshot);
 		};
-	}, [dirty, editor.autosaveEnabled, payload, recoveryKey, saveStatus]);
+	}, [dirty, payload, recoveryKey]);
 
 	useEffect(() => {
 		if (!dirty || !payload) return;
@@ -994,11 +1335,7 @@ export function NewSalesForm(props: Props) {
 	}
 
 	if (isLoading || !record) {
-		return (
-			<div className="rounded-lg border p-8 text-sm text-muted-foreground">
-				Loading sales form...
-			</div>
-		);
+		return <NewSalesFormSkeleton />;
 	}
 
 	if (loadError) {
@@ -1048,8 +1385,9 @@ export function NewSalesForm(props: Props) {
 				}}
 				onDontAskAgainChange={dismissPaymentMethodReview}
 			/>
-			<div className="relative flex min-h-0 h-[calc(100dvh-var(--header-height,5rem)-1.5rem)] max-h-[calc(100dvh-var(--header-height,5rem)-1.5rem)] overflow-hidden rounded-xl border bg-background">
-				<main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+			<div className="fixed bottom-0 left-0 right-0 top-[var(--header-height)] overflow-hidden bg-background md:left-[84px]">
+				<div className="relative flex h-full min-h-0 overflow-hidden border border-slate-200/80 bg-background shadow-sm">
+				<main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 					<HeaderActions
 						type={props.type}
 						orderId={record.orderId}
@@ -1123,10 +1461,10 @@ export function NewSalesForm(props: Props) {
 						}
 					/>
 
-					<div className="flex-1 overflow-y-auto p-4 pb-28 sm:p-6 lg:p-8 lg:pb-8">
-						<div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
+					<div className="flex-1 overflow-y-auto overscroll-contain pb-28 lg:pb-20">
+						<div className="mx-auto flex w-full max-w-6xl flex-col pr-4 sm:pr-6 lg:pr-8">
 							{recoverySnapshot ? (
-								<div className="flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 md:flex-row md:items-center md:justify-between">
+								<div className="m-4 flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 md:flex-row md:items-center md:justify-between sm:m-6 lg:m-8">
 									<p>
 										Unsaved local edits were found from{" "}
 										{new Date(recoverySnapshot.savedAt).toLocaleString()}.
@@ -1156,6 +1494,18 @@ export function NewSalesForm(props: Props) {
 							<ItemWorkflowPanel />
 						</div>
 					</div>
+
+					<NewSalesFormFloatingActions
+						type={props.type}
+						record={record}
+						isSaved={isSaved}
+						isSaving={isSaveBusy}
+						isPrinting={salesPrint.isPrinting}
+						onAddItem={() => addLineItem()}
+						onSave={() => void saveDraftNow()}
+						onOpenOverview={handleOpenOverview}
+						onPrint={(event) => void handlePrint(event)}
+					/>
 				</main>
 
 				<InvoiceSummarySidebar
@@ -1175,7 +1525,7 @@ export function NewSalesForm(props: Props) {
 					}
 				/>
 
-				<div className="fixed inset-x-0 bottom-0 z-20 border-t bg-card p-3 shadow-[0_-4px_18px_rgba(0,0,0,0.08)] lg:hidden">
+				<div className="absolute inset-x-0 bottom-0 z-20 border-t bg-card p-3 shadow-[0_-4px_18px_rgba(0,0,0,0.08)] lg:hidden">
 					<div className="mx-auto flex w-full max-w-lg items-center gap-3">
 						<button
 							type="button"
@@ -1203,6 +1553,7 @@ export function NewSalesForm(props: Props) {
 							Finalize
 						</Button>
 					</div>
+				</div>
 				</div>
 			</div>
 		</>

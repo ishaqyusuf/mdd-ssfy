@@ -88,4 +88,24 @@ describe("whereSales stat filters", () => {
 		expect(json).not.toContain('"type":"dispatchCompleted"');
 		expect(json).toContain('"dueDate":{"lt":');
 	});
+
+	it("treats normal priority as NORMAL or legacy null", () => {
+		const where = whereSales({
+			"sales.priority": "NORMAL",
+		} as any);
+		const json = JSON.stringify(toClauses(where));
+
+		expect(json).toContain('"priority":null');
+		expect(json).toContain('"priority":"NORMAL"');
+	});
+
+	it("filters non-normal priorities exactly", () => {
+		const where = whereSales({
+			"sales.priority": "CRITICAL",
+		} as any);
+		const json = JSON.stringify(toClauses(where));
+
+		expect(json).toContain('"priority":"CRITICAL"');
+		expect(json).not.toContain('"priority":null');
+	});
 });

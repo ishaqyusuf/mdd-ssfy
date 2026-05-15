@@ -12,6 +12,7 @@ import { cn } from "@gnd/ui/cn";
 import { cells } from "@gnd/ui/custom/data-table/cells";
 import { HoverCard } from "@gnd/ui/namespace";
 import type { ColumnDef } from "@tanstack/react-table";
+import { SalesPriorityBadge } from "@/components/sales-priority-control";
 
 export type Item = RouterOutputs["sales"]["getOrdersV2"]["data"][number];
 
@@ -48,7 +49,10 @@ const invoiceIdColumn: Column = {
   header: "Invoice ID",
   accessorKey: "orderId",
   cell: ({ row: { original: item } }) => (
-    <TCell.Primary className="font-medium">{item.orderId}</TCell.Primary>
+    <div className="flex flex-wrap items-center gap-2">
+      <TCell.Primary className="font-medium">{item.orderId}</TCell.Primary>
+      <SalesPriorityBadge priority={(item as any).priority} />
+    </div>
   ),
 };
 
@@ -234,6 +238,9 @@ function ItemCard({ item }: { item: Item }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-slate-900">{item.orderId}</p>
+          <div className="mt-2">
+            <SalesPriorityBadge priority={(item as any).priority} />
+          </div>
           <p className="truncate text-sm text-slate-600">{item.customerName}</p>
           <p className="mt-1 text-xs text-slate-500">{item.salesDate}</p>
         </div>

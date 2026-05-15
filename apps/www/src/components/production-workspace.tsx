@@ -121,19 +121,22 @@ export function ProductionWorkspace({
 
 	const dashboardQuery = useQuery(
 		trpc.sales.productionDashboard.queryOptions(
-			workerMode && workerId ? { workerId } : undefined,
-			{
-				enabled: workerMode ? !!workerId : true,
-				initialData: initialDashboardData,
-			},
-		),
-	);
+			workerMode && workerId
+				? { workerId, priority: filters.priority || undefined }
+				: { priority: filters.priority || undefined },
+				{
+					enabled: workerMode ? !!workerId : true,
+					initialData: initialDashboardData as any,
+				},
+			),
+		);
 
 	useEffect(() => {
 		const hasDefaultView =
 			!!filters.show ||
 			!!filters.production ||
 			!!filters.productionDueDate ||
+			!!filters.priority ||
 			!!filters.q ||
 			!!filters.salesNo ||
 			!!filters.assignedToId;
@@ -146,6 +149,7 @@ export function ProductionWorkspace({
 		filters.assignedToId,
 		filters.production,
 		filters.productionDueDate,
+		filters.priority,
 		filters.q,
 		filters.salesNo,
 		filters.show,
@@ -172,9 +176,9 @@ export function ProductionWorkspace({
 	const dashboard = dashboardQuery.data as DashboardResponse | undefined;
 
 	const applyPreset = (preset: {
-		production?: string | null;
+		production?: "pending" | "in progress" | "completed" | null;
 		productionDueDate?: string | null;
-		show?: string | null;
+		show?: "due-today" | "due-tomorrow" | "past-due" | null;
 	}) => {
 		setFilters({
 			production: preset.production ?? null,

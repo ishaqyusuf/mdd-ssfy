@@ -9,6 +9,11 @@ import {
 	dueDateAlert,
 	overallStatus,
 } from "./utils/utils";
+import {
+	getSalesPriorityLabel,
+	getSalesPriorityRank,
+	normalizeSalesPriority,
+} from "./priority";
 
 export async function getSalesProductions(
 	db: Db,
@@ -23,30 +28,33 @@ export async function getSalesProductions(
 	const getDueToday = async () =>
 		filterCompletedProductions(
 			await getProductionListAction(db, {
-				salesType: "order",
-				"production.assignedToId": assignedToId,
-				"production.status": "due today",
-				size: 99,
-			}),
-		);
+					salesType: "order",
+					"production.assignedToId": assignedToId,
+					"production.status": "due today",
+					"sales.priority": query.priority || query["sales.priority"],
+					size: 99,
+				}),
+			);
 	const getPastDue = async () =>
 		filterCompletedProductions(
 			await getProductionListAction(db, {
-				salesType: "order",
-				"production.assignedToId": assignedToId,
-				"production.status": "past due",
-				size: 99,
-			}),
-		);
+					salesType: "order",
+					"production.assignedToId": assignedToId,
+					"production.status": "past due",
+					"sales.priority": query.priority || query["sales.priority"],
+					size: 99,
+				}),
+			);
 	const getDueTomorrow = async () =>
 		filterCompletedProductions(
 			await getProductionListAction(db, {
-				salesType: "order",
-				"production.assignedToId": assignedToId,
-				"production.status": "due tomorrow",
-				size: 99,
-			}),
-		);
+					salesType: "order",
+					"production.assignedToId": assignedToId,
+					"production.status": "due tomorrow",
+					"sales.priority": query.priority || query["sales.priority"],
+					size: 99,
+				}),
+			);
 	switch (query.show) {
 		case "due-today":
 			return await getDueToday();
@@ -57,6 +65,7 @@ export async function getSalesProductions(
 	}
 	const response = await getProductionListAction(db, {
 		...normalizedQuery,
+		"sales.priority": query.priority || query["sales.priority"],
 		salesType: "order",
 		//   "production.status": "part assigned",
 	});
@@ -84,6 +93,7 @@ export async function getSalesProductionDashboard(
 			...baseQuery,
 			"production.assignedToId":
 				query["production.assignedToId"] || assignedToId || undefined,
+			"sales.priority": query.priority || query["sales.priority"],
 			salesType: "order",
 		} as SalesQueryParamsSchema),
 		getSalesProductions(db, { ...baseQuery, show: "due-today" }),
@@ -143,7 +153,10 @@ export async function getSalesProductionDashboard(
 	};
 }
 
-async function getProductionListAction(db: Db, query: SalesQueryParamsSchema) {
+async function getProductionListAction(
+	db: Db,
+	query: SalesQueryParamsSchema & { workerId?: number | null },
+) {
 	const where = whereSales(query);
 
 	const whereAssignments: Prisma.OrderItemProductionAssignmentsWhereInput[] = (
@@ -158,17 +171,42 @@ async function getProductionListAction(db: Db, query: SalesQueryParamsSchema) {
 		where,
 		db.salesOrders,
 	);
+	const requestedSkip = Number(query.cursor || 0);
+	const requestedTake = Number(query.size || 20);
+	const totalCount = await db.salesOrders.count({ where });
 	const data = await db.salesOrders.findMany({
 		...queryProps,
+		skip: 0,
+		take: totalCount,
 		select: select(whereAssignments),
 	});
-	return response(
+	const sorted = sortProductionListByPriority(
 		data.map((item) =>
 			transformProductionList(item, {
 				useAssignmentCompletion: !!query.workerId,
 			}),
 		),
 	);
+
+	return response(sorted.slice(requestedSkip, requestedSkip + requestedTake));
+}
+
+export function sortProductionListByPriority<
+	T extends { priority?: string | null; dueDate?: string | Date | null },
+>(items: T[]) {
+	return [...items].sort((a, b) => {
+		const priorityRank =
+			getSalesPriorityRank(a.priority) - getSalesPriorityRank(b.priority);
+		if (priorityRank !== 0) return priorityRank;
+
+		const aDue = a.dueDate
+			? new Date(a.dueDate).getTime()
+			: Number.MAX_SAFE_INTEGER;
+		const bDue = b.dueDate
+			? new Date(b.dueDate).getTime()
+			: Number.MAX_SAFE_INTEGER;
+		return aDue - bDue;
+	});
 }
 const select = (whereAssignments?) =>
 	({
@@ -176,6 +214,7 @@ const select = (whereAssignments?) =>
 		billingAddress: true,
 		id: true,
 		orderId: true,
+		priority: true,
 		salesRep: {
 			select: { name: true },
 		},
@@ -270,6 +309,8 @@ function transformProductionList(
 		dueDate: alert?.date || null,
 		dueDateLabel: alert?.date ? formatDate(alert.date) : null,
 		orderId: item.orderId,
+		priority: normalizeSalesPriority(item.priority),
+		priorityLabel: getSalesPriorityLabel(item.priority),
 		alert,
 		customer: item.customer?.name || item.customer?.businessName,
 

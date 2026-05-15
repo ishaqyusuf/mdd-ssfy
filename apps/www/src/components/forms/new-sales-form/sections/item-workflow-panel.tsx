@@ -50,12 +50,24 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@gnd/ui/dialog";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@gnd/ui/dropdown-menu";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
+import { InputGroup } from "@gnd/ui/namespace";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { Skeleton } from "@gnd/ui/skeleton";
-import { useMediaQuery } from "@gnd/ui/hooks";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@gnd/ui/tooltip";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
 	useCustomerProfilesQuery,
 	useNewSalesFormShelfCategoriesQuery,
@@ -159,6 +171,7 @@ type DoorStoredRow = {
 type MouldingRow = {
 	uid?: string | null;
 	title?: string | null;
+	img?: string | null;
 	description?: string | null;
 	qty?: number | null;
 	addon?: number | null;
@@ -283,6 +296,22 @@ function moneyIfPositive(value?: number | null) {
 		style: "currency",
 		currency: "USD",
 	}).format(amount);
+}
+function HptHeaderActionTooltip({
+	children,
+	label,
+}: {
+	children: ReactNode;
+	label: string;
+}) {
+	return (
+		<Tooltip>
+			<TooltipTrigger asChild>{children}</TooltipTrigger>
+			<TooltipContent side="top" className="px-2 py-1 text-xs">
+				{label}
+			</TooltipContent>
+		</Tooltip>
+	);
 }
 function firstFiniteNumber(...values: Array<number | null | undefined>) {
 	for (const value of values) {
@@ -561,7 +590,6 @@ export function ItemWorkflowPanel() {
 
 	const stepRoutingQuery = useNewSalesFormStepRoutingQuery({});
 	const routeData = stepRoutingQuery.data;
-	const isSmallScreen = useMediaQuery("(max-width: 1023px)");
 	const suppliersQuery = useSalesSuppliersQuery(true);
 	const customerProfilesQuery = useCustomerProfilesQuery(true);
 	const saveSupplierMutation = useSalesSaveSupplierMutation();
@@ -584,16 +612,11 @@ export function ItemWorkflowPanel() {
 		? findLineStepByTitle(activeLine, "Door")
 		: null;
 	const visibleLineItems = useMemo(() => {
-		const indexedLineItems = record.lineItems.map((line, index) => ({
+		return record.lineItems.map((line, index) => ({
 			line,
 			index,
 		}));
-		if (!isSmallScreen) return indexedLineItems;
-		if (activeLine) {
-			return indexedLineItems.filter(({ line }) => line.uid === activeLine.uid);
-		}
-		return indexedLineItems.slice(0, 1);
-	}, [activeLine, isSmallScreen, record.lineItems]);
+	}, [record.lineItems]);
 	const activeDoorStepIndex = activeLineSteps.findIndex((step) =>
 		isDoorStepTitle(step?.step?.title),
 	);
@@ -1896,9 +1919,36 @@ export function ItemWorkflowPanel() {
 		activeItemStep: WorkflowStep,
 	) {
 		const rows = line.housePackageTool?.doors || [];
-		const selectedDoorComponents = getSelectedDoorComponentsForLine(line, {
+		let selectedDoorComponents = getSelectedDoorComponentsForLine(line, {
 			availableComponents: visibleDoorComponents,
 		});
+		if (!selectedDoorComponents.length && rows.length) {
+			const recoveredComponentIds = Array.from(
+				new Set(rows.map((row) => Number(row?.stepProductId || 0))),
+			);
+			selectedDoorComponents = recoveredComponentIds.map((componentId, index) => {
+				const visibleComponent =
+					componentId > 0
+						? visibleDoorComponents.find(
+								(component) => Number(component?.id || 0) === componentId,
+							)
+						: null;
+				return (
+					visibleComponent || {
+						id: componentId || null,
+						uid: componentId
+							? `persisted-door-${componentId}`
+							: `persisted-door-${index + 1}`,
+						title: componentId ? `Door ${componentId}` : "Saved Door",
+						img: null,
+						salesPrice: null,
+						basePrice: null,
+						pricing: null,
+						supplierVariants: [],
+					}
+				);
+			});
+		}
 		const doorStepIndex = (line.formSteps || []).findIndex((step) =>
 			isDoorStepTitle(step?.step?.title),
 		);
@@ -1922,13 +1972,20 @@ export function ItemWorkflowPanel() {
 		const sharedDoorSurcharge = computeSharedDoorSurcharge(line);
 		const doorStep = findLineStepByTitle(line, "Door");
 		const supplier = getDoorSupplierMeta(doorStep);
-		const focusedRows = activeDoorComponent
+		const matchedFocusedRows = activeDoorComponent
 			? summary.rows.filter(
 					(row) =>
 						Number(row?.stepProductId || 0) ===
 						Number(activeDoorComponent.id || 0),
 				)
 			: summary.rows;
+		const focusedRows =
+			activeDoorComponent &&
+			!matchedFocusedRows.length &&
+			selectedDoorComponents.length === 1 &&
+			summary.rows.length
+				? summary.rows
+				: matchedFocusedRows;
 		const availableSizes = (() => {
 			if (!activeDoorComponent) return [] as string[];
 			const sizes = deriveDoorSizeCandidates(
@@ -2069,64 +2126,6 @@ export function ItemWorkflowPanel() {
 							<Icons.Hammer size={13} />
 							{supplier.supplierName || "GND MILLWORK"}
 						</span>
-						{activeDoorComponent ? (
-							<>
-								<Button
-									size="sm"
-									variant="outline"
-									className="ml-auto"
-									onClick={() =>
-										setDoorStepModal({
-											open: true,
-											component: activeDoorComponent,
-										})
-									}
-								>
-									Configure Sizes
-								</Button>
-								<Button
-									size="sm"
-									variant="outline"
-									onClick={() =>
-										setDoorSwapModal({
-											open: true,
-											lineUid: line.uid,
-											sourceUid: activeDoorComponent?.uid || null,
-										})
-									}
-									disabled={!swapDoorCandidates.length}
-								>
-									Swap Door
-								</Button>
-								<Button
-									size="sm"
-									variant="destructive"
-									onClick={() =>
-										removeDoorOptionFromHpt(
-											line,
-											doorStepIndex,
-											activeDoorComponent,
-										)
-									}
-								>
-									Delete Door
-								</Button>
-							</>
-						) : null}
-						{doorStepIndex >= 0 ? (
-							<Button
-								size="sm"
-								variant="ghost"
-								onClick={() =>
-									setActiveStepByLine((prev) => ({
-										...prev,
-										[line.uid]: doorStepIndex,
-									}))
-								}
-							>
-								Add Door Option
-							</Button>
-						) : null}
 					</div>
 					{selectedDoorComponents.length ? (
 						<div className="mt-3 flex flex-wrap gap-2">
@@ -2227,12 +2226,12 @@ export function ItemWorkflowPanel() {
 									className="overflow-hidden rounded-xl border border-slate-200 bg-white"
 								>
 									<header className="flex items-center gap-3 border-b border-slate-100 bg-slate-50/70 px-4 py-3">
-										<div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white">
+										<div className="group flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white">
 											{resolveComponentImageSrc(component?.img) ? (
 												<img
 													src={resolveComponentImageSrc(component?.img) || ""}
 													alt={component?.title || `Component ${componentId}`}
-													className="h-full w-full object-contain p-1"
+													className="h-full w-full object-contain p-2 transition-transform duration-200 group-hover:scale-90"
 												/>
 											) : (
 												<Icons.Ruler size={15} className="text-slate-500" />
@@ -2249,31 +2248,105 @@ export function ItemWorkflowPanel() {
 												{rowsForComponent.length > 1 ? "s" : ""}
 											</p>
 										</div>
-										<div className="ml-auto">
-											<Menu
-												Trigger={
+										<div className="ml-auto flex shrink-0 items-center gap-1">
+											<TooltipProvider delayDuration={120}>
+												<DropdownMenu>
+													<Tooltip>
+														<TooltipTrigger asChild>
+															<DropdownMenuTrigger asChild>
+																<Button
+																	type="button"
+																	size="icon"
+																	variant="outline"
+																	className="size-8 rounded-full"
+																	aria-label="Add Size"
+																>
+																	<Icons.Plus className="size-3.5" />
+																</Button>
+															</DropdownMenuTrigger>
+														</TooltipTrigger>
+														<TooltipContent side="top" className="px-2 py-1 text-xs">
+															Add Size
+														</TooltipContent>
+													</Tooltip>
+													<DropdownMenuContent align="end" className="w-44">
+														{!availableSizes.length ? (
+															<DropdownMenuItem disabled>
+																No more sizes
+															</DropdownMenuItem>
+														) : (
+															availableSizes.map((size) => (
+																<DropdownMenuItem
+																	key={`add-size-${componentId}-${size}`}
+																	onClick={() => addSizeRow(size)}
+																>
+																	{size}
+																</DropdownMenuItem>
+															))
+														)}
+													</DropdownMenuContent>
+												</DropdownMenu>
+												<HptHeaderActionTooltip label="Configure Sizes">
 													<Button
-														size="sm"
+														type="button"
+														size="icon"
 														variant="outline"
-														className="h-8 px-2 text-[11px]"
+														className="size-8 rounded-full"
+														onClick={() =>
+															activeDoorComponent
+																? setDoorStepModal({
+																		open: true,
+																		component: activeDoorComponent,
+																	})
+																: undefined
+														}
+														disabled={!activeDoorComponent}
+														aria-label="Configure Sizes"
 													>
-														Add Size
+														<Icons.Settings2 className="size-3.5" />
 													</Button>
-												}
-											>
-												{!availableSizes.length ? (
-													<Menu.Item disabled>No more sizes</Menu.Item>
-												) : (
-													availableSizes.map((size) => (
-														<Menu.Item
-															key={`add-size-${componentId}-${size}`}
-															onClick={() => addSizeRow(size)}
-														>
-															{size}
-														</Menu.Item>
-													))
-												)}
-											</Menu>
+												</HptHeaderActionTooltip>
+												<HptHeaderActionTooltip label="Swap Door">
+													<Button
+														type="button"
+														size="icon"
+														variant="outline"
+														className="size-8 rounded-full"
+														onClick={() =>
+															setDoorSwapModal({
+																open: true,
+																lineUid: line.uid,
+																sourceUid: activeDoorComponent?.uid || null,
+															})
+														}
+														disabled={!activeDoorComponent || !swapDoorCandidates.length}
+														aria-label="Swap Door"
+													>
+														<Icons.Repeat className="size-3.5" />
+													</Button>
+												</HptHeaderActionTooltip>
+												<HptHeaderActionTooltip label="Delete Door">
+													<Button
+														type="button"
+														size="icon"
+														variant="destructive"
+														className="size-8 rounded-full"
+														onClick={() =>
+															activeDoorComponent
+																? removeDoorOptionFromHpt(
+																		line,
+																		doorStepIndex,
+																		activeDoorComponent,
+																	)
+																: undefined
+														}
+														disabled={!activeDoorComponent}
+														aria-label="Delete Door"
+													>
+														<Icons.Trash2 className="size-3.5" />
+													</Button>
+												</HptHeaderActionTooltip>
+											</TooltipProvider>
 										</div>
 									</header>
 									<div className="overflow-x-auto">
@@ -2650,7 +2723,7 @@ export function ItemWorkflowPanel() {
 		}
 
 		return (
-			<div className="space-y-3 rounded-lg border p-3">
+			<div className="space-y-3">
 				{!rows.length ? (
 					<p className="text-sm text-muted-foreground">
 						No selected mouldings yet. Select mouldings in the Moulding step.
@@ -2670,17 +2743,37 @@ export function ItemWorkflowPanel() {
 								</tr>
 							</thead>
 							<tbody>
-								{rows.map((row, index: number) => (
-									<tr
-										key={`moulding-row-${row.uid}-${index}`}
-										className="border-t"
-									>
-										<td className="px-3 py-2">
-											<p className="text-xs font-semibold uppercase">
-												{componentLabel(row.title)}
-											</p>
-										</td>
-										<td className="px-3 py-2">
+								{rows.map((row, index: number) => {
+									const rowComponent = selectedMouldings.find(
+										(component) => String(component.uid) === String(row.uid),
+									);
+									const rowImageSrc = resolveComponentImageSrc(
+										row.img || rowComponent?.img || null,
+									);
+									return (
+										<tr
+											key={`moulding-row-${row.uid}-${index}`}
+											className="border-t"
+										>
+											<td className="px-3 py-2">
+												<div className="flex items-center gap-3">
+													<div className="group flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white">
+														{rowImageSrc ? (
+															<img
+																src={rowImageSrc}
+																alt={row.title || "Moulding"}
+																className="h-full w-full object-contain p-3 transition-transform duration-200 group-hover:scale-90"
+															/>
+														) : (
+															<Icons.Ruler className="size-4 text-muted-foreground" />
+														)}
+													</div>
+													<p className="text-xs font-semibold uppercase">
+														{componentLabel(row.title)}
+													</p>
+												</div>
+											</td>
+											<td className="px-3 py-2">
 											<div className="flex items-center justify-end gap-2">
 												<MouldingCalculator
 													title={String(row.title || "")}
@@ -2780,7 +2873,8 @@ export function ItemWorkflowPanel() {
 											</Button>
 										</td>
 									</tr>
-								))}
+									);
+								})}
 							</tbody>
 							<tfoot>
 								<tr className="border-t bg-muted/20 text-xs font-bold">
@@ -2834,22 +2928,27 @@ export function ItemWorkflowPanel() {
 		}
 
 		return (
-			<div className="space-y-3 rounded-lg border p-3">
-				<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-					Service Line Items
-				</p>
+			<div className="space-y-3">
 				<div className="overflow-x-auto rounded-lg border">
-					<table className="min-w-full text-sm">
+					<table className="w-full min-w-[760px] table-fixed text-sm">
+						<colgroup>
+							<col />
+							<col style={{ width: "6rem" }} />
+							<col style={{ width: "7rem" }} />
+							<col style={{ width: "5rem" }} />
+							<col style={{ width: "6rem" }} />
+							<col style={{ width: "7rem" }} />
+							<col style={{ width: "6rem" }} />
+						</colgroup>
 						<thead>
 							<tr className="bg-muted/30 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-								<th className="w-12 px-3 py-2">Sn.</th>
 								<th className="px-3 py-2">Service</th>
-								<th className="w-24 px-3 py-2 text-right">Qty</th>
-								<th className="w-28 px-3 py-2 text-right">Price</th>
-								<th className="w-20 px-3 py-2 text-center">Tax</th>
-								<th className="w-24 px-3 py-2 text-center">Prod</th>
-								<th className="w-28 px-3 py-2 text-right">Total</th>
-								<th className="w-24 px-3 py-2 text-right">Actions</th>
+								<th className="px-3 py-2 text-right">Qty</th>
+								<th className="px-3 py-2 text-right">Price</th>
+								<th className="px-3 py-2 text-center">Tax</th>
+								<th className="px-3 py-2 text-center">Prod</th>
+								<th className="px-3 py-2 text-right">Total</th>
+								<th className="px-3 py-2 text-right">Actions</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -2858,27 +2957,31 @@ export function ItemWorkflowPanel() {
 									key={`service-row-${row.uid}-${index}`}
 									className="border-t"
 								>
-									<td className="px-3 py-2 text-xs font-semibold">
-										{index + 1}.
-									</td>
-									<td className="px-3 py-2">
-										<Input
-											value={row.service}
-											onChange={(e) =>
-												persistRows(
-													rows.map((item, i: number) =>
-														i === index
-															? {
-																	...item,
-																	service: e.target.value,
-																}
-															: item,
-													),
-												)
-											}
-											placeholder="Service"
-											className="h-8"
-										/>
+									<td className="min-w-0 px-3 py-2">
+										<InputGroup className="h-8 w-full bg-card">
+											<InputGroup.Addon align="inline-start">
+												<InputGroup.Text className="text-xs font-semibold text-muted-foreground">
+													{index + 1}.
+												</InputGroup.Text>
+											</InputGroup.Addon>
+											<InputGroup.Input
+												value={row.service}
+												onChange={(e) =>
+													persistRows(
+														rows.map((item, i: number) =>
+															i === index
+																? {
+																		...item,
+																		service: e.target.value,
+																	}
+																: item,
+														),
+													)
+												}
+												placeholder="Service"
+												className="h-8 w-full"
+											/>
+										</InputGroup>
 									</td>
 									<td className="px-3 py-2">
 										<Input
@@ -2957,28 +3060,22 @@ export function ItemWorkflowPanel() {
 										{money(row.lineTotal) || "$0.00"}
 									</td>
 									<td className="px-3 py-2 text-right">
-										<Menu
-											Trigger={
-												<Button
-													size="sm"
-													variant="outline"
-													className="h-8 px-2 text-xs"
-												>
-													Actions
-												</Button>
-											}
+										<Button
+											type="button"
+											size="icon"
+											variant="ghost"
+											className="size-7 text-muted-foreground hover:text-destructive"
+											aria-label={`Delete service line ${index + 1}`}
+											onClick={() => {
+												const confirmed = window.confirm(
+													`Delete service line ${index + 1}?`,
+												);
+												if (!confirmed) return;
+												persistRows(rows.filter((_, i: number) => i !== index));
+											}}
 										>
-											<Menu.Item
-												className="text-red-600"
-												onClick={() =>
-													persistRows(
-														rows.filter((_, i: number) => i !== index),
-													)
-												}
-											>
-												Remove
-											</Menu.Item>
-										</Menu>
+											<Icons.Trash2 className="size-4" />
+										</Button>
 									</td>
 								</tr>
 							))}
@@ -4488,8 +4585,8 @@ export function ItemWorkflowPanel() {
 
 	return (
 		<>
-			<section className="space-y-4">
-				<div className="space-y-3">
+			<section>
+				<div className="divide-y divide-muted-foreground">
 					{visibleLineItems.map(({ line, index }) => {
 						const isActive = line.uid === activeLine?.uid;
 						const steps = line.formSteps || [];
@@ -4505,7 +4602,8 @@ export function ItemWorkflowPanel() {
 								index={index}
 								uid={line.uid}
 								isActive={isActive}
-								disableCollapseTrigger={isSmallScreen}
+								isExpanded
+								disableCollapseTrigger
 								title={line.title}
 								titlePlaceholder={getLineTitlePlaceholder(line) || null}
 								lineTotal={getLineDisplayTotal(line)}

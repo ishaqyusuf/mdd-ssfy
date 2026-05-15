@@ -1,0 +1,26 @@
+{
+  "extends": "@gnd/tsconfig/nextjs.json",
+  "compilerOptions": {
+    "target": "es2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@api/*": ["../api/src/*"],
+      "@auth/*": ["../../packages/auth/src/*"],
+      "@notifications/*": ["../../packages/notifications/src/*"],
+      "@sales/*": ["../../packages/sales/src/*"]
+    },
+    "strict": false,
+    "noImplicitAny": false
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "../../types",
+    "next-env.d.ts",
+    "next.config.mjs",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": ["node_modules", ".next"]
+}

@@ -60,6 +60,7 @@ export const channelNames = [
 	"sales-packing-list",
 	"dispatch_packing_delay",
 	"sales_dispatch_duplicate_alert",
+	"dealer_onboarding",
 ] as const;
 export type ChannelName = (typeof channelNames)[number];
 export const priorityStrings = [
@@ -252,6 +253,12 @@ export const channelsConfig: Partial<{
 	sales_customer_payment_failed: {
 		name: "Customer Payment Failed",
 		description: "Send a failure notice to a customer after payment fails.",
+		priority: 5,
+		category: "Sales",
+	},
+	dealer_onboarding: {
+		name: "Dealer Onboarding",
+		description: "Send when a dealer account setup guide is created.",
 		priority: 5,
 		category: "Sales",
 	},

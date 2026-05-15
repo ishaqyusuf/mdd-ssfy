@@ -29,6 +29,7 @@ model SalesOrders {
     salesRepId        Int?
     pickupId          Int?
     prodId            Int?
+    dealerAuthId      Int?
     isDyke            Boolean?                         @default(false)
     summary           String?                          @db.Text
     instruction       String?                          @db.Text
@@ -59,6 +60,7 @@ model SalesOrders {
     deliveredAt       DateTime?
     deliveryOption    String?
     customerProfileId Int?
+    dealerSalesProfileId Int?
     taxes             SalesTaxes[]
     checkouts         SalesCheckout[]
     refunds           Refunds[]                        @relation(name: "salesRefunds")
@@ -67,6 +69,7 @@ model SalesOrders {
     billingAddress    AddressBooks?                    @relation(name: "billingAddress", fields: [billingAddressId], references: [id])
     commisions        SalesCommision[]
     customer          Customers?                       @relation(fields: [customerId], references: [id])
+    dealerAuth        DealerAuth?                      @relation(fields: [dealerAuthId], references: [id])
     deliveries        OrderDelivery[]
     doors             DykeSalesDoors[]
     formSteps         DykeStepForm[]
@@ -81,6 +84,7 @@ model SalesOrders {
     productions       OrderProductionSubmissions[]
     requests          DealerSalesRequest[]
     salesProfile      CustomerTypes?                   @relation(fields: [customerProfileId], references: [id])
+    dealerSalesProfile CustomerTypes?                  @relation(name: "dealerSalesProfile", fields: [dealerSalesProfileId], references: [id])
     salesRep          Users?                           @relation(name: "salesRep", fields: [salesRepId], references: [id])
     shippingAddress   AddressBooks?                    @relation(name: "shippingAddress", fields: [shippingAddressId], references: [id])
     stat              SalesStat[]
@@ -98,6 +102,8 @@ model SalesOrders {
     @@index([orgId])
     @@index([createdAt, deletedAt, orderId, grandTotal, prodId, type, prodDueDate])
     @@index([customerProfileId])
+    @@index([dealerAuthId])
+    @@index([dealerSalesProfileId])
     @@index([customerId])
     @@index([shippingAddressId])
     @@index([billingAddressId])

@@ -10,6 +10,13 @@ Tracks queued work that is important but not currently in the top execution slic
 - Status: Backlog
 - Created Date: 2026-03-31
 
+### Dealership Program Foundation
+- Priority: High
+- Description: Build the dealership program foundation: dedicated Dealers admin page, dealer onboarding by existing customer lookup or new dealer name/email invite, `apps/dealership` portal, dealer-owned customers/profiles/orders, shared new sales form system, ledger analytics, and dealer-branded sales documents.
+- Related Feature: Dealership Program
+- Status: Backlog
+- Created Date: 2026-05-15
+
 ## Next Up
 - [ ] Community unit-invoice reporting Phase 2: build `Task-Level Invoice Detail Report` on top of the shared invoice-report architecture and printable PDF route pattern (`brain/features/community-unit-invoice-reporting.md`) (API + UI + Print + Validation)
 - [ ] Community unit-invoice reporting Phase 3: add `Unit Invoice Summary`, `Payment Register`, `Builder Payables`, `Project Payables`, and `Chargeback / Exception` reports using the same filter-aware report contract and print/export architecture (`brain/features/community-unit-invoice-reporting.md`) (API + UI + Print + Validation + Architecture)

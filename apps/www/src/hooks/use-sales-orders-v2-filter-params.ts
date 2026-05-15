@@ -1,6 +1,12 @@
 import type { RouterInputs } from "@api/trpc/routers/_app";
-import { createLoader, parseAsArrayOf, parseAsString } from "nuqs/server";
+import {
+  createLoader,
+  parseAsArrayOf,
+  parseAsString,
+  parseAsStringLiteral,
+} from "nuqs/server";
 import { useQueryStates } from "nuqs";
+import { SALES_PRIORITY_VALUES } from "@sales/priority";
 
 type FilterKeys = keyof Exclude<RouterInputs["sales"]["getOrdersV2"], void>;
 
@@ -11,8 +17,13 @@ export const salesOrdersV2FilterParams = {
   phone: parseAsString,
   po: parseAsString,
   orderNo: parseAsString,
-  invoiceStatus: parseAsString,
-  production: parseAsString,
+  invoiceStatus: parseAsStringLiteral(["paid", "outstanding"] as const),
+  production: parseAsStringLiteral([
+    "pending",
+    "in progress",
+    "completed",
+  ] as const),
+  priority: parseAsStringLiteral(SALES_PRIORITY_VALUES),
 } satisfies Partial<Record<FilterKeys, unknown>>;
 
 export function useSalesOrdersV2FilterParams() {

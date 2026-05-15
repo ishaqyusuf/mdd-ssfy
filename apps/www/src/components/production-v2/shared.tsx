@@ -6,6 +6,7 @@ import {
 	ProductionItemNotes,
 	ProductionOrderNotes,
 } from "@/components/production-v2/production-notes";
+import { SalesPriorityBadge } from "@/components/sales-priority-control";
 import { useAuth } from "@/hooks/use-auth";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
@@ -55,9 +56,10 @@ import {
 	activityTag,
 } from "@notifications/activity-tree";
 import type { UpdateSalesControl } from "@sales/schema";
+import { SALES_PRIORITY_VALUES, type SalesPriorityValue } from "@sales/priority";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useAction } from "next-safe-action/hooks";
-import { parseAsString, useQueryStates } from "nuqs";
+import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
 import type { ReactNode } from "react";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useInView } from "react-intersection-observer";
@@ -90,6 +92,8 @@ type ProductionListItem = {
 	assignedTo?: string | null;
 	dueDate?: string | null;
 	dueDateLabel?: string | null;
+	priority?: string | null;
+	priorityLabel?: string | null;
 	completed?: boolean;
 	alert?: {
 		text?: string | null;
@@ -192,6 +196,7 @@ const productionV2FilterParams = {
 	label: parseAsString,
 	date: parseAsString,
 	order: parseAsString,
+	priority: parseAsStringLiteral(SALES_PRIORITY_VALUES),
 };
 
 export function ProductionWorkerDashboardV2() {
@@ -231,6 +236,7 @@ function ProductionV2Board({
 	const search = filters.q ?? "";
 	const activeLabel = filters.label ?? "pending";
 	const selectedDate = filters.date ?? null;
+	const priority = filters.priority ?? null;
 	const expandedOrderId = filters.order ?? null;
 	const deferredSearch = useDeferredValue(search);
 	const { ref: loadMoreRef, inView } = useInView({
@@ -245,6 +251,7 @@ function ProductionV2Board({
 			scope,
 			production: activeLabel === "completed" ? "completed" : "pending",
 			productionDueDate: selectedDate,
+			priority,
 			q: deferredSearch || null,
 		}),
 	);
@@ -258,8 +265,9 @@ function ProductionV2Board({
 					activeLabel === "due-tomorrow" ||
 					activeLabel === "past-due"
 						? (activeLabel as "due-today" | "due-tomorrow" | "past-due")
-						: null,
+					: null,
 				productionDueDate: selectedDate,
+				priority,
 				q: deferredSearch || null,
 				size: 20,
 			},
@@ -453,6 +461,28 @@ function ProductionV2Board({
 								<SelectItem value="due-tomorrow">Due Tomorrow</SelectItem>
 								<SelectItem value="past-due">Past Due</SelectItem>
 								<SelectItem value="completed">Completed</SelectItem>
+							</SelectContent>
+						</Select>
+						<Select
+							value={priority || "all"}
+							onValueChange={(nextPriority) =>
+									void setFilters({
+										priority:
+											nextPriority === "all"
+												? null
+												: (nextPriority as SalesPriorityValue),
+									})
+								}
+						>
+							<SelectTrigger className="h-11 rounded-2xl border-slate-200 bg-white/90 shadow-sm">
+								<SelectValue placeholder="Priority" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all">All priorities</SelectItem>
+								<SelectItem value="CRITICAL">Critical</SelectItem>
+								<SelectItem value="HIGH">High</SelectItem>
+								<SelectItem value="NORMAL">Normal</SelectItem>
+								<SelectItem value="LOW">Low</SelectItem>
 							</SelectContent>
 						</Select>
 					</div>
@@ -910,6 +940,7 @@ function ProductionOrderCard({
 												<p className="text-lg font-semibold tracking-tight text-slate-950">
 													{item.orderId}
 												</p>
+												<SalesPriorityBadge priority={item.priority} />
 												{scope === "admin" ? (
 													<Badge
 														variant="outline"

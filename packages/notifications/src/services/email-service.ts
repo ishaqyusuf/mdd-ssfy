@@ -8,6 +8,7 @@ import { JobPaymentSentEmail } from "@gnd/email/emails/job-payment-sent";
 import { JobRejectedEmail } from "@gnd/email/emails/job-rejected";
 import { JobTaskConfigureRequestEmail } from "@gnd/email/emails/job-task-configure-request";
 import ComposedSalesDocumentEmail from "@gnd/email/emails/composed-sales-document-email";
+import DealerOnboardingEmail from "@gnd/email/emails/dealer-onboarding";
 import LoginEmail from "@gnd/email/emails/login-link-email";
 import { SalesCustomerPaymentFailedEmail } from "@gnd/email/emails/sales-customer-payment-failed";
 import { SalesCustomerPaymentReceivedEmail } from "@gnd/email/emails/sales-customer-payment-received";
@@ -227,6 +228,7 @@ export class EmailService {
 			"sales-email-reminder": SalesEmail,
 			"sales-reminder-schedule-admin-notification":
 				SalesReminderScheduleAdminNotificationEmail,
+			"dealer-onboarding": DealerOnboardingEmail,
 			"login-link-email": LoginEmail,
 			"password-reset-request": StorefrontPasswordResetRequest,
 		};

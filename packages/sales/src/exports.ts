@@ -13,6 +13,7 @@ export * from "./new-sales-form-costing";
 export * from "./pdf-system";
 export * from "./payment-system/contracts";
 export * from "./payment-system/projections";
+export * from "./priority";
 export * from "./production-v2";
 export * from "./resolution-system/contracts";
 export * from "./resolution-system/domain";

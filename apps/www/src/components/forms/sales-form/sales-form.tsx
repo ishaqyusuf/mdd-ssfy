@@ -208,7 +208,7 @@ function SalesFormActionToolbar({ onPreview }: { onPreview: () => void }) {
 								salesIds={previewId ? [previewId] : []}
 								type={zus?.metaData?.type}
 								orderNo={zus?.metaData?.salesId}
-								customerEmail={customer?.email}
+								customerEmail={customer?.email ?? null}
 								customerName={customer?.businessName || customer?.name}
 								trigger={
 									<Button
@@ -330,7 +330,7 @@ function SalesFormActionToolbar({ onPreview }: { onPreview: () => void }) {
 										salesIds={previewId ? [previewId] : []}
 										type={zus?.metaData?.type}
 										orderNo={zus?.metaData?.salesId}
-										customerEmail={customer?.email}
+										customerEmail={customer?.email ?? null}
 										customerName={customer?.businessName || customer?.name}
 										trigger={
 											<DropdownMenuItem onSelect={(event) => event.preventDefault()}>

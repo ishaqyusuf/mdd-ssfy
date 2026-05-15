@@ -190,6 +190,18 @@ export function createNotificationChannelTriggers(
 				recipients: resolvedRecipients,
 			});
 		},
+		dealerOnboarding(input: Input<"dealer_onboarding">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("dealer_onboarding", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
 		communityDocuments(input: Input<"community_documents">) {
 			const { recipients, author, ...payload } = input;
 			const resolvedRecipients = resolveRecipients(

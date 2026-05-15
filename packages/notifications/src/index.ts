@@ -22,6 +22,7 @@ import { communityUnitProductionStarted } from "./types/community-unit-productio
 import { communityUnitProductionStopped } from "./types/community-unit-production-stopped";
 import { composedSalesDocumentEmail } from "./types/composed-sales-document-email";
 import { dispatchPackingDelay } from "./types/dispatch-packing-delay";
+import { dealerOnboarding } from "./types/dealer-onboarding";
 import { employeeDocumentReview } from "./types/employee-document-review";
 import { inventoryInbound } from "./types/inventory-inbound";
 import { inventoryInboundActivity } from "./types/inventory-inbound-activity";
@@ -87,6 +88,7 @@ const handlers = {
 	sales_checkout_success: salesCheckoutSuccess,
 	sales_customer_payment_received: salesCustomerPaymentReceived,
 	sales_customer_payment_failed: salesCustomerPaymentFailed,
+	dealer_onboarding: dealerOnboarding,
 	quote_accepted: quoteAccepted,
 	job_assigned: jobAssigned,
 	job_submitted: jobSubmitted,

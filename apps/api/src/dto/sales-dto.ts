@@ -19,6 +19,10 @@ import { getNameInitials, sum, toNumber } from "@gnd/utils";
 
 import { timeAgo } from "@gnd/utils/dayjs";
 import type { DeliveryOption } from "@gnd/utils/sales";
+import {
+	getSalesPriorityLabel,
+	normalizeSalesPriority,
+} from "@sales/priority";
 export type Item = Prisma.SalesOrdersGetPayload<{
   include: typeof SalesListInclude;
 }> &
@@ -166,6 +170,8 @@ function commonListData(data: Item, bin?: boolean) {
     salesRep: data.salesRep?.name,
     salesRepInitial: getNameInitials(data.salesRep?.name!),
     poNo: meta?.po,
+    priority: normalizeSalesPriority(data.priority),
+    priorityLabel: getSalesPriorityLabel(data.priority),
     deliveryOption: data?.deliveryOption,
     // taxes: data.taxes,
     // costLines: data.extraCosts,

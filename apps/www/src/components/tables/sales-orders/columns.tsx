@@ -18,6 +18,10 @@ import { InvoiceColumn } from "./column.invoice";
 
 import { SalesMenu } from "@/components/sales-menu";
 import { SalesOverviewVersionMenuItems } from "@/components/sales-overview-version-menu-items";
+import {
+	SalesPriorityBadge,
+	SalesPriorityMenuItems,
+} from "@/components/sales-priority-control";
 import { useAuth } from "@/hooks/use-auth";
 import { useBin } from "@/hooks/use-bin";
 import { useDriversList } from "@/hooks/use-data-list";
@@ -37,6 +41,7 @@ import {
 	type FulfillmentDispatch,
 } from "./fulfillment-complete-modal";
 export type SalesOrderItem = RouterOutputs["sales"]["index"]["data"][number];
+export type Item = SalesOrderItem;
 interface ItemProps {
 	item: SalesOrderItem;
 }
@@ -187,6 +192,7 @@ export const columns2: ColumnDef<SalesOrderItem>[] = [
 		cell: ({ row: { original: item } }) => (
 			<TCell.Secondary className="whitespace-nowrap inline-flex items-center gap-1">
 				<span>{item.orderId}</span>
+				<SalesPriorityBadge priority={(item as any).priority} />
 				{!item.orderId?.toUpperCase().endsWith(item.salesRepInitial) && (
 					<Badge className="font-mono$" variant="secondary">
 						{item.salesRepInitial}
@@ -279,6 +285,7 @@ export const columns: ColumnDef<SalesOrderItem>[] = [
 		cell: ({ row: { original: item } }) => (
 			<TCell.Secondary className="whitespace-nowrap inline-flex items-center gap-1">
 				<span>{item.orderId}</span>
+				<SalesPriorityBadge priority={(item as any).priority} />
 				{!item.orderId?.toUpperCase().endsWith(item.salesRepInitial) && (
 					<Badge className="font-mono$" variant="secondary">
 						{item.salesRepInitial}
@@ -687,6 +694,11 @@ function Actions({ item }: { item: SalesOrderItem }) {
 			>
 				<SalesOverviewVersionMenuItems type="order" uuid={item.uuid} />
 				<SalesMenu.SalesPrintMenuItems />
+				<SalesPriorityMenuItems
+					salesId={item.id}
+					orderId={item.orderId}
+					priority={(item as any).priority}
+				/>
 				<SalesMenu.Sub>
 					<SalesMenu.SubTrigger>
 						<Icons.Check className="mr-2 size-4 text-muted-foreground/70" />
@@ -841,6 +853,10 @@ function ItemCard({ item }: ItemProps) {
 						<span className="rounded-full bg-muted px-2 py-1 font-mono text-[11px] font-semibold uppercase text-foreground">
 							{item.orderId || "-"}
 						</span>
+						<SalesPriorityBadge
+							priority={(item as any).priority}
+							className="px-2 py-1"
+						/>
 						{!item.orderId?.toUpperCase().endsWith(item.salesRepInitial) && (
 							<span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold uppercase text-primary">
 								{item.salesRepInitial}

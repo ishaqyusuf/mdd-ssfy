@@ -205,6 +205,20 @@ export type SalesCustomerPaymentFailedTags = z.infer<
 	typeof salesCustomerPaymentFailedTags
 >;
 
+export const dealerOnboardingSchema = z.object({
+	dealerId: z.number(),
+	dealerName: z.string(),
+	dealerEmail: z.string().email(),
+	onboardingLink: z.string().url(),
+	expiresAt: z.string().optional().nullable(),
+});
+export type DealerOnboardingInput = z.infer<typeof dealerOnboardingSchema>;
+export const dealerOnboardingTags = actityTagsSchema.extend({
+	dealerId: z.number(),
+	dealerEmail: z.string().email(),
+});
+export type DealerOnboardingTags = z.infer<typeof dealerOnboardingTags>;
+
 export const jobActivitySchema = z.object({
 	users: z.array(userSchema).optional().nullable(),
 	jobId: z.number(),
@@ -608,6 +622,7 @@ export type NotificationTypes = {
 	sales_payment_refunded: SalesPaymentRefundedInput;
 	sales_customer_payment_received: SalesCustomerPaymentReceivedInput;
 	sales_customer_payment_failed: SalesCustomerPaymentFailedInput;
+	dealer_onboarding: DealerOnboardingInput;
 	// job_activity: JobActivityInput;
 	job_assigned: JobAssignedInput;
 	job_submitted: JobSubmittedInput;
@@ -1285,6 +1300,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_customer_payment_failed"),
 		payload: salesCustomerPaymentFailedSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("dealer_onboarding"),
+		payload: dealerOnboardingSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("job_assigned"),

@@ -25,7 +25,7 @@ export default async function Page(props) {
 	const filter = loadSalesProductionFilterParams(searchParams);
 	const workerId = await authId();
 	const [initialDashboardData, initialFilterList, _initialProductionTasks] =
-		await Promise.all<[DashboardResponse, PageFilterData[], unknown]>([
+		await Promise.all([
 			queryClient.fetchQuery(
 				trpc.sales.productionDashboard.queryOptions(
 					workerId ? { workerId: Number(workerId) } : undefined,
@@ -45,8 +45,8 @@ export default async function Page(props) {
 				<div className="relative">
 					<ProductionWorkspace
 						mode="worker"
-						initialDashboardData={initialDashboardData}
-						initialFilterList={initialFilterList}
+						initialDashboardData={initialDashboardData as DashboardResponse}
+						initialFilterList={initialFilterList as PageFilterData[]}
 					/>
 				</div>
 			</HydrateClient>

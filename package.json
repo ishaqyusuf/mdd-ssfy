@@ -40,6 +40,7 @@
     "dev": "turbo dev --parallel",
     "web": "turbo dev --parallel --filter @gnd/web",
     "www": "turbo dev --parallel --filter @gnd/www",
+    "dealership": "turbo dev --parallel --filter @gnd/dealership",
     "www:jobs": "turbo dev --parallel --filter @gnd/www --filter @gnd/jobs",
     "jobs": "turbo dev --parallel --filter @gnd/jobs",
     "jobs:deploy": "bun run --filter @gnd/jobs deploy",

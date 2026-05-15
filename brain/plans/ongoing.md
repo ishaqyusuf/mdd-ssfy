@@ -115,3 +115,48 @@
 
 ### Resume Prompt
 Continue the Sales Default Action Queue Cleanup plan from `brain/plans/ongoing.md`. Current phase: detailed implementation plan captured. Next step: add a server-side default queue mode to the sales query contract and map empty Sales page loads to that mode. Blockers: none. Relevant files: `packages/sales/src/utils/where-queries.ts`, `packages/sales/src/schema.ts`, `apps/api/src/schemas/sales.ts`, `apps/api/src/utils/sales.ts`, `apps/api/src/db/queries/sales.ts`, `apps/api/src/db/queries/sales-orders-v2.ts`, `apps/www/src/hooks/use-sales-filter-params.ts`, `apps/www/src/hooks/use-sales-orders-v2-filter-params.ts`, `apps/www/src/components/sales-order-search-filter.tsx`, `apps/www/src/components/sales-orders-v2-header.tsx`, and `apps/api/src/db/queries/filters.ts`. Update `brain/plans/ongoing.md` as progress continues.
+
+## Dealership Program
+- Status: In Progress
+- Objective: Build a dedicated dealer management and dealer portal program with `apps/dealership`, dealer onboarding from a Dealers page, dealer-owned customers/profiles/orders, and the new shared sales form system from `packages/sales`.
+- Current Phase: Dealer portal setup route implemented; dealer login/session authorization next
+- Next Step: Connect dealer login/session authorization in `apps/dealership`, then gate dashboard/orders/quotes/customers/profiles/settings by the authenticated dealer account.
+- Blockers: API, `www`, notifications, email, and dealership app typechecks currently inherit unrelated existing errors from `apps/api`, `packages/ui`, `packages/email`, and `packages/sales`; `@gnd/db` typecheck and Prisma generation pass after the dealership schema changes. Filtered checks show no dealer-page/router/onboarding-channel errors after the latest changes.
+- Related Files: apps/dealership, apps/www/src/app/(sidebar)/(sales)/sales-book/dealers/page.tsx, apps/www/src/components/dealers/dealers-admin-page.tsx, apps/api/src/schemas/dealer.ts, apps/api/src/trpc/routers/dealer.route.ts, apps/api/src/trpc/routers/_app.ts, packages/db/src/queries/dealers.ts, packages/db/src/queries/index.ts, packages/db/src/schema/sales.customer.prisma, packages/db/src/schema/sales.prisma, packages/db/src/schema/migrations/20260515120000_dealership_foundation/migration.sql, packages/notifications/src/channels.ts, packages/notifications/src/payload-utils/channel-triggers.ts, packages/notifications/src/schemas.ts, packages/notifications/src/types/dealer-onboarding.ts, packages/email/emails/dealer-onboarding.tsx, packages/auth/src/utils.ts, packages/sales/src/sales-form, packages/sales/src/print/get-print-document-data.ts
+- Last Updated: 2026-05-15
+
+### Completed Steps
+1. Added dealership schema foundation: optional customer-backed dealer account, dealer profile fields, dealer-owned customers/profiles, dealer-owned orders, and dealer sales profile linkage.
+2. Added migration `20260515120000_dealership_foundation`.
+3. Added Midday-style DB query boundary in `packages/db/src/queries/dealers.ts`.
+4. Added API schemas/router for dealer list, customer candidate search, and dealer account creation.
+5. Registered `dealer` router in the API app router.
+6. Scaffolded `apps/dealership` with Next.js app shell, providers, TRPC plumbing, dashboard shell, route placeholders, and local `/api/trpc` bridge.
+7. Added root `dealership` dev script.
+8. Ran `bun run --filter @gnd/db db:generate` and `bun run --filter @gnd/db typecheck` successfully.
+9. Added the dedicated `apps/www` Dealers admin page using the Midday-style split: thin server route, `HydrateClient` prefetch, `AuthGuard`, and client feature component consuming shared `dealer` tRPC procedures.
+10. Implemented the add-dealer UX with two paths: select an existing customer with an email, or enter a new dealer name/email profile, then call `dealer.createAccount`.
+11. Ran `bun run --filter @gnd/www typecheck`; full check still fails from unrelated existing API/UI errors, but filtered validation shows no errors in `dealers-admin-page`, `sales-book/dealers`, `dealer.route`, `schemas/dealer`, or `queries/dealers`.
+12. Added `DealerStatusHistory` writes to `createDealerAccount` with the admin author id.
+13. Added `dealer_onboarding` as a channel-backed notification type with schema, trigger helper, notification handler, email service registration, and React email template.
+14. Wired `dealer.createAccount` to trigger `dealer_onboarding` through `NotificationService` after creating the dealer invite token.
+15. Ran `bun run --filter @gnd/db typecheck` successfully. Full notifications/email/API typechecks still inherit unrelated existing errors, but filtered checks show no dealer-onboarding-specific errors.
+16. Added `getDealerOnboardingInvite` and `completeDealerOnboarding` in the shared DB query boundary.
+17. Added `apps/dealership/create-password/[token]` route with invite verification and password creation server action.
+18. Added a minimal `apps/dealership/login` route as the redirect target for completed setup.
+19. Re-ran `bun run --filter @gnd/db typecheck` successfully. Filtered `@gnd/dealership` validation shows no errors around `create-password`, dealer queries, password completion, or login route.
+
+### Plan
+1. ✅ Scaffold `apps/dealership` as the dealer portal for `dealers.gndprodesk.com`, using existing monorepo conventions for Next.js, TRPC, auth, UI, and deployment scripts.
+2. ✅ Separate dealers from customers in the admin UX by adding a dedicated Dealers page where staff can add/search/manage dealers, instead of marking dealers directly from the Customers page.
+3. ✅ Implement dealer creation from two paths: select an existing customer to create a dealer account, or enter a new dealer profile with dealer name and email only, then send the onboarding guide/setup invite.
+4. In progress: retain and harden existing dealer primitives (`DealerAuth`, `DealerToken`, `DealerStatusHistory`) while adding explicit dealer profile/company fields, status handling, onboarding tokens, and notification payloads.
+5. ✅ Add dealer-owned data boundaries for customers, sales profiles, quotes, and orders so dealer-managed customers remain separate from GND/global customer records.
+6. Use the new sales form system as the shared form engine in `packages/sales`, with both `apps/www` and `apps/dealership` consuming the same domain/application contracts.
+7. Add dual dealer pricing: GND charges the dealer using the standard/internal sales profile, while the dealer charges their own customer using the dealer-selected sales profile.
+8. Build dealer portal surfaces for Dashboard, Orders, Quotes, Customers, Sales Profiles, and Company Settings, with ledger-only analytics for v1.
+9. Add dealer company branding for invoice/quote printing: logo, company name, contact details, and address override dealer-created sales documents while non-dealer documents keep GND defaults.
+10. Harden authorization, tests, and launch verification so dealer sessions cannot access another dealer's customers, profiles, orders, quotes, documents, or branding.
+
+### Resume Prompt
+Continue the Dealership Program from `brain/plans/ongoing.md`. Current phase: dealer portal setup route implemented; dealer login/session authorization next. Next step: connect dealer login/session authorization in `apps/dealership`, then gate dashboard/orders/quotes/customers/profiles/settings by the authenticated dealer account. Important product decisions: dealers are managed from a dedicated Dealers page, adding a dealer supports existing customer lookup or new dealer name/email invite, onboarding sends a setup guide through the channel notification system, dealer-managed customers are separate dealer-owned records, the new sales form system in `packages/sales` is shared by `apps/www` and `apps/dealership`, and v1 billing is ledger-only. Validation status: Prisma generation and `@gnd/db` typecheck pass; full API/www/notifications/email/dealership typechecks inherit unrelated existing errors from `apps/api`, `packages/ui`, `packages/email`, and `packages/sales`, while filtered checks show no dealer-specific errors. Update `brain/plans/ongoing.md` as progress continues.

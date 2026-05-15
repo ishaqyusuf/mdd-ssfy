@@ -16,6 +16,7 @@ import {
 } from "./constants";
 import { paginationSchema } from "@gnd/utils/schema";
 import { id } from "date-fns/locale";
+import { salesPrioritySchema } from "./priority";
 export const getFullSalesDataSchema = z.object({
 	salesId: z.number().optional().nullable(),
 	salesNo: z.string().optional().nullable(),
@@ -214,7 +215,10 @@ export const salesQueryParamsSchema = z
 		salesNos: z.array(z.string()).optional().nullable(),
 		dateRange: z.array(z.string()).optional().nullable(),
 		salesIds: z.array(z.number()).optional().nullable(),
+		"address.id": z.number().optional().nullable(),
+		"dealer.id": z.number().optional().nullable(),
 		salesType: z.enum(salesType).optional().nullable(),
+		"sales.type": z.enum(salesType).optional().nullable(),
 		"customer.name": z.string().optional().nullable(),
 		customerId: z.number().optional().nullable(),
 		phone: z.string().optional().nullable(),
@@ -236,8 +240,11 @@ export const salesQueryParamsSchema = z
 			.enum(PRODUCTION_ASSIGNMENT_FILTER_OPTIONS)
 			.optional()
 			.nullable(),
+		"sales.priority": salesPrioritySchema.optional().nullable(),
+		priority: salesPrioritySchema.optional().nullable(),
 		invoice: z.enum(INVOICE_FILTER_OPTIONS).optional().nullable(),
 		production: z.enum(PRODUCTION_FILTER_OPTIONS).optional().nullable(),
+		"account.no": z.string().optional().nullable(),
 	})
 	.extend(paginationSchema.shape);
 export type SalesQueryParamsSchema = z.infer<typeof salesQueryParamsSchema>;
@@ -362,6 +369,8 @@ export const salesProductionQueryParamsSchema = z
 		workerId: z.number().optional().nullable(),
 		production: z.custom<SalesProductionStatusFilter>().optional().nullable(),
 		productionDueDate: z.string().optional().nullable(),
+		priority: salesPrioritySchema.optional().nullable(),
+		"sales.priority": salesPrioritySchema.optional().nullable(),
 		salesNo: z.string().optional().nullable(),
 		show: z
 			.enum(["due-today", "due-tomorrow", "past-due"])

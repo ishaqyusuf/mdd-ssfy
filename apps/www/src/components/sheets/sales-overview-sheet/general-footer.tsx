@@ -62,6 +62,8 @@ export function GeneralFooter({}) {
 					id={data?.id}
 					slug={data?.uuid}
 					type={data?.type}
+					customerEmail={data?.email ?? null}
+					customerName={data?.displayName}
 				>
 					<SalesMenu.Share />
 					{data?.type === "quote" ? (

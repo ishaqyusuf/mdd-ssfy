@@ -28,6 +28,7 @@ import {
   SALES_PRODUCTION_STATUS_FILTER_OPTIONS,
   salesHaving,
 } from "@sales/constants";
+import { SALES_PRIORITY_OPTIONS } from "@sales/priority";
 import type { ProductReportSchema } from "./product-report";
 import type { GetBacklogsSchema } from "./backlogs";
 import type { GetCommunityTemplatesSchema } from "./community-template";
@@ -608,6 +609,14 @@ export async function getSalesOrderFilters(
         value: status,
       })),
     ),
+    optionFilter<T>(
+      "sales.priority",
+      "Priority",
+      SALES_PRIORITY_OPTIONS.map((priority) => ({
+        label: priority.label,
+        value: priority.value,
+      })),
+    ),
   ].filter(Boolean);
   return resp as FilterData[];
 }
@@ -705,6 +714,14 @@ export async function getSalesOrderFiltersV2(ctx: TRPCContext) {
         { label: "Completed", value: "completed" },
       ],
     ),
+    optionFilter<T>(
+      "priority",
+      "Priority",
+      SALES_PRIORITY_OPTIONS.map((priority) => ({
+        label: priority.label,
+        value: priority.value,
+      })),
+    ),
   ] satisfies FilterData[];
 
   return resp;
@@ -759,6 +776,15 @@ export async function getSalesProductionFilters(ctx: TRPCContext) {
       type: "checkbox",
       label: "Production Status",
       options: labelValueOptions([...SALES_PRODUCTION_STATUS_FILTER_OPTIONS]),
+    },
+    {
+      value: "priority",
+      type: "checkbox",
+      label: "Priority",
+      options: SALES_PRIORITY_OPTIONS.map((priority) => ({
+        label: priority.label,
+        value: priority.value,
+      })),
     },
     {
       value: "assignedToId",

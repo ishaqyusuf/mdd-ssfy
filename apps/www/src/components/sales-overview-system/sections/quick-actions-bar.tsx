@@ -91,6 +91,8 @@ export function QuickActionsBar() {
 				id={data.id}
 				slug={data.uuid}
 				type={data.type}
+				customerEmail={data.email ?? null}
+				customerName={data.displayName}
 			>
 				{isQuote ? (
 					<SalesMenu.QuoteEmailMenuItems />

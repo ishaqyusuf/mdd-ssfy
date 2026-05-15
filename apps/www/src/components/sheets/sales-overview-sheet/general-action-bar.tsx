@@ -103,6 +103,8 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 				id={data?.id}
 				slug={data?.uuid}
 				type={data?.type}
+				customerEmail={data?.email ?? null}
+				customerName={data?.displayName}
 			>
 				{isQuote ? (
 					<SalesMenu.QuoteEmailMenuItems />

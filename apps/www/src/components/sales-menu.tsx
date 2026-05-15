@@ -16,6 +16,7 @@ import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { DropdownMenu } from "@gnd/ui/namespace";
 import { ToastAction } from "@gnd/ui/toast";
+import { toast } from "@gnd/ui/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import {
 	type ComponentProps,
@@ -128,7 +129,16 @@ function SalesMenuRoot({
 			customerName,
 			documentTitle,
 		};
-	}, [customerEmail, customerName, documentTitle, id, orderNo, salesIds, slug, type]);
+	}, [
+		customerEmail,
+		customerName,
+		documentTitle,
+		id,
+		orderNo,
+		salesIds,
+		slug,
+		type,
+	]);
 
 	const actions = useMemo<SalesMenuActions>(
 		() => ({
@@ -318,6 +328,15 @@ function useSendSalesEmailAction() {
 		didSucceed,
 		isPending: notification.isActionPending,
 		sendEmail(options: EmailOptions = {}) {
+			if (state.customerEmail !== undefined && !state.customerEmail?.trim()) {
+				toast({
+					title: "Customer email not available",
+					variant: "destructive",
+				});
+				actions.closeMenu();
+				return;
+			}
+
 			setDidSucceed(false);
 			notification.simpleSalesDocumentEmail({
 				emailType: options.withPayment

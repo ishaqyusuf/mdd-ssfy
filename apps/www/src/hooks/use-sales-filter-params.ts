@@ -1,6 +1,19 @@
 import type { RouterInputs } from "@api/trpc/routers/_app";
 import { useQueryStates } from "nuqs";
-import { createLoader, parseAsArrayOf, parseAsString } from "nuqs/server";
+import {
+	createLoader,
+	parseAsArrayOf,
+	parseAsString,
+	parseAsStringLiteral,
+} from "nuqs/server";
+import { SALES_PRIORITY_VALUES } from "@sales/priority";
+import {
+	INVOICE_FILTER_OPTIONS,
+	PRODUCTION_ASSIGNMENT_FILTER_OPTIONS,
+	PRODUCTION_FILTER_OPTIONS,
+	PRODUCTION_STATUS,
+	SALES_DISPATCH_FILTER_OPTIONS,
+} from "@gnd/utils/constants";
 
 import { useAuth } from "./use-auth";
 
@@ -13,11 +26,12 @@ export const salesFilterParamsSchema = {
 	po: parseAsString,
 	"sales.rep": parseAsString,
 	orderNo: parseAsString,
-	"production.assignment": parseAsString,
-	"production.status": parseAsString,
-	"dispatch.status": parseAsString,
-	production: parseAsString,
-	invoice: parseAsString,
+	"production.assignment": parseAsStringLiteral(PRODUCTION_ASSIGNMENT_FILTER_OPTIONS),
+	"production.status": parseAsStringLiteral(PRODUCTION_STATUS),
+	"dispatch.status": parseAsStringLiteral(SALES_DISPATCH_FILTER_OPTIONS),
+	"sales.priority": parseAsStringLiteral(SALES_PRIORITY_VALUES),
+	production: parseAsStringLiteral(PRODUCTION_FILTER_OPTIONS),
+	invoice: parseAsStringLiteral(INVOICE_FILTER_OPTIONS),
 	dateRange: parseAsArrayOf(parseAsString),
 	showing: parseAsString,
 } satisfies Partial<Record<FilterKeys, unknown>>;

@@ -9,6 +9,7 @@ import {
 } from "@gnd/utils";
 import dayjs from "@gnd/utils/dayjs";
 import { SalesQueryParamsSchema } from "../schema";
+import { normalizeSalesPriority } from "../priority";
 function buildPendingStatWhere(
   type: QtyControlType,
   salesStatSome: (
@@ -343,17 +344,18 @@ export function whereSales(query: SalesQueryParamsSchema) {
           },
         });
         break;
-      // case "sales.priority":
-      //   if (val == SalesPriority.NORMAL)
-      //     where.push({
-      //       OR: [{ priority: null }, { priority: val }],
-      //     });
-      //   else {
-      //     where.push({
-      //       priority: val,
-      //     });
-      //   }
-      //   break;
+      case "priority":
+      case "sales.priority":
+        if (normalizeSalesPriority(val) === "NORMAL")
+          where.push({
+            OR: [{ priority: null }, { priority: "NORMAL" as any }],
+          });
+        else {
+          where.push({
+            priority: normalizeSalesPriority(val) as any,
+          });
+        }
+        break;
       case "production.assignedToId":
         where.push({
           assignments: {
