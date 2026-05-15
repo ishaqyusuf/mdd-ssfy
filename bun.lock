@@ -86,6 +86,7 @@
       "dependencies": {
         "@gnd/api": "workspace:*",
         "@gnd/auth": "workspace:*",
+        "@gnd/community": "workspace:*",
         "@gnd/db": "workspace:*",
         "@gnd/notifications": "workspace:*",
         "@gnd/sales": "workspace:*",
