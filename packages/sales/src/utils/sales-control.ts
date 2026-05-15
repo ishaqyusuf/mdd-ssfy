@@ -706,7 +706,7 @@ export function composeControls(order: GetSalesItemControllables) {
     itemId;
     orderId;
     controlData: Prisma.SalesItemControlUpdateInput;
-    qtyControlData: Omit<QtyControlByType["qty"][number], "itemControlUid">[];
+    qtyControlData: Omit<QtyControlByType["qty"], "itemControlUid">[];
     create?: Prisma.SalesItemControlCreateInput;
     update?: Prisma.SalesItemControlUpdateInput;
     // qtyControls: Prisma.QtyControlCreateManyInput[];

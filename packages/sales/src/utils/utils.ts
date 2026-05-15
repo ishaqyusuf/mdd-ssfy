@@ -598,7 +598,7 @@ export function getDispatchControlType(
       return "dispatchAssigned";
   }
 }
-export function isComponentType(type: DykeDoorType) {
+export function isComponentType(type: DykeDoorType | string) {
   const _type = type?.trim() as string;
   const matches = (v) =>
     type === v ||

@@ -32,11 +32,7 @@ export async function recordLegacySalesPayment(
 	if (input.customerTransactionId != null) {
 		const salesPayment = await db.salesPayments.create({
 			data: {
-				transaction: {
-					connect: {
-						id: input.customerTransactionId,
-					},
-				},
+				transactionId: input.customerTransactionId,
 				amount: input.amount,
 				status: input.paymentStatus || ("success" as SalesPaymentStatus),
 				orderId: input.salesId,

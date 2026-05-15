@@ -37,13 +37,18 @@ const StepProductSelect = {
 	door: { select: { title: true, img: true } },
 } satisfies Prisma.DykeStepProductsSelect;
 
-function buildItemsInclude(): Prisma.SalesOrderItemsInclude {
+function buildItemsInclude() {
 	return {
 		formSteps: {
 			where: excludeDeletedWhere,
 			include: {
 				step: true,
-				component: true,
+				component: {
+					include: {
+						door: true,
+						product: true,
+					},
+				},
 			},
 		},
 		shelfItems: {
@@ -68,12 +73,10 @@ function buildItemsInclude(): Prisma.SalesOrderItemsInclude {
 				},
 			},
 		},
-	};
+	} satisfies Prisma.SalesOrderItemsInclude;
 }
 
-export function buildPrintSalesInclude(
-	mode: PrintMode,
-): Prisma.SalesOrdersInclude {
+export function buildPrintSalesInclude(mode: PrintMode) {
 	const needsFinancials =
 		mode === "invoice" || mode === "quote" || mode === "order-packing";
 	const needsPacking = mode === "packing-slip" || mode === "order-packing";
@@ -89,7 +92,7 @@ export function buildPrintSalesInclude(
 		salesRep: { where: excludeDeletedWhere },
 		...(needsFinancials ? financialInclude : {}),
 		...(needsPacking ? packingInclude : {}),
-	};
+	} satisfies Prisma.SalesOrdersInclude;
 }
 
 export const PrintSalesInclude = buildPrintSalesInclude("order-packing");

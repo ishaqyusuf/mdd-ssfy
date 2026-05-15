@@ -1,8 +1,11 @@
-import { Db } from "@gnd/db";
+import type { Db, TransactionClient } from "@gnd/db";
 import { SalesPaymentStatus } from "./constants";
 import { consoleLog, formatMoney, sum } from "@gnd/utils";
 
-export async function calculateSalesDueAmount(db: Db, salesId: number) {
+export async function calculateSalesDueAmount(
+  db: Db | TransactionClient,
+  salesId: number,
+) {
   const order = await db.salesOrders.findUniqueOrThrow({
     where: {
       id: salesId,

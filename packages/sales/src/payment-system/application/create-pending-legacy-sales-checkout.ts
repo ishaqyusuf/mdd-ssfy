@@ -1,6 +1,7 @@
 import type { Db, TransactionClient } from "@gnd/db";
 import { generateRandomString } from "@gnd/utils";
 import { tokenize } from "@gnd/utils/tokenizer";
+import type { SalesPaymentTokenSchema } from "@gnd/utils/tokenizer";
 import type { SalesPaymentMethods } from "../../constants";
 import type {
 	SalesCheckoutOrderSummary,
@@ -45,7 +46,7 @@ export async function createPendingLegacySalesCheckout(
 	return {
 		squarePaymentId: squarePayment.id,
 		redirectToken: tokenize({
-			...input.tokenPayload,
+			...(input.tokenPayload as SalesPaymentTokenSchema),
 			paymentId: squarePayment.id,
 		}),
 	};
