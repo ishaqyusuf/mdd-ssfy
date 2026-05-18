@@ -1,6 +1,8 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
+import { useSalesFormCapabilities } from "./dealer-sales-form/adapters/use-sales-form-capabilities";
+import { useSalesFormPermissions } from "./dealer-sales-form/adapters/use-sales-form-permissions";
 import {
 	SalesFormHeaderActions,
 	SalesFormLineItemsPanel,
@@ -526,6 +528,8 @@ function DealerQuoteComposer() {
 		null,
 	);
 	const [taxRate, setTaxRate] = useState(0);
+	const capabilities = useSalesFormCapabilities();
+	const permissions = useSalesFormPermissions();
 	const [lineItems, setLineItems] = useState<SalesFormLineItemUiRecord[]>([
 		createDealerLineItem(0),
 	]);
@@ -635,6 +639,8 @@ function DealerQuoteComposer() {
 				onSaveDraft={save}
 				onSaveFinal={save}
 				saveStatus={saveQuote.isPending ? "saving" : "idle"}
+				capabilities={capabilities}
+				permissions={permissions}
 				type="quote"
 			/>
 			<div className="grid gap-4 p-4 xl:grid-cols-[1fr_320px]">

@@ -3,7 +3,8 @@ import pino from "pino";
 /**
  * Check if we're in pretty mode
  */
-const isPretty = process.env.LOG_PRETTY === "true";
+const isPretty =
+  process.env.LOG_PRETTY === "true" && process.env.NODE_ENV !== "production";
 
 /**
  * Create the base pino logger instance

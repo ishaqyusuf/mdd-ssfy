@@ -1102,7 +1102,6 @@ const IconsStatic = {
   Files: MdOutlineInventory2,
   placeholder: ImageIcon,
   documents: FileLock,
-  UserRoundPlus,
   ...IconsBase,
 };
 const dynamicHugeIconAliases = {
@@ -1267,11 +1266,15 @@ const dynamicHugeIconAliases = {
   XCircle: "CancelCircle",
 } as const satisfies Record<string, HugeIconName>;
 
+type Mutable<T> = {
+  -readonly [K in keyof T]: T[K];
+};
+
 type DynamicIconAliases = {
   [K in keyof typeof dynamicHugeIconAliases]: IconComponent;
 };
 
-type RegisteredIcons = typeof IconsStatic & DynamicIconAliases;
+type RegisteredIcons = Mutable<typeof IconsStatic> & Mutable<DynamicIconAliases>;
 
 function isDynamicAliasKey(
   name: string,

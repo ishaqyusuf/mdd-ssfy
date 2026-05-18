@@ -17,6 +17,7 @@ import {
 	SelectValue,
 } from "@gnd/ui/select";
 import type { MouseEvent } from "react";
+import type { SalesFormCapabilities, SalesFormPermissions } from "../contracts";
 import { salesFormStatusClass, salesFormStatusLabel } from "./status-utils";
 import type { SalesFormHeaderItemOption, SalesFormSaveStatus } from "./types";
 
@@ -56,9 +57,27 @@ export type SalesFormHeaderActionsProps = {
 	activeItem?: string | null;
 	itemOptions?: SalesFormHeaderItemOption[];
 	onActiveItemChange?: (value: string) => void;
+	capabilities?: Partial<SalesFormCapabilities>;
+	permissions?: Partial<SalesFormPermissions>;
 };
 
 export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
+	const canOpenOverview =
+		props.capabilities?.internalOverview !== false &&
+		props.permissions?.canOpenInternalOverview !== false;
+	const canPrint =
+		props.capabilities?.printing !== false &&
+		props.permissions?.canPrint !== false;
+	const canPack =
+		props.showPackingControls &&
+		props.capabilities?.packing !== false &&
+		props.permissions?.canSendPacking !== false;
+	const canSaveDraft = props.permissions?.canSaveDraft !== false;
+	const canFinalize = props.permissions?.canFinalize !== false;
+	const canOpenSettings =
+		props.capabilities?.settings !== false &&
+		props.permissions?.canOpenSettings !== false;
+
 	return (
 		<header className="border-b bg-card px-4 py-3 sm:px-6">
 			<div className="flex flex-wrap items-center gap-2">
@@ -90,30 +109,34 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 					</div>
 				</div>
 				<div className="hidden items-center gap-2 lg:flex">
-					<Button
-						size="sm"
-						variant="outline"
-						className="px-3"
-						onClick={props.onOpenOverview}
-						disabled={props.isSaving || !props.isSaved}
-					>
-						<Icons.Layout className="size-4" />
-						Overview
-					</Button>
-					<Button
-						size="icon"
-						variant="outline"
-						onClick={(event) => void props.onPrint?.(event)}
-						disabled={props.isSaving || !props.isSaved || props.isPrinting}
-						aria-label={props.isPrinting ? "Preparing print" : "Print"}
-					>
-						{props.isPrinting ? (
-							<Icons.Loader2 className="size-4 animate-spin" />
-						) : (
-							<Icons.Printer className="size-4" />
-						)}
-					</Button>
-					{props.showPackingControls ? (
+					{canOpenOverview ? (
+						<Button
+							size="sm"
+							variant="outline"
+							className="px-3"
+							onClick={props.onOpenOverview}
+							disabled={props.isSaving || !props.isSaved}
+						>
+							<Icons.Layout className="size-4" />
+							Overview
+						</Button>
+					) : null}
+					{canPrint ? (
+						<Button
+							size="icon"
+							variant="outline"
+							onClick={(event) => void props.onPrint?.(event)}
+							disabled={props.isSaving || !props.isSaved || props.isPrinting}
+							aria-label={props.isPrinting ? "Preparing print" : "Print"}
+						>
+							{props.isPrinting ? (
+								<Icons.Loader2 className="size-4 animate-spin" />
+							) : (
+								<Icons.Printer className="size-4" />
+							)}
+						</Button>
+					) : null}
+					{canPack ? (
 						<div className="flex items-center">
 							<Button
 								size="sm"
@@ -243,30 +266,32 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 						Autosave: {props.autosaveEnabled ? "On" : "Off"}
 					</Menu.Item>
 					<Menu.Item
-						disabled={props.isSaving}
+						disabled={props.isSaving || !canSaveDraft}
 						onClick={() => void props.onSaveDraft?.()}
 					>
 						Save Draft
 					</Menu.Item>
 					<Menu.Item
-						disabled={props.isSaving}
+						disabled={props.isSaving || !canSaveDraft}
 						onClick={() => void props.onSaveClose?.()}
 					>
 						Save & Close
 					</Menu.Item>
 					<Menu.Item
-						disabled={props.isSaving}
+						disabled={props.isSaving || !canSaveDraft}
 						onClick={() => void props.onSaveNew?.()}
 					>
 						Save & New
 					</Menu.Item>
 					<Menu.Item
-						disabled={props.isSaving}
+						disabled={props.isSaving || !canFinalize}
 						onClick={() => void props.onSaveFinal?.()}
 					>
 						Save Final
 					</Menu.Item>
-					<Menu.Item onClick={props.onOpenSettings}>Settings</Menu.Item>
+					{canOpenSettings ? (
+						<Menu.Item onClick={props.onOpenSettings}>Settings</Menu.Item>
+					) : null}
 				</Menu>
 			</div>
 		</header>

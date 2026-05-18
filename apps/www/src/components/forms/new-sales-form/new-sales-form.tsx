@@ -46,6 +46,8 @@ import {
 	useNewSalesFormGetQuery,
 	useSaveFinalNewSalesFormMutation,
 } from "./api";
+import { useSalesFormCapabilities } from "./adapters/use-sales-form-capabilities";
+import { useSalesFormPermissions } from "./adapters/use-sales-form-permissions";
 import {
 	type NewSalesFormRecoverySnapshot,
 	clearRecoverySnapshot,
@@ -204,7 +206,10 @@ function WorkflowPanelSkeleton() {
 	return (
 		<div className="divide-y divide-border/40">
 			{[0, 1, 2].map((itemIndex) => (
-				<div key={`workflow-skeleton-${itemIndex}`} className="bg-background p-4">
+				<div
+					key={`workflow-skeleton-${itemIndex}`}
+					className="bg-background p-4"
+				>
 					<div className="grid gap-4 md:grid-cols-12">
 						<div className="md:col-span-10">
 							<SkeletonBlock className="h-10 w-full" />
@@ -350,7 +355,8 @@ function NewSalesFormFloatingActions({
 		Number(record.summary.grandTotal || 0) - Number(record.paymentTotal || 0),
 	);
 	const canUseSavedActions = isSaved && salesId > 0;
-	const canPay = isOrder && canUseSavedActions && amountDue > 0 && customerId > 0;
+	const canPay =
+		isOrder && canUseSavedActions && amountDue > 0 && customerId > 0;
 	const salesIds = salesId ? [salesId] : [];
 	const customerName = customer?.businessName || customer?.name || undefined;
 
@@ -430,7 +436,9 @@ function NewSalesFormFloatingActions({
 									<Icons.ExternalLink className="size-3.5" />
 								</Button>
 							</FloatingActionTooltip>
-							<FloatingActionTooltip label={isPrinting ? "Preparing print" : "Print"}>
+							<FloatingActionTooltip
+								label={isPrinting ? "Preparing print" : "Print"}
+							>
 								<Button
 									type="button"
 									size="icon"
@@ -606,6 +614,8 @@ export function NewSalesForm(props: Props) {
 		props.mode === "create" && !!record && !record.form.customerId;
 	const isSaved = Boolean(record?.salesId && record?.orderId);
 	const isOrder = props.type === "order";
+	const salesFormCapabilities = useSalesFormCapabilities(props.type);
+	const salesFormPermissions = useSalesFormPermissions(props.type);
 	const actorId = Number(auth.id || 0) > 0 ? Number(auth.id) : 1;
 	const actorName = auth.name || "System";
 
@@ -1479,173 +1489,175 @@ export function NewSalesForm(props: Props) {
 			/>
 			<div className="fixed bottom-0 left-0 right-0 top-[var(--header-height)] overflow-hidden bg-background md:left-[84px]">
 				<div className="relative flex h-full min-h-0 overflow-hidden border border-slate-200/80 bg-background shadow-sm">
-				<main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-					<HeaderActions
-						type={props.type}
-						orderId={record.orderId}
-						saveStatus={saveStatus}
-						dirty={dirty}
-						lastSavedAt={lastSavedAt}
-						statusMessage={lastSaveError}
-						isSaving={isSaveBusy}
-						autosaveEnabled={editor.autosaveEnabled}
-						stepDisplayMode={editor.stepDisplayMode}
-						onAddItem={() => addLineItem()}
-						onToggleStepDisplay={() =>
-							setEditor({
-								stepDisplayMode:
-									editor.stepDisplayMode === "extended"
-										? "compact"
-										: "extended",
-							})
-						}
-						onOpenMobileSummary={() =>
-							customerSelectionRequired
-								? undefined
-								: setEditor({
-										showMobileSummary: !editor.showMobileSummary,
-									})
-						}
-						onToggleAutosave={() =>
-							setEditor({
-								autosaveEnabled: !editor.autosaveEnabled,
-							})
-						}
-						onSaveDraft={saveDraftNow}
-						onSaveClose={saveClose}
-						onSaveNew={saveNew}
-						onSaveFinal={saveFinal}
-						onOpenOverview={handleOpenOverview}
-						onPrint={handlePrint}
-						isPrinting={salesPrint.isPrinting}
-						isSaved={isSaved}
-						showPackingControls={isOrder}
-						packingButtonLabel={
-							activePackingDispatch ? "Sent for Packing" : "Send for Packing"
-						}
-						packingBusy={isPackingBusy}
-						onSendForPacking={handleSendForPacking}
-						onCancelPacking={handleCancelPacking}
-						cancelPackingDisabled={
-							!currentPackingDispatch ||
-							packingIsCompleted ||
-							currentPackingDispatch.status === "cancelled" ||
-							isPackingBusy
-						}
-						onCompletePacking={handleCompletePacking}
-						completePackingDisabled={
-							!record.salesId || packingIsCompleted || isPackingBusy
-						}
-						onOpenPacking={handleOpenPacking}
-						openPackingDisabled={!record.orderId}
-						onOpenSettings={async () => {
-							const { default: NewSalesFormSettingsModal } = await import(
-								"@/components/modals/new-sales-form-settings-modal"
-							);
-							_modal.openSheet(<NewSalesFormSettingsModal />);
-						}}
-						activeItem={editor.activeItem || record.lineItems[0]?.uid || null}
-						itemOptions={itemOptions}
-						onActiveItemChange={(value) =>
-							setEditor({
-								activeItem: value,
-							})
-						}
-					/>
-
-					<div className="flex-1 overflow-y-auto overscroll-contain pb-28 lg:pb-20">
-						<div className="mx-auto flex w-full max-w-6xl flex-col">
-							{recoverySnapshot ? (
-								<div className="m-4 flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 md:flex-row md:items-center md:justify-between sm:m-6 lg:m-8">
-									<p>
-										Unsaved local edits were found from{" "}
-										{new Date(recoverySnapshot.savedAt).toLocaleString()}.
-									</p>
-									<div className="flex items-center gap-2">
-										<Button
-											size="sm"
-											variant="outline"
-											onClick={() => {
-												clearRecoveryKeys();
-												toast({
-													title: "Using latest saved version",
-													description:
-														"Local recovery was dismissed for this draft.",
-													variant: "success",
-												});
-											}}
-										>
-											Dismiss
-										</Button>
-										<Button size="sm" onClick={applyRecoverySnapshot}>
-											Restore
-										</Button>
-									</div>
-								</div>
-							) : null}
-							<ItemWorkflowPanel />
-						</div>
-					</div>
-
-					<NewSalesFormFloatingActions
-						type={props.type}
-						record={record}
-						isSaved={isSaved}
-						isSaving={isSaveBusy}
-						isPrinting={salesPrint.isPrinting}
-						onAddItem={() => addLineItem()}
-						onSave={() => void saveDraftNow()}
-						onOpenOverview={handleOpenOverview}
-						onPrint={(event) => void handlePrint(event)}
-					/>
-				</main>
-
-				<InvoiceSummarySidebar
-					mode={props.mode}
-					type={props.type}
-					isSaved={isSaved}
-					isSaving={isSaveBusy}
-					mobileOpen={editor.showMobileSummary}
-					onSave={() => void saveDraftNow()}
-					onSaveClose={() => void saveClose()}
-					onSaveNew={() => void saveNew()}
-					onSaveFinal={() => void saveFinal()}
-					onClose={() =>
-						setEditor({
-							showMobileSummary: false,
-						})
-					}
-				/>
-
-				<div className="absolute inset-x-0 bottom-0 z-20 border-t bg-card p-3 shadow-[0_-4px_18px_rgba(0,0,0,0.08)] lg:hidden">
-					<div className="mx-auto flex w-full max-w-lg items-center gap-3">
-						<button
-							type="button"
-							className="flex flex-1 flex-col items-start"
-							onClick={() =>
+					<main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+						<HeaderActions
+							type={props.type}
+							orderId={record.orderId}
+							saveStatus={saveStatus}
+							dirty={dirty}
+							lastSavedAt={lastSavedAt}
+							statusMessage={lastSaveError}
+							isSaving={isSaveBusy}
+							autosaveEnabled={editor.autosaveEnabled}
+							stepDisplayMode={editor.stepDisplayMode}
+							onAddItem={() => addLineItem()}
+							onToggleStepDisplay={() =>
+								setEditor({
+									stepDisplayMode:
+										editor.stepDisplayMode === "extended"
+											? "compact"
+											: "extended",
+								})
+							}
+							onOpenMobileSummary={() =>
 								customerSelectionRequired
 									? undefined
 									: setEditor({
-											showMobileSummary: true,
+											showMobileSummary: !editor.showMobileSummary,
 										})
 							}
-						>
-							<span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-								Review Totals
-							</span>
-							<span className="text-lg font-bold text-foreground">
-								{currency(record.summary.grandTotal)}
-							</span>
-						</button>
-						<Button
-							className="h-11 px-4"
-							onClick={() => void saveFinal()}
-							disabled={isSaveBusy}
-						>
-							Finalize
-						</Button>
+							onToggleAutosave={() =>
+								setEditor({
+									autosaveEnabled: !editor.autosaveEnabled,
+								})
+							}
+							onSaveDraft={saveDraftNow}
+							onSaveClose={saveClose}
+							onSaveNew={saveNew}
+							onSaveFinal={saveFinal}
+							onOpenOverview={handleOpenOverview}
+							onPrint={handlePrint}
+							isPrinting={salesPrint.isPrinting}
+							isSaved={isSaved}
+							showPackingControls={isOrder}
+							capabilities={salesFormCapabilities}
+							permissions={salesFormPermissions}
+							packingButtonLabel={
+								activePackingDispatch ? "Sent for Packing" : "Send for Packing"
+							}
+							packingBusy={isPackingBusy}
+							onSendForPacking={handleSendForPacking}
+							onCancelPacking={handleCancelPacking}
+							cancelPackingDisabled={
+								!currentPackingDispatch ||
+								packingIsCompleted ||
+								currentPackingDispatch.status === "cancelled" ||
+								isPackingBusy
+							}
+							onCompletePacking={handleCompletePacking}
+							completePackingDisabled={
+								!record.salesId || packingIsCompleted || isPackingBusy
+							}
+							onOpenPacking={handleOpenPacking}
+							openPackingDisabled={!record.orderId}
+							onOpenSettings={async () => {
+								const { default: NewSalesFormSettingsModal } = await import(
+									"@/components/modals/new-sales-form-settings-modal"
+								);
+								_modal.openSheet(<NewSalesFormSettingsModal />);
+							}}
+							activeItem={editor.activeItem || record.lineItems[0]?.uid || null}
+							itemOptions={itemOptions}
+							onActiveItemChange={(value) =>
+								setEditor({
+									activeItem: value,
+								})
+							}
+						/>
+
+						<div className="flex-1 overflow-y-auto overscroll-contain pb-28 lg:pb-20">
+							<div className="mx-auto flex w-full max-w-6xl flex-col">
+								{recoverySnapshot ? (
+									<div className="m-4 flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 md:flex-row md:items-center md:justify-between sm:m-6 lg:m-8">
+										<p>
+											Unsaved local edits were found from{" "}
+											{new Date(recoverySnapshot.savedAt).toLocaleString()}.
+										</p>
+										<div className="flex items-center gap-2">
+											<Button
+												size="sm"
+												variant="outline"
+												onClick={() => {
+													clearRecoveryKeys();
+													toast({
+														title: "Using latest saved version",
+														description:
+															"Local recovery was dismissed for this draft.",
+														variant: "success",
+													});
+												}}
+											>
+												Dismiss
+											</Button>
+											<Button size="sm" onClick={applyRecoverySnapshot}>
+												Restore
+											</Button>
+										</div>
+									</div>
+								) : null}
+								<ItemWorkflowPanel />
+							</div>
+						</div>
+
+						<NewSalesFormFloatingActions
+							type={props.type}
+							record={record}
+							isSaved={isSaved}
+							isSaving={isSaveBusy}
+							isPrinting={salesPrint.isPrinting}
+							onAddItem={() => addLineItem()}
+							onSave={() => void saveDraftNow()}
+							onOpenOverview={handleOpenOverview}
+							onPrint={(event) => void handlePrint(event)}
+						/>
+					</main>
+
+					<InvoiceSummarySidebar
+						mode={props.mode}
+						type={props.type}
+						isSaved={isSaved}
+						isSaving={isSaveBusy}
+						mobileOpen={editor.showMobileSummary}
+						onSave={() => void saveDraftNow()}
+						onSaveClose={() => void saveClose()}
+						onSaveNew={() => void saveNew()}
+						onSaveFinal={() => void saveFinal()}
+						onClose={() =>
+							setEditor({
+								showMobileSummary: false,
+							})
+						}
+					/>
+
+					<div className="absolute inset-x-0 bottom-0 z-20 border-t bg-card p-3 shadow-[0_-4px_18px_rgba(0,0,0,0.08)] lg:hidden">
+						<div className="mx-auto flex w-full max-w-lg items-center gap-3">
+							<button
+								type="button"
+								className="flex flex-1 flex-col items-start"
+								onClick={() =>
+									customerSelectionRequired
+										? undefined
+										: setEditor({
+												showMobileSummary: true,
+											})
+								}
+							>
+								<span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+									Review Totals
+								</span>
+								<span className="text-lg font-bold text-foreground">
+									{currency(record.summary.grandTotal)}
+								</span>
+							</button>
+							<Button
+								className="h-11 px-4"
+								onClick={() => void saveFinal()}
+								disabled={isSaveBusy}
+							>
+								Finalize
+							</Button>
+						</div>
 					</div>
-				</div>
 				</div>
 			</div>
 		</>
