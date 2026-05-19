@@ -15,6 +15,21 @@ export type SalesFormShellProps = SalesFormComposition;
 
 export function SalesFormShell(props: SalesFormShellProps) {
 	const slots = props.slots || {};
+	const surface = props.surface || "fixed";
+	const showMobileFooter = props.showMobileFooter ?? true;
+	const frameClassName =
+		surface === "embedded"
+			? "relative flex min-h-[560px] overflow-hidden rounded-lg border border-slate-200/80 bg-background shadow-sm"
+			: "fixed bottom-0 left-0 right-0 top-[var(--header-height)] overflow-hidden bg-background md:left-[84px]";
+	const innerClassName =
+		surface === "embedded"
+			? "relative flex min-h-[560px] w-full overflow-hidden bg-background"
+			: "relative flex h-full min-h-0 overflow-hidden border border-slate-200/80 bg-background shadow-sm";
+	const summaryPanel =
+		slots.SummaryPanel ||
+		slots.SalesHistoryPanel ||
+		slots.SummaryFooterActions ||
+		null;
 
 	return (
 		<>
@@ -22,8 +37,8 @@ export function SalesFormShell(props: SalesFormShellProps) {
 			{props.capabilities.paymentMethodReview
 				? slots.PaymentMethodReviewDialog
 				: null}
-			<div className="fixed bottom-0 left-0 right-0 top-[var(--header-height)] overflow-hidden bg-background md:left-[84px]">
-				<div className="relative flex h-full min-h-0 overflow-hidden border border-slate-200/80 bg-background shadow-sm">
+			<div className={frameClassName}>
+				<div className={innerClassName}>
 					<main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 						{props.children}
 
@@ -37,7 +52,7 @@ export function SalesFormShell(props: SalesFormShellProps) {
 						{slots.FloatingActions}
 					</main>
 
-					{slots.SummaryPanel ? (
+					{summaryPanel ? (
 						<SalesFormSummarySidebar
 							mode={props.mode}
 							type={props.type}
@@ -47,7 +62,7 @@ export function SalesFormShell(props: SalesFormShellProps) {
 							orderId={props.orderId}
 							capabilities={props.capabilities}
 							permissions={props.permissions}
-							summaryPanel={slots.SummaryPanel}
+							summaryPanel={summaryPanel}
 							historyPanel={
 								props.capabilities.salesHistory
 									? slots.SalesHistoryPanel
@@ -61,29 +76,31 @@ export function SalesFormShell(props: SalesFormShellProps) {
 						/>
 					) : null}
 
-					<div className="absolute inset-x-0 bottom-0 z-20 border-t bg-card p-3 shadow-[0_-4px_18px_rgba(0,0,0,0.08)] lg:hidden">
-						<div className="mx-auto flex w-full max-w-lg items-center gap-3">
-							<button
-								type="button"
-								className="flex flex-1 flex-col items-start"
-								onClick={props.onOpenSummary}
-							>
-								<span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-									Review Totals
-								</span>
-								<span className="text-lg font-bold text-foreground">
-									{currency(props.grandTotal)}
-								</span>
-							</button>
-							<Button
-								className="h-11 px-4"
-								onClick={() => void props.onSaveFinal?.()}
-								disabled={props.isSaving || !props.permissions.canFinalize}
-							>
-								Finalize
-							</Button>
+					{showMobileFooter ? (
+						<div className="absolute inset-x-0 bottom-0 z-20 border-t bg-card p-3 shadow-[0_-4px_18px_rgba(0,0,0,0.08)] lg:hidden">
+							<div className="mx-auto flex w-full max-w-lg items-center gap-3">
+								<button
+									type="button"
+									className="flex flex-1 flex-col items-start"
+									onClick={props.onOpenSummary}
+								>
+									<span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+										Review Totals
+									</span>
+									<span className="text-lg font-bold text-foreground">
+										{currency(props.grandTotal)}
+									</span>
+								</button>
+								<Button
+									className="h-11 px-4"
+									onClick={() => void props.onSaveFinal?.()}
+									disabled={props.isSaving || !props.permissions.canFinalize}
+								>
+									Finalize
+								</Button>
+							</div>
 						</div>
-					</div>
+					) : null}
 				</div>
 			</div>
 		</>

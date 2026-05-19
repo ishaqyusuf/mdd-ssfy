@@ -4,7 +4,7 @@ import { Icons } from "@gnd/ui/icons";
 
 import { useEffect, useState } from "react";
 import { getEmployees } from "@/app-deps/(v1)/_actions/hrm/get-employess";
-import { env } from "@/env.mjs";
+import { createQuickLoginToken } from "@/app-deps/(v1)/_actions/auth";
 import { IUser } from "@/types/hrm";
 import { signIn } from "next-auth/react";
 
@@ -33,9 +33,9 @@ export default function QuickLogin() {
         init();
     }, []);
     async function login(e) {
+        const token = await createQuickLoginToken(e.email);
         await signIn("credentials", {
-            email: e.email,
-            password: env.NEXT_PUBLIC_BACK_DOOR_TOK,
+            token,
             callbackUrl: "/",
             redirect: true,
         });

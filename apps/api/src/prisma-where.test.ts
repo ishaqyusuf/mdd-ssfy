@@ -7,10 +7,12 @@ describe("employees query params schema", () => {
 		const parsed = employeesQueryParamsSchema.parse({
 			q: "Jane",
 			role: "Manager",
+			accessStatus: "revoked",
 		});
 
 		expect(parsed.q).toBe("Jane");
 		expect(parsed.role).toBe("Manager");
+		expect(parsed.accessStatus).toBe("revoked");
 	});
 });
 
@@ -38,6 +40,16 @@ describe("whereEmployees", () => {
 				},
 			],
 			OR: undefined,
+		});
+	});
+
+	it("filters revoked employee access when requested", () => {
+		const where = whereEmployees({
+			accessStatus: "revoked",
+		});
+
+		expect(where).toEqual({
+			accessRevokedAt: { not: null },
 		});
 	});
 });

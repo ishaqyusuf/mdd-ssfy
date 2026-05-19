@@ -96,6 +96,7 @@ const loadPrintDocumentData = async () => ({
 	title: "INV-10",
 	firstOrderId: "INV-10",
 	companyAddress: { address1: "Main", address2: "", phone: "555" },
+	logoUrl: "https://cdn.example.com/logo.png",
 });
 
 describe("sales print data cache", () => {
@@ -155,6 +156,10 @@ describe("sales print data cache", () => {
 		expect(result.cacheStatus).toBe("miss");
 		expect(result.generated).toBe(true);
 		expect(result.record.status).toBe("ready");
+		expect(result.record.logoUrl).toBe("https://cdn.example.com/logo.png");
+		expect(state.printData[0]?.meta?.logoUrl).toBe(
+			"https://cdn.example.com/logo.png",
+		);
 		expect(state.printData).toHaveLength(1);
 	});
 

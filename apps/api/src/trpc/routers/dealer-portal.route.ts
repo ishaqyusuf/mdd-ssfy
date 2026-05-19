@@ -1,6 +1,8 @@
 import {
+	dealerPortalConvertQuoteSchema,
 	dealerPortalCustomerSchema,
 	dealerPortalSaveQuoteSchema,
+	dealerPortalSalesDocumentSchema,
 	dealerPortalSalesDocumentsSchema,
 	dealerPortalSalesProfileSchema,
 	dealerPortalSettingsSchema,
@@ -9,8 +11,10 @@ import {
 	getDealerPortalCustomers,
 	getDealerPortalDashboard,
 	getDealerPortalSalesDocuments,
+	getDealerPortalSalesDocument,
 	getDealerPortalSalesProfiles,
 	getDealerPortalSettings,
+	convertDealerPortalQuoteToOrder,
 	saveDealerPortalCustomer,
 	saveDealerPortalQuote,
 	saveDealerPortalSalesProfile,
@@ -46,10 +50,20 @@ export const dealerPortalRouter = createTRPCRouter({
 		.query(({ ctx, input }) => {
 			return getDealerPortalSalesDocuments(ctx.db, ctx.dealer.id, input.type);
 		}),
+	salesDocument: dealerProtectedProcedure
+		.input(dealerPortalSalesDocumentSchema)
+		.query(({ ctx, input }) => {
+			return getDealerPortalSalesDocument(ctx.db, ctx.dealer.id, input.id);
+		}),
 	saveQuote: dealerProtectedProcedure
 		.input(dealerPortalSaveQuoteSchema)
 		.mutation(({ ctx, input }) => {
 			return saveDealerPortalQuote(ctx.db, ctx.dealer.id, input);
+		}),
+	convertQuoteToOrder: dealerProtectedProcedure
+		.input(dealerPortalConvertQuoteSchema)
+		.mutation(({ ctx, input }) => {
+			return convertDealerPortalQuoteToOrder(ctx.db, ctx.dealer.id, input.id);
 		}),
 	settings: dealerProtectedProcedure.query(({ ctx }) => {
 		return getDealerPortalSettings(ctx.db, ctx.dealer.id);

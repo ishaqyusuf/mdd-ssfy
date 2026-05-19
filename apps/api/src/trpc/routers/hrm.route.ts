@@ -5,6 +5,7 @@ import {
 	getEmployeePermissionOptions,
 	getEmployees,
 	revokeEmployee,
+	restoreEmployeeAccess,
 	resetEmployeePassword,
 	saveEmployee,
 } from "@api/db/queries/hrm";
@@ -85,6 +86,15 @@ export const hrmRoutes = createTRPCRouter({
 		)
 		.mutation(async (props) => {
 			return revokeEmployee(props.ctx, props.input.userId);
+		}),
+	restoreEmployeeAccess: publicProcedure
+		.input(
+			z.object({
+				userId: z.number(),
+			}),
+		)
+		.mutation(async (props) => {
+			return restoreEmployeeAccess(props.ctx, props.input.userId);
 		}),
 	saveEmployee: publicProcedure
 		.input(employeeFormSchema)

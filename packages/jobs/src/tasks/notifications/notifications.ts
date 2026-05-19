@@ -17,7 +17,8 @@ export const notification = schemaTask({
 	run: async (data) => {
 		const { Notifications } = await import("@gnd/notifications");
 		const notifications = new Notifications(db);
-		const { channel, author, recipients, payload } = data as NotificationJobInput;
+		const { channel, author, recipients, payload } =
+			data as NotificationJobInput;
 		if (channel === "job_task_configured") {
 			const jobId = Number((payload as { jobId?: number })?.jobId);
 			if (Number.isFinite(jobId) && jobId > 0) {
@@ -49,6 +50,12 @@ export const notification = schemaTask({
 					ids: recipient.ids,
 					role: recipient.role,
 				})) ?? undefined,
+			...(channel === "auth_new_device_login"
+				? {
+						includeChannelSubscribers: false,
+						allowFallbackRecipient: false,
+					}
+				: {}),
 		};
 		const result = await notifications.create(channel, payload, {
 			...notificationOptions,

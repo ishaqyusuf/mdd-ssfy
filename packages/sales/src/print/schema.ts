@@ -9,6 +9,7 @@ export const printSalesV2Schema = z.object({
     "packing-slip",
     "order-packing",
   ]),
+  pricingMode: z.enum(["customer", "internal"]).optional(),
   dispatchId: z.number().optional().nullable(),
 });
 

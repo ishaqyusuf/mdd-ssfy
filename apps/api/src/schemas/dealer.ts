@@ -74,6 +74,13 @@ export type DealerPortalSalesDocumentsSchema = z.infer<
 	typeof dealerPortalSalesDocumentsSchema
 >;
 
+export const dealerPortalSalesDocumentSchema = z.object({
+	id: z.number(),
+});
+export type DealerPortalSalesDocumentSchema = z.infer<
+	typeof dealerPortalSalesDocumentSchema
+>;
+
 export const dealerPortalSalesLineItemSchema = z.object({
 	uid: z.string().min(1),
 	title: z.string().optional().nullable(),
@@ -87,6 +94,7 @@ export type DealerPortalSalesLineItemSchema = z.infer<
 >;
 
 export const dealerPortalSaveQuoteSchema = z.object({
+	id: z.number().optional().nullable(),
 	customerId: z.number(),
 	customerProfileId: z.number().optional().nullable(),
 	taxRate: z.number().min(0).max(100).optional().nullable(),
@@ -94,6 +102,13 @@ export const dealerPortalSaveQuoteSchema = z.object({
 });
 export type DealerPortalSaveQuoteSchema = z.infer<
 	typeof dealerPortalSaveQuoteSchema
+>;
+
+export const dealerPortalConvertQuoteSchema = z.object({
+	id: z.number(),
+});
+export type DealerPortalConvertQuoteSchema = z.infer<
+	typeof dealerPortalConvertQuoteSchema
 >;
 
 export const dealerPortalSettingsSchema = z.object({

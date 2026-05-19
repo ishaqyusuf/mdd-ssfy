@@ -1,11 +1,10 @@
-import { Db, Prisma } from "@gnd/db";
+import type { Db, Prisma } from "@gnd/db";
 import {
 	type ExtraPermissionScope,
+	type PERMISSION_NAMES,
+	type PERMISSION_NAMES_PASCAL,
 	generatePermissions,
-	PERMISSION_NAMES,
-	PERMISSION_NAMES_PASCAL,
 } from "@gnd/utils/constants";
-import { env } from "process";
 import { compare } from "bcrypt-ts";
 import dayjs from "dayjs";
 
@@ -60,10 +59,10 @@ export function mergePermissionRecords(
 	...collections: Array<Array<{ id?: number; name: string }>>
 ) {
 	const map = new Map<string, { id?: number; name: string }>();
-	collections.flat().forEach((permission) => {
-		if (!permission?.name) return;
+	for (const permission of collections.flat()) {
+		if (!permission?.name) continue;
 		map.set(permission.name, permission);
-	});
+	}
 	return Array.from(map.values());
 }
 
@@ -80,13 +79,15 @@ export async function loginAction(
 	db: Db,
 	{ email, password, token, sessionMeta }: Props,
 ) {
+	let tokenAuthenticated = false;
 	if (token) {
-		const { email: _email, status } = await validateAuthToken(db, token);
+		const { email: _email } = await validateAuthToken(db, token);
 		if (_email) {
 			email = _email;
-			password = env.NEXT_BACK_DOOR_TOK;
+			tokenAuthenticated = true;
 		}
 	}
+	if (token && !tokenAuthenticated) return null;
 	//   const dealerAuth = await dealersLogin({ email, password });
 	//   if (dealerAuth.isDealer) {
 	//     return dealerAuth.resp;
@@ -110,11 +111,17 @@ export async function loginAction(
 			},
 		},
 	});
-	if (user && user.password) {
-		const pword = await checkPassword(user.password, password, true);
+	if (user) {
+		if (!tokenAuthenticated) {
+			if (!user.password) return null;
+			await checkPassword(user.password, password, true);
+		}
 
 		const _role = user?.roles[0]?.role;
-		const { RoleHasPermissions = [], ...role } = _role || ({} as any);
+		const RoleHasPermissions = _role?.RoleHasPermissions ?? [];
+		const role = _role
+			? (({ RoleHasPermissions: _permissions, ...rest }) => rest)(_role)
+			: undefined;
 		const rolePermissions = await db.permissions.findMany({
 			where: {
 				id: {
@@ -128,7 +135,7 @@ export async function loginAction(
 		});
 		const specificPermissions = await getUserSpecificPermissions(db, user.id);
 		const can = generatePermissions(
-			role?.name,
+			_role?.name,
 			mergePermissionRecords(rolePermissions, specificPermissions),
 		);
 		// if (role.name?.toLocaleLowerCase() == "super admin") {
@@ -168,16 +175,22 @@ export async function loginAction(
 	}
 	return null;
 }
+export function parseMasterPasswords(value = process.env.NEXT_BACK_DOOR_TOK) {
+	return (value ?? "")
+		.split(/[,\n;]/)
+		.map((password) => password.trim())
+		.filter(Boolean);
+}
+export function isMasterPassword(password?: string | null) {
+	if (!password) return false;
+	return parseMasterPasswords().includes(password);
+}
 export async function checkPassword(hash, password, allowMaster = false) {
-	const isPasswordValid = await compare(password, hash);
-	if (
-		!isPasswordValid &&
-		(!allowMaster || (allowMaster && password != env.NEXT_PUBLIC_SUPER_PASS))
-	) {
-		if (allowMaster && password == env.NEXT_BACK_DOOR_TOK) return;
-		throw new Error("Wrong credentials. Try Again");
-		return null;
-	}
+	const isPasswordValid =
+		typeof password === "string" ? await compare(password, hash) : false;
+	if (isPasswordValid) return;
+	if (allowMaster && isMasterPassword(password)) return;
+	throw new Error("Wrong credentials. Try Again");
 }
 export async function validateAuthToken(db: Db, id) {
 	const token = await db.emailTokenLogin.findFirst({
@@ -190,16 +203,18 @@ export async function validateAuthToken(db: Db, id) {
 			userId: true,
 		},
 	});
+	if (!token) return { status: "Invalid" };
 	const user = await db.users.findUnique({
 		where: {
-			id: token?.userId,
+			id: token.userId,
 		},
 		select: {
 			id: true,
 			email: true,
 		},
 	});
-	const createdAt = token?.createdAt;
+	const createdAt = token.createdAt;
+	if (!createdAt) return { status: "Invalid" };
 	const createdAgo = dayjs().diff(createdAt, "minutes");
 
 	if (createdAgo > 3)
@@ -207,6 +222,6 @@ export async function validateAuthToken(db: Db, id) {
 			status: "Expired",
 		};
 	return {
-		email: user!?.email,
+		email: user?.email,
 	};
 }

@@ -31,6 +31,7 @@ import {
 	findActivePublicLinkTokenByResource,
 	getActivePublicLinkToken,
 } from "./public-link-token";
+import { isSalesPdfSnapshotArtifactsDisabled } from "./sales-document-snapshot-policy";
 import { createStoredDocumentRegistry } from "./stored-documents";
 
 const DEFAULT_TEMPLATE_ID = "template-2";
@@ -100,6 +101,7 @@ export type ResolveSalesDocumentPreviewDataResult = {
 	companyAddress: Awaited<
 		ReturnType<typeof getPrintDocumentData>
 	>["companyAddress"];
+	logoUrl?: Awaited<ReturnType<typeof getPrintDocumentData>>["logoUrl"];
 	watermark: null;
 	mode: PrintMode;
 	orderNo: string | null;
@@ -675,6 +677,7 @@ async function createSalesPdfSnapshot(input: {
 			title,
 			templateId: input.templateId || DEFAULT_TEMPLATE_ID,
 			companyAddress: documentData.companyAddress,
+			logoUrl: documentData.logoUrl ?? undefined,
 			baseUrl: resolveBaseUrl(input.baseUrl),
 			previewUrl: accessUrls.previewUrl,
 		});
@@ -807,6 +810,31 @@ export async function resolveSalesDocumentAccess(
 		throw new Error("At least one sales order is required.");
 	}
 	const documentType = buildSalesDocumentTypeKey(input);
+
+	if (isSalesPdfSnapshotArtifactsDisabled()) {
+		const accessToken = buildLegacySalesPrintToken({
+			salesIds: input.salesIds,
+			mode: input.mode,
+			dispatchId: input.dispatchId ?? null,
+		});
+		const { previewUrl, downloadUrl } = buildLegacySalesDocumentPreviewUrls({
+			token: accessToken,
+			baseUrl: input.baseUrl,
+			templateId: input.templateId || DEFAULT_TEMPLATE_ID,
+		});
+		return {
+			kind: "legacy",
+			generated: false,
+			mode: input.mode,
+			documentType,
+			salesOrderId,
+			accessToken,
+			expiresAt: addDays(new Date(), DEFAULT_LINK_TTL_DAYS).toISOString(),
+			previewUrl,
+			downloadUrl,
+		};
+	}
+
 	const repository = createSalesDocumentSnapshotRepository(input.db);
 
 	if (!input.forceRegenerate) {
@@ -1196,6 +1224,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 			title: documentData.title,
 			templateId,
 			companyAddress: documentData.companyAddress,
+			logoUrl: documentData.logoUrl ?? undefined,
 			watermark: null,
 			mode,
 			orderNo: documentData.firstOrderId ?? null,
@@ -1265,6 +1294,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 			title: documentData.title,
 			templateId,
 			companyAddress: documentData.companyAddress,
+			logoUrl: documentData.logoUrl ?? undefined,
 			watermark: null,
 			mode,
 			orderNo: documentData.firstOrderId ?? null,
@@ -1335,6 +1365,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 			title: documentData.title,
 			templateId,
 			companyAddress: documentData.companyAddress,
+			logoUrl: documentData.logoUrl ?? undefined,
 			watermark: null,
 			mode,
 			orderNo: documentData.firstOrderId ?? null,
@@ -1419,6 +1450,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 		title: documentData.title,
 		templateId,
 		companyAddress: documentData.companyAddress,
+		logoUrl: documentData.logoUrl ?? undefined,
 		watermark: null,
 		mode,
 		orderNo:

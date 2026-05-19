@@ -1,0 +1,61 @@
+"use client";
+
+import { Button } from "@gnd/ui/button";
+import { Menu } from "@gnd/ui/custom/menu";
+import { Icons } from "@gnd/ui/icons";
+
+export type WorkflowComponentRedirectOption = {
+	uid: string;
+	title: string;
+};
+
+export type WorkflowComponentActionMenuProps = {
+	redirectOptions: WorkflowComponentRedirectOption[];
+	onEdit: () => void;
+	onEditSectionOverride: () => void;
+	onSelect: () => void;
+	onClearRedirect: () => void;
+	onSetRedirect: (uid: string) => void;
+	onDelete: () => void;
+};
+
+export function WorkflowComponentActionMenu(
+	props: WorkflowComponentActionMenuProps,
+) {
+	return (
+		<Menu
+			Trigger={
+				<Button size="icon" variant="secondary" className="size-7">
+					<Icons.MoreHorizontal className="size-4" />
+				</Button>
+			}
+		>
+			<Menu.Item onClick={props.onEdit}>Edit</Menu.Item>
+			<Menu.Item onClick={props.onEditSectionOverride}>
+				Section Setting Override
+			</Menu.Item>
+			<Menu.Item onClick={props.onSelect}>Select</Menu.Item>
+			<Menu.Item
+				disabled={!props.redirectOptions.length}
+				SubMenu={[
+					<Menu.Item key="redirect-none" onClick={props.onClearRedirect}>
+						Cancel Redirect
+					</Menu.Item>,
+					...props.redirectOptions.map((step) => (
+						<Menu.Item
+							key={`redirect-${step.uid}`}
+							onClick={() => props.onSetRedirect(step.uid)}
+						>
+							{step.title}
+						</Menu.Item>
+					)),
+				]}
+			>
+				Redirect
+			</Menu.Item>
+			<Menu.Item className="text-red-600" onClick={props.onDelete}>
+				Delete
+			</Menu.Item>
+		</Menu>
+	);
+}

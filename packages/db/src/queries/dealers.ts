@@ -67,6 +67,7 @@ export type DealerPortalQuoteLineItemInput = {
 };
 
 export type DealerPortalSaveQuoteInput = {
+	id?: number | null;
 	customerId: number;
 	customerProfileId?: number | null;
 	taxRate?: number | null;
@@ -509,13 +510,32 @@ export async function saveDealerPortalCustomer(
 	dealerId: number,
 	input: DealerCustomerFormInput,
 ) {
+	const customerTypeId = input.customerTypeId || null;
+
+	if (customerTypeId) {
+		const profile = await db.customerTypes.findFirst({
+			where: {
+				id: customerTypeId,
+				dealerOwnerId: dealerId,
+				deletedAt: null,
+			},
+			select: {
+				id: true,
+			},
+		});
+
+		if (!profile) {
+			throw new Error("Dealer sales profile could not be found.");
+		}
+	}
+
 	const data = {
 		name: input.name?.trim() || null,
 		businessName: input.businessName?.trim() || null,
 		email: input.email?.trim().toLowerCase() || null,
 		phoneNo: input.phoneNo?.trim() || null,
 		address: input.address?.trim() || null,
-		customerTypeId: input.customerTypeId || null,
+		customerTypeId,
 		dealerOwnerId: dealerId,
 	};
 
@@ -621,7 +641,7 @@ export async function getDealerPortalSalesDocuments(
 	dealerId: number,
 	type: "order" | "quote",
 ) {
-	return db.salesOrders.findMany({
+	const documents = await db.salesOrders.findMany({
 		where: {
 			dealerAuthId: dealerId,
 			deletedAt: null,
@@ -639,6 +659,7 @@ export async function getDealerPortalSalesDocuments(
 			type: true,
 			grandTotal: true,
 			amountDue: true,
+			meta: true,
 			invoiceStatus: true,
 			createdAt: true,
 			customer: {
@@ -651,6 +672,147 @@ export async function getDealerPortalSalesDocuments(
 			},
 		},
 	});
+	return documents.map((document) => {
+		const dealerSummary = getDealerPricingSummaryFromMeta(document.meta);
+		const { meta: _meta, ...safeDocument } = document;
+		return {
+			...safeDocument,
+			grandTotal: Number(dealerSummary?.grandTotal ?? document.grandTotal ?? 0),
+			amountDue: Number(dealerSummary?.grandTotal ?? document.amountDue ?? 0),
+		};
+	});
+}
+
+function getDealerNewSalesFormMeta(meta: Prisma.JsonValue | null | undefined) {
+	if (!meta || typeof meta !== "object" || Array.isArray(meta)) return null;
+	const value = (meta as Record<string, unknown>).newSalesForm;
+	return value && typeof value === "object" && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: null;
+}
+
+function getDealerPricingSummaryFromMeta(meta: Prisma.JsonValue | null | undefined) {
+	if (!meta || typeof meta !== "object" || Array.isArray(meta)) return null;
+	const dealerPricing = (meta as Record<string, unknown>).dealerPricing;
+	if (
+		!dealerPricing ||
+		typeof dealerPricing !== "object" ||
+		Array.isArray(dealerPricing)
+	) {
+		return null;
+	}
+	const summary = (dealerPricing as Record<string, unknown>).summary;
+	return summary && typeof summary === "object" && !Array.isArray(summary)
+		? (summary as Record<string, unknown>)
+		: null;
+}
+
+export async function getDealerPortalSalesDocument(
+	db: Database,
+	dealerId: number,
+	id: number,
+) {
+	const document = await db.salesOrders.findFirst({
+		where: {
+			id,
+			dealerAuthId: dealerId,
+			deletedAt: null,
+		},
+		select: {
+			id: true,
+			orderId: true,
+			title: true,
+			status: true,
+			type: true,
+			grandTotal: true,
+			amountDue: true,
+			taxPercentage: true,
+			customerId: true,
+			customerProfileId: true,
+			dealerSalesProfileId: true,
+			meta: true,
+			customer: {
+				select: {
+					id: true,
+					name: true,
+					businessName: true,
+					email: true,
+					customerTypeId: true,
+				},
+			},
+			items: {
+				orderBy: {
+					id: "asc",
+				},
+				select: {
+					id: true,
+					description: true,
+					dykeDescription: true,
+					qty: true,
+					rate: true,
+					total: true,
+					meta: true,
+				},
+			},
+		},
+	});
+
+	if (!document) {
+		throw new Error("Dealer sales document could not be found.");
+	}
+
+	const newSalesForm = getDealerNewSalesFormMeta(document.meta);
+	const form =
+		newSalesForm?.form &&
+		typeof newSalesForm.form === "object" &&
+		!Array.isArray(newSalesForm.form)
+			? (newSalesForm.form as Record<string, unknown>)
+			: null;
+	const metaLineItems = Array.isArray(newSalesForm?.lineItems)
+		? newSalesForm.lineItems
+		: null;
+	const dealerSummary = getDealerPricingSummaryFromMeta(document.meta);
+	const { meta: _meta, items, ...safeDocument } = document;
+
+	return {
+		...safeDocument,
+		grandTotal: Number(dealerSummary?.grandTotal ?? document.grandTotal ?? 0),
+		amountDue: Number(dealerSummary?.grandTotal ?? document.amountDue ?? 0),
+		customerId:
+			Number(form?.customerId || document.customerId || document.customer?.id || 0) ||
+			null,
+		customerProfileId:
+			Number(
+				form?.customerProfileId ||
+					document.dealerSalesProfileId ||
+					document.customer?.customerTypeId ||
+					0,
+			) || null,
+		taxRate: Number(
+			(newSalesForm?.summary as Record<string, unknown> | undefined)?.taxRate ??
+				document.taxPercentage ??
+				0,
+		),
+		lineItems: metaLineItems?.length
+			? metaLineItems
+			: items.map((item) => {
+					const itemMeta =
+						item.meta && typeof item.meta === "object" && !Array.isArray(item.meta)
+							? (item.meta as Record<string, unknown>)
+							: {};
+					return {
+						uid: String(itemMeta.uid || `dealer-item-${item.id}`),
+						title:
+							typeof itemMeta.title === "string"
+								? itemMeta.title
+								: item.dykeDescription || item.description || "",
+						description: item.description || "",
+						qty: Number(item.qty || 0),
+						unitPrice: Number(itemMeta.dealerUnitPrice ?? item.rate ?? 0),
+						lineTotal: Number(itemMeta.dealerLineTotal ?? item.total ?? 0),
+					};
+				}),
+	};
 }
 
 function roundCurrency(value: number) {
@@ -662,19 +824,33 @@ function pricingCoefficient(profile?: { coefficient?: number | null } | null) {
 	return Number.isFinite(value) && value > 0 ? value : 1;
 }
 
-function calculateDealerQuotePricing({
+export function calculateDealerQuotePricing({
 	lineItems,
 	taxRate,
 	internalProfile,
 	dealerProfile,
+	createdAt,
 }: {
 	lineItems: DealerPortalQuoteLineItemInput[];
 	taxRate: number;
-	internalProfile?: { id?: number | null; coefficient?: number | null } | null;
-	dealerProfile?: { id?: number | null; coefficient?: number | null } | null;
+	internalProfile?: {
+		id?: number | null;
+		title?: string | null;
+		coefficient?: number | null;
+	} | null;
+	dealerProfile?: {
+		id?: number | null;
+		title?: string | null;
+		coefficient?: number | null;
+	} | null;
+	createdAt?: string | Date | null;
 }) {
 	const internalCoefficient = pricingCoefficient(internalProfile);
 	const dealerCoefficient = pricingCoefficient(dealerProfile);
+	const snapshotCreatedAt =
+		createdAt instanceof Date
+			? createdAt.toISOString()
+			: createdAt || new Date().toISOString();
 
 	const lines = lineItems.map((line) => {
 		const qty = Number(line.qty ?? 0);
@@ -706,8 +882,22 @@ function calculateDealerQuotePricing({
 	const dealerTaxTotal = roundCurrency(dealerSubTotal * (taxRate / 100));
 
 	return {
+		source: "dealer_portal_dual_pricing",
+		createdAt: snapshotCreatedAt,
 		internalProfileId: internalProfile?.id ?? null,
 		dealerProfileId: dealerProfile?.id ?? null,
+		profiles: {
+			internal: {
+				id: internalProfile?.id ?? null,
+				label: internalProfile?.title ?? null,
+				coefficient: internalCoefficient,
+			},
+			dealer: {
+				id: dealerProfile?.id ?? null,
+				label: dealerProfile?.title ?? null,
+				coefficient: dealerCoefficient,
+			},
+		},
 		lines,
 		internalPricing: {
 			subTotal: internalSubTotal,
@@ -747,6 +937,16 @@ function createDealerQuoteIdentity() {
 	return {
 		orderId,
 		slug: `quote-${orderId.toLowerCase()}`,
+	};
+}
+
+function createDealerOrderIdentity() {
+	const stamp = Date.now().toString(36).toUpperCase();
+	const random = Math.random().toString(36).slice(2, 6).toUpperCase();
+	const orderId = `DO-${stamp}-${random}`;
+	return {
+		orderId,
+		slug: `order-${orderId.toLowerCase()}`,
 	};
 }
 
@@ -803,6 +1003,10 @@ export async function saveDealerPortalQuote(
 			}),
 		]);
 
+		if (dealerProfileId && !dealerProfile) {
+			throw new Error("Dealer sales profile could not be found.");
+		}
+
 		const normalizedLines = input.lineItems.map((line, index) => {
 			const qty = Number(line.qty ?? 0);
 			const unitPrice = Number(line.unitPrice ?? 0);
@@ -828,11 +1032,38 @@ export async function saveDealerPortalQuote(
 			dealerProfile,
 			lineItems: normalizedLines,
 		});
-		const identity = createDealerQuoteIdentity();
-		const created = await tx.salesOrders.create({
-			data: {
-				orderId: identity.orderId,
-				slug: identity.slug,
+		const pricingSnapshot = {
+			source: pricing.source,
+			createdAt: pricing.createdAt,
+			profiles: pricing.profiles,
+			lines: pricing.lines,
+			internalPricing: pricing.internalPricing,
+			dealerPricing: pricing.dealerPricing,
+		};
+		const existing = input.id
+			? await tx.salesOrders.findFirst({
+					where: {
+						id: input.id,
+						dealerAuthId: dealerId,
+						deletedAt: null,
+						type: "quote",
+					},
+					select: {
+						id: true,
+						orderId: true,
+						slug: true,
+					},
+				})
+			: null;
+
+		if (input.id && !existing) {
+			throw new Error("Dealer quote could not be found.");
+		}
+
+		const identity = existing || createDealerQuoteIdentity();
+		const orderData = {
+			orderId: identity.orderId,
+			slug: identity.slug,
 				type: "quote",
 				status: "Draft",
 				isDyke: true,
@@ -847,13 +1078,24 @@ export async function saveDealerPortalQuote(
 				amountDue: pricing.internalPricing.grandTotal,
 				meta: {
 					source: "dealer_portal",
+					pricingSnapshot,
 					dealerPricing: {
 						profileId: pricing.dealerProfileId,
 						summary: pricing.dealerPricing,
+						lines: pricing.lines.map((line) => ({
+							uid: line.uid,
+							unitPrice: line.dealerUnitPrice,
+							lineTotal: line.dealerLineTotal,
+						})),
 					},
 					internalPricing: {
 						profileId: pricing.internalProfileId,
 						summary: pricing.internalPricing,
+						lines: pricing.lines.map((line) => ({
+							uid: line.uid,
+							unitPrice: line.internalUnitPrice,
+							lineTotal: line.internalLineTotal,
+						})),
 					},
 					newSalesForm: {
 						version: `${Date.now()}`,
@@ -868,13 +1110,35 @@ export async function saveDealerPortalQuote(
 						},
 					},
 				} as Prisma.InputJsonValue,
-			},
+		};
+		const created = existing
+			? await tx.salesOrders.update({
+					where: {
+						id: existing.id,
+					},
+					data: orderData,
+					select: {
+						id: true,
+						orderId: true,
+						slug: true,
+					},
+				})
+			: await tx.salesOrders.create({
+					data: orderData,
 			select: {
 				id: true,
 				orderId: true,
 				slug: true,
 			},
-		});
+				});
+
+		if (existing) {
+			await tx.salesOrderItems.deleteMany({
+				where: {
+					salesOrderId: created.id,
+				},
+			});
+		}
 
 		await tx.salesOrderItems.createMany({
 			data: normalizedLines.map((line, index) => ({
@@ -887,6 +1151,8 @@ export async function saveDealerPortalQuote(
 				meta: {
 					uid: line.uid,
 					title: line.title,
+					internalUnitPrice: pricing.lines[index]?.internalUnitPrice,
+					internalLineTotal: pricing.lines[index]?.internalLineTotal,
 					dealerUnitPrice: pricing.lines[index]?.dealerUnitPrice,
 					dealerLineTotal: pricing.lines[index]?.dealerLineTotal,
 				} as Prisma.InputJsonValue,
@@ -898,6 +1164,61 @@ export async function saveDealerPortalQuote(
 			internalPricing: pricing.internalPricing,
 			dealerPricing: pricing.dealerPricing,
 		};
+	});
+}
+
+export async function convertDealerPortalQuoteToOrder(
+	db: Database,
+	dealerId: number,
+	quoteId: number,
+) {
+	return db.$transaction(async (tx) => {
+		const quote = await tx.salesOrders.findFirst({
+			where: {
+				id: quoteId,
+				dealerAuthId: dealerId,
+				deletedAt: null,
+				type: "quote",
+			},
+			select: {
+				id: true,
+				meta: true,
+			},
+		});
+
+		if (!quote) {
+			throw new Error("Dealer quote could not be found.");
+		}
+
+		const identity = createDealerOrderIdentity();
+		const currentMeta =
+			quote.meta && typeof quote.meta === "object" && !Array.isArray(quote.meta)
+				? quote.meta
+				: {};
+
+		return tx.salesOrders.update({
+			where: {
+				id: quote.id,
+			},
+			data: {
+				orderId: identity.orderId,
+				slug: identity.slug,
+				type: "order",
+				status: "New",
+				meta: {
+					...currentMeta,
+					convertedFromDealerQuoteId: quote.id,
+					convertedAt: new Date().toISOString(),
+				} as Prisma.InputJsonValue,
+			},
+			select: {
+				id: true,
+				orderId: true,
+				slug: true,
+				type: true,
+				status: true,
+			},
+		});
 	});
 }
 

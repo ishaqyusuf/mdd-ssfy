@@ -2,6 +2,7 @@
 import { shouldSendNotification } from "@gnd/db/queries";
 
 import type { Db } from "@gnd/db";
+import AuthNewDeviceLoginEmail from "@gnd/email/emails/auth-new-device-login";
 import { JobApprovedEmail } from "@gnd/email/emails/job-approved";
 import { JobAssignedEmail } from "@gnd/email/emails/job-assigned";
 import { JobPaymentSentEmail } from "@gnd/email/emails/job-payment-sent";
@@ -229,6 +230,7 @@ export class EmailService {
 			"sales-reminder-schedule-admin-notification":
 				SalesReminderScheduleAdminNotificationEmail,
 			"dealer-onboarding": DealerOnboardingEmail,
+			"auth-new-device-login": AuthNewDeviceLoginEmail,
 			"login-link-email": LoginEmail,
 			"password-reset-request": StorefrontPasswordResetRequest,
 		};

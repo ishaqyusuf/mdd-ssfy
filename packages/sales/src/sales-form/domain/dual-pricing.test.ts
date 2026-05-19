@@ -1,6 +1,9 @@
 // @ts-expect-error packages/sales typecheck does not include Bun test types.
 import { describe, expect, it } from "bun:test";
-import { calculateDualSalesFormPricing } from "./dual-pricing";
+import {
+	buildDualSalesFormPricingSnapshot,
+	calculateDualSalesFormPricing,
+} from "./dual-pricing";
 
 describe("dual sales form pricing", () => {
 	it("keeps internal and dealer totals separate", () => {
@@ -50,5 +53,44 @@ describe("dual sales form pricing", () => {
 
 		expect(result.lines[0]?.internalLineTotal).toBe(42);
 		expect(result.lines[0]?.dealerLineTotal).toBe(42);
+	});
+
+	it("builds an explicit reusable snapshot with profile coefficients", () => {
+		const snapshot = buildDualSalesFormPricingSnapshot({
+			createdAt: "2026-05-18T00:00:00.000Z",
+			internalProfile: {
+				id: 10,
+				label: "Standard",
+				coefficient: 1,
+			},
+			dealerProfile: {
+				id: 20,
+				label: "Retail",
+				coefficient: 2,
+			},
+			lineItems: [
+				{
+					uid: "line-1",
+					title: "Shelf",
+					qty: 2,
+					unitPrice: 25,
+				},
+			],
+		});
+
+		expect(snapshot.source).toBe("sales_form_dual_pricing");
+		expect(snapshot.createdAt).toBe("2026-05-18T00:00:00.000Z");
+		expect(snapshot.profiles.internal).toEqual({
+			id: 10,
+			label: "Standard",
+			coefficient: 1,
+		});
+		expect(snapshot.profiles.dealer).toEqual({
+			id: 20,
+			label: "Retail",
+			coefficient: 2,
+		});
+		expect(snapshot.internalPricing.grandTotal).toBe(50);
+		expect(snapshot.dealerPricing.grandTotal).toBe(100);
 	});
 });

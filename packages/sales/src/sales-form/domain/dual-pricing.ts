@@ -51,6 +51,23 @@ export type DualPricingResult = {
 	lines: DualPricingLineResult[];
 };
 
+export type DualPricingSnapshot = DualPricingResult & {
+	source: "sales_form_dual_pricing";
+	createdAt: string;
+	profiles: {
+		internal: {
+			id: number | null;
+			label: string | null;
+			coefficient: number;
+		};
+		dealer: {
+			id: number | null;
+			label: string | null;
+			coefficient: number;
+		};
+	};
+};
+
 function roundCurrency(value: number) {
 	return Math.round((value + Number.EPSILON) * 100) / 100;
 }
@@ -119,5 +136,35 @@ export function calculateDualSalesFormPricing(
 				dealerLineTotal: Number(dealerLine.lineTotal || 0),
 			};
 		}),
+	};
+}
+
+export function buildDualSalesFormPricingSnapshot(
+	input: DualPricingInput & {
+		createdAt?: string | Date | null;
+	},
+): DualPricingSnapshot {
+	const result = calculateDualSalesFormPricing(input);
+	const createdAt =
+		input.createdAt instanceof Date
+			? input.createdAt.toISOString()
+			: input.createdAt || new Date().toISOString();
+
+	return {
+		...result,
+		source: "sales_form_dual_pricing",
+		createdAt,
+		profiles: {
+			internal: {
+				id: input.internalProfile?.id ?? null,
+				label: input.internalProfile?.label ?? null,
+				coefficient: coefficient(input.internalProfile),
+			},
+			dealer: {
+				id: input.dealerProfile?.id ?? null,
+				label: input.dealerProfile?.label ?? null,
+				coefficient: coefficient(input.dealerProfile),
+			},
+		},
 	};
 }

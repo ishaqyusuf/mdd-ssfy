@@ -52,14 +52,12 @@ const server = z.object({
  */
 const client = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url(),
-  // NEXT_PUBLIC_SUPER_PASS: z.string(),
   // CLOUDINARY_UPLOAD_URL: z.string(),
   NEXT_PUBLIC_ROOT_DOMAIN: z.string(),
   // CLOUDINARY_API_KEY: z.string(),
   NEXT_PUBLIC_CLOUDINARY_BASE_URL: z.string(),
   NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN: z.string(),
   NEXT_PUBLIC_VERCEL_BLOB_URL: z.string(),
-  NEXT_PUBLIC_BACK_DOOR_TOK: z.string(),
   NEXT_PUBLIC_NODE_ENV: z.enum(["development", "test", "production"]),
   // NEXT_PUBLIC_CLIENTVAR: z.string().min(1),
 });
@@ -99,7 +97,6 @@ const processEnv = {
   TWILIO_ACCOUNT_TOKEN: process.env.TWILIO_ACCOUNT_TOKEN,
   TWILIO_PHONE: process.env.TWILIO_PHONE,
   // client
-  // NEXT_PUBLIC_SUPER_PASS: process.env.NEXT_PUBLIC_SUPER_PASS,
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   NEXT_PUBLIC_NODE_ENV: process.env.NODE_ENV,
   NEXT_PUBLIC_CLOUDINARY_BASE_URL: process.env.NEXT_PUBLIC_CLOUDINARY_BASE_URL,
@@ -107,7 +104,6 @@ const processEnv = {
   NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN:
     process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
   NEXT_PUBLIC_VERCEL_BLOB_URL: process.env.NEXT_PUBLIC_VERCEL_BLOB_URL,
-  NEXT_PUBLIC_BACK_DOOR_TOK: process.env.NEXT_PUBLIC_BACK_DOOR_TOK,
   // DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID,
   // DISCORD_CLIENT_SECRET: process.env.DISCORD_CLIENT_SECRET,
   // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,

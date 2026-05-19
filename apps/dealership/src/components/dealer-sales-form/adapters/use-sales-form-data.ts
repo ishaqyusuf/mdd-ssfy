@@ -1,6 +1,11 @@
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
+import type {
+	DealerSalesFormCustomer,
+	DealerSalesFormProfile,
+	DealerSalesFormRecord,
+} from "../types";
 
 export function useSalesFormData() {
 	const trpc = useTRPC();
@@ -21,5 +26,22 @@ export function useSalesFormData() {
 			salesProfiles.data,
 			salesProfiles.isPending,
 		],
+	);
+}
+
+export function useDealerSalesFormData(input: {
+	customers: DealerSalesFormCustomer[];
+	profiles: DealerSalesFormProfile[];
+	record: DealerSalesFormRecord | null;
+	isLoading?: boolean;
+}) {
+	return useMemo(
+		() => ({
+			customers: input.customers,
+			profiles: input.profiles,
+			record: input.record,
+			isLoading: Boolean(input.isLoading),
+		}),
+		[input.customers, input.isLoading, input.profiles, input.record],
 	);
 }

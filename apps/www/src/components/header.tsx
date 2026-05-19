@@ -1,21 +1,28 @@
 "use client";
 
-import { SiteNav } from "@gnd/site-nav";
+import { SiteNav, useSiteNav } from "@gnd/site-nav";
+import type { CSSProperties } from "react";
 import { NotificationCenter } from "./notification-center";
 import { OpenSearchButton } from "./search/open-search-button";
 import { UserNav } from "./user-nav";
 
 export function Header() {
+    const { isExpanded, linkModules } = useSiteNav();
+    const sidebarHeaderOffset =
+        isExpanded && !linkModules?.noSidebar ? "184px" : "0px";
+
     return (
         <>
             <header
-                className="fixed inset-x-0 top-0 z-50 flex h-[70px] items-center justify-between gap-4 border-b bg-background/90 px-4 shadow-sm backdrop-blur-xl backdrop-filter transition-transform md:relative md:m-0 md:border-b md:bg-background/70 md:px-6 md:shadow-none md:backdrop-blur-none md:backdrop-filter desktop:rounded-t-[10px]"
+                className="fixed inset-x-0 top-0 z-50 flex h-[70px] items-center justify-between gap-4 border-b bg-background/90 px-4 shadow-sm backdrop-blur-xl backdrop-filter transition-[padding-left,transform] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none md:relative md:m-0 md:border-b md:bg-background/70 md:pl-[calc(1.5rem+var(--site-nav-header-offset))] md:pr-6 md:shadow-none md:backdrop-blur-none md:backdrop-filter desktop:rounded-t-[10px]"
                 style={{
+                    "--site-nav-header-offset": sidebarHeaderOffset,
                     transform:
                         "translateY(calc(var(--header-offset, 0px) * -1))",
-                    transitionDuration: "var(--header-transition, 200ms)",
-                    willChange: "transform",
-                }}
+                    transitionDuration: "var(--header-transition, 300ms)",
+                    transitionTimingFunction: "cubic-bezier(0.4,0,0.2,1)",
+                    willChange: "transform, padding-left",
+                } as CSSProperties}
             >
                 <SiteNav.MobileSidebar />
                 <div id="goBackSlot" />

@@ -13,6 +13,7 @@ import { composeMouldingSections } from "./compose/moulding-sections";
 import { composeServiceSections } from "./compose/service-sections";
 import { composeShelfSections } from "./compose/shelf-sections";
 import { getModeConfig } from "./constants";
+import { resolveDealerPrintPricingSurface } from "./dealer-pricing-surface";
 import { type PrintSalesData, buildPrintSalesInclude } from "./query";
 import type { PrintSalesV2Input } from "./schema";
 import type {
@@ -60,7 +61,13 @@ export async function getPrintData(
 
 	const pages = await Promise.all(
 		jobs.map(({ sale, mode }) =>
-			composePage(db, sale, mode, setting, input.dispatchId),
+			composePage(
+				db,
+				resolveDealerPrintPricingSurface(sale, input.pricingMode),
+				mode,
+				setting,
+				input.dispatchId,
+			),
 		),
 	);
 

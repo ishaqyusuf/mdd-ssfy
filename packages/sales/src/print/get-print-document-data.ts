@@ -1,4 +1,5 @@
 import type { Db } from "@gnd/db";
+import { resolveDealerPrintBrandingFromSource } from "./dealer-branding";
 import { getPrintData } from "./get-print-data";
 import type { PrintSalesV2Input } from "./schema";
 import type { CompanyAddress } from "./types";
@@ -23,13 +24,6 @@ export function resolveSalesCompanyAddress(
 	return ["lrg", "vc"].some((suffix) => orderId.endsWith(suffix))
 		? LAKE_WALES_ADDRESS
 		: MIAMI_ADDRESS;
-}
-
-function getDealerLogoUrl(meta: unknown) {
-	if (!meta || typeof meta !== "object" || Array.isArray(meta))
-		return undefined;
-	const value = (meta as { logoUrl?: unknown }).logoUrl;
-	return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
 async function resolveDealerPrintBranding(db: Db, salesOrderId: number) {
@@ -58,22 +52,7 @@ async function resolveDealerPrintBranding(db: Db, salesOrderId: number) {
 		},
 	});
 	const dealer = sale?.dealerAuth;
-	if (!dealer) return null;
-	const address = dealer.primaryBillingAddress;
-	const cityLine = [address?.city, address?.state, address?.country]
-		.filter(Boolean)
-		.join(", ");
-
-	return {
-		logoUrl: getDealerLogoUrl(dealer.meta),
-		companyAddress: {
-			address1: dealer.companyName || dealer.name || address?.address1 || "",
-			address2: [address?.address1, address?.address2, cityLine]
-				.filter(Boolean)
-				.join(" "),
-			phone: dealer.phoneNo || "",
-		} satisfies CompanyAddress,
-	};
+	return resolveDealerPrintBrandingFromSource(dealer);
 }
 
 export async function getPrintDocumentData(db: Db, input: PrintSalesV2Input) {

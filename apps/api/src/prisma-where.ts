@@ -201,7 +201,11 @@ export function parseSearchparams(_params) {
 	};
 }
 export function whereEmployees(params: EmployeesQueryParams) {
-	const wheres: Prisma.UsersWhereInput[] = [{ accessRevokedAt: null }];
+	const wheres: Prisma.UsersWhereInput[] = [
+		params.accessStatus === "revoked"
+			? { accessRevokedAt: { not: null } }
+			: { accessRevokedAt: null },
+	];
 	const { can, cannot, roles } = params;
 	if (params.q) {
 		const contains = { contains: params.q };
@@ -310,6 +314,8 @@ export function whereEmployees(params: EmployeesQueryParams) {
 						name: v,
 					},
 				});
+				break;
+			case "accessStatus":
 				break;
 		}
 	});

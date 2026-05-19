@@ -367,6 +367,7 @@ async function warmSnapshot(payload: WarmSalesDocumentSnapshotPayload) {
 			title,
 			templateId: payload.templateId || DEFAULT_TEMPLATE_ID,
 			companyAddress: documentData.companyAddress,
+			logoUrl: documentData.logoUrl ?? undefined,
 			baseUrl: resolveBaseUrl(),
 		});
 		logger.info("Rendered sales PDF snapshot", {

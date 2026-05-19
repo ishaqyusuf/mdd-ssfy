@@ -1,11 +1,20 @@
-import type { NotificationHandler } from "../base";
-import {
-	type DealerOnboardingTags,
-	dealerOnboardingSchema,
-} from "../schemas";
+import type { NotificationHandler, UserData } from "../base";
+import { type DealerOnboardingTags, dealerOnboardingSchema } from "../schemas";
 
 export const dealerOnboarding: NotificationHandler = {
 	schema: dealerOnboardingSchema,
+	createDirectEmailContact(data): UserData {
+		return {
+			id: data.dealerId,
+			profileId: data.dealerId,
+			name: data.dealerName || data.dealerEmail,
+			email: data.dealerEmail,
+			role: "address",
+			emailNotification: true,
+			inAppNotification: false,
+			whatsAppNotification: false,
+		};
+	},
 	createActivity(data, author) {
 		const payload: DealerOnboardingTags = {
 			type: "dealer_onboarding",

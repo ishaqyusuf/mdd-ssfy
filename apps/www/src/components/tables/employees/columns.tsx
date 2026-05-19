@@ -113,13 +113,14 @@ function Office({ item }: { item: Item }) {
 		</Menu>
 	);
 }
-function Action({ item }: { item: Item }) {
+function Action({ item, mobile = false }: { item: Item; mobile?: boolean }) {
 	const { setParams } = useEmployeeParams();
 	const trpc = useTRPC();
 	const toast = useLoadingToast();
 	const auth = useAuth();
 	const canRevokeEmployee = auth.roleTitle?.toLowerCase() === "super admin";
 	const [confirmRevokeOpen, setConfirmRevokeOpen] = useState(false);
+	const isRevoked = item.accessStatus === "revoked";
 	const submitAction = useMutation(
 		trpc.hrm.resetEmployeePassword.mutationOptions({
 			async onSuccess(data, variables, context) {
@@ -147,6 +148,17 @@ function Action({ item }: { item: Item }) {
 			},
 		}),
 	);
+	const restoreAction = useMutation(
+		trpc.hrm.restoreEmployeeAccess.mutationOptions({
+			onSuccess() {
+				invalidateInfiniteQueries("hrm.getEmployees");
+				toast.success("Employee access restored");
+			},
+			onError(error) {
+				toast.error(error.message || "Unable to restore employee access");
+			},
+		}),
+	);
 	function onSubmit() {
 		submitAction.mutate({
 			userId: item.id,
@@ -155,35 +167,74 @@ function Action({ item }: { item: Item }) {
 	}
 	return (
 		<>
-			<div className="relative flex items-center gap-2 z-10">
-				<EditButton
-					onClick={(e) => {
-						setParams({
-							editEmployeeId: item.id,
-						});
-					}}
-				/>
-				<Menu>
-					<Menu.Item
+			<div
+				className="relative z-10 flex items-center gap-2"
+				onClick={(event) => event.stopPropagation()}
+			>
+				{!isRevoked && !mobile ? (
+					<EditButton
 						onClick={(e) => {
-							onSubmit();
+							setParams({
+								editEmployeeId: item.id,
+							});
 						}}
-						icon="packingList"
-					>
-						Reset Password
-					</Menu.Item>
-					{canRevokeEmployee ? (
-						<Menu.Item
-							Icon={Icons.LockKeyhole}
-							className="text-destructive focus:text-destructive"
-							onClick={() => {
-								setConfirmRevokeOpen(true);
-							}}
-						>
-							Revoke Access
-						</Menu.Item>
-					) : null}
-				</Menu>
+					/>
+				) : null}
+				<div>
+					<Menu noSize Icon={Icons.MoreHorizontal}>
+						{isRevoked ? (
+							canRevokeEmployee ? (
+								<Menu.Item
+									Icon={Icons.RotateCcw}
+									onClick={() => {
+										restoreAction.mutate({
+											userId: item.id,
+										});
+									}}
+								>
+									Restore Access
+								</Menu.Item>
+							) : null
+						) : (
+							<>
+								{mobile ? (
+									<Menu.Item
+										Icon={Icons.Edit}
+										onClick={() => {
+											setParams({
+												editEmployeeId: item.id,
+											});
+										}}
+									>
+										Edit Employee
+									</Menu.Item>
+								) : null}
+								<Menu.Item
+									onClick={(e) => {
+										onSubmit();
+									}}
+									icon="packingList"
+								>
+									Reset Password
+								</Menu.Item>
+								{canRevokeEmployee ? (
+									<Menu.Item
+										Icon={Icons.LockKeyhole}
+										className="text-destructive focus:text-destructive"
+										onClick={() => {
+											setConfirmRevokeOpen(true);
+										}}
+									>
+										Revoke Access
+									</Menu.Item>
+								) : null}
+							</>
+						)}
+						{isRevoked && !canRevokeEmployee ? (
+							<Menu.Item disabled>No actions available</Menu.Item>
+						) : null}
+					</Menu>
+				</div>
 			</div>
 			<AlertDialog open={confirmRevokeOpen} onOpenChange={setConfirmRevokeOpen}>
 				<AlertDialog.Content>
@@ -346,16 +397,29 @@ export const mobileColumn: ColumnDef<Item>[] = [
 ];
 function ItemCard({ item }: ItemProps) {
 	return (
-		<div className="flex flex-col space-y-2 p-3 border-b">
-			<div className="flex items-center gap-2">
-				<TCell.Primary>{item.uid}</TCell.Primary>
-				<TCell.Secondary>{item.date}</TCell.Secondary>
+		<div className="flex flex-col gap-3 border-b bg-background p-4">
+			<div className="flex items-start justify-between gap-3">
+				<div className="min-w-0">
+					<TCell.Primary>{item.name}</TCell.Primary>
+					<TCell.Secondary>{item.username || item.email}</TCell.Secondary>
+				</div>
+				<Action item={item} mobile />
 			</div>
-			<div>
-				<TCell.Primary>{item.name}</TCell.Primary>
-				<TCell.Secondary>{item.username}</TCell.Secondary>
+			<div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+				<div className="min-w-0">
+					<div className="font-medium text-foreground">{item.uid}</div>
+					<div>{item.date}</div>
+				</div>
+				<div className="min-w-0 text-right">
+					<div className="font-medium text-foreground">
+						{item.accessStatus === "revoked" ? "Revoked" : "Active"}
+					</div>
+					<div>
+						{item.revokedDate ? `Since ${item.revokedDate}` : item.email}
+					</div>
+				</div>
 			</div>
-			<div className="flex items-center gap-2">
+			<div className="flex flex-wrap items-center gap-2">
 				{item.role && <Badge variant="secondary">{item.role}</Badge>}
 				{item.profile?.name && (
 					<Badge variant="outline">{item.profile.name}</Badge>

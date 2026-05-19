@@ -48,7 +48,7 @@ export function CustomerDirectoryV2Page({
 	const { filter, setFilter } = useCustomerFilterParams();
 	const overviewSheet = useCustomerOverviewV2SheetQuery();
 	const summaryQuery = useQuery(
-		trpc.customer.getCustomerDirectoryV2Summary.queryOptions({}, {
+		trpc.customers.getCustomerDirectoryV2Summary.queryOptions({}, {
 			initialData: initialSummaryData,
 		}),
 	);

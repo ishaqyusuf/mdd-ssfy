@@ -1,6 +1,6 @@
 "use client";
 
-import { employeeFilterParams } from "@/hooks/use-employee-filter-params";
+import { employeeSearchFilterParams } from "@/hooks/use-employee-filter-params";
 import { useTRPC } from "@/trpc/client";
 import type { PageFilterData } from "@api/type";
 import { SearchFilterAdapter as SearchFilter } from "./midday-search-filter/search-filter-adapter";
@@ -13,15 +13,16 @@ type Props = {
 export function EmployeeHeader({ initialFilterList }: Props) {
 	const trpc = useTRPC();
 	return (
-		<div className="flex justify-between">
+		<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 			<SearchFilter
-				filterSchema={employeeFilterParams}
+				filterSchema={employeeSearchFilterParams}
 				placeholder="Search Employees..."
 				trpcRoute={trpc.filters.employee}
 				initialFilterList={initialFilterList}
 			/>
-			<div className="flex-1" />
-			<OpenEmployeeSheet />
+			<div className="flex justify-end">
+				<OpenEmployeeSheet />
+			</div>
 		</div>
 	);
 }

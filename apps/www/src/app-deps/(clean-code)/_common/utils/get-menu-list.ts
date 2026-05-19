@@ -68,7 +68,7 @@ export function getMenuList(pathname: string, session): any[] {
         .menu("Accounting", "/sales-book/accounting", "billing", canSales)
         .menu("Orders", "/sales-book/orders", "orders", canSales)
         .menu("Quotes", "/sales-book/quotes", "estimates", canSales)
-        .menu("Customers", "/sales-book/customers", "user", canSales)
+        .menu("Customers", "/sales-book/customers/v2", "user", canSales)
         .menu("Dealers", "/sales-book/dealers", "dealer", canSales)
         .menu("Pickup", "/sales-book/pickups", "pickup", canSales)
         .menu("Delivery", "/sales-book/deliveries", "delivery", canSales)

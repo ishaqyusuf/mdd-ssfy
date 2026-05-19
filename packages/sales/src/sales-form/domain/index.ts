@@ -66,7 +66,9 @@ export {
   type SalesFormProfileStepLike,
 } from "./profile-repricing";
 export {
+  buildDualSalesFormPricingSnapshot,
   calculateDualSalesFormPricing,
+  type DualPricingSnapshot,
   type DualPricingExtraCostInput,
   type DualPricingInput,
   type DualPricingLineInput,

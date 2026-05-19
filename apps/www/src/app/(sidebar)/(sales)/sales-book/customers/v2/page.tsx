@@ -26,7 +26,7 @@ export default async function SalesCustomersV2Page(props: Props) {
 	const filter = loadCustomerFilterParams(searchParams);
 	const [initialSummaryData, _initialCustomerRows] = await Promise.all([
 		queryClient.fetchQuery(
-			trpc.customer.getCustomerDirectoryV2Summary.queryOptions({}),
+			trpc.customers.getCustomerDirectoryV2Summary.queryOptions({}),
 		),
 		queryClient.fetchInfiniteQuery(
 			trpc.sales.customersIndex.infiniteQueryOptions(filter) as any,

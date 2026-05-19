@@ -62,6 +62,7 @@ export const channelNames = [
 	"dispatch_packing_delay",
 	"sales_dispatch_duplicate_alert",
 	"dealer_onboarding",
+	"auth_new_device_login",
 ] as const;
 export type ChannelName = (typeof channelNames)[number];
 export const priorityStrings = [
@@ -73,7 +74,12 @@ export const priorityStrings = [
 ] as const;
 export type PriorityString = (typeof priorityStrings)[number];
 
-export const channelCategories = ["Community", "Sales", "Inventory"] as const;
+export const channelCategories = [
+	"Community",
+	"Sales",
+	"Inventory",
+	"Security",
+] as const;
 export type ChannelCategory = (typeof channelCategories)[number];
 
 export type ChannelConfig = {
@@ -268,6 +274,12 @@ export const channelsConfig: Partial<{
 		description: "Send when a dealer account setup guide is created.",
 		priority: 5,
 		category: "Sales",
+	},
+	auth_new_device_login: {
+		name: "New Device Login",
+		description: "Send when an account signs in from a new browser or device.",
+		priority: 8,
+		category: "Security",
 	},
 	sales_daily_payment_report: {
 		name: "Sales Daily Payment Report",

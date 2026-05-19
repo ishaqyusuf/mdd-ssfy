@@ -7,9 +7,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@source "../../../../apps/**/*.{ts,tsx}";
-@source "../../../**/*.{ts,tsx}";
 @source "../**/*.{ts,tsx}";
+@source "../../../site-nav/src/**/*.{ts,tsx}";
+@source "../../../../apps/www/src/**/*.{ts,tsx}";
+@source "../../../../apps/site/src/**/*.{ts,tsx}";
+@source "../../../../apps/dealership/src/**/*.{ts,tsx}";
 /* @source "../components*.{ts,tsx}"; */
 /* @tailwind base; */
 

@@ -2,7 +2,11 @@ export {
 	createSalesFormCapabilities,
 	type SalesFormCapabilities,
 } from "./form-capabilities";
-export type { SalesFormComposition } from "./form-composition";
+export type {
+	SalesFormActions,
+	SalesFormComposition,
+	SalesFormDataSources,
+} from "./form-composition";
 export {
 	createSalesFormPermissions,
 	type SalesFormPermissions,

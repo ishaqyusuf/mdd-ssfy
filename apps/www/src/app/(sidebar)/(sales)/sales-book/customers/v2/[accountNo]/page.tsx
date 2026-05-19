@@ -23,7 +23,7 @@ export default async function CustomerOverviewV2Page({
 	const decodedAccountNo = decodeURIComponent(accountNo);
 	const queryClient = getQueryClient();
 	const initialOverviewData = await queryClient.fetchQuery(
-		trpc.customer.getCustomerOverviewV2.queryOptions({
+		trpc.customers.getCustomerOverviewV2.queryOptions({
 			accountNo: decodedAccountNo,
 		}),
 	);

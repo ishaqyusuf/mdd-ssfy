@@ -7,9 +7,9 @@ import { useSearchParams } from "next/navigation";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
 import { signIn } from "next-auth/react";
-import { env } from "@/env.mjs";
+import { createQuickLoginToken } from "@/app-deps/(v1)/_actions/auth";
 
-export default function QuickLogin({}) {
+export default function QuickLogin() {
     const trpc = useTRPC();
     const data = useQuery(
         trpc.hrm.getEmployees.queryOptions({
@@ -19,9 +19,9 @@ export default function QuickLogin({}) {
     const searchParams = useSearchParams();
     const callbackUrl = getLoginCallbackUrl(searchParams);
     async function login(email) {
+        const token = await createQuickLoginToken(email);
         await signIn("credentials", {
-            email,
-            password: env.NEXT_PUBLIC_BACK_DOOR_TOK,
+            token,
             callbackUrl,
             redirect: true,
         });
@@ -55,4 +55,3 @@ function getLoginCallbackUrl(searchParams: URLSearchParams) {
 
     return "/";
 }
-

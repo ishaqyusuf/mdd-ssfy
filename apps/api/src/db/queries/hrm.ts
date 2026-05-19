@@ -110,7 +110,7 @@ async function requireSuperAdmin(ctx: TRPCContext) {
 	if (role?.toLowerCase() !== "super admin") {
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: "Only Super Admin can revoke employee access.",
+			message: "Only Super Admin can manage employee access.",
 		});
 	}
 
@@ -181,6 +181,7 @@ export async function getEmployees(
 			name: true,
 			email: true,
 			createdAt: true,
+			accessRevokedAt: true,
 			documents: {
 				where: {
 					deletedAt: null,
@@ -250,6 +251,11 @@ export async function getEmployees(
 			id: user.id,
 			name: user.name,
 			email: user.email,
+			accessRevokedAt: user.accessRevokedAt,
+			accessStatus: user.accessRevokedAt ? "revoked" : "active",
+			revokedDate: user.accessRevokedAt
+				? formatDate(user.accessRevokedAt)
+				: null,
 			role: user?.roles?.[0]?.role?.name,
 			org: user.roles?.[0]?.organization,
 			date: formatDate(user.createdAt),
@@ -451,6 +457,27 @@ export async function revokeEmployee(ctx: TRPCContext, userId: number) {
 		revokedById: actor.id,
 		revokedByName: actor.name,
 		revokedAt: (user.accessRevokedAt || new Date()).toISOString(),
+	});
+
+	return user;
+}
+
+export async function restoreEmployeeAccess(ctx: TRPCContext, userId: number) {
+	await requireSuperAdmin(ctx);
+
+	const user = await ctx.db.users.update({
+		where: {
+			id: userId,
+		},
+		data: {
+			accessRevokedAt: null,
+		},
+		select: {
+			id: true,
+			name: true,
+			email: true,
+			accessRevokedAt: true,
+		},
 	});
 
 	return user;

@@ -40,7 +40,7 @@ export function CustomerOverviewV2Content({
 }: Props) {
 	const trpc = useTRPC();
 	const overviewQuery = useQuery(
-		trpc.customer.getCustomerOverviewV2.queryOptions(
+		trpc.customers.getCustomerOverviewV2.queryOptions(
 			{ accountNo },
 			{
 				initialData: initialOverviewData,

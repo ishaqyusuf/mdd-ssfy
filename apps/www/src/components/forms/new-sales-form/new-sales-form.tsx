@@ -27,6 +27,10 @@ import {
 	TooltipTrigger,
 } from "@gnd/ui/tooltip";
 import { toast } from "@gnd/ui/use-toast";
+import {
+	SalesFormHeaderActions,
+	SalesFormShell,
+} from "@gnd/sales/sales-form";
 import type { CreateSalesHistorySchemaTask } from "@jobs/schema";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -59,7 +63,6 @@ import {
 import { toSaveDraftInput } from "./mappers";
 import type { NewSalesFormRecord } from "./schema";
 import { CustomerSelectorDialog } from "./sections/customer-selector-dialog";
-import { HeaderActions } from "./sections/header-actions";
 import { useNewSalesFormStore } from "./store";
 import { useNewSalesFormAutoSave } from "./use-auto-save";
 import { useCreateFormQueryParams } from "./use-create-form-query-params";
@@ -80,22 +83,35 @@ const ItemWorkflowPanel = dynamic(
 	},
 );
 
-const InvoiceSummarySidebar = dynamic(
+const SalesHistory = dynamic(
 	() =>
-		import("./sections/invoice-summary-sidebar").then(
-			(mod) => mod.InvoiceSummarySidebar,
-		),
+		import("@/components/sales-hx").then((mod) => mod.SalesHistory),
 	{
-		loading: () => null,
+		loading: () => (
+			<div className="space-y-3">
+				<div className="h-10 w-full animate-pulse rounded bg-muted" />
+				<div className="h-20 w-full animate-pulse rounded bg-muted" />
+				<div className="h-20 w-full animate-pulse rounded bg-muted" />
+			</div>
+		),
 	},
 );
 
-function currency(value?: number | null) {
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
-	}).format(Number(value || 0));
-}
+const InvoiceOverviewPanel = dynamic(
+	() =>
+		import("./sections/invoice-overview-panel").then(
+			(mod) => mod.InvoiceOverviewPanel,
+		),
+	{
+		loading: () => (
+			<div className="space-y-3">
+				<div className="h-10 w-full animate-pulse rounded bg-muted" />
+				<div className="h-32 w-full animate-pulse rounded bg-muted" />
+				<div className="h-24 w-full animate-pulse rounded bg-muted" />
+			</div>
+		),
+	},
+);
 
 function getErrorMessage(error: unknown, fallback: string) {
 	if (error instanceof Error && error.message) return error.message;
@@ -1466,139 +1482,104 @@ export function NewSalesForm(props: Props) {
 				slug={record.slug || props.slug}
 				orderId={record.orderId}
 			/>
-			<CustomerSelectorDialog
+			<SalesFormShell
 				mode={props.mode}
-				open={customerSelectionRequired}
-				required
 				type={props.type}
-			/>
-			<PaymentMethodReviewDialog
-				open={isOrder && paymentReviewOpen}
-				paymentMethod={record.form.paymentMethod}
-				paymentMethods={PAYMENT_METHODS}
-				onOpenChange={(open) => {
-					setPaymentReviewOpen(open);
-					if (!open) setPaymentReviewSeen(true);
+				record={record}
+				state={{
+					dirty,
+					editor,
+					lastSavedAt,
+					lastSaveError,
+					saveStatus,
 				}}
-				onSelectPaymentMethod={(method) => {
-					setMeta({ paymentMethod: method });
-					setPaymentReviewSeen(true);
-					setPaymentReviewOpen(false);
+				actions={{
+					addLineItem,
+					saveDraftNow,
+					saveClose,
+					saveNew,
+					saveFinal,
+					setEditor,
 				}}
-				onDontAskAgainChange={dismissPaymentMethodReview}
-			/>
-			<div className="fixed bottom-0 left-0 right-0 top-[var(--header-height)] overflow-hidden bg-background md:left-[84px]">
-				<div className="relative flex h-full min-h-0 overflow-hidden border border-slate-200/80 bg-background shadow-sm">
-					<main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-						<HeaderActions
+				orderId={record.orderId}
+				grandTotal={record.summary.grandTotal}
+				isSaved={isSaved}
+				isSaving={isSaveBusy}
+				mobileSummaryOpen={editor.showMobileSummary}
+				capabilities={salesFormCapabilities}
+				permissions={salesFormPermissions}
+				onSaveDraft={saveDraftNow}
+				onSaveClose={saveClose}
+				onSaveNew={saveNew}
+				onSaveFinal={saveFinal}
+				onOpenSummary={() =>
+					customerSelectionRequired
+						? undefined
+						: setEditor({
+								showMobileSummary: true,
+							})
+				}
+				onCloseSummary={() =>
+					setEditor({
+						showMobileSummary: false,
+					})
+				}
+				slots={{
+					CustomerSelectorDialog: (
+						<CustomerSelectorDialog
+							mode={props.mode}
+							open={customerSelectionRequired}
+							required
 							type={props.type}
-							orderId={record.orderId}
-							saveStatus={saveStatus}
-							dirty={dirty}
-							lastSavedAt={lastSavedAt}
-							statusMessage={lastSaveError}
-							isSaving={isSaveBusy}
-							autosaveEnabled={editor.autosaveEnabled}
-							stepDisplayMode={editor.stepDisplayMode}
-							onAddItem={() => addLineItem()}
-							onToggleStepDisplay={() =>
-								setEditor({
-									stepDisplayMode:
-										editor.stepDisplayMode === "extended"
-											? "compact"
-											: "extended",
-								})
-							}
-							onOpenMobileSummary={() =>
-								customerSelectionRequired
-									? undefined
-									: setEditor({
-											showMobileSummary: !editor.showMobileSummary,
-										})
-							}
-							onToggleAutosave={() =>
-								setEditor({
-									autosaveEnabled: !editor.autosaveEnabled,
-								})
-							}
-							onSaveDraft={saveDraftNow}
-							onSaveClose={saveClose}
-							onSaveNew={saveNew}
-							onSaveFinal={saveFinal}
-							onOpenOverview={handleOpenOverview}
-							onPrint={handlePrint}
-							isPrinting={salesPrint.isPrinting}
-							isSaved={isSaved}
-							showPackingControls={isOrder}
-							capabilities={salesFormCapabilities}
-							permissions={salesFormPermissions}
-							packingButtonLabel={
-								activePackingDispatch ? "Sent for Packing" : "Send for Packing"
-							}
-							packingBusy={isPackingBusy}
-							onSendForPacking={handleSendForPacking}
-							onCancelPacking={handleCancelPacking}
-							cancelPackingDisabled={
-								!currentPackingDispatch ||
-								packingIsCompleted ||
-								currentPackingDispatch.status === "cancelled" ||
-								isPackingBusy
-							}
-							onCompletePacking={handleCompletePacking}
-							completePackingDisabled={
-								!record.salesId || packingIsCompleted || isPackingBusy
-							}
-							onOpenPacking={handleOpenPacking}
-							openPackingDisabled={!record.orderId}
-							onOpenSettings={async () => {
-								const { default: NewSalesFormSettingsModal } = await import(
-									"@/components/modals/new-sales-form-settings-modal"
-								);
-								_modal.openSheet(<NewSalesFormSettingsModal />);
-							}}
-							activeItem={editor.activeItem || record.lineItems[0]?.uid || null}
-							itemOptions={itemOptions}
-							onActiveItemChange={(value) =>
-								setEditor({
-									activeItem: value,
-								})
-							}
 						/>
-
-						<div className="flex-1 overflow-y-auto overscroll-contain pb-28 lg:pb-20">
-							<div className="mx-auto flex w-full max-w-6xl flex-col">
-								{recoverySnapshot ? (
-									<div className="m-4 flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 md:flex-row md:items-center md:justify-between sm:m-6 lg:m-8">
-										<p>
-											Unsaved local edits were found from{" "}
-											{new Date(recoverySnapshot.savedAt).toLocaleString()}.
-										</p>
-										<div className="flex items-center gap-2">
-											<Button
-												size="sm"
-												variant="outline"
-												onClick={() => {
-													clearRecoveryKeys();
-													toast({
-														title: "Using latest saved version",
-														description:
-															"Local recovery was dismissed for this draft.",
-														variant: "success",
-													});
-												}}
-											>
-												Dismiss
-											</Button>
-											<Button size="sm" onClick={applyRecoverySnapshot}>
-												Restore
-											</Button>
-										</div>
-									</div>
-								) : null}
-								<ItemWorkflowPanel />
+					),
+					PaymentMethodReviewDialog: (
+						<PaymentMethodReviewDialog
+							open={isOrder && paymentReviewOpen}
+							paymentMethod={record.form.paymentMethod}
+							paymentMethods={PAYMENT_METHODS}
+							onOpenChange={(open) => {
+								setPaymentReviewOpen(open);
+								if (!open) setPaymentReviewSeen(true);
+							}}
+							onSelectPaymentMethod={(method) => {
+								setMeta({ paymentMethod: method });
+								setPaymentReviewSeen(true);
+								setPaymentReviewOpen(false);
+							}}
+							onDontAskAgainChange={dismissPaymentMethodReview}
+						/>
+					),
+					RecoveryBanner: recoverySnapshot ? (
+						<div className="m-4 flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 md:flex-row md:items-center md:justify-between sm:m-6 lg:m-8">
+							<p>
+								Unsaved local edits were found from{" "}
+								{new Date(recoverySnapshot.savedAt).toLocaleString()}.
+							</p>
+							<div className="flex items-center gap-2">
+								<Button
+									size="sm"
+									variant="outline"
+									onClick={() => {
+										clearRecoveryKeys();
+										toast({
+											title: "Using latest saved version",
+											description:
+												"Local recovery was dismissed for this draft.",
+											variant: "success",
+										});
+									}}
+								>
+									Dismiss
+								</Button>
+								<Button size="sm" onClick={applyRecoverySnapshot}>
+									Restore
+								</Button>
 							</div>
 						</div>
-
+					) : null,
+					MainPanel: <ItemWorkflowPanel />,
+					FloatingActions: (
 						<NewSalesFormFloatingActions
 							type={props.type}
 							record={record}
@@ -1610,56 +1591,90 @@ export function NewSalesForm(props: Props) {
 							onOpenOverview={handleOpenOverview}
 							onPrint={(event) => void handlePrint(event)}
 						/>
-					</main>
-
-					<InvoiceSummarySidebar
-						mode={props.mode}
-						type={props.type}
-						isSaved={isSaved}
-						isSaving={isSaveBusy}
-						mobileOpen={editor.showMobileSummary}
-						onSave={() => void saveDraftNow()}
-						onSaveClose={() => void saveClose()}
-						onSaveNew={() => void saveNew()}
-						onSaveFinal={() => void saveFinal()}
-						onClose={() =>
-							setEditor({
-								showMobileSummary: false,
-							})
-						}
-					/>
-
-					<div className="absolute inset-x-0 bottom-0 z-20 border-t bg-card p-3 shadow-[0_-4px_18px_rgba(0,0,0,0.08)] lg:hidden">
-						<div className="mx-auto flex w-full max-w-lg items-center gap-3">
-							<button
-								type="button"
-								className="flex flex-1 flex-col items-start"
-								onClick={() =>
-									customerSelectionRequired
-										? undefined
-										: setEditor({
-												showMobileSummary: true,
-											})
-								}
-							>
-								<span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-									Review Totals
-								</span>
-								<span className="text-lg font-bold text-foreground">
-									{currency(record.summary.grandTotal)}
-								</span>
-							</button>
-							<Button
-								className="h-11 px-4"
-								onClick={() => void saveFinal()}
-								disabled={isSaveBusy}
-							>
-								Finalize
-							</Button>
-						</div>
-					</div>
-				</div>
-			</div>
+					),
+					SummaryPanel: (
+						<InvoiceOverviewPanel mode={props.mode} type={props.type} />
+					),
+					SalesHistoryPanel: salesFormCapabilities.salesHistory ? (
+						<SalesHistory salesId={record.salesId} />
+					) : undefined,
+				}}
+			>
+				<SalesFormHeaderActions
+					type={props.type}
+					orderId={record.orderId}
+					saveStatus={saveStatus}
+					dirty={dirty}
+					lastSavedAt={lastSavedAt}
+					statusMessage={lastSaveError}
+					isSaving={isSaveBusy}
+					autosaveEnabled={editor.autosaveEnabled}
+					stepDisplayMode={editor.stepDisplayMode}
+					onAddItem={() => addLineItem()}
+					onToggleStepDisplay={() =>
+						setEditor({
+							stepDisplayMode:
+								editor.stepDisplayMode === "extended"
+									? "compact"
+									: "extended",
+						})
+					}
+					onOpenMobileSummary={() =>
+						customerSelectionRequired
+							? undefined
+							: setEditor({
+									showMobileSummary: !editor.showMobileSummary,
+								})
+					}
+					onToggleAutosave={() =>
+						setEditor({
+							autosaveEnabled: !editor.autosaveEnabled,
+						})
+					}
+					onSaveDraft={saveDraftNow}
+					onSaveClose={saveClose}
+					onSaveNew={saveNew}
+					onSaveFinal={saveFinal}
+					onOpenOverview={handleOpenOverview}
+					onPrint={handlePrint}
+					isPrinting={salesPrint.isPrinting}
+					isSaved={isSaved}
+					showPackingControls={isOrder}
+					capabilities={salesFormCapabilities}
+					permissions={salesFormPermissions}
+					packingButtonLabel={
+						activePackingDispatch ? "Sent for Packing" : "Send for Packing"
+					}
+					packingBusy={isPackingBusy}
+					onSendForPacking={handleSendForPacking}
+					onCancelPacking={handleCancelPacking}
+					cancelPackingDisabled={
+						!currentPackingDispatch ||
+						packingIsCompleted ||
+						currentPackingDispatch.status === "cancelled" ||
+						isPackingBusy
+					}
+					onCompletePacking={handleCompletePacking}
+					completePackingDisabled={
+						!record.salesId || packingIsCompleted || isPackingBusy
+					}
+					onOpenPacking={handleOpenPacking}
+					openPackingDisabled={!record.orderId}
+					onOpenSettings={async () => {
+						const { default: NewSalesFormSettingsModal } = await import(
+							"@/components/modals/new-sales-form-settings-modal"
+						);
+						_modal.openSheet(<NewSalesFormSettingsModal />);
+					}}
+					activeItem={editor.activeItem || record.lineItems[0]?.uid || null}
+					itemOptions={itemOptions}
+					onActiveItemChange={(value) =>
+						setEditor({
+							activeItem: value,
+						})
+					}
+				/>
+			</SalesFormShell>
 		</>
 	);
 }

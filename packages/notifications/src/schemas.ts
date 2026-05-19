@@ -219,6 +219,26 @@ export const dealerOnboardingTags = actityTagsSchema.extend({
 });
 export type DealerOnboardingTags = z.infer<typeof dealerOnboardingTags>;
 
+export const authNewDeviceLoginSchema = z.object({
+	accountName: z.string().optional().nullable(),
+	accountEmail: z.string().email(),
+	appSurface: z.enum(["www", "dealership"]),
+	deviceLabel: z.string(),
+	deviceKey: z.string(),
+	ipAddress: z.string().optional().nullable(),
+	userAgent: z.string().optional().nullable(),
+	loginAt: z.string(),
+	supportEmail: z.string().email().optional().nullable(),
+	securityMessage: z.string().optional().nullable(),
+});
+export type AuthNewDeviceLoginInput = z.infer<typeof authNewDeviceLoginSchema>;
+export const authNewDeviceLoginTags = actityTagsSchema.extend({
+	accountEmail: z.string().email(),
+	appSurface: z.enum(["www", "dealership"]),
+	deviceKey: z.string(),
+});
+export type AuthNewDeviceLoginTags = z.infer<typeof authNewDeviceLoginTags>;
+
 export const jobActivitySchema = z.object({
 	users: z.array(userSchema).optional().nullable(),
 	jobId: z.number(),
@@ -646,6 +666,7 @@ export type NotificationTypes = {
 	sales_customer_payment_received: SalesCustomerPaymentReceivedInput;
 	sales_customer_payment_failed: SalesCustomerPaymentFailedInput;
 	dealer_onboarding: DealerOnboardingInput;
+	auth_new_device_login: AuthNewDeviceLoginInput;
 	// job_activity: JobActivityInput;
 	job_assigned: JobAssignedInput;
 	job_submitted: JobSubmittedInput;
@@ -1328,6 +1349,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("dealer_onboarding"),
 		payload: dealerOnboardingSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("auth_new_device_login"),
+		payload: authNewDeviceLoginSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("job_assigned"),

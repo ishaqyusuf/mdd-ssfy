@@ -1,8 +1,14 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "bun:test";
 import {
 	type ResolveSalesDocumentAccessInput,
 	resolveSalesDocumentAccess,
 } from "./sales-document-access";
+
+const originalNodeEnv = process.env.NODE_ENV;
+
+afterEach(() => {
+	process.env.NODE_ENV = originalNodeEnv;
+});
 
 function createSnapshot(overrides: Record<string, unknown> = {}) {
 	return {
@@ -81,6 +87,29 @@ describe("resolveSalesDocumentAccess", () => {
 		expect(result.kind).toBe("snapshot");
 		expect(result.generated).toBe(false);
 		expect(result.snapshotId).toBe("snapshot-21438");
+		expect(calls.snapshotCreate).toBe(0);
+	});
+
+	it("returns on-demand legacy access in production without creating snapshots", async () => {
+		process.env.NODE_ENV = "production";
+		const { db, calls } = createMockDb({
+			snapshot: createSnapshot(),
+			saleUpdatedAt: new Date("2026-05-12T10:00:00.789Z"),
+		});
+
+		const result = await resolveSalesDocumentAccess({
+			db,
+			salesIds: [21438],
+			mode: "invoice",
+			baseUrl: "https://example.com",
+		});
+
+		expect(result.kind).toBe("legacy");
+		expect(result.generated).toBe(false);
+		expect(result.salesOrderId).toBe(21438);
+		expect(result.snapshotId).toBeUndefined();
+		expect(result.previewUrl).toContain("/p/sales-document-v2?token=");
+		expect(result.downloadUrl).toContain("/api/download/sales-v2?token=");
 		expect(calls.snapshotCreate).toBe(0);
 	});
 });

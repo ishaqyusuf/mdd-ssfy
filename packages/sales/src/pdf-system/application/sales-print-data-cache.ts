@@ -29,6 +29,7 @@ export type SalesPrintDataRecord = {
 	title: string;
 	firstOrderId?: string | null;
 	companyAddress: CompanyAddress;
+	logoUrl?: string | null;
 	pages: PrintPage[];
 	sourceUpdatedAt?: Date | null;
 	generatedAt?: Date | null;
@@ -109,6 +110,7 @@ export function salesPrintDataToPrintDocumentData(
 		title: record.title,
 		firstOrderId: record.firstOrderId ?? null,
 		companyAddress: record.companyAddress,
+		logoUrl: record.logoUrl ?? null,
 	};
 }
 
@@ -156,6 +158,7 @@ export async function createOrRefreshBatchSalesPrintData(
 		firstOrderId: firstRecord?.firstOrderId ?? null,
 		companyAddress:
 			firstRecord?.companyAddress ?? resolveSalesCompanyAddress(null),
+		logoUrl: firstRecord?.logoUrl ?? null,
 	};
 }
 
@@ -295,8 +298,13 @@ export async function createOrRefreshSalesPrintData(
 			reason: input.reason ?? null,
 			errorMessage: null,
 			meta: input.meta
-				? (input.meta as Prisma.InputJsonValue)
-				: Prisma.JsonNull,
+				? ({
+						...input.meta,
+						logoUrl: documentData.logoUrl ?? null,
+					} as Prisma.InputJsonValue)
+				: ({
+						logoUrl: documentData.logoUrl ?? null,
+					} as Prisma.InputJsonValue),
 			deletedAt: null,
 		};
 
@@ -505,12 +513,14 @@ async function markSalesPrintDataFailed(
 }
 
 function toSalesPrintDataRecord(row: SalesPrintDataRow): SalesPrintDataRecord {
+	const meta = mergeJsonObject(row.meta);
 	return {
 		...row,
 		mode: row.mode as PrintMode,
 		companyAddress: (row.companyAddress || {}) as unknown as CompanyAddress,
+		logoUrl: typeof meta?.logoUrl === "string" ? String(meta.logoUrl || "") : null,
 		pages: (row.pages || []) as unknown as PrintPage[],
-		meta: mergeJsonObject(row.meta),
+		meta,
 	};
 }
 

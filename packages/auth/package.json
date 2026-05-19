@@ -1,34 +1,36 @@
 {
-  "name": "@gnd/auth",
-  "version": "1.0.0",
-  "private": true,
-  "exports": {
-    ".": "./src/index.ts",
-    "./utils": "./src/utils.ts",
-    "./better-auth/dealership": "./src/better-auth/dealership.ts"
-  },
-  "prisma": {
-    "schema": "./src/schema"
-  },
-  "scripts": {
-    "clean": "rm -rf .turbo node_modules",
-    "lint": "biome check .",
-    "format": "biome format --write .",
-    "typecheck": "tsc --noEmit",
-    "with-env": "dotenv -e ../../.env --"
-  },
-  "dependencies": {
-    "@gnd/db": "workspace:*",
-    "@gnd/utils": "workspace:*",
-    "@better-auth/prisma-adapter": "^1.4.0",
-    "better-auth": "^1.4.0",
-    "@next-auth/prisma-adapter": "^1.0.7",
-    "next-auth": "^4.24.11"
-  },
-  "devDependencies": {
-    "@gnd/tsconfig": "workspace:*",
-    "react": "catalog:",
-    "react-dom": "catalog:",
-    "typescript": "^5.9.3"
-  }
+	"name": "@gnd/auth",
+	"version": "1.0.0",
+	"private": true,
+	"exports": {
+		".": "./src/index.ts",
+		"./utils": "./src/utils.ts",
+		"./new-device-login": "./src/new-device-login.ts",
+		"./better-auth/dealership": "./src/better-auth/dealership.ts"
+	},
+	"prisma": {
+		"schema": "./src/schema"
+	},
+	"scripts": {
+		"clean": "rm -rf .turbo node_modules",
+		"lint": "biome check .",
+		"format": "biome format --write .",
+		"typecheck": "tsc --noEmit",
+		"with-env": "dotenv -e ../../.env --"
+	},
+	"dependencies": {
+		"@gnd/db": "workspace:*",
+		"@gnd/utils": "workspace:*",
+		"@better-auth/prisma-adapter": "^1.4.0",
+		"better-auth": "^1.4.0",
+		"@next-auth/prisma-adapter": "^1.0.7",
+		"next-auth": "^4.24.11",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@gnd/tsconfig": "workspace:*",
+		"react": "catalog:",
+		"react-dom": "catalog:",
+		"typescript": "^5.9.3"
+	}
 }

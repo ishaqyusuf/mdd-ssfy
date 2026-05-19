@@ -8,6 +8,7 @@ import type {
 	NotificationResult,
 	UserData,
 } from "./base";
+import { authNewDeviceLogin } from "./types/auth-new-device-login";
 import {
 	getSubscribersAccount,
 	getSubscribersForNotificationType,
@@ -90,6 +91,7 @@ const handlers = {
 	sales_customer_payment_received: salesCustomerPaymentReceived,
 	sales_customer_payment_failed: salesCustomerPaymentFailed,
 	dealer_onboarding: dealerOnboarding,
+	auth_new_device_login: authNewDeviceLogin,
 	quote_accepted: quoteAccepted,
 	job_assigned: jobAssigned,
 	job_submitted: jobSubmitted,
@@ -261,8 +263,8 @@ export class Notifications {
 		// user.email
 		const baseEmailInput: EmailInput = {
 			user,
-			...customEmail,
 			...this.emailMeta,
+			...customEmail,
 		};
 
 		// Apply runtime options (highest priority)
@@ -305,6 +307,9 @@ export class Notifications {
 		const [author, ...contactsRaw] = (
 			await Promise.all([
 				new Promise<UserData[]>(async (resolve) => {
+					if (options?.authorContact) {
+						return resolve([options.authorContact]);
+					}
 					if (!options?.author?.id) {
 						return resolve([]);
 					}
@@ -370,7 +375,12 @@ export class Notifications {
 				return arr.findIndex((item) => item?.id === contact.id) === index;
 			},
 		);
-		this.emailMeta = generateEmailMeta(author!, type);
+		this.emailMeta = author
+			? generateEmailMeta(author, type)
+			: {
+					from: "GND Security <noreply@gndprodesk.com>",
+					replyTo: "noreply@gndprodesk.com",
+				};
 
 		logger.info("Fetched author and contacts", author);
 
@@ -428,15 +438,17 @@ export class Notifications {
 			// Generate a single group ID for all related activities
 
 			// Create activities for each user
-			const activities = await this.#createActivities(
-				handler,
-				validatedData,
-				groupId,
-				// type as string,
-				author,
-				// options,
-				contacts,
-			);
+			const activities = handler.skipActivity
+				? []
+				: await this.#createActivities(
+						handler,
+						validatedData,
+						groupId,
+						// type as string,
+						author,
+						// options,
+						contacts,
+					);
 			//   return null as any;
 			// CONDITIONALLY send emails
 			let emails = {
@@ -449,11 +461,18 @@ export class Notifications {
 
 			// Send emails if requested and handler supports email
 			if (handler?.createEmail) {
-				const emailContacts = (contacts || []).filter(
+				const directEmailContact =
+					handler.createDirectEmailContact?.(validatedData, author) ?? null;
+				const emailContacts = [
+					...(contacts || []),
+					...(directEmailContact ? [directEmailContact] : []),
+				].filter(
 					(user: UserData) =>
 						user.emailNotification && isValidEmail(user.email),
 				);
-				const filteredOutCount = (contacts?.length || 0) - emailContacts.length;
+				const totalEmailCandidates =
+					(contacts?.length || 0) + (directEmailContact ? 1 : 0);
+				const filteredOutCount = totalEmailCandidates - emailContacts.length;
 
 				const emailInputs = emailContacts.map((user: UserData) =>
 					this.#createEmailInput(
@@ -469,7 +488,7 @@ export class Notifications {
 				if (!emailInputs.length) {
 					emails = {
 						sent: 0,
-						skipped: contacts?.length || 0,
+						skipped: totalEmailCandidates,
 						failed: 0,
 					};
 				} else {

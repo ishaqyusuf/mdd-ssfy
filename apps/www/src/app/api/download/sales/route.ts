@@ -1,8 +1,9 @@
 import {
-	getSalesSnapshotDocumentByPublicToken,
 	getSalesSnapshotDocumentByAccessToken,
+	getSalesSnapshotDocumentByPublicToken,
 	resolveSalesDocumentPreviewData,
 } from "@gnd/api/utils/sales-document-access";
+import { isSalesPdfSnapshotArtifactsDisabled } from "@gnd/api/utils/sales-document-snapshot-policy";
 import { db } from "@gnd/db";
 import { renderSalesPdfBuffer } from "@gnd/pdf/sales-v2";
 import { getPrintDocumentData } from "@gnd/sales/print";
@@ -45,11 +46,15 @@ export async function GET(req: NextRequest) {
 	}
 
 	if (result.data.pt) {
-		const snapshotLookup = await getSalesSnapshotDocumentByPublicToken({
-			db,
-			publicToken: result.data.pt,
-		});
-		if (!snapshotLookup) notFound();
+		let contentType = "application/pdf";
+		if (!isSalesPdfSnapshotArtifactsDisabled()) {
+			const snapshotLookup = await getSalesSnapshotDocumentByPublicToken({
+				db,
+				publicToken: result.data.pt,
+			});
+			if (!snapshotLookup) notFound();
+			contentType = snapshotLookup.storedDocument.mimeType || contentType;
+		}
 
 		const previewData = await resolveSalesDocumentPreviewData({
 			db,
@@ -64,14 +69,14 @@ export async function GET(req: NextRequest) {
 			title: previewData.title,
 			templateId: previewData.templateId,
 			companyAddress: previewData.companyAddress,
+			logoUrl: previewData.logoUrl ?? undefined,
 			baseUrl: requestUrl.origin,
 			previewUrl: previewData.previewUrl,
 			qrCodeDataUrl: previewData.qrCodeDataUrl,
 		});
 
 		const headers: Record<string, string> = {
-			"Content-Type":
-				snapshotLookup.storedDocument.mimeType || "application/pdf",
+			"Content-Type": contentType,
 			"Cache-Control": "no-store, max-age=0",
 		};
 
@@ -87,6 +92,38 @@ export async function GET(req: NextRequest) {
 	}
 
 	if (result.data.accessToken) {
+		if (isSalesPdfSnapshotArtifactsDisabled()) {
+			const previewData = await resolveSalesDocumentPreviewData({
+				db,
+				accessToken: result.data.accessToken,
+				templateId: result.data.templateId,
+				baseUrl: requestUrl.origin,
+			});
+			if (!previewData) notFound();
+
+			const buffer = await renderSalesPdfBuffer({
+				pages: previewData.pages,
+				title: previewData.title,
+				templateId: previewData.templateId,
+				companyAddress: previewData.companyAddress,
+				logoUrl: previewData.logoUrl ?? undefined,
+				baseUrl: requestUrl.origin,
+				previewUrl: previewData.previewUrl,
+				qrCodeDataUrl: previewData.qrCodeDataUrl,
+			});
+
+			const headers: Record<string, string> = {
+				"Content-Type": "application/pdf",
+				"Cache-Control": "no-store, max-age=0",
+			};
+
+			headers["Content-Disposition"] = result.data.preview
+				? `inline; filename="${previewData.title}.pdf"`
+				: `attachment; filename="${previewData.title}.pdf"`;
+
+			return new Response(buffer, { headers });
+		}
+
 		const snapshotLookup = await getSalesSnapshotDocumentByAccessToken({
 			db,
 			accessToken: result.data.accessToken,
@@ -139,6 +176,7 @@ export async function GET(req: NextRequest) {
 			title: previewData.title,
 			templateId: previewData.templateId,
 			companyAddress: previewData.companyAddress,
+			logoUrl: previewData.logoUrl ?? undefined,
 			baseUrl: requestUrl.origin,
 			previewUrl: previewData.previewUrl,
 			qrCodeDataUrl: previewData.qrCodeDataUrl,
@@ -178,6 +216,7 @@ export async function GET(req: NextRequest) {
 		title: documentData.title,
 		templateId: result.data.templateId,
 		companyAddress: documentData.companyAddress,
+		logoUrl: documentData.logoUrl ?? undefined,
 		baseUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
 	});
 

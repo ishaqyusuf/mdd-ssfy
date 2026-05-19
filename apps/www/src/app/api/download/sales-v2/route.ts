@@ -3,11 +3,12 @@ import {
 	parseSalesPrintRequest,
 } from "@/modules/sales-print/application/sales-print-request";
 import {
-	getSalesSnapshotDocumentById,
 	getSalesSnapshotDocumentByAccessToken,
+	getSalesSnapshotDocumentById,
 	getSalesSnapshotDocumentByPublicToken,
 	resolveSalesDocumentPreviewData,
 } from "@gnd/api/utils/sales-document-access";
+import { isSalesPdfSnapshotArtifactsDisabled } from "@gnd/api/utils/sales-document-snapshot-policy";
 import { db } from "@gnd/db";
 import { renderSalesPdfBuffer } from "@gnd/pdf/sales-v2";
 import {
@@ -88,6 +89,7 @@ async function renderSnapshotPdfFallback(input: {
 		title: documentData.title,
 		templateId: documentData.templateId,
 		companyAddress: documentData.companyAddress,
+		logoUrl: documentData.logoUrl ?? undefined,
 		baseUrl: input.requestUrl.origin,
 		previewUrl: documentData.previewUrl,
 	});
@@ -141,17 +143,19 @@ export async function GET(req: NextRequest) {
 	}
 
 	if (printRequest.locatorType === "public-token") {
-		const snapshotLookup = await getSalesSnapshotDocumentByPublicToken({
-			db,
-			publicToken: params.pt,
-		});
-		if (snapshotLookup) {
-			const storedResponse = await streamStoredPdfSnapshot({
-				snapshotLookup,
-				requestUrl,
-				preview: params.preview,
+		if (!isSalesPdfSnapshotArtifactsDisabled()) {
+			const snapshotLookup = await getSalesSnapshotDocumentByPublicToken({
+				db,
+				publicToken: params.pt,
 			});
-			if (storedResponse) return storedResponse;
+			if (snapshotLookup) {
+				const storedResponse = await streamStoredPdfSnapshot({
+					snapshotLookup,
+					requestUrl,
+					preview: params.preview,
+				});
+				if (storedResponse) return storedResponse;
+			}
 		}
 
 		const fallbackResponse = await renderSnapshotPdfFallback({
@@ -165,17 +169,19 @@ export async function GET(req: NextRequest) {
 	}
 
 	if (printRequest.locatorType === "access-token") {
-		const snapshotLookup = await getSalesSnapshotDocumentByAccessToken({
-			db,
-			accessToken: params.accessToken,
-		});
-		if (snapshotLookup) {
-			const storedResponse = await streamStoredPdfSnapshot({
-				snapshotLookup,
-				requestUrl,
-				preview: params.preview,
+		if (!isSalesPdfSnapshotArtifactsDisabled()) {
+			const snapshotLookup = await getSalesSnapshotDocumentByAccessToken({
+				db,
+				accessToken: params.accessToken,
 			});
-			if (storedResponse) return storedResponse;
+			if (snapshotLookup) {
+				const storedResponse = await streamStoredPdfSnapshot({
+					snapshotLookup,
+					requestUrl,
+					preview: params.preview,
+				});
+				if (storedResponse) return storedResponse;
+			}
 		}
 
 		const fallbackResponse = await renderSnapshotPdfFallback({
@@ -189,17 +195,19 @@ export async function GET(req: NextRequest) {
 	}
 
 	if (printRequest.locatorType === "snapshot-id") {
-		const snapshotLookup = await getSalesSnapshotDocumentById({
-			db,
-			snapshotId: params.snapshotId,
-		});
-		if (snapshotLookup) {
-			const storedResponse = await streamStoredPdfSnapshot({
-				snapshotLookup,
-				requestUrl,
-				preview: params.preview,
+		if (!isSalesPdfSnapshotArtifactsDisabled()) {
+			const snapshotLookup = await getSalesSnapshotDocumentById({
+				db,
+				snapshotId: params.snapshotId,
 			});
-			if (storedResponse) return storedResponse;
+			if (snapshotLookup) {
+				const storedResponse = await streamStoredPdfSnapshot({
+					snapshotLookup,
+					requestUrl,
+					preview: params.preview,
+				});
+				if (storedResponse) return storedResponse;
+			}
 		}
 
 		const fallbackResponse = await renderSnapshotPdfFallback({
@@ -236,6 +244,7 @@ export async function GET(req: NextRequest) {
 		title: documentData.title,
 		templateId: params.templateId,
 		companyAddress: documentData.companyAddress,
+		logoUrl: documentData.logoUrl ?? undefined,
 		baseUrl: requestUrl.origin,
 	});
 

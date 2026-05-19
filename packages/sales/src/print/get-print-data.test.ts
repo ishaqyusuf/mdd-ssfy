@@ -222,4 +222,5 @@ describe("getPrintData", () => {
 			"GENERIC LINE ITEM",
 		);
 	});
+
 });
