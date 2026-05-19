@@ -1,11 +1,11 @@
 {
   "name": "@gnd/dealership",
   "version": "0.1.0",
-	"private": true,
-	"scripts": {
-		"dev": "PORTLESS_PORT=${PORTLESS_PORT:-1355} PORTLESS_WILDCARD=${PORTLESS_WILDCARD:-1} PORTLESS_SYNC_HOSTS=${PORTLESS_SYNC_HOSTS:-0} PORTLESS_APP_PORT=${PORTLESS_APP_PORT:-4200} TZ=UTC portless gnd-dealership next dev --webpack",
-		"clean": "git clean -xdf .next .turbo node_modules",
-		"build": "NODE_ENV=production next build --webpack",
+  "private": true,
+  "scripts": {
+    "dev": "PORTLESS_PORT=${PORTLESS_PORT:-1355} PORTLESS_WILDCARD=${PORTLESS_WILDCARD:-1} PORTLESS_SYNC_HOSTS=${PORTLESS_SYNC_HOSTS:-0} PORTLESS_APP_PORT=${PORTLESS_APP_PORT:-3006} TZ=UTC portless gnd-dealership next dev --webpack",
+    "clean": "git clean -xdf .next .turbo node_modules",
+    "build": "NODE_ENV=production next build --webpack",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"

@@ -31,17 +31,19 @@ function getDealershipUrl() {
     return `https://${process.env.VERCEL_URL}`;
   }
 
-  return "http://localhost:3501";
+  return "http://localhost:3006";
 }
 
 export const dealerRouter = createTRPCRouter({
-  list: protectedProcedure.input(getDealersSchema).query(async ({ ctx, input }) => {
-    return getDealers(ctx.db, {
-      search: input.search,
-      status: input.status,
-      take: input.size,
-    });
-  }),
+  list: protectedProcedure
+    .input(getDealersSchema)
+    .query(async ({ ctx, input }) => {
+      return getDealers(ctx.db, {
+        search: input.search,
+        status: input.status,
+        take: input.size,
+      });
+    }),
   searchCustomerCandidates: protectedProcedure
     .input(searchDealerCustomerCandidatesSchema)
     .query(async ({ ctx, input }) => {
@@ -92,7 +94,9 @@ export const dealerRouter = createTRPCRouter({
       await new NotificationService(tasks, ctx).channel.dealerOnboarding({
         dealerId: result.dealer.id,
         dealerName:
-          result.dealer.companyName || result.dealer.name || result.dealer.email,
+          result.dealer.companyName ||
+          result.dealer.name ||
+          result.dealer.email,
         dealerEmail: result.dealer.email,
         onboardingLink,
         expiresAt: result.invite.expiredAt?.toISOString() || null,

@@ -259,7 +259,10 @@ export const linkModules = [
                 "Sales Dashboard",
                 "salesDashboard",
                 "/sales-dashboard",
-            ).access(_role.is("Super Admin")).data,
+            ).access(
+                // _role.is("Super Admin")
+                _perm.is("editOrders"),
+            ).data,
         ]),
         _section(null, null, [
             _link("My Dashboard", "dashboard", "/sales-rep")

@@ -610,6 +610,7 @@ model SalesOrders {
     salesRepId        Int?
     pickupId          Int?
     prodId            Int?
+    dealerAuthId      Int?
     isDyke            Boolean?                         @default(false)
     summary           String?                          @db.Text
     instruction       String?                          @db.Text
@@ -640,6 +641,7 @@ model SalesOrders {
     deliveredAt       DateTime?
     deliveryOption    String?
     customerProfileId Int?
+    dealerSalesProfileId Int?
     taxes             SalesTaxes[]
     checkouts         SalesCheckout[]
     refunds           Refunds[]                        @relation(name: "salesRefunds")
@@ -648,6 +650,7 @@ model SalesOrders {
     billingAddress    AddressBooks?                    @relation(name: "billingAddress", fields: [billingAddressId], references: [id])
     commisions        SalesCommision[]
     customer          Customers?                       @relation(fields: [customerId], references: [id])
+    dealerAuth        DealerAuth?                      @relation(fields: [dealerAuthId], references: [id])
     deliveries        OrderDelivery[]
     doors             DykeSalesDoors[]
     formSteps         DykeStepForm[]
@@ -662,6 +665,7 @@ model SalesOrders {
     productions       OrderProductionSubmissions[]
     requests          DealerSalesRequest[]
     salesProfile      CustomerTypes?                   @relation(fields: [customerProfileId], references: [id])
+    dealerSalesProfile CustomerTypes?                  @relation(name: "dealerSalesProfile", fields: [dealerSalesProfileId], references: [id])
     salesRep          Users?                           @relation(name: "salesRep", fields: [salesRepId], references: [id])
     shippingAddress   AddressBooks?                    @relation(name: "shippingAddress", fields: [shippingAddressId], references: [id])
     stat              SalesStat[]
@@ -679,6 +683,8 @@ model SalesOrders {
     @@index([orgId])
     @@index([createdAt, deletedAt, orderId, grandTotal, prodId, type, prodDueDate])
     @@index([customerProfileId])
+    @@index([dealerAuthId])
+    @@index([dealerSalesProfileId])
     @@index([customerId])
     @@index([shippingAddressId])
     @@index([billingAddressId])
@@ -1451,6 +1457,65 @@ model SearchParameters {
     deletedAt DateTime? @db.Timestamp(0)
 
     @@id(name: "uid", [page, key, value])
+}
+
+// ---- dealer.better-auth.prisma ----
+model DealerAuthUser {
+    id            String              @id
+    name          String
+    email         String
+    emailVerified Boolean
+    image         String?
+    createdAt     DateTime
+    updatedAt     DateTime
+    sessions      DealerAuthSession[]
+    accounts      DealerAuthAccount[]
+    dealerAuth    DealerAuth?
+
+    @@unique([email])
+}
+
+model DealerAuthSession {
+    id        String         @id
+    expiresAt DateTime
+    token     String
+    createdAt DateTime
+    updatedAt DateTime
+    ipAddress String?
+    userAgent String?
+    userId    String
+    user      DealerAuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([token])
+    @@index([userId])
+}
+
+model DealerAuthAccount {
+    id                    String         @id
+    accountId             String
+    providerId            String
+    userId                String
+    user                  DealerAuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+    accessToken           String?
+    refreshToken          String?
+    idToken               String?        @db.Text
+    accessTokenExpiresAt  DateTime?
+    refreshTokenExpiresAt DateTime?
+    scope                 String?
+    password              String?
+    createdAt             DateTime
+    updatedAt             DateTime
+
+    @@index([userId])
+}
+
+model DealerAuthVerification {
+    id         String    @id
+    identifier String
+    value      String
+    expiresAt  DateTime
+    createdAt  DateTime?
+    updatedAt  DateTime?
 }
 
 // ---- sales.accounting.prisma ----
@@ -3433,6 +3498,7 @@ model Users {
     rememberToken               String?                          @db.VarChar(100)
     meta                        Json?                            @db.Json
     deletedAt                   DateTime?                        @db.Timestamp(0)
+    accessRevokedAt             DateTime?                        @db.Timestamp(0)
     createdAt                   DateTime?                        @default(now()) @db.Timestamp(0)
     updatedAt                   DateTime?                        @updatedAt
     employeeProfileId           Int?
@@ -3548,6 +3614,7 @@ model Customers {
     id             Int                   @unique @default(autoincrement())
     addressId      Int?
     customerTypeId Int?
+    dealerOwnerId  Int?
     slug           String?               @unique @db.VarChar(255)
     walletId       Int?                  @unique
     name           String?               @db.VarChar(255)
@@ -3567,11 +3634,13 @@ model Customers {
     // payments       SalesPayments[] @relation()
     wallet         CustomerWallet?
     auth           DealerAuth?
+    dealerOwner    DealerAuth?           @relation(name: "dealerOwnedCustomers", fields: [dealerOwnerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
     userId         Int?                  @unique
     user           Users?                @relation(fields: [userId], references: [id])
 
     @@index([createdAt, deletedAt, name, email, phoneNo])
     @@index([customerTypeId])
+    @@index([dealerOwnerId])
     @@index([phoneNo])
 }
 
@@ -3591,9 +3660,13 @@ model CustomerTaxProfiles {
 
 model DealerAuth {
     id                       Int                   @unique @default(autoincrement())
-    dealerId                 Int                   @unique
+    dealerId                 Int?                  @unique
     createdAt                DateTime?             @default(now()) @db.Timestamp(0)
     email                    String                @unique
+    authUserId               String?               @unique
+    name                     String?               @db.VarChar(255)
+    companyName              String?               @db.VarChar(255)
+    phoneNo                  String?               @db.VarChar(255)
     password                 String?               @db.VarChar(255)
     emailVerifiedAt          DateTime?             @db.Timestamp(0)
     approvedAt               DateTime?             @db.Timestamp(0)
@@ -3602,14 +3675,20 @@ model DealerAuth {
     updatedAt                DateTime?             @updatedAt
     deletedAt                DateTime?             @db.Timestamp(0)
     status                   String?
+    meta                     Json?                 @db.Json
     primaryBillingAddressId  Int?
     primaryShippingAddressId Int?
-    dealer                   Customers             @relation(fields: [dealerId], references: [id])
+    dealer                   Customers?            @relation(fields: [dealerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    ownedCustomers           Customers[]           @relation(name: "dealerOwnedCustomers")
+    salesProfiles            CustomerTypes[]       @relation(name: "dealerSalesProfiles")
+    salesOrders              SalesOrders[]
     statusHistory            DealerStatusHistory[]
     token                    DealerToken[]
     primaryBillingAddress    AddressBooks?         @relation(name: "primaryBillingAddress", fields: [primaryBillingAddressId], references: [id])
     primaryShippingAddress   AddressBooks?         @relation(name: "primaryShippingAddress", fields: [primaryShippingAddressId], references: [id])
+    authUser                 DealerAuthUser?       @relation(fields: [authUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+    @@index([authUserId])
     @@index([primaryBillingAddressId])
     @@index([primaryShippingAddressId])
 }
@@ -3643,6 +3722,7 @@ model DealerToken {
 model CustomerTypes {
     id             Int       @unique @default(autoincrement())
     title          String    @db.VarChar(255)
+    dealerOwnerId  Int?
     coefficient    Float?
     defaultProfile Boolean?
     meta           Json?     @db.Json
@@ -3652,6 +3732,10 @@ model CustomerTypes {
 
     customers Customers[]
     sales     SalesOrders[]
+    dealerOwner DealerAuth?   @relation(name: "dealerSalesProfiles", fields: [dealerOwnerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    dealerSales SalesOrders[] @relation(name: "dealerSalesProfile")
+
+    @@index([dealerOwnerId])
 }
 
 model DealerSalesRequest {

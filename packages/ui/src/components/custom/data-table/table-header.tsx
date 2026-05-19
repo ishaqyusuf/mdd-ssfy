@@ -1,5 +1,6 @@
 import { Icons } from "@gnd/ui/icons";
 import { cva } from "class-variance-authority";
+import type { ReactNode } from "react";
 
 import { useTable } from ".";
 import {
@@ -16,6 +17,11 @@ const tableHeaderVariants = cva("", {
   variants: {},
   defaultVariants: {},
 });
+
+function formatHeaderTitle(header: unknown): ReactNode {
+  return typeof header === "string" ? header.toUpperCase() : (header as ReactNode);
+}
+
 export function TableHeader({}) {
   const {
     table,
@@ -116,7 +122,9 @@ export function TableHeader({}) {
                               : () => createSortQuery(String(header.id))
                           }
                         >
-                          <span>{header?.column?.columnDef?.header}</span>
+                          <span>
+                            {formatHeaderTitle(header?.column?.columnDef?.header)}
+                          </span>
                           {sortDir === "asc" && <Icons.ArrowDown size={16} />}
                           {sortDir === "desc" && <Icons.ArrowUp size={16} />}
                         </Button>
