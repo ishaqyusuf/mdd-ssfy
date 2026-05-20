@@ -75,7 +75,7 @@ export function DealerSalesProfiles() {
 					{editingProfile ? "Edit sales profile" : "Add sales profile"}
 				</h3>
 				<form
-					className="grid gap-3 md:grid-cols-[1fr_160px_auto]"
+					className="grid gap-3 md:grid-cols-[1fr_minmax(260px,360px)_auto]"
 					key={editingProfile?.id || "new-profile"}
 					onSubmit={onSubmit}
 				>
@@ -87,6 +87,7 @@ export function DealerSalesProfiles() {
 					/>
 					<Field
 						defaultValue={editingProfile?.coefficient ?? ""}
+						description="A coefficient is a multiplier used to increase or decrease how much this profile affects pricing. Above 1 increases pricing, below 1 reduces pricing, and 1 leaves pricing unchanged. Example: $80 x 1.25 = $100."
 						label="Coefficient"
 						name="coefficient"
 						step="0.01"

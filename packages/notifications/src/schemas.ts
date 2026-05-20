@@ -239,6 +239,36 @@ export const authNewDeviceLoginTags = actityTagsSchema.extend({
 });
 export type AuthNewDeviceLoginTags = z.infer<typeof authNewDeviceLoginTags>;
 
+export const dealerMagicLoginLinkSchema = z.object({
+	dealerName: z.string().optional().nullable(),
+	dealerEmail: z.string().email(),
+	loginLink: z.string().url(),
+	expiresInMinutes: z.number().int().positive().optional().nullable(),
+});
+export type DealerMagicLoginLinkInput = z.infer<
+	typeof dealerMagicLoginLinkSchema
+>;
+export const dealerMagicLoginLinkTags = actityTagsSchema.extend({
+	dealerEmail: z.string().email(),
+});
+export type DealerMagicLoginLinkTags = z.infer<
+	typeof dealerMagicLoginLinkTags
+>;
+
+export const dealerPasswordResetSchema = z.object({
+	dealerName: z.string().optional().nullable(),
+	dealerEmail: z.string().email(),
+	resetLink: z.string().url(),
+	expiresInMinutes: z.number().int().positive().optional().nullable(),
+});
+export type DealerPasswordResetInput = z.infer<
+	typeof dealerPasswordResetSchema
+>;
+export const dealerPasswordResetTags = actityTagsSchema.extend({
+	dealerEmail: z.string().email(),
+});
+export type DealerPasswordResetTags = z.infer<typeof dealerPasswordResetTags>;
+
 export const jobActivitySchema = z.object({
 	users: z.array(userSchema).optional().nullable(),
 	jobId: z.number(),
@@ -667,6 +697,8 @@ export type NotificationTypes = {
 	sales_customer_payment_failed: SalesCustomerPaymentFailedInput;
 	dealer_onboarding: DealerOnboardingInput;
 	auth_new_device_login: AuthNewDeviceLoginInput;
+	dealer_magic_login_link: DealerMagicLoginLinkInput;
+	dealer_password_reset: DealerPasswordResetInput;
 	// job_activity: JobActivityInput;
 	job_assigned: JobAssignedInput;
 	job_submitted: JobSubmittedInput;
@@ -1353,6 +1385,14 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("auth_new_device_login"),
 		payload: authNewDeviceLoginSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("dealer_magic_login_link"),
+		payload: dealerMagicLoginLinkSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("dealer_password_reset"),
+		payload: dealerPasswordResetSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("job_assigned"),

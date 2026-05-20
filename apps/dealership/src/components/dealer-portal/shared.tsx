@@ -21,17 +21,31 @@ export function formatCurrency(value?: number | null) {
 }
 
 export function Field({
+	description,
 	label,
 	name,
 	...props
 }: InputHTMLAttributes<HTMLInputElement> & {
+	description?: string;
 	label: string;
 	name: string;
 }) {
+	const descriptionId = description ? `${name}-description` : undefined;
+
 	return (
 		<div className="space-y-2">
 			<Label htmlFor={name}>{label}</Label>
-			<Input id={name} name={name} {...props} />
+			<Input
+				aria-describedby={descriptionId}
+				id={name}
+				name={name}
+				{...props}
+			/>
+			{description ? (
+				<p className="text-xs leading-5 text-muted-foreground" id={descriptionId}>
+					{description}
+				</p>
+			) : null}
 		</div>
 	);
 }

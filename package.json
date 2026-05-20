@@ -3,6 +3,7 @@
   "devDependencies": {
     "@types/node": "^25.2.3",
     "check-dependency-version-consistency": "5.0.1",
+    "dotenv-cli": "7.3.0",
     "knip": "^5.61.2"
   },
   "engines": {
@@ -10,7 +11,7 @@
   },
   "packageManager": "bun@1.3.9",
   "catalog": {
-    "next": "^16.2.4",
+    "next": "^16.2.6",
     "pino": "^10.1.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
@@ -30,6 +31,9 @@
     "db:push": "turbo -F @gnd/db push",
     "db:migrate": "turbo -F @gnd/db db-migrate",
     "db:generate": "bun run --filter @gnd/db db:generate",
+    "db:sync:prod-to-local": "cd packages/db && bun run sync:prod-to-local",
+    "db:sync:prod-to-local:dry-run": "cd packages/db && bun run sync:prod-to-local:dry-run",
+    "db:sync:prod-to-local:table": "cd packages/db && bun run sync:prod-to-local:table",
     "control:parity-report": "node ./scripts/sales-control-parity-report.mjs",
     "payment:reconciliation-report": "bun ./scripts/payment-system-reconciliation-report.mjs",
     "backlog": "turbo dev --parallel  --filter @gnd/gnd-backlog",
@@ -37,6 +41,7 @@
     "mobile-jobs": "turbo dev --parallel  --filter @gnd/expo-app --filter @gnd/www --filter @gnd/site --filter @gnd/jobs",
     "mobile-jobs:terminal": "bun run terminal mobile-jobs",
     "terminal": "bash ./scripts/open-bun-script-terminal.sh",
+    "kill:ports": "for port in 1355 3000 3003 3004 3005 3006 3501 4100 4200 4300 5556; do lsof -ti tcp:$port | xargs kill -9 2>/dev/null || true; done",
     "dev": "turbo dev --parallel",
     "web": "turbo dev --parallel --filter @gnd/web",
     "www": "turbo dev --parallel --filter @gnd/www",

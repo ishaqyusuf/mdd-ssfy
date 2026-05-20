@@ -7,6 +7,7 @@ export const normalizeNavPath = (path = "") =>
 
 export const validateLinks = ({
   linkModules,
+  accessMode = "rules",
   role,
   can,
   userId,
@@ -14,12 +15,24 @@ export const validateLinks = ({
   role?;
   can?;
   linkModules;
+  accessMode?: "rules" | "open";
   userId?;
 }) => {
   const validateAccess = (al) => validateRules(al, can, userId, role);
   return linkModules.map((lm) => {
     lm.sections = lm.sections.map((s) => {
       s.links = s.links.map((lnk) => {
+        if (accessMode === "open") {
+          if (lnk.subLinks?.length) {
+            lnk.subLinks = lnk.subLinks.map((sl) => {
+              sl.show = true;
+              return sl;
+            });
+          }
+          lnk.show = Boolean(lnk.href || lnk.subLinks?.length);
+          return lnk;
+        }
+
         const valid = validateAccess(lnk.access);
         if (lnk.subLinks?.length)
           lnk.subLinks = lnk.subLinks.map((sl) => {

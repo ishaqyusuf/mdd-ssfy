@@ -16,7 +16,8 @@
 		"lint": "biome check .",
 		"format": "biome format --write .",
 		"typecheck": "tsc --noEmit",
-		"with-env": "dotenv -e ../../.env --"
+		"with-env": "dotenv -o -e ../../.env.local -e .env.local --",
+		"with-env:prod": "dotenv -o -e ../../.env.production -e .env.production --"
 	},
 	"dependencies": {
 		"@gnd/db": "workspace:*",

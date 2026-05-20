@@ -9,6 +9,7 @@ import {
 import { setSessionCookie } from "better-auth/cookies";
 import { parseUserOutput } from "better-auth/db";
 import { nextCookies } from "better-auth/next-js";
+import { magicLink } from "better-auth/plugins";
 import * as z from "zod";
 import { isMasterPassword } from "../utils";
 
@@ -21,8 +22,21 @@ export type DealerNewDeviceLoginAlertInput = {
 	userAgent: string | null;
 };
 
+export type DealerAuthEmailInput = {
+	accountName: string | null;
+	accountEmail: string;
+	url: string;
+	expiresInSeconds: number;
+};
+
 let dealerNewDeviceLoginAlertHandler:
 	| ((input: DealerNewDeviceLoginAlertInput) => Promise<void> | void)
+	| null = null;
+let dealerMagicLoginLinkHandler:
+	| ((input: DealerAuthEmailInput) => Promise<void> | void)
+	| null = null;
+let dealerPasswordResetHandler:
+	| ((input: DealerAuthEmailInput) => Promise<void> | void)
 	| null = null;
 
 export function setDealerNewDeviceLoginAlertHandler(
@@ -31,9 +45,33 @@ export function setDealerNewDeviceLoginAlertHandler(
 	dealerNewDeviceLoginAlertHandler = handler;
 }
 
+export function setDealerMagicLoginLinkHandler(
+	handler: typeof dealerMagicLoginLinkHandler,
+) {
+	dealerMagicLoginLinkHandler = handler;
+}
+
+export function setDealerPasswordResetHandler(
+	handler: typeof dealerPasswordResetHandler,
+) {
+	dealerPasswordResetHandler = handler;
+}
+
 function runDealerNewDeviceLoginAlert(input: DealerNewDeviceLoginAlertInput) {
 	Promise.resolve(dealerNewDeviceLoginAlertHandler?.(input)).catch((error) => {
 		console.error("Failed to run dealer new device login hook:", error);
+	});
+}
+
+async function runDealerMagicLoginLink(input: DealerAuthEmailInput) {
+	await Promise.resolve(dealerMagicLoginLinkHandler?.(input)).catch((error) => {
+		console.error("Failed to run dealer magic login hook:", error);
+	});
+}
+
+async function runDealerPasswordReset(input: DealerAuthEmailInput) {
+	await Promise.resolve(dealerPasswordResetHandler?.(input)).catch((error) => {
+		console.error("Failed to run dealer password reset hook:", error);
 	});
 }
 
@@ -57,10 +95,20 @@ function getDealershipBaseUrl() {
 }
 
 function getTrustedOrigins() {
+	const localAppPort =
+		process.env.PORTLESS_APP_PORT || process.env.PORT || "3006";
+	const localDealershipOrigins = [
+		"http://localhost:4200",
+		"http://127.0.0.1:4200",
+		`http://localhost:${localAppPort}`,
+		`http://127.0.0.1:${localAppPort}`,
+	];
+
 	return Array.from(
 		new Set(
 			[
 				getDealershipBaseUrl(),
+				...localDealershipOrigins,
 				process.env.NEXT_PUBLIC_DEALERSHIP_URL,
 				process.env.NEXT_PUBLIC_APP_URL,
 				process.env.BETTER_AUTH_TRUSTED_ORIGINS,
@@ -70,6 +118,27 @@ function getTrustedOrigins() {
 				.filter(Boolean),
 		),
 	);
+}
+
+async function getActiveDealerAuthUser(email: string, authUserId?: string) {
+	return db.dealerAuth.findFirst({
+		where: {
+			email: email.trim().toLowerCase(),
+			authUserId: authUserId || {
+				not: null,
+			},
+			restricted: false,
+			status: {
+				in: ["active", "approved"],
+			},
+		},
+		select: {
+			authUserId: true,
+			companyName: true,
+			name: true,
+			email: true,
+		},
+	});
 }
 
 function dealerMasterPasswordPlugin(): BetterAuthPlugin {
@@ -161,13 +230,12 @@ export const dealerAuth = betterAuth({
 	verification: {
 		modelName: "DealerAuthVerification",
 	},
-	emailAndPassword: {
-		enabled: true,
-		requireEmailVerification: false,
-	},
 	hooks: {
 		after: createAuthMiddleware(async (ctx) => {
-			if (!ctx.path.includes("/sign-in/email")) return;
+			const isSessionCreatingAuthPath =
+				ctx.path.includes("/sign-in/email") ||
+				ctx.path.includes("/magic-link/verify");
+			if (!isSessionCreatingAuthPath) return;
 
 			const newSession = ctx.context.newSession as
 				| {
@@ -201,7 +269,55 @@ export const dealerAuth = betterAuth({
 			runDealerNewDeviceLoginAlert(alertInput);
 		}),
 	},
-	plugins: [dealerMasterPasswordPlugin(), nextCookies()],
+	emailAndPassword: {
+		enabled: true,
+		requireEmailVerification: false,
+		revokeSessionsOnPasswordReset: true,
+		resetPasswordTokenExpiresIn: 60 * 60,
+		sendResetPassword: async ({ user, token }) => {
+			const dealer = await getActiveDealerAuthUser(user.email, user.id);
+			if (!dealer) {
+				console.info(
+					`Dealer password reset email suppressed for ${user.email}: active linked dealer not found.`,
+				);
+				return;
+			}
+
+			const resetUrl = new URL("/reset-password", getDealershipBaseUrl());
+			resetUrl.searchParams.set("token", token);
+
+			await runDealerPasswordReset({
+				accountName: dealer.companyName || dealer.name || user.name || null,
+				accountEmail: dealer.email,
+				url: resetUrl.toString(),
+				expiresInSeconds: 60 * 60,
+			});
+		},
+	},
+	plugins: [
+		dealerMasterPasswordPlugin(),
+		magicLink({
+			disableSignUp: true,
+			expiresIn: 60 * 10,
+			sendMagicLink: async ({ email, url }) => {
+				const dealer = await getActiveDealerAuthUser(email);
+				if (!dealer) {
+					console.info(
+						`Dealer magic login email suppressed for ${email}: active linked dealer not found.`,
+					);
+					return;
+				}
+
+				await runDealerMagicLoginLink({
+					accountName: dealer.companyName || dealer.name || null,
+					accountEmail: dealer.email,
+					url,
+					expiresInSeconds: 60 * 10,
+				});
+			},
+		}),
+		nextCookies(),
+	],
 });
 
 export type DealerAuthSession = typeof dealerAuth.$Infer.Session;

@@ -1,0 +1,647 @@
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+import { PrismaClient } from "@prisma/client";
+
+export type SyncMode = "incremental" | "insert-only" | "static-refresh" | "skip";
+
+export type ColumnInfo = {
+	name: string;
+	dataType: string;
+	ordinal: number;
+};
+
+export type TableManifest = {
+	table: string;
+	columns: string[];
+	keyColumns: string[];
+	cursorColumns: string[];
+	mode: SyncMode;
+	reason?: string;
+};
+
+export type TableCursor = {
+	cursorValue: string | null;
+	keyValues: Record<string, unknown>;
+	cursorColumns: string[];
+	mode: SyncMode;
+	syncedAt: string;
+};
+
+export type SyncState = {
+	version: 1;
+	updatedAt: string;
+	tables: Record<string, TableCursor>;
+};
+
+export type SyncOptions = {
+	sourceUrl: string;
+	targetUrl: string;
+	stateFile: string;
+	table?: string;
+	dryRun: boolean;
+	refreshStatic: boolean;
+	staticRefreshMaxRows: number;
+	readBatchSize: number;
+	writeBatchSize: number;
+};
+
+export type SyncReport = {
+	table: string;
+	mode: SyncMode;
+	read: number;
+	written: number;
+	cursorValue?: string | null;
+	skippedReason?: string;
+};
+
+type KeyColumnRow = {
+	column_name: string;
+	index_name: string;
+	seq_in_index: bigint | number;
+};
+
+const DEFAULT_STATE: SyncState = {
+	version: 1,
+	updatedAt: new Date(0).toISOString(),
+	tables: {},
+};
+
+const PROD_HOST_PATTERNS = [/psdb\.cloud$/i, /connect\.psdb\.cloud$/i];
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "0.0.0.0", "mysql"]);
+
+export function quoteIdent(identifier: string): string {
+	return `\`${identifier.replaceAll("`", "``")}\``;
+}
+
+export function buildCursorExpression(cursorColumns: string[]): string {
+	return `COALESCE(${[...cursorColumns.map(quoteIdent), "'1000-01-01 00:00:00.000'"].join(", ")})`;
+}
+
+export function buildCursorWhereClause(
+	cursorExpression: string,
+	keyColumns: string[],
+	cursor?: TableCursor,
+): { sql: string; params: unknown[] } {
+	if (!cursor?.cursorValue) {
+		return { sql: "", params: [] };
+	}
+
+	const params: unknown[] = [cursor.cursorValue, cursor.cursorValue];
+	const keyComparisons: string[] = [];
+
+	for (let index = 0; index < keyColumns.length; index += 1) {
+		const equalPrefix = keyColumns
+			.slice(0, index)
+			.map((column) => `${quoteIdent(column)} = ?`)
+			.join(" AND ");
+		const keyColumn = keyColumns[index]!;
+		const comparison = `${quoteIdent(keyColumn)} > ?`;
+		keyComparisons.push(equalPrefix ? `(${equalPrefix} AND ${comparison})` : `(${comparison})`);
+
+		for (const prefixColumn of keyColumns.slice(0, index)) {
+			params.push(cursor.keyValues[prefixColumn]);
+		}
+		params.push(cursor.keyValues[keyColumn]);
+	}
+
+	return {
+		sql: `WHERE (${cursorExpression} > ? OR (${cursorExpression} = ? AND (${keyComparisons.join(" OR ")})))`,
+		params,
+	};
+}
+
+export function buildUpsertSql(table: string, columns: string[], keyColumns: string[], rowCount: number): string {
+	if (rowCount < 1) {
+		throw new Error("rowCount must be greater than zero");
+	}
+
+	const columnList = columns.map(quoteIdent).join(", ");
+	const rowPlaceholder = `(${columns.map(() => "?").join(", ")})`;
+	const placeholders = Array.from({ length: rowCount }, () => rowPlaceholder).join(", ");
+	const keySet = new Set(keyColumns);
+	const updateColumns = columns.filter((column) => !keySet.has(column));
+	const updates =
+		updateColumns.length > 0
+			? updateColumns.map((column) => `${quoteIdent(column)} = VALUES(${quoteIdent(column)})`).join(", ")
+				: `${quoteIdent(keyColumns[0] ?? columns[0]!)} = ${quoteIdent(keyColumns[0] ?? columns[0]!)}`;
+
+	return `INSERT INTO ${quoteIdent(table)} (${columnList}) VALUES ${placeholders} ON DUPLICATE KEY UPDATE ${updates}`;
+}
+
+export function classifyTable(input: {
+	table: string;
+	columns: string[];
+	keyColumns: string[];
+	refreshStatic: boolean;
+}): TableManifest {
+	const hasUpdatedAt = input.columns.includes("updatedAt");
+	const hasCreatedAt = input.columns.includes("createdAt");
+
+	if (input.keyColumns.length === 0) {
+		return {
+			table: input.table,
+			columns: input.columns,
+			keyColumns: [],
+			cursorColumns: [],
+			mode: "skip",
+			reason: "No primary or unique key was detected.",
+		};
+	}
+
+	if (hasUpdatedAt) {
+		return {
+			table: input.table,
+			columns: input.columns,
+			keyColumns: input.keyColumns,
+			cursorColumns: hasCreatedAt ? ["updatedAt", "createdAt"] : ["updatedAt"],
+			mode: "incremental",
+		};
+	}
+
+	if (hasCreatedAt) {
+		return {
+			table: input.table,
+			columns: input.columns,
+			keyColumns: input.keyColumns,
+			cursorColumns: ["createdAt"],
+			mode: "insert-only",
+			reason: "No updatedAt column; new rows are synced by createdAt only.",
+		};
+	}
+
+	if (input.refreshStatic) {
+		return {
+			table: input.table,
+			columns: input.columns,
+			keyColumns: input.keyColumns,
+			cursorColumns: [],
+			mode: "static-refresh",
+			reason: "No timestamp column; table is eligible for opt-in full refresh upsert.",
+		};
+	}
+
+	return {
+		table: input.table,
+		columns: input.columns,
+		keyColumns: input.keyColumns,
+		cursorColumns: [],
+		mode: "skip",
+		reason: "No updatedAt or createdAt column. Pass --refresh-static to upsert small static tables.",
+	};
+}
+
+export function assertSafeConnections(sourceUrl: string, targetUrl: string): void {
+	const source = new URL(sourceUrl);
+	const target = new URL(targetUrl);
+	const sourceDatabase = source.pathname.replace(/^\//, "");
+	const targetDatabase = target.pathname.replace(/^\//, "");
+
+	if (source.hostname === target.hostname && source.port === target.port && sourceDatabase === targetDatabase) {
+		throw new Error("Refusing to sync because source and target point at the same database.");
+	}
+
+	if (PROD_HOST_PATTERNS.some((pattern) => pattern.test(target.hostname))) {
+		throw new Error(`Refusing to write to production-looking target host: ${target.hostname}`);
+	}
+
+	if (!LOCAL_HOSTS.has(target.hostname) && !target.hostname.endsWith(".local")) {
+		throw new Error(
+			`Refusing to write to non-local target host: ${target.hostname}. Set LOCAL_DATABASE_URL to a local MySQL database.`,
+		);
+	}
+}
+
+export async function readState(stateFile: string): Promise<SyncState> {
+	try {
+		const raw = await readFile(stateFile, "utf8");
+		const parsed = JSON.parse(raw) as SyncState;
+		return {
+			version: 1,
+			updatedAt: parsed.updatedAt ?? DEFAULT_STATE.updatedAt,
+			tables: parsed.tables ?? {},
+		};
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+			return { ...DEFAULT_STATE, tables: {} };
+		}
+
+		throw error;
+	}
+}
+
+export async function writeState(stateFile: string, state: SyncState): Promise<void> {
+	await mkdir(dirname(stateFile), { recursive: true });
+	await writeFile(
+		stateFile,
+		`${JSON.stringify({ ...state, updatedAt: new Date().toISOString() }, null, 2)}\n`,
+		"utf8",
+	);
+}
+
+export function parseArgs(argv: string[]): Partial<SyncOptions> & { help?: boolean } {
+	const parsed: Partial<SyncOptions> & { help?: boolean } = {};
+
+	for (let index = 0; index < argv.length; index += 1) {
+		const arg = argv[index];
+		const next = () => {
+			const value = argv[++index];
+			if (!value || value.startsWith("--")) {
+				throw new Error(`Missing value for ${arg}`);
+			}
+			return value;
+		};
+
+		switch (arg) {
+			case "--dry-run":
+				parsed.dryRun = true;
+				break;
+			case "--refresh-static":
+				parsed.refreshStatic = true;
+				break;
+			case "--table":
+				parsed.table = next();
+				break;
+			case "--state-file":
+				parsed.stateFile = next();
+				break;
+			case "--source-url":
+				parsed.sourceUrl = next();
+				break;
+			case "--target-url":
+				parsed.targetUrl = next();
+				break;
+			case "--read-batch-size":
+				parsed.readBatchSize = Number(next());
+				break;
+			case "--write-batch-size":
+				parsed.writeBatchSize = Number(next());
+				break;
+			case "--static-refresh-max-rows":
+				parsed.staticRefreshMaxRows = Number(next());
+				break;
+			case "-h":
+			case "--help":
+				parsed.help = true;
+				break;
+			default:
+				if (arg?.startsWith("--")) {
+					throw new Error(`Unknown option: ${arg}`);
+				}
+		}
+	}
+
+	return parsed;
+}
+
+export function parseEnvFile(text: string): Record<string, string> {
+	const values: Record<string, string> = {};
+
+	for (const line of text.split(/\r?\n/)) {
+		const trimmed = line.trim();
+		if (!trimmed || trimmed.startsWith("#")) {
+			continue;
+		}
+
+		const match = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+		if (!match) {
+			continue;
+		}
+
+		values[match[1]!] = match[2]!.trim().replace(/^['"]|['"]$/g, "");
+	}
+
+	return values;
+}
+
+export async function readFirstEnvValue(files: string[], keys: string[]): Promise<string | undefined> {
+	for (const file of files) {
+		try {
+			const env = parseEnvFile(await readFile(file, "utf8"));
+			for (const key of keys) {
+				if (env[key]) {
+					return env[key];
+				}
+			}
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+				throw error;
+			}
+		}
+	}
+
+	return undefined;
+}
+
+export async function resolveOptions(argv: string[], cwd = process.cwd()): Promise<SyncOptions & { help?: boolean }> {
+	const parsed = parseArgs(argv);
+	const sourceUrl =
+		parsed.sourceUrl ??
+		process.env.PROD_DATABASE_URL ??
+		process.env.SOURCE_DATABASE_URL ??
+		(await readFirstEnvValue(
+			[resolve(cwd, ".env.production"), resolve(cwd, "../../.env.production")],
+			["PROD_DATABASE_URL", "SOURCE_DATABASE_URL", "DATABASE_URL"],
+		));
+	const targetUrl =
+		parsed.targetUrl ??
+		process.env.LOCAL_DATABASE_URL ??
+		process.env.TARGET_DATABASE_URL ??
+		(await readFirstEnvValue(
+			[resolve(cwd, ".env"), resolve(cwd, "../../.env")],
+			["LOCAL_DATABASE_URL", "TARGET_DATABASE_URL", "DATABASE_URL"],
+		));
+
+	if (parsed.help) {
+		return {
+			sourceUrl: sourceUrl ?? "",
+			targetUrl: targetUrl ?? "",
+			stateFile: parsed.stateFile ?? resolve(cwd, "../../.local-db-sync/state.json"),
+			table: parsed.table,
+			dryRun: parsed.dryRun ?? false,
+			refreshStatic: parsed.refreshStatic ?? false,
+			staticRefreshMaxRows: parsed.staticRefreshMaxRows ?? 5_000,
+			readBatchSize: parsed.readBatchSize ?? 10_000,
+			writeBatchSize: parsed.writeBatchSize ?? 500,
+			help: true,
+		};
+	}
+
+	if (!sourceUrl) {
+		throw new Error("Missing production database URL. Set PROD_DATABASE_URL or packages/db/.env.production DATABASE_URL.");
+	}
+
+	if (!targetUrl) {
+		throw new Error("Missing local database URL. Set LOCAL_DATABASE_URL or packages/db/.env DATABASE_URL.");
+	}
+
+	return {
+		sourceUrl,
+		targetUrl,
+		stateFile: parsed.stateFile ?? resolve(cwd, "../../.local-db-sync/state.json"),
+		table: parsed.table,
+		dryRun: parsed.dryRun ?? false,
+		refreshStatic: parsed.refreshStatic ?? false,
+		staticRefreshMaxRows: parsed.staticRefreshMaxRows ?? 5_000,
+		readBatchSize: parsed.readBatchSize ?? 10_000,
+		writeBatchSize: parsed.writeBatchSize ?? 500,
+	};
+}
+
+export async function getTableManifest(
+	db: PrismaClient,
+	refreshStatic: boolean,
+	tableFilter?: string,
+): Promise<TableManifest[]> {
+	const tables = await db.$queryRaw<Array<{ table_name: string }>>`
+		SELECT TABLE_NAME AS table_name
+		FROM INFORMATION_SCHEMA.TABLES
+		WHERE TABLE_SCHEMA = DATABASE()
+			AND TABLE_TYPE = 'BASE TABLE'
+		ORDER BY TABLE_NAME
+	`;
+	const filteredTables = tables
+		.map((row) => row.table_name)
+		.filter((table) => table !== "_prisma_migrations")
+		.filter((table) => !tableFilter || table === tableFilter);
+	const manifests: TableManifest[] = [];
+
+	for (const table of filteredTables) {
+		const columns = await getColumns(db, table);
+		const keyColumns = await getBestKeyColumns(db, table);
+		manifests.push(
+			classifyTable({
+				table,
+				columns: columns.map((column) => column.name),
+				keyColumns,
+				refreshStatic,
+			}),
+		);
+	}
+
+	return manifests;
+}
+
+async function getColumns(db: PrismaClient, table: string): Promise<ColumnInfo[]> {
+	return db.$queryRawUnsafe<ColumnInfo[]>(
+		`
+			SELECT COLUMN_NAME AS name, DATA_TYPE AS dataType, ORDINAL_POSITION AS ordinal
+			FROM INFORMATION_SCHEMA.COLUMNS
+			WHERE TABLE_SCHEMA = DATABASE()
+				AND TABLE_NAME = ?
+			ORDER BY ORDINAL_POSITION
+		`,
+		table,
+	);
+}
+
+async function getBestKeyColumns(db: PrismaClient, table: string): Promise<string[]> {
+	const primaryRows = await db.$queryRawUnsafe<KeyColumnRow[]>(
+		`
+			SELECT COLUMN_NAME AS column_name, INDEX_NAME AS index_name, SEQ_IN_INDEX AS seq_in_index
+			FROM INFORMATION_SCHEMA.STATISTICS
+			WHERE TABLE_SCHEMA = DATABASE()
+				AND TABLE_NAME = ?
+				AND INDEX_NAME = 'PRIMARY'
+			ORDER BY SEQ_IN_INDEX
+		`,
+		table,
+	);
+
+	if (primaryRows.length > 0) {
+		return primaryRows.map((row) => row.column_name);
+	}
+
+	const uniqueRows = await db.$queryRawUnsafe<KeyColumnRow[]>(
+		`
+			SELECT COLUMN_NAME AS column_name, INDEX_NAME AS index_name, SEQ_IN_INDEX AS seq_in_index
+			FROM INFORMATION_SCHEMA.STATISTICS
+			WHERE TABLE_SCHEMA = DATABASE()
+				AND TABLE_NAME = ?
+				AND NON_UNIQUE = 0
+			ORDER BY INDEX_NAME, SEQ_IN_INDEX
+		`,
+		table,
+	);
+
+	const indexes = new Map<string, KeyColumnRow[]>();
+	for (const row of uniqueRows) {
+		indexes.set(row.index_name, [...(indexes.get(row.index_name) ?? []), row]);
+	}
+
+	return [...indexes.values()]
+		.sort((left, right) => left.length - right.length)
+		.at(0)
+		?.sort((left, right) => Number(left.seq_in_index) - Number(right.seq_in_index))
+		.map((row) => row.column_name) ?? [];
+}
+
+export async function syncDatabases(options: SyncOptions): Promise<SyncReport[]> {
+	assertSafeConnections(options.sourceUrl, options.targetUrl);
+
+	const source = new PrismaClient({ datasources: { db: { url: options.sourceUrl } } });
+	const target = new PrismaClient({ datasources: { db: { url: options.targetUrl } } });
+	const reports: SyncReport[] = [];
+	const state = await readState(options.stateFile);
+
+	try {
+		const manifests = await getTableManifest(source, options.refreshStatic, options.table);
+
+		if (options.table && manifests.length === 0) {
+			throw new Error(`Table not found in source database: ${options.table}`);
+		}
+
+		for (const manifest of manifests) {
+			if (manifest.mode === "skip") {
+				reports.push({
+					table: manifest.table,
+					mode: manifest.mode,
+					read: 0,
+					written: 0,
+					skippedReason: manifest.reason,
+				});
+				continue;
+			}
+
+			const report =
+				manifest.mode === "static-refresh"
+					? await syncStaticTable(source, target, manifest, options)
+					: await syncCursorTable(source, target, manifest, state, options);
+			reports.push(report);
+		}
+	} finally {
+		await source.$disconnect();
+		await target.$disconnect();
+	}
+
+	return reports;
+}
+
+async function syncCursorTable(
+	source: PrismaClient,
+	target: PrismaClient,
+	manifest: TableManifest,
+	state: SyncState,
+	options: SyncOptions,
+): Promise<SyncReport> {
+	const cursorExpression = buildCursorExpression(manifest.cursorColumns);
+	let cursor = state.tables[manifest.table];
+	let totalRead = 0;
+	let totalWritten = 0;
+	let latestCursor: TableCursor | undefined = cursor;
+
+	while (true) {
+		const where = buildCursorWhereClause(cursorExpression, manifest.keyColumns, cursor);
+		const orderBy = [cursorExpression, ...manifest.keyColumns.map(quoteIdent)].join(", ");
+		const rows = await source.$queryRawUnsafe<Array<Record<string, unknown>>>(
+			`
+				SELECT ${manifest.columns.map(quoteIdent).join(", ")}, ${cursorExpression} AS __sync_cursor
+				FROM ${quoteIdent(manifest.table)}
+				${where.sql}
+				ORDER BY ${orderBy}
+				LIMIT ?
+			`,
+			...where.params,
+			options.readBatchSize,
+		);
+
+		if (rows.length === 0) {
+			break;
+		}
+
+		totalRead += rows.length;
+		const lastRow = rows[rows.length - 1]!;
+		latestCursor = {
+			cursorValue: normalizeCursorValue(lastRow.__sync_cursor),
+			keyValues: Object.fromEntries(manifest.keyColumns.map((column) => [column, lastRow[column]])),
+			cursorColumns: manifest.cursorColumns,
+			mode: manifest.mode,
+			syncedAt: new Date().toISOString(),
+		};
+
+		if (!options.dryRun) {
+			totalWritten += await upsertRows(target, manifest, rows, options.writeBatchSize);
+			state.tables[manifest.table] = latestCursor;
+			await writeState(options.stateFile, state);
+		}
+
+		cursor = latestCursor;
+
+		if (rows.length < options.readBatchSize) {
+			break;
+		}
+	}
+
+	return {
+		table: manifest.table,
+		mode: manifest.mode,
+		read: totalRead,
+		written: totalWritten,
+		cursorValue: latestCursor?.cursorValue,
+		skippedReason: manifest.reason,
+	};
+}
+
+async function syncStaticTable(
+	source: PrismaClient,
+	target: PrismaClient,
+	manifest: TableManifest,
+	options: SyncOptions,
+): Promise<SyncReport> {
+	const countRows = await source.$queryRawUnsafe<Array<{ count: bigint }>>(
+		`SELECT COUNT(*) AS count FROM ${quoteIdent(manifest.table)}`,
+	);
+	const count = Number(countRows[0]?.count ?? 0);
+
+	if (count > options.staticRefreshMaxRows) {
+		return {
+			table: manifest.table,
+			mode: "skip",
+			read: 0,
+			written: 0,
+			skippedReason: `Static table has ${count} rows, above --static-refresh-max-rows=${options.staticRefreshMaxRows}.`,
+		};
+	}
+
+	const rows = await source.$queryRawUnsafe<Array<Record<string, unknown>>>(
+		`SELECT ${manifest.columns.map(quoteIdent).join(", ")} FROM ${quoteIdent(manifest.table)}`,
+	);
+
+	return {
+		table: manifest.table,
+		mode: manifest.mode,
+		read: rows.length,
+		written: options.dryRun ? 0 : await upsertRows(target, manifest, rows, options.writeBatchSize),
+		skippedReason: manifest.reason,
+	};
+}
+
+async function upsertRows(
+	target: PrismaClient,
+	manifest: TableManifest,
+	rows: Array<Record<string, unknown>>,
+	writeBatchSize: number,
+): Promise<number> {
+	let written = 0;
+
+	for (let index = 0; index < rows.length; index += writeBatchSize) {
+		const batch = rows.slice(index, index + writeBatchSize);
+		const sql = buildUpsertSql(manifest.table, manifest.columns, manifest.keyColumns, batch.length);
+		const values = batch.flatMap((row) => manifest.columns.map((column) => row[column]));
+		await target.$executeRawUnsafe(sql, ...values);
+		written += batch.length;
+	}
+
+	return written;
+}
+
+function normalizeCursorValue(value: unknown): string | null {
+	if (value == null) {
+		return null;
+	}
+
+	if (value instanceof Date) {
+		return value.toISOString().slice(0, 23).replace("T", " ");
+	}
+
+	return String(value);
+}

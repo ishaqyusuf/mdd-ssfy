@@ -73,6 +73,7 @@ sales-form-data.json
 .midday 
 
 snippets
+.local-db-sync/
 
 packages/jobs/src/schema.prisma
 

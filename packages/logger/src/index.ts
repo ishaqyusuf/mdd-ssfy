@@ -1,4 +1,5 @@
 import pino from "pino";
+import pinoPretty from "pino-pretty";
 
 /**
  * Check if we're in pretty mode
@@ -6,10 +7,7 @@ import pino from "pino";
 const isPretty =
   process.env.LOG_PRETTY === "true" && process.env.NODE_ENV !== "production";
 
-/**
- * Create the base pino logger instance
- */
-const baseLogger = pino({
+const loggerOptions: pino.LoggerOptions = {
   level: process.env.LOG_LEVEL || "info",
   redact: {
     paths: ["email", "password", "address"],
@@ -20,23 +18,32 @@ const baseLogger = pino({
     res: pino.stdSerializers.res,
     err: pino.stdSerializers.err,
   },
-  // Use pretty printing in development, structured JSON in production
-  ...(isPretty && {
-    transport: {
-      target: "pino-pretty",
-      options: {
-        colorize: true,
-        translateTime: "HH:MM:ss",
-        ignore: "pid,hostname",
-        messageFormat: "{msg}",
-        hideObject: false,
-        singleLine: false,
-        useLevelLabels: true,
-        levelFirst: true,
-      },
-    },
-  }),
-});
+};
+
+const prettyOptions: pinoPretty.PrettyOptions = {
+  colorize: true,
+  translateTime: "HH:MM:ss",
+  ignore: "pid,hostname",
+  messageFormat: "{msg}",
+  hideObject: false,
+  singleLine: false,
+  levelFirst: true,
+};
+
+/**
+ * Create the base pino logger instance
+ */
+const baseLogger = (() => {
+  if (!isPretty) {
+    return pino(loggerOptions);
+  }
+
+  try {
+    return pino(loggerOptions, pinoPretty(prettyOptions));
+  } catch {
+    return pino(loggerOptions);
+  }
+})();
 
 /**
  * Create a logger adapter that wraps pino to match the existing API

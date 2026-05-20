@@ -12,6 +12,7 @@ type Props = {
 export default async function DealerCreatePasswordPage({ params }: Props) {
   const { token } = await params;
   const invite = await getDealerOnboardingInvite(db, token);
+
   const dealerName =
     invite?.auth?.companyName || invite?.auth?.name || "Dealer setup";
 

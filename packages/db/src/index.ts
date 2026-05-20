@@ -5,15 +5,15 @@
 // Solution for prisma edge: @link https://github.com/prisma/prisma/issues/22050#issuecomment-1821208388
 
 import {
-  PrismaClient,
-  Prisma,
-  SalesPriority,
-  PayoutStatus,
-  type Roles,
-  type Users,
-  type NoteStatus,
-  type ContactRole,
-  // } from "../node_modules/.prisma/client/client.js";
+	type ContactRole,
+	type NoteStatus,
+	PayoutStatus,
+	Prisma,
+	PrismaClient,
+	type Roles,
+	SalesPriority,
+	type Users,
+	// } from "../node_modules/.prisma/client/client.js";
 } from "@prisma/client";
 // export {
 //   Prisma,
@@ -25,14 +25,14 @@ import {
 // } from "../node_modules/.prisma/client/client.js";
 
 export {
-  Prisma,
-  PrismaClient,
-  SalesPriority,
-  PayoutStatus,
-  type Roles,
-  type Users,
-  type NoteStatus,
-  type ContactRole,
+	Prisma,
+	PrismaClient,
+	SalesPriority,
+	PayoutStatus,
+	type Roles,
+	type Users,
+	type NoteStatus,
+	type ContactRole,
 };
 // export * from "@prisma/client";
 export type AddressBooks = Prisma.AddressBooksGetPayload<undefined>;
@@ -51,11 +51,11 @@ export type SalesOrderItems = Prisma.SalesOrderItemsGetPayload<undefined>;
 export type DykeSalesDoors = Prisma.DykeSalesDoorsGetPayload<undefined>;
 export type DykeShelfProducts = Prisma.DykeShelfProductsGetPayload<undefined>;
 export type OrderProductionSubmissions =
-  Prisma.OrderProductionSubmissionsGetPayload<undefined>;
+	Prisma.OrderProductionSubmissionsGetPayload<undefined>;
 export type OrderItemProductionAssignments =
-  Prisma.OrderItemProductionAssignmentsGetPayload<undefined>;
+	Prisma.OrderItemProductionAssignmentsGetPayload<undefined>;
 export type DykeShelfCategories =
-  Prisma.DykeShelfCategoriesGetPayload<undefined>;
+	Prisma.DykeShelfCategoriesGetPayload<undefined>;
 export type DykeSalesShelfItem = Prisma.DykeSalesShelfItemGetPayload<undefined>;
 export type Builders = Prisma.BuildersGetPayload<undefined>;
 export type EmployeeProfile = Prisma.EmployeeProfileGetPayload<undefined>;
@@ -72,7 +72,7 @@ export type Progress = Prisma.ProgressGetPayload<undefined>;
 export type SalesPickup = Prisma.SalesPickupGetPayload<undefined>;
 export type CommunityModelCost = Prisma.CommunityModelCostGetPayload<undefined>;
 export type CommunityModelPivot =
-  Prisma.CommunityModelPivotGetPayload<undefined>;
+	Prisma.CommunityModelPivotGetPayload<undefined>;
 export type CommunityModels = Prisma.CommunityModelsGetPayload<undefined>;
 export type CostCharts = Prisma.CostChartsGetPayload<undefined>;
 export type HomeTasks = Prisma.HomeTasksGetPayload<undefined>;
@@ -88,54 +88,60 @@ export type SalesTaxes = Prisma.SalesTaxesGetPayload<undefined>;
 export type ExportConfig = Prisma.ExportConfigGetPayload<undefined>;
 // export type  = Prisma.GetPayload<undefined>;
 
+const softDeleteModels = new Set(
+	Prisma.dmmf.datamodel.models
+		.filter((model) => model.fields.some((field) => field.name === "deletedAt"))
+		.map((model) => model.name),
+);
+
+function applyDefaultSoftDeleteFilter<
+	T extends { where?: Record<string, unknown> },
+>(model: string, args: T) {
+	if (!softDeleteModels.has(model)) return args;
+
+	const where = args.where ?? {};
+
+	if (!Object.hasOwn(where, "deletedAt")) {
+		args.where = { deletedAt: null, ...where };
+	}
+
+	return args;
+}
+
 const prismaClientSingleton = () => {
-  return new PrismaClient({
-    log:
-      process.env.NODE_ENV === "development"
-        ? [
-            // "query",
-            "error",
-            "warn",
-          ]
-        : ["error"],
-  }).$extends({
-    query: {
-      $allModels: {
-        // async $allOperations({args,operation})
-        // {
-        // },
-        async findFirst({ model, operation, args, query }) {
-          if (!args) args = { where: {} };
-          if (!args.where) args.where = {};
-
-          if (!Object.keys(args.where).includes("deletedAt"))
-            args.where = { deletedAt: null, ...args.where };
-          // args.where = {};
-
-          return query(args);
-        },
-        async findMany({ model, operation, args, query }) {
-          if (!args) args = { where: {} };
-          if (!args.where) args.where = {};
-
-          if (!Object.keys(args.where).includes("deletedAt"))
-            args.where = { deletedAt: null, ...args.where };
-          // args.where.deletedAt = null;
-
-          // args.where = {};
-
-          return query(args);
-        },
-      },
-    },
-  });
+	return new PrismaClient({
+		log:
+			process.env.NODE_ENV === "development"
+				? [
+						// "query",
+						"error",
+						"warn",
+					]
+				: ["error"],
+	}).$extends({
+		query: {
+			$allModels: {
+				// async $allOperations({args,operation})
+				// {
+				// },
+				async findFirst({ model, operation, args, query }) {
+					if (!args) args = { where: {} } as typeof args;
+					return query(applyDefaultSoftDeleteFilter(model, args));
+				},
+				async findMany({ model, operation, args, query }) {
+					if (!args) args = { where: {} } as typeof args;
+					return query(applyDefaultSoftDeleteFilter(model, args));
+				},
+			},
+		},
+	});
 };
 
 type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>;
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClientSingleton | undefined;
-  // db: PrismaClientSingleton | undefined;
+	prisma: PrismaClientSingleton | undefined;
+	// db: PrismaClientSingleton | undefined;
 };
 // globalForPrisma.prisma?.users.findMany({
 //   where: {
@@ -145,10 +151,10 @@ const globalForPrisma = globalThis as unknown as {
 export const db = globalForPrisma.prisma || prismaClientSingleton();
 export type Database = typeof db;
 export type TransactionClient = Parameters<
-  Parameters<typeof db.$transaction>[0]
+	Parameters<typeof db.$transaction>[0]
 >[0];
 export type Db = typeof db;
 
 if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = db;
+	globalForPrisma.prisma = db;
 }

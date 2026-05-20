@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "clean": "rm -rf .turbo node_modules",
-    "dev": "bunx env-cmd -f .env trigger dev",
-    "deploy": "bun run prisma.ts && bunx env-cmd -f .env.production trigger deploy",
+    "with-env": "dotenv -o -e ../../.env.local -e .env.local --",
+    "with-env:prod": "dotenv -o -e ../../.env.production -e .env.production --",
+    "dev": "bun run with-env trigger dev",
+    "deploy": "bun run prisma.ts && bun run with-env:prod trigger deploy",
     "typecheck": "tsc --noEmit"
   },
   "exports": {

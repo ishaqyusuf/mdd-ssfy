@@ -1,9 +1,11 @@
 {
 	"name": "@gnd/api",
 	"scripts": {
-		"dev": "TZ=UTC PORT=3004 bun run --hot src/index.ts",
-		"dev:node": "tsx src/node.ts",
-		"--build": "bun-vercel ./src/bun.ts",
+		"with-env": "dotenv -o -e ../../.env.local -e .env.local --",
+		"with-env:prod": "dotenv -o -e ../../.env.production -e .env.production --",
+		"dev": "bun run with-env env TZ=UTC PORT=3004 bun run --hot src/index.ts",
+		"dev:node": "bun run with-env tsx src/node.ts",
+		"--build": "bun run with-env:prod bun-vercel ./src/bun.ts",
 		"-build": "./bun-vercel/build.sh ./src/bun.ts",
 		"deploy:vc": "vc",
 		"start": "node ./dist/src/index.js",

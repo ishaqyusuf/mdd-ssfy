@@ -63,6 +63,8 @@ export const channelNames = [
 	"sales_dispatch_duplicate_alert",
 	"dealer_onboarding",
 	"auth_new_device_login",
+	"dealer_magic_login_link",
+	"dealer_password_reset",
 ] as const;
 export type ChannelName = (typeof channelNames)[number];
 export const priorityStrings = [
@@ -278,6 +280,18 @@ export const channelsConfig: Partial<{
 	auth_new_device_login: {
 		name: "New Device Login",
 		description: "Send when an account signs in from a new browser or device.",
+		priority: 8,
+		category: "Security",
+	},
+	dealer_magic_login_link: {
+		name: "Dealer Magic Login Link",
+		description: "Send a passwordless login link to an active dealer account.",
+		priority: 8,
+		category: "Security",
+	},
+	dealer_password_reset: {
+		name: "Dealer Password Reset",
+		description: "Send a password reset link to an active dealer account.",
 		priority: 8,
 		category: "Security",
 	},

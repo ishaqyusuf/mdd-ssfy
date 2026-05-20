@@ -1,20 +1,36 @@
-import {
-  BarChart3,
-  Building2,
-  ClipboardList,
-  FileText,
-  Settings,
-  Users,
-} from "lucide-react";
-import Link from "next/link";
+"use client";
 
-const navItems = [
-  { href: "/", label: "Dashboard", icon: BarChart3 },
-  { href: "/orders", label: "Orders", icon: ClipboardList },
-  { href: "/quotes", label: "Quotes", icon: FileText },
-  { href: "/customers", label: "Customers", icon: Users },
-  { href: "/profiles", label: "Sales Profiles", icon: Building2 },
-  { href: "/settings", label: "Company Settings", icon: Settings },
+import { authClient } from "@/lib/auth-client";
+import { SiteNav, createSiteNavContext } from "@gnd/site-nav";
+import {
+  createNavLink,
+  createNavModule,
+  createNavSection,
+} from "@gnd/site-nav/types";
+import type { IconKeys } from "@gnd/ui/icons";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
+
+const dealershipLinks = [
+  { href: "/", label: "Dashboard", icon: "dashboard" },
+  { href: "/orders", label: "Orders", icon: "orders" },
+  { href: "/quotes", label: "Quotes", icon: "quotes" },
+  { href: "/customers", label: "Customers", icon: "customers" },
+  { href: "/profiles", label: "Sales Profiles", icon: "dealer" },
+  { href: "/settings", label: "Company Settings", icon: "settings" },
+];
+
+const dealershipNavModules = [
+  createNavModule("", "dealer", "Dealer workspace", [
+    createNavSection(
+      "Workspace",
+      "Workspace",
+      dealershipLinks.map((item) =>
+        createNavLink(item.label, item.icon as IconKeys, item.href).data,
+      ),
+    ),
+  ]),
 ];
 
 type DealerShellDealer = {
@@ -31,7 +47,7 @@ export function DealershipShell({
   children,
   dealer,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   dealer: DealerShellDealer;
 }) {
   const displayName =
@@ -40,38 +56,66 @@ export function DealershipShell({
     dealer.name ||
     dealer.dealer?.name ||
     dealer.email;
+  const pathname = usePathname();
+  const siteNav = createSiteNavContext({
+    pathName: pathname,
+    linkModules: dealershipNavModules,
+    accessMode: "open",
+    LogoIcon: DealerLogoMark,
+    LogoSmIcon: DealerLogoMark,
+    Link,
+  });
+
+  const handleLogout = async () => {
+    await authClient.signOut();
+    window.location.href = "/login";
+  };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r bg-card px-4 py-5 md:block">
-        <div className="mb-8 px-2">
-          <p className="text-sm font-medium text-muted-foreground">GND</p>
-          <h1 className="text-xl font-semibold leading-tight">{displayName}</h1>
-        </div>
+    <SiteNav.Provider value={siteNav}>
+      <div className="relative min-h-screen bg-background text-foreground">
+        <SiteNav.Sidebar>
+          <SiteNav.Logo Icon={DealerLogoMark} />
+          <SiteNav.LogoSm Icon={DealerLogoMark} />
+          <div className="absolute bottom-5 left-0 right-0 z-10 flex w-full items-center justify-center px-3 md:justify-start">
+            <SiteNav.User
+              user={{
+                name: displayName,
+                email: dealer.email,
+              }}
+              onLogout={handleLogout}
+            />
+          </div>
+        </SiteNav.Sidebar>
 
-        <nav className="space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
+        <SiteNav.Shell>
+          <SiteNav.Header
+            left={
+              <div className="min-w-0">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  Dealer workspace
+                </p>
+                <p className="truncate text-sm font-semibold md:text-base">
+                  {displayName}
+                </p>
+              </div>
+            }
+          />
+          <main className="mx-auto flex min-h-[calc(100vh-70px)] w-full max-w-7xl flex-col px-4 py-5 md:px-8">
+            {children}
+          </main>
+        </SiteNav.Shell>
+      </div>
+    </SiteNav.Provider>
+  );
+}
 
-            return (
-              <Link
-                className="flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                href={item.href}
-                key={item.href}
-              >
-                <Icon className="size-4" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-      </aside>
-
-      <main className="md:pl-64">
-        <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-5 md:px-8">
-          {children}
-        </div>
-      </main>
-    </div>
+function DealerLogoMark() {
+  return (
+    <img
+      alt=""
+      className="h-10 w-10 rounded-lg object-contain"
+      src="/dealership-logo.svg"
+    />
   );
 }

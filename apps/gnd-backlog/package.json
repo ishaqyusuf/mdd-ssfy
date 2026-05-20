@@ -3,13 +3,14 @@
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
-		"build": "contentlayer2 build && bun with-env next build",
+		"build": "contentlayer2 build && bun run with-env:prod next build",
 		"clean": "git clean -xdf .next .turbo node_modules",
-		"dev": "PORTLESS_PORT=${PORTLESS_PORT:-1355} PORTLESS_WILDCARD=${PORTLESS_WILDCARD:-1} PORTLESS_SYNC_HOSTS=${PORTLESS_SYNC_HOSTS:-0} PORTLESS_APP_PORT=${PORTLESS_APP_PORT:-4200} bun with-env portless gnd-backlog next dev --turbopack",
-		"lint": " bun with-env next lint --quiet",
+		"dev": "bun run with-env env PORTLESS_PORT=${PORTLESS_PORT:-1355} PORTLESS_WILDCARD=${PORTLESS_WILDCARD:-1} PORTLESS_SYNC_HOSTS=${PORTLESS_SYNC_HOSTS:-0} PORTLESS_APP_PORT=${PORTLESS_APP_PORT:-4200} portless gnd-backlog next dev --turbopack",
+		"lint": "bun run with-env next lint --quiet",
 		"format": "prettier --write '**/*.{js,cjs,mjs,ts,tsx,md,json}'  --ignore-path .prettierignore",
-		"start": "bun with-env next start",
-		"with-env": "dotenv -e ../../.env.local --"
+		"start": "bun run with-env next start",
+		"with-env": "dotenv -o -e ../../.env.local -e .env.local --",
+		"with-env:prod": "dotenv -o -e ../../.env.production -e .env.production --"
 	},
 	"dependencies": {
 		"@dinero.js/currencies": "2.0.0-alpha.14",

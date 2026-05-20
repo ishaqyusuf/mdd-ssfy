@@ -3,9 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "PORTLESS_PORT=${PORTLESS_PORT:-1355} PORTLESS_WILDCARD=${PORTLESS_WILDCARD:-1} PORTLESS_SYNC_HOSTS=${PORTLESS_SYNC_HOSTS:-0} PORTLESS_APP_PORT=${PORTLESS_APP_PORT:-3006} TZ=UTC portless gnd-dealership next dev --webpack",
+    "with-env": "dotenv -o -e ../../.env.local -e .env.local --",
+    "with-env:prod": "dotenv -o -e ../../.env.production -e .env.production --",
+    "dev": "bun run with-env env PORTLESS_PORT=${PORTLESS_PORT:-1355} PORTLESS_WILDCARD=${PORTLESS_WILDCARD:-1} PORTLESS_SYNC_HOSTS=${PORTLESS_SYNC_HOSTS:-0} PORTLESS_APP_PORT=${PORTLESS_APP_PORT:-3006} TZ=UTC portless gnd-dealership next dev --turbopack",
     "clean": "git clean -xdf .next .turbo node_modules",
-    "build": "NODE_ENV=production next build --webpack",
+    "build": "bun run with-env:prod env next build --turbopack",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
@@ -17,6 +19,7 @@
     "@gnd/db": "workspace:*",
     "@gnd/notifications": "workspace:*",
     "@gnd/sales": "workspace:*",
+    "@gnd/site-nav": "workspace:*",
     "@gnd/ui": "workspace:*",
     "@gnd/utils": "workspace:*",
     "@tanstack/react-query": "^5.90.3",

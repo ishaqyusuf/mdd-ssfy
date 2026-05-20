@@ -11,6 +11,9 @@ export const SiteNavProvider = SiteNavContext.Provider;
 interface Props {
 	pathName: string;
 	linkModules;
+	accessMode?: "rules" | "open";
+	LogoIcon?;
+	LogoSmIcon?;
 	permissions?;
 	role?;
 	userId?;
@@ -25,6 +28,7 @@ export const createSiteNavContext = (props: Props) => {
 		const linkModules = getLinkModules(
 			validateLinks({
 				linkModules: props.linkModules,
+				accessMode: props.accessMode,
 				can: props.permissions,
 				role: props.role,
 				userId: props.userId,

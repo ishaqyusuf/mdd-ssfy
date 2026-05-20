@@ -23,7 +23,9 @@ import { communityUnitProductionStarted } from "./types/community-unit-productio
 import { communityUnitProductionStopped } from "./types/community-unit-production-stopped";
 import { composedSalesDocumentEmail } from "./types/composed-sales-document-email";
 import { dispatchPackingDelay } from "./types/dispatch-packing-delay";
+import { dealerMagicLoginLink } from "./types/dealer-magic-login-link";
 import { dealerOnboarding } from "./types/dealer-onboarding";
+import { dealerPasswordReset } from "./types/dealer-password-reset";
 import { employeeAccessRevoked } from "./types/employee-access-revoked";
 import { employeeDocumentReview } from "./types/employee-document-review";
 import { inventoryInbound } from "./types/inventory-inbound";
@@ -92,6 +94,8 @@ const handlers = {
 	sales_customer_payment_failed: salesCustomerPaymentFailed,
 	dealer_onboarding: dealerOnboarding,
 	auth_new_device_login: authNewDeviceLogin,
+	dealer_magic_login_link: dealerMagicLoginLink,
+	dealer_password_reset: dealerPasswordReset,
 	quote_accepted: quoteAccepted,
 	job_assigned: jobAssigned,
 	job_submitted: jobSubmitted,

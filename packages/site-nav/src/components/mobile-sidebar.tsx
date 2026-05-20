@@ -8,7 +8,7 @@ import { useSiteNav } from "./use-site-nav";
 
 export function MobileSidebar() {
 	const [isOpen, setOpen] = useState(false);
-	const { linkModules } = useSiteNav();
+	const { linkModules, props } = useSiteNav();
 	if (linkModules?.noSidebar) return null;
 	return (
 		<div className="md:hidden">
@@ -32,7 +32,7 @@ export function MobileSidebar() {
 						<Sheet.Description />
 					</Sheet.Header>
 					<div className="ml-2 mb-8">
-						<LogoSm />
+						<LogoSm Icon={props.LogoSmIcon || props.LogoIcon} />
 					</div>
 
 					<div className="-ml-2 h-[85vh] overflow-auto scrollbar-hide pb-16">
