@@ -1,5 +1,6 @@
 import { DealerPortalSection } from "@/components/dealer-portal-section";
 import { DealershipShell } from "@/components/dealership-shell";
+import PageShell from "@/components/page-shell";
 import { requireDealer } from "@/lib/dealer-session";
 
 const titles: Record<string, string> = {
@@ -25,16 +26,18 @@ export default async function DealershipSectionPage({
 
   return (
     <DealershipShell dealer={dealer}>
-      <div className="space-y-6">
-        <header className="border-b pb-6">
-          <p className="text-sm font-medium text-muted-foreground">
-            Dealer workspace
-          </p>
-          <h2 className="text-2xl font-semibold tracking-normal">{title}</h2>
-        </header>
+      <PageShell>
+        <div className="space-y-6">
+          <header className="border-b pb-6">
+            <p className="text-sm font-medium text-muted-foreground">
+              Dealer workspace
+            </p>
+            <h2 className="text-2xl font-semibold tracking-normal">{title}</h2>
+          </header>
 
-        {portalSection ? <DealerPortalSection section={portalSection} /> : null}
-      </div>
+          {portalSection ? <DealerPortalSection section={portalSection} /> : null}
+        </div>
+      </PageShell>
     </DealershipShell>
   );
 }

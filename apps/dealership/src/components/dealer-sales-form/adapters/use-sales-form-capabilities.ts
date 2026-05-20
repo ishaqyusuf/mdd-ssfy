@@ -7,7 +7,7 @@ export function useSalesFormCapabilities() {
 		taxProfiles: false,
 		paymentMethodReview: false,
 		payments: false,
-		printing: true,
+		printing: false,
 		packing: false,
 		dispatch: false,
 		salesHistory: false,

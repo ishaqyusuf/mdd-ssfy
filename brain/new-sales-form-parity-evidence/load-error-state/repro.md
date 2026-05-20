@@ -1,6 +1,6 @@
 # New Sales Form Load Error State Repro
 
-Status: Pending Runtime Evidence
+Status: Implemented; Pending Runtime Evidence
 
 ## Risk
 
@@ -17,10 +17,11 @@ the retry UI for `loadError`.
 
 The user sees an error panel with a retry action.
 
-## Current Expected Failure
+## Implementation
 
-The user may see an indefinite loading skeleton because `isLoading || !record`
-is checked before `loadError`.
+`apps/www/src/components/forms/new-sales-form/new-sales-form.tsx` now checks
+`loadError` before the `isLoading || !record` skeleton fallback, so a failed
+bootstrap/get can settle into retry UI.
 
 ## Evidence To Capture
 

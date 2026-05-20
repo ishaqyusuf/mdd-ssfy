@@ -1,6 +1,6 @@
 # Dealer Line Total Semantics Repro
 
-Status: Pending Runtime Evidence
+Status: Implemented; Pending Runtime Evidence
 Fixture: `DSF-FLAT-001`
 
 ## Risk
@@ -24,10 +24,15 @@ One of these contracts must be true:
 - Preferred: line total is read-only/derived, so the user cannot enter `999`.
 - Alternative: explicit override is persisted and all client/server/reopen totals use `999`.
 
-## Current Expected Failure
+## Implementation
 
-If the UI accepts `999` but save/reopen returns `qty * unitPrice`, this is a
-contract failure and must be fixed in Phase 1.
+- `packages/sales/src/sales-form/ui/line-items-panel.tsx` now supports
+  `lineTotalMode="readonly"` plus a caller-provided derived total.
+- `apps/dealership/src/components/dealer-sales-form/dealer-quote-main-panel.tsx`
+  uses read-only line totals for dealership quotes.
+- `apps/dealership/src/components/dealer-sales-form/dealer-quote-composer.tsx`
+  displays dealer-facing derived totals from the dual pricing snapshot and saves
+  base `qty * unitPrice` line totals.
 
 ## Evidence To Capture
 

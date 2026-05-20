@@ -10,7 +10,7 @@ import { Button } from "@gnd/ui/button";
 import { toast } from "@gnd/ui/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 import { useSalesFormActions } from "./adapters/use-sales-form-actions";
 import { useSalesFormCapabilities } from "./adapters/use-sales-form-capabilities";
@@ -118,6 +118,13 @@ export function DealerQuoteComposer({
 		internalProfile,
 		lineItems: (record?.lineItems || []) as any,
 	});
+	const dealerLineTotalsByUid = useMemo(
+		() =>
+			Object.fromEntries(
+				pricing.lines.map((line) => [line.uid, line.dealerLineTotal]),
+			),
+		[pricing.lines],
+	);
 
 	function resetComposer() {
 		form.reset();
@@ -144,7 +151,7 @@ export function DealerQuoteComposer({
 				description: line.description,
 				qty: Number(line.qty || 0),
 				unitPrice: Number(line.unitPrice || 0),
-				lineTotal: Number(line.lineTotal || 0),
+				lineTotal: Number(line.qty || 0) * Number(line.unitPrice || 0),
 			})),
 		});
 	}
@@ -180,6 +187,7 @@ export function DealerQuoteComposer({
 						onAddLineItem={actions.addLineItem}
 						onRemoveLineItem={actions.removeLineItem}
 						onUpdateLineItem={actions.updateLineItem}
+						lineTotalsByUid={dealerLineTotalsByUid}
 					/>
 				),
 				SummaryPanel: (
@@ -221,7 +229,7 @@ export function DealerQuoteComposer({
 			</div>
 			<SalesFormHeaderActions
 				dirty
-				isSaved={false}
+				isSaved={Boolean(editingQuoteId)}
 				isSaving={saveQuote.isPending || quoteQuery.isFetching}
 				onAddItem={actions.addLineItem}
 				onSaveDraft={save}

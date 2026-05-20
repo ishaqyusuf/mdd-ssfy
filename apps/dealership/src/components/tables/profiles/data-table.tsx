@@ -1,53 +1,43 @@
 "use client";
 
-import { useCustomerFormParams } from "@/hooks/use-customer-form-params";
-import { useCustomersFilterParams } from "@/hooks/use-customers-filter-params";
+import { useSalesProfileFormParams } from "@/hooks/use-sales-profile-form-params";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
-import { NoResults } from "@gnd/ui/custom/no-results";
-import { Table, useTableData } from "@gnd/ui/data-table";
+import { Table } from "@gnd/ui/data-table";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { Icons } from "@gnd/ui/icons";
+import { useQuery } from "@tanstack/react-query";
+import { useCallback } from "react";
 import { TableSkeleton } from "../skeleton";
 import { columns, mobileColumn } from "./columns";
 
 export function DataTable() {
-	const customerForm = useCustomerFormParams();
 	const trpc = useTRPC();
-	const { filters, hasFilters, setFilters, isPending } =
-		useCustomersFilterParams();
-	const {
-		data,
-		ref: loadMoreRef,
-		hasNextPage,
-		isFetching,
-	} = useTableData({
-		filter: filters,
-		route: trpc.dealerPortal.customersList,
-	});
+	const profileForm = useSalesProfileFormParams();
+	const profilesQuery = useQuery(
+		trpc.dealerPortal.salesProfiles.queryOptions(),
+	);
+	const profiles = profilesQuery.data ?? [];
 	const tableScroll = useTableScroll({
 		useColumnWidths: true,
 		startFromColumn: 1,
 	});
+	const loadMoreRef = useCallback(() => undefined, []);
 
-	if (isPending) return <TableSkeleton />;
+	if (profilesQuery.isPending) return <TableSkeleton />;
 
-	if (hasFilters && !data?.length) {
-		return <NoResults setFilter={setFilters} />;
-	}
-
-	if (!data?.length && !isFetching) {
+	if (!profiles.length) {
 		return (
 			<EmptyState
 				CreateButton={
 					<Button
-						onClick={() => customerForm.openCreate()}
+						onClick={() => profileForm.openCreate()}
 						size="sm"
 						type="button"
 					>
 						<Icons.add className="mr-2 size-4" />
-						<span>New customer</span>
+						<span>New profile</span>
 					</Button>
 				}
 			/>
@@ -60,11 +50,11 @@ export function DataTable() {
 				{
 					columns,
 					mobileColumn,
-					data,
+					data: profiles,
 					checkbox: false,
 					tableScroll,
 					props: {
-						hasNextPage,
+						hasNextPage: false,
 						loadMoreRef,
 					},
 					tableMeta: {

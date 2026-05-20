@@ -64,19 +64,24 @@ export type SalesFormHeaderActionsProps = {
 export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 	const canOpenOverview =
 		props.capabilities?.internalOverview !== false &&
-		props.permissions?.canOpenInternalOverview !== false;
+		props.permissions?.canOpenInternalOverview !== false &&
+		!!props.onOpenOverview;
 	const canPrint =
 		props.capabilities?.printing !== false &&
-		props.permissions?.canPrint !== false;
+		props.permissions?.canPrint !== false &&
+		!!props.onPrint;
 	const canPack =
 		props.showPackingControls &&
 		props.capabilities?.packing !== false &&
 		props.permissions?.canSendPacking !== false;
-	const canSaveDraft = props.permissions?.canSaveDraft !== false;
-	const canFinalize = props.permissions?.canFinalize !== false;
+	const canSaveDraft =
+		props.permissions?.canSaveDraft !== false && !!props.onSaveDraft;
+	const canFinalize =
+		props.permissions?.canFinalize !== false && !!props.onSaveFinal;
 	const canOpenSettings =
 		props.capabilities?.settings !== false &&
-		props.permissions?.canOpenSettings !== false;
+		props.permissions?.canOpenSettings !== false &&
+		!!props.onOpenSettings;
 
 	return (
 		<header className="border-b bg-card px-4 py-3 sm:px-6">
@@ -254,41 +259,55 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 					<Menu.Item disabled={props.isSaving} onClick={props.onAddItem}>
 						Add Item
 					</Menu.Item>
-					<Menu.Item onClick={props.onToggleStepDisplay}>
-						{props.stepDisplayMode === "extended"
-							? "Compact Steps"
-							: "Extended Steps"}
-					</Menu.Item>
-					<Menu.Item onClick={props.onOpenMobileSummary}>
-						Invoice Summary
-					</Menu.Item>
-					<Menu.Item onClick={props.onToggleAutosave}>
-						Autosave: {props.autosaveEnabled ? "On" : "Off"}
-					</Menu.Item>
-					<Menu.Item
-						disabled={props.isSaving || !canSaveDraft}
-						onClick={() => void props.onSaveDraft?.()}
-					>
-						Save Draft
-					</Menu.Item>
-					<Menu.Item
-						disabled={props.isSaving || !canSaveDraft}
-						onClick={() => void props.onSaveClose?.()}
-					>
-						Save & Close
-					</Menu.Item>
-					<Menu.Item
-						disabled={props.isSaving || !canSaveDraft}
-						onClick={() => void props.onSaveNew?.()}
-					>
-						Save & New
-					</Menu.Item>
-					<Menu.Item
-						disabled={props.isSaving || !canFinalize}
-						onClick={() => void props.onSaveFinal?.()}
-					>
-						Save Final
-					</Menu.Item>
+					{props.onToggleStepDisplay ? (
+						<Menu.Item onClick={props.onToggleStepDisplay}>
+							{props.stepDisplayMode === "extended"
+								? "Compact Steps"
+								: "Extended Steps"}
+						</Menu.Item>
+					) : null}
+					{props.onOpenMobileSummary ? (
+						<Menu.Item onClick={props.onOpenMobileSummary}>
+							Invoice Summary
+						</Menu.Item>
+					) : null}
+					{props.onToggleAutosave ? (
+						<Menu.Item onClick={props.onToggleAutosave}>
+							Autosave: {props.autosaveEnabled ? "On" : "Off"}
+						</Menu.Item>
+					) : null}
+					{props.onSaveDraft ? (
+						<Menu.Item
+							disabled={props.isSaving || !canSaveDraft}
+							onClick={() => void props.onSaveDraft?.()}
+						>
+							Save Draft
+						</Menu.Item>
+					) : null}
+					{props.onSaveClose ? (
+						<Menu.Item
+							disabled={props.isSaving || !canSaveDraft}
+							onClick={() => void props.onSaveClose?.()}
+						>
+							Save & Close
+						</Menu.Item>
+					) : null}
+					{props.onSaveNew ? (
+						<Menu.Item
+							disabled={props.isSaving || !canSaveDraft}
+							onClick={() => void props.onSaveNew?.()}
+						>
+							Save & New
+						</Menu.Item>
+					) : null}
+					{props.onSaveFinal ? (
+						<Menu.Item
+							disabled={props.isSaving || !canFinalize}
+							onClick={() => void props.onSaveFinal?.()}
+						>
+							Save Final
+						</Menu.Item>
+					) : null}
 					{canOpenSettings ? (
 						<Menu.Item onClick={props.onOpenSettings}>Settings</Menu.Item>
 					) : null}

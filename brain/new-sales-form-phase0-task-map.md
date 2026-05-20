@@ -32,7 +32,7 @@ References:
 | Task ID | Source Rows | Scope | Exit Criteria | Status |
 | --- | --- | --- | --- | --- |
 | `NSF-P1-001` | Acceptance: Dealer profile percentage pricing; Repro row 25 | Lock dealer percentage pricing contract across shared dual pricing, dealer query layer, and quote composer. | Internal coefficient + dealer `salesPercentage` totals match before save, save response, persisted snapshot, reopen, and conversion. | Unit/query proof passing; browser proof pending |
-| `NSF-P1-002` | Acceptance: Flat line totals; Repro row 26 | Fix dealer quote line-total edit semantics. Prefer read-only derived totals unless explicit override contract is chosen. | Dealer cannot enter misleading line total, or override is honored consistently everywhere. | Fail/contract gap |
+| `NSF-P1-002` | Acceptance: Flat line totals; Repro row 26 | Fix dealer quote line-total edit semantics. Prefer read-only derived totals unless explicit override contract is chosen. | Dealer cannot enter misleading line total, or override is honored consistently everywhere. | Implemented; browser proof pending |
 | `NSF-P1-003` | Repro rows 2, 11; Acceptance: Customer profile repricing, tax recalculation | Harden `www` customer/profile/tax recalc chain. | Profile/tax changes update visible summary, save response, persisted fields, and reopen summary. | Package proof passing; runtime/API proof pending |
 | `NSF-P1-004` | Repro rows 3, 5, 6, 21, 22, 24 | Prove/fix door and HPT pricing flows. | Supplier/size/component/surcharge totals match package calculations and persist through reopen. | Package proof passing; runtime proof pending |
 | `NSF-P1-005` | Repro row 9 | Prove/fix shelf pricing and section rollups. | Shelf row, section, parent line, and summary totals match before save/save response/reopen. | Package proof passing; API/runtime proof pending |
@@ -56,22 +56,20 @@ References:
 
 | Task ID | Source Rows | Scope | Exit Criteria | Status |
 | --- | --- | --- | --- | --- |
-| `NSF-P6-001` | Repro row 27 | Fix `www` load error retry visibility. | Failed bootstrap/get renders retry UI instead of skeleton. | Fail/UI state gap |
-| `NSF-P6-002` | Repro row 28 | Implement strict surface-specific header/action gating. | `www` and dealership only expose wired meaningful actions. | Fail/capability contract gap |
+| `NSF-P6-001` | Repro row 27 | Fix `www` load error retry visibility. | Failed bootstrap/get renders retry UI instead of skeleton. | Implemented; browser proof pending |
+| `NSF-P6-002` | Repro row 28 | Implement strict surface-specific header/action gating. | `www` and dealership only expose wired meaningful actions. | Implemented; browser proof pending |
 | `NSF-P7-001` | Acceptance: Dealership create/edit/save/convert | Complete dealership quote runtime proof. | Dealer quote create/edit/save/convert passes fixture checks with `salesPercentage`. | Unit/query proof partial; browser proof pending |
 
 ## QA/Environment Task Map
 
 | Task ID | Source Rows | Scope | Exit Criteria | Status |
 | --- | --- | --- | --- | --- |
-| `NSF-QA-001` | Validation log API blocker | Repair local dependency resolution for `packages/ui/node_modules/tailwind-merge`. | `bun test apps/api/src/db/queries/new-sales-form.test.ts apps/api/src/db/queries/new-sales-form.multi-line.test.ts` runs to completion. | Blocked |
+| `NSF-QA-001` | Validation log API blocker | Repair local dependency resolution for `packages/ui/node_modules/tailwind-merge`. | `bun test apps/api/src/db/queries/new-sales-form.test.ts apps/api/src/db/queries/new-sales-form.multi-line.test.ts` runs to completion. | Done |
 | `NSF-QA-002` | Acceptance workflow matrix | Capture browser evidence for `www` order/quote workflows. | Evidence folders contain screenshots/notes for create/edit/save/print/packing/payment flows. | Pending |
 | `NSF-QA-003` | Acceptance workflow matrix | Capture browser evidence for dealership quote workflows. | Evidence folders contain screenshots/notes for create/edit/save/convert flows. | Pending |
 
 ## Immediate Next Implementation Order
 
-1. `NSF-QA-001`: repair dependency blocker and rerun API save/reopen suites.
-2. `NSF-P1-002`: fix dealer line-total semantics.
-3. `NSF-P6-001`: move load-error rendering before skeleton fallback.
-4. `NSF-P6-002`: tighten header/action gating for dealership.
-5. `NSF-QA-002` and `NSF-QA-003`: collect browser runtime evidence after the low-risk UI contract fixes.
+1. `NSF-QA-002`: collect `www` browser runtime evidence for create/edit/save/error/header workflows.
+2. `NSF-QA-003`: collect dealership browser runtime evidence for quote create/edit/save/convert with dealer `salesPercentage`.
+3. `NSF-P1-003` through `NSF-P1-006`: close any pricing gaps found by browser/runtime evidence.

@@ -1452,10 +1452,6 @@ export function NewSalesForm(props: Props) {
 		);
 	}
 
-	if (isLoading || !record) {
-		return <NewSalesFormSkeleton />;
-	}
-
 	if (loadError) {
 		return (
 			<div className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-6 text-sm text-red-700">
@@ -1472,6 +1468,10 @@ export function NewSalesForm(props: Props) {
 				</Button>
 			</div>
 		);
+	}
+
+	if (isLoading || !record) {
+		return <NewSalesFormSkeleton />;
 	}
 
 	return (

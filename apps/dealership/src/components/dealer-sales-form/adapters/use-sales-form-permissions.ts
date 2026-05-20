@@ -6,7 +6,7 @@ export function useSalesFormPermissions() {
 		canEditPricing: true,
 		canSaveDraft: true,
 		canFinalize: true,
-		canPrint: true,
+		canPrint: false,
 		canTakePayment: false,
 		canSendPacking: false,
 		canManageDispatch: false,

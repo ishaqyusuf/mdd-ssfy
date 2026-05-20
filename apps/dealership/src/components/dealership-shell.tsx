@@ -11,6 +11,7 @@ import type { IconKeys } from "@gnd/ui/icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { ThemeToggle } from "./theme-toggle";
 
 const dealershipLinks = [
   { href: "/", label: "Dashboard", icon: "dashboard" },
@@ -88,7 +89,7 @@ export function DealershipShell({
           </div>
         </SiteNav.Sidebar>
 
-        <SiteNav.Shell>
+        <SiteNav.Shell className="pb-8">
           <SiteNav.Header
             left={
               <div className="min-w-0">
@@ -100,8 +101,9 @@ export function DealershipShell({
                 </p>
               </div>
             }
+            right={<ThemeToggle />}
           />
-          <main className="mx-auto flex min-h-[calc(100vh-70px)] w-full max-w-7xl flex-col px-4 py-5 md:px-8">
+          <main className="flex min-h-[calc(100vh-70px)] w-full flex-col">
             {children}
           </main>
         </SiteNav.Shell>

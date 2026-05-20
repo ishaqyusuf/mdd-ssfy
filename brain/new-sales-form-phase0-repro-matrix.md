@@ -462,12 +462,12 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   3. Save and reopen.
   4. Compare visible total, mutation response total, persisted pricing snapshot, and reopened total.
 - Expected: either the UI makes line total read-only/derived, or an explicit override contract is implemented consistently client and server side.
-- Current observed (new): review found the editable line total is misleading because pricing recomputes from qty and unit price.
+- Current observed (new): implemented preferred contract. Dealership renders the shared line total as read-only/derived, using dealer-facing totals from the dual pricing snapshot, and save writes base `qty * unitPrice` instead of stale editable totals.
 - Evidence path: `brain/new-sales-form-parity-evidence/dealer-line-total-semantics/`
 - Automation target:
   - `packages/db/src/queries/dealers.test.ts`
   - dealer quote composer UI/manual check.
-- Triage: Fail (Contract Gap)
+- Triage: Implemented (Browser Repro Pending)
 
 27. Initial load error retry visibility
 - Old anchors:
@@ -479,11 +479,11 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   2. Open create/edit route.
   3. Confirm the user sees retry UI, not an indefinite skeleton.
 - Expected: load error branch renders before `!record` skeleton fallback.
-- Current observed (new): review found `isLoading || !record` returns skeleton before `loadError` is checked.
+- Current observed (new): implemented. `loadError` now renders before the `isLoading || !record` skeleton fallback.
 - Evidence path: `brain/new-sales-form-parity-evidence/load-error-state/`
 - Automation target:
   - component/manual browser repro.
-- Triage: Fail (UI State Gap)
+- Triage: Implemented (Browser Repro Pending)
 
 28. Surface-specific header action gating
 - Old anchors:
@@ -498,11 +498,11 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   3. Open dealership quote composer.
   4. Verify dealer header does not expose print/save-close/save-new/toggle actions unless implemented.
 - Expected: each surface shows only capabilities backed by real handlers and permissions.
-- Current observed (new): review found dealer composer can expose disabled or no-op shared header actions.
+- Current observed (new): implemented. Shared header actions now require both capability/permission and a real handler before rendering; dealership printing is disabled until implemented.
 - Evidence path: `brain/new-sales-form-parity-evidence/header-action-gating/`
 - Automation target:
   - UI render/manual browser repro.
-- Triage: Fail (Capability Contract Gap)
+- Triage: Implemented (Browser Repro Pending)
 
 ## Phase 0 Working Checklist
 - [x] Matrix created and anchored.

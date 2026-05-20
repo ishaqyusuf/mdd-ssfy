@@ -1,6 +1,6 @@
 # Header Action Gating Repro
 
-Status: Pending Runtime Evidence
+Status: Implemented; Pending Runtime Evidence
 
 ## Risk
 
@@ -23,10 +23,14 @@ The shared `SalesFormHeaderActions` can expose actions that are meaningful for
 - Dealership quote only shows implemented dealer actions.
 - No visible action is a no-op.
 
-## Current Expected Failure
+## Implementation
 
-Dealer quote composer can expose disabled or no-op actions inherited from the
-shared header because capabilities and handlers are not strict enough.
+- `packages/sales/src/sales-form/ui/header-actions.tsx` now renders optional
+  actions only when the corresponding handler exists, in addition to
+  permission/capability checks.
+- `apps/dealership/src/components/dealer-sales-form/adapters/use-sales-form-capabilities.ts`
+  and `use-sales-form-permissions.ts` disable printing for dealership until a
+  dealer print flow is implemented.
 
 ## Evidence To Capture
 

@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type { ReactNode } from "react";
 import { TRPCReactProvider } from "@/trpc/client";
+import { GlobalModalsProvider } from "@/components/modals/global-modals-provider";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
@@ -16,6 +17,7 @@ export function Providers({ children }: { children: ReactNode }) {
           disableTransitionOnChange
         >
           {children}
+          <GlobalModalsProvider />
         </ThemeProvider>
       </NuqsAdapter>
     </TRPCReactProvider>

@@ -23,6 +23,8 @@ export type SalesFormLineItemsPanelProps = {
 		patch: Partial<SalesFormLineItemUiRecord>,
 	) => void;
 	onRemoveLineItem: (uid: string) => void;
+	lineTotalMode?: "editable" | "readonly";
+	getLineTotalValue?: (line: SalesFormLineItemUiRecord) => number;
 };
 
 function updateStep(
@@ -67,6 +69,8 @@ function updateDoor(
 }
 
 export function SalesFormLineItemsPanel(props: SalesFormLineItemsPanelProps) {
+	const lineTotalMode = props.lineTotalMode || "editable";
+
 	return (
 		<section className="rounded-lg border p-4">
 			<div className="mb-3 flex items-center">
@@ -125,19 +129,28 @@ export function SalesFormLineItemsPanel(props: SalesFormLineItemsPanelProps) {
 								}
 								placeholder="Unit Price"
 							/>
-							<Input
-								className="md:col-span-2"
-								type="number"
-								min={0}
-								step="0.01"
-								value={line.lineTotal}
-								onChange={(e) =>
-									props.onUpdateLineItem(line.uid, {
-										lineTotal: Number(e.target.value || 0),
-									})
-								}
-								placeholder="Line Total"
-							/>
+							{lineTotalMode === "readonly" ? (
+								<div className="flex h-9 items-center rounded-md border bg-muted/30 px-3 text-sm font-medium md:col-span-2">
+									{Number(
+										props.getLineTotalValue?.(line) ??
+											Number(line.qty || 0) * Number(line.unitPrice || 0),
+									).toFixed(2)}
+								</div>
+							) : (
+								<Input
+									className="md:col-span-2"
+									type="number"
+									min={0}
+									step="0.01"
+									value={line.lineTotal}
+									onChange={(e) =>
+										props.onUpdateLineItem(line.uid, {
+											lineTotal: Number(e.target.value || 0),
+										})
+									}
+									placeholder="Line Total"
+								/>
+							)}
 							<Button
 								className="md:col-span-2"
 								variant="destructive"

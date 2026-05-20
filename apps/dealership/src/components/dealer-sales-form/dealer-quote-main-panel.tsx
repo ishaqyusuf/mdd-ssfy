@@ -25,6 +25,7 @@ type DealerQuoteMainPanelProps = {
 		uid: string,
 		patch: Partial<DealerSalesFormRecord["lineItems"][number]>,
 	) => void;
+	lineTotalsByUid?: Record<string, number>;
 };
 
 function QuoteField({
@@ -110,6 +111,11 @@ export function DealerQuoteMainPanel(props: DealerQuoteMainPanelProps) {
 			</div>
 			<SalesFormLineItemsPanel
 				lineItems={props.record.lineItems}
+				lineTotalMode="readonly"
+				getLineTotalValue={(line) =>
+					props.lineTotalsByUid?.[line.uid] ??
+					Number(line.qty || 0) * Number(line.unitPrice || 0)
+				}
 				onAddLineItem={props.onAddLineItem}
 				onRemoveLineItem={props.onRemoveLineItem}
 				onUpdateLineItem={props.onUpdateLineItem}

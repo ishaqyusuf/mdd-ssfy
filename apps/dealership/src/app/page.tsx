@@ -1,5 +1,6 @@
 import { DealershipDashboard } from "@/components/dealership-dashboard";
 import { DealershipShell } from "@/components/dealership-shell";
+import PageShell from "@/components/page-shell";
 import { requireDealer } from "@/lib/dealer-session";
 
 export default async function DealershipPage() {
@@ -13,7 +14,9 @@ export default async function DealershipPage() {
 
   return (
     <DealershipShell dealer={dealer}>
-      <DealershipDashboard dealerName={dealerName} />
+      <PageShell>
+        <DealershipDashboard dealerName={dealerName} />
+      </PageShell>
     </DealershipShell>
   );
 }
