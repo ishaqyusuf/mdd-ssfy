@@ -2,7 +2,9 @@
 
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
+import { useAuth } from "@/hooks/use-auth";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
+import { useTestEmailMode } from "@/store/test-email-mode";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
@@ -17,13 +19,9 @@ import {
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
-import { Textarea } from "@gnd/ui/textarea";
 import { useQueryClient } from "@gnd/ui/tanstack";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@gnd/ui/tooltip";
+import { Textarea } from "@gnd/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@gnd/ui/tooltip";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -72,6 +70,10 @@ export function SalesDocumentEmailDialog({
 	const [attachSalesPdf, setAttachSalesPdf] = useState(true);
 	const open = controlledOpen ?? internalOpen;
 	const setOpen = onOpenChange ?? setInternalOpen;
+	const auth = useAuth();
+	const testEmailMode = useTestEmailMode((store) => store.enabled);
+	const shouldUseTestEmailMode =
+		auth.roleTitle?.toLowerCase() === "super admin" && testEmailMode;
 	const notification = useNotificationTrigger({
 		executingToast: "Sending email...",
 		successToast: "Email sent.",
@@ -150,7 +152,8 @@ export function SalesDocumentEmailDialog({
 
 	return (
 		<>
-			{trigger === null ? null : triggerVariant === "icon" && customTrigger === undefined ? (
+			{trigger === null ? null : triggerVariant === "icon" &&
+				customTrigger === undefined ? (
 				<Tooltip>
 					<TooltipTrigger asChild>{trigger}</TooltipTrigger>
 					<TooltipContent
@@ -167,7 +170,9 @@ export function SalesDocumentEmailDialog({
 			<Dialog open={open} onOpenChange={setOpen}>
 				<DialogContent className="sm:max-w-xl">
 					<DialogHeader>
-						<DialogTitle>Compose {isQuote ? "Quote" : "Invoice"} Email</DialogTitle>
+						<DialogTitle>
+							Compose {isQuote ? "Quote" : "Invoice"} Email
+						</DialogTitle>
 						<DialogDescription>{helperText}</DialogDescription>
 					</DialogHeader>
 
@@ -274,6 +279,7 @@ export function SalesDocumentEmailDialog({
 									subject: subject.trim(),
 									message: message.trim() || undefined,
 									attachSalesPdf,
+									testEmailMode: shouldUseTestEmailMode,
 								});
 							}}
 						>

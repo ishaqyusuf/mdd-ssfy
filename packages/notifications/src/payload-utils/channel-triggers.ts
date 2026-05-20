@@ -37,6 +37,7 @@ function resolveRecipients(
 type Input<T extends NotificationChannel> = NotificationEvent<T>["payload"] & {
 	recipients?: NotificationEvent<T>["recipients"];
 	author?: NotificationAuthor;
+	testEmailMode?: NotificationEvent<T>["testEmailMode"];
 };
 export function createNotificationChannelTriggers(
 	options: ChannelTriggerFactoryOptions,
@@ -319,7 +320,7 @@ export function createNotificationChannelTriggers(
 			});
 		},
 		composedSalesDocumentEmail(input: Input<"composed_sales_document_email">) {
-			const { recipients, author, ...payload } = input;
+			const { recipients, author, testEmailMode, ...payload } = input;
 			const resolvedRecipients = resolveRecipients(
 				recipients,
 				getStoredRecipients(),
@@ -328,10 +329,11 @@ export function createNotificationChannelTriggers(
 				payload,
 				author,
 				recipients: resolvedRecipients,
+				testEmailMode,
 			});
 		},
 		simpleSalesDocumentEmail(input: Input<"simple_sales_document_email">) {
-			const { recipients, author, ...payload } = input;
+			const { recipients, author, testEmailMode, ...payload } = input;
 			const resolvedRecipients = resolveRecipients(
 				recipients,
 				getStoredRecipients(),
@@ -340,6 +342,7 @@ export function createNotificationChannelTriggers(
 				payload,
 				author,
 				recipients: resolvedRecipients,
+				testEmailMode,
 			});
 		},
 		simpleSalesEmailReminder(input: Input<"simple_sales_email_reminder">) {

@@ -59,8 +59,11 @@ export function getCdnUrl() {
   // return "https://cdn.midday.ai";
 }
 
-export function getTestEmail() {
-  return process.env.TEST_EMAIL?.trim() || null;
+export function getTestEmails() {
+  return (process.env.TEST_EMAILS || "")
+    .split(",")
+    .map((email) => email.trim())
+    .filter(Boolean);
 }
 
 export function getDevEmail() {
@@ -69,10 +72,10 @@ export function getDevEmail() {
 
 export function getRecipient(email: string | string[]): string | string[] {
   const isDev = process.env.NODE_ENV === "development";
-  const testEmail = getTestEmail();
+  const testEmails = getTestEmails();
 
-  if (isDev && testEmail) {
-    return [testEmail];
+  if (isDev && testEmails.length) {
+    return testEmails;
   }
 
   if (isDev) {

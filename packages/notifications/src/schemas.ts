@@ -1334,6 +1334,7 @@ export const baseNotificationJobSchema = z.object({
 		id: z.number(),
 		role: z.enum(["customer", "employee"]).default("employee"),
 	}),
+	testEmailMode: z.boolean().optional(),
 	recipients: z
 		.array(
 			z.object({

@@ -29,6 +29,11 @@ interface ItemProps {
 	item: Item;
 }
 type Column = ColumnDef<Item>;
+
+function getUnitJobsHref(unitId: number) {
+	return `/hrm/contractors/jobs?unitId=${unitId}`;
+}
+
 const column1: Column = {
 	header: "Date",
 	accessorKey: "header",
@@ -203,8 +208,9 @@ const installation: Column = {
 	cell: ({ row: { original: item } }) => (
 		<>
 			<Link
-				href={item.jobCount ? `/hrm/contractors/jobs?unitId=${item.id}` : "/"}
-				className="w-16"
+				href={getUnitJobsHref(item.id)}
+				className="inline-flex w-16"
+				aria-label={`Open jobs filtered to unit ${item.lotBlock || item.id}`}
 			>
 				<Badge
 					variant={"secondary"}
@@ -526,7 +532,11 @@ function ItemCard({ item }: ItemProps) {
 					</p>
 				</div>
 
-				<div className="rounded-2xl border border-slate-200 px-3 py-3">
+				<Link
+					href={getUnitJobsHref(item.id)}
+					aria-label={`Open jobs filtered to unit ${item.lotBlock || item.id}`}
+					className="rounded-2xl border border-slate-200 px-3 py-3 transition-colors hover:bg-slate-50"
+				>
 					<p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
 						Installation
 					</p>
@@ -545,7 +555,7 @@ function ItemCard({ item }: ItemProps) {
 					<p className="mt-2 text-xs text-muted-foreground">
 						{formatDate(item.createdAt)}
 					</p>
-				</div>
+				</Link>
 			</div>
 
 			<div className="mt-4 flex items-center gap-2">

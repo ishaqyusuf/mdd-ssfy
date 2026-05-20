@@ -6,6 +6,33 @@ import {
 } from "@notifications/schemas";
 import { logger, schemaTask, tasks } from "@trigger.dev/sdk/v3";
 
+async function isSuperAdminAuthor(author: NotificationJobInput["author"]) {
+	if (author.role === "customer") return false;
+
+	const user = await db.users.findUnique({
+		where: {
+			id: author.id,
+		},
+		select: {
+			roles: {
+				select: {
+					role: {
+						select: {
+							name: true,
+						},
+					},
+				},
+			},
+		},
+	});
+
+	return Boolean(
+		user?.roles.some(
+			(role) => role.role?.name?.toLowerCase() === "super admin",
+		),
+	);
+}
+
 export const notification = schemaTask({
 	id: "notification",
 	schema: notificationJobSchema,
@@ -17,7 +44,7 @@ export const notification = schemaTask({
 	run: async (data) => {
 		const { Notifications } = await import("@gnd/notifications");
 		const notifications = new Notifications(db);
-		const { channel, author, recipients, payload } =
+		const { channel, author, recipients, payload, testEmailMode } =
 			data as NotificationJobInput;
 		if (channel === "job_task_configured") {
 			const jobId = Number((payload as { jobId?: number })?.jobId);
@@ -39,12 +66,22 @@ export const notification = schemaTask({
 			author,
 			recipients,
 			payload,
+			testEmailMode,
 		});
+		const allowTestEmailMode =
+			Boolean(testEmailMode) && (await isSuperAdminAuthor(author));
+		if (testEmailMode && !allowTestEmailMode) {
+			logger.warn("Ignoring test email mode for non-super-admin author", {
+				channel,
+				author,
+			});
+		}
 		const notificationOptions: NotificationOptions = {
 			author: {
 				id: author.id,
 				role: author.role === "customer" ? "customer" : "employee",
 			},
+			testEmailMode: allowTestEmailMode,
 			recipients:
 				recipients?.map((recipient) => ({
 					ids: recipient.ids,

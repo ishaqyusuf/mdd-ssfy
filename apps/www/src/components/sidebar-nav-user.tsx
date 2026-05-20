@@ -6,6 +6,7 @@ import { Avatar } from "@/components/avatar";
 import Link from "@/components/link";
 import { useAuth } from "@/hooks/use-auth";
 import { useSidebar } from "@/hooks/use-sidebar";
+import { useTestEmailMode } from "@/store/test-email-mode";
 import { useRef } from "react";
 
 import { Button } from "@gnd/ui/button";
@@ -17,11 +18,15 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
+import { Switch } from "@gnd/ui/switch";
 
 export function SidebarNavUser() {
 	const { isExpanded, isMobile } = useSidebar();
 	const user = useAuth();
 	const ref = useRef<HTMLDivElement>(null);
+	const testEmailMode = useTestEmailMode((state) => state.enabled);
+	const setTestEmailMode = useTestEmailMode((state) => state.setEnabled);
+	const isSuperAdmin = user.roleTitle?.toLowerCase() === "super admin";
 	return (
 		<div className="relative h-[40px] " ref={ref}>
 			<div className="fixed left-[19px] bottom-4 w-[32px] h-[32px]">
@@ -94,8 +99,36 @@ export function SidebarNavUser() {
                                 <Bell />
                                 Notifications
                             </DropdownMenuItem>
-                        </DropdownMenuGroup>
+						</DropdownMenuGroup>
                         <DropdownMenuSeparator /> */}
+					{isSuperAdmin ? (
+						<>
+							<div className="flex items-center justify-between gap-3 px-2 py-1.5 text-sm">
+								<div className="flex min-w-0 items-center gap-2">
+									<Icons.Mail className="size-4 text-muted-foreground" />
+									<div className="min-w-0">
+										<div className="flex items-center gap-2">
+											<span>Test email mode</span>
+											{testEmailMode ? (
+												<span className="rounded-sm bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
+													On
+												</span>
+											) : null}
+										</div>
+										<p className="truncate text-xs text-muted-foreground">
+											Route sales emails to TEST_EMAILS
+										</p>
+									</div>
+								</div>
+								<Switch
+									checked={testEmailMode}
+									onCheckedChange={setTestEmailMode}
+									aria-label="Toggle test email mode"
+								/>
+							</div>
+							<DropdownMenuSeparator />
+						</>
+					) : null}
 					<Link href="/signout">
 						<DropdownMenuItem>
 							<Icons.LogOut className="size-4 mr-2" />

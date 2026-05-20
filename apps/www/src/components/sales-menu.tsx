@@ -2,6 +2,7 @@ import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import Link from "@/components/link";
 import { SalesDocumentEmailDialog } from "@/components/sales-document-email-dialog";
 import { SalesPaymentNotificationsMenu } from "@/components/sales-payment-notifications-menu";
+import { useAuth } from "@/hooks/use-auth";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
@@ -9,6 +10,7 @@ import { openLink } from "@/lib/open-link";
 import { newSalesHelper } from "@/lib/sales";
 import { resolveSalesPrintMode } from "@/modules/sales-print/application/sales-print-service";
 import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
+import { useTestEmailMode } from "@/store/test-email-mode";
 import { useTRPC } from "@/trpc/client";
 import type { SalesPrintProps } from "@/utils/sales-print-utils";
 import { salesFormUrl } from "@/utils/sales-utils";
@@ -308,6 +310,10 @@ function useSendSalesEmailAction() {
 	const { state, actions } = useSalesMenuContext();
 	const isQuote = state.type === "quote";
 	const [didSucceed, setDidSucceed] = useState(false);
+	const auth = useAuth();
+	const testEmailMode = useTestEmailMode((store) => store.enabled);
+	const shouldUseTestEmailMode =
+		auth.roleTitle?.toLowerCase() === "super admin" && testEmailMode;
 	const notification = useNotificationTrigger({
 		executingToast: "Sending email...",
 		errorToast: "Failed",
@@ -346,6 +352,7 @@ function useSendSalesEmailAction() {
 					: "with payment",
 				printType: isQuote ? "quote" : "order",
 				salesIds: state.id ? [state.id] : state.salesIds,
+				testEmailMode: shouldUseTestEmailMode,
 			});
 			actions.closeMenu();
 		},

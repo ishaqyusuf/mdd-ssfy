@@ -20,10 +20,27 @@ import SalesReminderScheduleAdminNotificationEmail from "@gnd/email/emails/sales
 import { SalesRepOnlinePaymentReceived } from "@gnd/email/emails/sales-rep-online-payment-received";
 import StorefrontPasswordResetRequest from "@gnd/email/emails/storefront-password-reset-request";
 import { render } from "@gnd/email/render";
-import { getRecipient, getTestEmail } from "@gnd/utils/envs";
+import { getRecipient, getTestEmails } from "@gnd/utils/envs";
 import { nanoid } from "nanoid";
 import { type CreateEmailOptions, Resend } from "resend";
 import type { EmailInput } from "../base";
+
+export function resolveEmailRecipients(
+	targetRecipients: string | string[],
+	options?: {
+		testEmailMode?: boolean;
+	},
+): string[] {
+	const testEmails = getTestEmails();
+	const isTestEnv = process.env.NODE_ENV === "test";
+
+	if ((isTestEnv || options?.testEmailMode) && testEmails.length) {
+		return testEmails;
+	}
+
+	const recipients = getRecipient(targetRecipients);
+	return Array.isArray(recipients) ? recipients : [recipients];
+}
 
 export class EmailService {
 	private client: Resend;
@@ -50,10 +67,7 @@ export class EmailService {
 		const emailTemplate = this.#getTemplate(template);
 		const html = await render(emailTemplate(data as any));
 
-		const testEmail = getTestEmail();
-		const isTestEnv = process.env.NODE_ENV === "test";
-		const recipients =
-			isTestEnv && testEmail ? [testEmail] : (getRecipient([to]) as string[]);
+		const recipients = resolveEmailRecipients([to]);
 
 		const response = await this.client.emails.send({
 			from: from || "GND Millwork <noreply@gndprodesk.com>",
@@ -187,13 +201,15 @@ export class EmailService {
 		}
 
 		// Use explicit 'to' field if provided, otherwise default to user email.
-		// In test/dev contexts route to TEST_EMAIL when configured.
+		// In test/dev contexts route to TEST_EMAILS when configured.
 		// For other dev runs, preserve existing dev fallback logic via getRecipient.
 		const targetRecipients = email.to || [email.user.email!];
-		const testEmail = getTestEmail();
-		const isTestEnv = process.env.NODE_ENV === "test";
-		const recipients =
-			isTestEnv && testEmail ? [testEmail] : getRecipient(targetRecipients);
+		const recipients = resolveEmailRecipients(targetRecipients, {
+			testEmailMode: email.testEmailMode,
+		});
+		const originalRecipients = Array.isArray(targetRecipients)
+			? targetRecipients
+			: [targetRecipients];
 
 		const payload: CreateEmailOptions = {
 			from: email.from || "gnd <gndbot@gnd.ai>",
@@ -202,14 +218,21 @@ export class EmailService {
 			html,
 			headers: {
 				"X-Entity-Ref-ID": nanoid(),
+				...(email.testEmailMode
+					? {
+							"X-GND-Test-Email-Mode": "true",
+							"X-GND-Test-Recipients": recipients.join(", "),
+							"X-GND-Original-Recipients": originalRecipients.join(", "),
+						}
+					: {}),
 				...email.headers,
 			},
 		};
 
 		// Add optional fields if present
 		if (email.replyTo) payload.replyTo = email.replyTo;
-		if (email.cc) payload.cc = email.cc;
-		if (email.bcc) payload.bcc = email.bcc;
+		if (email.cc && !email.testEmailMode) payload.cc = email.cc;
+		if (email.bcc && !email.testEmailMode) payload.bcc = email.bcc;
 		if (email.attachments) payload.attachments = email.attachments;
 		if (email.tags) payload.tags = email.tags;
 		// if (email.text) payload.text = email.text;

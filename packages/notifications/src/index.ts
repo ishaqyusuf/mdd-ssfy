@@ -1,6 +1,7 @@
 import type { Db } from "@gnd/db";
 import { logger } from "@gnd/logger";
 import { consoleLog } from "@gnd/utils";
+import { getTestEmails } from "@gnd/utils/envs";
 import { createActivity, createNote } from "./activities";
 import type {
 	EmailInput,
@@ -13,7 +14,11 @@ import {
 	getSubscribersAccount,
 	getSubscribersForNotificationType,
 } from "./channel-subscribers";
-import { type NotificationTypes, createActivitySchema } from "./schemas";
+import {
+	type CreateActivityInput,
+	type NotificationTypes,
+	createActivitySchema,
+} from "./schemas";
 import { EmailService } from "./services/email-service";
 import { WhatsAppService } from "./services/whatsapp-service";
 import { communityDocuments } from "./types/community-documents";
@@ -155,6 +160,33 @@ function isValidEmail(email?: string | null): email is string {
 	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
 
+function markActivityAsTestEmail(
+	activityInput: CreateActivityInput,
+): CreateActivityInput {
+	const testEmails = getTestEmails();
+	const testEmailsLabel = testEmails.join(", ");
+	const customerEmail =
+		typeof activityInput.tags?.customerEmail === "string"
+			? activityInput.tags.customerEmail
+			: null;
+	const headline = activityInput.headline || activityInput.subject;
+	const suffix =
+		testEmails.length && customerEmail
+			? ` Test email sent to ${testEmailsLabel} instead of ${customerEmail}.`
+			: " Test email mode was used.";
+
+	return {
+		...activityInput,
+		headline: `${headline}.${suffix}`,
+		tags: {
+			...activityInput.tags,
+			testEmailMode: true,
+			testEmailRecipients: testEmails,
+			originalCustomerEmail: customerEmail,
+		},
+	};
+}
+
 export class Notifications {
 	#emailService: EmailService;
 	#whatsAppService: WhatsAppService;
@@ -181,13 +213,17 @@ export class Notifications {
 		author: UserData,
 		// options?: NotificationOptions,
 		contacts?: UserData[],
+		options?: NotificationOptions,
 	) {
 		if (handler?.createActivityWithoutContact) {
-			const activityInput = handler.createActivity(
+			const rawActivityInput = handler.createActivity(
 				validatedData,
 				author,
 				contacts?.[0] || author,
 			);
+			const activityInput = options?.testEmailMode
+				? markActivityAsTestEmail(rawActivityInput)
+				: rawActivityInput;
 			activityInput.groupId = groupId;
 			const validatedActivity = createActivitySchema.parse(activityInput);
 			const activity = await createActivity(
@@ -207,11 +243,14 @@ export class Notifications {
 					// if(!user?.inAppNotification)
 					// return null;
 					console.log("Creating activity for user:", user);
-					const activityInput = handler.createActivity(
+					const rawActivityInput = handler.createActivity(
 						validatedData,
 						author,
 						user,
 					);
+					const activityInput = options?.testEmailMode
+						? markActivityAsTestEmail(rawActivityInput)
+						: rawActivityInput;
 					// Check if user wants in-app notifications for this type
 					// const inAppEnabled = await shouldSendNotification(
 					//   this.#db,
@@ -254,7 +293,7 @@ export class Notifications {
 		author: UserData,
 		user: UserData,
 		// teamContext: { id: string; name: string; inboxId: string },
-		// options?: NotificationOptions,
+		options?: NotificationOptions,
 	): EmailInput {
 		// Create email input using handler's createEmail function
 		const customEmail = handler.createEmail(
@@ -267,6 +306,7 @@ export class Notifications {
 		// user.email
 		const baseEmailInput: EmailInput = {
 			user,
+			testEmailMode: options?.testEmailMode,
 			...this.emailMeta,
 			...customEmail,
 		};
@@ -413,9 +453,7 @@ export class Notifications {
 			type,
 			data,
 			author!,
-			// {
-			//   ...(options || {}),
-			// },
+			options,
 			contacts,
 		);
 	}
@@ -424,7 +462,7 @@ export class Notifications {
 		type: T,
 		data: NotificationTypes[T],
 		author: UserData,
-		// options: NotificationOptions,
+		options?: NotificationOptions,
 		contacts?: UserData[],
 		// teamInfo?: { id: string; name: string | null; inboxId: string | null },
 	): Promise<NotificationResult> {
@@ -450,8 +488,8 @@ export class Notifications {
 						groupId,
 						// type as string,
 						author,
-						// options,
 						contacts,
+						options,
 					);
 			//   return null as any;
 			// CONDITIONALLY send emails
@@ -485,7 +523,7 @@ export class Notifications {
 						author,
 						user,
 						// teamContext,
-						// options,
+						options,
 					),
 				);
 

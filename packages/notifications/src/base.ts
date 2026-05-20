@@ -65,6 +65,7 @@ export type EmailInput = {
 	template?: string;
 	user: UserData;
 	data: Record<string, any>;
+	testEmailMode?: boolean;
 } & Partial<CreateEmailOptions>;
 
 // Use intersection type to combine our options with Resend's CreateEmailOptions
@@ -79,6 +80,7 @@ export type NotificationOptions = {
 	}[];
 	includeChannelSubscribers?: boolean;
 	allowFallbackRecipient?: boolean;
+	testEmailMode?: boolean;
 	// priority?: number;
 	// sendEmail?: boolean;
 	// userIds?: number[];
