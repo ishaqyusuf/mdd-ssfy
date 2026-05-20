@@ -23,6 +23,16 @@ function customerName(item: Item) {
 	return item.businessName || item.name || item.email || `Customer #${item.id}`;
 }
 
+function profileName(item: Item) {
+	if (!item.profile) return "-";
+
+	const percentage = new Intl.NumberFormat("en-US", {
+		maximumFractionDigits: 2,
+	}).format(Number(item.profile.salesPercentage || 0));
+
+	return `${item.profile.title || `Profile #${item.profile.id}`} (${percentage}%)`;
+}
+
 export const columns: Column[] = [
 	{
 		header: "Customer",
@@ -63,7 +73,9 @@ export const columns: Column[] = [
 	{
 		header: "Profile",
 		accessorKey: "profile",
-		cell: ({ row: { original: item } }) => item.profile?.title || "-",
+		cell: ({ row: { original: item } }) => (
+			<span className="whitespace-nowrap">{profileName(item)}</span>
+		),
 	},
 	{
 		header: "Created",
@@ -94,7 +106,7 @@ export const mobileColumn: Column[] = [
 					<ItemUi.Description>
 						<TextWithTooltip
 							className="max-w-[240px] truncate"
-							text={item.email || item.phoneNo || "-"}
+							text={profileName(item)}
 						/>
 					</ItemUi.Description>
 				</div>

@@ -191,6 +191,48 @@ describe("workflow-calculators domain", () => {
     expect(summary.unitPrice).toBe(8.5);
   });
 
+  it("preserves shelf unit prices without explicit base metadata during profile sync", () => {
+    const summary = summarizeShelfRows(
+      [
+        {
+          uid: "row-1",
+          productId: 101,
+          description: "Legacy shelf row",
+          qty: 2,
+          unitPrice: 20,
+          totalPrice: 40,
+        },
+      ],
+      2,
+    );
+
+    expect(summary.rows[0].basePrice).toBe(0);
+    expect(summary.rows[0].salesPrice).toBe(20);
+    expect(summary.rows[0].unitPrice).toBe(20);
+    expect(summary.lineTotal).toBe(40);
+  });
+
+  it("applies profile pricing to shelf rows when base metadata exists", () => {
+    const summary = summarizeShelfRows(
+      [
+        {
+          uid: "row-1",
+          productId: 101,
+          description: "Profile shelf row",
+          qty: 3,
+          meta: {
+            basePrice: 60,
+          },
+        },
+      ],
+      2,
+    );
+
+    expect(summary.rows[0].salesPrice).toBe(30);
+    expect(summary.rows[0].unitPrice).toBe(30);
+    expect(summary.lineTotal).toBe(90);
+  });
+
   it("groups flat shelf rows into old-form-style sections", () => {
     const sections = buildShelfSections([
       {
@@ -273,6 +315,35 @@ describe("workflow-calculators domain", () => {
     const summary = summarizeMouldingPersistRows(rows, 5);
     expect(summary.qtyTotal).toBe(1);
     expect(summary.total).toBe(25);
+  });
+
+  it("defaults fresh moulding selections to quantity 1 after removal/reselection", () => {
+    const rows = deriveMouldingRows({
+      selectedMouldings: [
+        { uid: "m1", title: "Casing", salesPrice: 20, basePrice: 10 },
+        { uid: "m2", title: "Base", salesPrice: 12, basePrice: 7 },
+      ],
+      existingRows: [{ uid: "m1", qty: 4, salesPrice: 20, basePrice: 10 }],
+      sharedComponentPrice: 5,
+    });
+
+    expect(rows.find((row) => row.uid === "m1")?.qty).toBe(4);
+    expect(rows.find((row) => row.uid === "m2")?.qty).toBe(1);
+    expect(rows.find((row) => row.uid === "m2")?.lineTotal).toBe(17);
+  });
+
+  it("summarizes service rows with tax and production flags", () => {
+    const summary = summarizeServiceRows("line-svc", [
+      { uid: "row-1", service: "Install", qty: 2, unitPrice: 30, taxxable: true },
+      { uid: "row-2", service: "Wrap", qty: 1, unitPrice: 10, produceable: true },
+    ]);
+
+    expect(summary.qtyTotal).toBe(3);
+    expect(summary.unitPrice).toBe(23.33);
+    expect(summary.lineTotal).toBe(70);
+    expect(summary.taxxable).toBe(true);
+    expect(summary.produceable).toBe(true);
+    expect(summary.description).toBe("Install | Wrap");
   });
 
   it("returns zero when supplier-specific pricing has not been normalized to supplier variants", () => {

@@ -2,9 +2,11 @@
 
 import { AuthStateProvider, type InitialAuthState } from "@/hooks/use-auth";
 import { useAuth } from "@/hooks/use-auth";
+import { useTestEmailMode } from "@/store/test-email-mode";
 import { useTRPC } from "@/trpc/client";
 import { SiteNav, createSiteNavContext } from "@gnd/site-nav";
 import { Icons } from "@gnd/ui/icons";
+import { Switch } from "@gnd/ui/switch";
 import { useQuery } from "@gnd/ui/tanstack";
 import { usePathname } from "next/dist/client/components/navigation";
 import Link from "next/link";
@@ -28,10 +30,42 @@ export function SidebarContent({
 	);
 }
 
+function TestEmailModeMenuItem() {
+	const testEmailMode = useTestEmailMode((state) => state.enabled);
+	const setTestEmailMode = useTestEmailMode((state) => state.setEnabled);
+
+	return (
+		<div className="flex items-center justify-between gap-3 px-2 py-1.5 text-sm">
+			<div className="flex min-w-0 items-center gap-2">
+				<Icons.Mail className="size-4 text-muted-foreground" />
+				<div className="min-w-0">
+					<div className="flex items-center gap-2">
+						<span>Test email mode</span>
+						{testEmailMode ? (
+							<span className="rounded-sm bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
+								On
+							</span>
+						) : null}
+					</div>
+					<p className="truncate text-xs text-muted-foreground">
+						Route sales emails to TEST_EMAILS
+					</p>
+				</div>
+			</div>
+			<Switch
+				checked={testEmailMode}
+				onCheckedChange={setTestEmailMode}
+				aria-label="Toggle test email mode"
+			/>
+		</div>
+	);
+}
+
 function NavLayoutClient({ children, pageTabDefaults }) {
 	const auth = useAuth();
 	const trpc = useTRPC();
 	const pathName = usePathname();
+	const isSuperAdmin = auth.roleTitle?.toLowerCase() === "super admin";
 	const { data: defaults = pageTabDefaults } = useQuery({
 		...trpc.pageTabs.defaults.queryOptions(),
 		enabled: auth.enabled,
@@ -62,7 +96,9 @@ function NavLayoutClient({ children, pageTabDefaults }) {
 							onLogout={() => {
 								window.location.href = "/signout";
 							}}
-						/>
+						>
+							{isSuperAdmin ? <TestEmailModeMenuItem /> : null}
+						</SiteNav.User>
 					</div>
 				</SiteNav.Sidebar>
 				<SiteNav.Shell className="pb-8">

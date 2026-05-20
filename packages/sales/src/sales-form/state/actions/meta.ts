@@ -1,9 +1,13 @@
 import {
 	hydrateSalesFormRecord,
 	normalizeSalesFormMeta,
+	repriceSalesFormLineItemsForProfile,
 } from "../../application";
 import { initialSalesFormEditorState } from "../initial-state";
-import { getFirstSalesFormLineItemUid } from "../selectors";
+import {
+	getFirstSalesFormLineItemUid,
+	recomputeSalesFormRecordSummary,
+} from "../selectors";
 import type { SalesFormState, SalesFormStateRecord } from "../types";
 
 export function hydrateSalesFormState<
@@ -69,6 +73,44 @@ export function setSalesFormMeta<
 	};
 }
 
+export function setSalesFormCustomerProfileMeta<
+	TRecord extends SalesFormStateRecord,
+	TState extends SalesFormState<TRecord>,
+>(
+	state: TState,
+	patch: Partial<TRecord["form"]>,
+	previousProfileCoefficient?: number | null,
+	nextProfileCoefficient?: number | null,
+): TState {
+	if (!state.record) return state;
+	const nextForm = normalizeSalesFormMeta({
+		...state.record.form,
+		...patch,
+	});
+	const nextLineItems = repriceSalesFormLineItemsForProfile(
+		state.record.lineItems || [],
+		previousProfileCoefficient,
+		nextProfileCoefficient,
+	);
+	const formUnchanged =
+		JSON.stringify(state.record.form || {}) === JSON.stringify(nextForm);
+	const linesUnchanged =
+		JSON.stringify(state.record.lineItems || []) ===
+		JSON.stringify(nextLineItems);
+	if (formUnchanged && linesUnchanged) return state;
+
+	return {
+		...state,
+		record: recomputeSalesFormRecordSummary({
+			...state.record,
+			form: nextForm,
+			lineItems: nextLineItems,
+		} as TRecord),
+		dirty: true,
+		saveStatus: state.saveStatus === "error" ? "idle" : state.saveStatus,
+	};
+}
+
 export function patchSalesFormRecord<
 	TRecord extends SalesFormStateRecord,
 	TState extends SalesFormState<TRecord>,
@@ -87,4 +129,3 @@ export function patchSalesFormRecord<
 		},
 	};
 }
-

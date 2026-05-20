@@ -32,6 +32,39 @@ describe("workflow row patches", () => {
 		expect(patch.lineTotal).toBe(6);
 	});
 
+	it("builds moulding patches with shared component, addon, and custom pricing", () => {
+		const patch = buildWorkflowMouldingRowsPatch({
+			line: {
+				uid: "line-1",
+				meta: {},
+			},
+			sharedComponentPrice: 5,
+			rows: [
+				{
+					uid: "moulding-1",
+					title: "Casing",
+					qty: 2,
+					salesPrice: 20,
+					addon: 3,
+				},
+				{
+					uid: "moulding-2",
+					title: "Base",
+					qty: 1,
+					salesPrice: 10,
+					customPrice: 40,
+					addon: 2,
+				},
+			],
+		});
+
+		expect(patch.qty).toBe(3);
+		expect(patch.lineTotal).toBe(98);
+		expect(patch.unitPrice).toBe(32.67);
+		expect((patch.meta as any).mouldingRows[0].lineTotal).toBe(56);
+		expect((patch.meta as any).mouldingRows[1].lineTotal).toBe(42);
+	});
+
 	it("derives and persists service rows", () => {
 		const line = {
 			uid: "service-line",
@@ -53,6 +86,40 @@ describe("workflow row patches", () => {
 		expect(patch.lineTotal).toBe(60);
 		expect(patch.description).toBe("Install");
 		expect((patch.meta as any).taxxable).toBe(true);
+	});
+
+	it("persists multi-row service tax and production flags", () => {
+		const patch = buildWorkflowServiceRowsPatch({
+			line: {
+				uid: "service-line",
+				meta: {},
+			},
+			rows: [
+				{
+					uid: "svc-1",
+					service: "Install",
+					taxxable: false,
+					produceable: true,
+					qty: 2,
+					unitPrice: 25,
+				},
+				{
+					uid: "svc-2",
+					service: "Cleanup",
+					taxxable: true,
+					produceable: false,
+					qty: 1,
+					unitPrice: 15,
+				},
+			],
+		});
+
+		expect(patch.qty).toBe(3);
+		expect(patch.lineTotal).toBe(65);
+		expect(patch.description).toBe("Install | Cleanup");
+		expect((patch.meta as any).taxxable).toBe(true);
+		expect((patch.meta as any).produceable).toBe(true);
+		expect((patch.meta as any).serviceRows).toHaveLength(2);
 	});
 
 	it("builds shelf section patches", () => {

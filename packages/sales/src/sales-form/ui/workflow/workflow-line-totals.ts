@@ -9,6 +9,7 @@ import {
 import {
 	getStoredMouldingRows,
 	getStoredServiceRows,
+	getWorkflowSteps,
 } from "./workflow-records";
 
 type WorkflowLineTotalRecord = Record<string, any> & {
@@ -46,7 +47,7 @@ export function getWorkflowLineDisplayTotal(
 	if (mouldingRows.length) {
 		return summarizeMouldingPersistRows(
 			mouldingRows,
-			sharedMouldingComponentPrice(getSelectedMouldingComponentsForLine(line)),
+			sharedMouldingComponentPrice(getWorkflowSteps(line)),
 		).total;
 	}
 	const lineTotal = Number(line.lineTotal || 0);

@@ -35,6 +35,126 @@ describe("workflow door actions", () => {
 		});
 	});
 
+	it("reprices persisted HPT rows when the door supplier changes", () => {
+		const patch = updateWorkflowDoorSupplier({
+			line: {
+				uid: "line-1",
+				formSteps: [
+					{
+						step: { title: "Door" },
+						prodUid: "door-a",
+						componentId: 1,
+						value: "Door A",
+						meta: {
+							selectedComponents: [
+								{
+									id: 1,
+									uid: "door-a",
+									title: "Door A",
+									basePrice: 120,
+									supplierVariants: [
+										{
+											supplierUid: "supplier-1",
+											meta: { size: "2-0 x 7-0" },
+											costPrice: 80,
+										},
+									],
+								},
+							],
+						},
+					},
+					{
+						step: { title: "Specie" },
+						price: 5,
+					},
+				],
+				housePackageTool: {
+					doors: [
+						{
+							stepProductId: 1,
+							dimension: "2-0 x 7-0",
+							totalQty: 2,
+							unitPrice: 120,
+							lineTotal: 240,
+							meta: {},
+						},
+					],
+				},
+			},
+			stepIndex: 0,
+			supplier: {
+				uid: "supplier-1",
+				name: "Supplier One",
+			},
+			profileCoefficient: 2,
+		});
+
+		const doors = (patch?.housePackageTool as any)?.doors || [];
+		expect(doors[0]?.unitPrice).toBe(45);
+		expect(doors[0]?.lineTotal).toBe(90);
+		expect(doors[0]?.meta?.baseUnitPrice).toBe(80);
+		expect(doors[0]?.meta?.priceMissing).toBe(false);
+		expect((patch?.housePackageTool as any)?.totalDoors).toBe(2);
+		expect((patch?.housePackageTool as any)?.totalPrice).toBe(90);
+		expect(patch?.qty).toBe(2);
+		expect(patch?.lineTotal).toBe(90);
+	});
+
+	it("marks persisted HPT rows missing when supplier pricing is unavailable", () => {
+		const patch = updateWorkflowDoorSupplier({
+			line: {
+				uid: "line-1",
+				formSteps: [
+					{
+						step: { title: "Door" },
+						prodUid: "door-a",
+						componentId: 1,
+						value: "Door A",
+						meta: {
+							selectedComponents: [
+								{
+									id: 1,
+									uid: "door-a",
+									title: "Door A",
+									basePrice: 120,
+									supplierVariants: [],
+								},
+							],
+						},
+					},
+					{
+						step: { title: "Specie" },
+						price: 5,
+					},
+				],
+				housePackageTool: {
+					doors: [
+						{
+							stepProductId: 1,
+							dimension: "2-0 x 7-0",
+							totalQty: 2,
+							unitPrice: 120,
+							lineTotal: 240,
+							meta: {},
+						},
+					],
+				},
+			},
+			stepIndex: 0,
+			supplier: {
+				uid: "supplier-2",
+				name: "Supplier Two",
+			},
+			profileCoefficient: 2,
+		});
+
+		const doors = (patch?.housePackageTool as any)?.doors || [];
+		expect(doors[0]?.unitPrice).toBe(0);
+		expect(doors[0]?.lineTotal).toBe(0);
+		expect(doors[0]?.meta?.priceMissing).toBe(true);
+		expect((patch?.housePackageTool as any)?.totalPrice).toBe(0);
+	});
+
 	it("clears a selected multi-select component and truncates later steps", () => {
 		const result = removeWorkflowSelectedComponent({
 			line: {

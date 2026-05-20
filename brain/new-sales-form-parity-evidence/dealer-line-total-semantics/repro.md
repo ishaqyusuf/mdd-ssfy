@@ -39,3 +39,13 @@ One of these contracts must be true:
 - Screenshot before save.
 - Save response or test assertion.
 - Reopened quote totals.
+
+## Runtime Attempt
+
+2026-05-20:
+
+- Existing dealership dev process was registered for `gnd-dealership.localhost`
+  with PID `15043`.
+- `GET /quotes/new` with `Host: gnd-dealership.localhost` returned
+  `307 Temporary Redirect` to `/login` via `requireDealer`.
+- Browser proof is blocked until a valid local dealer session is available.

@@ -1,13 +1,22 @@
 # New Sales Form Phase 0 Task Map
 
 Date: 2026-05-20
-Status: Active
+Status: Phase 0 code gate complete; runtime proof pended
 Owner: Sales Form Rebuild Team
 
 ## Purpose
 
 Map Phase 0 repro/acceptance rows to implementation task IDs. This is the
 handoff point from evidence gathering into Phase 1+ execution.
+
+## Pend Decision
+
+The remaining Phase 0 browser/runtime proof is pended, not discarded. Local
+runtime access is blocked by auth/session redirects for both `www` and
+dealership, plus a `www` tRPC runtime parse issue in the unauthenticated shell.
+Automated package/API evidence is green enough to move into the next
+implementation phase while keeping `NSF-QA-002` and `NSF-QA-003` open as
+parallel validation gates.
 
 References:
 
@@ -33,16 +42,16 @@ References:
 | --- | --- | --- | --- | --- |
 | `NSF-P1-001` | Acceptance: Dealer profile percentage pricing; Repro row 25 | Lock dealer percentage pricing contract across shared dual pricing, dealer query layer, and quote composer. | Internal coefficient + dealer `salesPercentage` totals match before save, save response, persisted snapshot, reopen, and conversion. | Unit/query proof passing; browser proof pending |
 | `NSF-P1-002` | Acceptance: Flat line totals; Repro row 26 | Fix dealer quote line-total edit semantics. Prefer read-only derived totals unless explicit override contract is chosen. | Dealer cannot enter misleading line total, or override is honored consistently everywhere. | Implemented; browser proof pending |
-| `NSF-P1-003` | Repro rows 2, 11; Acceptance: Customer profile repricing, tax recalculation | Harden `www` customer/profile/tax recalc chain. | Profile/tax changes update visible summary, save response, persisted fields, and reopen summary. | Package proof passing; runtime/API proof pending |
-| `NSF-P1-004` | Repro rows 3, 5, 6, 21, 22, 24 | Prove/fix door and HPT pricing flows. | Supplier/size/component/surcharge totals match package calculations and persist through reopen. | Package proof passing; runtime proof pending |
-| `NSF-P1-005` | Repro row 9 | Prove/fix shelf pricing and section rollups. | Shelf row, section, parent line, and summary totals match before save/save response/reopen. | Package proof passing; API/runtime proof pending |
-| `NSF-P1-006` | Repro rows 1, 7, 10, 23 | Prove/fix moulding/service pricing and taxability. | Moulding default qty, calculator totals, service tax/production flags, and grouped totals persist correctly. | Package proof passing; runtime proof pending |
+| `NSF-P1-003` | Repro rows 2, 11; Acceptance: Customer profile repricing, tax recalculation | Harden `www` customer/profile/tax recalc chain. | Profile/tax changes update visible summary, save response, persisted fields, and reopen summary. | Implemented; API/package proof passing; browser proof pending |
+| `NSF-P1-004` | Repro rows 3, 5, 6, 21, 22, 24 | Prove/fix door and HPT pricing flows. | Supplier/size/component/surcharge totals match package calculations and persist through reopen. | Implemented; package proof passing; browser proof pending |
+| `NSF-P1-005` | Repro row 9 | Prove/fix shelf pricing and section rollups. | Shelf row, section, parent line, and summary totals match before save/save response/reopen. | Implemented; package proof passing; browser proof pending |
+| `NSF-P1-006` | Repro rows 1, 7, 10, 23 | Prove/fix moulding/service pricing and taxability. | Moulding default qty, calculator totals, service tax/production flags, and grouped totals persist correctly. | Implemented; package proof passing; browser proof pending |
 
 ## Phase 2 Task Map
 
 | Task ID | Source Rows | Scope | Exit Criteria | Status |
 | --- | --- | --- | --- | --- |
-| `NSF-P2-001` | Acceptance: Save draft/final/reopen; API query suite | Unblock and rerun API new-sales-form save/reopen suites. | API tests run without local dependency ENOENT and report product-level pass/fail. | Blocked by `tailwind-merge` dependency |
+| `NSF-P2-001` | Acceptance: Save draft/final/reopen; API query suite | Unblock and rerun API new-sales-form save/reopen suites. | API tests run without local dependency ENOENT and report product-level pass/fail. | Done |
 | `NSF-P2-002` | Repro row 8; Acceptance: Local recovery | Capture browser evidence for autosave/local recovery. | Dirty edits recover or dismiss safely after refresh/network interruption. | Pending browser proof |
 
 ## Phase 4/5 Task Map
@@ -65,11 +74,10 @@ References:
 | Task ID | Source Rows | Scope | Exit Criteria | Status |
 | --- | --- | --- | --- | --- |
 | `NSF-QA-001` | Validation log API blocker | Repair local dependency resolution for `packages/ui/node_modules/tailwind-merge`. | `bun test apps/api/src/db/queries/new-sales-form.test.ts apps/api/src/db/queries/new-sales-form.multi-line.test.ts` runs to completion. | Done |
-| `NSF-QA-002` | Acceptance workflow matrix | Capture browser evidence for `www` order/quote workflows. | Evidence folders contain screenshots/notes for create/edit/save/print/packing/payment flows. | Pending |
-| `NSF-QA-003` | Acceptance workflow matrix | Capture browser evidence for dealership quote workflows. | Evidence folders contain screenshots/notes for create/edit/save/convert flows. | Pending |
+| `NSF-QA-002` | Acceptance workflow matrix | Capture browser evidence for `www` order/quote workflows. | Evidence folders contain screenshots/notes for create/edit/save/print/packing/payment flows. | Blocked by local auth/session + tRPC runtime env |
+| `NSF-QA-003` | Acceptance workflow matrix | Capture browser evidence for dealership quote workflows. | Evidence folders contain screenshots/notes for create/edit/save/convert flows. | Blocked by local dealer auth/session |
 
 ## Immediate Next Implementation Order
 
-1. `NSF-QA-002`: collect `www` browser runtime evidence for create/edit/save/error/header workflows.
-2. `NSF-QA-003`: collect dealership browser runtime evidence for quote create/edit/save/convert with dealer `salesPercentage`.
-3. `NSF-P1-003` through `NSF-P1-006`: close any pricing gaps found by browser/runtime evidence.
+1. `NSF-QA-002` and `NSF-QA-003`: resume browser proof as soon as valid local `www` and dealership sessions are available.
+2. `NSF-P4-001` and `NSF-P5-001`: continue runtime/UI parity once browser access is available.

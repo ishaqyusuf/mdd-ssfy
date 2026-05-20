@@ -1,7 +1,7 @@
 # New Sales Form Phase 0 Validation Log
 
 Date: 2026-05-20
-Status: Active
+Status: Phase 0 code gate complete; runtime proof pended
 Owner: Sales Form Rebuild Team
 
 ## Purpose
@@ -9,6 +9,16 @@ Owner: Sales Form Rebuild Team
 Track Phase 0 validation runs separately from the acceptance matrix and fixture
 catalog. This log records which checks have evidence, which checks are blocked,
 and which checks still require browser/runtime proof.
+
+## Pend Decision
+
+The browser/runtime proof remains open, but it is no longer blocking the next
+implementation phase. The blocker is environmental access, not a known product
+failure in the completed fixes: local `www` and dealership routes redirect to
+login without valid sessions, and unauthenticated `www` also reports a tRPC
+runtime parse issue. Continue feature implementation with automated package/API
+proof, and resume browser evidence when authenticated local sessions are
+available.
 
 ## 2026-05-20 Automated Runs
 
@@ -202,22 +212,262 @@ Result:
 - `@gnd/www`: Blocked by existing unrelated application-wide typecheck errors;
   no new edited-file error was identified in the visible output.
 
+## 2026-05-20 Runtime Smoke Attempt
+
+### Dealership Quote Composer
+
+Command:
+
+```sh
+curl -i -sS --max-time 10 -H 'Host: gnd-dealership.localhost' http://127.0.0.1:3006/quotes/new
+```
+
+Result:
+
+- Blocked by local dealer auth/session.
+- Existing dev process was already registered for `gnd-dealership.localhost`
+  with PID `15043`.
+- `/quotes/new` returns `307 Temporary Redirect` to `/login` via
+  `requireDealer`.
+
+### `www` New Sales Form
+
+Command:
+
+```sh
+curl -i -sS --max-time 10 -H 'Host: gndprodesk.localhost' http://127.0.0.1:3000/sales-form/create-order
+```
+
+Result:
+
+- Blocked by local auth/session and runtime environment.
+- The route returns an SSR shell, but the layout emits
+  `NEXT_REDIRECT;replace;/login/v2;307`.
+- The shell also reports a tRPC client parse failure:
+  `Unexpected token '<', "<?xml vers"... is not valid JSON`.
+
+Runtime conclusion:
+
+- Code-level and package/API regression proof is green for the implemented
+  fixes.
+- Browser workflow proof still requires valid local authenticated sessions and
+  a clean local tRPC/runtime endpoint.
+
+## 2026-05-20 Phase 1 Customer/Profile/Tax Integration
+
+Implementation:
+
+- Added `setSalesFormCustomerProfileMeta(...)` to the shared sales-form state
+  reducers so profile meta changes, profile repricing, and summary recompute are
+  applied atomically.
+- Wired `apps/www` invoice overview profile changes through the new reducer for
+  manual profile selection, resolved-customer profile changes, default-profile
+  selection, and late-loaded profile option safety.
+- Kept tax-rate updates on the existing `setSalesFormTaxRate(...)` path, which
+  recomputes summary immediately.
+
+Focused command:
+
+```sh
+bun test packages/sales/src/sales-form/state/actions/line-items.test.ts packages/sales/src/sales-form/domain/profile-repricing.test.ts packages/sales/src/new-sales-form-costing.test.ts
+```
+
+Result:
+
+- Pass.
+- 23 tests.
+- 88 assertions.
+
+Regression command:
+
+```sh
+bun test packages/sales/src/sales-form/domain packages/sales/src/sales-form/state packages/sales/src/sales-form/ui/workflow
+```
+
+Result:
+
+- Pass.
+- 104 tests.
+- 306 assertions.
+
+API command:
+
+```sh
+bun test apps/api/src/db/queries/new-sales-form.test.ts apps/api/src/db/queries/new-sales-form.multi-line.test.ts
+```
+
+Result:
+
+- Pass.
+- 12 tests.
+- 108 assertions.
+
+Typecheck signal:
+
+- `bun run --filter @gnd/dealership typecheck`: Pass.
+- `@gnd/sales` still has existing repo-wide typecheck blockers, but filtering
+  for the touched sales-form files only reports the existing missing
+  `bun:test` type declaration in test files.
+- `@gnd/www` still has existing repo-wide typecheck blockers, and filtering for
+  touched `new-sales-form/store` and `invoice-overview-panel` files reports no
+  matching errors.
+
+## 2026-05-20 Phase 1 Door/HPT Pricing Proof
+
+Implementation/proof:
+
+- Added package proof that changing the selected door supplier reprices already
+  persisted HPT rows using supplier variant cost, the active customer-profile
+  multiplier, and shared non-door component surcharge.
+- Added proof that unavailable supplier pricing marks persisted rows as missing
+  and zeros their unit/line totals instead of silently falling back to stale
+  prices.
+
+Focused command:
+
+```sh
+bun test packages/sales/src/sales-form/ui/workflow/workflow-door-actions.test.ts packages/sales/src/sales-form/ui/workflow/workflow-row-patches.test.ts packages/sales/src/sales-form/domain/workflow-calculators.test.ts
+```
+
+Result:
+
+- Pass.
+- 37 tests.
+- 109 assertions.
+
+Regression command:
+
+```sh
+bun test packages/sales/src/sales-form/domain packages/sales/src/sales-form/state packages/sales/src/sales-form/ui/workflow
+```
+
+Result:
+
+- Pass.
+- 106 tests.
+- 318 assertions.
+
+## 2026-05-20 Phase 1 Shelf Pricing/Rollup Proof
+
+Implementation/proof:
+
+- Hardened the shared shelf row normalizer so profile-based recalculation only
+  derives sales price from explicit base metadata.
+- Preserved stored shelf `unitPrice`/sales price for legacy persisted rows that
+  do not carry base-price metadata, avoiding accidental double-discount during
+  sync/reopen.
+- Added package proof for both legacy shelf rows and base-metadata shelf rows,
+  plus workflow sync coverage for parent line totals.
+
+Focused command:
+
+```sh
+bun test packages/sales/src/sales-form/domain/workflow-calculators.test.ts packages/sales/src/sales-form/ui/workflow/workflow-sync-patches.test.ts packages/sales/src/sales-form/ui/workflow/workflow-row-patches.test.ts
+```
+
+Result:
+
+- Pass.
+- 38 tests.
+- 115 assertions.
+
+Regression command:
+
+```sh
+bun test packages/sales/src/sales-form/domain packages/sales/src/sales-form/state packages/sales/src/sales-form/ui/workflow
+```
+
+Result:
+
+- Pass.
+- 110 tests.
+- 334 assertions.
+
+## 2026-05-20 Phase 1 Moulding/Service Proof
+
+Implementation/proof:
+
+- Fixed grouped moulding display totals to include shared non-moulding
+  component price from the line's workflow steps when deriving totals from
+  persisted `meta.mouldingRows`.
+- Added package proof that fresh/reselected moulding rows default to quantity
+  `1`, while existing stored moulding rows preserve their quantity.
+- Added package proof for moulding shared component price, addon, custom
+  override, row totals, and parent line rollups.
+- Added package proof that multi-row service tax and production flags persist
+  into line metadata and grouped display totals are derived from
+  `meta.serviceRows`.
+
+Focused command:
+
+```sh
+bun test packages/sales/src/sales-form/domain/workflow-calculators.test.ts packages/sales/src/sales-form/ui/workflow/workflow-row-patches.test.ts packages/sales/src/sales-form/ui/workflow/workflow-line-totals.test.ts packages/sales/src/sales-form/ui/workflow/workflow-moulding-actions.test.ts
+```
+
+Result:
+
+- Pass.
+- 42 tests.
+- 121 assertions.
+
+Regression command:
+
+```sh
+bun test packages/sales/src/sales-form/domain packages/sales/src/sales-form/state packages/sales/src/sales-form/ui/workflow
+```
+
+Result:
+
+- Pass.
+- 116 tests.
+- 356 assertions.
+
 ## Current Phase 0 Evidence Summary
 
 | Area | Evidence Status | Notes |
 | --- | --- | --- |
-| Shared domain/workflow package | Passing automated evidence | 99 tests / 286 assertions |
+| Shared domain/workflow package | Passing automated evidence | 116 tests / 356 assertions |
 | Dealer percentage pricing | Passing package/query evidence | Browser display/save/reopen still pending |
 | Dealer line total semantics | Implemented; browser proof pending | Dealer line total is now read-only/derived in dealership UI |
+| `www` profile/tax recalc chain | Implemented; API/package proof passing | Browser proof pending behind local auth/session gate |
+| Door/HPT pricing | Implemented; package proof passing | Supplier repricing, surcharge, missing-price, size-candidate, and HPT row proof passing; browser proof pending |
+| Shelf pricing/rollups | Implemented; package proof passing | Legacy stored unit prices and explicit base-metadata repricing are covered; browser proof pending |
+| Moulding/service pricing | Implemented; package proof passing | Moulding default qty/shared component/addon/custom totals and service tax/production flags are covered; browser proof pending |
 | API save/reopen suite | Passing automated evidence | 12 tests / 108 assertions |
 | `www` load error retry | Implemented; browser proof pending | Error branch now renders before skeleton fallback |
 | Header action gating | Implemented; browser proof pending | Optional shared actions now require real handlers |
-| `www` browser workflows | Pending | Requires dev server/browser runtime |
-| Dealership browser workflows | Pending | Requires dev server/browser runtime |
+| `www` browser workflows | Blocked | Requires valid local auth/session and clean tRPC runtime endpoint |
+| Dealership browser workflows | Blocked | Requires valid local dealer auth/session |
 
-## Phase 0 Cannot Close Until
+## Pended Runtime Gate
 
 - Browser/runtime evidence is captured for the workflows listed in
   `brain/new-sales-form-phase0-acceptance-matrix.md`.
 - Remaining `Fail`/`Partial` repro rows are linked to Phase 1+ implementation
   task IDs.
+
+This gate is explicitly pended so Phase 1 implementation can continue.
+
+## 2026-05-20 Phase 1 Final Checkpoint
+
+Commands:
+
+```sh
+bun test apps/api/src/db/queries/new-sales-form.test.ts apps/api/src/db/queries/new-sales-form.multi-line.test.ts
+bun run --filter @gnd/dealership typecheck
+git diff --check
+```
+
+Result:
+
+- API save/reopen suite: Pass, 12 tests / 108 assertions.
+- Dealership typecheck: Pass.
+- Diff whitespace check: Pass.
+
+Known remaining typecheck signal:
+
+- `bun run --filter @gnd/sales typecheck` still fails on existing repo-wide
+  strictness/test type issues, including missing `bun:test` declarations and
+  unrelated print/control/UI utility errors.
+- `bun run --filter @gnd/www typecheck` still fails on existing repo-wide
+  action, legacy sales-book, table, TRPC, and shared UI type issues.

@@ -36,3 +36,13 @@ The shared `SalesFormHeaderActions` can expose actions that are meaningful for
 
 - Screenshots of `www` order, `www` quote, dealership quote headers.
 - Notes for each action: wired, disabled, hidden, or no-op.
+
+## Runtime Attempt
+
+2026-05-20:
+
+- Dealership `/quotes/new` redirects to `/login` without a valid dealer session.
+- `www` `/sales-form/create-order` redirects to `/login/v2` and also reports a
+  tRPC parse failure in the unauthenticated shell.
+- Header screenshots remain blocked until authenticated local sessions are
+  available.

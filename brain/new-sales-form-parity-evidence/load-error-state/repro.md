@@ -27,3 +27,14 @@ bootstrap/get can settle into retry UI.
 
 - Browser screenshot after query failure.
 - Console/network trace showing failed query.
+
+## Runtime Attempt
+
+2026-05-20:
+
+- `GET /sales-form/create-order` with `Host: gndprodesk.localhost` returned an
+  SSR shell, but the sales layout emitted `NEXT_REDIRECT;replace;/login/v2;307`.
+- The same shell reported a tRPC client parse failure:
+  `Unexpected token '<', "<?xml vers"... is not valid JSON`.
+- Browser proof for the load error branch is blocked until local auth/session
+  and tRPC runtime env are clean.

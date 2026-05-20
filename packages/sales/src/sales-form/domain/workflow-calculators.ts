@@ -56,19 +56,27 @@ function normalizeShelfProductRow(
 ) {
   const meta = row?.meta || {};
   const qty = Number(row?.qty ?? 0);
-  const basePrice =
-    firstFiniteNumber(
-      row?.basePrice,
-      row?.baseUnitPrice,
-      meta?.basePrice,
-      meta?.baseUnitPrice,
-      row?.unitPrice,
-    ) ?? 0;
-  const salesPrice = profileAdjustedSalesPrice(
-    firstFiniteNumber(row?.salesPrice, meta?.salesPrice),
-    basePrice,
-    profileCoefficient,
+  const explicitBasePrice = firstFiniteNumber(
+    row?.basePrice,
+    row?.baseUnitPrice,
+    meta?.basePrice,
+    meta?.baseUnitPrice,
   );
+  const storedSalesPrice = firstFiniteNumber(
+    row?.salesPrice,
+    meta?.salesPrice,
+    row?.unitPrice,
+    meta?.unitPrice,
+  );
+  const basePrice = explicitBasePrice ?? 0;
+  const salesPrice =
+    explicitBasePrice != null
+      ? profileAdjustedSalesPrice(
+          storedSalesPrice,
+          explicitBasePrice,
+          profileCoefficient,
+        )
+      : storedSalesPrice ?? 0;
   const customPrice = firstFiniteNumber(row?.customPrice, meta?.customPrice);
   const effectiveUnitPrice =
     customPrice != null ? customPrice : salesPrice;
@@ -271,7 +279,9 @@ export function resolveDoorTierPricing({
 function sizeToInches(part?: string | null) {
   const raw = String(part || "").trim();
   if (!raw) return Number.NaN;
-  const [ft, inch] = raw.split("-").map((value) => Number(value || 0));
+  const [ftRaw, inchRaw] = raw.split("-");
+  const ft = Number(ftRaw || 0);
+  const inch = Number(inchRaw || 0);
   if (Number.isFinite(ft) && Number.isFinite(inch)) return ft * 12 + inch;
   return Number(raw);
 }

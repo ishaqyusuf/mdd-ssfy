@@ -10,4 +10,7 @@ Anchor:
 
 Current parity status:
 - Code path now consistently includes component surcharge in door estimate calculations.
-- Runtime parity fixture comparison is still pending.
+- Package proof covers persisted HPT row repricing when supplier changes,
+  including active profile multiplier plus shared surcharge.
+- Runtime parity fixture comparison is still pending behind the local
+  auth/session gate.

@@ -36,14 +36,17 @@ interface Props {
 export function InvoiceOverviewPanel(props: Props) {
 	const record = useNewSalesFormStore((s) => s.record);
 	const setMeta = useNewSalesFormStore((s) => s.setMeta);
+	const setCustomerProfileMeta = useNewSalesFormStore(
+		(s) => s.setCustomerProfileMeta,
+	);
 	const setTaxRate = useNewSalesFormStore((s) => s.setTaxRate);
-	const setLineItems = useNewSalesFormStore((s) => s.setLineItems);
 	const setSummary = useNewSalesFormStore((s) => s.setSummary);
 	const upsertExtraCost = useNewSalesFormStore((s) => s.upsertExtraCost);
 	const lastProfileCoefficientRef = useRef<number | null | undefined>(
 		undefined,
 	);
 	const lastProfileIdRef = useRef<number | null | undefined>(undefined);
+	const pendingProfileRepriceRef = useRef(false);
 
 	const [isCustomerSelectorOpen, setIsCustomerSelectorOpen] = useState(false);
 	const customerProfiles = useCustomerProfilesQuery(true);
@@ -76,6 +79,35 @@ export function InvoiceOverviewPanel(props: Props) {
 	const shippingLines = ((resolvedCustomer.data as any)?.shipping?.lines ||
 		[]) as string[];
 
+	function getProfileCoefficient(profileId?: number | null) {
+		if (profileId == null) return null;
+		const profile = profileOptions.find(
+			(option: any) => Number(option?.id) === Number(profileId),
+		) as any;
+		const coefficient = Number(profile?.coefficient);
+		return Number.isFinite(coefficient) ? coefficient : null;
+	}
+
+	function applyCustomerProfileMeta(
+		patch: Partial<NonNullable<typeof record>["form"]>,
+		nextProfileId?: number | null,
+	) {
+		const currentProfileId = customerProfileId
+			? Number(customerProfileId)
+			: null;
+		const previousCoefficient =
+			lastProfileCoefficientRef.current === undefined
+				? getProfileCoefficient(currentProfileId)
+				: lastProfileCoefficientRef.current;
+		const normalizedNextProfileId = nextProfileId ? Number(nextProfileId) : null;
+		const nextCoefficient = getProfileCoefficient(normalizedNextProfileId);
+		setCustomerProfileMeta(patch, previousCoefficient, nextCoefficient);
+		lastProfileCoefficientRef.current = nextCoefficient;
+		lastProfileIdRef.current = normalizedNextProfileId;
+		pendingProfileRepriceRef.current =
+			nextCoefficient == null && previousCoefficient != null;
+	}
+
 	useEffect(() => {
 		const data = resolvedCustomer.data as any;
 		if (!record || !data || !customerId) return;
@@ -94,7 +126,12 @@ export function InvoiceOverviewPanel(props: Props) {
 			nextMeta.shippingAddressId !== shippingAddressId ||
 			nextMeta.paymentTerm !== paymentTerm ||
 			nextMeta.taxCode !== taxCode;
-		if (changed) setMeta(nextMeta);
+		if (!changed) return;
+		if (nextMeta.customerProfileId !== customerProfileId) {
+			applyCustomerProfileMeta(nextMeta, nextMeta.customerProfileId);
+			return;
+		}
+		setMeta(nextMeta);
 	}, [
 		billingAddressId,
 		customerId,
@@ -102,6 +139,7 @@ export function InvoiceOverviewPanel(props: Props) {
 		paymentTerm,
 		resolvedCustomer.data,
 		shippingAddressId,
+		setCustomerProfileMeta,
 		setMeta,
 		taxCode,
 	]);
@@ -237,7 +275,8 @@ export function InvoiceOverviewPanel(props: Props) {
 		if (
 			lastProfileIdRef.current === currentProfileId &&
 			lastProfileCoefficientRef.current == null &&
-			normalizedCurrent != null
+			normalizedCurrent != null &&
+			!pendingProfileRepriceRef.current
 		) {
 			// The form may hydrate before profile options arrive. When the matching
 			// profile coefficient resolves later, seed the refs without repricing so
@@ -253,16 +292,20 @@ export function InvoiceOverviewPanel(props: Props) {
 		) {
 			return;
 		}
-		setLineItems(
-			repriceLineItemsByProfile(
-				record.lineItems || [],
-				lastProfileCoefficientRef.current ?? null,
-				normalizedCurrent,
-			),
+		setCustomerProfileMeta(
+			{ customerProfileId: currentProfileId },
+			lastProfileCoefficientRef.current ?? null,
+			normalizedCurrent,
 		);
 		lastProfileCoefficientRef.current = normalizedCurrent;
 		lastProfileIdRef.current = currentProfileId;
-	}, [customerProfileId, profileOptions, record?.lineItems, setLineItems]);
+		pendingProfileRepriceRef.current = false;
+	}, [
+		customerProfileId,
+		profileOptions,
+		record,
+		setCustomerProfileMeta,
+	]);
 
 	useEffect(() => {
 		if (!record) return;
@@ -270,12 +313,19 @@ export function InvoiceOverviewPanel(props: Props) {
 		const defaultProfile = getDefaultSalesFormCustomerProfile(profileOptions);
 		if (!defaultProfile?.id) return;
 		const profileMeta = (defaultProfile?.meta || {}) as Record<string, any>;
-		setMeta({
-			customerProfileId: Number(defaultProfile.id),
+		const nextProfileId = Number(defaultProfile.id);
+		applyCustomerProfileMeta({
+			customerProfileId: nextProfileId,
 			paymentTerm:
 				profileMeta?.netTerm || profileMeta?.net || paymentTerm || "None",
-		});
-	}, [customerProfileId, paymentTerm, profileOptions, record, setMeta]);
+		}, nextProfileId);
+	}, [
+		customerProfileId,
+		paymentTerm,
+		profileOptions,
+		record,
+		setCustomerProfileMeta,
+	]);
 
 	useEffect(() => {
 		if (!record) return;
@@ -288,7 +338,7 @@ export function InvoiceOverviewPanel(props: Props) {
 	function applyCustomerProfile(value: string) {
 		if (value === "none") {
 			if (customerProfileId == null) return;
-			setMeta({ customerProfileId: null });
+			applyCustomerProfileMeta({ customerProfileId: null }, null);
 			return;
 		}
 		const selectedId = Number(value);
@@ -297,11 +347,11 @@ export function InvoiceOverviewPanel(props: Props) {
 			(p: any) => Number(p.id) === selectedId,
 		) as any;
 		const profileMeta = profile?.meta || {};
-		setMeta({
+		applyCustomerProfileMeta({
 			customerProfileId: selectedId,
 			paymentTerm:
 				profileMeta?.netTerm || profileMeta?.net || paymentTerm || "None",
-		});
+		}, selectedId);
 	}
 
 	if (!record) return null;

@@ -39,6 +39,66 @@ describe("workflow sync patches", () => {
 		expect(patch?.changed.totalChanged).toBe(true);
 	});
 
+	it("does not re-discount stored shelf unit prices when base metadata is absent", () => {
+		const patch = buildWorkflowShelfSyncPatch(
+			{
+				uid: "line-1",
+				qty: 2,
+				unitPrice: 20,
+				lineTotal: 0,
+				formSteps: [shelfItemStep],
+				shelfItems: [
+					{
+						uid: "row-1",
+						productId: 101,
+						description: "Legacy shelf",
+						qty: 2,
+						unitPrice: 20,
+						totalPrice: 0,
+					},
+				],
+			},
+			2,
+		);
+
+		expect(patch?.lineTotal).toBe(40);
+		expect((patch?.linePatch as any)?.shelfItems?.[0]?.basePrice).toBe(0);
+		expect((patch?.linePatch as any)?.shelfItems?.[0]?.salesPrice).toBe(20);
+		expect((patch?.linePatch as any)?.shelfItems?.[0]?.unitPrice).toBe(20);
+	});
+
+	it("recalculates stored shelf rows from base metadata when profile changes", () => {
+		const patch = buildWorkflowShelfSyncPatch(
+			{
+				uid: "line-1",
+				qty: 1,
+				unitPrice: 60,
+				lineTotal: 60,
+				formSteps: [shelfItemStep],
+				shelfItems: [
+					{
+						uid: "row-1",
+						productId: 101,
+						description: "Profile shelf",
+						qty: 2,
+						unitPrice: 60,
+						totalPrice: 120,
+						meta: {
+							basePrice: 80,
+						},
+					},
+				],
+			},
+			4,
+		);
+
+		expect(patch?.qty).toBe(2);
+		expect(patch?.unitPrice).toBe(20);
+		expect(patch?.lineTotal).toBe(40);
+		expect((patch?.linePatch as any)?.shelfItems?.[0]?.salesPrice).toBe(20);
+		expect((patch?.linePatch as any)?.shelfItems?.[0]?.unitPrice).toBe(20);
+	});
+
 	it("builds an initial shelf patch only for empty shelf item lines", () => {
 		const patch = buildInitialWorkflowShelfPatch({
 			uid: "line-1",

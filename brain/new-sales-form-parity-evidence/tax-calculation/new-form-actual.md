@@ -10,5 +10,9 @@ Anchor:
 - `apps/www/src/components/forms/new-sales-form/sections/invoice-overview-panel.tsx`
 
 Current parity status:
-- Core tax-rate data path is now present for recalculation.
-- Runtime parity fixture validation still required for complex transitions (discount/extras/payment method).
+- Core tax-rate data path is present for recalculation.
+- `setSalesFormTaxRate(...)` recomputes the summary immediately, and the
+  profile meta/reprice reducer now also recomputes summary atomically after
+  profile-driven line changes.
+- Runtime parity fixture validation still required for complex transitions
+  (discount/extras/payment method) behind the local auth/session gate.

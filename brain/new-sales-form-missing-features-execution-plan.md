@@ -11,10 +11,11 @@ Deliver full behavioral parity for critical sales-form workflows by closing all 
 - Legacy behavior in `apps/www/src/components/forms/sales-form/*` and `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/*` is the parity source of truth.
 - Existing package extraction in `packages/sales/src/sales-form/*` remains the canonical domain layer and should absorb missing logic where possible.
 - We should continue ongoing migration work (no reset/rewrite), and integrate missing items into the current task stream.
-- Phase progression rule: do not start next phase until current phase validation checklist passes.
+- Phase progression rule: do not start next phase until current phase validation checklist passes, except when the only remaining gate is environment-blocked browser proof that has been explicitly pended in Brain.
 - Field-reported gaps captured on 2026-03-14 are authoritative even if related UI exists in current new-form code.
 - Phase 0 acceptance authority is now `brain/new-sales-form-phase0-acceptance-matrix.md`, with fixture scope in `brain/new-sales-form-phase0-fixtures.md`.
 - Dealer customer profiles use `salesPercentage`, not `coefficient`. Internal `www` customer profiles continue to use `coefficient`. Dealer quote pricing must apply internal coefficient first and then dealer percentage adjustment.
+- 2026-05-20 pend decision: Phase 0 browser/runtime proof is pended because local authenticated `www` and dealership sessions are unavailable. Automated package/API evidence is green, so Phase 1 implementation can proceed while `NSF-QA-002` and `NSF-QA-003` remain open.
 
 ## Explicit Old vs New Comparison
 
@@ -204,6 +205,13 @@ Validation gate:
 
 ### Phase 1: Pricing, Repricing, and Tax Integrity (Costing/Settings parity)
 Dependencies: Phase 0
+
+Current entry status:
+- Started. Dealer `salesPercentage` pricing and dealer line-total semantics have
+  automated/query proof and are awaiting browser proof.
+- Continue with `NSF-P1-003` through `NSF-P1-006`: `www`
+  customer/profile/tax recalc, Door/HPT pricing, shelf rollups, and
+  moulding/service taxability.
 
 1. Customer/profile recost hardening
 - Ensure customer/profile change triggers repricing and total recalc in all entry paths.

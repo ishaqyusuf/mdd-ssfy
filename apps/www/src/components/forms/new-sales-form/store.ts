@@ -12,6 +12,7 @@ import {
 	removeSalesFormLineItem,
 	restoreSalesFormLocalDraft,
 	setSalesFormEditorState,
+	setSalesFormCustomerProfileMeta,
 	setSalesFormExtraCosts,
 	setSalesFormLineItems,
 	setSalesFormMeta,
@@ -43,6 +44,11 @@ type NewSalesFormActions = {
 	hydrate: (record: NewSalesFormRecord) => void;
 	restoreLocalDraft: (record: NewSalesFormRecord) => void;
 	setMeta: (patch: Partial<NewSalesFormMeta>) => void;
+	setCustomerProfileMeta: (
+		patch: Partial<NewSalesFormMeta>,
+		previousProfileCoefficient?: number | null,
+		nextProfileCoefficient?: number | null,
+	) => void;
 	setLineItems: (lineItems: NewSalesFormLineItem[]) => void;
 	setExtraCosts: (costs: NewSalesFormExtraCost[]) => void;
 	upsertExtraCost: (
@@ -92,6 +98,21 @@ export const useNewSalesFormStore = create<NewSalesFormStore>((set) => ({
 		),
 	setMeta: (patch) =>
 		set(applySalesFormState((state) => setSalesFormMeta(state, patch))),
+	setCustomerProfileMeta: (
+		patch,
+		previousProfileCoefficient,
+		nextProfileCoefficient,
+	) =>
+		set(
+			applySalesFormState((state) =>
+				setSalesFormCustomerProfileMeta(
+					state,
+					patch,
+					previousProfileCoefficient,
+					nextProfileCoefficient,
+				),
+			),
+		),
 	setLineItems: (lineItems) =>
 		set(
 			applySalesFormState((state) => setSalesFormLineItems(state, lineItems)),

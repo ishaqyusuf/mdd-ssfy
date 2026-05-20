@@ -9,4 +9,6 @@ Anchor:
 - `apps/www/src/components/forms/new-sales-form/sections/workflow-modals.tsx`
 
 Current parity status:
-- Supplier switch is implemented in code path; runtime fixture validation still pending.
+- Supplier switch is implemented in code path with package proof for persisted
+  HPT row repricing.
+- Runtime fixture validation is still pending behind the local auth/session gate.

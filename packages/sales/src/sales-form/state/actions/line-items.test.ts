@@ -5,6 +5,7 @@ import {
 	removeSalesFormLineItem,
 	updateSalesFormLineItem,
 } from "./line-items";
+import { setSalesFormCustomerProfileMeta } from "./meta";
 import { setSalesFormTaxRate } from "./summary";
 import type { SalesFormStateRecord } from "../types";
 
@@ -114,3 +115,60 @@ describe("sales form state summary actions", () => {
 	});
 });
 
+describe("sales form state profile actions", () => {
+	it("updates profile meta, reprices lines, and recomputes tax totals atomically", () => {
+		const state = {
+			...createInitialSalesFormState(),
+			record: {
+				...createRecord(),
+				form: {
+					customerProfileId: 1,
+					paymentMethod: null,
+					paymentTerm: "None",
+				},
+				lineItems: [
+					{
+						id: null,
+						uid: "line-1",
+						title: "Line 1",
+						description: "",
+						qty: 2,
+						unitPrice: 50,
+						lineTotal: 100,
+						meta: {},
+						formSteps: [
+							{
+								price: 50,
+								basePrice: 100,
+							},
+						],
+						shelfItems: [],
+						housePackageTool: null,
+					},
+				],
+				summary: {
+					taxRate: 10,
+					subTotal: 100,
+					taxTotal: 10,
+					grandTotal: 110,
+				},
+			},
+		};
+
+		const next = setSalesFormCustomerProfileMeta(
+			state,
+			{ customerProfileId: 2, paymentTerm: "Net 30" },
+			2,
+			4,
+		);
+
+		expect(next.dirty).toBe(true);
+		expect(next.record?.form.customerProfileId).toBe(2);
+		expect(next.record?.form.paymentTerm).toBe("Net 30");
+		expect(next.record?.lineItems[0]?.unitPrice).toBe(25);
+		expect(next.record?.lineItems[0]?.lineTotal).toBe(50);
+		expect(next.record?.summary?.subTotal).toBe(50);
+		expect(next.record?.summary?.taxTotal).toBe(5);
+		expect(next.record?.summary?.grandTotal).toBe(55);
+	});
+});
