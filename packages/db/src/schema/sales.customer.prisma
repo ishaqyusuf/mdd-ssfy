@@ -112,6 +112,7 @@ model CustomerTypes {
     title          String    @db.VarChar(255)
     dealerOwnerId  Int?
     coefficient    Float?
+    salesPercentage Float?
     defaultProfile Boolean?
     meta           Json?     @db.Json
     deletedAt      DateTime? @db.Timestamp(0)

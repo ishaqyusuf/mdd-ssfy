@@ -11,11 +11,11 @@ describe("dual sales form pricing", () => {
 			taxRate: 10,
 			internalProfile: {
 				id: 1,
-				coefficient: 1,
+				coefficient: 1.5,
 			},
 			dealerProfile: {
 				id: 2,
-				coefficient: 1.5,
+				salesPercentage: 20,
 			},
 			lineItems: [
 				{
@@ -31,16 +31,16 @@ describe("dual sales form pricing", () => {
 		expect(result.internalProfileId).toBe(1);
 		expect(result.dealerProfileId).toBe(2);
 		expect(result.lines[0]).toMatchObject({
-			internalUnitPrice: 100,
-			internalLineTotal: 200,
-			dealerUnitPrice: 150,
-			dealerLineTotal: 300,
+			internalUnitPrice: 150,
+			internalLineTotal: 300,
+			dealerUnitPrice: 180,
+			dealerLineTotal: 360,
 		});
-		expect(result.internalPricing.grandTotal).toBe(220);
-		expect(result.dealerPricing.grandTotal).toBe(330);
+		expect(result.internalPricing.grandTotal).toBe(330);
+		expect(result.dealerPricing.grandTotal).toBe(396);
 	});
 
-	it("falls back to coefficient 1 for missing profiles", () => {
+	it("falls back to coefficient 1 and 0 percent for missing profiles", () => {
 		const result = calculateDualSalesFormPricing({
 			lineItems: [
 				{
@@ -55,18 +55,18 @@ describe("dual sales form pricing", () => {
 		expect(result.lines[0]?.dealerLineTotal).toBe(42);
 	});
 
-	it("builds an explicit reusable snapshot with profile coefficients", () => {
+	it("builds an explicit reusable snapshot with office coefficient and dealer percentage", () => {
 		const snapshot = buildDualSalesFormPricingSnapshot({
 			createdAt: "2026-05-18T00:00:00.000Z",
 			internalProfile: {
 				id: 10,
 				label: "Standard",
-				coefficient: 1,
+				coefficient: 1.5,
 			},
 			dealerProfile: {
 				id: 20,
 				label: "Retail",
-				coefficient: 2,
+				salesPercentage: 20,
 			},
 			lineItems: [
 				{
@@ -83,14 +83,14 @@ describe("dual sales form pricing", () => {
 		expect(snapshot.profiles.internal).toEqual({
 			id: 10,
 			label: "Standard",
-			coefficient: 1,
+			coefficient: 1.5,
 		});
 		expect(snapshot.profiles.dealer).toEqual({
 			id: 20,
 			label: "Retail",
-			coefficient: 2,
+			salesPercentage: 20,
 		});
-		expect(snapshot.internalPricing.grandTotal).toBe(50);
-		expect(snapshot.dealerPricing.grandTotal).toBe(100);
+		expect(snapshot.internalPricing.grandTotal).toBe(75);
+		expect(snapshot.dealerPricing.grandTotal).toBe(90);
 	});
 });

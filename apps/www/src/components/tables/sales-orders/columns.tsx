@@ -742,6 +742,8 @@ function Actions({ item }: { item: SalesOrderItem }) {
 				id={item.id}
 				slug={item.slug}
 				type="order"
+				customerEmail={item.email ?? null}
+				customerName={item.displayName}
 				trigger={
 					<Button size="xs" variant="outline">
 						<Icons.MoreHoriz className="size-4 text-muted-foreground" />

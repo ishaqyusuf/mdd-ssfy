@@ -14,21 +14,18 @@ import {
 import { toast } from "@gnd/ui/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileText } from "lucide-react";
-import { useState } from "react";
-import { DealerQuoteComposer } from "../dealer-sales-form/dealer-quote-composer";
+import Link from "next/link";
 import { formatCurrency, formatDate } from "./shared";
 
 export function DealerSalesDocuments({ type }: { type: "order" | "quote" }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
-	const [editingQuoteId, setEditingQuoteId] = useState<number | null>(null);
 	const documentsQuery = useQuery(
 		trpc.dealerPortal.salesDocuments.queryOptions({ type }),
 	);
 	const convertQuote = useMutation(
 		trpc.dealerPortal.convertQuoteToOrder.mutationOptions({
 			onSuccess: async () => {
-				setEditingQuoteId(null);
 				await Promise.all([
 					queryClient.invalidateQueries({
 						queryKey: trpc.dealerPortal.salesDocuments.pathKey(),
@@ -55,12 +52,6 @@ export function DealerSalesDocuments({ type }: { type: "order" | "quote" }) {
 
 	return (
 		<div className="space-y-6">
-			{type === "quote" ? (
-				<DealerQuoteComposer
-					editingQuoteId={editingQuoteId}
-					onCancelEdit={() => setEditingQuoteId(null)}
-				/>
-			) : null}
 			<section className="rounded-lg border bg-background">
 				<Table>
 					<TableHeader>
@@ -113,12 +104,12 @@ export function DealerSalesDocuments({ type }: { type: "order" | "quote" }) {
 										<TableCell className="text-right">
 											<div className="flex justify-end gap-2">
 												<Button
-													onClick={() => setEditingQuoteId(document.id)}
+													asChild
 													size="sm"
 													type="button"
 													variant="ghost"
 												>
-													Edit
+													<Link href={`/quotes/${document.id}/edit`}>Edit</Link>
 												</Button>
 												<Button
 													disabled={convertQuote.isPending}

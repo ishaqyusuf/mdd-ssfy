@@ -60,7 +60,7 @@ export function TableRow() {
                     meta?.preventDefault
                   )
                     return;
-                  tableMeta?.rowClick?.(row.original?.id, row.original);
+                  tableMeta?.rowClick?.((row.original as any)?.id, row.original);
                 }}
                 className={cn(
                   (cell.column.columnDef.meta as CellMeta | undefined)?.className,

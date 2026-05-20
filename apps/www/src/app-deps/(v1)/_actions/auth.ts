@@ -1,6 +1,6 @@
 "use server";
 
-import { randomInt } from "crypto";
+import { createHash, randomBytes } from "crypto";
 import type { ResetPasswordRequestInputs } from "@/components/_v1/forms/reset-password-form";
 import type { ResetPasswordFormInputs } from "@/components/_v1/forms/reset-password-form-step2";
 import { type Prisma, prisma } from "@/db";
@@ -19,10 +19,22 @@ import {
 	isNewLoginDevice,
 	normalizeLoginDevice,
 } from "@gnd/auth/new-device-login";
+import { EmailService } from "@gnd/notifications/services/email-service";
 import { generatePermissions } from "@gnd/utils/constants";
 import { tasks } from "@trigger.dev/sdk/v3";
-// import PasswordResetRequestEmail from "@/components/_v1/emails/password-reset-request-email";
-import { _email } from "./_email";
+
+const RESET_PASSWORD_EXPIRY_HOURS = 1;
+
+function hashResetToken(token: string) {
+	return createHash("sha256").update(token).digest("hex");
+}
+
+function getPasswordResetBaseUrl() {
+	return (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(
+		/\/$/,
+		"",
+	);
+}
 
 export async function resetPasswordRequest({
 	email,
@@ -32,54 +44,72 @@ export async function resetPasswordRequest({
 			email,
 		},
 	});
-	if (!user) return null;
-	const token = randomInt(100000, 999999);
-	const r = await prisma.passwordResets.create({
+
+	if (!user?.email) {
+		va.track("Password Reset");
+		return { ok: true };
+	}
+
+	await prisma.passwordResets.updateMany({
+		where: {
+			email,
+			usedAt: null,
+			deletedAt: null,
+		},
+		data: {
+			usedAt: new Date(),
+		},
+	});
+
+	const token = randomBytes(32).toString("base64url");
+	const resetLink = `${getPasswordResetBaseUrl()}/login/reset-password?token=${encodeURIComponent(token)}`;
+
+	await prisma.passwordResets.create({
 		data: {
 			email,
 			createdAt: new Date(),
-			token: token.toString(),
+			token: hashResetToken(token),
 		},
 	});
-	// await _email({
-	//     user: user,
-	//     from: FROM_EMAILS.ohno,
-	//     react: PasswordResetRequestEmail({
-	//         firstName: user?.name ?? undefined,
-	//         token,
-	//     }),
-	//     subject: "Security Alert: Forgot Password OTP",
-	// });
+
+	try {
+		const emailService = new EmailService(prisma);
+		await emailService.sendTransactional({
+			to: user.email,
+			subject: "Reset your GND password",
+			template: "password-reset-request",
+			data: {
+				name: user.name ?? "there",
+				resetLink,
+			},
+		});
+	} catch (error) {
+		console.error("Failed to send password reset email:", error);
+	}
+
 	va.track("Password Reset");
-	// await resend.emails.send({
-	//   from: "GND-Prodesk<ohno@gndprodesk.com>",
-	//   // to: "ishaqyusuf024@gmail.com",
-	//   to: user.email,
-	//   subject: "Security Alert: Forgot Password OTP",
-	//   react: PasswordResetRequestEmail({
-	//     firstName: user?.name ?? undefined,
-	//     token,
-	//   }),
-	// });
-	return { id: user.id };
+	return { ok: true };
 }
 export async function resetPassword({
-	code,
+	token,
 	confirmPassword,
 }: ResetPasswordFormInputs) {
+	const tokenHash = hashResetToken(token);
 	const tok = await prisma.passwordResets.findFirst({
 		where: {
 			createdAt: {
-				gte: dayjs().subtract(5, "minutes").toISOString(),
+				gte: dayjs().subtract(RESET_PASSWORD_EXPIRY_HOURS, "hour").toDate(),
 			},
-			token: code,
+			deletedAt: null,
+			token: tokenHash,
+			usedAt: null,
 		},
 	});
 	if (!tok) {
-		throw new Error("Invalid or Expired Token");
+		throw new Error("This password reset link is invalid or has expired.");
 	}
 	const password = await hash(confirmPassword, 10);
-	await prisma.users.updateMany({
+	const updateResult = await prisma.users.updateMany({
 		where: {
 			email: tok.email,
 		},
@@ -87,6 +117,9 @@ export async function resetPassword({
 			password,
 		},
 	});
+	if (updateResult.count === 0) {
+		throw new Error("This password reset link is invalid or has expired.");
+	}
 	await prisma.passwordResets.update({
 		where: {
 			id: tok.id,

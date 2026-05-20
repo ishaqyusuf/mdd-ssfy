@@ -9,7 +9,7 @@ Close all remaining `Partial (Implemented, Runtime Repro Pending)` rows in `brai
 ## Gate Rule
 Every row is `PASS` only when all are true:
 1. Runtime repro executed on old and new form with same fixture.
-2. Expected vs actual result recorded under `ai/new-sales-form-parity-evidence/<feature>/`.
+2. Expected vs actual result recorded under `brain/new-sales-form-parity-evidence/<feature>/`.
 3. At least one test or assertion path is linked (unit/integration/e2e/manual log).
 4. No regressions in scoped automated gates.
 

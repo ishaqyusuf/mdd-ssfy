@@ -23,7 +23,7 @@ export function DealerSalesProfiles() {
 	const [editingProfile, setEditingProfile] = useState<{
 		id: number;
 		title: string;
-		coefficient: number | null;
+		salesPercentage: number | null;
 		defaultProfile: boolean | null;
 	} | null>(null);
 	const profilesQuery = useQuery(
@@ -54,12 +54,14 @@ export function DealerSalesProfiles() {
 	function onSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		const form = new FormData(event.currentTarget);
-		const coefficient = Number(form.get("coefficient") || 0);
+		const salesPercentage = Number(form.get("salesPercentage") || 0);
 
 		saveProfile.mutate({
 			id: editingProfile?.id || null,
 			title: String(form.get("title") || ""),
-			coefficient: Number.isFinite(coefficient) ? coefficient : null,
+			salesPercentage: Number.isFinite(salesPercentage)
+				? salesPercentage
+				: null,
 			defaultProfile: form.get("defaultProfile") === "on",
 		});
 
@@ -86,10 +88,10 @@ export function DealerSalesProfiles() {
 						required
 					/>
 					<Field
-						defaultValue={editingProfile?.coefficient ?? ""}
-						description="A coefficient is a multiplier used to increase or decrease how much this profile affects pricing. Above 1 increases pricing, below 1 reduces pricing, and 1 leaves pricing unchanged. Example: $80 x 1.25 = $100."
-						label="Coefficient"
-						name="coefficient"
+						defaultValue={editingProfile?.salesPercentage ?? ""}
+						description="Enter the percentage adjustment for this profile. 25 means prices increase by 25%; -10 means prices decrease by 10%. Example: $80 + 25% = $100."
+						label="Price adjustment %"
+						name="salesPercentage"
 						step="0.01"
 						type="number"
 					/>
@@ -125,7 +127,7 @@ export function DealerSalesProfiles() {
 					<TableHeader>
 						<TableRow>
 							<TableHead>Profile</TableHead>
-							<TableHead>Coefficient</TableHead>
+							<TableHead>Price adjustment</TableHead>
 							<TableHead>Customers</TableHead>
 							<TableHead>Default</TableHead>
 							<TableHead>Created</TableHead>
@@ -143,7 +145,11 @@ export function DealerSalesProfiles() {
 							profiles.map((profile) => (
 								<TableRow key={profile.id}>
 									<TableCell className="font-medium">{profile.title}</TableCell>
-									<TableCell>{profile.coefficient ?? "-"}</TableCell>
+									<TableCell>
+										{profile.salesPercentage != null
+											? `${profile.salesPercentage}%`
+											: "-"}
+									</TableCell>
 									<TableCell>{profile._count.customers}</TableCell>
 									<TableCell>
 										{profile.defaultProfile ? (
@@ -159,7 +165,7 @@ export function DealerSalesProfiles() {
 												setEditingProfile({
 													id: profile.id!,
 													title: profile.title || "",
-													coefficient: profile.coefficient ?? null,
+													salesPercentage: profile.salesPercentage ?? null,
 													defaultProfile: profile.defaultProfile ?? false,
 												})
 											}

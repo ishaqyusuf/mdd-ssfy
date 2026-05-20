@@ -99,7 +99,7 @@ export function LoginForm() {
 								<span>Remember me</span>
 							</label>
 							<Link
-								href="/login/password-reset"
+								href="/password-reset"
 								className="text-sm text-primary hover:text-primary/80 font-medium transition-colors"
 							>
 								Forgot password?

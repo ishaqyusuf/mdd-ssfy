@@ -275,6 +275,7 @@ type CustomerSalesItem = {
 	orderId: string;
 	uuid: string;
 	displayName?: string | null;
+	email?: string | null;
 	salesDate?: string | null;
 	due?: number | null;
 	invoice: {

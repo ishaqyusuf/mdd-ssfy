@@ -385,6 +385,8 @@ export function CustomerSalesWorkspace({ accountNo }: Props) {
 														id={item.id}
 														slug={item.slug}
 														type={item.type}
+														customerEmail={item.email ?? null}
+														customerName={item.displayName}
 														trigger={
 															<Button size="sm" variant="ghost">
 																...

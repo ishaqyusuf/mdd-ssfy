@@ -202,7 +202,7 @@ export function LoginV2() {
 															Password
 														</FormLabel>
 														<Link
-															href="/login/password-reset"
+															href="/password-reset"
 															className="text-sm font-medium text-slate-700 transition hover:text-slate-950"
 														>
 															Forgot password?

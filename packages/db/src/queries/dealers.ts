@@ -41,7 +41,7 @@ export type DealerCustomerFormInput = {
 export type DealerSalesProfileFormInput = {
 	id?: number | null;
 	title: string;
-	coefficient?: number | null;
+	salesPercentage?: number | null;
 	defaultProfile?: boolean | null;
 };
 
@@ -72,6 +72,25 @@ export type DealerPortalSaveQuoteInput = {
 	customerProfileId?: number | null;
 	taxRate?: number | null;
 	lineItems: DealerPortalQuoteLineItemInput[];
+};
+
+export type DealerPortalSalesListInput = {
+	cursor?: number | null;
+	size?: number | null;
+	q?: string | null;
+	"customer.name"?: string | null;
+	phone?: string | null;
+	orderNo?: string | null;
+	status?: string | null;
+};
+
+export type DealerPortalCustomersListInput = {
+	cursor?: number | null;
+	size?: number | null;
+	q?: string | null;
+	"customer.name"?: string | null;
+	phone?: string | null;
+	profile?: string | null;
 };
 
 function dealerSearchWhere(
@@ -498,11 +517,293 @@ export async function getDealerPortalCustomers(db: Database, dealerId: number) {
 				select: {
 					id: true,
 					title: true,
-					coefficient: true,
+					salesPercentage: true,
 				},
 			},
 		},
 	});
+}
+
+export async function getDealerPortalCustomer(
+	db: Database,
+	dealerId: number,
+	id: number,
+) {
+	const customer = await db.customers.findFirst({
+		where: {
+			id,
+			dealerOwnerId: dealerId,
+			deletedAt: null,
+		},
+		select: {
+			id: true,
+			name: true,
+			businessName: true,
+			email: true,
+			phoneNo: true,
+			address: true,
+			customerTypeId: true,
+		},
+	});
+
+	if (!customer) {
+		throw new Error("Dealer customer could not be found.");
+	}
+
+	return customer;
+}
+
+function getDealerSalesListWhere(
+	dealerId: number,
+	type: "order" | "quote",
+	input: DealerPortalSalesListInput = {},
+): Prisma.SalesOrdersWhereInput {
+	const search = input.q?.trim();
+	const customerName = input["customer.name"]?.trim();
+	const phone = input.phone?.trim();
+	const orderNo = input.orderNo?.trim();
+	const status = input.status?.trim();
+	const customerSearch = customerName || undefined;
+	const phoneSearch = phone || undefined;
+
+	return {
+		dealerAuthId: dealerId,
+		deletedAt: null,
+		type: type === "quote" ? "quote" : { not: "quote" },
+		...(orderNo
+			? {
+					orderId: {
+						contains: orderNo,
+					},
+				}
+			: {}),
+		...(status
+			? {
+					status,
+				}
+			: {}),
+		...(customerSearch || phoneSearch
+			? {
+					customer: {
+						is: {
+							...(customerSearch
+								? {
+										OR: [
+											{ name: { contains: customerSearch } },
+											{ businessName: { contains: customerSearch } },
+											{ email: { contains: customerSearch } },
+										],
+									}
+								: {}),
+							...(phoneSearch
+								? {
+										phoneNo: { contains: phoneSearch },
+									}
+								: {}),
+						},
+					},
+				}
+			: {}),
+		...(search
+			? {
+					OR: [
+						{ orderId: { contains: search } },
+						{ title: { contains: search } },
+						{ status: { contains: search } },
+						{
+							customer: {
+								is: {
+									OR: [
+										{ name: { contains: search } },
+										{ businessName: { contains: search } },
+										{ email: { contains: search } },
+										{ phoneNo: { contains: search } },
+									],
+								},
+							},
+						},
+					],
+				}
+			: {}),
+	};
+}
+
+function mapDealerSalesDocument(document: {
+	id: number;
+	orderId: string;
+	title: string | null;
+	status: string | null;
+	type: string | null;
+	grandTotal: number | null;
+	amountDue: number | null;
+	meta: Prisma.JsonValue | null;
+	invoiceStatus: string | null;
+	createdAt: Date | null;
+	customer: {
+		id: number;
+		name: string | null;
+		businessName: string | null;
+		email: string | null;
+		phoneNo?: string | null;
+	} | null;
+}) {
+	const dealerSummary = getDealerPricingSummaryFromMeta(document.meta);
+	const { meta: _meta, ...safeDocument } = document;
+	return {
+		...safeDocument,
+		grandTotal: Number(dealerSummary?.grandTotal ?? document.grandTotal ?? 0),
+		amountDue: Number(dealerSummary?.grandTotal ?? document.amountDue ?? 0),
+	};
+}
+
+export async function getDealerPortalSalesList(
+	db: Database,
+	dealerId: number,
+	type: "order" | "quote",
+	input: DealerPortalSalesListInput = {},
+) {
+	const size = Math.min(Math.max(Number(input.size || 25), 1), 100);
+	const cursor = Number(input.cursor || 0);
+	const where = getDealerSalesListWhere(dealerId, type, input);
+	const [documents, count] = await Promise.all([
+		db.salesOrders.findMany({
+			where,
+			orderBy: {
+				createdAt: "desc",
+			},
+			skip: cursor,
+			take: size,
+			select: {
+				id: true,
+				orderId: true,
+				title: true,
+				status: true,
+				type: true,
+				grandTotal: true,
+				amountDue: true,
+				meta: true,
+				invoiceStatus: true,
+				createdAt: true,
+				customer: {
+					select: {
+						id: true,
+						name: true,
+						businessName: true,
+						email: true,
+						phoneNo: true,
+					},
+				},
+			},
+		}),
+		db.salesOrders.count({ where }),
+	]);
+	const nextCursor = cursor + documents.length;
+
+	return {
+		data: documents.map(mapDealerSalesDocument),
+		meta: {
+			cursor: nextCursor < count ? nextCursor : null,
+			count,
+			size,
+		},
+	};
+}
+
+function getDealerCustomersListWhere(
+	dealerId: number,
+	input: DealerPortalCustomersListInput = {},
+): Prisma.CustomersWhereInput {
+	const search = input.q?.trim();
+	const customerName = input["customer.name"]?.trim();
+	const phone = input.phone?.trim();
+	const profile = input.profile?.trim();
+
+	return {
+		dealerOwnerId: dealerId,
+		deletedAt: null,
+		...(customerName
+			? {
+					OR: [
+						{ name: { contains: customerName } },
+						{ businessName: { contains: customerName } },
+						{ email: { contains: customerName } },
+					],
+				}
+			: {}),
+		...(phone
+			? {
+					phoneNo: { contains: phone },
+				}
+			: {}),
+		...(profile
+			? {
+					profile: {
+						is: {
+							title: { contains: profile },
+						},
+					},
+				}
+			: {}),
+		...(search
+			? {
+					OR: [
+						{ name: { contains: search } },
+						{ businessName: { contains: search } },
+						{ email: { contains: search } },
+						{ phoneNo: { contains: search } },
+						{ address: { contains: search } },
+					],
+				}
+			: {}),
+	};
+}
+
+export async function getDealerPortalCustomersList(
+	db: Database,
+	dealerId: number,
+	input: DealerPortalCustomersListInput = {},
+) {
+	const size = Math.min(Math.max(Number(input.size || 25), 1), 100);
+	const cursor = Number(input.cursor || 0);
+	const where = getDealerCustomersListWhere(dealerId, input);
+	const [customers, count] = await Promise.all([
+		db.customers.findMany({
+			where,
+			orderBy: {
+				createdAt: "desc",
+			},
+			skip: cursor,
+			take: size,
+			select: {
+				id: true,
+				name: true,
+				businessName: true,
+				email: true,
+				phoneNo: true,
+				address: true,
+				customerTypeId: true,
+				createdAt: true,
+				profile: {
+					select: {
+						id: true,
+						title: true,
+						salesPercentage: true,
+					},
+				},
+			},
+		}),
+		db.customers.count({ where }),
+	]);
+	const nextCursor = cursor + customers.length;
+
+	return {
+		data: customers,
+		meta: {
+			cursor: nextCursor < count ? nextCursor : null,
+			count,
+			size,
+		},
+	};
 }
 
 export async function saveDealerPortalCustomer(
@@ -583,7 +884,7 @@ export async function getDealerPortalSalesProfiles(
 		select: {
 			id: true,
 			title: true,
-			coefficient: true,
+			salesPercentage: true,
 			defaultProfile: true,
 			createdAt: true,
 			_count: {
@@ -595,6 +896,23 @@ export async function getDealerPortalSalesProfiles(
 	});
 }
 
+export async function getDealerPortalInternalSalesProfile(
+	db: Pick<Database, "customerTypes">,
+) {
+	return db.customerTypes.findFirst({
+		where: {
+			dealerOwnerId: null,
+			deletedAt: null,
+		},
+		orderBy: [{ defaultProfile: "desc" }, { id: "asc" }],
+		select: {
+			id: true,
+			title: true,
+			coefficient: true,
+		},
+	});
+}
+
 export async function saveDealerPortalSalesProfile(
 	db: Database,
 	dealerId: number,
@@ -602,7 +920,7 @@ export async function saveDealerPortalSalesProfile(
 ) {
 	const data = {
 		title: input.title.trim(),
-		coefficient: input.coefficient ?? null,
+		salesPercentage: input.salesPercentage ?? null,
 		defaultProfile: input.defaultProfile ?? false,
 		dealerOwnerId: dealerId,
 	};
@@ -824,6 +1142,11 @@ function pricingCoefficient(profile?: { coefficient?: number | null } | null) {
 	return Number.isFinite(value) && value > 0 ? value : 1;
 }
 
+function pricingPercentage(profile?: { salesPercentage?: number | null } | null) {
+	const value = Number(profile?.salesPercentage ?? 0);
+	return Number.isFinite(value) ? value : 0;
+}
+
 export function calculateDealerQuotePricing({
 	lineItems,
 	taxRate,
@@ -841,12 +1164,13 @@ export function calculateDealerQuotePricing({
 	dealerProfile?: {
 		id?: number | null;
 		title?: string | null;
-		coefficient?: number | null;
+		salesPercentage?: number | null;
 	} | null;
 	createdAt?: string | Date | null;
 }) {
 	const internalCoefficient = pricingCoefficient(internalProfile);
-	const dealerCoefficient = pricingCoefficient(dealerProfile);
+	const dealerSalesPercentage = pricingPercentage(dealerProfile);
+	const dealerMultiplier = 1 + dealerSalesPercentage / 100;
 	const snapshotCreatedAt =
 		createdAt instanceof Date
 			? createdAt.toISOString()
@@ -858,7 +1182,7 @@ export function calculateDealerQuotePricing({
 		const internalUnitPrice = roundCurrency(
 			baseUnitPrice * internalCoefficient,
 		);
-		const dealerUnitPrice = roundCurrency(baseUnitPrice * dealerCoefficient);
+		const dealerUnitPrice = roundCurrency(internalUnitPrice * dealerMultiplier);
 
 		return {
 			uid: line.uid,
@@ -895,7 +1219,7 @@ export function calculateDealerQuotePricing({
 			dealer: {
 				id: dealerProfile?.id ?? null,
 				label: dealerProfile?.title ?? null,
-				coefficient: dealerCoefficient,
+				salesPercentage: dealerSalesPercentage,
 			},
 		},
 		lines,
@@ -985,22 +1309,11 @@ export async function saveDealerPortalQuote(
 						select: {
 							id: true,
 							title: true,
-							coefficient: true,
+							salesPercentage: true,
 						},
 					})
 				: null,
-			tx.customerTypes.findFirst({
-				where: {
-					dealerOwnerId: null,
-					deletedAt: null,
-				},
-				orderBy: [{ defaultProfile: "desc" }, { id: "asc" }],
-				select: {
-					id: true,
-					title: true,
-					coefficient: true,
-				},
-			}),
+			getDealerPortalInternalSalesProfile(tx),
 		]);
 
 		if (dealerProfileId && !dealerProfile) {

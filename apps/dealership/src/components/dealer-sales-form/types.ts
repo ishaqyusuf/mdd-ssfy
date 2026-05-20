@@ -15,8 +15,14 @@ export type DealerSalesFormCustomer = {
 export type DealerSalesFormProfile = {
 	id: number;
 	title?: string | null;
-	coefficient?: number | null;
+	salesPercentage?: number | null;
 	defaultProfile?: boolean | null;
+};
+
+export type DealerInternalSalesFormProfile = {
+	id?: number | null;
+	title?: string | null;
+	coefficient?: number | null;
 };
 
 export type DealerSalesFormRecord = {

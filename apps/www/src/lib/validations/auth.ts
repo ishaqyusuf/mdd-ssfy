@@ -33,9 +33,11 @@ export const verfifyEmailSchema = z.object({
 });
 export const resetPasswordSchema = z
   .object({
+    token: z.string().min(20, {
+      message: "Password reset link is invalid or expired",
+    }),
     password: authSchema.shape.password,
     confirmPassword: authSchema.shape.password,
-    code: verfifyEmailSchema.shape.code,
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",

@@ -17,6 +17,12 @@ Verdict: Not 100% in line.
 - Existing grouped row identity is preserved via `salesItemId` / `hptId`; removed grouped rows remain soft-deleted instead of being flattened into the parent.
 - Remaining parity risk: full old-form costing behavior, service toggle UI parity, moulding calculator UX parity, and broader runtime fixture/browser proof are still open.
 
+## 2026-05-20 Addendum
+
+- Phase 0 acceptance coverage is now split into an explicit acceptance matrix (`brain/new-sales-form-phase0-acceptance-matrix.md`) and fixture catalog (`brain/new-sales-form-phase0-fixtures.md`).
+- Dealer portal pricing has a separate profile rule: dealer customer profiles use `salesPercentage`, not `coefficient`.
+- Internal `www` profile pricing still uses `coefficient`; dealer quote pricing applies internal coefficient first and then dealer `salesPercentage` for the dealer-facing total.
+
 ## Legacy Scope Reviewed
 
 - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/costing-class.ts`

@@ -10,7 +10,7 @@ import {
 } from "@gnd/utils/constants";
 import { paginationSchema } from "@gnd/utils/schema";
 import { salesPrioritySchema } from "@sales/priority";
-import { z } from "@hono/zod-openapi";
+import { z } from "zod";
 export const dispatchQueryParamsSchema = z
 	.object({
 		tab: z.enum(["all", "pending", "completed"]).optional().nullable(),

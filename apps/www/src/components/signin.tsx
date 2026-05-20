@@ -129,7 +129,7 @@ export function SigninComponent() {
 							</label>
 							<div className="text-sm">
 								<Link
-									href="/login/password-reset"
+									href="/password-reset"
 									className="font-medium text-primary hover:text-primary/80"
 								>
 									Forgot your password?

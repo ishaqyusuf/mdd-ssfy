@@ -9,6 +9,7 @@ import {
 import { Button } from "@gnd/ui/button";
 import { toast } from "@gnd/ui/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { useSalesFormActions } from "./adapters/use-sales-form-actions";
@@ -20,23 +21,31 @@ import { DealerQuoteMainPanel } from "./dealer-quote-main-panel";
 import { DealerQuoteSummaryPanel } from "./dealer-quote-summary-panel";
 import type {
 	DealerSalesFormCustomer,
+	DealerInternalSalesFormProfile,
 	DealerSalesFormProfile,
 } from "./types";
 
 type DealerQuoteComposerProps = {
-	editingQuoteId: number | null;
-	onCancelEdit: () => void;
+	quoteId?: number | null;
+	mode?: "create" | "edit";
+	onSavedHref?: string;
 };
 
 export function DealerQuoteComposer({
-	editingQuoteId,
-	onCancelEdit,
+	quoteId = null,
+	mode,
+	onSavedHref = "/quotes",
 }: DealerQuoteComposerProps) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const router = useRouter();
+	const editingQuoteId = mode === "edit" ? quoteId : null;
 	const customersQuery = useQuery(trpc.dealerPortal.customers.queryOptions());
 	const profilesQuery = useQuery(
 		trpc.dealerPortal.salesProfiles.queryOptions(),
+	);
+	const internalProfileQuery = useQuery(
+		trpc.dealerPortal.internalSalesProfile.queryOptions(),
 	);
 	const quoteQuery = useQuery(
 		trpc.dealerPortal.salesDocument.queryOptions(
@@ -58,7 +67,8 @@ export function DealerQuoteComposer({
 					title: `Quote ${result.orderId} saved.`,
 					variant: "success",
 				});
-				onCancelEdit();
+				router.push(onSavedHref);
+				router.refresh();
 				form.reset();
 			},
 			onError: (error) => {
@@ -78,6 +88,9 @@ export function DealerQuoteComposer({
 
 	const customers = (customersQuery.data ?? []) as DealerSalesFormCustomer[];
 	const profiles = (profilesQuery.data ?? []) as DealerSalesFormProfile[];
+	const internalProfile =
+		(internalProfileQuery.data as DealerInternalSalesFormProfile | null) ||
+		null;
 	const record = form.record;
 	const customerId = record?.form.customerId || null;
 	const customerProfileId = record?.form.customerProfileId || null;
@@ -94,18 +107,21 @@ export function DealerQuoteComposer({
 		customers,
 		profiles,
 		record,
-		isLoading: customersQuery.isPending || profilesQuery.isPending,
+		isLoading:
+			customersQuery.isPending ||
+			profilesQuery.isPending ||
+			internalProfileQuery.isPending,
 	});
 	const pricing = buildDualSalesFormPricingSnapshot({
 		taxRate: Number(record?.summary?.taxRate || 0),
 		dealerProfile: selectedProfile,
-		internalProfile: { coefficient: 1 },
+		internalProfile,
 		lineItems: (record?.lineItems || []) as any,
 	});
 
 	function resetComposer() {
-		onCancelEdit();
 		form.reset();
+		router.push("/quotes/new");
 	}
 
 	function save() {
@@ -146,8 +162,8 @@ export function DealerQuoteComposer({
 			grandTotal={pricing.dealerPricing.grandTotal}
 			isSaved={Boolean(editingQuoteId)}
 			isSaving={saveQuote.isPending || quoteQuery.isFetching}
-			surface="embedded"
-			showMobileFooter={false}
+			surface="fixed"
+			showMobileFooter
 			capabilities={capabilities}
 			permissions={permissions}
 			onSaveDraft={save}

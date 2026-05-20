@@ -170,6 +170,8 @@ function QuoteActions({ item }: { item: Item }) {
 			id={item.id}
 			slug={item.slug}
 			type="quote"
+			customerEmail={item.email ?? null}
+			customerName={item.displayName}
 			trigger={
 				<Button size="xs" variant="outline">
 					<Icons.MoreHoriz className="size-4 text-muted-foreground" />

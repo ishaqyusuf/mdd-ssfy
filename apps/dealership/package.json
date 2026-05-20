@@ -23,6 +23,7 @@
     "@gnd/ui": "workspace:*",
     "@gnd/utils": "workspace:*",
     "@tanstack/react-query": "^5.90.3",
+    "@tanstack/react-table": "^8.21.3",
     "@trpc/client": "^11.6.0",
     "@trpc/server": "^11.6.0",
     "@trpc/tanstack-react-query": "^11.6.0",

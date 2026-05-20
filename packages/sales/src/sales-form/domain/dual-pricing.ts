@@ -3,6 +3,7 @@ import { calculateSalesFormSummary } from "./costing";
 export type SalesFormPricingProfile = {
 	id?: number | null;
 	coefficient?: number | null;
+	salesPercentage?: number | null;
 	label?: string | null;
 };
 
@@ -63,7 +64,7 @@ export type DualPricingSnapshot = DualPricingResult & {
 		dealer: {
 			id: number | null;
 			label: string | null;
-			coefficient: number;
+			salesPercentage: number;
 		};
 	};
 };
@@ -77,10 +78,15 @@ function coefficient(profile?: SalesFormPricingProfile | null) {
 	return Number.isFinite(value) && value > 0 ? value : 1;
 }
 
-function normalizeLine(line: DualPricingLineInput, nextCoefficient: number) {
+function percentage(profile?: SalesFormPricingProfile | null) {
+	const value = Number(profile?.salesPercentage ?? 0);
+	return Number.isFinite(value) ? value : 0;
+}
+
+function normalizeLine(line: DualPricingLineInput, multiplier: number) {
 	const qty = Number(line.qty ?? 0);
 	const baseUnitPrice = Number(line.unitPrice ?? 0);
-	const unitPrice = roundCurrency(baseUnitPrice * nextCoefficient);
+	const unitPrice = roundCurrency(baseUnitPrice * multiplier);
 	const lineTotal = roundCurrency(qty * unitPrice);
 
 	return {
@@ -95,13 +101,14 @@ export function calculateDualSalesFormPricing(
 	input: DualPricingInput,
 ): DualPricingResult {
 	const internalCoefficient = coefficient(input.internalProfile);
-	const dealerCoefficient = coefficient(input.dealerProfile);
+	const dealerSalesPercentage = percentage(input.dealerProfile);
+	const dealerMultiplier = internalCoefficient * (1 + dealerSalesPercentage / 100);
 
 	const internalLines = (input.lineItems || []).map((line) =>
 		normalizeLine(line, internalCoefficient),
 	);
 	const dealerLines = (input.lineItems || []).map((line) =>
-		normalizeLine(line, dealerCoefficient),
+		normalizeLine(line, dealerMultiplier),
 	);
 
 	return {
@@ -163,7 +170,7 @@ export function buildDualSalesFormPricingSnapshot(
 			dealer: {
 				id: input.dealerProfile?.id ?? null,
 				label: input.dealerProfile?.label ?? null,
-				coefficient: coefficient(input.dealerProfile),
+				salesPercentage: percentage(input.dealerProfile),
 			},
 		},
 	};

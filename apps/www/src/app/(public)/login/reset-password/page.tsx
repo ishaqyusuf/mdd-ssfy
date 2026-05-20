@@ -1,6 +1,6 @@
 import { ResetPasswordStep2Form } from "@/components/_v1/forms/reset-password-form-step2";
+import { AuthResetShell } from "@/components/auth-reset-shell";
 import { Icons } from "@gnd/ui/icons";
-import { Card, CardDescription, CardHeader, CardTitle } from "@gnd/ui/card";
 import type { Metadata } from "next";
 
 import PageShell from "@/components/page-shell";
@@ -10,28 +10,14 @@ export const metadata: Metadata = {
 export default async function Page() {
 	return (
 		<PageShell>
-			<div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
-				<header className="absolute top-0 left-0 z-30 w-full">
-					<div className="p-6 md:p-8">
-						<div className="h-8 w-auto">
-							<Icons.logoLg />
-						</div>
-					</div>
-				</header>
-
-				<Card className="shadow-xl border-0">
-					<CardHeader className="space-y-1 pb-6">
-						<CardTitle className="text-xl font-semibold text-center">
-							Reset Password
-						</CardTitle>
-						<CardDescription className="text-center">
-							Enter your verification code and new password to finish resetting
-							your account
-						</CardDescription>
-					</CardHeader>
-					<ResetPasswordStep2Form />
-				</Card>
-			</div>
+			<AuthResetShell
+				eyebrow="Secure link"
+				title="Create a new password"
+				description="Choose a new password for your account. This reset link can only be used once."
+				icon={<Icons.LockKeyhole className="size-5" />}
+			>
+				<ResetPasswordStep2Form />
+			</AuthResetShell>
 		</PageShell>
 	);
 }

@@ -17,12 +17,12 @@ describe("dealer portal pricing", () => {
 			internalProfile: {
 				id: 1,
 				title: "Dealer Standard",
-				coefficient: 1,
+				coefficient: 1.5,
 			},
 			dealerProfile: {
 				id: 2,
 				title: "Retail",
-				coefficient: 1.5,
+				salesPercentage: 20,
 			},
 			lineItems: [
 				{
@@ -39,21 +39,21 @@ describe("dealer portal pricing", () => {
 		expect(result.profiles.internal).toEqual({
 			id: 1,
 			label: "Dealer Standard",
-			coefficient: 1,
+			coefficient: 1.5,
 		});
 		expect(result.profiles.dealer).toEqual({
 			id: 2,
 			label: "Retail",
-			coefficient: 1.5,
+			salesPercentage: 20,
 		});
 		expect(result.lines[0]).toMatchObject({
-			internalUnitPrice: 100,
-			internalLineTotal: 200,
-			dealerUnitPrice: 150,
-			dealerLineTotal: 300,
+			internalUnitPrice: 150,
+			internalLineTotal: 300,
+			dealerUnitPrice: 180,
+			dealerLineTotal: 360,
 		});
-		expect(result.internalPricing.grandTotal).toBe(220);
-		expect(result.dealerPricing.grandTotal).toBe(330);
+		expect(result.internalPricing.grandTotal).toBe(330);
+		expect(result.dealerPricing.grandTotal).toBe(396);
 	});
 });
 

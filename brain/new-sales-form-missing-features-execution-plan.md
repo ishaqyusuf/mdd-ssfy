@@ -13,6 +13,8 @@ Deliver full behavioral parity for critical sales-form workflows by closing all 
 - We should continue ongoing migration work (no reset/rewrite), and integrate missing items into the current task stream.
 - Phase progression rule: do not start next phase until current phase validation checklist passes.
 - Field-reported gaps captured on 2026-03-14 are authoritative even if related UI exists in current new-form code.
+- Phase 0 acceptance authority is now `brain/new-sales-form-phase0-acceptance-matrix.md`, with fixture scope in `brain/new-sales-form-phase0-fixtures.md`.
+- Dealer customer profiles use `salesPercentage`, not `coefficient`. Internal `www` customer profiles continue to use `coefficient`. Dealer quote pricing must apply internal coefficient first and then dealer percentage adjustment.
 
 ## Explicit Old vs New Comparison
 

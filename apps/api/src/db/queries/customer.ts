@@ -60,6 +60,7 @@ function mapCustomerWorkspaceItem(
 			null,
 		customerPhone:
 			item.billingAddress?.phoneNo || item.customer?.phoneNo || null,
+		email: item.billingAddress?.email || item.customer?.email || null,
 		address: item.billingAddress?.address1 || item.customer?.address || null,
 		salesDate: item.createdAt?.toISOString?.() || null,
 		due: Number(item.amountDue || 0),
@@ -361,6 +362,7 @@ async function getCustomerWorkspaceSales(
 					name: true,
 					businessName: true,
 					phoneNo: true,
+					email: true,
 					address: true,
 				},
 			},
@@ -368,6 +370,7 @@ async function getCustomerWorkspaceSales(
 				select: {
 					name: true,
 					phoneNo: true,
+					email: true,
 					address1: true,
 				},
 			},

@@ -57,10 +57,17 @@ export type DealerPortalCustomerSchema = z.infer<
 	typeof dealerPortalCustomerSchema
 >;
 
+export const dealerPortalCustomerLookupSchema = z.object({
+	id: z.number(),
+});
+export type DealerPortalCustomerLookupSchema = z.infer<
+	typeof dealerPortalCustomerLookupSchema
+>;
+
 export const dealerPortalSalesProfileSchema = z.object({
 	id: z.number().optional().nullable(),
 	title: z.string().min(1),
-	coefficient: z.number().optional().nullable(),
+	salesPercentage: z.number().optional().nullable(),
 	defaultProfile: z.boolean().optional().nullable(),
 });
 export type DealerPortalSalesProfileSchema = z.infer<
@@ -72,6 +79,31 @@ export const dealerPortalSalesDocumentsSchema = z.object({
 });
 export type DealerPortalSalesDocumentsSchema = z.infer<
 	typeof dealerPortalSalesDocumentsSchema
+>;
+
+export const dealerPortalSalesListSchema = z.object({
+	cursor: z.number().optional().nullable(),
+	size: z.number().min(1).max(100).optional().nullable(),
+	q: z.string().optional().nullable(),
+	"customer.name": z.string().optional().nullable(),
+	phone: z.string().optional().nullable(),
+	orderNo: z.string().optional().nullable(),
+	status: z.string().optional().nullable(),
+});
+export type DealerPortalSalesListSchema = z.infer<
+	typeof dealerPortalSalesListSchema
+>;
+
+export const dealerPortalCustomersListSchema = z.object({
+	cursor: z.number().optional().nullable(),
+	size: z.number().min(1).max(100).optional().nullable(),
+	q: z.string().optional().nullable(),
+	"customer.name": z.string().optional().nullable(),
+	phone: z.string().optional().nullable(),
+	profile: z.string().optional().nullable(),
+});
+export type DealerPortalCustomersListSchema = z.infer<
+	typeof dealerPortalCustomersListSchema
 >;
 
 export const dealerPortalSalesDocumentSchema = z.object({

@@ -8,15 +8,18 @@ Owner: Sales Form Rebuild Team
 Create deterministic reproduction coverage for every user-reported parity gap before fixes.
 
 ## Phase 0 Gate (must all be true)
+- `brain/new-sales-form-phase0-acceptance-matrix.md` exists and covers `www` order, `www` quote, dealership quote, and dealership quote conversion.
+- `brain/new-sales-form-phase0-fixtures.md` exists and defines flat, door, HPT, shelf, moulding, service, mixed, recovery, dealer quote, and dealer conversion fixtures.
 - Every feature has old/new anchors.
 - Every feature has explicit reproduction script (manual steps + expected outcome).
-- Every feature has evidence artifact path (`ai/new-sales-form-parity-evidence/*`).
+- Every feature has evidence artifact path (`brain/new-sales-form-parity-evidence/*`).
 - Every feature is mapped to at least one automation target (unit/integration/e2e).
+- Dealer sales profile repros use `salesPercentage`, not `coefficient`.
 - No Phase 1 fix starts until all rows are populated and triaged (`Fail`/`Partial`/`Pass`).
 
 ## Evidence Convention
 - Screens/video/logs per feature under:
-  - `ai/new-sales-form-parity-evidence/<feature-slug>/`
+  - `brain/new-sales-form-parity-evidence/<feature-slug>/`
 - Suggested files:
   - `repro.md` (steps + observed result)
   - `old-form-expected.md`
@@ -38,7 +41,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   5. Verify estimate summary behavior and aggregate totals.
 - Expected (old): row-level summary + aggregate parity.
 - Current observed (new): implemented in modal derivation path. Supplier changes now re-resolve size-row unit pricing through shared bucket resolver.
-- Evidence path: `ai/new-sales-form-parity-evidence/moulding-calculator/`
+- Evidence path: `brain/new-sales-form-parity-evidence/moulding-calculator/`
 - Automation target:
   - `packages/sales/src/sales-form/domain/workflow-calculators.test.ts`
   - add e2e fixture for grouped moulding edits.
@@ -57,7 +60,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   3. Confirm line-level and summary pricing recalc immediately.
 - Expected (old): `taxCodeChanged` + `salesProfileChanged` path updates totals.
 - Current observed (new): implemented in code path. Repricing trigger now responds to profile-id/coefficient changes and uses shared profile-repricing engine.
-- Evidence path: `ai/new-sales-form-parity-evidence/profile-repricing/`
+- Evidence path: `brain/new-sales-form-parity-evidence/profile-repricing/`
 - Automation target:
   - `packages/sales/src/sales-form/domain/profile-repricing.test.ts`
   - API query parity fixture on profile swap.
@@ -76,7 +79,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   4. Confirm pricing bucket changes by supplier key.
 - Expected (old): supplier-aware dependency pricing used instantly.
 - Current observed (new): implemented. Door estimate now applies shared component surcharge consistently across panel and modal apply paths.
-- Evidence path: `ai/new-sales-form-parity-evidence/supplier-door-modal/`
+- Evidence path: `brain/new-sales-form-parity-evidence/supplier-door-modal/`
 - Automation target:
   - `packages/sales/src/sales-form/domain/workflow-calculators.test.ts`
   - targeted UI integration test for supplier switch -> modal rows.
@@ -92,7 +95,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   2. Attempt inline base-price edit for a size bucket.
 - Expected (old): privileged inline price edit path exists.
 - Current observed (new): implemented. Door size/qty modal now supports quick base capture (`B`) via persisted `meta.baseUnitPrice`.
-- Evidence path: `ai/new-sales-form-parity-evidence/quick-base-price-update/`
+- Evidence path: `brain/new-sales-form-parity-evidence/quick-base-price-update/`
 - Automation target:
   - add modal action integration test + mutation test.
 - Triage: Partial (Implemented, Runtime Repro Pending)
@@ -107,7 +110,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   2. Click estimate column value.
 - Expected (old): breakdown menu with price contributors.
 - Current observed (new): implemented. HPT estimate cell now opens a breakdown menu with contributor details, and grouped-door rows now auto-sync persisted unit/line totals so component surcharge pricing appears immediately without needing a qty edit first.
-- Evidence path: `ai/new-sales-form-parity-evidence/hpt-estimate-breakdown/`
+- Evidence path: `brain/new-sales-form-parity-evidence/hpt-estimate-breakdown/`
 - Automation target:
   - add HPT row interaction test.
 - Triage: Partial (Implemented, Runtime Repro Pending)
@@ -123,7 +126,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   2. Compare expected line totals with old form for same fixture.
 - Expected (old): full component+size contribution in line estimate.
 - Current observed (new): implemented in domain/UI paths. HPT grouped-door rows now auto-sync persisted component surcharge pricing before user edits, preventing the old issue where totals stayed on base door price until qty changed.
-- Evidence path: `ai/new-sales-form-parity-evidence/component-cost-door-estimate/`
+- Evidence path: `brain/new-sales-form-parity-evidence/component-cost-door-estimate/`
 - Automation target:
   - extend workflow calculator parity fixtures.
 - Triage: Partial (Implemented, Runtime Repro Pending)
@@ -139,7 +142,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   3. Re-select after remove and verify qty.
 - Expected: default qty 1 every fresh selection.
 - Current observed (new): TBD
-- Evidence path: `ai/new-sales-form-parity-evidence/moulding-default-qty/`
+- Evidence path: `brain/new-sales-form-parity-evidence/moulding-default-qty/`
 - Automation target:
   - add reselection/default regression test.
 - Triage: Partial (Implemented, Runtime Repro Pending)
@@ -156,7 +159,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   3. Check restore/saved state.
 - Expected: no silent loss or explicit recovery path.
 - Current observed (new): improved. Autosave is now enabled by default and local recovery snapshot/restore is available on reload.
-- Evidence path: `ai/new-sales-form-parity-evidence/state-loss/`
+- Evidence path: `brain/new-sales-form-parity-evidence/state-loss/`
 - Automation target:
   - autosave resilience integration tests.
 - Triage: Partial (Implemented, Runtime Repro Pending)
@@ -171,7 +174,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   2. Compare editability, rollups, and persistence.
 - Expected: parity in workflow depth and totals.
 - Current observed (new): partial. New form shelf flow now supports old-form-style grouped sections with parent/category/product selection, add-section/add-product actions, price editing (base -> calculated sales -> custom override), and section subtotal rollups on top of the persisted flat `shelfItems` rows. Runtime parity proof is still pending for legacy category-clear/create edge cases and reopen/save behavior on existing shelf fixtures.
-- Evidence path: `ai/new-sales-form-parity-evidence/shelf-parity/`
+- Evidence path: `brain/new-sales-form-parity-evidence/shelf-parity/`
 - Automation target:
   - `packages/sales/src/sales-form/domain/workflow-calculators.test.ts`
   - shelf row + category/product integration tests.
@@ -188,7 +191,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   3. Verify persistence + costing effect.
 - Expected (old): both toggles available and persisted.
 - Current observed (new): implemented. Service rows now expose and persist both tax and production (`produceable`) toggles.
-- Evidence path: `ai/new-sales-form-parity-evidence/service-toggles/`
+- Evidence path: `brain/new-sales-form-parity-evidence/service-toggles/`
 - Automation target:
   - service row meta aggregation tests + UI interaction tests.
 - Triage: Partial (Implemented, Runtime Repro Pending)
@@ -205,7 +208,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   3. Validate tax totals against old fixture.
 - Expected: deterministic recompute on all tax-affecting changes.
 - Current observed (new): root API payload gap patched (`getTaxProfiles` now returns `percentage` for tax-rate resolution). Runtime transition coverage still pending.
-- Evidence path: `ai/new-sales-form-parity-evidence/tax-calculation/`
+- Evidence path: `brain/new-sales-form-parity-evidence/tax-calculation/`
 - Automation target:
   - expand costing parity matrix with these transitions.
 - Triage: Partial (Implemented, Runtime Repro Pending)
@@ -219,7 +222,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   1. Check step component surface for floating menu actions.
 - Expected: tabs/select-all/pricing/component/refresh/enable-custom available.
 - Current observed (new): implemented. Floating step bar now includes tabs, select-all, pricing, component, refresh, and enable-custom actions.
-- Evidence path: `ai/new-sales-form-parity-evidence/step-floating-bar/`
+- Evidence path: `brain/new-sales-form-parity-evidence/step-floating-bar/`
 - Automation target:
   - UI render/action coverage.
 - Triage: Partial (Implemented, Runtime Repro Pending)
@@ -233,7 +236,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   1. Inspect each component card actions.
 - Expected: full action menu parity.
 - Current observed (new): implemented. Component cards now provide context actions for edit/select/redirect/delete.
-- Evidence path: `ai/new-sales-form-parity-evidence/component-menu/`
+- Evidence path: `brain/new-sales-form-parity-evidence/component-menu/`
 - Automation target:
   - component action menu integration tests.
 - Triage: Partial (Implemented, Runtime Repro Pending)
@@ -248,7 +251,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   2. Verify indicators.
 - Expected: same indicator semantics.
 - Current observed (new): implemented. Top-left indicators now render for variation/override/redirect metadata.
-- Evidence path: `ai/new-sales-form-parity-evidence/component-indicators/`
+- Evidence path: `brain/new-sales-form-parity-evidence/component-indicators/`
 - Automation target:
   - component metadata indicator rendering tests.
 - Triage: Partial (Implemented, Runtime Repro Pending)
@@ -265,7 +268,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   2. Open history panel and inspect timeline.
 - Expected: google-doc-like update history sidebar.
 - Current observed (new): implemented. Sidebar now includes Summary/History tabs and save paths trigger history task creation.
-- Evidence path: `ai/new-sales-form-parity-evidence/save-history/`
+- Evidence path: `brain/new-sales-form-parity-evidence/save-history/`
 - Automation target:
   - save-side-effect and history-query integration tests.
 - Triage: Partial (Implemented, Runtime Repro Pending)
@@ -283,7 +286,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   4. Compare resulting behavior and persisted output against old form.
 - Expected: edit flow matches old modal behavior and applies changes consistently.
 - Current observed (new): field-reported parity gap; current edit dialog exists but behavior is not yet old-form equivalent.
-- Evidence path: `ai/new-sales-form-parity-evidence/component-edit/`
+- Evidence path: `brain/new-sales-form-parity-evidence/component-edit/`
 - Automation target:
   - component edit integration test.
 - Triage: Fail (User Reported)
@@ -298,7 +301,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   2. Attempt to add or replace component image/attachment as in old flow.
 - Expected: image attachment/update path available and persisted.
 - Current observed (new): field-reported missing feature; no equivalent attachment path confirmed in new edit dialog.
-- Evidence path: `ai/new-sales-form-parity-evidence/component-image-attachment/`
+- Evidence path: `brain/new-sales-form-parity-evidence/component-image-attachment/`
 - Automation target:
   - component edit UI coverage + persistence integration.
 - Triage: Fail (User Reported)
@@ -315,7 +318,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   2. Compare available routes and ordering.
 - Expected: redirectable route list matches old-form semantics exactly.
 - Current observed (new): implemented in code. Shared redirect-route derivation now mirrors legacy behavior by listing the full ordered step set without excluding the current step; runtime parity proof is still pending.
-- Evidence path: `ai/new-sales-form-parity-evidence/component-redirect-routes/`
+- Evidence path: `brain/new-sales-form-parity-evidence/component-redirect-routes/`
 - Automation target:
   - redirect-route list derivation unit/integration test.
 - Triage: Partial (Implemented, Runtime Repro Pending)
@@ -331,7 +334,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   3. Confirm UX, permission behavior, and persistence match old form.
 - Expected: same inline price-edit affordance and save behavior as old modal.
 - Current observed (new): field-reported mismatch; current implementation is not yet old-form equivalent.
-- Evidence path: `ai/new-sales-form-parity-evidence/door-inline-base-cost/`
+- Evidence path: `brain/new-sales-form-parity-evidence/door-inline-base-cost/`
 - Automation target:
   - door size modal edit interaction test.
 - Triage: Fail (User Reported)
@@ -346,7 +349,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   2. Compare displayed cost value.
 - Expected: displayed component cost uses calculated sales cost, not raw base cost.
 - Current observed (new): partially hardened in code. Component card/edit/quick-price paths now prefer resolved sales pricing and preserve explicit base-cost metadata; runtime parity evidence is still pending for dependency/profile-sensitive fixtures.
-- Evidence path: `ai/new-sales-form-parity-evidence/component-sales-cost-display/`
+- Evidence path: `brain/new-sales-form-parity-evidence/component-sales-cost-display/`
 - Automation target:
   - pricing-display integration test with dependency/profile fixture.
 - Triage: Partial (Implemented, Runtime Repro Pending)
@@ -363,7 +366,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   4. Verify row is added and priced.
 - Expected: selected size row is added immediately and works like old form.
 - Current observed (new): implemented in code. HPT `Add Size` and door-size modal row derivation now use shared `deriveDoorSizeCandidates(...)`, and when `doorSizeVariation` exists it is now the canonical size source just like the old form: only matching variant widths for the active height are shown, while pricing buckets only price those rows instead of expanding the list.
-- Evidence path: `ai/new-sales-form-parity-evidence/hpt-add-size/`
+- Evidence path: `brain/new-sales-form-parity-evidence/hpt-add-size/`
 - Automation target:
   - `packages/sales/src/sales-form/domain/workflow-calculators.test.ts`
   - HPT add-size interaction test.
@@ -380,7 +383,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   3. Compare workflow and resulting rows.
 - Expected: old-form add-door option flow exists and persists correctly.
 - Current observed (new): implemented in code. HPT now provides an `Add Door Option` action that returns the user to the `Door` step to add another path, and a `Swap Door` action that replaces the active door component while preserving size/qty rows and repricing them against the new door.
-- Evidence path: `ai/new-sales-form-parity-evidence/hpt-add-door-option/`
+- Evidence path: `brain/new-sales-form-parity-evidence/hpt-add-door-option/`
 - Automation target:
   - grouped HPT add-door integration test.
 - Triage: Partial (Implemented, Runtime Repro Pending)
@@ -402,7 +405,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   5. Confirm matching widths appear for the active height and non-matching widths do not.
 - Expected (old): variant rules save on the Door step and filter visible sizes by active height + selected step components.
 - Current observed (new): implemented in code. A redesigned `Door Size Variant` modal now reads and writes old-form-style `meta.doorSizeVariation`, persists updates back to step settings via `sales.updateStepMeta`, and the shared `deriveDoorSizeCandidates(...)` helper now falls back to configured route-step meta and treats variant widths as the canonical visible size list, matching old-form filtering semantics in both the door modal and HPT.
-- Evidence path: `ai/new-sales-form-parity-evidence/door-size-variants/`
+- Evidence path: `brain/new-sales-form-parity-evidence/door-size-variants/`
 - Automation target:
   - `packages/sales/src/sales-form/domain/workflow-calculators.test.ts`
   - `packages/sales/src/sales-form/domain/route-engine.test.ts`
@@ -420,14 +423,94 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   3. Compare close behavior in old and new forms.
 - Expected: outside click dismiss behavior matches old form.
 - Current observed (new): code review indicates the current modal already wires backdrop click to `onOpenChange(false)` and stops propagation on content; runtime parity evidence is still needed to confirm the reported mismatch path.
-- Evidence path: `ai/new-sales-form-parity-evidence/moulding-outside-click-dismiss/`
+- Evidence path: `brain/new-sales-form-parity-evidence/moulding-outside-click-dismiss/`
 - Automation target:
   - modal dismiss interaction test.
 - Triage: Partial (Needs Runtime Verification)
 
+25. Dealer profile percentage pricing
+- Old anchors:
+  - n/a; dealership portal is a newer surface.
+- New anchors:
+  - `packages/db/src/queries/dealers.ts:839`
+  - `packages/sales/src/sales-form/domain/dual-pricing.ts:3`
+  - `apps/dealership/src/components/dealer-portal/dealer-sales-profiles.tsx`
+- Manual repro:
+  1. Create or select a dealer sales profile with `salesPercentage = 25`.
+  2. Create a dealer quote with a line qty `2`, base unit price `80`, internal coefficient `1.25`, and tax `10`.
+  3. Verify displayed dealer subtotal is `250` for that line before tax.
+  4. Save and reopen quote.
+  5. Verify dealer-facing saved/reopened line total is still `250`, and internal line total is `200`.
+- Expected: dealer profile pricing uses `salesPercentage`, not `coefficient`; dealer adjustment applies after internal coefficient.
+- Current observed (new): code has `salesPercentage` paths, but end-to-end runtime proof is pending.
+- Evidence path: `brain/new-sales-form-parity-evidence/dealer-percentage-pricing/`
+- Automation target:
+  - `packages/sales/src/sales-form/domain/dual-pricing.test.ts`
+  - `packages/db/src/queries/dealers.test.ts`
+- Triage: Partial (Implemented, Runtime Repro Pending)
+
+26. Dealer quote line-total edit semantics
+- Old anchors:
+  - n/a; dealership quote composer is a newer surface.
+- New anchors:
+  - `packages/sales/src/sales-form/ui/line-items-panel.tsx:128`
+  - `packages/sales/src/sales-form/domain/dual-pricing.ts:86`
+  - `packages/db/src/queries/dealers.ts:878`
+- Manual repro:
+  1. Create a dealer quote line with qty `2`, unit price `80`.
+  2. Manually edit the visible `Line Total` field to a value that does not equal qty times unit price.
+  3. Save and reopen.
+  4. Compare visible total, mutation response total, persisted pricing snapshot, and reopened total.
+- Expected: either the UI makes line total read-only/derived, or an explicit override contract is implemented consistently client and server side.
+- Current observed (new): review found the editable line total is misleading because pricing recomputes from qty and unit price.
+- Evidence path: `brain/new-sales-form-parity-evidence/dealer-line-total-semantics/`
+- Automation target:
+  - `packages/db/src/queries/dealers.test.ts`
+  - dealer quote composer UI/manual check.
+- Triage: Fail (Contract Gap)
+
+27. Initial load error retry visibility
+- Old anchors:
+  - n/a; new-form resilience requirement.
+- New anchors:
+  - `apps/www/src/components/forms/new-sales-form/new-sales-form.tsx:1455`
+- Manual repro:
+  1. Force `newSalesForm.bootstrap` or `newSalesForm.get` to fail.
+  2. Open create/edit route.
+  3. Confirm the user sees retry UI, not an indefinite skeleton.
+- Expected: load error branch renders before `!record` skeleton fallback.
+- Current observed (new): review found `isLoading || !record` returns skeleton before `loadError` is checked.
+- Evidence path: `brain/new-sales-form-parity-evidence/load-error-state/`
+- Automation target:
+  - component/manual browser repro.
+- Triage: Fail (UI State Gap)
+
+28. Surface-specific header action gating
+- Old anchors:
+  - `apps/www/src/components/forms/sales-form/*` action surfaces.
+- New anchors:
+  - `packages/sales/src/sales-form/ui/header-actions.tsx`
+  - `apps/www/src/components/forms/new-sales-form/new-sales-form.tsx`
+  - `apps/dealership/src/components/dealer-sales-form/dealer-quote-composer.tsx`
+- Manual repro:
+  1. Open `www` new order/quote.
+  2. Verify all visible header actions are wired and meaningful.
+  3. Open dealership quote composer.
+  4. Verify dealer header does not expose print/save-close/save-new/toggle actions unless implemented.
+- Expected: each surface shows only capabilities backed by real handlers and permissions.
+- Current observed (new): review found dealer composer can expose disabled or no-op shared header actions.
+- Evidence path: `brain/new-sales-form-parity-evidence/header-action-gating/`
+- Automation target:
+  - UI render/manual browser repro.
+- Triage: Fail (Capability Contract Gap)
+
 ## Phase 0 Working Checklist
 - [x] Matrix created and anchored.
-- [ ] Capture real new-form failing evidence for all 23 rows.
+- [x] Acceptance matrix created.
+- [x] Fixture catalog created.
+- [x] Initial automated validation log created.
+- [x] Failing/partial rows mapped to implementation task IDs.
+- [ ] Capture real new-form failing evidence for all rows.
 - [ ] Assign each row to `Fail` / `Partial` / `Pass` based on evidence.
-- [ ] Link failing row IDs to implementation-phase task IDs.
+- [x] Link failing row IDs to implementation-phase task IDs.
 - [ ] Mark Phase 0 complete in `brain/progress.md` only after above is done.

@@ -1304,7 +1304,7 @@
 - Updated backlog priority to make new-sales-form parity closure the active NOW stream with strict phase progression (complete test gate before moving to next phase).
 - Started Phase 0 execution artifacts:
 - added deterministic reproduction matrix with 15 user-reported feature rows, old/new anchors, manual scripts, evidence paths, and automation targets in `brain/new-sales-form-phase0-repro-matrix.md`.
-- established evidence workspace at `ai/new-sales-form-parity-evidence/README.md` for feature-by-feature proof capture before fixes.
+- established evidence workspace at `brain/new-sales-form-parity-evidence/README.md` for feature-by-feature proof capture before fixes.
 - Captured initial code-level evidence and marked six rows as `Fail (Code Confirmed)`:
 - quick base-price update in size/qty modal, HPT estimate breakdown click, step floating bar parity, component action menu parity, component top-left indicators parity, and save-history sidebar parity.
 - Extended code-level evidence capture to state resilience, shelf parity depth, and service toggles:
