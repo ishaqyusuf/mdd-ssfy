@@ -1,5 +1,6 @@
 import { THEME } from "@/lib/theme";
-import { useColorScheme as useNativeWindColorScheme } from "nativewind";
+import { useCallback } from "react";
+import { Appearance, useColorScheme as useRNColorScheme } from "react-native";
 
 type AppColorScheme = "light" | "dark" | "system";
 
@@ -10,15 +11,22 @@ export function useColors() {
 }
 
 export function useColorScheme() {
-  const { colorScheme, setColorScheme, toggleColorScheme } =
-    useNativeWindColorScheme();
+  const colorScheme = useRNColorScheme();
 
   const resolvedColorScheme: "light" | "dark" =
     colorScheme === "dark" ? "dark" : "light";
+  const setColorScheme = useCallback((scheme: AppColorScheme) => {
+    Appearance.setColorScheme(scheme === "system" ? null : scheme);
+  }, []);
+  const toggleColorScheme = useCallback(() => {
+    Appearance.setColorScheme(
+      resolvedColorScheme === "dark" ? "light" : "dark",
+    );
+  }, [resolvedColorScheme]);
 
   return {
     colorScheme: resolvedColorScheme,
-    setColorScheme: (scheme: AppColorScheme) => setColorScheme(scheme),
+    setColorScheme,
     toggleColorScheme,
   };
 }

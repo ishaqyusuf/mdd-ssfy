@@ -75,6 +75,7 @@ export default function SettingsExampleScreen({
 	};
 	// get expo build version
 	const expoVersion = config.version;
+	const updateVersion = config.extra?.updateVersion || "N/A";
 	const shouldShowSections = sections.length > 1;
 	const insuranceStatus = profile
 		? getInsuranceRequirement(profile.documents || [])
@@ -224,7 +225,7 @@ export default function SettingsExampleScreen({
 						<SettingsItem
 							icon="AppWindow"
 							label="App Updates"
-							subLabel="Check and install the latest updates"
+							subLabel={`Update version ${updateVersion}`}
 							isLast
 							onPress={() => router.push("/updates")}
 							rightElement={
@@ -362,13 +363,13 @@ export default function SettingsExampleScreen({
 								Log Out
 							</Text>
 						</Pressable>
-						<Text className="text-xs font-medium text-muted-foreground">
-							Version {expoVersion} (Build{" "}
+						<Text className="text-center text-xs font-medium text-muted-foreground">
+							App version {expoVersion} (Build{" "}
 							{Platform.select({
 								android: config.android?.version || 1,
 								ios: config.ios?.buildNumber || "1",
 							})}
-							)
+							){"\n"}Update version {updateVersion}
 						</Text>
 					</View>
 				</View>

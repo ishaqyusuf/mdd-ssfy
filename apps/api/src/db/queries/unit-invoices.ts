@@ -137,16 +137,18 @@ const unitInvoiceFormSelect = {
   },
 } satisfies Prisma.HomesSelect;
 
+export const unitInvoicesFilterShape = {
+  q: z.string().optional().nullable(),
+  builderSlug: z.string().optional().nullable(),
+  projectSlug: z.string().optional().nullable(),
+  production: z.enum(communityProductionFilter).optional().nullable(),
+  invoice: z.enum(invoiceFilter).optional().nullable(),
+  installation: z.enum(communityInstllationFilters).optional().nullable(),
+  dateRange: z.array(z.string().optional().nullable()).optional().nullable(),
+};
+
 export const getUnitInvoicesSchema = z
-  .object({
-    q: z.string().optional().nullable(),
-    builderSlug: z.string().optional().nullable(),
-    projectSlug: z.string().optional().nullable(),
-    production: z.enum(communityProductionFilter).optional().nullable(),
-    invoice: z.enum(invoiceFilter).optional().nullable(),
-    installation: z.enum(communityInstllationFilters).optional().nullable(),
-    dateRange: z.array(z.string().optional().nullable()).optional().nullable(),
-  })
+  .object(unitInvoicesFilterShape)
   .extend(paginationSchema.shape);
 export type GetUnitInvoicesSchema = z.infer<typeof getUnitInvoicesSchema>;
 

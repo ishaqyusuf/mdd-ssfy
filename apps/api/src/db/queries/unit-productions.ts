@@ -12,18 +12,30 @@ export const unitProductionStatusFilter = [
   "completed",
 ] as const;
 
+const unitProductionsFilterShape = {
+  ids: z.array(z.number()).optional().nullable(),
+  builderSlug: z.string().optional().nullable(),
+  projectSlug: z.string().optional().nullable(),
+  taskNames: z.array(z.string()).optional().nullable(),
+  production: z.enum(unitProductionStatusFilter).optional().nullable(),
+  dateRange: z.array(z.string().optional().nullable()).optional().nullable(),
+};
+
 export const getUnitProductionsSchema = z
-  .object({
-    ids: z.array(z.number()).optional().nullable(),
-    builderSlug: z.string().optional().nullable(),
-    projectSlug: z.string().optional().nullable(),
-    taskNames: z.array(z.string()).optional().nullable(),
-    production: z.enum(unitProductionStatusFilter).optional().nullable(),
-    dateRange: z.array(z.string().optional().nullable()).optional().nullable(),
-  })
+  .object(unitProductionsFilterShape)
   .extend(paginationSchema.shape);
 
 export type GetUnitProductionsSchema = z.infer<typeof getUnitProductionsSchema>;
+
+export const getUnitProductionSummarySchema = z.object({
+  ...unitProductionsFilterShape,
+  q: paginationSchema.shape.q,
+  bin: paginationSchema.shape.bin,
+});
+
+export type GetUnitProductionSummarySchema = z.infer<
+  typeof getUnitProductionSummarySchema
+>;
 
 export const getUnitProductionOverviewSchema = z.object({
   id: z.number(),
@@ -225,7 +237,7 @@ export async function getUnitProductions(
 
 export async function getUnitProductionSummary(
   ctx: TRPCContext,
-  query: Omit<GetUnitProductionsSchema, "cursor" | "size" | "sort">,
+  query: GetUnitProductionSummarySchema,
 ) {
   const baseWhere = whereUnitProductions(query);
   const startedPredicate: Prisma.HomeTasksWhereInput = {

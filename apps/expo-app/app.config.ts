@@ -1,5 +1,7 @@
 import { ExpoConfig } from "expo/config";
 
+export const UPDATE_VERSION = "2026.05.21.02";
+
 const config: ExpoConfig = {
   name: "GND Millwork",
   slug: "gnd-prodesk",
@@ -66,6 +68,7 @@ const config: ExpoConfig = {
   },
 
   extra: {
+    updateVersion: UPDATE_VERSION,
     router: {},
     eas: {
       projectId: "8ea2eecb-4109-453c-827f-9b2de2e3a9aa", //pcruz321

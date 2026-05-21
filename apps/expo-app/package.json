@@ -8,7 +8,7 @@
     "start": "bun run with-env expo start -c --go",
     "dev": "bun run with-env expo start -c --clear --port 3501 --go",
     "android": "bun run with-env expo run:android",
-    "update:preview": "bun run with-env:prod eas update -p android --channel preview --platform android --environment preview",
+    "update:preview": "node ./scripts/update-preview.mjs",
     "build:preview": "bun run with-env:prod eas build -p android --profile preview",
     "ios": "bun run with-env expo run:ios",
     "web": "bun run with-env expo start --web"

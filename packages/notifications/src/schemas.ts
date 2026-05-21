@@ -52,7 +52,7 @@ export type CreateActivityInput = z.infer<typeof createActivitySchema>;
 export const userSchema = z.object({
 	id: z.number(),
 	name: z.string(),
-	email: z.email().optional().nullable,
+	email: z.email().optional().nullable(),
 	phoneNo: z.string().optional(),
 	// locale: z.string().optional(),
 	// avatar_url: z.string().optional(),
@@ -152,6 +152,11 @@ const salesCustomerPaymentSaleSchema = z.object({
 	amountApplied: z.number().nullable().optional(),
 	remainingDue: z.number().nullable().optional(),
 });
+const salesCustomerPaymentFailedSaleSchema = z.object({
+	salesId: z.number(),
+	orderNo: z.string(),
+	remainingDue: z.number().nullable().optional(),
+});
 
 export const salesCustomerPaymentReceivedSchema = z.object({
 	customerEmail: z.string().email(),
@@ -183,13 +188,7 @@ export const salesCustomerPaymentFailedSchema = z.object({
 	paymentMethod: z.string().optional().nullable(),
 	totalAmount: z.number().optional().nullable(),
 	reason: z.string().optional().nullable(),
-	sales: z
-		.array(
-			salesCustomerPaymentSaleSchema.omit({
-				amountApplied: true,
-			}),
-		)
-		.min(1),
+	sales: z.array(salesCustomerPaymentFailedSaleSchema).min(1),
 });
 export type SalesCustomerPaymentFailedInput = z.infer<
 	typeof salesCustomerPaymentFailedSchema

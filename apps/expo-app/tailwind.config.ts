@@ -8,7 +8,7 @@ export default {
     // "./components/**/*.{js,jsx,ts,tsx}",
     "./*.{js,jsx,ts,tsx}",
   ],
-  darkMode: "class",
+  darkMode: "media",
   // corePlugins: {
   //   backgroundOpacity: true,
   // },

@@ -6,49 +6,6 @@
 @import "nativewind/theme";
 
 @layer base {
-  .dark {
-    /* Core surfaces */
-    --background: rgb(15, 23, 42);
-    --foreground: rgb(226, 232, 240);
-
-    --card: rgb(30, 41, 59);
-    --card-foreground: rgb(226, 232, 240);
-
-    --popover: rgb(30, 41, 59);
-    --popover-foreground: rgb(226, 232, 240);
-
-    /* Brand / primary */
-    --primary: rgb(96, 165, 250);
-    --primary-foreground: rgb(15, 23, 42);
-
-    /* UI layers */
-    --secondary: rgb(51, 65, 85);
-    --secondary-foreground: rgb(226, 232, 240);
-
-    --muted: rgb(30, 41, 59);
-    --muted-foreground: rgb(148, 163, 184);
-
-    --accent: rgb(30, 58, 138);
-    --accent-foreground: rgb(219, 234, 254);
-
-    /* States */
-    --destructive: rgb(220, 38, 38);
-    --destructive-foreground: rgb(254, 242, 242);
-
-    /* Borders & inputs */
-    --border: rgb(51, 65, 85);
-    --input: rgb(71, 85, 105);
-
-    /* Focus ring */
-    --ring: rgb(125, 211, 252);
-
-    /* Charts */
-    --chart-1: rgb(96, 165, 250);
-    --chart-2: rgb(52, 211, 153);
-    --chart-3: rgb(251, 191, 36);
-    --chart-4: rgb(192, 132, 252);
-    --chart-5: rgb(244, 63, 94);
-  }
   :root {
     --radius: 0.65rem;
 
@@ -64,11 +21,11 @@
     --primary: rgb(30, 64, 175);
     --primary-foreground: rgb(239, 246, 255);
 
-    --success: rgb(22, 163, 74);
+    --success: rgb(34, 197, 94);
     --success-foreground: rgb(240, 253, 244);
 
-    --warn: rgb(217, 119, 6);
-    --warn-foreground: rgb(255, 247, 237);
+    --warn: rgb(245, 158, 11);
+    --warn-foreground: rgb(69, 26, 3);
 
     --secondary: rgb(241, 245, 249);
     --secondary-foreground: rgb(30, 41, 59);
@@ -93,25 +50,49 @@
     --chart-5: rgb(225, 29, 72);
   }
 }
-@layer base {
-  .dark {
-    /* --primary: rgb(31, 96, 249);
-    --primary-foreground: rgb(5, 22, 57); */
 
-    --success: rgb(22, 163, 74);
-    --success-foreground: rgb(236, 253, 245);
+@media (prefers-color-scheme: dark) {
+  @layer base {
+    :root {
+      --background: rgb(15, 23, 42);
+      --foreground: rgb(226, 232, 240);
 
-    --warn: rgb(245, 158, 11);
-    --warn-foreground: rgb(255, 251, 235);
-  }
-  :root {
-    /* --primary: rgb(21, 21, 250);
-    --primary-foreground: rgb(6, 8, 59); */
+      --card: rgb(30, 41, 59);
+      --card-foreground: rgb(226, 232, 240);
 
-    --success: rgb(34, 197, 94);
-    --success-foreground: rgb(240, 253, 244);
+      --popover: rgb(30, 41, 59);
+      --popover-foreground: rgb(226, 232, 240);
 
-    --warn: rgb(245, 158, 11);
-    --warn-foreground: rgb(69, 26, 3);
+      --primary: rgb(96, 165, 250);
+      --primary-foreground: rgb(15, 23, 42);
+
+      --success: rgb(22, 163, 74);
+      --success-foreground: rgb(236, 253, 245);
+
+      --warn: rgb(245, 158, 11);
+      --warn-foreground: rgb(255, 251, 235);
+
+      --secondary: rgb(51, 65, 85);
+      --secondary-foreground: rgb(226, 232, 240);
+
+      --muted: rgb(30, 41, 59);
+      --muted-foreground: rgb(148, 163, 184);
+
+      --accent: rgb(30, 58, 138);
+      --accent-foreground: rgb(219, 234, 254);
+
+      --destructive: rgb(220, 38, 38);
+      --destructive-foreground: rgb(254, 242, 242);
+
+      --border: rgb(51, 65, 85);
+      --input: rgb(71, 85, 105);
+      --ring: rgb(125, 211, 252);
+
+      --chart-1: rgb(96, 165, 250);
+      --chart-2: rgb(52, 211, 153);
+      --chart-3: rgb(251, 191, 36);
+      --chart-4: rgb(192, 132, 252);
+      --chart-5: rgb(244, 63, 94);
+    }
   }
 }

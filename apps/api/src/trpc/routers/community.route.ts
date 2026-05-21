@@ -75,6 +75,7 @@ import {
 	getUnitProductionOverview,
 	getUnitProductionOverviewSchema,
 	getUnitProductionSummary,
+	getUnitProductionSummarySchema,
 	getUnitProductions,
 	getUnitProductionsSchema,
 } from "@api/db/queries/unit-productions";
@@ -1082,13 +1083,7 @@ export const communityRouters = createTRPCRouter({
 			return getUnitProductionOverview(props.ctx, props.input);
 		}),
 	getUnitProductionSummary: publicProcedure
-		.input(
-			getUnitProductionsSchema.omit({
-				cursor: true,
-				size: true,
-				sort: true,
-			}),
-		)
+		.input(getUnitProductionSummarySchema)
 		.query(async (props) => {
 			return getUnitProductionSummary(props.ctx, props.input);
 		}),

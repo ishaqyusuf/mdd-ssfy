@@ -26,26 +26,27 @@ const ordersV2SmartStatuses = [
   "completed",
 ] as const;
 
+const ordersV2FilterShape = {
+  q: z.string().optional().nullable(),
+  dateRange: z.array(z.string().optional().nullable()).optional().nullable(),
+  customerName: z.string().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  po: z.string().optional().nullable(),
+  orderNo: z.string().optional().nullable(),
+  invoiceStatus: z.enum(ordersV2InvoiceStatus).optional().nullable(),
+  production: z.enum(ordersV2ProductionStatus).optional().nullable(),
+  priority: salesPrioritySchema.optional().nullable(),
+};
+
 export const getOrdersV2Schema = z
-  .object({
-    q: z.string().optional().nullable(),
-    dateRange: z.array(z.string().optional().nullable()).optional().nullable(),
-    customerName: z.string().optional().nullable(),
-    phone: z.string().optional().nullable(),
-    po: z.string().optional().nullable(),
-    orderNo: z.string().optional().nullable(),
-    invoiceStatus: z.enum(ordersV2InvoiceStatus).optional().nullable(),
-    production: z.enum(ordersV2ProductionStatus).optional().nullable(),
-    priority: salesPrioritySchema.optional().nullable(),
-  })
+  .object(ordersV2FilterShape)
   .extend(paginationSchema.shape);
 
 export type GetOrdersV2Schema = z.infer<typeof getOrdersV2Schema>;
 
-export const getOrdersV2SummarySchema = getOrdersV2Schema.omit({
-  cursor: true,
-  size: true,
-  sort: true,
+export const getOrdersV2SummarySchema = z.object({
+  ...ordersV2FilterShape,
+  bin: paginationSchema.shape.bin,
 });
 
 export type GetOrdersV2SummarySchema = z.infer<typeof getOrdersV2SummarySchema>;

@@ -35,6 +35,7 @@ export default function UpdatesScreen() {
   const runTypeMessage = currentlyRunning.isEmbeddedLaunch
     ? "Running built-in bundle"
     : "Running OTA update";
+  const updateVersion = config.extra?.updateVersion || "N/A";
   async function onCheckForUpdates() {
     setErrorMessage(null);
     setActionState("checking");
@@ -130,7 +131,8 @@ export default function UpdatesScreen() {
           <View className="rounded-xl border border-border bg-card p-4">
             <Text className="text-base font-semibold text-foreground">Build Info</Text>
             <View className="mt-2 gap-1">
-              <Text className="text-sm text-muted-foreground">Version: {config.version}</Text>
+              <Text className="text-sm text-muted-foreground">App version: {config.version}</Text>
+              <Text className="text-sm text-muted-foreground">Update version: {updateVersion}</Text>
               <Text className="text-sm text-muted-foreground">
                 Build:{" "}
                 {Platform.select({

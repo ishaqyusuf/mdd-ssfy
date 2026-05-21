@@ -1,15 +1,21 @@
 import { z } from "zod";
 
-export const settingsSchema = z.object({
+const settingsTypeSchema = z.enum([
+  "sales-settings",
+  "install-price-chart",
+  "app-download-apk",
+  "jobs-settings",
+  "unit-invoice-sweeper-settings",
+  "task-events-settings",
+]);
+
+const settingsBaseShape = {
   id: z.number().optional(),
-  type: z.enum([
-    "sales-settings",
-    "install-price-chart",
-    "app-download-apk",
-    "jobs-settings",
-    "unit-invoice-sweeper-settings",
-    "task-events-settings",
-  ]),
+  type: settingsTypeSchema,
+};
+
+export const settingsSchema = z.object({
+  ...settingsBaseShape,
   meta: z.record(z.any(), z.any()).default({}),
 });
 export type SettingsSchema = z.infer<typeof settingsSchema>;
@@ -19,7 +25,8 @@ export const jobsSettings = settingsSchema.extend({
     showTaskQty: z.boolean().default(false),
   }),
 });
-export const installCostSettings = settingsSchema.omit({ meta: true }).extend({
+const settingsWithoutMetaSchema = z.object(settingsBaseShape);
+export const installCostSettings = settingsWithoutMetaSchema.extend({
   meta: z.object({
     list: z
       .array(
@@ -37,7 +44,7 @@ export const installCostSettings = settingsSchema.omit({ meta: true }).extend({
   }),
 });
 export type InstallCostSettings = z.infer<typeof installCostSettings>;
-export const appDownloadSettings = settingsSchema.omit({ meta: true }).extend({
+export const appDownloadSettings = settingsWithoutMetaSchema.extend({
   meta: z.object({
     fileName: z.string().nullable().optional(),
     version: z.string().nullable().optional(),

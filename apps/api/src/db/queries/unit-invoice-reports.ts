@@ -1,15 +1,15 @@
 import type { TRPCContext } from "@api/trpc/init";
 import type { Prisma } from "@gnd/db";
+import { paginationSchema } from "@gnd/utils/schema";
 import { z } from "zod";
 import {
-  getUnitInvoicesSchema,
+  unitInvoicesFilterShape,
   whereUnitInvoices,
 } from "./unit-invoices";
 
-const unitInvoiceReportBaseSchema = getUnitInvoicesSchema.omit({
-  cursor: true,
-  size: true,
-  sort: true,
+const unitInvoiceReportBaseSchema = z.object({
+  ...unitInvoicesFilterShape,
+  bin: paginationSchema.shape.bin,
 });
 
 export const getUnitInvoiceAgingReportSchema = unitInvoiceReportBaseSchema;
