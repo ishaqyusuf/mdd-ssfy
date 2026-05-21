@@ -16,6 +16,42 @@ import { cn } from "@gnd/ui/cn";
 import { Footer } from "../components/footer";
 import { Logo } from "../components/logo";
 
+type EmailLineStyle = {
+  heading?: boolean;
+};
+
+type EmailTextLine = {
+  type: "text";
+  text: string;
+  style?: EmailLineStyle;
+};
+
+type EmailLinkLine = {
+  type: "link";
+  href: string;
+  text: string;
+  style?: EmailLineStyle;
+};
+
+type EmailTableLine = {
+  type: "table";
+  lines: EmailLine[][];
+  style?: EmailLineStyle;
+  bodyStyle?: EmailLineStyle;
+  trStyle?: EmailLineStyle;
+  tdStyle?: EmailLineStyle;
+};
+
+type EmailLine = EmailTextLine | EmailLinkLine | EmailTableLine;
+type EmailStack = {
+  lines: EmailLine[];
+};
+
+type ComposedEmailTemplateProps = {
+  emailStack: EmailStack;
+  preview: string;
+};
+
 const variants = cva("", {
   variants: {
     heading: {
@@ -23,7 +59,7 @@ const variants = cva("", {
     },
   },
 });
-const RenderLine = ({ line }) => {
+const RenderLine = ({ line }: { line: EmailLine }) => {
   const style = cn(variants(line.style));
   if (line.type === "text") {
     return <Text className={style}>{line.text}</Text>;
@@ -55,7 +91,7 @@ const RenderLine = ({ line }) => {
   return null;
 };
 
-const RenderStack = ({ stack }) => {
+const RenderStack = ({ stack }: { stack: EmailStack }) => {
   return (
     <>
       {stack.lines.map((line, index) => (
@@ -64,10 +100,13 @@ const RenderStack = ({ stack }) => {
     </>
   );
 };
-export const composeEmailTemplate = (props: { emailStack; preview }) => (
+export const composeEmailTemplate = (props: ComposedEmailTemplateProps) => (
   <EmailTemplate {...props} />
 );
-export const EmailTemplate = ({ emailStack, preview }) => {
+export const EmailTemplate = ({
+  emailStack,
+  preview,
+}: ComposedEmailTemplateProps) => {
   return (
     <Html>
       <Tailwind>

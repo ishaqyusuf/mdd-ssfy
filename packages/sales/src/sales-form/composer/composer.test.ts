@@ -1,0 +1,145 @@
+import { describe, expect, it } from "bun:test";
+import {
+	composeSalesFormPricingSnapshot,
+	composeSalesFormRecord,
+	composeSalesFormSavePayload,
+} from ".";
+
+describe("sales form composer", () => {
+	it("normalizes records and save payloads without owning surface side effects", () => {
+		const record = composeSalesFormRecord(
+			{
+				type: "order",
+				salesId: 10,
+				slug: "order-10",
+				version: "v1",
+				form: {
+					customerId: "20",
+					paymentMethod: "Credit Card",
+				},
+				lineItems: [
+					{
+						uid: "line-1",
+						title: "Line 1",
+						qty: 2,
+						unitPrice: 50,
+					},
+				],
+				extraCosts: [],
+				summary: {
+					taxRate: 10,
+				},
+			},
+			{
+				surface: "www",
+				pricing: {
+					mode: "coefficient",
+					profile: {
+						coefficient: 1,
+					},
+				},
+			},
+		);
+
+		const payload = composeSalesFormSavePayload(record, {
+			surface: "www",
+			autosave: false,
+			pricing: {
+				mode: "coefficient",
+				profile: {
+					coefficient: 1,
+				},
+			},
+		});
+
+		expect(record.form.customerId).toBe(20);
+		expect(record.extraCosts.some((cost) => cost.type === "Labor")).toBe(true);
+		expect(payload.autosave).toBe(false);
+		expect(payload.summary.subTotal).toBe(100);
+		expect(payload.summary.taxTotal).toBe(10);
+		expect(payload.summary.grandTotal).toBeGreaterThan(110);
+	});
+
+	it("keeps coefficient pricing isolated from dealer sales percentage", () => {
+		const snapshot = composeSalesFormPricingSnapshot({
+			config: {
+				surface: "www",
+				pricing: {
+					mode: "coefficient",
+					profile: {
+						id: 1,
+						label: "Internal",
+						coefficient: 1.5,
+						salesPercentage: 80,
+					},
+				},
+			},
+			taxRate: 10,
+			lineItems: [
+				{
+					uid: "line-1",
+					qty: 2,
+					unitPrice: 100,
+				},
+			],
+		});
+
+		expect(snapshot.source).toBe("sales_form_coefficient_pricing");
+		expect(snapshot.profile).toEqual({
+			id: 1,
+			label: "Internal",
+			coefficient: 1.5,
+		});
+		expect(snapshot.summary.subTotal).toBe(300);
+		expect(snapshot.summary.grandTotal).toBe(330);
+	});
+
+	it("keeps dealership percentage pricing explicit and separate from internal coefficient", () => {
+		const snapshot = composeSalesFormPricingSnapshot({
+			config: {
+				surface: "dealership",
+				pricing: {
+					mode: "percentage",
+					internalProfile: {
+						id: 10,
+						label: "Office",
+						coefficient: 1.5,
+					},
+					dealerProfile: {
+						id: 20,
+						label: "Retail",
+						salesPercentage: 20,
+					},
+				},
+			},
+			taxRate: 10,
+			createdAt: "2026-05-20T10:00:00.000Z",
+			lineItems: [
+				{
+					uid: "line-1",
+					title: "Door",
+					qty: 2,
+					unitPrice: 100,
+				},
+			],
+		});
+
+		expect(snapshot.source).toBe("sales_form_dual_pricing");
+		expect(snapshot.profiles.internal).toEqual({
+			id: 10,
+			label: "Office",
+			coefficient: 1.5,
+		});
+		expect(snapshot.profiles.dealer).toEqual({
+			id: 20,
+			label: "Retail",
+			salesPercentage: 20,
+		});
+		expect(snapshot.internalPricing.grandTotal).toBe(330);
+		expect(snapshot.dealerPricing.grandTotal).toBe(396);
+		expect(snapshot.lines[0]).toMatchObject({
+			internalUnitPrice: 150,
+			dealerUnitPrice: 180,
+		});
+	});
+});

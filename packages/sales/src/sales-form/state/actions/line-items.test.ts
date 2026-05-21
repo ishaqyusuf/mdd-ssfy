@@ -5,7 +5,16 @@ import {
 	removeSalesFormLineItem,
 	updateSalesFormLineItem,
 } from "./line-items";
-import { setSalesFormCustomerProfileMeta } from "./meta";
+import {
+	hydrateSalesFormState,
+	restoreSalesFormLocalDraft,
+	setSalesFormCustomerProfileMeta,
+} from "./meta";
+import {
+	markSalesFormError,
+	markSalesFormSaved,
+	markSalesFormSaving,
+} from "./save";
 import { setSalesFormTaxRate } from "./summary";
 import type { SalesFormStateRecord } from "../types";
 
@@ -44,6 +53,15 @@ function createRecord(): SalesFormStateRecord {
 }
 
 describe("sales form state line item actions", () => {
+	it("keeps autosave opt-in for hydrated forms", () => {
+		const state = hydrateSalesFormState(createInitialSalesFormState(), createRecord());
+
+		expect(state.dirty).toBe(false);
+		expect(state.saveStatus).toBe("idle");
+		expect(state.editor.autosaveEnabled).toBe(false);
+		expect(state.editor.activeItem).toBe("line-1");
+	});
+
 	it("updates line totals and marks state dirty", () => {
 		const state = {
 			...createInitialSalesFormState(),
@@ -96,6 +114,89 @@ describe("sales form state line item actions", () => {
 
 		expect(next.editor.activeItem).toBe("line-1");
 		expect(next.record?.lineItems.map((line) => line.uid)).toEqual(["line-1"]);
+	});
+});
+
+describe("sales form state save/recovery actions", () => {
+	it("keeps dirty edits after save errors and clears error status on the next edit", () => {
+		const errored = markSalesFormError(
+			{
+				...createInitialSalesFormState(),
+				record: createRecord(),
+				dirty: true,
+			},
+			"Autosave failed.",
+		);
+
+		expect(errored.dirty).toBe(true);
+		expect(errored.saveStatus).toBe("error");
+
+		const edited = updateSalesFormLineItem(errored, "line-1", {
+			qty: 4,
+		});
+
+		expect(edited.dirty).toBe(true);
+		expect(edited.saveStatus).toBe("idle");
+		expect(edited.record?.lineItems[0]?.lineTotal).toBe(40);
+	});
+
+	it("marks successful saves clean and updates version timestamps", () => {
+		const saving = markSalesFormSaving({
+			...createInitialSalesFormState(),
+			record: createRecord(),
+			dirty: true,
+		});
+
+		expect(saving.saveStatus).toBe("saving");
+		expect(saving.dirty).toBe(true);
+
+		const saved = markSalesFormSaved(saving, {
+			version: "v2",
+			updatedAt: "2026-05-20T10:00:00.000Z",
+		});
+
+		expect(saved.dirty).toBe(false);
+		expect(saved.saveStatus).toBe("saved");
+		expect(saved.record?.version).toBe("v2");
+		expect(saved.record?.updatedAt).toBe("2026-05-20T10:00:00.000Z");
+		expect(saved.lastSavedAt).toBe("2026-05-20T10:00:00.000Z");
+	});
+
+	it("restores local drafts as dirty without replacing editor preferences", () => {
+		const state = {
+			...createInitialSalesFormState(),
+			record: createRecord(),
+			editor: {
+				...createInitialSalesFormState().editor,
+				activeItem: "line-1",
+				stepDisplayMode: "compact" as const,
+				autosaveEnabled: false,
+			},
+		};
+
+		const restored = restoreSalesFormLocalDraft(state, {
+			...createRecord(),
+			lineItems: [
+				{
+					...createRecord().lineItems[0],
+					uid: "line-recovered",
+					qty: 5,
+					unitPrice: 7,
+					lineTotal: 35,
+				},
+			],
+			summary: {
+				subTotal: 35,
+				grandTotal: 35,
+			},
+		});
+
+		expect(restored.dirty).toBe(true);
+		expect(restored.saveStatus).toBe("idle");
+		expect(restored.editor.stepDisplayMode).toBe("compact");
+		expect(restored.editor.autosaveEnabled).toBe(false);
+		expect(restored.editor.activeItem).toBe("line-recovered");
+		expect(restored.record?.summary?.subTotal).toBe(35);
 	});
 });
 

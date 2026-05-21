@@ -4,7 +4,8 @@ import { useTRPC } from "@/trpc/client";
 import {
 	SalesFormHeaderActions,
 	SalesFormShell,
-	buildDualSalesFormPricingSnapshot,
+	composeSalesFormPricingSnapshot,
+	type DualPricingSnapshot,
 } from "@gnd/sales/sales-form";
 import { Button } from "@gnd/ui/button";
 import { toast } from "@gnd/ui/use-toast";
@@ -112,12 +113,18 @@ export function DealerQuoteComposer({
 			profilesQuery.isPending ||
 			internalProfileQuery.isPending,
 	});
-	const pricing = buildDualSalesFormPricingSnapshot({
+	const pricing = composeSalesFormPricingSnapshot({
+		config: {
+			surface: "dealership",
+			pricing: {
+				mode: "percentage",
+				dealerProfile: selectedProfile,
+				internalProfile,
+			},
+		},
 		taxRate: Number(record?.summary?.taxRate || 0),
-		dealerProfile: selectedProfile,
-		internalProfile,
 		lineItems: (record?.lineItems || []) as any,
-	});
+	}) as DualPricingSnapshot;
 	const dealerLineTotalsByUid = useMemo(
 		() =>
 			Object.fromEntries(

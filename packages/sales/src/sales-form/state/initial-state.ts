@@ -20,4 +20,3 @@ export function createInitialSalesFormState(): SalesFormState {
 		editor: initialSalesFormEditorState,
 	};
 }
-

@@ -13,7 +13,7 @@ interface SendEmailProps {
 	subject: string;
 	from: string;
 	to: string | string[];
-	content: unknown;
+	content: Parameters<typeof render>[0];
 	successLog?: string;
 	errorLog?: string;
 	task: {

@@ -158,7 +158,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   2. Simulate idle/network blip/refresh.
   3. Check restore/saved state.
 - Expected: no silent loss or explicit recovery path.
-- Current observed (new): improved. Autosave is now enabled by default and local recovery snapshot/restore is available on reload.
+- Current observed (new): improved. Autosave remains explicit opt-in/off by default, and local recovery snapshot/restore is available for dirty edits on reload.
 - Evidence path: `brain/new-sales-form-parity-evidence/state-loss/`
 - Automation target:
   - autosave resilience integration tests.

@@ -4,9 +4,8 @@ import { EventTypes } from "@/utils/constants";
 import { salesCreatedEvent } from "./sales-created-event";
 import { prisma } from "@/db";
 
-import { z } from "zod";
-import { SendComposedEmailSchema } from "@/trigger/schema";
-import { sendComposedEmail } from "@/trigger/tasks/email/send-composed-email";
+import { tasks } from "@trigger.dev/sdk/v3";
+import type { SendComposedEmailPayload } from "@jobs/schema";
 import { salesUpdatedEvent } from "./sales-updated-event";
 import { checkSiteActionNotificationAction } from "../check-site-action-notification";
 
@@ -20,7 +19,7 @@ export async function triggerEvent(event: EventTypes, id) {
                 return await salesUpdatedEvent(id);
         }
     })();
-    const data: z.infer<typeof SendComposedEmailSchema> = {
+    const data: SendComposedEmailPayload = {
         data: composed.stack,
         from: {
             name: "GND Task Action",
@@ -30,7 +29,7 @@ export async function triggerEvent(event: EventTypes, id) {
         subject: composed.subject,
         to: ["ishaqyusuf024@gmail.com", "pcruz321@gmail.com"],
     };
-    sendComposedEmail.trigger(data);
+    await tasks.trigger("send-composed-email", data);
 }
 export async function salesEventData(id) {
     const sale = await prisma.salesOrders.findUnique({

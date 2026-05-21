@@ -52,7 +52,16 @@ References:
 | Task ID | Source Rows | Scope | Exit Criteria | Status |
 | --- | --- | --- | --- | --- |
 | `NSF-P2-001` | Acceptance: Save draft/final/reopen; API query suite | Unblock and rerun API new-sales-form save/reopen suites. | API tests run without local dependency ENOENT and report product-level pass/fail. | Done |
-| `NSF-P2-002` | Repro row 8; Acceptance: Local recovery | Capture browser evidence for autosave/local recovery. | Dirty edits recover or dismiss safely after refresh/network interruption. | Pending browser proof |
+| `NSF-P2-002` | Repro row 8; Acceptance: Local recovery | Harden autosave/local recovery and capture browser evidence later. | Dirty edits recover or dismiss safely after refresh/network interruption. | Implemented; package/app proof passing; browser proof pended |
+
+## Phase 3 Task Map
+
+| Task ID | Source Rows | Scope | Exit Criteria | Status |
+| --- | --- | --- | --- | --- |
+| `NSF-P3-001` | Phase 3 roadmap | Add shared composer contract for record normalization, save payload shaping, and pricing adapter boundaries. | `www` coefficient mode and dealership percentage mode are both covered by package tests without sharing side effects. | Implemented; package proof passing |
+| `NSF-P3-002` | Phase 3 roadmap | Rewire `www` save payload creation through shared composer. | Existing API save/reopen suite remains green. | Implemented; API proof passing |
+| `NSF-P3-003` | Phase 3 roadmap; Dealer profile percentage pricing | Rewire dealership quote display pricing through shared composer percentage adapter. | Dealership typecheck passes and dealer `salesPercentage` remains explicit. | Implemented; typecheck passing |
+| `NSF-P3-004` | Phase 3 roadmap | Evaluate server-side dealer quote persistence extraction. | No package cycle is introduced; keep server query local unless shared contract moves to a lower-level package. | Deferred |
 
 ## Phase 4/5 Task Map
 
@@ -79,5 +88,6 @@ References:
 
 ## Immediate Next Implementation Order
 
-1. `NSF-QA-002` and `NSF-QA-003`: resume browser proof as soon as valid local `www` and dealership sessions are available.
-2. `NSF-P4-001` and `NSF-P5-001`: continue runtime/UI parity once browser access is available.
+1. Phase 3 follow-up: decide whether dealer server persistence should stay local or move behind a lower-level shared contract to avoid `@gnd/db` -> `@gnd/sales` package coupling.
+2. `NSF-QA-002` and `NSF-QA-003`: resume browser proof as soon as valid local `www` and dealership sessions are available.
+3. `NSF-P4-001` and `NSF-P5-001`: continue runtime/UI parity once browser access is available.

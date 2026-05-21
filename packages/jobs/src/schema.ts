@@ -28,6 +28,7 @@ export const taskNames = [
 	"run-sales-daily-payment-report-now",
 	"run-sales-daily-payment-report-test",
 	"sales-rep-payment-received-notification",
+	"send-composed-email",
 	"send-login-email",
 	"send-password-reset-code",
 	"send-password-reset-to-default-email",
@@ -127,6 +128,19 @@ export const sendSalesReminderSchema = z.object({
 	salesRep: z.string(),
 });
 export type SendSalesReminderPayload = z.infer<typeof sendSalesReminderSchema>;
+
+export const sendComposedEmailSchema = z.object({
+	data: z.any(),
+	subject: z.string().optional(),
+	from: z.object({
+		name: z.string(),
+		email: z.string().email(),
+	}),
+	to: z.union([z.string().email(), z.array(z.string().email())]),
+	preview: z.string(),
+});
+export type SendComposedEmailPayload = z.infer<typeof sendComposedEmailSchema>;
+
 export const runFullInventoryImportTaskSchema = z.object({
 	categoryId: z.number().optional().nullable(),
 	scope: z.enum(["active", "all"]).optional().default("active"),

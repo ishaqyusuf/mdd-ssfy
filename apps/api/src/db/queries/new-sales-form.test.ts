@@ -808,7 +808,7 @@ describe("new-sales-form relational parity", () => {
 			autosave: false,
 			meta: {
 				customerId: 100,
-				customerProfileId: null,
+				customerProfileId: 7,
 				billingAddressId: null,
 				shippingAddressId: null,
 				paymentTerm: "None",
@@ -847,6 +847,17 @@ describe("new-sales-form relational parity", () => {
 			taxxable: 100,
 			tax: 7.5,
 		});
+		expect(state.orders[0]?.customerProfileId).toBe(7);
+		expect(state.orders[0]?.taxPercentage).toBe(7.5);
 		expect(state.orders[0]?.amountDue).toBe(saved.summary.grandTotal);
+
+		const loaded = await getNewSalesForm(ctx, {
+			type: "order",
+			slug: saved.slug!,
+		});
+		expect(loaded.form.customerProfileId).toBe(7);
+		expect(loaded.form.taxCode).toBe("GST");
+		expect(loaded.summary.taxRate).toBe(7.5);
+		expect(loaded.summary.taxTotal).toBe(7.5);
 	});
 });

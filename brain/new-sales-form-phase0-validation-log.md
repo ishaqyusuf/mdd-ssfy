@@ -471,3 +471,102 @@ Known remaining typecheck signal:
   unrelated print/control/UI utility errors.
 - `bun run --filter @gnd/www typecheck` still fails on existing repo-wide
   action, legacy sales-book, table, TRPC, and shared UI type issues.
+
+## 2026-05-20 Phase 2 Persistence/Recovery Proof
+
+Implementation/proof:
+
+- Kept autosave as an explicit opt-in/off-by-default editor setting while
+  strengthening the local recovery path around dirty edits.
+- Extracted pure local-recovery snapshot helpers for versioned snapshot creation
+  and parsing so recovery behavior is testable without browser runtime access.
+- Added app-level recovery tests for storage-key scoping, snapshot parsing,
+  stale/invalid snapshot rejection, and recoverable-content fingerprinting.
+- Added state lifecycle tests covering hydrated autosave opt-in defaults, save error
+  retention, status reset on next edit, successful save cleanup, and local draft
+  restoration without overwriting editor preferences.
+- Extended API save/reopen proof to assert customer profile id, tax code, tax
+  rate, tax total, relational tax rows, and amount due persistence.
+
+Focused command:
+
+```sh
+bun test packages/sales/src/sales-form/state/actions/line-items.test.ts apps/www/src/components/forms/new-sales-form/local-recovery.test.ts
+```
+
+Result:
+
+- Pass.
+- 13 tests.
+- 53 assertions.
+
+Regression commands:
+
+```sh
+bun test packages/sales/src/sales-form/domain packages/sales/src/sales-form/state packages/sales/src/sales-form/ui/workflow
+bun test apps/api/src/db/queries/new-sales-form.test.ts apps/api/src/db/queries/new-sales-form.multi-line.test.ts
+bun test apps/www/src/components/forms/new-sales-form/local-recovery.test.ts
+```
+
+Result:
+
+- Shared sales package: Pass, 120 tests / 378 assertions.
+- API save/reopen suite: Pass, 12 tests / 114 assertions.
+- App recovery unit: Pass, 4 tests / 11 assertions.
+
+Remaining Phase 2 gap:
+
+- Browser refresh/network-interruption proof is still intentionally pended
+  behind the local auth/session gate.
+
+## 2026-05-20 Phase 3 Shared Composer Proof
+
+Implementation/proof:
+
+- Added `packages/sales/src/sales-form/composer` as the shared composer
+  boundary for record normalization, save payload shaping, and pricing adapter
+  selection.
+- Added coefficient and percentage pricing adapters:
+  - `www` uses coefficient mode.
+  - dealership uses percentage mode with dealer `salesPercentage`.
+- Rewired `www` new-sales-form save payload creation through
+  `composeSalesFormSavePayload(...)`.
+- Rewired dealership quote client display pricing through
+  `composeSalesFormPricingSnapshot(...)` with `surface: "dealership"` and
+  `mode: "percentage"`.
+- Left dealership server-side quote persistence local for now to avoid creating
+  a `@gnd/db` -> `@gnd/sales` package dependency cycle.
+
+Focused command:
+
+```sh
+bun test packages/sales/src/sales-form/composer/composer.test.ts packages/sales/src/sales-form/domain/dual-pricing.test.ts
+```
+
+Result:
+
+- Pass.
+- 6 tests.
+- 29 assertions.
+
+Regression commands:
+
+```sh
+bun test packages/sales/src/sales-form/domain packages/sales/src/sales-form/state packages/sales/src/sales-form/ui/workflow packages/sales/src/sales-form/composer
+bun test apps/api/src/db/queries/new-sales-form.test.ts apps/api/src/db/queries/new-sales-form.multi-line.test.ts
+bun run --filter @gnd/dealership typecheck
+git diff --check
+```
+
+Result:
+
+- Shared sales package + composer: Pass, 123 tests / 394 assertions.
+- API save/reopen suite: Pass, 12 tests / 114 assertions.
+- Dealership typecheck: Pass.
+- Diff whitespace check: Pass.
+
+Boundary note:
+
+- Shared composer can shape records and select pricing adapters.
+- Surface-specific UX, auth, navigation, save side effects, and dealer server
+  persistence remain outside the composer.

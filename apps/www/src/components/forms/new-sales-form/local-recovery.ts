@@ -20,6 +20,35 @@ export type NewSalesFormRecoverySnapshot = {
     };
 };
 
+export function createRecoverySnapshot(
+    payload: NewSalesFormSaveDraftInput,
+    savedAt = new Date().toISOString(),
+): NewSalesFormRecoverySnapshot {
+    return {
+        version: LOCAL_RECOVERY_VERSION,
+        savedAt,
+        payload: payload as NewSalesFormRecoverySnapshot["payload"],
+    };
+}
+
+export function parseRecoverySnapshot(raw: string | null) {
+    if (!raw) return null;
+    try {
+        const parsed = JSON.parse(raw) as NewSalesFormRecoverySnapshot;
+        if (
+            !parsed ||
+            parsed.version !== LOCAL_RECOVERY_VERSION ||
+            !parsed.savedAt ||
+            !parsed.payload
+        ) {
+            return null;
+        }
+        return parsed;
+    } catch {
+        return null;
+    }
+}
+
 function isBrowser() {
     return typeof window !== "undefined" && !!window.localStorage;
 }
@@ -38,11 +67,7 @@ export function writeRecoverySnapshot(
     payload: NewSalesFormSaveDraftInput,
 ) {
     if (!isBrowser()) return;
-    const snapshot: NewSalesFormRecoverySnapshot = {
-        version: LOCAL_RECOVERY_VERSION,
-        savedAt: new Date().toISOString(),
-        payload: payload as NewSalesFormRecoverySnapshot["payload"],
-    };
+    const snapshot = createRecoverySnapshot(payload);
     try {
         window.localStorage.setItem(key, JSON.stringify(snapshot));
     } catch {
@@ -53,18 +78,7 @@ export function writeRecoverySnapshot(
 export function readRecoverySnapshot(key: string): NewSalesFormRecoverySnapshot | null {
     if (!isBrowser()) return null;
     try {
-        const raw = window.localStorage.getItem(key);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw) as NewSalesFormRecoverySnapshot;
-        if (
-            !parsed ||
-            parsed.version !== LOCAL_RECOVERY_VERSION ||
-            !parsed.savedAt ||
-            !parsed.payload
-        ) {
-            return null;
-        }
-        return parsed;
+        return parseRecoverySnapshot(window.localStorage.getItem(key));
     } catch {
         return null;
     }

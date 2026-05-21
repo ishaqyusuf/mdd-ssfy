@@ -1,7 +1,7 @@
 # New Form Actual (Code Evidence)
 
 State resilience is now partially implemented in `new-sales-form`:
-- autosave default enabled (`editor.autosaveEnabled: true`)
+- autosave remains explicit opt-in/off by default (`editor.autosaveEnabled: false`)
 - local recovery snapshot persisted to `localStorage`
 - restore/dismiss banner shown when local snapshot differs from server payload
 

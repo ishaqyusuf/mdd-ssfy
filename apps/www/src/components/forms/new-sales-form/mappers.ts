@@ -1,5 +1,6 @@
 import {
 	computeNormalizedSalesFormSummary,
+	composeSalesFormSavePayload,
 	createEmptySalesFormLineItem,
 	createSalesFormLineItemUid,
 	hydrateSalesFormRecord,
@@ -8,7 +9,6 @@ import {
 	normalizeSalesFormLineItems,
 	normalizeSalesFormMeta,
 	repriceSalesFormLineItemsForProfile,
-	toSalesFormSaveDraftPayload,
 } from "@gnd/sales/sales-form";
 import type {
 	NewSalesFormExtraCost,
@@ -99,8 +99,14 @@ export function toSaveDraftInput(
 	>,
 	autosave = true,
 ): NewSalesFormSaveDraftInput {
-	return toSalesFormSaveDraftPayload(
+	return composeSalesFormSavePayload(
 		source,
-		autosave,
+		{
+			surface: "www",
+			autosave,
+			pricing: {
+				mode: "coefficient",
+			},
+		},
 	) as NewSalesFormSaveDraftInput;
 }
