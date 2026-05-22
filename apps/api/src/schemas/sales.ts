@@ -123,9 +123,9 @@ export const salesQueryParamsSchema = z
 	.extend(paginationSchema.shape);
 export type SalesQueryParamsSchema = z.infer<typeof salesQueryParamsSchema>;
 
-export const getSaleOverviewSchema = salesQueryParamsSchema.pick({
-	orderNo: true,
-	salesType: true,
+export const getSaleOverviewSchema = z.object({
+	orderNo: z.string().optional().nullable(),
+	salesType: z.enum(salesType).optional().nullable(),
 });
 export type GetSaleOverviewSchema = z.infer<typeof getSaleOverviewSchema>;
 

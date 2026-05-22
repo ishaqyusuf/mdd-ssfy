@@ -299,17 +299,12 @@ export const jobAssignedSchema = z.object({
 	// author: z.string().optional().nullable(),
 });
 export type JobAssignedInput = z.infer<typeof jobAssignedSchema>;
-export const jobAssignedTags = activitiesTags
-	.pick({
-		id: true,
-	})
-	.extend(baseActivityTags.shape)
-	.extend(
-		z.object({
-			assignedToId: z.number(),
-			assignedToName: z.string().optional(),
-		}).shape,
-	);
+export const jobAssignedTags = z.object({
+	id: z.number(),
+	...baseActivityTags.shape,
+	assignedToId: z.number(),
+	assignedToName: z.string().optional(),
+});
 export type JobAssignedTags = z.infer<typeof jobAssignedTags>;
 export const jobSubmittedSchema = z.object({
 	jobId: z.number(),

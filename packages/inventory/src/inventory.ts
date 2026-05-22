@@ -2466,15 +2466,11 @@ export async function updateVariantCost(db: Db, data: UpdateVariantCost) {
 export const updateVariantStatusSchema = z
   .object({
     status: z.enum(INVENTORY_STATUS),
-  })
-  .extend(
-    updateVariantCostSchema.pick({
-      attributes: true,
-      variantId: true,
-      inventoryId: true,
-      uid: true,
-    }).shape,
-  );
+    attributes: updateVariantCostSchema.shape.attributes,
+    variantId: updateVariantCostSchema.shape.variantId,
+    inventoryId: updateVariantCostSchema.shape.inventoryId,
+    uid: updateVariantCostSchema.shape.uid,
+  });
 export type UpdateVariantStatus = z.infer<typeof updateVariantStatusSchema>;
 export async function updateVariantStatus(db: Db, data: UpdateVariantStatus) {
   if (data.variantId)

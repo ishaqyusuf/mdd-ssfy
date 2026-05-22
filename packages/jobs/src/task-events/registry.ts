@@ -4,7 +4,7 @@ import { z } from "zod";
 export const taskEventStatusSchema = z.enum(["active", "inactive"]);
 export type TaskEventStatus = z.infer<typeof taskEventStatusSchema>;
 
-const salesPendingBillReminderFilterSchema = salesQueryParamsSchema.partial();
+const salesPendingBillReminderFilterSchema = salesQueryParamsSchema;
 const dispatchDuplicateSweeperFilterSchema = z
 	.record(z.string(), z.unknown())
 	.default({});
