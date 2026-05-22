@@ -62,7 +62,11 @@ export function PhoneField({
 	name,
 	defaultValue,
 	...props
-}: InputHTMLAttributes<HTMLInputElement> & {
+}: Omit<
+	InputHTMLAttributes<HTMLInputElement>,
+	"type" | "value" | "defaultValue" | "onChange"
+> & {
+	defaultValue?: string | number | null;
 	description?: string;
 	label: string;
 	name: string;

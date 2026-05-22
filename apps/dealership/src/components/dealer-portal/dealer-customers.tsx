@@ -185,17 +185,18 @@ export function DealerCustomers() {
 									<TableCell>{formatDate(customer.createdAt)}</TableCell>
 									<TableCell className="text-right">
 										<Button
-											onClick={() =>
+											onClick={() => {
+												if (!customer.id) return;
 												setEditingCustomer({
-													id: customer.id!,
+													id: customer.id,
 													name: customer.name || null,
 													businessName: customer.businessName || null,
 													email: customer.email || null,
 													phoneNo: customer.phoneNo || null,
 													address: customer.address || null,
 													customerTypeId: customer.customerTypeId || null,
-												})
-											}
+												});
+											}}
 											size="sm"
 											type="button"
 											variant="outline"

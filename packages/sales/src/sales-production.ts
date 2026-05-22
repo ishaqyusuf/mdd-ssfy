@@ -1,19 +1,22 @@
-import { Db, Prisma } from "@gnd/db";
-import { SalesProductionQueryParams, SalesQueryParamsSchema } from "./schema";
-import { whereSales } from "./utils/where-queries";
-import { composeQueryData, PageDataMeta } from "@gnd/utils/query-response";
+import type { Db, Prisma } from "@gnd/db";
 import { sum } from "@gnd/utils";
 import dayjs, { formatDate } from "@gnd/utils/dayjs";
-import {
-	composeSalesStatKeyValue,
-	dueDateAlert,
-	overallStatus,
-} from "./utils/utils";
+import { type PageDataMeta, composeQueryData } from "@gnd/utils/query-response";
 import {
 	getSalesPriorityLabel,
 	getSalesPriorityRank,
 	normalizeSalesPriority,
 } from "./priority";
+import type {
+	SalesProductionQueryParams,
+	SalesQueryParamsSchema,
+} from "./schema";
+import {
+	composeSalesStatKeyValue,
+	dueDateAlert,
+	overallStatus,
+} from "./utils/utils";
+import { whereSales } from "./utils/where-queries";
 
 export async function getSalesProductions(
 	db: Db,
@@ -28,33 +31,33 @@ export async function getSalesProductions(
 	const getDueToday = async () =>
 		filterCompletedProductions(
 			await getProductionListAction(db, {
-					salesType: "order",
-					"production.assignedToId": assignedToId,
-					"production.status": "due today",
-					"sales.priority": query.priority || query["sales.priority"],
-					size: 99,
-				}),
-			);
+				salesType: "order",
+				"production.assignedToId": assignedToId,
+				"production.status": "due today",
+				"sales.priority": query.priority || query["sales.priority"],
+				size: 99,
+			}),
+		);
 	const getPastDue = async () =>
 		filterCompletedProductions(
 			await getProductionListAction(db, {
-					salesType: "order",
-					"production.assignedToId": assignedToId,
-					"production.status": "past due",
-					"sales.priority": query.priority || query["sales.priority"],
-					size: 99,
-				}),
-			);
+				salesType: "order",
+				"production.assignedToId": assignedToId,
+				"production.status": "past due",
+				"sales.priority": query.priority || query["sales.priority"],
+				size: 99,
+			}),
+		);
 	const getDueTomorrow = async () =>
 		filterCompletedProductions(
 			await getProductionListAction(db, {
-					salesType: "order",
-					"production.assignedToId": assignedToId,
-					"production.status": "due tomorrow",
-					"sales.priority": query.priority || query["sales.priority"],
-					size: 99,
-				}),
-			);
+				salesType: "order",
+				"production.assignedToId": assignedToId,
+				"production.status": "due tomorrow",
+				"sales.priority": query.priority || query["sales.priority"],
+				size: 99,
+			}),
+		);
 	switch (query.show) {
 		case "due-today":
 			return await getDueToday();
@@ -159,25 +162,24 @@ async function getProductionListAction(
 ) {
 	const where = whereSales(query);
 
-	const whereAssignments: Prisma.OrderItemProductionAssignmentsWhereInput[] = (
-		Array.isArray(where?.AND)
-			? where.AND?.map((a) => a.assignments?.some).filter(Boolean)
-			: where?.assignments
-				? [where?.assignments]
-				: []
-	) as any;
+	const whereAssignments: Prisma.OrderItemProductionAssignmentsWhereInput[] =
+		[];
+	if (Array.isArray(where?.AND)) {
+		for (const condition of where.AND) {
+			const assignmentWhere = condition.assignments?.some;
+			if (assignmentWhere) whereAssignments.push(assignmentWhere);
+		}
+	} else if (where?.assignments?.some) {
+		whereAssignments.push(where.assignments.some);
+	}
 	const { response, queryProps } = await composeQueryData(
 		query,
 		where,
 		db.salesOrders,
 	);
-	const requestedSkip = Number(query.cursor || 0);
 	const requestedTake = Number(query.size || 20);
-	const totalCount = await db.salesOrders.count({ where });
 	const data = await db.salesOrders.findMany({
 		...queryProps,
-		skip: 0,
-		take: totalCount,
 		select: select(whereAssignments),
 	});
 	const sorted = sortProductionListByPriority(
@@ -188,7 +190,7 @@ async function getProductionListAction(
 		),
 	);
 
-	return response(sorted.slice(requestedSkip, requestedSkip + requestedTake));
+	return response(sorted.slice(0, requestedTake));
 }
 
 export function sortProductionListByPriority<
@@ -233,7 +235,7 @@ const select = (whereAssignments?) =>
 			where: {
 				deletedAt: null,
 				AND: whereAssignments?.length > 1 ? whereAssignments : undefined,
-				...(whereAssignments?.length == 1 ? whereAssignments[0] : {}),
+				...(whereAssignments?.length === 1 ? whereAssignments[0] : {}),
 			},
 			select: {
 				submissions: {
