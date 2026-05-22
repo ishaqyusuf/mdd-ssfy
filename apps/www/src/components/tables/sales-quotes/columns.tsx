@@ -21,6 +21,20 @@ export type Item = RouterOutputs["sales"]["quotes"]["data"][number];
 interface ItemProps {
 	item: Item;
 }
+
+function DealerSaleBadge({ item }: { item: Item }) {
+	if (!(item as any).isDealerSale) return null;
+
+	return (
+		<Badge
+			variant="outline"
+			className="rounded-full border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-cyan-700"
+		>
+			Dealer
+		</Badge>
+	);
+}
+
 export const columns: ColumnDef<Item>[] = [
 	cells.selectColumn,
 	{
@@ -37,8 +51,9 @@ export const columns: ColumnDef<Item>[] = [
 		header: "Quote #",
 		accessorKey: "quoteId",
 		cell: ({ row: { original: item } }) => (
-			<TCell.Secondary className="whitespace-nowrap">
-				{item.orderId}
+			<TCell.Secondary className="inline-flex items-center gap-1 whitespace-nowrap">
+				<span>{item.orderId}</span>
+				<DealerSaleBadge item={item} />
 				{!item.orderId?.toUpperCase().endsWith(item.salesRepInitial) && (
 					<Badge className="font-mono$" variant="secondary">
 						{item.salesRepInitial}
@@ -233,6 +248,7 @@ function ItemCard({ item }: ItemProps) {
 					</div>
 					<ListItem.Title className="w-full max-w-full gap-1.5 font-mono text-[13px] text-foreground uppercase">
 						<span className="truncate">{item.orderId}</span>
+						<DealerSaleBadge item={item} />
 						{!item.orderId?.toUpperCase().endsWith(item.salesRepInitial) && (
 							<Badge
 								className="rounded-md px-1.5 py-0 text-[10px]"

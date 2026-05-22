@@ -125,6 +125,19 @@ function SalesInboundBadge({ item }: { item: SalesOrderItem }) {
 	);
 }
 
+function DealerSaleBadge({ item }: { item: SalesOrderItem }) {
+	if (!(item as any).isDealerSale) return null;
+
+	return (
+		<Badge
+			variant="outline"
+			className="rounded-full border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-cyan-700"
+		>
+			Dealer
+		</Badge>
+	);
+}
+
 function CompactCustomerCell({ item }: { item: SalesOrderItem }) {
 	return (
 		<div className="max-w-[220px] xl:max-w-[300px]">
@@ -237,6 +250,7 @@ export const columns2: ColumnDef<SalesOrderItem>[] = [
 		cell: ({ row: { original: item } }) => (
 			<TCell.Secondary className="whitespace-nowrap inline-flex items-center gap-1">
 				<span>{item.orderId}</span>
+				<DealerSaleBadge item={item} />
 				<SalesPriorityBadge priority={(item as any).priority} />
 				{!item.orderId?.toUpperCase().endsWith(item.salesRepInitial) && (
 					<Badge className="font-mono$" variant="secondary">
@@ -335,6 +349,7 @@ export const columns: ColumnDef<SalesOrderItem>[] = [
 		cell: ({ row: { original: item } }) => (
 			<TCell.Secondary className="whitespace-nowrap inline-flex items-center gap-1">
 				<span>{item.orderId}</span>
+				<DealerSaleBadge item={item} />
 				<SalesPriorityBadge priority={(item as any).priority} />
 				{!item.orderId?.toUpperCase().endsWith(item.salesRepInitial) && (
 					<Badge className="font-mono$" variant="secondary">
@@ -751,6 +766,7 @@ function Actions({ item }: { item: SalesOrderItem }) {
 				}
 			>
 				<SalesOverviewVersionMenuItems type="order" uuid={item.uuid} />
+				<SalesMenu.SalesEmailMenuItems />
 				<SalesMenu.SalesPrintMenuItems />
 				<SalesPriorityMenuItems
 					salesId={item.id}
@@ -930,6 +946,7 @@ function ItemCard({ item }: ItemProps) {
 							priority={(item as any).priority}
 							className="px-2 py-1"
 						/>
+						<DealerSaleBadge item={item} />
 						<SalesInboundBadge item={item} />
 						{!item.orderId?.toUpperCase().endsWith(item.salesRepInitial) && (
 							<span className="rounded-full bg-primary/10 px-2 py-1 text-[11px] font-semibold uppercase text-primary">

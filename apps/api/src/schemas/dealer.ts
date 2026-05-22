@@ -1,3 +1,7 @@
+import {
+	US_PHONE_FORMAT_PATTERN,
+	normalizeUSPhoneNumber,
+} from "@gnd/utils/format";
 import { paginationSchema } from "@gnd/utils/schema";
 import { z } from "zod";
 
@@ -49,7 +53,15 @@ export const dealerPortalCustomerSchema = z.object({
 	name: z.string().optional().nullable(),
 	businessName: z.string().optional().nullable(),
 	email: z.string().email().optional().nullable().or(z.literal("")),
-	phoneNo: z.string().optional().nullable(),
+	phoneNo: z
+		.preprocess(
+			(value) => normalizeUSPhoneNumber(value as string | null | undefined),
+			z
+				.string()
+				.regex(US_PHONE_FORMAT_PATTERN, "Use XXX-XXX-XXXX format")
+				.optional(),
+		)
+		.nullable(),
 	address: z.string().optional().nullable(),
 	customerTypeId: z.number().optional().nullable(),
 });
@@ -146,7 +158,15 @@ export type DealerPortalConvertQuoteSchema = z.infer<
 export const dealerPortalSettingsSchema = z.object({
 	name: z.string().optional().nullable(),
 	companyName: z.string().optional().nullable(),
-	phoneNo: z.string().optional().nullable(),
+	phoneNo: z
+		.preprocess(
+			(value) => normalizeUSPhoneNumber(value as string | null | undefined),
+			z
+				.string()
+				.regex(US_PHONE_FORMAT_PATTERN, "Use XXX-XXX-XXXX format")
+				.optional(),
+		)
+		.nullable(),
 	logoUrl: z.string().url().optional().nullable().or(z.literal("")),
 	address1: z.string().optional().nullable(),
 	address2: z.string().optional().nullable(),

@@ -15,7 +15,7 @@ import { toast } from "@gnd/ui/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserPlus } from "lucide-react";
 import { type FormEvent, useState } from "react";
-import { Field, formatDate } from "./shared";
+import { Field, PhoneField, formatDate } from "./shared";
 
 export function DealerCustomers() {
 	const trpc = useTRPC();
@@ -103,7 +103,7 @@ export function DealerCustomers() {
 						name="email"
 						type="email"
 					/>
-					<Field
+					<PhoneField
 						defaultValue={editingCustomer?.phoneNo || ""}
 						label="Phone"
 						name="phoneNo"

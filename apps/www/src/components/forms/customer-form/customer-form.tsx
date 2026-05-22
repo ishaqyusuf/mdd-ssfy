@@ -27,6 +27,7 @@ import FormInput from "../../common/controls/form-input";
 import FormSelect from "../../common/controls/form-select";
 import { ExistingCustomerResolver } from "./existing-customer-resolver";
 import { useCustomerForm } from "./form-context";
+import { PhoneFormInput } from "./phone-form-input";
 
 export type CustomerFormData = z.infer<typeof createCustomerSchema>;
 
@@ -163,12 +164,11 @@ export function CustomerForm() {
 										/>
 
 										<div className="grid grid-cols-2 gap-4">
-											<FormInput
+											<PhoneFormInput
 												control={form.control}
 												name="phoneNo"
 												label="Phone"
 												size="sm"
-												type="phone"
 											/>
 											<Controller
 												control={form.control}
@@ -269,7 +269,7 @@ export function CustomerForm() {
 											/>
 
 											<div className="grid grid-cols-2 gap-4">
-												<FormInput
+												<PhoneFormInput
 													control={form.control}
 													name="phoneNo"
 													label="Phone"
@@ -303,7 +303,7 @@ export function CustomerForm() {
 										size="sm"
 									/>
 									<div className="grid grid-cols-2 gap-4">
-										<FormInput
+										<PhoneFormInput
 											control={form.control}
 											name="phoneNo2"
 											label="Secondary Phone"

@@ -5,11 +5,23 @@ import type {
 } from "@/app-deps/(clean-code)/(sales)/types";
 import type { DeliveryOption } from "@/types/sales";
 import { salesPaymentProcessorApplyPaymentSchema } from "@gnd/sales/payment-system/contracts";
+import {
+	US_PHONE_FORMAT_PATTERN,
+	normalizeUSPhoneNumber,
+} from "@gnd/utils/format";
 import { z } from "zod";
 
 function hasText(value?: string | null) {
 	return String(value || "").trim().length > 0;
 }
+
+const phoneNumberSchema = z.preprocess(
+	(value) => normalizeUSPhoneNumber(value as string | null | undefined),
+	z
+		.string()
+		.regex(US_PHONE_FORMAT_PATTERN, "Use XXX-XXX-XXXX format")
+		.optional(),
+);
 
 export const changeSalesChartTypeSchema = z.enum(["sales"]);
 
@@ -25,8 +37,8 @@ export const createCustomerSchema = z
 		//     message: "resolution required",
 		// }),
 		addressOnly: z.boolean().nullable().optional(),
-		phoneNo: z.string().optional(),
-		phoneNo2: z.string().optional(),
+		phoneNo: phoneNumberSchema,
+		phoneNo2: phoneNumberSchema,
 		route: z.string().optional(),
 		email: z.string().optional(),
 		address1: z.string().optional().nullable(),

@@ -152,6 +152,7 @@ function commonListData(data: Item, bin?: boolean) {
     id: data.id,
     orderId: data.orderId?.toUpperCase(),
     inboundStatus: data.inventoryStatus,
+    isDealerSale: Number(data.dealerAuthId || 0) > 0,
     uuid: data.orderId,
     isDyke: data.isDyke,
     slug: data.slug,

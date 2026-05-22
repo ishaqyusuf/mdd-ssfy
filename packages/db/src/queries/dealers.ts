@@ -1,4 +1,5 @@
 import type { Database, Prisma } from "..";
+import { formatUSPhoneNumber } from "@gnd/utils/format";
 
 export type DealerListInput = {
 	search?: string | null;
@@ -564,7 +565,8 @@ function getDealerSalesListWhere(
 	const orderNo = input.orderNo?.trim();
 	const status = input.status?.trim();
 	const customerSearch = customerName || undefined;
-	const phoneSearch = phone || undefined;
+	const phoneSearch = phone ? formatUSPhoneNumber(phone) : undefined;
+	const searchPhone = search ? formatUSPhoneNumber(search) : undefined;
 
 	return {
 		dealerAuthId: dealerId,
@@ -618,6 +620,9 @@ function getDealerSalesListWhere(
 										{ businessName: { contains: search } },
 										{ email: { contains: search } },
 										{ phoneNo: { contains: search } },
+										...(searchPhone && searchPhone !== search
+											? [{ phoneNo: { contains: searchPhone } }]
+											: []),
 									],
 								},
 							},
@@ -715,8 +720,9 @@ function getDealerCustomersListWhere(
 ): Prisma.CustomersWhereInput {
 	const search = input.q?.trim();
 	const customerName = input["customer.name"]?.trim();
-	const phone = input.phone?.trim();
+	const phone = input.phone ? formatUSPhoneNumber(input.phone) : undefined;
 	const profile = input.profile?.trim();
+	const searchPhone = search ? formatUSPhoneNumber(search) : undefined;
 
 	return {
 		dealerOwnerId: dealerId,
@@ -751,6 +757,9 @@ function getDealerCustomersListWhere(
 						{ businessName: { contains: search } },
 						{ email: { contains: search } },
 						{ phoneNo: { contains: search } },
+						...(searchPhone && searchPhone !== search
+							? [{ phoneNo: { contains: searchPhone } }]
+							: []),
 						{ address: { contains: search } },
 					],
 				}

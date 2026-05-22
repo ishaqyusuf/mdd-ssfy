@@ -1,50 +1,51 @@
 {
-  "name": "@gnd/db",
-  "private": true,
-  "exports": {
-    "./types": "./dist/index.d.ts",
-    ".": "./src/index.ts",
-    "./queries": "./src/queries/index.ts"
-  },
-  "prisma": {
-    "schema": "./src/schema"
-  },
-  "scripts": {
-    "build": "prisma generate && tsc",
-    "dev": "rm -rf dist .turbo tsc",
-    "dev:prod": "rm -rf dist .turbo tsc",
-    "clean": "rm -rf .turbo node_modules",
-    "lint": "biome check .",
-    "format": "biome format --write .",
-    "typecheck": "tsc --noEmit",
-    "--db:generate": "bun run with-env prisma generate",
-    "db:generate": "bun run with-env prisma generate",
-    "db-migrate": "bun run with-env prisma migrate dev",
-    "prisma-generate": "bun run with-env prisma generate",
-    "--postinstall": "bunx prisma generate",
-    "push": "bun run with-env:prod prisma db push",
-    "pull": "bun run with-env prisma db pull",
-    "sync:prod-to-local": "bun scripts/sync-prod-to-local.ts",
-    "sync:prod-to-local:dry-run": "bun scripts/sync-prod-to-local.ts --dry-run",
-    "sync:prod-to-local:table": "bun scripts/sync-prod-to-local.ts --table",
-    "studio": "bun run with-env prisma studio --port 5556",
-    "with-env": "dotenv -o -e ../../.env.local -e .env.local --",
-    "with-env:prod": "dotenv -o -e ../../.env.production -e .env.production --"
-  },
-  "dependencies": {
-    "@prisma/client": "^6.18.0",
-    "@t3-oss/env-core": "^0.11.1",
-    "date-fns": "^4.1.0",
-    "qrcode": "^1.5.4",
-    "server-only": "^0.0.1"
-  },
-  "devDependencies": {
-    "@gnd/tsconfig": "workspace:*",
-    "@types/react": "~19.1.0",
-    "@types/qrcode": "^1.5.5",
-    "dotenv": "^17.2.3",
-    "prisma": "^6.18.0",
-    "react": "catalog:",
-    "react-dom": "catalog:"
-  }
+	"name": "@gnd/db",
+	"private": true,
+	"exports": {
+		"./types": "./dist/index.d.ts",
+		".": "./src/index.ts",
+		"./queries": "./src/queries/index.ts"
+	},
+	"prisma": {
+		"schema": "./src/schema"
+	},
+	"scripts": {
+		"build": "prisma generate && tsc",
+		"dev": "rm -rf dist .turbo tsc",
+		"dev:prod": "rm -rf dist .turbo tsc",
+		"clean": "rm -rf .turbo node_modules",
+		"lint": "biome check .",
+		"format": "biome format --write .",
+		"typecheck": "tsc --noEmit",
+		"--db:generate": "bun run with-env prisma generate",
+		"db:generate": "bun run with-env prisma generate",
+		"db-migrate": "bun run with-env prisma migrate dev",
+		"prisma-generate": "bun run with-env prisma generate",
+		"--postinstall": "bunx prisma generate",
+		"push": "bun run with-env:prod prisma db push",
+		"pull": "bun run with-env prisma db pull",
+		"sync:prod-to-local": "bun scripts/sync-prod-to-local.ts",
+		"sync:prod-to-local:dry-run": "bun scripts/sync-prod-to-local.ts --dry-run",
+		"sync:prod-to-local:table": "bun scripts/sync-prod-to-local.ts --table",
+		"studio": "bun run with-env prisma studio --port 5556",
+		"with-env": "dotenv -o -e ../../.env.local -e .env.local --",
+		"with-env:prod": "dotenv -o -e ../../.env.production -e .env.production --"
+	},
+	"dependencies": {
+		"@prisma/client": "^6.18.0",
+		"@gnd/utils": "workspace:*",
+		"@t3-oss/env-core": "^0.11.1",
+		"date-fns": "^4.1.0",
+		"qrcode": "^1.5.4",
+		"server-only": "^0.0.1"
+	},
+	"devDependencies": {
+		"@gnd/tsconfig": "workspace:*",
+		"@types/react": "~19.1.0",
+		"@types/qrcode": "^1.5.5",
+		"dotenv": "^17.2.3",
+		"prisma": "^6.18.0",
+		"react": "catalog:",
+		"react-dom": "catalog:"
+	}
 }
