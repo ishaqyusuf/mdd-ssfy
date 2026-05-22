@@ -11,16 +11,16 @@ import {
 import { paginationSchema } from "@gnd/utils/schema";
 import { salesPrioritySchema } from "@sales/priority";
 import { z } from "zod";
+
+const dispatchQueryParamsShape = {
+	tab: z.enum(["all", "pending", "completed"]).optional().nullable(),
+	driversId: z.array(z.number()).optional().nullable(),
+	status: z.enum(salesDispatchStatus).optional().nullable(),
+	scheduleDate: z.array(z.string().optional().nullable()).optional().nullable(),
+};
+
 export const dispatchQueryParamsSchema = z
-	.object({
-		tab: z.enum(["all", "pending", "completed"]).optional().nullable(),
-		driversId: z.array(z.number()).optional().nullable(),
-		status: z.enum(salesDispatchStatus).optional().nullable(),
-		scheduleDate: z
-			.array(z.string().optional().nullable())
-			.optional()
-			.nullable(),
-	})
+	.object(dispatchQueryParamsShape)
 	.extend(paginationSchema.shape);
 export type DispatchQueryParamsSchema = z.infer<
 	typeof dispatchQueryParamsSchema
@@ -259,8 +259,10 @@ export const bulkCancelDispatchSchema = z.object({
 });
 export type BulkCancelDispatchSchema = z.infer<typeof bulkCancelDispatchSchema>;
 
-export const exportDispatchesSchema = dispatchQueryParamsSchema.omit({
-	cursor: true,
-	size: true,
+export const exportDispatchesSchema = z.object({
+	...dispatchQueryParamsShape,
+	sort: paginationSchema.shape.sort,
+	q: paginationSchema.shape.q,
+	bin: paginationSchema.shape.bin,
 });
 export type ExportDispatchesSchema = z.infer<typeof exportDispatchesSchema>;
