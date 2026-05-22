@@ -12,6 +12,13 @@ export const sendComposedEmail = schemaTask({
     concurrencyLimit: 10,
   },
   run: async (props) => {
+    if (props.from.email === "gndsiteaction@gndprodesk.com") {
+      logger.info("Skipping email sending for site action notification", {
+        to: props.to,
+        subject: props.subject,
+      });
+      return;
+    }
     await sendEmail({
       subject: props.subject || props.preview,
       from: `${props.from.name} <${props.from.email}>`,
