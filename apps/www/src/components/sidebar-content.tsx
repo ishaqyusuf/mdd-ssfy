@@ -61,6 +61,21 @@ function TestEmailModeMenuItem() {
 	);
 }
 
+function TestEmailModeIndicator({ visible }: { visible: boolean }) {
+	const testEmailMode = useTestEmailMode((state) => state.enabled);
+
+	if (!visible || !testEmailMode) return null;
+
+	return (
+		<div className="pointer-events-none fixed inset-x-3 bottom-3 z-[80] flex justify-center md:bottom-5 md:left-[84px]">
+			<div className="flex max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-950 shadow-lg shadow-amber-950/10">
+				<Icons.Mail className="size-4 shrink-0 text-amber-700" />
+				<span className="truncate">Test email mode is on</span>
+			</div>
+		</div>
+	);
+}
+
 function NavLayoutClient({ children, pageTabDefaults }) {
 	const auth = useAuth();
 	const trpc = useTRPC();
@@ -90,7 +105,7 @@ function NavLayoutClient({ children, pageTabDefaults }) {
 					<SiteNav.LogoSm Icon={Icons.Logo} />
 					{/* <TermSwitcher /> */}
 					{/* <ModuleSwitcher /> */}
-					<div className="absolute bottom-5 left-0 right-0 z-10 flex w-full items-center justify-center px-3 md:justify-start">
+					<div className="relative z-20 flex w-full shrink-0 items-center justify-center border-t border-sidebar-border/80 bg-sidebar px-3 py-2.5 md:justify-start">
 						<SiteNav.User
 							user={auth}
 							onLogout={() => {
@@ -105,6 +120,7 @@ function NavLayoutClient({ children, pageTabDefaults }) {
 					<Header />
 					<div className="">{children}</div>
 				</SiteNav.Shell>
+				<TestEmailModeIndicator visible={isSuperAdmin} />
 			</div>
 		</SiteNav.Provider>
 	);

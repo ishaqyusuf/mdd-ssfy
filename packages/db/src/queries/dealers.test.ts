@@ -57,6 +57,286 @@ describe("dealer portal pricing", () => {
 	});
 });
 
+function createDealerQuoteTestDb(options: {
+	existingQuote?: { id: number; orderId: string; slug: string } | null;
+	activeDppCount?: number;
+	collidingOrderIds?: string[];
+	dppDocuments?: Array<{ orderId: string; deletedAt?: Date | null }>;
+}) {
+	const collidingOrderIds = new Set(options.collidingOrderIds || []);
+	let createdOrderData: Record<string, unknown> | null = null;
+	let updatedOrderData: Record<string, unknown> | null = null;
+	let sequenceCountWhere: Record<string, unknown> | null = null;
+
+	const tx = {
+		customers: {
+			findFirst: async () => ({
+				id: 20,
+				customerTypeId: null,
+			}),
+		},
+		customerTypes: {
+			findFirst: async ({ where }: { where: Record<string, unknown> }) =>
+				where.dealerOwnerId === null
+					? {
+							id: 1,
+							title: "Dealer Standard",
+							coefficient: 1,
+						}
+					: null,
+		},
+		salesOrders: {
+			findFirst: async () => options.existingQuote ?? null,
+			count: async ({ where }: { where: Record<string, unknown> }) => {
+				if (typeof where.orderId === "string") {
+					const collidesWithDocument = options.dppDocuments?.some(
+						(document) => document.orderId === where.orderId,
+					);
+					return collidingOrderIds.has(where.orderId) || collidesWithDocument
+						? 1
+						: 0;
+				}
+
+				sequenceCountWhere = where;
+				if (options.dppDocuments) {
+					return options.dppDocuments.filter(
+						(document) => document.deletedAt == null,
+					).length;
+				}
+				return options.activeDppCount ?? 0;
+			},
+			create: async ({ data }: { data: Record<string, unknown> }) => {
+				createdOrderData = data;
+				return {
+					id: 55,
+					orderId: data.orderId,
+					slug: data.slug,
+				};
+			},
+			update: async ({ data }: { data: Record<string, unknown> }) => {
+				updatedOrderData = data;
+				return {
+					id: options.existingQuote?.id ?? 55,
+					orderId: data.orderId,
+					slug: data.slug,
+				};
+			},
+		},
+		salesOrderItems: {
+			deleteMany: async () => ({ count: 1 }),
+			createMany: async () => ({ count: 1 }),
+		},
+	};
+
+	const db = {
+		$transaction: async (callback: (transaction: typeof tx) => unknown) =>
+			callback(tx),
+	};
+
+	return {
+		db,
+		getCreatedOrderData: () => createdOrderData,
+		getUpdatedOrderData: () => updatedOrderData,
+		getSequenceCountWhere: () => sequenceCountWhere,
+	};
+}
+
+function dealerQuoteInput(overrides: Record<string, unknown> = {}) {
+	return {
+		customerId: 20,
+		taxRate: 0,
+		lineItems: [
+			{
+				uid: "line-1",
+				title: "Door",
+				qty: 1,
+				unitPrice: 100,
+			},
+		],
+		...overrides,
+	};
+}
+
+describe("dealer portal DPP identities", () => {
+	it("assigns the first DPP serial to a new dealer quote", async () => {
+		const testDb = createDealerQuoteTestDb({
+			activeDppCount: 0,
+		});
+
+		const saved = await saveDealerPortalQuote(
+			testDb.db as any,
+			10,
+			dealerQuoteInput(),
+		);
+
+		expect(saved.orderId).toBe("00001DPP");
+		expect(saved.slug).toBe("quote-00001dpp");
+		expect(testDb.getCreatedOrderData()).toMatchObject({
+			orderId: "00001DPP",
+			slug: "quote-00001dpp",
+			type: "quote",
+			dealerAuthId: 10,
+		});
+		expect(testDb.getSequenceCountWhere()).toMatchObject({
+			dealerAuthId: {
+				not: null,
+			},
+			deletedAt: null,
+			orderId: {
+				endsWith: "DPP",
+			},
+		});
+	});
+
+	it("preserves dealer workflow payload in saved quote metadata", async () => {
+		const testDb = createDealerQuoteTestDb({
+			activeDppCount: 0,
+		});
+
+		await saveDealerPortalQuote(
+			testDb.db as any,
+			10,
+			dealerQuoteInput({
+				lineItems: [
+					{
+						uid: "line-1",
+						title: "Door",
+						qty: 1,
+						unitPrice: 100,
+						meta: {
+							serviceRows: [{ uid: "svc-1", service: "Install" }],
+						},
+						formSteps: [{ stepId: 10, prodUid: "door-a", value: "Door A" }],
+						shelfItems: [{ uid: "shelf-1", qty: 2 }],
+						housePackageTool: {
+							doors: [{ dimension: "30 x 80", totalQty: 1 }],
+						},
+					},
+				],
+			}),
+		);
+
+		const meta = testDb.getCreatedOrderData()?.meta as any;
+		expect(meta.newSalesForm.lineItems[0].formSteps).toHaveLength(1);
+		expect(meta.newSalesForm.lineItems[0].shelfItems).toHaveLength(1);
+		expect(meta.newSalesForm.lineItems[0].housePackageTool.doors).toHaveLength(
+			1,
+		);
+		expect(meta.newSalesForm.lineItems[0].meta.serviceRows).toHaveLength(1);
+	});
+
+	it("uses the next shared DPP serial and skips collisions", async () => {
+		const testDb = createDealerQuoteTestDb({
+			activeDppCount: 1,
+			collidingOrderIds: ["00002DPP"],
+		});
+
+		const saved = await saveDealerPortalQuote(
+			testDb.db as any,
+			10,
+			dealerQuoteInput(),
+		);
+
+		expect(saved.orderId).toBe("00003DPP");
+		expect(saved.slug).toBe("quote-00003dpp");
+	});
+
+	it("ignores deleted DPP documents when calculating the next serial", async () => {
+		const testDb = createDealerQuoteTestDb({
+			dppDocuments: [
+				{ orderId: "00001DPP", deletedAt: null },
+				{ orderId: "00002DPP", deletedAt: new Date("2026-05-22") },
+			],
+		});
+
+		const saved = await saveDealerPortalQuote(
+			testDb.db as any,
+			10,
+			dealerQuoteInput(),
+		);
+
+		expect(saved.orderId).toBe("00003DPP");
+		expect(testDb.getSequenceCountWhere()).toMatchObject({
+			deletedAt: null,
+			orderId: {
+				endsWith: "DPP",
+			},
+		});
+	});
+
+	it("preserves an existing quote order number when editing", async () => {
+		const testDb = createDealerQuoteTestDb({
+			existingQuote: {
+				id: 55,
+				orderId: "00007DPP",
+				slug: "quote-00007dpp",
+			},
+		});
+
+		const saved = await saveDealerPortalQuote(
+			testDb.db as any,
+			10,
+			dealerQuoteInput({ id: 55 }),
+		);
+
+		expect(saved.orderId).toBe("00007DPP");
+		expect(saved.slug).toBe("quote-00007dpp");
+		expect(testDb.getUpdatedOrderData()).toMatchObject({
+			orderId: "00007DPP",
+			slug: "quote-00007dpp",
+			type: "quote",
+		});
+		expect(testDb.getSequenceCountWhere()).toBeNull();
+	});
+
+	it("assigns a new DPP order number when converting a dealer quote", async () => {
+		let updateData: Record<string, unknown> | null = null;
+		const tx = {
+			salesOrders: {
+				findFirst: async () => ({
+					id: 55,
+					meta: {
+						source: "dealer_portal",
+					},
+				}),
+				count: async ({ where }: { where: Record<string, unknown> }) => {
+					if (typeof where.orderId === "string") return 0;
+					return 1;
+				},
+				update: async ({ data }: { data: Record<string, unknown> }) => {
+					updateData = data;
+					return {
+						id: 55,
+						orderId: data.orderId,
+						slug: data.slug,
+						type: data.type,
+						status: data.status,
+					};
+				},
+			},
+		};
+		const db = {
+			$transaction: async (callback: (transaction: typeof tx) => unknown) =>
+				callback(tx),
+		};
+
+		const order = await convertDealerPortalQuoteToOrder(db as any, 10, 55);
+
+		expect(order).toMatchObject({
+			orderId: "00002DPP",
+			slug: "order-00002dpp",
+			type: "order",
+			status: "New",
+		});
+		expect(updateData).toMatchObject({
+			orderId: "00002DPP",
+			slug: "order-00002dpp",
+			type: "order",
+			status: "New",
+		});
+	});
+});
+
 describe("dealer portal isolation", () => {
 	it("rejects assigning another dealer's sales profile to a dealer customer", async () => {
 		const db = {
@@ -87,50 +367,50 @@ describe("dealer portal isolation", () => {
 					findFirst: async ({ where }: { where: Record<string, unknown> }) => {
 						capturedWhere = where;
 						return {
-						id: 55,
-						orderId: "DQ-55",
-						title: "Dealer Quote",
-						status: "Draft",
-						type: "quote",
-						grandTotal: 100,
-						amountDue: 100,
-						taxPercentage: 0,
-						customerId: 20,
-						customerProfileId: 30,
-						dealerSalesProfileId: 40,
-						meta: {
-							dealerPricing: {
-								summary: {
-									grandTotal: 150,
+							id: 55,
+							orderId: "DQ-55",
+							title: "Dealer Quote",
+							status: "Draft",
+							type: "quote",
+							grandTotal: 100,
+							amountDue: 100,
+							taxPercentage: 0,
+							customerId: 20,
+							customerProfileId: 30,
+							dealerSalesProfileId: 40,
+							meta: {
+								dealerPricing: {
+									summary: {
+										grandTotal: 150,
+									},
 								},
 							},
-						},
-						customer: {
-							id: 20,
-							name: "Customer",
-							businessName: null,
-							email: "customer@example.com",
-							customerTypeId: 40,
-						},
-						items: [
-							{
-								id: 1,
-								description: "Door",
-								dykeDescription: "Entry Door",
-								qty: 1,
-								rate: 100,
-								total: 100,
-								meta: {
-									uid: "line-1",
-									title: "Entry Door",
-									internalUnitPrice: 100,
-									internalLineTotal: 100,
-									dealerUnitPrice: 150,
-									dealerLineTotal: 150,
-								},
+							customer: {
+								id: 20,
+								name: "Customer",
+								businessName: null,
+								email: "customer@example.com",
+								customerTypeId: 40,
 							},
-						],
-					};
+							items: [
+								{
+									id: 1,
+									description: "Door",
+									dykeDescription: "Entry Door",
+									qty: 1,
+									rate: 100,
+									total: 100,
+									meta: {
+										uid: "line-1",
+										title: "Entry Door",
+										internalUnitPrice: 100,
+										internalLineTotal: 100,
+										dealerUnitPrice: 150,
+										dealerLineTotal: 150,
+									},
+								},
+							],
+						};
 					},
 				},
 			} as any,

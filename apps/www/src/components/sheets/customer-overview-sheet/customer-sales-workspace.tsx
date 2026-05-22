@@ -68,6 +68,8 @@ export function CustomerSalesWorkspace({ accountNo }: Props) {
 	const overviewOpen = useSalesOverviewOpen();
 	const emailTrigger = useTaskTrigger({
 		executingToast: "Sending email...",
+		taskTitle: "Sending sales email",
+		taskDescription: "We will keep watching this email job until it finishes.",
 		successToast: "Email sent.",
 		errorToast: "Unable to send email.",
 	});

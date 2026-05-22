@@ -30,6 +30,7 @@ import {
 	saveDealerPortalSalesProfile,
 	saveDealerPortalSettings,
 } from "@gnd/db/queries";
+import { getNewSalesFormStepRouting } from "@api/db/queries/new-sales-form";
 import { createTRPCRouter, dealerProtectedProcedure } from "../init";
 
 export const dealerPortalRouter = createTRPCRouter({
@@ -65,6 +66,9 @@ export const dealerPortalRouter = createTRPCRouter({
 	}),
 	internalSalesProfile: dealerProtectedProcedure.query(({ ctx }) => {
 		return getDealerPortalInternalSalesProfile(ctx.db);
+	}),
+	workflowReference: dealerProtectedProcedure.query(({ ctx }) => {
+		return getNewSalesFormStepRouting(ctx, {});
 	}),
 	saveSalesProfile: dealerProtectedProcedure
 		.input(dealerPortalSalesProfileSchema)

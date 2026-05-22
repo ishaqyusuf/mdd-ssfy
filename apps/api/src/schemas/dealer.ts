@@ -132,6 +132,10 @@ export const dealerPortalSalesLineItemSchema = z.object({
 	qty: z.number().min(0).optional().nullable(),
 	unitPrice: z.number().optional().nullable(),
 	lineTotal: z.number().optional().nullable(),
+	meta: z.record(z.string(), z.any()).optional().nullable(),
+	formSteps: z.array(z.record(z.string(), z.any())).optional().nullable(),
+	shelfItems: z.array(z.record(z.string(), z.any())).optional().nullable(),
+	housePackageTool: z.record(z.string(), z.any()).optional().nullable(),
 });
 export type DealerPortalSalesLineItemSchema = z.infer<
 	typeof dealerPortalSalesLineItemSchema

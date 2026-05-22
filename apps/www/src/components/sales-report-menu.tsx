@@ -16,7 +16,7 @@ import type { PermissionScope } from "@/types/auth";
 
 const reportMenuItems = [
 	{
-		label: "Daily Payment Report",
+		label: "Payment Report",
 		href: "/task-events/sales-daily-payment-report-schedule",
 		permission: "generateSalesPaymentReport",
 	},
@@ -40,6 +40,32 @@ export function SalesReportMenu({ variant = "header" }: Props) {
 		return null;
 	}
 
+	// Use a direct CTA while there is only one report; switch to the dropdown once more report items are available.
+	if (allowedReportMenuItems.length === 1) {
+		const item = allowedReportMenuItems[0];
+
+		return (
+			<Link
+				href={item.href}
+				aria-label={item.label}
+				className={cn(
+					buttonVariants({
+						variant: variant === "nav" ? "ghost" : "outline",
+						size: variant === "nav" ? undefined : "sm",
+					}),
+					variant === "nav"
+						? "h-8 gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-3 text-indigo-700 shadow-sm transition-all hover:border-indigo-300 hover:bg-indigo-100 hover:text-indigo-800"
+						: "gap-2",
+				)}
+			>
+				<Icons.ChartSpline className="size-4" />
+				<span className={variant === "nav" ? undefined : "hidden lg:inline"}>
+					{item.label}
+				</span>
+			</Link>
+		);
+	}
+
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
@@ -53,14 +79,14 @@ export function SalesReportMenu({ variant = "header" }: Props) {
 							"gap-1.5",
 						)}
 					>
-						<Icons.FileSpreadsheet className="size-4" />
-						Report
+						<Icons.ChartSpline className="size-4" />
+						Payment Report
 						<Icons.ChevronDown className="size-3.5" />
 					</button>
 				) : (
 					<Button type="button" variant="outline" size="sm" className="gap-2">
-						<Icons.FileSpreadsheet className="size-4" />
-						<span className="hidden lg:inline">Report</span>
+						<Icons.ChartSpline className="size-4" />
+						<span className="hidden lg:inline">Payment Report</span>
 						<Icons.ChevronDown className="size-3.5" />
 					</Button>
 				)}
@@ -68,9 +94,10 @@ export function SalesReportMenu({ variant = "header" }: Props) {
 			<DropdownMenuContent align="end">
 				{allowedReportMenuItems.map((item) => (
 					<DropdownMenuItem key={item.href} asChild>
-						<Link href={item.href}>
-							<Icons.FileSpreadsheet className="mr-2 size-4" />
-							{item.label}
+						<Link href={item.href} className="gap-2">
+							<Icons.ChartSpline className="size-4 shrink-0" />
+							<span className="flex-1">{item.label}</span>
+							<Icons.ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
 						</Link>
 					</DropdownMenuItem>
 				))}

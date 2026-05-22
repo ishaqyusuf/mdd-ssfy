@@ -120,18 +120,22 @@ function getTrustedOrigins() {
 	);
 }
 
+export function getActiveDealerAuthUserWhere(email: string, authUserId?: string) {
+	return {
+		email: email.trim().toLowerCase(),
+		authUserId: authUserId || {
+			not: null,
+		},
+		OR: [{ restricted: false }, { restricted: null }],
+		status: {
+			in: ["active", "approved"],
+		},
+	};
+}
+
 async function getActiveDealerAuthUser(email: string, authUserId?: string) {
 	return db.dealerAuth.findFirst({
-		where: {
-			email: email.trim().toLowerCase(),
-			authUserId: authUserId || {
-				not: null,
-			},
-			restricted: false,
-			status: {
-				in: ["active", "approved"],
-			},
-		},
+		where: getActiveDealerAuthUserWhere(email, authUserId),
 		select: {
 			authUserId: true,
 			companyName: true,

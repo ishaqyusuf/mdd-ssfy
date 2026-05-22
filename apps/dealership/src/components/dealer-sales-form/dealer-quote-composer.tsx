@@ -159,6 +159,10 @@ export function DealerQuoteComposer({
 				qty: Number(line.qty || 0),
 				unitPrice: Number(line.unitPrice || 0),
 				lineTotal: Number(line.qty || 0) * Number(line.unitPrice || 0),
+				meta: line.meta || {},
+				formSteps: line.formSteps || [],
+				shelfItems: line.shelfItems || [],
+				housePackageTool: line.housePackageTool || null,
 			})),
 		});
 	}

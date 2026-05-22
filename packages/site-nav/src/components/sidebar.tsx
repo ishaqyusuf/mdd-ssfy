@@ -46,7 +46,7 @@ export function Sidebar({ children }: { children?: React.ReactNode }) {
 					}
 					setIsExpanded(false);
 				}}
-				className="scrollbar-hide relative flex min-h-0 w-full flex-1 flex-col overflow-y-auto pb-[124px] pt-[70px]"
+				className="scrollbar-hide relative flex min-h-0 w-full flex-1 flex-col overflow-y-auto pb-4 pt-[70px]"
 			>
 				<NavsList />
 			</div>

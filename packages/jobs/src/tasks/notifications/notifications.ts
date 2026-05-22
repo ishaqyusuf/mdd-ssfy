@@ -76,6 +76,10 @@ export const notification = schemaTask({
 				author,
 			});
 		}
+		const isDirectSecurityEmail =
+			channel === "auth_new_device_login" ||
+			channel === "dealer_magic_login_link" ||
+			channel === "dealer_password_reset";
 		const notificationOptions: NotificationOptions = {
 			author: {
 				id: author.id,
@@ -87,7 +91,7 @@ export const notification = schemaTask({
 					ids: recipient.ids,
 					role: recipient.role,
 				})) ?? undefined,
-			...(channel === "auth_new_device_login"
+			...(isDirectSecurityEmail
 				? {
 						includeChannelSubscribers: false,
 						allowFallbackRecipient: false,

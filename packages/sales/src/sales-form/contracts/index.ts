@@ -21,3 +21,13 @@ export type {
 	SalesFormStepLike,
 	SalesFormSummaryResult,
 } from "./types";
+export type {
+	SalesFormWorkflowActions,
+	SalesFormWorkflowDataSource,
+	SalesFormWorkflowEditorState,
+	SalesFormWorkflowPricingSurface,
+	SalesFormWorkflowQueryResult,
+	SalesFormWorkflowRecord,
+	SalesFormWorkflowSurfaceSlots,
+	SalesFormWorkflowStepComponentInput,
+} from "./workflow-data-source";

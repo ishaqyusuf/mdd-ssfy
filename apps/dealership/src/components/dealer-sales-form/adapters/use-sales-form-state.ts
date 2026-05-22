@@ -61,6 +61,20 @@ function normalizeDealerLineItems(value: unknown): SalesFormLineItemUiRecord[] {
 			qty,
 			unitPrice,
 			lineTotal,
+			meta:
+				record.meta &&
+				typeof record.meta === "object" &&
+				!Array.isArray(record.meta)
+					? (record.meta as Record<string, unknown>)
+					: {},
+			formSteps: Array.isArray(record.formSteps) ? record.formSteps : [],
+			shelfItems: Array.isArray(record.shelfItems) ? record.shelfItems : [],
+			housePackageTool:
+				record.housePackageTool &&
+				typeof record.housePackageTool === "object" &&
+				!Array.isArray(record.housePackageTool)
+					? record.housePackageTool
+					: null,
 		};
 	});
 }
@@ -102,11 +116,12 @@ export function useDealerSalesFormState() {
 
 	const hydrateQuote = useCallback((source?: DealerQuoteSource | null) => {
 		const record = createDealerSalesFormRecord(source);
-		setState((current) =>
-			hydrateSalesFormState(
-				current as any,
-				record as any,
-			) as DealerSalesFormState,
+		setState(
+			(current) =>
+				hydrateSalesFormState(
+					current as any,
+					record as any,
+				) as DealerSalesFormState,
 		);
 	}, []);
 
@@ -121,7 +136,9 @@ export function useDealerSalesFormState() {
 					setSalesFormMeta(current as any, {
 						customerId,
 						customerProfileId:
-							customerProfileId ?? current.record?.form.customerProfileId ?? null,
+							customerProfileId ??
+							current.record?.form.customerProfileId ??
+							null,
 					}) as DealerSalesFormState,
 			);
 		},
@@ -155,14 +172,7 @@ export function useDealerSalesFormState() {
 			setCustomerProfile,
 			setTaxRate,
 		}),
-		[
-			hydrateQuote,
-			reset,
-			setCustomer,
-			setCustomerProfile,
-			setTaxRate,
-			state,
-		],
+		[hydrateQuote, reset, setCustomer, setCustomerProfile, setTaxRate, state],
 	);
 }
 

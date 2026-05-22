@@ -26,7 +26,10 @@ export {
 	repricePersistedDoorRowsForSupplier,
 } from "./door-utils";
 export { InvoiceItemCard } from "./invoice-item-card";
-export type { InvoiceItemCardProps, WorkflowStepUiRecord } from "./invoice-item-card";
+export type {
+	InvoiceItemCardProps,
+	WorkflowStepUiRecord,
+} from "./invoice-item-card";
 export {
 	HousePackageToolPanel,
 	type HousePackageToolPanelProps,
@@ -106,7 +109,11 @@ export {
 	type WorkflowShelfSectionsContext,
 	type WorkflowShelfSectionsPatch,
 } from "./workflow-row-patches";
-export { money, moneyIfPositive, profileAdjustedSalesPrice } from "./workflow-format";
+export {
+	money,
+	moneyIfPositive,
+	profileAdjustedSalesPrice,
+} from "./workflow-format";
 export {
 	applyWorkflowComponentPriceOverride,
 	buildWorkflowComponentEditState,
@@ -187,6 +194,10 @@ export {
 	type WorkflowStepComponentPanelProps,
 	type WorkflowStepComponentPanelRedirectOption,
 } from "./workflow-step-component-panel";
+export {
+	SalesFormWorkflowPanel,
+	type SalesFormWorkflowPanelProps,
+} from "./sales-form-workflow-panel";
 export {
 	WorkflowComponentToolbar,
 	type WorkflowComponentToolbarProps,

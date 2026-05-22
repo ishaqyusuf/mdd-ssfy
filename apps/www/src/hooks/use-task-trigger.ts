@@ -11,6 +11,8 @@ interface Props {
     successToast?: string;
     errorToast?: string;
     executingToast?: string;
+    taskTitle?: string;
+    taskDescription?: string;
     onError?;
     onSuccess?;
     onStarted?;
@@ -101,7 +103,13 @@ export function useTaskTrigger(props?: Props) {
             setRunId(data.id);
             setAccessToken(data.publicAccessToken);
             // }
-            if (!props.silent) pushTask(data.id, data.publicAccessToken);
+            if (!props.silent)
+                pushTask(
+                    data.id,
+                    data.publicAccessToken,
+                    props.taskTitle || executingToast || successToast,
+                    props.taskDescription || executingToast
+                );
             props?.onStarted?.();
         },
         onError(e) {

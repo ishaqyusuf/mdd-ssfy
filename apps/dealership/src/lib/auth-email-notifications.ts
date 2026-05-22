@@ -3,8 +3,8 @@ import {
 	setDealerMagicLoginLinkHandler,
 	setDealerPasswordResetHandler,
 } from "@gnd/auth/better-auth/dealership";
-import { db } from "@gnd/db";
-import { Notifications } from "@gnd/notifications";
+import type { NotificationJobInput } from "@gnd/notifications/schemas";
+import { tasks } from "@trigger.dev/sdk/v3";
 
 function getExpiresInMinutes(input: DealerAuthEmailInput) {
 	return Math.max(1, Math.ceil(input.expiresInSeconds / 60));
@@ -14,41 +14,29 @@ function getDealerName(input: DealerAuthEmailInput) {
 	return input.accountName || input.accountEmail;
 }
 
-function createSecurityNotification() {
-	return new Notifications(db);
-}
-
-const securityNotificationOptions = {
-	author: {
-		id: 0,
-		role: "employee" as const,
-	},
-	authorContact: {
-		id: 0,
-		profileId: 0,
-		name: "GND Security",
-		email: "noreply@gndprodesk.com",
-		role: "employee" as const,
-	},
-	includeChannelSubscribers: false,
-	allowFallbackRecipient: false,
+const securityAuthor = {
+	id: 0,
+	role: "employee" as const,
 };
 
 async function sendDealerMagicLoginLink(input: DealerAuthEmailInput) {
 	try {
-		const result = await createSecurityNotification().create(
-			"dealer_magic_login_link",
-			{
+		const payload = {
+			channel: "dealer_magic_login_link",
+			author: securityAuthor,
+			recipients: null,
+			payload: {
 				dealerName: getDealerName(input),
 				dealerEmail: input.accountEmail,
 				loginLink: input.url,
 				expiresInMinutes: getExpiresInMinutes(input),
 			},
-			securityNotificationOptions,
-		);
-		console.info("Dealer magic login notification result:", {
+		} satisfies NotificationJobInput;
+
+		const result = await tasks.trigger("notification", payload);
+		console.info("Dealer magic login notification queued:", {
 			email: input.accountEmail,
-			emails: result.emails,
+			result,
 		});
 	} catch (error) {
 		console.error("Failed to send dealer magic login link:", error);
@@ -58,19 +46,22 @@ async function sendDealerMagicLoginLink(input: DealerAuthEmailInput) {
 
 async function sendDealerPasswordReset(input: DealerAuthEmailInput) {
 	try {
-		const result = await createSecurityNotification().create(
-			"dealer_password_reset",
-			{
+		const payload = {
+			channel: "dealer_password_reset",
+			author: securityAuthor,
+			recipients: null,
+			payload: {
 				dealerName: getDealerName(input),
 				dealerEmail: input.accountEmail,
 				resetLink: input.url,
 				expiresInMinutes: getExpiresInMinutes(input),
 			},
-			securityNotificationOptions,
-		);
-		console.info("Dealer password reset notification result:", {
+		} satisfies NotificationJobInput;
+
+		const result = await tasks.trigger("notification", payload);
+		console.info("Dealer password reset notification queued:", {
 			email: input.accountEmail,
-			emails: result.emails,
+			result,
 		});
 	} catch (error) {
 		console.error("Failed to send dealer password reset:", error);

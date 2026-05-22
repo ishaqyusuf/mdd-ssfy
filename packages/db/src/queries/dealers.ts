@@ -65,6 +65,10 @@ export type DealerPortalQuoteLineItemInput = {
 	qty?: number | null;
 	unitPrice?: number | null;
 	lineTotal?: number | null;
+	meta?: Record<string, unknown> | null;
+	formSteps?: Record<string, unknown>[] | null;
+	shelfItems?: Record<string, unknown>[] | null;
+	housePackageTool?: Record<string, unknown> | null;
 };
 
 export type DealerPortalSaveQuoteInput = {
@@ -1018,7 +1022,9 @@ function getDealerNewSalesFormMeta(meta: Prisma.JsonValue | null | undefined) {
 		: null;
 }
 
-function getDealerPricingSummaryFromMeta(meta: Prisma.JsonValue | null | undefined) {
+function getDealerPricingSummaryFromMeta(
+	meta: Prisma.JsonValue | null | undefined,
+) {
 	if (!meta || typeof meta !== "object" || Array.isArray(meta)) return null;
 	const dealerPricing = (meta as Record<string, unknown>).dealerPricing;
 	if (
@@ -1106,8 +1112,9 @@ export async function getDealerPortalSalesDocument(
 		grandTotal: Number(dealerSummary?.grandTotal ?? document.grandTotal ?? 0),
 		amountDue: Number(dealerSummary?.grandTotal ?? document.amountDue ?? 0),
 		customerId:
-			Number(form?.customerId || document.customerId || document.customer?.id || 0) ||
-			null,
+			Number(
+				form?.customerId || document.customerId || document.customer?.id || 0,
+			) || null,
 		customerProfileId:
 			Number(
 				form?.customerProfileId ||
@@ -1124,7 +1131,9 @@ export async function getDealerPortalSalesDocument(
 			? metaLineItems
 			: items.map((item) => {
 					const itemMeta =
-						item.meta && typeof item.meta === "object" && !Array.isArray(item.meta)
+						item.meta &&
+						typeof item.meta === "object" &&
+						!Array.isArray(item.meta)
 							? (item.meta as Record<string, unknown>)
 							: {};
 					return {
@@ -1151,7 +1160,9 @@ function pricingCoefficient(profile?: { coefficient?: number | null } | null) {
 	return Number.isFinite(value) && value > 0 ? value : 1;
 }
 
-function pricingPercentage(profile?: { salesPercentage?: number | null } | null) {
+function pricingPercentage(
+	profile?: { salesPercentage?: number | null } | null,
+) {
 	const value = Number(profile?.salesPercentage ?? 0);
 	return Number.isFinite(value) ? value : 0;
 }
@@ -1263,24 +1274,42 @@ export function calculateDealerQuotePricing({
 	};
 }
 
-function createDealerQuoteIdentity() {
-	const stamp = Date.now().toString(36).toUpperCase();
-	const random = Math.random().toString(36).slice(2, 6).toUpperCase();
-	const orderId = `DQ-${stamp}-${random}`;
-	return {
-		orderId,
-		slug: `quote-${orderId.toLowerCase()}`,
-	};
-}
+const DEALER_PROGRAM_PARTNER_SUFFIX = "DPP";
 
-function createDealerOrderIdentity() {
-	const stamp = Date.now().toString(36).toUpperCase();
-	const random = Math.random().toString(36).slice(2, 6).toUpperCase();
-	const orderId = `DO-${stamp}-${random}`;
-	return {
-		orderId,
-		slug: `order-${orderId.toLowerCase()}`,
-	};
+async function createDealerProgramPartnerIdentity(
+	db: Pick<Database, "salesOrders">,
+	type: "order" | "quote",
+) {
+	const existingDppDocuments = await db.salesOrders.count({
+		where: {
+			dealerAuthId: {
+				not: null,
+			},
+			deletedAt: null,
+			orderId: {
+				endsWith: DEALER_PROGRAM_PARTNER_SUFFIX,
+			},
+		},
+	});
+	let nextSerial = existingDppDocuments + 1;
+
+	while (true) {
+		const orderId = `${nextSerial.toString().padStart(5, "0")}${DEALER_PROGRAM_PARTNER_SUFFIX}`;
+		const collisionCount = await db.salesOrders.count({
+			where: {
+				orderId,
+			},
+		});
+
+		if (collisionCount === 0) {
+			return {
+				orderId,
+				slug: `${type}-${orderId.toLowerCase()}`,
+			};
+		}
+
+		nextSerial += 1;
+	}
 }
 
 export async function saveDealerPortalQuote(
@@ -1345,6 +1374,20 @@ export async function saveDealerPortalQuote(
 				qty,
 				unitPrice,
 				lineTotal,
+				meta:
+					line.meta &&
+					typeof line.meta === "object" &&
+					!Array.isArray(line.meta)
+						? line.meta
+						: {},
+				formSteps: Array.isArray(line.formSteps) ? line.formSteps : [],
+				shelfItems: Array.isArray(line.shelfItems) ? line.shelfItems : [],
+				housePackageTool:
+					line.housePackageTool &&
+					typeof line.housePackageTool === "object" &&
+					!Array.isArray(line.housePackageTool)
+						? line.housePackageTool
+						: null,
 			};
 		});
 
@@ -1382,56 +1425,57 @@ export async function saveDealerPortalQuote(
 			throw new Error("Dealer quote could not be found.");
 		}
 
-		const identity = existing || createDealerQuoteIdentity();
+		const identity =
+			existing || (await createDealerProgramPartnerIdentity(tx, "quote"));
 		const orderData = {
 			orderId: identity.orderId,
 			slug: identity.slug,
-				type: "quote",
-				status: "Draft",
-				isDyke: true,
-				dealerAuthId: dealerId,
-				customerId: customer.id,
-				customerProfileId: internalProfile?.id || null,
-				dealerSalesProfileId: dealerProfile?.id || null,
-				taxPercentage: pricing.internalPricing.taxRate,
-				subTotal: pricing.internalPricing.subTotal,
-				tax: pricing.internalPricing.taxTotal,
-				grandTotal: pricing.internalPricing.grandTotal,
-				amountDue: pricing.internalPricing.grandTotal,
-				meta: {
-					source: "dealer_portal",
-					pricingSnapshot,
-					dealerPricing: {
-						profileId: pricing.dealerProfileId,
-						summary: pricing.dealerPricing,
-						lines: pricing.lines.map((line) => ({
-							uid: line.uid,
-							unitPrice: line.dealerUnitPrice,
-							lineTotal: line.dealerLineTotal,
-						})),
+			type: "quote",
+			status: "Draft",
+			isDyke: true,
+			dealerAuthId: dealerId,
+			customerId: customer.id,
+			customerProfileId: internalProfile?.id || null,
+			dealerSalesProfileId: dealerProfile?.id || null,
+			taxPercentage: pricing.internalPricing.taxRate,
+			subTotal: pricing.internalPricing.subTotal,
+			tax: pricing.internalPricing.taxTotal,
+			grandTotal: pricing.internalPricing.grandTotal,
+			amountDue: pricing.internalPricing.grandTotal,
+			meta: {
+				source: "dealer_portal",
+				pricingSnapshot,
+				dealerPricing: {
+					profileId: pricing.dealerProfileId,
+					summary: pricing.dealerPricing,
+					lines: pricing.lines.map((line) => ({
+						uid: line.uid,
+						unitPrice: line.dealerUnitPrice,
+						lineTotal: line.dealerLineTotal,
+					})),
+				},
+				internalPricing: {
+					profileId: pricing.internalProfileId,
+					summary: pricing.internalPricing,
+					lines: pricing.lines.map((line) => ({
+						uid: line.uid,
+						unitPrice: line.internalUnitPrice,
+						lineTotal: line.internalLineTotal,
+					})),
+				},
+				newSalesForm: {
+					version: `${Date.now()}`,
+					updatedAt: new Date().toISOString(),
+					autosave: false,
+					lineItems: normalizedLines,
+					extraCosts: [],
+					summary: pricing.dealerPricing,
+					form: {
+						customerId: customer.id,
+						customerProfileId: dealerProfile?.id || null,
 					},
-					internalPricing: {
-						profileId: pricing.internalProfileId,
-						summary: pricing.internalPricing,
-						lines: pricing.lines.map((line) => ({
-							uid: line.uid,
-							unitPrice: line.internalUnitPrice,
-							lineTotal: line.internalLineTotal,
-						})),
-					},
-					newSalesForm: {
-						version: `${Date.now()}`,
-						updatedAt: new Date().toISOString(),
-						autosave: false,
-						lineItems: normalizedLines,
-						extraCosts: [],
-						summary: pricing.dealerPricing,
-						form: {
-							customerId: customer.id,
-							customerProfileId: dealerProfile?.id || null,
-						},
-					},
-				} as Prisma.InputJsonValue,
+				},
+			} as Prisma.InputJsonValue,
 		};
 		const created = existing
 			? await tx.salesOrders.update({
@@ -1447,11 +1491,11 @@ export async function saveDealerPortalQuote(
 				})
 			: await tx.salesOrders.create({
 					data: orderData,
-			select: {
-				id: true,
-				orderId: true,
-				slug: true,
-			},
+					select: {
+						id: true,
+						orderId: true,
+						slug: true,
+					},
 				});
 
 		if (existing) {
@@ -1473,6 +1517,10 @@ export async function saveDealerPortalQuote(
 				meta: {
 					uid: line.uid,
 					title: line.title,
+					formSteps: line.formSteps,
+					shelfItems: line.shelfItems,
+					housePackageTool: line.housePackageTool,
+					lineMeta: line.meta,
 					internalUnitPrice: pricing.lines[index]?.internalUnitPrice,
 					internalLineTotal: pricing.lines[index]?.internalLineTotal,
 					dealerUnitPrice: pricing.lines[index]?.dealerUnitPrice,
@@ -1512,7 +1560,7 @@ export async function convertDealerPortalQuoteToOrder(
 			throw new Error("Dealer quote could not be found.");
 		}
 
-		const identity = createDealerOrderIdentity();
+		const identity = await createDealerProgramPartnerIdentity(tx, "order");
 		const currentMeta =
 			quote.meta && typeof quote.meta === "object" && !Array.isArray(quote.meta)
 				? quote.meta

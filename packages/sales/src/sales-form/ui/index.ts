@@ -1,5 +1,10 @@
 export { SalesFormHeaderActions } from "./header-actions";
 export type { SalesFormHeaderActionsProps } from "./header-actions";
+export { SalesFormBasicWorkflowPanel } from "./basic-workflow-panel";
+export type {
+	SalesFormBasicWorkflowLine,
+	SalesFormBasicWorkflowPanelProps,
+} from "./basic-workflow-panel";
 export { SalesFormLineItemsPanel } from "./line-items-panel";
 export type {
 	SalesFormLineItemsPanelProps,
@@ -17,6 +22,4 @@ export {
 	salesFormStatusClass,
 	salesFormStatusLabel,
 } from "./status-utils";
-export type {
-	SalesFormHeaderItemOption,
-} from "./types";
+export type { SalesFormHeaderItemOption } from "./types";

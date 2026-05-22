@@ -1,5 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@gnd/ui/avatar";
 import { Button } from "@gnd/ui/button";
+import { cn } from "@gnd/ui/cn";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -35,20 +36,24 @@ export function User({ user, onLogout, children }: SiteNavUserProps) {
 
 	return (
 		<div
-			className={
+			className={cn(
+				"relative overflow-hidden rounded-lg border transition-colors duration-200",
 				isExpanded
-					? "relative w-full overflow-hidden rounded-lg border border-sidebar-border/90 bg-white/82 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_12px_32px_rgba(15,23,42,0.06)] backdrop-blur-xl transition-colors duration-200 hover:bg-white dark:bg-sidebar-accent/82 dark:hover:bg-sidebar-accent"
-					: "relative w-full overflow-hidden rounded-lg border border-transparent bg-transparent transition-colors duration-200"
-			}
+					? "w-full border-sidebar-border/90 bg-white/82 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_12px_32px_rgba(15,23,42,0.06)] backdrop-blur-xl hover:bg-white dark:bg-sidebar-accent/82 dark:hover:bg-sidebar-accent"
+					: "w-auto border-transparent bg-transparent",
+			)}
 		>
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
 					<Button
 						size="lg"
 						variant="link"
-						className="flex h-full min-h-[56px] w-full gap-3 px-3 py-2 text-sidebar-foreground no-underline data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-foreground"
+						className={cn(
+							"flex h-full min-h-12 gap-3 py-1.5 text-sidebar-foreground no-underline data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-foreground",
+							isExpanded ? "w-full px-3" : "w-12 justify-center px-1.5",
+						)}
 					>
-						<Avatar className="h-10 w-10 rounded-lg border border-sidebar-border">
+						<Avatar className="h-9 w-9 rounded-lg border border-sidebar-border">
 							<AvatarImage src={user?.avatar} alt={user?.name} />
 							<AvatarFallback className="rounded-lg bg-sidebar-primary/10 text-sidebar-primary">
 								{getInitials(user?.name)}

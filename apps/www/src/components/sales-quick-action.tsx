@@ -19,7 +19,7 @@ export function SalesQuickAction() {
 
 	return (
 		<Portal nodeId={"navRightSlot"}>
-			<AuthGuard noRedirect can={["viewSales"]}>
+			<AuthGuard noRedirect can={["editOrders"]}>
 				<Menu label={"Quick Action"}>
 					<Menu.Item href="/sales-book/create-order">New Sales</Menu.Item>
 					<Menu.Item href="/sales-book/create-quote">New Quote</Menu.Item>
