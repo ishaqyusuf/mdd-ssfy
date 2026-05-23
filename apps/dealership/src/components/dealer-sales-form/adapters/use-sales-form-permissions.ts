@@ -3,7 +3,7 @@ import { createSalesFormPermissions } from "@gnd/sales/sales-form";
 export function useSalesFormPermissions() {
 	return createSalesFormPermissions({
 		canEditCustomer: true,
-		canEditPricing: true,
+		canEditPricing: false,
 		canSaveDraft: true,
 		canFinalize: true,
 		canPrint: false,

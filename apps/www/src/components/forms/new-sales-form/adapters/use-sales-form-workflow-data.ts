@@ -4,6 +4,7 @@ import type {
 	SalesFormWorkflowDataSource,
 	SalesFormWorkflowStepComponentInput,
 } from "@gnd/sales/sales-form";
+import { resolveWorkflowComponentImageSrc } from "@gnd/sales/sales-form";
 import { useMemo } from "react";
 import {
 	useCustomerProfilesQuery,
@@ -43,22 +44,12 @@ export function useWwwSalesFormWorkflowData(): SalesFormWorkflowDataSource {
 				),
 			useDoorSuppliers: (input) =>
 				useSalesSuppliersQuery(input?.enabled !== false),
-			resolveImageSrc: resolveWwwComponentImageSrc,
+			resolveImageSrc: (src?: string | null) =>
+				resolveWorkflowComponentImageSrc(
+					src,
+					process.env.NEXT_PUBLIC_CLOUDINARY_BASE_URL,
+				),
 		}),
 		[],
 	);
-}
-
-function resolveWwwComponentImageSrc(src?: string | null) {
-	const value = String(src || "").trim();
-	if (!value) return null;
-	if (
-		value.startsWith("http://") ||
-		value.startsWith("https://") ||
-		value.startsWith("data:") ||
-		value.startsWith("blob:")
-	) {
-		return value;
-	}
-	return value.startsWith("/") ? value : `/${value}`;
 }

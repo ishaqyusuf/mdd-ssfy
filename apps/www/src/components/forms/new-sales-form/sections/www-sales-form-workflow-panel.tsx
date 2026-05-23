@@ -1,22 +1,32 @@
 "use client";
 
 import { FileUploader } from "@/components/common/file-uploader";
+import { MouldingCalculator } from "@/components/moulding-calculator";
+import { useAuth } from "@/hooks/use-auth";
 import {
 	buildWorkflowComponentEditState,
 	ComponentEditDialog,
 	DoorSizeVariantDialog,
+	DoorSupplierManager,
 	getRedirectableRoutes,
 	getWorkflowSteps,
 	removeWorkflowSelectedComponent,
 	saveWorkflowComponentEdit,
-	SalesFormWorkflowPanel,
+	SalesFormEnginePanel,
 	setWorkflowComponentRedirect,
+	createInternalSalesFormWorkflowCapabilities,
+	type SalesFormWorkflowCapabilities,
 	type ComponentEditDialogRouteOption,
 	type WorkflowComponentEditState,
 	type WorkflowComponentRecord,
 } from "@gnd/sales/sales-form";
 import { useMemo, useState } from "react";
-import { useSalesUpdateStepMetaMutation } from "../api";
+import {
+	useSalesDeleteSupplierMutation,
+	useSalesSaveSupplierMutation,
+	useSalesSuppliersQuery,
+	useSalesUpdateStepMetaMutation,
+} from "../api";
 import { useWwwSalesFormWorkflowData } from "../adapters/use-sales-form-workflow-data";
 import type { NewSalesFormLineItem } from "../schema";
 import { useNewSalesFormStore } from "../store";
@@ -36,7 +46,18 @@ const initialComponentEditState: WorkflowComponentEditState = {
 	hasSwing: true,
 };
 
+export function createWwwWorkflowAdminCapabilities(
+	roleTitle?: string | null,
+): SalesFormWorkflowCapabilities {
+	const normalizedRole = String(roleTitle || "").toLowerCase();
+	return createInternalSalesFormWorkflowCapabilities({
+		isWorkflowAdmin:
+			normalizedRole === "admin" || normalizedRole === "super admin",
+	});
+}
+
 export function WwwSalesFormWorkflowPanel() {
+	const auth = useAuth();
 	const record = useNewSalesFormStore((state) => state.record);
 	const editor = useNewSalesFormStore((state) => state.editor);
 	const addLineItem = useNewSalesFormStore((state) => state.addLineItem);
@@ -44,6 +65,9 @@ export function WwwSalesFormWorkflowPanel() {
 	const removeLineItem = useNewSalesFormStore((state) => state.removeLineItem);
 	const setEditor = useNewSalesFormStore((state) => state.setEditor);
 	const dataSource = useWwwSalesFormWorkflowData();
+	const suppliersQuery = useSalesSuppliersQuery(true);
+	const saveSupplierMutation = useSalesSaveSupplierMutation();
+	const deleteSupplierMutation = useSalesDeleteSupplierMutation();
 	const updateStepMetaMutation = useSalesUpdateStepMetaMutation();
 	const [componentEditModal, setComponentEditModal] =
 		useState<WorkflowComponentEditState>(initialComponentEditState);
@@ -60,12 +84,45 @@ export function WwwSalesFormWorkflowPanel() {
 		stepIndex: -1,
 		routeData: null,
 	});
+	const [supplierNameInput, setSupplierNameInput] = useState("");
+	const [editingSupplier, setEditingSupplier] = useState<{
+		id: number;
+		name?: string | null;
+	} | null>(null);
+	const workflowAdminCapabilities = useMemo(
+		() => createWwwWorkflowAdminCapabilities(auth.roleTitle),
+		[auth.roleTitle],
+	);
 
 	const workflowEditor = useMemo(
 		() => ({
 			activeItem: editor.activeItem,
 		}),
 		[editor.activeItem],
+	);
+	const workflowDataSource = useMemo(
+		() => ({
+			...dataSource,
+			renderMouldingCalculator: ({
+				title,
+				unitPrice,
+				qty,
+				onCalculate,
+			}: {
+				title: string;
+				unitPrice: number;
+				qty: number;
+				onCalculate: (qty: number) => void;
+			}) => (
+				<MouldingCalculator
+					title={title}
+					unitPrice={unitPrice}
+					qty={qty}
+					onCalculate={onCalculate}
+				/>
+			),
+		}),
+		[dataSource],
 	);
 
 	if (!record) return null;
@@ -219,10 +276,11 @@ export function WwwSalesFormWorkflowPanel() {
 
 	return (
 		<>
-			<SalesFormWorkflowPanel
-				record={record as any}
+			<SalesFormEnginePanel
+				record={record}
 				editor={workflowEditor}
-				dataSource={dataSource}
+				dataSource={workflowDataSource}
+				workflowCapabilities={workflowAdminCapabilities}
 				pricing={{
 					lineTotalMode: "editable",
 				}}
@@ -237,42 +295,126 @@ export function WwwSalesFormWorkflowPanel() {
 				slots={{
 					getComponentRedirectOptions: ({ routeData }) =>
 						getRouteOptions(routeData),
+					renderDoorSupplierPanel:
+						workflowAdminCapabilities.canManageDoorSuppliers
+							? ({ supplierUid, updateSupplier, refetchSuppliers }) => {
+									const suppliers = (
+										suppliersQuery.data?.stepProducts || []
+									).flatMap((supplier) => {
+										const id = Number(supplier.id || 0);
+										if (!id) return [];
+										return [
+											{
+												id,
+												uid: supplier.uid,
+												name: supplier.name,
+											},
+										];
+									});
+
+									return (
+										<DoorSupplierManager
+											suppliers={suppliers}
+											selectedSupplierUid={supplierUid || null}
+											supplierNameInput={supplierNameInput}
+											editingSupplier={editingSupplier}
+											isSaving={saveSupplierMutation.isPending}
+											isDeleting={deleteSupplierMutation.isPending}
+											onSupplierNameInputChange={setSupplierNameInput}
+											onSaveSupplier={async () => {
+												const name = supplierNameInput.trim();
+												if (!name) return;
+												await saveSupplierMutation.mutateAsync({
+													id: editingSupplier?.id || null,
+													name,
+												});
+												await suppliersQuery.refetch();
+												await refetchSuppliers?.();
+												setSupplierNameInput("");
+												setEditingSupplier(null);
+											}}
+											onCancelEdit={() => {
+												setEditingSupplier(null);
+												setSupplierNameInput("");
+											}}
+											onSelectDefault={() => updateSupplier(null)}
+											onSelectSupplier={(supplier) =>
+												updateSupplier({
+													uid: supplier.uid,
+													name: supplier.name,
+												})
+											}
+											onEditSupplier={(supplier) => {
+												setEditingSupplier({
+													id: supplier.id,
+													name: supplier.name,
+												});
+												setSupplierNameInput(supplier.name || "");
+											}}
+											onDeleteSupplier={async (supplier) => {
+												if (supplierUid === supplier.uid) {
+													updateSupplier(null);
+												}
+												await deleteSupplierMutation.mutateAsync({
+													id: supplier.id,
+												});
+												await suppliersQuery.refetch();
+												await refetchSuppliers?.();
+											}}
+										/>
+									);
+								}
+							: undefined,
 					componentActions: {
-						onOpenPricing: (input) =>
-							openComponentEdit({
-								...input,
-								line: input.line as NewSalesFormLineItem,
-							}),
-						onEdit: (input) =>
-							openComponentEdit({
-								...input,
-								line: input.line as NewSalesFormLineItem,
-							}),
-						onEditSectionOverride: (input) =>
-							openComponentEdit({
-								...input,
-								line: input.line as NewSalesFormLineItem,
-								mode: "sectionOverride",
-							}),
-						onOpenDoorSizeVariant: (input) =>
-							setDoorSizeVariantModal({
-								open: true,
-								lineUid: String(input.line.uid || ""),
-								stepIndex: input.stepIndex,
-								routeData: input.routeData,
-							}),
-						onClearRedirect: (input) =>
-							updateComponentRedirect({
-								...input,
-								line: input.line as NewSalesFormLineItem,
-								redirectUid: null,
-							}),
-						onSetRedirect: (input) =>
-							updateComponentRedirect({
-								...input,
-								line: input.line as NewSalesFormLineItem,
-								redirectUid: input.redirectUid,
-							}),
+						onOpenPricing: workflowAdminCapabilities.canEditWorkflowComponents
+							? (input) =>
+									openComponentEdit({
+										...input,
+										line: input.line as NewSalesFormLineItem,
+									})
+							: undefined,
+						onEdit: workflowAdminCapabilities.canEditWorkflowComponents
+							? (input) =>
+									openComponentEdit({
+										...input,
+										line: input.line as NewSalesFormLineItem,
+									})
+							: undefined,
+						onEditSectionOverride:
+							workflowAdminCapabilities.canEditSectionOverrides
+								? (input) =>
+										openComponentEdit({
+											...input,
+											line: input.line as NewSalesFormLineItem,
+											mode: "sectionOverride",
+										})
+								: undefined,
+						onOpenDoorSizeVariant:
+							workflowAdminCapabilities.canManageDoorSizeVariants
+								? (input) =>
+										setDoorSizeVariantModal({
+											open: true,
+											lineUid: String(input.line.uid || ""),
+											stepIndex: input.stepIndex,
+											routeData: input.routeData,
+										})
+								: undefined,
+						onClearRedirect: workflowAdminCapabilities.canManageRedirects
+							? (input) =>
+									updateComponentRedirect({
+										...input,
+										line: input.line as NewSalesFormLineItem,
+										redirectUid: null,
+									})
+							: undefined,
+						onSetRedirect: workflowAdminCapabilities.canManageRedirects
+							? (input) =>
+									updateComponentRedirect({
+										...input,
+										line: input.line as NewSalesFormLineItem,
+										redirectUid: input.redirectUid,
+									})
+							: undefined,
 						onDelete: (input) =>
 							removeComponent({
 								line: input.line as NewSalesFormLineItem,

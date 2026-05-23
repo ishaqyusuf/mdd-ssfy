@@ -24,6 +24,7 @@ export type TableCursor = {
 	keyValues: Record<string, unknown>;
 	cursorColumns: string[];
 	mode: SyncMode;
+	completedFullScan?: boolean;
 	syncedAt: string;
 };
 
@@ -39,10 +40,12 @@ export type SyncOptions = {
 	stateFile: string;
 	table?: string;
 	dryRun: boolean;
+	resetCursor: boolean;
 	refreshStatic: boolean;
 	staticRefreshMaxRows: number;
 	readBatchSize: number;
 	writeBatchSize: number;
+	onProgress?: (event: SyncProgressEvent) => void;
 };
 
 export type SyncReport = {
@@ -53,6 +56,13 @@ export type SyncReport = {
 	cursorValue?: string | null;
 	skippedReason?: string;
 };
+
+export type SyncProgressEvent =
+	| { type: "manifest"; tableCount: number }
+	| { type: "table:start"; table: string; mode: SyncMode }
+	| { type: "table:batch"; table: string; mode: SyncMode; read: number; written: number; cursorValue?: string | null }
+	| { type: "table:skip"; table: string; reason: string }
+	| { type: "table:done"; report: SyncReport };
 
 type KeyColumnRow = {
 	column_name: string;
@@ -65,6 +75,7 @@ const DEFAULT_STATE: SyncState = {
 	updatedAt: new Date(0).toISOString(),
 	tables: {},
 };
+const DEFAULT_LOCAL_DATABASE_URL = "mysql://root@127.0.0.1:3307/gnd-prisma2";
 
 const PROD_HOST_PATTERNS = [/psdb\.cloud$/i, /connect\.psdb\.cloud$/i];
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "0.0.0.0", "mysql"]);
@@ -106,6 +117,38 @@ export function buildCursorWhereClause(
 
 	return {
 		sql: `WHERE (${cursorExpression} > ? OR (${cursorExpression} = ? AND (${keyComparisons.join(" OR ")})))`,
+		params,
+	};
+}
+
+export function buildKeysetWhereClause(
+	keyColumns: string[],
+	keyValues?: Record<string, unknown>,
+): { sql: string; params: unknown[] } {
+	if (!keyValues || keyColumns.length === 0) {
+		return { sql: "", params: [] };
+	}
+
+	const params: unknown[] = [];
+	const keyComparisons: string[] = [];
+
+	for (let index = 0; index < keyColumns.length; index += 1) {
+		const equalPrefix = keyColumns
+			.slice(0, index)
+			.map((column) => `${quoteIdent(column)} = ?`)
+			.join(" AND ");
+		const keyColumn = keyColumns[index]!;
+		const comparison = `${quoteIdent(keyColumn)} > ?`;
+		keyComparisons.push(equalPrefix ? `(${equalPrefix} AND ${comparison})` : `(${comparison})`);
+
+		for (const prefixColumn of keyColumns.slice(0, index)) {
+			params.push(keyValues[prefixColumn]);
+		}
+		params.push(keyValues[keyColumn]);
+	}
+
+	return {
+		sql: `WHERE ${keyComparisons.join(" OR ")}`,
 		params,
 	};
 }
@@ -255,6 +298,10 @@ export function parseArgs(argv: string[]): Partial<SyncOptions> & { help?: boole
 			case "--dry-run":
 				parsed.dryRun = true;
 				break;
+			case "--reset-cursor":
+			case "--reset-state":
+				parsed.resetCursor = true;
+				break;
 			case "--refresh-static":
 				parsed.refreshStatic = true;
 				break;
@@ -334,30 +381,37 @@ export async function readFirstEnvValue(files: string[], keys: string[]): Promis
 
 export async function resolveOptions(argv: string[], cwd = process.cwd()): Promise<SyncOptions & { help?: boolean }> {
 	const parsed = parseArgs(argv);
+	const repoRoot = cwd.endsWith("packages/db") ? resolve(cwd, "../..") : cwd;
 	const sourceUrl =
 		parsed.sourceUrl ??
 		process.env.PROD_DATABASE_URL ??
 		process.env.SOURCE_DATABASE_URL ??
 		(await readFirstEnvValue(
-			[resolve(cwd, ".env.production"), resolve(cwd, "../../.env.production")],
+			[resolve(cwd, ".env.production"), resolve(repoRoot, ".env.production")],
 			["PROD_DATABASE_URL", "SOURCE_DATABASE_URL", "DATABASE_URL"],
+		)) ??
+		(await readFirstEnvValue(
+			[resolve(cwd, ".env.local"), resolve(repoRoot, ".env.local")],
+			["PROD_DATABASE_URL", "SOURCE_DATABASE_URL"],
 		));
 	const targetUrl =
 		parsed.targetUrl ??
 		process.env.LOCAL_DATABASE_URL ??
 		process.env.TARGET_DATABASE_URL ??
 		(await readFirstEnvValue(
-			[resolve(cwd, ".env"), resolve(cwd, "../../.env")],
+			[resolve(cwd, ".env.local"), resolve(cwd, ".env"), resolve(repoRoot, ".env.local"), resolve(repoRoot, ".env")],
 			["LOCAL_DATABASE_URL", "TARGET_DATABASE_URL", "DATABASE_URL"],
-		));
+		)) ??
+		DEFAULT_LOCAL_DATABASE_URL;
 
 	if (parsed.help) {
 		return {
 			sourceUrl: sourceUrl ?? "",
 			targetUrl: targetUrl ?? "",
-			stateFile: parsed.stateFile ?? resolve(cwd, "../../.local-db-sync/state.json"),
+			stateFile: parsed.stateFile ?? resolve(repoRoot, ".local-db-sync/state.json"),
 			table: parsed.table,
 			dryRun: parsed.dryRun ?? false,
+			resetCursor: parsed.resetCursor ?? false,
 			refreshStatic: parsed.refreshStatic ?? false,
 			staticRefreshMaxRows: parsed.staticRefreshMaxRows ?? 5_000,
 			readBatchSize: parsed.readBatchSize ?? 10_000,
@@ -377,9 +431,10 @@ export async function resolveOptions(argv: string[], cwd = process.cwd()): Promi
 	return {
 		sourceUrl,
 		targetUrl,
-		stateFile: parsed.stateFile ?? resolve(cwd, "../../.local-db-sync/state.json"),
+		stateFile: parsed.stateFile ?? resolve(repoRoot, ".local-db-sync/state.json"),
 		table: parsed.table,
 		dryRun: parsed.dryRun ?? false,
+		resetCursor: parsed.resetCursor ?? false,
 		refreshStatic: parsed.refreshStatic ?? false,
 		staticRefreshMaxRows: parsed.staticRefreshMaxRows ?? 5_000,
 		readBatchSize: parsed.readBatchSize ?? 10_000,
@@ -490,15 +545,31 @@ export async function syncDatabases(options: SyncOptions): Promise<SyncReport[]>
 			throw new Error(`Table not found in source database: ${options.table}`);
 		}
 
+		options.onProgress?.({ type: "manifest", tableCount: manifests.length });
+
+		if (options.resetCursor) {
+			for (const manifest of manifests) {
+				delete state.tables[manifest.table];
+			}
+			if (!options.dryRun) {
+				await writeState(options.stateFile, state);
+			}
+		}
+
 		for (const manifest of manifests) {
+			options.onProgress?.({ type: "table:start", table: manifest.table, mode: manifest.mode });
+
 			if (manifest.mode === "skip") {
-				reports.push({
+				const report = {
 					table: manifest.table,
 					mode: manifest.mode,
 					read: 0,
 					written: 0,
 					skippedReason: manifest.reason,
-				});
+				} satisfies SyncReport;
+				options.onProgress?.({ type: "table:skip", table: manifest.table, reason: manifest.reason ?? "Skipped." });
+				options.onProgress?.({ type: "table:done", report });
+				reports.push(report);
 				continue;
 			}
 
@@ -506,6 +577,7 @@ export async function syncDatabases(options: SyncOptions): Promise<SyncReport[]>
 				manifest.mode === "static-refresh"
 					? await syncStaticTable(source, target, manifest, options)
 					: await syncCursorTable(source, target, manifest, state, options);
+			options.onProgress?.({ type: "table:done", report });
 			reports.push(report);
 		}
 	} finally {
@@ -528,21 +600,29 @@ async function syncCursorTable(
 	let totalRead = 0;
 	let totalWritten = 0;
 	let latestCursor: TableCursor | undefined = cursor;
+	let keyScanCursor: Record<string, unknown> | undefined;
+	let usingKeyScan = !cursor?.completedFullScan;
 
 	while (true) {
-		const where = buildCursorWhereClause(cursorExpression, manifest.keyColumns, cursor);
-		const orderBy = [cursorExpression, ...manifest.keyColumns.map(quoteIdent)].join(", ");
-		const rows = await source.$queryRawUnsafe<Array<Record<string, unknown>>>(
-			`
-				SELECT ${manifest.columns.map(quoteIdent).join(", ")}, ${cursorExpression} AS __sync_cursor
-				FROM ${quoteIdent(manifest.table)}
-				${where.sql}
-				ORDER BY ${orderBy}
-				LIMIT ?
-			`,
-			...where.params,
-			options.readBatchSize,
-		);
+		const rows = usingKeyScan
+			? await readRowsByKeyset(source, manifest, cursorExpression, keyScanCursor, options.readBatchSize)
+			: await readRowsByCursor(source, manifest, cursorExpression, cursor, options.readBatchSize).catch(async (error) => {
+					if (!isSortMemoryError(error)) {
+						throw error;
+					}
+
+					usingKeyScan = true;
+					keyScanCursor = undefined;
+					options.onProgress?.({
+						type: "table:batch",
+						table: manifest.table,
+						mode: manifest.mode,
+						read: totalRead,
+						written: totalWritten,
+						cursorValue: "falling back to primary-key scan after source sort-memory error",
+					});
+					return readRowsByKeyset(source, manifest, cursorExpression, keyScanCursor, options.readBatchSize);
+				});
 
 		if (rows.length === 0) {
 			break;
@@ -550,13 +630,17 @@ async function syncCursorTable(
 
 		totalRead += rows.length;
 		const lastRow = rows[rows.length - 1]!;
-		latestCursor = {
-			cursorValue: normalizeCursorValue(lastRow.__sync_cursor),
-			keyValues: Object.fromEntries(manifest.keyColumns.map((column) => [column, lastRow[column]])),
-			cursorColumns: manifest.cursorColumns,
-			mode: manifest.mode,
-			syncedAt: new Date().toISOString(),
-		};
+		keyScanCursor = Object.fromEntries(manifest.keyColumns.map((column) => [column, lastRow[column]]));
+		latestCursor = usingKeyScan
+			? buildMaxCursor(rows, manifest, latestCursor)
+			: {
+					cursorValue: normalizeCursorValue(lastRow.__sync_cursor),
+					keyValues: keyScanCursor,
+					cursorColumns: manifest.cursorColumns,
+					mode: manifest.mode,
+					completedFullScan: true,
+					syncedAt: new Date().toISOString(),
+				};
 
 		if (!options.dryRun) {
 			totalWritten += await upsertRows(target, manifest, rows, options.writeBatchSize);
@@ -564,10 +648,30 @@ async function syncCursorTable(
 			await writeState(options.stateFile, state);
 		}
 
-		cursor = latestCursor;
+		options.onProgress?.({
+			type: "table:batch",
+			table: manifest.table,
+			mode: manifest.mode,
+			read: totalRead,
+			written: totalWritten,
+			cursorValue: latestCursor?.cursorValue,
+		});
+
+		if (!usingKeyScan) {
+			cursor = latestCursor;
+		}
 
 		if (rows.length < options.readBatchSize) {
 			break;
+		}
+	}
+
+	if (usingKeyScan && latestCursor) {
+		latestCursor.completedFullScan = true;
+		latestCursor.syncedAt = new Date().toISOString();
+		if (!options.dryRun) {
+			state.tables[manifest.table] = latestCursor;
+			await writeState(options.stateFile, state);
 		}
 	}
 
@@ -579,6 +683,95 @@ async function syncCursorTable(
 		cursorValue: latestCursor?.cursorValue,
 		skippedReason: manifest.reason,
 	};
+}
+
+async function readRowsByCursor(
+	source: PrismaClient,
+	manifest: TableManifest,
+	cursorExpression: string,
+	cursor: TableCursor | undefined,
+	readBatchSize: number,
+) {
+	const where = buildCursorWhereClause(cursorExpression, manifest.keyColumns, cursor);
+	const orderBy = [cursorExpression, ...manifest.keyColumns.map(quoteIdent)].join(", ");
+
+	return source.$queryRawUnsafe<Array<Record<string, unknown>>>(
+		`
+			SELECT ${manifest.columns.map(quoteIdent).join(", ")}, ${cursorExpression} AS __sync_cursor
+			FROM ${quoteIdent(manifest.table)}
+			${where.sql}
+			ORDER BY ${orderBy}
+			LIMIT ?
+		`,
+		...where.params,
+		readBatchSize,
+	);
+}
+
+async function readRowsByKeyset(
+	source: PrismaClient,
+	manifest: TableManifest,
+	cursorExpression: string,
+	keyValues: Record<string, unknown> | undefined,
+	readBatchSize: number,
+) {
+	const where = buildKeysetWhereClause(manifest.keyColumns, keyValues);
+
+	return source.$queryRawUnsafe<Array<Record<string, unknown>>>(
+		`
+			SELECT ${manifest.columns.map(quoteIdent).join(", ")}, ${cursorExpression} AS __sync_cursor
+			FROM ${quoteIdent(manifest.table)}
+			${where.sql}
+			ORDER BY ${manifest.keyColumns.map(quoteIdent).join(", ")}
+			LIMIT ?
+		`,
+		...where.params,
+		readBatchSize,
+	);
+}
+
+function buildMaxCursor(
+	rows: Array<Record<string, unknown>>,
+	manifest: TableManifest,
+	previous?: TableCursor,
+): TableCursor {
+	let maxCursorValue = previous?.cursorValue ?? null;
+	let maxKeyValues = previous?.keyValues ?? {};
+
+	for (const row of rows) {
+		const rowCursorValue = normalizeCursorValue(row.__sync_cursor);
+		if (compareCursorValues(rowCursorValue, maxCursorValue) >= 0) {
+			maxCursorValue = rowCursorValue;
+			maxKeyValues = Object.fromEntries(manifest.keyColumns.map((column) => [column, row[column]]));
+		}
+	}
+
+	return {
+		cursorValue: maxCursorValue,
+		keyValues: maxKeyValues,
+		cursorColumns: manifest.cursorColumns,
+		mode: manifest.mode,
+		completedFullScan: false,
+		syncedAt: new Date().toISOString(),
+	};
+}
+
+function compareCursorValues(left: string | null, right: string | null): number {
+	if (left === right) {
+		return 0;
+	}
+	if (left == null) {
+		return -1;
+	}
+	if (right == null) {
+		return 1;
+	}
+	return left.localeCompare(right);
+}
+
+function isSortMemoryError(error: unknown): boolean {
+	const message = error instanceof Error ? error.message : String(error);
+	return message.includes("Code: `1038`") || message.includes("Out of sort memory");
 }
 
 async function syncStaticTable(
@@ -605,12 +798,21 @@ async function syncStaticTable(
 	const rows = await source.$queryRawUnsafe<Array<Record<string, unknown>>>(
 		`SELECT ${manifest.columns.map(quoteIdent).join(", ")} FROM ${quoteIdent(manifest.table)}`,
 	);
+	const written = options.dryRun ? 0 : await upsertRows(target, manifest, rows, options.writeBatchSize);
+
+	options.onProgress?.({
+		type: "table:batch",
+		table: manifest.table,
+		mode: manifest.mode,
+		read: rows.length,
+		written,
+	});
 
 	return {
 		table: manifest.table,
 		mode: manifest.mode,
 		read: rows.length,
-		written: options.dryRun ? 0 : await upsertRows(target, manifest, rows, options.writeBatchSize),
+		written,
 		skippedReason: manifest.reason,
 	};
 }

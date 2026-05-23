@@ -4,20 +4,24 @@ import { useTRPC } from "@/trpc/client";
 import {
 	SalesFormHeaderActions,
 	SalesFormShell,
+	buildSalesFormTaxSelectOptions,
 	composeSalesFormPricingSnapshot,
+	normalizeSalesFormTaxOptions,
+	resolveSalesFormTaxRateByCode,
 	type DualPricingSnapshot,
 } from "@gnd/sales/sales-form";
 import { Button } from "@gnd/ui/button";
 import { toast } from "@gnd/ui/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useSalesFormActions } from "./adapters/use-sales-form-actions";
 import { useSalesFormCapabilities } from "./adapters/use-sales-form-capabilities";
 import { useDealerSalesFormData } from "./adapters/use-sales-form-data";
 import { useSalesFormPermissions } from "./adapters/use-sales-form-permissions";
 import { useDealerSalesFormState } from "./adapters/use-sales-form-state";
+import { DealerCustomerSelectorDialog } from "./dealer-customer-selector-dialog";
 import { DealerQuoteMainPanel } from "./dealer-quote-main-panel";
 import { DealerQuoteSummaryPanel } from "./dealer-quote-summary-panel";
 import type {
@@ -41,10 +45,12 @@ export function DealerQuoteComposer({
 	const queryClient = useQueryClient();
 	const router = useRouter();
 	const editingQuoteId = mode === "edit" ? quoteId : null;
+	const [customerSelectorOpen, setCustomerSelectorOpen] = useState(false);
 	const customersQuery = useQuery(trpc.dealerPortal.customers.queryOptions());
 	const profilesQuery = useQuery(
 		trpc.dealerPortal.salesProfiles.queryOptions(),
 	);
+	const taxProfilesQuery = useQuery(trpc.dealerPortal.taxProfiles.queryOptions());
 	const internalProfileQuery = useQuery(
 		trpc.dealerPortal.internalSalesProfile.queryOptions(),
 	);
@@ -89,6 +95,14 @@ export function DealerQuoteComposer({
 
 	const customers = (customersQuery.data ?? []) as DealerSalesFormCustomer[];
 	const profiles = (profilesQuery.data ?? []) as DealerSalesFormProfile[];
+	const taxOptions = useMemo(
+		() => normalizeSalesFormTaxOptions(taxProfilesQuery.data || []),
+		[taxProfilesQuery.data],
+	);
+	const taxSelectOptions = useMemo(
+		() => buildSalesFormTaxSelectOptions(taxOptions),
+		[taxOptions],
+	);
 	const internalProfile =
 		(internalProfileQuery.data as DealerInternalSalesFormProfile | null) ||
 		null;
@@ -111,20 +125,46 @@ export function DealerQuoteComposer({
 		isLoading:
 			customersQuery.isPending ||
 			profilesQuery.isPending ||
+			taxProfilesQuery.isPending ||
 			internalProfileQuery.isPending,
 	});
-	const pricing = composeSalesFormPricingSnapshot({
-		config: {
-			surface: "dealership",
-			pricing: {
-				mode: "percentage",
-				dealerProfile: selectedProfile,
-				internalProfile,
-			},
-		},
-		taxRate: Number(record?.summary?.taxRate || 0),
-		lineItems: (record?.lineItems || []) as any,
-	}) as DualPricingSnapshot;
+	const selectedTaxCode = record?.form.taxCode ?? null;
+	const selectedTaxRate = Number(record?.summary?.taxRate || 0);
+
+	useEffect(() => {
+		if (!record || taxProfilesQuery.isPending) return;
+		const nextRate = resolveSalesFormTaxRateByCode(taxOptions, selectedTaxCode);
+		if (nextRate === selectedTaxRate) return;
+		form.setTaxRate(nextRate);
+	}, [
+		form.setTaxRate,
+		record,
+		selectedTaxCode,
+		selectedTaxRate,
+		taxOptions,
+		taxProfilesQuery.isPending,
+	]);
+	const pricing = useMemo(
+		() =>
+			composeSalesFormPricingSnapshot({
+				config: {
+					surface: "dealership",
+					pricing: {
+						mode: "percentage",
+						dealerProfile: selectedProfile,
+						internalProfile,
+					},
+				},
+				taxRate: selectedTaxRate,
+				lineItems: (record?.lineItems || []) as any,
+			}) as DualPricingSnapshot,
+		[
+			internalProfile,
+			record?.lineItems,
+			selectedProfile,
+			selectedTaxRate,
+		],
+	);
 	const dealerLineTotalsByUid = useMemo(
 		() =>
 			Object.fromEntries(
@@ -151,19 +191,31 @@ export function DealerQuoteComposer({
 			id: editingQuoteId,
 			customerId: record.form.customerId,
 			customerProfileId,
+			deliveryOption: record.form.deliveryOption || "pickup",
+			goodUntil: record.form.goodUntil || null,
+			paymentMethod: record.form.paymentMethod || null,
+			paymentTerm: record.form.paymentTerm || "None",
+			po: record.form.po || null,
+			taxCode: record.form.taxCode || null,
 			taxRate: Number(record.summary?.taxRate || 0),
-			lineItems: record.lineItems.map((line) => ({
-				uid: line.uid,
-				title: line.title,
-				description: line.description,
-				qty: Number(line.qty || 0),
-				unitPrice: Number(line.unitPrice || 0),
-				lineTotal: Number(line.qty || 0) * Number(line.unitPrice || 0),
-				meta: line.meta || {},
-				formSteps: line.formSteps || [],
-				shelfItems: line.shelfItems || [],
-				housePackageTool: line.housePackageTool || null,
-			})),
+			lineItems: record.lineItems.map((line) => {
+				const qty = Number(line.qty || 0);
+				const unitPrice = Number(line.unitPrice || 0);
+				const fallbackLineTotal = Number(line.lineTotal ?? qty * unitPrice);
+
+				return {
+					uid: line.uid,
+					title: line.title,
+					description: line.description,
+					qty,
+					unitPrice,
+					lineTotal: dealerLineTotalsByUid[line.uid] ?? fallbackLineTotal,
+					meta: line.meta || {},
+					formSteps: line.formSteps || [],
+					shelfItems: line.shelfItems || [],
+					housePackageTool: line.housePackageTool || null,
+				};
+			}),
 		});
 	}
 
@@ -180,6 +232,7 @@ export function DealerQuoteComposer({
 			grandTotal={pricing.dealerPricing.grandTotal}
 			isSaved={Boolean(editingQuoteId)}
 			isSaving={saveQuote.isPending || quoteQuery.isFetching}
+			mobileSaveLabel={editingQuoteId ? "Update quote" : "Save quote"}
 			surface="fixed"
 			showMobileFooter
 			capabilities={capabilities}
@@ -189,12 +242,7 @@ export function DealerQuoteComposer({
 			slots={{
 				MainPanel: (
 					<DealerQuoteMainPanel
-						customers={salesFormData.customers}
-						profiles={salesFormData.profiles}
 						record={record}
-						onCustomerChange={form.setCustomer}
-						onCustomerProfileChange={form.setCustomerProfile}
-						onTaxRateChange={form.setTaxRate}
 						onAddLineItem={actions.addLineItem}
 						onRemoveLineItem={actions.removeLineItem}
 						onUpdateLineItem={actions.updateLineItem}
@@ -203,14 +251,52 @@ export function DealerQuoteComposer({
 				),
 				SummaryPanel: (
 					<DealerQuoteSummaryPanel
+						customer={selectedCustomer}
+						profiles={profiles}
+						customerProfileId={customerProfileId}
+						deliveryOption={record.form.deliveryOption}
+						goodUntil={record.form.goodUntil}
 						grandTotal={pricing.dealerPricing.grandTotal}
+						paymentTerm={record.form.paymentTerm}
+						po={record.form.po}
+						taxCode={selectedTaxCode}
+						taxOptions={taxSelectOptions}
 						isEditing={Boolean(editingQuoteId)}
 						isFetching={quoteQuery.isFetching}
 						isSaving={saveQuote.isPending}
 						canSave={Boolean(customerId)}
+						onChangeCustomer={() => setCustomerSelectorOpen(true)}
+						onDeliveryOptionChange={(deliveryOption) =>
+							form.setMeta({ deliveryOption })
+						}
+						onGoodUntilChange={(goodUntil) =>
+							form.setMeta({
+								goodUntil: goodUntil ? new Date(goodUntil).toISOString() : null,
+							})
+						}
+						onPaymentTermChange={(paymentTerm) =>
+							form.setMeta({ paymentTerm })
+						}
+						onPoChange={(po) => form.setMeta({ po })}
+						onProfileChange={form.setCustomerProfile}
+						onTaxCodeChange={(taxCode) => {
+							form.setMeta({ taxCode });
+							form.setTaxRate(resolveSalesFormTaxRateByCode(taxOptions, taxCode));
+						}}
 						onSave={save}
 						subTotal={pricing.dealerPricing.subTotal}
 						taxTotal={pricing.dealerPricing.taxTotal}
+					/>
+				),
+				CustomerSelectorDialog: (
+					<DealerCustomerSelectorDialog
+						open={customerSelectorOpen || !customerId}
+						required={!customerId}
+						customers={customers}
+						onOpenChange={setCustomerSelectorOpen}
+						onSelectCustomer={(customer) =>
+							form.setCustomer(customer.id, customer.customerTypeId || null)
+						}
 					/>
 				),
 			}}

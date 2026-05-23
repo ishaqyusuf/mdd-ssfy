@@ -5,6 +5,7 @@ import type {
 	SalesFormWorkflowDataSource,
 	SalesFormWorkflowStepComponentInput,
 } from "@gnd/sales/sales-form";
+import { resolveWorkflowComponentImageSrc } from "@gnd/sales/sales-form";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
@@ -63,19 +64,11 @@ export function useDealerSalesFormWorkflowData(): SalesFormWorkflowDataSource {
 						},
 					),
 				),
-			resolveImageSrc: (src?: string | null) => {
-				const value = String(src || "").trim();
-				if (!value) return null;
-				if (
-					value.startsWith("http://") ||
-					value.startsWith("https://") ||
-					value.startsWith("data:") ||
-					value.startsWith("blob:")
-				) {
-					return value;
-				}
-				return value.startsWith("/") ? value : `/${value}`;
-			},
+			resolveImageSrc: (src?: string | null) =>
+				resolveWorkflowComponentImageSrc(
+					src,
+					process.env.NEXT_PUBLIC_CLOUDINARY_BASE_URL,
+				),
 		}),
 		[trpc],
 	);

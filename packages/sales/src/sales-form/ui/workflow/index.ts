@@ -71,6 +71,13 @@ export {
 	StepComponentPicker,
 	type StepComponentPickerProps,
 } from "./step-component-picker";
+export {
+	resolveWorkflowRouteStatus,
+	resolveWorkflowStepComponentStatus,
+	workflowQueryErrorMessage,
+	workflowQueryHasError,
+	type WorkflowPanelStatus,
+} from "./workflow-query-state";
 export { getItemWorkflowStepFamily } from "./step-family";
 export {
 	useItemWorkflowController,
@@ -165,6 +172,8 @@ export {
 	type ShelfSectionDraft,
 	type WorkflowComponentRecord,
 	type WorkflowLineItemRecord,
+	type WorkflowRouteData,
+	type WorkflowRouteStepRecord,
 	type WorkflowStepRecord,
 } from "./workflow-records";
 export {
@@ -199,6 +208,12 @@ export {
 	type SalesFormWorkflowPanelProps,
 } from "./sales-form-workflow-panel";
 export {
+	SalesFormEnginePanel,
+	filterSalesFormWorkflowDataSource,
+	filterSalesFormWorkflowSlots,
+	type SalesFormEnginePanelProps,
+} from "./sales-form-engine-panel";
+export {
 	WorkflowComponentToolbar,
 	type WorkflowComponentToolbarProps,
 } from "./workflow-component-toolbar";
@@ -223,6 +238,7 @@ export {
 	WorkflowComponentPreview,
 	type WorkflowComponentPreviewProps,
 } from "./workflow-component-preview";
+export { resolveWorkflowComponentImageSrc } from "./component-image-src";
 export {
 	ComponentEditDialog,
 	DoorDetailsDialog,

@@ -28,6 +28,10 @@ import {
   SALES_PRODUCTION_STATUS_FILTER_OPTIONS,
   salesHaving,
 } from "@sales/constants";
+import {
+  SALES_HAS_FILTER_LABELS,
+  SALES_HAS_FILTER_OPTIONS,
+} from "@sales/filter-constants";
 import { SALES_PRIORITY_OPTIONS } from "@sales/priority";
 import type { ProductReportSchema } from "./product-report";
 import type { GetBacklogsSchema } from "./backlogs";
@@ -900,6 +904,14 @@ export async function getSalesQuoteFilter(ctx: TRPCContext, isSalesManager?) {
       "salesNo",
       "Quote #",
       orderNos.map((no) => ({ label: no, value: no })),
+    ),
+    optionFilter<T>(
+      "has",
+      "Has",
+      SALES_HAS_FILTER_OPTIONS.map((value) => ({
+        label: SALES_HAS_FILTER_LABELS[value],
+        value,
+      })),
     ),
   ].filter(Boolean);
   return resp as FilterData[];

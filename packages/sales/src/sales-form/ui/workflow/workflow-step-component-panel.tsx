@@ -31,7 +31,9 @@ export type WorkflowMouldingSelectionState = {
 	inputRef?: RefObject<HTMLInputElement | null>;
 };
 
-export type WorkflowStepComponentPanelProps<TComponent extends WorkflowComponentRecord> = {
+export type WorkflowStepComponentPanelProps<
+	TComponent extends WorkflowComponentRecord,
+> = {
 	lineUid: string;
 	activeStep: WorkflowStepRecord;
 	activeStepIndex: number;
@@ -41,6 +43,7 @@ export type WorkflowStepComponentPanelProps<TComponent extends WorkflowComponent
 	filteredComponents: TComponent[];
 	selectedUids: Set<string>;
 	search: string;
+	noticeSlot?: ReactNode;
 	includeCustomComponents: boolean;
 	mouldingSelection?: WorkflowMouldingSelectionState;
 	isMouldingSelectionStep?: boolean;
@@ -84,6 +87,7 @@ export function WorkflowStepComponentPanel<
 			hasComponents={Boolean(props.components.length)}
 			filteredComponents={props.filteredComponents}
 			search={props.search}
+			noticeSlot={props.noticeSlot}
 			getKey={(component) => String(component.uid || "")}
 			renderComponent={(component) => {
 				const componentUid = String(component.uid || "");

@@ -42,6 +42,28 @@ export const PRODUCTION_ASSIGNMENT_FILTER_OPTIONS = [
 	"all assigned",
 ] as const;
 
+export const SALES_HAS_FILTER_OPTIONS = [
+	"services",
+	"moulding",
+	"interior",
+	"exterior",
+	"shelf-items",
+	"garage",
+	"bifold",
+	"door-slabs-only",
+] as const;
+
+export const SALES_HAS_FILTER_LABELS = {
+	services: "Services",
+	moulding: "Moulding",
+	interior: "Interior",
+	exterior: "Exterior",
+	"shelf-items": "Shelf Items",
+	garage: "Garage",
+	bifold: "Bifold",
+	"door-slabs-only": "Door Slabs Only",
+} satisfies Record<(typeof SALES_HAS_FILTER_OPTIONS)[number], string>;
+
 export const DISPATCH_FILTER_OPTIONS = [
 	"delivered",
 	"pending delivery",

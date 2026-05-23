@@ -24,6 +24,7 @@ References:
 - `brain/new-sales-form-phase0-fixtures.md`
 - `brain/new-sales-form-phase0-repro-matrix.md`
 - `brain/new-sales-form-phase0-validation-log.md`
+- `brain/new-sales-form-completion-roadmap.md`
 
 ## Task ID Convention
 
@@ -67,8 +68,8 @@ References:
 
 | Task ID | Source Rows | Scope | Exit Criteria | Status |
 | --- | --- | --- | --- | --- |
-| `NSF-P4-001` | Repro rows 12, 13, 14, 16, 17, 18, 20 | Component action/menu/badge/edit/redirect display parity. | Component actions and indicators match acceptance criteria in browser runtime. | Package action slots + first `www` host actions wired; browser proof pending |
-| `NSF-P5-001` | Repro rows 4, 19, 21, 22, 23, 24 | Door modal, HPT add-size/add-door, moulding dialog UX parity. | Modal interactions match old-form acceptance criteria. | Package Door/HPT default implemented; browser proof pending |
+| `NSF-P4-001` | Repro rows 12, 13, 14, 16, 17, 18, 20 | Component action/menu/badge/edit/redirect display parity. | Component actions and indicators match acceptance criteria in browser runtime. | Package action slots + `www` component edit/redirect/delete/image/door-size-variant actions wired; browser proof pending |
+| `NSF-P5-001` | Repro rows 4, 19, 21, 22, 23, 24 | Door modal, HPT add-size/add-door, moulding dialog UX parity. | Modal interactions match old-form acceptance criteria. | Package Door/HPT default implemented; `www` door-size variant authoring wired; browser proof pending |
 
 ## Phase 6/7 Task Map
 
@@ -88,7 +89,12 @@ References:
 
 ## Immediate Next Implementation Order
 
-1. Finish the remaining `www` host-slot adapter work around `SalesFormWorkflowPanel`, especially door-size variant authoring, supplier management, and app-specific calculators.
-2. Continue the package UI design-system pass so shelf/HPT/door defaults visually match the real form engine instead of ad-hoc fallback panels.
-3. `NSF-QA-002` and `NSF-QA-003`: resume browser proof as soon as valid local `www` and dealership sessions are available.
-4. Keep `bun run test:new-sales-form-migration` green before and after each migration slice, including the watched-file `www` typecheck signal.
+Use `brain/new-sales-form-completion-roadmap.md` as the active execution
+roadmap. Phases 1-24 are now complete at the non-browser gate level.
+
+1. Finish Phase 25 docs/Brain finalization and Phase 26 gate stabilization.
+2. Keep `bun run test:new-sales-form-migration` green before and after each
+   migration slice, including the watched-file `www` typecheck signal.
+3. Defer browser proof to phases 27-30 only, per the completion roadmap.
+4. `NSF-QA-002` and `NSF-QA-003`: resume browser proof as soon as valid local
+   `www` and dealership sessions are available.

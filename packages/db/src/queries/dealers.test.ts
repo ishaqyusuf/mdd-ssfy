@@ -55,6 +55,81 @@ describe("dealer portal pricing", () => {
 		expect(result.internalPricing.grandTotal).toBe(330);
 		expect(result.dealerPricing.grandTotal).toBe(396);
 	});
+
+	it("prices flat, door, shelf, moulding, and service lines from their effective totals", () => {
+		const result = calculateDealerQuotePricing({
+			createdAt: "2026-05-18T00:00:00.000Z",
+			taxRate: 0,
+			internalProfile: {
+				id: 1,
+				title: "Dealer Standard",
+				coefficient: 1,
+			},
+			dealerProfile: {
+				id: 2,
+				title: "Retail",
+				salesPercentage: 10,
+			},
+			lineItems: [
+				{
+					uid: "flat",
+					title: "Flat",
+					qty: 2,
+					unitPrice: 100,
+					lineTotal: 200,
+				},
+				{
+					uid: "door-hpt",
+					title: "Door",
+					qty: 4,
+					unitPrice: 0,
+					lineTotal: 800,
+					housePackageTool: {
+						totalDoors: 4,
+						totalPrice: 800,
+						doors: [],
+					},
+				},
+				{
+					uid: "shelf",
+					title: "Shelf",
+					qty: 3,
+					unitPrice: 0,
+					lineTotal: 150,
+					shelfItems: [],
+				},
+				{
+					uid: "moulding",
+					title: "Moulding",
+					qty: 5,
+					unitPrice: 0,
+					lineTotal: 250,
+					meta: {
+						mouldingRows: [],
+					},
+				},
+				{
+					uid: "service",
+					title: "Service",
+					qty: 2,
+					unitPrice: 0,
+					lineTotal: 120,
+					meta: {
+						serviceRows: [],
+					},
+				},
+			],
+		});
+
+		expect(result.lines.map((line) => line.internalLineTotal)).toEqual([
+			200, 800, 150, 250, 120,
+		]);
+		expect(result.lines.map((line) => line.dealerLineTotal)).toEqual([
+			220, 880, 165, 275, 132,
+		]);
+		expect(result.internalPricing.subTotal).toBe(1520);
+		expect(result.dealerPricing.subTotal).toBe(1672);
+	});
 });
 
 function createDealerQuoteTestDb(options: {
@@ -66,6 +141,7 @@ function createDealerQuoteTestDb(options: {
 	const collidingOrderIds = new Set(options.collidingOrderIds || []);
 	let createdOrderData: Record<string, unknown> | null = null;
 	let updatedOrderData: Record<string, unknown> | null = null;
+	let createdItemData: Array<Record<string, unknown>> = [];
 	let sequenceCountWhere: Record<string, unknown> | null = null;
 
 	const tx = {
@@ -124,7 +200,14 @@ function createDealerQuoteTestDb(options: {
 		},
 		salesOrderItems: {
 			deleteMany: async () => ({ count: 1 }),
-			createMany: async () => ({ count: 1 }),
+			createMany: async ({
+				data,
+			}: {
+				data: Array<Record<string, unknown>>;
+			}) => {
+				createdItemData = data;
+				return { count: data.length };
+			},
 		},
 	};
 
@@ -136,6 +219,7 @@ function createDealerQuoteTestDb(options: {
 	return {
 		db,
 		getCreatedOrderData: () => createdOrderData,
+		getCreatedItemData: () => createdItemData,
 		getUpdatedOrderData: () => updatedOrderData,
 		getSequenceCountWhere: () => sequenceCountWhere,
 	};
@@ -223,6 +307,53 @@ describe("dealer portal DPP identities", () => {
 			1,
 		);
 		expect(meta.newSalesForm.lineItems[0].meta.serviceRows).toHaveLength(1);
+	});
+
+	it("persists dealer workflow tax and production flags on sales items", async () => {
+		const testDb = createDealerQuoteTestDb({
+			activeDppCount: 0,
+		});
+
+		await saveDealerPortalQuote(
+			testDb.db as any,
+			10,
+			dealerQuoteInput({
+				lineItems: [
+					{
+						uid: "line-1",
+						title: "Service",
+						qty: 1,
+						unitPrice: 100,
+						meta: {
+							serviceRows: [
+								{
+									uid: "svc-1",
+									service: "Install",
+									taxxable: true,
+									produceable: true,
+								},
+							],
+						},
+					},
+					{
+						uid: "line-2",
+						title: "Flat",
+						qty: 1,
+						unitPrice: 50,
+						meta: {
+							taxxable: false,
+							produceable: false,
+						},
+					},
+				],
+			}),
+		);
+
+		const [serviceItem, flatItem] = testDb.getCreatedItemData();
+		expect((serviceItem?.meta as any).tax).toBe(true);
+		expect(serviceItem?.dykeProduction).toBe(true);
+		expect((flatItem?.meta as any).tax).toBe(false);
+		expect(flatItem?.dykeProduction).toBe(false);
 	});
 
 	it("uses the next shared DPP serial and skips collisions", async () => {
@@ -333,6 +464,10 @@ describe("dealer portal DPP identities", () => {
 			slug: "order-00002dpp",
 			type: "order",
 			status: "New",
+			meta: {
+				source: "dealer_portal",
+				convertedFromDealerQuoteId: 55,
+			},
 		});
 	});
 });
@@ -433,6 +568,94 @@ describe("dealer portal isolation", () => {
 				qty: 1,
 				unitPrice: 150,
 				lineTotal: 150,
+			},
+		]);
+	});
+
+	it("reopens dealer documents from saved package workflow payload", async () => {
+		const document = await getDealerPortalSalesDocument(
+			{
+				salesOrders: {
+					findFirst: async () => ({
+						id: 55,
+						orderId: "DQ-55",
+						title: "Dealer Quote",
+						status: "Draft",
+						type: "quote",
+						grandTotal: 100,
+						amountDue: 100,
+						taxPercentage: 0,
+						customerId: 20,
+						customerProfileId: 30,
+						dealerSalesProfileId: 40,
+						meta: {
+							dealerPricing: {
+								summary: {
+									grandTotal: 150,
+								},
+							},
+							newSalesForm: {
+								form: {
+									customerId: 20,
+									customerProfileId: 40,
+								},
+								summary: {
+									taxRate: 8.25,
+								},
+								lineItems: [
+									{
+										uid: "saved-line",
+										title: "Saved Door",
+										qty: 2,
+										unitPrice: 0,
+										lineTotal: 400,
+										formSteps: [{ stepId: 1, value: "Door" }],
+										housePackageTool: {
+											doors: [{ dimension: "30 x 80", totalQty: 2 }],
+										},
+									},
+								],
+							},
+						},
+						customer: {
+							id: 20,
+							name: "Customer",
+							businessName: null,
+							email: "customer@example.com",
+							customerTypeId: 40,
+						},
+						items: [
+							{
+								id: 1,
+								description: "Legacy row",
+								dykeDescription: "Legacy row",
+								qty: 1,
+								rate: 10,
+								total: 10,
+								meta: {},
+							},
+						],
+					}),
+				},
+			} as any,
+			10,
+			55,
+		);
+
+		expect(document.grandTotal).toBe(150);
+		expect(document.customerProfileId).toBe(40);
+		expect(document.taxRate).toBe(8.25);
+		expect(document.lineItems).toEqual([
+			{
+				uid: "saved-line",
+				title: "Saved Door",
+				qty: 2,
+				unitPrice: 0,
+				lineTotal: 400,
+				formSteps: [{ stepId: 1, value: "Door" }],
+				housePackageTool: {
+					doors: [{ dimension: "30 x 80", totalQty: 2 }],
+				},
 			},
 		]);
 	});

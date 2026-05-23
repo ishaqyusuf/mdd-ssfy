@@ -8,6 +8,7 @@ import {
 } from "@gnd/utils/constants";
 import { z } from "zod";
 import { SALES_DISPATCH_STATUS } from "./utils/constants";
+import { SALES_HAS_FILTER_OPTIONS } from "./filter-constants";
 import {
 	INVENTORY_STATUS,
 	SALES_PAYMENT_METHODS,
@@ -242,6 +243,7 @@ export const salesQueryParamsSchema = z
 			.nullable(),
 		"sales.priority": salesPrioritySchema.optional().nullable(),
 		priority: salesPrioritySchema.optional().nullable(),
+		has: z.enum(SALES_HAS_FILTER_OPTIONS).optional().nullable(),
 		invoice: z.enum(INVOICE_FILTER_OPTIONS).optional().nullable(),
 		production: z.enum(PRODUCTION_FILTER_OPTIONS).optional().nullable(),
 		"account.no": z.string().optional().nullable(),

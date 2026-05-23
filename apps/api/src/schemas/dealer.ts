@@ -154,6 +154,12 @@ export const dealerPortalSaveQuoteSchema = z.object({
   id: z.number().optional().nullable(),
   customerId: z.number(),
   customerProfileId: z.number().optional().nullable(),
+  po: z.string().optional().nullable(),
+  paymentTerm: z.string().optional().nullable(),
+  goodUntil: z.string().optional().nullable(),
+  deliveryOption: z.string().optional().nullable(),
+  paymentMethod: z.string().optional().nullable(),
+  taxCode: z.string().optional().nullable(),
   taxRate: z.number().min(0).max(100).optional().nullable(),
   lineItems: z.array(dealerPortalSalesLineItemSchema).min(1),
 });

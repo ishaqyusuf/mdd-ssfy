@@ -21,6 +21,7 @@ export type SalesFormComposition = {
 	mobileSummaryOpen?: boolean;
 	surface?: "fixed" | "embedded";
 	showMobileFooter?: boolean;
+	mobileSaveLabel?: string;
 	capabilities: SalesFormCapabilities;
 	permissions: SalesFormPermissions;
 	slots?: SalesFormSlots;

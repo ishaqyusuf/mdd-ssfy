@@ -73,7 +73,7 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 			}}
 		>
 			<div className="grid gap-4 md:grid-cols-12">
-				<div className="md:col-span-10">
+				<div className="min-w-0 md:col-span-10">
 					<InputGroup
 						className="h-10 bg-card"
 						onClick={(event) => event.stopPropagation()}
@@ -85,6 +85,7 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 							</InputGroup.Text>
 						</InputGroup.Addon>
 						<InputGroup.Input
+							aria-label={`Item ${props.index + 1} title`}
 							value={props.title || ""}
 							onChange={(e) => props.onTitleChange(e.target.value)}
 							placeholder={props.titlePlaceholder || "Description"}
@@ -139,6 +140,10 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 								key={props.stepKey(props.uid, stepIndex)}
 								type="button"
 								title={stepLabel}
+								aria-current={
+									props.activeIndex === stepIndex ? "step" : undefined
+								}
+								aria-label={`Open ${stepLabel}`}
 								className={`max-w-full rounded-full border px-3 py-1 text-xs sm:max-w-56 ${
 									props.activeIndex === stepIndex
 										? "border-primary bg-primary/10 text-primary"

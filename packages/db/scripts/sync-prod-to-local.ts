@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { resolveOptions, syncDatabases } from "../src/local-sync";
+import { resolveOptions, syncDatabases, type SyncMode, type SyncProgressEvent } from "../src/local-sync";
 
 function printHelp() {
 	console.log(`Usage:
@@ -12,6 +12,7 @@ Options:
   --source-url <url>                Override production MySQL URL
   --target-url <url>                Override local MySQL URL
   --state-file <path>               Override cursor state file
+  --reset-cursor                    Ignore saved cursor for the selected table(s)
   --read-batch-size <number>        Source read batch size (default: 10000)
   --write-batch-size <number>       Local upsert batch size (default: 500)
   --refresh-static                  Upsert small tables that have no timestamp cursor
@@ -23,7 +24,8 @@ Environment:
   LOCAL_DATABASE_URL or TARGET_DATABASE_URL for local.
 
 If env vars are not set, the script reads packages/db/.env.production for source
-and packages/db/.env for target.`);
+and packages/db/.env.local for target. Without a local URL, it falls back to
+mysql://root@127.0.0.1:3307/gnd-prisma2, the Docker MySQL database.`);
 }
 
 function printReport(reports: Awaited<ReturnType<typeof syncDatabases>>, dryRun: boolean, startedAt: number) {
@@ -51,6 +53,51 @@ function printReport(reports: Awaited<ReturnType<typeof syncDatabases>>, dryRun:
 	}
 }
 
+function formatElapsed(startedAt: number) {
+	return `${((Date.now() - startedAt) / 1000).toFixed(1)}s`.padStart(7);
+}
+
+function formatMode(mode: SyncMode) {
+	return mode.padEnd(14);
+}
+
+function formatTable(table: string) {
+	return table.length > 32 ? `${table.slice(0, 29)}...` : table.padEnd(32);
+}
+
+function createProgressReporter(startedAt: number) {
+	return (event: SyncProgressEvent) => {
+		const elapsed = formatElapsed(startedAt);
+
+		switch (event.type) {
+			case "manifest":
+				console.log(`[${elapsed}] Found ${event.tableCount} table${event.tableCount === 1 ? "" : "s"} to inspect.`);
+				break;
+			case "table:start":
+				console.log(`[${elapsed}] START ${formatMode(event.mode)} ${formatTable(event.table)}`);
+				break;
+			case "table:batch": {
+				const cursor = event.cursorValue ? ` cursor=${event.cursorValue}` : "";
+				console.log(
+					`[${elapsed}] BATCH ${formatMode(event.mode)} ${formatTable(event.table)} read=${event.read} written=${event.written}${cursor}`,
+				);
+				break;
+			}
+			case "table:skip":
+				console.log(`[${elapsed}] SKIP  ${formatMode("skip")} ${formatTable(event.table)} ${event.reason}`);
+				break;
+			case "table:done": {
+				const { report } = event;
+				const reason = report.skippedReason ? ` - ${report.skippedReason}` : "";
+				console.log(
+					`[${elapsed}] DONE  ${formatMode(report.mode)} ${formatTable(report.table)} read=${report.read} written=${report.written}${reason}`,
+				);
+				break;
+			}
+		}
+	};
+}
+
 const startedAt = Date.now();
 
 try {
@@ -61,7 +108,19 @@ try {
 		process.exit(0);
 	}
 
-	const reports = await syncDatabases(options);
+	console.log(`${options.dryRun ? "Dry running" : "Syncing"} production DB to local...`);
+	console.log(`State file: ${options.stateFile}`);
+	if (options.table) {
+		console.log(`Table filter: ${options.table}`);
+	}
+	if (options.resetCursor) {
+		console.log("Cursor reset: enabled");
+	}
+
+	const reports = await syncDatabases({
+		...options,
+		onProgress: createProgressReporter(startedAt),
+	});
 	printReport(reports, options.dryRun, startedAt);
 } catch (error) {
 	console.error(error instanceof Error ? error.message : error);

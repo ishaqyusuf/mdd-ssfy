@@ -18,13 +18,15 @@ export type MouldingSelectionPopoverProps = {
 	onAdd: () => void;
 };
 
-export function MouldingSelectionPopover(
-	props: MouldingSelectionPopoverProps,
-) {
+export function MouldingSelectionPopover(props: MouldingSelectionPopoverProps) {
 	return (
 		<Popover open={props.open} onOpenChange={props.onOpenChange}>
 			<PopoverTrigger asChild>{props.trigger}</PopoverTrigger>
-			<PopoverContent align="center" side="bottom" className="w-72 space-y-3 p-4">
+			<PopoverContent
+				align="center"
+				side="bottom"
+				className="w-72 space-y-3 p-4"
+			>
 				<div className="space-y-1">
 					<p className="text-sm font-semibold">{props.title}</p>
 					<p className="text-xs text-muted-foreground">
@@ -34,6 +36,7 @@ export function MouldingSelectionPopover(
 				<div className="flex items-center gap-2">
 					<Input
 						ref={props.inputRef}
+						aria-label={`Quantity for ${props.title}`}
 						type="number"
 						min="1"
 						value={props.qty}
@@ -48,10 +51,15 @@ export function MouldingSelectionPopover(
 					{props.calculatorSlot}
 				</div>
 				<div className="flex items-center justify-end gap-2">
-					<Button size="sm" variant="outline" onClick={props.onCancel}>
+					<Button
+						type="button"
+						size="sm"
+						variant="outline"
+						onClick={props.onCancel}
+					>
 						Cancel
 					</Button>
-					<Button size="sm" onClick={props.onAdd}>
+					<Button type="button" size="sm" onClick={props.onAdd}>
 						Add
 					</Button>
 				</div>

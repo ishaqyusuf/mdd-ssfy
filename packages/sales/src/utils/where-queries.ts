@@ -10,6 +10,126 @@ import {
 import dayjs from "@gnd/utils/dayjs";
 import { SalesQueryParamsSchema } from "../schema";
 import { normalizeSalesPriority } from "../priority";
+import { SALES_HAS_FILTER_LABELS } from "../filter-constants";
+
+type SalesHasFilter = NonNullable<SalesQueryParamsSchema["has"]>;
+
+function salesItemTypeWhere(label: string): Prisma.SalesOrderItemsWhereInput[] {
+  return [
+    {
+      meta: {
+        path: "$.doorType",
+        string_contains: label,
+      },
+    },
+    {
+      formSteps: {
+        some: {
+          deletedAt: null,
+          value: label,
+        },
+      },
+    },
+    {
+      description: {
+        contains: label,
+      },
+    },
+    {
+      dykeDescription: {
+        contains: label,
+      },
+    },
+  ];
+}
+
+function buildSalesHasWhere(
+  has: SalesHasFilter,
+): Prisma.SalesOrdersWhereInput {
+  const label = SALES_HAS_FILTER_LABELS[has];
+  const baseTypeWhere = salesItemTypeWhere(label);
+
+  switch (has) {
+    case "services":
+      return {
+        items: {
+          some: {
+            deletedAt: null,
+            OR: baseTypeWhere,
+          },
+        },
+      };
+    case "shelf-items":
+      return {
+        items: {
+          some: {
+            deletedAt: null,
+            OR: [
+              {
+                shelfItems: {
+                  some: {
+                    deletedAt: null,
+                  },
+                },
+              },
+              ...baseTypeWhere,
+            ],
+          },
+        },
+      };
+    case "moulding":
+      return {
+        items: {
+          some: {
+            deletedAt: null,
+            OR: [
+              {
+                housePackageTool: {
+                  deletedAt: null,
+                  moldingId: {
+                    not: null,
+                  },
+                },
+              },
+              {
+                housePackageTool: {
+                  deletedAt: null,
+                  doorType: label,
+                },
+              },
+              ...baseTypeWhere,
+            ],
+          },
+        },
+      };
+    default:
+      return {
+        items: {
+          some: {
+            deletedAt: null,
+            OR: [
+              {
+                housePackageTool: {
+                  deletedAt: null,
+                  doorType: label,
+                },
+              },
+              {
+                salesDoors: {
+                  some: {
+                    deletedAt: null,
+                    doorType: label,
+                  },
+                },
+              },
+              ...baseTypeWhere,
+            ],
+          },
+        },
+      };
+  }
+}
+
 function buildPendingStatWhere(
   type: QtyControlType,
   salesStatSome: (
@@ -355,6 +475,9 @@ export function whereSales(query: SalesQueryParamsSchema) {
             priority: normalizeSalesPriority(val) as any,
           });
         }
+        break;
+      case "has":
+        where.push(buildSalesHasWhere(val));
         break;
       case "production.assignedToId":
         where.push({

@@ -27,17 +27,21 @@ export function DoorStepPanel(props: DoorStepPanelProps) {
 					{props.isDoorStep ? (
 						<div className="flex items-center gap-1 rounded-md border bg-muted/30 p-1">
 							<Button
+								type="button"
 								size="sm"
 								className="h-7 px-2 text-xs"
 								variant={props.activeTab === "doors" ? "default" : "ghost"}
+								aria-pressed={props.activeTab === "doors"}
 								onClick={() => props.onTabChange("doors")}
 							>
 								Doors
 							</Button>
 							<Button
+								type="button"
 								size="sm"
 								className="h-7 px-2 text-xs"
 								variant={props.activeTab === "suppliers" ? "default" : "ghost"}
+								aria-pressed={props.activeTab === "suppliers"}
 								onClick={() => props.onTabChange("suppliers")}
 							>
 								Suppliers

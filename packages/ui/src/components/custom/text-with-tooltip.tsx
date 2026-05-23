@@ -15,7 +15,7 @@ interface TextWithTooltipProps {
 
 export function TextWithTooltip({ text, className }: TextWithTooltipProps) {
   const [isTruncated, setIsTruncated] = useState<boolean>(false);
-  const textRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     const checkTruncation = () => {
@@ -36,9 +36,9 @@ export function TextWithTooltip({ text, className }: TextWithTooltipProps) {
   // REMiNDER: check if that is the correct way to handle this
   if (!isTruncated)
     return (
-      <div ref={textRef} className={cn("truncate", className)}>
+      <span ref={textRef} className={cn("block truncate", className)}>
         {text}
-      </div>
+      </span>
     );
 
   return (

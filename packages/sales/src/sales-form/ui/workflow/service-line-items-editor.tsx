@@ -17,18 +17,20 @@ export type ServiceLineItemEditorRow = {
 	[key: string]: unknown;
 };
 
-export type ServiceLineItemsEditorProps<
-	TRow extends ServiceLineItemEditorRow,
-> = {
-	rows: TRow[];
-	formatMoney: (value?: number | null) => string | null;
-	createRow: (nextIndex: number) => TRow;
-	onRowsChange: (rows: TRow[]) => void;
-};
+export type ServiceLineItemsEditorProps<TRow extends ServiceLineItemEditorRow> =
+	{
+		rows: TRow[];
+		formatMoney: (value?: number | null) => string | null;
+		canEditPricing?: boolean;
+		createRow: (nextIndex: number) => TRow;
+		onRowsChange: (rows: TRow[]) => void;
+	};
 
 export function ServiceLineItemsEditor<TRow extends ServiceLineItemEditorRow>(
 	props: ServiceLineItemsEditorProps<TRow>,
 ) {
+	const canEditPricing = props.canEditPricing !== false;
+
 	function patchRow(index: number, patch: Partial<TRow>) {
 		props.onRowsChange(
 			props.rows.map((item, i) =>
@@ -50,8 +52,12 @@ export function ServiceLineItemsEditor<TRow extends ServiceLineItemEditorRow>(
 						<col />
 						<col style={{ width: "6rem" }} />
 						<col style={{ width: "7rem" }} />
-						<col style={{ width: "5rem" }} />
-						<col style={{ width: "6rem" }} />
+						{canEditPricing ? (
+							<>
+								<col style={{ width: "5rem" }} />
+								<col style={{ width: "6rem" }} />
+							</>
+						) : null}
 						<col style={{ width: "7rem" }} />
 						<col style={{ width: "6rem" }} />
 					</colgroup>
@@ -60,8 +66,12 @@ export function ServiceLineItemsEditor<TRow extends ServiceLineItemEditorRow>(
 							<th className="px-3 py-2">Service</th>
 							<th className="px-3 py-2 text-right">Qty</th>
 							<th className="px-3 py-2 text-right">Price</th>
-							<th className="px-3 py-2 text-center">Tax</th>
-							<th className="px-3 py-2 text-center">Prod</th>
+							{canEditPricing ? (
+								<>
+									<th className="px-3 py-2 text-center">Tax</th>
+									<th className="px-3 py-2 text-center">Prod</th>
+								</>
+							) : null}
 							<th className="px-3 py-2 text-right">Total</th>
 							<th className="px-3 py-2 text-right">Actions</th>
 						</tr>
@@ -77,6 +87,7 @@ export function ServiceLineItemsEditor<TRow extends ServiceLineItemEditorRow>(
 											</InputGroup.Text>
 										</InputGroup.Addon>
 										<InputGroup.Input
+											aria-label={`Service line ${index + 1} name`}
 											value={row.service || ""}
 											onChange={(e) =>
 												patchRow(index, {
@@ -90,6 +101,7 @@ export function ServiceLineItemsEditor<TRow extends ServiceLineItemEditorRow>(
 								</td>
 								<td className="px-3 py-2">
 									<Input
+										aria-label={`Service line ${index + 1} quantity`}
 										type="number"
 										value={row.qty || 0}
 										onChange={(e) =>
@@ -101,38 +113,51 @@ export function ServiceLineItemsEditor<TRow extends ServiceLineItemEditorRow>(
 									/>
 								</td>
 								<td className="px-3 py-2">
-									<Input
-										type="number"
-										step="0.01"
-										value={row.unitPrice || 0}
-										onChange={(e) =>
-											patchRow(index, {
-												unitPrice: Number(e.target.value || 0),
-											} as Partial<TRow>)
-										}
-										className="h-8 text-right"
-									/>
+									{canEditPricing ? (
+										<Input
+											aria-label={`Service line ${index + 1} unit price`}
+											type="number"
+											step="0.01"
+											value={row.unitPrice || 0}
+											onChange={(e) =>
+												patchRow(index, {
+													unitPrice: Number(e.target.value || 0),
+												} as Partial<TRow>)
+											}
+											className="h-8 text-right"
+										/>
+									) : (
+										<p className="text-right text-xs font-semibold">
+											{props.formatMoney(row.unitPrice || 0) || "$0.00"}
+										</p>
+									)}
 								</td>
-								<td className="px-3 py-2 text-center">
-									<Checkbox
-										checked={Boolean(row.taxxable)}
-										onCheckedChange={(checked) =>
-											patchRow(index, {
-												taxxable: Boolean(checked),
-											} as Partial<TRow>)
-										}
-									/>
-								</td>
-								<td className="px-3 py-2 text-center">
-									<Checkbox
-										checked={Boolean(row.produceable)}
-										onCheckedChange={(checked) =>
-											patchRow(index, {
-												produceable: Boolean(checked),
-											} as Partial<TRow>)
-										}
-									/>
-								</td>
+								{canEditPricing ? (
+									<>
+										<td className="px-3 py-2 text-center">
+											<Checkbox
+												aria-label={`Service line ${index + 1} taxable`}
+												checked={Boolean(row.taxxable)}
+												onCheckedChange={(checked) =>
+													patchRow(index, {
+														taxxable: Boolean(checked),
+													} as Partial<TRow>)
+												}
+											/>
+										</td>
+										<td className="px-3 py-2 text-center">
+											<Checkbox
+												aria-label={`Service line ${index + 1} production`}
+												checked={Boolean(row.produceable)}
+												onCheckedChange={(checked) =>
+													patchRow(index, {
+														produceable: Boolean(checked),
+													} as Partial<TRow>)
+												}
+											/>
+										</td>
+									</>
+								) : null}
 								<td className="px-3 py-2 text-right text-xs font-bold">
 									{props.formatMoney(row.lineTotal) || "$0.00"}
 								</td>
@@ -162,6 +187,7 @@ export function ServiceLineItemsEditor<TRow extends ServiceLineItemEditorRow>(
 				</table>
 			</div>
 			<Button
+				type="button"
 				variant="secondary"
 				className="w-full uppercase"
 				onClick={() =>

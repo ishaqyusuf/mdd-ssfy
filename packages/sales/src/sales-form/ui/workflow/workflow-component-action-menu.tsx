@@ -25,7 +25,13 @@ export function WorkflowComponentActionMenu(
 	return (
 		<Menu
 			Trigger={
-				<Button size="icon" variant="secondary" className="size-7">
+				<Button
+					type="button"
+					size="icon"
+					variant="secondary"
+					className="size-7"
+					aria-label="Component actions"
+				>
 					<Icons.MoreHorizontal className="size-4" />
 				</Button>
 			}

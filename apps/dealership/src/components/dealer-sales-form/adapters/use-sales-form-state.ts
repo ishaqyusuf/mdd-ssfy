@@ -19,6 +19,12 @@ type DealerQuoteSource = {
 	type?: string | null;
 	customerId?: number | null;
 	customerProfileId?: number | null;
+	po?: string | null;
+	paymentTerm?: string | null;
+	goodUntil?: string | null;
+	deliveryOption?: string | null;
+	paymentMethod?: string | null;
+	taxCode?: string | null;
 	taxRate?: number | null;
 	lineItems?: unknown;
 };
@@ -96,7 +102,12 @@ function createDealerSalesFormRecord(
 		form: {
 			customerId: source?.customerId || null,
 			customerProfileId: source?.customerProfileId || null,
-			paymentMethod: null,
+			po: source?.po || null,
+			paymentTerm: source?.paymentTerm || "None",
+			goodUntil: source?.goodUntil || null,
+			deliveryOption: source?.deliveryOption || "pickup",
+			paymentMethod: source?.paymentMethod || null,
+			taxCode: source?.taxCode || null,
 		},
 		lineItems: normalizeDealerLineItems(source?.lineItems),
 		extraCosts: [],
@@ -161,6 +172,13 @@ export function useDealerSalesFormState() {
 		);
 	}, []);
 
+	const setMeta = useCallback((patch: Partial<DealerSalesFormRecord["form"]>) => {
+		setState(
+			(current) =>
+				setSalesFormMeta(current as any, patch as any) as DealerSalesFormState,
+		);
+	}, []);
+
 	return useMemo(
 		() => ({
 			state,
@@ -170,9 +188,18 @@ export function useDealerSalesFormState() {
 			setState,
 			setCustomer,
 			setCustomerProfile,
+			setMeta,
 			setTaxRate,
 		}),
-		[hydrateQuote, reset, setCustomer, setCustomerProfile, setTaxRate, state],
+		[
+			hydrateQuote,
+			reset,
+			setCustomer,
+			setCustomerProfile,
+			setMeta,
+			setTaxRate,
+			state,
+		],
 	);
 }
 

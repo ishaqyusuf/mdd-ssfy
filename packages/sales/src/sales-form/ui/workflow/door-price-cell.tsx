@@ -108,10 +108,12 @@ export function DoorPriceCell({
 	row,
 	onSave,
 	profileCoefficient,
+	readOnly = false,
 }: {
 	row: DoorPriceRow;
 	onSave: (nextBase: number) => void;
 	profileCoefficient?: number | null;
+	readOnly?: boolean;
 }) {
 	const [open, setOpen] = useState(false);
 	const [draft, setDraft] = useState("");
@@ -135,6 +137,7 @@ export function DoorPriceCell({
 			<PopoverTrigger asChild>
 				<Button
 					type="button"
+					disabled={readOnly}
 					variant={
 						isMissingPrice
 							? "destructive"
@@ -148,7 +151,7 @@ export function DoorPriceCell({
 						{isMissingPrice ? "Missing" : "Price"}
 					</span>
 					<span className="text-sm font-semibold text-foreground">
-						{isMissingPrice ? "Add Price" : currency(row.unitPrice)}
+						{isMissingPrice && !readOnly ? "Add Price" : currency(row.unitPrice)}
 					</span>
 				</Button>
 			</PopoverTrigger>

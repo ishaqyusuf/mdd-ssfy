@@ -9,6 +9,7 @@ export type RootComponentPickerProps<TComponent> = {
 	components: TComponent[];
 	filteredComponents: TComponent[];
 	search: string;
+	noticeSlot?: ReactNode;
 	toolbarSlot: ReactNode;
 	getKey: (component: TComponent, index: number) => string;
 	renderComponent: (component: TComponent, index: number) => ReactNode;
@@ -18,10 +19,11 @@ export function RootComponentPicker<TComponent>(
 	props: RootComponentPickerProps<TComponent>,
 ) {
 	return (
-		<div className="space-y-3">
+		<div className="w-full space-y-3">
 			<p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
 				Root Step Components
 			</p>
+			{props.noticeSlot}
 			{props.loading ? (
 				<ComponentCardSkeletonGrid />
 			) : !props.components.length ? (

@@ -53,7 +53,9 @@ export function buildWorkflowMouldingRowsContext(
 ): WorkflowMouldingRowsContext {
 	const selectedMouldings = getSelectedMouldingComponentsForLine(line);
 	const existingRows = getStoredMouldingRows(line);
-	const sharedComponentPrice = sharedMouldingComponentPrice(getWorkflowSteps(line));
+	const sharedComponentPrice = sharedMouldingComponentPrice(
+		getWorkflowSteps(line),
+	);
 	const rows = deriveMouldingRows({
 		selectedMouldings,
 		existingRows,
@@ -65,9 +67,7 @@ export function buildWorkflowMouldingRowsContext(
 		sharedComponentPrice,
 		totalQty: rows.reduce((sum, row) => sum + Number(row.qty || 0), 0),
 		totalAmount: Number(
-			rows
-				.reduce((sum, row) => sum + Number(row.lineTotal || 0), 0)
-				.toFixed(2),
+			rows.reduce((sum, row) => sum + Number(row.lineTotal || 0), 0).toFixed(2),
 		),
 	};
 }
@@ -95,7 +95,7 @@ export function buildWorkflowMouldingRowsPatch(input: {
 export function buildWorkflowServiceRowsContext(
 	line: WorkflowLineItemRecord,
 ): WorkflowServiceRowsContext {
-	const lineMeta = ((line as any).meta || {}) as {
+	const lineMeta = (line.meta || {}) as {
 		taxxable?: boolean;
 		produceable?: boolean;
 	};
@@ -103,9 +103,9 @@ export function buildWorkflowServiceRowsContext(
 		rows: deriveServiceRows({
 			lineUid: String(line.uid || ""),
 			existingRows: getStoredServiceRows(line),
-			lineDescription: (line as any).description,
-			lineQty: (line as any).qty,
-			lineUnitPrice: (line as any).unitPrice,
+			lineDescription: line.description,
+			lineQty: line.qty,
+			lineUnitPrice: line.unitPrice,
 			lineTaxxable: Boolean(lineMeta?.taxxable),
 			lineProduceable: Boolean(lineMeta?.produceable),
 		}),
@@ -137,7 +137,7 @@ export function buildWorkflowShelfSectionsContext(
 ): WorkflowShelfSectionsContext {
 	return {
 		sections: buildShelfSections(
-			((line as any).shelfItems || []) as unknown[],
+			(line.shelfItems || []) as unknown[],
 			profileCoefficient,
 		) as ShelfSectionDraft[],
 	};
@@ -189,13 +189,13 @@ export function buildWorkflowDoorRowsPatch(input: {
 		totalPrice: next.totalPrice,
 		linePatch: {
 			housePackageTool: {
-				...((input.line as any).housePackageTool || { id: null }),
+				...(input.line.housePackageTool || { id: null }),
 				doors: next.rows,
 				totalDoors: next.totalDoors,
 				totalPrice: next.totalPrice,
 			},
-			qty: next.totalDoors || (input.line as any).qty,
-			lineTotal: next.totalPrice || (input.line as any).lineTotal,
+			qty: next.totalDoors || input.line.qty,
+			lineTotal: next.totalPrice || input.line.lineTotal,
 		},
 	};
 }
@@ -207,8 +207,8 @@ export function buildWorkflowDoorSizeVariantPatch(input: {
 	sharedDoorSurcharge?: number | null;
 	profileCoefficient?: number | null;
 }) {
-	const existingDoors = Array.isArray((input.line as any).housePackageTool?.doors)
-		? (((input.line as any).housePackageTool.doors || []) as DoorStoredRow[])
+	const existingDoors = Array.isArray(input.line.housePackageTool?.doors)
+		? input.line.housePackageTool.doors || []
 		: [];
 	const targetComponentId = Number(input.componentId || 0);
 	const retainedDoors = existingDoors.filter(
@@ -242,13 +242,13 @@ export function buildWorkflowDoorSizeVariantPatch(input: {
 		totalPrice,
 		linePatch: {
 			housePackageTool: {
-				...((input.line as any).housePackageTool || { id: null }),
+				...(input.line.housePackageTool || { id: null }),
 				doors: nextDoors,
 				totalDoors,
 				totalPrice,
 			},
-			qty: totalDoors || (input.line as any).qty,
-			lineTotal: totalPrice || (input.line as any).lineTotal,
+			qty: totalDoors || input.line.qty,
+			lineTotal: totalPrice || input.line.lineTotal,
 		},
 	};
 }

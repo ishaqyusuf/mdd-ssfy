@@ -47,6 +47,11 @@ import {
 } from "@api/db/queries/sales-form";
 import { createTRPCRouter, dealerProtectedProcedure } from "../init";
 
+const dealerWorkflowStepComponentsSchema = getStepComponentsSchema.pick({
+	stepTitle: true,
+	stepId: true,
+});
+
 export const dealerPortalRouter = createTRPCRouter({
 	me: dealerProtectedProcedure.query(({ ctx }) => {
 		return ctx.dealer;
@@ -78,16 +83,26 @@ export const dealerPortalRouter = createTRPCRouter({
 	salesProfiles: dealerProtectedProcedure.query(({ ctx }) => {
 		return getDealerPortalSalesProfiles(ctx.db, ctx.dealer.id);
 	}),
+	taxProfiles: dealerProtectedProcedure.query(({ ctx }) => {
+		return ctx.db.taxes.findMany({
+			select: {
+				taxCode: true,
+				title: true,
+				percentage: true,
+			},
+		});
+	}),
 	internalSalesProfile: dealerProtectedProcedure.query(({ ctx }) => {
 		return getDealerPortalInternalSalesProfile(ctx.db);
 	}),
-	workflowReference: dealerProtectedProcedure.query(({ ctx }) => {
-		return getNewSalesFormStepRouting(ctx, {});
+	workflowReference: dealerProtectedProcedure.query(async ({ ctx }) => {
+		return toDealerWorkflowReference(await getNewSalesFormStepRouting(ctx, {}));
 	}),
 	workflowStepComponents: dealerProtectedProcedure
-		.input(getStepComponentsSchema)
-		.query(({ ctx, input }) => {
-			return getStepComponents(ctx, input);
+		.input(dealerWorkflowStepComponentsSchema)
+		.query(async ({ ctx, input }) => {
+			const components = await getStepComponents(ctx, input);
+			return components.map(toDealerWorkflowComponent);
 		}),
 	workflowShelfCategories: dealerProtectedProcedure
 		.input(getNewSalesFormShelfCategoriesSchema)
@@ -154,3 +169,84 @@ export const dealerPortalRouter = createTRPCRouter({
 			return saveDealerPortalSettings(ctx.db, ctx.dealer.id, input);
 		}),
 });
+
+function toRecord(value: unknown): Record<string, unknown> {
+	return value && typeof value === "object" && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: {};
+}
+
+function toDealerWorkflowComponent(input: unknown) {
+	const component = toRecord(input);
+	return {
+		id: typeof component.id === "number" ? component.id : null,
+		uid: typeof component.uid === "string" ? component.uid : null,
+		title: typeof component.title === "string" ? component.title : null,
+		img: typeof component.img === "string" ? component.img : null,
+		productId:
+			typeof component.productId === "number" ? component.productId : null,
+		variations: Array.isArray(component.variations) ? component.variations : [],
+		sectionOverride: component.sectionOverride ?? null,
+		salesPrice:
+			typeof component.salesPrice === "number" ? component.salesPrice : null,
+		basePrice:
+			typeof component.basePrice === "number" ? component.basePrice : null,
+		stepId: typeof component.stepId === "number" ? component.stepId : null,
+		stepUid: typeof component.stepUid === "string" ? component.stepUid : null,
+		priceStepDeps: Array.isArray(component.priceStepDeps)
+			? component.priceStepDeps
+			: [],
+		pricing: toRecord(component.pricing),
+		redirectUid:
+			typeof component.redirectUid === "string" ? component.redirectUid : null,
+		isDeleted: component.isDeleted === true,
+	};
+}
+
+function toDealerWorkflowReference(routeData: Record<string, unknown>) {
+	const stepsByUid = toRecord(routeData.stepsByUid);
+	const composedRouter = Object.fromEntries(
+		Object.entries(toRecord(routeData.composedRouter)).map(([uid, value]) => [
+			uid,
+			toRecord(value),
+		]),
+	);
+	const stepsById = Object.fromEntries(
+		Object.entries(toRecord(routeData.stepsById))
+			.map(([id, uid]) => [id, typeof uid === "string" ? uid : ""])
+			.filter(([, uid]) => Boolean(uid)),
+	);
+	const sanitizedStepsByUid = Object.fromEntries(
+		Object.entries(stepsByUid).map(([uid, value]) => {
+			const step = toRecord(value);
+			const components = Array.isArray(step.components)
+				? step.components.map((component) =>
+						toDealerWorkflowComponent(toRecord(component)),
+					)
+				: [];
+			return [
+				uid,
+				{
+					id: typeof step.id === "number" ? step.id : null,
+					uid: typeof step.uid === "string" ? step.uid : uid,
+					title: typeof step.title === "string" ? step.title : null,
+					meta: toRecord(step.meta),
+					components,
+				},
+			];
+		}),
+	);
+
+	return {
+		composedRouter,
+		stepsByUid: sanitizedStepsByUid,
+		stepsById,
+		rootStepUid:
+			typeof routeData.rootStepUid === "string" ? routeData.rootStepUid : null,
+		rootComponents: Array.isArray(routeData.rootComponents)
+			? routeData.rootComponents.map((component) =>
+					toDealerWorkflowComponent(toRecord(component)),
+				)
+			: [],
+	};
+}

@@ -35,6 +35,7 @@ Optional hooks:
 - `useShelfProducts`
 - `useDoorSuppliers`
 - `resolveImageSrc`
+- `renderMouldingCalculator`
 
 If a hook is absent, the package keeps the workflow usable where possible and
 omits host-only functionality.
@@ -55,12 +56,45 @@ privileged or app-specific surfaces:
 Unwired admin actions must not render. The package component menu only shows
 admin entries when the host passes actual handlers.
 
+Supplier management is host-owned through `renderDoorSupplierPanel`; the
+package provides the Door tab shell and supplier-selection patching, while the
+host owns supplier create/update/delete mutations. Moulding calculators are
+host-owned through `dataSource.renderMouldingCalculator` so app-specific
+measurement tools do not leak into the shared package.
+
 `www` can now supply component-level admin actions through
 `slots.componentActions`. Use this for privileged behavior that must remain
 host-owned, including component pricing/edit, image upload, redirect changes,
-section overrides, and selected-component deletion. The package supplies the
-workflow context, while the host owns dialogs, uploads, mutations, and final
-line patches.
+section overrides, door-size variant authoring, and selected-component deletion.
+The package supplies the workflow context, while the host owns dialogs, uploads,
+mutations, and final line patches.
+
+Dealership adapters must pass dealer-protected endpoints that return minimized
+workflow references and component DTOs only. Do not expose sales-settings metadata,
+raw component metadata, or arbitrary component lookup controls through the dealer
+workflow data source.
+
+## Cutover And Rollback
+
+`apps/www` keeps a legacy/package panel switch until browser QA and the rollback
+window close:
+
+- `NEXT_PUBLIC_NEW_SALES_FORM_PACKAGE_PANEL_DEFAULT=legacy | package`
+- URL override: `?packageWorkflowPanel=legacy | package`
+- Local storage key: `gnd:new-sales-form:package-workflow-panel`
+
+Dealership is package-first. Its rollback path is deployment rollback to the
+last known-good dealership quote composer while keeping package metadata readers
+in API/DB/print/inventory code.
+
+Brain runbooks:
+
+- `brain/new-sales-form-cutover-strategy.md`
+- `brain/dealership-new-sales-form-rollback-plan.md`
+- `brain/www-new-sales-form-rollback-plan.md`
+- `brain/new-sales-form-legacy-duplication-removal-plan.md`
+- `brain/dealership-cutover-readiness.md`
+- `brain/www-cutover-readiness.md`
 
 ## Regression Gate
 

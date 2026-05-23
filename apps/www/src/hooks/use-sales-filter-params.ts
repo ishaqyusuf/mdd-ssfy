@@ -14,6 +14,7 @@ import {
 	PRODUCTION_STATUS,
 	SALES_DISPATCH_FILTER_OPTIONS,
 } from "@gnd/utils/constants";
+import { SALES_HAS_FILTER_OPTIONS } from "@sales/filter-constants";
 
 import { useAuth } from "./use-auth";
 
@@ -30,6 +31,7 @@ export const salesFilterParamsSchema = {
 	"production.status": parseAsStringLiteral(PRODUCTION_STATUS),
 	"dispatch.status": parseAsStringLiteral(SALES_DISPATCH_FILTER_OPTIONS),
 	"sales.priority": parseAsStringLiteral(SALES_PRIORITY_VALUES),
+	has: parseAsStringLiteral(SALES_HAS_FILTER_OPTIONS),
 	production: parseAsStringLiteral(PRODUCTION_FILTER_OPTIONS),
 	invoice: parseAsStringLiteral(INVOICE_FILTER_OPTIONS),
 	dateRange: parseAsArrayOf(parseAsString),

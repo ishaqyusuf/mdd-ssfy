@@ -12,7 +12,7 @@ export type WorkflowComponentCardProps = {
 export function WorkflowComponentCard(props: WorkflowComponentCardProps) {
 	return (
 		<div
-			className={`relative overflow-hidden rounded-xl border text-left transition ${
+			className={`relative overflow-hidden rounded-lg border text-left transition ${
 				props.selected
 					? "border-primary bg-primary/5 ring-1 ring-primary/20 hover:border-primary"
 					: "bg-card hover:border-primary"

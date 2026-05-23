@@ -18,37 +18,44 @@ export type WorkflowComponentToolbarProps = {
 
 export function WorkflowComponentToolbar(props: WorkflowComponentToolbarProps) {
 	return (
-		<div className="sticky bottom-4 z-10 flex justify-center">
+		<div className="sticky bottom-2 z-10 flex justify-center px-2 sm:bottom-4 sm:px-0">
 			<div
-				className={`flex w-full flex-col gap-2 rounded-2xl border border-slate-200 bg-background/95 p-3 shadow-lg backdrop-blur md:flex-row md:items-center ${
+				className={`flex w-full min-w-0 flex-col gap-2 rounded-lg border border-slate-200 bg-background/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:items-center ${
 					props.maxWidthClassName || "max-w-3xl"
 				}`}
 			>
-				<div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+				<div className="flex shrink-0 items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
 					<span>
 						{props.count}
-						{props.count !== props.total ? ` of ${props.total}` : ""}{" "}
-						components
+						{props.count !== props.total ? ` of ${props.total}` : ""} components
 					</span>
 				</div>
-				<div className="flex-1">
+				<div className="min-w-0 flex-1">
 					<Input
 						value={props.search}
 						onChange={(event) => props.onSearchChange(event.target.value)}
 						placeholder="Search components..."
-						className="h-9 border-slate-200 bg-white"
+						className="h-9 w-full border-slate-200 bg-white"
 					/>
 				</div>
 				<Menu
 					Trigger={
-						<Button size="icon" variant="outline" className="size-9">
+						<Button
+							type="button"
+							size="icon"
+							variant="outline"
+							className="size-9"
+							aria-label="Workflow component options"
+						>
 							<Icons.Filter className="size-4" />
 						</Button>
 					}
 				>
 					{props.menuSlot}
 				</Menu>
-				{props.actionSlot}
+				{props.actionSlot ? (
+					<div className="w-full sm:w-auto">{props.actionSlot}</div>
+				) : null}
 			</div>
 		</div>
 	);

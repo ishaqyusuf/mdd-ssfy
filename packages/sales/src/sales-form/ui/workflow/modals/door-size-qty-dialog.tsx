@@ -118,6 +118,7 @@ interface DoorSizeQtyDialogProps {
 		noHandle?: boolean;
 		hasSwing?: boolean;
 	} | null;
+	canEditPricing?: boolean;
 	onRemoveSelection?: () => void;
 	onNextStep?: () => void;
 	onApply: (payload: { rows: DoorLine[]; selected: boolean }) => void;
@@ -345,6 +346,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 										<DoorPriceCell
 											row={row}
 											profileCoefficient={props.profileCoefficient}
+											readOnly={!props.canEditPricing}
 											onSave={(nextBase) =>
 												setRows((prev) =>
 													prev.map((item, ri) =>
@@ -487,6 +489,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 											<DoorPriceCell
 												row={row}
 												profileCoefficient={props.profileCoefficient}
+												readOnly={!props.canEditPricing}
 												onSave={(nextBase) =>
 													setRows((prev) =>
 														prev.map((item, ri) =>

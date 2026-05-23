@@ -3,17 +3,28 @@
 import { useMemo, useState } from "react";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@gnd/ui/dialog";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Input } from "@gnd/ui/input";
+import { Label } from "@gnd/ui/label";
 import { Textarea } from "@gnd/ui/textarea";
 import type {
 	SalesFormWorkflowActions,
+	SalesFormWorkflowCapabilities,
 	SalesFormWorkflowDataSource,
 	SalesFormWorkflowEditorState,
 	SalesFormWorkflowPricingSurface,
 	SalesFormWorkflowRecord,
 	SalesFormWorkflowSurfaceSlots,
 } from "../../contracts";
+import { createSalesFormWorkflowCapabilities } from "../../contracts";
 import {
 	buildSelectedByStepUid,
 	buildSelectedProdUidsByStepUid,
@@ -23,6 +34,7 @@ import {
 	getSelectedProdUids,
 	getRouteConfigForLine,
 	isComponentVisibleByRules,
+	isMouldingItem,
 	normalizeSalesFormTitle as normalizeTitle,
 	resolveComponentPriceByDeps,
 	resolveDoorTierPricing,
@@ -51,8 +63,10 @@ import {
 	getItemWorkflowStepFamily,
 	getLineTitlePlaceholder,
 	getShelfLeafCategoryIds,
+	getShelfRowBasePrice,
 	getShelfRowDisplayTotal,
 	getShelfRowDisplayUnitPrice,
+	getShelfRowSalesPrice,
 	getStepPriceDeps,
 	getWorkflowLineDisplayTotal,
 	getWorkflowSteps,
@@ -70,6 +84,8 @@ import {
 	selectWorkflowRootComponent,
 	DoorSizeQtyDialog,
 	DoorSwapDialog,
+	DoorStepPanel,
+	type DoorStepPanelTab,
 	HousePackageToolPanel,
 	MouldingLineItemsEditor,
 	profileAdjustedDoorSalesPrice,
@@ -79,6 +95,9 @@ import {
 	ShelfProductCombobox,
 	stepKey,
 	useItemWorkflowController,
+	useMouldingWorkflow,
+	WorkflowComponentPreview,
+	WorkflowComponentToolbar,
 	WorkflowLineList,
 	WorkflowShelfPanel,
 	WorkflowStepComponentPanel,
@@ -88,10 +107,17 @@ import {
 	type WorkflowComponentRecord,
 	type DoorStoredRow,
 	type WorkflowLineItemRecord,
+	type ShelfCategoryRecord,
 	type ShelfProductOption,
+	type ShelfRowDraft,
 	type ShelfSectionDraft,
 	type WorkflowStepRecord,
 } from "./index";
+import { WorkflowPanelNotice } from "./workflow-panel-notice";
+import {
+	resolveWorkflowRouteStatus,
+	resolveWorkflowStepComponentStatus,
+} from "./workflow-query-state";
 
 export type SalesFormWorkflowPanelProps<
 	TLine extends WorkflowLineItemRecord = WorkflowLineItemRecord,
@@ -101,6 +127,7 @@ export type SalesFormWorkflowPanelProps<
 	actions: SalesFormWorkflowActions<TLine>;
 	dataSource: SalesFormWorkflowDataSource;
 	pricing?: SalesFormWorkflowPricingSurface<TLine>;
+	workflowCapabilities?: Partial<SalesFormWorkflowCapabilities>;
 	slots?: SalesFormWorkflowSurfaceSlots<TLine>;
 	className?: string;
 };
@@ -109,6 +136,10 @@ export function SalesFormWorkflowPanel<
 	TLine extends WorkflowLineItemRecord = WorkflowLineItemRecord,
 >(props: SalesFormWorkflowPanelProps<TLine>) {
 	const { record, dataSource, actions } = props;
+	const workflowCapabilities = useMemo(
+		() => createSalesFormWorkflowCapabilities(props.workflowCapabilities),
+		[props.workflowCapabilities],
+	);
 	const [localActiveStepByLine, setLocalActiveStepByLine] = useState<
 		Record<string, number>
 	>({});
@@ -117,6 +148,9 @@ export function SalesFormWorkflowPanel<
 	);
 	const [componentSearch, setComponentSearch] = useState("");
 	const [includeCustomComponents, setIncludeCustomComponents] = useState(false);
+	const [doorSectionTabByLine, setDoorSectionTabByLine] = useState<
+		Record<string, DoorStepPanelTab>
+	>({});
 	const [activeHptDoorUidByLine, setActiveHptDoorUidByLine] = useState<
 		Record<string, string>
 	>({});
@@ -148,7 +182,7 @@ export function SalesFormWorkflowPanel<
 	const routeData = routeQuery.data || null;
 	const { activeLine, activeLineSteps, activeStepIndex, activeStep } =
 		useItemWorkflowController({
-			lineItems: record.lineItems as any,
+			lineItems: record.lineItems,
 			activeItem: activeItem || null,
 			activeStepByLine,
 			resolveActiveStepIndex: resolveInteractiveStepIndex,
@@ -159,7 +193,7 @@ export function SalesFormWorkflowPanel<
 		() =>
 			Array.from(
 				new Set(
-					((activeLine?.shelfItems || []) as Record<string, any>[])
+					(activeLine?.shelfItems || [])
 						.flatMap((row) => [
 							Number(row?.categoryId || 0),
 							Number(row?.meta?.shelfParentCategoryId || 0),
@@ -184,10 +218,7 @@ export function SalesFormWorkflowPanel<
 	});
 	const shelfProductsByCategory = useMemo(() => {
 		const bucket = new Map<number, ShelfProductOption[]>();
-		for (const product of (shelfProductsQuery?.data || []) as Record<
-			string,
-			any
-		>[]) {
+		for (const product of shelfProductsQuery?.data || []) {
 			const keys = [
 				Number(product?.categoryId || 0),
 				Number(product?.parentCategoryId || 0),
@@ -228,6 +259,14 @@ export function SalesFormWorkflowPanel<
 		() => buildStepComponentOverrideMap(activeStep || null),
 		[activeStep],
 	);
+	const activeSelectionState = useMemo(
+		() => ({
+			selectedByStepUid: buildSelectedByStepUid(activeLineSteps),
+			selectedProdUidsByStepUid:
+				buildSelectedProdUidsByStepUid(activeLineSteps),
+		}),
+		[activeLineSteps],
+	);
 	const activeDoorStep = useMemo(
 		() => activeLineSteps.find((step) => isDoorStepTitle(step?.step?.title)),
 		[activeLineSteps],
@@ -239,23 +278,25 @@ export function SalesFormWorkflowPanel<
 		stepTitle: activeDoorStep?.step?.title || "Door",
 		enabled: Boolean(activeDoorStep),
 	});
+	const configuredRootComponentUids = useMemo(
+		() => new Set(Object.keys(routeData?.composedRouter || {})),
+		[routeData?.composedRouter],
+	);
 	const activeRootComponents = useMemo(() => {
 		const roots = rootComponentsQuery.data || [];
-		const configured = new Set(Object.keys(routeData?.composedRouter || {}));
-		if (!configured.size) return [];
-		const selectedByStepUid = buildSelectedByStepUid(activeLineSteps);
-		const selectedProdUidsByStepUid =
-			buildSelectedProdUidsByStepUid(activeLineSteps);
+		if (!configuredRootComponentUids.size) return [];
 		return roots
-			.filter((component) => configured.has(String(component?.uid || "")))
+			.filter((component) =>
+				configuredRootComponentUids.has(String(component?.uid || "")),
+			)
 			.filter((component) =>
 				isComponentEnabledForView(component, includeCustomComponents),
 			)
 			.filter((component) =>
 				isComponentVisibleByRules(
 					component,
-					selectedByStepUid,
-					selectedProdUidsByStepUid,
+					activeSelectionState.selectedByStepUid,
+					activeSelectionState.selectedProdUidsByStepUid,
 				),
 			)
 			.map((component) =>
@@ -263,24 +304,21 @@ export function SalesFormWorkflowPanel<
 					component,
 					activeStep || null,
 					activeStepComponentOverrides,
-					selectedByStepUid,
-					selectedProdUidsByStepUid,
+					activeSelectionState.selectedByStepUid,
+					activeSelectionState.selectedProdUidsByStepUid,
 					activeProfileCoefficient,
 				),
 			);
 	}, [
-		activeLineSteps,
 		activeProfileCoefficient,
+		activeSelectionState,
 		activeStep,
 		activeStepComponentOverrides,
+		configuredRootComponentUids,
 		includeCustomComponents,
 		rootComponentsQuery.data,
-		routeData,
 	]);
 	const visibleComponents = useMemo(() => {
-		const selectedByStepUid = buildSelectedByStepUid(activeLineSteps);
-		const selectedProdUidsByStepUid =
-			buildSelectedProdUidsByStepUid(activeLineSteps);
 		return (stepComponentsQuery.data || [])
 			.filter((component) =>
 				isComponentEnabledForView(component, includeCustomComponents),
@@ -288,8 +326,8 @@ export function SalesFormWorkflowPanel<
 			.filter((component) =>
 				isComponentVisibleByRules(
 					component,
-					selectedByStepUid,
-					selectedProdUidsByStepUid,
+					activeSelectionState.selectedByStepUid,
+					activeSelectionState.selectedProdUidsByStepUid,
 				),
 			)
 			.map((component) =>
@@ -297,23 +335,20 @@ export function SalesFormWorkflowPanel<
 					component,
 					activeStep || null,
 					activeStepComponentOverrides,
-					selectedByStepUid,
-					selectedProdUidsByStepUid,
+					activeSelectionState.selectedByStepUid,
+					activeSelectionState.selectedProdUidsByStepUid,
 					activeProfileCoefficient,
 				),
 			);
 	}, [
-		activeLineSteps,
 		activeProfileCoefficient,
+		activeSelectionState,
 		activeStep,
 		activeStepComponentOverrides,
 		includeCustomComponents,
 		stepComponentsQuery.data,
 	]);
 	const visibleDoorComponents = useMemo(() => {
-		const selectedByStepUid = buildSelectedByStepUid(activeLineSteps);
-		const selectedProdUidsByStepUid =
-			buildSelectedProdUidsByStepUid(activeLineSteps);
 		return (doorComponentsQuery.data || [])
 			.filter((component) =>
 				isComponentEnabledForView(component, includeCustomComponents),
@@ -321,8 +356,8 @@ export function SalesFormWorkflowPanel<
 			.filter((component) =>
 				isComponentVisibleByRules(
 					component,
-					selectedByStepUid,
-					selectedProdUidsByStepUid,
+					activeSelectionState.selectedByStepUid,
+					activeSelectionState.selectedProdUidsByStepUid,
 				),
 			)
 			.map((component) =>
@@ -330,19 +365,35 @@ export function SalesFormWorkflowPanel<
 					component,
 					activeDoorStep || activeStep || null,
 					buildStepComponentOverrideMap(activeDoorStep || null),
-					selectedByStepUid,
-					selectedProdUidsByStepUid,
+					activeSelectionState.selectedByStepUid,
+					activeSelectionState.selectedProdUidsByStepUid,
 					activeProfileCoefficient,
 				),
 			);
 	}, [
 		activeDoorStep,
-		activeLineSteps,
 		activeProfileCoefficient,
+		activeSelectionState,
 		activeStep,
 		doorComponentsQuery.data,
 		includeCustomComponents,
 	]);
+	const {
+		mouldingSelectionPopover,
+		mouldingQtyInputRef,
+		openMouldingSelectionQtyPopover,
+		saveMouldingSelectionWithQty,
+		setMouldingSelectionQty,
+		closeMouldingSelectionPopover,
+	} = useMouldingWorkflow({
+		activeLine,
+		activeStep,
+		activeStepIndex,
+		normalizeTitle,
+		visibleComponents,
+		updateLineItem: (uid, patch) =>
+			actions.updateLineItem(uid, patch as Partial<TLine>),
+	});
 
 	function setActiveItem(uid: string | null) {
 		setLocalActiveItem(uid);
@@ -372,6 +423,10 @@ export function SalesFormWorkflowPanel<
 	}
 
 	function renderFlatLineEditor(line: TLine) {
+		if (!workflowCapabilities.canEditFlatLineDetails) {
+			return null;
+		}
+
 		const update = (patch: Partial<TLine>) => updateLine(line, patch);
 		if (props.slots?.renderFlatLineEditor) {
 			return props.slots.renderFlatLineEditor({ line, updateLine: update });
@@ -379,7 +434,12 @@ export function SalesFormWorkflowPanel<
 		return (
 			<DefaultFlatLineEditor
 				line={line}
-				lineTotalMode={props.pricing?.lineTotalMode || "editable"}
+				lineTotalMode={
+					workflowCapabilities.canEditLinePricing
+						? props.pricing?.lineTotalMode || "editable"
+						: "readonly"
+				}
+				canEditUnitPrice={workflowCapabilities.canEditLinePricing}
 				displayTotal={
 					props.pricing?.getLineDisplayTotal?.(line) ??
 					getWorkflowLineDisplayTotal(line, activeProfileCoefficient)
@@ -393,8 +453,8 @@ export function SalesFormWorkflowPanel<
 		line: TLine,
 		step: WorkflowStepRecord,
 	) {
-		const rows = Array.isArray((line as any).housePackageTool?.doors)
-			? (((line as any).housePackageTool.doors || []) as DoorStoredRow[])
+		const rows = Array.isArray(line.housePackageTool?.doors)
+			? line.housePackageTool.doors || []
 			: [];
 		let selectedDoorComponents = getSelectedDoorComponentsForLine(line, {
 			availableComponents: visibleDoorComponents,
@@ -437,7 +497,7 @@ export function SalesFormWorkflowPanel<
 			component: activeDoorComponent,
 		});
 		const noHandle = !!routeConfig?.noHandle;
-		const hasSwing = routeConfig?.hasSwing !== false;
+		const hasSwing = !!routeConfig?.hasSwing;
 		const summary = summarizeDoors(rows, { noHandle, hasSwing });
 		const focusedRows = activeDoorComponent
 			? summary.rows.filter(
@@ -453,7 +513,7 @@ export function SalesFormWorkflowPanel<
 			summary.rows.length
 				? summary.rows
 				: focusedRows;
-		const sharedDoorSurcharge = computeSharedDoorSurcharge(line as any);
+		const sharedDoorSurcharge = computeSharedDoorSurcharge(line);
 		const doorStep = getWorkflowSteps(line).find((candidate) =>
 			isDoorStepTitle(candidate?.step?.title),
 		);
@@ -596,6 +656,7 @@ export function SalesFormWorkflowPanel<
 				sharedDoorSurcharge={sharedDoorSurcharge}
 				profileCoefficient={activeProfileCoefficient}
 				canSwapDoor={Boolean(swapDoorCandidates.length)}
+				canEditPricing={workflowCapabilities.canEditLinePricing}
 				formatMoney={(value) => moneyIfPositive(Number(value || 0)) || "$0.00"}
 				componentLabel={componentLabel}
 				resolveImageSrc={(src) =>
@@ -721,67 +782,74 @@ export function SalesFormWorkflowPanel<
 
 		if (!steps.length) {
 			const filteredRootComponents = filterComponents(activeRootComponents);
+			const rootLoading = Boolean(
+				routeQuery.isPending || rootComponentsQuery.isPending,
+			);
+			const rootStatus = resolveWorkflowRouteStatus({
+				routeQuery,
+				rootComponentsQuery,
+				routeReady: Boolean(routeData),
+				rootStepId,
+				rootComponentsCount: activeRootComponents.length,
+				isLoading: rootLoading,
+			});
+			const refreshRootData = () => {
+				void routeQuery.refetch?.();
+				void rootComponentsQuery.refetch?.();
+			};
+			const rootNoticeSlot = rootStatus ? (
+				<WorkflowPanelNotice {...rootStatus} onRetry={refreshRootData} />
+			) : null;
+
 			return (
-				<div className="space-y-4">
+				<div className="flex flex-col gap-4">
 					{renderFlatLineEditor(line)}
 					<RootComponentPicker
-						loading={Boolean(
-							routeQuery.isPending || rootComponentsQuery.isPending,
-						)}
+						loading={rootLoading}
+						noticeSlot={rootNoticeSlot}
 						components={activeRootComponents}
 						filteredComponents={filteredRootComponents}
 						search={componentSearch}
 						getKey={(component) => String(component.uid || component.id || "")}
-						renderComponent={(component) => (
-							<button
-								type="button"
-								className="overflow-hidden rounded-xl border bg-card text-left transition hover:border-primary"
-								onClick={() => selectRoot(line, component)}
-							>
-								<div className="h-32 bg-muted">
-									{component.img ? (
-										<img
-											src={
-												dataSource.resolveImageSrc?.(component.img) ||
-												String(component.img)
-											}
-											alt={component.title || component.uid || "Component"}
-											className="h-full w-full object-contain p-2"
-										/>
-									) : (
-										<div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-											No image
-										</div>
-									)}
-								</div>
-								<div className="space-y-1 p-3">
-									<p className="font-semibold leading-tight">
-										{componentLabel(component.title || component.uid)}
-									</p>
-									{moneyIfPositive(component.salesPrice) ? (
-										<p className="text-xs font-medium text-primary">
-											{moneyIfPositive(component.salesPrice)}
-										</p>
-									) : null}
-								</div>
-							</button>
-						)}
-						toolbarSlot={
-							<WorkflowPanelToolbar
-								count={filteredRootComponents.length}
-								total={activeRootComponents.length}
-								search={componentSearch}
-								includeCustomComponents={includeCustomComponents}
-								onSearchChange={setComponentSearch}
-								onRefresh={() => {
-									void routeQuery.refetch?.();
-									void rootComponentsQuery.refetch?.();
-								}}
-								onToggleCustom={() =>
-									setIncludeCustomComponents((prev) => !prev)
-								}
-							/>
-						}
+							renderComponent={(component) => (
+								<button
+									type="button"
+									className="w-full overflow-hidden rounded-xl border bg-card text-left transition hover:border-primary"
+									onClick={() => selectRoot(line, component)}
+								>
+									<WorkflowComponentPreview
+										imageSrc={
+											dataSource.resolveImageSrc?.(component.img) ||
+											String(component.img || "")
+										}
+										alt={component.title || component.uid || "Component"}
+										title={componentLabel(component.title || component.uid)}
+										price={moneyIfPositive(component.salesPrice)}
+									/>
+								</button>
+							)}
+							toolbarSlot={
+								<WorkflowComponentToolbar
+									count={filteredRootComponents.length}
+									total={activeRootComponents.length}
+									search={componentSearch}
+									maxWidthClassName="max-w-2xl"
+									onSearchChange={setComponentSearch}
+									menuSlot={
+										<>
+											<Menu.Item onClick={refreshRootData}>Refresh</Menu.Item>
+											<Menu.Item
+												onClick={() =>
+													setIncludeCustomComponents((prev) => !prev)
+												}
+											>
+												Enable Custom:{" "}
+												{includeCustomComponents ? "On" : "Off"}
+											</Menu.Item>
+										</>
+									}
+								/>
+							}
 					/>
 				</div>
 			);
@@ -795,7 +863,8 @@ export function SalesFormWorkflowPanel<
 			);
 		}
 
-		const stepFamily = getItemWorkflowStepFamily(line as any, activeItemStep);
+		const stepFamily = getItemWorkflowStepFamily(line, activeItemStep);
+		const isDoorStep = isDoorStepTitle(activeItemStep?.step?.title);
 		const selectedUids = new Set(
 			getSelectedProdUids(activeItemStep).map((uid) => String(uid || "")),
 		);
@@ -819,11 +888,201 @@ export function SalesFormWorkflowPanel<
 				uid: step.uid,
 				title: step.title,
 			}));
-		const mouldingContext = buildWorkflowMouldingRowsContext(line as any);
-		const serviceContext = buildWorkflowServiceRowsContext(line as any);
+		const mouldingContext = buildWorkflowMouldingRowsContext(line);
+		const serviceContext = buildWorkflowServiceRowsContext(line);
 		const shelfContext = buildWorkflowShelfSectionsContext(
 			line,
 			activeProfileCoefficient,
+		);
+		const activeDoorSupplier = getDoorSupplierMeta(activeItemStep);
+		const doorSupplierPanel = props.slots?.renderDoorSupplierPanel?.({
+			line,
+			step: activeItemStep,
+			stepIndex: activeIndex,
+			supplierUid: activeDoorSupplier.supplierUid,
+			supplierName: activeDoorSupplier.supplierName,
+			suppliers: doorSuppliersQuery?.data?.stepProducts || [],
+			refetchSuppliers: doorSuppliersQuery?.refetch,
+			updateSupplier: (supplier) => {
+				const patch = updateWorkflowDoorSupplier({
+					line,
+					stepIndex: activeIndex,
+					supplier,
+					profileCoefficient: activeProfileCoefficient,
+				});
+				if (!patch) return;
+				updateLine(line, patch as unknown as Partial<TLine>);
+			},
+		});
+		const doorSectionTab =
+			doorSectionTabByLine[String(line.uid || "")] || "doors";
+		const componentStatus = resolveWorkflowStepComponentStatus({
+			stepQuery: stepComponentsQuery,
+			stepTitle: activeItemStep?.step?.title,
+			componentsCount: visibleComponents.length,
+		});
+		const componentPickerPanel = (
+			<WorkflowStepComponentPanel
+				lineUid={String(line.uid || "")}
+				activeStep={activeItemStep}
+				activeStepIndex={activeIndex}
+				steps={steps}
+				loading={Boolean(stepComponentsQuery.isPending)}
+				components={visibleComponents}
+				filteredComponents={filteredVisibleComponents}
+				selectedUids={selectedUids}
+				search={componentSearch}
+				noticeSlot={
+					componentStatus ? (
+						<WorkflowPanelNotice
+							{...componentStatus}
+							onRetry={() => void stepComponentsQuery.refetch?.()}
+						/>
+					) : null
+				}
+				includeCustomComponents={includeCustomComponents}
+				mouldingSelection={{
+					open: mouldingSelectionPopover.open,
+					lineUid: mouldingSelectionPopover.lineUid,
+					stepIndex: mouldingSelectionPopover.stepIndex,
+					componentUid: mouldingSelectionPopover.component?.uid || null,
+					qty: mouldingSelectionPopover.qty,
+					inputRef: mouldingQtyInputRef,
+				}}
+				isMouldingSelectionStep={
+					isMouldingItem(line) &&
+					normalizeTitle(activeItemStep?.step?.title) === "moulding"
+				}
+				redirectOptions={componentRedirectOptions}
+				formatPrice={(value) => moneyIfPositive(Number(value || 0)) || ""}
+				componentLabel={componentLabel}
+				resolveImageSrc={(src) =>
+					dataSource.resolveImageSrc?.(src) || src || null
+				}
+				calculatorSlot={(component) =>
+					dataSource.renderMouldingCalculator?.({
+						title: String(component?.title || ""),
+						unitPrice: Number(component?.salesPrice || 0),
+						qty: Number(mouldingSelectionPopover.qty || 0),
+						onCalculate: (qty) =>
+							setMouldingSelectionQty(
+								String(Math.max(1, Number(qty || 0) || 1)),
+							),
+					})
+				}
+				onSearchChange={setComponentSearch}
+				onJumpStep={(stepIndex) =>
+					setActiveStep(String(line.uid || ""), stepIndex)
+				}
+				onSelectAll={() => {
+					for (const component of visibleComponents) {
+						selectComponent(line, steps, activeIndex, component, true);
+					}
+				}}
+				onOpenPricing={
+					props.slots?.componentActions?.onOpenPricing
+						? (component) =>
+								props.slots?.componentActions?.onOpenPricing?.(
+									componentActionContext(component),
+								)
+						: undefined
+				}
+				onOpenDoorSizeVariant={
+					props.slots?.componentActions?.onOpenDoorSizeVariant
+						? () => {
+								const component =
+									visibleComponents.find((candidate) =>
+										selectedUids.has(String(candidate.uid || "")),
+									) ||
+									visibleComponents[0] ||
+									null;
+								if (!component) return;
+								props.slots?.componentActions?.onOpenDoorSizeVariant?.(
+									componentActionContext(component),
+								);
+							}
+						: undefined
+				}
+				onRefresh={() => void stepComponentsQuery.refetch?.()}
+				onToggleCustomComponents={() =>
+					setIncludeCustomComponents((prev) => !prev)
+				}
+				onEnableCustomComponent={
+					props.slots?.componentActions?.onEnableCustomComponent
+						? () =>
+								props.slots?.componentActions?.onEnableCustomComponent?.({
+									routeData,
+									line,
+									steps,
+									step: activeItemStep,
+									stepIndex: activeIndex,
+								})
+						: undefined
+				}
+				onProceedMultiSelect={() =>
+					proceedMultiSelect(line, steps, activeIndex)
+				}
+				onEdit={
+					props.slots?.componentActions?.onEdit
+						? (component) =>
+								props.slots?.componentActions?.onEdit?.(
+									componentActionContext(component),
+								)
+						: undefined
+				}
+				onEditSectionOverride={
+					props.slots?.componentActions?.onEditSectionOverride
+						? (component) =>
+								props.slots?.componentActions?.onEditSectionOverride?.(
+									componentActionContext(component),
+								)
+						: undefined
+				}
+				onSelect={(component) =>
+					selectComponent(line, steps, activeIndex, component)
+				}
+				onClearRedirect={
+					props.slots?.componentActions?.onClearRedirect
+						? (component) =>
+								props.slots?.componentActions?.onClearRedirect?.(
+									componentActionContext(component),
+								)
+						: undefined
+				}
+				onSetRedirect={
+					props.slots?.componentActions?.onSetRedirect
+						? (component, redirectUid) =>
+								props.slots?.componentActions?.onSetRedirect?.({
+									...componentActionContext(component),
+									redirectUid,
+								})
+						: undefined
+				}
+				onDelete={
+					props.slots?.componentActions?.onDelete
+						? (component) =>
+								props.slots?.componentActions?.onDelete?.(
+									componentActionContext(component),
+								)
+						: undefined
+				}
+				onOpenDoorSizes={(component) => openDoorSizeModal(line, component)}
+				onOpenMouldingQty={(component) =>
+					openMouldingSelectionQtyPopover(line, activeIndex, component)
+				}
+				onCloseMouldingQty={closeMouldingSelectionPopover}
+				onMouldingQtyChange={setMouldingSelectionQty}
+				onAddMoulding={(component) =>
+					saveMouldingSelectionWithQty(
+						line,
+						steps,
+						activeIndex,
+						component,
+						mouldingSelectionPopover.qty,
+						activeItemStep?.step?.title,
+					)
+				}
+			/>
 		);
 		return (
 			<WorkflowStepRenderer
@@ -863,6 +1122,7 @@ export function SalesFormWorkflowPanel<
 							rows={mouldingContext.rows}
 							totalQty={mouldingContext.totalQty}
 							totalAmount={mouldingContext.totalAmount}
+							canEditPricing={workflowCapabilities.canEditLinePricing}
 							formatMoney={(value) => moneyIfPositive(value) || null}
 							componentLabel={componentLabel}
 							resolveImageSrc={(src) =>
@@ -891,6 +1151,17 @@ export function SalesFormWorkflowPanel<
 									}) as unknown as Partial<TLine>,
 								);
 							}}
+							renderCalculator={
+								dataSource.renderMouldingCalculator
+									? ({ row, onCalculate }) =>
+											dataSource.renderMouldingCalculator?.({
+												title: String(row.title || ""),
+												unitPrice: Number(row.estimateUnit || 0),
+												qty: Number(row.qty || 0),
+												onCalculate,
+											})
+									: undefined
+							}
 						/>
 					)
 				}
@@ -910,6 +1181,7 @@ export function SalesFormWorkflowPanel<
 						<ServiceLineItemsEditor
 							rows={serviceContext.rows}
 							formatMoney={(value) => moneyIfPositive(value) || null}
+							canEditPricing={workflowCapabilities.canEditLinePricing}
 							onRowsChange={(rows) =>
 								updateLine(
 									line,
@@ -945,11 +1217,10 @@ export function SalesFormWorkflowPanel<
 					}) || (
 						<DefaultShelfPanel
 							sections={shelfContext.sections}
-							categories={
-								(shelfCategoriesQuery?.data || []) as Record<string, any>[]
-							}
+							categories={shelfCategoriesQuery?.data || []}
 							productsByCategory={shelfProductsByCategory}
 							profileCoefficient={activeProfileCoefficient}
+							canEditPricing={workflowCapabilities.canEditLinePricing}
 							onSectionsChange={(sections) =>
 								updateLine(
 									line,
@@ -963,125 +1234,26 @@ export function SalesFormWorkflowPanel<
 					)
 				}
 				componentPickerPanel={
-					<WorkflowStepComponentPanel
-						lineUid={String(line.uid || "")}
-						activeStep={activeItemStep}
-						activeStepIndex={activeIndex}
-						steps={steps}
-						loading={Boolean(stepComponentsQuery.isPending)}
-						components={visibleComponents}
-						filteredComponents={filteredVisibleComponents}
-						selectedUids={selectedUids}
-						search={componentSearch}
-						includeCustomComponents={includeCustomComponents}
-						redirectOptions={componentRedirectOptions}
-						formatPrice={(value) => moneyIfPositive(Number(value || 0)) || ""}
-						componentLabel={componentLabel}
-						resolveImageSrc={(src) =>
-							dataSource.resolveImageSrc?.(src) || src || null
-						}
-						onSearchChange={setComponentSearch}
-						onJumpStep={(stepIndex) =>
-							setActiveStep(String(line.uid || ""), stepIndex)
-						}
-						onSelectAll={() => {
-							for (const component of visibleComponents) {
-								selectComponent(line, steps, activeIndex, component, true);
+					isDoorStep && doorSupplierPanel ? (
+						<DoorStepPanel
+							title={activeItemStep?.step?.title || "Door"}
+							isDoorStep
+							activeTab={doorSectionTab}
+							supplierName={activeDoorSupplier.supplierName}
+							onTabChange={(tab) =>
+								setDoorSectionTabByLine((prev) => ({
+									...prev,
+									[String(line.uid || "")]: tab,
+								}))
 							}
-						}}
-						onOpenPricing={
-							props.slots?.componentActions?.onOpenPricing
-								? (component) =>
-										props.slots?.componentActions?.onOpenPricing?.(
-											componentActionContext(component),
-										)
-								: undefined
-						}
-						onOpenDoorSizeVariant={
-							props.slots?.componentActions?.onOpenDoorSizeVariant
-								? () => {
-										const component =
-											visibleComponents.find((candidate) =>
-												selectedUids.has(String(candidate.uid || "")),
-											) ||
-											visibleComponents[0] ||
-											null;
-										if (!component) return;
-										props.slots?.componentActions?.onOpenDoorSizeVariant?.(
-											componentActionContext(component),
-										);
-									}
-								: undefined
-						}
-						onRefresh={() => void stepComponentsQuery.refetch?.()}
-						onToggleCustomComponents={() =>
-							setIncludeCustomComponents((prev) => !prev)
-						}
-						onEnableCustomComponent={
-							props.slots?.componentActions?.onEnableCustomComponent
-								? () =>
-										props.slots?.componentActions?.onEnableCustomComponent?.({
-											routeData,
-											line,
-											steps,
-											step: activeItemStep,
-											stepIndex: activeIndex,
-										})
-								: undefined
-						}
-						onProceedMultiSelect={() =>
-							proceedMultiSelect(line, steps, activeIndex)
-						}
-						onEdit={
-							props.slots?.componentActions?.onEdit
-								? (component) =>
-										props.slots?.componentActions?.onEdit?.(
-											componentActionContext(component),
-										)
-								: undefined
-						}
-						onEditSectionOverride={
-							props.slots?.componentActions?.onEditSectionOverride
-								? (component) =>
-										props.slots?.componentActions?.onEditSectionOverride?.(
-											componentActionContext(component),
-										)
-								: undefined
-						}
-						onSelect={(component) =>
-							selectComponent(line, steps, activeIndex, component)
-						}
-						onClearRedirect={
-							props.slots?.componentActions?.onClearRedirect
-								? (component) =>
-										props.slots?.componentActions?.onClearRedirect?.(
-											componentActionContext(component),
-										)
-								: undefined
-						}
-						onSetRedirect={
-							props.slots?.componentActions?.onSetRedirect
-								? (component, redirectUid) =>
-										props.slots?.componentActions?.onSetRedirect?.({
-											...componentActionContext(component),
-											redirectUid,
-										})
-								: undefined
-						}
-						onDelete={
-							props.slots?.componentActions?.onDelete
-								? (component) =>
-										props.slots?.componentActions?.onDelete?.(
-											componentActionContext(component),
-										)
-								: undefined
-						}
-						onOpenDoorSizes={(component) => openDoorSizeModal(line, component)}
-						onOpenMouldingQty={() => undefined}
-						onCloseMouldingQty={() => undefined}
-						onMouldingQtyChange={() => undefined}
-						onAddMoulding={() => undefined}
-					/>
+						>
+							{doorSectionTab === "suppliers"
+								? doorSupplierPanel
+								: componentPickerPanel}
+						</DoorStepPanel>
+					) : (
+						componentPickerPanel
+					)
 				}
 			/>
 		);
@@ -1143,45 +1315,64 @@ export function SalesFormWorkflowPanel<
 		<div className={props.className}>
 			{actions.addLineItem ? (
 				<div className="flex items-center justify-end border-b bg-card px-4 py-3">
-					<Button size="sm" variant="outline" onClick={actions.addLineItem}>
+					<Button
+						type="button"
+						size="sm"
+						variant="outline"
+						onClick={actions.addLineItem}
+					>
 						Add Item
 					</Button>
 				</div>
 			) : null}
-			<WorkflowLineList
-				items={record.lineItems.map((line, index) => ({ line, index }))}
-				activeLineUid={activeLine?.uid || activeItem || null}
-				activeStepByLine={activeStepByLine}
-				resolveActiveStepIndex={resolveInteractiveStepIndex}
-				getLineTitlePlaceholder={(line) =>
-					getLineTitlePlaceholder(line) || null
-				}
-				getLineDisplayTotal={(line) =>
-					props.pricing?.getLineDisplayTotal?.(line) ??
-					getWorkflowLineDisplayTotal(line, activeProfileCoefficient)
-				}
-				onActivateLine={(line, isActive) =>
-					setActiveItem(isActive ? null : String(line.uid || ""))
-				}
-				onTitleChange={(line, value) =>
-					updateLine(line, { title: value } as Partial<TLine>)
-				}
-				onRemoveLine={(line) => actions.removeLineItem(String(line.uid || ""))}
-				onStepChange={(line, stepIndex) =>
-					setActiveStep(String(line.uid || ""), stepIndex)
-				}
-				renderPanel={(line, steps, activeIndex, activeItemStep) =>
-					renderPanel(
-						line,
-						getWorkflowSteps({ formSteps: steps }),
-						activeIndex,
-						activeItemStep,
-					)
-				}
-				isRedirectDisabledStep={isRedirectDisabledStep}
-				stepKey={stepKey}
-				componentLabel={componentLabel}
-			/>
+			{record.lineItems.length ? (
+				<WorkflowLineList
+					items={record.lineItems.map((line, index) => ({ line, index }))}
+					activeLineUid={activeLine?.uid || activeItem || null}
+					activeStepByLine={activeStepByLine}
+					resolveActiveStepIndex={resolveInteractiveStepIndex}
+					getLineTitlePlaceholder={(line) =>
+						getLineTitlePlaceholder(line) || null
+					}
+					getLineDisplayTotal={(line) =>
+						props.pricing?.getLineDisplayTotal?.(line) ??
+						getWorkflowLineDisplayTotal(line, activeProfileCoefficient)
+					}
+					onActivateLine={(line, isActive) =>
+						setActiveItem(isActive ? null : String(line.uid || ""))
+					}
+					onTitleChange={(line, value) =>
+						updateLine(line, { title: value } as Partial<TLine>)
+					}
+					onRemoveLine={(line) =>
+						actions.removeLineItem(String(line.uid || ""))
+					}
+					onStepChange={(line, stepIndex) =>
+						setActiveStep(String(line.uid || ""), stepIndex)
+					}
+					renderPanel={(line, steps, activeIndex, activeItemStep) =>
+						renderPanel(
+							line,
+							getWorkflowSteps({ formSteps: steps }),
+							activeIndex,
+							activeItemStep,
+						)
+					}
+					isRedirectDisabledStep={isRedirectDisabledStep}
+					stepKey={stepKey}
+					componentLabel={componentLabel}
+				/>
+			) : (
+				<div className="p-4">
+					<WorkflowPanelNotice
+						tone="empty"
+						title="No line items"
+						description="Add an item to start the workflow."
+						actionLabel="Add Item"
+						onRetry={actions.addLineItem}
+					/>
+				</div>
+			)}
 			{doorSizeModalLine ? (
 				<DoorSizeQtyDialog
 					open={doorSizeModal.open}
@@ -1193,7 +1384,7 @@ export function SalesFormWorkflowPanel<
 							component: open ? prev.component : null,
 						}))
 					}
-					line={doorSizeModalLine as any}
+					line={doorSizeModalLine}
 					routeData={routeData}
 					component={doorSizeModal.component}
 					supplierUid={doorSizeModalSupplier.supplierUid}
@@ -1206,6 +1397,7 @@ export function SalesFormWorkflowPanel<
 					)}
 					profileCoefficient={activeProfileCoefficient}
 					routeConfig={doorSizeModalRouteConfig}
+					canEditPricing={workflowCapabilities.canEditLinePricing}
 					onSupplierChange={(supplierUid) => {
 						if (!doorSizeModalLine || doorSizeModalDoorStepIndex < 0) return;
 						const supplier =
@@ -1216,7 +1408,7 @@ export function SalesFormWorkflowPanel<
 											String(entry?.uid || "") === String(supplierUid || ""),
 									) || null;
 						const patch = updateWorkflowDoorSupplier({
-							line: doorSizeModalLine as any,
+							line: doorSizeModalLine,
 							stepIndex: doorSizeModalDoorStepIndex,
 							supplier: supplier
 								? {
@@ -1246,9 +1438,8 @@ export function SalesFormWorkflowPanel<
 							line: doorSizeModalLine,
 							componentId: Number(doorSizeModal.component.id || 0),
 							rows,
-							sharedDoorSurcharge: computeSharedDoorSurcharge(
-								doorSizeModalLine as any,
-							),
+							sharedDoorSurcharge:
+								computeSharedDoorSurcharge(doorSizeModalLine),
 							profileCoefficient: activeProfileCoefficient,
 						});
 						updateLine(
@@ -1386,6 +1577,7 @@ function numericValue(value: unknown) {
 function DefaultFlatLineEditor<TLine extends WorkflowLineItemRecord>(props: {
 	line: TLine;
 	lineTotalMode: "editable" | "readonly";
+	canEditUnitPrice: boolean;
 	displayTotal: number;
 	onUpdate: (patch: Partial<TLine>) => void;
 }) {
@@ -1415,6 +1607,7 @@ function DefaultFlatLineEditor<TLine extends WorkflowLineItemRecord>(props: {
 						type="number"
 						min={0}
 						step="0.01"
+						disabled={!props.canEditUnitPrice}
 						value={numericValue(props.line.unitPrice)}
 						onChange={(event) =>
 							props.onUpdate({
@@ -1466,16 +1659,22 @@ function DefaultFlatLineEditor<TLine extends WorkflowLineItemRecord>(props: {
 
 function DefaultShelfPanel(props: {
 	sections: ShelfSectionDraft[];
-	categories: Array<Record<string, any>>;
+	categories: ShelfCategoryRecord[];
 	productsByCategory: Map<number, ShelfProductOption[]>;
 	profileCoefficient: number;
+	canEditPricing: boolean;
 	onSectionsChange: (sections: ShelfSectionDraft[]) => void;
 }) {
+	const [pendingShelfClear, setPendingShelfClear] = useState<{
+		sectionUid: string;
+		scope: "category" | "section";
+	} | null>(null);
+
 	function patchSection(
 		sectionIndex: number,
 		patch:
-			| Record<string, any>
-			| ((section: Record<string, any>) => Record<string, any>),
+			| Partial<ShelfSectionDraft>
+			| ((section: ShelfSectionDraft) => ShelfSectionDraft),
 	) {
 		props.onSectionsChange(
 			props.sections.map((section, index) =>
@@ -1513,35 +1712,91 @@ function DefaultShelfPanel(props: {
 					).values(),
 				) as ShelfProductOption[];
 				const productsById = buildShelfProductsById(productOptions);
+				const sectionHasSelectedProducts = (section?.rows || []).some(
+					(row: ShelfRowDraft) => Number(row?.productId || 0) > 0,
+				);
 
 				return (
 					<section
 						key={`shelf-section-${section.uid || sectionIndex}`}
-						className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-3"
+						className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3"
 					>
+						<Dialog
+							open={
+								pendingShelfClear?.sectionUid === String(section.uid) &&
+								(pendingShelfClear?.scope === "category" ||
+									pendingShelfClear?.scope === "section")
+							}
+							onOpenChange={(open) => {
+								if (!open) setPendingShelfClear(null);
+							}}
+						>
+							<DialogContent className="max-w-sm">
+								<DialogHeader>
+									<DialogTitle>Clear Categories</DialogTitle>
+									<DialogDescription>
+										Clearing categories will remove all selected products in this
+										section.
+									</DialogDescription>
+								</DialogHeader>
+								<DialogFooter>
+									<Button
+										type="button"
+										variant="secondary"
+										onClick={() => setPendingShelfClear(null)}
+									>
+										Cancel
+									</Button>
+									<Button
+										type="button"
+										variant="destructive"
+										onClick={() => {
+											patchSection(sectionIndex, {
+												categoryIds: [],
+												parentCategoryId: null,
+												categoryId: null,
+												rows: [createShelfProductDraft()],
+											});
+											setPendingShelfClear(null);
+										}}
+									>
+										Continue
+									</Button>
+								</DialogFooter>
+							</DialogContent>
+						</Dialog>
 						<div className="flex flex-wrap items-center gap-2">
-							<p className="text-xs font-semibold uppercase text-muted-foreground">
+							<p className="text-xs font-bold uppercase tracking-wide text-slate-700">
 								Section {sectionIndex + 1}
 							</p>
-							<Badge variant="secondary" className="h-6 rounded-md px-2">
+							<Badge variant="secondary" className="h-6 rounded-full px-2">
 								{moneyIfPositive(section.subTotal) || "$0.00"}
 							</Badge>
 							<Button
+								type="button"
 								size="sm"
 								variant="ghost"
 								className="ml-auto"
-								onClick={() =>
+								onClick={() => {
+									if (sectionHasSelectedProducts) {
+										setPendingShelfClear({
+											sectionUid: String(section.uid),
+											scope: "section",
+										});
+										return;
+									}
 									patchSection(sectionIndex, {
 										categoryIds: [],
 										parentCategoryId: null,
 										categoryId: null,
 										rows: [createShelfProductDraft()],
-									})
-								}
+									});
+								}}
 							>
 								Clear
 							</Button>
 							<Button
+								type="button"
 								size="sm"
 								variant="destructive"
 								onClick={() =>
@@ -1550,7 +1805,7 @@ function DefaultShelfPanel(props: {
 									)
 								}
 							>
-								Remove
+								Remove Section
 							</Button>
 						</div>
 
@@ -1559,6 +1814,38 @@ function DefaultShelfPanel(props: {
 								<ShelfCategoryPathInput
 									categories={props.categories}
 									categoryIds={categoryIds}
+									onClearRequest={() => {
+										if (sectionHasSelectedProducts) {
+											setPendingShelfClear({
+												sectionUid: String(section.uid),
+												scope: "category",
+											});
+											return;
+										}
+										patchSection(sectionIndex, {
+											categoryIds: [],
+											parentCategoryId: null,
+											categoryId: null,
+											rows: (section?.rows || []).map(
+												(row: ShelfRowDraft) => ({
+													...row,
+													categoryId: null,
+													productId: null,
+													description: "",
+													unitPrice: 0,
+													totalPrice: 0,
+													meta: {
+														...(row?.meta || {}),
+														categoryIds: [],
+														shelfParentCategoryId: null,
+														basePrice: 0,
+														salesPrice: 0,
+														customPrice: null,
+													},
+												}),
+											),
+										});
+									}}
 									onChange={(nextCategoryIds) =>
 										patchSection(sectionIndex, {
 											categoryIds: nextCategoryIds,
@@ -1566,26 +1853,24 @@ function DefaultShelfPanel(props: {
 											categoryId: nextCategoryIds.length
 												? nextCategoryIds[nextCategoryIds.length - 1]
 												: null,
-											rows: (section?.rows || []).map(
-												(row: Record<string, any>) => ({
-													...row,
-													categoryId: nextCategoryIds.length
-														? nextCategoryIds[nextCategoryIds.length - 1]
-														: null,
-													productId: null,
-													description: "",
-													unitPrice: 0,
-													totalPrice: 0,
-													meta: {
-														...(row?.meta || {}),
-														categoryIds: nextCategoryIds,
-														shelfParentCategoryId: nextCategoryIds[0] ?? null,
-														basePrice: 0,
-														salesPrice: 0,
-														customPrice: null,
-													},
-												}),
-											),
+											rows: (section?.rows || []).map((row: ShelfRowDraft) => ({
+												...row,
+												categoryId: nextCategoryIds.length
+													? nextCategoryIds[nextCategoryIds.length - 1]
+													: null,
+												productId: null,
+												description: "",
+												unitPrice: 0,
+												totalPrice: 0,
+												meta: {
+													...(row?.meta || {}),
+													categoryIds: nextCategoryIds,
+													shelfParentCategoryId: nextCategoryIds[0] ?? null,
+													basePrice: 0,
+													salesPrice: 0,
+													customPrice: null,
+												},
+											})),
 										})
 									}
 								/>
@@ -1609,12 +1894,19 @@ function DefaultShelfPanel(props: {
 							</div>
 						</div>
 
-						<div className="flex flex-col gap-2">
+						<div className="space-y-2">
+							<div className="hidden grid-cols-12 gap-2 px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground md:grid">
+								<span className="md:col-span-5">Product</span>
+								<span className="text-right md:col-span-2">Price</span>
+								<span className="text-right md:col-span-1">Qty</span>
+								<span className="text-right md:col-span-2">Total</span>
+								<span className="md:col-span-1" />
+							</div>
 							{(section?.rows || []).map(
-								(row: Record<string, any>, rowIndex: number) => (
+								(row: ShelfRowDraft, rowIndex: number) => (
 									<div
 										key={`shelf-row-${section.uid || sectionIndex}-${row.uid || rowIndex}`}
-										className="grid gap-2 rounded-md border bg-background p-2 md:grid-cols-12"
+										className="grid gap-2 rounded-lg border border-white/80 bg-white p-2 md:grid-cols-12"
 									>
 										<div className="md:col-span-5">
 											<ShelfProductCombobox
@@ -1623,6 +1915,32 @@ function DefaultShelfPanel(props: {
 												disabled={!categoryIds.length}
 												formatMoney={(value) =>
 													moneyIfPositive(Number(value || 0)) || ""
+												}
+												onClearRequest={() =>
+													patchSection(sectionIndex, (current) => ({
+														...current,
+														rows: (current?.rows || []).map(
+															(item: ShelfRowDraft, i: number) =>
+																i === rowIndex
+																	? {
+																			...item,
+																			productId: null,
+																			description: "",
+																			basePrice: 0,
+																			salesPrice: 0,
+																			customPrice: null,
+																			unitPrice: 0,
+																			totalPrice: 0,
+																			meta: {
+																				...(item?.meta || {}),
+																				basePrice: 0,
+																				salesPrice: 0,
+																				customPrice: null,
+																			},
+																		}
+																	: item,
+														),
+													}))
 												}
 												onChange={(productId) => {
 													const selectedProduct =
@@ -1638,7 +1956,7 @@ function DefaultShelfPanel(props: {
 													patchSection(sectionIndex, (current) => ({
 														...current,
 														rows: (current?.rows || []).map(
-															(item: Record<string, any>, i: number) =>
+															(item: ShelfRowDraft, i: number) =>
 																i === rowIndex
 																	? {
 																			...item,
@@ -1672,9 +1990,153 @@ function DefaultShelfPanel(props: {
 												}}
 											/>
 										</div>
-										<div className="flex h-10 items-center justify-end rounded-md border bg-muted/20 px-3 text-xs font-semibold md:col-span-2">
-											{moneyIfPositive(getShelfRowDisplayUnitPrice(row)) ||
-												"$0.00"}
+										<div className="md:col-span-2">
+											{props.canEditPricing ? (
+												<Menu
+													noSize
+													Icon={null}
+													label={
+														<Button
+															type="button"
+															variant="outline"
+															className="h-10 w-full justify-end text-xs font-semibold"
+														>
+															{moneyIfPositive(getShelfRowDisplayUnitPrice(row)) ||
+																"$0.00"}
+														</Button>
+													}
+												>
+													<div className="min-w-[260px] space-y-3 p-2">
+														<div className="space-y-1">
+															<p className="text-xs font-bold uppercase text-muted-foreground">
+																Edit Shelf Price
+															</p>
+															<p className="text-xs text-muted-foreground">
+																Base price recalculates sales price. Custom price
+																overrides the final line price.
+															</p>
+														</div>
+														<div className="space-y-2">
+															<Label className="text-xs">Base Price</Label>
+															<Input
+																type="number"
+																step="0.01"
+																value={getShelfRowBasePrice(row)}
+																onChange={(event) =>
+																	patchSection(sectionIndex, (current) => ({
+																		...current,
+																		rows: (current?.rows || []).map(
+																			(item: ShelfRowDraft, i: number) => {
+																				if (i !== rowIndex) return item;
+																				const nextBase = Number(
+																					event.target.value || 0,
+																				);
+																				const nextSales =
+																					profileAdjustedDoorSalesPrice(
+																						null,
+																						nextBase,
+																						props.profileCoefficient,
+																					);
+																				const customPrice =
+																					item?.customPrice ??
+																					item?.meta?.customPrice ??
+																					null;
+																				const unitPrice =
+																					customPrice != null
+																						? Number(customPrice)
+																						: nextSales;
+																				return {
+																					...item,
+																					basePrice: nextBase,
+																					salesPrice: nextSales,
+																					unitPrice,
+																					totalPrice: Number(
+																						(
+																							Number(item?.qty ?? 1) *
+																							unitPrice
+																						).toFixed(2),
+																					),
+																					meta: {
+																						...(item?.meta || {}),
+																						basePrice: nextBase,
+																						salesPrice: nextSales,
+																						unitPrice,
+																					},
+																				};
+																			},
+																		),
+																	}))
+																}
+															/>
+														</div>
+														<div className="flex justify-between text-xs">
+															<span className="text-muted-foreground">
+																Calculated Sales
+															</span>
+															<span className="font-semibold">
+																{moneyIfPositive(getShelfRowSalesPrice(row)) ||
+																	"$0.00"}
+															</span>
+														</div>
+														<div className="space-y-2">
+															<Label className="text-xs">Custom Price</Label>
+															<Input
+																type="number"
+																step="0.01"
+																value={row?.meta?.customPrice ?? ""}
+																onChange={(event) =>
+																	patchSection(sectionIndex, (current) => ({
+																		...current,
+																		rows: (current?.rows || []).map(
+																			(item: ShelfRowDraft, i: number) =>
+																				i === rowIndex
+																					? {
+																							...item,
+																							customPrice:
+																								event.target.value === ""
+																									? null
+																									: Number(
+																											event.target.value ||
+																												0,
+																										),
+																							unitPrice:
+																								event.target.value === ""
+																									? Number(
+																											item?.salesPrice ??
+																												item?.meta
+																													?.salesPrice ??
+																												item?.unitPrice ??
+																												0,
+																										)
+																									: Number(
+																											event.target.value ||
+																												0,
+																										),
+																							meta: {
+																								...(item?.meta || {}),
+																								customPrice:
+																									event.target.value === ""
+																										? null
+																										: Number(
+																												event.target.value ||
+																													0,
+																											),
+																							},
+																						}
+																					: item,
+																		),
+																	}))
+																}
+															/>
+														</div>
+													</div>
+												</Menu>
+											) : (
+												<div className="flex h-10 items-center justify-end rounded-md border bg-muted/20 px-3 text-xs font-semibold">
+													{moneyIfPositive(getShelfRowDisplayUnitPrice(row)) ||
+														"$0.00"}
+												</div>
+											)}
 										</div>
 										<Input
 											className="text-right md:col-span-1"
@@ -1684,7 +2146,7 @@ function DefaultShelfPanel(props: {
 												patchSection(sectionIndex, (current) => ({
 													...current,
 													rows: (current?.rows || []).map(
-														(item: Record<string, any>, i: number) =>
+														(item: ShelfRowDraft, i: number) =>
 															i === rowIndex
 																? {
 																		...item,
@@ -1720,42 +2182,5 @@ function DefaultShelfPanel(props: {
 				);
 			}}
 		/>
-	);
-}
-
-function WorkflowPanelToolbar(props: {
-	count: number;
-	total: number;
-	search: string;
-	includeCustomComponents: boolean;
-	onSearchChange: (value: string) => void;
-	onRefresh: () => void;
-	onToggleCustom: () => void;
-}) {
-	return (
-		<div className="mb-3 flex flex-wrap items-center gap-2">
-			<input
-				className="h-9 min-w-60 rounded-md border bg-background px-3 text-sm"
-				value={props.search}
-				onChange={(event) => props.onSearchChange(event.target.value)}
-				placeholder="Search components"
-			/>
-			<span className="text-xs text-muted-foreground">
-				{props.count} of {props.total}
-			</span>
-			<Menu
-				noSize
-				label={
-					<button className="rounded-md border px-3 py-2 text-sm">
-						Options
-					</button>
-				}
-			>
-				<Menu.Item onClick={props.onRefresh}>Refresh</Menu.Item>
-				<Menu.Item onClick={props.onToggleCustom}>
-					Enable Custom: {props.includeCustomComponents ? "On" : "Off"}
-				</Menu.Item>
-			</Menu>
-		</div>
 	);
 }

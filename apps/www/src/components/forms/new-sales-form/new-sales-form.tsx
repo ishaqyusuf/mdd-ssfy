@@ -5,6 +5,7 @@ import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { updateSalesMetaAction } from "@/actions/update-sales-meta-action";
 import { _modal } from "@/components/common/modal/provider";
 import { Env } from "@/components/env";
+import { env } from "@/env.mjs";
 import { SalesMenu } from "@/components/sales-menu";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { useAuth } from "@/hooks/use-auth";
@@ -28,10 +29,7 @@ import {
 	TooltipTrigger,
 } from "@gnd/ui/tooltip";
 import { toast } from "@gnd/ui/use-toast";
-import {
-	SalesFormHeaderActions,
-	SalesFormShell,
-} from "@gnd/sales/sales-form";
+import { SalesFormHeaderActions, SalesFormShell } from "@gnd/sales/sales-form";
 import type { CreateSalesHistorySchemaTask } from "@jobs/schema";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -95,8 +93,7 @@ const WwwSalesFormWorkflowPanel = dynamic(
 );
 
 const SalesHistory = dynamic(
-	() =>
-		import("@/components/sales-hx").then((mod) => mod.SalesHistory),
+	() => import("@/components/sales-hx").then((mod) => mod.SalesHistory),
 	{
 		loading: () => (
 			<div className="space-y-3">
@@ -130,6 +127,39 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 type OrderInboundStatus = "AVAILABLE" | "ORDERED" | "PENDING ORDER";
+const PACKAGE_WORKFLOW_PANEL_STORAGE_KEY =
+	"gnd:new-sales-form:package-workflow-panel";
+
+function resolveInitialPackageWorkflowPanelEnabled() {
+	const envDefault =
+		env.NEXT_PUBLIC_NEW_SALES_FORM_PACKAGE_PANEL_DEFAULT === "package";
+	if (typeof window === "undefined") return envDefault;
+
+	const param = new URLSearchParams(window.location.search).get(
+		"packageWorkflowPanel",
+	);
+	if (param === "1" || param === "true" || param === "package") {
+		return true;
+	}
+	if (param === "0" || param === "false" || param === "legacy") {
+		return false;
+	}
+
+	const stored = window.localStorage.getItem(
+		PACKAGE_WORKFLOW_PANEL_STORAGE_KEY,
+	);
+	if (stored === "package") return true;
+	if (stored === "legacy") return false;
+	return envDefault;
+}
+
+function persistPackageWorkflowPanelPreference(enabled: boolean) {
+	if (typeof window === "undefined") return;
+	window.localStorage.setItem(
+		PACKAGE_WORKFLOW_PANEL_STORAGE_KEY,
+		enabled ? "package" : "legacy",
+	);
+}
 
 function promptForInboundStatus(currentStatus?: string | null) {
 	if (currentStatus) return currentStatus as OrderInboundStatus;
@@ -615,8 +645,13 @@ export function NewSalesForm(props: Props) {
 	const [paymentReviewOpen, setPaymentReviewOpen] = useState(false);
 	const [paymentReviewSeen, setPaymentReviewSeen] = useState(false);
 	const [manualSaveLock, setManualSaveLock] = useState(false);
-	const [usePackageWorkflowPanel, setUsePackageWorkflowPanel] =
-		useState(false);
+	const [usePackageWorkflowPanel, setUsePackageWorkflowPanelState] = useState(
+		resolveInitialPackageWorkflowPanelEnabled,
+	);
+	const setUsePackageWorkflowPanel = useCallback((enabled: boolean) => {
+		setUsePackageWorkflowPanelState(enabled);
+		persistPackageWorkflowPanelPreference(enabled);
+	}, []);
 	const record = useNewSalesFormStore((s) => s.record);
 	const dirty = useNewSalesFormStore((s) => s.dirty);
 	const saveStatus = useNewSalesFormStore((s) => s.saveStatus);
@@ -1658,9 +1693,7 @@ export function NewSalesForm(props: Props) {
 					onToggleStepDisplay={() =>
 						setEditor({
 							stepDisplayMode:
-								editor.stepDisplayMode === "extended"
-									? "compact"
-									: "extended",
+								editor.stepDisplayMode === "extended" ? "compact" : "extended",
 						})
 					}
 					onOpenMobileSummary={() =>

@@ -2,19 +2,31 @@
 
 import { spawnSync } from "node:child_process";
 
+const toleratedTypecheckBaseline =
+	"The www typecheck gate may tolerate existing workspace errors only when none of the watched migration files appear in output.";
+
 const commands = [
 	{
 		label: "sales package workflow/domain tests",
 		args: [
 			"test",
 			"packages/sales/src/sales-form/domain/workflow-calculators.test.ts",
+			"packages/sales/src/sales-form/contracts/workflow-capabilities.test.ts",
+			"packages/sales/src/sales-form/ui/workflow/sales-form-engine-panel.test.ts",
+			"packages/sales/src/sales-form/ui/workflow/component-image-src.test.ts",
 			"packages/sales/src/sales-form/domain/dual-pricing.test.ts",
 			"packages/sales/src/sales-form/composer/composer.test.ts",
 			"packages/sales/src/sales-form/ui/workflow/workflow-line-totals.test.ts",
 			"packages/sales/src/sales-form/ui/workflow/workflow-row-patches.test.ts",
 			"packages/sales/src/sales-form/ui/workflow/workflow-door-actions.test.ts",
+			"packages/sales/src/sales-form/ui/workflow/workflow-moulding-actions.test.ts",
+			"packages/sales/src/sales-form/ui/workflow/workflow-selection-actions.test.ts",
 			"packages/sales/src/sales-form/ui/workflow/workflow-sync-patches.test.ts",
 			"packages/sales/src/sales-form/ui/workflow/workflow-visible-components.test.ts",
+			"packages/sales/src/sales-form/ui/workflow/workflow-query-state.test.ts",
+			"packages/sales/src/sales-form/ui/workflow/step-family.test.ts",
+			"packages/sales/src/sales-template/invoice-print-data.test.ts",
+			"packages/sales/src/sync-sales-inventory-line-items.test.ts",
 		],
 	},
 	{
@@ -33,8 +45,34 @@ const commands = [
 			"apps/www/src/components/forms/new-sales-form/adapters/use-sales-form-workflow-data.ts",
 			"apps/www/src/components/forms/new-sales-form/sections/www-sales-form-workflow-panel.tsx",
 			"apps/www/src/components/forms/new-sales-form/new-sales-form.tsx",
+			"apps/dealership/src/components/dealer-sales-form/dealer-customer-selector-dialog.tsx",
+			"apps/dealership/src/components/dealer-sales-form/dealer-quote-composer.tsx",
+			"apps/dealership/src/components/dealer-sales-form/dealer-quote-main-panel.tsx",
+			"apps/dealership/src/components/dealer-sales-form/dealer-quote-summary-panel.tsx",
+			"apps/www/src/env.mjs",
+			"packages/sales/src/sales-form/contracts/form-composition.ts",
 			"packages/sales/src/sales-form/contracts/workflow-data-source.ts",
+			"packages/sales/src/sales-form/contracts/workflow-capabilities.ts",
+			"packages/sales/src/sales-form/ui/shell/sales-form-shell.tsx",
+			"packages/sales/src/sales-form/ui/workflow/component-card-skeleton-grid.tsx",
+			"packages/sales/src/sales-form/ui/workflow/door-step-panel.tsx",
+			"packages/sales/src/sales-form/ui/workflow/door-supplier-manager.tsx",
+			"packages/sales/src/sales-form/ui/workflow/house-package-tool-panel.tsx",
+			"packages/sales/src/sales-form/ui/workflow/invoice-item-card.tsx",
+			"packages/sales/src/sales-form/ui/workflow/moulding-line-items-editor.tsx",
+			"packages/sales/src/sales-form/ui/workflow/moulding-selection-popover.tsx",
+			"packages/sales/src/sales-form/ui/workflow/root-component-picker.tsx",
 			"packages/sales/src/sales-form/ui/workflow/sales-form-workflow-panel.tsx",
+			"packages/sales/src/sales-form/ui/workflow/sales-form-engine-panel.tsx",
+			"packages/sales/src/sales-form/ui/workflow/service-line-items-editor.tsx",
+			"packages/sales/src/sales-form/ui/workflow/step-component-picker.tsx",
+			"packages/sales/src/sales-form/ui/workflow/workflow-component-action-menu.tsx",
+			"packages/sales/src/sales-form/ui/workflow/workflow-component-card.tsx",
+			"packages/sales/src/sales-form/ui/workflow/workflow-component-grid.tsx",
+			"packages/sales/src/sales-form/ui/workflow/workflow-component-toolbar.tsx",
+			"packages/sales/src/sales-form/ui/workflow/workflow-panel-notice.tsx",
+			"packages/sales/src/sales-form/ui/workflow/workflow-query-state.ts",
+			"packages/sales/src/sales-form/ui/workflow/workflow-step-component-panel.tsx",
 		],
 	},
 ];
@@ -56,6 +94,7 @@ for (const command of commands) {
 				console.log(
 					"Typecheck still reports unrelated workspace errors; no watched migration files were mentioned.",
 				);
+				console.log(toleratedTypecheckBaseline);
 				continue;
 			}
 			console.log(output);

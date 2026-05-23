@@ -1,5 +1,6 @@
 "use client";
 
+import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
 
@@ -27,14 +28,20 @@ export type DoorSupplierManagerProps = {
 	onSelectDefault: () => void;
 	onSelectSupplier: (supplier: DoorSupplierManagerSupplier) => void;
 	onEditSupplier: (supplier: DoorSupplierManagerSupplier) => void;
-	onDeleteSupplier: (supplier: DoorSupplierManagerSupplier) => void | Promise<void>;
+	onDeleteSupplier: (
+		supplier: DoorSupplierManagerSupplier,
+	) => void | Promise<void>;
 };
 
 export function DoorSupplierManager(props: DoorSupplierManagerProps) {
 	return (
-		<div className="space-y-3 rounded-lg border p-3">
-			<div className="flex items-center gap-2">
+		<div className="flex flex-col gap-3 rounded-lg border bg-card p-3">
+			<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
 				<Input
+					aria-label={
+						props.editingSupplier ? "Update supplier name" : "New supplier name"
+					}
+					className="min-w-0 flex-1 sm:min-w-56"
 					placeholder={
 						props.editingSupplier ? "Update supplier name" : "New supplier name"
 					}
@@ -43,25 +50,39 @@ export function DoorSupplierManager(props: DoorSupplierManagerProps) {
 						props.onSupplierNameInputChange(event.target.value)
 					}
 				/>
-				<Button size="sm" disabled={props.isSaving} onClick={props.onSaveSupplier}>
+				<Button
+					type="button"
+					size="sm"
+					disabled={props.isSaving}
+					onClick={props.onSaveSupplier}
+				>
 					{props.editingSupplier ? "Update" : "Add"}
 				</Button>
 				{props.editingSupplier ? (
-					<Button size="sm" variant="outline" onClick={props.onCancelEdit}>
+					<Button
+						type="button"
+						size="sm"
+						variant="outline"
+						onClick={props.onCancelEdit}
+					>
 						Cancel
 					</Button>
 				) : null}
 			</div>
 			<button
 				type="button"
-				className={`flex w-full items-center rounded-lg border px-3 py-2 text-left text-sm ${
+				className={`flex w-full items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-left text-sm transition-colors ${
 					!props.selectedSupplierUid
 						? "border-primary bg-primary/5"
-						: "hover:border-primary"
+						: "hover:border-primary/70"
 				}`}
+				aria-pressed={!props.selectedSupplierUid}
 				onClick={props.onSelectDefault}
 			>
-				GND MILLWORK (Default)
+				<span className="font-medium">GND MILLWORK</span>
+				<Badge variant="secondary" className="rounded-md">
+					Default
+				</Badge>
 			</button>
 			{props.suppliers.map((supplier) => {
 				const selected = props.selectedSupplierUid === supplier.uid;
@@ -69,20 +90,22 @@ export function DoorSupplierManager(props: DoorSupplierManagerProps) {
 				return (
 					<div
 						key={supplier.id}
-						className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${
+						className={`flex flex-col gap-2 rounded-md border bg-background px-3 py-2 transition-colors sm:flex-row sm:items-center ${
 							selected
 								? "border-primary bg-primary/5"
-								: "hover:border-primary"
+								: "hover:border-primary/70"
 						}`}
 					>
 						<button
 							type="button"
-							className="flex-1 text-left text-sm uppercase"
+							className="min-w-0 flex-1 text-left text-sm font-medium uppercase"
+							aria-pressed={selected}
 							onClick={() => props.onSelectSupplier(supplier)}
 						>
 							{supplier.name}
 						</button>
 						<Button
+							type="button"
 							size="sm"
 							variant="outline"
 							onClick={() => props.onEditSupplier(supplier)}
@@ -90,6 +113,7 @@ export function DoorSupplierManager(props: DoorSupplierManagerProps) {
 							Edit
 						</Button>
 						<Button
+							type="button"
 							size="sm"
 							variant="destructive"
 							disabled={props.isDeleting}

@@ -4,6 +4,7 @@ import {
 	assertSafeConnections,
 	buildCursorExpression,
 	buildCursorWhereClause,
+	buildKeysetWhereClause,
 	buildUpsertSql,
 	classifyTable,
 	parseArgs,
@@ -74,6 +75,13 @@ describe("local db sync helpers", () => {
 		expect(where.params).toEqual(["2026-05-19 12:00:00.000", "2026-05-19 12:00:00.000", 7, 7, "x"]);
 	});
 
+	test("builds deterministic keyset where clause with composite keys", () => {
+		const where = buildKeysetWhereClause(["a", "b"], { a: 7, b: "x" });
+
+		expect(where.sql).toBe("WHERE (`a` > ?) OR (`a` = ? AND `b` > ?)");
+		expect(where.params).toEqual([7, 7, "x"]);
+	});
+
 	test("builds multi-row upsert SQL", () => {
 		expect(buildUpsertSql("Users", ["id", "name", "updatedAt"], ["id"], 2)).toBe(
 			"INSERT INTO `Users` (`id`, `name`, `updatedAt`) VALUES (?, ?, ?), (?, ?, ?) ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `updatedAt` = VALUES(`updatedAt`)",
@@ -97,6 +105,9 @@ describe("local db sync helpers", () => {
 			dryRun: true,
 			table: "Users",
 			readBatchSize: 250,
+		});
+		expect(parseArgs(["--reset-cursor"])).toMatchObject({
+			resetCursor: true,
 		});
 		expect(parseEnvFile("DATABASE_URL='mysql://root@localhost/db'\n# ignored\nOTHER=value")).toEqual({
 			DATABASE_URL: "mysql://root@localhost/db",

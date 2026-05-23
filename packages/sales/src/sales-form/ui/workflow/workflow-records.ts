@@ -50,11 +50,51 @@ export type WorkflowComponentRecord = {
 	[key: string]: unknown;
 };
 
-export type WorkflowLineItemRecord = {
+export type WorkflowRouteStepRecord = {
+	id?: number | null;
 	uid?: string | null;
 	title?: string | null;
 	meta?: Record<string, unknown> | null;
+	[key: string]: unknown;
+};
+
+export type WorkflowRouteData = {
+	rootStepUid?: string | null;
+	steps?: WorkflowRouteStepRecord[] | null;
+	stepsByUid?: Record<string, WorkflowRouteStepRecord | undefined> | null;
+	stepsById?: Record<string | number, string | undefined> | null;
+	composedRouter?: Record<
+		string,
+		| {
+				steps?: string[] | null;
+				config?: unknown;
+				[key: string]: unknown;
+		  }
+		| undefined
+	> | null;
+	[key: string]: unknown;
+};
+
+export type WorkflowHousePackageToolRecord = {
+	id?: number | null;
+	doors?: DoorStoredRow[] | null;
+	totalDoors?: number | null;
+	totalPrice?: number | null;
+	[key: string]: unknown;
+};
+
+export type WorkflowLineItemRecord = {
+	id?: number | null;
+	uid?: string | null;
+	title?: string | null;
+	description?: string | null;
+	qty?: number | null;
+	unitPrice?: number | null;
+	lineTotal?: number | null;
+	meta?: Record<string, unknown> | null;
 	formSteps?: WorkflowStepRecord[] | null;
+	shelfItems?: ShelfItemRow[] | null;
+	housePackageTool?: WorkflowHousePackageToolRecord | null;
 	[key: string]: unknown;
 };
 
@@ -214,9 +254,7 @@ export function isHousePackageToolStepTitle(title?: string | null) {
 	return normalized === "house package tool" || normalized === "hpt";
 }
 
-export function firstFiniteNumber(
-	...values: Array<number | null | undefined>
-) {
+export function firstFiniteNumber(...values: Array<number | null | undefined>) {
 	for (const value of values) {
 		const candidate = Number(value);
 		if (Number.isFinite(candidate)) return candidate;
@@ -267,7 +305,9 @@ export function componentLabel(value?: string | null) {
 }
 
 export function getWorkflowSteps(line?: WorkflowLineItemRecord | null) {
-	return (Array.isArray(line?.formSteps) ? line.formSteps : []) as WorkflowStepRecord[];
+	return (
+		Array.isArray(line?.formSteps) ? line.formSteps : []
+	) as WorkflowStepRecord[];
 }
 
 export function lineItemPickerLabel(

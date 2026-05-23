@@ -12,6 +12,12 @@ export {
 	type SalesFormPermissions,
 } from "./form-permissions";
 export type { SalesFormSlots } from "./form-slots";
+export {
+	createDealerSalesFormWorkflowCapabilities,
+	createInternalSalesFormWorkflowCapabilities,
+	createSalesFormWorkflowCapabilities,
+	type SalesFormWorkflowCapabilities,
+} from "./workflow-capabilities";
 export type {
 	CalculateSalesFormSummaryInput,
 	ExtraCostType,
@@ -31,3 +37,7 @@ export type {
 	SalesFormWorkflowSurfaceSlots,
 	SalesFormWorkflowStepComponentInput,
 } from "./workflow-data-source";
+export type {
+	WorkflowRouteData,
+	WorkflowRouteStepRecord,
+} from "../ui/workflow/workflow-records";

@@ -963,6 +963,7 @@ export function ItemWorkflowPanel() {
 				sharedDoorSurcharge={sharedDoorSurcharge}
 				profileCoefficient={activeProfileCoefficient}
 				canSwapDoor={Boolean(swapDoorCandidates.length)}
+				canEditPricing
 				formatMoney={money}
 				componentLabel={componentLabel}
 				resolveImageSrc={resolveComponentImageSrc}

@@ -31,13 +31,16 @@ export type MouldingLineItemsEditorProps<
 		index: number;
 		onCalculate: (qty: number) => void;
 	}) => ReactNode;
+	canEditPricing?: boolean;
 	onRowsChange: (rows: TRow[]) => void;
 	onRemoveRow: (uid: string) => void;
 };
 
-export function MouldingLineItemsEditor<
-	TRow extends MouldingLineItemEditorRow,
->(props: MouldingLineItemsEditorProps<TRow>) {
+export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
+	props: MouldingLineItemsEditorProps<TRow>,
+) {
+	const canEditPricing = props.canEditPricing !== false;
+
 	function patchRow(index: number, patch: Partial<TRow>) {
 		props.onRowsChange(
 			props.rows.map((item, i) =>
@@ -61,7 +64,7 @@ export function MouldingLineItemsEditor<
 
 	return (
 		<div className="overflow-x-auto rounded-lg border">
-			<table className="min-w-full text-sm">
+			<table className="min-w-[760px] text-sm">
 				<thead>
 					<tr className="bg-muted/30 text-left text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
 						<th className="px-3 py-2">Moulding</th>
@@ -108,6 +111,7 @@ export function MouldingLineItemsEditor<
 												} as Partial<TRow>),
 										})}
 										<Input
+											aria-label={`Moulding line ${index + 1} quantity`}
 											type="number"
 											value={row.qty || 0}
 											onChange={(e) =>
@@ -123,44 +127,63 @@ export function MouldingLineItemsEditor<
 									{props.formatMoney(row.estimateUnit) || "$0.00"}
 								</td>
 								<td className="px-3 py-2">
-									<Input
-										type="number"
-										step="0.01"
-										value={row.addon || 0}
-										onChange={(e) =>
-											patchRow(index, {
-												addon: Number(e.target.value || 0),
-											} as Partial<TRow>)
-										}
-										className="h-8 text-right"
-									/>
+									{canEditPricing ? (
+										<Input
+											aria-label={`Moulding line ${index + 1} addon per quantity`}
+											type="number"
+											step="0.01"
+											value={row.addon || 0}
+											onChange={(e) =>
+												patchRow(index, {
+													addon: Number(e.target.value || 0),
+												} as Partial<TRow>)
+											}
+											className="h-8 text-right"
+										/>
+									) : (
+										<p className="text-right text-xs font-semibold">
+											{props.formatMoney(row.addon || 0) || "$0.00"}
+										</p>
+									)}
 								</td>
 								<td className="px-3 py-2">
-									<Input
-										type="number"
-										step="0.01"
-										value={row.customPrice ?? ""}
-										onChange={(e) =>
-											patchRow(index, {
-												customPrice:
-													e.target.value === ""
-														? null
-														: Number(e.target.value || 0),
-											} as Partial<TRow>)
-										}
-										className="h-8 text-right"
-										placeholder="auto"
-									/>
+									{canEditPricing ? (
+										<Input
+											aria-label={`Moulding line ${index + 1} custom price`}
+											type="number"
+											step="0.01"
+											value={row.customPrice ?? ""}
+											onChange={(e) =>
+												patchRow(index, {
+													customPrice:
+														e.target.value === ""
+															? null
+															: Number(e.target.value || 0),
+												} as Partial<TRow>)
+											}
+											className="h-8 text-right"
+											placeholder="auto"
+										/>
+									) : (
+										<p className="text-right text-xs font-semibold">
+											{row.customPrice == null || row.customPrice === ""
+												? "Auto"
+												: props.formatMoney(Number(row.customPrice || 0)) ||
+													"$0.00"}
+										</p>
+									)}
 								</td>
 								<td className="px-3 py-2 text-right text-xs font-bold">
 									{props.formatMoney(row.lineTotal) || "$0.00"}
 								</td>
 								<td className="px-3 py-2 text-right">
 									<Button
+										type="button"
 										size="icon"
 										variant="ghost"
 										className="size-7"
 										disabled={props.rows.length <= 1}
+										aria-label={`Remove moulding line ${index + 1}`}
 										onClick={() => props.onRemoveRow(String(row.uid || ""))}
 									>
 										<Icons.Trash2 className="size-4" />

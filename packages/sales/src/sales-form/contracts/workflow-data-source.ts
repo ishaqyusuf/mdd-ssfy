@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import type {
 	CustomerProfileRecord,
-	DoorStoredRow,
 	MouldingRow,
 	ServiceRow,
 	ShelfCategoryRecord,
@@ -9,12 +8,16 @@ import type {
 	ShelfProductRecord,
 	WorkflowComponentRecord,
 	WorkflowLineItemRecord,
+	WorkflowRouteData,
 	WorkflowStepRecord,
 } from "../ui/workflow";
 
 export type SalesFormWorkflowQueryResult<TData> = {
 	data?: TData | null;
 	isPending?: boolean;
+	isFetching?: boolean;
+	isError?: boolean;
+	error?: unknown;
 	refetch?: () => Promise<unknown> | unknown;
 };
 
@@ -25,7 +28,7 @@ export type SalesFormWorkflowStepComponentInput = {
 };
 
 export type SalesFormWorkflowDataSource = {
-	useStepRouting: () => SalesFormWorkflowQueryResult<Record<string, any>>;
+	useStepRouting: () => SalesFormWorkflowQueryResult<WorkflowRouteData>;
 	useStepComponents: (
 		input: SalesFormWorkflowStepComponentInput,
 	) => SalesFormWorkflowQueryResult<WorkflowComponentRecord[]>;
@@ -49,6 +52,7 @@ export type SalesFormWorkflowDataSource = {
 		enabled?: boolean;
 	}) => SalesFormWorkflowQueryResult<{
 		stepProducts?: Array<{
+			id?: number | null;
 			uid?: string | null;
 			name?: string | null;
 		}>;
@@ -96,13 +100,24 @@ export type SalesFormWorkflowSurfaceSlots<
 		rows: ServiceRow[];
 		updateRows: (rows: ServiceRow[]) => void;
 	}) => ReactNode;
-	renderDoorSizeEditor?: (input: {
+	renderDoorSupplierPanel?: (input: {
 		line: TLine;
-		component: WorkflowComponentRecord;
-		rows: DoorStoredRow[];
+		step: WorkflowStepRecord;
+		stepIndex: number;
+		supplierUid?: string | null;
+		supplierName?: string | null;
+		suppliers: Array<{
+			id?: number | null;
+			uid?: string | null;
+			name?: string | null;
+		}>;
+		refetchSuppliers?: () => Promise<unknown> | unknown;
+		updateSupplier: (
+			supplier?: { uid?: string | null; name?: string | null } | null,
+		) => void;
 	}) => ReactNode;
 	getComponentRedirectOptions?: (input: {
-		routeData: Record<string, any> | null;
+		routeData: WorkflowRouteData | null;
 		line: TLine;
 		step: WorkflowStepRecord;
 		stepIndex: number;
@@ -136,7 +151,7 @@ export type SalesFormWorkflowSurfaceSlots<
 export type SalesFormWorkflowComponentActionInput<
 	TLine extends WorkflowLineItemRecord = WorkflowLineItemRecord,
 > = {
-	routeData: Record<string, any> | null;
+	routeData: WorkflowRouteData | null;
 	line: TLine;
 	steps: WorkflowStepRecord[];
 	step: WorkflowStepRecord;

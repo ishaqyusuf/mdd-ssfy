@@ -9,6 +9,7 @@ export type DealerSalesFormCustomer = {
 	name?: string | null;
 	businessName?: string | null;
 	email?: string | null;
+	phoneNo?: string | null;
 	customerTypeId?: number | null;
 };
 
@@ -37,7 +38,12 @@ export type DealerSalesFormRecord = {
 	form: {
 		customerId: number | null;
 		customerProfileId: number | null;
+		po?: string | null;
+		paymentTerm?: string | null;
+		goodUntil?: string | null;
+		deliveryOption?: string | null;
 		paymentMethod?: string | null;
+		taxCode?: string | null;
 	};
 	lineItems: SalesFormLineItemUiRecord[];
 	extraCosts: [];
