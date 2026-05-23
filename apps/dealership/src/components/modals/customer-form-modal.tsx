@@ -35,7 +35,7 @@ export function CustomerFormModal() {
       }}
       open={customerForm.opened}
       rounded
-      size="2xl"
+      size="4xl"
       title={customerForm.title}
     >
       <CustomModal.Content className="pb-20">

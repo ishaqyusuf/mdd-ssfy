@@ -17,7 +17,7 @@ export function useDealerSalesFormWorkflowData(): SalesFormWorkflowDataSource {
 				useQuery(trpc.dealerPortal.workflowReference.queryOptions()),
 			useStepComponents: (input: SalesFormWorkflowStepComponentInput) =>
 				useQuery(
-					trpc.sales.getStepComponents.queryOptions(
+					trpc.dealerPortal.workflowStepComponents.queryOptions(
 						{
 							stepId: input.stepId || undefined,
 							stepTitle: input.stepTitle || null,
@@ -26,6 +26,40 @@ export function useDealerSalesFormWorkflowData(): SalesFormWorkflowDataSource {
 							enabled:
 								input.enabled !== false &&
 								Boolean(input.stepId || input.stepTitle),
+						},
+					),
+				),
+			useDoorComponents: (input: SalesFormWorkflowStepComponentInput) =>
+				useQuery(
+					trpc.dealerPortal.workflowStepComponents.queryOptions(
+						{
+							stepId: input.stepId || undefined,
+							stepTitle: input.stepTitle || "Door",
+						},
+						{
+							enabled:
+								input.enabled !== false &&
+								Boolean(input.stepId || input.stepTitle),
+						},
+					),
+				),
+			useShelfCategories: () =>
+				useQuery(trpc.dealerPortal.workflowShelfCategories.queryOptions({})),
+			useShelfProducts: (input) =>
+				useQuery(
+					trpc.dealerPortal.workflowShelfProducts.queryOptions(
+						{ categoryIds: input.categoryIds },
+						{
+							enabled: input.enabled !== false && input.categoryIds.length > 0,
+						},
+					),
+				),
+			useDoorSuppliers: (input) =>
+				useQuery(
+					trpc.dealerPortal.workflowDoorSuppliers.queryOptions(
+						{},
+						{
+							enabled: input?.enabled !== false,
 						},
 					),
 				),

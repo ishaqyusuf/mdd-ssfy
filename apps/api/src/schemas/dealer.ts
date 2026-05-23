@@ -1,183 +1,192 @@
 import {
-	US_PHONE_FORMAT_PATTERN,
-	normalizeUSPhoneNumber,
+  US_PHONE_FORMAT_PATTERN,
+  normalizeUSPhoneNumber,
 } from "@gnd/utils/format";
 import { paginationSchema } from "@gnd/utils/schema";
 import { z } from "zod";
 
 export const getDealersSchema = z
-	.object({
-		search: z.string().optional().nullable(),
-		status: z.string().optional().nullable(),
-	})
-	.extend(paginationSchema.shape);
+  .object({
+    search: z.string().optional().nullable(),
+    status: z.string().optional().nullable(),
+  })
+  .extend(paginationSchema.shape);
 export type GetDealersSchema = z.infer<typeof getDealersSchema>;
 
 export const searchDealerCustomerCandidatesSchema = z.object({
-	query: z.string().optional().nullable(),
-	take: z.number().min(1).max(25).optional().nullable(),
+  query: z.string().optional().nullable(),
+  take: z.number().min(1).max(25).optional().nullable(),
 });
 export type SearchDealerCustomerCandidatesSchema = z.infer<
-	typeof searchDealerCustomerCandidatesSchema
+  typeof searchDealerCustomerCandidatesSchema
 >;
 
 export const createDealerAccountSchema = z
-	.object({
-		customerId: z.number().optional().nullable(),
-		name: z.string().optional().nullable(),
-		email: z.string().email(),
-	})
-	.superRefine((data, ctx) => {
-		if (!data.customerId && !data.name?.trim()) {
-			ctx.addIssue({
-				code: "custom",
-				path: ["name"],
-				message:
-					"Dealer name is required when no existing customer is selected.",
-			});
-		}
-	});
+  .object({
+    customerId: z.number().optional().nullable(),
+    name: z.string().optional().nullable(),
+    email: z.string().email(),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.customerId && !data.name?.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["name"],
+        message:
+          "Dealer name is required when no existing customer is selected.",
+      });
+    }
+  });
 export type CreateDealerAccountSchema = z.infer<
-	typeof createDealerAccountSchema
+  typeof createDealerAccountSchema
 >;
 
 export const resendDealerOnboardingSchema = z.object({
-	dealerId: z.number(),
+  dealerId: z.number(),
 });
 export type ResendDealerOnboardingSchema = z.infer<
-	typeof resendDealerOnboardingSchema
+  typeof resendDealerOnboardingSchema
 >;
 
 export const dealerPortalCustomerSchema = z.object({
-	id: z.number().optional().nullable(),
-	name: z.string().optional().nullable(),
-	businessName: z.string().optional().nullable(),
-	email: z.string().email().optional().nullable().or(z.literal("")),
-	phoneNo: z
-		.preprocess(
-			(value) => normalizeUSPhoneNumber(value as string | null | undefined),
-			z
-				.string()
-				.regex(US_PHONE_FORMAT_PATTERN, "Use XXX-XXX-XXXX format")
-				.optional(),
-		)
-		.nullable(),
-	address: z.string().optional().nullable(),
-	customerTypeId: z.number().optional().nullable(),
+  id: z.number().optional().nullable(),
+  name: z.string().optional().nullable(),
+  businessName: z.string().optional().nullable(),
+  email: z.string().email().optional().nullable().or(z.literal("")),
+  phoneNo: z
+    .preprocess(
+      (value) => normalizeUSPhoneNumber(value as string | null | undefined),
+      z
+        .string()
+        .regex(US_PHONE_FORMAT_PATTERN, "Use XXX-XXX-XXXX format")
+        .optional(),
+    )
+    .nullable(),
+  address: z.string().optional().nullable(),
+  formattedAddress: z.string().optional().nullable(),
+  address1: z.string().optional().nullable(),
+  address2: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
+  state: z.string().optional().nullable(),
+  zip_code: z.string().optional().nullable(),
+  country: z.string().optional().nullable(),
+  lat: z.number().optional().nullable(),
+  lng: z.number().optional().nullable(),
+  customerTypeId: z.number().optional().nullable(),
 });
 export type DealerPortalCustomerSchema = z.infer<
-	typeof dealerPortalCustomerSchema
+  typeof dealerPortalCustomerSchema
 >;
 
 export const dealerPortalCustomerLookupSchema = z.object({
-	id: z.number(),
+  id: z.number(),
 });
 export type DealerPortalCustomerLookupSchema = z.infer<
-	typeof dealerPortalCustomerLookupSchema
+  typeof dealerPortalCustomerLookupSchema
 >;
 
 export const dealerPortalSalesProfileSchema = z.object({
-	id: z.number().optional().nullable(),
-	title: z.string().min(1),
-	salesPercentage: z.number().optional().nullable(),
-	defaultProfile: z.boolean().optional().nullable(),
+  id: z.number().optional().nullable(),
+  title: z.string().min(1),
+  salesPercentage: z.number().optional().nullable(),
+  defaultProfile: z.boolean().optional().nullable(),
 });
 export type DealerPortalSalesProfileSchema = z.infer<
-	typeof dealerPortalSalesProfileSchema
+  typeof dealerPortalSalesProfileSchema
 >;
 
 export const dealerPortalSalesDocumentsSchema = z.object({
-	type: z.enum(["order", "quote"]),
+  type: z.enum(["order", "quote"]),
 });
 export type DealerPortalSalesDocumentsSchema = z.infer<
-	typeof dealerPortalSalesDocumentsSchema
+  typeof dealerPortalSalesDocumentsSchema
 >;
 
 export const dealerPortalSalesListSchema = z.object({
-	cursor: z.number().optional().nullable(),
-	size: z.number().min(1).max(100).optional().nullable(),
-	q: z.string().optional().nullable(),
-	"customer.name": z.string().optional().nullable(),
-	phone: z.string().optional().nullable(),
-	orderNo: z.string().optional().nullable(),
-	status: z.string().optional().nullable(),
+  cursor: z.number().optional().nullable(),
+  size: z.number().min(1).max(100).optional().nullable(),
+  q: z.string().optional().nullable(),
+  "customer.name": z.string().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  orderNo: z.string().optional().nullable(),
+  status: z.string().optional().nullable(),
 });
 export type DealerPortalSalesListSchema = z.infer<
-	typeof dealerPortalSalesListSchema
+  typeof dealerPortalSalesListSchema
 >;
 
 export const dealerPortalCustomersListSchema = z.object({
-	cursor: z.number().optional().nullable(),
-	size: z.number().min(1).max(100).optional().nullable(),
-	q: z.string().optional().nullable(),
-	"customer.name": z.string().optional().nullable(),
-	phone: z.string().optional().nullable(),
-	profile: z.string().optional().nullable(),
+  cursor: z.number().optional().nullable(),
+  size: z.number().min(1).max(100).optional().nullable(),
+  q: z.string().optional().nullable(),
+  "customer.name": z.string().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  profile: z.string().optional().nullable(),
 });
 export type DealerPortalCustomersListSchema = z.infer<
-	typeof dealerPortalCustomersListSchema
+  typeof dealerPortalCustomersListSchema
 >;
 
 export const dealerPortalSalesDocumentSchema = z.object({
-	id: z.number(),
+  id: z.number(),
 });
 export type DealerPortalSalesDocumentSchema = z.infer<
-	typeof dealerPortalSalesDocumentSchema
+  typeof dealerPortalSalesDocumentSchema
 >;
 
 export const dealerPortalSalesLineItemSchema = z.object({
-	uid: z.string().min(1),
-	title: z.string().optional().nullable(),
-	description: z.string().optional().nullable(),
-	qty: z.number().min(0).optional().nullable(),
-	unitPrice: z.number().optional().nullable(),
-	lineTotal: z.number().optional().nullable(),
-	meta: z.record(z.string(), z.any()).optional().nullable(),
-	formSteps: z.array(z.record(z.string(), z.any())).optional().nullable(),
-	shelfItems: z.array(z.record(z.string(), z.any())).optional().nullable(),
-	housePackageTool: z.record(z.string(), z.any()).optional().nullable(),
+  uid: z.string().min(1),
+  title: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
+  qty: z.number().min(0).optional().nullable(),
+  unitPrice: z.number().optional().nullable(),
+  lineTotal: z.number().optional().nullable(),
+  meta: z.record(z.string(), z.any()).optional().nullable(),
+  formSteps: z.array(z.record(z.string(), z.any())).optional().nullable(),
+  shelfItems: z.array(z.record(z.string(), z.any())).optional().nullable(),
+  housePackageTool: z.record(z.string(), z.any()).optional().nullable(),
 });
 export type DealerPortalSalesLineItemSchema = z.infer<
-	typeof dealerPortalSalesLineItemSchema
+  typeof dealerPortalSalesLineItemSchema
 >;
 
 export const dealerPortalSaveQuoteSchema = z.object({
-	id: z.number().optional().nullable(),
-	customerId: z.number(),
-	customerProfileId: z.number().optional().nullable(),
-	taxRate: z.number().min(0).max(100).optional().nullable(),
-	lineItems: z.array(dealerPortalSalesLineItemSchema).min(1),
+  id: z.number().optional().nullable(),
+  customerId: z.number(),
+  customerProfileId: z.number().optional().nullable(),
+  taxRate: z.number().min(0).max(100).optional().nullable(),
+  lineItems: z.array(dealerPortalSalesLineItemSchema).min(1),
 });
 export type DealerPortalSaveQuoteSchema = z.infer<
-	typeof dealerPortalSaveQuoteSchema
+  typeof dealerPortalSaveQuoteSchema
 >;
 
 export const dealerPortalConvertQuoteSchema = z.object({
-	id: z.number(),
+  id: z.number(),
 });
 export type DealerPortalConvertQuoteSchema = z.infer<
-	typeof dealerPortalConvertQuoteSchema
+  typeof dealerPortalConvertQuoteSchema
 >;
 
 export const dealerPortalSettingsSchema = z.object({
-	name: z.string().optional().nullable(),
-	companyName: z.string().optional().nullable(),
-	phoneNo: z
-		.preprocess(
-			(value) => normalizeUSPhoneNumber(value as string | null | undefined),
-			z
-				.string()
-				.regex(US_PHONE_FORMAT_PATTERN, "Use XXX-XXX-XXXX format")
-				.optional(),
-		)
-		.nullable(),
-	logoUrl: z.string().url().optional().nullable().or(z.literal("")),
-	address1: z.string().optional().nullable(),
-	address2: z.string().optional().nullable(),
-	city: z.string().optional().nullable(),
-	state: z.string().optional().nullable(),
-	country: z.string().optional().nullable(),
+  name: z.string().optional().nullable(),
+  companyName: z.string().optional().nullable(),
+  phoneNo: z
+    .preprocess(
+      (value) => normalizeUSPhoneNumber(value as string | null | undefined),
+      z
+        .string()
+        .regex(US_PHONE_FORMAT_PATTERN, "Use XXX-XXX-XXXX format")
+        .optional(),
+    )
+    .nullable(),
+  logoUrl: z.string().url().optional().nullable().or(z.literal("")),
+  address1: z.string().optional().nullable(),
+  address2: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
+  state: z.string().optional().nullable(),
+  country: z.string().optional().nullable(),
 });
 export type DealerPortalSettingsSchema = z.infer<
-	typeof dealerPortalSettingsSchema
+  typeof dealerPortalSettingsSchema
 >;

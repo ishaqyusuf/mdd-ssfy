@@ -31,6 +31,20 @@ import {
 	saveDealerPortalSettings,
 } from "@gnd/db/queries";
 import { getNewSalesFormStepRouting } from "@api/db/queries/new-sales-form";
+import {
+	getNewSalesFormShelfCategoriesSchema,
+	getNewSalesFormShelfProductsSchema,
+} from "@api/schemas/new-sales-form";
+import {
+	getNewSalesFormShelfCategories,
+	getNewSalesFormShelfProducts,
+} from "@api/db/queries/new-sales-form";
+import {
+	getStepComponents,
+	getStepComponentsSchema,
+	getSuppliers,
+	getSuppliersSchema,
+} from "@api/db/queries/sales-form";
 import { createTRPCRouter, dealerProtectedProcedure } from "../init";
 
 export const dealerPortalRouter = createTRPCRouter({
@@ -70,6 +84,26 @@ export const dealerPortalRouter = createTRPCRouter({
 	workflowReference: dealerProtectedProcedure.query(({ ctx }) => {
 		return getNewSalesFormStepRouting(ctx, {});
 	}),
+	workflowStepComponents: dealerProtectedProcedure
+		.input(getStepComponentsSchema)
+		.query(({ ctx, input }) => {
+			return getStepComponents(ctx, input);
+		}),
+	workflowShelfCategories: dealerProtectedProcedure
+		.input(getNewSalesFormShelfCategoriesSchema)
+		.query(({ ctx, input }) => {
+			return getNewSalesFormShelfCategories(ctx, input);
+		}),
+	workflowShelfProducts: dealerProtectedProcedure
+		.input(getNewSalesFormShelfProductsSchema)
+		.query(({ ctx, input }) => {
+			return getNewSalesFormShelfProducts(ctx, input);
+		}),
+	workflowDoorSuppliers: dealerProtectedProcedure
+		.input(getSuppliersSchema)
+		.query(({ ctx, input }) => {
+			return getSuppliers(ctx, input);
+		}),
 	saveSalesProfile: dealerProtectedProcedure
 		.input(dealerPortalSalesProfileSchema)
 		.mutation(({ ctx, input }) => {

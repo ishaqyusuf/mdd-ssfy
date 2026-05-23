@@ -45,6 +45,14 @@ export type SalesFormWorkflowDataSource = {
 		categoryIds: number[];
 		enabled?: boolean;
 	}) => SalesFormWorkflowQueryResult<ShelfProductRecord[]>;
+	useDoorSuppliers?: (input?: {
+		enabled?: boolean;
+	}) => SalesFormWorkflowQueryResult<{
+		stepProducts?: Array<{
+			uid?: string | null;
+			name?: string | null;
+		}>;
+	} | null>;
 	resolveImageSrc?: (src?: string | null) => string | null;
 	renderMouldingCalculator?: (input: {
 		title: string;
@@ -93,6 +101,47 @@ export type SalesFormWorkflowSurfaceSlots<
 		component: WorkflowComponentRecord;
 		rows: DoorStoredRow[];
 	}) => ReactNode;
+	getComponentRedirectOptions?: (input: {
+		routeData: Record<string, any> | null;
+		line: TLine;
+		step: WorkflowStepRecord;
+		stepIndex: number;
+	}) => Array<{ uid: string; title: string }>;
+	componentActions?: {
+		onOpenPricing?: (
+			input: SalesFormWorkflowComponentActionInput<TLine>,
+		) => void;
+		onOpenDoorSizeVariant?: (
+			input: SalesFormWorkflowComponentActionInput<TLine>,
+		) => void;
+		onEnableCustomComponent?: (
+			input: Omit<SalesFormWorkflowComponentActionInput<TLine>, "component">,
+		) => void;
+		onEdit?: (input: SalesFormWorkflowComponentActionInput<TLine>) => void;
+		onEditSectionOverride?: (
+			input: SalesFormWorkflowComponentActionInput<TLine>,
+		) => void;
+		onClearRedirect?: (
+			input: SalesFormWorkflowComponentActionInput<TLine>,
+		) => void;
+		onSetRedirect?: (
+			input: SalesFormWorkflowComponentActionInput<TLine> & {
+				redirectUid: string;
+			},
+		) => void;
+		onDelete?: (input: SalesFormWorkflowComponentActionInput<TLine>) => void;
+	};
+};
+
+export type SalesFormWorkflowComponentActionInput<
+	TLine extends WorkflowLineItemRecord = WorkflowLineItemRecord,
+> = {
+	routeData: Record<string, any> | null;
+	line: TLine;
+	steps: WorkflowStepRecord[];
+	step: WorkflowStepRecord;
+	stepIndex: number;
+	component: WorkflowComponentRecord;
 };
 
 export type SalesFormWorkflowEditorState = {

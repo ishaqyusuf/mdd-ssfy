@@ -52,18 +52,18 @@ export type WorkflowStepComponentPanelProps<TComponent extends WorkflowComponent
 	onSearchChange: (value: string) => void;
 	onJumpStep: (index: number) => void;
 	onSelectAll: () => void;
-	onOpenPricing: (component: TComponent) => void;
-	onOpenDoorSizeVariant: () => void;
-	onEnableCustomComponent: () => void;
+	onOpenPricing?: (component: TComponent) => void;
+	onOpenDoorSizeVariant?: () => void;
+	onEnableCustomComponent?: () => void;
 	onRefresh: () => void;
 	onToggleCustomComponents: () => void;
 	onProceedMultiSelect: () => void;
-	onEdit: (component: TComponent) => void;
-	onEditSectionOverride: (component: TComponent) => void;
+	onEdit?: (component: TComponent) => void;
+	onEditSectionOverride?: (component: TComponent) => void;
 	onSelect: (component: TComponent) => void;
-	onClearRedirect: (component: TComponent) => void;
-	onSetRedirect: (component: TComponent, uid: string) => void;
-	onDelete: (component: TComponent) => void;
+	onClearRedirect?: (component: TComponent) => void;
+	onSetRedirect?: (component: TComponent, uid: string) => void;
+	onDelete?: (component: TComponent) => void;
 	onOpenDoorSizes: (component: TComponent) => void;
 	onOpenMouldingQty: (component: TComponent) => void;
 	onCloseMouldingQty: () => void;
@@ -112,14 +112,28 @@ export function WorkflowStepComponentPanel<
 						actionsSlot={
 							<WorkflowComponentActionMenu
 								redirectOptions={props.redirectOptions}
-								onEdit={() => props.onEdit(component)}
-								onEditSectionOverride={() =>
-									props.onEditSectionOverride(component)
+								onEdit={
+									props.onEdit ? () => props.onEdit?.(component) : undefined
+								}
+								onEditSectionOverride={
+									props.onEditSectionOverride
+										? () => props.onEditSectionOverride?.(component)
+										: undefined
 								}
 								onSelect={() => props.onSelect(component)}
-								onClearRedirect={() => props.onClearRedirect(component)}
-								onSetRedirect={(uid) => props.onSetRedirect(component, uid)}
-								onDelete={() => props.onDelete(component)}
+								onClearRedirect={
+									props.onClearRedirect
+										? () => props.onClearRedirect?.(component)
+										: undefined
+								}
+								onSetRedirect={
+									props.onSetRedirect
+										? (uid) => props.onSetRedirect?.(component, uid)
+										: undefined
+								}
+								onDelete={
+									props.onDelete ? () => props.onDelete?.(component) : undefined
+								}
 							/>
 						}
 					>
@@ -201,26 +215,32 @@ export function WorkflowStepComponentPanel<
 							>
 								Select All
 							</Menu.Item>
-							<Menu.Item
-								onClick={() => {
-									const selectedComponent =
-										props.components.find((component) =>
-											props.selectedUids.has(String(component.uid || "")),
-										) || props.components[0];
-									if (!selectedComponent) return;
-									props.onOpenPricing(selectedComponent);
-								}}
-							>
-								Pricing
-							</Menu.Item>
-							{isDoorStep ? (
+							{props.onOpenPricing ? (
+								<Menu.Item
+									onClick={() => {
+										const openPricing = props.onOpenPricing;
+										if (!openPricing) return;
+										const selectedComponent =
+											props.components.find((component) =>
+												props.selectedUids.has(String(component.uid || "")),
+											) || props.components[0];
+										if (!selectedComponent) return;
+										openPricing(selectedComponent);
+									}}
+								>
+									Pricing
+								</Menu.Item>
+							) : null}
+							{isDoorStep && props.onOpenDoorSizeVariant ? (
 								<Menu.Item onClick={props.onOpenDoorSizeVariant}>
 									Door Size Variant
 								</Menu.Item>
 							) : null}
-							<Menu.Item onClick={props.onEnableCustomComponent}>
-								Component
-							</Menu.Item>
+							{props.onEnableCustomComponent ? (
+								<Menu.Item onClick={props.onEnableCustomComponent}>
+									Component
+								</Menu.Item>
+							) : null}
 							<Menu.Item onClick={props.onRefresh}>Refresh</Menu.Item>
 							<Menu.Item onClick={props.onToggleCustomComponents}>
 								Enable Custom: {props.includeCustomComponents ? "On" : "Off"}

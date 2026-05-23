@@ -79,3 +79,4 @@ packages/jobs/src/schema.prisma
 
 android
 ios
+.gstack/

@@ -36,6 +36,7 @@
     "db:sync:prod-to-local:table": "cd packages/db && bun run sync:prod-to-local:table",
     "control:parity-report": "node ./scripts/sales-control-parity-report.mjs",
     "payment:reconciliation-report": "bun ./scripts/payment-system-reconciliation-report.mjs",
+    "test:new-sales-form-migration": "node ./scripts/new-sales-form-migration-tests.mjs",
     "backlog": "turbo dev --parallel  --filter @gnd/gnd-backlog",
     "mobile": "turbo dev --parallel  --filter @gnd/expo-app --filter @gnd/www",
     "mobile-jobs": "turbo dev --parallel  --filter @gnd/expo-app --filter @gnd/www --filter @gnd/site --filter @gnd/jobs",

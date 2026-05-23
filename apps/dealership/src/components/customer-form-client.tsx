@@ -1,466 +1,775 @@
 "use client";
 
 import { CustomerQuickFill } from "@/components/dev/quick-fill";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { useTRPC } from "@/trpc/client";
 import {
-	type DealerPortalCustomerSchema,
-	dealerPortalCustomerSchema,
+  type DealerPortalCustomerSchema,
+  dealerPortalCustomerSchema,
 } from "@api/schemas/dealer";
+import { Avatar, AvatarFallback } from "@gnd/ui/avatar";
 import { Button } from "@gnd/ui/button";
+import { Card, CardContent, CardFooter } from "@gnd/ui/card";
 import { cn } from "@gnd/ui/cn";
+import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { FieldGroup } from "@gnd/ui/field";
 import {
-	Form,
-	FormControl,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
 } from "@gnd/ui/form";
-import { Input } from "@gnd/ui/input";
 import { InputGroup } from "@gnd/ui/namespace";
+import { Separator } from "@gnd/ui/separator";
 import {
-	Select,
-	SelectContent,
-	SelectGroup,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@gnd/ui/select";
-import { Textarea } from "@gnd/ui/textarea";
 import { toast } from "@gnd/ui/use-toast";
 import {
-	US_PHONE_FORMAT_PATTERN,
-	formatUSPhoneNumber,
+  US_PHONE_FORMAT_PATTERN,
+  formatUSPhoneNumber,
 } from "@gnd/utils/format";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-	BriefcaseBusiness,
-	Mail,
-	MapPin,
-	Phone,
-	Sparkles,
-	UserRound,
-	UsersRound,
+  BriefcaseBusiness,
+  Building2,
+  Mail,
+  MapPin,
+  Phone,
+  X,
+  UserRound,
+  UsersRound,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { PatternFormat } from "react-number-format";
 
 type CustomerFormRecord = {
-	id: number;
-	name: string | null;
-	businessName: string | null;
-	email: string | null;
-	phoneNo: string | null;
-	address: string | null;
-	customerTypeId: number | null;
+  id: number;
+  name: string | null;
+  businessName: string | null;
+  email: string | null;
+  phoneNo: string | null;
+  address: string | null;
+  formattedAddress?: string | null;
+  address1?: string | null;
+  address2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip_code?: string | null;
+  country?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  customerTypeId: number | null;
 } | null;
 
 function getCustomerDefaultValues(
-	customer?: CustomerFormRecord,
+  customer?: CustomerFormRecord,
 ): DealerPortalCustomerSchema {
-	return {
-		id: customer?.id || null,
-		name: customer?.name || "",
-		businessName: customer?.businessName || "",
-		email: customer?.email || "",
-		phoneNo: formatUSPhoneNumber(customer?.phoneNo) || "",
-		address: customer?.address || "",
-		customerTypeId: customer?.customerTypeId || null,
-	};
+  return {
+    id: customer?.id || null,
+    name: customer?.name || "",
+    businessName: customer?.businessName || "",
+    email: customer?.email || "",
+    phoneNo: formatUSPhoneNumber(customer?.phoneNo || "") || "",
+    address: customer?.address || "",
+    formattedAddress: customer?.formattedAddress || customer?.address || "",
+    address1: customer?.address1 || "",
+    address2: customer?.address2 || "",
+    city: customer?.city || "",
+    state: customer?.state || "",
+    zip_code: customer?.zip_code || "",
+    country: customer?.country || "",
+    lat: customer?.lat ?? null,
+    lng: customer?.lng ?? null,
+    customerTypeId: customer?.customerTypeId || null,
+  };
 }
 
 function formatSalesProfileOption(profile: {
-	title?: string | null;
-	salesPercentage?: number | null;
+  title?: string | null;
+  salesPercentage?: number | null;
 }) {
-	const percentage = new Intl.NumberFormat("en-US", {
-		maximumFractionDigits: 2,
-	}).format(Number(profile.salesPercentage || 0));
+  const percentage = new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 2,
+  }).format(Number(profile.salesPercentage || 0));
 
-	return `${profile.title || "Untitled profile"} (${percentage}%)`;
+  return `${profile.title || "Untitled profile"} (${percentage}%)`;
 }
 
-function FieldIcon({ children }: { children: ReactNode }) {
-	return (
-		<div className="pointer-events-none absolute left-3 top-9 flex size-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-500">
-			{children}
-		</div>
-	);
+function getCustomerDisplayName(customer?: CustomerFormRecord) {
+  return (
+    customer?.businessName ||
+    customer?.name ||
+    (customer?.id ? `Customer #${customer.id}` : "New customer")
+  );
 }
 
-function FormSection({
-	children,
-	description,
-	icon,
-	title,
+function getCustomerInitials(customer?: CustomerFormRecord) {
+  const initials = getCustomerDisplayName(customer)
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+
+  return initials || "NC";
+}
+
+function SectionHeading({
+  children,
+  icon,
 }: {
-	children: ReactNode;
-	description: string;
-	icon: ReactNode;
-	title: string;
+  children: ReactNode;
+  icon: ReactNode;
 }) {
-	return (
-		<div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm shadow-slate-200/60">
-			<div className="flex items-start gap-3 border-b border-slate-200 bg-slate-50/80 px-4 py-3">
-				<div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 shadow-sm">
-					{icon}
-				</div>
-				<div className="min-w-0">
-					<h3 className="text-sm font-semibold text-slate-950">{title}</h3>
-					<p className="mt-0.5 text-xs leading-5 text-slate-500">
-						{description}
-					</p>
-				</div>
-			</div>
-			<div className="p-4">{children}</div>
-		</div>
-	);
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex size-8 items-center justify-center rounded-md border bg-background text-muted-foreground shadow-xs">
+        {icon}
+      </div>
+      <h3 className="text-sm font-semibold">{children}</h3>
+    </div>
+  );
+}
+
+function RailRow({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-xs">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="truncate font-medium">{value}</span>
+    </div>
+  );
+}
+
+type GoogleAddress = {
+  address1: string;
+  address2: string;
+  formattedAddress: string;
+  city: string;
+  state?: string;
+  region: string;
+  postalCode: string;
+  country: string;
+  lat: number;
+  lng: number;
+};
+
+type PlacePrediction = {
+  placePrediction?: {
+    placeId?: string;
+    place?: string;
+    text?: { text?: string };
+  };
+};
+
+type PredictionItem = PlacePrediction & {
+  id: string;
+  label: string;
+};
+
+function resolvePlaceId(prediction?: PlacePrediction) {
+  const placePrediction = prediction?.placePrediction;
+  if (!placePrediction) return "";
+
+  if (placePrediction.placeId) return placePrediction.placeId;
+
+  const placeResource = placePrediction.place;
+  if (!placeResource) return "";
+
+  const match = /^places\/(.+)$/.exec(placeResource);
+  return match?.[1] ?? "";
+}
+
+function GoogleAddressInput({
+  onAddressChange,
+  value,
+}: {
+  onAddressChange: (address: GoogleAddress) => void;
+  value: string;
+}) {
+  const trpc = useTRPC();
+  const [searchInput, setSearchInput] = useState("");
+  const [selectedPlaceId, setSelectedPlaceId] = useState("");
+  const debouncedSearchInput = useDebounce(searchInput, 500);
+  const predictionsQuery = useQuery(
+    trpc.google.places.queryOptions(
+      {
+        q: debouncedSearchInput,
+      },
+      {
+        enabled: debouncedSearchInput.trim().length > 2,
+      },
+    ),
+  );
+  const placeQuery = useQuery(
+    trpc.google.place.queryOptions(
+      {
+        placeId: selectedPlaceId,
+      },
+      {
+        enabled: Boolean(selectedPlaceId),
+        staleTime: Number.POSITIVE_INFINITY,
+      },
+    ),
+  );
+
+  useEffect(() => {
+    const address = placeQuery.data?.data?.address as GoogleAddress | undefined;
+    if (!address?.formattedAddress) return;
+
+    onAddressChange(address);
+  }, [onAddressChange, placeQuery.data?.data?.address]);
+
+  const predictions = (
+    Array.isArray(predictionsQuery.data) ? predictionsQuery.data : []
+  )
+    .map((prediction) => {
+      const placeId = resolvePlaceId(prediction as PlacePrediction);
+      const label = (
+        prediction as PlacePrediction
+      )?.placePrediction?.text?.text?.trim();
+
+      if (!placeId || !label) return null;
+
+      return {
+        ...(prediction as PlacePrediction),
+        id: placeId,
+        label,
+      } as PredictionItem;
+    })
+    .filter(Boolean) as PredictionItem[];
+
+  if (value) {
+    return (
+      <InputGroup className="min-h-11 bg-background">
+        <InputGroup.Input readOnly value={value} />
+        <InputGroup.Addon align="inline-start">
+          <MapPin />
+        </InputGroup.Addon>
+        <InputGroup.Addon align="inline-end">
+          <InputGroup.Button
+            aria-label="Clear selected address"
+            onClick={() => {
+              setSelectedPlaceId("");
+              setSearchInput("");
+              onAddressChange({} as GoogleAddress);
+            }}
+            size="icon-sm"
+            variant="ghost"
+          >
+            <X />
+          </InputGroup.Button>
+        </InputGroup.Addon>
+      </InputGroup>
+    );
+  }
+
+  return (
+    <ComboboxDropdown
+      emptyResults={
+        searchInput.trim().length > 2 ? "No address found" : "Type an address"
+      }
+      items={predictions}
+      onSearch={setSearchInput}
+      onSelect={(item) => {
+        setSelectedPlaceId(item.id);
+      }}
+      placeholder="Search Google address"
+      popoverProps={{ align: "start" }}
+      searchPlaceholder="Search Google address"
+      Trigger={
+        <Button
+          aria-label="Search Google address"
+          className="h-11 w-full justify-start px-3 font-normal text-muted-foreground"
+          type="button"
+          variant="outline"
+        >
+          <MapPin data-icon="inline-start" />
+          <span className="truncate">
+            {searchInput || "Search Google address"}
+          </span>
+        </Button>
+      }
+    />
+  );
 }
 
 export function CustomerFormClient({
-	customer,
-	formId,
-	mode = "page",
-	renderActions,
-	onCancel,
-	onSaved,
+  customer,
+  formId,
+  mode = "page",
+  renderActions,
+  onCancel,
+  onSaved,
 }: {
-	customer?: CustomerFormRecord;
-	formId?: string;
-	mode?: "page" | "modal";
-	renderActions?: (actions: ReactNode) => ReactNode;
-	onCancel?: () => void;
-	onSaved?: () => void;
+  customer?: CustomerFormRecord;
+  formId?: string;
+  mode?: "page" | "modal";
+  renderActions?: (actions: ReactNode) => ReactNode;
+  onCancel?: () => void;
+  onSaved?: () => void;
 }) {
-	const trpc = useTRPC();
-	const router = useRouter();
-	const queryClient = useQueryClient();
-	const profilesQuery = useQuery(
-		trpc.dealerPortal.salesProfiles.queryOptions(),
-	);
-	const form = useZodForm(dealerPortalCustomerSchema, {
-		defaultValues: getCustomerDefaultValues(customer ?? null),
-	});
-	const saveCustomer = useMutation(
-		trpc.dealerPortal.saveCustomer.mutationOptions({
-			onSuccess: async () => {
-				await Promise.all([
-					queryClient.invalidateQueries({
-						queryKey: trpc.dealerPortal.customers.pathKey(),
-					}),
-					queryClient.invalidateQueries({
-						queryKey: trpc.dealerPortal.customersList.pathKey(),
-					}),
-				]);
-				toast({
-					title: "Customer saved.",
-					variant: "success",
-				});
-				if (onSaved) {
-					onSaved();
-					router.refresh();
-					return;
-				}
+  const trpc = useTRPC();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const profilesQuery = useQuery(
+    trpc.dealerPortal.salesProfiles.queryOptions(),
+  );
+  const form = useZodForm(dealerPortalCustomerSchema, {
+    defaultValues: getCustomerDefaultValues(customer ?? null),
+  });
+  const formattedAddress =
+    form.watch("formattedAddress") || form.watch("address") || "";
+  const saveCustomer = useMutation(
+    trpc.dealerPortal.saveCustomer.mutationOptions({
+      onSuccess: async () => {
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: trpc.dealerPortal.customers.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.dealerPortal.customersList.pathKey(),
+          }),
+        ]);
+        toast({
+          title: "Customer saved.",
+          variant: "success",
+        });
+        if (onSaved) {
+          onSaved();
+          router.refresh();
+          return;
+        }
 
-				router.push("/customers");
-				router.refresh();
-			},
-			onError: (error) => {
-				toast({
-					title: "Could not save customer.",
-					description: error.message,
-					variant: "destructive",
-				});
-			},
-		}),
-	);
+        router.push("/customers");
+        router.refresh();
+      },
+      onError: (error) => {
+        toast({
+          title: "Could not save customer.",
+          description: error.message,
+          variant: "destructive",
+        });
+      },
+    }),
+  );
 
-	useEffect(() => {
-		form.reset(getCustomerDefaultValues(customer ?? null));
-	}, [customer, form]);
+  useEffect(() => {
+    form.reset(getCustomerDefaultValues(customer ?? null));
+  }, [customer, form]);
 
-	const profiles = profilesQuery.data ?? [];
+  const profiles = profilesQuery.data ?? [];
+  const selectedProfile = profiles.find(
+    (profile) => profile.id === form.watch("customerTypeId"),
+  );
 
-	const cancelAction = onCancel ? (
-		<Button onClick={onCancel} type="button" variant="outline">
-			Cancel
-		</Button>
-	) : (
-		<Button asChild type="button" variant="outline">
-			<Link href="/customers">Cancel</Link>
-		</Button>
-	);
+  const cancelAction = onCancel ? (
+    <Button onClick={onCancel} type="button" variant="outline">
+      Cancel
+    </Button>
+  ) : (
+    <Button asChild type="button" variant="outline">
+      <Link href="/customers">Cancel</Link>
+    </Button>
+  );
 
-	const actions = (
-		<>
-			{cancelAction}
-			<CustomerQuickFill defaultProfileId={profiles[0]?.id ?? null} />
-			<Button
-				className="shadow-sm"
-				disabled={saveCustomer.isPending}
-				form={formId}
-				type="submit"
-			>
-				{saveCustomer.isPending ? "Saving..." : "Save customer"}
-			</Button>
-		</>
-	);
+  const actions = (
+    <>
+      {cancelAction}
+      <CustomerQuickFill defaultProfileId={profiles[0]?.id ?? null} />
+      <Button disabled={saveCustomer.isPending} form={formId} type="submit">
+        {saveCustomer.isPending ? "Saving..." : "Save customer"}
+      </Button>
+    </>
+  );
 
-	return (
-		<Form {...form}>
-			<section
-				className={cn(
-					"overflow-hidden",
-					mode === "page"
-						? "rounded-xl border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(251,191,36,0.16),_transparent_34%),linear-gradient(180deg,_#ffffff,_#f8fafc)] p-4 shadow-sm"
-						: "-mx-4 -mt-2 bg-[radial-gradient(circle_at_top_left,_rgba(251,191,36,0.18),_transparent_36%),linear-gradient(180deg,_#ffffff,_#f8fafc)] px-4 pb-4",
-				)}
-			>
-				<div className="mb-4 rounded-lg border border-amber-200/80 bg-gradient-to-br from-white via-white to-amber-50/70 p-4 shadow-sm">
-					<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-						<div className="min-w-0 space-y-2">
-							<div className="inline-flex w-fit items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-800">
-								<Sparkles className="size-3" />
-								Customer profile
-							</div>
-							<div>
-								<h2 className="text-xl font-semibold tracking-tight text-slate-950">
-									{customer?.id
-										? "Update customer details"
-										: "Create a customer"}
-								</h2>
-								<p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
-									Keep billing, sales profile, and delivery contact information
-									together before a quote or order moves forward.
-								</p>
-							</div>
-						</div>
-						<div className="flex shrink-0 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
-							<div className="flex size-8 items-center justify-center rounded-md bg-sky-50 text-sky-700">
-								<UsersRound className="size-4" />
-							</div>
-							<div>
-								<p className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-500">
-									Mode
-								</p>
-								<p className="text-sm font-semibold text-slate-900">
-									{customer?.id ? "Editing" : "New record"}
-								</p>
-							</div>
-						</div>
-					</div>
-				</div>
-				<form
-					id={formId}
-					key={customer?.id || "new-customer"}
-					onSubmit={form.handleSubmit((values) => saveCustomer.mutate(values))}
-				>
-					<FieldGroup className="grid gap-4">
-						<FormSection
-							description="Name and customer grouping"
-							icon={<UserRound className="size-4" />}
-							title="Identity"
-						>
-							<div className="grid gap-3 md:grid-cols-2">
-								<FormField
-									control={form.control}
-									name="name"
-									render={({ field }) => (
-										<FormItem className="relative">
-											<FormLabel>Name</FormLabel>
-											<FieldIcon>
-												<UserRound className="size-4" />
-											</FieldIcon>
-											<FormControl>
-												<InputGroup className="h-11 bg-slate-50/60 pl-10 focus-within:bg-white">
-													<InputGroup.Addon>
-														<InputGroup.Text>+1</InputGroup.Text>
-													</InputGroup.Addon>
-													<PatternFormat
-														customInput={InputGroup.Input}
-														format="###-###-####"
-														mask="_"
-														name={field.name}
-														getInputRef={field.ref}
-														inputMode="numeric"
-														autoComplete="tel-national"
-														placeholder="XXX-XXX-XXXX"
-														type="tel"
-														value={field.value ?? ""}
-														onBlur={field.onBlur}
-														onValueChange={({ formattedValue, value }) => {
-															if (!value) {
-																field.onChange("");
-																return;
-															}
+  return (
+    <Form {...form}>
+      <Card
+        className={cn(
+          "overflow-hidden rounded-lg border bg-background shadow-xl shadow-muted/40",
+          mode === "modal" && "-mx-4 -mt-2 rounded-none border-x-0 border-t-0",
+        )}
+      >
+        <form
+          id={formId}
+          key={customer?.id || "new-customer"}
+          onSubmit={form.handleSubmit((values) => saveCustomer.mutate(values))}
+        >
+          <CardContent className="grid gap-0 p-0 lg:grid-cols-[280px_1fr]">
+            <aside className="flex flex-col gap-5 border-b bg-muted/30 p-5 lg:border-r lg:border-b-0">
+              <div className="flex items-center gap-3">
+                <Avatar className="size-14 rounded-md border bg-background shadow-sm">
+                  <AvatarFallback className="rounded-md text-base font-semibold">
+                    {getCustomerInitials(customer)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">
+                    {getCustomerDisplayName(customer)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedProfile?.title || "No sales profile selected"}
+                  </p>
+                </div>
+              </div>
 
-															if (
-																US_PHONE_FORMAT_PATTERN.test(formattedValue)
-															) {
-																field.onChange(formattedValue);
-																return;
-															}
+              <Separator />
 
-															field.onChange(
-																formattedValue.replaceAll("_", ""),
-															);
-														}}
-													/>
-												</InputGroup>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="businessName"
-									render={({ field }) => (
-										<FormItem className="relative">
-											<FormLabel>Business name</FormLabel>
-											<FieldIcon>
-												<BriefcaseBusiness className="size-4" />
-											</FieldIcon>
-											<FormControl>
-												<Input
-													{...field}
-													className="h-11 bg-slate-50/60 pl-12 focus-visible:bg-white"
-													value={field.value ?? ""}
-												/>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="customerTypeId"
-									render={({ field }) => (
-										<FormItem className="md:col-span-2">
-											<FormLabel>Sales profile</FormLabel>
-											<Select
-												onValueChange={(value) =>
-													field.onChange(
-														value === "none" ? null : Number(value),
-													)
-												}
-												value={field.value ? String(field.value) : "none"}
-											>
-												<FormControl>
-													<SelectTrigger className="h-11 bg-slate-50/60 focus:bg-white">
-														<SelectValue placeholder="None" />
-													</SelectTrigger>
-												</FormControl>
-												<SelectContent>
-													<SelectGroup>
-														<SelectItem value="none">None</SelectItem>
-														{profiles.map((profile) => (
-															<SelectItem
-																key={profile.id}
-																value={String(profile.id)}
-															>
-																{formatSalesProfileOption(profile)}
-															</SelectItem>
-														))}
-													</SelectGroup>
-												</SelectContent>
-											</Select>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-							</div>
-						</FormSection>
+              <div className="flex flex-col gap-2">
+                <RailRow label="Identity" value="Required" />
+                <RailRow label="Contact" value="Recommended" />
+                <RailRow label="Profiles" value={profiles.length || 0} />
+              </div>
 
-						<FormSection
-							description="Contact and delivery details"
-							icon={<Phone className="size-4" />}
-							title="Reachability"
-						>
-							<div className="grid gap-3 md:grid-cols-2">
-								<FormField
-									control={form.control}
-									name="email"
-									render={({ field }) => (
-										<FormItem className="relative">
-											<FormLabel>Email</FormLabel>
-											<FieldIcon>
-												<Mail className="size-4" />
-											</FieldIcon>
-											<FormControl>
-												<Input
-													{...field}
-													className="h-11 bg-slate-50/60 pl-12 focus-visible:bg-white"
-													onChange={(event) =>
-														field.onChange(
-															event.currentTarget.value.toLowerCase(),
-														)
-													}
-													type="email"
-													value={field.value ?? ""}
-												/>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="phoneNo"
-									render={({ field }) => (
-										<FormItem className="relative">
-											<FormLabel>Phone</FormLabel>
-											<FieldIcon>
-												<Phone className="size-4" />
-											</FieldIcon>
-											<FormControl>
-												<Input
-													{...field}
-													className="h-11 bg-slate-50/60 pl-12 focus-visible:bg-white"
-													value={field.value ?? ""}
-												/>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-								<FormField
-									control={form.control}
-									name="address"
-									render={({ field }) => (
-										<FormItem className="relative md:col-span-2">
-											<FormLabel>Address</FormLabel>
-											<FieldIcon>
-												<MapPin className="size-4" />
-											</FieldIcon>
-											<FormControl>
-												<Textarea
-													{...field}
-													className="min-h-24 bg-slate-50/60 pl-12 pt-3 focus-visible:bg-white"
-													rows={4}
-													value={field.value ?? ""}
-												/>
-											</FormControl>
-											<FormMessage />
-										</FormItem>
-									)}
-								/>
-							</div>
-						</FormSection>
+              <div className="rounded-lg border bg-background p-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <UsersRound className="size-4 text-muted-foreground" />
+                  Sales workflow
+                </div>
+                <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                  Customer data here is reused across documents, payment flows,
+                  and account views.
+                </p>
+              </div>
+            </aside>
 
-						{renderActions ? null : (
-							<div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-								{actions}
-							</div>
-						)}
-					</FieldGroup>
-				</form>
-				{renderActions ? renderActions(actions) : null}
-			</section>
-		</Form>
-	);
+            <FieldGroup className="gap-0 divide-y">
+              <div className="flex flex-col gap-4 p-5 md:p-6">
+                <SectionHeading icon={<UserRound className="size-4" />}>
+                  Identity
+                </SectionHeading>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Name</FormLabel>
+                        <InputGroup className="h-11 bg-background">
+                          <FormControl>
+                            <InputGroup.Input
+                              {...field}
+                              value={field.value ?? ""}
+                            />
+                          </FormControl>
+                          <InputGroup.Addon align="inline-start">
+                            <UserRound />
+                          </InputGroup.Addon>
+                        </InputGroup>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="businessName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Business name</FormLabel>
+                        <InputGroup className="h-11 bg-background">
+                          <FormControl>
+                            <InputGroup.Input
+                              {...field}
+                              value={field.value ?? ""}
+                            />
+                          </FormControl>
+                          <InputGroup.Addon align="inline-start">
+                            <Building2 />
+                          </InputGroup.Addon>
+                        </InputGroup>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="customerTypeId"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Sales profile</FormLabel>
+                        <Select
+                          onValueChange={(value) =>
+                            field.onChange(
+                              value === "none" ? null : Number(value),
+                            )
+                          }
+                          value={field.value ? String(field.value) : "none"}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="h-11 bg-background">
+                              <SelectValue placeholder="None" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectGroup>
+                              <SelectItem value="none">None</SelectItem>
+                              {profiles.map((profile) => (
+                                <SelectItem
+                                  key={profile.id}
+                                  value={String(profile.id)}
+                                >
+                                  {formatSalesProfileOption(profile)}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-4 p-5 md:p-6">
+                <SectionHeading icon={<BriefcaseBusiness className="size-4" />}>
+                  Contact
+                </SectionHeading>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <InputGroup className="h-11 bg-background">
+                          <FormControl>
+                            <InputGroup.Input
+                              {...field}
+                              onChange={(event) =>
+                                field.onChange(
+                                  event.currentTarget.value.toLowerCase(),
+                                )
+                              }
+                              type="email"
+                              value={field.value ?? ""}
+                            />
+                          </FormControl>
+                          <InputGroup.Addon align="inline-start">
+                            <Mail />
+                          </InputGroup.Addon>
+                        </InputGroup>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="phoneNo"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone</FormLabel>
+                        <InputGroup className="h-11 bg-background">
+                          <FormControl>
+                            <PatternFormat
+                              autoComplete="tel-national"
+                              customInput={InputGroup.Input}
+                              format="###-###-####"
+                              getInputRef={field.ref}
+                              inputMode="numeric"
+                              mask="_"
+                              name={field.name}
+                              onBlur={field.onBlur}
+                              onValueChange={({ formattedValue, value }) => {
+                                if (!value) {
+                                  field.onChange("");
+                                  return;
+                                }
+
+                                if (
+                                  US_PHONE_FORMAT_PATTERN.test(formattedValue)
+                                ) {
+                                  field.onChange(formattedValue);
+                                  return;
+                                }
+
+                                field.onChange(
+                                  formattedValue.replaceAll("_", ""),
+                                );
+                              }}
+                              placeholder="XXX-XXX-XXXX"
+                              type="tel"
+                              value={field.value ?? ""}
+                            />
+                          </FormControl>
+                          <InputGroup.Addon align="inline-start">
+                            <InputGroup.Text>+1</InputGroup.Text>
+                          </InputGroup.Addon>
+                          <InputGroup.Addon align="inline-end">
+                            <Phone />
+                          </InputGroup.Addon>
+                        </InputGroup>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Address</FormLabel>
+                        <GoogleAddressInput
+                          onAddressChange={(address) => {
+                            const formatted = address.formattedAddress || "";
+                            field.onChange(formatted);
+                            form.setValue("formattedAddress", formatted);
+                            form.setValue("address1", address.address1 || "");
+                            form.setValue("address2", address.address2 || "");
+                            form.setValue("city", address.city || "");
+                            form.setValue(
+                              "state",
+                              address.region || address.state || "",
+                            );
+                            form.setValue("zip_code", address.postalCode || "");
+                            form.setValue("country", address.country || "");
+                            form.setValue("lat", address.lat ?? null);
+                            form.setValue("lng", address.lng ?? null);
+                          }}
+                          value={formattedAddress}
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="address1"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Address line 1</FormLabel>
+                        <InputGroup className="h-11 bg-background">
+                          <FormControl>
+                            <InputGroup.Input
+                              {...field}
+                              value={field.value ?? ""}
+                            />
+                          </FormControl>
+                          <InputGroup.Addon align="inline-start">
+                            <MapPin />
+                          </InputGroup.Addon>
+                        </InputGroup>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="address2"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Address line 2</FormLabel>
+                        <InputGroup className="h-11 bg-background">
+                          <FormControl>
+                            <InputGroup.Input
+                              {...field}
+                              value={field.value ?? ""}
+                            />
+                          </FormControl>
+                          <InputGroup.Addon align="inline-start">
+                            <Building2 />
+                          </InputGroup.Addon>
+                        </InputGroup>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="city"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>City</FormLabel>
+                        <InputGroup className="h-11 bg-background">
+                          <FormControl>
+                            <InputGroup.Input
+                              {...field}
+                              value={field.value ?? ""}
+                            />
+                          </FormControl>
+                        </InputGroup>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="state"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>State / Province</FormLabel>
+                        <InputGroup className="h-11 bg-background">
+                          <FormControl>
+                            <InputGroup.Input
+                              {...field}
+                              value={field.value ?? ""}
+                            />
+                          </FormControl>
+                        </InputGroup>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="zip_code"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ZIP / Postal code</FormLabel>
+                        <InputGroup className="h-11 bg-background">
+                          <FormControl>
+                            <InputGroup.Input
+                              {...field}
+                              value={field.value ?? ""}
+                            />
+                          </FormControl>
+                        </InputGroup>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="country"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Country</FormLabel>
+                        <InputGroup className="h-11 bg-background">
+                          <FormControl>
+                            <InputGroup.Input
+                              {...field}
+                              value={field.value ?? ""}
+                            />
+                          </FormControl>
+                        </InputGroup>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            </FieldGroup>
+          </CardContent>
+
+          {renderActions ? null : (
+            <CardFooter className="flex flex-col gap-2 bg-muted/30 sm:flex-row sm:justify-end">
+              {actions}
+            </CardFooter>
+          )}
+        </form>
+        {renderActions ? renderActions(actions) : null}
+      </Card>
+    </Form>
+  );
 }

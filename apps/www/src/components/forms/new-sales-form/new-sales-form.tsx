@@ -4,6 +4,7 @@ import { triggerEvent } from "@/actions/events";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { updateSalesMetaAction } from "@/actions/update-sales-meta-action";
 import { _modal } from "@/components/common/modal/provider";
+import { Env } from "@/components/env";
 import { SalesMenu } from "@/components/sales-menu";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { useAuth } from "@/hooks/use-auth";
@@ -83,6 +84,16 @@ const ItemWorkflowPanel = dynamic(
 	},
 );
 
+const WwwSalesFormWorkflowPanel = dynamic(
+	() =>
+		import("./sections/www-sales-form-workflow-panel").then(
+			(mod) => mod.WwwSalesFormWorkflowPanel,
+		),
+	{
+		loading: () => <WorkflowPanelSkeleton />,
+	},
+);
+
 const SalesHistory = dynamic(
 	() =>
 		import("@/components/sales-hx").then((mod) => mod.SalesHistory),
@@ -128,6 +139,29 @@ function promptForInboundStatus(currentStatus?: string | null) {
 		"Has the product not in stock been ordered?",
 	);
 	return productOrdered ? "ORDERED" : "PENDING ORDER";
+}
+
+function PackageWorkflowPanelDevToggle({
+	enabled,
+	onChange,
+}: {
+	enabled: boolean;
+	onChange: (enabled: boolean) => void;
+}) {
+	return (
+		<Env isDev>
+			<div className="fixed bottom-3 left-3 z-50 rounded-lg border bg-background/95 p-2 text-xs shadow-lg">
+				<label className="flex items-center gap-2">
+					<input
+						type="checkbox"
+						checked={enabled}
+						onChange={(event) => onChange(event.target.checked)}
+					/>
+					<span>Package workflow panel</span>
+				</label>
+			</div>
+		</Env>
+	);
 }
 
 function getLineTitlePlaceholder(line: {
@@ -581,6 +615,8 @@ export function NewSalesForm(props: Props) {
 	const [paymentReviewOpen, setPaymentReviewOpen] = useState(false);
 	const [paymentReviewSeen, setPaymentReviewSeen] = useState(false);
 	const [manualSaveLock, setManualSaveLock] = useState(false);
+	const [usePackageWorkflowPanel, setUsePackageWorkflowPanel] =
+		useState(false);
 	const record = useNewSalesFormStore((s) => s.record);
 	const dirty = useNewSalesFormStore((s) => s.dirty);
 	const saveStatus = useNewSalesFormStore((s) => s.saveStatus);
@@ -1482,6 +1518,10 @@ export function NewSalesForm(props: Props) {
 				slug={record.slug || props.slug}
 				orderId={record.orderId}
 			/>
+			<PackageWorkflowPanelDevToggle
+				enabled={usePackageWorkflowPanel}
+				onChange={setUsePackageWorkflowPanel}
+			/>
 			<SalesFormShell
 				mode={props.mode}
 				type={props.type}
@@ -1578,7 +1618,11 @@ export function NewSalesForm(props: Props) {
 							</div>
 						</div>
 					) : null,
-					MainPanel: <ItemWorkflowPanel />,
+					MainPanel: usePackageWorkflowPanel ? (
+						<WwwSalesFormWorkflowPanel />
+					) : (
+						<ItemWorkflowPanel />
+					),
 					FloatingActions: (
 						<NewSalesFormFloatingActions
 							type={props.type}

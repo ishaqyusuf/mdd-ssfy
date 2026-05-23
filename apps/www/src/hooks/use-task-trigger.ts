@@ -1,9 +1,9 @@
 import { toast } from "@gnd/ui/use-toast";
 import { useAction } from "next-safe-action/hooks";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRealtimeRun } from "@trigger.dev/react-hooks";
 import { triggerTask } from "@/actions/trigger-task";
-import { useTaskNotificationParams } from "./use-task-notification-params";
+import { useTaskMonitorStore } from "@/store/task-monitor";
 import { useAuth } from "./use-auth";
 import { TaskName } from "@jobs/schema";
 import { useAfterState } from "@gnd/ui/hooks/use-after-state";
@@ -36,7 +36,7 @@ export function useTaskTrigger(props?: Props) {
         accessToken,
     });
     const auth = useAuth();
-    const { pushTask } = useTaskNotificationParams();
+    const addTask = useTaskMonitorStore((state) => state.addTask);
     useEffect(() => {
         if (status === "FAILED") {
             // setIsImporting(false);
@@ -99,17 +99,29 @@ export function useTaskTrigger(props?: Props) {
         },
         onSuccess({ data }) {
             // if (props?.debug) console.log({ data });
-            // if (data) {
+            if (!data?.id || !data?.publicAccessToken) {
+                setRunId(undefined);
+                setAccessToken(undefined);
+                setStatus("FAILED");
+                if (!props.silent)
+                    toast({
+                        duration: 3500,
+                        variant: "error",
+                        description: errorToast,
+                        title: "Unable to start task",
+                    });
+                return;
+            }
             setRunId(data.id);
             setAccessToken(data.publicAccessToken);
-            // }
             if (!props.silent)
-                pushTask(
-                    data.id,
-                    data.publicAccessToken,
-                    props.taskTitle || executingToast || successToast,
-                    props.taskDescription || executingToast
-                );
+                addTask({
+                    runId: data.id,
+                    accessToken: data.publicAccessToken,
+                    ownerId: auth.id == null ? null : String(auth.id),
+                    title: props.taskTitle || executingToast || successToast,
+                    description: props.taskDescription || executingToast,
+                });
             props?.onStarted?.();
         },
         onError(e) {
@@ -148,9 +160,7 @@ export function useTaskTrigger(props?: Props) {
 
 export function useAfterTaskTrigger(func: () => void) {
     const [runningId, setRunningId] = useState<null | string>(null);
-    const {
-        filters: { tasks },
-    } = useTaskNotificationParams();
+    const tasks = useTaskMonitorStore((state) => state.tasks);
 
     useAfterState(tasks, func);
 }

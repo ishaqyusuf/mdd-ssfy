@@ -11,12 +11,12 @@ export type WorkflowComponentRedirectOption = {
 
 export type WorkflowComponentActionMenuProps = {
 	redirectOptions: WorkflowComponentRedirectOption[];
-	onEdit: () => void;
-	onEditSectionOverride: () => void;
+	onEdit?: () => void;
+	onEditSectionOverride?: () => void;
 	onSelect: () => void;
-	onClearRedirect: () => void;
-	onSetRedirect: (uid: string) => void;
-	onDelete: () => void;
+	onClearRedirect?: () => void;
+	onSetRedirect?: (uid: string) => void;
+	onDelete?: () => void;
 };
 
 export function WorkflowComponentActionMenu(
@@ -30,32 +30,42 @@ export function WorkflowComponentActionMenu(
 				</Button>
 			}
 		>
-			<Menu.Item onClick={props.onEdit}>Edit</Menu.Item>
-			<Menu.Item onClick={props.onEditSectionOverride}>
-				Section Setting Override
-			</Menu.Item>
+			{props.onEdit ? <Menu.Item onClick={props.onEdit}>Edit</Menu.Item> : null}
+			{props.onEditSectionOverride ? (
+				<Menu.Item onClick={props.onEditSectionOverride}>
+					Section Setting Override
+				</Menu.Item>
+			) : null}
 			<Menu.Item onClick={props.onSelect}>Select</Menu.Item>
-			<Menu.Item
-				disabled={!props.redirectOptions.length}
-				SubMenu={[
-					<Menu.Item key="redirect-none" onClick={props.onClearRedirect}>
-						Cancel Redirect
-					</Menu.Item>,
-					...props.redirectOptions.map((step) => (
-						<Menu.Item
-							key={`redirect-${step.uid}`}
-							onClick={() => props.onSetRedirect(step.uid)}
-						>
-							{step.title}
-						</Menu.Item>
-					)),
-				]}
-			>
-				Redirect
-			</Menu.Item>
-			<Menu.Item className="text-red-600" onClick={props.onDelete}>
-				Delete
-			</Menu.Item>
+			{props.onSetRedirect || props.onClearRedirect ? (
+				<Menu.Item
+					disabled={!props.redirectOptions.length && !props.onClearRedirect}
+					SubMenu={[
+						props.onClearRedirect ? (
+							<Menu.Item key="redirect-none" onClick={props.onClearRedirect}>
+								Cancel Redirect
+							</Menu.Item>
+						) : null,
+						...(props.onSetRedirect
+							? props.redirectOptions.map((step) => (
+									<Menu.Item
+										key={`redirect-${step.uid}`}
+										onClick={() => props.onSetRedirect?.(step.uid)}
+									>
+										{step.title}
+									</Menu.Item>
+								))
+							: []),
+					].filter(Boolean)}
+				>
+					Redirect
+				</Menu.Item>
+			) : null}
+			{props.onDelete ? (
+				<Menu.Item className="text-red-600" onClick={props.onDelete}>
+					Delete
+				</Menu.Item>
+			) : null}
 		</Menu>
 	);
 }

@@ -67,8 +67,8 @@ References:
 
 | Task ID | Source Rows | Scope | Exit Criteria | Status |
 | --- | --- | --- | --- | --- |
-| `NSF-P4-001` | Repro rows 12, 13, 14, 16, 17, 18, 20 | Component action/menu/badge/edit/redirect display parity. | Component actions and indicators match acceptance criteria in browser runtime. | Runtime proof pending |
-| `NSF-P5-001` | Repro rows 4, 19, 21, 22, 23, 24 | Door modal, HPT add-size/add-door, moulding dialog UX parity. | Modal interactions match old-form acceptance criteria. | Runtime proof pending |
+| `NSF-P4-001` | Repro rows 12, 13, 14, 16, 17, 18, 20 | Component action/menu/badge/edit/redirect display parity. | Component actions and indicators match acceptance criteria in browser runtime. | Package action slots + first `www` host actions wired; browser proof pending |
+| `NSF-P5-001` | Repro rows 4, 19, 21, 22, 23, 24 | Door modal, HPT add-size/add-door, moulding dialog UX parity. | Modal interactions match old-form acceptance criteria. | Package Door/HPT default implemented; browser proof pending |
 
 ## Phase 6/7 Task Map
 
@@ -76,7 +76,7 @@ References:
 | --- | --- | --- | --- | --- |
 | `NSF-P6-001` | Repro row 27 | Fix `www` load error retry visibility. | Failed bootstrap/get renders retry UI instead of skeleton. | Implemented; browser proof pending |
 | `NSF-P6-002` | Repro row 28 | Implement strict surface-specific header/action gating. | `www` and dealership only expose wired meaningful actions. | Implemented; browser proof pending |
-| `NSF-P7-001` | Acceptance: Dealership create/edit/save/convert | Complete dealership quote runtime proof. | Dealer quote create/edit/save/convert passes fixture checks with `salesPercentage`. | Unit/query proof partial; browser proof pending |
+| `NSF-P7-001` | Acceptance: Dealership create/edit/save/convert | Complete dealership quote runtime proof. | Dealer quote create/edit/save/convert passes fixture checks with `salesPercentage`. | Migration harness passing with dealer-protected workflow references; browser proof pending |
 
 ## QA/Environment Task Map
 
@@ -88,6 +88,7 @@ References:
 
 ## Immediate Next Implementation Order
 
-1. Phase 3 follow-up: decide whether dealer server persistence should stay local or move behind a lower-level shared contract to avoid `@gnd/db` -> `@gnd/sales` package coupling.
-2. `NSF-QA-002` and `NSF-QA-003`: resume browser proof as soon as valid local `www` and dealership sessions are available.
-3. `NSF-P4-001` and `NSF-P5-001`: continue runtime/UI parity once browser access is available.
+1. Finish the remaining `www` host-slot adapter work around `SalesFormWorkflowPanel`, especially door-size variant authoring, supplier management, and app-specific calculators.
+2. Continue the package UI design-system pass so shelf/HPT/door defaults visually match the real form engine instead of ad-hoc fallback panels.
+3. `NSF-QA-002` and `NSF-QA-003`: resume browser proof as soon as valid local `www` and dealership sessions are available.
+4. Keep `bun run test:new-sales-form-migration` green before and after each migration slice, including the watched-file `www` typecheck signal.
