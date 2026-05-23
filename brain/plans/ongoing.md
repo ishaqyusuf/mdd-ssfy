@@ -125,6 +125,26 @@ Continue the Sales Default Action Queue Cleanup plan from `brain/plans/ongoing.m
 - Related Files: apps/dealership, apps/dealership/src/app/api/auth/[...all]/route.ts, apps/dealership/src/app/api/trpc/[...trpc]/route.ts, apps/dealership/src/lib/dealer-session.ts, apps/www/src/app/(sidebar)/(sales)/sales-book/dealers/page.tsx, apps/www/src/components/dealers/dealers-admin-page.tsx, apps/api/src/schemas/dealer.ts, apps/api/src/trpc/init.ts, apps/api/src/trpc/routers/dealer.route.ts, apps/api/src/trpc/routers/dealer-portal.route.ts, apps/api/src/trpc/routers/_app.ts, packages/auth/src/better-auth/dealership.ts, packages/db/src/queries/dealers.ts, packages/db/src/queries/index.ts, packages/db/src/schema/dealer.better-auth.prisma, packages/db/src/schema/sales.customer.prisma, packages/db/src/schema/sales.prisma, packages/db/src/schema/migrations/20260515120000_dealership_foundation/migration.sql, packages/db/src/schema/migrations/20260515123000_dealership_better_auth/migration.sql, packages/notifications/src/channels.ts, packages/notifications/src/payload-utils/channel-triggers.ts, packages/notifications/src/schemas.ts, packages/notifications/src/types/dealer-onboarding.ts, packages/email/emails/dealer-onboarding.tsx, packages/sales/src/sales-form, packages/sales/src/print/get-print-document-data.ts
 - Last Updated: 2026-05-18
 
+### Quote-to-Order Approval Addendum
+- Status: Planned
+- Objective: Replace dealer-owned direct quote-to-order conversion with a sales-rep approval workflow while preserving dealer quote creation/editing, dual pricing, package workflow payloads, print/PDF behavior, and payment handoff.
+- Current Phase: Product plan captured in Brain; implementation should wait until package-backed dealership form browser QA has authenticated fixtures.
+- Next Step: After authenticated dealership browser QA passes, add `dealerPortal.requestQuoteOrder`, internal request review/count/approval APIs, sales rep notifications, manual delivery-cost review, dealer payment-link email, dealer sales/quotes tabs with count badges and query filters, sales-header pending request indicator, and dealer dashboard analytics.
+- Blockers: Authenticated dealership and `www` browser QA are still blocked by missing local DB/session fixtures; direct conversion currently exists and must not be removed until the request workflow is implemented and tested.
+- Related Files: brain/features/dealership-quote-to-order-approval.md, brain/new-sales-form-phase27-browser-qa.md, brain/new-sales-form-completion-roadmap.md, brain/dealership-cutover-readiness.md, brain/dealer-tax-tracking-client-memo.md, apps/api/src/trpc/routers/dealer-portal.route.ts, packages/db/src/queries/dealers.ts, packages/db/src/schema/sales.customer.prisma, packages/db/src/schema/sales.prisma, packages/notifications/src, packages/email/emails, apps/dealership/src/components/dealer-sales-form, apps/dealership/src/components/dealer-portal, apps/www/src/components/notification-center
+- Last Updated: 2026-05-23
+
+### Planned Approval Workflow Steps
+1. Replace the dealer-facing `Convert to order` action with `Request order` while keeping quote create/edit unchanged.
+2. Store one pending `quote_to_order` request per dealer-owned quote and expose request state on dealer quote lists/details.
+3. Notify eligible sales reps in app and by email with a deep link to internal request review.
+4. Approve requests transactionally: lock pending request, convert quote once, assign the approving sales rep, add reviewed delivery cost, stamp approval metadata, and resolve/send the dealer payment link.
+5. Show already-worked information for later sales rep clicks instead of approving twice.
+6. Add Dealer Sales / Dealer Quotes tabs with count badges and dealer-facing query filters.
+7. Add a sales-header pending dealer request indicator.
+8. Add dealer dashboard analytics for quotes, requests, orders, amount due, paid revenue, customers, and recent activity.
+9. Preserve dealer/customer invoice address modes and dual-pricing visibility rules.
+
 ### Sales Form Migration 100% Phase Checklist
 1. [x] Phase 1: Finish workflow action extraction. Extracted door/HPT mutations, component edit and price override actions, moulding removal/update helpers, and kept `www` as prompt/modal/tRPC/upload/Zustand adapter only. Added focused package tests for every action module.
 2. [x] Phase 2: Complete shared workflow renderer. Moved HPT presentation to `HousePackageToolPanel`, shelf shell to `WorkflowShelfPanel`, and step component picker/card/action/popover layout to `WorkflowStepComponentPanel`. `WorkflowStepRenderer` owns the first package branch boundary, while `www` keeps only app data, persistence callbacks, prompts, dev logging, supplier APIs, uploads, and modal state.

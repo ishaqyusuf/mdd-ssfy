@@ -11,7 +11,6 @@ Operational rules for AI agents contributing to this repository.
 - Leave compatibility breadcrumbs when moving or reorganizing existing documentation.
 - Keep historical logs in `brain/progress.md` unless a future migration explicitly relocates them.
 - For Next.js work in `apps/www`, `apps/dealership`, or shared React UI consumed by either app, always use the repository's Next.js skill set before implementing or reviewing:
-  - `vercel:react-best-practices`
   - `vercel-react-best-practices`
   - `agency-engineering` with the Frontend Developer specialist by default
   - `agency-design` with the UI Designer specialist by default

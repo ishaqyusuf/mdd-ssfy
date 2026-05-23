@@ -4,8 +4,11 @@
 
 ## 2026-05-23
 
+- Documented the missing dealership quote-to-order approval product plan in `brain/features/dealership-quote-to-order-approval.md`, covering dealer quote-only creation, order request submission, sales rep notifications, first-approver order assignment, already-worked states, manual delivery-cost review, dealer payment-link handoff, invoice modes, dealer sales/quotes tabs, query filters, sales-header pending request indicator, dashboard analytics, and validation gates.
+- Updated Brain active tracking so the dealership quote-to-order approval workflow appears in `brain/tasks/in-progress.md` and `brain/plans/ongoing.md` as a planned addendum to the Dealership Program.
+- Updated the Next.js required-skill Brain docs to remove `vercel:react-best-practices`; `vercel-react-best-practices`, `agency-engineering`, `agency-design`, and `shadcn` remain required for `apps/www`, `apps/dealership`, and shared sales UI work.
 - Added a durable Brain rule for Next.js work in `apps/www`, `apps/dealership`, and shared React UI consumed by either app.
-  - required future agents to load and apply `vercel:react-best-practices`, `vercel-react-best-practices`, `agency-engineering`, `agency-design`, and `shadcn` before implementing or reviewing those surfaces
+  - required future agents to load and apply the repository's Next.js skill set before implementing or reviewing those surfaces; this requirement was later narrowed on 2026-05-23 to remove `vercel:react-best-practices`
   - defaulted `agency-engineering` to the Frontend Developer specialist and `agency-design` to the UI Designer specialist for interface work unless a task clearly routes elsewhere
   - called out dealership quote/new-sales-form UI migration and shared `@gnd/sales/sales-form` package UI as explicit scope
   - added a pointer from the Brain entry point to the standing AI/skill requirement docs

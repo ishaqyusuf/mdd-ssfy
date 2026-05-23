@@ -10,7 +10,6 @@ Short prompt-level guardrails for future AI sessions working in this repository.
 - Use `TODO:` markers for unknown implementation details instead of guessing.
 - Keep Brain markdown concise, factual, and easy to diff.
 - For Next.js work in `apps/www`, `apps/dealership`, or shared React UI consumed by either app, always load and apply these skills before implementation or review:
-  - `vercel:react-best-practices`
   - `vercel-react-best-practices`
   - `agency-engineering` using the Frontend Developer specialist unless the task clearly routes elsewhere
   - `agency-design` using the UI Designer specialist for interface work unless the task clearly routes elsewhere

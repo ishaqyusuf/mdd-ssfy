@@ -54,6 +54,9 @@ export async function buildSalesPdfAttachment(
 		companyAddress: documentData.companyAddress,
 		logoUrl: documentData.logoUrl ?? undefined,
 		baseUrl: getAppUrl() || "http://localhost:3000",
+		config: {
+			showImages: false,
+		},
 	});
 
 	return {
