@@ -10,6 +10,7 @@ import {
   dealerPortalSalesProfileSchema,
   dealerPortalSettingsSchema,
 } from "@api/schemas/dealer";
+import { z } from "zod";
 import { getDealershipCustomersFilter } from "@api/filters/dealership-customers-filter";
 import { getDealershipOrdersFilter } from "@api/filters/dealership-orders-filter";
 import { getDealershipQuotesFilter } from "@api/filters/dealership-quotes-filter";
@@ -41,7 +42,6 @@ import {
 } from "@api/db/queries/new-sales-form";
 import {
   getStepComponents,
-  getStepComponentsSchema,
   getSuppliers,
   getSuppliersSchema,
 } from "@api/db/queries/sales-form";
@@ -56,9 +56,9 @@ import {
 } from "@api/utils/dealer-workflow-visibility";
 import { createTRPCRouter, dealerProtectedProcedure } from "../init";
 
-const dealerWorkflowStepComponentsSchema = getStepComponentsSchema.pick({
-  stepTitle: true,
-  stepId: true,
+const dealerWorkflowStepComponentsSchema = z.object({
+  stepTitle: z.string().optional().nullable(),
+  stepId: z.number().optional(),
 });
 
 export const dealerPortalRouter = createTRPCRouter({

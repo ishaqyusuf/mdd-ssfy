@@ -2,112 +2,138 @@ import { z } from "zod";
 
 export const salesFormJsonRecordSchema = z.record(z.string(), z.unknown());
 
-export const salesFormWorkflowStepRefSchema = z.object({
-  id: z.number().optional().nullable(),
-  uid: z.string().optional().nullable(),
-  title: z.string().optional().nullable(),
-});
+export const salesFormWorkflowStepRefSchema = z
+  .object({
+    id: z.number().optional().nullable(),
+    uid: z.string().optional().nullable(),
+    title: z.string().optional().nullable(),
+  })
+  .passthrough();
 export type SalesFormWorkflowStepRef = z.infer<
   typeof salesFormWorkflowStepRefSchema
 >;
 
-export const salesFormWorkflowStepSchema = z.object({
-  id: z.number().optional().nullable(),
-  stepId: z.number().optional().nullable(),
-  componentId: z.number().optional().nullable(),
-  prodUid: z.string().optional().nullable(),
-  value: z.string().optional().nullable(),
-  qty: z.number().optional().nullable(),
-  price: z.number().optional().nullable(),
-  basePrice: z.number().optional().nullable(),
-  meta: salesFormJsonRecordSchema.optional().nullable(),
-  step: salesFormWorkflowStepRefSchema.optional().nullable(),
-});
+export const salesFormWorkflowStepSchema = z
+  .object({
+    id: z.number().optional().nullable(),
+    stepId: z.number().optional().nullable(),
+    componentId: z.number().optional().nullable(),
+    prodUid: z.string().optional().nullable(),
+    value: z.string().optional().nullable(),
+    qty: z.number().optional().nullable(),
+    price: z.number().optional().nullable(),
+    basePrice: z.number().optional().nullable(),
+    meta: salesFormJsonRecordSchema.optional().nullable(),
+    step: salesFormWorkflowStepRefSchema.optional().nullable(),
+  })
+  .passthrough();
 export type SalesFormWorkflowStep = z.infer<typeof salesFormWorkflowStepSchema>;
 
-export const salesFormShelfItemSchema = z.object({
-  id: z.number().optional().nullable(),
-  categoryId: z.number().optional().nullable(),
-  parentCategoryId: z.number().optional().nullable(),
-  productId: z.number().optional().nullable(),
-  description: z.string().optional().nullable(),
-  qty: z.number().optional().nullable(),
-  unitPrice: z.number().optional().nullable(),
-  totalPrice: z.number().optional().nullable(),
-  meta: salesFormJsonRecordSchema.optional().nullable(),
-});
+export const salesFormShelfItemSchema = z
+  .object({
+    id: z.number().optional().nullable(),
+    categoryId: z.number().optional().nullable(),
+    parentCategoryId: z.number().optional().nullable(),
+    productId: z.number().optional().nullable(),
+    description: z.string().optional().nullable(),
+    qty: z.number().optional().nullable(),
+    unitPrice: z.number().optional().nullable(),
+    totalPrice: z.number().optional().nullable(),
+    meta: salesFormJsonRecordSchema.optional().nullable(),
+  })
+  .passthrough();
 export type SalesFormShelfItem = z.infer<typeof salesFormShelfItemSchema>;
 
-export const salesFormHousePackageToolDoorSchema = z.object({
-  id: z.number().optional().nullable(),
-  dimension: z.string().optional().nullable(),
-  swing: z.string().optional().nullable(),
-  doorType: z.string().optional().nullable(),
-  doorPrice: z.number().optional().nullable(),
-  jambSizePrice: z.number().optional().nullable(),
-  casingPrice: z.number().optional().nullable(),
-  unitPrice: z.number().optional().nullable(),
-  lhQty: z.number().optional().nullable(),
-  rhQty: z.number().optional().nullable(),
-  totalQty: z.number().optional().nullable(),
-  lineTotal: z.number().optional().nullable(),
-  stepProductId: z.number().optional().nullable(),
-  meta: salesFormJsonRecordSchema.optional().nullable(),
-});
+export const salesFormHousePackageToolDoorSchema = z
+  .object({
+    id: z.number().optional().nullable(),
+    dimension: z.string().optional().nullable(),
+    swing: z.string().optional().nullable(),
+    doorType: z.string().optional().nullable(),
+    doorPrice: z.number().optional().nullable(),
+    jambSizePrice: z.number().optional().nullable(),
+    casingPrice: z.number().optional().nullable(),
+    unitPrice: z.number().optional().nullable(),
+    lhQty: z.number().optional().nullable(),
+    rhQty: z.number().optional().nullable(),
+    totalQty: z.number().optional().nullable(),
+    lineTotal: z.number().optional().nullable(),
+    stepProductId: z.number().optional().nullable(),
+    meta: salesFormJsonRecordSchema.optional().nullable(),
+  })
+  .passthrough();
 export type SalesFormHousePackageToolDoor = z.infer<
   typeof salesFormHousePackageToolDoorSchema
 >;
 
-export const salesFormHousePackageToolSchema = z.object({
-  id: z.number().optional().nullable(),
-  height: z.string().optional().nullable(),
-  doorType: z.string().optional().nullable(),
-  doorId: z.number().optional().nullable(),
-  dykeDoorId: z.number().optional().nullable(),
-  jambSizeId: z.number().optional().nullable(),
-  casingId: z.number().optional().nullable(),
-  moldingId: z.number().optional().nullable(),
-  stepProductId: z.number().optional().nullable(),
-  totalPrice: z.number().optional().nullable(),
-  totalDoors: z.number().optional().nullable(),
-  meta: salesFormJsonRecordSchema.optional().nullable(),
-  molding: salesFormWorkflowStepRefSchema
-    .extend({
-      value: z.string().optional().nullable(),
-      price: z.number().optional().nullable(),
-    })
-    .optional()
-    .nullable(),
-  doors: z.array(salesFormHousePackageToolDoorSchema).optional().nullable(),
-});
+export const salesFormHousePackageToolSchema = z
+  .object({
+    id: z.number().optional().nullable(),
+    height: z.string().optional().nullable(),
+    doorType: z.string().optional().nullable(),
+    doorId: z.number().optional().nullable(),
+    dykeDoorId: z.number().optional().nullable(),
+    jambSizeId: z.number().optional().nullable(),
+    casingId: z.number().optional().nullable(),
+    moldingId: z.number().optional().nullable(),
+    stepProductId: z.number().optional().nullable(),
+    totalPrice: z.number().optional().nullable(),
+    totalDoors: z.number().optional().nullable(),
+    meta: salesFormJsonRecordSchema.optional().nullable(),
+    molding: z
+      .object({
+        id: z.number().optional().nullable(),
+        uid: z.string().optional().nullable(),
+        title: z.string().optional().nullable(),
+        value: z.string().optional().nullable(),
+        price: z.number().optional().nullable(),
+      })
+      .passthrough()
+      .optional()
+      .nullable(),
+    doors: z.array(salesFormHousePackageToolDoorSchema).optional().nullable(),
+  })
+  .passthrough();
 export type SalesFormHousePackageTool = z.infer<
   typeof salesFormHousePackageToolSchema
 >;
 
-export const salesFormPortableLineItemSchema = z.object({
-  id: z.number().optional().nullable(),
-  uid: z.string().trim().min(1),
-  title: z.string().optional().nullable(),
-  description: z.string().optional().nullable(),
-  qty: z.number().min(0).optional().nullable(),
-  unitPrice: z.number().optional().nullable(),
-  lineTotal: z.number().optional().nullable(),
-  taxxable: z.boolean().optional().nullable(),
-  meta: salesFormJsonRecordSchema.optional().nullable(),
-  formSteps: z.array(salesFormWorkflowStepSchema).optional().nullable(),
-  shelfItems: z.array(salesFormShelfItemSchema).optional().nullable(),
-  housePackageTool: salesFormHousePackageToolSchema.optional().nullable(),
-});
+export const salesFormPortableLineItemSchema = z
+  .object({
+    id: z.number().optional().nullable(),
+    uid: z.string().trim().min(1),
+    title: z.string().optional().nullable(),
+    description: z.string().optional().nullable(),
+    qty: z.number().min(0).optional().nullable(),
+    unitPrice: z.number().optional().nullable(),
+    lineTotal: z.number().optional().nullable(),
+    taxxable: z.boolean().optional().nullable(),
+    meta: salesFormJsonRecordSchema.optional().nullable(),
+    formSteps: z.array(salesFormWorkflowStepSchema).optional().nullable(),
+    shelfItems: z.array(salesFormShelfItemSchema).optional().nullable(),
+    housePackageTool: salesFormHousePackageToolSchema.optional().nullable(),
+  })
+  .passthrough();
 export type SalesFormPortableLineItem = z.infer<
   typeof salesFormPortableLineItemSchema
 >;
 
-export const salesFormLineItemSchema = salesFormPortableLineItemSchema.extend({
-  title: z.string().trim().min(1),
-  qty: z.number().min(0),
-  unitPrice: z.number(),
-  lineTotal: z.number(),
-});
+export const salesFormLineItemSchema = z
+  .object({
+    id: z.number().optional().nullable(),
+    uid: z.string().trim().min(1),
+    title: z.string().trim().min(1),
+    description: z.string().optional().nullable(),
+    qty: z.number().min(0),
+    unitPrice: z.number(),
+    lineTotal: z.number(),
+    taxxable: z.boolean().optional().nullable(),
+    meta: salesFormJsonRecordSchema.optional().nullable(),
+    formSteps: z.array(salesFormWorkflowStepSchema).optional().nullable(),
+    shelfItems: z.array(salesFormShelfItemSchema).optional().nullable(),
+    housePackageTool: salesFormHousePackageToolSchema.optional().nullable(),
+  })
+  .passthrough();
 export type SalesFormLineItem = z.infer<typeof salesFormLineItemSchema>;
 
 export const salesFormSummarySchema = z.object({
@@ -175,18 +201,16 @@ export type SalesFormRecalculateExtraCost = z.infer<
   typeof salesFormRecalculateExtraCostSchema
 >;
 
-export const salesFormRecalculateLineItemSchema =
-  salesFormPortableLineItemSchema
-    .pick({
-      taxxable: true,
-      meta: true,
-      formSteps: true,
-    })
-    .extend({
-      qty: z.number(),
-      unitPrice: z.number(),
-      lineTotal: z.number().optional(),
-    });
+export const salesFormRecalculateLineItemSchema = z
+  .object({
+    taxxable: z.boolean().optional().nullable(),
+    meta: salesFormJsonRecordSchema.optional().nullable(),
+    formSteps: z.array(salesFormWorkflowStepSchema).optional().nullable(),
+    qty: z.number(),
+    unitPrice: z.number(),
+    lineTotal: z.number().optional(),
+  })
+  .passthrough();
 export type SalesFormRecalculateLineItem = z.infer<
   typeof salesFormRecalculateLineItemSchema
 >;

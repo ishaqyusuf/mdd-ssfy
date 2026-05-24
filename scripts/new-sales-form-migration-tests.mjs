@@ -11,6 +11,7 @@ const commands = [
 		args: [
 			"test",
 			"packages/sales/src/sales-form/domain/workflow-calculators.test.ts",
+			"packages/sales/src/sales-form/contracts/schemas.test.ts",
 			"packages/sales/src/sales-form/contracts/workflow-capabilities.test.ts",
 			"packages/sales/src/sales-form/ui/workflow/sales-form-engine-panel.test.ts",
 			"packages/sales/src/sales-form/ui/workflow/component-image-src.test.ts",

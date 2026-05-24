@@ -11,6 +11,7 @@ import {
 	getSaleOverviewSchema,
 } from "@api/schemas/sales";
 import { communityRouters } from "@api/trpc/routers/community.route";
+import { dealerPortalRouter } from "@api/trpc/routers/dealer-portal.route";
 import { dispatchRouters } from "@api/trpc/routers/dispatch.route";
 import { updateVariantStatusSchema } from "@gnd/inventory/inventory";
 import { parseTaskEventConfig } from "@gnd/jobs/task-events/registry";
@@ -19,6 +20,7 @@ import {
 	salesCustomerPaymentFailedSchema,
 	userSchema,
 } from "@gnd/notifications/schemas";
+import { salesFormRecalculateLineItemSchema } from "@gnd/sales/sales-form";
 import {
 	appDownloadSettings,
 	installCostSettings,
@@ -27,6 +29,7 @@ import {
 describe("server schema evaluation", () => {
 	it("imports affected schema and router modules without runtime derivation crashes", () => {
 		expect(communityRouters).toBeDefined();
+		expect(dealerPortalRouter).toBeDefined();
 		expect(dispatchRouters).toBeDefined();
 
 		expect(getOrdersV2SummarySchema.parse({ bin: true })).toEqual({
@@ -79,6 +82,19 @@ describe("server schema evaluation", () => {
 			status: "published",
 			uid: "variant-1",
 			inventoryId: 1,
+		});
+		expect(
+			salesFormRecalculateLineItemSchema.parse({
+				qty: 1,
+				unitPrice: 100,
+				taxxable: true,
+				customLineField: "kept",
+			}),
+		).toEqual({
+			qty: 1,
+			unitPrice: 100,
+			taxxable: true,
+			customLineField: "kept",
 		});
 		expect(
 			installCostSettings.parse({
