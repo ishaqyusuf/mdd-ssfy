@@ -136,7 +136,7 @@ const PACKAGE_WORKFLOW_PANEL_STORAGE_KEY =
 
 function resolveInitialPackageWorkflowPanelEnabled() {
 	const envDefault =
-		env.NEXT_PUBLIC_NEW_SALES_FORM_PACKAGE_PANEL_DEFAULT === "package";
+		env.NEXT_PUBLIC_NEW_SALES_FORM_PACKAGE_PANEL_DEFAULT !== "legacy";
 	if (typeof window === "undefined") return envDefault;
 
 	const param = new URLSearchParams(window.location.search).get(
