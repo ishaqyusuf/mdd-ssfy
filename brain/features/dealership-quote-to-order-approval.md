@@ -25,6 +25,10 @@ payload guarantees.
 - Browser proof for the package-backed dealership form is still blocked by
   authenticated dealer/internal fixtures. Do not treat this workflow as
   production-ready before the browser QA phases pass.
+- Dealer Sales / Dealer Quotes tabs now show dealer-scoped count badges from the
+  dashboard query.
+- Dealer sales/quote list filters now include delivery option, dealer sales
+  profile, and payment state; sales/orders also include invoice status.
 
 ## Scope
 
@@ -258,3 +262,11 @@ Focused tests to add or preserve:
 - Decide whether request rejection needs full v1 UI or can remain an internal
   admin-only escape hatch.
 - Add request SLA/aging analytics once the request queue is in production use.
+
+## Implementation Progress
+
+- 2026-05-23: Added Dealer Sales / Dealer Quotes count badges to the existing
+  dealership sales tabs and prefetched dashboard counts on both list pages.
+- 2026-05-23: Added dealer list query/filter support for delivery option,
+  dealer sales profile, payment state, and order invoice status, with a focused
+  dealer-owned list filter regression in `packages/db/src/queries/dealers.test.ts`.

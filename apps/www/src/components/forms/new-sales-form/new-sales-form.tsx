@@ -5,14 +5,19 @@ import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { updateSalesMetaAction } from "@/actions/update-sales-meta-action";
 import { _modal } from "@/components/common/modal/provider";
 import { Env } from "@/components/env";
-import { env } from "@/env.mjs";
 import { SalesMenu } from "@/components/sales-menu";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
+import { env } from "@/env.mjs";
 import { useAuth } from "@/hooks/use-auth";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
 import { useTRPC } from "@/trpc/client";
+import {
+	SalesFormHeaderActions,
+	SalesFormShell,
+	normalizeSalesFormInitialCustomerId,
+} from "@gnd/sales/sales-form";
 import { Button } from "@gnd/ui/button";
 import {
 	DropdownMenu,
@@ -29,7 +34,6 @@ import {
 	TooltipTrigger,
 } from "@gnd/ui/tooltip";
 import { toast } from "@gnd/ui/use-toast";
-import { SalesFormHeaderActions, SalesFormShell } from "@gnd/sales/sales-form";
 import type { CreateSalesHistorySchemaTask } from "@jobs/schema";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -44,13 +48,13 @@ import {
 } from "react";
 import { SalesFormDevSwitcher } from "../sales-form-dev-switcher";
 import { PaymentMethodReviewDialog } from "../sales-form/payment-method-review-dialog";
+import { useSalesFormCapabilities } from "./adapters/use-sales-form-capabilities";
+import { useSalesFormPermissions } from "./adapters/use-sales-form-permissions";
 import {
 	useNewSalesFormBootstrapQuery,
 	useNewSalesFormGetQuery,
 	useSaveFinalNewSalesFormMutation,
 } from "./api";
-import { useSalesFormCapabilities } from "./adapters/use-sales-form-capabilities";
-import { useSalesFormPermissions } from "./adapters/use-sales-form-permissions";
 import {
 	type NewSalesFormRecoverySnapshot,
 	clearRecoverySnapshot,
@@ -670,8 +674,8 @@ export function NewSalesForm(props: Props) {
 	const setMeta = useNewSalesFormStore((s) => s.setMeta);
 	const [recoverySnapshot, setRecoverySnapshot] =
 		useState<NewSalesFormRecoverySnapshot | null>(null);
-	const [bootstrapCustomerId] = useState<number | null>(
-		draftParams.selectedCustomerId ?? null,
+	const [bootstrapCustomerId] = useState<number | null>(() =>
+		normalizeSalesFormInitialCustomerId(draftParams.selectedCustomerId),
 	);
 	const lastHydratedLoadKeyRef = useRef<string | null>(null);
 	const leaveWarningBypassedRef = useRef(false);

@@ -1,4 +1,5 @@
 import type {
+	SalesFormExtraCostRecord,
 	SalesFormLineItemUiRecord,
 	SalesFormState,
 	SalesFormSummaryRecord,
@@ -46,7 +47,7 @@ export type DealerSalesFormRecord = {
 		taxCode?: string | null;
 	};
 	lineItems: SalesFormLineItemUiRecord[];
-	extraCosts: [];
+	extraCosts: SalesFormExtraCostRecord[];
 	summary: SalesFormSummaryRecord;
 };
 

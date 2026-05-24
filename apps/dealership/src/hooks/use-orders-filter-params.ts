@@ -1,8 +1,9 @@
 import type { RouterInputs } from "@api/trpc/routers/_app";
 import { useQueryStates } from "nuqs";
-import { createLoader, parseAsString } from "nuqs/server";
+import { createLoader, parseAsString, parseAsStringLiteral } from "nuqs/server";
 
 type FilterKeys = keyof Exclude<RouterInputs["dealerPortal"]["orders"], void>;
+const dealerPaymentStates = ["due", "paid", "credit"] as const;
 
 export const ordersFilterParamsSchema = {
 	q: parseAsString,
@@ -10,6 +11,11 @@ export const ordersFilterParamsSchema = {
 	phone: parseAsString,
 	orderNo: parseAsString,
 	status: parseAsString,
+	deliveryOption: parseAsString,
+	customerProfileId: parseAsString,
+	amountDue: parseAsStringLiteral(dealerPaymentStates),
+	invoiceStatus: parseAsString,
+	paymentStatus: parseAsStringLiteral(dealerPaymentStates),
 } satisfies Partial<Record<FilterKeys, unknown>>;
 
 export function useOrdersFilterParams() {

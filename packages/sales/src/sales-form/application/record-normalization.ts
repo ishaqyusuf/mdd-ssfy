@@ -1,6 +1,6 @@
 import {
-	orderInboundStatuses,
 	type OrderInboundStatus,
+	orderInboundStatuses,
 } from "@gnd/utils/constants";
 import {
 	calculateSalesFormSummary,
@@ -245,6 +245,43 @@ export function normalizeSalesFormMeta(meta: Partial<SalesFormMetaRecord>) {
 		deliveryOption: meta.deliveryOption ?? "pickup",
 		paymentMethod: meta.paymentMethod ?? null,
 		taxCode: meta.taxCode ?? null,
+	};
+}
+
+export function normalizeSalesFormInitialCustomerId(
+	value: number | string | string[] | null | undefined,
+) {
+	const raw = Array.isArray(value) ? value[0] : value;
+	if (raw == null || raw === "") return null;
+	const customerId = Number(raw);
+	return Number.isFinite(customerId) && customerId > 0 ? customerId : null;
+}
+
+export function applySalesFormInitialCustomerSelection<
+	TRecord extends SalesFormRecordLike,
+>(
+	record: TRecord,
+	input: {
+		customerId?: number | string | string[] | null;
+		customerProfileId?: number | string | string[] | null;
+		preserveExisting?: boolean;
+	},
+): TRecord {
+	const customerId = normalizeSalesFormInitialCustomerId(input.customerId);
+	if (!customerId) return record;
+	const customerProfileId = normalizeSalesFormInitialCustomerId(
+		input.customerProfileId,
+	);
+	const currentForm = record.form || {};
+	if (input.preserveExisting !== false && currentForm.customerId) return record;
+
+	return {
+		...record,
+		form: normalizeSalesFormMeta({
+			...currentForm,
+			customerId,
+			...(customerProfileId ? { customerProfileId } : {}),
+		}),
 	};
 }
 

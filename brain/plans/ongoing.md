@@ -128,8 +128,8 @@ Continue the Sales Default Action Queue Cleanup plan from `brain/plans/ongoing.m
 ### Quote-to-Order Approval Addendum
 - Status: Planned
 - Objective: Replace dealer-owned direct quote-to-order conversion with a sales-rep approval workflow while preserving dealer quote creation/editing, dual pricing, package workflow payloads, print/PDF behavior, and payment handoff.
-- Current Phase: Product plan captured in Brain; implementation should wait until package-backed dealership form browser QA has authenticated fixtures.
-- Next Step: After authenticated dealership browser QA passes, add `dealerPortal.requestQuoteOrder`, internal request review/count/approval APIs, sales rep notifications, manual delivery-cost review, dealer payment-link email, dealer sales/quotes tabs with count badges and query filters, sales-header pending request indicator, and dealer dashboard analytics.
+- Current Phase: First dealer list UX/filter slice implemented; request/approval flow still planned.
+- Next Step: After authenticated dealership browser QA passes, add `dealerPortal.requestQuoteOrder`, internal request review/count/approval APIs, sales rep notifications, manual delivery-cost review, dealer payment-link email, sales-header pending request indicator, and dealer dashboard analytics.
 - Blockers: Authenticated dealership and `www` browser QA are still blocked by missing local DB/session fixtures; direct conversion currently exists and must not be removed until the request workflow is implemented and tested.
 - Related Files: brain/features/dealership-quote-to-order-approval.md, brain/new-sales-form-phase27-browser-qa.md, brain/new-sales-form-completion-roadmap.md, brain/dealership-cutover-readiness.md, brain/dealer-tax-tracking-client-memo.md, apps/api/src/trpc/routers/dealer-portal.route.ts, packages/db/src/queries/dealers.ts, packages/db/src/schema/sales.customer.prisma, packages/db/src/schema/sales.prisma, packages/notifications/src, packages/email/emails, apps/dealership/src/components/dealer-sales-form, apps/dealership/src/components/dealer-portal, apps/www/src/components/notification-center
 - Last Updated: 2026-05-23
@@ -140,7 +140,7 @@ Continue the Sales Default Action Queue Cleanup plan from `brain/plans/ongoing.m
 3. Notify eligible sales reps in app and by email with a deep link to internal request review.
 4. Approve requests transactionally: lock pending request, convert quote once, assign the approving sales rep, add reviewed delivery cost, stamp approval metadata, and resolve/send the dealer payment link.
 5. Show already-worked information for later sales rep clicks instead of approving twice.
-6. Add Dealer Sales / Dealer Quotes tabs with count badges and dealer-facing query filters.
+6. ✅ Add Dealer Sales / Dealer Quotes tabs with count badges and initial dealer-facing query filters.
 7. Add a sales-header pending dealer request indicator.
 8. Add dealer dashboard analytics for quotes, requests, orders, amount due, paid revenue, customers, and recent activity.
 9. Preserve dealer/customer invoice address modes and dual-pricing visibility rules.

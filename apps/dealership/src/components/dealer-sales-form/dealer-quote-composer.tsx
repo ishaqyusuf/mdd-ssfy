@@ -2,13 +2,14 @@
 
 import { useTRPC } from "@/trpc/client";
 import {
+	type DualPricingLineInput,
+	type DualPricingSnapshot,
 	SalesFormHeaderActions,
 	SalesFormShell,
 	buildSalesFormTaxSelectOptions,
 	composeSalesFormPricingSnapshot,
 	normalizeSalesFormTaxOptions,
 	resolveSalesFormTaxRateByCode,
-	type DualPricingSnapshot,
 } from "@gnd/sales/sales-form";
 import { Button } from "@gnd/ui/button";
 import { toast } from "@gnd/ui/use-toast";
@@ -25,8 +26,8 @@ import { DealerCustomerSelectorDialog } from "./dealer-customer-selector-dialog"
 import { DealerQuoteMainPanel } from "./dealer-quote-main-panel";
 import { DealerQuoteSummaryPanel } from "./dealer-quote-summary-panel";
 import type {
-	DealerSalesFormCustomer,
 	DealerInternalSalesFormProfile,
+	DealerSalesFormCustomer,
 	DealerSalesFormProfile,
 } from "./types";
 
@@ -34,12 +35,14 @@ type DealerQuoteComposerProps = {
 	quoteId?: number | null;
 	mode?: "create" | "edit";
 	onSavedHref?: string;
+	initialCustomerId?: number | null;
 };
 
 export function DealerQuoteComposer({
 	quoteId = null,
 	mode,
 	onSavedHref = "/quotes",
+	initialCustomerId = null,
 }: DealerQuoteComposerProps) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -50,7 +53,9 @@ export function DealerQuoteComposer({
 	const profilesQuery = useQuery(
 		trpc.dealerPortal.salesProfiles.queryOptions(),
 	);
-	const taxProfilesQuery = useQuery(trpc.dealerPortal.taxProfiles.queryOptions());
+	const taxProfilesQuery = useQuery(
+		trpc.dealerPortal.taxProfiles.queryOptions(),
+	);
 	const internalProfileQuery = useQuery(
 		trpc.dealerPortal.internalSalesProfile.queryOptions(),
 	);
@@ -60,7 +65,7 @@ export function DealerQuoteComposer({
 			{ enabled: Boolean(editingQuoteId) },
 		),
 	);
-	const form = useDealerSalesFormState();
+	const form = useDealerSalesFormState(initialCustomerId);
 	const actions = useSalesFormActions(form);
 	const capabilities = useSalesFormCapabilities();
 	const permissions = useSalesFormPermissions();
@@ -118,6 +123,19 @@ export function DealerQuoteComposer({
 			(profile) => profile.id === selectedCustomer?.customerTypeId,
 		) ||
 		null;
+
+	useEffect(() => {
+		if (!record?.form.customerId || record.form.customerProfileId) return;
+		const defaultProfileId = selectedCustomer?.customerTypeId;
+		if (!defaultProfileId) return;
+		form.setCustomer(record.form.customerId, defaultProfileId);
+	}, [
+		form.setCustomer,
+		record?.form.customerId,
+		record?.form.customerProfileId,
+		selectedCustomer?.customerTypeId,
+	]);
+
 	const salesFormData = useDealerSalesFormData({
 		customers,
 		profiles,
@@ -156,14 +174,9 @@ export function DealerQuoteComposer({
 					},
 				},
 				taxRate: selectedTaxRate,
-				lineItems: (record?.lineItems || []) as any,
+				lineItems: (record?.lineItems || []) as DualPricingLineInput[],
 			}) as DualPricingSnapshot,
-		[
-			internalProfile,
-			record?.lineItems,
-			selectedProfile,
-			selectedTaxRate,
-		],
+		[internalProfile, record?.lineItems, selectedProfile, selectedTaxRate],
 	);
 	const dealerLineTotalsByUid = useMemo(
 		() =>
@@ -274,14 +287,14 @@ export function DealerQuoteComposer({
 								goodUntil: goodUntil ? new Date(goodUntil).toISOString() : null,
 							})
 						}
-						onPaymentTermChange={(paymentTerm) =>
-							form.setMeta({ paymentTerm })
-						}
+						onPaymentTermChange={(paymentTerm) => form.setMeta({ paymentTerm })}
 						onPoChange={(po) => form.setMeta({ po })}
 						onProfileChange={form.setCustomerProfile}
 						onTaxCodeChange={(taxCode) => {
 							form.setMeta({ taxCode });
-							form.setTaxRate(resolveSalesFormTaxRateByCode(taxOptions, taxCode));
+							form.setTaxRate(
+								resolveSalesFormTaxRateByCode(taxOptions, taxCode),
+							);
 						}}
 						onSave={save}
 						subTotal={pricing.dealerPricing.subTotal}

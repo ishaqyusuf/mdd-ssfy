@@ -30,17 +30,30 @@ const searchFilter = {
 } satisfies PageFilterData<"q">;
 
 function toOptions(values: Array<string | null | undefined>) {
+	const options = values
+		.map((value) => value?.trim())
+		.filter((value): value is string => Boolean(value));
+
 	return uniqueList(
 		sortList(
-			values
-				.map((value) => value?.trim())
-				.filter(Boolean)
-				.map((value) => ({ label: value!, value: value! })),
+			options.map((value) => ({ label: value, value })),
 			"value",
 		),
 		"value",
 	);
 }
+
+const paymentStateOptions = [
+	{ label: "Balance due", value: "due" },
+	{ label: "Paid", value: "paid" },
+	{ label: "Credit", value: "credit" },
+];
+
+const deliveryOptionLabels: Record<string, string> = {
+	pickup: "Pickup",
+	delivery: "Delivery",
+	ship: "Ship",
+};
 
 export async function getDealershipQuotesFilter(
 	ctx: TRPCContext,
@@ -55,6 +68,14 @@ export async function getDealershipQuotesFilter(
 		select: {
 			orderId: true,
 			status: true,
+			deliveryOption: true,
+			dealerSalesProfileId: true,
+			dealerSalesProfile: {
+				select: {
+					id: true,
+					title: true,
+				},
+			},
 			customer: {
 				select: {
 					businessName: true,
@@ -104,5 +125,31 @@ export async function getDealershipQuotesFilter(
 			"Status",
 			toOptions(quotes.map((quote) => quote.status || "open")),
 		),
+		optionFilter(
+			"deliveryOption",
+			"Delivery",
+			toOptions(quotes.map((quote) => quote.deliveryOption)).map((option) => ({
+				...option,
+				label: deliveryOptionLabels[option.value] || option.label,
+			})),
+		),
+		optionFilter(
+			"customerProfileId",
+			"Sales Profile",
+			toOptions(
+				quotes.map((quote) =>
+					quote.dealerSalesProfile
+						? `${quote.dealerSalesProfile.id}:${quote.dealerSalesProfile.title}`
+						: null,
+				),
+			).map((option) => {
+				const [id, ...labelParts] = option.value.split(":");
+				return {
+					label: labelParts.join(":") || option.label,
+					value: id,
+				};
+			}),
+		),
+		optionFilter("amountDue", "Payment", paymentStateOptions),
 	] satisfies FilterData[];
 }

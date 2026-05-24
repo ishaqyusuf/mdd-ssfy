@@ -45,6 +45,15 @@ import {
 	getSuppliers,
 	getSuppliersSchema,
 } from "@api/db/queries/sales-form";
+import {
+	deriveDealerWorkflowVisibility,
+	isDealerRootComponentAllowed,
+	isDealerShelfCategoryAllowed,
+	isDealerShelfProductAllowed,
+	isDealerWorkflowStepAllowed,
+	resolveDealerWorkflowStepUid,
+	type DealerWorkflowVisibility,
+} from "@api/utils/dealer-workflow-visibility";
 import { createTRPCRouter, dealerProtectedProcedure } from "../init";
 
 const dealerWorkflowStepComponentsSchema = getStepComponentsSchema.pick({
@@ -96,23 +105,46 @@ export const dealerPortalRouter = createTRPCRouter({
 		return getDealerPortalInternalSalesProfile(ctx.db);
 	}),
 	workflowReference: dealerProtectedProcedure.query(async ({ ctx }) => {
-		return toDealerWorkflowReference(await getNewSalesFormStepRouting(ctx, {}));
+		const routeData = await getNewSalesFormStepRouting(ctx, {});
+		const visibility = deriveDealerWorkflowVisibility(routeData);
+		return toDealerWorkflowReference(routeData, visibility);
 	}),
 	workflowStepComponents: dealerProtectedProcedure
 		.input(dealerWorkflowStepComponentsSchema)
 		.query(async ({ ctx, input }) => {
+			const routeData = await getNewSalesFormStepRouting(ctx, {});
+			const visibility = deriveDealerWorkflowVisibility(routeData);
+			const stepUid = resolveDealerWorkflowStepUid(routeData, input);
+			if (!isDealerWorkflowStepAllowed(visibility, stepUid)) return [];
+
 			const components = await getStepComponents(ctx, input);
-			return components.map(toDealerWorkflowComponent);
+			const visibleComponents =
+				stepUid === visibility.rootStepUid
+					? components.filter((component) =>
+							isDealerRootComponentAllowed(visibility, toRecord(component).uid),
+						)
+					: components;
+			return visibleComponents.map(toDealerWorkflowComponent);
 		}),
 	workflowShelfCategories: dealerProtectedProcedure
 		.input(getNewSalesFormShelfCategoriesSchema)
-		.query(({ ctx, input }) => {
-			return getNewSalesFormShelfCategories(ctx, input);
+		.query(async ({ ctx, input }) => {
+			const routeData = await getNewSalesFormStepRouting(ctx, {});
+			const visibility = deriveDealerWorkflowVisibility(routeData);
+			const categories = await getNewSalesFormShelfCategories(ctx, input);
+			return categories.filter((category) =>
+				isDealerShelfCategoryAllowed(visibility, category),
+			);
 		}),
 	workflowShelfProducts: dealerProtectedProcedure
 		.input(getNewSalesFormShelfProductsSchema)
-		.query(({ ctx, input }) => {
-			return getNewSalesFormShelfProducts(ctx, input);
+		.query(async ({ ctx, input }) => {
+			const routeData = await getNewSalesFormStepRouting(ctx, {});
+			const visibility = deriveDealerWorkflowVisibility(routeData);
+			const products = await getNewSalesFormShelfProducts(ctx, input);
+			return products.filter((product) =>
+				isDealerShelfProductAllowed(visibility, product),
+			);
 		}),
 	workflowDoorSuppliers: dealerProtectedProcedure
 		.input(getSuppliersSchema)
@@ -203,38 +235,49 @@ function toDealerWorkflowComponent(input: unknown) {
 	};
 }
 
-function toDealerWorkflowReference(routeData: Record<string, unknown>) {
+function toDealerWorkflowReference(
+	routeData: Record<string, unknown>,
+	visibility: DealerWorkflowVisibility,
+) {
 	const stepsByUid = toRecord(routeData.stepsByUid);
 	const composedRouter = Object.fromEntries(
-		Object.entries(toRecord(routeData.composedRouter)).map(([uid, value]) => [
-			uid,
-			toRecord(value),
-		]),
+		Object.entries(toRecord(routeData.composedRouter))
+			.filter(([uid]) => visibility.visibleRootUids.has(uid))
+			.map(([uid, value]) => [uid, toRecord(value)]),
 	);
 	const stepsById = Object.fromEntries(
 		Object.entries(toRecord(routeData.stepsById))
 			.map(([id, uid]) => [id, typeof uid === "string" ? uid : ""])
-			.filter(([, uid]) => Boolean(uid)),
+			.filter(([, uid]) => Boolean(uid) && visibility.allowedStepUids.has(uid)),
 	);
 	const sanitizedStepsByUid = Object.fromEntries(
-		Object.entries(stepsByUid).map(([uid, value]) => {
-			const step = toRecord(value);
-			const components = Array.isArray(step.components)
-				? step.components.map((component) =>
-						toDealerWorkflowComponent(toRecord(component)),
-					)
-				: [];
-			return [
-				uid,
-				{
-					id: typeof step.id === "number" ? step.id : null,
-					uid: typeof step.uid === "string" ? step.uid : uid,
-					title: typeof step.title === "string" ? step.title : null,
-					meta: toRecord(step.meta),
-					components,
-				},
-			];
-		}),
+		Object.entries(stepsByUid)
+			.filter(([uid]) => visibility.allowedStepUids.has(uid))
+			.map(([uid, value]) => {
+				const step = toRecord(value);
+				const rawComponents = Array.isArray(step.components)
+					? step.components
+					: [];
+				const components = rawComponents
+					.filter((component) => {
+						if (uid !== visibility.rootStepUid) return true;
+						return isDealerRootComponentAllowed(
+							visibility,
+							toRecord(component).uid,
+						);
+					})
+					.map((component) => toDealerWorkflowComponent(toRecord(component)));
+				return [
+					uid,
+					{
+						id: typeof step.id === "number" ? step.id : null,
+						uid: typeof step.uid === "string" ? step.uid : uid,
+						title: typeof step.title === "string" ? step.title : null,
+						meta: toRecord(step.meta),
+						components,
+					},
+				];
+			}),
 	);
 
 	return {
@@ -244,9 +287,11 @@ function toDealerWorkflowReference(routeData: Record<string, unknown>) {
 		rootStepUid:
 			typeof routeData.rootStepUid === "string" ? routeData.rootStepUid : null,
 		rootComponents: Array.isArray(routeData.rootComponents)
-			? routeData.rootComponents.map((component) =>
-					toDealerWorkflowComponent(toRecord(component)),
-				)
+			? routeData.rootComponents
+					.filter((component) =>
+						isDealerRootComponentAllowed(visibility, toRecord(component).uid),
+					)
+					.map((component) => toDealerWorkflowComponent(toRecord(component)))
 			: [],
 	};
 }

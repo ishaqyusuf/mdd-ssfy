@@ -1,7 +1,7 @@
+import { DealershipShell } from "@/components/dealership-shell";
 import { ErrorFallback } from "@/components/error-fallback";
 import { OrderHeader } from "@/components/order-header";
 import PageShell from "@/components/page-shell";
-import { DealershipShell } from "@/components/dealership-shell";
 import { DataTable } from "@/components/tables/orders/data-table";
 import { TableSkeleton } from "@/components/tables/skeleton";
 import { loadOrdersFilterParams } from "@/hooks/use-orders-filter-params";
@@ -29,7 +29,10 @@ export default async function OrdersPage(props: {
 		trpc.dealerPortal.orderFilters.queryOptions(),
 	);
 
-	batchPrefetch([trpc.dealerPortal.orders.infiniteQueryOptions(filter)]);
+	batchPrefetch([
+		trpc.dealerPortal.dashboard.queryOptions(),
+		trpc.dealerPortal.orders.infiniteQueryOptions(filter),
+	]);
 
 	return (
 		<DealershipShell dealer={dealer}>

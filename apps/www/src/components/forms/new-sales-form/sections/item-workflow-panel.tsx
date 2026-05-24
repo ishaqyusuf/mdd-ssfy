@@ -1199,7 +1199,7 @@ export function ItemWorkflowPanel() {
 					renderComponent={(component) => (
 						<button
 							type="button"
-							className="overflow-hidden rounded-xl border bg-card text-left transition hover:border-primary"
+							className="w-full overflow-hidden rounded-xl border bg-card text-left transition hover:border-primary"
 							onClick={() => selectRootComponent(line, component)}
 						>
 							<WorkflowComponentPreview

@@ -5,6 +5,7 @@ import {
 	convertDealerPortalQuoteToOrder,
 	getDealerPortalSalesDocument,
 	getDealerPortalSalesDocuments,
+	getDealerPortalSalesList,
 	saveDealerPortalQuote,
 	saveDealerPortalCustomer,
 } from "./dealers";
@@ -137,6 +138,12 @@ function createDealerQuoteTestDb(options: {
 	activeDppCount?: number;
 	collidingOrderIds?: string[];
 	dppDocuments?: Array<{ orderId: string; deletedAt?: Date | null }>;
+	salesSettingsMeta?: Record<string, unknown> | null;
+	shelfProducts?: Array<{
+		id: number;
+		categoryId?: number | null;
+		parentCategoryId?: number | null;
+	}>;
 }) {
 	const collidingOrderIds = new Set(options.collidingOrderIds || []);
 	let createdOrderData: Record<string, unknown> | null = null;
@@ -160,6 +167,20 @@ function createDealerQuoteTestDb(options: {
 							coefficient: 1,
 						}
 					: null,
+		},
+		settings: {
+			findFirst: async () =>
+				options.salesSettingsMeta === undefined
+					? null
+					: { meta: options.salesSettingsMeta },
+		},
+		dykeShelfProducts: {
+			findMany: async ({ where }: { where: { id?: { in?: number[] } } }) => {
+				const ids = new Set(where.id?.in || []);
+				return (options.shelfProducts || []).filter((product) =>
+					ids.has(product.id),
+				);
+			},
 		},
 		salesOrders: {
 			findFirst: async () => options.existingQuote ?? null,
@@ -307,6 +328,131 @@ describe("dealer portal DPP identities", () => {
 			1,
 		);
 		expect(meta.newSalesForm.lineItems[0].meta.serviceRows).toHaveLength(1);
+	});
+
+	it("rejects dealer quote line items for hidden item types", async () => {
+		const testDb = createDealerQuoteTestDb({
+			activeDppCount: 0,
+			salesSettingsMeta: {
+				route: {
+					service: {
+						config: {
+							dealerVisible: false,
+						},
+					},
+				},
+			},
+		});
+
+		await expect(
+			saveDealerPortalQuote(
+				testDb.db as any,
+				10,
+				dealerQuoteInput({
+					lineItems: [
+						{
+							uid: "line-1",
+							title: "Service",
+							qty: 1,
+							unitPrice: 100,
+							formSteps: [
+								{
+									stepId: 1,
+									prodUid: "service",
+									value: "Service",
+								},
+							],
+						},
+					],
+				}),
+			),
+		).rejects.toThrow("This item type is not available in the dealer portal.");
+	});
+
+	it("rejects dealer quote shelf items outside the dealer allowlist", async () => {
+		const testDb = createDealerQuoteTestDb({
+			activeDppCount: 0,
+			salesSettingsMeta: {
+				dealerShelfCategoryVisibility: {
+					mode: "allowlist",
+					categoryIds: [10],
+				},
+			},
+			shelfProducts: [
+				{
+					id: 99,
+					categoryId: 20,
+					parentCategoryId: null,
+				},
+			],
+		});
+
+		await expect(
+			saveDealerPortalQuote(
+				testDb.db as any,
+				10,
+				dealerQuoteInput({
+					lineItems: [
+						{
+							uid: "line-1",
+							title: "Shelf",
+							qty: 1,
+							unitPrice: 100,
+							shelfItems: [
+								{
+									uid: "shelf-1",
+									productId: 99,
+									categoryId: 20,
+								},
+							],
+						},
+					],
+				}),
+			),
+		).rejects.toThrow("This shelf item is not available in the dealer portal.");
+	});
+
+	it("allows dealer quote shelf items in an allowed parent category", async () => {
+		const testDb = createDealerQuoteTestDb({
+			activeDppCount: 0,
+			salesSettingsMeta: {
+				dealerShelfCategoryVisibility: {
+					mode: "allowlist",
+					categoryIds: [10],
+				},
+			},
+			shelfProducts: [
+				{
+					id: 99,
+					categoryId: 20,
+					parentCategoryId: 10,
+				},
+			],
+		});
+
+		const saved = await saveDealerPortalQuote(
+			testDb.db as any,
+			10,
+			dealerQuoteInput({
+				lineItems: [
+					{
+						uid: "line-1",
+						title: "Shelf",
+						qty: 1,
+						unitPrice: 100,
+						shelfItems: [
+							{
+								uid: "shelf-1",
+								productId: 99,
+								categoryId: 20,
+							},
+						],
+					},
+				],
+			}),
+		);
+
+		expect(saved.orderId).toBe("00001DPP");
 	});
 
 	it("persists dealer workflow tax and production flags on sales items", async () => {
@@ -759,6 +905,44 @@ describe("dealer portal isolation", () => {
 		expect(documents[0]?.grandTotal).toBe(150);
 		expect(documents[0]?.amountDue).toBe(150);
 		expect("meta" in documents[0]!).toBe(false);
+	});
+
+	it("applies dealer sales list filters to dealer-owned records", async () => {
+		let capturedWhere: Record<string, unknown> | null = null;
+
+		await getDealerPortalSalesList(
+			{
+				salesOrders: {
+					findMany: async ({ where }: { where: Record<string, unknown> }) => {
+						capturedWhere = where;
+						return [];
+					},
+					count: async () => 0,
+				},
+			} as any,
+			10,
+			"order",
+			{
+				deliveryOption: "delivery",
+				customerProfileId: "45",
+				paymentStatus: "due",
+				invoiceStatus: "pending",
+			},
+		);
+
+		expect(capturedWhere).toMatchObject({
+			dealerAuthId: 10,
+			deletedAt: null,
+			type: {
+				not: "quote",
+			},
+			deliveryOption: "delivery",
+			dealerSalesProfileId: 45,
+			invoiceStatus: "pending",
+			amountDue: {
+				gt: 0,
+			},
+		});
 	});
 
 	it("scopes quote conversion to the active dealer", async () => {

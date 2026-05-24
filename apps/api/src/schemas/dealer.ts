@@ -110,6 +110,11 @@ export const dealerPortalSalesListSchema = z.object({
   phone: z.string().optional().nullable(),
   orderNo: z.string().optional().nullable(),
   status: z.string().optional().nullable(),
+  deliveryOption: z.string().optional().nullable(),
+  customerProfileId: z.string().optional().nullable(),
+  amountDue: z.enum(["due", "paid", "credit"]).optional().nullable(),
+  invoiceStatus: z.string().optional().nullable(),
+  paymentStatus: z.enum(["due", "paid", "credit"]).optional().nullable(),
 });
 export type DealerPortalSalesListSchema = z.infer<
   typeof dealerPortalSalesListSchema

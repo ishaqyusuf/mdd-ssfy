@@ -1,12 +1,13 @@
 "use client";
 
 import {
+	type SalesFormLineItemUiRecord,
+	applySalesFormInitialCustomerSelection,
 	createEmptySalesFormLineItem,
 	createInitialSalesFormState,
 	hydrateSalesFormState,
 	setSalesFormMeta,
 	setSalesFormTaxRate,
-	type SalesFormLineItemUiRecord,
 } from "@gnd/sales/sales-form";
 import { useCallback, useMemo, useState } from "react";
 import type { DealerSalesFormRecord, DealerSalesFormState } from "../types";
@@ -87,10 +88,11 @@ function normalizeDealerLineItems(value: unknown): SalesFormLineItemUiRecord[] {
 
 function createDealerSalesFormRecord(
 	source?: DealerQuoteSource | null,
+	initialCustomerId?: number | string | string[] | null,
 ): DealerSalesFormRecord {
 	const taxRate = Number(source?.taxRate || 0);
 
-	return {
+	const record = {
 		id: source?.id || null,
 		type: "quote",
 		salesId: source?.id || null,
@@ -117,24 +119,29 @@ function createDealerSalesFormRecord(
 			grandTotal: 0,
 		},
 	};
+
+	return applySalesFormInitialCustomerSelection(record, {
+		customerId: initialCustomerId,
+		preserveExisting: true,
+	}) as DealerSalesFormRecord;
 }
 
-export function useDealerSalesFormState() {
+export function useDealerSalesFormState(initialCustomerId?: number | null) {
 	const [state, setState] = useState<DealerSalesFormState>(() => ({
 		...(createInitialSalesFormState() as DealerSalesFormState),
-		record: createDealerSalesFormRecord(),
+		record: createDealerSalesFormRecord(null, initialCustomerId),
 	}));
 
-	const hydrateQuote = useCallback((source?: DealerQuoteSource | null) => {
-		const record = createDealerSalesFormRecord(source);
-		setState(
-			(current) =>
-				hydrateSalesFormState(
-					current as any,
-					record as any,
-				) as DealerSalesFormState,
-		);
-	}, []);
+	const hydrateQuote = useCallback(
+		(source?: DealerQuoteSource | null) => {
+			const record = createDealerSalesFormRecord(source, initialCustomerId);
+			setState(
+				(current) =>
+					hydrateSalesFormState(current, record) as DealerSalesFormState,
+			);
+		},
+		[initialCustomerId],
+	);
 
 	const reset = useCallback(() => {
 		hydrateQuote(null);
@@ -144,7 +151,7 @@ export function useDealerSalesFormState() {
 		(customerId: number | null, customerProfileId?: number | null) => {
 			setState(
 				(current) =>
-					setSalesFormMeta(current as any, {
+					setSalesFormMeta(current, {
 						customerId,
 						customerProfileId:
 							customerProfileId ??
@@ -159,7 +166,7 @@ export function useDealerSalesFormState() {
 	const setCustomerProfile = useCallback((customerProfileId: number | null) => {
 		setState(
 			(current) =>
-				setSalesFormMeta(current as any, {
+				setSalesFormMeta(current, {
 					customerProfileId,
 				}) as DealerSalesFormState,
 		);
@@ -168,16 +175,18 @@ export function useDealerSalesFormState() {
 	const setTaxRate = useCallback((taxRate: number) => {
 		setState(
 			(current) =>
-				setSalesFormTaxRate(current as any, taxRate) as DealerSalesFormState,
+				setSalesFormTaxRate(current, taxRate) as DealerSalesFormState,
 		);
 	}, []);
 
-	const setMeta = useCallback((patch: Partial<DealerSalesFormRecord["form"]>) => {
-		setState(
-			(current) =>
-				setSalesFormMeta(current as any, patch as any) as DealerSalesFormState,
-		);
-	}, []);
+	const setMeta = useCallback(
+		(patch: Partial<DealerSalesFormRecord["form"]>) => {
+			setState(
+				(current) => setSalesFormMeta(current, patch) as DealerSalesFormState,
+			);
+		},
+		[],
+	);
 
 	return useMemo(
 		() => ({

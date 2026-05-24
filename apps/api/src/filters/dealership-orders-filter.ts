@@ -30,17 +30,30 @@ const searchFilter = {
 } satisfies PageFilterData<"q">;
 
 function toOptions(values: Array<string | null | undefined>) {
+	const options = values
+		.map((value) => value?.trim())
+		.filter((value): value is string => Boolean(value));
+
 	return uniqueList(
 		sortList(
-			values
-				.map((value) => value?.trim())
-				.filter(Boolean)
-				.map((value) => ({ label: value!, value: value! })),
+			options.map((value) => ({ label: value, value })),
 			"value",
 		),
 		"value",
 	);
 }
+
+const paymentStateOptions = [
+	{ label: "Balance due", value: "due" },
+	{ label: "Paid", value: "paid" },
+	{ label: "Credit", value: "credit" },
+];
+
+const deliveryOptionLabels: Record<string, string> = {
+	pickup: "Pickup",
+	delivery: "Delivery",
+	ship: "Ship",
+};
 
 export async function getDealershipOrdersFilter(
 	ctx: TRPCContext,
@@ -57,6 +70,15 @@ export async function getDealershipOrdersFilter(
 		select: {
 			orderId: true,
 			status: true,
+			deliveryOption: true,
+			invoiceStatus: true,
+			dealerSalesProfileId: true,
+			dealerSalesProfile: {
+				select: {
+					id: true,
+					title: true,
+				},
+			},
 			customer: {
 				select: {
 					businessName: true,
@@ -105,6 +127,37 @@ export async function getDealershipOrdersFilter(
 			"status",
 			"Status",
 			toOptions(orders.map((order) => order.status || "open")),
+		),
+		optionFilter(
+			"deliveryOption",
+			"Delivery",
+			toOptions(orders.map((order) => order.deliveryOption)).map((option) => ({
+				...option,
+				label: deliveryOptionLabels[option.value] || option.label,
+			})),
+		),
+		optionFilter(
+			"customerProfileId",
+			"Sales Profile",
+			toOptions(
+				orders.map((order) =>
+					order.dealerSalesProfile
+						? `${order.dealerSalesProfile.id}:${order.dealerSalesProfile.title}`
+						: null,
+				),
+			).map((option) => {
+				const [id, ...labelParts] = option.value.split(":");
+				return {
+					label: labelParts.join(":") || option.label,
+					value: id,
+				};
+			}),
+		),
+		optionFilter("paymentStatus", "Payment", paymentStateOptions),
+		optionFilter(
+			"invoiceStatus",
+			"Invoice Status",
+			toOptions(orders.map((order) => order.invoiceStatus)),
 		),
 	] satisfies FilterData[];
 }

@@ -102,6 +102,11 @@ export type DealerPortalSalesListInput = {
 	phone?: string | null;
 	orderNo?: string | null;
 	status?: string | null;
+	deliveryOption?: string | null;
+	customerProfileId?: string | null;
+	amountDue?: "due" | "paid" | "credit" | null;
+	invoiceStatus?: string | null;
+	paymentStatus?: "due" | "paid" | "credit" | null;
 };
 
 function getObjectMeta(meta: unknown): Record<string, unknown> {
@@ -634,6 +639,10 @@ function getDealerSalesListWhere(
 	const phone = input.phone?.trim();
 	const orderNo = input.orderNo?.trim();
 	const status = input.status?.trim();
+	const deliveryOption = input.deliveryOption?.trim();
+	const customerProfileId = Number(input.customerProfileId || 0) || null;
+	const invoiceStatus = input.invoiceStatus?.trim();
+	const paymentStatus = input.paymentStatus || input.amountDue || null;
 	const customerSearch = customerName || undefined;
 	const phoneSearch = phone ? formatUSPhoneNumber(phone) : undefined;
 	const searchPhone = search ? formatUSPhoneNumber(search) : undefined;
@@ -652,6 +661,40 @@ function getDealerSalesListWhere(
 		...(status
 			? {
 					status,
+				}
+			: {}),
+		...(deliveryOption
+			? {
+					deliveryOption,
+				}
+			: {}),
+		...(customerProfileId
+			? {
+					dealerSalesProfileId: customerProfileId,
+				}
+			: {}),
+		...(invoiceStatus
+			? {
+					invoiceStatus,
+				}
+			: {}),
+		...(paymentStatus === "due"
+			? {
+					amountDue: {
+						gt: 0,
+					},
+				}
+			: {}),
+		...(paymentStatus === "paid"
+			? {
+					amountDue: 0,
+				}
+			: {}),
+		...(paymentStatus === "credit"
+			? {
+					amountDue: {
+						lt: 0,
+					},
 				}
 			: {}),
 		...(customerSearch || phoneSearch
@@ -1311,6 +1354,211 @@ function dealerLineIsProduceable(line: DealerPortalQuoteLineItemInput) {
 	return dealerLineServiceRows(line).some((row) => row.produceable === true);
 }
 
+type DealerQuoteVisibilitySettings = {
+	hiddenRootUids: Set<string>;
+	shelfCategoryVisibility: {
+		mode: "all" | "allowlist";
+		categoryIds: Set<number>;
+	};
+};
+
+function numberFromUnknown(value: unknown) {
+	const numeric = Number(value);
+	return Number.isInteger(numeric) && numeric > 0 ? numeric : null;
+}
+
+function stringFromUnknown(value: unknown) {
+	return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function numberSetFromUnknown(value: unknown) {
+	const ids = Array.isArray(value) ? value : [];
+	return new Set(
+		ids
+			.map((entry) => numberFromUnknown(entry))
+			.filter((entry): entry is number => entry != null),
+	);
+}
+
+function getDealerShelfVisibilityFromSettings(
+	meta: unknown,
+): DealerQuoteVisibilitySettings["shelfCategoryVisibility"] {
+	const settingsMeta = getObjectMeta(meta);
+	const nestedSettingsMeta = getObjectMeta(settingsMeta.data);
+	const rawVisibility = getObjectMeta(
+		Object.keys(getObjectMeta(settingsMeta.dealerShelfCategoryVisibility))
+			.length
+			? settingsMeta.dealerShelfCategoryVisibility
+			: nestedSettingsMeta.dealerShelfCategoryVisibility,
+	);
+	const mode: "all" | "allowlist" =
+		rawVisibility.mode === "allowlist" ? "allowlist" : "all";
+	return {
+		mode,
+		categoryIds:
+			mode === "allowlist"
+				? numberSetFromUnknown(rawVisibility.categoryIds)
+				: new Set<number>(),
+	};
+}
+
+async function getDealerQuoteVisibilitySettings(
+	tx: any,
+): Promise<DealerQuoteVisibilitySettings> {
+	const setting = tx.settings?.findFirst
+		? await tx.settings.findFirst({
+				where: {
+					type: "sales-settings",
+				},
+				select: {
+					meta: true,
+				},
+			})
+		: null;
+	const settingsMeta = getObjectMeta(setting?.meta);
+	const nestedSettingsMeta = getObjectMeta(settingsMeta.data);
+	const rawRoute = getObjectMeta(
+		Object.keys(getObjectMeta(settingsMeta.route)).length
+			? settingsMeta.route
+			: nestedSettingsMeta.route,
+	);
+	const hiddenRootUids = new Set<string>();
+
+	for (const [rootUid, routeDef] of Object.entries(rawRoute)) {
+		const config = getObjectMeta(getObjectMeta(routeDef).config);
+		if (config.dealerVisible === false) {
+			hiddenRootUids.add(rootUid);
+		}
+	}
+
+	return {
+		hiddenRootUids,
+		shelfCategoryVisibility: getDealerShelfVisibilityFromSettings(settingsMeta),
+	};
+}
+
+function lineUsesHiddenDealerRoot(
+	line: DealerPortalQuoteLineItemInput,
+	hiddenRootUids: Set<string>,
+) {
+	if (!hiddenRootUids.size) return false;
+	const meta = getObjectMeta(line.meta);
+	const candidateUids = [
+		stringFromUnknown(meta.itemTypeUid),
+		stringFromUnknown(meta.rootUid),
+		...(Array.isArray(line.formSteps) ? line.formSteps : []).map((step) => {
+			const stepMeta = getObjectMeta(step);
+			return (
+				stringFromUnknown(stepMeta.prodUid) ||
+				stringFromUnknown(stepMeta.productUid) ||
+				stringFromUnknown(stepMeta.uid)
+			);
+		}),
+	].filter((uid): uid is string => !!uid);
+
+	return candidateUids.some((uid) => hiddenRootUids.has(uid));
+}
+
+async function getShelfProductsById(
+	tx: any,
+	productIds: number[],
+): Promise<
+	Map<number, { categoryId: number | null; parentCategoryId: number | null }>
+> {
+	if (!productIds.length || !tx.dykeShelfProducts?.findMany) {
+		return new Map<
+			number,
+			{ categoryId: number | null; parentCategoryId: number | null }
+		>();
+	}
+	const products = await tx.dykeShelfProducts.findMany({
+		where: {
+			id: {
+				in: Array.from(new Set(productIds)),
+			},
+			deletedAt: null,
+		},
+		select: {
+			id: true,
+			categoryId: true,
+			parentCategoryId: true,
+		},
+	});
+	return new Map<
+		number,
+		{ categoryId: number | null; parentCategoryId: number | null }
+	>(
+		products.map(
+			(product: {
+				id: number;
+				categoryId: number | null;
+				parentCategoryId: number | null;
+			}) =>
+				[
+					product.id,
+					{
+						categoryId: product.categoryId,
+						parentCategoryId: product.parentCategoryId,
+					},
+				] as const,
+		),
+	);
+}
+
+function shelfItemAllowedByCategory(
+	shelfItem: Record<string, unknown>,
+	product: {
+		categoryId: number | null;
+		parentCategoryId: number | null;
+	} | null,
+	allowedCategoryIds: Set<number>,
+) {
+	const meta = getObjectMeta(shelfItem.meta);
+	const candidateCategoryIds = [
+		numberFromUnknown(shelfItem.categoryId),
+		numberFromUnknown(shelfItem.parentCategoryId),
+		numberFromUnknown(meta.categoryId),
+		numberFromUnknown(meta.parentCategoryId),
+		numberFromUnknown(meta.shelfCategoryId),
+		numberFromUnknown(meta.shelfParentCategoryId),
+		product?.categoryId ?? null,
+		product?.parentCategoryId ?? null,
+	].filter((id): id is number => id != null);
+	return candidateCategoryIds.some((id) => allowedCategoryIds.has(id));
+}
+
+async function validateDealerPortalQuoteVisibility(
+	tx: any,
+	lineItems: DealerPortalQuoteLineItemInput[],
+) {
+	const visibility = await getDealerQuoteVisibilitySettings(tx);
+	for (const line of lineItems) {
+		if (lineUsesHiddenDealerRoot(line, visibility.hiddenRootUids)) {
+			throw new Error("This item type is not available in the dealer portal.");
+		}
+	}
+
+	if (visibility.shelfCategoryVisibility.mode !== "allowlist") return;
+
+	const allowedCategoryIds = visibility.shelfCategoryVisibility.categoryIds;
+	const shelfItems = lineItems.flatMap((line) =>
+		Array.isArray(line.shelfItems) ? line.shelfItems : [],
+	);
+	const shelfProductIds = shelfItems
+		.map((item) => numberFromUnknown(getObjectMeta(item).productId))
+		.filter((id): id is number => id != null);
+	const productsById = await getShelfProductsById(tx, shelfProductIds);
+
+	for (const item of shelfItems) {
+		const shelfItem = getObjectMeta(item);
+		const productId = numberFromUnknown(shelfItem.productId);
+		const product = productId ? productsById.get(productId) || null : null;
+		if (!shelfItemAllowedByCategory(shelfItem, product, allowedCategoryIds)) {
+			throw new Error("This shelf item is not available in the dealer portal.");
+		}
+	}
+}
+
 export function calculateDealerQuotePricing({
 	lineItems,
 	taxRate,
@@ -1501,6 +1749,8 @@ export async function saveDealerPortalQuote(
 		if (dealerProfileId && !dealerProfile) {
 			throw new Error("Dealer sales profile could not be found.");
 		}
+
+		await validateDealerPortalQuoteVisibility(tx, input.lineItems);
 
 		const normalizedLines = input.lineItems.map((line, index) => {
 			const qty = Number(line.qty ?? 0);

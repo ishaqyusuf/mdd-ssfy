@@ -1,8 +1,9 @@
 import type { RouterInputs } from "@api/trpc/routers/_app";
 import { useQueryStates } from "nuqs";
-import { createLoader, parseAsString } from "nuqs/server";
+import { createLoader, parseAsString, parseAsStringLiteral } from "nuqs/server";
 
 type FilterKeys = keyof Exclude<RouterInputs["dealerPortal"]["quotes"], void>;
+const dealerPaymentStates = ["due", "paid", "credit"] as const;
 
 export const quotesFilterParamsSchema = {
 	q: parseAsString,
@@ -10,6 +11,9 @@ export const quotesFilterParamsSchema = {
 	phone: parseAsString,
 	orderNo: parseAsString,
 	status: parseAsString,
+	deliveryOption: parseAsString,
+	customerProfileId: parseAsString,
+	amountDue: parseAsStringLiteral(dealerPaymentStates),
 } satisfies Partial<Record<FilterKeys, unknown>>;
 
 export function useQuotesFilterParams() {

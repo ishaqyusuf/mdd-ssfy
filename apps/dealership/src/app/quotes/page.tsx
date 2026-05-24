@@ -1,7 +1,7 @@
+import { DealershipShell } from "@/components/dealership-shell";
 import { ErrorFallback } from "@/components/error-fallback";
 import PageShell from "@/components/page-shell";
 import { QuoteHeader } from "@/components/quote-header";
-import { DealershipShell } from "@/components/dealership-shell";
 import { DataTable } from "@/components/tables/quotes/data-table";
 import { TableSkeleton } from "@/components/tables/skeleton";
 import { loadQuotesFilterParams } from "@/hooks/use-quotes-filter-params";
@@ -29,7 +29,10 @@ export default async function QuotesPage(props: {
 		trpc.dealerPortal.quoteFilters.queryOptions(),
 	);
 
-	batchPrefetch([trpc.dealerPortal.quotes.infiniteQueryOptions(filter)]);
+	batchPrefetch([
+		trpc.dealerPortal.dashboard.queryOptions(),
+		trpc.dealerPortal.quotes.infiniteQueryOptions(filter),
+	]);
 
 	return (
 		<DealershipShell dealer={dealer}>

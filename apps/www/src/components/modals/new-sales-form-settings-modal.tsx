@@ -20,7 +20,7 @@ import {
 } from "@gnd/ui/dropdown-menu";
 import { Form } from "@gnd/ui/form";
 import { ScrollArea } from "@gnd/ui/scroll-area";
-import { Sortable, SortableItem } from "@gnd/ui/sortable";
+import { Sortable, SortableDragHandle, SortableItem } from "@gnd/ui/sortable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import Modal from "@/components/common/modal";
 import { _modal } from "@/components/common/modal/provider";
@@ -31,8 +31,14 @@ import { FormInput } from "@gnd/ui/controls/form-input";
 import {
     useCustomerProfilesQuery,
     useCustomerTaxProfilesQuery,
+    useNewSalesFormShelfCategoriesQuery,
     useNewSalesFormStepRoutingQuery,
 } from "@/components/forms/new-sales-form/api";
+
+type DealerShelfCategoryVisibility = {
+    mode: "all" | "allowlist";
+    categoryIds: number[];
+};
 
 type SettingsFormValues = {
     data: {
@@ -51,9 +57,11 @@ type SettingsFormValues = {
                             production: boolean;
                             shipping: boolean;
                             shelfLineItems: boolean;
+                            dealerVisible: boolean;
                         };
                     }
                 >;
+                dealerShelfCategoryVisibility: DealerShelfCategoryVisibility;
                 ccc: number | string | null;
                 taxCode: string | null;
                 customerProfileId: string | null;
@@ -66,6 +74,7 @@ type SettingsFormValues = {
 function useNewSalesFormSettingsContext() {
     const stepRoutingQuery = useNewSalesFormStepRoutingQuery({}, true);
     const routeData = stepRoutingQuery.data;
+    const shelfCategoriesQuery = useNewSalesFormShelfCategoriesQuery({}, true);
     const customerProfilesQuery = useCustomerProfilesQuery(true);
     const customerTaxProfilesQuery = useCustomerTaxProfilesQuery(true);
     const queryClient = useQueryClient();
@@ -76,6 +85,10 @@ function useNewSalesFormSettingsContext() {
                 setting: {
                     data: {
                         route: {},
+                        dealerShelfCategoryVisibility: {
+                            mode: "all",
+                            categoryIds: [],
+                        },
                         ccc: 3.5,
                         taxCode: null,
                         customerProfileId: null,
@@ -111,6 +124,23 @@ function useNewSalesFormSettingsContext() {
             settingsMeta && typeof settingsMeta.data === "object"
                 ? settingsMeta.data
                 : {};
+        const rawDealerShelfVisibility =
+            settingsMeta?.dealerShelfCategoryVisibility ||
+            (nestedSettingsMeta as any)?.dealerShelfCategoryVisibility ||
+            {};
+        const dealerShelfCategoryVisibility: DealerShelfCategoryVisibility = {
+            mode:
+                (rawDealerShelfVisibility as any)?.mode === "allowlist"
+                    ? "allowlist"
+                    : "all",
+            categoryIds: Array.isArray(
+                (rawDealerShelfVisibility as any)?.categoryIds,
+            )
+                ? (rawDealerShelfVisibility as any).categoryIds
+                      .map((id: unknown) => Number(id))
+                      .filter((id: number) => Number.isInteger(id) && id > 0)
+                : [],
+        };
         const composedRouter = routeData.composedRouter || {};
         const routeBySection: SettingsFormValues["data"]["setting"]["data"]["route"] =
             {};
@@ -132,6 +162,7 @@ function useNewSalesFormSettingsContext() {
                     production: !!routeObj.config?.production,
                     shipping: !!routeObj.config?.shipping,
                     shelfLineItems: !!routeObj.config?.shelfLineItems,
+                    dealerVisible: routeObj.config?.dealerVisible !== false,
                 },
             };
         }
@@ -144,10 +175,9 @@ function useNewSalesFormSettingsContext() {
                 setting: {
                     data: {
                         route: routeBySection,
+                        dealerShelfCategoryVisibility,
                         ccc: Number(
-                            settingsMeta?.ccc ??
-                                nestedSettingsMeta?.ccc ??
-                                3.5,
+                            settingsMeta?.ccc ?? nestedSettingsMeta?.ccc ?? 3.5,
                         ),
                         taxCode:
                             (settingsMeta?.taxCode as string | null) ??
@@ -223,6 +253,7 @@ function useNewSalesFormSettingsContext() {
                 production: false,
                 shipping: false,
                 shelfLineItems: false,
+                dealerVisible: true,
             },
         });
         sectionArray.append({
@@ -242,6 +273,21 @@ function useNewSalesFormSettingsContext() {
         }
         const meta = {
             ...rawMeta,
+            dealerShelfCategoryVisibility: {
+                mode:
+                    rawMeta.dealerShelfCategoryVisibility?.mode === "allowlist"
+                        ? "allowlist"
+                        : "all",
+                categoryIds:
+                    rawMeta.dealerShelfCategoryVisibility?.mode === "allowlist"
+                        ? (
+                              rawMeta.dealerShelfCategoryVisibility
+                                  ?.categoryIds || []
+                          )
+                              .map((id) => Number(id))
+                              .filter((id) => Number.isInteger(id) && id > 0)
+                        : [],
+            },
             ccc:
                 rawMeta.ccc == null || rawMeta.ccc === ""
                     ? null
@@ -264,9 +310,11 @@ function useNewSalesFormSettingsContext() {
         });
     }
 
-        return {
+    return {
         isLoading: stepRoutingQuery.isPending,
         routeData,
+        shelfCategories: shelfCategoriesQuery.data || [],
+        isShelfCategoriesLoading: shelfCategoriesQuery.isPending,
         customerProfiles: customerProfilesQuery.data || [],
         taxProfiles: customerTaxProfilesQuery.data || [],
         rootComponentsByUid,
@@ -360,6 +408,13 @@ function RouteSection({ uid }: { uid: string }) {
                             name={`data.setting.data.route.${uid}.config.shelfLineItems`}
                             label="Shelf Items"
                         />
+                        <FormCheckbox
+                            switchInput
+                            control={ctx.form.control}
+                            name={`data.setting.data.route.${uid}.config.dealerVisible`}
+                            label="Dealer Visible"
+                            description="Allow dealership users to select this item type."
+                        />
                     </div>
                 </div>
 
@@ -386,7 +441,7 @@ function RouteSection({ uid }: { uid: string }) {
                             stepArray.move(activeIndex, overIndex)
                         }
                         overlay={
-                            <div className="grid grid-cols-[1fr,auto,auto] items-center gap-2">
+                            <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2">
                                 <div className="h-8 w-full rounded-sm bg-primary/10" />
                                 <div className="size-8 rounded-sm bg-primary/10" />
                                 <div className="size-8 rounded-sm bg-primary/10" />
@@ -398,30 +453,39 @@ function RouteSection({ uid }: { uid: string }) {
                                 <SortableItem
                                     key={field.id}
                                     value={field.id}
-                                    asTrigger
-                                    className="grid grid-cols-[minmax(0,1fr),auto,auto] items-center gap-2 rounded-md border bg-card p-2"
+                                    asChild
                                 >
-                                    <FormSelect
-                                        className="!mx-0"
-                                        size="sm"
-                                        name={`data.setting.data.route.${uid}.routeSequence.${index}.uid`}
-                                        titleKey="title"
-                                        valueKey="uid"
-                                        options={ctx.steps}
-                                        control={ctx.form.control}
-                                    />
-                                    <div className="grid size-8 place-items-center rounded-md border bg-muted/20 text-xs text-muted-foreground">
-                                        ::
+                                    <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2">
+                                        <FormSelect
+                                            className="!mx-0"
+                                            size="sm"
+                                            name={`data.setting.data.route.${uid}.routeSequence.${index}.uid`}
+                                            titleKey="title"
+                                            valueKey="uid"
+                                            options={ctx.steps}
+                                            control={ctx.form.control}
+                                        />
+                                        <SortableDragHandle
+                                            type="button"
+                                            className="inline-flex size-8 shrink-0 self-center items-center justify-center rounded-md border bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                                        >
+                                            <Icons.GripIcon
+                                                className="size-4"
+                                                aria-hidden="true"
+                                            />
+                                        </SortableDragHandle>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="icon"
+                                            className="size-8 shrink-0 self-center"
+                                            onClick={() =>
+                                                stepArray.remove(index)
+                                            }
+                                        >
+                                            <Icons.Trash2 className="size-4" />
+                                        </Button>
                                     </div>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="icon"
-                                        className="size-8"
-                                        onClick={() => stepArray.remove(index)}
-                                    >
-                                        <Icons.Trash2 className="size-4" />
-                                    </Button>
                                 </SortableItem>
                             ))}
                         </div>
@@ -450,6 +514,123 @@ function RouteSection({ uid }: { uid: string }) {
                 </div>
             </AccordionContent>
         </AccordionItem>
+    );
+}
+
+function DealerShelfVisibilitySettings() {
+    const ctx = useSettings();
+    const visibility = ctx.form.watch(
+        "data.setting.data.dealerShelfCategoryVisibility",
+    ) || { mode: "all", categoryIds: [] };
+    const selectedIds = visibility.categoryIds || [];
+    const categories = ctx.shelfCategories || [];
+
+    function setMode(mode: DealerShelfCategoryVisibility["mode"]) {
+        ctx.form.setValue("data.setting.data.dealerShelfCategoryVisibility", {
+            mode,
+            categoryIds: mode === "all" ? [] : selectedIds,
+        });
+    }
+
+    function toggleCategory(categoryId: number, checked: boolean) {
+        const nextIds = checked
+            ? Array.from(new Set([...selectedIds, categoryId]))
+            : selectedIds.filter((id) => id !== categoryId);
+        ctx.form.setValue(
+            "data.setting.data.dealerShelfCategoryVisibility.categoryIds",
+            nextIds,
+        );
+    }
+
+    return (
+        <div className="rounded-xl border bg-card p-4 shadow-sm">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                        Dealer Shelf Visibility
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                        Choose which shelf categories dealerships can quote.
+                    </p>
+                </div>
+                <div className="flex rounded-md border bg-background p-1">
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant={
+                            visibility.mode === "all" ? "default" : "ghost"
+                        }
+                        className="h-8"
+                        onClick={() => setMode("all")}
+                    >
+                        All Categories
+                    </Button>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant={
+                            visibility.mode === "allowlist"
+                                ? "default"
+                                : "ghost"
+                        }
+                        className="h-8"
+                        onClick={() => setMode("allowlist")}
+                    >
+                        Selected
+                    </Button>
+                </div>
+            </div>
+
+            {visibility.mode === "allowlist" ? (
+                <div className="max-h-72 space-y-2 overflow-auto rounded-lg border bg-background p-3">
+                    {ctx.isShelfCategoriesLoading ? (
+                        <p className="text-sm text-muted-foreground">
+                            Loading shelf categories...
+                        </p>
+                    ) : categories.length ? (
+                        categories.map((category: any) => {
+                            const categoryId = Number(category?.id);
+                            if (!Number.isInteger(categoryId)) return null;
+                            return (
+                                <label
+                                    key={categoryId}
+                                    className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 text-sm hover:bg-muted/60"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        className="size-4"
+                                        checked={selectedIds.includes(
+                                            categoryId,
+                                        )}
+                                        onChange={(event) =>
+                                            toggleCategory(
+                                                categoryId,
+                                                event.target.checked,
+                                            )
+                                        }
+                                    />
+                                    <span className="min-w-0 flex-1 truncate">
+                                        {String(
+                                            category?.name ||
+                                                `Category ${categoryId}`,
+                                        )}
+                                    </span>
+                                    {category?.type ? (
+                                        <span className="text-[10px] font-semibold uppercase text-muted-foreground">
+                                            {String(category.type)}
+                                        </span>
+                                    ) : null}
+                                </label>
+                            );
+                        })
+                    ) : (
+                        <p className="text-sm text-muted-foreground">
+                            No shelf categories found.
+                        </p>
+                    )}
+                </div>
+            ) : null}
+        </div>
     );
 }
 
@@ -537,18 +718,18 @@ export function NewSalesFormSettingsModal() {
                                                         taxCode: "none",
                                                         title: "None",
                                                     },
-                                                    ...(value.taxProfiles || []).map(
-                                                        (tax: any) => ({
-                                                            taxCode: String(
-                                                                tax?.taxCode || "",
-                                                            ),
-                                                            title: String(
-                                                                tax?.title ||
-                                                                    tax?.taxCode ||
-                                                                    "Tax",
-                                                            ),
-                                                        }),
-                                                    ),
+                                                    ...(
+                                                        value.taxProfiles || []
+                                                    ).map((tax: any) => ({
+                                                        taxCode: String(
+                                                            tax?.taxCode || "",
+                                                        ),
+                                                        title: String(
+                                                            tax?.title ||
+                                                                tax?.taxCode ||
+                                                                "Tax",
+                                                        ),
+                                                    })),
                                                 ]}
                                             />
                                             <FormSelect
@@ -562,21 +743,23 @@ export function NewSalesFormSettingsModal() {
                                                         id: "none",
                                                         title: "None",
                                                     },
-                                                    ...(value.customerProfiles || []).map(
-                                                        (profile: any) => ({
-                                                            id: String(
-                                                                profile?.id || "",
-                                                            ),
-                                                            title: String(
-                                                                profile?.title ||
-                                                                    `Profile ${profile?.id || ""}`,
-                                                            ),
-                                                        }),
-                                                    ),
+                                                    ...(
+                                                        value.customerProfiles ||
+                                                        []
+                                                    ).map((profile: any) => ({
+                                                        id: String(
+                                                            profile?.id || "",
+                                                        ),
+                                                        title: String(
+                                                            profile?.title ||
+                                                                `Profile ${profile?.id || ""}`,
+                                                        ),
+                                                    })),
                                                 ]}
                                             />
                                         </div>
                                     </div>
+                                    <DealerShelfVisibilitySettings />
                                 </div>
                             </ScrollArea>
                         </TabsContent>
