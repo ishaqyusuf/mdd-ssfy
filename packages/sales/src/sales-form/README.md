@@ -9,15 +9,23 @@ sales form.
 Import public sales-form APIs from:
 
 ```ts
-import { SalesFormWorkflowPanel } from "@gnd/sales/sales-form";
+import { SalesFormEnginePanel } from "@gnd/sales/sales-form";
 ```
 
 Do not import deep workflow files from app code unless the file is explicitly
 exported through `src/sales-form/index.ts`.
 
+Use `SalesFormEnginePanel` as the host-facing workflow entry point. It applies
+capability filtering before the lower-level workflow panel sees slots or data
+sources, which keeps office-only controls out of dealer surfaces.
+
+`SalesFormWorkflowPanel` remains exported for advanced package composition, but
+app code should not mount it directly unless it has already applied equivalent
+capability and data-source filtering.
+
 ## Workflow Panel Boundary
 
-`SalesFormWorkflowPanel` is intentionally app-data-source driven. Apps provide
+`SalesFormEnginePanel` is intentionally app-data-source driven. Apps provide
 query hooks through `SalesFormWorkflowDataSource` instead of the package
 importing tRPC, app env, or app auth.
 
@@ -61,6 +69,14 @@ package provides the Door tab shell and supplier-selection patching, while the
 host owns supplier create/update/delete mutations. Moulding calculators are
 host-owned through `dataSource.renderMouldingCalculator` so app-specific
 measurement tools do not leak into the shared package.
+
+Host adapters should prefer package helpers for portable normalization and
+composition:
+
+- `composeDealerSalesFormQuoteRecord`
+- `composeDealerSalesFormQuoteSaveInput`
+- `composeDealerSalesFormQuotePricingSnapshot`
+- `createWorkflowComponentImageResolver`
 
 `www` can now supply component-level admin actions through
 `slots.componentActions`. Use this for privileged behavior that must remain

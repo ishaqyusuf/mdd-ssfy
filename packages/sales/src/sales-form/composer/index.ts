@@ -1,159 +1,447 @@
 import {
-	computeNormalizedSalesFormSummary,
-	hydrateSalesFormRecord,
-	normalizeSalesFormExtraCosts,
-	normalizeSalesFormLineItems,
-	toSalesFormSaveDraftPayload,
-	type SalesFormExtraCostRecord,
-	type SalesFormLineItemRecord,
-	type SalesFormSummaryRecord,
+  applySalesFormInitialCustomerSelection,
+  computeNormalizedSalesFormSummary,
+  createEmptySalesFormLineItem,
+  hydrateSalesFormRecord,
+  normalizeSalesFormExtraCosts,
+  normalizeSalesFormLineItems,
+  toSalesFormSaveDraftPayload,
+  type SalesFormExtraCostRecord,
+  type SalesFormLineItemRecord,
+  type SalesFormMetaRecord,
+  type SalesFormSummaryRecord,
 } from "../application";
 import {
-	buildDualSalesFormPricingSnapshot,
-	type DualPricingSnapshot,
-	type SalesFormPricingProfile,
+  buildDualSalesFormPricingSnapshot,
+  type DualPricingSnapshot,
+  type SalesFormPricingProfile,
 } from "../domain";
 
 export type SalesFormComposerSurface = "www" | "dealership";
 
 export type CoefficientPricingAdapter = {
-	mode: "coefficient";
-	profile?: SalesFormPricingProfile | null;
+  mode: "coefficient";
+  profile?: SalesFormPricingProfile | null;
 };
 
 export type PercentagePricingAdapter = {
-	mode: "percentage";
-	internalProfile?: SalesFormPricingProfile | null;
-	dealerProfile?: SalesFormPricingProfile | null;
+  mode: "percentage";
+  internalProfile?: SalesFormPricingProfile | null;
+  dealerProfile?: SalesFormPricingProfile | null;
 };
 
 export type SalesFormPricingAdapter =
-	| CoefficientPricingAdapter
-	| PercentagePricingAdapter;
+  | CoefficientPricingAdapter
+  | PercentagePricingAdapter;
 
 export type SalesFormComposerConfig = {
-	surface: SalesFormComposerSurface;
-	pricing?: SalesFormPricingAdapter | null;
+  surface: SalesFormComposerSurface;
+  pricing?: SalesFormPricingAdapter | null;
 };
 
 export type SalesFormComposerRecord = Record<string, any> & {
-	type?: "order" | "quote" | string | null;
-	salesId?: number | null;
-	slug?: string | null;
-	inventoryStatus?: string | null;
-	version?: string | null;
-	form?: Record<string, any> | null;
-	lineItems?: SalesFormLineItemRecord[];
-	extraCosts?: SalesFormExtraCostRecord[];
-	summary?: SalesFormSummaryRecord | null;
-	settings?: {
-		cccPercentage?: number | null;
-	} | null;
+  type?: "order" | "quote" | string | null;
+  salesId?: number | null;
+  slug?: string | null;
+  inventoryStatus?: string | null;
+  version?: string | null;
+  form?: Record<string, any> | null;
+  lineItems?: SalesFormLineItemRecord[];
+  extraCosts?: SalesFormExtraCostRecord[];
+  summary?: SalesFormSummaryRecord | null;
+  settings?: {
+    cccPercentage?: number | null;
+  } | null;
 };
 
 export type CoefficientPricingSnapshot = {
-	source: "sales_form_coefficient_pricing";
-	mode: "coefficient";
-	profile: {
-		id: number | null;
-		label: string | null;
-		coefficient: number;
-	};
-	summary: ReturnType<typeof computeNormalizedSalesFormSummary>;
+  source: "sales_form_coefficient_pricing";
+  mode: "coefficient";
+  profile: {
+    id: number | null;
+    label: string | null;
+    coefficient: number;
+  };
+  summary: ReturnType<typeof computeNormalizedSalesFormSummary>;
 };
 
 export type SalesFormComposerPricingSnapshot =
-	| CoefficientPricingSnapshot
-	| DualPricingSnapshot;
+  | CoefficientPricingSnapshot
+  | DualPricingSnapshot;
+
+export type SalesFormComposerPricingProfile = SalesFormPricingProfile & {
+  title?: string | null;
+};
+
+export type ComposeDealerSalesFormQuotePricingSnapshotInput = {
+  lineItems: SalesFormLineItemRecord[];
+  extraCosts?: SalesFormExtraCostRecord[];
+  taxRate?: number | null;
+  paymentMethod?: string | null;
+  cccPercentage?: number | null;
+  internalProfile?: SalesFormComposerPricingProfile | null;
+  dealerProfile?: SalesFormComposerPricingProfile | null;
+  createdAt?: string | Date | null;
+};
+
+export type DealerSalesFormQuoteSource = {
+  id?: number | null;
+  orderId?: string | null;
+  slug?: string | null;
+  status?: string | null;
+  type?: string | null;
+  customerId?: number | null;
+  customerProfileId?: number | null;
+  po?: string | null;
+  paymentTerm?: string | null;
+  goodUntil?: string | null;
+  deliveryOption?: string | null;
+  paymentMethod?: string | null;
+  taxCode?: string | null;
+  taxRate?: number | null;
+  lineItems?: unknown;
+};
+
+export type DealerSalesFormQuoteLineItemRecord = SalesFormLineItemRecord & {
+  uid: string;
+  title: string;
+  qty: number;
+  unitPrice: number;
+  lineTotal: number;
+  formSteps?: any[];
+  shelfItems?: any[];
+  housePackageTool?: any | null;
+};
+
+export type DealerSalesFormQuoteRecord = {
+  id?: number | null;
+  type: "quote";
+  salesId?: number | null;
+  orderId?: string | null;
+  slug?: string | null;
+  status?: string | null;
+  version?: string | null;
+  updatedAt?: string | null;
+  form: SalesFormMetaRecord & {
+    customerId: number | null;
+    customerProfileId: number | null;
+    po?: string | null;
+    paymentTerm?: string | null;
+    goodUntil?: string | null;
+    deliveryOption?: string | null;
+    paymentMethod?: string | null;
+    taxCode?: string | null;
+  };
+  lineItems: DealerSalesFormQuoteLineItemRecord[];
+  extraCosts: SalesFormExtraCostRecord[];
+  summary: SalesFormSummaryRecord;
+};
+
+export type DealerSalesFormQuoteSaveInput = {
+  id?: number | null;
+  customerId: number;
+  customerProfileId?: number | null;
+  po?: string | null;
+  paymentTerm?: string | null;
+  goodUntil?: string | null;
+  deliveryOption?: string | null;
+  paymentMethod?: string | null;
+  taxCode?: string | null;
+  taxRate?: number | null;
+  lineItems: Array<{
+    uid: string;
+    title?: string | null;
+    description?: string | null;
+    qty?: number | null;
+    unitPrice?: number | null;
+    lineTotal?: number | null;
+    meta?: Record<string, unknown> | null;
+    formSteps?: Record<string, unknown>[] | null;
+    shelfItems?: Record<string, unknown>[] | null;
+    housePackageTool?: Record<string, unknown> | null;
+  }>;
+};
 
 function normalizeCoefficient(profile?: SalesFormPricingProfile | null) {
-	const value = Number(profile?.coefficient ?? 1);
-	return Number.isFinite(value) && value > 0 ? value : 1;
+  const value = Number(profile?.coefficient ?? 1);
+  return Number.isFinite(value) && value > 0 ? value : 1;
 }
 
-export function composeSalesFormRecord<
-	TRecord extends SalesFormComposerRecord,
->(record: TRecord, _config?: SalesFormComposerConfig): TRecord {
-	return hydrateSalesFormRecord(record) as TRecord;
+function withPricingLabel(
+  profile?: SalesFormComposerPricingProfile | null,
+): SalesFormPricingProfile | null {
+  if (!profile) return null;
+  return {
+    ...profile,
+    label: profile.label ?? profile.title ?? null,
+  };
+}
+
+export function composeSalesFormRecord<TRecord extends SalesFormComposerRecord>(
+  record: TRecord,
+  _config?: SalesFormComposerConfig,
+): TRecord {
+  return hydrateSalesFormRecord(record) as TRecord;
 }
 
 export function composeSalesFormSavePayload<
-	TRecord extends SalesFormComposerRecord,
+  TRecord extends SalesFormComposerRecord,
 >(
-	record: TRecord,
-	config: SalesFormComposerConfig & {
-		autosave?: boolean;
-	},
+  record: TRecord,
+  config: SalesFormComposerConfig & {
+    autosave?: boolean;
+  },
 ) {
-	return toSalesFormSaveDraftPayload(record, config.autosave ?? true);
+  return toSalesFormSaveDraftPayload(record, config.autosave ?? true);
 }
 
 export function composeSalesFormPricingSnapshot(input: {
-	config: SalesFormComposerConfig;
-	lineItems: SalesFormLineItemRecord[];
-	extraCosts?: SalesFormExtraCostRecord[];
-	taxRate?: number | null;
-	paymentMethod?: string | null;
-	cccPercentage?: number | null;
-	createdAt?: string | Date | null;
+  config: SalesFormComposerConfig;
+  lineItems: SalesFormLineItemRecord[];
+  extraCosts?: SalesFormExtraCostRecord[];
+  taxRate?: number | null;
+  paymentMethod?: string | null;
+  cccPercentage?: number | null;
+  createdAt?: string | Date | null;
 }): SalesFormComposerPricingSnapshot {
-	const pricing = input.config.pricing;
-	if (pricing?.mode === "percentage") {
-		const lineItems = normalizeSalesFormLineItems(input.lineItems || []).map(
-			(line) => ({
-				...line,
-				uid: String(line.uid || ""),
-			}),
-		);
-		const extraCosts = normalizeSalesFormExtraCosts(input.extraCosts || []).map(
-			(cost) => ({
-				...cost,
-				type: String(cost.type || "CustomNonTaxxable"),
-			}),
-		);
-		return buildDualSalesFormPricingSnapshot({
-			lineItems,
-			extraCosts,
-			taxRate: input.taxRate,
-			paymentMethod: input.paymentMethod,
-			cccPercentage: input.cccPercentage,
-			internalProfile: pricing.internalProfile,
-			dealerProfile: pricing.dealerProfile,
-			createdAt: input.createdAt,
-		});
-	}
+  const pricing = input.config.pricing;
+  if (pricing?.mode === "percentage") {
+    const lineItems = normalizeSalesFormLineItems(input.lineItems || []).map(
+      (line) => ({
+        ...line,
+        uid: String(line.uid || ""),
+      }),
+    );
+    const extraCosts = normalizeSalesFormExtraCosts(input.extraCosts || []).map(
+      (cost) => ({
+        ...cost,
+        type: String(cost.type || "CustomNonTaxxable"),
+      }),
+    );
+    return buildDualSalesFormPricingSnapshot({
+      lineItems,
+      extraCosts,
+      taxRate: input.taxRate,
+      paymentMethod: input.paymentMethod,
+      cccPercentage: input.cccPercentage,
+      internalProfile: pricing.internalProfile,
+      dealerProfile: pricing.dealerProfile,
+      createdAt: input.createdAt,
+    });
+  }
 
-	const profile = pricing?.mode === "coefficient" ? pricing.profile : null;
-	const coefficient = normalizeCoefficient(profile);
-	const pricedLines = normalizeSalesFormLineItems(input.lineItems || []).map(
-		(line) => {
-			const qty = Number(line.qty ?? 0);
-			const unitPrice = Number(
-				(Number(line.unitPrice || 0) * coefficient).toFixed(2),
-			);
-			return {
-				...line,
-				qty,
-				unitPrice,
-				lineTotal: Number((qty * unitPrice).toFixed(2)),
-			};
-		},
-	);
+  const profile = pricing?.mode === "coefficient" ? pricing.profile : null;
+  const coefficient = normalizeCoefficient(profile);
+  const pricedLines = normalizeSalesFormLineItems(input.lineItems || []).map(
+    (line) => {
+      const qty = Number(line.qty ?? 0);
+      const unitPrice = Number(
+        (Number(line.unitPrice || 0) * coefficient).toFixed(2),
+      );
+      return {
+        ...line,
+        qty,
+        unitPrice,
+        lineTotal: Number((qty * unitPrice).toFixed(2)),
+      };
+    },
+  );
 
-	return {
-		source: "sales_form_coefficient_pricing",
-		mode: "coefficient",
-		profile: {
-			id: profile?.id ?? null,
-			label: profile?.label ?? null,
-			coefficient,
-		},
-		summary: computeNormalizedSalesFormSummary(
-			pricedLines,
-			input.taxRate || 0,
-			input.extraCosts || [],
-			input.paymentMethod,
-			input.cccPercentage,
-		),
-	};
+  return {
+    source: "sales_form_coefficient_pricing",
+    mode: "coefficient",
+    profile: {
+      id: profile?.id ?? null,
+      label: profile?.label ?? null,
+      coefficient,
+    },
+    summary: computeNormalizedSalesFormSummary(
+      pricedLines,
+      input.taxRate || 0,
+      input.extraCosts || [],
+      input.paymentMethod,
+      input.cccPercentage,
+    ),
+  };
+}
+
+function roundCurrency(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+function safeObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function safeObjectArray(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value)
+    ? value
+        .filter(
+          (item): item is Record<string, unknown> =>
+            Boolean(item) && typeof item === "object" && !Array.isArray(item),
+        )
+        .map((item) => safeObject(item))
+    : [];
+}
+
+export function createDealerSalesFormLineItem(
+  index = 0,
+): DealerSalesFormQuoteLineItemRecord {
+  const line = createEmptySalesFormLineItem(index);
+  return {
+    ...line,
+    uid: `dealer-line-${index + 1}-${Date.now().toString(36)}-${Math.random()
+      .toString(36)
+      .slice(2, 8)}`,
+    title: "",
+    description: "",
+    qty: 1,
+    unitPrice: 0,
+    lineTotal: 0,
+    meta: {},
+    formSteps: [],
+    shelfItems: [],
+    housePackageTool: null,
+  };
+}
+
+export function normalizeDealerSalesFormLineItems(
+  value: unknown,
+): DealerSalesFormQuoteLineItemRecord[] {
+  if (!Array.isArray(value) || !value.length) {
+    return [createDealerSalesFormLineItem(0)];
+  }
+
+  return value.map((line, index) => {
+    const record = safeObject(line);
+    const qty = Number(record.qty || 0);
+    const unitPrice = Number(record.unitPrice || 0);
+    const lineTotal = Number(record.lineTotal ?? qty * unitPrice);
+
+    return {
+      ...createEmptySalesFormLineItem(index),
+      uid: String(record.uid || `dealer-line-${index + 1}`),
+      title: typeof record.title === "string" ? record.title : "",
+      description:
+        typeof record.description === "string" ? record.description : "",
+      qty,
+      unitPrice,
+      lineTotal,
+      meta: safeObject(record.meta),
+      formSteps: safeObjectArray(record.formSteps),
+      shelfItems: safeObjectArray(record.shelfItems),
+      housePackageTool: record.housePackageTool
+        ? safeObject(record.housePackageTool)
+        : null,
+    };
+  });
+}
+
+export function composeDealerSalesFormQuoteRecord(
+  source?: DealerSalesFormQuoteSource | null,
+  initialCustomerId?: number | string | string[] | null,
+): DealerSalesFormQuoteRecord {
+  const taxRate = Number(source?.taxRate || 0);
+  const record: DealerSalesFormQuoteRecord = {
+    id: source?.id || null,
+    type: "quote",
+    salesId: source?.id || null,
+    orderId: source?.orderId || null,
+    slug: source?.slug || null,
+    status: source?.status || "Draft",
+    version: String(source?.id || "new"),
+    updatedAt: null,
+    form: {
+      customerId: source?.customerId || null,
+      customerProfileId: source?.customerProfileId || null,
+      po: source?.po || null,
+      paymentTerm: source?.paymentTerm || "None",
+      goodUntil: source?.goodUntil || null,
+      deliveryOption: source?.deliveryOption || "pickup",
+      paymentMethod: source?.paymentMethod || null,
+      taxCode: source?.taxCode || null,
+    },
+    lineItems: normalizeDealerSalesFormLineItems(source?.lineItems),
+    extraCosts: [],
+    summary: {
+      taxRate,
+      subTotal: 0,
+      grandTotal: 0,
+    },
+  };
+
+  return applySalesFormInitialCustomerSelection(record, {
+    customerId: initialCustomerId,
+    preserveExisting: true,
+  }) as DealerSalesFormQuoteRecord;
+}
+
+export function composeDealerSalesFormQuoteSaveInput(input: {
+  record: DealerSalesFormQuoteRecord;
+  id?: number | null;
+  customerProfileId?: number | null;
+  lineTotalsByUid?: Record<string, number | undefined>;
+}): DealerSalesFormQuoteSaveInput | null {
+  const customerId = input.record.form.customerId;
+  if (!customerId) return null;
+
+  return {
+    id: input.id ?? null,
+    customerId,
+    customerProfileId:
+      input.customerProfileId ?? input.record.form.customerProfileId ?? null,
+    deliveryOption: input.record.form.deliveryOption || "pickup",
+    goodUntil: input.record.form.goodUntil || null,
+    paymentMethod: input.record.form.paymentMethod || null,
+    paymentTerm: input.record.form.paymentTerm || "None",
+    po: input.record.form.po || null,
+    taxCode: input.record.form.taxCode || null,
+    taxRate: Number(input.record.summary?.taxRate || 0),
+    lineItems: (input.record.lineItems || []).map((line) => {
+      const qty = Number(line.qty || 0);
+      const unitPrice = Number(line.unitPrice || 0);
+      const fallbackLineTotal = roundCurrency(
+        Number(line.lineTotal ?? qty * unitPrice),
+      );
+
+      return {
+        uid: String(line.uid || ""),
+        title: line.title || null,
+        description: line.description || null,
+        qty,
+        unitPrice,
+        lineTotal:
+          input.lineTotalsByUid?.[String(line.uid || "")] ?? fallbackLineTotal,
+        meta: safeObject(line.meta),
+        formSteps: safeObjectArray(line.formSteps),
+        shelfItems: safeObjectArray(line.shelfItems),
+        housePackageTool: line.housePackageTool
+          ? safeObject(line.housePackageTool)
+          : null,
+      };
+    }),
+  };
+}
+
+export function composeDealerSalesFormQuotePricingSnapshot(
+  input: ComposeDealerSalesFormQuotePricingSnapshotInput,
+): DualPricingSnapshot {
+  return composeSalesFormPricingSnapshot({
+    config: {
+      surface: "dealership",
+      pricing: {
+        mode: "percentage",
+        internalProfile: withPricingLabel(input.internalProfile),
+        dealerProfile: withPricingLabel(input.dealerProfile),
+      },
+    },
+    lineItems: input.lineItems,
+    extraCosts: input.extraCosts,
+    taxRate: input.taxRate,
+    paymentMethod: input.paymentMethod,
+    cccPercentage: input.cccPercentage,
+    createdAt: input.createdAt,
+  }) as DualPricingSnapshot;
 }

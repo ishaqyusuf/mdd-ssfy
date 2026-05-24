@@ -1,215 +1,101 @@
 "use client";
 
 import {
-	type SalesFormLineItemUiRecord,
-	applySalesFormInitialCustomerSelection,
-	createEmptySalesFormLineItem,
-	createInitialSalesFormState,
-	hydrateSalesFormState,
-	setSalesFormMeta,
-	setSalesFormTaxRate,
+  composeDealerSalesFormQuoteRecord,
+  createInitialSalesFormState,
+  hydrateSalesFormState,
+  setSalesFormMeta,
+  setSalesFormTaxRate,
+  type DealerSalesFormQuoteSource,
 } from "@gnd/sales/sales-form";
 import { useCallback, useMemo, useState } from "react";
 import type { DealerSalesFormRecord, DealerSalesFormState } from "../types";
 
-type DealerQuoteSource = {
-	id?: number | null;
-	orderId?: string | null;
-	slug?: string | null;
-	status?: string | null;
-	type?: string | null;
-	customerId?: number | null;
-	customerProfileId?: number | null;
-	po?: string | null;
-	paymentTerm?: string | null;
-	goodUntil?: string | null;
-	deliveryOption?: string | null;
-	paymentMethod?: string | null;
-	taxCode?: string | null;
-	taxRate?: number | null;
-	lineItems?: unknown;
-};
-
-function createDealerLineItem(index = 0): SalesFormLineItemUiRecord {
-	const line = createEmptySalesFormLineItem(index);
-	return {
-		id: line.id ?? null,
-		uid: `dealer-line-${index + 1}-${Date.now().toString(36)}`,
-		title: "",
-		description: "",
-		qty: 1,
-		unitPrice: 0,
-		lineTotal: 0,
-		meta: {},
-		formSteps: [],
-		shelfItems: [],
-		housePackageTool: null,
-	};
-}
-
-function normalizeDealerLineItems(value: unknown): SalesFormLineItemUiRecord[] {
-	if (!Array.isArray(value) || !value.length) return [createDealerLineItem(0)];
-
-	return value.map((line, index) => {
-		const record =
-			line && typeof line === "object" && !Array.isArray(line)
-				? (line as Record<string, unknown>)
-				: {};
-		const qty = Number(record.qty || 0);
-		const unitPrice = Number(record.unitPrice || 0);
-		const lineTotal = Number(record.lineTotal ?? qty * unitPrice);
-
-		return {
-			...createEmptySalesFormLineItem(index),
-			uid: String(record.uid || `dealer-line-${index + 1}`),
-			title: typeof record.title === "string" ? record.title : "",
-			description:
-				typeof record.description === "string" ? record.description : "",
-			qty,
-			unitPrice,
-			lineTotal,
-			meta:
-				record.meta &&
-				typeof record.meta === "object" &&
-				!Array.isArray(record.meta)
-					? (record.meta as Record<string, unknown>)
-					: {},
-			formSteps: Array.isArray(record.formSteps) ? record.formSteps : [],
-			shelfItems: Array.isArray(record.shelfItems) ? record.shelfItems : [],
-			housePackageTool:
-				record.housePackageTool &&
-				typeof record.housePackageTool === "object" &&
-				!Array.isArray(record.housePackageTool)
-					? record.housePackageTool
-					: null,
-		};
-	});
-}
-
-function createDealerSalesFormRecord(
-	source?: DealerQuoteSource | null,
-	initialCustomerId?: number | string | string[] | null,
-): DealerSalesFormRecord {
-	const taxRate = Number(source?.taxRate || 0);
-
-	const record = {
-		id: source?.id || null,
-		type: "quote",
-		salesId: source?.id || null,
-		orderId: source?.orderId || null,
-		slug: source?.slug || null,
-		status: source?.status || "Draft",
-		version: String(source?.id || "new"),
-		updatedAt: null,
-		form: {
-			customerId: source?.customerId || null,
-			customerProfileId: source?.customerProfileId || null,
-			po: source?.po || null,
-			paymentTerm: source?.paymentTerm || "None",
-			goodUntil: source?.goodUntil || null,
-			deliveryOption: source?.deliveryOption || "pickup",
-			paymentMethod: source?.paymentMethod || null,
-			taxCode: source?.taxCode || null,
-		},
-		lineItems: normalizeDealerLineItems(source?.lineItems),
-		extraCosts: [],
-		summary: {
-			taxRate,
-			subTotal: 0,
-			grandTotal: 0,
-		},
-	};
-
-	return applySalesFormInitialCustomerSelection(record, {
-		customerId: initialCustomerId,
-		preserveExisting: true,
-	}) as DealerSalesFormRecord;
-}
-
 export function useDealerSalesFormState(initialCustomerId?: number | null) {
-	const [state, setState] = useState<DealerSalesFormState>(() => ({
-		...(createInitialSalesFormState() as DealerSalesFormState),
-		record: createDealerSalesFormRecord(null, initialCustomerId),
-	}));
+  const [state, setState] = useState<DealerSalesFormState>(() => ({
+    ...(createInitialSalesFormState() as DealerSalesFormState),
+    record: composeDealerSalesFormQuoteRecord(null, initialCustomerId),
+  }));
 
-	const hydrateQuote = useCallback(
-		(source?: DealerQuoteSource | null) => {
-			const record = createDealerSalesFormRecord(source, initialCustomerId);
-			setState(
-				(current) =>
-					hydrateSalesFormState(current, record) as DealerSalesFormState,
-			);
-		},
-		[initialCustomerId],
-	);
+  const hydrateQuote = useCallback(
+    (source?: DealerSalesFormQuoteSource | null) => {
+      const record = composeDealerSalesFormQuoteRecord(
+        source,
+        initialCustomerId,
+      );
+      setState(
+        (current) =>
+          hydrateSalesFormState(current, record) as DealerSalesFormState,
+      );
+    },
+    [initialCustomerId],
+  );
 
-	const reset = useCallback(() => {
-		hydrateQuote(null);
-	}, [hydrateQuote]);
+  const reset = useCallback(() => {
+    hydrateQuote(null);
+  }, [hydrateQuote]);
 
-	const setCustomer = useCallback(
-		(customerId: number | null, customerProfileId?: number | null) => {
-			setState(
-				(current) =>
-					setSalesFormMeta(current, {
-						customerId,
-						customerProfileId:
-							customerProfileId ??
-							current.record?.form.customerProfileId ??
-							null,
-					}) as DealerSalesFormState,
-			);
-		},
-		[],
-	);
+  const setCustomer = useCallback(
+    (customerId: number | null, customerProfileId?: number | null) => {
+      setState(
+        (current) =>
+          setSalesFormMeta(current, {
+            customerId,
+            customerProfileId:
+              customerProfileId ??
+              current.record?.form.customerProfileId ??
+              null,
+          }) as DealerSalesFormState,
+      );
+    },
+    [],
+  );
 
-	const setCustomerProfile = useCallback((customerProfileId: number | null) => {
-		setState(
-			(current) =>
-				setSalesFormMeta(current, {
-					customerProfileId,
-				}) as DealerSalesFormState,
-		);
-	}, []);
+  const setCustomerProfile = useCallback((customerProfileId: number | null) => {
+    setState(
+      (current) =>
+        setSalesFormMeta(current, {
+          customerProfileId,
+        }) as DealerSalesFormState,
+    );
+  }, []);
 
-	const setTaxRate = useCallback((taxRate: number) => {
-		setState(
-			(current) =>
-				setSalesFormTaxRate(current, taxRate) as DealerSalesFormState,
-		);
-	}, []);
+  const setTaxRate = useCallback((taxRate: number) => {
+    setState(
+      (current) =>
+        setSalesFormTaxRate(current, taxRate) as DealerSalesFormState,
+    );
+  }, []);
 
-	const setMeta = useCallback(
-		(patch: Partial<DealerSalesFormRecord["form"]>) => {
-			setState(
-				(current) => setSalesFormMeta(current, patch) as DealerSalesFormState,
-			);
-		},
-		[],
-	);
+  const setMeta = useCallback(
+    (patch: Partial<DealerSalesFormRecord["form"]>) => {
+      setState(
+        (current) => setSalesFormMeta(current, patch) as DealerSalesFormState,
+      );
+    },
+    [],
+  );
 
-	return useMemo(
-		() => ({
-			state,
-			record: state.record,
-			hydrateQuote,
-			reset,
-			setState,
-			setCustomer,
-			setCustomerProfile,
-			setMeta,
-			setTaxRate,
-		}),
-		[
-			hydrateQuote,
-			reset,
-			setCustomer,
-			setCustomerProfile,
-			setMeta,
-			setTaxRate,
-			state,
-		],
-	);
+  return useMemo(
+    () => ({
+      state,
+      record: state.record,
+      hydrateQuote,
+      reset,
+      setState,
+      setCustomer,
+      setCustomerProfile,
+      setMeta,
+      setTaxRate,
+    }),
+    [
+      hydrateQuote,
+      reset,
+      setCustomer,
+      setCustomerProfile,
+      setMeta,
+      setTaxRate,
+      state,
+    ],
+  );
 }
-
-export { createDealerLineItem };

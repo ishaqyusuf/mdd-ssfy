@@ -3,6 +3,7 @@ import {
   normalizeUSPhoneNumber,
 } from "@gnd/utils/format";
 import { paginationSchema } from "@gnd/utils/schema";
+import { salesFormPortableLineItemSchema } from "@gnd/sales/sales-form";
 import { z } from "zod";
 
 export const getDealersSchema = z
@@ -139,18 +140,7 @@ export type DealerPortalSalesDocumentSchema = z.infer<
   typeof dealerPortalSalesDocumentSchema
 >;
 
-export const dealerPortalSalesLineItemSchema = z.object({
-  uid: z.string().min(1),
-  title: z.string().optional().nullable(),
-  description: z.string().optional().nullable(),
-  qty: z.number().min(0).optional().nullable(),
-  unitPrice: z.number().optional().nullable(),
-  lineTotal: z.number().optional().nullable(),
-  meta: z.record(z.string(), z.any()).optional().nullable(),
-  formSteps: z.array(z.record(z.string(), z.any())).optional().nullable(),
-  shelfItems: z.array(z.record(z.string(), z.any())).optional().nullable(),
-  housePackageTool: z.record(z.string(), z.any()).optional().nullable(),
-});
+export const dealerPortalSalesLineItemSchema = salesFormPortableLineItemSchema;
 export type DealerPortalSalesLineItemSchema = z.infer<
   typeof dealerPortalSalesLineItemSchema
 >;
