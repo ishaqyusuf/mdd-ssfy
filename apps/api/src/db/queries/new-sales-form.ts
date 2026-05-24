@@ -35,9 +35,12 @@ import { TRPCError } from "@trpc/server";
 import { projectLegacyOrderPayments } from "@gnd/sales";
 import { generateRandomString } from "@gnd/utils";
 import {
+	calculateLegacyPaymentDueDate,
 	calculateSalesFormSummary,
 	collapseLegacyGroupedLines,
 	expandGroupedLineForLegacySave,
+	projectSalesFormMetaToLegacyMeta,
+	readLegacySalesFormMeta,
 } from "@gnd/sales/sales-form";
 import { generateSalesSlug } from "@gnd/sales/utils";
 import { syncSalesInventoryLineItems } from "@sales/sync-sales-inventory-line-items";
@@ -77,6 +80,20 @@ function safeDate(value?: string | null) {
 	if (!value) return null;
 	const d = new Date(value);
 	return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function resolveOrderCreatedAt(value?: string | null, fallback?: Date | null) {
+	return safeDate(value) || fallback || new Date();
+}
+
+function resolveOrderPaymentDueDate(
+	type: "order" | "quote",
+	meta: NewSalesFormMeta,
+	createdAt: Date,
+) {
+	if (type !== "order") return null;
+	if (meta.paymentTerm === "None") return safeDate(meta.paymentDueDate);
+	return safeDate(calculateLegacyPaymentDueDate(meta.paymentTerm, createdAt));
 }
 
 function safeRecord(value: unknown): Record<string, unknown> {
@@ -373,10 +390,12 @@ async function generateSalesIdentity(
 					select: { name: true },
 				})
 			: null;
-	const orderId = await generateSalesSlug(
-		type as any,
-		ctx.db.salesOrders,
-		salesRep?.name || "",
+	const orderId = String(
+		await generateSalesSlug(
+			type as any,
+			ctx.db.salesOrders,
+			salesRep?.name || "",
+		),
 	);
 	return {
 		orderId,
@@ -397,6 +416,8 @@ function toBootstrapPayload(
 		billingAddressId: number | null;
 		shippingAddressId: number | null;
 		paymentTerm: string | null;
+		createdAt: Date | null;
+		paymentDueDate: Date | null;
 		goodUntil: Date | null;
 		prodDueDate: Date | null;
 		deliveryOption: string | null;
@@ -703,6 +724,22 @@ function toBootstrapPayload(
 	const paymentMethodReviewDismissed = Boolean(
 		container.paymentMethodReviewDismissed,
 	);
+	const legacyFormMeta = readLegacySalesFormMeta({
+		meta: container,
+		persistedForm: persisted?.form,
+		order: {
+			createdAt: order.createdAt,
+			paymentDueDate: order.paymentDueDate,
+			goodUntil: order.goodUntil,
+			prodDueDate: order.prodDueDate,
+			paymentTerm: order.paymentTerm,
+			deliveryOption: order.deliveryOption,
+		},
+		defaults: {
+			paymentTerm: DEFAULT_PAYMENT_TERM,
+			deliveryOption: DEFAULT_DELIVERY_OPTION,
+		},
+	});
 
 	return {
 		salesId: order.id,
@@ -724,19 +761,21 @@ function toBootstrapPayload(
 		paymentCount: order.payments?.length || 0,
 		paymentMethodReviewDismissed,
 		form: {
+			paymentTerm: DEFAULT_PAYMENT_TERM,
+			createdAt: null,
+			paymentDueDate: null,
+			goodUntil: null,
+			prodDueDate: null,
+			po: "",
+			notes: null,
+			deliveryOption: DEFAULT_DELIVERY_OPTION,
+			taxCode: null,
+			...legacyFormMeta,
 			customerId: order.customerId,
 			customerProfileId: order.customerProfileId,
 			billingAddressId: order.billingAddressId,
 			shippingAddressId: order.shippingAddressId,
-			paymentTerm: order.paymentTerm || DEFAULT_PAYMENT_TERM,
 			paymentMethod,
-			goodUntil: order.goodUntil?.toISOString() || null,
-			prodDueDate: order.prodDueDate?.toISOString() || null,
-			po: null,
-			notes: null,
-			deliveryOption: order.deliveryOption || DEFAULT_DELIVERY_OPTION,
-			taxCode: null,
-			...(persisted?.form || {}),
 		},
 		lineItems,
 		extraCosts: persistedExtraCosts.length
@@ -814,6 +853,8 @@ export async function bootstrapNewSalesForm(
 			shippingAddressId: null,
 			paymentTerm: DEFAULT_PAYMENT_TERM,
 			paymentMethod: null,
+			createdAt: now,
+			paymentDueDate: null,
 			goodUntil: null,
 			prodDueDate: null,
 			po: null,
@@ -872,6 +913,8 @@ export async function getNewSalesForm(
 				billingAddressId: true,
 				shippingAddressId: true,
 				paymentTerm: true,
+				createdAt: true,
+				paymentDueDate: true,
 				goodUntil: true,
 				prodDueDate: true,
 				deliveryOption: true,
@@ -1537,7 +1580,9 @@ async function saveNewSalesFormInternal(
 			meta: unknown;
 			inventoryStatus: string | null;
 			updatedAt: Date | null;
+			createdAt: Date | null;
 			paymentTerm: string | null;
+			paymentDueDate: Date | null;
 			goodUntil: Date | null;
 			prodDueDate: Date | null;
 			payments: { amount: number | null; status: string | null }[];
@@ -1558,7 +1603,9 @@ async function saveNewSalesFormInternal(
 					meta: true,
 					inventoryStatus: true,
 					updatedAt: true,
+					createdAt: true,
 					paymentTerm: true,
+					paymentDueDate: true,
 					goodUntil: true,
 					prodDueDate: true,
 					payments: {
@@ -1596,9 +1643,32 @@ async function saveNewSalesFormInternal(
 		}
 
 		const nextVersion = `${Date.now()}-${generateRandomString(8)}`;
+		const nextCreatedAt = resolveOrderCreatedAt(
+			payload.meta.createdAt,
+			order?.createdAt,
+		);
+		const nextPaymentDueDate = resolveOrderPaymentDueDate(
+			payload.type,
+			payload.meta,
+			nextCreatedAt,
+		);
+		const nextFormMeta = {
+			...payload.meta,
+			paymentTerm: payload.meta.paymentTerm || DEFAULT_PAYMENT_TERM,
+			createdAt: nextCreatedAt.toISOString(),
+			paymentDueDate: nextPaymentDueDate?.toISOString() || null,
+			goodUntil: safeDate(payload.meta.goodUntil)?.toISOString() || null,
+			prodDueDate: safeDate(payload.meta.prodDueDate)?.toISOString() || null,
+		};
+		const legacyMeta = projectSalesFormMetaToLegacyMeta({
+			existingMeta: currentMeta,
+			form: nextFormMeta,
+			summary,
+			extraCosts: payload.extraCosts,
+			cccPercentage: settings.cccPercentage,
+		});
 		const nextMeta: NewSalesFormContainer = {
-			...currentMeta,
-			payment_option: payload.meta.paymentMethod || null,
+			...legacyMeta,
 			newSalesForm: {
 				version: nextVersion,
 				updatedAt: new Date().toISOString(),
@@ -1606,7 +1676,7 @@ async function saveNewSalesFormInternal(
 				lineItems: normalizedLines,
 				extraCosts: payload.extraCosts,
 				summary,
-				form: payload.meta,
+				form: nextFormMeta,
 			},
 		};
 		const nextAmountDue =
@@ -1632,6 +1702,8 @@ async function saveNewSalesFormInternal(
 					billingAddressId: payload.meta.billingAddressId || null,
 					shippingAddressId: payload.meta.shippingAddressId || null,
 					paymentTerm: payload.meta.paymentTerm || DEFAULT_PAYMENT_TERM,
+					createdAt: nextCreatedAt,
+					paymentDueDate: nextPaymentDueDate,
 					goodUntil: safeDate(payload.meta.goodUntil),
 					prodDueDate: safeDate(payload.meta.prodDueDate),
 					deliveryOption:
@@ -1658,7 +1730,9 @@ async function saveNewSalesFormInternal(
 				inventoryStatus:
 					payload.type === "order" ? payload.inventoryStatus || null : null,
 				updatedAt: new Date(),
+				createdAt: nextCreatedAt,
 				paymentTerm: payload.meta.paymentTerm || DEFAULT_PAYMENT_TERM,
+				paymentDueDate: nextPaymentDueDate,
 				goodUntil: safeDate(payload.meta.goodUntil),
 				prodDueDate: safeDate(payload.meta.prodDueDate),
 				payments: [],
@@ -1678,8 +1752,10 @@ async function saveNewSalesFormInternal(
 						payload.meta.paymentTerm ||
 						order.paymentTerm ||
 						DEFAULT_PAYMENT_TERM,
-					goodUntil: safeDate(payload.meta.goodUntil) || order.goodUntil,
-					prodDueDate: safeDate(payload.meta.prodDueDate) || order.prodDueDate,
+					createdAt: nextCreatedAt,
+					paymentDueDate: nextPaymentDueDate,
+					goodUntil: safeDate(payload.meta.goodUntil),
+					prodDueDate: safeDate(payload.meta.prodDueDate),
 					deliveryOption:
 						payload.meta.deliveryOption || DEFAULT_DELIVERY_OPTION,
 					inventoryStatus:
@@ -1810,7 +1886,7 @@ async function saveNewSalesFormInternal(
 					rate: rowUnitPrice,
 					total: rowTotal,
 					multiDykeUid: legacyLine.groupUid,
-					multiDyke: legacyLine.primaryGroupItem || null,
+					multiDyke: Boolean(legacyLine.primaryGroupItem),
 					dykeProduction:
 						legacyLine.kind === "service" ? Boolean(row.produceable) : false,
 					meta: itemMeta as any,

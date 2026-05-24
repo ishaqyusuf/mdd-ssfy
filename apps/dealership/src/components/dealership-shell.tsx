@@ -10,7 +10,7 @@ import {
 import type { IconKeys } from "@gnd/ui/icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { ThemeToggle } from "./theme-toggle";
 
 const dealershipLinks = [
@@ -46,9 +46,11 @@ type DealerShellDealer = {
 
 export function DealershipShell({
   children,
+  contentMode = "default",
   dealer,
 }: {
   children: ReactNode;
+  contentMode?: "default" | "fixed";
   dealer: DealerShellDealer;
 }) {
   const displayName =
@@ -74,7 +76,10 @@ export function DealershipShell({
 
   return (
     <SiteNav.Provider value={siteNav}>
-      <div className="relative min-h-screen bg-background text-foreground">
+      <div
+        className="relative min-h-dvh bg-background text-foreground"
+        style={{ "--header-height": "70px" } as CSSProperties}
+      >
         <SiteNav.Sidebar>
           <SiteNav.Logo Icon={DealerLogoMark} />
           <SiteNav.LogoSm Icon={DealerLogoMark} />
@@ -89,7 +94,11 @@ export function DealershipShell({
           </div>
         </SiteNav.Sidebar>
 
-        <SiteNav.Shell className="pb-8">
+        <SiteNav.Shell
+          className={
+            contentMode === "fixed" ? "h-dvh overflow-hidden" : "pb-8"
+          }
+        >
           <SiteNav.Header
             left={
               <div className="min-w-0">
@@ -103,7 +112,13 @@ export function DealershipShell({
             }
             right={<ThemeToggle />}
           />
-          <main className="flex min-h-[calc(100vh-70px)] w-full flex-col">
+          <main
+            className={
+              contentMode === "fixed"
+                ? "flex h-[calc(100dvh-70px)] min-h-0 w-full flex-col overflow-hidden"
+                : "flex min-h-[calc(100dvh-70px)] w-full flex-col"
+            }
+          >
             {children}
           </main>
         </SiteNav.Shell>

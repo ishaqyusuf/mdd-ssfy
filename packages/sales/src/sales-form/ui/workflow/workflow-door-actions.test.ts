@@ -11,6 +11,8 @@ describe("workflow door actions", () => {
 		const patch = updateWorkflowDoorSupplier({
 			line: {
 				uid: "line-1",
+				qty: 2,
+				lineTotal: 240,
 				formSteps: [
 					{
 						step: { title: "Door" },
@@ -151,8 +153,12 @@ describe("workflow door actions", () => {
 		const doors = (patch?.housePackageTool as any)?.doors || [];
 		expect(doors[0]?.unitPrice).toBe(0);
 		expect(doors[0]?.lineTotal).toBe(0);
+		expect(doors[0]?.totalQty).toBe(0);
 		expect(doors[0]?.meta?.priceMissing).toBe(true);
+		expect((patch?.housePackageTool as any)?.totalDoors).toBe(0);
 		expect((patch?.housePackageTool as any)?.totalPrice).toBe(0);
+		expect(patch?.qty).toBe(0);
+		expect(patch?.lineTotal).toBe(0);
 	});
 
 	it("clears a selected multi-select component and truncates later steps", () => {

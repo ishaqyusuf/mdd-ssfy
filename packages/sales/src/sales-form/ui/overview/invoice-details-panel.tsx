@@ -13,21 +13,61 @@ import {
 import type { SalesFormSelectOption } from "./invoice-pricing-overview";
 
 export type SalesFormInvoiceDetailsPanelProps = {
+	type?: "order" | "quote";
 	po?: string | null;
+	createdAt?: string | null;
 	paymentTerm: string;
 	paymentTerms: SalesFormSelectOption[];
+	paymentDueDate?: string | null;
 	goodUntil?: string | null;
+	prodDueDate?: string | null;
 	deliveryOption: string;
 	deliveryOptions: SalesFormSelectOption[];
 	onPoChange?: (value: string) => void;
+	onCreatedAtChange?: (value: string | null) => void;
 	onPaymentTermChange?: (value: string) => void;
+	onPaymentDueDateChange?: (value: string | null) => void;
 	onGoodUntilChange?: (value: string | null) => void;
+	onProdDueDateChange?: (value: string | null) => void;
 	onDeliveryOptionChange?: (value: string) => void;
 };
+
+function dateInputValue(value?: string | null) {
+	if (!value) return "";
+	const date = new Date(value);
+	if (!Number.isNaN(date.getTime())) return date.toISOString().slice(0, 10);
+	return /^\d{4}-\d{2}-\d{2}/.test(value) ? value.slice(0, 10) : "";
+}
+
+function DateInputField(props: {
+	id: string;
+	label: string;
+	value?: string | null;
+	onChange?: (value: string | null) => void;
+}) {
+	return (
+		<label
+			htmlFor={props.id}
+			className="flex cursor-pointer items-center gap-3 rounded-lg border bg-card px-3"
+		>
+			<span className="min-w-[96px] text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+				{props.label}
+			</span>
+			<Input
+				id={props.id}
+				type="date"
+				value={dateInputValue(props.value)}
+				onChange={(event) => props.onChange?.(event.target.value || null)}
+				className="h-10 flex-1 cursor-pointer border-0 bg-transparent px-0 text-xs font-bold shadow-none focus-visible:ring-0"
+			/>
+		</label>
+	);
+}
 
 export function SalesFormInvoiceDetailsPanel(
 	props: SalesFormInvoiceDetailsPanelProps,
 ) {
+	const isQuote = props.type === "quote";
 	return (
 		<div className="flex flex-col gap-3">
 			<div className="flex items-center gap-2 text-foreground">
@@ -47,6 +87,14 @@ export function SalesFormInvoiceDetailsPanel(
 							placeholder="Number"
 						/>
 					</InputGroup>
+					<DateInputField
+						id="invoice-order-date"
+						label="Date"
+						value={props.createdAt}
+						onChange={props.onCreatedAtChange}
+					/>
+				</div>
+				<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 					<div className="rounded-lg border bg-card">
 						<Select
 							value={props.paymentTerm}
@@ -69,25 +117,28 @@ export function SalesFormInvoiceDetailsPanel(
 							</SelectContent>
 						</Select>
 					</div>
+					<DateInputField
+						id="invoice-payment-due-date"
+						label={isQuote ? "Good Until" : "Due Date"}
+						value={isQuote ? props.goodUntil : props.paymentDueDate}
+						onChange={
+							isQuote
+								? props.onGoodUntilChange
+								: props.onPaymentDueDateChange
+						}
+					/>
 				</div>
 				<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-					<label
-						htmlFor="invoice-due-date"
-						className="flex cursor-pointer items-center gap-3 rounded-lg border bg-card px-3"
-					>
-						<span className="min-w-[96px] text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-							Due Date
-						</span>
-						<Input
-							id="invoice-due-date"
-							type="date"
-							value={props.goodUntil?.slice(0, 10) || ""}
-							onChange={(event) =>
-								props.onGoodUntilChange?.(event.target.value || null)
-							}
-							className="h-10 flex-1 cursor-pointer border-0 bg-transparent px-0 text-xs font-bold shadow-none focus-visible:ring-0"
+					{isQuote ? (
+						<div className="hidden md:block" />
+					) : (
+						<DateInputField
+							id="invoice-production-due-date"
+							label="Production"
+							value={props.prodDueDate}
+							onChange={props.onProdDueDateChange}
 						/>
-					</label>
+					)}
 					<div className="rounded-lg border bg-card px-3">
 						<Select
 							value={props.deliveryOption}

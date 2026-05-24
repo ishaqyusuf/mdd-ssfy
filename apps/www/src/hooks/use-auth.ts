@@ -59,7 +59,9 @@ export function useAuth() {
 	const role = session?.role ?? initialAuth?.role ?? data?.role ?? null;
 	const isActuallyPending =
 		status === "loading" || (needsAuthQuery && isPending);
-	const roleTitle = role?.name as Roles;
+	const roleTitle = (
+		typeof role === "string" ? role : role?.name
+	) as Roles | undefined;
 	return {
 		id: sessionUserId,
 		email: session?.user?.email ?? initialAuth?.email ?? null,

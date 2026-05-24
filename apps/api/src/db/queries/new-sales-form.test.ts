@@ -5,6 +5,7 @@ import {
 	getNewSalesFormShelfProducts,
 	getNewSalesForm,
 	saveDraftNewSalesForm,
+	saveFinalNewSalesForm,
 } from "./new-sales-form";
 
 (tasks as any).trigger = mock(async () => ({ id: "test-trigger-run" }));
@@ -194,9 +195,13 @@ function createMockContext() {
 					slug: order.slug,
 					orderId: order.orderId,
 					meta: order.meta,
+					createdAt: order.createdAt,
 					updatedAt: order.updatedAt,
 					paymentTerm: order.paymentTerm,
+					paymentDueDate: order.paymentDueDate,
 					goodUntil: order.goodUntil,
+					prodDueDate: order.prodDueDate,
+					deliveryOption: order.deliveryOption,
 				};
 			},
 			create: async ({ data }: any) => {
@@ -556,12 +561,14 @@ describe("new-sales-form relational parity", () => {
 			type: "order",
 			status: "Draft",
 			deletedAt: null,
+			createdAt: new Date("2026-02-20T12:00:00.000Z"),
 			updatedAt: new Date("2026-02-24T12:00:00.000Z"),
 			customerId: 100,
 			customerProfileId: null,
 			billingAddressId: null,
 			shippingAddressId: null,
 			paymentTerm: "None",
+			paymentDueDate: new Date("2026-02-28T12:00:00.000Z"),
 			goodUntil: null,
 			prodDueDate: null,
 			deliveryOption: "pickup",
@@ -572,6 +579,7 @@ describe("new-sales-form relational parity", () => {
 			payments: [],
 			meta: {
 				payment_option: "Credit Card",
+				po: "PO-LEGACY",
 			},
 		});
 
@@ -581,7 +589,85 @@ describe("new-sales-form relational parity", () => {
 		});
 
 		expect(loaded.form.paymentMethod).toBe("Credit Card");
+		expect(loaded.form.po).toBe("PO-LEGACY");
+		expect((loaded.form as any).createdAt).toBe("2026-02-20T12:00:00.000Z");
+		expect((loaded.form as any).paymentDueDate).toBe(
+			"2026-02-28T12:00:00.000Z",
+		);
 		expect(loaded.summary.grandTotal).toBeGreaterThan(loaded.summary.subTotal);
+	});
+
+	it("writes legacy root metadata and date columns on save", async () => {
+		const { ctx, state } = createMockContext();
+
+		const saved = await saveDraftNewSalesForm(ctx, {
+			type: "order",
+			slug: null,
+			salesId: null,
+			version: null,
+			autosave: false,
+			meta: {
+				customerId: 100,
+				customerProfileId: null,
+				billingAddressId: null,
+				shippingAddressId: null,
+				paymentTerm: "Net 30",
+				paymentMethod: "Check",
+				createdAt: "2026-02-01T00:00:00.000Z",
+				paymentDueDate: "2026-02-02T00:00:00.000Z",
+				goodUntil: null,
+				prodDueDate: "2026-02-20T00:00:00.000Z",
+				po: "PO-NEW",
+				notes: null,
+				deliveryOption: "delivery",
+				taxCode: null,
+			},
+			summary: { subTotal: 0, taxRate: 0, taxTotal: 0, grandTotal: 0 },
+			extraCosts: [
+				{ id: null, label: "Labor", type: "Labor", amount: 25 },
+				{ id: null, label: "Delivery", type: "Delivery", amount: 40 },
+			],
+			lineItems: [
+				{
+					id: null,
+					uid: "line-legacy-meta",
+					title: "Legacy Meta Line",
+					description: "",
+					qty: 1,
+					unitPrice: 200,
+					lineTotal: 200,
+					meta: {},
+					formSteps: [],
+					shelfItems: [],
+					housePackageTool: null,
+				} as any,
+			],
+		});
+
+		const row = state.orders[0];
+		expect(row?.meta).toMatchObject({
+			po: "PO-NEW",
+			payment_option: "Check",
+			ccc_percentage: 3.5,
+			deliveryCost: 40,
+			labor_cost: 25,
+		});
+		expect(row?.createdAt.toISOString()).toBe("2026-02-01T00:00:00.000Z");
+		expect(row?.paymentDueDate.toISOString()).toBe("2026-03-03T00:00:00.000Z");
+		expect(row?.prodDueDate.toISOString()).toBe("2026-02-20T00:00:00.000Z");
+		expect(row?.deliveryOption).toBe("delivery");
+
+		const loaded = await getNewSalesForm(ctx, {
+			type: "order",
+			slug: saved.slug!,
+		});
+		expect(loaded.form.po).toBe("PO-NEW");
+		expect(loaded.form.paymentMethod).toBe("Check");
+		expect((loaded.form as any).createdAt).toBe("2026-02-01T00:00:00.000Z");
+		expect((loaded.form as any).paymentDueDate).toBe(
+			"2026-03-03T00:00:00.000Z",
+		);
+		expect((loaded.form as any).prodDueDate).toBe("2026-02-20T00:00:00.000Z");
 	});
 
 	it("saves and hydrates formSteps/shelfItems/housePackageTool/doors/molding", async () => {
@@ -800,7 +886,7 @@ describe("new-sales-form relational parity", () => {
 	it("uses legacy-style order id generation and persists relational sales tax rows", async () => {
 		const { ctx, state } = createMockContext();
 
-		const saved = await saveDraftNewSalesForm(ctx, {
+		const createPayload = {
 			type: "order",
 			slug: null,
 			salesId: null,
@@ -836,10 +922,13 @@ describe("new-sales-form relational parity", () => {
 					housePackageTool: null,
 				} as any,
 			],
-		});
+			orderId: "00001DPP",
+		} as any;
+		const saved = await saveDraftNewSalesForm(ctx, createPayload);
 
 		expect(saved.orderId).toBe("00000AL");
 		expect(saved.slug).toBe("order-00000al");
+		expect(saved.orderId.endsWith("DPP")).toBe(false);
 		expect(state.salesTaxes).toHaveLength(1);
 		expect(state.salesTaxes[0]).toMatchObject({
 			salesId: saved.salesId,
@@ -856,8 +945,30 @@ describe("new-sales-form relational parity", () => {
 			slug: saved.slug!,
 		});
 		expect(loaded.form.customerProfileId).toBe(7);
-		expect(loaded.form.taxCode).toBe("GST");
+		expect((loaded.form as any).taxCode).toBe("GST");
 		expect(loaded.summary.taxRate).toBe(7.5);
 		expect(loaded.summary.taxTotal).toBe(7.5);
+
+		const autosaved = await saveDraftNewSalesForm(ctx, {
+			...createPayload,
+			slug: saved.slug,
+			salesId: saved.salesId,
+			version: saved.version,
+			autosave: true,
+			orderId: "99999DPP",
+		} as any);
+		expect(autosaved.orderId).toBe(saved.orderId);
+		expect(state.orders[0]?.orderId).toBe(saved.orderId);
+
+		const finalized = await saveFinalNewSalesForm(ctx, {
+			...createPayload,
+			slug: saved.slug,
+			salesId: saved.salesId,
+			version: autosaved.version,
+			autosave: false,
+			orderId: "11111DPP",
+		} as any);
+		expect(finalized.orderId).toBe(saved.orderId);
+		expect(state.orders[0]?.orderId).toBe(saved.orderId);
 	});
 });

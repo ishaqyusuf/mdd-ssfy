@@ -238,6 +238,8 @@ export function normalizeSalesFormMeta(meta: Partial<SalesFormMetaRecord>) {
 			? shippingAddressId
 			: null,
 		paymentTerm: meta.paymentTerm ?? "None",
+		createdAt: meta.createdAt ?? null,
+		paymentDueDate: meta.paymentDueDate ?? null,
 		goodUntil: meta.goodUntil ?? null,
 		prodDueDate: meta.prodDueDate ?? null,
 		po: meta.po ?? "",

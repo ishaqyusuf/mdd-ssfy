@@ -123,6 +123,84 @@ describe("route-engine domain", () => {
     expect(routed.steps.length).toBeGreaterThanOrEqual(3);
   });
 
+  it("preserves configured downstream route-sequence steps after a later selection", () => {
+    const routeWithTrailingConfiguredStep = {
+      composedRouter: {
+        rootA: {
+          routeSequence: [
+            { uid: "stepB" },
+            { uid: "stepC" },
+            { uid: "stepD" },
+          ],
+          route: {
+            rootStep: "stepB",
+            stepB: "stepC",
+          },
+        },
+      },
+      stepsByUid: {
+        rootStep: {
+          id: 1,
+          uid: "rootStep",
+          title: "Item Type",
+          components: [{ uid: "rootA", id: 11, title: "Door" }],
+        },
+        stepB: {
+          id: 2,
+          uid: "stepB",
+          title: "Height",
+          components: [{ uid: "h-80", id: 21, title: "8-0" }],
+        },
+        stepC: {
+          id: 3,
+          uid: "stepC",
+          title: "Width",
+          components: [{ uid: "w-30", id: 31, title: "3-0" }],
+        },
+        stepD: {
+          id: 4,
+          uid: "stepD",
+          title: "Line Item",
+          components: [{ uid: "manual", id: 41, title: "Manual" }],
+        },
+      },
+      stepsById: {
+        1: "rootStep",
+        2: "stepB",
+        3: "stepC",
+        4: "stepD",
+      },
+    };
+    const seeded = buildConfiguredRouteSteps(
+      routeWithTrailingConfiguredStep,
+      routeWithTrailingConfiguredStep.stepsByUid.rootStep,
+      { uid: "rootA", id: 11, title: "Door" },
+    );
+    seeded[1] = {
+      ...seeded[1],
+      componentId: 21,
+      prodUid: "h-80",
+      value: "8-0",
+    };
+
+    const rebuilt = rebuildStepsFromSelection({
+      routeData: routeWithTrailingConfiguredStep,
+      line: { meta: {} },
+      steps: seeded,
+      startIndex: 1,
+      selectedComponent: { uid: "h-80", id: 21, title: "8-0" },
+    });
+
+    expect(rebuilt.steps.map((step: any) => step.step.uid)).toEqual([
+      "rootStep",
+      "stepB",
+      "stepC",
+      "stepD",
+    ]);
+    expect(rebuilt.steps[1]?.prodUid).toBe("h-80");
+    expect(rebuilt.activeIndex).toBe(2);
+  });
+
   it("falls back to prior route-mapped steps when current step mapping is missing", () => {
     const fallbackRouteData = {
       composedRouter: {

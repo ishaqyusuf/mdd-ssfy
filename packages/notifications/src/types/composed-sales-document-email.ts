@@ -1,4 +1,5 @@
 import type { Db } from "@gnd/db";
+import { logger } from "@gnd/logger";
 import { getCustomerWallet } from "@gnd/sales/wallet";
 import { getAppUrl } from "@gnd/utils/envs";
 import {
@@ -7,7 +8,7 @@ import {
 } from "@gnd/utils/tokenizer";
 import { addDays } from "date-fns";
 import { z } from "zod";
-import type { NotificationHandler } from "../base";
+import type { NotificationHandler, UserData } from "../base";
 import {
 	type ComposedSalesDocumentEmailInput,
 	type ComposedSalesDocumentEmailTags,
@@ -178,11 +179,24 @@ async function buildPdfAttachment(
 	sales: LoadedSale[],
 	type: "order" | "quote",
 ) {
-	return buildSalesPdfAttachment(db, {
-		salesIds: sales.map((sale) => sale.id),
-		mode: type,
-		templateId: DEFAULT_TEMPLATE_ID,
-	});
+	const salesIds = sales.map((sale) => sale.id);
+	try {
+		return await buildSalesPdfAttachment(db, {
+			salesIds,
+			mode: type,
+			templateId: DEFAULT_TEMPLATE_ID,
+		});
+	} catch (error) {
+		logger.warn(
+			"Failed to build sales PDF attachment; sending composed sales document email without attachment",
+			{
+				error,
+				salesIds,
+				mode: type,
+			},
+		);
+		return null;
+	}
 }
 
 async function buildComposedSalesDocumentEmailData(
@@ -230,7 +244,7 @@ async function buildComposedSalesDocumentEmailData(
 		salesRepEmail: primarySale.salesRepEmail,
 		subject: input.subject.trim(),
 		message: normalizeText(input.message),
-		attachSalesPdf: input.attachSalesPdf ?? true,
+		attachSalesPdf: Boolean(pdfAttachment),
 		paymentLink,
 		sales: sales.map((sale) => ({
 			orderId: sale.orderId,
@@ -248,6 +262,20 @@ export const composedSalesDocumentEmail: NotificationHandler = {
 	createActivityWithoutContact: true,
 	async extendData(db, data: ComposedSalesDocumentEmailInput) {
 		return buildComposedSalesDocumentEmailData(db, data);
+	},
+	createDirectEmailContact(
+		data: ResolvedComposedSalesDocumentEmailInput,
+	): UserData {
+		return {
+			id: 0,
+			profileId: 0,
+			name: data.customerName,
+			email: data.customerEmail,
+			role: "customer",
+			emailNotification: true,
+			inAppNotification: false,
+			whatsAppNotification: false,
+		};
 	},
 	createActivity(data: ResolvedComposedSalesDocumentEmailInput, author) {
 		const docType = data.type === "quote" ? "Quote" : "Invoice";

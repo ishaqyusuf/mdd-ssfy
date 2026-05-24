@@ -18,7 +18,7 @@ This directory is the durable project memory for the GND monorepo. It stores the
 ## Canonical Entry Points
 - Start with `brain/SYSTEM_OVERVIEW.md`.
 - Use `brain/PROJECT_INDEX.md` to orient on repository structure.
-- Use `brain/AI_PROMPT_RULES.md` and `brain/engineering/ai-rules.md` for standing AI/skill requirements, including the mandatory Next.js skill set for `apps/www`, `apps/dealership`, and shared React UI consumed by those apps.
+- Use `brain/AI_PROMPT_RULES.md` and `brain/engineering/ai-rules.md` for standing AI/skill requirements, including the mandatory React/Next.js UI skill set for `apps/www`, `apps/dealership`, and shared React UI consumed by those apps.
 - Use `brain/tasks/in-progress.md` for active execution.
 - Use `brain/progress.md` for chronological session history.
 - Use `brain/decisions/` for architecture-level decisions.

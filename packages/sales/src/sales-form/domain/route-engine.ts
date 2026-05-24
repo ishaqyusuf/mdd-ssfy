@@ -121,6 +121,33 @@ export function mergeConfiguredSeriesWithExisting(
   });
 }
 
+function configuredSeriesFromRootSelection(routeData: any, steps: any[]) {
+  const rootSelection = steps[0];
+  const rootComponentUid = String(rootSelection?.prodUid || "").trim();
+  if (!rootComponentUid) return null;
+
+  const route = routeData?.composedRouter?.[rootComponentUid];
+  if (!Array.isArray(route?.routeSequence) || !route.routeSequence.length) {
+    return null;
+  }
+
+  const rootStepUid =
+    rootSelection?.step?.uid ||
+    routeData?.stepsById?.[rootSelection?.stepId || -1] ||
+    routeData?.rootStepUid;
+  const rootStep = rootStepUid ? routeData?.stepsByUid?.[rootStepUid] : null;
+  if (!rootStep) return null;
+
+  const configuredSteps = buildConfiguredRouteSteps(routeData, rootStep, {
+    uid: rootComponentUid,
+    title: rootSelection?.value || rootSelection?.step?.title || null,
+    id: rootSelection?.componentId || null,
+    img: rootSelection?.meta?.img || null,
+  });
+
+  return mergeConfiguredSeriesWithExisting(steps, configuredSteps);
+}
+
 export function resolveNextStep({
   routeData,
   line,
@@ -304,11 +331,16 @@ export function rebuildStepsFromSelection({
   maxIterations?: number;
 }) {
   const sanitizedSteps = steps.map(clearRedirectDisabledMeta);
-  const prefix = sanitizedSteps.slice(0, startIndex + 1);
+  const configuredSteps = configuredSeriesFromRootSelection(
+    routeData,
+    sanitizedSteps,
+  );
+  const routeSteps = configuredSteps || sanitizedSteps.slice(0, startIndex + 1);
+  const existingSteps = configuredSteps || sanitizedSteps;
   const rebuilt = applyRouteRecursion({
     routeData,
     line,
-    steps: prefix,
+    steps: routeSteps,
     startIndex,
     selectedComponent,
     autoAdvanceTitles,
@@ -317,7 +349,7 @@ export function rebuildStepsFromSelection({
 
   const merged = rebuilt.steps.map((step, index) => {
     if (index <= startIndex) return step;
-    const existing = sanitizedSteps.find((candidate) =>
+    const existing = existingSteps.find((candidate) =>
       stepMatches(routeData, candidate, step?.step),
     );
     if (!existing) return step;
@@ -338,11 +370,11 @@ export function rebuildStepsFromSelection({
 
   if (selectedComponent?.redirectUid) {
     const redirectStep = routeData?.stepsByUid?.[selectedComponent.redirectUid];
-    const targetIndex = sanitizedSteps.findIndex((candidate) =>
+    const targetIndex = existingSteps.findIndex((candidate) =>
       stepMatches(routeData, candidate, redirectStep),
     );
     if (targetIndex > startIndex) {
-      const redirectedSteps = sanitizedSteps.map((step, index) => {
+      const redirectedSteps = existingSteps.map((step, index) => {
         if (index > startIndex && index < targetIndex) {
           return markRedirectDisabled(step, selectedComponent.redirectUid || "");
         }

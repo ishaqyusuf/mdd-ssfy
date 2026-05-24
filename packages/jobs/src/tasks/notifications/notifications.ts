@@ -76,22 +76,25 @@ export const notification = schemaTask({
 				author,
 			});
 		}
-		const isDirectSecurityEmail =
+		const isDirectRecipientEmail =
 			channel === "auth_new_device_login" ||
 			channel === "dealer_magic_login_link" ||
-			channel === "dealer_password_reset";
+			channel === "dealer_password_reset" ||
+			channel === "simple_sales_document_email" ||
+			channel === "composed_sales_document_email";
 		const notificationOptions: NotificationOptions = {
 			author: {
 				id: author.id,
 				role: author.role === "customer" ? "customer" : "employee",
 			},
 			testEmailMode: allowTestEmailMode,
-			recipients:
-				recipients?.map((recipient) => ({
-					ids: recipient.ids,
-					role: recipient.role,
-				})) ?? undefined,
-			...(isDirectSecurityEmail
+			recipients: isDirectRecipientEmail
+				? undefined
+				: (recipients?.map((recipient) => ({
+						ids: recipient.ids,
+						role: recipient.role,
+					})) ?? undefined),
+			...(isDirectRecipientEmail
 				? {
 						includeChannelSubscribers: false,
 						allowFallbackRecipient: false,

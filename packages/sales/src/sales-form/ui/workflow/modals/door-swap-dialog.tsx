@@ -34,7 +34,10 @@ export function DoorSwapDialog<TComponent extends DoorSwapDialogComponent>(
 ) {
 	return (
 		<Dialog open={props.open} onOpenChange={props.onOpenChange}>
-			<DialogContent className="flex w-[92vw] max-w-[680px] flex-col overflow-hidden">
+			<DialogContent
+				onOpenAutoFocus={(event) => event.preventDefault()}
+				className="flex h-[80dvh] max-h-[720px] w-[calc(100vw-1rem)] max-w-2xl flex-col overflow-hidden"
+			>
 				<DialogHeader className="shrink-0">
 					<DialogTitle>Swap Door</DialogTitle>
 					<DialogDescription>
@@ -51,7 +54,7 @@ export function DoorSwapDialog<TComponent extends DoorSwapDialogComponent>(
 					)}{" "}
 					will be repriced on the selected door.
 				</div>
-				<div className="max-h-[42dvh] min-h-0 overflow-y-scroll overscroll-contain pr-1 sm:max-h-[24rem]">
+				<div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
 					<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
 						{props.candidates.map((component) => {
 							const imageSrc = props.resolveImageSrc(component.img);

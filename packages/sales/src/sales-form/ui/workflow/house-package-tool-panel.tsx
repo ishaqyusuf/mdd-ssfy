@@ -26,6 +26,7 @@ import type {
 import { firstFiniteNumber } from "./workflow-records";
 import { DoorPriceCell, updateDoorRowBasePrice } from "./door-price-cell";
 import { profileAdjustedDoorSalesPrice } from "./door-pricing";
+import { clearUnpricedDoorRowQty, isDoorRowPriceMissing } from "./door-utils";
 
 type HousePackageToolPricedStep = Pick<
 	WorkflowStepRecord,
@@ -84,7 +85,7 @@ function HptHeaderActionTooltip({
 
 export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 	const componentId = Number(props.activeDoorComponent?.id || 0);
-	const rowsForComponent = props.focusedRows;
+	const rowsForComponent = props.focusedRows.map(clearUnpricedDoorRowQty);
 	const priceInputClassName = "h-8 w-24 text-right text-xs";
 
 	return (
@@ -352,6 +353,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																rhQty: 0,
 															})
 														}
+														disabled={isDoorRowPriceMissing(row)}
 														className="h-8 rounded-md border-slate-200 text-right text-xs"
 													/>
 												</td>
@@ -365,13 +367,14 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																	? String(Number(row.lhQty || 0))
 																	: ""
 															}
-															onChange={(event) =>
-																props.onPatchRow(row, {
-																	lhQty: Number(event.target.value || 0),
-																})
-															}
-															className="h-8 rounded-md border-slate-200 text-right text-xs"
-														/>
+														onChange={(event) =>
+															props.onPatchRow(row, {
+																lhQty: Number(event.target.value || 0),
+															})
+														}
+														disabled={isDoorRowPriceMissing(row)}
+														className="h-8 rounded-md border-slate-200 text-right text-xs"
+													/>
 													</td>
 													<td className="px-3 py-2">
 														<Input
@@ -381,13 +384,14 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																	? String(Number(row.rhQty || 0))
 																	: ""
 															}
-															onChange={(event) =>
-																props.onPatchRow(row, {
-																	rhQty: Number(event.target.value || 0),
-																})
-															}
-															className="h-8 rounded-md border-slate-200 text-right text-xs"
-														/>
+														onChange={(event) =>
+															props.onPatchRow(row, {
+																rhQty: Number(event.target.value || 0),
+															})
+														}
+														disabled={isDoorRowPriceMissing(row)}
+														className="h-8 rounded-md border-slate-200 text-right text-xs"
+													/>
 													</td>
 													<td className="px-3 py-2 text-right text-xs font-semibold text-slate-700">
 														{Number(row.totalQty || 0)}

@@ -224,4 +224,59 @@ describe("workflow row patches", () => {
 		expect(patch.totalPrice).toBe(15);
 		expect(patch.doors[1]?.stepProductId).toBe(10);
 	});
+
+	it("does not persist selected door rows without a price", () => {
+		const patch = buildWorkflowDoorSizeVariantPatch({
+			line: {
+				uid: "door-line",
+				qty: 1,
+				lineTotal: 7,
+				housePackageTool: {
+					id: null,
+					doors: [
+						{
+							stepProductId: 9,
+							totalQty: 1,
+							unitPrice: 7,
+							lineTotal: 7,
+						},
+					],
+				},
+			},
+			componentId: 10,
+			rows: [
+				{
+					stepProductId: 10,
+					dimension: "2-0 x 6-8",
+					lhQty: 1,
+					totalQty: 1,
+					unitPrice: 0,
+					lineTotal: 0,
+					meta: {
+						baseUnitPrice: 0,
+						priceMissing: true,
+					},
+				},
+				{
+					stepProductId: 10,
+					dimension: "2-4 x 6-8",
+					rhQty: 1,
+					totalQty: 1,
+					unitPrice: 12,
+					lineTotal: 12,
+					meta: {
+						baseUnitPrice: 12,
+						priceMissing: false,
+					},
+				},
+			],
+		});
+
+		expect(patch.doors).toHaveLength(2);
+		expect(patch.doors.some((door) => door.dimension === "2-0 x 6-8")).toBe(
+			false,
+		);
+		expect(patch.totalDoors).toBe(2);
+		expect(patch.totalPrice).toBe(19);
+	});
 });

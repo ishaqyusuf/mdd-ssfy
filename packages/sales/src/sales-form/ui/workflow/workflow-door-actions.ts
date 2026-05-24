@@ -65,9 +65,8 @@ export function updateWorkflowDoorSupplier(input: {
 			totalDoors: repricedDoors.totalDoors,
 			totalPrice: repricedDoors.totalPrice,
 		};
-		linePatch.qty = repricedDoors.totalDoors || Number((input.line as any).qty || 0);
-		linePatch.lineTotal =
-			repricedDoors.totalPrice || Number((input.line as any).lineTotal || 0);
+		linePatch.qty = repricedDoors.totalDoors;
+		linePatch.lineTotal = repricedDoors.totalPrice;
 	}
 	return linePatch;
 }

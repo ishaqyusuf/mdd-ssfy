@@ -4,9 +4,35 @@ import { cn } from "@gnd/ui/cn";
 import type { Metadata } from "next";
 import { Providers } from "./providers";
 
+const prod = process.env.NODE_ENV === "production";
+
 export const metadata: Metadata = {
   title: "GND Dealership",
   description: "Dealer workspace for GND Pro Desk sales.",
+  icons: [
+    {
+      rel: "apple-touch-icon",
+      sizes: "32x32",
+      url: `/icons/apple-touch-icon${prod ? ".png" : ".dev.jpg"}`,
+    },
+    {
+      rel: "icon",
+      type: "image/svg+xml",
+      url: "/icons/favicon.svg",
+    },
+    {
+      rel: "icon",
+      type: "image/png",
+      sizes: "32x32",
+      url: `/icons/favicon-32x32${prod ? ".png" : ".dev.jpg"}`,
+    },
+    {
+      rel: "icon",
+      type: "image/png",
+      sizes: "16x16",
+      url: `/icons/favicon-16x16${prod ? ".png" : ".dev.jpg"}`,
+    },
+  ],
 };
 
 export default function RootLayout({

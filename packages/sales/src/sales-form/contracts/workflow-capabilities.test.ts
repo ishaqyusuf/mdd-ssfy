@@ -7,7 +7,7 @@ import {
 } from "./workflow-capabilities";
 
 describe("sales form workflow capabilities", () => {
-	test("defaults every workflow capability to disabled", () => {
+	test("defaults workflow controls to disabled while preserving component context", () => {
 		expect(createSalesFormWorkflowCapabilities()).toEqual({
 			canEditWorkflowComponents: false,
 			canEditSectionOverrides: false,
@@ -20,6 +20,7 @@ describe("sales form workflow capabilities", () => {
 			canEditFlatLineDetails: false,
 			canEditLinePricing: false,
 			canEditDealerVisibleTotals: false,
+			isDealershipMode: false,
 		});
 	});
 
@@ -36,7 +37,19 @@ describe("sales form workflow capabilities", () => {
 			canEnableCustomComponents: true,
 			canUseMouldingCalculator: true,
 			canEditFlatLineDetails: true,
+			canEditLinePricing: false,
+			isDealershipMode: false,
+		});
+
+		expect(
+			createInternalSalesFormWorkflowCapabilities({
+				isWorkflowAdmin: true,
+				canEditLinePricing: true,
+			}),
+		).toMatchObject({
+			canEditWorkflowComponents: true,
 			canEditLinePricing: true,
+			isDealershipMode: false,
 		});
 
 		expect(
@@ -51,7 +64,8 @@ describe("sales form workflow capabilities", () => {
 			canEnableCustomComponents: false,
 			canUseMouldingCalculator: true,
 			canEditFlatLineDetails: true,
-			canEditLinePricing: true,
+			canEditLinePricing: false,
+			isDealershipMode: false,
 		});
 	});
 
@@ -68,6 +82,7 @@ describe("sales form workflow capabilities", () => {
 			canEditFlatLineDetails: false,
 			canEditLinePricing: false,
 			canEditDealerVisibleTotals: false,
+			isDealershipMode: true,
 		});
 	});
 });

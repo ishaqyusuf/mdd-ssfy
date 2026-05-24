@@ -1,4 +1,5 @@
 import type { Db } from "@gnd/db";
+import { logger } from "@gnd/logger";
 import { getCustomerWallet } from "@gnd/sales/wallet";
 import { getAppUrl } from "@gnd/utils/envs";
 import {
@@ -191,6 +192,25 @@ async function buildSalesDocumentEmailData(
 							)}`
 						: null;
 				})();
+	const salesIds = sales.map((sale) => sale.id);
+	const pdfAttachment = await (async () => {
+		try {
+			return await buildSalesPdfAttachment(db, {
+				salesIds,
+				mode: input.printType,
+			});
+		} catch (error) {
+			logger.warn(
+				"Failed to build sales PDF attachment; sending simple sales document email without attachment",
+				{
+					error,
+					salesIds,
+					mode: input.printType,
+				},
+			);
+			return null;
+		}
+	})();
 
 	return {
 		type: input.printType,
@@ -202,10 +222,7 @@ async function buildSalesDocumentEmailData(
 		note: normalizeText(input.note),
 		paymentLink,
 		pdfLink: null,
-		pdfAttachment: await buildSalesPdfAttachment(db, {
-			salesIds: sales.map((sale) => sale.id),
-			mode: input.printType,
-		}),
+		pdfAttachment,
 		acceptQuoteLink,
 		sales: sales.map((sale) => ({
 			orderId: sale.orderId,
@@ -232,6 +249,18 @@ export const simpleSalesDocumentEmail: NotificationHandler = {
 	createActivityWithoutContact: true,
 	async extendData(db, data: SendSalesEmailPayloadInput, _author: UserData) {
 		return buildSalesDocumentEmailData(db, data);
+	},
+	createDirectEmailContact(data: ResolvedSalesDocumentEmailInput): UserData {
+		return {
+			id: 0,
+			profileId: 0,
+			name: data.customerName,
+			email: data.customerEmail,
+			role: "customer",
+			emailNotification: true,
+			inAppNotification: false,
+			whatsAppNotification: false,
+		};
 	},
 	createActivity(data: ResolvedSalesDocumentEmailInput, author) {
 		const docType = data.type === "quote" ? "Quote" : "Invoice";

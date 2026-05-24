@@ -14,9 +14,14 @@ export function constructMetadata({
         },
         {
             rel: "icon",
+            type: "image/svg+xml",
+            url: "/icons/favicon.svg",
+        },
+        {
+            rel: "icon",
             type: "image/png",
             sizes: "32x32",
-            url: `/icons/favicon-32x32s${prod ? ".png" : ".dev.jpg"}`,
+            url: `/icons/favicon-32x32${prod ? ".png" : ".dev.jpg"}`,
         },
         {
             rel: "icon",

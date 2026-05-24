@@ -3,6 +3,9 @@ import { useSaveDraftNewSalesFormMutation } from "./api";
 import type { NewSalesFormSaveDraftInput } from "./schema";
 
 type AutoSaveReason = "debounced-change" | "manual-flush" | "unmount";
+type AutoSaveFlushOptions = {
+    force?: boolean;
+};
 
 type UseNewSalesFormAutoSaveOptions = {
     enabled?: boolean;
@@ -98,9 +101,17 @@ export function useNewSalesFormAutoSave(options: UseNewSalesFormAutoSaveOptions)
     );
 
     const flush = useCallback(
-        async (reason: AutoSaveReason = "manual-flush") => {
+        async (
+            reason: AutoSaveReason = "manual-flush",
+            options: AutoSaveFlushOptions = {},
+        ) => {
             clearTimer();
-            if ((!enabled && reason !== "manual-flush") || !dirty || !payload) {
+            const force = options.force === true;
+            if (
+                (!enabled && reason !== "manual-flush" && !force) ||
+                (!dirty && !force) ||
+                !payload
+            ) {
                 return null;
             }
 

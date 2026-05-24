@@ -1,7 +1,9 @@
 "use client";
 
 import {
+	deriveDoorSizeCandidates,
 	getSelectedDoorComponentsForLine,
+	hasDoorSizeVariationConfig,
 	resolveDoorTierPricing,
 } from "../../domain";
 import type { SalesFormLineItemRecord } from "../../application";
@@ -53,6 +55,205 @@ type DoorComponent = {
 
 type DoorLine = Pick<SalesFormLineItemRecord, "formSteps" | "housePackageTool">;
 
+type DoorSizeComponent = {
+	id?: number | null;
+	uid?: string | null;
+	stepId?: number | null;
+	title?: string | null;
+	salesPrice?: number | null;
+	basePrice?: number | null;
+	pricing?: Record<string, unknown> | null;
+	supplierVariants?: unknown[];
+};
+
+function toDoorNumber(value: unknown, fallback = 0) {
+	const num = Number(value);
+	return Number.isFinite(num) ? num : fallback;
+}
+
+function firstFiniteDoorNumber(...values: Array<number | null | undefined>) {
+	for (const value of values) {
+		const candidate = Number(value);
+		if (Number.isFinite(candidate)) return candidate;
+	}
+	return null;
+}
+
+export function isDoorRowPriceMissing(row?: DoorRow | null) {
+	return Boolean(row?.meta?.priceMissing);
+}
+
+export function clearUnpricedDoorRowQty<T extends DoorRow>(row: T): T {
+	if (!isDoorRowPriceMissing(row)) return row;
+	return {
+		...row,
+		lhQty: 0,
+		rhQty: 0,
+		totalQty: 0,
+		lineTotal: 0,
+		meta: {
+			...(row?.meta || {}),
+			priceMissing: true,
+		},
+	};
+}
+
+function hasConfiguredDoorRowPrice(row?: DoorRow | null) {
+	if (!row || isDoorRowPriceMissing(row)) return false;
+	return row.meta?.baseUnitPrice != null;
+}
+
+export function calcWorkflowDoorRow<T extends DoorRow>(row: T): T {
+	const lhQty = toDoorNumber(row.lhQty, 0);
+	const rhQty = toDoorNumber(row.rhQty, 0);
+	const totalInput = toDoorNumber(row.totalQty, 0);
+	const unitPrice = toDoorNumber(row.unitPrice, 0);
+	const totalQty = lhQty + rhQty > 0 ? lhQty + rhQty : totalInput;
+	return {
+		...row,
+		lhQty,
+		rhQty,
+		unitPrice,
+		totalQty,
+		lineTotal: Number((totalQty * unitPrice).toFixed(2)),
+	};
+}
+
+function blankWorkflowDoorRow(): DoorRow {
+	return {
+		id: null,
+		dimension: "",
+		swing: "",
+		doorType: "",
+		doorPrice: 0,
+		jambSizePrice: 0,
+		casingPrice: 0,
+		unitPrice: 0,
+		lhQty: 0,
+		rhQty: 0,
+		totalQty: 0,
+		lineTotal: 0,
+		stepProductId: null,
+		meta: {},
+	};
+}
+
+export function rowsForDoorComponent(
+	line: SalesFormLineItemRecord,
+	componentId: number | null,
+) {
+	return (line.housePackageTool?.doors || [])
+		.filter(
+			(door) => Number(door.stepProductId || 0) === Number(componentId || 0),
+		)
+		.map((door) => calcWorkflowDoorRow(door as DoorRow));
+}
+
+export function deriveDoorSizeRows({
+	line,
+	existingRows,
+	component,
+	routeData,
+	supplierUid,
+	profileCoefficient,
+}: {
+	line: SalesFormLineItemRecord;
+	existingRows: DoorRow[];
+	component: DoorSizeComponent | null;
+	routeData?: any;
+	supplierUid?: string | null;
+	profileCoefficient?: number | null;
+}) {
+	const bySize = new Map<string, DoorRow>();
+	existingRows.forEach((row) => {
+		if (row.dimension) bySize.set(String(row.dimension).trim(), row);
+	});
+	const pricing = component?.pricing || {};
+	const usesVariantFiltering = hasDoorSizeVariationConfig(line, routeData);
+	const candidateSizes = deriveDoorSizeCandidates(line, pricing, routeData);
+	if (!candidateSizes.length) {
+		if (existingRows.length && !usesVariantFiltering) {
+			return existingRows.map((row) =>
+				clearUnpricedDoorRowQty(calcWorkflowDoorRow(row)),
+			);
+		}
+		if (usesVariantFiltering) return [];
+		const fallbackBase =
+			firstFiniteDoorNumber(component?.basePrice, component?.salesPrice) ?? 0;
+		return [
+			calcWorkflowDoorRow({
+				...blankWorkflowDoorRow(),
+				stepProductId: component?.id || null,
+				unitPrice: profileAdjustedDoorSalesPrice(
+					component?.salesPrice,
+					component?.basePrice,
+					profileCoefficient,
+				),
+				meta: {
+					baseUnitPrice: fallbackBase,
+				},
+			}),
+		];
+	}
+
+	return candidateSizes.map((size) => {
+		const normalizedSize = String(size).trim();
+		const existing = bySize.get(normalizedSize);
+		const pricingPair = resolveDoorTierPricing({
+			pricing,
+			size: normalizedSize,
+			supplierUid,
+			supplierVariants: component?.supplierVariants || [],
+			salesMultiplier:
+				Number.isFinite(Number(profileCoefficient || 0)) &&
+				Number(profileCoefficient || 0) > 0
+					? Number((1 / Number(profileCoefficient || 0)).toFixed(2))
+					: 1,
+			fallbackSalesPrice: component?.salesPrice,
+			fallbackBasePrice: component?.basePrice,
+		});
+		const existingHasConfiguredPrice = hasConfiguredDoorRowPrice(existing);
+		const existingBaseUnit = existingHasConfiguredPrice
+			? firstFiniteDoorNumber(existing?.meta?.baseUnitPrice)
+			: null;
+		const hasResolvedPrice = Boolean(
+			pricingPair.hasPrice || existingHasConfiguredPrice,
+		);
+		const rowBaseUnit = firstFiniteDoorNumber(
+			existingBaseUnit,
+			hasResolvedPrice ? pricingPair.basePrice : null,
+			hasResolvedPrice ? component?.basePrice : null,
+			hasResolvedPrice ? component?.salesPrice : null,
+		);
+		const unitPrice = existing
+			? firstFiniteDoorNumber(existing.unitPrice, 0) || 0
+			: hasResolvedPrice
+				? (firstFiniteDoorNumber(
+						profileAdjustedDoorSalesPrice(
+							pricingPair.salesPrice,
+							pricingPair.basePrice,
+							profileCoefficient,
+						),
+						component?.salesPrice,
+						component?.basePrice,
+					) ?? 0)
+				: 0;
+		return clearUnpricedDoorRowQty(
+			calcWorkflowDoorRow({
+				...(existing || blankWorkflowDoorRow()),
+				dimension: normalizedSize,
+				stepProductId: component?.id || existing?.stepProductId || null,
+				unitPrice,
+				meta: {
+					...((existing as any)?.meta || {}),
+					priceMissing: !hasResolvedPrice,
+					baseUnitPrice: rowBaseUnit ?? 0,
+				},
+			}),
+		);
+	});
+}
+
 export function getDoorSupplierMeta(step?: WorkflowStepWithMeta | null) {
 	const meta = step?.meta || {};
 	const formStepMeta = meta?.formStepMeta || {};
@@ -90,10 +291,22 @@ export function applySharedDoorSurcharge(
 	profileCoefficient?: number | null,
 ) {
 	return rows.map((row) => {
-		const hasStoredBasePrice = row?.meta?.baseUnitPrice != null;
-		const baseUnitPrice = hasStoredBasePrice
-			? Number(row.meta?.baseUnitPrice || 0)
-			: null;
+		if (isDoorRowPriceMissing(row)) {
+			return clearUnpricedDoorRowQty({
+				...row,
+				unitPrice: 0,
+			});
+		}
+		const storedBaseUnitPrice =
+			row?.meta?.baseUnitPrice == null
+				? null
+				: Number(row.meta.baseUnitPrice);
+		const storedUnitPrice = Number(row?.unitPrice || 0);
+		const hasStoredBasePrice =
+			storedBaseUnitPrice != null &&
+			Number.isFinite(storedBaseUnitPrice) &&
+			(storedBaseUnitPrice > 0 || storedUnitPrice <= 0);
+		const baseUnitPrice = hasStoredBasePrice ? storedBaseUnitPrice : null;
 		const calculatedSalesUnit =
 			baseUnitPrice == null
 				? Math.max(0, Number(row?.unitPrice || 0) - surcharge)
@@ -106,7 +319,7 @@ export function applySharedDoorSurcharge(
 			(Math.max(0, calculatedSalesUnit) + surcharge).toFixed(2),
 		);
 		const totalQty = Number(row?.totalQty || 0);
-		return {
+		return clearUnpricedDoorRowQty({
 			...row,
 			unitPrice: effectiveUnitPrice,
 			lineTotal: Number((totalQty * effectiveUnitPrice).toFixed(2)),
@@ -116,7 +329,7 @@ export function applySharedDoorSurcharge(
 					? {}
 					: { baseUnitPrice: Math.max(0, baseUnitPrice) }),
 			},
-		};
+		});
 	});
 }
 
@@ -200,7 +413,7 @@ export function repricePersistedDoorRowsForSupplier(args: {
 				)
 			: 0;
 		const totalQty = Number(row?.totalQty || 0);
-		return {
+		const nextRow = {
 			...row,
 			unitPrice,
 			lineTotal: Number((totalQty * unitPrice).toFixed(2)),
@@ -210,6 +423,7 @@ export function repricePersistedDoorRowsForSupplier(args: {
 				priceMissing: !hasResolvedPrice,
 			},
 		};
+		return hasResolvedPrice ? nextRow : clearUnpricedDoorRowQty(nextRow);
 	});
 
 	const totalDoors = repricedRows.reduce(

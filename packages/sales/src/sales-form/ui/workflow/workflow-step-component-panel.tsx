@@ -45,6 +45,7 @@ export type WorkflowStepComponentPanelProps<
 	search: string;
 	noticeSlot?: ReactNode;
 	includeCustomComponents: boolean;
+	isDealershipMode: boolean;
 	mouldingSelection?: WorkflowMouldingSelectionState;
 	isMouldingSelectionStep?: boolean;
 	redirectOptions: WorkflowStepComponentPanelRedirectOption[];
@@ -102,43 +103,49 @@ export function WorkflowStepComponentPanel<
 					<WorkflowComponentCard
 						selected={isSelected}
 						badgesSlot={
-							<WorkflowComponentBadges
-								hasVariations={Boolean(
-									(component as { variations?: unknown[] | null })?.variations
-										?.length,
-								)}
-								hasSectionOverride={Boolean(
-									component?.sectionOverride?.overrideMode,
-								)}
-								hasRedirect={Boolean(component?.redirectUid)}
-							/>
+							!props.isDealershipMode ? (
+								<WorkflowComponentBadges
+									hasVariations={Boolean(
+										(component as { variations?: unknown[] | null })?.variations
+											?.length,
+									)}
+									hasSectionOverride={Boolean(
+										component?.sectionOverride?.overrideMode,
+									)}
+									hasRedirect={Boolean(component?.redirectUid)}
+								/>
+							) : null
 						}
 						actionsSlot={
-							<WorkflowComponentActionMenu
-								redirectOptions={props.redirectOptions}
-								onEdit={
-									props.onEdit ? () => props.onEdit?.(component) : undefined
-								}
-								onEditSectionOverride={
-									props.onEditSectionOverride
-										? () => props.onEditSectionOverride?.(component)
-										: undefined
-								}
-								onSelect={() => props.onSelect(component)}
-								onClearRedirect={
-									props.onClearRedirect
-										? () => props.onClearRedirect?.(component)
-										: undefined
-								}
-								onSetRedirect={
-									props.onSetRedirect
-										? (uid) => props.onSetRedirect?.(component, uid)
-										: undefined
-								}
-								onDelete={
-									props.onDelete ? () => props.onDelete?.(component) : undefined
-								}
-							/>
+							!props.isDealershipMode ? (
+								<WorkflowComponentActionMenu
+									redirectOptions={props.redirectOptions}
+									onEdit={
+										props.onEdit ? () => props.onEdit?.(component) : undefined
+									}
+									onEditSectionOverride={
+										props.onEditSectionOverride
+											? () => props.onEditSectionOverride?.(component)
+											: undefined
+									}
+									onSelect={() => props.onSelect(component)}
+									onClearRedirect={
+										props.onClearRedirect
+											? () => props.onClearRedirect?.(component)
+											: undefined
+									}
+									onSetRedirect={
+										props.onSetRedirect
+											? (uid) => props.onSetRedirect?.(component, uid)
+											: undefined
+									}
+									onDelete={
+										props.onDelete
+											? () => props.onDelete?.(component)
+											: undefined
+									}
+								/>
+							) : null
 						}
 					>
 						{props.isMouldingSelectionStep ? (
@@ -197,59 +204,61 @@ export function WorkflowStepComponentPanel<
 					search={props.search}
 					onSearchChange={props.onSearchChange}
 					menuSlot={
-						<>
-							<Menu.Item
-								SubMenu={(props.steps || []).map((step, index) => (
-									<Menu.Item
-										key={`jump-step-${props.lineUid}-${step?.uid || step?.stepId || step?.step?.id || step?.step?.title || "step"}`}
-										onClick={() => props.onJumpStep(index)}
-									>
-										{step?.step?.title || `Step ${index + 1}`}
-									</Menu.Item>
-								))}
-							>
-								Tabs
-							</Menu.Item>
-							<Menu.Item
-								disabled={!isMultiSelectStep}
-								onClick={() => {
-									if (!isMultiSelectStep) return;
-									props.onSelectAll();
-								}}
-							>
-								Select All
-							</Menu.Item>
-							{props.onOpenPricing ? (
+						!props.isDealershipMode ? (
+							<>
 								<Menu.Item
+									SubMenu={(props.steps || []).map((step, index) => (
+										<Menu.Item
+											key={`jump-step-${props.lineUid}-${step?.uid || step?.stepId || step?.step?.id || step?.step?.title || "step"}`}
+											onClick={() => props.onJumpStep(index)}
+										>
+											{step?.step?.title || `Step ${index + 1}`}
+										</Menu.Item>
+									))}
+								>
+									Tabs
+								</Menu.Item>
+								<Menu.Item
+									disabled={!isMultiSelectStep}
 									onClick={() => {
-										const openPricing = props.onOpenPricing;
-										if (!openPricing) return;
-										const selectedComponent =
-											props.components.find((component) =>
-												props.selectedUids.has(String(component.uid || "")),
-											) || props.components[0];
-										if (!selectedComponent) return;
-										openPricing(selectedComponent);
+										if (!isMultiSelectStep) return;
+										props.onSelectAll();
 									}}
 								>
-									Pricing
+									Select All
 								</Menu.Item>
-							) : null}
-							{isDoorStep && props.onOpenDoorSizeVariant ? (
-								<Menu.Item onClick={props.onOpenDoorSizeVariant}>
-									Door Size Variant
+								{props.onOpenPricing ? (
+									<Menu.Item
+										onClick={() => {
+											const openPricing = props.onOpenPricing;
+											if (!openPricing) return;
+											const selectedComponent =
+												props.components.find((component) =>
+													props.selectedUids.has(String(component.uid || "")),
+												) || props.components[0];
+											if (!selectedComponent) return;
+											openPricing(selectedComponent);
+										}}
+									>
+										Pricing
+									</Menu.Item>
+								) : null}
+								{isDoorStep && props.onOpenDoorSizeVariant ? (
+									<Menu.Item onClick={props.onOpenDoorSizeVariant}>
+										Door Size Variant
+									</Menu.Item>
+								) : null}
+								{props.onEnableCustomComponent ? (
+									<Menu.Item onClick={props.onEnableCustomComponent}>
+										Component
+									</Menu.Item>
+								) : null}
+								<Menu.Item onClick={props.onRefresh}>Refresh</Menu.Item>
+								<Menu.Item onClick={props.onToggleCustomComponents}>
+									Enable Custom: {props.includeCustomComponents ? "On" : "Off"}
 								</Menu.Item>
-							) : null}
-							{props.onEnableCustomComponent ? (
-								<Menu.Item onClick={props.onEnableCustomComponent}>
-									Component
-								</Menu.Item>
-							) : null}
-							<Menu.Item onClick={props.onRefresh}>Refresh</Menu.Item>
-							<Menu.Item onClick={props.onToggleCustomComponents}>
-								Enable Custom: {props.includeCustomComponents ? "On" : "Off"}
-							</Menu.Item>
-						</>
+							</>
+						) : null
 					}
 					actionSlot={
 						isMultiSelectStep ? (

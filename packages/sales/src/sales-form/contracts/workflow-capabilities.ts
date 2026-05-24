@@ -10,6 +10,7 @@ export type SalesFormWorkflowCapabilities = {
 	canEditFlatLineDetails: boolean;
 	canEditLinePricing: boolean;
 	canEditDealerVisibleTotals: boolean;
+	isDealershipMode: boolean;
 };
 
 export function createSalesFormWorkflowCapabilities(
@@ -27,14 +28,17 @@ export function createSalesFormWorkflowCapabilities(
 		canEditFlatLineDetails: false,
 		canEditLinePricing: false,
 		canEditDealerVisibleTotals: false,
+		isDealershipMode: false,
 		...patch,
 	};
 }
 
 export function createInternalSalesFormWorkflowCapabilities(input?: {
 	isWorkflowAdmin?: boolean;
+	canEditLinePricing?: boolean;
 }): SalesFormWorkflowCapabilities {
 	const isWorkflowAdmin = Boolean(input?.isWorkflowAdmin);
+	const canEditLinePricing = Boolean(input?.canEditLinePricing);
 
 	return createSalesFormWorkflowCapabilities({
 		canEditWorkflowComponents: isWorkflowAdmin,
@@ -46,8 +50,9 @@ export function createInternalSalesFormWorkflowCapabilities(input?: {
 		canEnableCustomComponents: isWorkflowAdmin,
 		canUseMouldingCalculator: true,
 		canEditFlatLineDetails: true,
-		canEditLinePricing: true,
+		canEditLinePricing,
 		canEditDealerVisibleTotals: false,
+		isDealershipMode: false,
 	});
 }
 
@@ -64,5 +69,6 @@ export function createDealerSalesFormWorkflowCapabilities(): SalesFormWorkflowCa
 		canEditFlatLineDetails: false,
 		canEditLinePricing: false,
 		canEditDealerVisibleTotals: false,
+		isDealershipMode: true,
 	});
 }

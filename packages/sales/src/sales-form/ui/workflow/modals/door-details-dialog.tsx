@@ -82,14 +82,17 @@ export function DoorDetailsDialog(props: DoorDetailsDialogProps) {
 
 	return (
 		<Dialog open={props.open} onOpenChange={props.onOpenChange}>
-			<DialogContent className="flex w-[92vw] max-w-[680px] flex-col overflow-hidden">
+			<DialogContent
+				onOpenAutoFocus={(event) => event.preventDefault()}
+				className="flex h-[80dvh] max-h-[720px] w-[calc(100vw-1rem)] max-w-2xl flex-col overflow-hidden"
+			>
 				<DialogHeader className="shrink-0">
 					<DialogTitle>Door Details</DialogTitle>
 					<DialogDescription>
 						Configure door sizes, swings, quantities, and pricing.
 					</DialogDescription>
 				</DialogHeader>
-				<div className="max-h-[42dvh] min-h-0 space-y-3 overflow-y-scroll overscroll-contain rounded-lg border p-3 sm:max-h-[24rem]">
+				<div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain rounded-lg border p-3">
 					<div className="grid grid-cols-12 gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
 						<p className="col-span-3">Dimension</p>
 						<p className="col-span-2">Swing</p>

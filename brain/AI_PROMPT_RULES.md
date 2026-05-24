@@ -12,6 +12,4 @@ Short prompt-level guardrails for future AI sessions working in this repository.
 - For Next.js work in `apps/www`, `apps/dealership`, or shared React UI consumed by either app, always load and apply these skills before implementation or review:
   - `vercel-react-best-practices`
   - `agency-engineering` using the Frontend Developer specialist unless the task clearly routes elsewhere
-  - `agency-design` using the UI Designer specialist for interface work unless the task clearly routes elsewhere
-  - `shadcn` for component-system usage, installed component checks, composition rules, and CLI/docs workflow
-- Apply the Next.js skill set especially to App Router pages/layouts, React components, data-fetching adapters, forms, shared package UI, and dealership quote/new-sales-form work.
+- Apply this React/Next.js UI skill set especially to App Router pages/layouts, React components, data-fetching adapters, forms, shared package UI, and dealership quote/new-sales-form work.

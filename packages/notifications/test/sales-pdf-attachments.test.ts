@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { composedSalesDocumentEmail } from "../src/types/composed-sales-document-email";
 import { salesCustomerPaymentReceived } from "../src/types/sales-customer-payment-received";
 import { salesEmailReminder } from "../src/types/sales-email-reminder";
 import { simpleSalesDocumentEmail } from "../src/types/simple-sales-document-email";
@@ -42,6 +43,111 @@ describe("sales PDF email attachments", () => {
 			paymentLink: "https://example.com/checkout/token",
 		});
 		expect(email?.data).not.toHaveProperty("pdfLink");
+	});
+
+	it("sends simple sales document emails without PDF attachment state when PDF generation is unavailable", () => {
+		const email = simpleSalesDocumentEmail.createEmail?.(
+			{
+				type: "order",
+				customerEmail: "customer@example.com",
+				customerName: "Customer",
+				salesRep: "Sales Rep",
+				salesRepEmail: "rep@gndprodesk.com",
+				paymentLink: null,
+				pdfLink: null,
+				pdfAttachment: null,
+				sales: [sale],
+			} as never,
+			{} as never,
+			{} as never,
+			{},
+		);
+
+		expect(email?.attachments).toBeUndefined();
+		expect(email?.data).toMatchObject({
+			hasPdfAttachment: false,
+		});
+		expect(email?.data).not.toHaveProperty("pdfLink");
+	});
+
+	it("uses a direct customer contact for simple sales document emails", () => {
+		const contact = simpleSalesDocumentEmail.createDirectEmailContact?.(
+			{
+				type: "order",
+				customerEmail: "customer@example.com",
+				customerName: "Customer",
+				salesRep: "Sales Rep",
+				salesRepEmail: "rep@gndprodesk.com",
+				paymentLink: null,
+				pdfLink: null,
+				pdfAttachment: null,
+				sales: [sale],
+			} as never,
+			{} as never,
+		);
+
+		expect(contact).toMatchObject({
+			email: "customer@example.com",
+			name: "Customer",
+			role: "customer",
+			emailNotification: true,
+			inAppNotification: false,
+			whatsAppNotification: false,
+		});
+	});
+
+	it("sends composed sales document emails without PDF attachment state when PDF generation is unavailable", () => {
+		const email = composedSalesDocumentEmail.createEmail?.(
+			{
+				type: "order",
+				customerEmail: "customer@example.com",
+				customerName: "Customer",
+				salesRep: "Sales Rep",
+				salesRepEmail: "rep@gndprodesk.com",
+				subject: "Invoice ready",
+				message: "Please review your invoice.",
+				attachSalesPdf: false,
+				paymentLink: null,
+				pdfAttachment: null,
+				sales: [sale],
+			} as never,
+			{} as never,
+			{} as never,
+			{},
+		);
+
+		expect(email?.attachments).toBeUndefined();
+		expect(email?.data).toMatchObject({
+			attachSalesPdf: false,
+		});
+	});
+
+	it("uses a direct customer contact for composed sales document emails", () => {
+		const contact = composedSalesDocumentEmail.createDirectEmailContact?.(
+			{
+				type: "order",
+				customerEmail: "customer@example.com",
+				customerName: "Customer",
+				salesRep: "Sales Rep",
+				salesRepEmail: "rep@gndprodesk.com",
+				subject: "Invoice ready",
+				message: "Please review your invoice.",
+				attachSalesPdf: false,
+				paymentLink: null,
+				pdfAttachment: null,
+				sales: [sale],
+			} as never,
+			{} as never,
+		);
+
+		expect(contact).toMatchObject({
+			email: "customer@example.com",
+			name: "Customer",
+			role: "customer",
+			emailNotification: true,
+			inAppNotification: false,
+			whatsAppNotification: false,
+		});
 	});
 
 	it("attaches PDFs for sales reminder emails without passing PDF links to the template", () => {

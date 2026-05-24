@@ -11,6 +11,7 @@ const commands = [
 		args: [
 			"test",
 			"packages/sales/src/sales-form/domain/workflow-calculators.test.ts",
+			"packages/sales/src/sales-form/application/legacy-metadata.test.ts",
 			"packages/sales/src/sales-form/contracts/schemas.test.ts",
 			"packages/sales/src/sales-form/contracts/workflow-capabilities.test.ts",
 			"packages/sales/src/sales-form/ui/workflow/sales-form-engine-panel.test.ts",
@@ -35,6 +36,10 @@ const commands = [
 		args: ["test", "packages/db/src/queries/dealers.test.ts"],
 	},
 	{
+		label: "new sales form api compatibility tests",
+		args: ["test", "apps/api/src/db/queries/new-sales-form.test.ts"],
+	},
+	{
 		label: "dealership typecheck",
 		args: ["run", "--filter", "@gnd/dealership", "typecheck"],
 	},
@@ -44,6 +49,7 @@ const commands = [
 		allowUnrelatedTypecheckFailures: true,
 		watchPaths: [
 			"apps/www/src/components/forms/new-sales-form/adapters/use-sales-form-workflow-data.ts",
+			"apps/www/src/components/forms/new-sales-form/sections/invoice-overview-panel.tsx",
 			"apps/www/src/components/forms/new-sales-form/sections/www-sales-form-workflow-panel.tsx",
 			"apps/www/src/components/forms/new-sales-form/new-sales-form.tsx",
 			"apps/dealership/src/components/dealer-sales-form/dealer-customer-selector-dialog.tsx",
@@ -52,9 +58,13 @@ const commands = [
 			"apps/dealership/src/components/dealer-sales-form/dealer-quote-summary-panel.tsx",
 			"apps/www/src/env.mjs",
 			"packages/sales/src/sales-form/contracts/form-composition.ts",
+			"packages/sales/src/sales-form/contracts/schemas.ts",
 			"packages/sales/src/sales-form/contracts/workflow-data-source.ts",
 			"packages/sales/src/sales-form/contracts/workflow-capabilities.ts",
+			"packages/sales/src/sales-form/application/legacy-metadata.ts",
+			"packages/sales/src/sales-form/application/record-normalization.ts",
 			"packages/sales/src/sales-form/ui/shell/sales-form-shell.tsx",
+			"packages/sales/src/sales-form/ui/overview/invoice-details-panel.tsx",
 			"packages/sales/src/sales-form/ui/workflow/component-card-skeleton-grid.tsx",
 			"packages/sales/src/sales-form/ui/workflow/door-step-panel.tsx",
 			"packages/sales/src/sales-form/ui/workflow/door-supplier-manager.tsx",

@@ -2,15 +2,19 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-05-24
+
+- Narrowed the Brain standing skill rules for `apps/www`, `apps/dealership`, and shared sales React UI to `vercel-react-best-practices` plus `agency-engineering` with the Frontend Developer specialist by default.
+
 ## 2026-05-23
 
 - Documented the missing dealership quote-to-order approval product plan in `brain/features/dealership-quote-to-order-approval.md`, covering dealer quote-only creation, order request submission, sales rep notifications, first-approver order assignment, already-worked states, manual delivery-cost review, dealer payment-link handoff, invoice modes, dealer sales/quotes tabs, query filters, sales-header pending request indicator, dashboard analytics, and validation gates.
 - Updated Brain active tracking so the dealership quote-to-order approval workflow appears in `brain/tasks/in-progress.md` and `brain/plans/ongoing.md` as a planned addendum to the Dealership Program.
-- Updated the Next.js required-skill Brain docs to remove `vercel:react-best-practices`; `vercel-react-best-practices`, `agency-engineering`, `agency-design`, and `shadcn` remain required for `apps/www`, `apps/dealership`, and shared sales UI work.
+- Updated the Next.js required-skill Brain docs; the standing skill rules were later narrowed to `vercel-react-best-practices` and `agency-engineering` for `apps/www`, `apps/dealership`, and shared sales UI work.
 - Implemented the first dealership quote-to-order approval support slice: Dealer Sales / Dealer Quotes tabs now show dashboard-backed count badges, orders/quotes pages prefetch those counts, dealer list filters support delivery option, dealer sales profile, and payment state, and orders also support invoice status. Added dealer list filter regression coverage and kept dealership typecheck green.
 - Added a durable Brain rule for Next.js work in `apps/www`, `apps/dealership`, and shared React UI consumed by either app.
-  - required future agents to load and apply the repository's Next.js skill set before implementing or reviewing those surfaces; this requirement was later narrowed on 2026-05-23 to remove `vercel:react-best-practices`
-  - defaulted `agency-engineering` to the Frontend Developer specialist and `agency-design` to the UI Designer specialist for interface work unless a task clearly routes elsewhere
+  - required future agents to load and apply the repository's React/Next.js UI skill set before implementing or reviewing those surfaces
+  - defaulted `agency-engineering` to the Frontend Developer specialist unless a task clearly routes elsewhere
   - called out dealership quote/new-sales-form UI migration and shared `@gnd/sales/sales-form` package UI as explicit scope
   - added a pointer from the Brain entry point to the standing AI/skill requirement docs
 - Added `brain/new-sales-form-completion-roadmap.md` with the full 30-phase remaining roadmap for shared package cutover readiness. Browser QA phases are intentionally last, and the execution rule is to keep `bun run test:new-sales-form-migration` green after each implementation slice and stop on failed gates.

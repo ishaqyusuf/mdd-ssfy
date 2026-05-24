@@ -38,21 +38,23 @@ export function WorkflowComponentToolbar(props: WorkflowComponentToolbarProps) {
 						className="h-9 w-full border-slate-200 bg-white"
 					/>
 				</div>
-				<Menu
-					Trigger={
-						<Button
-							type="button"
-							size="icon"
-							variant="outline"
-							className="size-9"
-							aria-label="Workflow component options"
-						>
-							<Icons.Filter className="size-4" />
-						</Button>
-					}
-				>
-					{props.menuSlot}
-				</Menu>
+				{props.menuSlot ? (
+					<Menu
+						Trigger={
+							<Button
+								type="button"
+								size="icon"
+								variant="outline"
+								className="size-9"
+								aria-label="Workflow component options"
+							>
+								<Icons.Filter className="size-4" />
+							</Button>
+						}
+					>
+						{props.menuSlot}
+					</Menu>
+				) : null}
 				{props.actionSlot ? (
 					<div className="w-full sm:w-auto">{props.actionSlot}</div>
 				) : null}

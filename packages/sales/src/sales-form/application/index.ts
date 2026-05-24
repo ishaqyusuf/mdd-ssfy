@@ -1,5 +1,12 @@
 export { computeSalesFormSummary } from "./compute-summary";
 export {
+	calculateLegacyPaymentDueDate,
+	projectSalesFormMetaToLegacyMeta,
+	readLegacySalesFormMeta,
+	type LegacySalesFormMetaContainer,
+	type LegacySalesOrderDates,
+} from "./legacy-metadata";
+export {
 	computeSalesFormSummary as computeNormalizedSalesFormSummary,
 	createEmptySalesFormLineItem,
 	createSalesFormLineItemUid,

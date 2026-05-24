@@ -19,11 +19,16 @@ export {
 } from "./door-step-panel";
 export { profileAdjustedDoorSalesPrice } from "./door-pricing";
 export {
-  applySharedDoorSurcharge,
-  computeSharedDoorSurcharge,
-  getDoorSupplierMeta,
-  normalizeStoredDoorRows,
-  repricePersistedDoorRowsForSupplier,
+	applySharedDoorSurcharge,
+	calcWorkflowDoorRow,
+	clearUnpricedDoorRowQty,
+	computeSharedDoorSurcharge,
+	deriveDoorSizeRows,
+	getDoorSupplierMeta,
+	isDoorRowPriceMissing,
+	normalizeStoredDoorRows,
+	repricePersistedDoorRowsForSupplier,
+	rowsForDoorComponent,
 } from "./door-utils";
 export { InvoiceItemCard } from "./invoice-item-card";
 export type {

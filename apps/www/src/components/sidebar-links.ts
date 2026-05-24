@@ -139,9 +139,24 @@ export const _perm = {
     some: (...roles: PermissionScope[]) =>
         __access("permission", "some", ...roles),
 };
+function normalizeRoleValue(role?: string | null) {
+    return String(role || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[_-]+/g, " ")
+        .replace(/\s+/g, " ");
+}
+function roleMatches(role: string, expectedRole: string) {
+    return (
+        role === expectedRole ||
+        role.replace(/\s+/g, "") === expectedRole.replace(/\s+/g, "")
+    );
+}
 export function validateRules(accessList: Access[], can?, userId?, _role?) {
     const permissionMap = can ?? {};
-    const role = typeof _role === "string" ? _role : _role?.name;
+    const role = normalizeRoleValue(
+        typeof _role === "string" ? _role : _role?.name,
+    );
     return accessList.every((a) => {
         switch (a.type) {
             // case "userId":
@@ -161,16 +176,17 @@ export function validateRules(accessList: Access[], can?, userId?, _role?) {
                 }
                 return true;
             case "role":
+                const roles = a.values.map(normalizeRoleValue);
                 switch (a.equator) {
                     case "every":
                     case "is":
-                        return a.values?.every((p) => role === p);
+                        return roles?.every((p) => roleMatches(role, p));
                     case "in":
                     case "some":
-                        return a.values?.some((p) => role === p);
+                        return roles?.some((p) => roleMatches(role, p));
                     case "isNot":
                     case "notIn":
-                        return a.values.every((p) => role !== p);
+                        return roles.every((p) => !roleMatches(role, p));
                 }
                 return true;
         }
@@ -796,4 +812,3 @@ export function getActiveLinkFromMap(
         )
         .sort(([hrefA], [hrefB]) => hrefB.length - hrefA.length)?.[0]?.[1];
 }
-

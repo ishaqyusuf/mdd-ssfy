@@ -1,8 +1,6 @@
 import { DealerQuoteComposer } from "@/components/dealer-sales-form/dealer-quote-composer";
 import { DealershipShell } from "@/components/dealership-shell";
-import PageShell from "@/components/page-shell";
 import { requireDealer } from "@/lib/dealer-session";
-import { PageTitle } from "@gnd/ui/custom/page-title";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -18,11 +16,8 @@ export default async function EditQuotePage({
 	const { dealer } = await requireDealer();
 
 	return (
-		<DealershipShell dealer={dealer}>
-			<PageShell>
-				<PageTitle>Edit Quote</PageTitle>
-				<DealerQuoteComposer mode="edit" quoteId={quoteId} />
-			</PageShell>
+		<DealershipShell dealer={dealer} contentMode="fixed">
+			<DealerQuoteComposer mode="edit" quoteId={quoteId} />
 		</DealershipShell>
 	);
 }

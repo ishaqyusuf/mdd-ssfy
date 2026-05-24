@@ -9,6 +9,7 @@ import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-proces
 import { env } from "@/env.mjs";
 import { useAuth } from "@/hooks/use-auth";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
 import { useTRPC } from "@/trpc/client";
@@ -424,9 +425,11 @@ function NewSalesFormFloatingActions({
     isSaved,
     isSaving,
     isPrinting,
+    isPreviewing,
     onAddItem,
     onSave,
     onOpenOverview,
+    onPreview,
     onPrint,
 }: {
     type: Props["type"];
@@ -434,9 +437,11 @@ function NewSalesFormFloatingActions({
     isSaved: boolean;
     isSaving: boolean;
     isPrinting: boolean;
+    isPreviewing: boolean;
     onAddItem: () => void;
     onSave: () => void;
     onOpenOverview: () => void;
+    onPreview: () => void;
     onPrint: (event?: ReactMouseEvent<HTMLButtonElement>) => void;
 }) {
     const isOrder = type === "order";
@@ -531,6 +536,33 @@ function NewSalesFormFloatingActions({
                                 </Button>
                             </FloatingActionTooltip>
                             <FloatingActionTooltip
+                                label={
+                                    isPreviewing
+                                        ? "Preparing preview"
+                                        : "Preview"
+                                }
+                            >
+                                <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="outline"
+                                    onClick={onPreview}
+                                    disabled={isSaving || isPreviewing}
+                                    className="size-8 rounded-full"
+                                    aria-label={
+                                        isPreviewing
+                                            ? "Preparing preview"
+                                            : "Preview"
+                                    }
+                                >
+                                    {isPreviewing ? (
+                                        <Icons.Loader2 className="size-3.5 animate-spin" />
+                                    ) : (
+                                        <Icons.Eye className="size-3.5" />
+                                    )}
+                                </Button>
+                            </FloatingActionTooltip>
+                            <FloatingActionTooltip
                                 label={isPrinting ? "Preparing print" : "Print"}
                             >
                                 <Button
@@ -615,6 +647,20 @@ function NewSalesFormFloatingActions({
                                     Overview
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
+                                    disabled={isSaving || isPreviewing}
+                                    onSelect={(event) => {
+                                        event.preventDefault();
+                                        onPreview();
+                                    }}
+                                >
+                                    {isPreviewing ? (
+                                        <Icons.Loader2 className="mr-2 size-4 animate-spin" />
+                                    ) : (
+                                        <Icons.Eye className="mr-2 size-4" />
+                                    )}
+                                    {isPreviewing ? "Preparing..." : "Preview"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
                                     disabled={isPrinting}
                                     onSelect={(event) => {
                                         event.preventDefault();
@@ -657,6 +703,7 @@ function NewSalesFormFloatingActions({
 export function NewSalesForm(props: Props) {
     const router = useRouter();
     const salesPrint = useSalesPrintController();
+    const salesPreview = useSalesPreview();
     const overviewQuery = useSalesOverviewQuery();
     const trpc = useTRPC();
     const queryClient = useQueryClient();
@@ -665,6 +712,7 @@ export function NewSalesForm(props: Props) {
     const [paymentReviewOpen, setPaymentReviewOpen] = useState(false);
     const [paymentReviewSeen, setPaymentReviewSeen] = useState(false);
     const [manualSaveLock, setManualSaveLock] = useState(false);
+    const [isPreviewing, setIsPreviewing] = useState(false);
     const [usePackageWorkflowPanel, setUsePackageWorkflowPanelState] = useState(
         resolveInitialPackageWorkflowPanelEnabled,
     );
@@ -1553,6 +1601,64 @@ export function NewSalesForm(props: Props) {
         });
     }
 
+    async function handlePreview() {
+        if (isPreviewing) return;
+        await runWithManualSaveLock(async () => {
+            if (!record) return;
+            if (!validateBeforeSave()) return;
+            if (saveStatus === "stale") {
+                toast({
+                    title: "Preview unavailable",
+                    description:
+                        "Reload latest data before previewing this form.",
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            setIsPreviewing(true);
+            try {
+                let salesId = record.salesId;
+
+                if (dirty || !salesId) {
+                    const resp = await autosave.flush("manual-flush", {
+                        force: !salesId,
+                    });
+                    if (!resp?.salesId) {
+                        toast({
+                            title: "Unable to prepare preview",
+                            description:
+                                "Save the latest changes before previewing.",
+                            variant: "destructive",
+                        });
+                        return;
+                    }
+                    await handlePostSaveSuccess(resp);
+                    salesId = resp.salesId;
+                }
+
+                if (!salesId) {
+                    toast({
+                        title: "Unable to prepare preview",
+                        description: "Save this form before previewing.",
+                        variant: "destructive",
+                    });
+                    return;
+                }
+
+                await salesPreview.preview(salesId, props.type, {
+                    customerEmail: record.customer?.email ?? null,
+                    customerName:
+                        record.customer?.businessName ||
+                        record.customer?.name ||
+                        null,
+                });
+            } finally {
+                setIsPreviewing(false);
+            }
+        });
+    }
+
     function handleOpenOverview() {
         if (!record?.orderId) return;
         overviewQuery.open2(
@@ -1715,9 +1821,11 @@ export function NewSalesForm(props: Props) {
                             isSaved={isSaved}
                             isSaving={isSaveBusy}
                             isPrinting={salesPrint.isPrinting}
+                            isPreviewing={isPreviewing}
                             onAddItem={() => addLineItem()}
                             onSave={() => void saveDraftNow()}
                             onOpenOverview={handleOpenOverview}
+                            onPreview={() => void handlePreview()}
                             onPrint={(event) => void handlePrint(event)}
                         />
                     ),
@@ -1768,7 +1876,9 @@ export function NewSalesForm(props: Props) {
                     onSaveNew={saveNew}
                     onSaveFinal={saveFinal}
                     onOpenOverview={handleOpenOverview}
+                    onPreview={handlePreview}
                     onPrint={handlePrint}
+                    isPreviewing={isPreviewing}
                     isPrinting={salesPrint.isPrinting}
                     isSaved={isSaved}
                     showPackingControls={isOrder}

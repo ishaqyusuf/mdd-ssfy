@@ -41,7 +41,9 @@ export type SalesFormHeaderActionsProps = {
 	onSaveNew?: () => Promise<void> | void;
 	onSaveFinal?: () => Promise<void> | void;
 	onOpenOverview?: () => void;
+	onPreview?: () => Promise<void> | void;
 	onPrint?: (event?: MouseEvent<HTMLButtonElement>) => Promise<void> | void;
+	isPreviewing?: boolean;
 	isPrinting?: boolean;
 	showPackingControls?: boolean;
 	packingButtonLabel?: string;
@@ -70,6 +72,10 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 		props.capabilities?.printing !== false &&
 		props.permissions?.canPrint !== false &&
 		!!props.onPrint;
+	const canPreview =
+		props.capabilities?.printing !== false &&
+		props.permissions?.canPrint !== false &&
+		!!props.onPreview;
 	const canPack =
 		props.showPackingControls &&
 		props.capabilities?.packing !== false &&
@@ -124,6 +130,21 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 						>
 							<Icons.Layout className="size-4" />
 							Overview
+						</Button>
+					) : null}
+					{canPreview ? (
+						<Button
+							size="icon"
+							variant="outline"
+							onClick={() => void props.onPreview?.()}
+							disabled={props.isSaving || props.isPreviewing}
+							aria-label={props.isPreviewing ? "Preparing preview" : "Preview"}
+						>
+							{props.isPreviewing ? (
+								<Icons.Loader2 className="size-4 animate-spin" />
+							) : (
+								<Icons.Eye className="size-4" />
+							)}
 						</Button>
 					) : null}
 					{canPrint ? (
@@ -274,6 +295,14 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 					{props.onToggleAutosave ? (
 						<Menu.Item onClick={props.onToggleAutosave}>
 							Autosave: {props.autosaveEnabled ? "On" : "Off"}
+						</Menu.Item>
+					) : null}
+					{canPreview ? (
+						<Menu.Item
+							disabled={props.isSaving || props.isPreviewing}
+							onClick={() => void props.onPreview?.()}
+						>
+							{props.isPreviewing ? "Preparing Preview" : "Preview"}
 						</Menu.Item>
 					) : null}
 					{props.onSaveDraft ? (

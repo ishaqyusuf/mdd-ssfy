@@ -14,8 +14,6 @@ import {
 	saveWorkflowComponentEdit,
 	SalesFormEnginePanel,
 	setWorkflowComponentRedirect,
-	createInternalSalesFormWorkflowCapabilities,
-	type SalesFormWorkflowCapabilities,
 	type ComponentEditDialogRouteOption,
 	type WorkflowComponentEditState,
 	type WorkflowComponentRecord,
@@ -30,6 +28,7 @@ import {
 import { useWwwSalesFormWorkflowData } from "../adapters/use-sales-form-workflow-data";
 import type { NewSalesFormLineItem } from "../schema";
 import { useNewSalesFormStore } from "../store";
+import { createWwwWorkflowAdminCapabilities } from "./workflow-capabilities";
 
 const initialComponentEditState: WorkflowComponentEditState = {
 	open: false,
@@ -45,16 +44,6 @@ const initialComponentEditState: WorkflowComponentEditState = {
 	noHandle: false,
 	hasSwing: true,
 };
-
-export function createWwwWorkflowAdminCapabilities(
-	roleTitle?: string | null,
-): SalesFormWorkflowCapabilities {
-	const normalizedRole = String(roleTitle || "").toLowerCase();
-	return createInternalSalesFormWorkflowCapabilities({
-		isWorkflowAdmin:
-			normalizedRole === "admin" || normalizedRole === "super admin",
-	});
-}
 
 export function WwwSalesFormWorkflowPanel() {
 	const auth = useAuth();

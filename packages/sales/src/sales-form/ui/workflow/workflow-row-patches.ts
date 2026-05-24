@@ -10,7 +10,11 @@ import {
 	summarizeServiceRows,
 	summarizeShelfRows,
 } from "../../domain";
-import { applySharedDoorSurcharge } from "./door-utils";
+import {
+	applySharedDoorSurcharge,
+	clearUnpricedDoorRowQty,
+	isDoorRowPriceMissing,
+} from "./door-utils";
 import {
 	getStoredMouldingRows,
 	getStoredServiceRows,
@@ -23,6 +27,21 @@ import {
 } from "./workflow-records";
 
 type LinePatch = Record<string, unknown>;
+
+function selectedDoorQty(row: DoorStoredRow) {
+	const lhQty = Number(row?.lhQty || 0);
+	const rhQty = Number(row?.rhQty || 0);
+	const totalQty = Number(row?.totalQty || 0);
+	return lhQty + rhQty > 0 ? lhQty + rhQty : totalQty;
+}
+
+function removeSelectedUnpricedDoorRows(rows: DoorStoredRow[]) {
+	return rows
+		.filter(
+			(row) => selectedDoorQty(row) <= 0 || !isDoorRowPriceMissing(row),
+		)
+		.map(clearUnpricedDoorRowQty);
+}
 
 export type WorkflowMouldingRowsContext = {
 	rows: MouldingRow[];
@@ -174,8 +193,9 @@ export function buildWorkflowDoorRowsPatch(input: {
 	hasSwing?: boolean;
 	profileCoefficient?: number | null;
 }) {
+	const safeRows = removeSelectedUnpricedDoorRows(input.rows);
 	const normalizedRows = applySharedDoorSurcharge(
-		input.rows,
+		safeRows,
 		Number(input.sharedDoorSurcharge || 0),
 		input.profileCoefficient,
 	);
@@ -194,8 +214,8 @@ export function buildWorkflowDoorRowsPatch(input: {
 				totalDoors: next.totalDoors,
 				totalPrice: next.totalPrice,
 			},
-			qty: next.totalDoors || input.line.qty,
-			lineTotal: next.totalPrice || input.line.lineTotal,
+			qty: next.totalDoors,
+			lineTotal: next.totalPrice,
 		},
 	};
 }
@@ -214,8 +234,9 @@ export function buildWorkflowDoorSizeVariantPatch(input: {
 	const retainedDoors = existingDoors.filter(
 		(door) => Number(door.stepProductId || 0) !== targetComponentId,
 	);
+	const safeRows = removeSelectedUnpricedDoorRows(input.rows);
 	const nextRows = applySharedDoorSurcharge(
-		input.rows,
+		safeRows,
 		Number(input.sharedDoorSurcharge || 0),
 		input.profileCoefficient,
 	);
@@ -247,8 +268,8 @@ export function buildWorkflowDoorSizeVariantPatch(input: {
 				totalDoors,
 				totalPrice,
 			},
-			qty: totalDoors || input.line.qty,
-			lineTotal: totalPrice || input.line.lineTotal,
+			qty: totalDoors,
+			lineTotal: totalPrice,
 		},
 	};
 }

@@ -25,7 +25,7 @@ export function SalesFormShell(props: SalesFormShellProps) {
 	const innerClassName =
 		surface === "embedded"
 			? "relative flex min-h-[560px] w-full overflow-hidden bg-background"
-			: "relative flex h-full min-h-0 overflow-hidden border border-slate-200/80 bg-background shadow-sm";
+			: "relative flex h-full min-h-0 overflow-hidden border-x border-b border-slate-200/80 bg-background shadow-sm";
 	const summaryPanel =
 		slots.SummaryPanel ||
 		slots.SalesHistoryPanel ||

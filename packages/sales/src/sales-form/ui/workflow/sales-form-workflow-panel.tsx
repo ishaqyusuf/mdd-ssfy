@@ -54,6 +54,7 @@ import {
 	buildWorkflowServiceRowsPatch,
 	buildWorkflowShelfSectionsContext,
 	buildWorkflowShelfSectionsPatch,
+	clearUnpricedDoorRowQty,
 	componentLabel,
 	computeSharedDoorSurcharge,
 	createShelfProductDraft,
@@ -453,9 +454,11 @@ export function SalesFormWorkflowPanel<
 		line: TLine,
 		step: WorkflowStepRecord,
 	) {
-		const rows = Array.isArray(line.housePackageTool?.doors)
-			? line.housePackageTool.doors || []
-			: [];
+		const rows = (
+			Array.isArray(line.housePackageTool?.doors)
+				? line.housePackageTool.doors || []
+				: []
+		).map(clearUnpricedDoorRowQty);
 		let selectedDoorComponents = getSelectedDoorComponentsForLine(line, {
 			availableComponents: visibleDoorComponents,
 		});
@@ -836,17 +839,19 @@ export function SalesFormWorkflowPanel<
 									maxWidthClassName="max-w-2xl"
 									onSearchChange={setComponentSearch}
 									menuSlot={
-										<>
-											<Menu.Item onClick={refreshRootData}>Refresh</Menu.Item>
-											<Menu.Item
-												onClick={() =>
-													setIncludeCustomComponents((prev) => !prev)
-												}
-											>
-												Enable Custom:{" "}
-												{includeCustomComponents ? "On" : "Off"}
-											</Menu.Item>
-										</>
+										!workflowCapabilities.isDealershipMode ? (
+											<>
+												<Menu.Item onClick={refreshRootData}>Refresh</Menu.Item>
+												<Menu.Item
+													onClick={() =>
+														setIncludeCustomComponents((prev) => !prev)
+													}
+												>
+													Enable Custom:{" "}
+													{includeCustomComponents ? "On" : "Off"}
+												</Menu.Item>
+											</>
+										) : null
 									}
 								/>
 							}
@@ -941,6 +946,7 @@ export function SalesFormWorkflowPanel<
 					) : null
 				}
 				includeCustomComponents={includeCustomComponents}
+				isDealershipMode={workflowCapabilities.isDealershipMode}
 				mouldingSelection={{
 					open: mouldingSelectionPopover.open,
 					lineUid: mouldingSelectionPopover.lineUid,

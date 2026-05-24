@@ -95,6 +95,107 @@ describe("workflow selection actions", () => {
 		expect(result?.activeStepIndex).toBe(1);
 	});
 
+	it("keeps all configured step pills after selecting the next component", () => {
+		const fullRouteData = {
+			composedRouter: {
+				rootA: {
+					routeSequence: [
+						{ uid: "stepB" },
+						{ uid: "stepC" },
+						{ uid: "stepD" },
+					],
+					route: {
+						rootStep: "stepB",
+						stepB: "stepC",
+					},
+				},
+			},
+			stepsByUid: {
+				rootStep: {
+					id: 1,
+					uid: "rootStep",
+					title: "Item Type",
+				},
+				stepB: {
+					id: 2,
+					uid: "stepB",
+					title: "Height",
+				},
+				stepC: {
+					id: 3,
+					uid: "stepC",
+					title: "Width",
+				},
+				stepD: {
+					id: 4,
+					uid: "stepD",
+					title: "Line Item",
+				},
+			},
+			stepsById: {
+				1: "rootStep",
+				2: "stepB",
+				3: "stepC",
+				4: "stepD",
+			},
+			rootStepUid: "rootStep",
+		};
+		const seeded = saveWorkflowSelectedComponent({
+			routeData: fullRouteData,
+			line: {
+				uid: "line-1",
+				title: "New Line",
+				formSteps: [],
+			},
+			steps: [
+				{
+					stepId: 1,
+					step: {
+						id: 1,
+						uid: "rootStep",
+						title: "Item Type",
+					},
+					meta: {},
+				},
+			],
+			currentStepIndex: 0,
+			component: {
+				id: 11,
+				uid: "rootA",
+				title: "Door",
+			},
+			visibleComponents: [],
+			activeStepTitle: "Item Type",
+		});
+
+		const result = saveWorkflowSelectedComponent({
+			routeData: fullRouteData,
+			line: {
+				uid: "line-1",
+				title: "Door",
+				formSteps: seeded?.linePatch.formSteps || [],
+			},
+			steps: seeded?.linePatch.formSteps || [],
+			currentStepIndex: 1,
+			component: {
+				id: 21,
+				uid: "height-80",
+				title: "8-0",
+			},
+			visibleComponents: [],
+			activeStepTitle: "Height",
+		});
+
+		expect(result?.linePatch.formSteps.map((step) => step.step?.uid)).toEqual([
+			"rootStep",
+			"stepB",
+			"stepC",
+			"stepD",
+		]);
+		expect(result?.linePatch.formSteps[1]?.prodUid).toBe("height-80");
+		expect(result?.activeStepIndex).toBe(2);
+	});
+
 	it("proceeds a multi-select door step to the line item step", () => {
 		const result = proceedWorkflowMultiSelectStep({
 			routeData,

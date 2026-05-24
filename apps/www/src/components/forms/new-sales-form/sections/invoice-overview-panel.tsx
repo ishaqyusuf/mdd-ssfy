@@ -33,6 +33,10 @@ interface Props {
 	type: "order" | "quote";
 }
 
+function formDateValue(value: string | null) {
+	return value ? new Date(value).toISOString() : null;
+}
+
 export function InvoiceOverviewPanel(props: Props) {
 	const record = useNewSalesFormStore((s) => s.record);
 	const setMeta = useNewSalesFormStore((s) => s.setMeta);
@@ -386,17 +390,36 @@ export function InvoiceOverviewPanel(props: Props) {
 			/>
 
 			<SalesFormInvoiceDetailsPanel
+				type={props.type}
+				createdAt={record.form.createdAt}
 				deliveryOption={record.form.deliveryOption || "pickup"}
 				deliveryOptions={deliveryOptions}
 				goodUntil={record.form.goodUntil}
+				paymentDueDate={record.form.paymentDueDate}
+				prodDueDate={record.form.prodDueDate}
+				onCreatedAtChange={(value) =>
+					setMeta({
+						createdAt: formDateValue(value),
+					})
+				}
 				onDeliveryOptionChange={(value) => setMeta({ deliveryOption: value })}
 				onGoodUntilChange={(value) =>
 					setMeta({
-						goodUntil: value ? new Date(value).toISOString() : null,
+						goodUntil: formDateValue(value),
+					})
+				}
+				onPaymentDueDateChange={(value) =>
+					setMeta({
+						paymentDueDate: formDateValue(value),
 					})
 				}
 				onPaymentTermChange={(value) => setMeta({ paymentTerm: value })}
 				onPoChange={(value) => setMeta({ po: value })}
+				onProdDueDateChange={(value) =>
+					setMeta({
+						prodDueDate: formDateValue(value),
+					})
+				}
 				paymentTerm={record.form.paymentTerm || "None"}
 				paymentTerms={paymentTermOptions}
 				po={record.form.po}
