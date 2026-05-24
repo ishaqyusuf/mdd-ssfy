@@ -3,7 +3,6 @@
 import { triggerEvent } from "@/actions/events";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { updateSalesMetaAction } from "@/actions/update-sales-meta-action";
-import { _modal } from "@/components/common/modal/provider";
 import { Env } from "@/components/env";
 import { SalesMenu } from "@/components/sales-menu";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
@@ -93,6 +92,13 @@ const WwwSalesFormWorkflowPanel = dynamic(
         ),
     {
         loading: () => <WorkflowPanelSkeleton />,
+    },
+);
+
+const NewSalesFormSettingsModal = dynamic(
+    () => import("@/components/modals/new-sales-form-settings-modal"),
+    {
+        ssr: false,
     },
 );
 
@@ -684,6 +690,7 @@ export function NewSalesForm(props: Props) {
     const setMeta = useNewSalesFormStore((s) => s.setMeta);
     const [recoverySnapshot, setRecoverySnapshot] =
         useState<NewSalesFormRecoverySnapshot | null>(null);
+    const [settingsOpen, setSettingsOpen] = useState(false);
     const [bootstrapCustomerId] = useState<number | null>(() =>
         normalizeSalesFormInitialCustomerId(draftParams.selectedCustomerId),
     );
@@ -835,6 +842,7 @@ export function NewSalesForm(props: Props) {
     );
     const packingTaskTrigger = useTaskTrigger({
         silent: true,
+        monitor: true,
         onSuccess() {
             void invalidatePackingQueries(record?.salesId);
         },
@@ -1587,6 +1595,12 @@ export function NewSalesForm(props: Props) {
                 enabled={usePackageWorkflowPanel}
                 onChange={setUsePackageWorkflowPanel}
             />
+            {settingsOpen ? (
+                <NewSalesFormSettingsModal
+                    open={settingsOpen}
+                    onOpenChange={setSettingsOpen}
+                />
+            ) : null}
             <SalesFormShell
                 mode={props.mode}
                 type={props.type}
@@ -1780,11 +1794,7 @@ export function NewSalesForm(props: Props) {
                     }
                     onOpenPacking={handleOpenPacking}
                     openPackingDisabled={!record.orderId}
-                    onOpenSettings={async () => {
-                        const { default: NewSalesFormSettingsModal } =
-                            await import("@/components/modals/new-sales-form-settings-modal");
-                        _modal.openSheet(<NewSalesFormSettingsModal />);
-                    }}
+                    onOpenSettings={() => setSettingsOpen(true)}
                     activeItem={
                         editor.activeItem || record.lineItems[0]?.uid || null
                     }

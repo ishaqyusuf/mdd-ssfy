@@ -22,6 +22,7 @@ export function TaskNotification() {
         (task) => !task.ownerId || task.ownerId === userId,
     );
     const clearCompleted = useTaskMonitorStore((state) => state.clearCompleted);
+    const markStaleTasks = useTaskMonitorStore((state) => state.markStaleTasks);
     const [open, setOpen] = useState(false);
     const runningTasks = tasks.filter((task) => task.status === "SYNCING");
     const failedTasks = tasks.filter((task) => task.status === "FAILED");
@@ -35,7 +36,8 @@ export function TaskNotification() {
 
     useEffect(() => {
         clearCompleted();
-    }, [clearCompleted]);
+        markStaleTasks();
+    }, [clearCompleted, markStaleTasks]);
 
     if (!tasks.length) return null;
 
@@ -64,7 +66,7 @@ export function TaskNotification() {
                                             )}
                                         </div>
                                         <div className="text-xs text-muted-foreground">
-                                            Background job monitor
+                                            Background tasks
                                         </div>
                                     </div>
                                 </div>
@@ -165,9 +167,19 @@ function TaskNotificationWatcher({ task }: { task: TaskMonitorTask }) {
 
 function TaskNotificationRow({ task }: { task: TaskMonitorTask }) {
     const removeTask = useTaskMonitorStore((state) => state.removeTask);
+    const [copied, setCopied] = useState(false);
     const title = task.title || defaultTitle(task);
     const description =
         task.error || task.description || `Run ${shortRunId(task.runId)}`;
+    const copyRunId = async () => {
+        try {
+            await navigator.clipboard.writeText(task.runId);
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 1500);
+        } catch {
+            setCopied(false);
+        }
+    };
 
     return (
         <div className="flex items-start gap-3 rounded-md px-2 py-2 hover:bg-muted/60">
@@ -189,7 +201,27 @@ function TaskNotificationRow({ task }: { task: TaskMonitorTask }) {
                 <div className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
                     {description}
                 </div>
+                <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+                    <span>{shortRunId(task.runId)}</span>
+                    {task.metadata?.taskName ? (
+                        <span>{String(task.metadata.taskName)}</span>
+                    ) : null}
+                </div>
             </div>
+            <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                onClick={() => void copyRunId()}
+                aria-label={copied ? "Run id copied" : "Copy run id"}
+                title={copied ? "Copied" : "Copy run id"}
+            >
+                {copied ? (
+                    <Icons.CheckCircle2 className="size-3.5" />
+                ) : (
+                    <Icons.Copy className="size-3.5" />
+                )}
+            </Button>
             {task.status === "FAILED" ? (
                 <Button
                     type="button"

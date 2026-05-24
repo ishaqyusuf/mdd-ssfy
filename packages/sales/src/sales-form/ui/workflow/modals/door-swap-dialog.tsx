@@ -34,15 +34,15 @@ export function DoorSwapDialog<TComponent extends DoorSwapDialogComponent>(
 ) {
 	return (
 		<Dialog open={props.open} onOpenChange={props.onOpenChange}>
-			<DialogContent className="max-w-[880px]">
-				<DialogHeader>
+			<DialogContent className="flex w-[92vw] max-w-[680px] flex-col overflow-hidden">
+				<DialogHeader className="shrink-0">
 					<DialogTitle>Swap Door</DialogTitle>
 					<DialogDescription>
 						Replace the selected door while keeping the current size and
 						quantity rows.
 					</DialogDescription>
 				</DialogHeader>
-				<div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-muted-foreground">
+				<div className="shrink-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-muted-foreground">
 					Existing rows for{" "}
 					{props.componentLabel(
 						props.sourceComponent?.title ||
@@ -51,7 +51,7 @@ export function DoorSwapDialog<TComponent extends DoorSwapDialogComponent>(
 					)}{" "}
 					will be repriced on the selected door.
 				</div>
-				<div className="max-h-[70vh] overflow-y-auto pr-1">
+				<div className="max-h-[42dvh] min-h-0 overflow-y-scroll overscroll-contain pr-1 sm:max-h-[24rem]">
 					<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
 						{props.candidates.map((component) => {
 							const imageSrc = props.resolveImageSrc(component.img);
@@ -98,7 +98,7 @@ export function DoorSwapDialog<TComponent extends DoorSwapDialogComponent>(
 						) : null}
 					</div>
 				</div>
-				<DialogFooter>
+				<DialogFooter className="shrink-0">
 					<Button variant="outline" onClick={() => props.onOpenChange(false)}>
 						Cancel
 					</Button>

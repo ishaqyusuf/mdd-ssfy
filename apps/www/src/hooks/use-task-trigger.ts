@@ -1,9 +1,12 @@
 import { toast } from "@gnd/ui/use-toast";
 import { useAction } from "next-safe-action/hooks";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRealtimeRun } from "@trigger.dev/react-hooks";
 import { triggerTask } from "@/actions/trigger-task";
-import { useTaskMonitorStore } from "@/store/task-monitor";
+import {
+    getTaskMonitorTaskDefaults,
+    useTaskMonitorStore,
+} from "@/store/task-monitor";
 import { useAuth } from "./use-auth";
 import { TaskName } from "@jobs/schema";
 import { useAfterState } from "@gnd/ui/hooks/use-after-state";
@@ -18,7 +21,14 @@ interface Props {
     onStarted?;
     debug?: boolean;
     silent?: boolean;
+    monitor?: boolean;
 }
+
+type TriggerTaskInput = {
+    taskName: TaskName;
+    payload?: any;
+};
+
 export function useTaskTrigger(props?: Props) {
     const {
         successToast = "Success!",
@@ -37,6 +47,7 @@ export function useTaskTrigger(props?: Props) {
     });
     const auth = useAuth();
     const addTask = useTaskMonitorStore((state) => state.addTask);
+    const lastInputRef = useRef<TriggerTaskInput | null>(null);
     useEffect(() => {
         if (status === "FAILED") {
             // setIsImporting(false);
@@ -88,6 +99,8 @@ export function useTaskTrigger(props?: Props) {
     }, [status]);
     const _action = useAction(triggerTask, {
         onExecute(args) {
+            const input = ((args as any)?.input ?? args) as TriggerTaskInput;
+            if (input?.taskName) lastInputRef.current = input;
             setStatus("SYNCING");
             // if (executingToast)
             //     if (!props.silent)
@@ -114,14 +127,29 @@ export function useTaskTrigger(props?: Props) {
             }
             setRunId(data.id);
             setAccessToken(data.publicAccessToken);
-            if (!props.silent)
+            if (props?.monitor ?? !props?.silent) {
+                const input = lastInputRef.current;
+                const taskDefaults = getTaskMonitorTaskDefaults(
+                    input?.taskName,
+                    input?.payload,
+                );
+
                 addTask({
                     runId: data.id,
                     accessToken: data.publicAccessToken,
                     ownerId: auth.id == null ? null : String(auth.id),
-                    title: props.taskTitle || executingToast || successToast,
-                    description: props.taskDescription || executingToast,
+                    title:
+                        props.taskTitle ||
+                        executingToast ||
+                        taskDefaults.title ||
+                        successToast,
+                    description:
+                        props.taskDescription ||
+                        taskDefaults.description ||
+                        executingToast,
+                    metadata: taskDefaults.metadata,
                 });
+            }
             props?.onStarted?.();
         },
         onError(e) {
@@ -135,10 +163,14 @@ export function useTaskTrigger(props?: Props) {
                 });
         },
     });
+    const trigger = (input: TriggerTaskInput) => {
+        lastInputRef.current = input;
+        return _action.execute(input);
+    };
     const ctx = {
-        trigger: _action.execute,
+        trigger,
         triggerWithAuth(taskName: TaskName, payload) {
-            return _action.execute({
+            return trigger({
                 taskName,
                 payload: {
                     ...payload,

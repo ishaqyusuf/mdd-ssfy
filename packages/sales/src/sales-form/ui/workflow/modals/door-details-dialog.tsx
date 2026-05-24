@@ -82,14 +82,14 @@ export function DoorDetailsDialog(props: DoorDetailsDialogProps) {
 
 	return (
 		<Dialog open={props.open} onOpenChange={props.onOpenChange}>
-			<DialogContent className="max-w-5xl">
-				<DialogHeader>
+			<DialogContent className="flex w-[92vw] max-w-[680px] flex-col overflow-hidden">
+				<DialogHeader className="shrink-0">
 					<DialogTitle>Door Details</DialogTitle>
 					<DialogDescription>
 						Configure door sizes, swings, quantities, and pricing.
 					</DialogDescription>
 				</DialogHeader>
-				<div className="max-h-[60vh] space-y-3 overflow-auto rounded-lg border p-3">
+				<div className="max-h-[42dvh] min-h-0 space-y-3 overflow-y-scroll overscroll-contain rounded-lg border p-3 sm:max-h-[24rem]">
 					<div className="grid grid-cols-12 gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
 						<p className="col-span-3">Dimension</p>
 						<p className="col-span-2">Swing</p>
@@ -203,7 +203,7 @@ export function DoorDetailsDialog(props: DoorDetailsDialogProps) {
 					))}
 				</div>
 
-				<div className="flex items-center gap-3 rounded-lg border bg-muted/20 p-3 text-sm">
+				<div className="flex shrink-0 items-center gap-3 rounded-lg border bg-muted/20 p-3 text-sm">
 					<Button
 						size="sm"
 						variant="outline"
@@ -223,7 +223,7 @@ export function DoorDetailsDialog(props: DoorDetailsDialogProps) {
 					</p>
 				</div>
 
-				<DialogFooter>
+				<DialogFooter className="shrink-0">
 					<Button variant="outline" onClick={() => props.onOpenChange(false)}>
 						Cancel
 					</Button>

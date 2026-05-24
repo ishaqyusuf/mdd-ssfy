@@ -475,6 +475,7 @@ function Actions({ item }: { item: SalesOrderItem }) {
 	const notification = useNotificationTrigger({ silent: true });
 	const { trigger } = useTaskTrigger({
 		silent: true,
+		monitor: true,
 		onSuccess() {
 			invalidateInfiniteQueries("sales.getOrders");
 			toast({

@@ -281,8 +281,8 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 
 	return (
 		<Dialog open={props.open} onOpenChange={props.onOpenChange}>
-			<DialogContent className="max-w-[720px] gap-0 overflow-hidden p-0 sm:max-w-[760px]">
-				<DialogHeader className="border-b bg-gradient-to-r from-slate-50 to-white px-4 py-4 sm:px-5">
+			<DialogContent className="flex w-[92vw] max-w-[680px] flex-col gap-0 overflow-hidden p-0">
+				<DialogHeader className="shrink-0 border-b bg-gradient-to-r from-slate-50 to-white px-4 py-4 sm:px-5">
 					<DialogTitle>
 						{props.component.title || "Door"} Size Select
 					</DialogTitle>
@@ -290,7 +290,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 						Select size, price, and quantity for this door option.
 					</DialogDescription>
 				</DialogHeader>
-				<div className="space-y-4 px-4 py-4 sm:px-5">
+				<div className="max-h-[42dvh] min-h-0 space-y-4 overflow-y-scroll overscroll-contain px-4 py-4 sm:max-h-[24rem] sm:px-5">
 					<div className="flex flex-col gap-3 rounded-xl border bg-slate-50/70 p-3 sm:flex-row sm:items-end sm:justify-between">
 						<div className="space-y-1">
 							<p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
@@ -452,7 +452,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 						))}
 					</div>
 
-					<div className="hidden max-h-[52vh] overflow-auto rounded-2xl border md:block">
+					<div className="hidden overflow-x-auto rounded-2xl border md:block">
 						<table className="min-w-full text-sm">
 							<thead className="bg-slate-50">
 								<tr className="text-left text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
@@ -599,7 +599,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 						</table>
 					</div>
 				</div>
-				<div className="border-t bg-muted/20 px-4 py-3 sm:px-5">
+				<div className="shrink-0 border-t bg-muted/20 px-4 py-3 sm:px-5">
 					<div className="flex items-center gap-3 rounded-lg border bg-background p-3 text-sm">
 						<p className="ml-auto">
 							Doors: <span className="font-semibold">{totals.totalDoors}</span>
@@ -612,7 +612,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 						</p>
 					</div>
 				</div>
-				<DialogFooter className="border-t px-4 py-4 sm:px-5">
+				<DialogFooter className="shrink-0 border-t px-4 py-4 sm:px-5">
 					<Button
 						variant="destructive"
 						onClick={() => {

@@ -13,6 +13,14 @@ import {
     AccordionTrigger,
 } from "@gnd/ui/accordion";
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@gnd/ui/dialog";
+import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
@@ -22,8 +30,6 @@ import { Form } from "@gnd/ui/form";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import { Sortable, SortableDragHandle, SortableItem } from "@gnd/ui/sortable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
-import Modal from "@/components/common/modal";
-import { _modal } from "@/components/common/modal/provider";
 import { Icons } from "@gnd/ui/icons";
 import { FormCheckbox } from "@gnd/ui/controls/form-checkbox";
 import { FormSelect } from "@gnd/ui/controls/form-select";
@@ -71,7 +77,13 @@ type SettingsFormValues = {
     };
 };
 
-function useNewSalesFormSettingsContext() {
+type NewSalesFormSettingsContextOptions = {
+    onSaved?: () => void;
+};
+
+function useNewSalesFormSettingsContext({
+    onSaved,
+}: NewSalesFormSettingsContextOptions = {}) {
     const stepRoutingQuery = useNewSalesFormStepRoutingQuery({}, true);
     const routeData = stepRoutingQuery.data;
     const shelfCategoriesQuery = useNewSalesFormShelfCategoriesQuery({}, true);
@@ -237,7 +249,7 @@ function useNewSalesFormSettingsContext() {
                     title: "Settings saved",
                     variant: "success",
                 });
-                _modal.close();
+                onSaved?.();
             },
         }),
     );
@@ -348,29 +360,31 @@ function RouteSection({ uid }: { uid: string }) {
         () => ctx.rootComponentsByUid?.[uid]?.title ?? uid,
         [ctx.rootComponentsByUid, uid],
     );
-    const stepImage = ctx.rootComponentsByUid?.[uid]?.img || null;
     const newStepTitle = ctx.form.watch("data.newStepTitle");
 
     return (
-        <AccordionItem
-            value={uid}
-            className="overflow-hidden rounded-xl border border-border bg-card shadow-sm"
-        >
-            <AccordionTrigger className="bg-muted/30 px-4 py-3 text-left text-sm font-semibold uppercase hover:no-underline">
-                <div className="flex items-center gap-3">
-                    {stepImage ? (
-                        <img
-                            src={stepImage}
-                            alt={String(stepLabel)}
-                            className="size-8 rounded-md border bg-background object-cover"
-                        />
-                    ) : null}
-                    <span className="tracking-wide">
+        <div className="flex flex-col gap-4 rounded-lg border bg-card p-4">
+            <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                        Main Section
+                    </p>
+                    <h3 className="mt-1 truncate text-sm font-semibold tracking-wide">
                         {String(stepLabel).toUpperCase()}
-                    </span>
+                    </h3>
                 </div>
-            </AccordionTrigger>
-            <AccordionContent className="space-y-4 p-4">
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 uppercase"
+                    onClick={() => stepArray.append({ uid: "" })}
+                >
+                    <Icons.add className="size-4" />
+                    <span>Step</span>
+                </Button>
+            </div>
+
                 <div className="rounded-lg border bg-muted/20 p-3">
                     <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                         Section Config
@@ -423,16 +437,6 @@ function RouteSection({ uid }: { uid: string }) {
                         <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                             Step Sequence
                         </p>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-8 uppercase"
-                            onClick={() => stepArray.append({ uid: "" })}
-                        >
-                            <Icons.add className="size-4" />
-                            <span>Step</span>
-                        </Button>
                     </div>
 
                     <Sortable
@@ -512,8 +516,7 @@ function RouteSection({ uid }: { uid: string }) {
                         Create
                     </Button>
                 </div>
-            </AccordionContent>
-        </AccordionItem>
+        </div>
     );
 }
 
@@ -634,24 +637,58 @@ function DealerShelfVisibilitySettings() {
     );
 }
 
-export function NewSalesFormSettingsModal() {
-    const value = useNewSalesFormSettingsContext();
+type NewSalesFormSettingsModalProps = {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+};
+
+export function NewSalesFormSettingsModal({
+    open,
+    onOpenChange,
+}: NewSalesFormSettingsModalProps) {
+    const value = useNewSalesFormSettingsContext({
+        onSaved: () => onOpenChange(false),
+    });
     const rootProducts = value.routeData?.rootComponents ?? [];
     const [tab, setTab] = useState("invoice-steps");
+    const [activeSectionUid, setActiveSectionUid] = useState("");
+    const sections = value.sectionArray.fields as Array<{
+        _id: string;
+        uid: string;
+    }>;
+    const currentSectionUid =
+        sections.find((section) => section.uid === activeSectionUid)?.uid ||
+        sections[0]?.uid ||
+        "";
+
+    useEffect(() => {
+        if (value.isLoading) return;
+        const firstSectionUid = sections[0]?.uid || "";
+        if (!firstSectionUid) {
+            if (activeSectionUid) setActiveSectionUid("");
+            return;
+        }
+        if (!sections.some((section) => section.uid === activeSectionUid)) {
+            setActiveSectionUid(firstSectionUid);
+        }
+    }, [activeSectionUid, sections, value.isLoading]);
 
     return (
-        <Form {...value.form}>
-            <Context.Provider value={value}>
-                <Modal.Content size="lg" className="overflow-hidden">
-                    <Modal.Header
-                        title="Form Step Sequence"
-                        subtitle="Configure invoice steps and default sales settings."
-                    />
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="flex max-h-[88dvh] w-[calc(100vw-1rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0">
+                <DialogHeader className="border-b px-6 py-4">
+                    <DialogTitle>Form Step Sequence</DialogTitle>
+                    <DialogDescription>
+                        Configure invoice steps and default sales settings.
+                    </DialogDescription>
+                </DialogHeader>
 
+                <Form {...value.form}>
+                    <Context.Provider value={value}>
                     <Tabs
                         value={tab}
                         onValueChange={setTab}
-                        className="min-h-0"
+                        className="flex min-h-0 flex-1 flex-col"
                     >
                         <div className="border-b px-6 pb-4">
                             <TabsList className="grid w-full max-w-md grid-cols-2">
@@ -664,36 +701,74 @@ export function NewSalesFormSettingsModal() {
                             </TabsList>
                         </div>
 
-                        <TabsContent value="invoice-steps" className="mt-0">
-                            <ScrollArea className="-mx-6 h-[62vh] px-6">
+                        <TabsContent
+                            value="invoice-steps"
+                            className="mt-0 min-h-0 flex-1"
+                        >
+                            <ScrollArea className="h-[62vh] px-6">
                                 <div className="flex flex-col gap-4 pb-6">
                                     {value.isLoading ? (
                                         <div className="rounded-lg border bg-muted/20 p-6 text-sm text-muted-foreground">
                                             Loading step settings...
                                         </div>
-                                    ) : (
-                                        <Accordion
-                                            type="single"
-                                            collapsible
-                                            className="space-y-2"
+                                    ) : sections.length ? (
+                                        <Tabs
+                                            value={currentSectionUid}
+                                            onValueChange={setActiveSectionUid}
+                                            className="flex flex-col gap-3"
                                         >
-                                            {value.sectionArray.fields.map(
-                                                (field: any) => (
+                                            <div className="overflow-x-auto pb-1">
+                                                <TabsList className="inline-flex min-w-max justify-start">
+                                                    {sections.map((section) => {
+                                                        const label =
+                                                            value
+                                                                .rootComponentsByUid?.[
+                                                                section.uid
+                                                            ]?.title ??
+                                                            section.uid;
+                                                        return (
+                                                            <TabsTrigger
+                                                                key={section._id}
+                                                                value={section.uid}
+                                                                className="max-w-44 justify-start"
+                                                            >
+                                                                <span className="truncate uppercase">
+                                                                    {String(
+                                                                        label,
+                                                                    )}
+                                                                </span>
+                                                            </TabsTrigger>
+                                                        );
+                                                    })}
+                                                </TabsList>
+                                            </div>
+
+                                            {currentSectionUid ? (
+                                                <TabsContent
+                                                    value={currentSectionUid}
+                                                    className="mt-0"
+                                                >
                                                     <RouteSection
-                                                        key={field._id}
-                                                        uid={field.uid}
+                                                        uid={currentSectionUid}
                                                     />
-                                                ),
-                                            )}
-                                        </Accordion>
+                                                </TabsContent>
+                                            ) : null}
+                                        </Tabs>
+                                    ) : (
+                                        <div className="rounded-lg border bg-muted/20 p-6 text-sm text-muted-foreground">
+                                            No invoice sections configured.
+                                        </div>
                                     )}
                                 </div>
                             </ScrollArea>
                         </TabsContent>
 
-                        <TabsContent value="settings" className="mt-0">
-                            <ScrollArea className="-mx-6 h-[62vh] px-6">
-                                <div className="space-y-4 pb-6">
+                        <TabsContent
+                            value="settings"
+                            className="mt-0 min-h-0 flex-1"
+                        >
+                            <ScrollArea className="h-[62vh] px-6">
+                                <div className="flex flex-col gap-4 pb-6">
                                     <div className="rounded-xl border bg-card p-4 shadow-sm">
                                         <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
                                             Sales Defaults
@@ -765,8 +840,8 @@ export function NewSalesFormSettingsModal() {
                         </TabsContent>
                     </Tabs>
 
-                    <div className="border-t bg-background p-4">
-                        <Modal.Footer onSubmit={value.save} submitText="Save">
+                    <DialogFooter className="border-t bg-background p-4 sm:justify-between">
+                        <div>
                             {tab === "invoice-steps" ? (
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -784,16 +859,19 @@ export function NewSalesFormSettingsModal() {
                                         {rootProducts.map((stepProd) => (
                                             <DropdownMenuItem
                                                 key={stepProd.uid}
-                                                disabled={value.sectionArray.fields.some(
-                                                    (section: any) =>
+                                                disabled={sections.some(
+                                                    (section) =>
                                                         section.uid ===
                                                         stepProd.uid,
                                                 )}
-                                                onClick={() =>
+                                                onClick={() => {
                                                     value.createSection(
                                                         stepProd.uid,
-                                                    )
-                                                }
+                                                    );
+                                                    setActiveSectionUid(
+                                                        stepProd.uid,
+                                                    );
+                                                }}
                                                 className="uppercase"
                                             >
                                                 {String(
@@ -804,11 +882,28 @@ export function NewSalesFormSettingsModal() {
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             ) : null}
-                        </Modal.Footer>
-                    </div>
-                </Modal.Content>
-            </Context.Provider>
-        </Form>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => onOpenChange(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="button"
+                                disabled={value.saveSetting.isPending}
+                                onClick={() => void value.save()}
+                            >
+                                Save
+                            </Button>
+                        </div>
+                    </DialogFooter>
+                    </Context.Provider>
+                </Form>
+            </DialogContent>
+        </Dialog>
     );
 }
 

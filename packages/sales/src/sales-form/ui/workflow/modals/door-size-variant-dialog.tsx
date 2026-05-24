@@ -117,15 +117,15 @@ export function DoorSizeVariantDialog(props: DoorSizeVariantDialogProps) {
 
 	return (
 		<Dialog open={props.open} onOpenChange={props.onOpenChange}>
-			<DialogContent className="max-w-5xl overflow-hidden p-0">
-				<div className="bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.16),transparent_45%),linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)]">
-					<DialogHeader className="border-b border-slate-200 px-6 py-5">
+			<DialogContent className="flex w-[92vw] max-w-[680px] flex-col overflow-hidden p-0">
+				<div className="flex min-h-0 flex-1 flex-col bg-[radial-gradient(circle_at_top_right,rgba(14,165,233,0.16),transparent_45%),linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)]">
+					<DialogHeader className="shrink-0 border-b border-slate-200 px-6 py-5">
 						<DialogTitle>Door Size Variant</DialogTitle>
 						<DialogDescription>
 							Control which widths are available for each door-height path.
 						</DialogDescription>
 					</DialogHeader>
-					<div className="max-h-[70vh] space-y-4 overflow-y-auto px-6 py-5">
+					<div className="max-h-[42dvh] min-h-0 space-y-4 overflow-y-scroll overscroll-contain px-6 py-5 sm:max-h-[24rem]">
 						{!groups.length ? (
 							<div className="rounded-2xl border border-dashed border-slate-300 bg-white/80 p-8 text-center text-sm text-slate-500">
 								No variant rules yet. Add a group to define which widths should
@@ -452,7 +452,7 @@ export function DoorSizeVariantDialog(props: DoorSizeVariantDialogProps) {
 							))
 						)}
 					</div>
-					<DialogFooter className="border-t border-slate-200 px-6 py-4">
+					<DialogFooter className="shrink-0 border-t border-slate-200 px-6 py-4">
 						<Button
 							type="button"
 							variant="outline"
